@@ -3,9 +3,11 @@ import type {
   AgClosedEventType,
   AgReduceResult,
   AgMessage,
+  AgBlock,
   AgArtifact,
   AgMemoryRecord,
   AgTurnRecord,
+  AgProviderMeta,
   JsonValue,
 } from "./agjson.js";
 
@@ -18,7 +20,27 @@ import type {
 // R1: lifecycle handlers (turn.start / message.start / message.end /
 //     subagent.start / subagent.done / step.start / step.done) +
 //     (turnId, candidateIndex) partition helper.
+//
+// R2: text + reasoning blocks (APPEND deltas, REPLACE opaque, seeded required
+//     fields, byte-order via #blockPos).
 // ─────────────────────────────────────────────────────────────────────────────
+
+// ── providerMetadata merge helpers ────────────────────────────────────────────
+
+/**
+ * Merge `incoming` providerMetadata into `existing` (REPLACE-by-key).
+ * Returns the merged record, or `incoming` if `existing` is undefined.
+ * Returns `undefined` if both are undefined.
+ */
+function mergeProviderMeta(
+  existing: AgProviderMeta | undefined,
+  incoming: AgProviderMeta | undefined,
+): AgProviderMeta | undefined {
+  if (incoming === undefined) return existing;
+  if (existing === undefined) return incoming;
+  return { ...existing, ...incoming } as AgProviderMeta;
+}
+
 
 /**
  * Build the partition key for the open-message map.
@@ -81,7 +103,9 @@ export class Reducer {
 
   /**
    * Feed a single normalized AgEvent into the fold.
-   * R1: lifecycle handlers (turn/message/subagent/step); R2–R10 fill content.
+   * R1: lifecycle handlers (turn/message/subagent/step).
+   * R2: text + reasoning blocks (APPEND deltas, REPLACE opaque).
+   * R3–R10 fill remaining content types.
    */
   push(ev: AgEvent): void {
     // Ext events (`ext.<vendor>.<key>`) are live-only / non-folding (§4/§12).
@@ -173,7 +197,120 @@ export class Reducer {
         break;
       }
 
-      // All other event types are handled by later tasks (R2–R10).
+      // ── TEXT blocks ───────────────────────────────────────────────────────────
+      case "text.start": {
+        const msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
+        if (msg === undefined) break;
+        const block: AgBlock = {
+          type: "text",
+          text: "", // REQUIRED field — mid-stream result() before any delta must parse
+          ...(ev.providerMetadata !== undefined ? { providerMetadata: ev.providerMetadata } : {}),
+          ...(ev._meta !== undefined ? { _meta: ev._meta } : {}),
+        };
+        const index = msg.content.length;
+        msg.content.push(block);
+        this.#blockPos.set(ev.id, { messageId: msg.id, index });
+        break;
+      }
+
+      case "text.delta": {
+        const pos = this.#blockPos.get(ev.id);
+        if (pos === undefined) break;
+        const msg = this.#messages.get(pos.messageId);
+        if (msg === undefined) break;
+        const block = msg.content[pos.index];
+        if (block === undefined || block.type !== "text") break;
+        block.text += ev.delta;
+        block.providerMetadata = mergeProviderMeta(block.providerMetadata, ev.providerMetadata);
+        break;
+      }
+
+      case "text.end": {
+        const pos = this.#blockPos.get(ev.id);
+        if (pos === undefined) break;
+        const msg = this.#messages.get(pos.messageId);
+        if (msg === undefined) break;
+        const block = msg.content[pos.index];
+        if (block === undefined || block.type !== "text") break;
+        block.providerMetadata = mergeProviderMeta(block.providerMetadata, ev.providerMetadata);
+        break;
+      }
+
+      // ── REASONING blocks ──────────────────────────────────────────────────────
+      case "reasoning.start": {
+        const msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
+        if (msg === undefined) break;
+        const block: AgBlock = {
+          type: "reasoning",
+          text: "", // seeded — mid-stream result() before any delta must parse
+          ...(ev.providerMetadata !== undefined ? { providerMetadata: ev.providerMetadata } : {}),
+          ...(ev._meta !== undefined ? { _meta: ev._meta } : {}),
+          ...(ev.itemId !== undefined ? { itemId: ev.itemId } : {}),
+        };
+        const index = msg.content.length;
+        msg.content.push(block);
+        this.#blockPos.set(ev.id, { messageId: msg.id, index });
+        break;
+      }
+
+      case "reasoning.delta": {
+        const pos = this.#blockPos.get(ev.id);
+        if (pos === undefined) break;
+        const msg = this.#messages.get(pos.messageId);
+        if (msg === undefined) break;
+        const block = msg.content[pos.index];
+        if (block === undefined || block.type !== "reasoning") break;
+        // APPEND delta to text (in-order concat of parts)
+        block.text = (block.text ?? "") + ev.delta;
+        block.providerMetadata = mergeProviderMeta(block.providerMetadata, ev.providerMetadata);
+        break;
+      }
+
+      case "reasoning.end": {
+        const pos = this.#blockPos.get(ev.id);
+        if (pos === undefined) break;
+        const msg = this.#messages.get(pos.messageId);
+        if (msg === undefined) break;
+        const block = msg.content[pos.index];
+        if (block === undefined || block.type !== "reasoning") break;
+        block.providerMetadata = mergeProviderMeta(block.providerMetadata, ev.providerMetadata);
+        if (ev.provider !== undefined) {
+          block.provider = ev.provider;
+        }
+        break;
+      }
+
+      case "reasoning.opaque.delta": {
+        // APPEND to per-id opaque scratch buffer (sealed by the following reasoning.opaque).
+        const existing = this.#opaque.get(ev.id) ?? "";
+        this.#opaque.set(ev.id, existing + ev.delta);
+        break;
+      }
+
+      case "reasoning.opaque": {
+        // REPLACE: set opaque on the reasoning block named by id (replay-load-bearing).
+        const pos = this.#blockPos.get(ev.id);
+        if (pos === undefined) break;
+        const msg = this.#messages.get(pos.messageId);
+        if (msg === undefined) break;
+        const block = msg.content[pos.index];
+        if (block === undefined || block.type !== "reasoning") break;
+        // Use accumulated opaque scratch if present; otherwise use ev.value directly.
+        const value = this.#opaque.has(ev.id) ? (this.#opaque.get(ev.id) ?? ev.value) : ev.value;
+        block.opaque = {
+          kind: ev.kind,
+          value,
+          ...(ev.provider !== undefined ? { provider: ev.provider } : {}),
+        };
+        // Clear the scratch buffer now that it's been sealed.
+        this.#opaque.delete(ev.id);
+        if (ev.itemId !== undefined) {
+          block.itemId = ev.itemId;
+        }
+        break;
+      }
+
+      // All other event types are handled by later tasks (R3–R10).
       default:
         break;
     }
