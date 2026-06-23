@@ -632,6 +632,74 @@ export class Reducer {
         break;
       }
 
+      // ── SHARED STATE side-channel (R8) ───────────────────────────────────────
+
+      case "state.snapshot": {
+        // REPLACE #state wholesale with the incoming snapshot value.
+        // Also clears #resync if set — state.snapshot is one of the two valid
+        // resync-recovery paths (the R9 park-gate will route it here while parked).
+        this.#state = ev.snapshot;
+        this.#resync = false;
+        break;
+      }
+
+      case "state.delta": {
+        // Apply patch to #state using a tightened discriminator:
+        //
+        //   Array.isArray(patch)                 → RFC-6902 via applyPatch (R6)
+        //   typeof patch === "object" && != null  → LangGraph node-keyed last-writer-wins merge
+        //   else (scalar / null)                  → explicit no-op
+        //     (documented: a future third source may extend this discriminator;
+        //      scalars are NOT an error and must NOT set #resync)
+        const patch = ev.patch;
+        if (Array.isArray(patch)) {
+          // RFC-6902 path: requires an existing document to patch against.
+          if (this.#state === undefined) {
+            // No document to apply the patch to — signal resync (same semantics
+            // as memory.write patch against a never-seeded record).
+            this.#resync = true;
+            break;
+          }
+          const result = applyPatch(this.#state, patch);
+          if (!result.ok) {
+            // applyPatch failed — signal resync; leave #state unchanged.
+            this.#resync = true;
+            break;
+          }
+          this.#state = result.value;
+        } else if (typeof patch === "object" && patch !== null) {
+          // LangGraph node-keyed last-writer-wins merge:
+          //   patch = { nodeKey: { key: value, ... }, ... }
+          // For each top-level node key, shallow-merge its sub-object into #state[node].
+          // Creates #state as {} if undefined; creates the node sub-object if absent.
+          const base: { [k: string]: JsonValue } =
+            this.#state !== undefined && typeof this.#state === "object" && !Array.isArray(this.#state)
+              ? { ...this.#state }
+              : {};
+          for (const nodeKey of Object.keys(patch)) {
+            const nodeUpdate = patch[nodeKey];
+            if (typeof nodeUpdate === "object" && nodeUpdate !== null && !Array.isArray(nodeUpdate)) {
+              // Shallow-merge the node's key-value pairs into base[nodeKey].
+              const existing = base[nodeKey];
+              const existingObj: { [k: string]: JsonValue } =
+                typeof existing === "object" && existing !== null && !Array.isArray(existing)
+                  ? { ...(existing as { [k: string]: JsonValue }) }
+                  : {};
+              base[nodeKey] = { ...existingObj, ...(nodeUpdate as { [k: string]: JsonValue }) };
+            } else {
+              // Non-object node value: replace the node entry wholesale.
+              if (nodeUpdate !== undefined) {
+                base[nodeKey] = nodeUpdate;
+              }
+            }
+          }
+          this.#state = base;
+        }
+        // else: scalar or null patch — explicit no-op. A future third source may
+        // extend this discriminator deliberately; do NOT crash or set #resync.
+        break;
+      }
+
       // ── MEMORY side-channel (R7) ──────────────────────────────────────────────
       case "memory.write": {
         // Memory records are keyed by `${scope}${key ?? ""}`.

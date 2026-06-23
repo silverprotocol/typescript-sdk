@@ -1183,3 +1183,147 @@ describe("reduce — R7 artifact + memory side-channels", () => {
     expect(rec?.value).toBe("not-an-object");
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// R8 — shared-state: state.snapshot REPLACE + state.delta (RFC-6902 / LangGraph)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("reduce — R8 shared-state snapshot + delta", () => {
+  // (a) state.snapshot → #state is REPLACED wholesale
+  it("(a) state.snapshot{snapshot:{a:1}} → result.state is {a:1}", () => {
+    const r = reduce([
+      { type: "state.snapshot", seq: 0, snapshot: { a: 1 } },
+    ]);
+    expect(r.state).toEqual({ a: 1 });
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (a2) state.snapshot clears #resync when it was set
+  it("(a2) state.snapshot clears needsResync", () => {
+    const acc = new Reducer();
+    // Trigger resync via a patch against a never-seeded state
+    acc.push({
+      type: "state.delta",
+      seq: 0,
+      patch: [{ op: "add", path: "/x", value: 1 }],
+    });
+    expect(acc.needsResync).toBe(true);
+    // Now deliver a snapshot — should clear resync
+    acc.push({ type: "state.snapshot", seq: 1, snapshot: { recovered: true } });
+    expect(acc.needsResync).toBe(false);
+    const r = acc.result();
+    expect(r.state).toEqual({ recovered: true });
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (b) state.delta RFC-6902 (array patch) after a snapshot → mutates via applyPatch
+  it("(b) state.delta RFC-6902 [{op:'add',path:'/b',value:2}] after snapshot {a:1} → state {a:1,b:2}", () => {
+    const acc = new Reducer();
+    acc.push({ type: "state.snapshot", seq: 0, snapshot: { a: 1 } });
+    acc.push({
+      type: "state.delta",
+      seq: 1,
+      patch: [{ op: "add", path: "/b", value: 2 }],
+    });
+    const r = acc.result();
+    expect(r.state).toEqual({ a: 1, b: 2 });
+    expect(acc.needsResync).toBe(false);
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (b2) state.delta RFC-6902 against undefined #state → needsResync set
+  it("(b2) state.delta RFC-6902 with no prior snapshot → needsResync set, state absent", () => {
+    const acc = new Reducer();
+    acc.push({
+      type: "state.delta",
+      seq: 0,
+      patch: [{ op: "add", path: "/x", value: 1 }],
+    });
+    expect(acc.needsResync).toBe(true);
+    const r = acc.result();
+    // #state was never set, so state key must be absent
+    expect("state" in r).toBe(false);
+  });
+
+  // (b3) state.delta RFC-6902 where applyPatch returns ok:false → needsResync set, state unchanged
+  it("(b3) state.delta RFC-6902 that fails applyPatch → needsResync set, state unchanged", () => {
+    const acc = new Reducer();
+    acc.push({ type: "state.snapshot", seq: 0, snapshot: { x: 0 } });
+    // replace /nonexistent fails on a non-existent path
+    acc.push({
+      type: "state.delta",
+      seq: 1,
+      patch: [{ op: "replace", path: "/nonexistent", value: 99 }],
+    });
+    expect(acc.needsResync).toBe(true);
+    const r = acc.result();
+    // State must be the last-known-good value
+    expect(r.state).toEqual({ x: 0 });
+  });
+
+  // (c) state.delta LangGraph {nodeX:{k:"v"}} → node-keyed merge into state.nodeX
+  it("(c) state.delta LangGraph {nodeX:{k:'v'}} → shallow-merged into state.nodeX", () => {
+    const acc = new Reducer();
+    // Seed initial state
+    acc.push({ type: "state.snapshot", seq: 0, snapshot: { nodeX: { existing: "yes" } } });
+    // Merge a new key into nodeX (should not remove existing)
+    acc.push({
+      type: "state.delta",
+      seq: 1,
+      patch: { nodeX: { k: "v" } },
+    });
+    const r = acc.result();
+    expect(r.state).toEqual({ nodeX: { existing: "yes", k: "v" } });
+    expect(acc.needsResync).toBe(false);
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (c2) state.delta LangGraph with no prior state → creates state from scratch
+  it("(c2) state.delta LangGraph with no prior state → creates {nodeX:{k:'v'}}", () => {
+    const r = reduce([
+      { type: "state.delta", seq: 0, patch: { nodeX: { k: "v" } } },
+    ]);
+    expect(r.state).toEqual({ nodeX: { k: "v" } });
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (d) scalar state.delta.patch (e.g. patch: 5) → no-op (state unchanged, no resync)
+  it("(d) scalar state.delta.patch (patch: 5) → no-op, state unchanged, needsResync false", () => {
+    const acc = new Reducer();
+    acc.push({ type: "state.snapshot", seq: 0, snapshot: { keep: true } });
+    acc.push({ type: "state.delta", seq: 1, patch: 5 });
+    expect(acc.needsResync).toBe(false);
+    const r = acc.result();
+    expect(r.state).toEqual({ keep: true });
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (d2) null state.delta.patch → also a no-op (documented; null falls into scalar branch)
+  it("(d2) null state.delta.patch → no-op, state unchanged, needsResync false", () => {
+    const acc = new Reducer();
+    acc.push({ type: "state.snapshot", seq: 0, snapshot: { keep: true } });
+    acc.push({ type: "state.delta", seq: 1, patch: null });
+    expect(acc.needsResync).toBe(false);
+    const r = acc.result();
+    expect(r.state).toEqual({ keep: true });
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (e) state OMITTED from result when no state event seen (R0 exact-equality contract)
+  it("(e) state key OMITTED from result when no state event was pushed", () => {
+    const r = reduce([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      {
+        type: "message.start",
+        seq: 1,
+        id: "m1",
+        role: "assistant",
+        turnId: "t1",
+        threadId: "th1",
+      },
+    ]);
+    // R0 contract: state key must be absent (not undefined, not null — absent)
+    expect("state" in r).toBe(false);
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+});
