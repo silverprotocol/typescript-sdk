@@ -534,6 +534,20 @@ export const AgDisplayRequired = z.object({
 });
 export type AgDisplayRequired = z.infer<typeof AgDisplayRequired>;
 
+// Agent→client capabilities (spec §3 / §6 / §11.5) — the in-band other half of
+// negotiation, an A2A AgentCard-compatible superset advertised on the first turn
+// (carrier: the `agent.capabilities` event, §4). Defined here (before AgTurnRecord)
+// so AgTurnRecord can reference it without z.lazy().
+export const AgCapabilities = z.object({
+  streaming: z.object({ partialMessages: z.boolean().optional() }).optional(),
+  pushNotifications: z.boolean().optional(),
+  securitySchemes: z.array(AgAuthConfig).optional(),
+  extensions: z.array(z.string()).optional(), // foreign A2A active-extension URIs
+  uiCatalogs: z.array(z.string()).optional(),
+  profile: z.enum(["CORE", "EXTENDED", "ADVANCED"]).optional(),
+});
+export type AgCapabilities = z.infer<typeof AgCapabilities>;
+
 // Per-turn folded record (spec §2): paused asks, prompt.blocked safety, handoffs,
 // sources, lifecycle state. Part of AgReduceResult; restorable on snapshot resync (§5).
 export const AgTurnRecord = z.object({
@@ -558,6 +572,7 @@ export const AgTurnRecord = z.object({
     guardrailName: z.string().optional(),
     safety: z.array(AgSafety).optional(),
   })).optional(), // guardrail evaluations folded from guardrail.result events (A2-additive)
+  capabilities: AgCapabilities.optional(), // agent's AgCapabilities folded from agent.capabilities (first-turn negotiation; spec §5)
 });
 export type AgTurnRecord = z.infer<typeof AgTurnRecord>;
 
@@ -617,19 +632,6 @@ export const AgClientCapabilities = z.object({
   state: z.object({ jsonPatch: z.boolean().optional() }).optional(),
 });
 export type AgClientCapabilities = z.infer<typeof AgClientCapabilities>;
-
-// Agent→client capabilities (spec §3 / §6 / §11.5) — the in-band other half of
-// negotiation, an A2A AgentCard-compatible superset advertised on the first turn
-// (carrier: the `agent.capabilities` event, §4).
-export const AgCapabilities = z.object({
-  streaming: z.object({ partialMessages: z.boolean().optional() }).optional(),
-  pushNotifications: z.boolean().optional(),
-  securitySchemes: z.array(AgAuthConfig).optional(),
-  extensions: z.array(z.string()).optional(), // foreign A2A active-extension URIs
-  uiCatalogs: z.array(z.string()).optional(),
-  profile: z.enum(["CORE", "EXTENDED", "ADVANCED"]).optional(),
-});
-export type AgCapabilities = z.infer<typeof AgCapabilities>;
 
 // ─── INPUT (spec §3) ─────────────────────────────────────────────────────────
 

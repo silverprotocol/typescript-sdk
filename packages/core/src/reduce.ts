@@ -8,6 +8,8 @@ import type {
   AgMemoryRecord,
   AgTurnRecord,
   AgProviderMeta,
+  AgHandoffRecord,
+  AgDisplayRequired,
   JsonValue,
 } from "./agjson.js";
 
@@ -469,7 +471,124 @@ export class Reducer {
         break;
       }
 
-      // All other event types are handled by later tasks (R5–R10).
+      // ── TURN-RECORD events (R5) ───────────────────────────────────────────────
+
+      case "turn.done": {
+        const turn = this.ensureTurn(ev.turnId);
+        turn.finishReason = ev.finishReason;
+        // Usage is recorded VERBATIM — NO de-cumulation (spec §8.4; normalizer duty).
+        if (ev.usage !== undefined) turn.usage = ev.usage;
+        if (ev.safety !== undefined) turn.safety = ev.safety;
+        if (ev.taskState !== undefined) turn.taskState = ev.taskState;
+        turn.outcome = ev.outcome;
+        // If outcome is paused, record the asks at the top-level asks[] too.
+        if (ev.outcome.type === "paused") {
+          turn.asks = ev.outcome.asks;
+        }
+        // messageMetadata: REPLACE-merge onto the open message of this turn.
+        if (ev.messageMetadata !== undefined) {
+          const msg = this.openMessage(ev.turnId, 0);
+          if (msg !== undefined) {
+            msg.messageMetadata = ev.messageMetadata;
+          }
+        }
+        break;
+      }
+
+      case "turn.error": {
+        // Non-folding into content; sets outcome={type:"error",...} on the turn record.
+        const turn = this.ensureTurn(ev.turnId);
+        turn.outcome = {
+          type: "error",
+          message: ev.message,
+          ...(ev.code !== undefined ? { code: ev.code } : {}),
+        };
+        break;
+      }
+
+      case "turn.abort": {
+        // Non-folding into content; sets taskState="aborted" on the turn record.
+        const turn = this.ensureTurn(ev.turnId);
+        turn.taskState = "aborted";
+        break;
+      }
+
+      case "source": {
+        // Append sourceId to the turn's sourceIds[] in order (preserve groundingChunks order).
+        const turn = this.ensureTurn(ev.turnId);
+        if (turn.sourceIds === undefined) {
+          turn.sourceIds = [];
+        }
+        turn.sourceIds.push(ev.sourceId);
+        break;
+      }
+
+      case "handoff": {
+        // Push an AgHandoffRecord onto the turn's handoffs[].
+        const turn = this.ensureTurn(ev.turnId);
+        if (turn.handoffs === undefined) {
+          turn.handoffs = [];
+        }
+        const record: AgHandoffRecord = {
+          ...(ev.kind !== undefined ? { kind: ev.kind } : {}),
+          ...(ev.fromAgentId !== undefined ? { fromAgentId: ev.fromAgentId } : {}),
+          ...(ev.toAgentId !== undefined ? { toAgentId: ev.toAgentId } : {}),
+          ...(ev.toAgentName !== undefined ? { toAgentName: ev.toAgentName } : {}),
+        };
+        turn.handoffs.push(record);
+        break;
+      }
+
+      case "prompt.blocked": {
+        // Record safety[] on the turn (merge — append to existing safety, or create).
+        const turn = this.ensureTurn(ev.turnId);
+        if (ev.safety !== undefined) {
+          if (turn.safety === undefined) {
+            turn.safety = [...ev.safety];
+          } else {
+            turn.safety = [...turn.safety, ...ev.safety];
+          }
+        }
+        break;
+      }
+
+      case "guardrail.result": {
+        // Push a guardrail evaluation record onto the turn's guardrails[].
+        const turn = this.ensureTurn(ev.turnId);
+        if (turn.guardrails === undefined) {
+          turn.guardrails = [];
+        }
+        turn.guardrails.push({
+          target: ev.target,
+          passed: ev.passed,
+          ...(ev.action !== undefined ? { action: ev.action } : {}),
+          ...(ev.reason !== undefined ? { reason: ev.reason } : {}),
+          ...(ev.guardrailName !== undefined ? { guardrailName: ev.guardrailName } : {}),
+          ...(ev.safety !== undefined ? { safety: ev.safety } : {}),
+        });
+        break;
+      }
+
+      case "display.required": {
+        // MUST NOT drop (ToS). Push {provider, html} onto turn's displayRequired[].
+        const turn = this.ensureTurn(ev.turnId);
+        if (turn.displayRequired === undefined) {
+          turn.displayRequired = [];
+        }
+        const entry: AgDisplayRequired = { provider: ev.provider, html: ev.html };
+        turn.displayRequired.push(entry);
+        break;
+      }
+
+      case "agent.capabilities": {
+        // SPEC §5: "Record the agent's AgCapabilities on the turn (first-turn negotiation)."
+        // Fold ev.capabilities onto the AgTurnRecord for the owning turn.
+        const turn = this.ensureTurn(ev.turnId);
+        turn.capabilities = ev.capabilities;
+        break;
+      }
+
+      // All other event types are handled by later tasks (R6–R10).
       default:
         break;
     }
@@ -512,6 +631,31 @@ export class Reducer {
       }
     }
     return undefined;
+  }
+
+  /**
+   * Defensive turn lookup: get an existing `AgTurnRecord` by turnId, or create a
+   * minimal stub if the record-on-turn event arrives before its `turn.start`.
+   *
+   * Record-on-turn events (turn.done, turn.error, turn.abort, source, handoff,
+   * prompt.blocked, guardrail.result, display.required) all carry `turnId` (optional
+   * in the base schema). When turnId is undefined, fall back to the sole open turn
+   * (single-turn-stream default). If still ambiguous, create a fallback record keyed
+   * on "unknown-turn" — the stub will be visible in turns[] but can be reconciled on
+   * a subsequent messages.snapshot resync.
+   *
+   * AgTurnRecord requires `threadId`; when creating a defensive stub we use the
+   * turnId itself as a placeholder (no threadId is available without turn.start).
+   */
+  ensureTurn(turnId: string | undefined): AgTurnRecord {
+    const resolved = this.#resolveTurnId(turnId) ?? turnId;
+    const key = resolved ?? "unknown-turn";
+    const existing = this.#turns.get(key);
+    if (existing !== undefined) return existing;
+    // Defensive stub: threadId is required on AgTurnRecord; use key as placeholder.
+    const stub: AgTurnRecord = { turnId: key, threadId: key };
+    this.#turns.set(key, stub);
+    return stub;
   }
 
   /**

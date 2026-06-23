@@ -783,6 +783,20 @@ describe("ADVANCED helper types", () => {
     expect(() => AgCapabilities.parse({ profile: "MEGA" })).toThrow();
   });
 
+  it("AgTurnRecord round-trips the capabilities field (spec §5 agent.capabilities fold)", () => {
+    const caps: AgCapabilities = {
+      streaming: { partialMessages: true },
+      profile: "ADVANCED",
+    };
+    const t = AgTurnRecord.parse({
+      turnId: "t1",
+      threadId: "th1",
+      capabilities: caps,
+    });
+    expect(t.capabilities).toEqual(caps);
+    expect(t.capabilities?.profile).toBe("ADVANCED");
+  });
+
   it("AgClientCapabilities parses the client→agent payload", () => {
     const c = AgClientCapabilities.parse({
       frontendTools: [{ name: "calc", description: "adds", inputSchema: { type: "object" } }],

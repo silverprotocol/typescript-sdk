@@ -717,3 +717,267 @@ describe("reduce — R4 content.block + message.metadata", () => {
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// R5 — turn-records: turn.done / turn.error / turn.abort / source / handoff /
+//      prompt.blocked / guardrail.result / display.required / agent.capabilities
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("reduce — R5 turn-records", () => {
+  // (a) turn.done: finishReason + usage (VERBATIM, cumulative flag preserved) +
+  //     safety + outcome:paused → asks recorded
+  it("(a) turn.done sets finishReason/usage(verbatim)/safety/outcome; paused → asks[]", () => {
+    const r = reduce([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      {
+        type: "turn.done",
+        seq: 1,
+        turnId: "t1",
+        finishReason: "paused",
+        usage: { inputTokens: 100, outputTokens: 50, cumulative: true },
+        safety: [{ category: "harm", score: 0.1 }],
+        outcome: {
+          type: "paused",
+          asks: [
+            { askId: "ask1", kind: "approval", message: "Approve?" },
+          ],
+        },
+      },
+    ]);
+    expect(r.turns).toHaveLength(1);
+    const turn = r.turns[0];
+    expect(turn?.finishReason).toBe("paused");
+    // usage must be VERBATIM — cumulative flag preserved, NOT de-cumulated
+    expect(turn?.usage).toEqual({ inputTokens: 100, outputTokens: 50, cumulative: true });
+    expect(turn?.safety).toHaveLength(1);
+    expect(turn?.safety?.[0]?.category).toBe("harm");
+    expect(turn?.outcome?.type).toBe("paused");
+    if (turn?.outcome?.type === "paused") {
+      expect(turn.outcome.asks).toHaveLength(1);
+      expect(turn.outcome.asks[0]?.askId).toBe("ask1");
+    }
+    // asks[] also recorded at top level for paused
+    expect(turn?.asks).toHaveLength(1);
+    expect(turn?.asks?.[0]?.askId).toBe("ask1");
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (a2) turn.done with finishReason:"pause_turn" (checkpoint) — NO asks synthesized
+  it("(a2) turn.done finishReason:pause_turn = checkpoint — asks[] NOT synthesized", () => {
+    const r = reduce([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      {
+        type: "turn.done",
+        seq: 1,
+        turnId: "t1",
+        finishReason: "pause_turn",
+        outcome: { type: "success" },
+      },
+    ]);
+    const turn = r.turns[0];
+    expect(turn?.finishReason).toBe("pause_turn");
+    // No asks synthesized for pause_turn
+    expect(turn?.asks).toBeUndefined();
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (b) turn.error → AgTurnRecord.outcome = {type:"error", message, code?}
+  it("(b) turn.error folds outcome={type:'error',...} onto AgTurnRecord", () => {
+    const r = reduce([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      {
+        type: "turn.error",
+        seq: 1,
+        turnId: "t1",
+        message: "Something went wrong",
+        code: "ERR_UPSTREAM",
+      },
+    ]);
+    expect(r.turns).toHaveLength(1);
+    const turn = r.turns[0];
+    expect(turn?.outcome).toBeDefined();
+    expect(turn?.outcome?.type).toBe("error");
+    if (turn?.outcome?.type === "error") {
+      expect(turn.outcome.message).toBe("Something went wrong");
+      expect(turn.outcome.code).toBe("ERR_UPSTREAM");
+    }
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (b2) turn.error before turn.start → defensive ensureTurn creates the turn
+  it("(b2) turn.error before turn.start → defensive turn created with error outcome", () => {
+    const r = reduce([
+      {
+        type: "turn.error",
+        seq: 0,
+        turnId: "t-orphan",
+        message: "Pre-start error",
+      },
+    ]);
+    expect(r.turns).toHaveLength(1);
+    const turn = r.turns[0];
+    expect(turn?.turnId).toBe("t-orphan");
+    expect(turn?.outcome?.type).toBe("error");
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (c) turn.abort → AgTurnRecord.taskState = "aborted"
+  it("(c) turn.abort sets AgTurnRecord.taskState = 'aborted'", () => {
+    const r = reduce([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      { type: "turn.abort", seq: 1, turnId: "t1" },
+    ]);
+    expect(r.turns).toHaveLength(1);
+    const turn = r.turns[0];
+    expect(turn?.taskState).toBe("aborted");
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (d) source×2 → sourceIds[] in order (groundingChunks order preserved)
+  it("(d) two source events → sourceIds[] in arrival order", () => {
+    const r = reduce([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      {
+        type: "source",
+        seq: 1,
+        turnId: "t1",
+        sourceId: "src-A",
+        source: { url: "https://example.com/a", title: "A" },
+      },
+      {
+        type: "source",
+        seq: 2,
+        turnId: "t1",
+        sourceId: "src-B",
+        source: { url: "https://example.com/b", title: "B" },
+      },
+    ]);
+    expect(r.turns).toHaveLength(1);
+    const turn = r.turns[0];
+    expect(turn?.sourceIds).toEqual(["src-A", "src-B"]);
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (e) handoff → handoffs[] with kind/fromAgentId/toAgentId/toAgentName
+  it("(e) handoff event pushed onto turn handoffs[]", () => {
+    const r = reduce([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      {
+        type: "handoff",
+        seq: 1,
+        turnId: "t1",
+        kind: "transfer",
+        fromAgentId: "agentA",
+        toAgentId: "agentB",
+        toAgentName: "Agent B",
+      },
+    ]);
+    expect(r.turns).toHaveLength(1);
+    const turn = r.turns[0];
+    expect(turn?.handoffs).toHaveLength(1);
+    expect(turn?.handoffs?.[0]).toMatchObject({
+      kind: "transfer",
+      fromAgentId: "agentA",
+      toAgentId: "agentB",
+      toAgentName: "Agent B",
+    });
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (f) prompt.blocked → turn safety[] recorded
+  it("(f) prompt.blocked records safety[] on the turn", () => {
+    const r = reduce([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      {
+        type: "prompt.blocked",
+        seq: 1,
+        turnId: "t1",
+        reason: "safety",
+        safety: [{ category: "violence", score: 0.95, blocked: true }],
+      },
+    ]);
+    expect(r.turns).toHaveLength(1);
+    const turn = r.turns[0];
+    expect(turn?.safety).toHaveLength(1);
+    expect(turn?.safety?.[0]).toMatchObject({
+      category: "violence",
+      score: 0.95,
+      blocked: true,
+    });
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (g) guardrail.result → guardrails[] entry appended
+  it("(g) guardrail.result appends to AgTurnRecord.guardrails[]", () => {
+    const r = reduce([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      {
+        type: "guardrail.result",
+        seq: 1,
+        turnId: "t1",
+        target: "output",
+        passed: false,
+        action: "block",
+        reason: "hate speech detected",
+        guardrailName: "content-policy",
+        safety: [{ category: "hate", score: 0.99, blocked: true }],
+      },
+    ]);
+    expect(r.turns).toHaveLength(1);
+    const turn = r.turns[0];
+    expect(turn?.guardrails).toHaveLength(1);
+    expect(turn?.guardrails?.[0]).toMatchObject({
+      target: "output",
+      passed: false,
+      action: "block",
+      reason: "hate speech detected",
+      guardrailName: "content-policy",
+    });
+    expect(turn?.guardrails?.[0]?.safety).toHaveLength(1);
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (h) display.required → displayRequired[] entry (MUST NOT drop — ToS)
+  it("(h) display.required appends to AgTurnRecord.displayRequired[]", () => {
+    const r = reduce([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      {
+        type: "display.required",
+        seq: 1,
+        turnId: "t1",
+        provider: "google",
+        html: "<p>Grounded by Google</p>",
+      },
+    ]);
+    expect(r.turns).toHaveLength(1);
+    const turn = r.turns[0];
+    expect(turn?.displayRequired).toHaveLength(1);
+    expect(turn?.displayRequired?.[0]).toMatchObject({
+      provider: "google",
+      html: "<p>Grounded by Google</p>",
+    });
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (i) agent.capabilities → folded onto AgTurnRecord.capabilities (spec §5 first-turn negotiation)
+  it("(i) agent.capabilities folds onto AgTurnRecord.capabilities (no longer a no-op)", () => {
+    const r = reduce([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      {
+        type: "agent.capabilities",
+        seq: 1,
+        turnId: "t1",
+        capabilities: {
+          streaming: { partialMessages: true },
+          profile: "ADVANCED",
+        },
+      },
+    ]);
+    expect(r.turns).toHaveLength(1);
+    const turn = r.turns[0];
+    expect(turn?.capabilities).toBeDefined();
+    expect(turn?.capabilities?.profile).toBe("ADVANCED");
+    expect(turn?.capabilities?.streaming?.partialMessages).toBe(true);
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+});
