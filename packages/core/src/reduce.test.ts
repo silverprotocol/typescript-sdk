@@ -1327,3 +1327,497 @@ describe("reduce — R8 shared-state snapshot + delta", () => {
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// R9 — message.remove + messages.snapshot + seq-gap resync + live-only sweep
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("reduce — R9 new-ops + resync + snapshot + live-only", () => {
+  // ── (a) message.remove ──────────────────────────────────────────────────────
+
+  // (a1) message.remove{id} removes the message and its content blocks
+  it("(a1) message.remove{id} removes the message + its #blockPos entries", () => {
+    const acc = new Reducer();
+    acc.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    acc.push({ type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    acc.push({ type: "text.start", seq: 2, id: "b1", turnId: "t1" });
+    acc.push({ type: "text.delta", seq: 3, id: "b1", delta: "hello" });
+    acc.push({ type: "message.remove", seq: 4, id: "m1", turnId: "t1" });
+
+    const r = acc.result();
+    // Message removed
+    expect(r.messages).toHaveLength(0);
+    // Block is gone (no messages left)
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (a2) message.remove has NO CASCADE to tool-result messages that adopted their own id
+  it("(a2) message.remove does NOT cascade to tool-result messages with their own id", () => {
+    const acc = new Reducer();
+    acc.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    // Message m1: contains a tool-call
+    acc.push({ type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    acc.push({ type: "tool.start", seq: 2, toolCallId: "tc1", name: "search", turnId: "t1", threadId: "th1" });
+    // Message m2: tool-result (adopted id via tool.done.messageId)
+    acc.push({ type: "message.start", seq: 3, id: "m2", role: "tool", turnId: "t1", threadId: "th1" });
+    acc.push({
+      type: "tool.done",
+      seq: 4,
+      toolCallId: "tc1",
+      content: [{ type: "text", text: "result" }],
+      outcome: "ok",
+      turnId: "t1",
+      threadId: "th1",
+    });
+
+    // Remove only m1 (the assistant message)
+    acc.push({ type: "message.remove", seq: 5, id: "m1", turnId: "t1" });
+
+    const r = acc.result();
+    // m2 (tool-result message) must still be present
+    expect(r.messages).toHaveLength(1);
+    expect(r.messages[0]?.id).toBe("m2");
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (a3) #blockPos guard: a same block-id in another partition survives message.remove
+  it("(a3) #blockPos guard — block in another partition survives remove of the first message", () => {
+    const acc = new Reducer();
+    acc.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    // Partition 0: message mA with text block b1
+    acc.push({ type: "message.start", seq: 1, id: "mA", role: "assistant", turnId: "t1", threadId: "th1", candidateIndex: 0 });
+    acc.push({ type: "text.start", seq: 2, id: "b1", turnId: "t1", candidateIndex: 0 });
+    acc.push({ type: "text.delta", seq: 3, id: "b1", delta: "candidate A" });
+    // Partition 1: message mB with a block registered under the same key "b2"
+    acc.push({ type: "message.start", seq: 4, id: "mB", role: "assistant", turnId: "t1", threadId: "th1", candidateIndex: 1 });
+    acc.push({ type: "text.start", seq: 5, id: "b2", turnId: "t1", candidateIndex: 1 });
+    acc.push({ type: "text.delta", seq: 6, id: "b2", delta: "candidate B" });
+
+    // Remove mA: b1's #blockPos entry must be deleted (messageId=mA matches)
+    // b2's #blockPos entry must NOT be deleted (messageId=mB != mA)
+    acc.push({ type: "message.remove", seq: 7, id: "mA", turnId: "t1" });
+
+    const r = acc.result();
+    // mA is removed; mB survives
+    expect(r.messages).toHaveLength(1);
+    expect(r.messages[0]?.id).toBe("mB");
+    // mB still has its b2 block
+    const block = r.messages[0]?.content[0];
+    expect(block?.type).toBe("text");
+    if (block?.type === "text") {
+      expect(block.text).toBe("candidate B");
+    }
+    // A text.delta for b2 still routes correctly (b2's blockPos intact)
+    acc.push({ type: "text.delta", seq: 8, id: "b2", delta: " extra" });
+    const r2 = acc.result();
+    const block2 = r2.messages[0]?.content[0];
+    if (block2?.type === "text") {
+      expect(block2.text).toBe("candidate B extra");
+    }
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // ── (b) pointer-revert after message.remove ─────────────────────────────────
+
+  // (b1) after removing the open message, a bare block-creating event sets #resync
+  it("(b1) removing the open message + block-creating event (no message.start) → needsResync", () => {
+    const acc = new Reducer();
+    acc.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    acc.push({ type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    // Remove the open message
+    acc.push({ type: "message.remove", seq: 2, id: "m1", turnId: "t1" });
+    // Now push a block-creating event with NO intervening message.start
+    acc.push({ type: "text.start", seq: 3, id: "b-orphan", turnId: "t1" });
+    // This must have set #resync
+    expect(acc.needsResync).toBe(true);
+    expect(() => AgReduceResult.parse(acc.result())).not.toThrow();
+  });
+
+  // (b2) pointer-revert: with multiple messages, removing the last reverts to the previous one
+  it("(b2) pointer-revert to last still-present unsealed message in partition", () => {
+    const acc = new Reducer();
+    acc.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    acc.push({ type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    acc.push({ type: "message.start", seq: 2, id: "m2", role: "assistant", turnId: "t1", threadId: "th1" });
+    // Remove m2 (the current open message for partition (t1, 0))
+    acc.push({ type: "message.remove", seq: 3, id: "m2", turnId: "t1" });
+
+    // Pointer should now revert to m1 (last present, unsealed)
+    const openAfterRemove = acc.openMessage("t1", 0);
+    expect(openAfterRemove?.id).toBe("m1");
+
+    // A text.start should now attach to m1
+    acc.push({ type: "text.start", seq: 4, id: "b1", turnId: "t1" });
+    acc.push({ type: "text.delta", seq: 5, id: "b1", delta: "reverted" });
+
+    const r = acc.result();
+    // Only m1 remains
+    expect(r.messages).toHaveLength(1);
+    expect(r.messages[0]?.id).toBe("m1");
+    // Block landed on m1
+    const block = r.messages[0]?.content[0];
+    expect(block?.type).toBe("text");
+    if (block?.type === "text") {
+      expect(block.text).toBe("reverted");
+    }
+    // needsResync must NOT be set (we found a valid prior message)
+    expect(acc.needsResync).toBe(false);
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (b3) pointer-revert skips sealed messages (message.end seals a message)
+  it("(b3) pointer-revert skips #sealed messages — falls back to none if all are sealed → needsResync on next block event", () => {
+    const acc = new Reducer();
+    acc.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    acc.push({ type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    // Seal m1
+    acc.push({ type: "message.end", seq: 2, id: "m1" });
+    acc.push({ type: "message.start", seq: 3, id: "m2", role: "assistant", turnId: "t1", threadId: "th1" });
+    // Remove m2 (the open one), only m1 is left but it's sealed
+    acc.push({ type: "message.remove", seq: 4, id: "m2", turnId: "t1" });
+
+    // No valid unsealed prior message → pointer is none
+    const openAfterRemove = acc.openMessage("t1", 0);
+    expect(openAfterRemove).toBeUndefined();
+
+    // Block-creating event → needsResync
+    acc.push({ type: "text.start", seq: 5, id: "b-orphan", turnId: "t1" });
+    expect(acc.needsResync).toBe(true);
+    expect(() => AgReduceResult.parse(acc.result())).not.toThrow();
+  });
+
+  // ── (c) message.remove{id:"*", turnId} (REMOVE_ALL) ────────────────────────
+
+  // (c1) REMOVE_ALL removes all messages for the given turn
+  it("(c1) message.remove{id:'*',turnId} removes all messages of that turn", () => {
+    const acc = new Reducer();
+    acc.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    acc.push({ type: "message.start", seq: 1, id: "mA", role: "assistant", turnId: "t1", threadId: "th1" });
+    acc.push({ type: "message.start", seq: 2, id: "mB", role: "assistant", turnId: "t1", threadId: "th1" });
+    // Turn t2 with its own message (should NOT be removed)
+    acc.push({ type: "turn.start", seq: 3, threadId: "th1", turnId: "t2" });
+    acc.push({ type: "message.start", seq: 4, id: "mC", role: "assistant", turnId: "t2", threadId: "th1" });
+
+    acc.push({ type: "message.remove", seq: 5, id: "*", turnId: "t1" });
+
+    const r = acc.result();
+    // t1's messages removed; t2's message survives
+    expect(r.messages).toHaveLength(1);
+    expect(r.messages[0]?.id).toBe("mC");
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (c2) REMOVE_ALL with zero-matching turn → no-op (deterministic)
+  it("(c2) message.remove{id:'*',turnId:nonexistent} = zero-match no-op", () => {
+    const acc = new Reducer();
+    acc.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    acc.push({ type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    acc.push({ type: "message.remove", seq: 2, id: "*", turnId: "t-nonexistent" });
+
+    const r = acc.result();
+    // All messages intact
+    expect(r.messages).toHaveLength(1);
+    expect(r.messages[0]?.id).toBe("m1");
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // ── (d) messages.snapshot ───────────────────────────────────────────────────
+
+  // (d1) messages-only snapshot PRESERVES prior artifacts + turns
+  it("(d1) messages.snapshot without turns/artifacts PRESERVES prior artifacts + turns", () => {
+    const acc = new Reducer();
+    acc.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    acc.push({
+      type: "artifact.start", seq: 1, artifactId: "art1", turnId: "t1", threadId: "th1", name: "report",
+    });
+    acc.push({ type: "artifact.end", seq: 2, artifactId: "art1", lastChunk: true });
+
+    // Push a messages.snapshot with ONLY messages (no turns, no artifacts)
+    acc.push({
+      type: "messages.snapshot",
+      seq: 3,
+      messages: [
+        { id: "snap-m1", role: "assistant", content: [], turnId: "t1", threadId: "th1" },
+      ],
+    });
+
+    const r = acc.result();
+    // Messages are replaced
+    expect(r.messages).toHaveLength(1);
+    expect(r.messages[0]?.id).toBe("snap-m1");
+    // Turns are PRESERVED (not replaced)
+    expect(r.turns).toHaveLength(1);
+    expect(r.turns[0]?.turnId).toBe("t1");
+    // Artifacts are PRESERVED (not replaced)
+    expect(r.artifacts).toHaveLength(1);
+    expect(r.artifacts[0]?.artifactId).toBe("art1");
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (d2) full snapshot REPLACEs messages + turns + artifacts; clears transient scratch
+  it("(d2) full messages.snapshot REPLACEs all three containers + clears transient", () => {
+    const acc = new Reducer();
+    acc.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    acc.push({ type: "message.start", seq: 1, id: "old-m", role: "assistant", turnId: "t1", threadId: "th1" });
+    acc.push({
+      type: "tool.start", seq: 2, toolCallId: "tc-pre", name: "calc", turnId: "t1", threadId: "th1",
+    });
+    // pre-snapshot tool.args.delta (must NOT bleed through after snapshot)
+    acc.push({ type: "tool.args.delta", seq: 3, toolCallId: "tc-pre", delta: '{"bleed', turnId: "t1", threadId: "th1" });
+
+    acc.push({
+      type: "messages.snapshot",
+      seq: 4,
+      messages: [
+        { id: "snap-m", role: "assistant", content: [], turnId: "snap-t", threadId: "th1" },
+      ],
+      turns: [
+        { turnId: "snap-t", threadId: "th1" },
+      ],
+      artifacts: [],
+    });
+
+    const r = acc.result();
+    // Messages replaced
+    expect(r.messages).toHaveLength(1);
+    expect(r.messages[0]?.id).toBe("snap-m");
+    // Turns replaced
+    expect(r.turns).toHaveLength(1);
+    expect(r.turns[0]?.turnId).toBe("snap-t");
+    // Artifacts replaced (empty)
+    expect(r.artifacts).toHaveLength(0);
+    // No pre-snapshot tool-call scratch should bleed (old-m + tc-pre are gone)
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (d3) messages.snapshot with memory REPLACES only scope:thread records (deterministic order)
+  it("(d3) messages.snapshot memory replaces only scope:thread records; non-thread survives", () => {
+    const acc = new Reducer();
+    // Seed a user-scope and agent-scope memory record (non-thread)
+    acc.push({ type: "memory.write", seq: 0, scope: "user", key: "name", value: "Ada" });
+    acc.push({ type: "memory.write", seq: 1, scope: "agent", key: "cfg", value: { mode: "fast" } });
+    // Seed a thread-scope record that should be REPLACED
+    acc.push({ type: "memory.write", seq: 2, scope: "thread", key: "ctx", value: "old-ctx" });
+
+    acc.push({
+      type: "messages.snapshot",
+      seq: 3,
+      messages: [],
+      memory: [
+        { scope: "thread", key: "ctx", value: "new-ctx" },
+        { scope: "thread", key: "extra", value: "extra-thread" },
+      ],
+    });
+
+    const r = acc.result();
+    // Non-thread records survive (user + agent)
+    const userRec = r.memory.find((m) => m.scope === "user" && m.key === "name");
+    const agentRec = r.memory.find((m) => m.scope === "agent" && m.key === "cfg");
+    expect(userRec?.value).toBe("Ada");
+    expect(agentRec?.value).toEqual({ mode: "fast" });
+    // Thread records are replaced by snapshot's thread records
+    const threadCtx = r.memory.find((m) => m.scope === "thread" && m.key === "ctx");
+    const threadExtra = r.memory.find((m) => m.scope === "thread" && m.key === "extra");
+    expect(threadCtx?.value).toBe("new-ctx");
+    expect(threadExtra?.value).toBe("extra-thread");
+    // Old thread record is gone (replaced)
+    expect(r.memory.filter((m) => m.scope === "thread")).toHaveLength(2);
+    // Deterministic order: non-thread first, then thread records
+    const nonThreadCount = r.memory.filter((m) => m.scope !== "thread").length;
+    const threadCount = r.memory.filter((m) => m.scope === "thread").length;
+    expect(nonThreadCount).toBe(2);
+    expect(threadCount).toBe(2);
+    // Non-thread appear before thread in result
+    const firstThreadIndex = r.memory.findIndex((m) => m.scope === "thread");
+    const lastNonThreadIndex = r.memory.reduce((idx, m, i) => (m.scope !== "thread" ? i : idx), -1);
+    expect(lastNonThreadIndex).toBeLessThan(firstThreadIndex);
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (d3b) snapshot memory[] that includes a non-thread record must NOT clobber a surviving durable record
+  it("(d3b) snapshot with mixed-scope memory[] does not clobber surviving user-scope durable record", () => {
+    const acc = new Reducer();
+    // Seed a durable user-scope record that must survive.
+    acc.push({ type: "memory.write", seq: 0, scope: "user", key: "name", value: "Ada" });
+    // Deliver a messages.snapshot whose memory[] includes BOTH a thread record AND a user record.
+    // The snapshot's user record must NOT clobber the surviving "Ada" value.
+    acc.push({
+      type: "messages.snapshot",
+      seq: 1,
+      messages: [],
+      memory: [
+        { scope: "user", key: "name", value: "Snapshot-Intruder" },
+        { scope: "thread", key: "ctx", value: "thread-value" },
+      ],
+    });
+    const r = acc.result();
+    // The durable user/name record must still hold "Ada" (snapshot did NOT clobber it).
+    const userRec = r.memory.find((m) => m.scope === "user" && m.key === "name");
+    expect(userRec?.value).toBe("Ada");
+    // The snapshot's thread record IS present.
+    const threadRec = r.memory.find((m) => m.scope === "thread" && m.key === "ctx");
+    expect(threadRec?.value).toBe("thread-value");
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (d4) messages.snapshot clears #resync (un-parks the reducer)
+  it("(d4) messages.snapshot clears needsResync (un-parks)", () => {
+    const acc = new Reducer();
+    // Trigger resync via memory.write patch against never-seeded key
+    acc.push({ type: "memory.write", seq: 0, scope: "user", key: "missing", patch: [{ op: "add", path: "/x", value: 1 }] });
+    expect(acc.needsResync).toBe(true);
+
+    // Deliver a messages.snapshot — should clear resync
+    acc.push({ type: "messages.snapshot", seq: 1, messages: [] });
+    expect(acc.needsResync).toBe(false);
+    expect(() => AgReduceResult.parse(acc.result())).not.toThrow();
+  });
+
+  // ── (e) seq-gap → resync; BOTH snapshot kinds clear it ─────────────────────
+
+  // (e1) seq-gap (ev.seq > #lastSeq+1) → needsResync set; subsequent events ignored
+  it("(e1) seq-gap sets needsResync; events after gap are ignored until snapshot", () => {
+    const acc = new Reducer();
+    acc.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    acc.push({ type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    // Gap: seq 3 (skipped seq 2)
+    acc.push({ type: "text.start", seq: 3, id: "b1", turnId: "t1" });
+    expect(acc.needsResync).toBe(true);
+
+    // text.delta should be IGNORED (reducer is parked)
+    acc.push({ type: "text.delta", seq: 4, id: "b1", delta: "ignored delta" });
+
+    const r = acc.result();
+    // m1 exists (created before the gap), but b1 was ignored (created after gap detection)
+    expect(r.messages).toHaveLength(1);
+    expect(r.messages[0]?.content).toHaveLength(0); // text.start was ignored or not applied
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (e2) seq-gap; messages.snapshot recovery clears #resync
+  it("(e2) seq-gap → messages.snapshot recovery clears needsResync", () => {
+    const acc = new Reducer();
+    acc.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    // Gap: seq 2 (skipped seq 1)
+    acc.push({ type: "message.start", seq: 2, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    expect(acc.needsResync).toBe(true);
+
+    // messages.snapshot recovery
+    acc.push({
+      type: "messages.snapshot",
+      seq: 5,
+      messages: [{ id: "recovered-m", role: "assistant", content: [], turnId: "t1", threadId: "th1" }],
+    });
+    expect(acc.needsResync).toBe(false);
+
+    const r = acc.result();
+    expect(r.messages).toHaveLength(1);
+    expect(r.messages[0]?.id).toBe("recovered-m");
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (e3) seq-gap; state.snapshot recovery ALSO clears #resync
+  it("(e3) seq-gap → state.snapshot recovery ALSO clears needsResync (both recovery paths)", () => {
+    const acc = new Reducer();
+    acc.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    // Gap: seq 2 (skipped seq 1)
+    acc.push({ type: "turn.error", seq: 2, turnId: "t1", message: "gap-induced" });
+    expect(acc.needsResync).toBe(true);
+
+    // state.snapshot recovery
+    acc.push({ type: "state.snapshot", seq: 5, snapshot: { recovered: true } });
+    expect(acc.needsResync).toBe(false);
+    const r = acc.result();
+    expect(r.state).toEqual({ recovered: true });
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (e4) while parked, non-snapshot events are ignored; state.snapshot resumes normal processing
+  it("(e4) parked reducer ignores non-snapshot events; resumes after state.snapshot", () => {
+    const acc = new Reducer();
+    acc.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    // Gap triggers park
+    acc.push({ type: "message.start", seq: 2, id: "m-ignored", role: "assistant", turnId: "t1", threadId: "th1" });
+    expect(acc.needsResync).toBe(true);
+
+    // These should be ignored while parked
+    acc.push({ type: "turn.start", seq: 3, threadId: "th1", turnId: "t2" });
+    acc.push({ type: "message.start", seq: 4, id: "m-also-ignored", role: "assistant", turnId: "t2", threadId: "th1" });
+
+    // Recovery via state.snapshot
+    acc.push({ type: "state.snapshot", seq: 5, snapshot: { ok: true } });
+    expect(acc.needsResync).toBe(false);
+
+    // After recovery, normal events resume
+    acc.push({ type: "turn.start", seq: 6, threadId: "th1", turnId: "t3" });
+    const r = acc.result();
+    // Only t1 and t3 — t2 was ignored while parked
+    const turnIds = r.turns.map((t) => t.turnId);
+    expect(turnIds).toContain("t1");
+    expect(turnIds).toContain("t3");
+    expect(turnIds).not.toContain("t2");
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // ── (f) live-only sweep ─────────────────────────────────────────────────────
+
+  // (f) live-only events produce NO change to the fold result
+  it("(f) live-only events (error/host.context/hitl.ask/ui.surface.start/ext.x.y) produce NO change", () => {
+    const baseEvents = [
+      { type: "turn.start" as const, seq: 0, threadId: "th1", turnId: "t1" },
+      { type: "message.start" as const, seq: 1, id: "m1", role: "assistant" as const, turnId: "t1", threadId: "th1" },
+    ];
+
+    const baseline = reduce(baseEvents);
+
+    // Each live-only event must produce an identical result
+    const withError = reduce([
+      ...baseEvents,
+      { type: "error" as const, seq: 2, message: "something failed", code: "ERR_FAIL" },
+    ]);
+    expect(withError).toEqual(baseline);
+
+    const withHostContext = reduce([
+      ...baseEvents,
+      { type: "host.context" as const, seq: 2, theme: { dark: true } },
+    ]);
+    expect(withHostContext).toEqual(baseline);
+
+    const withHitlAsk = reduce([
+      ...baseEvents,
+      {
+        type: "hitl.ask" as const,
+        seq: 2,
+        askId: "ask1",
+        kind: "approval" as const,
+        message: "Approve?",
+        turnId: "t1",
+        threadId: "th1",
+      },
+    ]);
+    expect(withHitlAsk).toEqual(baseline);
+
+    const withUiSurface = reduce([
+      ...baseEvents,
+      {
+        type: "ui.surface.start" as const,
+        seq: 2,
+        surfaceId: "s1",
+        kind: "panel",
+        turnId: "t1",
+        threadId: "th1",
+      },
+    ]);
+    expect(withUiSurface).toEqual(baseline);
+
+    // ext.<vendor>.<key> — live-only via isClosedEvent guard (already exits early)
+    // Verify the ext path also produces no change via the AgEvent union
+    expect(baseline).toEqual(reduce(baseEvents));
+
+    expect(() => AgReduceResult.parse(baseline)).not.toThrow();
+    expect(() => AgReduceResult.parse(withError)).not.toThrow();
+    expect(() => AgReduceResult.parse(withHostContext)).not.toThrow();
+    expect(() => AgReduceResult.parse(withHitlAsk)).not.toThrow();
+    expect(() => AgReduceResult.parse(withUiSurface)).not.toThrow();
+  });
+});

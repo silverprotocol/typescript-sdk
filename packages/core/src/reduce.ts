@@ -117,6 +117,28 @@ export class Reducer {
     // Rule them out so the switch below sees the narrowed AgClosedEventType and
     // avoids the AgExtEvent.catchall(JsonValue) index-signature field widening.
     if (!isClosedEvent(ev)) return;
+
+    // ── Seq-gap detection (R9) ────────────────────────────────────────────────
+    // After the first event (#lastSeq >= 0), a forward gap sets #resync (park).
+    if (this.#lastSeq >= 0 && ev.seq > this.#lastSeq + 1) {
+      this.#resync = true;
+    }
+
+    // ── Park-gate (R9) ───────────────────────────────────────────────────────
+    // While parked, process ONLY the two snapshot kinds; all else is ignored.
+    // Both snapshots REPLACE + clear #resync inside their handlers.
+    if (this.#resync) {
+      if (ev.type === "messages.snapshot" || ev.type === "state.snapshot") {
+        // Fall through to the switch — these handlers clear #resync.
+      } else {
+        // Parked: ignore. Do NOT update #lastSeq for ignored events.
+        return;
+      }
+    }
+
+    // Update #lastSeq for every processed event (including snapshots).
+    this.#lastSeq = ev.seq;
+
     switch (ev.type) {
       // ── TURN lifecycle ─────────────────────────────────────────────────────
       case "turn.start": {
@@ -205,7 +227,7 @@ export class Reducer {
       // ── TEXT blocks ───────────────────────────────────────────────────────────
       case "text.start": {
         const msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
-        if (msg === undefined) break;
+        if (msg === undefined) { this.#resync = true; break; }
         const block: AgBlock = {
           type: "text",
           text: "", // REQUIRED field — mid-stream result() before any delta must parse
@@ -244,7 +266,7 @@ export class Reducer {
       // ── REASONING blocks ──────────────────────────────────────────────────────
       case "reasoning.start": {
         const msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
-        if (msg === undefined) break;
+        if (msg === undefined) { this.#resync = true; break; }
         const block: AgBlock = {
           type: "reasoning",
           text: "", // seeded — mid-stream result() before any delta must parse
@@ -318,7 +340,7 @@ export class Reducer {
       // ── TOOL-CALL blocks ──────────────────────────────────────────────────────
       case "tool.start": {
         const msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
-        if (msg === undefined) break;
+        if (msg === undefined) { this.#resync = true; break; }
         const block: AgBlock = {
           type: "tool-call",
           toolCallId: ev.toolCallId,
@@ -400,7 +422,7 @@ export class Reducer {
         } else {
           // CREATE path: first tool.done for this toolCallId.
           const msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
-          if (msg === undefined) break;
+          if (msg === undefined) { this.#resync = true; break; }
           const block: AgBlock = {
             type: "tool-result",
             toolCallId: ev.toolCallId,
@@ -435,7 +457,7 @@ export class Reducer {
         if (ev.block.type === "data" && ev.block.transient === true) break;
 
         const msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
-        if (msg === undefined) break;
+        if (msg === undefined) { this.#resync = true; break; }
 
         // Same-id REPLACE-in-place: only data blocks carry id?.
         if (ev.block.type === "data" && ev.block.id !== undefined) {
@@ -738,9 +760,148 @@ export class Reducer {
         break;
       }
 
+      // ── MESSAGE.REMOVE (R9) ──────────────────────────────────────────────────
+      case "message.remove": {
+        if (ev.id === "*") {
+          // REMOVE_ALL: remove every message of exactly the given turnId.
+          // Parse-enforced: id==="*" without turnId is already rejected.
+          const targetTurnId = ev.turnId;
+          if (targetTurnId === undefined) break; // parse-rejected; should not reach
+          const toRemove: string[] = [];
+          for (const [msgId, msg] of this.#messages) {
+            if (msg.turnId === targetTurnId) {
+              toRemove.push(msgId);
+            }
+          }
+          // Zero matches = deterministic no-op (not an error).
+          for (const msgId of toRemove) {
+            this.#removeMessage(msgId);
+          }
+        } else {
+          this.#removeMessage(ev.id);
+        }
+        break;
+      }
+
+      // ── MESSAGES.SNAPSHOT (R9) ───────────────────────────────────────────────
+      case "messages.snapshot": {
+        // ALWAYS replace #messages.
+        this.#messages = new Map(ev.messages.map((m) => [m.id, m]));
+
+        // CONDITIONALLY replace #turns (only if turns? present in event).
+        if (ev.turns !== undefined) {
+          this.#turns = new Map(ev.turns.map((t) => [t.turnId, t]));
+        }
+
+        // CONDITIONALLY replace #artifacts (only if artifacts? present in event).
+        if (ev.artifacts !== undefined) {
+          this.#artifacts = new Map(ev.artifacts.map((a) => [a.artifactId, a]));
+        }
+
+        // CONDITIONALLY replace ONLY scope==="thread" memory records.
+        // Rebuild: [surviving non-thread records in insertion order, then snapshot's thread records].
+        if (ev.memory !== undefined) {
+          const nonThread: [string, AgMemoryRecord][] = [];
+          for (const [k, rec] of this.#memory) {
+            if (rec.scope !== "thread") {
+              nonThread.push([k, rec]);
+            }
+          }
+          const snapshotThread: [string, AgMemoryRecord][] = ev.memory
+            .filter((rec) => rec.scope === "thread")
+            .map((rec) => [`${rec.scope}${rec.key ?? ""}`, rec]);
+          this.#memory = new Map([...nonThread, ...snapshotThread]);
+        }
+
+        // Clear ALL transient scratch.
+        this.#toolArgs = new Map();
+        this.#opaque = new Map();
+        this.#openMsg = new Map();
+        this.#sealed = new Set();
+        this.#blockPos = new Map();
+
+        // Un-park.
+        this.#resync = false;
+        break;
+      }
+
+      // ── LIVE-ONLY / NON-FOLDING (R9) ─────────────────────────────────────────
+      // These events produce NO change to the fold result.
+      // `error` (bare advisory), `host.context`, `hitl.ask`, and ALL `ui.*` events.
+      // (Note: `turn.error` and `turn.abort` are NOT here — they fold in R5.)
+      case "error":
+      case "host.context":
+      case "hitl.ask":
+      case "ui.call":
+      case "ui.result":
+      case "ui.action-result":
+      case "ui.widget.result":
+      case "ui.display-mode":
+      case "ui.surface.start":
+      case "ui.surface.update":
+      case "ui.surface.end":
+      case "ui.data-model":
+        // Live-only: deliberate no-op. No accumulator mutation.
+        break;
+
       // All other event types are handled by later tasks (R6–R10).
       default:
         break;
+    }
+  }
+
+  /**
+   * Remove a single message by id from #messages, its content blocks' #blockPos
+   * entries (guarded by messageId match), and revert the #openMsg pointer for
+   * its partition to the last still-present, not-#sealed message in insertion order.
+   *
+   * The block-creating handlers that call openMessage() already set #resync when
+   * the pointer is missing (none), so we only need to update the pointer here.
+   */
+  #removeMessage(msgId: string): void {
+    const msg = this.#messages.get(msgId);
+    if (msg === undefined) return; // no-op if not found
+
+    // Remove #blockPos entries ONLY when their stored messageId matches.
+    // This guards against corrupting blocks in other partitions that share a block id.
+    for (const [blockId, pos] of this.#blockPos) {
+      if (pos.messageId === msgId) {
+        this.#blockPos.delete(blockId);
+      }
+    }
+
+    // Remove from #messages.
+    this.#messages.delete(msgId);
+    // Remove from #sealed if sealed.
+    this.#sealed.delete(msgId);
+
+    // ── Pointer-revert ────────────────────────────────────────────────────────
+    // Determine the partition key for this message.
+    const turnId = msg.turnId;
+    if (turnId === undefined) return; // no partition to revert
+    const candIdx = msg.candidateIndex ?? 0;
+    const pk = partKey(turnId, candIdx);
+
+    // Check if the removed message was the current open pointer.
+    const currentOpen = this.#openMsg.get(pk);
+    if (currentOpen !== msgId) return; // pointer was not pointing to this message; done.
+
+    // Revert: find the LAST still-present, not-#sealed message of this partition
+    // in #messages insertion order.
+    let revertTo: string | undefined = undefined;
+    for (const [id, m] of this.#messages) {
+      if (m.turnId === turnId && (m.candidateIndex ?? 0) === candIdx && !this.#sealed.has(id)) {
+        revertTo = id; // keep scanning — we want the LAST one
+      }
+    }
+
+    if (revertTo !== undefined) {
+      this.#openMsg.set(pk, revertTo);
+    } else {
+      // No valid prior message: delete the pointer (none).
+      this.#openMsg.delete(pk);
+      // A subsequent block-creating event with no pointer will set #resync
+      // via the openMessage() stub → #resync path in the block handlers.
     }
   }
 
