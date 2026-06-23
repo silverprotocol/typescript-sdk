@@ -14,7 +14,7 @@
   "types": "./dist/index.d.ts",
   "files": ["dist", "src"],
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b --force && cp src/rule.jsonata dist/rule.jsonata",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
