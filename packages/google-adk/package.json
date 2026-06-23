@@ -1,0 +1,32 @@
+{
+  "name": "@silverprotocol/google-adk",
+  "version": "0.0.0",
+  "description": "AgJSON normalizer for the Google Agent Development Kit (ADK Event / Gemini Content.parts[] → AgEvent[]) — fixture-tested.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "src"],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@silverprotocol/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "@iqai/adk": "^0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@iqai/adk": {
+      "optional": true
+    }
+  }
+}
