@@ -1,0 +1,7 @@
+# Standalone workspace root for github.com/silverprotocol/typescript-sdk (open source).
+# Subtree-vendored into the PRIVATE SilverProtocol workspace at sdks/typescript.
+# When vendored inside guuey, guuey's ROOT pnpm-workspace.yaml governs (it globs
+# `silverprotocol/sdks/typescript/packages/*`); this file is only read when the SDK is
+# built standalone.
+packages:
+  - "packages/*"
