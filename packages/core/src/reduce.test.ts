@@ -981,3 +981,205 @@ describe("reduce — R5 turn-records", () => {
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// R7 — artifact + memory side-channels
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("reduce — R7 artifact + memory side-channels", () => {
+  // (a) artifact.start + delta(append:false) + delta(append:true) + artifact.end
+  //     → one artifact with assembled parts
+  it("(a) artifact.start + delta(false) + delta(true) + end → one artifact, assembled parts", () => {
+    const r = reduce([
+      {
+        type: "artifact.start",
+        seq: 0,
+        artifactId: "art1",
+        turnId: "t1",
+        threadId: "th1",
+        name: "report",
+      },
+      {
+        type: "artifact.delta",
+        seq: 1,
+        artifactId: "art1",
+        part: { type: "text", text: "Hello" },
+        append: false,
+      },
+      {
+        type: "artifact.delta",
+        seq: 2,
+        artifactId: "art1",
+        part: { type: "text", text: ", world" },
+        append: true,
+      },
+      {
+        type: "artifact.end",
+        seq: 3,
+        artifactId: "art1",
+        lastChunk: true,
+      },
+    ]);
+    expect(r.artifacts).toHaveLength(1);
+    const art = r.artifacts[0];
+    expect(art?.artifactId).toBe("art1");
+    expect(art?.name).toBe("report");
+    expect(art?.turnId).toBe("t1");
+    expect(art?.threadId).toBe("th1");
+    // append:false starts a new part; append:true on matching text type concatenates
+    expect(art?.parts).toHaveLength(1);
+    const part = art?.parts[0];
+    expect(part?.type).toBe("text");
+    if (part?.type === "text") {
+      expect(part.text).toBe("Hello, world");
+    }
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (a2) artifact.delta append:false with non-text part type starts a new part each time
+  it("(a2) two artifact.delta append:false → two separate parts", () => {
+    const r = reduce([
+      {
+        type: "artifact.start",
+        seq: 0,
+        artifactId: "art2",
+        turnId: "t1",
+        threadId: "th1",
+      },
+      {
+        type: "artifact.delta",
+        seq: 1,
+        artifactId: "art2",
+        part: { type: "text", text: "part A" },
+        append: false,
+      },
+      {
+        type: "artifact.delta",
+        seq: 2,
+        artifactId: "art2",
+        part: { type: "text", text: "part B" },
+        append: false,
+      },
+      {
+        type: "artifact.end",
+        seq: 3,
+        artifactId: "art2",
+        lastChunk: true,
+      },
+    ]);
+    expect(r.artifacts).toHaveLength(1);
+    const art = r.artifacts[0];
+    expect(art?.parts).toHaveLength(2);
+    const p0 = art?.parts[0];
+    const p1 = art?.parts[1];
+    if (p0?.type === "text") expect(p0.text).toBe("part A");
+    if (p1?.type === "text") expect(p1.text).toBe("part B");
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (b) memory.write value SET: scope+key and absent-key cases
+  it("(b) memory.write{scope:user,key:name,value:'Ada'} → one record in memory[]", () => {
+    const r = reduce([
+      {
+        type: "memory.write",
+        seq: 0,
+        scope: "user",
+        key: "name",
+        value: "Ada",
+      },
+    ]);
+    expect(r.memory).toHaveLength(1);
+    const rec = r.memory[0];
+    expect(rec?.scope).toBe("user");
+    expect(rec?.key).toBe("name");
+    expect(rec?.value).toBe("Ada");
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  it("(b2) absent-key memory.write{scope:agent,value:{}} → (agent,'') record", () => {
+    const r = reduce([
+      {
+        type: "memory.write",
+        seq: 0,
+        scope: "agent",
+        value: {},
+      },
+    ]);
+    expect(r.memory).toHaveLength(1);
+    const rec = r.memory[0];
+    expect(rec?.scope).toBe("agent");
+    // absent key maps to key=undefined in the record (or omitted)
+    expect(rec?.value).toEqual({});
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (c) memory.write patch after a value-set → mutates via R6 applyPatch
+  it("(c) memory.write patch after value-set {x:0} mutates to {x:1} via R6", () => {
+    const acc = new Reducer();
+    // First: SET {x: 0}
+    acc.push({
+      type: "memory.write",
+      seq: 0,
+      scope: "user",
+      key: "name",
+      value: { x: 0 },
+    });
+    // Second: PATCH replace /x → 1
+    acc.push({
+      type: "memory.write",
+      seq: 1,
+      scope: "user",
+      key: "name",
+      patch: [{ op: "replace", path: "/x", value: 1 }],
+    });
+    const r = acc.result();
+    expect(r.memory).toHaveLength(1);
+    const rec = r.memory[0];
+    expect(rec?.value).toEqual({ x: 1 });
+    expect(acc.needsResync).toBe(false);
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (d) memory.write patch against a NEVER-seeded (scope,key) → needsResync === true (NOT a {}-seed)
+  it("(d) memory.write patch against never-seeded (scope,key) sets needsResync, does NOT seed from {}", () => {
+    const acc = new Reducer();
+    acc.push({
+      type: "memory.write",
+      seq: 0,
+      scope: "user",
+      key: "missing",
+      patch: [{ op: "replace", path: "/x", value: 1 }],
+    });
+    // needsResync must be set
+    expect(acc.needsResync).toBe(true);
+    // The record must NOT have been seeded with {} — memory[] should be empty
+    const r = acc.result();
+    expect(r.memory).toHaveLength(0);
+  });
+
+  // (e) memory.write patch where applyPatch returns ok:false → needsResync set
+  it("(e) memory.write patch that fails applyPatch → needsResync set, record unchanged", () => {
+    const acc = new Reducer();
+    // Seed a record with a string value
+    acc.push({
+      type: "memory.write",
+      seq: 0,
+      scope: "agent",
+      key: "cfg",
+      value: "not-an-object",
+    });
+    // Try to patch a path that doesn't exist on a string
+    acc.push({
+      type: "memory.write",
+      seq: 1,
+      scope: "agent",
+      key: "cfg",
+      patch: [{ op: "replace", path: "/missing", value: 99 }],
+    });
+    expect(acc.needsResync).toBe(true);
+    // Original value preserved
+    const r = acc.result();
+    const rec = r.memory[0];
+    expect(rec?.value).toBe("not-an-object");
+  });
+});

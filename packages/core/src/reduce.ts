@@ -12,6 +12,7 @@ import type {
   AgDisplayRequired,
   JsonValue,
 } from "./agjson.js";
+import { applyPatch } from "./json-patch.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reducer — the normative event→state fold (spec §5).
@@ -585,6 +586,87 @@ export class Reducer {
         // Fold ev.capabilities onto the AgTurnRecord for the owning turn.
         const turn = this.ensureTurn(ev.turnId);
         turn.capabilities = ev.capabilities;
+        break;
+      }
+
+      // ── ARTIFACT side-channel (R7) ─────────────────────────────────────────────
+      case "artifact.start": {
+        // Create a new AgArtifact entry in #artifacts.
+        const artifact: AgArtifact = {
+          artifactId: ev.artifactId,
+          turnId: ev.turnId,
+          threadId: ev.threadId,
+          parts: [],
+          ...(ev.name !== undefined ? { name: ev.name } : {}),
+          ...(ev.description !== undefined ? { description: ev.description } : {}),
+          ...(ev.extensions !== undefined ? { extensions: ev.extensions } : {}),
+        };
+        this.#artifacts.set(ev.artifactId, artifact);
+        break;
+      }
+
+      case "artifact.delta": {
+        // Append or concatenate onto the artifact's parts[].
+        const artifact = this.#artifacts.get(ev.artifactId);
+        if (artifact === undefined) break;
+        if (ev.append === false) {
+          // START a new part: push the incoming part directly.
+          artifact.parts.push(ev.part);
+        } else {
+          // CONCATENATE onto the last part.
+          const last = artifact.parts[artifact.parts.length - 1];
+          if (last !== undefined && last.type === "text" && ev.part.type === "text") {
+            // Both are text blocks: append the text in-place.
+            last.text += ev.part.text;
+          } else {
+            // Incompatible types or empty parts array: push as a new part.
+            artifact.parts.push(ev.part);
+          }
+        }
+        break;
+      }
+
+      case "artifact.end": {
+        // Finalize the artifact. No further parts; nothing to do beyond leaving it
+        // in #artifacts. The lastChunk:true flag is informational only.
+        break;
+      }
+
+      // ── MEMORY side-channel (R7) ──────────────────────────────────────────────
+      case "memory.write": {
+        // Memory records are keyed by `${scope}${key ?? ""}`.
+        const memKey = `${ev.scope}${ev.key ?? ""}`;
+
+        if (ev.value !== undefined) {
+          // SET path: create or replace the record.
+          const record: AgMemoryRecord = {
+            scope: ev.scope,
+            ...(ev.key !== undefined ? { key: ev.key } : {}),
+            value: ev.value,
+            ...(ev.reason !== undefined ? { reason: ev.reason } : {}),
+            ...(ev.durable !== undefined ? { durable: ev.durable } : {}),
+            ...(ev.turnId !== undefined ? { turnId: ev.turnId } : {}),
+          };
+          this.#memory.set(memKey, record);
+        } else if (ev.patch !== undefined) {
+          // PATCH path: mutate an existing record via R6 applyPatch.
+          const existing = this.#memory.get(memKey);
+          if (existing === undefined) {
+            // NEVER seed from {} — set resync flag and bail.
+            this.#resync = true;
+            break;
+          }
+          const result = applyPatch(existing.value, ev.patch);
+          if (!result.ok) {
+            // applyPatch failed — set resync flag and leave record unchanged.
+            this.#resync = true;
+            break;
+          }
+          // Update value in-place; also update optional metadata from the event.
+          existing.value = result.value;
+          if (ev.reason !== undefined) existing.reason = ev.reason;
+          if (ev.durable !== undefined) existing.durable = ev.durable;
+        }
         break;
       }
 
