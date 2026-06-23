@@ -1,0 +1,48 @@
+(
+  /*
+   * Portable PURE-STRUCTURAL subset of the OpenAI Agents SDK → AgJSON mapping
+   * (spec §4). Cross-runtime reference rule: it covers ONLY the PARSE-FREE
+   * structural backbone — the `message_output_created` text lifecycle and the
+   * `tool_called` tool.start + raw-string tool.args.delta. JSONata has NO JSON
+   * parser, so the MANDATORY parsed `tool.args.assembled` (the args arrive as a
+   * JSON STRING that must be JSON.parse'd), the stateful
+   * `function_call_arguments.delta` accumulation, the `rs_` reasoning replay
+   * (`reasoning.opaque`), `tool_output` → `tool.done`, and `response.completed`
+   * → `turn.done` all stay in the TS normalizer (index.ts), which is
+   * authoritative for the live path. This rule exists so a non-TS runtime (the
+   * JSONata engine via fromJsonata) can reproduce the structural backbone.
+   *
+   * Input: ONE OpenAIStreamEvent. Output: AgEvent[] (validated by AgEvent.parse).
+   * `seq` is allocated monotonically from 0 within this single event.
+   */
+
+  type = "run_item_stream_event" and name = "message_output_created" ? (
+    /* Concatenate all output_text parts into a single visible text delta. */
+    $id := $exists(item.rawItem.id) ? item.rawItem.id : "msg";
+    $text := $join([item.rawItem.content[type = "output_text"].text], "");
+    [
+      { "type": "text.start", "seq": 0, "id": $id },
+      { "type": "text.delta", "seq": 1, "id": $id, "delta": $text },
+      { "type": "text.end", "seq": 2, "id": $id }
+    ]
+  ) : type = "run_item_stream_event" and name = "tool_called" ? (
+    $callId := item.rawItem.callId;
+    $itemId := item.rawItem.id;
+    $args := item.rawItem.arguments;
+    [
+      {
+        "type": "tool.start",
+        "seq": 0,
+        "toolCallId": $callId,
+        "name": item.rawItem.name,
+        "itemId": $itemId
+      },
+      {
+        "type": "tool.args.delta",
+        "seq": 1,
+        "toolCallId": $callId,
+        "delta": $args
+      }
+    ]
+  ) : []
+)

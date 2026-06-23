@@ -1,0 +1,32 @@
+{
+  "name": "@silverprotocol/openai-agents",
+  "version": "0.0.0",
+  "description": "AgJSON normalizer for the OpenAI Agents SDK (RunItemStreamEvent / Responses streaming → AgEvent[]) — fixture-tested.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "src"],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@silverprotocol/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "@openai/agents": "^0.2.0"
+  },
+  "peerDependenciesMeta": {
+    "@openai/agents": {
+      "optional": true
+    }
+  }
+}
