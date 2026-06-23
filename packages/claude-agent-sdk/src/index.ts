@@ -48,10 +48,10 @@ type ImageBlockSource = Extract<ContentBlockParam, { type: "image" }>["source"];
 // ─── Additional types derived from SDKMessage (version-correct) ──────────────
 type SDKResultMsg = Extract<SDKMessage, { type: "result" }>;
 type SDKResultSuccessMsg = Extract<SDKResultMsg, { subtype: "success" }>;
-// For permission denials on result messages
-type PermissionDenial = SDKResultSuccessMsg["permission_denials"][number];
 // For modelUsage per-model breakdown
 type SDKModelUsage = SDKResultSuccessMsg["modelUsage"][string];
+// For assistant error signal (rate_limit, billing_error, etc.)
+type SDKAssistantError = SDKAssistant["error"];
 // For text block citations
 type BetaTextBlockT = Extract<BetaContentBlock, { type: "text" }>;
 type BetaTextCitationT = NonNullable<BetaTextBlockT["citations"]>[number];
@@ -132,6 +132,8 @@ function mapModelUsage(mu: SDKModelUsage): AgUsage {
     outputTokens: mu.outputTokens,
     cacheReadTokens: mu.cacheReadInputTokens,
     cacheWriteTokens: mu.cacheCreationInputTokens,
+    costUsd: mu.costUSD,
+    serverToolRequests: mu.webSearchRequests,
     cumulative: true,
   };
 }
@@ -213,13 +215,13 @@ function mapCitations(citations: BetaTextCitationT[]): AgCitation[] {
       });
     } else if (c.type === "search_result_location") {
       result.push({
-        kind: "char",
+        kind: "block",
         citedText: c.cited_text,
         title: c.title ?? undefined,
+        source: c.source ?? undefined,
         documentIndex: c.search_result_index,
-        startCharIndex: c.start_block_index,
-        endCharIndex: c.end_block_index,
-        indexFrame: "source",
+        startBlockIndex: c.start_block_index,
+        endBlockIndex: c.end_block_index,
       });
     }
   }
@@ -298,6 +300,15 @@ function emitAssistantBlock(
       // args.assembled (spec §4/§8.1).
       const toolCallId = block.id;
       const input: JsonValue = JsonValue.parse(block.input);
+      // server_tool_use blocks are always provider-executed; regular tool_use blocks
+      // with a non-direct caller (e.g. code_execution_20250825) are also
+      // provider-executed. A direct caller or absent caller ⇒ not provider-executed.
+      const providerExecuted: boolean | undefined =
+        block.type === "server_tool_use"
+          ? true
+          : "caller" in block && block.caller !== undefined
+            ? block.caller.type !== "direct"
+            : undefined;
       e.push({
         type: "tool.start",
         seq: e.next(),
@@ -307,6 +318,7 @@ function emitAssistantBlock(
         serverName: block.type === "mcp_tool_use" ? block.server_name : undefined,
         index: blockIndex,
         messageId,
+        providerExecuted,
       });
       e.push({
         type: "tool.args.delta",
@@ -321,6 +333,45 @@ function emitAssistantBlock(
         toolCallId,
         messageId,
         input,
+      });
+      return;
+    }
+    case "mcp_tool_result": {
+      // MCP tool results from the assistant side: map to tool.done with content + outcome.
+      const outcome: ToolOutcome = block.is_error ? "error" : "ok";
+      const content: AgBlock[] =
+        typeof block.content === "string"
+          ? block.content.length > 0
+            ? [{ type: "text", text: block.content }]
+            : []
+          : block.content.map((tb): AgBlock => ({ type: "text", text: tb.text }));
+      e.push({
+        type: "tool.done",
+        seq: e.next(),
+        toolCallId: block.tool_use_id,
+        content,
+        outcome,
+        isError: block.is_error,
+        messageId,
+      });
+      return;
+    }
+    case "compaction": {
+      // Compaction blocks carry a provider-produced context summary (spec §4).
+      // The encrypted_content is replay-load-bearing opaque data (spec §2/§8).
+      e.push({
+        type: "content.block",
+        seq: e.next(),
+        messageId,
+        block: {
+          type: "compaction",
+          text: block.content ?? undefined,
+          opaque:
+            block.encrypted_content !== null
+              ? { kind: "ciphertext", value: block.encrypted_content, provider: "anthropic" }
+              : undefined,
+          provider: "anthropic",
+        },
       });
       return;
     }
@@ -373,20 +424,6 @@ function toolResultContentToAgBlocks(content: NonNullable<ToolResultContent>): A
   return out;
 }
 
-function emitToolResult(e: ReturnType<typeof makeEmitter>, block: ToolResultBlock): void {
-  const outcome: ToolOutcome = block.is_error === true ? "error" : "ok";
-  const content =
-    block.content === undefined ? [] : toolResultContentToAgBlocks(block.content);
-  e.push({
-    type: "tool.done",
-    seq: e.next(),
-    toolCallId: block.tool_use_id,
-    content,
-    outcome,
-    isError: block.is_error === true,
-  });
-}
-
 // ─── the normalizer ───────────────────────────────────────────────────────────
 const claudeNormalizer: Normalizer<SDKMessage> = (msg) => {
   const e = makeEmitter();
@@ -415,6 +452,20 @@ const claudeNormalizer: Normalizer<SDKMessage> = (msg) => {
     m.content.forEach((block, i) => emitAssistantBlock(e, block, m.id, i));
     e.push({ type: "message.end", seq: e.next(), id: m.id, turnId, usage: mapMessageUsage(m.usage) });
 
+    // If the assistant turn carries an error signal (rate_limit, billing_error, etc.),
+    // emit a turn.error so consumers see the error rather than a silent empty turn.
+    if (msg.error !== undefined) {
+      const errCode: NonNullable<SDKAssistantError> = msg.error;
+      e.push({
+        type: "turn.error",
+        seq: e.next(),
+        turnId,
+        message: errCode,
+        code: errCode,
+        retriable: errCode === "rate_limit" || errCode === "server_error",
+      });
+    }
+
     if (parentTurnId !== undefined) {
       e.push({ type: "subagent.done", seq: e.next(), turnId, parentTurnId });
     }
@@ -423,10 +474,28 @@ const claudeNormalizer: Normalizer<SDKMessage> = (msg) => {
 
   if (msg.type === "user") {
     // A user message carrying tool_result blocks → tool.done per result.
+    // parent_tool_use_id (when set) identifies a subagent tool call — the
+    // tool.done's turnId should point at that parent call's turn so the
+    // subagent reduce() correctly routes the result.
     const content = msg.message.content;
     if (typeof content !== "string") {
+      const toolTurnId =
+        msg.parent_tool_use_id !== null ? `turn_${msg.parent_tool_use_id}` : undefined;
       for (const block of content) {
-        if (block.type === "tool_result") emitToolResult(e, block);
+        if (block.type === "tool_result") {
+          const outcome: ToolOutcome = block.is_error === true ? "error" : "ok";
+          const toolContent =
+            block.content === undefined ? [] : toolResultContentToAgBlocks(block.content);
+          e.push({
+            type: "tool.done",
+            seq: e.next(),
+            toolCallId: block.tool_use_id,
+            content: toolContent,
+            outcome,
+            isError: block.is_error === true,
+            turnId: toolTurnId,
+          });
+        }
       }
     }
     return e.events;
@@ -438,11 +507,15 @@ const claudeNormalizer: Normalizer<SDKMessage> = (msg) => {
       msg.stop_reason === "refusal"
         ? [{ category: "refusal", blocked: true }]
         : undefined;
+    // structured_output (when a response schema is in effect) overrides the plain
+    // string result — it is the authoritative typed outcome payload (spec §4).
+    const structuredOutput =
+      msg.structured_output !== undefined ? JsonValue.parse(msg.structured_output) : undefined;
     e.push({
       type: "turn.done",
       seq: e.next(),
       turnId,
-      outcome: { type: "success", result: msg.result },
+      outcome: { type: "success", result: structuredOutput ?? msg.result },
       finishReason: mapStopReason(msg.stop_reason),
       usage: mapTurnUsage(msg.usage, msg.total_cost_usd, msg.modelUsage),
       safety,
