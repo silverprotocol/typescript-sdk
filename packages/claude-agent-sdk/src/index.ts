@@ -19,8 +19,11 @@ import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import {
   type AgEvent,
   type AgBlock,
+  type AgCitation,
   type AgFinishReason,
+  type AgSafety,
   type AgSource,
+  type AgUsage,
   JsonValue,
   type Normalizer,
   type ToolOutcome,
@@ -41,6 +44,17 @@ type ContentBlockParam = Extract<UserContent, readonly unknown[]>[number];
 type ToolResultBlock = Extract<ContentBlockParam, { type: "tool_result" }>;
 type ToolResultContent = ToolResultBlock["content"];
 type ImageBlockSource = Extract<ContentBlockParam, { type: "image" }>["source"];
+
+// ─── Additional types derived from SDKMessage (version-correct) ──────────────
+type SDKResultMsg = Extract<SDKMessage, { type: "result" }>;
+type SDKResultSuccessMsg = Extract<SDKResultMsg, { subtype: "success" }>;
+// For permission denials on result messages
+type PermissionDenial = SDKResultSuccessMsg["permission_denials"][number];
+// For modelUsage per-model breakdown
+type SDKModelUsage = SDKResultSuccessMsg["modelUsage"][string];
+// For text block citations
+type BetaTextBlockT = Extract<BetaContentBlock, { type: "text" }>;
+type BetaTextCitationT = NonNullable<BetaTextBlockT["citations"]>[number];
 
 import { ruleJsonata } from "./rule.js";
 
@@ -111,6 +125,107 @@ function imageSource(source: ImageBlockSource): AgSource {
   return { type: "url", url: source.url };
 }
 
+// ─── usage mapping helpers ────────────────────────────────────────────────────
+function mapModelUsage(mu: SDKModelUsage): AgUsage {
+  return {
+    inputTokens: mu.inputTokens,
+    outputTokens: mu.outputTokens,
+    cacheReadTokens: mu.cacheReadInputTokens,
+    cacheWriteTokens: mu.cacheCreationInputTokens,
+    cumulative: true,
+  };
+}
+
+function mapTurnUsage(
+  usage: SDKResultSuccessMsg["usage"],
+  totalCostUsd: number,
+  modelUsage: SDKResultSuccessMsg["modelUsage"],
+): AgUsage {
+  const byModel: Record<string, AgUsage> = {};
+  for (const [model, mu] of Object.entries(modelUsage)) {
+    byModel[model] = mapModelUsage(mu);
+  }
+  return {
+    inputTokens: usage.input_tokens,
+    outputTokens: usage.output_tokens,
+    cacheReadTokens: usage.cache_read_input_tokens,
+    cacheWriteTokens: usage.cache_creation_input_tokens,
+    serverToolRequests:
+      usage.server_tool_use !== null
+        ? usage.server_tool_use.web_search_requests + usage.server_tool_use.web_fetch_requests
+        : undefined,
+    costUsd: totalCostUsd,
+    cumulative: true,
+    ...(Object.keys(byModel).length > 0 ? { byModel } : {}),
+  };
+}
+
+function mapMessageUsage(usage: BetaMessageT["usage"]): AgUsage {
+  return {
+    inputTokens: usage.input_tokens,
+    outputTokens: usage.output_tokens,
+    cacheReadTokens: usage.cache_read_input_tokens ?? undefined,
+    cacheWriteTokens: usage.cache_creation_input_tokens ?? undefined,
+    cumulative: true,
+  };
+}
+
+// ─── citation mapping helpers ─────────────────────────────────────────────────
+function mapCitations(citations: BetaTextCitationT[]): AgCitation[] {
+  const result: AgCitation[] = [];
+  for (const c of citations) {
+    if (c.type === "char_location") {
+      result.push({
+        kind: "char",
+        citedText: c.cited_text,
+        title: c.document_title ?? undefined,
+        documentIndex: c.document_index,
+        startCharIndex: c.start_char_index,
+        endCharIndex: c.end_char_index,
+        indexFrame: "source",
+      });
+    } else if (c.type === "page_location") {
+      result.push({
+        kind: "page",
+        citedText: c.cited_text,
+        title: c.document_title ?? undefined,
+        documentIndex: c.document_index,
+        startPage: c.start_page_number,
+        endPage: c.end_page_number,
+      });
+    } else if (c.type === "content_block_location") {
+      result.push({
+        kind: "block",
+        citedText: c.cited_text,
+        title: c.document_title ?? undefined,
+        documentIndex: c.document_index,
+        startBlockIndex: c.start_block_index,
+        endBlockIndex: c.end_block_index,
+      });
+    } else if (c.type === "web_search_result_location") {
+      result.push({
+        kind: "url",
+        citedText: c.cited_text,
+        url: c.url,
+        title: c.title ?? undefined,
+        encryptedIndex: c.encrypted_index,
+        indexFrame: "response",
+      });
+    } else if (c.type === "search_result_location") {
+      result.push({
+        kind: "char",
+        citedText: c.cited_text,
+        title: c.title ?? undefined,
+        documentIndex: c.search_result_index,
+        startCharIndex: c.start_block_index,
+        endCharIndex: c.end_block_index,
+        indexFrame: "source",
+      });
+    }
+  }
+  return result;
+}
+
 // ─── assistant content block fan-out (spec §4 mapping table) ──────────────────
 // Per content[] block, emit its lifecycle events under the open message.
 function emitAssistantBlock(
@@ -125,6 +240,15 @@ function emitAssistantBlock(
       e.push({ type: "text.start", seq: e.next(), id, messageId, turnId: undefined });
       e.push({ type: "text.delta", seq: e.next(), id, messageId, delta: block.text });
       e.push({ type: "text.end", seq: e.next(), id, messageId });
+      if (block.citations !== null && block.citations.length > 0) {
+        const mappedCitations = mapCitations(block.citations);
+        e.push({
+          type: "content.block",
+          seq: e.next(),
+          block: { type: "text", text: block.text, citations: mappedCitations },
+          messageId,
+        });
+      }
       return;
     }
     case "thinking": {
@@ -289,7 +413,7 @@ const claudeNormalizer: Normalizer<SDKMessage> = (msg) => {
       threadId: msg.session_id,
     });
     m.content.forEach((block, i) => emitAssistantBlock(e, block, m.id, i));
-    e.push({ type: "message.end", seq: e.next(), id: m.id, turnId });
+    e.push({ type: "message.end", seq: e.next(), id: m.id, turnId, usage: mapMessageUsage(m.usage) });
 
     if (parentTurnId !== undefined) {
       e.push({ type: "subagent.done", seq: e.next(), turnId, parentTurnId });
@@ -310,12 +434,49 @@ const claudeNormalizer: Normalizer<SDKMessage> = (msg) => {
 
   if (msg.type === "result" && msg.subtype === "success") {
     const turnId = turnIdFor(msg.session_id, msg.uuid);
+    const safety: AgSafety[] | undefined =
+      msg.stop_reason === "refusal"
+        ? [{ category: "refusal", blocked: true }]
+        : undefined;
     e.push({
       type: "turn.done",
       seq: e.next(),
       turnId,
       outcome: { type: "success", result: msg.result },
       finishReason: mapStopReason(msg.stop_reason),
+      usage: mapTurnUsage(msg.usage, msg.total_cost_usd, msg.modelUsage),
+      safety,
+    });
+    // Emit permission_denials as tool.start + tool.done denied pairs.
+    for (const denial of msg.permission_denials) {
+      e.push({
+        type: "tool.start",
+        seq: e.next(),
+        toolCallId: denial.tool_use_id,
+        name: denial.tool_name,
+      });
+      e.push({
+        type: "tool.done",
+        seq: e.next(),
+        toolCallId: denial.tool_use_id,
+        content: [],
+        outcome: "denied",
+      });
+    }
+    return e.events;
+  }
+
+  if (msg.type === "result") {
+    // At this point msg.subtype can only be an error variant (success was handled and returned above).
+    const turnId = turnIdFor(msg.session_id, msg.uuid);
+    const retriable = msg.subtype !== "error_max_turns";
+    e.push({
+      type: "turn.error",
+      seq: e.next(),
+      turnId,
+      message: msg.errors.length > 0 ? msg.errors.join("; ") : msg.subtype,
+      code: msg.subtype,
+      retriable,
     });
     return e.events;
   }

@@ -25,7 +25,10 @@ const ASSISTANT_USAGE: BetaMessage["usage"] = {
   speed: null,
 };
 
-function betaMessage(content: BetaMessage["content"]): BetaMessage {
+function betaMessage(
+  content: BetaMessage["content"],
+  overrides?: Partial<Pick<BetaMessage, "stop_reason" | "stop_details" | "usage">>,
+): BetaMessage {
   return {
     id: "msg_fixture_1",
     type: "message",
@@ -38,16 +41,18 @@ function betaMessage(content: BetaMessage["content"]): BetaMessage {
     context_management: null,
     stop_details: null,
     usage: ASSISTANT_USAGE,
+    ...overrides,
   };
 }
 
 function assistantMsg(
   content: BetaMessage["content"],
   parent_tool_use_id: string | null = null,
+  messageOverrides?: Partial<Pick<BetaMessage, "stop_reason" | "stop_details" | "usage">>,
 ): SDKMessage {
   return {
     type: "assistant",
-    message: betaMessage(content),
+    message: betaMessage(content, messageOverrides),
     parent_tool_use_id,
     uuid: "00000000-0000-0000-0000-000000000001",
     session_id: "sess_fixture",
@@ -55,6 +60,7 @@ function assistantMsg(
 }
 
 // SDKResultSuccess fixture — every required field present (code-worker.ts:117).
+// Non-zero usage values to enable usage mapping tests.
 function resultSuccess(stop_reason: string | null): SDKMessage {
   return {
     type: "result",
@@ -65,22 +71,68 @@ function resultSuccess(stop_reason: string | null): SDKMessage {
     duration_ms: 0,
     duration_api_ms: 0,
     num_turns: 1,
-    total_cost_usd: 0,
+    total_cost_usd: 0.05,
     usage: {
-      input_tokens: 0,
-      output_tokens: 0,
+      input_tokens: 100,
+      output_tokens: 50,
       cache_creation: { ephemeral_1h_input_tokens: 0, ephemeral_5m_input_tokens: 0 },
-      cache_creation_input_tokens: 0,
-      cache_read_input_tokens: 0,
+      cache_creation_input_tokens: 10,
+      cache_read_input_tokens: 20,
       inference_geo: "unknown",
       iterations: [],
       server_tool_use: { web_fetch_requests: 0, web_search_requests: 0 },
       service_tier: "standard",
       speed: "standard",
     },
-    modelUsage: {},
+    modelUsage: {
+      "claude-opus": {
+        inputTokens: 100,
+        outputTokens: 50,
+        cacheReadInputTokens: 20,
+        cacheCreationInputTokens: 10,
+        webSearchRequests: 0,
+        costUSD: 0.05,
+        contextWindow: 200000,
+        maxOutputTokens: 8192,
+      },
+    },
     permission_denials: [],
     uuid: "00000000-0000-0000-0000-000000000002",
+    session_id: "sess_fixture",
+  };
+}
+
+// SDKResultError fixture — for result error branch tests.
+type SDKResultSuccessMsg = Extract<SDKMessage, { type: "result"; subtype: "success" }>;
+type NonNullableUsageT = SDKResultSuccessMsg["usage"];
+
+function resultError(subtype: "error_max_turns" | "error_during_execution"): SDKMessage {
+  const usage: NonNullableUsageT = {
+    input_tokens: 0,
+    output_tokens: 0,
+    cache_creation: { ephemeral_1h_input_tokens: 0, ephemeral_5m_input_tokens: 0 },
+    cache_creation_input_tokens: 0,
+    cache_read_input_tokens: 0,
+    inference_geo: "unknown",
+    iterations: [],
+    server_tool_use: { web_fetch_requests: 0, web_search_requests: 0 },
+    service_tier: "standard",
+    speed: "standard",
+  };
+  return {
+    type: "result",
+    subtype,
+    is_error: true,
+    duration_ms: 0,
+    duration_api_ms: 0,
+    num_turns: 1,
+    stop_reason: null,
+    total_cost_usd: 0,
+    usage,
+    modelUsage: {},
+    permission_denials: [],
+    errors: ["max turns reached"],
+    uuid: "00000000-0000-0000-0000-000000000004",
     session_id: "sess_fixture",
   };
 }
@@ -284,3 +336,180 @@ describe("rule.jsonata — portable structural subset", () => {
     assertAllValid(evs);
   });
 });
+
+// ─── B1: Extended population tests ───────────────────────────────────────────
+
+describe("claudeNormalizer — result success with usage", () => {
+  it("populates turn.done.usage from result success modelUsage", async () => {
+    const evs = await normalize(resultSuccess("end_turn"));
+    const done = evs.find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({
+      type: "turn.done",
+      usage: {
+        inputTokens: 100,
+        outputTokens: 50,
+        cacheReadTokens: 20,
+        cacheWriteTokens: 10,
+        costUsd: 0.05,
+        cumulative: true,
+        byModel: { "claude-opus": { inputTokens: 100, outputTokens: 50 } },
+      },
+    });
+    assertAllValid(evs);
+  });
+});
+
+describe("claudeNormalizer — result error", () => {
+  it("maps error_max_turns to turn.error with retriable: false", async () => {
+    const evs = await normalize(resultError("error_max_turns"));
+    expect(evs).toContainEqual(
+      expect.objectContaining({
+        type: "turn.error",
+        code: "error_max_turns",
+        retriable: false,
+        message: "max turns reached",
+      }),
+    );
+    assertAllValid(evs);
+  });
+
+  it("maps error_during_execution to turn.error with retriable: true", async () => {
+    const evs = await normalize(resultError("error_during_execution"));
+    expect(evs).toContainEqual(
+      expect.objectContaining({
+        type: "turn.error",
+        code: "error_during_execution",
+        retriable: true,
+      }),
+    );
+    assertAllValid(evs);
+  });
+});
+
+describe("claudeNormalizer — refusal stop_reason", () => {
+  it("adds safety to turn.done when stop_reason is refusal", async () => {
+    const evs = await normalize(resultSuccess("refusal"));
+    const done = evs.find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({
+      type: "turn.done",
+      finishReason: "refusal",
+      safety: [{ category: "refusal", blocked: true }],
+    });
+    assertAllValid(evs);
+  });
+});
+
+describe("claudeNormalizer — text citations", () => {
+  it("emits a content.block with citations after text.end when citations are present", async () => {
+    const evs = await normalize(
+      assistantMsg([
+        {
+          type: "text",
+          text: "Some text with citations.",
+          citations: [
+            {
+              type: "web_search_result_location",
+              url: "https://example.com",
+              encrypted_index: "enc_abc",
+              title: "Test Page",
+              cited_text: "Some text",
+            },
+          ],
+        },
+      ]),
+    );
+    const contentBlock = evs.find(
+      (e) => e.type === "content.block" && (e as { block: { type: string } }).block.type === "text",
+    );
+    expect(contentBlock).toMatchObject({
+      type: "content.block",
+      block: {
+        type: "text",
+        text: "Some text with citations.",
+        citations: [
+          {
+            kind: "url",
+            url: "https://example.com",
+            encryptedIndex: "enc_abc",
+            indexFrame: "response",
+          },
+        ],
+      },
+    });
+    assertAllValid(evs);
+  });
+});
+
+describe("claudeNormalizer — permission_denials", () => {
+  it("emits tool.start + tool.done denied for each permission denial", async () => {
+    const msg: SDKMessage = {
+      type: "result",
+      subtype: "success",
+      result: "done",
+      stop_reason: "end_turn",
+      is_error: false,
+      duration_ms: 0,
+      duration_api_ms: 0,
+      num_turns: 1,
+      total_cost_usd: 0.05,
+      usage: {
+        input_tokens: 100,
+        output_tokens: 50,
+        cache_creation: { ephemeral_1h_input_tokens: 0, ephemeral_5m_input_tokens: 0 },
+        cache_creation_input_tokens: 10,
+        cache_read_input_tokens: 20,
+        inference_geo: "unknown",
+        iterations: [],
+        server_tool_use: { web_fetch_requests: 0, web_search_requests: 0 },
+        service_tier: "standard",
+        speed: "standard",
+      },
+      modelUsage: {},
+      permission_denials: [
+        { tool_name: "bash", tool_use_id: "toolu_denied_1", tool_input: { command: "rm -rf" } },
+      ],
+      uuid: "00000000-0000-0000-0000-000000000002",
+      session_id: "sess_fixture",
+    };
+    const evs = await normalize(msg);
+    const toolStart = evs.find((e) => e.type === "tool.start");
+    expect(toolStart).toMatchObject({ type: "tool.start", name: "bash" });
+    const toolDone = evs.find((e) => e.type === "tool.done");
+    expect(toolDone).toMatchObject({
+      type: "tool.done",
+      toolCallId: "toolu_denied_1",
+      outcome: "denied",
+      content: [],
+    });
+    assertAllValid(evs);
+  });
+});
+
+describe("claudeNormalizer — message.end usage", () => {
+  it("populates message.end.usage from BetaMessage.usage", async () => {
+    const nonZeroUsage: BetaMessage["usage"] = {
+      input_tokens: 10,
+      output_tokens: 5,
+      cache_creation: null,
+      cache_creation_input_tokens: null,
+      cache_read_input_tokens: null,
+      inference_geo: null,
+      iterations: null,
+      server_tool_use: null,
+      service_tier: null,
+      speed: null,
+    };
+    const evs = await normalize(
+      assistantMsg([{ type: "text", text: "hi", citations: null }], null, {
+        usage: nonZeroUsage,
+      }),
+    );
+    const msgEnd = evs.find((e) => e.type === "message.end");
+    expect(msgEnd).toMatchObject({
+      type: "message.end",
+      usage: { inputTokens: 10, outputTokens: 5, cumulative: true },
+    });
+    assertAllValid(evs);
+  });
+});
+
