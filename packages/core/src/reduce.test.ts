@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { reduce, Reducer } from "./reduce.js";
+import type { AgEvent } from "./agjson.js";
 import { AgReduceResult } from "./agjson.js";
 
 // Shared event helpers for R2 tests
@@ -1819,5 +1820,385 @@ describe("reduce — R9 new-ops + resync + snapshot + live-only", () => {
     expect(() => AgReduceResult.parse(withHostContext)).not.toThrow();
     expect(() => AgReduceResult.parse(withHitlAsk)).not.toThrow();
     expect(() => AgReduceResult.parse(withUiSurface)).not.toThrow();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// R10 — CAPSTONE: byte-identity + live-SSE↔history invariant
+//
+// A RICH event stream that exercises MANY rule-groups in a single interleaved
+// stream:
+//   • top-level turn (turn.start / message.start / text / reasoning(+opaque) /
+//     tool-call+result / message.end / turn.done)
+//   • INTERLEAVED subagent nested turn (subagent.start…subagent.done,
+//     interleaved by seq with the parent)
+//   • MULTI-CANDIDATE message (candidateIndex 0 vs 1)
+//   • artifact side-channel (start / delta×2 / end)
+//   • memory.write
+//   • state.delta (LangGraph node-merge)
+//   • source
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── CAPSTONE EVENT FIXTURE ──────────────────────────────────────────────────
+// All seqs are ascending with no gaps (gap would trigger resync).
+// Typed as AgEvent[] so the array (and its elements) are mutable — required by
+// reduce() / Reducer.push().  Individual `as const` suffixes narrow the literal
+// discriminant fields so TypeScript can pick the right union arm.
+const CAPSTONE_EVENTS: AgEvent[] = [
+  // seq 0: top-level turn opens
+  { type: "turn.start" as const, seq: 0, threadId: "th1", turnId: "t1", trigger: { kind: "user" as const } },
+
+  // seq 1: message for candidate 0
+  {
+    type: "message.start" as const,
+    seq: 1,
+    id: "m1",
+    role: "assistant" as const,
+    turnId: "t1",
+    threadId: "th1",
+    candidateIndex: 0,
+  },
+
+  // seq 2: text block opens in m1 → content[0]
+  { type: "text.start" as const, seq: 2, id: "bt1", turnId: "t1", candidateIndex: 0 },
+
+  // seq 3: subagent INTERLEAVED with parent turn
+  { type: "subagent.start" as const, seq: 3, turnId: "t2", parentTurnId: "t1" },
+
+  // seq 4: text delta → text block text = "Hello"
+  { type: "text.delta" as const, seq: 4, id: "bt1", delta: "Hello" },
+
+  // seq 5: reasoning block opens in m1 → content[1]
+  { type: "reasoning.start" as const, seq: 5, id: "br1", turnId: "t1", candidateIndex: 0 },
+
+  // seq 6: reasoning delta → text = "I think"
+  { type: "reasoning.delta" as const, seq: 6, id: "br1", delta: "I think" },
+
+  // seq 7: opaque delta → scratch accumulates "SIG"
+  { type: "reasoning.opaque.delta" as const, seq: 7, id: "br1", delta: "SIG" },
+
+  // seq 8: reasoning.opaque → seals opaque from scratch buffer
+  { type: "reasoning.opaque" as const, seq: 8, id: "br1", kind: "signature" as const, value: "SIG" },
+
+  // seq 9: reasoning end
+  { type: "reasoning.end" as const, seq: 9, id: "br1" },
+
+  // seq 10: text block end
+  { type: "text.end" as const, seq: 10, id: "bt1" },
+
+  // seq 11: tool-call block opens in m1 → content[2]
+  {
+    type: "tool.start" as const,
+    seq: 11,
+    toolCallId: "tc1",
+    name: "search",
+    turnId: "t1",
+    threadId: "th1",
+    candidateIndex: 0,
+  },
+
+  // seq 12: partial args
+  { type: "tool.args.delta" as const, seq: 12, toolCallId: "tc1", delta: '{"q":' },
+
+  // seq 13: more partial args
+  { type: "tool.args.delta" as const, seq: 13, toolCallId: "tc1", delta: '"hello"}' },
+
+  // seq 14: assembled args → authoritative input
+  {
+    type: "tool.args.assembled" as const,
+    seq: 14,
+    toolCallId: "tc1",
+    input: { q: "hello" },
+    turnId: "t1",
+    threadId: "th1",
+  },
+
+  // seq 15: tool result → tool-result block in m1 → content[3]
+  {
+    type: "tool.done" as const,
+    seq: 15,
+    toolCallId: "tc1",
+    content: [{ type: "text" as const, text: "results" }],
+    outcome: "ok" as const,
+    turnId: "t1",
+    threadId: "th1",
+    candidateIndex: 0,
+  },
+
+  // seq 16: seal m1
+  { type: "message.end" as const, seq: 16, id: "m1" },
+
+  // seq 17: message for candidate 1 (multi-candidate)
+  {
+    type: "message.start" as const,
+    seq: 17,
+    id: "m2",
+    role: "assistant" as const,
+    turnId: "t1",
+    threadId: "th1",
+    candidateIndex: 1,
+  },
+
+  // seq 18: text block in m2 → content[0]
+  { type: "text.start" as const, seq: 18, id: "bt2", turnId: "t1", candidateIndex: 1 },
+
+  // seq 19: text delta → text = "Candidate 1"
+  { type: "text.delta" as const, seq: 19, id: "bt2", delta: "Candidate 1" },
+
+  // seq 20: text block end
+  { type: "text.end" as const, seq: 20, id: "bt2" },
+
+  // seq 21: subagent done (closes the interleaved nested turn)
+  { type: "subagent.done" as const, seq: 21, turnId: "t2", parentTurnId: "t1" },
+
+  // seq 22: artifact side-channel
+  {
+    type: "artifact.start" as const,
+    seq: 22,
+    artifactId: "art1",
+    turnId: "t1",
+    threadId: "th1",
+    name: "report",
+  },
+
+  // seq 23: artifact part (new part, append:false)
+  {
+    type: "artifact.delta" as const,
+    seq: 23,
+    artifactId: "art1",
+    part: { type: "text" as const, text: "Report: " },
+    append: false,
+  },
+
+  // seq 24: artifact text continuation (append:true → concatenate onto last text part)
+  {
+    type: "artifact.delta" as const,
+    seq: 24,
+    artifactId: "art1",
+    part: { type: "text" as const, text: "done" },
+    append: true,
+  },
+
+  // seq 25: artifact end
+  { type: "artifact.end" as const, seq: 25, artifactId: "art1", lastChunk: true as const },
+
+  // seq 26: memory write
+  { type: "memory.write" as const, seq: 26, scope: "user" as const, key: "pref", value: "dark" },
+
+  // seq 27: state.delta LangGraph node-keyed merge
+  { type: "state.delta" as const, seq: 27, patch: { agent: { status: "running" } } },
+
+  // seq 28: source citation
+  {
+    type: "source" as const,
+    seq: 28,
+    turnId: "t1",
+    sourceId: "src1",
+    source: { url: "https://example.com", title: "Example" },
+  },
+
+  // seq 29: turn done
+  {
+    type: "turn.done" as const,
+    seq: 29,
+    turnId: "t1",
+    finishReason: "stop" as const,
+    outcome: { type: "success" as const },
+  },
+] as const;
+
+// ── HAND-SPELLED EXPECTED RESULT ─────────────────────────────────────────────
+// Reasoned through each fold rule — this IS the spec proof.
+//
+// messages[] (insertion order of message.start):
+//   [0] m1 (candidateIndex:0) — sealed, 4-block content
+//   [1] m2 (candidateIndex:1) — 1-block content
+//
+// m1.content[] (ascending seq of creating event):
+//   [0] text block (seq 2)    → text="Hello"
+//   [1] reasoning block (seq 5) → text="I think", opaque={kind:"signature",value:"SIG"}
+//   [2] tool-call block (seq 11) → toolCallId="tc1", input={q:"hello"}
+//   [3] tool-result block (seq 15) → toolCallId="tc1", content=[{type:"text",text:"results"}], outcome="ok"
+//
+// turns[] (insertion order of turn.start / subagent.start):
+//   [0] t1 — parent turn
+//   [1] t2 — nested turn (threadId inherited from t1 = "th1")
+//
+// artifacts[] → [art1]
+// memory[]    → [{scope:"user",key:"pref",value:"dark"}]
+// state       → {agent:{status:"running"}}
+
+const EXPECTED_RESULT = {
+  messages: [
+    {
+      id: "m1",
+      role: "assistant" as const,
+      turnId: "t1",
+      threadId: "th1",
+      candidateIndex: 0,
+      content: [
+        // [0] text block — text appended across deltas (seq 2/4/10)
+        { type: "text" as const, text: "Hello" },
+        // [1] reasoning block — delta text + opaque sealed from scratch (seq 5/6/7/8/9)
+        {
+          type: "reasoning" as const,
+          text: "I think",
+          opaque: { kind: "signature" as const, value: "SIG" },
+        },
+        // [2] tool-call block — input assembled (seq 11/12/13/14)
+        {
+          type: "tool-call" as const,
+          toolCallId: "tc1",
+          name: "search",
+          input: { q: "hello" },
+        },
+        // [3] tool-result block — landed by tool.done (seq 15)
+        {
+          type: "tool-result" as const,
+          toolCallId: "tc1",
+          content: [{ type: "text" as const, text: "results" }],
+          outcome: "ok" as const,
+        },
+      ],
+    },
+    {
+      id: "m2",
+      role: "assistant" as const,
+      turnId: "t1",
+      threadId: "th1",
+      candidateIndex: 1,
+      content: [
+        // [0] text block (seq 18/19/20)
+        { type: "text" as const, text: "Candidate 1" },
+      ],
+    },
+  ],
+  turns: [
+    // t1 — parent turn (turn.start at seq 0, turn.done at seq 29)
+    {
+      turnId: "t1",
+      threadId: "th1",
+      trigger: { kind: "user" as const },
+      finishReason: "stop" as const,
+      outcome: { type: "success" as const },
+      sourceIds: ["src1"],
+    },
+    // t2 — nested turn (subagent.start at seq 3; threadId inherited from t1)
+    {
+      turnId: "t2",
+      parentTurnId: "t1",
+      threadId: "th1",
+    },
+  ],
+  artifacts: [
+    {
+      artifactId: "art1",
+      turnId: "t1",
+      threadId: "th1",
+      name: "report",
+      // delta(append:false) starts a new text part; delta(append:true) concatenates onto it
+      parts: [{ type: "text" as const, text: "Report: done" }],
+    },
+  ],
+  memory: [
+    { scope: "user" as const, key: "pref", value: "dark" },
+  ],
+  // state.delta LangGraph node-merge creates {agent:{status:"running"}} from no prior state
+  state: { agent: { status: "running" } },
+} satisfies import("./agjson.js").AgReduceResult;
+
+// ── CAPSTONE TESTS ────────────────────────────────────────────────────────────
+
+describe("reduce — R10 capstone: byte-identity + live-SSE↔history invariant", () => {
+  it("byte-identity: reduce(CAPSTONE_EVENTS) deep-equals the hand-spelled EXPECTED_RESULT (toEqual, order-sensitive)", () => {
+    expect(reduce(CAPSTONE_EVENTS)).toEqual(EXPECTED_RESULT);
+    // Also validate EXPECTED is a valid AgReduceResult (catches mis-spelled types)
+    expect(() => AgReduceResult.parse(EXPECTED_RESULT)).not.toThrow();
+  });
+
+  it("live-SSE ↔ history: incremental Reducer.push() equals batch reduce()", () => {
+    const batch = reduce(CAPSTONE_EVENTS);
+    const acc = new Reducer();
+    for (const e of CAPSTONE_EVENTS) {
+      acc.push(e);
+    }
+    expect(acc.result()).toEqual(batch);
+  });
+
+  it("interleaved-block-kind order: content[] is in ascending-seq-of-creating-event order (text < reasoning < tool-call)", () => {
+    const r = reduce(CAPSTONE_EVENTS);
+    const m1 = r.messages.find((m) => m.id === "m1");
+    expect(m1).toBeDefined();
+    const content = m1?.content ?? [];
+    // Must have 4 blocks: text(seq2), reasoning(seq5), tool-call(seq11), tool-result(seq15)
+    expect(content).toHaveLength(4);
+    expect(content[0]?.type).toBe("text");      // seq 2 < seq 5 < seq 11 < seq 15
+    expect(content[1]?.type).toBe("reasoning");
+    expect(content[2]?.type).toBe("tool-call");
+    expect(content[3]?.type).toBe("tool-result");
+  });
+
+  // ── alias-in regression tests (capstone review C1/C2) — store-by-ref bugs that
+  //    break batch==incremental when an aliased object is later mutated in place ──
+  it("alias-in C1: artifact.delta append:true into empty parts is copy-isolated (batch == incremental)", () => {
+    const events: AgEvent[] = [
+      { type: "turn.start", seq: 0, threadId: "th", turnId: "t" },
+      { type: "artifact.start", seq: 1, artifactId: "a1", turnId: "t", threadId: "th" },
+      { type: "artifact.delta", seq: 2, artifactId: "a1", part: { type: "text", text: "A" }, append: true },
+      { type: "artifact.delta", seq: 3, artifactId: "a1", part: { type: "text", text: "B" }, append: true },
+    ];
+    const batch = reduce(events);
+    const acc = new Reducer();
+    for (const e of events) acc.push(e);
+    expect(acc.result()).toEqual(batch);
+    expect(batch.artifacts[0]?.parts[0]).toMatchObject({ type: "text", text: "AB" });
+    // the original event array must NOT have been mutated by the fold
+    const ev2 = events[2];
+    expect(ev2?.type).toBe("artifact.delta");
+    if (ev2?.type === "artifact.delta") expect(ev2.part).toMatchObject({ text: "A" });
+  });
+
+  it("alias-in C2: messages.snapshot record is copy-isolated from a later mutation (batch == incremental)", () => {
+    const events: AgEvent[] = [
+      {
+        type: "messages.snapshot",
+        seq: 0,
+        messages: [{ id: "m1", role: "assistant", content: [], turnId: "t1", threadId: "th" }],
+        turns: [{ turnId: "t1", threadId: "th" }],
+      },
+      { type: "source", seq: 1, turnId: "t1", sourceId: "s1", source: { url: "https://e.com" } },
+    ];
+    const batch = reduce(events);
+    const acc = new Reducer();
+    for (const e of events) acc.push(e);
+    expect(acc.result()).toEqual(batch);
+    expect(batch.turns[0]?.sourceIds).toEqual(["s1"]); // not ["s1","s1"]
+    // the snapshot event's turn object must NOT have been mutated (no sourceIds leaked in)
+    expect(JSON.stringify(events[0])).not.toContain("sourceIds");
+  });
+
+  // final-review M1: message.remove must clear the per-block #opaque/#toolArgs scratch,
+  // else a stale reasoning signature leaks into a LATER message that reuses the id.
+  // (byte-identity can't catch this — it corrupts batch AND incremental identically.)
+  it("scratch-leak M1: message.remove clears #opaque so a reused reasoning id is not contaminated", () => {
+    const events: AgEvent[] = [
+      { type: "turn.start", seq: 0, threadId: "th", turnId: "t" },
+      { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t", threadId: "th" },
+      { type: "reasoning.start", seq: 2, id: "r1" },
+      { type: "reasoning.opaque.delta", seq: 3, id: "r1", delta: "STALESIG" },
+      { type: "message.remove", seq: 4, id: "m1" },
+      { type: "message.start", seq: 5, id: "m2", role: "assistant", turnId: "t", threadId: "th" },
+      { type: "reasoning.start", seq: 6, id: "r1" }, // reuse id r1 in the new message
+      { type: "reasoning.opaque.delta", seq: 7, id: "r1", delta: "FRESHSIG" },
+      { type: "reasoning.opaque", seq: 8, id: "r1", kind: "signature", value: "" },
+    ];
+    const r = reduce(events);
+    const m2 = r.messages[0];
+    expect(m2?.id).toBe("m2");
+    const rblock = m2?.content[0];
+    expect(rblock?.type).toBe("reasoning");
+    // must be the fresh signature only — NOT "STALESIGFRESHSIG"
+    if (rblock?.type === "reasoning") expect(rblock.opaque?.value).toBe("FRESHSIG");
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
 });

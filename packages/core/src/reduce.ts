@@ -632,8 +632,11 @@ export class Reducer {
         const artifact = this.#artifacts.get(ev.artifactId);
         if (artifact === undefined) break;
         if (ev.append === false) {
-          // START a new part: push the incoming part directly.
-          artifact.parts.push(ev.part);
+          // START a new part: push a shallow copy of the incoming part so that
+          // subsequent in-place text concatenation (append:true) does NOT mutate
+          // the original event object.  The caller may be replaying the same
+          // event array twice (batch vs. incremental), so aliasing must be broken here.
+          artifact.parts.push({ ...ev.part });
         } else {
           // CONCATENATE onto the last part.
           const last = artifact.parts[artifact.parts.length - 1];
@@ -641,8 +644,10 @@ export class Reducer {
             // Both are text blocks: append the text in-place.
             last.text += ev.part.text;
           } else {
-            // Incompatible types or empty parts array: push as a new part.
-            artifact.parts.push(ev.part);
+            // Incompatible types or empty parts array: push a SHALLOW COPY (same
+            // aliasing discipline as the append:false path above) so a following
+            // append:true in-place concat can't mutate the original event object.
+            artifact.parts.push({ ...ev.part });
           }
         }
         break;
@@ -785,17 +790,22 @@ export class Reducer {
 
       // ── MESSAGES.SNAPSHOT (R9) ───────────────────────────────────────────────
       case "messages.snapshot": {
+        // structuredClone each incoming array at store time so a later in-place
+        // mutation (turn.done/source/text.delta/memory.write patch onto a
+        // snapshot-seeded record) can NOT write through into the original event
+        // object — otherwise a re-fold (batch vs incremental) of the same array
+        // diverges (same aliasing discipline as result()/applyPatch).
         // ALWAYS replace #messages.
-        this.#messages = new Map(ev.messages.map((m) => [m.id, m]));
+        this.#messages = new Map(structuredClone(ev.messages).map((m) => [m.id, m]));
 
         // CONDITIONALLY replace #turns (only if turns? present in event).
         if (ev.turns !== undefined) {
-          this.#turns = new Map(ev.turns.map((t) => [t.turnId, t]));
+          this.#turns = new Map(structuredClone(ev.turns).map((t) => [t.turnId, t]));
         }
 
         // CONDITIONALLY replace #artifacts (only if artifacts? present in event).
         if (ev.artifacts !== undefined) {
-          this.#artifacts = new Map(ev.artifacts.map((a) => [a.artifactId, a]));
+          this.#artifacts = new Map(structuredClone(ev.artifacts).map((a) => [a.artifactId, a]));
         }
 
         // CONDITIONALLY replace ONLY scope==="thread" memory records.
@@ -807,7 +817,7 @@ export class Reducer {
               nonThread.push([k, rec]);
             }
           }
-          const snapshotThread: [string, AgMemoryRecord][] = ev.memory
+          const snapshotThread: [string, AgMemoryRecord][] = structuredClone(ev.memory)
             .filter((rec) => rec.scope === "thread")
             .map((rec) => [`${rec.scope}${rec.key ?? ""}`, rec]);
           this.#memory = new Map([...nonThread, ...snapshotThread]);
@@ -867,6 +877,12 @@ export class Reducer {
     for (const [blockId, pos] of this.#blockPos) {
       if (pos.messageId === msgId) {
         this.#blockPos.delete(blockId);
+        // Clear the per-block scratch buffers too (same block-id / toolCallId key),
+        // else a stale opaque-signature / arg buffer leaks into a LATER message that
+        // reuses the same id (cross-task scratch leak — byte-identity can't catch it
+        // because it corrupts batch AND incremental identically). (final-review M1)
+        this.#toolArgs.delete(blockId);
+        this.#opaque.delete(blockId);
       }
     }
 
