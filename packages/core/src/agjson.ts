@@ -450,6 +450,9 @@ export type AgOutcome = z.infer<typeof AgOutcome>;
 export const AgRole = z.enum(["user", "assistant", "tool", "system"]);
 export type AgRole = z.infer<typeof AgRole>;
 
+// Sentinel for removing all messages in a turn (spec §4 message.remove / §5).
+export const REMOVE_ALL = "*" as const;
+
 // ─── ADVANCED helper types (spec §2 / §3 / §4 / §9) ──────────────────────────
 
 // The unified message object (spec §3.2): one type, both directions. Input-only
@@ -462,6 +465,7 @@ export const AgMessage = z.object({
   content: z.array(AgBlock),
   turnId: z.string().optional(),
   threadId: z.string().optional(),
+  candidateIndex: z.number().optional(), // absent ⇒ candidate 0 (§5 partitioning)
   referenceTurnIds: z.array(z.string()).optional(),
   messageMetadata: JsonValue.optional(),
   extensions: z.array(z.string()).optional(),
@@ -519,10 +523,27 @@ export const AgTurnRecord = z.object({
 });
 export type AgTurnRecord = z.infer<typeof AgTurnRecord>;
 
+// A folded memory write (spec §5) — the landing record for memory.write events,
+// parallel to AgArtifact. Side-channel; NOT an AgBlock. scope="thread" records are
+// bound to threadId and REPLACED by a messages.snapshot; scope="agent"/"user"/"skill"
+// are a SEPARATE cross-thread persistence axis (durable, NOT bound by the §1.1 thread
+// containment tree) and are untouched by a per-thread snapshot.
+export const AgMemoryRecord = z.object({
+  scope: z.enum(["agent", "user", "skill", "thread"]),
+  key: z.string().optional(),
+  value: JsonValue,            // required on the LANDED record (the fold seeds it)
+  reason: z.string().optional(),
+  durable: z.boolean().optional(),
+  turnId: z.string().optional(),
+  threadId: z.string().optional(),
+});
+export type AgMemoryRecord = z.infer<typeof AgMemoryRecord>;
+
 // reduce() landing container (spec §2 / §5) — the well-typed return of the fold.
 export const AgReduceResult = z.object({
   messages: z.array(AgMessage),
   artifacts: z.array(AgArtifact),
+  memory: z.array(AgMemoryRecord), // memory side-channel (parallel to artifacts; required)
   turns: z.array(AgTurnRecord),
   state: JsonValue.optional(), // shared-state working copy (opaque, §11.1)
 });
@@ -930,6 +951,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     threadId: z.string(),
     stepId: z.string().optional(),
     extensions: z.array(z.string()).optional(), // foreign A2A active-extension URIs (§0.5)
+    candidateIndex: z.number().optional(), // absent ⇒ candidate 0 (§5 partitioning)
   }),
   z.object({ ...base, type: z.literal("message.end"), id: z.string() }),
   z.object({
@@ -940,6 +962,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     index: z.number().optional(),
     previousPartKind: z.string().optional(),
     providerMetadata: AgProviderMeta.optional(),
+    candidateIndex: z.number().optional(), // absent ⇒ candidate 0 (§5 partitioning)
   }),
   z.object({
     ...base,
@@ -954,6 +977,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     type: z.literal("content.block"),
     block: AgBlock,
     transient: z.boolean().optional(),
+    candidateIndex: z.number().optional(), // absent ⇒ candidate 0 (§5 partitioning)
   }),
   z.object({
     ...base,
@@ -970,6 +994,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     uiVisibility: z.array(z.enum(["model", "app"])).optional(),
     itemId: z.string().optional(),
     providerMetadata: AgProviderMeta.optional(),
+    candidateIndex: z.number().optional(), // absent ⇒ candidate 0 (§5 partitioning)
   }),
   z.object({
     ...base,
@@ -1008,6 +1033,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     skipSummarization: z.boolean().optional(), // output-only async flag (§2.2)
     more: z.boolean().optional(), // output-only async flag — more:true SETS preliminary (§2.2)
     preliminary: z.boolean().optional(), // output-only async flag (§2.2)
+    candidateIndex: z.number().optional(), // absent ⇒ candidate 0 (§5 partitioning)
   }),
 
   // ─── EXTENDED events (spec §4 / §9) ────────────────────────────────────────
@@ -1021,6 +1047,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     previousPartKind: z.string().optional(),
     providerMetadata: AgProviderMeta.optional(),
     itemId: z.string().optional(),
+    candidateIndex: z.number().optional(), // absent ⇒ candidate 0 (§5 partitioning)
   }),
   z.object({
     ...base,
@@ -1107,6 +1134,18 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     reason: z.enum(["safety", "blocklist", "prohibited", "other"]),
     safety: z.array(AgSafety).optional(),
   }),
+  // ── MESSAGE OPERATIONS ──
+  // id="*" (REMOVE_ALL) requires turnId — enforced by superRefine on AgEvent (below).
+  z.object({ ...base, type: z.literal("message.remove"),
+    id: z.union([z.string(), z.literal("*")]),   // "*" = REMOVE_ALL
+    turnId: z.string().optional() }),
+  // ── MEMORY SIDE-CHANNEL ──
+  // value and patch are both optional here; exactly-one invariant enforced by superRefine on AgEvent.
+  z.object({ ...base, type: z.literal("memory.write"),
+    scope: z.enum(["agent", "user", "skill", "thread"]),
+    key: z.string().optional(),
+    value: JsonValue.optional(), patch: JsonValue.optional(),  // exactly one — see superRefine
+    reason: z.string().optional(), durable: z.boolean().optional() }),
   // ── HITL (one family; spec §7) ──
   z.object({
     ...base,
@@ -1156,12 +1195,14 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
   }),
   z.object({ ...base, type: z.literal("artifact.end"), artifactId: z.string(), lastChunk: z.literal(true) }),
   // ── RECONNECT / RESYNC ── full-state resync; REPLACE messages + turns + artifacts (§5).
+  // memory REPLACES ONLY scope="thread" records; cross-thread (agent/user/skill) are untouched.
   z.object({
     ...base,
     type: z.literal("messages.snapshot"),
     messages: z.array(AgMessage),
     turns: z.array(AgTurnRecord).optional(),
     artifacts: z.array(AgArtifact).optional(),
+    memory: z.array(AgMemoryRecord).optional(),
   }),
   // ── HOST DISPLAY/RUNTIME HINT ── live-only; `capabilities` here = HOST surface render hint (A30).
   z.object({
@@ -1255,5 +1296,14 @@ export type AgExtEvent = z.infer<typeof AgExtEvent>;
 
 // AgEvent = the closed discriminated union OR the open ext event. A bare unknown
 // `type` (e.g. {type:"nope"}) matches neither arm and still REJECTS.
-export const AgEvent = AgClosedEvent.or(AgExtEvent);
+// Cross-field invariants live here (discriminatedUnion arms cannot carry .refine —
+// it would produce ZodEffects, breaking the discriminatedUnion):
+//   (1) message.remove id="*" (REMOVE_ALL) requires turnId
+//   (2) memory.write requires exactly one of value | patch
+export const AgEvent = AgClosedEvent.or(AgExtEvent).superRefine((ev, ctx) => {
+  if (ev.type === "message.remove" && ev.id === "*" && ev.turnId === undefined)
+    ctx.addIssue({ code: "custom", message: "message.remove id='*' (REMOVE_ALL) requires turnId" });
+  if (ev.type === "memory.write" && (ev.value !== undefined) === (ev.patch !== undefined))
+    ctx.addIssue({ code: "custom", message: "memory.write requires exactly one of value | patch" });
+});
 export type AgEvent = z.infer<typeof AgEvent>;

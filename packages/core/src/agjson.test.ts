@@ -20,6 +20,8 @@ import {
   AgA2uiError,
   AgMcpAppViewMessage,
   AgOpenAiWidgetAction,
+  REMOVE_ALL,
+  AgMemoryRecord,
 } from "./agjson.js";
 
 describe("AgEvent (CORE)", () => {
@@ -752,6 +754,7 @@ describe("ADVANCED helper types", () => {
     const r = AgReduceResult.parse({
       messages: [{ id: "m1", role: "assistant", content: [{ type: "text", text: "hi" }] }],
       artifacts: [{ artifactId: "art1", turnId: "t1", threadId: "th1", parts: [] }],
+      memory: [],
       turns: [{ turnId: "t1", threadId: "th1" }],
       state: { shared: { k: "v" } },
     });
@@ -1184,4 +1187,40 @@ describe("AgSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
       AgSurfaceInteraction.parse({ surface: "nope", surfaceId: "s1" }),
     ).toThrow();
   });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// S2-EXTENDED breaking arms (spec §4 / §5 pre-freeze additions)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("S2-EXTENDED breaking arms", () => {
+  it("parses message.remove (id + REMOVE_ALL sentinel)", () => {
+    expect(AgEvent.parse({ type: "message.remove", seq: 0, id: "msg_1" }).type).toBe("message.remove");
+    expect(AgEvent.parse({ type: "message.remove", seq: 1, id: "*", turnId: "turn_1" })).toMatchObject({ id: "*" });
+  });
+  it("parses memory.write with value XOR patch (exactly one)", () => {
+    expect(AgEvent.parse({ type: "memory.write", seq: 0, scope: "user", key: "name", value: "Ada" })).toMatchObject({ scope: "user", value: "Ada" });
+    expect(AgEvent.parse({ type: "memory.write", seq: 1, scope: "skill", patch: [{ op: "add", path: "/x", value: 1 }], durable: true })).toMatchObject({ durable: true });
+  });
+  it("rejects memory.write carrying BOTH value and patch, or NEITHER (exactly-one)", () => {
+    expect(() => AgEvent.parse({ type: "memory.write", seq: 0, scope: "user", value: {}, patch: [{ op: "add", path: "/x", value: 1 }] })).toThrow();
+    expect(() => AgEvent.parse({ type: "memory.write", seq: 1, scope: "user" })).toThrow();  // neither
+  });
+  it("rejects message.remove REMOVE_ALL ('*') without a turnId", () => {
+    expect(() => AgEvent.parse({ type: "message.remove", seq: 0, id: "*" })).toThrow();
+    expect(AgEvent.parse({ type: "message.remove", seq: 1, id: "*", turnId: "turn_1" })).toMatchObject({ id: "*" });
+  });
+  it("carries candidateIndex on every block-creating event", () => {
+    expect(AgEvent.parse({ type: "message.start", seq: 0, id: "m", role: "assistant", turnId: "t", threadId: "th", candidateIndex: 1 })).toMatchObject({ candidateIndex: 1 });
+    expect(AgEvent.parse({ type: "text.start", seq: 1, id: "x", candidateIndex: 1 })).toMatchObject({ candidateIndex: 1 });
+    expect(AgEvent.parse({ type: "reasoning.start", seq: 2, id: "r", candidateIndex: 1 })).toMatchObject({ candidateIndex: 1 });
+    expect(AgEvent.parse({ type: "tool.start", seq: 3, toolCallId: "c", name: "f", candidateIndex: 1 })).toMatchObject({ candidateIndex: 1 });
+    expect(AgEvent.parse({ type: "tool.done", seq: 4, toolCallId: "c", outcome: "ok", content: [], candidateIndex: 1 })).toMatchObject({ candidateIndex: 1 });
+    expect(AgEvent.parse({ type: "content.block", seq: 5, block: { type: "text", text: "x" }, candidateIndex: 1 })).toMatchObject({ candidateIndex: 1 });
+  });
+  it("AgReduceResult requires memory[] parallel to artifacts[]", () => {
+    expect(AgReduceResult.parse({ messages: [], artifacts: [], memory: [], turns: [] }).memory).toEqual([]);
+    expect(() => AgReduceResult.parse({ messages: [], artifacts: [], turns: [] })).toThrow();
+  });
+  it("REMOVE_ALL is exported and equals '*'", () => { expect(REMOVE_ALL).toBe("*"); });
 });
