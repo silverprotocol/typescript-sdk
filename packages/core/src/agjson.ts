@@ -19,19 +19,19 @@ export const JsonValue: z.ZodType<JsonValue> = z.lazy(() =>
 );
 
 // Host-only namespaced side metadata (spec §0.4 `_meta`).
-export const AgentMeta = z.record(z.string(), JsonValue);
-export type AgentMeta = z.infer<typeof AgentMeta>;
+export const AgMeta = z.record(z.string(), JsonValue);
+export type AgMeta = z.infer<typeof AgMeta>;
 
 // Source union (spec §2): MCP base64 + the Anthropic/Gemini url/file superset.
-export const AgentSource = z.discriminatedUnion("type", [
+export const AgSource = z.discriminatedUnion("type", [
   z.object({ type: z.literal("base64"), mediaType: z.string(), data: z.string() }),
   z.object({ type: z.literal("url"), url: z.string(), mediaType: z.string().optional() }),
   z.object({ type: z.literal("file"), fileId: z.string(), mediaType: z.string().optional() }),
 ]);
-export type AgentSource = z.infer<typeof AgentSource>;
+export type AgSource = z.infer<typeof AgSource>;
 
 // Finish-reason superset (spec §4).
-export const AgentFinishReason = z.enum([
+export const AgFinishReason = z.enum([
   "stop",
   "token_limit",
   "context_window_exceeded",
@@ -46,7 +46,7 @@ export const AgentFinishReason = z.enum([
   "other",
   "unknown",
 ]);
-export type AgentFinishReason = z.infer<typeof AgentFinishReason>;
+export type AgFinishReason = z.infer<typeof AgFinishReason>;
 
 // Tool-result outcome (spec §2/§4): `denied` is its own outcome; `input_required` = MCP MRTR pause.
 export const ToolOutcome = z.enum(["ok", "error", "denied", "input_required"]);
@@ -55,48 +55,48 @@ export type ToolOutcome = z.infer<typeof ToolOutcome>;
 // ─── EXTENDED shared sub-types (spec §2 / §4) ────────────────────────────────
 
 // Replay-load-bearing provider metadata (OpenAI itemId etc.). Spec §2 brands it
-// nominally distinct from AgentMeta; the brand is a compile-time-only phantom
+// nominally distinct from AgMeta; the brand is a compile-time-only phantom
 // (`__brand`, never serialized — §0.4) so a provider-replay bag is never confused
 // with host-only `_meta`. The provider-replay channel imposes NO key namespacing.
-// Runtime validation == AgentMeta; `.brand()` adds the zod-native nominal marker
+// Runtime validation == AgMeta; `.brand()` adds the zod-native nominal marker
 // (the brand is type-level only, never on the wire).
-export const AgentProviderMeta = AgentMeta.brand<"AgentProviderMeta">();
-export type AgentProviderMeta = z.infer<typeof AgentProviderMeta>;
+export const AgProviderMeta = AgMeta.brand<"AgProviderMeta">();
+export type AgProviderMeta = z.infer<typeof AgProviderMeta>;
 
 // Opaque provider-bound reasoning blob (spec §2): signatures / encrypted /
 // redacted reasoning, echoed back byte-identical or multi-turn reasoning breaks.
-export const AgentOpaqueKind = z.enum(["signature", "ciphertext", "encrypted", "redacted"]);
-export type AgentOpaqueKind = z.infer<typeof AgentOpaqueKind>;
-export const AgentOpaque = z.object({
-  kind: AgentOpaqueKind,
+export const AgOpaqueKind = z.enum(["signature", "ciphertext", "encrypted", "redacted"]);
+export type AgOpaqueKind = z.infer<typeof AgOpaqueKind>;
+export const AgOpaque = z.object({
+  kind: AgOpaqueKind,
   value: z.string(),
   provider: z.string().optional(),
 });
-export type AgentOpaque = z.infer<typeof AgentOpaque>;
+export type AgOpaque = z.infer<typeof AgOpaque>;
 
 // MCP content-block annotations (MCP-frozen verbatim — spec §0.4 / §2). Carried
 // through reduce() UNCHANGED.
-export const AgentAnnotations = z.object({
+export const AgAnnotations = z.object({
   audience: z.array(z.enum(["user", "assistant"])).optional(),
   priority: z.number().optional(),
   lastModified: z.string().optional(),
 });
-export type AgentAnnotations = z.infer<typeof AgentAnnotations>;
+export type AgAnnotations = z.infer<typeof AgAnnotations>;
 
 // MCP embedded resource (spec §2). UI surfaces ride here (uri="ui://…").
-export const AgentEmbeddedResource = z.object({
+export const AgEmbeddedResource = z.object({
   uri: z.string(),
   mimeType: z.string().optional(),
   text: z.string().optional(),
   blob: z.string().optional(),
-  _meta: AgentMeta.optional(),
+  _meta: AgMeta.optional(),
 });
-export type AgentEmbeddedResource = z.infer<typeof AgentEmbeddedResource>;
+export type AgEmbeddedResource = z.infer<typeof AgEmbeddedResource>;
 
 // Citation (spec §2): typed location union; index FRAME + UNIT explicit
 // (Gemini grounding = UTF-8 BYTE offsets). Shared head + a kind-discriminated tail.
-const AgentCitationUnit = z.enum(["char", "byte", "utf16"]);
-const AgentCitationBounds = z.enum(["[start,end)", "[start,end]"]);
+const AgCitationUnit = z.enum(["char", "byte", "utf16"]);
+const AgCitationBounds = z.enum(["[start,end)", "[start,end]"]);
 const citationHead = {
   citedText: z.string(),
   source: z.string().optional(),
@@ -106,15 +106,15 @@ const citationHead = {
   encryptedIndex: z.string().optional(),
   indexFrame: z.enum(["source", "response"]).optional(),
 };
-export const AgentCitation = z.discriminatedUnion("kind", [
+export const AgCitation = z.discriminatedUnion("kind", [
   z.object({
     ...citationHead,
     kind: z.literal("char"),
     documentIndex: z.number(),
     startCharIndex: z.number(),
     endCharIndex: z.number(),
-    unit: AgentCitationUnit.optional(),
-    bounds: AgentCitationBounds.optional(),
+    unit: AgCitationUnit.optional(),
+    bounds: AgCitationBounds.optional(),
   }),
   z.object({
     ...citationHead,
@@ -136,8 +136,8 @@ export const AgentCitation = z.discriminatedUnion("kind", [
     url: z.string(),
     startIndex: z.number().optional(),
     endIndex: z.number().optional(),
-    unit: AgentCitationUnit.optional(),
-    bounds: AgentCitationBounds.optional(),
+    unit: AgCitationUnit.optional(),
+    bounds: AgCitationBounds.optional(),
   }),
   z.object({
     ...citationHead,
@@ -146,14 +146,14 @@ export const AgentCitation = z.discriminatedUnion("kind", [
     endIndex: z.number(),
     sourceIds: z.array(z.string()),
     partIndex: z.number().optional(),
-    unit: AgentCitationUnit,
-    bounds: AgentCitationBounds,
+    unit: AgCitationUnit,
+    bounds: AgCitationBounds,
   }),
 ]);
-export type AgentCitation = z.infer<typeof AgentCitation>;
+export type AgCitation = z.infer<typeof AgCitation>;
 
 // Usage (spec §4). `cumulative:true` ⇒ must de-cumulate (Anthropic).
-export const AgentUsage = z.object({
+export const AgUsage = z.object({
   inputTokens: z.number().optional(),
   outputTokens: z.number().optional(),
   cacheReadTokens: z.number().optional(),
@@ -164,26 +164,26 @@ export const AgentUsage = z.object({
   costUsd: z.number().optional(),
   cumulative: z.boolean().optional(),
 });
-export type AgentUsage = z.infer<typeof AgentUsage>;
+export type AgUsage = z.infer<typeof AgUsage>;
 
 // Safety signal (spec §4).
-export const AgentSafety = z.object({
+export const AgSafety = z.object({
   category: z.string(),
   score: z.number().optional(),
   probability: z.string().optional(),
   blocked: z.boolean().optional(),
 });
-export type AgentSafety = z.infer<typeof AgentSafety>;
+export type AgSafety = z.infer<typeof AgSafety>;
 
-// HITL choice / auth-config (spec §4 / §7). `AgentChoice.value` is opaque.
-export const AgentChoice = z.object({
+// HITL choice / auth-config (spec §4 / §7). `AgChoice.value` is opaque.
+export const AgChoice = z.object({
   id: z.string(),
   label: z.string(),
   value: JsonValue.optional(),
 });
-export type AgentChoice = z.infer<typeof AgentChoice>;
+export type AgChoice = z.infer<typeof AgChoice>;
 
-export const AgentAuthConfig = z.object({
+export const AgAuthConfig = z.object({
   scheme: z.string(),
   scopes: z.array(z.string()).optional(),
   authorizationUrl: z.string().optional(),
@@ -191,26 +191,26 @@ export const AgentAuthConfig = z.object({
   clientId: z.string().optional(),
   audience: z.string().optional(),
 });
-export type AgentAuthConfig = z.infer<typeof AgentAuthConfig>;
+export type AgAuthConfig = z.infer<typeof AgAuthConfig>;
 
-// HITL ask kind enum (spec §4 / §7) — shared by hitl.ask and AgentPausedAsk.
-export const AgentAskKind = z.enum(["approval", "form", "text", "choice", "auth", "url"]);
-export type AgentAskKind = z.infer<typeof AgentAskKind>;
+// HITL ask kind enum (spec §4 / §7) — shared by hitl.ask and AgPausedAsk.
+export const AgAskKind = z.enum(["approval", "form", "text", "choice", "auth", "url"]);
+export type AgAskKind = z.infer<typeof AgAskKind>;
 
 // A single paused ask entry (spec §4): shared between hitl.ask and
-// AgentOutcome.paused.asks[]. `schema` / `metadata.value` are opaque pass-through
+// AgOutcome.paused.asks[]. `schema` / `metadata.value` are opaque pass-through
 // (LangGraph interrupt(value: Any) rides metadata, §7).
-export const AgentPausedAsk = z.object({
+export const AgPausedAsk = z.object({
   askId: z.string(),
-  kind: AgentAskKind,
+  kind: AgAskKind,
   message: z.string().optional(),
   toolCallId: z.string().optional(),
   schema: JsonValue.optional(),
-  choices: z.array(AgentChoice).optional(),
-  authConfig: AgentAuthConfig.optional(),
+  choices: z.array(AgChoice).optional(),
+  authConfig: AgAuthConfig.optional(),
   url: z.string().optional(),
   reason: z.string().optional(),
-  metadata: AgentMeta.optional(),
+  metadata: AgMeta.optional(),
   requestState: z.string().optional(),
   inputKey: z.string().optional(),
   resumeBinding: z.enum(["id", "positional"]).optional(),
@@ -218,11 +218,11 @@ export const AgentPausedAsk = z.object({
   token: z.string().optional(),
   expiresAt: z.string().optional(),
 });
-export type AgentPausedAsk = z.infer<typeof AgentPausedAsk>;
+export type AgPausedAsk = z.infer<typeof AgPausedAsk>;
 
-// HITL answer resume payload (spec §7), carried in AgentInput.kind:"resume"
+// HITL answer resume payload (spec §7), carried in AgInput.kind:"resume"
 // answers[]. There is NO `hitl.answer` wire type — the answer flows INPUT-side.
-export const AgentHitlAnswer = z.object({
+export const AgHitlAnswer = z.object({
   askId: z.string(),
   status: z.enum(["resolved", "declined", "cancelled"]),
   reply: JsonValue.optional(),
@@ -231,68 +231,68 @@ export const AgentHitlAnswer = z.object({
   token: z.string().optional(),
   requestState: z.string().optional(),
 });
-export type AgentHitlAnswer = z.infer<typeof AgentHitlAnswer>;
+export type AgHitlAnswer = z.infer<typeof AgHitlAnswer>;
 
 // MCP MRTR pending-input carrier (spec §2 / §7): rides `tool-result.pendingInput`
 // (and `tool.done.pendingInput`) when `outcome==="input_required"`. `inputKeys`
 // (plural) = the set of STILL-PENDING request keys (distinct from the singular
 // `inputKey` an ask resolves — spec §7).
-export const AgentPendingInput = z.object({
+export const AgPendingInput = z.object({
   requestState: z.string().optional(),
   inputKeys: z.array(z.string()).optional(),
 });
-export type AgentPendingInput = z.infer<typeof AgentPendingInput>;
+export type AgPendingInput = z.infer<typeof AgPendingInput>;
 
-// AgentBlock — the full object-form union (spec §2). The SAME union appears in
+// AgBlock — the full object-form union (spec §2). The SAME union appears in
 // both directions (input messages, output content, tool-result.content), so the
-// `tool-result.content` arm is recursively `AgentBlock[]` and the schema is `z.lazy`.
+// `tool-result.content` arm is recursively `AgBlock[]` and the schema is `z.lazy`.
 // CORE = text | image | tool-call | tool-result (spec §9); EXTENDED adds reasoning,
 // compaction, search-result, code, code-result, document, file, audio, data,
 // provider-raw, resource, resource-link, plus citations on `text`.
 // Every EXTENDED arm carries the optional `annotations` / `_meta` side channels
 // (and `providerMetadata` where the spec puts it).
 type BlockMeta = {
-  providerMetadata?: AgentProviderMeta;
-  annotations?: AgentAnnotations;
-  _meta?: AgentMeta;
+  providerMetadata?: AgProviderMeta;
+  annotations?: AgAnnotations;
+  _meta?: AgMeta;
 };
-export type AgentBlock =
-  | ({ type: "text"; text: string; citations?: AgentCitation[] } & BlockMeta)
-  | ({ type: "image"; source: AgentSource } & BlockMeta)
-  | ({ type: "audio"; source: AgentSource } & BlockMeta)
-  | ({ type: "file"; source: AgentSource; filename?: string } & BlockMeta)
-  | ({ type: "document"; source: AgentSource; title?: string } & BlockMeta)
-  | { type: "resource"; resource: AgentEmbeddedResource; annotations?: AgentAnnotations; _meta?: AgentMeta }
-  | { type: "resource-link"; uri: string; mimeType?: string; annotations?: AgentAnnotations; _meta?: AgentMeta }
-  | { type: "code"; language: string; code: string; annotations?: AgentAnnotations; _meta?: AgentMeta }
+export type AgBlock =
+  | ({ type: "text"; text: string; citations?: AgCitation[] } & BlockMeta)
+  | ({ type: "image"; source: AgSource } & BlockMeta)
+  | ({ type: "audio"; source: AgSource } & BlockMeta)
+  | ({ type: "file"; source: AgSource; filename?: string } & BlockMeta)
+  | ({ type: "document"; source: AgSource; title?: string } & BlockMeta)
+  | { type: "resource"; resource: AgEmbeddedResource; annotations?: AgAnnotations; _meta?: AgMeta }
+  | { type: "resource-link"; uri: string; mimeType?: string; annotations?: AgAnnotations; _meta?: AgMeta }
+  | { type: "code"; language: string; code: string; annotations?: AgAnnotations; _meta?: AgMeta }
   | {
       type: "code-result";
       outcome: "ok" | "failed" | "deadline_exceeded";
       output: string;
-      annotations?: AgentAnnotations;
-      _meta?: AgentMeta;
+      annotations?: AgAnnotations;
+      _meta?: AgMeta;
     }
   // ONE reasoning block (visible text + optional opaque provider-bound part).
   // opaque/providerMetadata/itemId are REPLAY-LOAD-BEARING (round-trip byte-identical).
   | ({
       type: "reasoning";
       text?: string;
-      opaque?: AgentOpaque;
+      opaque?: AgOpaque;
       provider?: string;
       providerDetails?: JsonValue;
       itemId?: string;
     } & BlockMeta)
   // A provider-bound conversation summary (Pydantic CompactionPart); mirrors reasoning.
-  | { type: "compaction"; text?: string; opaque?: AgentOpaque; provider?: string; annotations?: AgentAnnotations; _meta?: AgentMeta }
+  | { type: "compaction"; text?: string; opaque?: AgOpaque; provider?: string; annotations?: AgAnnotations; _meta?: AgMeta }
   // A grounding/search result carrying an opaque per-result replay blob.
   | {
       type: "search-result";
       url?: string;
       title?: string;
-      opaque?: AgentOpaque;
+      opaque?: AgOpaque;
       pageAge?: string;
-      annotations?: AgentAnnotations;
-      _meta?: AgentMeta;
+      annotations?: AgAnnotations;
+      _meta?: AgMeta;
     }
   | ({
       type: "tool-call";
@@ -304,7 +304,7 @@ export type AgentBlock =
       signature?: string; // Gemini thoughtSignature on the tool-call — echo or 400 (replay-load-bearing)
       provider?: string;
       title?: string; // provider/model-supplied tool title (Vercel)
-      toolMetadata?: AgentMeta; // per-tool metadata bag (Vercel)
+      toolMetadata?: AgMeta; // per-tool metadata bag (Vercel)
       itemId?: string; // OpenAI Responses fc_ item id; DISTINCT from toolCallId (replay-load-bearing)
       providerCallIndex?: number; // Gemini null-id parallel-call positional index (replay-load-bearing, §8)
       uiVisibility?: ("model" | "app")[]; // MCP Apps access-control scope (from tool's _meta.ui.visibility)
@@ -312,7 +312,7 @@ export type AgentBlock =
   | {
       type: "tool-result";
       toolCallId: string;
-      content: AgentBlock[];
+      content: AgBlock[];
       outcome?: ToolOutcome;
       // ── ADVANCED tool-result channels (spec §2 / §2.1 / §9) — additive over CORE ──
       structuredContent?: JsonValue; // MODEL-facing structured result (base MCP outputSchema; §2.1)
@@ -320,43 +320,43 @@ export type AgentBlock =
       sideData?: JsonValue; // app-only side data (LangChain ToolMessage.artifact; §2.1)
       errorText?: string; // free-form error message (Vercel tool-output-error); present iff outcome==="error"
       errorCode?: string; // structured server-tool error code (Anthropic web_search_tool_result_error.error_code)
-      toolMetadata?: AgentMeta; // per-tool metadata bag (Vercel)
+      toolMetadata?: AgMeta; // per-tool metadata bag (Vercel)
       dynamic?: boolean; // Vercel dynamic-vs-static tool distinction
-      pendingInput?: AgentPendingInput; // MCP MRTR carrier when outcome==="input_required"
+      pendingInput?: AgPendingInput; // MCP MRTR carrier when outcome==="input_required"
       isError?: boolean; // MCP-frozen field, kept verbatim (derived: outcome==="error")
-      providerMetadata?: AgentProviderMeta;
-      annotations?: AgentAnnotations;
-      _meta?: AgentMeta;
+      providerMetadata?: AgProviderMeta;
+      annotations?: AgAnnotations;
+      _meta?: AgMeta;
     }
-  | { type: "data"; name: string; id?: string; data: JsonValue; transient?: boolean; annotations?: AgentAnnotations; _meta?: AgentMeta }
-  | { type: "provider-raw"; vendor: string; raw: JsonValue; annotations?: AgentAnnotations; _meta?: AgentMeta };
+  | { type: "data"; name: string; id?: string; data: JsonValue; transient?: boolean; annotations?: AgAnnotations; _meta?: AgMeta }
+  | { type: "provider-raw"; vendor: string; raw: JsonValue; annotations?: AgAnnotations; _meta?: AgMeta };
 
 // Per-block optional side-channel fields, spread into each arm (spec §2).
 const blockMeta = {
-  providerMetadata: AgentProviderMeta.optional(),
-  annotations: AgentAnnotations.optional(),
-  _meta: AgentMeta.optional(),
+  providerMetadata: AgProviderMeta.optional(),
+  annotations: AgAnnotations.optional(),
+  _meta: AgMeta.optional(),
 };
 // `resource` / `resource-link` / non-provider-bound blocks carry annotations + _meta
 // only (no providerMetadata per spec §2).
 const blockAnno = {
-  annotations: AgentAnnotations.optional(),
-  _meta: AgentMeta.optional(),
+  annotations: AgAnnotations.optional(),
+  _meta: AgMeta.optional(),
 };
 
-export const AgentBlock: z.ZodType<AgentBlock> = z.lazy(() =>
+export const AgBlock: z.ZodType<AgBlock> = z.lazy(() =>
   z.discriminatedUnion("type", [
     z.object({
       ...blockMeta,
       type: z.literal("text"),
       text: z.string(),
-      citations: z.array(AgentCitation).optional(),
+      citations: z.array(AgCitation).optional(),
     }),
-    z.object({ ...blockMeta, type: z.literal("image"), source: AgentSource }),
-    z.object({ ...blockMeta, type: z.literal("audio"), source: AgentSource }),
-    z.object({ ...blockMeta, type: z.literal("file"), source: AgentSource, filename: z.string().optional() }),
-    z.object({ ...blockMeta, type: z.literal("document"), source: AgentSource, title: z.string().optional() }),
-    z.object({ ...blockAnno, type: z.literal("resource"), resource: AgentEmbeddedResource }),
+    z.object({ ...blockMeta, type: z.literal("image"), source: AgSource }),
+    z.object({ ...blockMeta, type: z.literal("audio"), source: AgSource }),
+    z.object({ ...blockMeta, type: z.literal("file"), source: AgSource, filename: z.string().optional() }),
+    z.object({ ...blockMeta, type: z.literal("document"), source: AgSource, title: z.string().optional() }),
+    z.object({ ...blockAnno, type: z.literal("resource"), resource: AgEmbeddedResource }),
     z.object({ ...blockAnno, type: z.literal("resource-link"), uri: z.string(), mimeType: z.string().optional() }),
     z.object({ ...blockAnno, type: z.literal("code"), language: z.string(), code: z.string() }),
     z.object({
@@ -369,7 +369,7 @@ export const AgentBlock: z.ZodType<AgentBlock> = z.lazy(() =>
       ...blockMeta,
       type: z.literal("reasoning"),
       text: z.string().optional(),
-      opaque: AgentOpaque.optional(),
+      opaque: AgOpaque.optional(),
       provider: z.string().optional(),
       providerDetails: JsonValue.optional(),
       itemId: z.string().optional(),
@@ -378,7 +378,7 @@ export const AgentBlock: z.ZodType<AgentBlock> = z.lazy(() =>
       ...blockAnno,
       type: z.literal("compaction"),
       text: z.string().optional(),
-      opaque: AgentOpaque.optional(),
+      opaque: AgOpaque.optional(),
       provider: z.string().optional(),
     }),
     z.object({
@@ -386,7 +386,7 @@ export const AgentBlock: z.ZodType<AgentBlock> = z.lazy(() =>
       type: z.literal("search-result"),
       url: z.string().optional(),
       title: z.string().optional(),
-      opaque: AgentOpaque.optional(),
+      opaque: AgOpaque.optional(),
       pageAge: z.string().optional(),
     }),
     z.object({
@@ -400,7 +400,7 @@ export const AgentBlock: z.ZodType<AgentBlock> = z.lazy(() =>
       signature: z.string().optional(),
       provider: z.string().optional(),
       title: z.string().optional(),
-      toolMetadata: AgentMeta.optional(),
+      toolMetadata: AgMeta.optional(),
       itemId: z.string().optional(),
       providerCallIndex: z.number().optional(),
       uiVisibility: z.array(z.enum(["model", "app"])).optional(),
@@ -408,7 +408,7 @@ export const AgentBlock: z.ZodType<AgentBlock> = z.lazy(() =>
     z.object({
       type: z.literal("tool-result"),
       toolCallId: z.string(),
-      content: z.array(AgentBlock),
+      content: z.array(AgBlock),
       outcome: ToolOutcome.optional(),
       // ── ADVANCED tool-result channels (spec §2 / §2.1 / §9) — additive over CORE ──
       structuredContent: JsonValue.optional(),
@@ -416,13 +416,13 @@ export const AgentBlock: z.ZodType<AgentBlock> = z.lazy(() =>
       sideData: JsonValue.optional(),
       errorText: z.string().optional(),
       errorCode: z.string().optional(),
-      toolMetadata: AgentMeta.optional(),
+      toolMetadata: AgMeta.optional(),
       dynamic: z.boolean().optional(),
-      pendingInput: AgentPendingInput.optional(),
+      pendingInput: AgPendingInput.optional(),
       isError: z.boolean().optional(),
-      providerMetadata: AgentProviderMeta.optional(),
-      annotations: AgentAnnotations.optional(),
-      _meta: AgentMeta.optional(),
+      providerMetadata: AgProviderMeta.optional(),
+      annotations: AgAnnotations.optional(),
+      _meta: AgMeta.optional(),
     }),
     z.object({
       ...blockAnno,
@@ -439,107 +439,107 @@ export const AgentBlock: z.ZodType<AgentBlock> = z.lazy(() =>
 // Outcome (spec §4). The within-run pause `{type:"paused", asks}` is the EXTENDED
 // (HITL) arm: the turn parks on one or more asks; `result` MAY accompany a pause
 // (a partial value emitted before parking).
-export const AgentOutcome = z.discriminatedUnion("type", [
+export const AgOutcome = z.discriminatedUnion("type", [
   z.object({ type: z.literal("success"), result: JsonValue.optional() }),
   z.object({ type: z.literal("error"), message: z.string(), code: z.string().optional() }),
   z.object({ type: z.literal("rejected"), reason: z.string().optional() }),
-  z.object({ type: z.literal("paused"), asks: z.array(AgentPausedAsk), result: JsonValue.optional() }),
+  z.object({ type: z.literal("paused"), asks: z.array(AgPausedAsk), result: JsonValue.optional() }),
 ]);
-export type AgentOutcome = z.infer<typeof AgentOutcome>;
+export type AgOutcome = z.infer<typeof AgOutcome>;
 
-export const AgentRole = z.enum(["user", "assistant", "tool", "system"]);
-export type AgentRole = z.infer<typeof AgentRole>;
+export const AgRole = z.enum(["user", "assistant", "tool", "system"]);
+export type AgRole = z.infer<typeof AgRole>;
 
 // ─── ADVANCED helper types (spec §2 / §3 / §4 / §9) ──────────────────────────
 
 // The unified message object (spec §3.2): one type, both directions. Input-only
 // fields are optional. Carried by `messages.snapshot` and reconstructed into
-// `AgentReduceResult.messages` (§5). `messageMetadata` is an opaque app bag
+// `AgReduceResult.messages` (§5). `messageMetadata` is an opaque app bag
 // (Vercel usage accounting + the A2UI `a2uiClientDataModel` snapshot key, §11.1).
-export const AgentMessage = z.object({
+export const AgMessage = z.object({
   id: z.string(),
-  role: AgentRole,
-  content: z.array(AgentBlock),
+  role: AgRole,
+  content: z.array(AgBlock),
   turnId: z.string().optional(),
   threadId: z.string().optional(),
   referenceTurnIds: z.array(z.string()).optional(),
   messageMetadata: JsonValue.optional(),
   extensions: z.array(z.string()).optional(),
-  metadata: AgentMeta.optional(),
+  metadata: AgMeta.optional(),
 });
-export type AgentMessage = z.infer<typeof AgentMessage>;
+export type AgMessage = z.infer<typeof AgMessage>;
 
 // The A2A streamed-artifact ENTITY (spec §2 — the ONLY meaning of "artifact").
-// Side-channel, NOT an AgentBlock; reduce() lands these in
-// `AgentReduceResult.artifacts` (§5). `extensions` = foreign A2A active-extension URIs.
-export const AgentArtifact = z.object({
+// Side-channel, NOT an AgBlock; reduce() lands these in
+// `AgReduceResult.artifacts` (§5). `extensions` = foreign A2A active-extension URIs.
+export const AgArtifact = z.object({
   artifactId: z.string(),
   turnId: z.string(),
   threadId: z.string(),
   name: z.string().optional(),
   description: z.string().optional(),
-  parts: z.array(AgentBlock),
+  parts: z.array(AgBlock),
   extensions: z.array(z.string()).optional(),
-  _meta: AgentMeta.optional(),
+  _meta: AgMeta.optional(),
 });
-export type AgentArtifact = z.infer<typeof AgentArtifact>;
+export type AgArtifact = z.infer<typeof AgArtifact>;
 
-// A folded handoff edge (spec §2 `AgentTurnRecord.handoffs[]` / §4 handoff event).
-export const AgentHandoffRecord = z.object({
+// A folded handoff edge (spec §2 `AgTurnRecord.handoffs[]` / §4 handoff event).
+export const AgHandoffRecord = z.object({
   kind: z.enum(["transfer", "escalate"]).optional(),
   fromAgentId: z.string().optional(),
   toAgentId: z.string().optional(),
   toAgentName: z.string().optional(),
 });
-export type AgentHandoffRecord = z.infer<typeof AgentHandoffRecord>;
+export type AgHandoffRecord = z.infer<typeof AgHandoffRecord>;
 
-// A ToS-must-render record (spec §2 `AgentTurnRecord.displayRequired[]` / §4
+// A ToS-must-render record (spec §2 `AgTurnRecord.displayRequired[]` / §4
 // display.required event).
-export const AgentDisplayRequired = z.object({
+export const AgDisplayRequired = z.object({
   provider: z.string(),
   html: z.string(),
 });
-export type AgentDisplayRequired = z.infer<typeof AgentDisplayRequired>;
+export type AgDisplayRequired = z.infer<typeof AgDisplayRequired>;
 
 // Per-turn folded record (spec §2): paused asks, prompt.blocked safety, handoffs,
-// sources, lifecycle state. Part of AgentReduceResult; restorable on snapshot resync (§5).
-export const AgentTurnRecord = z.object({
+// sources, lifecycle state. Part of AgReduceResult; restorable on snapshot resync (§5).
+export const AgTurnRecord = z.object({
   turnId: z.string(),
   parentTurnId: z.string().optional(),
   threadId: z.string(),
-  outcome: AgentOutcome.optional(),
-  finishReason: AgentFinishReason.optional(),
-  usage: AgentUsage.optional(),
-  safety: z.array(AgentSafety).optional(),
-  handoffs: z.array(AgentHandoffRecord).optional(),
+  outcome: AgOutcome.optional(),
+  finishReason: AgFinishReason.optional(),
+  usage: AgUsage.optional(),
+  safety: z.array(AgSafety).optional(),
+  handoffs: z.array(AgHandoffRecord).optional(),
   sourceIds: z.array(z.string()).optional(),
-  asks: z.array(AgentPausedAsk).optional(),
+  asks: z.array(AgPausedAsk).optional(),
   taskState: z.string().optional(), // verbatim A2A TaskState with no outcome target (A44)
-  displayRequired: z.array(AgentDisplayRequired).optional(),
+  displayRequired: z.array(AgDisplayRequired).optional(),
 });
-export type AgentTurnRecord = z.infer<typeof AgentTurnRecord>;
+export type AgTurnRecord = z.infer<typeof AgTurnRecord>;
 
 // reduce() landing container (spec §2 / §5) — the well-typed return of the fold.
-export const AgentReduceResult = z.object({
-  messages: z.array(AgentMessage),
-  artifacts: z.array(AgentArtifact),
-  turns: z.array(AgentTurnRecord),
+export const AgReduceResult = z.object({
+  messages: z.array(AgMessage),
+  artifacts: z.array(AgArtifact),
+  turns: z.array(AgTurnRecord),
   state: JsonValue.optional(), // shared-state working copy (opaque, §11.1)
 });
-export type AgentReduceResult = z.infer<typeof AgentReduceResult>;
+export type AgReduceResult = z.infer<typeof AgReduceResult>;
 
-// A client-advertised frontend tool (spec §3 `AgentClientCapabilities.frontendTools[]`).
+// A client-advertised frontend tool (spec §3 `AgClientCapabilities.frontendTools[]`).
 // `inputSchema` is an opaque JSON Schema (pass-through per §0.1).
-export const AgentFrontendTool = z.object({
+export const AgFrontendTool = z.object({
   name: z.string(),
   description: z.string().optional(),
   inputSchema: JsonValue,
 });
-export type AgentFrontendTool = z.infer<typeof AgentFrontendTool>;
+export type AgFrontendTool = z.infer<typeof AgFrontendTool>;
 
 // Client→agent capabilities (spec §3) — the inbound half of the in-band negotiation.
-export const AgentClientCapabilities = z.object({
-  frontendTools: z.array(AgentFrontendTool).optional(),
+export const AgClientCapabilities = z.object({
+  frontendTools: z.array(AgFrontendTool).optional(),
   hitl: z
     .object({
       ask: z.boolean().optional(),
@@ -557,36 +557,36 @@ export const AgentClientCapabilities = z.object({
     .optional(),
   state: z.object({ jsonPatch: z.boolean().optional() }).optional(),
 });
-export type AgentClientCapabilities = z.infer<typeof AgentClientCapabilities>;
+export type AgClientCapabilities = z.infer<typeof AgClientCapabilities>;
 
 // Agent→client capabilities (spec §3 / §6 / §11.5) — the in-band other half of
 // negotiation, an A2A AgentCard-compatible superset advertised on the first turn
 // (carrier: the `agent.capabilities` event, §4).
-export const AgentCapabilities = z.object({
+export const AgCapabilities = z.object({
   streaming: z.object({ partialMessages: z.boolean().optional() }).optional(),
   pushNotifications: z.boolean().optional(),
-  securitySchemes: z.array(AgentAuthConfig).optional(),
+  securitySchemes: z.array(AgAuthConfig).optional(),
   extensions: z.array(z.string()).optional(), // foreign A2A active-extension URIs
   uiCatalogs: z.array(z.string()).optional(),
   profile: z.enum(["CORE", "EXTENDED", "ADVANCED"]).optional(),
 });
-export type AgentCapabilities = z.infer<typeof AgentCapabilities>;
+export type AgCapabilities = z.infer<typeof AgCapabilities>;
 
 // ─── INPUT (spec §3) ─────────────────────────────────────────────────────────
 
 // Reasoning request knob (spec §3): neutral mapping over OpenAI o-series `effort`
 // + Anthropic/Gemini thinking `budgetTokens`.
-export const AgentReasoningConfig = z.object({
+export const AgReasoningConfig = z.object({
   mode: z.enum(["enabled", "disabled"]),
   effort: z.enum(["minimal", "low", "medium", "high"]).optional(),
   budgetTokens: z.number().optional(),
 });
-export type AgentReasoningConfig = z.infer<typeof AgentReasoningConfig>;
+export type AgReasoningConfig = z.infer<typeof AgReasoningConfig>;
 
 // A tool definition carried by `start.run.tools[]` (spec §3). `inputSchema` is an
 // opaque JSON Schema (§0.1). `uiVisibility` = MCP Apps access-control scope
 // (from the tool's `_meta.ui.visibility`): "model" = model-callable, "app" = app-only.
-export const AgentToolDef = z.object({
+export const AgToolDef = z.object({
   name: z.string(),
   description: z.string().optional(),
   inputSchema: JsonValue,
@@ -600,16 +600,16 @@ export const AgentToolDef = z.object({
       z.object({ type: z.literal("frontend") }),
     ])
     .optional(),
-  _meta: AgentMeta.optional(),
+  _meta: AgMeta.optional(),
 });
-export type AgentToolDef = z.infer<typeof AgentToolDef>;
+export type AgToolDef = z.infer<typeof AgToolDef>;
 
 // Run configuration carried by the `start` kind (spec §3). `system`/`context`
-// revert faithfully to text or AgentBlock[]; `responseFormat.schema` is opaque (§0.1).
-export const AgentRunConfig = z.object({
+// revert faithfully to text or AgBlock[]; `responseFormat.schema` is opaque (§0.1).
+export const AgRunConfig = z.object({
   model: z.string().optional(),
-  system: z.union([z.string(), z.array(AgentBlock)]).optional(),
-  tools: z.array(AgentToolDef).optional(),
+  system: z.union([z.string(), z.array(AgBlock)]).optional(),
+  tools: z.array(AgToolDef).optional(),
   toolChoice: z
     .union([
       z.enum(["auto", "none", "required"]),
@@ -624,12 +624,12 @@ export const AgentRunConfig = z.object({
       strict: z.boolean().optional(),
     })
     .optional(),
-  reasoning: AgentReasoningConfig.optional(),
+  reasoning: AgReasoningConfig.optional(),
   maxTokens: z.number().optional(),
   temperature: z.number().optional(),
   topP: z.number().optional(),
   stopSequences: z.array(z.string()).optional(),
-  context: z.array(AgentBlock).optional(),
+  context: z.array(AgBlock).optional(),
   pushNotification: z
     .object({
       url: z.string(),
@@ -638,51 +638,51 @@ export const AgentRunConfig = z.object({
     })
     .optional(),
 });
-export type AgentRunConfig = z.infer<typeof AgentRunConfig>;
+export type AgRunConfig = z.infer<typeof AgRunConfig>;
 
-// Shared envelope fields on EVERY AgentInput variant (spec §3). `state` = shared-
+// Shared envelope fields on EVERY AgInput variant (spec §3). `state` = shared-
 // state echo (opaque, §11.1); `metadata` may carry namespaced runtime-replay
 // handles (LangGraph `langgraph/threadId` / `langgraph/checkpointId`, A50).
-export const AgentInputEnvelope = z.object({
+export const AgInputEnvelope = z.object({
   protocol: z.literal("agjson"),
   version: z.string(),
   threadId: z.string(),
   turnId: z.string(),
   parentTurnId: z.string().optional(),
-  capabilities: AgentClientCapabilities.optional(),
+  capabilities: AgClientCapabilities.optional(),
   state: JsonValue.optional(),
   lastSeq: z.number().optional(),
-  metadata: AgentMeta.optional(),
+  metadata: AgMeta.optional(),
 });
-export type AgentInputEnvelope = z.infer<typeof AgentInputEnvelope>;
+export type AgInputEnvelope = z.infer<typeof AgInputEnvelope>;
 const inputEnvelope = {
   protocol: z.literal("agjson"),
   version: z.string(),
   threadId: z.string(),
   turnId: z.string(),
   parentTurnId: z.string().optional(),
-  capabilities: AgentClientCapabilities.optional(),
+  capabilities: AgClientCapabilities.optional(),
   state: JsonValue.optional(),
   lastSeq: z.number().optional(),
-  metadata: AgentMeta.optional(),
+  metadata: AgMeta.optional(),
 };
 
 // ─── SURFACE INTERACTION (spec §3 / §6 / §11.8 un-merge) ─────────────────────
-// There is NO merged AgentUiAction. A shared AgentSurfaceEnvelope carries the
+// There is NO merged AgUiAction. A shared AgSurfaceEnvelope carries the
 // correlation fields at the AgJSON layer (§1.3, §4 surface addressing) and five
 // per-spec-faithful constructs (A2UI ×3, MCP Apps, OpenAI Apps) — each keeping
-// its OWN frozen field names — form AgentSurfaceInteraction.
+// its OWN frozen field names — form AgSurfaceInteraction.
 
 // Shared correlation envelope for ALL surface interactions (spec §3).
-export const AgentSurfaceEnvelope = z.object({
+export const AgSurfaceEnvelope = z.object({
   surface: z.enum(["a2ui", "mcp-app", "openai-app"]),
   surfaceId: z.string(),
   toolCallId: z.string().optional(),
   turnId: z.string().optional(),
   threadId: z.string().optional(),
-  _meta: AgentMeta.optional(),
+  _meta: AgMeta.optional(),
 });
-export type AgentSurfaceEnvelope = z.infer<typeof AgentSurfaceEnvelope>;
+export type AgSurfaceEnvelope = z.infer<typeof AgSurfaceEnvelope>;
 // Envelope fields spread into each surface-interaction arm. The `surface`
 // literal is overridden per-arm (the discriminant), so it is omitted here.
 const surfaceEnvelope = {
@@ -690,13 +690,13 @@ const surfaceEnvelope = {
   toolCallId: z.string().optional(),
   turnId: z.string().optional(),
   threadId: z.string().optional(),
-  _meta: AgentMeta.optional(),
+  _meta: AgMeta.optional(),
 };
 
 // A2UI v1.0 client→server `action` (A2UI-frozen names VERBATIM, §0.4). `context`
 // = the A2UI resolved data-bindings — the SOLE sanctioned Record<string, unknown>
 // (map shape known: string keys; each value opaque per §0.1).
-export const AgentA2uiSurfaceAction = z.object({
+export const AgA2uiSurfaceAction = z.object({
   ...surfaceEnvelope,
   surface: z.literal("a2ui"),
   a2uiMessage: z.literal("action"),
@@ -707,11 +707,11 @@ export const AgentA2uiSurfaceAction = z.object({
   wantResponse: z.boolean().optional(),
   actionId: z.string().optional(),
 });
-export type AgentA2uiSurfaceAction = z.infer<typeof AgentA2uiSurfaceAction>;
+export type AgA2uiSurfaceAction = z.infer<typeof AgA2uiSurfaceAction>;
 
 // A2UI v1.0 client→server `functionResponse` (inbound leg of the server
 // callFunction RPC). `value` is the opaque return value (§0.1).
-export const AgentA2uiFunctionResponse = z.object({
+export const AgA2uiFunctionResponse = z.object({
   ...surfaceEnvelope,
   surface: z.literal("a2ui"),
   a2uiMessage: z.literal("function-response"),
@@ -719,11 +719,11 @@ export const AgentA2uiFunctionResponse = z.object({
   call: z.string(),
   value: JsonValue,
 });
-export type AgentA2uiFunctionResponse = z.infer<typeof AgentA2uiFunctionResponse>;
+export type AgA2uiFunctionResponse = z.infer<typeof AgA2uiFunctionResponse>;
 
 // A2UI v1.0 client→server `error` (surface-side error report, e.g.
 // VALIDATION_FAILED). `path` = JSON-Pointer to the failed binding.
-export const AgentA2uiError = z.object({
+export const AgA2uiError = z.object({
   ...surfaceEnvelope,
   surface: z.literal("a2ui"),
   a2uiMessage: z.literal("error"),
@@ -731,17 +731,17 @@ export const AgentA2uiError = z.object({
   message: z.string(),
   path: z.string().optional(),
 });
-export type AgentA2uiError = z.infer<typeof AgentA2uiError>;
+export type AgA2uiError = z.infer<typeof AgA2uiError>;
 
 // MCP Apps 2026-01-26 view→host RPCs (nested union on the verbatim JSON-RPC
 // `method`). `content`/`structuredContent` kept VERBATIM (MCP-frozen, §0.4).
 // ui/request-display-mode has NO modal mode (OpenAI-only).
-export const AgentMcpAppViewMessage = z.discriminatedUnion("method", [
+export const AgMcpAppViewMessage = z.discriminatedUnion("method", [
   z.object({
     ...surfaceEnvelope,
     surface: z.literal("mcp-app"),
     method: z.literal("ui/update-model-context"),
-    params: z.object({ content: z.array(AgentBlock).optional(), structuredContent: JsonValue.optional() }),
+    params: z.object({ content: z.array(AgBlock).optional(), structuredContent: JsonValue.optional() }),
   }),
   z.object({
     ...surfaceEnvelope,
@@ -765,7 +765,7 @@ export const AgentMcpAppViewMessage = z.discriminatedUnion("method", [
     params: z.object({ url: z.string() }),
   }),
 ]);
-export type AgentMcpAppViewMessage = z.infer<typeof AgentMcpAppViewMessage>;
+export type AgMcpAppViewMessage = z.infer<typeof AgMcpAppViewMessage>;
 
 // OpenAI Apps SDK widget (window.openai) component→server RPCs (nested union on
 // `method`). OpenAI-frozen names VERBATIM (§0.4). `callTool` is a SPEC-UNIQUE
@@ -777,7 +777,7 @@ const openAiWidgetBase = {
   surface: z.literal("openai-app"),
   toolResponseMetadata: JsonValue.optional(),
 };
-export const AgentOpenAiWidgetAction = z.discriminatedUnion("method", [
+export const AgOpenAiWidgetAction = z.discriminatedUnion("method", [
   z.object({ ...openAiWidgetBase, method: z.literal("setWidgetState"), widgetState: JsonValue }),
   z.object({
     ...openAiWidgetBase,
@@ -799,80 +799,80 @@ export const AgentOpenAiWidgetAction = z.discriminatedUnion("method", [
     requestId: z.string(),
   }),
 ]);
-export type AgentOpenAiWidgetAction = z.infer<typeof AgentOpenAiWidgetAction>;
+export type AgOpenAiWidgetAction = z.infer<typeof AgOpenAiWidgetAction>;
 
 // The surface-interaction union (spec §3 / §6). Element type of
 // resume.uiActions[]. Discriminated on `surface`; the three A2UI legs narrow
 // further on the inner `a2uiMessage` discriminant.
-export const AgentSurfaceInteraction = z.union([
-  AgentA2uiSurfaceAction,
-  AgentA2uiFunctionResponse,
-  AgentA2uiError,
-  AgentMcpAppViewMessage,
-  AgentOpenAiWidgetAction,
+export const AgSurfaceInteraction = z.union([
+  AgA2uiSurfaceAction,
+  AgA2uiFunctionResponse,
+  AgA2uiError,
+  AgMcpAppViewMessage,
+  AgOpenAiWidgetAction,
 ]);
-export type AgentSurfaceInteraction = z.infer<typeof AgentSurfaceInteraction>;
+export type AgSurfaceInteraction = z.infer<typeof AgSurfaceInteraction>;
 
 // A single client-executed tool-result flowing back IN (spec §3 `tool-result`
 // kind `results[]`). The INPUT-side counterpart of the tool-result block; carries
 // the 4 channels (§2.1) + async flags (`willContinue`/`scheduling`).
-export const AgentInputToolResult = z.object({
+export const AgInputToolResult = z.object({
   toolCallId: z.string(),
-  content: z.array(AgentBlock),
+  content: z.array(AgBlock),
   outcome: ToolOutcome.optional(),
   structuredContent: JsonValue.optional(),
   uiData: JsonValue.optional(),
   sideData: JsonValue.optional(),
   errorText: z.string().optional(),
   errorCode: z.string().optional(),
-  providerMetadata: AgentProviderMeta.optional(),
-  toolMetadata: AgentMeta.optional(),
+  providerMetadata: AgProviderMeta.optional(),
+  toolMetadata: AgMeta.optional(),
   dynamic: z.boolean().optional(),
-  pendingInput: AgentPendingInput.optional(),
+  pendingInput: AgPendingInput.optional(),
   isError: z.boolean().optional(),
   willContinue: z.boolean().optional(),
   scheduling: z.enum(["when_idle", "preempt", "silent"]).optional(),
-  annotations: AgentAnnotations.optional(),
-  _meta: AgentMeta.optional(),
+  annotations: AgAnnotations.optional(),
+  _meta: AgMeta.optional(),
 });
-export type AgentInputToolResult = z.infer<typeof AgentInputToolResult>;
+export type AgInputToolResult = z.infer<typeof AgInputToolResult>;
 
-// AgentInput — the input envelope (spec §3): a discriminated union on `kind`
-// (start | resume | tool-result) over the shared AgentInputEnvelope.
-export const AgentInput = z.discriminatedUnion("kind", [
+// AgInput — the input envelope (spec §3): a discriminated union on `kind`
+// (start | resume | tool-result) over the shared AgInputEnvelope.
+export const AgInput = z.discriminatedUnion("kind", [
   z.object({
     ...inputEnvelope,
     kind: z.literal("start"),
-    messages: z.array(AgentMessage),
-    run: AgentRunConfig.optional(),
+    messages: z.array(AgMessage),
+    run: AgRunConfig.optional(),
   }),
   z.object({
     ...inputEnvelope,
     kind: z.literal("resume"),
-    answers: z.array(AgentHitlAnswer).optional(),
-    uiActions: z.array(AgentSurfaceInteraction).optional(),
+    answers: z.array(AgHitlAnswer).optional(),
+    uiActions: z.array(AgSurfaceInteraction).optional(),
   }),
   z.object({
     ...inputEnvelope,
     kind: z.literal("tool-result"),
-    results: z.array(AgentInputToolResult),
+    results: z.array(AgInputToolResult),
   }),
 ]);
-export type AgentInput = z.infer<typeof AgentInput>;
+export type AgInput = z.infer<typeof AgInput>;
 
 // A2UI surface display-mode enum (spec §4 `ui.display-mode`). `modal` is
 // OpenAI-Apps ONLY (a host MUST NOT grant "modal" to an mcp-app surface).
-export const AgentDisplayMode = z.enum(["inline", "pip", "fullscreen", "modal"]);
-export type AgentDisplayMode = z.infer<typeof AgentDisplayMode>;
+export const AgDisplayMode = z.enum(["inline", "pip", "fullscreen", "modal"]);
+export type AgDisplayMode = z.infer<typeof AgDisplayMode>;
 
 // Surface-RPC error (spec §4 `ui.result` / `ui.action-result`): `path` =
 // JSON-Pointer for an A2UI VALIDATION_FAILED reciprocal rejection.
-export const AgentSurfaceError = z.object({
+export const AgSurfaceError = z.object({
   code: z.string(),
   message: z.string(),
   path: z.string().optional(),
 });
-export type AgentSurfaceError = z.infer<typeof AgentSurfaceError>;
+export type AgSurfaceError = z.infer<typeof AgSurfaceError>;
 
 // Event base (spec §4): `seq` = global monotonic ordinal; `turnId` names the owning turn;
 // `messageId` (when present) names the open message the event attaches to.
@@ -884,24 +884,24 @@ const base = {
   turnId: z.string().optional(),
   messageId: z.string().optional(),
   parentId: z.string().optional(),
-  _meta: AgentMeta.optional(),
+  _meta: AgMeta.optional(),
 };
 
-// AgentEvent — the CLOSED discriminated union of all dotted/bare-noun event types
+// AgEvent — the CLOSED discriminated union of all dotted/bare-noun event types
 // (CORE + EXTENDED + ADVANCED, spec §9). The open `ext.<vendor>.<key>` vendor
 // extension (§4/§12) CANNOT live in a discriminatedUnion (its `type` is an open
-// template-literal, not a fixed literal), so it is a sibling `AgentExtEvent` joined
+// template-literal, not a fixed literal), so it is a sibling `AgExtEvent` joined
 // via `.or()` below. Kept as a named const for clarity.
-export const AgentClosedEvent = z.discriminatedUnion("type", [
+export const AgClosedEvent = z.discriminatedUnion("type", [
   z.object({ ...base, type: z.literal("turn.start"), threadId: z.string(), turnId: z.string() }),
   z.object({
     ...base,
     type: z.literal("turn.done"),
     turnId: z.string(),
-    outcome: AgentOutcome,
-    finishReason: AgentFinishReason,
-    usage: AgentUsage.optional(), // EXTENDED — per-turn usage (spec §4)
-    safety: z.array(AgentSafety).optional(), // EXTENDED — safety signals (spec §4)
+    outcome: AgOutcome,
+    finishReason: AgFinishReason,
+    usage: AgUsage.optional(), // EXTENDED — per-turn usage (spec §4)
+    safety: z.array(AgSafety).optional(), // EXTENDED — safety signals (spec §4)
     messageId: z.string().optional(),
     messageMetadata: JsonValue.optional(), // Vercel usage accounting / A2UI snapshot (§4 / §11.1)
     taskState: z.string().optional(), // verbatim A2A TaskState with no outcome target (§2)
@@ -925,7 +925,7 @@ export const AgentClosedEvent = z.discriminatedUnion("type", [
     ...base,
     type: z.literal("message.start"),
     id: z.string(),
-    role: AgentRole,
+    role: AgRole,
     turnId: z.string(),
     threadId: z.string(),
     stepId: z.string().optional(),
@@ -939,20 +939,20 @@ export const AgentClosedEvent = z.discriminatedUnion("type", [
     role: z.literal("assistant").optional(),
     index: z.number().optional(),
     previousPartKind: z.string().optional(),
-    providerMetadata: AgentProviderMeta.optional(),
+    providerMetadata: AgProviderMeta.optional(),
   }),
   z.object({
     ...base,
     type: z.literal("text.delta"),
     id: z.string(),
     delta: z.string(),
-    providerMetadata: AgentProviderMeta.optional(),
+    providerMetadata: AgProviderMeta.optional(),
   }),
-  z.object({ ...base, type: z.literal("text.end"), id: z.string(), providerMetadata: AgentProviderMeta.optional() }),
+  z.object({ ...base, type: z.literal("text.end"), id: z.string(), providerMetadata: AgProviderMeta.optional() }),
   z.object({
     ...base,
     type: z.literal("content.block"),
-    block: AgentBlock,
+    block: AgBlock,
     transient: z.boolean().optional(),
   }),
   z.object({
@@ -966,10 +966,10 @@ export const AgentClosedEvent = z.discriminatedUnion("type", [
     providerExecuted: z.boolean().optional(),
     requiresApproval: z.boolean().optional(),
     title: z.string().optional(),
-    toolMetadata: AgentMeta.optional(),
+    toolMetadata: AgMeta.optional(),
     uiVisibility: z.array(z.enum(["model", "app"])).optional(),
     itemId: z.string().optional(),
-    providerMetadata: AgentProviderMeta.optional(),
+    providerMetadata: AgProviderMeta.optional(),
   }),
   z.object({
     ...base,
@@ -984,15 +984,15 @@ export const AgentClosedEvent = z.discriminatedUnion("type", [
     input: JsonValue,
     signature: z.string().optional(), // Gemini tool-call signature rides here (replay-load-bearing)
     title: z.string().optional(),
-    toolMetadata: AgentMeta.optional(),
-    providerMetadata: AgentProviderMeta.optional(),
+    toolMetadata: AgMeta.optional(),
+    providerMetadata: AgProviderMeta.optional(),
   }),
   z.object({
     ...base,
     type: z.literal("tool.done"),
     toolCallId: z.string(),
     messageId: z.string().optional(),
-    content: z.array(AgentBlock),
+    content: z.array(AgBlock),
     outcome: ToolOutcome.optional(),
     isError: z.boolean().optional(),
     // ── ADVANCED tool-result channels (spec §2.1 / §4 / §9) — additive over CORE ──
@@ -1001,10 +1001,10 @@ export const AgentClosedEvent = z.discriminatedUnion("type", [
     sideData: JsonValue.optional(),
     errorText: z.string().optional(),
     errorCode: z.string().optional(),
-    providerMetadata: AgentProviderMeta.optional(),
-    toolMetadata: AgentMeta.optional(),
+    providerMetadata: AgProviderMeta.optional(),
+    toolMetadata: AgMeta.optional(),
     dynamic: z.boolean().optional(),
-    pendingInput: AgentPendingInput.optional(),
+    pendingInput: AgPendingInput.optional(),
     skipSummarization: z.boolean().optional(), // output-only async flag (§2.2)
     more: z.boolean().optional(), // output-only async flag — more:true SETS preliminary (§2.2)
     preliminary: z.boolean().optional(), // output-only async flag (§2.2)
@@ -1019,7 +1019,7 @@ export const AgentClosedEvent = z.discriminatedUnion("type", [
     mode: z.enum(["summarized", "full"]).optional(),
     partIndex: z.number().optional(),
     previousPartKind: z.string().optional(),
-    providerMetadata: AgentProviderMeta.optional(),
+    providerMetadata: AgProviderMeta.optional(),
     itemId: z.string().optional(),
   }),
   z.object({
@@ -1028,21 +1028,21 @@ export const AgentClosedEvent = z.discriminatedUnion("type", [
     id: z.string(),
     delta: z.string(),
     partIndex: z.number().optional(),
-    providerMetadata: AgentProviderMeta.optional(),
+    providerMetadata: AgProviderMeta.optional(),
   }),
   z.object({
     ...base,
     type: z.literal("reasoning.end"),
     id: z.string(),
     provider: z.string().optional(),
-    providerMetadata: AgentProviderMeta.optional(),
+    providerMetadata: AgProviderMeta.optional(),
   }),
   // REPLACE — sets `opaque` on the reasoning block named by `id` (replay-load-bearing).
   z.object({
     ...base,
     type: z.literal("reasoning.opaque"),
     id: z.string(),
-    kind: AgentOpaqueKind,
+    kind: AgOpaqueKind,
     value: z.string(),
     provider: z.string().optional(),
     itemId: z.string().optional(),
@@ -1062,7 +1062,7 @@ export const AgentClosedEvent = z.discriminatedUnion("type", [
     type: z.literal("step.done"),
     id: z.string(),
     stepName: z.string().optional(),
-    usage: AgentUsage.optional(),
+    usage: AgUsage.optional(),
   }),
   // ── SUBAGENT / HANDOFF ── (subagent.start is the SOLE nested-turn opener)
   z.object({
@@ -1088,7 +1088,7 @@ export const AgentClosedEvent = z.discriminatedUnion("type", [
     type: z.literal("source"),
     sourceId: z.string(),
     source: z.union([
-      AgentSource,
+      AgSource,
       z.object({ url: z.string(), title: z.string().optional() }),
       z.object({
         type: z.literal("document"),
@@ -1098,30 +1098,30 @@ export const AgentClosedEvent = z.discriminatedUnion("type", [
       }),
     ]),
     chunkIndex: z.number().optional(),
-    providerMetadata: AgentProviderMeta.optional(),
+    providerMetadata: AgProviderMeta.optional(),
   }),
   // ── PROMPT SAFETY ──
   z.object({
     ...base,
     type: z.literal("prompt.blocked"),
     reason: z.enum(["safety", "blocklist", "prohibited", "other"]),
-    safety: z.array(AgentSafety).optional(),
+    safety: z.array(AgSafety).optional(),
   }),
   // ── HITL (one family; spec §7) ──
   z.object({
     ...base,
     type: z.literal("hitl.ask"),
     askId: z.string(),
-    kind: AgentAskKind,
+    kind: AgAskKind,
     message: z.string().optional(),
     schema: JsonValue.optional(),
-    choices: z.array(AgentChoice).optional(),
-    authConfig: AgentAuthConfig.optional(),
+    choices: z.array(AgChoice).optional(),
+    authConfig: AgAuthConfig.optional(),
     url: z.string().optional(),
     toolCallId: z.string().optional(),
     continuation: z.enum(["resume", "turn"]).optional(),
     reason: z.string().optional(),
-    metadata: AgentMeta.optional(),
+    metadata: AgMeta.optional(),
     requestState: z.string().optional(),
     inputKey: z.string().optional(),
     resumeBinding: z.enum(["id", "positional"]).optional(),
@@ -1151,7 +1151,7 @@ export const AgentClosedEvent = z.discriminatedUnion("type", [
     ...base,
     type: z.literal("artifact.delta"),
     artifactId: z.string(),
-    part: AgentBlock,
+    part: AgBlock,
     append: z.boolean(),
   }),
   z.object({ ...base, type: z.literal("artifact.end"), artifactId: z.string(), lastChunk: z.literal(true) }),
@@ -1159,9 +1159,9 @@ export const AgentClosedEvent = z.discriminatedUnion("type", [
   z.object({
     ...base,
     type: z.literal("messages.snapshot"),
-    messages: z.array(AgentMessage),
-    turns: z.array(AgentTurnRecord).optional(),
-    artifacts: z.array(AgentArtifact).optional(),
+    messages: z.array(AgMessage),
+    turns: z.array(AgTurnRecord).optional(),
+    artifacts: z.array(AgArtifact).optional(),
   }),
   // ── HOST DISPLAY/RUNTIME HINT ── live-only; `capabilities` here = HOST surface render hint (A30).
   z.object({
@@ -1172,9 +1172,9 @@ export const AgentClosedEvent = z.discriminatedUnion("type", [
     container: JsonValue.optional(),
   }),
   // ── CAPABILITY NEGOTIATION (agent→client, first turn) ──
-  z.object({ ...base, type: z.literal("agent.capabilities"), capabilities: AgentCapabilities }),
+  z.object({ ...base, type: z.literal("agent.capabilities"), capabilities: AgCapabilities }),
   // ── MESSAGE METADATA ── merge into the message named by messageId (open assistant message when absent).
-  z.object({ ...base, type: z.literal("message.metadata"), messageId: z.string().optional(), metadata: AgentMeta }),
+  z.object({ ...base, type: z.literal("message.metadata"), messageId: z.string().optional(), metadata: AgMeta }),
   // ── MANDATORY DISPLAY (ToS) ── recorded on the turn, MUST NOT be dropped (§5).
   z.object({ ...base, type: z.literal("display.required"), provider: z.string(), html: z.string() }),
   // ── AGENT ↔ SURFACE RPC (A2UI v1.0 + OpenAI Apps SDK) — live-only / non-folding (§5) ──
@@ -1195,7 +1195,7 @@ export const AgentClosedEvent = z.discriminatedUnion("type", [
     callId: z.string(),
     method: z.string().optional(),
     value: JsonValue.optional(),
-    error: AgentSurfaceError.optional(),
+    error: AgSurfaceError.optional(),
   }),
   z.object({
     ...base,
@@ -1203,15 +1203,15 @@ export const AgentClosedEvent = z.discriminatedUnion("type", [
     surfaceId: z.string(),
     actionId: z.string(),
     value: JsonValue.optional(),
-    error: AgentSurfaceError.optional(),
+    error: AgSurfaceError.optional(),
   }),
   // OpenAI Apps SDK window.openai.callTool reply leg — `result` is a string returned to the widget.
   z.object({ ...base, type: z.literal("ui.widget.result"), surfaceId: z.string(), callId: z.string(), result: z.string() }),
   z.object({
     ...base,
     type: z.literal("ui.display-mode"),
-    mode: AgentDisplayMode,
-    granted: AgentDisplayMode.optional(), // authoritative reply leg (A52); modal = OpenAI-Apps ONLY
+    mode: AgDisplayMode,
+    granted: AgDisplayMode.optional(), // authoritative reply leg (A52); modal = OpenAI-Apps ONLY
     surfaceId: z.string().optional(),
     toolCallId: z.string().optional(),
   }),
@@ -1245,15 +1245,15 @@ export const AgentClosedEvent = z.discriminatedUnion("type", [
 // RFC-6648: no `x-` prefix). A discriminatedUnion can't hold an open template-literal
 // discriminant, so this is a sibling object validated on the `type` regex, with the
 // extra `[k]: unknown` keys constrained to `JsonValue` via `.catchall`.
-export const AgentExtEvent = z
+export const AgExtEvent = z
   .object({
     ...base,
     type: z.string().regex(/^ext\.[^.]+\..+$/),
   })
   .catchall(JsonValue);
-export type AgentExtEvent = z.infer<typeof AgentExtEvent>;
+export type AgExtEvent = z.infer<typeof AgExtEvent>;
 
-// AgentEvent = the closed discriminated union OR the open ext event. A bare unknown
+// AgEvent = the closed discriminated union OR the open ext event. A bare unknown
 // `type` (e.g. {type:"nope"}) matches neither arm and still REJECTS.
-export const AgentEvent = AgentClosedEvent.or(AgentExtEvent);
-export type AgentEvent = z.infer<typeof AgentEvent>;
+export const AgEvent = AgClosedEvent.or(AgExtEvent);
+export type AgEvent = z.infer<typeof AgEvent>;

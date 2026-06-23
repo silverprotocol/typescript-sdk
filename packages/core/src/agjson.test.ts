@@ -1,28 +1,28 @@
 import { describe, it, expect } from "vitest";
 import {
-  AgentEvent,
-  AgentBlock,
-  AgentOutcome,
-  AgentArtifact,
-  AgentTurnRecord,
-  AgentReduceResult,
-  AgentCapabilities,
-  AgentClientCapabilities,
-  AgentInput,
-  AgentInputEnvelope,
-  AgentReasoningConfig,
-  AgentToolDef,
-  AgentRunConfig,
-  AgentSurfaceEnvelope,
-  AgentSurfaceInteraction,
-  AgentA2uiSurfaceAction,
-  AgentA2uiFunctionResponse,
-  AgentA2uiError,
-  AgentMcpAppViewMessage,
-  AgentOpenAiWidgetAction,
+  AgEvent,
+  AgBlock,
+  AgOutcome,
+  AgArtifact,
+  AgTurnRecord,
+  AgReduceResult,
+  AgCapabilities,
+  AgClientCapabilities,
+  AgInput,
+  AgInputEnvelope,
+  AgReasoningConfig,
+  AgToolDef,
+  AgRunConfig,
+  AgSurfaceEnvelope,
+  AgSurfaceInteraction,
+  AgA2uiSurfaceAction,
+  AgA2uiFunctionResponse,
+  AgA2uiError,
+  AgMcpAppViewMessage,
+  AgOpenAiWidgetAction,
 } from "./agjson.js";
 
-describe("AgentEvent (CORE)", () => {
+describe("AgEvent (CORE)", () => {
   it("parses each CORE event variant", () => {
     const samples = [
       { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
@@ -47,30 +47,30 @@ describe("AgentEvent (CORE)", () => {
         outcome: "ok",
       },
     ];
-    for (const s of samples) expect(AgentEvent.parse(s).type).toBe(s.type);
+    for (const s of samples) expect(AgEvent.parse(s).type).toBe(s.type);
   });
 
   it("rejects an unknown event type", () => {
-    expect(() => AgentEvent.parse({ type: "nope", seq: 0 })).toThrow();
+    expect(() => AgEvent.parse({ type: "nope", seq: 0 })).toThrow();
   });
 });
 
-describe("AgentBlock (CORE subset)", () => {
+describe("AgBlock (CORE subset)", () => {
   it("parses text / image / tool-call / tool-result", () => {
-    expect(AgentBlock.parse({ type: "text", text: "x" }).type).toBe("text");
+    expect(AgBlock.parse({ type: "text", text: "x" }).type).toBe("text");
     expect(
-      AgentBlock.parse({ type: "image", source: { type: "base64", mediaType: "image/png", data: "AAAA" } }).type,
+      AgBlock.parse({ type: "image", source: { type: "base64", mediaType: "image/png", data: "AAAA" } }).type,
     ).toBe("image");
-    expect(AgentBlock.parse({ type: "tool-call", toolCallId: "c1", name: "n", input: {} }).type).toBe(
+    expect(AgBlock.parse({ type: "tool-call", toolCallId: "c1", name: "n", input: {} }).type).toBe(
       "tool-call",
     );
     expect(
-      AgentBlock.parse({ type: "tool-result", toolCallId: "c1", content: [], outcome: "ok" }).type,
+      AgBlock.parse({ type: "tool-result", toolCallId: "c1", content: [], outcome: "ok" }).type,
     ).toBe("tool-result");
   });
 
   it("round-trips a nested tool-result (recursive content)", () => {
-    const r = AgentBlock.parse({
+    const r = AgBlock.parse({
       type: "tool-result",
       toolCallId: "c1",
       content: [{ type: "text", text: "inner" }],
@@ -79,7 +79,7 @@ describe("AgentBlock (CORE subset)", () => {
   });
 
   it("rejects an unknown block type", () => {
-    expect(() => AgentBlock.parse({ type: "not-a-block", foo: "x" })).toThrow();
+    expect(() => AgBlock.parse({ type: "not-a-block", foo: "x" })).toThrow();
   });
 });
 
@@ -91,7 +91,7 @@ describe("AgentBlock (CORE subset)", () => {
 // paused outcome.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("AgentEvent (EXTENDED)", () => {
+describe("AgEvent (EXTENDED)", () => {
   it("parses each EXTENDED event variant", () => {
     const samples = [
       { type: "reasoning.start", seq: 1, id: "r1", mode: "summarized" },
@@ -126,25 +126,25 @@ describe("AgentEvent (EXTENDED)", () => {
       { type: "handoff", seq: 11, kind: "transfer", fromAgentId: "a1", toAgentId: "a2" },
       { type: "prompt.blocked", seq: 12, reason: "safety", safety: [{ category: "hate" }] },
     ];
-    for (const s of samples) expect(AgentEvent.parse(s).type).toBe(s.type);
+    for (const s of samples) expect(AgEvent.parse(s).type).toBe(s.type);
   });
 
   it("accepts the reasoning.opaque kind enum + replay target", () => {
     for (const kind of ["signature", "ciphertext", "encrypted", "redacted"]) {
-      const ev = AgentEvent.parse({ type: "reasoning.opaque", seq: 0, id: "r1", kind, value: "v" });
+      const ev = AgEvent.parse({ type: "reasoning.opaque", seq: 0, id: "r1", kind, value: "v" });
       expect(ev.type).toBe("reasoning.opaque");
     }
   });
 
   it("accepts every hitl.ask kind enum value", () => {
     for (const kind of ["approval", "form", "text", "choice", "auth", "url"]) {
-      const ev = AgentEvent.parse({ type: "hitl.ask", seq: 0, askId: "ask1", kind });
+      const ev = AgEvent.parse({ type: "hitl.ask", seq: 0, askId: "ask1", kind });
       expect(ev.type).toBe("hitl.ask");
     }
   });
 
   it("round-trips a fully-populated hitl.ask (choices / authConfig / MRTR)", () => {
-    const ev = AgentEvent.parse({
+    const ev = AgEvent.parse({
       type: "hitl.ask",
       seq: 0,
       askId: "ask1",
@@ -170,7 +170,7 @@ describe("AgentEvent (EXTENDED)", () => {
   });
 
   it("accepts usage on turn.done and step.done; safety on turn.done", () => {
-    const td = AgentEvent.parse({
+    const td = AgEvent.parse({
       type: "turn.done",
       seq: 0,
       turnId: "t1",
@@ -183,11 +183,11 @@ describe("AgentEvent (EXTENDED)", () => {
   });
 
   it("rejects an unknown hitl.ask kind", () => {
-    expect(() => AgentEvent.parse({ type: "hitl.ask", seq: 0, askId: "a", kind: "nope" })).toThrow();
+    expect(() => AgEvent.parse({ type: "hitl.ask", seq: 0, askId: "a", kind: "nope" })).toThrow();
   });
 });
 
-describe("AgentBlock (EXTENDED)", () => {
+describe("AgBlock (EXTENDED)", () => {
   it("parses each EXTENDED block variant", () => {
     const samples = [
       {
@@ -223,13 +223,13 @@ describe("AgentBlock (EXTENDED)", () => {
       { type: "resource-link", uri: "https://e.com/x", mimeType: "application/pdf" },
     ];
     for (const s of samples) {
-      const parsed = AgentBlock.parse(s);
+      const parsed = AgBlock.parse(s);
       expect(parsed.type).toBe(s.type);
     }
   });
 
   it("accepts citations + annotations + providerMetadata on a text block", () => {
-    const b = AgentBlock.parse({
+    const b = AgBlock.parse({
       type: "text",
       text: "grounded",
       citations: [
@@ -259,7 +259,7 @@ describe("AgentBlock (EXTENDED)", () => {
   });
 
   it("nests EXTENDED blocks inside tool-result content (recursion preserved)", () => {
-    const r = AgentBlock.parse({
+    const r = AgBlock.parse({
       type: "tool-result",
       toolCallId: "c1",
       content: [
@@ -273,22 +273,22 @@ describe("AgentBlock (EXTENDED)", () => {
 
   it("accepts the reasoning block opaque kind enum", () => {
     for (const kind of ["signature", "ciphertext", "encrypted", "redacted"]) {
-      const b = AgentBlock.parse({ type: "reasoning", opaque: { kind, value: "v" } });
+      const b = AgBlock.parse({ type: "reasoning", opaque: { kind, value: "v" } });
       expect(b.type).toBe("reasoning");
     }
   });
 
   it("accepts the code-result outcome enum", () => {
     for (const outcome of ["ok", "failed", "deadline_exceeded"]) {
-      const b = AgentBlock.parse({ type: "code-result", outcome, output: "x" });
+      const b = AgBlock.parse({ type: "code-result", outcome, output: "x" });
       expect(b.type).toBe("code-result");
     }
   });
 });
 
-describe("AgentOutcome (EXTENDED paused arm)", () => {
+describe("AgOutcome (EXTENDED paused arm)", () => {
   it("parses a paused outcome carrying asks[]", () => {
-    const o = AgentOutcome.parse({
+    const o = AgOutcome.parse({
       type: "paused",
       asks: [
         { askId: "ask1", kind: "approval", message: "ok?" },
@@ -300,7 +300,7 @@ describe("AgentOutcome (EXTENDED paused arm)", () => {
   });
 
   it("round-trips a paused turn.done", () => {
-    const ev = AgentEvent.parse({
+    const ev = AgEvent.parse({
       type: "turn.done",
       seq: 0,
       turnId: "t1",
@@ -318,7 +318,7 @@ describe("AgentOutcome (EXTENDED paused arm)", () => {
 // returning the value verbatim proves the arm now carries the field.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("AgentBlock / AgentEvent field coverage (spec §2 / §4)", () => {
+describe("AgBlock / AgEvent field coverage (spec §2 / §4)", () => {
   it("tool-call block preserves serverName / signature / itemId / providerCallIndex / providerMetadata + the rest", () => {
     const input = {
       type: "tool-call" as const,
@@ -336,7 +336,7 @@ describe("AgentBlock / AgentEvent field coverage (spec §2 / §4)", () => {
       uiVisibility: ["model", "app"] as ("model" | "app")[],
       providerMetadata: { gemini: { thoughtSignature: "ts" } },
     };
-    const b = AgentBlock.parse(input);
+    const b = AgBlock.parse(input);
     expect(b).toMatchObject(input);
   });
 
@@ -357,7 +357,7 @@ describe("AgentBlock / AgentEvent field coverage (spec §2 / §4)", () => {
       itemId: "fc_123",
       providerMetadata: { openai: { itemId: "fc_123" } },
     };
-    const ev = AgentEvent.parse(input);
+    const ev = AgEvent.parse(input);
     expect(ev).toMatchObject(input);
   });
 
@@ -372,7 +372,7 @@ describe("AgentBlock / AgentEvent field coverage (spec §2 / §4)", () => {
       toolMetadata: { vercel: { y: 2 } },
       providerMetadata: { gemini: { sig: "z" } },
     };
-    const ev = AgentEvent.parse(input);
+    const ev = AgEvent.parse(input);
     expect(ev).toMatchObject(input);
   });
 
@@ -387,7 +387,7 @@ describe("AgentBlock / AgentEvent field coverage (spec §2 / §4)", () => {
       messageMetadata: { totalTokens: 42, model: "claude" },
       taskState: "submitted",
     };
-    const ev = AgentEvent.parse(input);
+    const ev = AgEvent.parse(input);
     expect(ev).toMatchObject(input);
   });
 
@@ -400,12 +400,12 @@ describe("AgentBlock / AgentEvent field coverage (spec §2 / §4)", () => {
       previousPartKind: "reasoning",
       providerMetadata: { anthropic: { k: "v" } },
     };
-    const ev = AgentEvent.parse(input);
+    const ev = AgEvent.parse(input);
     expect(ev).toMatchObject(input);
   });
 
   it("text.delta and text.end events preserve providerMetadata", () => {
-    const d = AgentEvent.parse({
+    const d = AgEvent.parse({
       type: "text.delta",
       seq: 4,
       id: "m1",
@@ -413,7 +413,7 @@ describe("AgentBlock / AgentEvent field coverage (spec §2 / §4)", () => {
       providerMetadata: { anthropic: { k: "v" } },
     });
     expect(d).toMatchObject({ type: "text.delta", providerMetadata: { anthropic: { k: "v" } } });
-    const e = AgentEvent.parse({
+    const e = AgEvent.parse({
       type: "text.end",
       seq: 5,
       id: "m1",
@@ -432,18 +432,18 @@ describe("AgentBlock / AgentEvent field coverage (spec §2 / §4)", () => {
       threadId: "th1",
       extensions: ["urn:a2a:ext:x", "urn:a2a:ext:y"],
     };
-    const ev = AgentEvent.parse(input);
+    const ev = AgEvent.parse(input);
     expect(ev).toMatchObject(input);
   });
 
   it("parses an open ext.<vendor>.<key> vendor-extension event with extra keys", () => {
-    const ev = AgentEvent.parse({ type: "ext.acme.foo", seq: 0, anything: 1, nested: { a: [1, 2] } });
+    const ev = AgEvent.parse({ type: "ext.acme.foo", seq: 0, anything: 1, nested: { a: [1, 2] } });
     expect(ev).toMatchObject({ type: "ext.acme.foo", seq: 0, anything: 1, nested: { a: [1, 2] } });
   });
 
   it("rejects a bare unknown type that matches neither the closed union nor the ext regex", () => {
-    expect(() => AgentEvent.parse({ type: "nope", seq: 0 })).toThrow();
-    expect(() => AgentEvent.parse({ type: "ext.acme", seq: 0 })).toThrow(); // missing the .<key> segment
+    expect(() => AgEvent.parse({ type: "nope", seq: 0 })).toThrow();
+    expect(() => AgEvent.parse({ type: "ext.acme", seq: 0 })).toThrow(); // missing the .<key> segment
   });
 });
 
@@ -454,12 +454,12 @@ describe("AgentBlock / AgentEvent field coverage (spec §2 / §4)", () => {
 // ui.action-result / ui.widget.result / ui.display-mode), the A2UI surface-stream
 // events (ui.surface.start / ui.surface.update / ui.surface.end / ui.data-model);
 // the 4-channel tool-result (uiData + sideData + structuredContent) on the
-// tool-result block AND the tool.done event; and the AgentArtifact /
-// AgentTurnRecord / AgentReduceResult / AgentCapabilities /
-// AgentClientCapabilities types.
+// tool-result block AND the tool.done event; and the AgArtifact /
+// AgTurnRecord / AgReduceResult / AgCapabilities /
+// AgClientCapabilities types.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("AgentEvent (ADVANCED)", () => {
+describe("AgEvent (ADVANCED)", () => {
   it("parses each ADVANCED event variant", () => {
     const samples = [
       // ── OPAQUE STATE PASSTHROUGH (LangGraph values/updates) ──
@@ -561,18 +561,18 @@ describe("AgentEvent (ADVANCED)", () => {
       { type: "ui.surface.end", seq: 18, surfaceId: "s1" },
       { type: "ui.data-model", seq: 19, surfaceId: "s1", path: "/a/b", value: 7 },
     ];
-    for (const s of samples) expect(AgentEvent.parse(s).type).toBe(s.type);
+    for (const s of samples) expect(AgEvent.parse(s).type).toBe(s.type);
   });
 
   it("accepts the ui.display-mode enum incl. coerced/granted modal", () => {
     for (const mode of ["inline", "pip", "fullscreen", "modal"]) {
-      const ev = AgentEvent.parse({ type: "ui.display-mode", seq: 0, mode, granted: mode });
+      const ev = AgEvent.parse({ type: "ui.display-mode", seq: 0, mode, granted: mode });
       expect(ev.type).toBe("ui.display-mode");
     }
   });
 
   it("accepts a ui.result / ui.action-result error with a JSON-Pointer path", () => {
-    const r = AgentEvent.parse({
+    const r = AgEvent.parse({
       type: "ui.result",
       seq: 0,
       surfaceId: "s1",
@@ -580,7 +580,7 @@ describe("AgentEvent (ADVANCED)", () => {
       error: { code: "VALIDATION_FAILED", message: "bad", path: "/fields/name" },
     });
     expect(r.type).toBe("ui.result");
-    const ar = AgentEvent.parse({
+    const ar = AgEvent.parse({
       type: "ui.action-result",
       seq: 1,
       surfaceId: "s1",
@@ -591,7 +591,7 @@ describe("AgentEvent (ADVANCED)", () => {
   });
 
   it("accepts state.delta carrying an RFC-6902 JSON Patch array (opaque)", () => {
-    const ev = AgentEvent.parse({
+    const ev = AgEvent.parse({
       type: "state.delta",
       seq: 0,
       patch: [{ op: "add", path: "/a", value: 1 }],
@@ -600,13 +600,13 @@ describe("AgentEvent (ADVANCED)", () => {
   });
 
   it("rejects an unknown ADVANCED-looking event type", () => {
-    expect(() => AgentEvent.parse({ type: "ui.nope", seq: 0, surfaceId: "s1" })).toThrow();
+    expect(() => AgEvent.parse({ type: "ui.nope", seq: 0, surfaceId: "s1" })).toThrow();
   });
 });
 
-describe("AgentEvent — 4-channel tool.done (ADVANCED)", () => {
+describe("AgEvent — 4-channel tool.done (ADVANCED)", () => {
   it("accepts structuredContent / uiData / sideData + the ADVANCED tool channels on tool.done", () => {
-    const ev = AgentEvent.parse({
+    const ev = AgEvent.parse({
       type: "tool.done",
       seq: 0,
       toolCallId: "c1",
@@ -629,7 +629,7 @@ describe("AgentEvent — 4-channel tool.done (ADVANCED)", () => {
   });
 
   it("accepts a tool.done error carrying errorText / errorCode", () => {
-    const ev = AgentEvent.parse({
+    const ev = AgEvent.parse({
       type: "tool.done",
       seq: 0,
       toolCallId: "c1",
@@ -642,7 +642,7 @@ describe("AgentEvent — 4-channel tool.done (ADVANCED)", () => {
   });
 
   it("accepts a tool.done input_required carrying pendingInput (MRTR)", () => {
-    const ev = AgentEvent.parse({
+    const ev = AgEvent.parse({
       type: "tool.done",
       seq: 0,
       toolCallId: "c1",
@@ -654,9 +654,9 @@ describe("AgentEvent — 4-channel tool.done (ADVANCED)", () => {
   });
 });
 
-describe("AgentBlock — 4-channel tool-result (ADVANCED)", () => {
+describe("AgBlock — 4-channel tool-result (ADVANCED)", () => {
   it("accepts structuredContent / uiData / sideData on a tool-result block", () => {
-    const r = AgentBlock.parse({
+    const r = AgBlock.parse({
       type: "tool-result",
       toolCallId: "c1",
       content: [{ type: "text", text: "model" }],
@@ -669,7 +669,7 @@ describe("AgentBlock — 4-channel tool-result (ADVANCED)", () => {
   });
 
   it("accepts the full ADVANCED tool-result channel set", () => {
-    const r = AgentBlock.parse({
+    const r = AgBlock.parse({
       type: "tool-result",
       toolCallId: "c1",
       content: [],
@@ -689,12 +689,12 @@ describe("AgentBlock — 4-channel tool-result (ADVANCED)", () => {
   });
 
   it("keeps CORE tool-result (content+outcome only) valid (additive)", () => {
-    const r = AgentBlock.parse({ type: "tool-result", toolCallId: "c1", content: [], outcome: "ok" });
+    const r = AgBlock.parse({ type: "tool-result", toolCallId: "c1", content: [], outcome: "ok" });
     expect(r.type).toBe("tool-result");
   });
 
   it("nests a 4-channel tool-result inside another tool-result (recursion preserved)", () => {
-    const r = AgentBlock.parse({
+    const r = AgBlock.parse({
       type: "tool-result",
       toolCallId: "outer",
       content: [
@@ -712,8 +712,8 @@ describe("AgentBlock — 4-channel tool-result (ADVANCED)", () => {
 });
 
 describe("ADVANCED helper types", () => {
-  it("AgentArtifact parses a streamed-artifact entity", () => {
-    const a = AgentArtifact.parse({
+  it("AgArtifact parses a streamed-artifact entity", () => {
+    const a = AgArtifact.parse({
       artifactId: "art1",
       turnId: "t1",
       threadId: "th1",
@@ -730,8 +730,8 @@ describe("ADVANCED helper types", () => {
     expect(a.parts.length).toBe(2);
   });
 
-  it("AgentTurnRecord parses a folded per-turn record", () => {
-    const t = AgentTurnRecord.parse({
+  it("AgTurnRecord parses a folded per-turn record", () => {
+    const t = AgTurnRecord.parse({
       turnId: "t1",
       parentTurnId: "t0",
       threadId: "th1",
@@ -748,8 +748,8 @@ describe("ADVANCED helper types", () => {
     expect(t.turnId).toBe("t1");
   });
 
-  it("AgentReduceResult parses the reduce() landing container", () => {
-    const r = AgentReduceResult.parse({
+  it("AgReduceResult parses the reduce() landing container", () => {
+    const r = AgReduceResult.parse({
       messages: [{ id: "m1", role: "assistant", content: [{ type: "text", text: "hi" }] }],
       artifacts: [{ artifactId: "art1", turnId: "t1", threadId: "th1", parts: [] }],
       turns: [{ turnId: "t1", threadId: "th1" }],
@@ -760,9 +760,9 @@ describe("ADVANCED helper types", () => {
     expect(r.turns.length).toBe(1);
   });
 
-  it("AgentCapabilities parses the agent→client negotiation payload + profile enum", () => {
+  it("AgCapabilities parses the agent→client negotiation payload + profile enum", () => {
     for (const profile of ["CORE", "EXTENDED", "ADVANCED"]) {
-      const c = AgentCapabilities.parse({
+      const c = AgCapabilities.parse({
         streaming: { partialMessages: true },
         pushNotifications: true,
         securitySchemes: [{ scheme: "oauth2", scopes: ["read"] }],
@@ -774,12 +774,12 @@ describe("ADVANCED helper types", () => {
     }
   });
 
-  it("rejects an unknown AgentCapabilities profile", () => {
-    expect(() => AgentCapabilities.parse({ profile: "MEGA" })).toThrow();
+  it("rejects an unknown AgCapabilities profile", () => {
+    expect(() => AgCapabilities.parse({ profile: "MEGA" })).toThrow();
   });
 
-  it("AgentClientCapabilities parses the client→agent payload", () => {
-    const c = AgentClientCapabilities.parse({
+  it("AgClientCapabilities parses the client→agent payload", () => {
+    const c = AgClientCapabilities.parse({
       frontendTools: [{ name: "calc", description: "adds", inputSchema: { type: "object" } }],
       hitl: { ask: true, approveWithEdits: true, form: true, auth: false },
       streaming: { partialMessages: true },
@@ -791,16 +791,16 @@ describe("ADVANCED helper types", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// INPUT (spec §3). AgentInput = discriminated union on `kind`
-// (start | resume | tool-result) over a shared AgentInputEnvelope. Plus the
-// §3 helper config types AgentReasoningConfig / AgentToolDef / AgentRunConfig.
+// INPUT (spec §3). AgInput = discriminated union on `kind`
+// (start | resume | tool-result) over a shared AgInputEnvelope. Plus the
+// §3 helper config types AgReasoningConfig / AgToolDef / AgRunConfig.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const envelope = { protocol: "agjson" as const, version: "1.0.0", threadId: "th1", turnId: "t1" };
 
-describe("AgentInput (§3)", () => {
+describe("AgInput (§3)", () => {
   it("parses the kind:start variant (messages + run config)", () => {
-    const inp = AgentInput.parse({
+    const inp = AgInput.parse({
       ...envelope,
       kind: "start",
       messages: [{ id: "m1", role: "user", content: [{ type: "text", text: "hi" }] }],
@@ -818,7 +818,7 @@ describe("AgentInput (§3)", () => {
   });
 
   it("parses the kind:resume variant (HITL answers + surface uiActions)", () => {
-    const inp = AgentInput.parse({
+    const inp = AgInput.parse({
       ...envelope,
       parentTurnId: "t0",
       kind: "resume",
@@ -839,7 +839,7 @@ describe("AgentInput (§3)", () => {
   });
 
   it("parses the kind:tool-result variant (client-executed results)", () => {
-    const inp = AgentInput.parse({
+    const inp = AgInput.parse({
       ...envelope,
       kind: "tool-result",
       results: [
@@ -858,8 +858,8 @@ describe("AgentInput (§3)", () => {
     expect(inp.kind).toBe("tool-result");
   });
 
-  it("narrows AgentInput on the kind discriminant", () => {
-    const inp = AgentInput.parse({
+  it("narrows AgInput on the kind discriminant", () => {
+    const inp = AgInput.parse({
       ...envelope,
       kind: "start",
       messages: [{ id: "m1", role: "user", content: [] }],
@@ -872,7 +872,7 @@ describe("AgentInput (§3)", () => {
   });
 
   it("carries the LangGraph checkpoint replay handles on envelope.metadata", () => {
-    const inp = AgentInput.parse({
+    const inp = AgInput.parse({
       ...envelope,
       kind: "resume",
       answers: [{ askId: "a1", status: "resolved" }],
@@ -884,16 +884,16 @@ describe("AgentInput (§3)", () => {
     expect(inp.kind).toBe("resume");
   });
 
-  it("rejects an unknown AgentInput kind", () => {
-    expect(() => AgentInput.parse({ ...envelope, kind: "nope" })).toThrow();
+  it("rejects an unknown AgInput kind", () => {
+    expect(() => AgInput.parse({ ...envelope, kind: "nope" })).toThrow();
   });
 
   it("rejects a start without messages", () => {
-    expect(() => AgentInput.parse({ ...envelope, kind: "start" })).toThrow();
+    expect(() => AgInput.parse({ ...envelope, kind: "start" })).toThrow();
   });
 
-  it("AgentInputEnvelope parses the shared envelope fields", () => {
-    const e = AgentInputEnvelope.parse({
+  it("AgInputEnvelope parses the shared envelope fields", () => {
+    const e = AgInputEnvelope.parse({
       protocol: "agjson",
       version: "1.2.3",
       threadId: "th1",
@@ -907,29 +907,29 @@ describe("AgentInput (§3)", () => {
     expect(e.protocol).toBe("agjson");
   });
 
-  it("AgentInputEnvelope rejects a wrong protocol literal", () => {
+  it("AgInputEnvelope rejects a wrong protocol literal", () => {
     expect(() =>
-      AgentInputEnvelope.parse({ protocol: "other", version: "1", threadId: "th1", turnId: "t1" }),
+      AgInputEnvelope.parse({ protocol: "other", version: "1", threadId: "th1", turnId: "t1" }),
     ).toThrow();
   });
 });
 
-describe("AgentInput §3 config helpers", () => {
-  it("AgentReasoningConfig parses mode + effort + budgetTokens", () => {
+describe("AgInput §3 config helpers", () => {
+  it("AgReasoningConfig parses mode + effort + budgetTokens", () => {
     for (const effort of ["minimal", "low", "medium", "high"]) {
-      const r = AgentReasoningConfig.parse({ mode: "enabled", effort, budgetTokens: 1000 });
+      const r = AgReasoningConfig.parse({ mode: "enabled", effort, budgetTokens: 1000 });
       expect(r.mode).toBe("enabled");
     }
-    expect(AgentReasoningConfig.parse({ mode: "disabled" }).mode).toBe("disabled");
+    expect(AgReasoningConfig.parse({ mode: "disabled" }).mode).toBe("disabled");
   });
 
-  it("AgentReasoningConfig rejects an unknown mode / effort", () => {
-    expect(() => AgentReasoningConfig.parse({ mode: "auto" })).toThrow();
-    expect(() => AgentReasoningConfig.parse({ mode: "enabled", effort: "max" })).toThrow();
+  it("AgReasoningConfig rejects an unknown mode / effort", () => {
+    expect(() => AgReasoningConfig.parse({ mode: "auto" })).toThrow();
+    expect(() => AgReasoningConfig.parse({ mode: "enabled", effort: "max" })).toThrow();
   });
 
-  it("AgentToolDef parses each source variant + uiVisibility scope", () => {
-    const mcp = AgentToolDef.parse({
+  it("AgToolDef parses each source variant + uiVisibility scope", () => {
+    const mcp = AgToolDef.parse({
       name: "search",
       description: "web search",
       inputSchema: { type: "object" },
@@ -940,16 +940,16 @@ describe("AgentInput §3 config helpers", () => {
       _meta: { ui: { visibility: "model" } },
     });
     expect(mcp.name).toBe("search");
-    expect(AgentToolDef.parse({ name: "f", inputSchema: {}, source: { type: "function" } }).name).toBe("f");
-    expect(AgentToolDef.parse({ name: "g", inputSchema: {}, source: { type: "frontend" } }).name).toBe("g");
+    expect(AgToolDef.parse({ name: "f", inputSchema: {}, source: { type: "function" } }).name).toBe("f");
+    expect(AgToolDef.parse({ name: "g", inputSchema: {}, source: { type: "frontend" } }).name).toBe("g");
   });
 
-  it("AgentToolDef rejects an unknown source type", () => {
-    expect(() => AgentToolDef.parse({ name: "x", inputSchema: {}, source: { type: "nope" } })).toThrow();
+  it("AgToolDef rejects an unknown source type", () => {
+    expect(() => AgToolDef.parse({ name: "x", inputSchema: {}, source: { type: "nope" } })).toThrow();
   });
 
-  it("AgentRunConfig parses model/system/tools/toolChoice/responseFormat/reasoning/context/pushNotification", () => {
-    const rc = AgentRunConfig.parse({
+  it("AgRunConfig parses model/system/tools/toolChoice/responseFormat/reasoning/context/pushNotification", () => {
+    const rc = AgRunConfig.parse({
       model: "claude-opus-4",
       system: [{ type: "text", text: "sys" }],
       tools: [{ name: "t", inputSchema: {}, source: { type: "function" } }],
@@ -966,22 +966,22 @@ describe("AgentInput §3 config helpers", () => {
     expect(rc.model).toBe("claude-opus-4");
   });
 
-  it("AgentRunConfig accepts each toolChoice keyword", () => {
+  it("AgRunConfig accepts each toolChoice keyword", () => {
     for (const toolChoice of ["auto", "none", "required"]) {
-      expect(AgentRunConfig.parse({ toolChoice }).toolChoice).toBe(toolChoice);
+      expect(AgRunConfig.parse({ toolChoice }).toolChoice).toBe(toolChoice);
     }
   });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SURFACE INTERACTION (spec §3 / §6 / §11.8). The un-merge: a shared
-// AgentSurfaceEnvelope + five per-spec-faithful constructs forming
-// AgentSurfaceInteraction (the element type of resume.uiActions[]).
+// AgSurfaceEnvelope + five per-spec-faithful constructs forming
+// AgSurfaceInteraction (the element type of resume.uiActions[]).
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("AgentSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
-  it("AgentSurfaceEnvelope parses the shared correlation fields", () => {
-    const e = AgentSurfaceEnvelope.parse({
+describe("AgSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
+  it("AgSurfaceEnvelope parses the shared correlation fields", () => {
+    const e = AgSurfaceEnvelope.parse({
       surface: "a2ui",
       surfaceId: "s1",
       toolCallId: "c1",
@@ -992,8 +992,8 @@ describe("AgentSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
     expect(e.surface).toBe("a2ui");
   });
 
-  it("AgentA2uiSurfaceAction (a2uiMessage:action) parses + the context map is the sanctioned Record", () => {
-    const a = AgentA2uiSurfaceAction.parse({
+  it("AgA2uiSurfaceAction (a2uiMessage:action) parses + the context map is the sanctioned Record", () => {
+    const a = AgA2uiSurfaceAction.parse({
       surface: "a2ui",
       surfaceId: "s1",
       a2uiMessage: "action",
@@ -1008,8 +1008,8 @@ describe("AgentSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
     expect(a.name).toBe("click");
   });
 
-  it("AgentA2uiFunctionResponse (a2uiMessage:function-response) parses", () => {
-    const f = AgentA2uiFunctionResponse.parse({
+  it("AgA2uiFunctionResponse (a2uiMessage:function-response) parses", () => {
+    const f = AgA2uiFunctionResponse.parse({
       surface: "a2ui",
       surfaceId: "s1",
       a2uiMessage: "function-response",
@@ -1020,8 +1020,8 @@ describe("AgentSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
     expect(f.a2uiMessage).toBe("function-response");
   });
 
-  it("AgentA2uiError (a2uiMessage:error) parses with a JSON-Pointer path", () => {
-    const e = AgentA2uiError.parse({
+  it("AgA2uiError (a2uiMessage:error) parses with a JSON-Pointer path", () => {
+    const e = AgA2uiError.parse({
       surface: "a2ui",
       surfaceId: "s1",
       a2uiMessage: "error",
@@ -1032,8 +1032,8 @@ describe("AgentSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
     expect(e.a2uiMessage).toBe("error");
   });
 
-  it("AgentMcpAppViewMessage narrows on the verbatim MCP method", () => {
-    const ctx = AgentMcpAppViewMessage.parse({
+  it("AgMcpAppViewMessage narrows on the verbatim MCP method", () => {
+    const ctx = AgMcpAppViewMessage.parse({
       surface: "mcp-app",
       surfaceId: "s1",
       method: "ui/update-model-context",
@@ -1041,7 +1041,7 @@ describe("AgentSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
     });
     expect(ctx.method).toBe("ui/update-model-context");
 
-    const msg = AgentMcpAppViewMessage.parse({
+    const msg = AgMcpAppViewMessage.parse({
       surface: "mcp-app",
       surfaceId: "s1",
       method: "ui/message",
@@ -1049,7 +1049,7 @@ describe("AgentSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
     });
     expect(msg.method).toBe("ui/message");
 
-    const dm = AgentMcpAppViewMessage.parse({
+    const dm = AgMcpAppViewMessage.parse({
       surface: "mcp-app",
       surfaceId: "s1",
       method: "ui/request-display-mode",
@@ -1057,7 +1057,7 @@ describe("AgentSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
     });
     expect(dm.method).toBe("ui/request-display-mode");
 
-    const link = AgentMcpAppViewMessage.parse({
+    const link = AgMcpAppViewMessage.parse({
       surface: "mcp-app",
       surfaceId: "s1",
       method: "ui/open-link",
@@ -1066,9 +1066,9 @@ describe("AgentSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
     expect(link.method).toBe("ui/open-link");
   });
 
-  it("AgentMcpAppViewMessage rejects a non-user role on ui/message and an unknown method", () => {
+  it("AgMcpAppViewMessage rejects a non-user role on ui/message and an unknown method", () => {
     expect(() =>
-      AgentMcpAppViewMessage.parse({
+      AgMcpAppViewMessage.parse({
         surface: "mcp-app",
         surfaceId: "s1",
         method: "ui/message",
@@ -1076,13 +1076,13 @@ describe("AgentSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
       }),
     ).toThrow();
     expect(() =>
-      AgentMcpAppViewMessage.parse({ surface: "mcp-app", surfaceId: "s1", method: "ui/nope", params: {} }),
+      AgMcpAppViewMessage.parse({ surface: "mcp-app", surfaceId: "s1", method: "ui/nope", params: {} }),
     ).toThrow();
   });
 
-  it("AgentMcpAppViewMessage rejects modal on ui/request-display-mode (OpenAI-only)", () => {
+  it("AgMcpAppViewMessage rejects modal on ui/request-display-mode (OpenAI-only)", () => {
     expect(() =>
-      AgentMcpAppViewMessage.parse({
+      AgMcpAppViewMessage.parse({
         surface: "mcp-app",
         surfaceId: "s1",
         method: "ui/request-display-mode",
@@ -1091,8 +1091,8 @@ describe("AgentSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
     ).toThrow();
   });
 
-  it("AgentOpenAiWidgetAction narrows on the OpenAI method", () => {
-    const sw = AgentOpenAiWidgetAction.parse({
+  it("AgOpenAiWidgetAction narrows on the OpenAI method", () => {
+    const sw = AgOpenAiWidgetAction.parse({
       surface: "openai-app",
       surfaceId: "s1",
       method: "setWidgetState",
@@ -1101,7 +1101,7 @@ describe("AgentSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
     });
     expect(sw.method).toBe("setWidgetState");
 
-    const ct = AgentOpenAiWidgetAction.parse({
+    const ct = AgOpenAiWidgetAction.parse({
       surface: "openai-app",
       surfaceId: "s1",
       method: "callTool",
@@ -1111,7 +1111,7 @@ describe("AgentSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
     });
     expect(ct.method).toBe("callTool");
 
-    const fm = AgentOpenAiWidgetAction.parse({
+    const fm = AgOpenAiWidgetAction.parse({
       surface: "openai-app",
       surfaceId: "s1",
       method: "sendFollowUpMessage",
@@ -1120,7 +1120,7 @@ describe("AgentSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
     });
     expect(fm.method).toBe("sendFollowUpMessage");
 
-    const rd = AgentOpenAiWidgetAction.parse({
+    const rd = AgOpenAiWidgetAction.parse({
       surface: "openai-app",
       surfaceId: "s1",
       method: "requestDisplayMode",
@@ -1130,9 +1130,9 @@ describe("AgentSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
     expect(rd.method).toBe("requestDisplayMode");
   });
 
-  it("AgentOpenAiWidgetAction rejects modal on requestDisplayMode + an unknown method", () => {
+  it("AgOpenAiWidgetAction rejects modal on requestDisplayMode + an unknown method", () => {
     expect(() =>
-      AgentOpenAiWidgetAction.parse({
+      AgOpenAiWidgetAction.parse({
         surface: "openai-app",
         surfaceId: "s1",
         method: "requestDisplayMode",
@@ -1141,11 +1141,11 @@ describe("AgentSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
       }),
     ).toThrow();
     expect(() =>
-      AgentOpenAiWidgetAction.parse({ surface: "openai-app", surfaceId: "s1", method: "nope" }),
+      AgOpenAiWidgetAction.parse({ surface: "openai-app", surfaceId: "s1", method: "nope" }),
     ).toThrow();
   });
 
-  it("AgentSurfaceInteraction narrows the five arms on surface + inner discriminant", () => {
+  it("AgSurfaceInteraction narrows the five arms on surface + inner discriminant", () => {
     const samples = [
       {
         surface: "a2ui",
@@ -1174,14 +1174,14 @@ describe("AgentSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
       { surface: "openai-app", surfaceId: "s1", method: "setWidgetState", widgetState: {} },
     ];
     for (const s of samples) {
-      const parsed = AgentSurfaceInteraction.parse(s);
+      const parsed = AgSurfaceInteraction.parse(s);
       expect(parsed.surface).toBe(s.surface);
     }
   });
 
   it("rejects an unknown surface discriminant", () => {
     expect(() =>
-      AgentSurfaceInteraction.parse({ surface: "nope", surfaceId: "s1" }),
+      AgSurfaceInteraction.parse({ surface: "nope", surfaceId: "s1" }),
     ).toThrow();
   });
 });
