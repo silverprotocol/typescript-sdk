@@ -491,6 +491,7 @@ export const AgMessage = z.object({
   agentName: z.string().optional(), // human-readable agent name (A2-additive)
   agentRole: z.string().optional(), // role of the agent in the pipeline (A2-additive)
   model: z.string().optional(),     // model that produced this message (A2-additive)
+  usage: AgUsage.optional(),        // per-message token usage (landed from message.end.usage; A2-additive)
 });
 export type AgMessage = z.infer<typeof AgMessage>;
 
@@ -1334,6 +1335,13 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     value: JsonValue.optional(),
   }),
 ]);
+
+// AgClosedEventType — the TypeScript-level discriminated union of all closed event
+// members. Exported for consumers (e.g. the reduce() fold) that must switch on
+// ev.type after ruling out the open AgExtEvent arm: the AgExtEvent catchall(JsonValue)
+// index signature widens every field on the AgEvent union, so callers that need proper
+// field narrowing should cast to AgClosedEventType after an ext-pattern guard.
+export type AgClosedEventType = z.infer<typeof AgClosedEvent>;
 
 // Open namespaced vendor-extension event `ext.<vendor>.<key>` (spec §4 / §9 / §12,
 // RFC-6648: no `x-` prefix). A discriminatedUnion can't hold an open template-literal

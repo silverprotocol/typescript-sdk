@@ -10,6 +10,7 @@ import {
   AgClientCapabilities,
   AgInput,
   AgInputEnvelope,
+  AgMessage,
   AgReasoningConfig,
   AgToolDef,
   AgRunConfig,
@@ -1249,5 +1250,9 @@ describe("S2-EXTENDED additive fields", () => {
   });
   it("message.end carries per-message usage (review #4 carrier)", () => {
     expect(AgEvent.parse({ type: "message.end", seq: 0, id: "m", usage: { outputTokens: 5, cumulative: true } })).toMatchObject({ usage: { outputTokens: 5 } });
+  });
+  it("AgMessage.usage round-trips the per-message usage landing field (reduce R1 prereq)", () => {
+    const msg = AgMessage.parse({ id: "m", role: "assistant", content: [], usage: { outputTokens: 5 } });
+    expect(msg.usage?.outputTokens).toBe(5);
   });
 });
