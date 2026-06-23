@@ -373,6 +373,466 @@ describe("mapFinishReason", () => {
   });
 });
 
+// ─── S2-EXTENDED B3: new feature tests ───────────────────────────────────────
+
+describe("adkNormalizer — (a) usageMetadata → turn.done.usage", () => {
+  it("populates usage on turn.done when usageMetadata is present", async () => {
+    const evs = await normalize(
+      event([], {
+        turnComplete: true,
+        usageMetadata: {
+          promptTokenCount: 100,
+          candidatesTokenCount: 50,
+          totalTokenCount: 150,
+          cachedContentTokenCount: 10,
+          thoughtsTokenCount: 5,
+          toolUsePromptTokenCount: 20,
+        },
+      }),
+    );
+    const done = evs.find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({
+      usage: {
+        inputTokens: 100,
+        outputTokens: 50,
+        totalTokens: 150,
+        cacheReadTokens: 10,
+        reasoningTokens: 5,
+        toolUseInputTokens: 20,
+        cumulative: false,
+      },
+    });
+    assertAllValid(evs);
+  });
+
+  it("omits undefined fields from usage (partial usageMetadata)", async () => {
+    const evs = await normalize(
+      event([], { turnComplete: true, usageMetadata: { promptTokenCount: 42 } }),
+    );
+    const done = pick(evs, "turn.done");
+    expect(done).toMatchObject({ usage: { inputTokens: 42, cumulative: false } });
+    expect(done?.usage?.outputTokens).toBeUndefined();
+    assertAllValid(evs);
+  });
+
+  it("emits no usage on turn.done when usageMetadata is absent", async () => {
+    const evs = await normalize(event([], { turnComplete: true }));
+    const done = pick(evs, "turn.done");
+    expect(done?.usage).toBeUndefined();
+    assertAllValid(evs);
+  });
+});
+
+describe("adkNormalizer — (b) errorCode+errorMessage → turn.error", () => {
+  it("emits turn.error (not turn.done) when BOTH errorCode AND errorMessage are present", async () => {
+    const evs = await normalize(
+      event([], { errorCode: "INTERNAL_ERROR", errorMessage: "Something went wrong" }),
+    );
+    const types = evs.map((e) => e.type);
+    expect(types).toContain("turn.error");
+    expect(types).not.toContain("turn.done");
+    const err = evs.find((e) => e.type === "turn.error");
+    expect(err).toMatchObject({ type: "turn.error", message: "Something went wrong", code: "INTERNAL_ERROR" });
+    assertAllValid(evs);
+  });
+
+  it("still emits turn.done (not turn.error) when only errorCode is present (no errorMessage)", async () => {
+    // Existing behavior: bare errorCode (SAFETY) = turn.done with finishReason.
+    const evs = await normalize(event([], { errorCode: "SAFETY" }));
+    const types = evs.map((e) => e.type);
+    expect(types).toContain("turn.done");
+    expect(types).not.toContain("turn.error");
+    assertAllValid(evs);
+  });
+});
+
+describe("adkNormalizer — (c) safetyRatings + promptFeedback", () => {
+  it("adds safety array to turn.done from blocked safetyRatings", async () => {
+    const evs = await normalize(
+      event([], {
+        turnComplete: true,
+        safetyRatings: [
+          { category: "HARM_CATEGORY_DANGEROUS", probability: "HIGH", score: 0.9, blocked: true },
+          { category: "HARM_CATEGORY_HATE", probability: "LOW", score: 0.1, blocked: false },
+        ],
+      }),
+    );
+    const done = evs.find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({
+      safety: [{ category: "HARM_CATEGORY_DANGEROUS", probability: "HIGH", score: 0.9, blocked: true }],
+    });
+    assertAllValid(evs);
+  });
+
+  it("emits prompt.blocked when promptFeedback.blockReason is present", async () => {
+    const evs = await normalize(
+      event([], {
+        promptFeedback: {
+          blockReason: "SAFETY",
+          safetyRatings: [{ category: "HARM_CATEGORY_DANGEROUS", probability: "HIGH", score: 0.9, blocked: true }],
+        },
+      }),
+    );
+    const blocked = evs.find((e) => e.type === "prompt.blocked");
+    expect(blocked).toMatchObject({ type: "prompt.blocked", reason: "safety" });
+    assertAllValid(evs);
+  });
+
+  it("maps promptFeedback blockReason OTHER to 'other'", async () => {
+    const evs = await normalize(
+      event([], { promptFeedback: { blockReason: "OTHER" } }),
+    );
+    const blocked = evs.find((e) => e.type === "prompt.blocked");
+    expect(blocked).toMatchObject({ type: "prompt.blocked", reason: "other" });
+    assertAllValid(evs);
+  });
+});
+
+describe("adkNormalizer — (d) groundingMetadata → source + citations + display.required", () => {
+  it("emits source events for each groundingChunk with web.uri", async () => {
+    const evs = await normalize(
+      event([], {
+        turnComplete: true,
+        groundingMetadata: {
+          groundingChunks: [
+            { web: { uri: "https://example.com/a", title: "Example A" } },
+            { web: { uri: "https://example.com/b", title: "Example B" } },
+          ],
+        },
+      }),
+    );
+    const sources = evs.filter((e) => e.type === "source");
+    expect(sources).toHaveLength(2);
+    expect(sources[0]).toMatchObject({ type: "source", sourceId: "grounding_0", source: { url: "https://example.com/a", title: "Example A" } });
+    expect(sources[1]).toMatchObject({ type: "source", sourceId: "grounding_1", source: { url: "https://example.com/b", title: "Example B" } });
+    assertAllValid(evs);
+  });
+
+  it("emits content.block with text+citations for groundingSupports", async () => {
+    const evs = await normalize(
+      event([], {
+        turnComplete: true,
+        groundingMetadata: {
+          groundingChunks: [{ web: { uri: "https://example.com/a", title: "A" } }],
+          groundingSupports: [
+            {
+              groundingChunkIndices: [0],
+              confidenceScores: [0.95],
+              segment: { startIndex: 0, endIndex: 10, text: "grounded." },
+            },
+          ],
+        },
+      }),
+    );
+    const block = evs.find((e) => e.type === "content.block");
+    expect(block).toMatchObject({
+      type: "content.block",
+      block: {
+        type: "text",
+        text: "grounded.",
+        citations: [
+          {
+            kind: "offset",
+            unit: "byte",
+            startIndex: 0,
+            endIndex: 10,
+            bounds: "[start,end)",
+            sourceIds: ["grounding_0"],
+            confidenceScores: [0.95],
+            citedText: "grounded.",
+            indexFrame: "response",
+          },
+        ],
+      },
+    });
+    assertAllValid(evs);
+  });
+
+  it("emits display.required for searchEntryPoint.renderedContent", async () => {
+    const evs = await normalize(
+      event([], {
+        turnComplete: true,
+        groundingMetadata: {
+          searchEntryPoint: { renderedContent: "<b>Search results</b>" },
+        },
+      }),
+    );
+    const disp = evs.find((e) => e.type === "display.required");
+    expect(disp).toMatchObject({ type: "display.required", provider: "google", html: "<b>Search results</b>" });
+    assertAllValid(evs);
+  });
+});
+
+describe("adkNormalizer — (e) functionResponse.response.isError → tool.done outcome:error", () => {
+  it("sets outcome=error on tool.done when response.isError is true", async () => {
+    const evs = await normalize(
+      event([
+        {
+          functionResponse: {
+            name: "search",
+            id: "fr_1",
+            response: { isError: true, content: [{ type: "text", text: "Error occurred" }] },
+          },
+        },
+      ]),
+    );
+    expect(evs[0]).toMatchObject({ type: "tool.done", outcome: "error", toolCallId: "fr_1" });
+    assertAllValid(evs);
+  });
+
+  it("keeps outcome=ok when response.isError is absent", async () => {
+    const evs = await normalize(
+      event([{ functionResponse: { name: "search", id: "fr_2", response: { result: "ok" } } }]),
+    );
+    expect(evs[0]).toMatchObject({ type: "tool.done", outcome: "ok" });
+    assertAllValid(evs);
+  });
+});
+
+describe("adkNormalizer — (f) functionResponse.thoughtSignature → tool.done providerMetadata", () => {
+  it("populates tool.done providerMetadata.google.thoughtSignature when functionResponse has thoughtSignature", async () => {
+    const evs = await normalize(
+      event([
+        {
+          functionResponse: {
+            name: "search",
+            id: "fr_sig",
+            response: { result: "ok" },
+            thoughtSignature: "c2lnLWZy",
+          },
+        },
+      ]),
+    );
+    expect(evs[0]).toMatchObject({
+      type: "tool.done",
+      providerMetadata: { google: { thoughtSignature: "c2lnLWZy" } },
+    });
+    assertAllValid(evs);
+  });
+
+  it("omits providerMetadata on tool.done when functionResponse has no thoughtSignature", async () => {
+    const evs = await normalize(
+      event([{ functionResponse: { name: "f", id: "fr_nosig", response: { r: 1 } } }]),
+    );
+    const done = pick(evs, "tool.done");
+    expect(done?.providerMetadata).toBeUndefined();
+    assertAllValid(evs);
+  });
+});
+
+describe("adkNormalizer — (g) actions mappings", () => {
+  it("emits handoff transfer when actions.transferToAgent is set", async () => {
+    const evs = await normalize(
+      event([], { actions: { transferToAgent: "billing_agent" } }),
+    );
+    const handoff = evs.find((e) => e.type === "handoff");
+    expect(handoff).toMatchObject({ type: "handoff", kind: "transfer", toAgentName: "billing_agent" });
+    assertAllValid(evs);
+  });
+
+  it("emits handoff escalate when actions.escalate is true", async () => {
+    const evs = await normalize(event([], { actions: { escalate: true } }));
+    const handoff = evs.find((e) => e.type === "handoff");
+    expect(handoff).toMatchObject({ type: "handoff", kind: "escalate" });
+    assertAllValid(evs);
+  });
+
+  it("emits hitl.ask for each requestedAuthConfig", async () => {
+    const evs = await normalize(
+      event([], {
+        actions: {
+          requestedAuthConfigs: [
+            {
+              toolName: "gmail_tool",
+              authConfig: { scheme: "oauth2", scopes: ["read"], authorizationUrl: "https://auth.example.com" },
+            },
+          ],
+        },
+      }),
+    );
+    const ask = evs.find((e) => e.type === "hitl.ask");
+    expect(ask).toMatchObject({
+      type: "hitl.ask",
+      askId: "auth_gmail_tool",
+      kind: "auth",
+      toolCallId: "gmail_tool",
+      authConfig: { scheme: "oauth2", scopes: ["read"], authorizationUrl: "https://auth.example.com" },
+    });
+    assertAllValid(evs);
+  });
+
+  it("emits hitl.ask for each requestedToolConfirmation", async () => {
+    const evs = await normalize(
+      event([], {
+        actions: {
+          requestedToolConfirmations: [
+            { toolName: "delete_file", toolCallId: "fc_del_1", message: "Confirm delete?" },
+          ],
+        },
+      }),
+    );
+    const ask = evs.find((e) => e.type === "hitl.ask");
+    expect(ask).toMatchObject({
+      type: "hitl.ask",
+      askId: "approval_delete_file_0",
+      kind: "approval",
+      toolCallId: "fc_del_1",
+      message: "Confirm delete?",
+    });
+    assertAllValid(evs);
+  });
+});
+
+describe("adkNormalizer — (h) interrupted → turn.abort", () => {
+  it("emits turn.abort when event.interrupted is true", async () => {
+    const evs = await normalize(event([], { interrupted: true }));
+    const abort = evs.find((e) => e.type === "turn.abort");
+    expect(abort).toMatchObject({ type: "turn.abort", reason: "interrupted" });
+    assertAllValid(evs);
+  });
+});
+
+describe("adkNormalizer — (i) longRunningToolIds → tool.start longRunning", () => {
+  it("sets longRunning=true on tool.start when the call id is in longRunningToolIds", async () => {
+    const evs = await normalize(
+      event(
+        [{ functionCall: { name: "slow_fn", args: {}, id: "fc_slow" } }],
+        { longRunningToolIds: ["fc_slow"] },
+      ),
+    );
+    const start = evs.find((e) => e.type === "tool.start");
+    expect(start).toMatchObject({ type: "tool.start", longRunning: true });
+    assertAllValid(evs);
+  });
+
+  it("does NOT set longRunning when the call id is NOT in longRunningToolIds", async () => {
+    const evs = await normalize(
+      event(
+        [{ functionCall: { name: "fast_fn", args: {}, id: "fc_fast" } }],
+        { longRunningToolIds: ["fc_other"] },
+      ),
+    );
+    const start = pick(evs, "tool.start");
+    expect(start?.longRunning).toBeUndefined();
+    assertAllValid(evs);
+  });
+});
+
+describe("adkNormalizer — (j) transcription → content.block with _meta", () => {
+  it("emits content.block with _meta agjson/transcription for inputTranscription", async () => {
+    const evs = await normalize(
+      event([], { inputTranscription: { text: "user said hello" } }),
+    );
+    const block = evs.find((e) => e.type === "content.block");
+    expect(block).toMatchObject({
+      type: "content.block",
+      block: {
+        type: "text",
+        text: "user said hello",
+        _meta: { "agjson/transcription": { role: "input", kind: "transcription" } },
+      },
+    });
+    assertAllValid(evs);
+  });
+
+  it("emits content.block with _meta agjson/transcription for outputTranscription", async () => {
+    const evs = await normalize(
+      event([], { outputTranscription: { text: "agent said goodbye" } }),
+    );
+    const block = evs.find((e) => e.type === "content.block");
+    expect(block).toMatchObject({
+      type: "content.block",
+      block: {
+        type: "text",
+        text: "agent said goodbye",
+        _meta: { "agjson/transcription": { role: "output", kind: "transcription" } },
+      },
+    });
+    assertAllValid(evs);
+  });
+});
+
+describe("adkNormalizer — (k) actions.stateDelta → state.delta", () => {
+  it("emits state.delta when actions.stateDelta is present", async () => {
+    const evs = await normalize(
+      event([], { actions: { stateDelta: { sessionKey: "val1", counter: 42 } } }),
+    );
+    const delta = pick(evs, "state.delta");
+    expect(delta).toMatchObject({
+      type: "state.delta",
+      patch: { sessionKey: "val1", counter: 42 },
+    });
+    assertAllValid(evs);
+  });
+
+  it("does NOT include stateDelta in the provider-raw opaque bag", async () => {
+    const evs = await normalize(
+      event([], { actions: { stateDelta: { k: "v" } } }),
+    );
+    const raw = evs.filter((e) => e.type === "content.block");
+    // provider-raw should NOT be emitted for stateDelta alone (it has a real mapping)
+    expect(raw).toHaveLength(0);
+    assertAllValid(evs);
+  });
+});
+
+describe("adkNormalizer — (l) provider-raw fallback for unmapped event/action fields", () => {
+  it("emits a content.block provider-raw carrying artifactDelta + citationMetadata when both are present", async () => {
+    const evs = await normalize(
+      event([], {
+        actions: { artifactDelta: { doc1: "patch-v1" } },
+        citationMetadata: {
+          citations: [{ uri: "https://example.com", title: "Example", startIndex: 0, endIndex: 5 }],
+        },
+      }),
+    );
+    // One provider-raw from unmapped actions, one from unmapped event-level fields.
+    const blocks = evs.filter((e) => e.type === "content.block");
+    expect(blocks.length).toBeGreaterThanOrEqual(1);
+    // The actions-level provider-raw carries artifactDelta.
+    const actionRaw = blocks.find(
+      (e) =>
+        e.type === "content.block" &&
+        typeof e.block === "object" &&
+        e.block !== null &&
+        "type" in e.block &&
+        e.block.type === "provider-raw" &&
+        typeof e.block.raw === "object" &&
+        e.block.raw !== null &&
+        "artifactDelta" in e.block.raw,
+    );
+    expect(actionRaw).toBeDefined();
+    // The event-level provider-raw carries citationMetadata.
+    const eventRaw = blocks.find(
+      (e) =>
+        e.type === "content.block" &&
+        typeof e.block === "object" &&
+        e.block !== null &&
+        "type" in e.block &&
+        e.block.type === "provider-raw" &&
+        typeof e.block.raw === "object" &&
+        e.block.raw !== null &&
+        "citationMetadata" in e.block.raw,
+    );
+    expect(eventRaw).toBeDefined();
+    assertAllValid(evs);
+  });
+
+  it("does NOT emit provider-raw when no unmapped fields are present", async () => {
+    const evs = await normalize(event([], { turnComplete: true }));
+    const blocks = evs.filter(
+      (e) =>
+        e.type === "content.block" &&
+        typeof e.block === "object" &&
+        e.block !== null &&
+        "type" in e.block &&
+        e.block.type === "provider-raw",
+    );
+    expect(blocks).toHaveLength(0);
+    assertAllValid(evs);
+  });
+});
+
 // ─── the portable JSONata rule (structural subset) ───────────────────────────
 describe("rule.jsonata — portable structural subset (parts[] $map)", () => {
   it("maps the text-part structural subset the same as the TS normalizer", async () => {

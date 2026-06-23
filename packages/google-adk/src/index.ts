@@ -53,7 +53,9 @@
 import {
   type AgEvent,
   type AgBlock,
+  type AgCitation,
   type AgFinishReason,
+  type AgSafety,
   AgProviderMeta,
   JsonValue,
   type Normalizer,
@@ -91,8 +93,14 @@ export interface AdkPart {
   thoughtSignature?: string;
   /** A tool call. `args` is an OBJECT/dict; `id` is OFTEN null on the Dev API. */
   functionCall?: { name: string; args?: { [k: string]: JsonValue }; id?: string | null };
-  /** A tool result. `response` is an OBJECT (the function result, JSON object). */
-  functionResponse?: { name: string; response?: { [k: string]: JsonValue }; id?: string | null };
+  /** A tool result. `response` is an OBJECT (the function result, JSON object).
+   *  `thoughtSignature` carries the per-response replay signature (§8.8). */
+  functionResponse?: {
+    name: string;
+    response?: { [k: string]: JsonValue };
+    id?: string | null;
+    thoughtSignature?: string;
+  };
   /** Embedded media bytes (base64). */
   inlineData?: { mimeType: string; data: string };
   /** Model-generated code (the Code Execution tool). */
@@ -124,14 +132,110 @@ export interface AdkEvent {
   finishReason?: string;
   /** Provider error code (Gemini block reason) — surfaces a non-STOP finish. */
   errorCode?: string;
+  /** Free-text error message accompanying errorCode for hard errors. When BOTH
+   *  errorCode AND errorMessage are set, a turn.error is emitted instead of turn.done. */
+  errorMessage?: string;
   /** Event id (stable per ADK event). */
   id?: string;
   /** The whole-interaction run id (the turn key). */
   invocationId?: string;
   /** 'user' or the agent name. */
   author?: string;
-  /** Side-effect / control signals (skipSummarization short-circuits final). */
-  actions?: { skipSummarization?: boolean };
+  /** Side-effect / control signals. */
+  actions?: {
+    skipSummarization?: boolean;
+    /** Transfer control to another named agent. */
+    transferToAgent?: string;
+    /** Escalate to a human or supervisor. */
+    escalate?: boolean;
+    /** Request OAuth/auth configs from the caller (one per tool). */
+    requestedAuthConfigs?: Array<{
+      toolName?: string;
+      authConfig?: {
+        scheme?: string;
+        scopes?: string[];
+        authorizationUrl?: string;
+        tokenUrl?: string;
+        clientId?: string;
+        audience?: string;
+      };
+    }>;
+    /** Request user confirmation before executing a tool. */
+    requestedToolConfirmations?: Array<{
+      toolName?: string;
+      toolCallId?: string;
+      message?: string;
+    }>;
+    /** State deltas to merge into the shared working copy. */
+    stateDelta?: { [k: string]: JsonValue };
+    /** Artifact deltas (keyed artifact patches). */
+    artifactDelta?: { [k: string]: JsonValue };
+    /** UI widgets to render inline. */
+    renderUiWidgets?: Array<{ name?: string; code?: string }>;
+    /** Opaque agent state string (runtime passthrough). */
+    agentState?: string;
+    /** Signals the end of the agent processing pipeline for this turn. */
+    endOfAgent?: boolean;
+  };
+  /** Gemini token usage metadata (maps to AgUsage on turn.done). */
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    totalTokenCount?: number;
+    cachedContentTokenCount?: number;
+    thoughtsTokenCount?: number;
+    toolUsePromptTokenCount?: number;
+  };
+  /** Per-part safety ratings from the Gemini Candidate. */
+  safetyRatings?: Array<{
+    category?: string;
+    probability?: string;
+    score?: number;
+    blocked?: boolean;
+  }>;
+  /** Prompt-level safety feedback (block reason + ratings). */
+  promptFeedback?: {
+    blockReason?: string;
+    safetyRatings?: Array<{
+      category?: string;
+      probability?: string;
+      score?: number;
+      blocked?: boolean;
+    }>;
+  };
+  /** Gemini grounding metadata (search result chunks, citations, search widget). */
+  groundingMetadata?: {
+    groundingChunks?: Array<{ web?: { uri?: string; title?: string } }>;
+    groundingSupports?: Array<{
+      groundingChunkIndices?: number[];
+      confidenceScores?: number[];
+      segment?: { startIndex?: number; endIndex?: number; text?: string };
+    }>;
+    searchEntryPoint?: { renderedContent?: string };
+  };
+  /** Citation metadata (Gemini Candidate.citationMetadata). */
+  citationMetadata?: {
+    citations?: Array<{
+      uri?: string;
+      title?: string;
+      startIndex?: number;
+      endIndex?: number;
+    }>;
+  };
+  /** When true, the turn was interrupted mid-stream — emit turn.abort. */
+  interrupted?: boolean;
+  /** Tool call ids that are long-running (hint: set longRunning:true on tool.start). */
+  longRunningToolIds?: string[];
+  /** ADK event branch (multi-agent routing). */
+  branch?: string;
+  /** ISO timestamp of the event. */
+  timestamp?: string;
+  /** Speech-to-text transcription of the user's audio input. */
+  inputTranscription?: { text?: string };
+  /** Text-to-speech transcription of the model's audio output. */
+  outputTranscription?: { text?: string };
+  /** Opaque per-event custom metadata bag. */
+  customMetadata?: { [k: string]: JsonValue };
 }
 
 // ─── seq allocator ────────────────────────────────────────────────────────────
@@ -176,6 +280,21 @@ export function mapFinishReason(reason: string | undefined | null): AgFinishReas
       return "other";
     default:
       return "unknown";
+  }
+}
+
+// ─── promptFeedback.blockReason → prompt.blocked reason (spec §4) ────────────
+// Maps Gemini blockReason to the AgJSON prompt.blocked reason enum.
+function mapBlockReason(reason: string): "safety" | "blocklist" | "prohibited" | "other" {
+  switch (reason) {
+    case "SAFETY":
+      return "safety";
+    case "BLOCKLIST":
+      return "blocklist";
+    case "PROHIBITED_CONTENT":
+      return "prohibited";
+    default:
+      return "other";
   }
 }
 
@@ -269,7 +388,7 @@ function functionResponseToAgBlocks(name: string, response: { [k: string]: JsonV
 // Emit one part's lifecycle burst. Returns the visible text contributed (for the
 // aggregate-suppression accumulation). `index` is the positional part index
 // (the providerCallIndex source for null-id functionCalls, §8.2).
-function emitPart(e: ReturnType<typeof makeEmitter>, part: AdkPart, index: number): string {
+function emitPart(e: ReturnType<typeof makeEmitter>, part: AdkPart, index: number, event: AdkEvent): string {
   // ── REASONING (thought:true) — text part that is the model's thought ──
   if (part.thought === true) {
     const id = `reasoning:${index}`;
@@ -329,12 +448,18 @@ function emitPart(e: ReturnType<typeof makeEmitter>, part: AdkPart, index: numbe
     // `google.providerCallIndex` (the spec home is the tool-call block's
     // `providerCallIndex` / `_meta`; the streaming tool.start event carries it on
     // providerMetadata, its replay channel) so re-input restores name+position.
+    // §longRunning: if the call id is in event.longRunningToolIds, set longRunning:true.
+    const longRunning =
+      event.longRunningToolIds !== undefined && event.longRunningToolIds.includes(toolCallId)
+        ? true
+        : undefined;
     e.push({
       type: "tool.start",
       seq: e.next(),
       toolCallId,
       name: fc.name,
       index,
+      longRunning,
       providerMetadata:
         providerCallIndex !== undefined
           ? AgProviderMeta.parse({ google: { providerCallIndex } })
@@ -367,13 +492,20 @@ function emitPart(e: ReturnType<typeof makeEmitter>, part: AdkPart, index: numbe
     // `id` is OFTEN null on the Dev API; narrow inline so no non-null `!` is needed.
     const realId = fr.id != null && fr.id.length > 0 ? fr.id : null;
     const toolCallId = realId !== null ? realId : `adk_call_${index}`;
-    const outcome: ToolOutcome = "ok";
+    // (e) response.isError=true → outcome="error"; otherwise "ok".
+    const outcome: ToolOutcome = fr.response?.["isError"] === true ? "error" : "ok";
+    // (f) thoughtSignature on functionResponse → tool.done providerMetadata.google.
+    const providerMetadata =
+      fr.thoughtSignature !== undefined && fr.thoughtSignature.length > 0
+        ? AgProviderMeta.parse({ google: { thoughtSignature: fr.thoughtSignature } })
+        : undefined;
     e.push({
       type: "tool.done",
       seq: e.next(),
       toolCallId,
       content: functionResponseToAgBlocks(fr.name, fr.response),
       outcome,
+      providerMetadata,
     });
     return "";
   }
@@ -488,7 +620,7 @@ const adkNormalizer: Normalizer<AdkEvent> = (event) => {
       return;
     }
 
-    const contributed = emitPart(e, part, index);
+    const contributed = emitPart(e, part, index, event);
     if (isPartial) accumulated += contributed;
   });
 
@@ -500,24 +632,253 @@ const adkNormalizer: Normalizer<AdkEvent> = (event) => {
     streamedText.delete(key);
   }
 
-  // ── TURN COMPLETION → turn.done (spec §4) ──
-  // turnComplete (or a finishReason, or a bare errorCode) on the final event seals
-  // the turn. An errorCode-only event (a non-STOP finish with no finishReason and
-  // no turnComplete — e.g. a block reason) MUST still seal; mapFinishReason already
-  // folds `finishReason ?? errorCode`. A turn does not complete on a partial:true
-  // incremental event.
+  // ── (h) interrupted → turn.abort ──
+  if (event.interrupted === true) {
+    e.push({ type: "turn.abort", seq: e.next(), reason: "interrupted" });
+  }
+
+  // ── (c) promptFeedback → prompt.blocked ──
+  if (event.promptFeedback?.blockReason !== undefined) {
+    const blockReason = event.promptFeedback.blockReason;
+    const reason = mapBlockReason(blockReason);
+    const safety: AgSafety[] | undefined =
+      event.promptFeedback.safetyRatings !== undefined
+        ? event.promptFeedback.safetyRatings
+            .filter((r): r is typeof r & { category: string } => r.category !== undefined)
+            .map((r) => ({
+              category: r.category,
+              probability: r.probability,
+              score: r.score,
+              blocked: r.blocked,
+            }))
+        : undefined;
+    e.push({ type: "prompt.blocked", seq: e.next(), reason, ...(safety !== undefined ? { safety } : {}) });
+  }
+
+  // ── (j) inputTranscription / outputTranscription → content.block ──
+  if (event.inputTranscription?.text !== undefined) {
+    e.push({
+      type: "content.block",
+      seq: e.next(),
+      block: {
+        type: "text",
+        text: event.inputTranscription.text,
+        _meta: { "agjson/transcription": { role: "input", kind: "transcription" } },
+      },
+    });
+  }
+  if (event.outputTranscription?.text !== undefined) {
+    e.push({
+      type: "content.block",
+      seq: e.next(),
+      block: {
+        type: "text",
+        text: event.outputTranscription.text,
+        _meta: { "agjson/transcription": { role: "output", kind: "transcription" } },
+      },
+    });
+  }
+
+  // ── (d) groundingMetadata → source events + citations + display.required ──
+  if (event.groundingMetadata !== undefined) {
+    const gm = event.groundingMetadata;
+    // Emit a source event for each grounding chunk with a web URI.
+    if (gm.groundingChunks !== undefined) {
+      gm.groundingChunks.forEach((chunk, chunkIndex) => {
+        if (chunk.web?.uri !== undefined) {
+          e.push({
+            type: "source",
+            seq: e.next(),
+            sourceId: `grounding_${chunkIndex}`,
+            source: { url: chunk.web.uri, title: chunk.web.title },
+          });
+        }
+      });
+    }
+    // Emit content.block with citations for each grounding support.
+    if (gm.groundingSupports !== undefined) {
+      gm.groundingSupports.forEach((support) => {
+        const segText = support.segment?.text ?? "";
+        const citation: AgCitation = {
+          kind: "offset",
+          unit: "byte",
+          startIndex: support.segment?.startIndex ?? 0,
+          endIndex: support.segment?.endIndex ?? 0,
+          bounds: "[start,end)",
+          sourceIds: support.groundingChunkIndices?.map((i) => `grounding_${i}`) ?? [],
+          confidenceScores: support.confidenceScores ?? [],
+          citedText: segText,
+          indexFrame: "response",
+        };
+        e.push({
+          type: "content.block",
+          seq: e.next(),
+          block: { type: "text", text: segText, citations: [citation] },
+        });
+      });
+    }
+    // Emit display.required for the Google Search Entry Point (ToS-must-render).
+    if (gm.searchEntryPoint?.renderedContent !== undefined) {
+      e.push({
+        type: "display.required",
+        seq: e.next(),
+        provider: "google",
+        html: gm.searchEntryPoint.renderedContent,
+      });
+    }
+  }
+
+  // ── (g) actions mappings ──
+  const actions = event.actions;
+  if (actions !== undefined) {
+    // transferToAgent → handoff transfer
+    if (actions.transferToAgent !== undefined) {
+      e.push({
+        type: "handoff",
+        seq: e.next(),
+        kind: "transfer",
+        toAgentName: actions.transferToAgent,
+      });
+    }
+    // escalate → handoff escalate
+    if (actions.escalate === true) {
+      e.push({ type: "handoff", seq: e.next(), kind: "escalate" });
+    }
+    // requestedAuthConfigs → hitl.ask (auth)
+    if (actions.requestedAuthConfigs !== undefined) {
+      for (const config of actions.requestedAuthConfigs) {
+        const toolName = config.toolName ?? "unknown";
+        const authConfig =
+          config.authConfig !== undefined
+            ? {
+                scheme: config.authConfig.scheme ?? "unknown",
+                ...(config.authConfig.scopes !== undefined ? { scopes: config.authConfig.scopes } : {}),
+                ...(config.authConfig.authorizationUrl !== undefined
+                  ? { authorizationUrl: config.authConfig.authorizationUrl }
+                  : {}),
+                ...(config.authConfig.tokenUrl !== undefined ? { tokenUrl: config.authConfig.tokenUrl } : {}),
+                ...(config.authConfig.clientId !== undefined ? { clientId: config.authConfig.clientId } : {}),
+                ...(config.authConfig.audience !== undefined ? { audience: config.authConfig.audience } : {}),
+              }
+            : undefined;
+        e.push({
+          type: "hitl.ask",
+          seq: e.next(),
+          askId: `auth_${toolName}`,
+          kind: "auth",
+          toolCallId: toolName,
+          ...(authConfig !== undefined ? { authConfig } : {}),
+        });
+      }
+    }
+    // requestedToolConfirmations → hitl.ask (approval)
+    if (actions.requestedToolConfirmations !== undefined) {
+      actions.requestedToolConfirmations.forEach((conf, confIndex) => {
+        const toolName = conf.toolName ?? "unknown";
+        e.push({
+          type: "hitl.ask",
+          seq: e.next(),
+          askId: `approval_${toolName}_${confIndex}`,
+          kind: "approval",
+          toolCallId: conf.toolCallId ?? toolName,
+          ...(conf.message !== undefined ? { message: conf.message } : {}),
+        });
+      });
+    }
+    // stateDelta → state.delta (spec §4 state.delta, patch = the delta dict).
+    if (actions.stateDelta !== undefined) {
+      e.push({
+        type: "state.delta",
+        seq: e.next(),
+        patch: JsonValue.parse(actions.stateDelta),
+      });
+    }
+    // Collect unmapped action-level fields that are present and carry them
+    // opaquely as a provider-raw content.block (lossless carry, spec §2).
+    // stateDelta is now mapped above and excluded from the opaque bag.
+    const unmappedActions: { [k: string]: JsonValue } = {};
+    if (actions.artifactDelta !== undefined) unmappedActions["artifactDelta"] = JsonValue.parse(actions.artifactDelta);
+    if (actions.renderUiWidgets !== undefined) unmappedActions["renderUiWidgets"] = JsonValue.parse(actions.renderUiWidgets);
+    if (actions.agentState !== undefined) unmappedActions["agentState"] = actions.agentState;
+    if (actions.endOfAgent !== undefined) unmappedActions["endOfAgent"] = actions.endOfAgent;
+    if (Object.keys(unmappedActions).length > 0) {
+      e.push({
+        type: "content.block",
+        seq: e.next(),
+        block: { type: "provider-raw", vendor: "google", raw: JsonValue.parse(unmappedActions) },
+      });
+    }
+  }
+
+  // Collect unmapped event-level fields that are present and carry them
+  // opaquely as a provider-raw content.block (lossless carry, spec §2).
+  const unmappedEvent: { [k: string]: JsonValue } = {};
+  if (event.citationMetadata !== undefined) unmappedEvent["citationMetadata"] = JsonValue.parse(event.citationMetadata);
+  if (event.customMetadata !== undefined) unmappedEvent["customMetadata"] = JsonValue.parse(event.customMetadata);
+  if (Object.keys(unmappedEvent).length > 0) {
+    e.push({
+      type: "content.block",
+      seq: e.next(),
+      block: { type: "provider-raw", vendor: "google", raw: JsonValue.parse(unmappedEvent) },
+    });
+  }
+
+  // ── TURN COMPLETION → turn.done / turn.error (spec §4) ──
+  // (b) When BOTH errorCode AND errorMessage are present, it's a hard error → turn.error.
+  // Otherwise: turnComplete (or finishReason, or bare errorCode) seals with turn.done.
+  // A turn does not complete on a partial:true incremental event.
   if (
     !isPartial &&
     (event.turnComplete === true || event.finishReason !== undefined || event.errorCode !== undefined)
   ) {
-    const finishReason = mapFinishReason(event.finishReason ?? event.errorCode);
-    e.push({
-      type: "turn.done",
-      seq: e.next(),
-      turnId: `turn_${key}`,
-      outcome: { type: "success" },
-      finishReason,
-    });
+    if (event.errorCode !== undefined && event.errorMessage !== undefined) {
+      // Hard error: emit turn.error instead of turn.done.
+      e.push({
+        type: "turn.error",
+        seq: e.next(),
+        message: event.errorMessage,
+        code: event.errorCode,
+      });
+    } else {
+      const finishReason = mapFinishReason(event.finishReason ?? event.errorCode);
+      // (a) usageMetadata → usage on turn.done.
+      const um = event.usageMetadata;
+      const usage =
+        um !== undefined
+          ? {
+              ...(um.promptTokenCount !== undefined ? { inputTokens: um.promptTokenCount } : {}),
+              ...(um.candidatesTokenCount !== undefined ? { outputTokens: um.candidatesTokenCount } : {}),
+              ...(um.totalTokenCount !== undefined ? { totalTokens: um.totalTokenCount } : {}),
+              ...(um.cachedContentTokenCount !== undefined ? { cacheReadTokens: um.cachedContentTokenCount } : {}),
+              ...(um.thoughtsTokenCount !== undefined ? { reasoningTokens: um.thoughtsTokenCount } : {}),
+              ...(um.toolUsePromptTokenCount !== undefined
+                ? { toolUseInputTokens: um.toolUsePromptTokenCount }
+                : {}),
+              cumulative: false as const,
+            }
+          : undefined;
+      // (c) safetyRatings → safety on turn.done (only blocked ratings).
+      const safety =
+        event.safetyRatings !== undefined
+          ? event.safetyRatings
+              .filter((r): r is typeof r & { category: string } => r.blocked === true && r.category !== undefined)
+              .map((r) => ({
+                category: r.category,
+                probability: r.probability,
+                score: r.score,
+                blocked: r.blocked,
+              }))
+          : undefined;
+      e.push({
+        type: "turn.done",
+        seq: e.next(),
+        turnId: `turn_${key}`,
+        outcome: { type: "success" },
+        finishReason,
+        ...(usage !== undefined ? { usage } : {}),
+        ...(safety !== undefined && safety.length > 0 ? { safety } : {}),
+      });
+    }
   }
 
   return e.events;
