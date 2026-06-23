@@ -379,6 +379,396 @@ describe("mapFinishReason", () => {
   });
 });
 
+// ─── EXTENDED B2 tests ───────────────────────────────────────────────────────
+
+// (a) Usage mapping: response.completed.usage → turn.done.usage
+describe("openaiNormalizer — usage (response.completed.usage → turn.done.usage)", () => {
+  it("maps response.completed with usage to turn.done.usage (cumulative:false)", async () => {
+    const evs = await normalize({
+      type: "raw_model_stream_event",
+      data: {
+        type: "model",
+        event: {
+          type: "response.completed",
+          response: {
+            id: "resp_usage_1",
+            status: "completed",
+            usage: {
+              input_tokens: 100,
+              output_tokens: 50,
+              total_tokens: 150,
+              input_tokens_details: { cached_tokens: 20 },
+              output_tokens_details: { reasoning_tokens: 10 },
+            },
+          },
+        },
+      },
+    });
+    expect(evs).toHaveLength(1);
+    expect(evs[0]).toMatchObject({
+      type: "turn.done",
+      usage: {
+        inputTokens: 100,
+        outputTokens: 50,
+        totalTokens: 150,
+        cacheReadTokens: 20,
+        reasoningTokens: 10,
+        cumulative: false,
+      },
+    });
+    assertAllValid(evs);
+  });
+
+  it("maps SDK response_done with usage to turn.done.usage (cumulative:false)", async () => {
+    const evs = await normalize({
+      type: "raw_model_stream_event",
+      data: {
+        type: "response_done",
+        response: {
+          id: "resp_sdk_usage",
+          usage: {
+            input_tokens: 80,
+            output_tokens: 40,
+            total_tokens: 120,
+          },
+        },
+      },
+    });
+    expect(evs).toHaveLength(1);
+    expect(evs[0]).toMatchObject({
+      type: "turn.done",
+      usage: { inputTokens: 80, outputTokens: 40, totalTokens: 120, cumulative: false },
+    });
+    assertAllValid(evs);
+  });
+});
+
+// (b) response.failed + top-level error → turn.error
+describe("openaiNormalizer — response.failed / top-level error → turn.error", () => {
+  it("maps run_item response.failed to turn.error", async () => {
+    const evs = await normalize({
+      type: "raw_model_stream_event",
+      data: {
+        type: "model",
+        event: {
+          type: "response.failed",
+          response: {
+            id: "resp_fail_1",
+            error: { message: "Rate limit exceeded", code: "rate_limit_exceeded" },
+          },
+        },
+      },
+    });
+    expect(evs).toHaveLength(1);
+    expect(evs[0]).toMatchObject({
+      type: "turn.error",
+      message: "Rate limit exceeded",
+      code: "rate_limit_exceeded",
+    });
+    assertAllValid(evs);
+  });
+
+  it("maps a top-level error stream event to a non-terminal error event", async () => {
+    const evs = await normalize({
+      type: "raw_model_stream_event",
+      data: {
+        type: "model",
+        event: {
+          type: "error",
+          message: "Server error",
+          code: "server_error",
+        },
+      },
+    });
+    expect(evs).toHaveLength(1);
+    expect(evs[0]).toMatchObject({
+      type: "error",
+      message: "Server error",
+      code: "server_error",
+    });
+    assertAllValid(evs);
+  });
+});
+
+// (c) incomplete_details.reason==="content_filter" → safety + non-success outcome
+describe("openaiNormalizer — content_filter → safety + non-success outcome", () => {
+  it("maps content_filter incomplete to safety_blocked finishReason + safety[] + error outcome", async () => {
+    const evs = await normalize({
+      type: "raw_model_stream_event",
+      data: {
+        type: "model",
+        event: {
+          type: "response.incomplete",
+          response: {
+            id: "resp_cf_1",
+            status: "incomplete",
+            incomplete_details: { reason: "content_filter" },
+          },
+        },
+      },
+    });
+    expect(evs).toHaveLength(1);
+    const done = evs[0];
+    expect(done).toMatchObject({
+      type: "turn.done",
+      finishReason: "safety_blocked",
+    });
+    expect(done).toMatchObject({
+      outcome: { type: "error" },
+    });
+    expect(done).toMatchObject({
+      safety: [{ category: "content_filter", blocked: true }],
+    });
+    assertAllValid(evs);
+  });
+});
+
+// (d) url_citation annotations → AgCitation on text block
+describe("openaiNormalizer — url_citation annotations → AgCitation on text block", () => {
+  it("maps url_citation annotations to citations[] on the content.block text block", async () => {
+    const evs = await normalize({
+      type: "run_item_stream_event",
+      name: "message_output_created",
+      item: {
+        type: "message_output_item",
+        rawItem: {
+          type: "message",
+          role: "assistant",
+          status: "completed",
+          content: [
+            {
+              type: "output_text",
+              text: "Paris is the capital of France.",
+              annotations: [
+                {
+                  type: "url_citation",
+                  url: "https://example.com/france",
+                  title: "France Wikipedia",
+                  start_index: 0,
+                  end_index: 30,
+                },
+              ],
+            },
+          ],
+          id: "msg_cit_1",
+        },
+      },
+    });
+    // Should emit content.block with citations (not just text.start/delta/end)
+    const block = evs.find((e) => e.type === "content.block");
+    expect(block).toBeDefined();
+    expect(block).toMatchObject({
+      type: "content.block",
+      block: {
+        type: "text",
+        text: "Paris is the capital of France.",
+        citations: [
+          {
+            kind: "url",
+            url: "https://example.com/france",
+            title: "France Wikipedia",
+            // citedText extracted via text.slice(0, 30) = "Paris is the capital of France" (Fix 3)
+            citedText: "Paris is the capital of France",
+            startIndex: 0,
+            endIndex: 30,
+            indexFrame: "response",
+          },
+        ],
+      },
+    });
+    assertAllValid(evs);
+  });
+
+  it("does NOT emit content.block when there are no annotations (preserves existing text lifecycle)", async () => {
+    const evs = await normalize(messageOutputCreated("hello"));
+    expect(evs.find((e) => e.type === "content.block")).toBeUndefined();
+    expect(evs.map((e) => e.type)).toEqual(["text.start", "text.delta", "text.end"]);
+    assertAllValid(evs);
+  });
+});
+
+// (d) Refusal part → refusal text + finishReason:"refusal"
+describe("openaiNormalizer — Refusal content part → refusal text + finishReason", () => {
+  it("emits text lifecycle with refusal text AND turn.done finishReason:refusal on response.completed", async () => {
+    // Step 1: message_output_created with a refusal part — emits text lifecycle.
+    const msgEvs = await normalize({
+      type: "run_item_stream_event",
+      name: "message_output_created",
+      item: {
+        type: "message_output_item",
+        rawItem: {
+          type: "message",
+          role: "assistant",
+          status: "completed",
+          content: [
+            { type: "refusal", refusal: "I cannot help with that." },
+          ],
+          id: "msg_refusal_2",
+        },
+      },
+    });
+    const delta = msgEvs.find((e) => e.type === "text.delta");
+    expect(delta).toBeDefined();
+    expect(delta).toMatchObject({ delta: "I cannot help with that." });
+    assertAllValid(msgEvs);
+
+    // Step 2: response.completed for the same response — turn.done MUST carry finishReason:"refusal".
+    const completedEvs = await normalize({
+      type: "raw_model_stream_event",
+      data: {
+        type: "model",
+        event: { type: "response.completed", response: { id: "resp_refusal_2", status: "completed" } },
+      },
+    });
+    expect(completedEvs).toHaveLength(1);
+    expect(completedEvs[0]).toMatchObject({
+      type: "turn.done",
+      finishReason: "refusal",
+    });
+    assertAllValid(completedEvs);
+  });
+});
+
+// (e) tool_output with rawItem.status==="incomplete" → outcome:"error"
+describe("openaiNormalizer — tool_output incomplete status → outcome:'error'", () => {
+  it("maps a tool_output with status='incomplete' to tool.done outcome:'error'", async () => {
+    const evs = await normalize({
+      type: "run_item_stream_event",
+      name: "tool_output",
+      item: {
+        type: "tool_call_output_item",
+        rawItem: {
+          type: "function_call_result",
+          name: "get_weather",
+          callId: "call_err_1",
+          status: "incomplete",
+          output: "timeout",
+        },
+      },
+    });
+    expect(evs).toHaveLength(1);
+    expect(evs[0]).toMatchObject({
+      type: "tool.done",
+      toolCallId: "call_err_1",
+      outcome: "error",
+    });
+    assertAllValid(evs);
+  });
+
+  it("maps a tool_output with status='completed' to tool.done outcome:'ok'", async () => {
+    const evs = await normalize(toolOutput("call_ok_1", "result"));
+    expect(evs[0]).toMatchObject({ type: "tool.done", outcome: "ok" });
+    assertAllValid(evs);
+  });
+});
+
+// (f) handoff_requested → handoff + subagent.start
+describe("openaiNormalizer — handoff_requested → handoff + subagent.start", () => {
+  it("maps handoff_requested to a handoff{kind:'transfer'} + subagent.start", async () => {
+    const evs = await normalize({
+      type: "run_item_stream_event",
+      name: "handoff_requested",
+      item: {
+        type: "handoff_call_item",
+        rawItem: {
+          type: "function_call",
+          name: "transfer_to_billing_agent",
+          callId: "call_handoff_1",
+          arguments: "{}",
+          targetAgent: "billing_agent",
+        },
+      },
+    });
+    const handoffEv = evs.find((e) => e.type === "handoff");
+    expect(handoffEv).toBeDefined();
+    expect(handoffEv).toMatchObject({ type: "handoff", kind: "transfer", toAgentName: "billing_agent" });
+    const subagentEv = evs.find((e) => e.type === "subagent.start");
+    expect(subagentEv).toBeDefined();
+    assertAllValid(evs);
+  });
+});
+
+// (f) tool_approval_requested → hitl.ask + paused outcome
+describe("openaiNormalizer — tool_approval_requested → hitl.ask + turn.done paused", () => {
+  it("maps tool_approval_requested to hitl.ask{kind:'approval'} AND turn.done{outcome:{type:'paused'}}", async () => {
+    const evs = await normalize({
+      type: "run_item_stream_event",
+      name: "tool_approval_requested",
+      item: {
+        type: "tool_approval_item",
+        rawItem: {
+          type: "function_call",
+          name: "delete_file",
+          callId: "call_approval_1",
+          arguments: '{"path":"/etc/hosts"}',
+        },
+      },
+    });
+    const askEv = evs.find((e) => e.type === "hitl.ask");
+    expect(askEv).toBeDefined();
+    expect(askEv).toMatchObject({
+      type: "hitl.ask",
+      kind: "approval",
+      toolCallId: "call_approval_1",
+    });
+    const doneEv = evs.find((e) => e.type === "turn.done");
+    expect(doneEv).toBeDefined();
+    expect(doneEv).toMatchObject({
+      type: "turn.done",
+      outcome: { type: "paused" },
+      finishReason: "paused",
+    });
+    assertAllValid(evs);
+  });
+});
+
+// provider-raw fallback in both defaults
+describe("openaiNormalizer — provider-raw fallback (unhandled events are NOT silently lost)", () => {
+  it("emits a content.block provider-raw for an unknown run_item_stream_event name", async () => {
+    const evs = await normalize({
+      type: "run_item_stream_event",
+      name: "tool_search_output_created" as "tool_output", // force unknown name through type system
+      item: {
+        type: "tool_call_output_item" as "tool_call_output_item",
+        rawItem: {
+          type: "function_call_result" as "function_call_result",
+          name: "web_search",
+          callId: "call_search_1",
+          status: "completed",
+          output: "search results",
+        },
+      },
+    });
+    const rawBlock = evs.find((e) => e.type === "content.block");
+    expect(rawBlock).toBeDefined();
+    expect(rawBlock).toMatchObject({
+      type: "content.block",
+      block: { type: "provider-raw", vendor: "openai" },
+    });
+    assertAllValid(evs);
+  });
+
+  it("emits a content.block provider-raw for an unknown raw_model_stream_event data type", async () => {
+    const evs = await normalize({
+      type: "raw_model_stream_event",
+      data: {
+        type: "model",
+        event: {
+          type: "response.output_item.added" as "response.completed",
+          response: { id: "resp_unknown", status: "completed" },
+        },
+      },
+    });
+    const rawBlock = evs.find((e) => e.type === "content.block");
+    expect(rawBlock).toBeDefined();
+    expect(rawBlock).toMatchObject({
+      type: "content.block",
+      block: { type: "provider-raw", vendor: "openai" },
+    });
+    assertAllValid(evs);
+  });
+});
+
 // ─── the portable JSONata rule (structural subset) ───────────────────────────
 describe("rule.jsonata — portable structural subset", () => {
   it("maps the message-output structural subset the same as the TS normalizer", async () => {

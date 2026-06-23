@@ -62,6 +62,9 @@ import {
   type AgEvent,
   type AgBlock,
   type AgFinishReason,
+  type AgUsage,
+  type AgSafety,
+  type AgCitation,
   JsonValue,
   type Normalizer,
   type ToolOutcome,
@@ -86,14 +89,45 @@ export { ruleJsonata };
 export interface OpenAIOutputText {
   type: "output_text";
   text: string;
+  /** url_citation and file_citation annotations on the text part. */
+  annotations?: OpenAIAnnotation[];
 }
+
+/** url_citation annotation on an output_text part (openai-node `ResponseCitationAnnotation`). */
+export interface OpenAIUrlCitationAnnotation {
+  type: "url_citation";
+  url: string;
+  title?: string;
+  start_index?: number;
+  end_index?: number;
+}
+
+/** file_citation annotation on an output_text part. */
+export interface OpenAIFileCitationAnnotation {
+  type: "file_citation";
+  file_id?: string;
+  filename?: string;
+  index?: number;
+}
+
+/** The subset of annotations that the normalizer handles. */
+export type OpenAIAnnotation = OpenAIUrlCitationAnnotation | OpenAIFileCitationAnnotation;
+
+/** `Refusal` content part — the model refused to answer (openai-node `ResponseOutputRefusal`). */
+export interface OpenAIRefusal {
+  type: "refusal";
+  refusal: string;
+}
+
+/** Union of assistant message content parts the normalizer handles. */
+export type OpenAIContentPart = OpenAIOutputText | OpenAIRefusal;
 
 /** protocol `AssistantMessageItem` (the `rawItem` of a message_output_item). */
 export interface OpenAIAssistantMessageItem {
   type?: "message";
   role: "assistant";
   status: "in_progress" | "completed" | "incomplete";
-  content: OpenAIOutputText[];
+  content: OpenAIContentPart[];
   id?: string;
   providerData?: { [k: string]: JsonValue };
 }
@@ -168,6 +202,42 @@ interface OpenAIReasoningEvent {
   item: { type: "reasoning_item"; rawItem: OpenAIReasoningItem };
 }
 
+/** A handoff call item (RunHandoffCallItem) — the target agent name rides in
+ *  the rawItem (FunctionCallItem-shaped) as `targetAgent` or can be inferred
+ *  from the function name by convention. */
+interface OpenAIHandoffCallItem {
+  type: "function_call";
+  name: string;
+  callId: string;
+  arguments: string;
+  /** The target agent name, when the SDK surfaces it explicitly. */
+  targetAgent?: string;
+  id?: string;
+  providerData?: { [k: string]: JsonValue };
+}
+
+interface OpenAIHandoffRequestedEvent {
+  type: "run_item_stream_event";
+  name: "handoff_requested";
+  item: { type: "handoff_call_item"; rawItem: OpenAIHandoffCallItem };
+}
+
+/** A tool approval request item (RunToolApprovalItem) — the function call that
+ *  needs human approval rides in rawItem. */
+interface OpenAIToolApprovalItem {
+  type: "function_call";
+  name: string;
+  callId: string;
+  arguments: string;
+  id?: string;
+}
+
+interface OpenAIToolApprovalRequestedEvent {
+  type: "run_item_stream_event";
+  name: "tool_approval_requested";
+  item: { type: "tool_approval_item"; rawItem: OpenAIToolApprovalItem };
+}
+
 // ── raw_model_stream_event arm ───────────────────────────────────────────────
 // `RunRawModelStreamEvent.data` is the Agents SDK's own `ResponseStreamEvent`
 // union (`@openai/agents` protocol `StreamEvent`): the literals below + the
@@ -195,6 +265,15 @@ interface OpenAIResponsesTextDelta {
   item_id: string;
   delta: string;
 }
+/** openai-node `ResponseUsage` — per-response token counts (snake_case). */
+interface OpenAIResponseUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  total_tokens?: number;
+  input_tokens_details?: { cached_tokens?: number };
+  output_tokens_details?: { reasoning_tokens?: number };
+}
+
 /** openai-node `ResponseCompletedEvent`/incomplete — `response.incomplete_details`
  *  is snake_case. Carried via the `model` carrier. */
 interface OpenAIResponsesCompleted {
@@ -203,7 +282,25 @@ interface OpenAIResponsesCompleted {
     id: string;
     status: "completed" | "incomplete";
     incomplete_details?: { reason?: string };
+    usage?: OpenAIResponseUsage;
   };
+}
+
+/** openai-node `ResponseFailedEvent` — the response itself failed (e.g. rate limit).
+ *  Carried via the `model` carrier. */
+interface OpenAIResponsesFailed {
+  type: "response.failed";
+  response: {
+    id: string;
+    error?: { message?: string; code?: string };
+  };
+}
+
+/** A top-level streaming error event (non-terminal advisory, spec §4). */
+interface OpenAIResponsesError {
+  type: "error";
+  message: string;
+  code?: string;
 }
 
 /** The faithful projection of the openai-node `ResponseStreamEvent` events the
@@ -212,7 +309,9 @@ type OpenAIRawResponsesEvent =
   | OpenAIResponsesFnArgsDelta
   | OpenAIResponsesFnArgsDone
   | OpenAIResponsesTextDelta
-  | OpenAIResponsesCompleted;
+  | OpenAIResponsesCompleted
+  | OpenAIResponsesFailed
+  | OpenAIResponsesError;
 
 // ── the Agents SDK `StreamEvent` union (RunRawModelStreamEvent.data) ──────────
 /** `StreamEventTextStream` — `{ type:"output_text_delta"; delta }`. */
@@ -227,7 +326,7 @@ interface OpenAIStreamEventResponseStarted {
 /** `StreamEventResponseCompleted` — `{ type:"response_done"; response? }`. */
 interface OpenAIStreamEventResponseDone {
   type: "response_done";
-  response?: { id: string };
+  response?: { id: string; usage?: OpenAIResponseUsage };
 }
 /** `StreamEventGenericItem` — the generic `model` carrier. The verbatim
  *  openai-node Responses event rides in `event`. */
@@ -253,6 +352,8 @@ export type OpenAIStreamEvent =
   | OpenAIToolCalledEvent
   | OpenAIToolOutputEvent
   | OpenAIReasoningEvent
+  | OpenAIHandoffRequestedEvent
+  | OpenAIToolApprovalRequestedEvent
   | OpenAIRawModelStreamEvent;
 
 // ─── seq allocator ────────────────────────────────────────────────────────────
@@ -305,6 +406,14 @@ const argBuffers = new Map<string, string>();
 // raw `.done` path. Survives ACROSS normalizer calls (separate stream events).
 const callIdByItemId = new Map<string, string>();
 
+// ─── refusal turn tracking (Fix 1 / spec §4 finishReason:"refusal") ───────────
+// When a `message_output_created` item contains a `refusal` content part, this
+// flag is set so the downstream `response.completed` / `response_done` arm can
+// override finishReason to "refusal" instead of "stop". The OpenAI Agents SDK
+// emits at most one response per turn, so a single boolean sentinel is correct.
+// Cleared when the turn.done is emitted to avoid leaking across turns.
+let pendingRefusal = false;
+
 // ─── tool-output content → AgBlock[] (spec §2) ────────────────────────────────
 function toolOutputToAgBlocks(
   output: OpenAIFunctionCallResultItem["output"],
@@ -320,6 +429,56 @@ function toolOutputToAgBlocks(
   return out;
 }
 
+// ─── usage mapping: OpenAI response usage → AgUsage ──────────────────────────
+// cumulative:false — OpenAI usage is FINAL (not cumulative like Anthropic).
+function mapUsage(usage: OpenAIResponseUsage | undefined): AgUsage | undefined {
+  if (usage === undefined) return undefined;
+  const u: AgUsage = { cumulative: false };
+  if (usage.input_tokens !== undefined) u.inputTokens = usage.input_tokens;
+  if (usage.output_tokens !== undefined) u.outputTokens = usage.output_tokens;
+  if (usage.total_tokens !== undefined) u.totalTokens = usage.total_tokens;
+  if (usage.input_tokens_details?.cached_tokens !== undefined)
+    u.cacheReadTokens = usage.input_tokens_details.cached_tokens;
+  if (usage.output_tokens_details?.reasoning_tokens !== undefined)
+    u.reasoningTokens = usage.output_tokens_details.reasoning_tokens;
+  return u;
+}
+
+// ─── url_citation annotation → AgCitation ──────────────────────────────────
+// `partText` is the source output_text part's text string; used to extract the
+// cited substring from the char-offset indices carried by the annotation (Fix 3).
+function mapAnnotationsToCitations(
+  annotations: OpenAIAnnotation[] | undefined,
+  partText: string,
+): AgCitation[] | undefined {
+  if (annotations === undefined || annotations.length === 0) return undefined;
+  const out: AgCitation[] = [];
+  for (const ann of annotations) {
+    if (ann.type === "url_citation") {
+      // Extract the cited substring from the part text when both offsets are present
+      // and valid (Fix 3). Fall back to "" when any guard condition fails.
+      const startIdx = ann.start_index;
+      const endIdx = ann.end_index;
+      const citedText =
+        startIdx !== undefined && endIdx !== undefined && startIdx >= 0 && endIdx <= partText.length
+          ? partText.slice(startIdx, endIdx)
+          : "";
+      const cit: AgCitation = {
+        kind: "url",
+        url: ann.url,
+        citedText,
+        indexFrame: "response",
+      };
+      if (ann.title !== undefined) cit.title = ann.title;
+      if (startIdx !== undefined) cit.startIndex = startIdx;
+      if (endIdx !== undefined) cit.endIndex = endIdx;
+      out.push(cit);
+    }
+    // file_citation: no url-kind match; skip (deferred to a later slice — only remaining silent annotation drop)
+  }
+  return out.length > 0 ? out : undefined;
+}
+
 // ─── the normalizer ───────────────────────────────────────────────────────────
 const openaiNormalizer: Normalizer<OpenAIStreamEvent> = (event) => {
   const e = makeEmitter();
@@ -329,15 +488,44 @@ const openaiNormalizer: Normalizer<OpenAIStreamEvent> = (event) => {
       case "message_output_created": {
         const item = event.item.rawItem;
         const id = item.id ?? "msg";
-        // Concatenate all output_text parts into the visible text (the run-item
-        // wrapper is the COMPLETE message; deltas ride the raw Responses stream).
-        const text = item.content
-          .filter((p) => p.type === "output_text")
-          .map((p) => p.text)
-          .join("");
+        // Determine if any part has annotations (url_citation). When annotations
+        // are present we emit a content.block (with citations[]) in addition to
+        // the text lifecycle so citations survive the reduce() fold.
+        let hasAnnotations = false;
+        // Also detect refusal parts — emit their text instead of silently dropping,
+        // and record the item id so the downstream response.completed arm can set
+        // finishReason:"refusal" faithfully (Fix 1).
+        let hasRefusal = false;
+        let combinedText = "";
+        for (const part of item.content) {
+          if (part.type === "output_text") {
+            combinedText += part.text;
+            if (part.annotations && part.annotations.length > 0) hasAnnotations = true;
+          } else if (part.type === "refusal") {
+            combinedText += part.refusal;
+            hasRefusal = true;
+          }
+        }
+        if (hasRefusal) {
+          pendingRefusal = true;
+        }
         e.push({ type: "text.start", seq: e.next(), id });
-        e.push({ type: "text.delta", seq: e.next(), id, delta: text });
+        e.push({ type: "text.delta", seq: e.next(), id, delta: combinedText });
         e.push({ type: "text.end", seq: e.next(), id });
+
+        // For any output_text parts that carry url_citation annotations, emit a
+        // content.block carrying the text + citations[] so reduce() can fold them.
+        if (hasAnnotations) {
+          for (const part of item.content) {
+            if (part.type === "output_text") {
+              const citations = mapAnnotationsToCitations(part.annotations, part.text);
+              if (citations !== undefined) {
+                const block: AgBlock = { type: "text", text: part.text, citations };
+                e.push({ type: "content.block", seq: e.next(), block });
+              }
+            }
+          }
+        }
         return e.events;
       }
       case "tool_called": {
@@ -378,7 +566,8 @@ const openaiNormalizer: Normalizer<OpenAIStreamEvent> = (event) => {
       }
       case "tool_output": {
         const item = event.item.rawItem;
-        const outcome: ToolOutcome = "ok";
+        // Derive outcome from the result item status: incomplete → error (e.g. timeout).
+        const outcome: ToolOutcome = item.status === "incomplete" ? "error" : "ok";
         e.push({
           type: "tool.done",
           seq: e.next(),
@@ -416,9 +605,72 @@ const openaiNormalizer: Normalizer<OpenAIStreamEvent> = (event) => {
         }
         return e.events;
       }
+      case "handoff_requested": {
+        // A handoff to another agent: emit handoff{kind:'transfer'} + subagent.start.
+        // The target agent name may come from rawItem.targetAgent (explicit) or be
+        // inferred from the function name by the platform; we use targetAgent when
+        // present.
+        const rawItem = event.item.rawItem;
+        const toAgentName = rawItem.targetAgent ?? rawItem.name;
+        const subTurnId = `turn_handoff_${rawItem.callId}`;
+        const parentTurnId = "turn_current";
+        e.push({
+          type: "handoff",
+          seq: e.next(),
+          kind: "transfer",
+          toAgentName,
+        });
+        e.push({
+          type: "subagent.start",
+          seq: e.next(),
+          turnId: subTurnId,
+          parentTurnId,
+          agentName: toAgentName,
+        });
+        return e.events;
+      }
+      case "tool_approval_requested": {
+        // A tool call awaiting human approval: emit hitl.ask{kind:'approval'} then
+        // seal the turn as paused (Fix 2 / brief §tool_approval_requested).
+        const rawItem = event.item.rawItem;
+        const askId = `ask_${rawItem.callId}`;
+        e.push({
+          type: "hitl.ask",
+          seq: e.next(),
+          askId,
+          kind: "approval",
+          toolCallId: rawItem.callId,
+          message: `Approve tool: ${rawItem.name}`,
+        });
+        e.push({
+          type: "turn.done",
+          seq: e.next(),
+          turnId: `turn_approval_${rawItem.callId}`,
+          outcome: {
+            type: "paused",
+            asks: [
+              {
+                askId,
+                kind: "approval",
+                toolCallId: rawItem.callId,
+                message: `Approve tool: ${rawItem.name}`,
+              },
+            ],
+          },
+          finishReason: "paused",
+        });
+        return e.events;
+      }
       default: {
-        // Other RunItemStreamEventName values (handoff_*, tool_search_*,
-        // tool_approval_requested) carry no events on this fixture seam.
+        // Other RunItemStreamEventName values (tool_search_*, handoff_occurred, etc.)
+        // are unmodeled on this fixture seam. Rather than silently discarding them,
+        // emit a provider-raw block so nothing is lost.
+        const providerRawBlock: AgBlock = {
+          type: "provider-raw",
+          vendor: "openai",
+          raw: JsonValue.parse(event),
+        };
+        e.push({ type: "content.block", seq: e.next(), block: providerRawBlock });
         return e.events;
       }
     }
@@ -442,12 +694,18 @@ const openaiNormalizer: Normalizer<OpenAIStreamEvent> = (event) => {
     }
     case "response_done": {
       // SDK turn terminator. Mirror response.completed → turn.done (stop).
+      // If any prior message_output_created in this turn carried a refusal part,
+      // override finishReason to "refusal" (Fix 1).
+      const finishReasonDone: AgFinishReason = pendingRefusal ? "refusal" : mapFinishReason(undefined);
+      pendingRefusal = false;
+      const usage = mapUsage(data.response?.usage);
       e.push({
         type: "turn.done",
         seq: e.next(),
         turnId: `turn_${data.response?.id ?? "openai"}`,
         outcome: { type: "success" },
-        finishReason: mapFinishReason(undefined),
+        finishReason: finishReasonDone,
+        ...(usage !== undefined ? { usage } : {}),
       });
       return e.events;
     }
@@ -455,8 +713,16 @@ const openaiNormalizer: Normalizer<OpenAIStreamEvent> = (event) => {
       // The verbatim openai-node Responses event rides in `event` (snake_case).
       return handleRawResponsesEvent(data.event, e);
     }
-    default:
+    default: {
+      // Unhandled SDK StreamEvent — emit provider-raw so nothing is silently lost.
+      const providerRawBlock: AgBlock = {
+        type: "provider-raw",
+        vendor: "openai",
+        raw: JsonValue.parse(data),
+      };
+      e.push({ type: "content.block", seq: e.next(), block: providerRawBlock });
       return e.events;
+    }
   }
 };
 
@@ -500,17 +766,72 @@ function handleRawResponsesEvent(
     }
     case "response.completed":
     case "response.incomplete": {
+      const reason = ev.response.incomplete_details?.reason;
+      const usage = mapUsage(ev.response.usage);
+      // content_filter → non-success outcome + safety signal.
+      // Any other incomplete reason → error outcome (not success).
+      // If a prior message_output_created in this turn carried a refusal part,
+      // override finishReason to "refusal" regardless of the completion reason (Fix 1).
+      let outcome: { type: "success" } | { type: "error"; message: string };
+      let safety: AgSafety[] | undefined;
+      let finishReason: AgFinishReason;
+      if (pendingRefusal) {
+        finishReason = "refusal";
+        pendingRefusal = false;
+        outcome = { type: "success" };
+      } else if (reason === "content_filter") {
+        finishReason = mapFinishReason(reason);
+        outcome = { type: "error", message: "content_filter" };
+        safety = [{ category: "content_filter", blocked: true }];
+      } else if (ev.type === "response.incomplete") {
+        finishReason = mapFinishReason(reason);
+        outcome = { type: "error", message: reason ?? "incomplete" };
+      } else {
+        finishReason = mapFinishReason(reason);
+        outcome = { type: "success" };
+      }
       e.push({
         type: "turn.done",
         seq: e.next(),
         turnId: `turn_${ev.response.id}`,
-        outcome: { type: "success" },
-        finishReason: mapFinishReason(ev.response.incomplete_details?.reason),
+        outcome,
+        finishReason,
+        ...(usage !== undefined ? { usage } : {}),
+        ...(safety !== undefined ? { safety } : {}),
       });
       return e.events;
     }
-    default:
+    case "response.failed": {
+      // The response itself failed (rate limit, server error, etc.).
+      const err = ev.response.error;
+      e.push({
+        type: "turn.error",
+        seq: e.next(),
+        message: err?.message ?? "response.failed",
+        ...(err?.code !== undefined ? { code: err.code } : {}),
+      });
       return e.events;
+    }
+    case "error": {
+      // Top-level non-terminal error advisory (spec §4 bare `error` event).
+      e.push({
+        type: "error",
+        seq: e.next(),
+        message: ev.message,
+        ...(ev.code !== undefined ? { code: ev.code } : {}),
+      });
+      return e.events;
+    }
+    default: {
+      // Unhandled raw Responses event — emit provider-raw so nothing is silently lost.
+      const providerRawBlock: AgBlock = {
+        type: "provider-raw",
+        vendor: "openai",
+        raw: JsonValue.parse(ev),
+      };
+      e.push({ type: "content.block", seq: e.next(), block: providerRawBlock });
+      return e.events;
+    }
   }
 }
 
