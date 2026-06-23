@@ -22,6 +22,7 @@ import {
   AgOpenAiWidgetAction,
   REMOVE_ALL,
   AgMemoryRecord,
+  AgUsage,
 } from "./agjson.js";
 
 describe("AgEvent (CORE)", () => {
@@ -1223,4 +1224,30 @@ describe("S2-EXTENDED breaking arms", () => {
     expect(() => AgReduceResult.parse({ messages: [], artifacts: [], turns: [] })).toThrow();
   });
   it("REMOVE_ALL is exported and equals '*'", () => { expect(REMOVE_ALL).toBe("*"); });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// S2-EXTENDED additive fields (spec §2 / §4 pre-freeze additions)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("S2-EXTENDED additive fields", () => {
+  it("AgUsage carries byModel (self-recursive) + serverToolRequests", () => {
+    const u = { outputTokens: 10, serverToolRequests: 2, byModel: { "claude-opus": { outputTokens: 7 }, "claude-haiku": { outputTokens: 3 } } };
+    expect(AgUsage.parse(u)).toMatchObject(u);
+  });
+  it("message.start carries agent attribution + model + (A1) candidateIndex", () => {
+    expect(AgEvent.parse({ type: "message.start", seq: 0, id: "m", role: "assistant", turnId: "t", threadId: "th", agentId: "a1", agentName: "Researcher", agentRole: "analyst", model: "claude-opus" })).toMatchObject({ agentName: "Researcher", model: "claude-opus" });
+  });
+  it("turn.start carries a trigger", () => {
+    expect(AgEvent.parse({ type: "turn.start", seq: 0, threadId: "th", turnId: "t", trigger: { kind: "cron", ref: "0 9 * * *" } })).toMatchObject({ trigger: { kind: "cron" } });
+  });
+  it("parses guardrail.result", () => {
+    expect(AgEvent.parse({ type: "guardrail.result", seq: 0, target: "output", passed: false, action: "rewrite", guardrailName: "pii" })).toMatchObject({ passed: false, action: "rewrite" });
+  });
+  it("tool.start carries longRunning", () => {
+    expect(AgEvent.parse({ type: "tool.start", seq: 0, toolCallId: "c1", name: "deploy", longRunning: true })).toMatchObject({ longRunning: true });
+  });
+  it("message.end carries per-message usage (review #4 carrier)", () => {
+    expect(AgEvent.parse({ type: "message.end", seq: 0, id: "m", usage: { outputTokens: 5, cumulative: true } })).toMatchObject({ usage: { outputTokens: 5 } });
+  });
 });

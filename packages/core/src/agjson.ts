@@ -153,18 +153,35 @@ export const AgCitation = z.discriminatedUnion("kind", [
 export type AgCitation = z.infer<typeof AgCitation>;
 
 // Usage (spec §4). `cumulative:true` ⇒ must de-cumulate (Anthropic).
-export const AgUsage = z.object({
-  inputTokens: z.number().optional(),
-  outputTokens: z.number().optional(),
-  cacheReadTokens: z.number().optional(),
-  cacheWriteTokens: z.number().optional(),
-  reasoningTokens: z.number().optional(),
-  toolUseInputTokens: z.number().optional(),
-  totalTokens: z.number().optional(),
-  costUsd: z.number().optional(),
-  cumulative: z.boolean().optional(),
-});
-export type AgUsage = z.infer<typeof AgUsage>;
+// Hand-written interface (required for self-recursive `byModel`; mirrors JsonValue / AgBlock pattern).
+export interface AgUsage {
+  inputTokens?: number;
+  outputTokens?: number;
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
+  reasoningTokens?: number;
+  toolUseInputTokens?: number;
+  totalTokens?: number;
+  costUsd?: number;
+  cumulative?: boolean;
+  byModel?: Record<string, AgUsage>;  // per-model breakdown (self-recursive; A2-additive)
+  serverToolRequests?: number;        // server-executed MCP tool-request count (A2-additive)
+}
+export const AgUsage: z.ZodType<AgUsage> = z.lazy(() =>
+  z.object({
+    inputTokens: z.number().optional(),
+    outputTokens: z.number().optional(),
+    cacheReadTokens: z.number().optional(),
+    cacheWriteTokens: z.number().optional(),
+    reasoningTokens: z.number().optional(),
+    toolUseInputTokens: z.number().optional(),
+    totalTokens: z.number().optional(),
+    costUsd: z.number().optional(),
+    cumulative: z.boolean().optional(),
+    byModel: z.record(z.string(), AgUsage).optional(),
+    serverToolRequests: z.number().optional(),
+  }),
+);
 
 // Safety signal (spec §4).
 export const AgSafety = z.object({
@@ -470,6 +487,10 @@ export const AgMessage = z.object({
   messageMetadata: JsonValue.optional(),
   extensions: z.array(z.string()).optional(),
   metadata: AgMeta.optional(),
+  agentId: z.string().optional(),   // agent that produced this message (A2-additive)
+  agentName: z.string().optional(), // human-readable agent name (A2-additive)
+  agentRole: z.string().optional(), // role of the agent in the pipeline (A2-additive)
+  model: z.string().optional(),     // model that produced this message (A2-additive)
 });
 export type AgMessage = z.infer<typeof AgMessage>;
 
@@ -487,6 +508,13 @@ export const AgArtifact = z.object({
   _meta: AgMeta.optional(),
 });
 export type AgArtifact = z.infer<typeof AgArtifact>;
+
+// Turn trigger descriptor (A2-additive; folded from turn.start.trigger onto AgTurnRecord.trigger).
+export const AgTrigger = z.object({
+  kind: z.enum(["user", "resume", "schedule", "webhook", "email", "agent", "cron", "unknown"]),
+  ref: z.string().optional(),
+});
+export type AgTrigger = z.infer<typeof AgTrigger>;
 
 // A folded handoff edge (spec §2 `AgTurnRecord.handoffs[]` / §4 handoff event).
 export const AgHandoffRecord = z.object({
@@ -520,6 +548,15 @@ export const AgTurnRecord = z.object({
   asks: z.array(AgPausedAsk).optional(),
   taskState: z.string().optional(), // verbatim A2A TaskState with no outcome target (A44)
   displayRequired: z.array(AgDisplayRequired).optional(),
+  trigger: AgTrigger.optional(), // what triggered this turn (A2-additive)
+  guardrails: z.array(z.object({
+    target: z.enum(["input", "output", "tool"]),
+    passed: z.boolean(),
+    action: z.enum(["block", "retry", "rewrite", "override", "terminate"]).optional(),
+    reason: z.string().optional(),
+    guardrailName: z.string().optional(),
+    safety: z.array(AgSafety).optional(),
+  })).optional(), // guardrail evaluations folded from guardrail.result events (A2-additive)
 });
 export type AgTurnRecord = z.infer<typeof AgTurnRecord>;
 
@@ -914,7 +951,7 @@ const base = {
 // template-literal, not a fixed literal), so it is a sibling `AgExtEvent` joined
 // via `.or()` below. Kept as a named const for clarity.
 export const AgClosedEvent = z.discriminatedUnion("type", [
-  z.object({ ...base, type: z.literal("turn.start"), threadId: z.string(), turnId: z.string() }),
+  z.object({ ...base, type: z.literal("turn.start"), threadId: z.string(), turnId: z.string(), trigger: AgTrigger.optional() }),
   z.object({
     ...base,
     type: z.literal("turn.done"),
@@ -952,8 +989,12 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     stepId: z.string().optional(),
     extensions: z.array(z.string()).optional(), // foreign A2A active-extension URIs (§0.5)
     candidateIndex: z.number().optional(), // absent ⇒ candidate 0 (§5 partitioning)
+    agentId: z.string().optional(),   // agent that produced this message (A2-additive)
+    agentName: z.string().optional(), // human-readable agent name (A2-additive)
+    agentRole: z.string().optional(), // role of the agent in the pipeline (A2-additive)
+    model: z.string().optional(),     // model that produced this message (A2-additive)
   }),
-  z.object({ ...base, type: z.literal("message.end"), id: z.string() }),
+  z.object({ ...base, type: z.literal("message.end"), id: z.string(), usage: AgUsage.optional() }), // usage = per-message token carrier (review #4)
   z.object({
     ...base,
     type: z.literal("text.start"),
@@ -995,6 +1036,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     itemId: z.string().optional(),
     providerMetadata: AgProviderMeta.optional(),
     candidateIndex: z.number().optional(), // absent ⇒ candidate 0 (§5 partitioning)
+    longRunning: z.boolean().optional(),   // hint: this tool call may take a long time (A2-additive)
   }),
   z.object({
     ...base,
@@ -1146,6 +1188,17 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     key: z.string().optional(),
     value: JsonValue.optional(), patch: JsonValue.optional(),  // exactly one — see superRefine
     reason: z.string().optional(), durable: z.boolean().optional() }),
+  // ── GUARDRAIL EVALUATION (A2-additive; §0.3 closed set — `result` segment already reserved) ──
+  z.object({
+    ...base,
+    type: z.literal("guardrail.result"),
+    target: z.enum(["input", "output", "tool"]),
+    passed: z.boolean(),
+    action: z.enum(["block", "retry", "rewrite", "override", "terminate"]).optional(),
+    reason: z.string().optional(),
+    guardrailName: z.string().optional(),
+    safety: z.array(AgSafety).optional(),
+  }),
   // ── HITL (one family; spec §7) ──
   z.object({
     ...base,
