@@ -310,7 +310,119 @@ export class Reducer {
         break;
       }
 
-      // All other event types are handled by later tasks (R3–R10).
+      // ── TOOL-CALL blocks ──────────────────────────────────────────────────────
+      case "tool.start": {
+        const msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
+        if (msg === undefined) break;
+        const block: AgBlock = {
+          type: "tool-call",
+          toolCallId: ev.toolCallId,
+          name: ev.name,
+          // Seed with empty object so a mid-stream result() still parses (must-fix #8).
+          input: {},
+          ...(ev.serverName !== undefined ? { serverName: ev.serverName } : {}),
+          ...(ev.providerExecuted !== undefined ? { providerExecuted: ev.providerExecuted } : {}),
+          ...(ev.title !== undefined ? { title: ev.title } : {}),
+          ...(ev.toolMetadata !== undefined ? { toolMetadata: ev.toolMetadata } : {}),
+          ...(ev.itemId !== undefined ? { itemId: ev.itemId } : {}),
+          ...(ev.uiVisibility !== undefined ? { uiVisibility: ev.uiVisibility } : {}),
+          ...(ev.providerMetadata !== undefined ? { providerMetadata: ev.providerMetadata } : {}),
+        };
+        const index = msg.content.length;
+        msg.content.push(block);
+        this.#blockPos.set(ev.toolCallId, { messageId: msg.id, index });
+        break;
+      }
+
+      case "tool.args.delta": {
+        // APPEND raw partial-JSON delta to scratch (NEVER authoritative input).
+        const existing = this.#toolArgs.get(ev.toolCallId) ?? "";
+        this.#toolArgs.set(ev.toolCallId, existing + ev.delta);
+        break;
+      }
+
+      case "tool.args.assembled": {
+        // AUTHORITATIVE: replace seeded input:{} with the assembled value.
+        const pos = this.#blockPos.get(ev.toolCallId);
+        if (pos === undefined) break;
+        const msg = this.#messages.get(pos.messageId);
+        if (msg === undefined) break;
+        const block = msg.content[pos.index];
+        if (block === undefined || block.type !== "tool-call") break;
+        block.input = ev.input;
+        if (ev.signature !== undefined) {
+          block.signature = ev.signature;
+        }
+        if (ev.title !== undefined) {
+          block.title = ev.title;
+        }
+        if (ev.toolMetadata !== undefined) {
+          block.toolMetadata = ev.toolMetadata;
+        }
+        block.providerMetadata = mergeProviderMeta(block.providerMetadata, ev.providerMetadata);
+        // Clear scratch now that it's been superseded by the authoritative input.
+        this.#toolArgs.delete(ev.toolCallId);
+        break;
+      }
+
+      // ── TOOL-RESULT blocks ────────────────────────────────────────────────────
+      case "tool.done": {
+        const resultKey = `result:${ev.toolCallId}`;
+        const existingPos = this.#blockPos.get(resultKey);
+
+        if (existingPos !== undefined) {
+          // MERGE path: a preliminary tool-result block is already open for this
+          // toolCallId. Replace its content with the incoming (final or next-preliminary)
+          // content.
+          const msg = this.#messages.get(existingPos.messageId);
+          if (msg === undefined) break;
+          const block = msg.content[existingPos.index];
+          if (block === undefined || block.type !== "tool-result") break;
+          block.content = ev.content;
+          if (ev.outcome !== undefined) block.outcome = ev.outcome;
+          if (ev.isError !== undefined) block.isError = ev.isError;
+          if (ev.structuredContent !== undefined) block.structuredContent = ev.structuredContent;
+          if (ev.uiData !== undefined) block.uiData = ev.uiData;
+          if (ev.sideData !== undefined) block.sideData = ev.sideData;
+          if (ev.errorText !== undefined) block.errorText = ev.errorText;
+          if (ev.errorCode !== undefined) block.errorCode = ev.errorCode;
+          if (ev.pendingInput !== undefined) block.pendingInput = ev.pendingInput;
+          block.providerMetadata = mergeProviderMeta(block.providerMetadata, ev.providerMetadata);
+          // If this final tool.done has no more:true, close (remove from open tracking).
+          if (!ev.more) {
+            this.#blockPos.delete(resultKey);
+          }
+        } else {
+          // CREATE path: first tool.done for this toolCallId.
+          const msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
+          if (msg === undefined) break;
+          const block: AgBlock = {
+            type: "tool-result",
+            toolCallId: ev.toolCallId,
+            content: ev.content,
+            ...(ev.outcome !== undefined ? { outcome: ev.outcome } : {}),
+            ...(ev.isError !== undefined ? { isError: ev.isError } : {}),
+            ...(ev.structuredContent !== undefined ? { structuredContent: ev.structuredContent } : {}),
+            ...(ev.uiData !== undefined ? { uiData: ev.uiData } : {}),
+            ...(ev.sideData !== undefined ? { sideData: ev.sideData } : {}),
+            ...(ev.errorText !== undefined ? { errorText: ev.errorText } : {}),
+            ...(ev.errorCode !== undefined ? { errorCode: ev.errorCode } : {}),
+            ...(ev.toolMetadata !== undefined ? { toolMetadata: ev.toolMetadata } : {}),
+            ...(ev.dynamic !== undefined ? { dynamic: ev.dynamic } : {}),
+            ...(ev.pendingInput !== undefined ? { pendingInput: ev.pendingInput } : {}),
+            ...(ev.providerMetadata !== undefined ? { providerMetadata: ev.providerMetadata } : {}),
+          };
+          const index = msg.content.length;
+          msg.content.push(block);
+          // If more:true, keep the block open for subsequent merge.
+          if (ev.more) {
+            this.#blockPos.set(resultKey, { messageId: msg.id, index });
+          }
+        }
+        break;
+      }
+
+      // All other event types are handled by later tasks (R4–R10).
       default:
         break;
     }

@@ -329,3 +329,211 @@ describe("reduce — R2 text + reasoning blocks", () => {
     expect(() => AgReduceResult.parse(acc.result())).not.toThrow();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// R3 — tool-call + tool-result blocks
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("reduce — R3 tool-call + tool-result blocks", () => {
+  // (a) tool.start + tool.args.delta + tool.args.assembled → tool-call block
+  //     with assembled input (assembled wins over delta scratch)
+  it("(a) tool.start + args.delta + args.assembled → tool-call block with assembled input", () => {
+    const r = reduce([
+      TURN_START,
+      MSG_START,
+      {
+        type: "tool.start",
+        seq: 2,
+        toolCallId: "tc1",
+        name: "search",
+        turnId: "t1",
+        threadId: "th1",
+      },
+      {
+        type: "tool.args.delta",
+        seq: 3,
+        toolCallId: "tc1",
+        delta: '{"q":',
+        turnId: "t1",
+        threadId: "th1",
+      },
+      {
+        type: "tool.args.delta",
+        seq: 4,
+        toolCallId: "tc1",
+        delta: '"x"}',
+        turnId: "t1",
+        threadId: "th1",
+      },
+      {
+        type: "tool.args.assembled",
+        seq: 5,
+        toolCallId: "tc1",
+        input: { q: "x" },
+        turnId: "t1",
+        threadId: "th1",
+      },
+    ]);
+    expect(r.messages[0]?.content).toHaveLength(1);
+    const block = r.messages[0]?.content[0];
+    expect(block?.type).toBe("tool-call");
+    if (block?.type === "tool-call") {
+      expect(block.toolCallId).toBe("tc1");
+      expect(block.name).toBe("search");
+      // assembled input wins over delta scratch
+      expect(block.input).toEqual({ q: "x" });
+    }
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (a2) result() AFTER tool.start BEFORE args.assembled parses (seeded input:{})
+  it("(a2) result() after tool.start before assembled → seeded input:{} parses", () => {
+    const acc = new Reducer();
+    acc.push(TURN_START);
+    acc.push(MSG_START);
+    acc.push({
+      type: "tool.start",
+      seq: 2,
+      toolCallId: "tc1",
+      name: "search",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    // Take snapshot BEFORE assembled arrives
+    const snap = acc.result();
+    const block = snap.messages[0]?.content[0];
+    expect(block?.type).toBe("tool-call");
+    if (block?.type === "tool-call") {
+      // seeded with empty object — must be valid
+      expect(block.input).toEqual({});
+    }
+    expect(() => AgReduceResult.parse(snap)).not.toThrow();
+  });
+
+  // (b) tool.done → tool-result block with outcome and content
+  it("(b) tool.done → tool-result block with outcome and content", () => {
+    const r = reduce([
+      TURN_START,
+      MSG_START,
+      {
+        type: "tool.start",
+        seq: 2,
+        toolCallId: "tc1",
+        name: "calc",
+        turnId: "t1",
+        threadId: "th1",
+      },
+      {
+        type: "tool.done",
+        seq: 3,
+        toolCallId: "tc1",
+        content: [{ type: "text", text: "42" }],
+        outcome: "ok",
+        turnId: "t1",
+        threadId: "th1",
+      },
+    ]);
+    // Both tool-call and tool-result land in the message
+    expect(r.messages[0]?.content).toHaveLength(2);
+    const toolResult = r.messages[0]?.content[1];
+    expect(toolResult?.type).toBe("tool-result");
+    if (toolResult?.type === "tool-result") {
+      expect(toolResult.toolCallId).toBe("tc1");
+      expect(toolResult.outcome).toBe("ok");
+      expect(toolResult.content).toHaveLength(1);
+      expect(toolResult.content[0]).toMatchObject({ type: "text", text: "42" });
+    }
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (c) tool.done with ADVANCED channels (structuredContent, errorCode) round-trips
+  it("(c) tool.done structuredContent + errorCode round-trip", () => {
+    const structured = { rows: [1, 2, 3] };
+    const r = reduce([
+      TURN_START,
+      MSG_START,
+      {
+        type: "tool.start",
+        seq: 2,
+        toolCallId: "tc2",
+        name: "query",
+        turnId: "t1",
+        threadId: "th1",
+      },
+      {
+        type: "tool.done",
+        seq: 3,
+        toolCallId: "tc2",
+        content: [],
+        outcome: "ok",
+        structuredContent: structured,
+        errorCode: "NONE",
+        turnId: "t1",
+        threadId: "th1",
+      },
+    ]);
+    const toolResult = r.messages[0]?.content[1];
+    expect(toolResult?.type).toBe("tool-result");
+    if (toolResult?.type === "tool-result") {
+      expect(toolResult.structuredContent).toEqual(structured);
+      expect(toolResult.errorCode).toBe("NONE");
+    }
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (d) two tool.done for one toolCallId: first more:true → preliminary;
+  //     second (no more) → final content replaces preliminary content;
+  //     result is ONE tool-result block with final content
+  it("(d) two tool.done (more:true then final) → one merged tool-result with final content", () => {
+    const acc = new Reducer();
+    acc.push(TURN_START);
+    acc.push(MSG_START);
+    acc.push({
+      type: "tool.start",
+      seq: 2,
+      toolCallId: "tc3",
+      name: "longop",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    // First tool.done: more:true — preliminary result
+    acc.push({
+      type: "tool.done",
+      seq: 3,
+      toolCallId: "tc3",
+      content: [{ type: "text", text: "working..." }],
+      outcome: "ok",
+      more: true,
+      turnId: "t1",
+      threadId: "th1",
+    });
+    // Intermediate check: one tool-call + one tool-result
+    const interim = acc.result();
+    expect(interim.messages[0]?.content).toHaveLength(2);
+    expect(() => AgReduceResult.parse(interim)).not.toThrow();
+
+    // Second tool.done: final (no more) — replaces preliminary content
+    acc.push({
+      type: "tool.done",
+      seq: 4,
+      toolCallId: "tc3",
+      content: [{ type: "text", text: "done!" }],
+      outcome: "ok",
+      turnId: "t1",
+      threadId: "th1",
+    });
+
+    const r = acc.result();
+    // Still exactly one tool-call + one tool-result (no duplicate block)
+    expect(r.messages[0]?.content).toHaveLength(2);
+    const toolResult = r.messages[0]?.content[1];
+    expect(toolResult?.type).toBe("tool-result");
+    if (toolResult?.type === "tool-result") {
+      expect(toolResult.toolCallId).toBe("tc3");
+      // Final content replaces preliminary
+      expect(toolResult.content).toHaveLength(1);
+      expect(toolResult.content[0]).toMatchObject({ type: "text", text: "done!" });
+    }
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+});
