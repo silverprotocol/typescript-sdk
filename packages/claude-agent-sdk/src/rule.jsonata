@@ -1,0 +1,70 @@
+(
+  /*
+   * Portable PURE-STRUCTURAL subset of the Claude Agent SDK → AgJSON mapping
+   * (spec §4). Cross-runtime reference rule: it covers ONLY the structural text +
+   * result-success arms — the full per-block branching (thinking / tool_use /
+   * tool_result / nested subagent turns / signatures) stays in the TS normalizer
+   * (index.ts), which is authoritative for the live path. This rule exists so a
+   * non-TS runtime (the JSONata engine via fromJsonata) can reproduce the
+   * structural backbone faithfully.
+   *
+   * Input: ONE SDKMessage. Output: AgEvent[] (validated by AgEvent.parse).
+   * `seq` is allocated monotonically from 0 within this single message.
+   */
+
+  $turnId := $exists(session_id) and session_id != "" ? "turn_" & session_id : (
+    type = "assistant" ? "turn_" & message.id : "turn_" & uuid
+  );
+
+  type = "assistant" ? (
+    /* Only text blocks are structural; index them to allocate stable ids + seq. */
+    $textBlocks := [message.content[type = "text"]];
+    /*
+     * Layout (one assistant message):
+     *   message.start                                  seq 0
+     *   per text block: text.start, text.delta, text.end  (3 each)
+     *   message.end                                    last
+     */
+    $head := {
+      "type": "message.start",
+      "seq": 0,
+      "id": message.id,
+      "role": "assistant",
+      "turnId": $turnId,
+      "threadId": session_id
+    };
+    $blockEvents := $textBlocks#$bi.(
+      $base := 1 + ($bi * 3);
+      $id := $$.message.id & ":text:" & $bi;
+      [
+        { "type": "text.start", "seq": $base, "id": $id, "messageId": $$.message.id },
+        { "type": "text.delta", "seq": $base + 1, "id": $id, "messageId": $$.message.id, "delta": text },
+        { "type": "text.end", "seq": $base + 2, "id": $id, "messageId": $$.message.id }
+      ]
+    );
+    $tail := {
+      "type": "message.end",
+      "seq": 1 + ($count($textBlocks) * 3),
+      "id": message.id,
+      "turnId": $turnId
+    };
+    [ $head, $blockEvents, $tail ]
+  ) : type = "result" and subtype = "success" ? (
+    $finish := stop_reason = "end_turn" ? "stop"
+      : stop_reason = "stop_sequence" ? "stop"
+      : stop_reason = "max_tokens" ? "token_limit"
+      : stop_reason = "model_context_window_exceeded" ? "context_window_exceeded"
+      : stop_reason = "tool_use" ? "tool_call"
+      : stop_reason = "pause_turn" ? "pause_turn"
+      : stop_reason = "refusal" ? "refusal"
+      : stop_reason = "compaction" ? "pause_turn"
+      : "stop";
+    [{
+      "type": "turn.done",
+      "seq": 0,
+      "turnId": $turnId,
+      "outcome": { "type": "success", "result": result },
+      "finishReason": $finish
+    }]
+  ) : []
+)

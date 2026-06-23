@@ -1,0 +1,25 @@
+// Workspace-level TYPECHECK config: typechecks every package's src as ONE program
+// with cross-package name resolution (no emit), so `@silverprotocol/*` imports resolve
+// to local source WITHOUT a pnpm install or a build. Per-package tsconfig.json files
+// are for future `tsc -b` project-reference builds.
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "noUncheckedIndexedAccess": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "composite": false,
+    "baseUrl": ".",
+    "paths": {
+      "@silverprotocol/core": ["packages/core/src/index.ts"]
+    }
+  },
+  "include": ["packages/*/src"]
+}

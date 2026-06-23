@@ -1,0 +1,30 @@
+{
+  "name": "@silverprotocol/claude-agent-sdk",
+  "version": "0.0.0",
+  "description": "AgJSON normalizer for the Claude Agent SDK (SDKMessage → AgEvent[]) — the live path.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "src"],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@silverprotocol/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.76"
+  },
+  "devDependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.76"
+  }
+}
