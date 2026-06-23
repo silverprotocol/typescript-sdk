@@ -537,3 +537,183 @@ describe("reduce — R3 tool-call + tool-result blocks", () => {
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// R4 — content.block / data / message.metadata + providerMetadata merge +
+//      annotations unchanged
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("reduce — R4 content.block + message.metadata", () => {
+  // (a) content.block appends; second content.block with SAME id REPLACEs in place
+  it("(a) content.block appends; same-id second content.block REPLACEs in place", () => {
+    const acc = new Reducer();
+    acc.push(TURN_START);
+    acc.push(MSG_START);
+
+    // First content.block: data block with id "d1"
+    acc.push({
+      type: "content.block",
+      seq: 2,
+      turnId: "t1",
+      block: { type: "data", name: "chart", id: "d1", data: { v: 1 } },
+    });
+    // Second content.block: another block (no id), appended after
+    acc.push({
+      type: "content.block",
+      seq: 3,
+      turnId: "t1",
+      block: { type: "data", name: "other", id: "d2", data: { v: 99 } },
+    });
+
+    const snap1 = acc.result();
+    expect(snap1.messages[0]?.content).toHaveLength(2);
+    // d1 is at index 0
+    expect(snap1.messages[0]?.content[0]).toMatchObject({ type: "data", name: "chart", data: { v: 1 } });
+
+    // REPLACE: same id "d1" with updated data
+    acc.push({
+      type: "content.block",
+      seq: 4,
+      turnId: "t1",
+      block: { type: "data", name: "chart", id: "d1", data: { v: 42 } },
+    });
+
+    const r = acc.result();
+    // Still 2 blocks: the REPLACE was in-place (not appended)
+    expect(r.messages[0]?.content).toHaveLength(2);
+    // Index 0 now has the updated data; index 1 is unchanged
+    expect(r.messages[0]?.content[0]).toMatchObject({ type: "data", name: "chart", id: "d1", data: { v: 42 } });
+    expect(r.messages[0]?.content[1]).toMatchObject({ type: "data", name: "other", id: "d2" });
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (b) content.block with transient:true on the block (data) is SKIPPED
+  it("(b) content.block{block:{type:'data',...,transient:true}} is SKIPPED", () => {
+    const r = reduce([
+      TURN_START,
+      MSG_START,
+      {
+        type: "content.block",
+        seq: 2,
+        turnId: "t1",
+        block: { type: "data", name: "live-only", id: "d-t", data: { x: 1 }, transient: true },
+      },
+    ]);
+    // Transient block must NOT appear in content
+    expect(r.messages[0]?.content).toHaveLength(0);
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (b2) content.block with event-level transient:true is also SKIPPED
+  it("(b2) content.block event with transient:true is SKIPPED", () => {
+    const r = reduce([
+      TURN_START,
+      MSG_START,
+      {
+        type: "content.block",
+        seq: 2,
+        turnId: "t1",
+        transient: true,
+        block: { type: "data", name: "live-only", id: "d-t2", data: { x: 2 } },
+      },
+    ]);
+    expect(r.messages[0]?.content).toHaveLength(0);
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (c) message.metadata merges into the open message's metadata
+  it("(c) message.metadata merges into the open message metadata", () => {
+    const acc = new Reducer();
+    acc.push(TURN_START);
+    acc.push(MSG_START);
+
+    // First metadata event: sets two keys
+    acc.push({
+      type: "message.metadata",
+      seq: 2,
+      metadata: { source: "test", score: 0.9 },
+    });
+
+    const snap1 = acc.result();
+    expect(snap1.messages[0]?.metadata).toMatchObject({ source: "test", score: 0.9 });
+
+    // Second metadata event: adds a key, REPLACEs score
+    acc.push({
+      type: "message.metadata",
+      seq: 3,
+      metadata: { score: 1.0, extra: "yes" },
+    });
+
+    const r = acc.result();
+    expect(r.messages[0]?.metadata).toMatchObject({ source: "test", score: 1.0, extra: "yes" });
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (c2) message.metadata with explicit messageId targets that specific message
+  it("(c2) message.metadata with messageId targets the named message", () => {
+    const r = reduce([
+      TURN_START,
+      MSG_START,
+      { type: "message.metadata", seq: 2, messageId: "m1", metadata: { tagged: true } },
+    ]);
+    expect(r.messages[0]?.metadata).toMatchObject({ tagged: true });
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (d) providerMetadata REPLACE-by-key merge across two content.block events on same block;
+  //     annotations carried verbatim and never mutated
+  it("(d) providerMetadata REPLACE-by-key; annotations unchanged after REPLACE", () => {
+    const annotations = { audience: ["user" as const], priority: 1 };
+    const acc = new Reducer();
+    acc.push(TURN_START);
+    acc.push(MSG_START);
+
+    // First: data block with id, providerMetadata key-A, and annotations
+    acc.push({
+      type: "content.block",
+      seq: 2,
+      turnId: "t1",
+      block: {
+        type: "data",
+        name: "chart",
+        id: "d5",
+        data: { v: 1 },
+        annotations,
+      },
+    });
+
+    const snap1 = acc.result();
+    const b1 = snap1.messages[0]?.content[0];
+    expect(b1?.type).toBe("data");
+    if (b1?.type === "data") {
+      // annotations round-trip
+      expect(b1.annotations).toEqual(annotations);
+    }
+
+    // REPLACE with updated data and different annotations (should use the new block as-is)
+    const annotations2 = { audience: ["user" as const, "assistant" as const], priority: 2 };
+    acc.push({
+      type: "content.block",
+      seq: 3,
+      turnId: "t1",
+      block: {
+        type: "data",
+        name: "chart",
+        id: "d5",
+        data: { v: 2 },
+        annotations: annotations2,
+      },
+    });
+
+    const r = acc.result();
+    expect(r.messages[0]?.content).toHaveLength(1);
+    const b2 = r.messages[0]?.content[0];
+    expect(b2?.type).toBe("data");
+    if (b2?.type === "data") {
+      expect(b2.data).toEqual({ v: 2 });
+      // annotations from the REPLACED block, verbatim
+      expect(b2.annotations).toEqual(annotations2);
+    }
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+});

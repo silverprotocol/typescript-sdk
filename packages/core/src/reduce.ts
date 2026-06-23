@@ -23,6 +23,8 @@ import type {
 //
 // R2: text + reasoning blocks (APPEND deltas, REPLACE opaque, seeded required
 //     fields, byte-order via #blockPos).
+// R4: content.block (APPEND/REPLACE-in-place by id; transient SKIP) +
+//     message.metadata (REPLACE-by-key shallow merge).
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── providerMetadata merge helpers ────────────────────────────────────────────
@@ -422,7 +424,52 @@ export class Reducer {
         break;
       }
 
-      // All other event types are handled by later tasks (R4–R10).
+      // ── CONTENT.BLOCK ────────────────────────────────────────────────────────
+      case "content.block": {
+        // Transient at event level: skip (live-only, never folded).
+        if (ev.transient === true) break;
+        // Transient at block level (data block): skip.
+        if (ev.block.type === "data" && ev.block.transient === true) break;
+
+        const msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
+        if (msg === undefined) break;
+
+        // Same-id REPLACE-in-place: only data blocks carry id?.
+        if (ev.block.type === "data" && ev.block.id !== undefined) {
+          const existingPos = this.#blockPos.get(ev.block.id);
+          if (existingPos !== undefined && existingPos.messageId === msg.id) {
+            // REPLACE in place — same position, preserve byte-order.
+            msg.content[existingPos.index] = ev.block;
+            break;
+          }
+        }
+
+        // APPEND: push the block and (for blocks with an id) register the position.
+        const index = msg.content.length;
+        msg.content.push(ev.block);
+        if (ev.block.type === "data" && ev.block.id !== undefined) {
+          this.#blockPos.set(ev.block.id, { messageId: msg.id, index });
+        }
+        break;
+      }
+
+      // ── MESSAGE.METADATA ─────────────────────────────────────────────────────
+      case "message.metadata": {
+        // Resolve the target message: by explicit messageId or the open assistant message.
+        let msg: AgMessage | undefined;
+        if (ev.messageId !== undefined) {
+          msg = this.#messages.get(ev.messageId);
+        } else {
+          // Fall back to the open message for the event's turnId (base carries turnId?).
+          msg = this.openMessage(ev.turnId, 0);
+        }
+        if (msg === undefined) break;
+        // Shallow merge REPLACE-by-key into msg.metadata (create if absent).
+        msg.metadata = { ...(msg.metadata ?? {}), ...ev.metadata } as typeof msg.metadata;
+        break;
+      }
+
+      // All other event types are handled by later tasks (R5–R10).
       default:
         break;
     }
