@@ -775,3 +775,48 @@ describe("createClaudeNormalizer — B1b: server blocks semantic homes", () => {
     assertAllValid(evs);
   });
 });
+
+// ─── Tenet-6 result-arm hardening ─────────────────────────────────────────────
+// These tests verify that the error result arm never throws on malformed input,
+// regardless of whether `errors`/`subtype` are well-formed.
+
+describe("Tenet-6 result-arm hardening", () => {
+  it("does not throw when an error result has a missing errors array", () => {
+    const n = createClaudeNormalizer();
+    // malformed error result: no `errors` field, subtype is an error variant.
+    // Passed as a plain JSON object literal (valid JsonValue, no cast required).
+    const evs = n.push({
+      type: "result",
+      subtype: "error_during_execution",
+      session_id: "s1",
+      uuid: "u1",
+    });
+    const err = evs.find((e) => e.type === "turn.error");
+    expect(err).toBeDefined();
+    expect(err).toMatchObject({ code: "error_during_execution" });
+  });
+});
+
+// ─── Subagent inner-tool-result routing contract ──────────────────────────────
+// Pins the existing routing: a user message with parent_tool_use_id set routes
+// tool.done.turnId to turn_<parent_tool_use_id> (no implicit nesting inference).
+
+describe("subagent inner-tool-result routing contract", () => {
+  it("routes tool.done to the parent subagent turn when parent_tool_use_id is set", () => {
+    const n = createClaudeNormalizer();
+    // Plain JSON object literal — valid JsonValue, no cast required.
+    const evs = n.push({
+      type: "user",
+      session_id: "s1",
+      parent_tool_use_id: "toolu_parent",
+      message: {
+        content: [
+          { type: "tool_result", tool_use_id: "toolu_child", content: "ok", is_error: false },
+        ],
+      },
+    });
+    const done = evs.find((e) => e.type === "tool.done");
+    expect(done).toBeDefined();
+    expect(done).toMatchObject({ turnId: "turn_toolu_parent" });
+  });
+});

@@ -505,10 +505,16 @@ export function createClaudeNormalizer(ctx?: NormalizerContext): Normalizer {
     if (msg.type === "result") {
       // At this point msg.subtype can only be an error variant (success handled above).
       const turnId = turnIdFor(msg.session_id, msg.uuid);
-      const retriable = msg.subtype !== "error_max_turns";
+      // Guard `errors` and `subtype` defensively: `isSDKMessage` only checks
+      // `typeof v.subtype === "string"` for the result arm — it does NOT validate
+      // the `errors` array. A malformed message (missing errors, wrong subtype) must
+      // not throw (Tenet 6: graceful, never throws).
+      const errors = Array.isArray(msg.errors) ? msg.errors : [];
+      const subtype = typeof msg.subtype === "string" ? msg.subtype : "error_unknown";
+      const retriable = subtype !== "error_max_turns";
       a.closeTurnError(turnId, {
-        message: msg.errors.length > 0 ? msg.errors.join("; ") : msg.subtype,
-        code: msg.subtype,
+        message: errors.length > 0 ? errors.join("; ") : subtype,
+        code: subtype,
         retriable,
       });
       return;
