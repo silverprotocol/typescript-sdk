@@ -77,6 +77,18 @@ export interface Normalizer {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Reserved AgEvent envelope keys — a vendor ext payload must not clobber these.
+const RESERVED_EXT_KEYS = new Set<string>([
+  "seq",
+  "type",
+  "ts",
+  "id",
+  "turnId",
+  "messageId",
+  "parentId",
+  "_meta",
+]);
+
 export class StreamAssembler {
   // Turn-scoped monotonic sequence counter (never calls Date.now/Math.random).
   #seq = 0;
@@ -472,6 +484,8 @@ export class StreamAssembler {
   /**
    * Emit an open `ext.<vendor>.<key>` event (lossless vendor extension channel).
    * The type field is the only constraint: `ext.` + vendor + `.` + key.
+   * Reserved envelope keys (seq, type, ts, id, turnId, messageId, parentId, _meta)
+   * are filtered from the payload to prevent clobbering the engine-assigned envelope.
    */
   emitExt(vendor: string, key: string, payload: JsonValue): void {
     // AgExtEvent: an object validated on the `type` regex `^ext\.[^.]+\..+$`
@@ -484,7 +498,9 @@ export class StreamAssembler {
     const ev: AgEvent = {
       seq: this.#nextSeq(),
       type: `ext.${vendor}.${key}`,
-      ...(objectPayload ?? {}),
+      ...Object.fromEntries(
+        Object.entries(objectPayload ?? {}).filter(([k]) => !RESERVED_EXT_KEYS.has(k))
+      ),
     };
     this.#emitExt(ev);
   }

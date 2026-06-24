@@ -351,3 +351,21 @@ describe("contentBlock / providerRaw / emitExt shape", () => {
     expect((evs[0] as { foo?: string })?.foo).toBe("bar");
   });
 });
+
+describe("emitExt reserved-key guard", () => {
+  it("drops reserved envelope keys from an object payload, keeps vendor keys", () => {
+    const a = new StreamAssembler();
+    a.emitExt("openai", "unparsed", {
+      seq: 999,
+      type: "spoofed",
+      turnId: "evil",
+      responseId: "resp_1",
+      payload: { ok: true },
+    });
+    const [ev] = a.drain();
+    expect(ev.type).toBe("ext.openai.unparsed"); // not "spoofed"
+    expect(ev.seq).not.toBe(999); // engine-assigned
+    expect("turnId" in ev).toBe(false); // reserved, dropped
+    expect(ev).toMatchObject({ responseId: "resp_1" }); // vendor key kept
+  });
+});
