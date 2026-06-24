@@ -467,12 +467,22 @@ export function createClaudeNormalizer(ctx?: NormalizerContext): Normalizer {
             const outcome: ToolOutcome = block.is_error === true ? "error" : "ok";
             const toolContent =
               block.content === undefined ? [] : toolResultContentToAgBlocks(block.content);
+            // `structuredContent` is not declared on `ToolResultBlockParam` in the
+            // static SDK type, but the Claude Agent SDK injects it at runtime (spec §9
+            // / MCP outputSchema). Use isJsonObject to widen `block` to the opaque
+            // JSON-object boundary and extract the field via JsonValue.parse — no cast.
+            const blockAsObj = isJsonObject(block) ? block : undefined;
+            const sc =
+              blockAsObj?.["structuredContent"] !== undefined
+                ? JsonValue.parse(blockAsObj["structuredContent"])
+                : undefined;
             a.toolDone({
               toolCallId: block.tool_use_id,
               content: toolContent,
               outcome,
               isError: block.is_error === true,
               turnId: toolTurnId,
+              ...(sc !== undefined ? { structuredContent: sc } : {}),
             });
           }
         }

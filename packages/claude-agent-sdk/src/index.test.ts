@@ -820,3 +820,39 @@ describe("subagent inner-tool-result routing contract", () => {
     expect(done).toMatchObject({ turnId: "turn_toolu_parent" });
   });
 });
+
+// ── tool_result.structuredContent surfacing (A1 §9) ──────────────────────────
+// Pins that the Claude normalizer extracts structuredContent from the native
+// tool_result block and threads it onto tool.done (producer side).
+// The block shape is runtime-extended by the Claude Agent SDK beyond what the
+// Anthropic SDK's static ToolResultBlockParam declares, so the fixture uses
+// `as unknown as Parameters<typeof n.push>[0]` to bypass the static type gap
+// without casting the data itself.
+
+describe("tool_result.structuredContent surfacing", () => {
+  it("surfaces tool_result.structuredContent onto tool.done", () => {
+    const n = createClaudeNormalizer();
+    const evs = n.push({
+      type: "user",
+      session_id: "s1",
+      parent_tool_use_id: null,
+      message: {
+        content: [
+          {
+            type: "tool_result",
+            tool_use_id: "toolu_1",
+            is_error: false,
+            content: "rendered",
+            structuredContent: { cache: { hit: true } },
+          },
+        ],
+      },
+    } as unknown as Parameters<typeof n.push>[0]);
+    const done = evs.find((e) => e.type === "tool.done");
+    expect(done).toMatchObject({
+      type: "tool.done",
+      toolCallId: "toolu_1",
+      structuredContent: { cache: { hit: true } },
+    });
+  });
+});

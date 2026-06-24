@@ -2221,3 +2221,50 @@ describe("turn.error.usage fold", () => {
     expect(turn?.usage).toEqual({ inputTokens: 10, outputTokens: 2, cumulative: false });
   });
 });
+
+// ── tool.done.structuredContent fold onto tool-result block (A1 §9) ──────────
+// Characterization test: structuredContent on tool.done survives the fold and
+// appears on the reduced tool-result block (reduce.ts lines 411+432 already
+// handle this; test pins the behaviour so a future refactor can't silently drop it).
+
+describe("tool.done.structuredContent fold", () => {
+  it("folds tool.done.structuredContent onto the tool-result block", () => {
+    const r = new Reducer();
+    r.push({ type: "turn.start", seq: 0, threadId: "t1", turnId: "turn_1" });
+    r.push({
+      type: "message.start",
+      seq: 1,
+      id: "m1",
+      role: "assistant",
+      turnId: "turn_1",
+      threadId: "t1",
+    });
+    r.push({
+      type: "tool.start",
+      seq: 2,
+      toolCallId: "toolu_1",
+      name: "render",
+      turnId: "turn_1",
+      threadId: "t1",
+    });
+    r.push({
+      type: "tool.done",
+      seq: 3,
+      toolCallId: "toolu_1",
+      outcome: "ok",
+      content: [{ type: "text", text: "rendered" }],
+      structuredContent: { cache: { hit: true } },
+      turnId: "turn_1",
+      threadId: "t1",
+    });
+    const block = r
+      .result()
+      .messages.flatMap((m) => m.content)
+      .find((b) => b.type === "tool-result" && b.toolCallId === "toolu_1");
+    expect(block).toMatchObject({
+      type: "tool-result",
+      toolCallId: "toolu_1",
+      structuredContent: { cache: { hit: true } },
+    });
+  });
+});
