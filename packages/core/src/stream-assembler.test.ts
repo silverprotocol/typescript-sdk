@@ -127,6 +127,19 @@ describe("turnId backfill", () => {
     expect((done as { turnId?: string })?.turnId).toBe("t42");
   });
 
+  it("toolDone explicit turnId field wins over message turnId and #lastTurn", () => {
+    // #resolveTurnId tier-1: explicit field → message's turnId → #lastTurn.
+    // After openMessage sets #lastTurn="t1" and #msgTurn["m1"]="t1",
+    // passing turnId:"override-t" in the fields must take priority over both.
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.toolDone({ toolCallId: "tc1", content: [], messageId: "m1", turnId: "override-t" });
+    const evs = a.drain();
+    const done = evs.find((e) => e.type === "tool.done");
+    expect((done as { turnId?: string })?.turnId).toBe("override-t");
+  });
+
   it("textDelta backfills turnId from messageId chain", () => {
     const a = new StreamAssembler();
     a.openMessage({ id: "m1", role: "assistant", turnId: "t99", threadId: "th1" });

@@ -476,12 +476,15 @@ export class StreamAssembler {
   emitExt(vendor: string, key: string, payload: JsonValue): void {
     // AgExtEvent: an object validated on the `type` regex `^ext\.[^.]+\..+$`
     // with .catchall(JsonValue). Build it as a plain object matching that shape.
+    // Guard + assign to a typed local so TS narrows without a cast.
+    const objectPayload: Record<string, JsonValue> | undefined =
+      payload !== null && typeof payload === "object" && !Array.isArray(payload)
+        ? payload
+        : undefined;
     const ev: AgEvent = {
       seq: this.#nextSeq(),
       type: `ext.${vendor}.${key}`,
-      ...(payload !== null && typeof payload === "object" && !Array.isArray(payload)
-        ? (payload as Record<string, JsonValue>)
-        : {}),
+      ...(objectPayload ?? {}),
     };
     this.#emitExt(ev);
   }
