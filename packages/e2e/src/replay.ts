@@ -1,20 +1,20 @@
 /**
  * replay.ts — the KEYLESS replay CI gate for the AgJSON E2E conformance harness.
  *
- * Loads a committed native cassette (`corpus/<scn>/claude.native.json`, a raw
- * `SDKMessage[]` as JsonValue), runs it through the REAL Claude facet normalizer
- * (`createClaudeNormalizer` — push each event, then flush), and runs the value
- * `census` against the produced AgJSON, loading the three committed guard JSONs
- * (`transforms.json`, `known-acceptable-drops.json`, `field-registry.json`).
+ * Loads a committed native cassette (`corpus/<scn>/<framework>.native.json`, a raw
+ * event stream as JsonValue[]), runs it through the REAL facet normalizer for the
+ * given framework (`createClaudeNormalizer` or `createOpenaiNormalizer` — push each
+ * event, then flush), and runs the value `census` against the produced AgJSON,
+ * loading the three committed guard JSONs (`transforms.json`,
+ * `known-acceptable-drops.json`, `field-registry.json`).
  *
  * ★ HONEST FRAMING — what this gate IS and IS NOT ★
  *
- * The seed cassettes under `corpus/` are NOT captured Claude bytes. They are
- * HAND-AUTHORED `SDKMessage` shapes, transcribed from the guuey facet's own
- * read-set test fixtures (`fold-identity.test.ts` `representativeTurn()` and
- * `sse-server.test.ts` `COMPLETE_SUCCESS_RESULT`), plus a hand-authored App-spec
- * seed. Because the seeds are written to the same shape the facet reads, this
- * replay gate is a MACHINERY + SNAPSHOT self-consistency gate:
+ * The seed cassettes under `corpus/` are NOT captured live bytes. The Claude seeds
+ * are HAND-AUTHORED `SDKMessage` shapes; the OpenAI seed is a REAL capture from the
+ * `@openai/agents` runtime (trimmed to the minimal text-tool-turn scenario). Because
+ * the seeds are written to the same shape the facet reads, this replay gate is a
+ * MACHINERY + SNAPSHOT self-consistency gate:
  *
  *   - it proves the pipeline RUNS end-to-end (native → normalizer → AgEvent[]),
  *   - it LOCKS the produced AgJSON shape (snapshot/regression), and
@@ -23,7 +23,7 @@
  * It is NOT a real-lossiness gate: by construction it surfaces ~zero drops, since
  * the seeds carry no value-bearing native field outside the facet's read-set
  * except the deliberately-guarded result-metadata + App-spec/cache surfaces. The
- * REAL lossiness hunt is the operator's Task 7 LIVE capture (real Claude bytes
+ * REAL lossiness hunt is the operator's LIVE capture (real provider bytes
  * against `transforms.json` / `known-acceptable-drops.json`), which can surface
  * genuine drops this deterministic keyless gate cannot.
  */
@@ -32,6 +32,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { JsonValue } from "@silverprotocol/core";
 import { createClaudeNormalizer } from "@silverprotocol/claude-agent-sdk";
+import { createOpenaiNormalizer } from "@silverprotocol/openai-agents";
 import { census, type CensusReport } from "./census.js";
 
 // ─── locating the guard JSONs (package root, alongside corpus/) ──────────────
@@ -107,19 +108,43 @@ async function readAllowlist(path: string): Promise<AllowlistEntry[]> {
   return out;
 }
 
+// ─── framework selector ────────────────────────────────────────────────────────
+
+/** The set of supported facet normalizer identifiers. */
+export type Framework = "claude" | "openai";
+
+/**
+ * Infer the framework from a cassette filename (e.g. `claude.native.json` →
+ * `"claude"`, `openai.native.json` → `"openai"`). Falls back to `"claude"` so
+ * existing callers that do NOT pass a framework remain forward-compatible.
+ */
+export function inferFramework(nativePath: string): Framework {
+  const base = nativePath.split("/").pop() ?? "";
+  if (base.startsWith("openai.")) return "openai";
+  return "claude";
+}
+
 // ─── the replay primitive ──────────────────────────────────────────────────────
 
 /**
- * Replay one native cassette through the real Claude normalizer + census.
+ * Replay one native cassette through the real facet normalizer + census.
  *
- * @param nativePath  Absolute path to a `claude.native.json` (a `SDKMessage[]`).
+ * The framework is inferred from the filename (`claude.*` → Claude,
+ * `openai.*` → OpenAI). Pass an explicit `framework` to override.
+ *
+ * @param nativePath  Absolute path to a `<framework>.native.json`.
+ * @param framework   Optional override; inferred from filename when omitted.
  * @returns The produced AgJSON event stream + the census report.
  */
-export async function replayCassette(nativePath: string): Promise<ReplayResult> {
+export async function replayCassette(
+  nativePath: string,
+  framework?: Framework,
+): Promise<ReplayResult> {
   const native = await readJsonArray(nativePath);
+  const fw = framework ?? inferFramework(nativePath);
 
   // ── Drive the real facet normalizer: push each event, then flush. ──────────
-  const normalizer = createClaudeNormalizer();
+  const normalizer = fw === "openai" ? createOpenaiNormalizer() : createClaudeNormalizer();
   const agjson: JsonValue[] = [];
   for (const event of native) {
     for (const e of normalizer.push(event)) {

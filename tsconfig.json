@@ -19,7 +19,8 @@
     "baseUrl": ".",
     "paths": {
       "@silverprotocol/core": ["packages/core/src/index.ts"],
-      "@silverprotocol/claude-agent-sdk": ["packages/claude-agent-sdk/src/index.ts"]
+      "@silverprotocol/claude-agent-sdk": ["packages/claude-agent-sdk/src/index.ts"],
+      "@silverprotocol/openai-agents": ["packages/openai-agents/src/index.ts"]
     }
   },
   "include": ["packages/*/src"]

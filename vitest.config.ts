@@ -14,6 +14,9 @@ export default defineConfig({
       "@silverprotocol/claude-agent-sdk": fileURLToPath(
         new URL("./packages/claude-agent-sdk/src/index.ts", import.meta.url),
       ),
+      "@silverprotocol/openai-agents": fileURLToPath(
+        new URL("./packages/openai-agents/src/index.ts", import.meta.url),
+      ),
     },
   },
 });
