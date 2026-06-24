@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { StreamAssembler } from "./stream-assembler.js";
 
+// ── Existing T1 tests ──────────────────────────────────────────────────────────
+
 it("synthesizes turn.start when a message opens before any turn (I1)", () => {
   const a = new StreamAssembler();
   a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
@@ -23,4 +25,316 @@ it("flush() emits message.end for a dangling open message (I7)", () => {
   a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
   a.drain();
   expect(a.flush().some((e) => e.type === "message.end")).toBe(true);
+});
+
+// ── T2 tests: content/tool/reasoning primitives ───────────────────────────────
+
+describe("de-cumulation", () => {
+  it("de-cumulates textDelta: [Hel, Hello] cumulative → emits [Hel, lo]", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.textStart("s1", "m1");
+    a.textDelta("s1", "m1", "Hel", { cumulative: true });
+    a.textDelta("s1", "m1", "Hello", { cumulative: true });
+    const evs = a.drain();
+    const deltas = evs.filter((e) => e.type === "text.delta") as Array<{ delta: string }>;
+    expect(deltas.map((e) => e.delta)).toEqual(["Hel", "lo"]);
+  });
+
+  it("non-cumulative textDelta: passes through verbatim", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.textStart("s2", "m1");
+    a.textDelta("s2", "m1", "Hello world");
+    const evs = a.drain();
+    const deltas = evs.filter((e) => e.type === "text.delta") as Array<{ delta: string }>;
+    expect(deltas.map((e) => e.delta)).toEqual(["Hello world"]);
+  });
+
+  it("de-cumulates reasoningDelta: cumulative slice", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.reasoningStart("r1", "m1");
+    a.reasoningDelta("r1", "m1", "Think", { cumulative: true });
+    a.reasoningDelta("r1", "m1", "Thinking", { cumulative: true });
+    const evs = a.drain();
+    const deltas = evs.filter((e) => e.type === "reasoning.delta") as Array<{ delta: string }>;
+    expect(deltas.map((e) => e.delta)).toEqual(["Think", "ing"]);
+  });
+
+  it("de-cumulates toolArgsDelta: cumulative slice", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.toolStart({ toolCallId: "tc1", name: "my_tool", messageId: "m1" });
+    a.toolArgsDelta("tc1", '{"a":', { cumulative: true });
+    a.toolArgsDelta("tc1", '{"a":1}', { cumulative: true });
+    const evs = a.drain();
+    const deltas = evs.filter((e) => e.type === "tool.args.delta") as Array<{ delta: string }>;
+    expect(deltas.map((e) => e.delta)).toEqual(['{"a":', "1}"]); // sliced from prior
+  });
+
+  it("de-cumulation buffers are per-id: two streams don't interfere", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.textStart("sA", "m1");
+    a.textStart("sB", "m1");
+    a.textDelta("sA", "m1", "AB", { cumulative: true });
+    a.textDelta("sB", "m1", "XY", { cumulative: true });
+    a.textDelta("sA", "m1", "ABCD", { cumulative: true });
+    a.textDelta("sB", "m1", "XYZW", { cumulative: true });
+    const evs = a.drain();
+    const aDeltas = evs.filter((e) => e.type === "text.delta" && (e as { id: string }).id === "sA") as Array<{ delta: string }>;
+    const bDeltas = evs.filter((e) => e.type === "text.delta" && (e as { id: string }).id === "sB") as Array<{ delta: string }>;
+    expect(aDeltas.map((e) => e.delta)).toEqual(["AB", "CD"]);
+    expect(bDeltas.map((e) => e.delta)).toEqual(["XY", "ZW"]);
+  });
+});
+
+describe("turnId backfill", () => {
+  it("content events backfill turnId from owning message (#msgTurn)", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.textStart("s1", "m1");
+    const evs = a.drain();
+    const textStart = evs.find((e) => e.type === "text.start");
+    expect((textStart as { turnId?: string })?.turnId).toBe("t1");
+  });
+
+  it("orphan toolDone (no turnId, no messageId) backfills from #lastTurn", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    // toolDone with neither turnId (via fields) nor messageId
+    a.toolDone({ toolCallId: "tc1", content: [] });
+    const evs = a.drain();
+    const done = evs.find((e) => e.type === "tool.done");
+    expect((done as { turnId?: string })?.turnId).toBe("t1");
+  });
+
+  it("toolDone with explicit messageId backfills turnId via #msgTurn", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t42", threadId: "th1" });
+    a.drain();
+    a.toolDone({ toolCallId: "tc1", content: [], messageId: "m1" });
+    const evs = a.drain();
+    const done = evs.find((e) => e.type === "tool.done");
+    expect((done as { turnId?: string })?.turnId).toBe("t42");
+  });
+
+  it("textDelta backfills turnId from messageId chain", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t99", threadId: "th1" });
+    a.drain();
+    a.textStart("s1", "m1");
+    a.textDelta("s1", "m1", "hi");
+    const evs = a.drain();
+    for (const ev of evs) {
+      if (ev.type === "text.start" || ev.type === "text.delta") {
+        expect((ev as { turnId?: string }).turnId).toBe("t99");
+      }
+    }
+  });
+});
+
+describe("textStart / textDelta / textEnd shape", () => {
+  it("textStart emits text.start with correct fields", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.textStart("s1", "m1", { role: "assistant" });
+    const evs = a.drain();
+    const ev = evs.find((e) => e.type === "text.start");
+    expect(ev).toMatchObject({ type: "text.start", id: "s1", messageId: "m1", role: "assistant" });
+  });
+
+  it("textEnd emits text.end with correct fields", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.textEnd("s1", "m1");
+    const evs = a.drain();
+    const ev = evs.find((e) => e.type === "text.end");
+    expect(ev).toMatchObject({ type: "text.end", id: "s1", messageId: "m1" });
+  });
+
+  it("seq increments monotonically for textStart/textDelta/textEnd", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    const seq0 = a.drain().length; // seq drained but we reset — open fresh
+    const a2 = new StreamAssembler();
+    a2.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a2.textStart("s1", "m1");
+    a2.textDelta("s1", "m1", "hi");
+    a2.textEnd("s1", "m1");
+    const evs = a2.drain();
+    const seqs = evs.map((e) => e.seq);
+    expect(seqs).toEqual([...seqs].sort((a, b) => a - b)); // strictly increasing
+    expect(new Set(seqs).size).toBe(seqs.length); // no duplicates
+  });
+});
+
+describe("reasoningStart / reasoningDelta / reasoningEnd / reasoningOpaque shape", () => {
+  it("reasoningStart emits reasoning.start with id + messageId + optional mode", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.reasoningStart("r1", "m1", { mode: "summarized" });
+    const evs = a.drain();
+    const ev = evs.find((e) => e.type === "reasoning.start");
+    expect(ev).toMatchObject({ type: "reasoning.start", id: "r1", messageId: "m1", mode: "summarized" });
+  });
+
+  it("reasoningEnd emits reasoning.end with optional provider", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.reasoningEnd("r1", "m1", { provider: "anthropic" });
+    const evs = a.drain();
+    const ev = evs.find((e) => e.type === "reasoning.end");
+    expect(ev).toMatchObject({ type: "reasoning.end", id: "r1", messageId: "m1", provider: "anthropic" });
+  });
+
+  it("reasoningOpaque emits reasoning.opaque with kind + value", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.reasoningOpaque("r1", "m1", { kind: "signature", value: "abc123" });
+    const evs = a.drain();
+    const ev = evs.find((e) => e.type === "reasoning.opaque");
+    expect(ev).toMatchObject({ type: "reasoning.opaque", id: "r1", messageId: "m1", kind: "signature", value: "abc123" });
+  });
+});
+
+describe("toolStart / toolArgsDelta / toolArgsAssembled / toolDone shape", () => {
+  it("toolStart emits tool.start with required fields", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.toolStart({ toolCallId: "tc1", name: "search", messageId: "m1" });
+    const evs = a.drain();
+    const ev = evs.find((e) => e.type === "tool.start");
+    expect(ev).toMatchObject({ type: "tool.start", toolCallId: "tc1", name: "search", messageId: "m1" });
+  });
+
+  it("toolStart backfills turnId from messageId", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t77", threadId: "th1" });
+    a.drain();
+    a.toolStart({ toolCallId: "tc1", name: "search", messageId: "m1" });
+    const evs = a.drain();
+    const ev = evs.find((e) => e.type === "tool.start");
+    expect((ev as { turnId?: string })?.turnId).toBe("t77");
+  });
+
+  it("toolArgsDelta emits tool.args.delta with correct delta", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.toolArgsDelta("tc1", '{"q":');
+    const evs = a.drain();
+    const ev = evs.find((e) => e.type === "tool.args.delta");
+    expect(ev).toMatchObject({ type: "tool.args.delta", toolCallId: "tc1", delta: '{"q":' });
+  });
+
+  it("toolArgsAssembled emits tool.args.assembled with input", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.toolArgsAssembled("tc1", { q: "hello" });
+    const evs = a.drain();
+    const ev = evs.find((e) => e.type === "tool.args.assembled");
+    expect(ev).toMatchObject({ type: "tool.args.assembled", toolCallId: "tc1", input: { q: "hello" } });
+  });
+
+  it("toolArgsAssembled accepts optional signature", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.toolArgsAssembled("tc1", { q: 1 }, { signature: "sig123" });
+    const evs = a.drain();
+    const ev = evs.find((e) => e.type === "tool.args.assembled");
+    expect(ev).toMatchObject({ signature: "sig123" });
+  });
+
+  it("toolDone emits tool.done with content array", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.toolDone({
+      toolCallId: "tc1",
+      content: [{ type: "text", text: "result" }],
+      messageId: "m1",
+    });
+    const evs = a.drain();
+    const ev = evs.find((e) => e.type === "tool.done");
+    expect(ev).toMatchObject({ type: "tool.done", toolCallId: "tc1", content: [{ type: "text", text: "result" }] });
+  });
+
+  it("toolDone with structuredContent includes it", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.toolDone({ toolCallId: "tc1", content: [], messageId: "m1", structuredContent: { answer: 42 } });
+    const evs = a.drain();
+    const ev = evs.find((e) => e.type === "tool.done");
+    expect(ev).toMatchObject({ structuredContent: { answer: 42 } });
+  });
+});
+
+describe("contentBlock / providerRaw / emitExt shape", () => {
+  it("contentBlock emits content.block with block and optional transient", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.contentBlock("m1", { type: "text", text: "hello" });
+    const evs = a.drain();
+    const ev = evs.find((e) => e.type === "content.block");
+    expect(ev).toMatchObject({ type: "content.block", block: { type: "text", text: "hello" }, messageId: "m1" });
+  });
+
+  it("contentBlock with transient:true passes through", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.contentBlock("m1", { type: "text", text: "temp" }, { transient: true });
+    const evs = a.drain();
+    const ev = evs.find((e) => e.type === "content.block");
+    expect(ev).toMatchObject({ transient: true });
+  });
+
+  it("contentBlock with messageId=undefined still emits turnId from #lastTurn", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.contentBlock(undefined, { type: "text", text: "hi" });
+    const evs = a.drain();
+    const ev = evs.find((e) => e.type === "content.block");
+    expect((ev as { turnId?: string })?.turnId).toBe("t1");
+  });
+
+  it("providerRaw emits content.block with provider-raw block", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.providerRaw("m1", "anthropic", { raw_key: "val" });
+    const evs = a.drain();
+    const ev = evs.find((e) => e.type === "content.block");
+    expect(ev).toMatchObject({ type: "content.block", block: { type: "provider-raw", vendor: "anthropic", raw: { raw_key: "val" } } });
+  });
+
+  it("emitExt emits an ext.<vendor>.<key> event", () => {
+    const a = new StreamAssembler();
+    a.emitExt("myvendor", "my_event", { foo: "bar" });
+    const evs = a.drain();
+    expect(evs).toHaveLength(1);
+    expect(evs[0]?.type).toBe("ext.myvendor.my_event");
+    expect((evs[0] as { foo?: string })?.foo).toBe("bar");
+  });
 });
