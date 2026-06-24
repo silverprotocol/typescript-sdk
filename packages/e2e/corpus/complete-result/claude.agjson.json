@@ -1,0 +1,32 @@
+[
+  {
+    "type": "turn.done",
+    "seq": 0,
+    "turnId": "turn_sess_silver",
+    "outcome": {
+      "type": "success",
+      "result": "the complete answer"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 120,
+      "outputTokens": 45,
+      "cacheReadTokens": 25,
+      "cacheWriteTokens": 12,
+      "serverToolRequests": 0,
+      "costUsd": 0.07,
+      "cumulative": true,
+      "byModel": {
+        "claude-sonnet-4-6": {
+          "inputTokens": 120,
+          "outputTokens": 45,
+          "cacheReadTokens": 25,
+          "cacheWriteTokens": 12,
+          "costUsd": 0.07,
+          "serverToolRequests": 0,
+          "cumulative": true
+        }
+      }
+    }
+  }
+]

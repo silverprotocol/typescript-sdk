@@ -1,0 +1,87 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_sess_appspec",
+    "threadId": "sess_appspec"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_appspec_1",
+    "turnId": "turn_sess_appspec",
+    "threadId": "sess_appspec",
+    "role": "assistant",
+    "model": "claude-sonnet-4-6"
+  },
+  {
+    "type": "text.start",
+    "seq": 2,
+    "id": "msg_appspec_1:text:0",
+    "messageId": "msg_appspec_1",
+    "turnId": "turn_sess_appspec"
+  },
+  {
+    "type": "text.delta",
+    "seq": 3,
+    "id": "msg_appspec_1:text:0",
+    "messageId": "msg_appspec_1",
+    "delta": "Rendering the card now.",
+    "turnId": "turn_sess_appspec"
+  },
+  {
+    "type": "text.end",
+    "seq": 4,
+    "id": "msg_appspec_1:text:0",
+    "messageId": "msg_appspec_1",
+    "turnId": "turn_sess_appspec"
+  },
+  {
+    "type": "tool.start",
+    "seq": 5,
+    "turnId": "turn_sess_appspec",
+    "toolCallId": "toolu_render_card",
+    "name": "mcp__t__render_card",
+    "index": 1,
+    "messageId": "msg_appspec_1"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 6,
+    "toolCallId": "toolu_render_card",
+    "delta": "{\"title\":\"Hello\",\"body\":\"World\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 7,
+    "toolCallId": "toolu_render_card",
+    "input": {
+      "title": "Hello",
+      "body": "World"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 8,
+    "id": "msg_appspec_1",
+    "usage": {
+      "inputTokens": 30,
+      "outputTokens": 12,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "tool.done",
+    "seq": 9,
+    "turnId": "turn_sess_appspec",
+    "toolCallId": "toolu_render_card",
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"title\":\"Hello\",\"body\":\"World\"}"
+      }
+    ],
+    "outcome": "ok",
+    "isError": false
+  }
+]

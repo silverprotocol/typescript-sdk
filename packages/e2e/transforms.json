@@ -1,0 +1,10 @@
+[
+  "[*].message.content[*].is_error",
+  "[*].message.stop_reason",
+  "[*].message.usage.cache_creation_input_tokens",
+  "[*].message.usage.cache_read_input_tokens",
+  "[*].modelUsage.claude-sonnet-4-6.webSearchRequests",
+  "[*].stop_reason",
+  "[*].usage.server_tool_use.web_fetch_requests",
+  "[*].usage.server_tool_use.web_search_requests"
+]

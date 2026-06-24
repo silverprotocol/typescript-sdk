@@ -1,0 +1,40 @@
+[
+  {
+    "type": "result",
+    "subtype": "success",
+    "result": "the complete answer",
+    "stop_reason": "end_turn",
+    "is_error": false,
+    "duration_ms": 0,
+    "duration_api_ms": 0,
+    "num_turns": 1,
+    "total_cost_usd": 0.07,
+    "usage": {
+      "input_tokens": 120,
+      "output_tokens": 45,
+      "cache_creation": { "ephemeral_1h_input_tokens": 0, "ephemeral_5m_input_tokens": 0 },
+      "cache_creation_input_tokens": 12,
+      "cache_read_input_tokens": 25,
+      "inference_geo": "unknown",
+      "iterations": [],
+      "server_tool_use": { "web_fetch_requests": 0, "web_search_requests": 0 },
+      "service_tier": "standard",
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-sonnet-4-6": {
+        "inputTokens": 120,
+        "outputTokens": 45,
+        "cacheReadInputTokens": 25,
+        "cacheCreationInputTokens": 12,
+        "webSearchRequests": 0,
+        "costUSD": 0.07,
+        "contextWindow": 200000,
+        "maxOutputTokens": 8192
+      }
+    },
+    "permission_denials": [],
+    "uuid": "00000000-0000-0000-0000-0000000000aa",
+    "session_id": "sess_silver"
+  }
+]

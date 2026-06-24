@@ -1,0 +1,279 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_sess_top",
+    "threadId": "sess_top"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_top_1",
+    "turnId": "turn_sess_top",
+    "threadId": "sess_top",
+    "role": "assistant",
+    "model": "claude-sonnet-4-6"
+  },
+  {
+    "type": "reasoning.start",
+    "seq": 2,
+    "id": "msg_top_1:reasoning:0",
+    "messageId": "msg_top_1",
+    "turnId": "turn_sess_top"
+  },
+  {
+    "type": "reasoning.delta",
+    "seq": 3,
+    "id": "msg_top_1:reasoning:0",
+    "messageId": "msg_top_1",
+    "delta": "Look up the weather, then delegate.",
+    "turnId": "turn_sess_top"
+  },
+  {
+    "type": "reasoning.end",
+    "seq": 4,
+    "id": "msg_top_1:reasoning:0",
+    "messageId": "msg_top_1",
+    "turnId": "turn_sess_top"
+  },
+  {
+    "type": "reasoning.opaque",
+    "seq": 5,
+    "id": "msg_top_1:reasoning:0",
+    "messageId": "msg_top_1",
+    "kind": "signature",
+    "value": "sig_xyz",
+    "turnId": "turn_sess_top",
+    "provider": "anthropic"
+  },
+  {
+    "type": "text.start",
+    "seq": 6,
+    "id": "msg_top_1:text:1",
+    "messageId": "msg_top_1",
+    "turnId": "turn_sess_top"
+  },
+  {
+    "type": "text.delta",
+    "seq": 7,
+    "id": "msg_top_1:text:1",
+    "messageId": "msg_top_1",
+    "delta": "Let me check the weather.",
+    "turnId": "turn_sess_top"
+  },
+  {
+    "type": "text.end",
+    "seq": 8,
+    "id": "msg_top_1:text:1",
+    "messageId": "msg_top_1",
+    "turnId": "turn_sess_top"
+  },
+  {
+    "type": "tool.start",
+    "seq": 9,
+    "turnId": "turn_sess_top",
+    "toolCallId": "toolu_weather",
+    "name": "get_weather",
+    "index": 2,
+    "messageId": "msg_top_1"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 10,
+    "toolCallId": "toolu_weather",
+    "delta": "{\"city\":\"NYC\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 11,
+    "toolCallId": "toolu_weather",
+    "input": {
+      "city": "NYC"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 12,
+    "id": "msg_top_1",
+    "usage": {
+      "inputTokens": 10,
+      "outputTokens": 5,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "tool.done",
+    "seq": 13,
+    "turnId": "turn_sess_top",
+    "toolCallId": "toolu_weather",
+    "content": [
+      {
+        "type": "text",
+        "text": "72F and sunny"
+      }
+    ],
+    "outcome": "ok",
+    "isError": false
+  },
+  {
+    "type": "message.start",
+    "seq": 14,
+    "id": "msg_top_2",
+    "turnId": "turn_sess_top",
+    "threadId": "sess_top",
+    "role": "assistant",
+    "model": "claude-sonnet-4-6"
+  },
+  {
+    "type": "text.start",
+    "seq": 15,
+    "id": "msg_top_2:text:0",
+    "messageId": "msg_top_2",
+    "turnId": "turn_sess_top"
+  },
+  {
+    "type": "text.delta",
+    "seq": 16,
+    "id": "msg_top_2:text:0",
+    "messageId": "msg_top_2",
+    "delta": "Now delegating research.",
+    "turnId": "turn_sess_top"
+  },
+  {
+    "type": "text.end",
+    "seq": 17,
+    "id": "msg_top_2:text:0",
+    "messageId": "msg_top_2",
+    "turnId": "turn_sess_top"
+  },
+  {
+    "type": "tool.start",
+    "seq": 18,
+    "turnId": "turn_sess_top",
+    "toolCallId": "toolu_task",
+    "name": "Task",
+    "index": 1,
+    "messageId": "msg_top_2"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 19,
+    "toolCallId": "toolu_task",
+    "delta": "{\"prompt\":\"research cats\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 20,
+    "toolCallId": "toolu_task",
+    "input": {
+      "prompt": "research cats"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 21,
+    "id": "msg_top_2",
+    "usage": {
+      "inputTokens": 10,
+      "outputTokens": 5,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "subagent.start",
+    "seq": 22,
+    "turnId": "turn_sess_sub",
+    "parentTurnId": "turn_toolu_task"
+  },
+  {
+    "type": "message.start",
+    "seq": 23,
+    "id": "msg_sub_1",
+    "turnId": "turn_sess_sub",
+    "threadId": "sess_sub",
+    "role": "assistant",
+    "model": "claude-sonnet-4-6"
+  },
+  {
+    "type": "text.start",
+    "seq": 24,
+    "id": "msg_sub_1:text:0",
+    "messageId": "msg_sub_1",
+    "turnId": "turn_sess_sub"
+  },
+  {
+    "type": "text.delta",
+    "seq": 25,
+    "id": "msg_sub_1:text:0",
+    "messageId": "msg_sub_1",
+    "delta": "Subagent finished the research.",
+    "turnId": "turn_sess_sub"
+  },
+  {
+    "type": "text.end",
+    "seq": 26,
+    "id": "msg_sub_1:text:0",
+    "messageId": "msg_sub_1",
+    "turnId": "turn_sess_sub"
+  },
+  {
+    "type": "message.end",
+    "seq": 27,
+    "id": "msg_sub_1",
+    "usage": {
+      "inputTokens": 10,
+      "outputTokens": 5,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "subagent.done",
+    "seq": 28,
+    "turnId": "turn_sess_sub",
+    "parentTurnId": "turn_toolu_task"
+  },
+  {
+    "type": "tool.done",
+    "seq": 29,
+    "turnId": "turn_sess_sub",
+    "toolCallId": "toolu_task",
+    "content": [
+      {
+        "type": "text",
+        "text": "research summary"
+      }
+    ],
+    "outcome": "ok",
+    "isError": false
+  },
+  {
+    "type": "turn.done",
+    "seq": 30,
+    "turnId": "turn_sess_top",
+    "outcome": {
+      "type": "success",
+      "result": "final answer"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 200,
+      "outputTokens": 80,
+      "cacheReadTokens": 30,
+      "cacheWriteTokens": 15,
+      "serverToolRequests": 0,
+      "costUsd": 0.12,
+      "cumulative": true,
+      "byModel": {
+        "claude-sonnet-4-6": {
+          "inputTokens": 200,
+          "outputTokens": 80,
+          "cacheReadTokens": 30,
+          "cacheWriteTokens": 15,
+          "costUsd": 0.12,
+          "serverToolRequests": 0,
+          "cumulative": true
+        }
+      }
+    }
+  }
+]

@@ -1,0 +1,173 @@
+[
+  {
+    "type": "assistant",
+    "message": {
+      "id": "msg_top_1",
+      "type": "message",
+      "role": "assistant",
+      "model": "claude-sonnet-4-6",
+      "content": [
+        { "type": "thinking", "thinking": "Look up the weather, then delegate.", "signature": "sig_xyz" },
+        { "type": "text", "text": "Let me check the weather.", "citations": null },
+        { "type": "tool_use", "id": "toolu_weather", "name": "get_weather", "input": { "city": "NYC" } }
+      ],
+      "stop_reason": "tool_use",
+      "stop_sequence": null,
+      "container": null,
+      "context_management": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 10,
+        "output_tokens": 5,
+        "cache_creation": null,
+        "cache_creation_input_tokens": null,
+        "cache_read_input_tokens": null,
+        "inference_geo": null,
+        "iterations": null,
+        "server_tool_use": null,
+        "service_tier": null,
+        "speed": null
+      }
+    },
+    "parent_tool_use_id": null,
+    "uuid": "u1",
+    "session_id": "sess_top"
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_weather",
+          "content": "72F and sunny",
+          "is_error": false
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "uuid": "u2",
+    "session_id": "sess_top"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "id": "msg_top_2",
+      "type": "message",
+      "role": "assistant",
+      "model": "claude-sonnet-4-6",
+      "content": [
+        { "type": "text", "text": "Now delegating research.", "citations": null },
+        { "type": "tool_use", "id": "toolu_task", "name": "Task", "input": { "prompt": "research cats" } }
+      ],
+      "stop_reason": "tool_use",
+      "stop_sequence": null,
+      "container": null,
+      "context_management": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 10,
+        "output_tokens": 5,
+        "cache_creation": null,
+        "cache_creation_input_tokens": null,
+        "cache_read_input_tokens": null,
+        "inference_geo": null,
+        "iterations": null,
+        "server_tool_use": null,
+        "service_tier": null,
+        "speed": null
+      }
+    },
+    "parent_tool_use_id": null,
+    "uuid": "u3",
+    "session_id": "sess_top"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "id": "msg_sub_1",
+      "type": "message",
+      "role": "assistant",
+      "model": "claude-sonnet-4-6",
+      "content": [
+        { "type": "text", "text": "Subagent finished the research.", "citations": null }
+      ],
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "container": null,
+      "context_management": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 10,
+        "output_tokens": 5,
+        "cache_creation": null,
+        "cache_creation_input_tokens": null,
+        "cache_read_input_tokens": null,
+        "inference_geo": null,
+        "iterations": null,
+        "server_tool_use": null,
+        "service_tier": null,
+        "speed": null
+      }
+    },
+    "parent_tool_use_id": "toolu_task",
+    "uuid": "u4",
+    "session_id": "sess_sub"
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_task",
+          "content": "research summary",
+          "is_error": false
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "uuid": "u5",
+    "session_id": "sess_top"
+  },
+  {
+    "type": "result",
+    "subtype": "success",
+    "result": "final answer",
+    "stop_reason": "end_turn",
+    "is_error": false,
+    "duration_ms": 0,
+    "duration_api_ms": 0,
+    "num_turns": 2,
+    "total_cost_usd": 0.12,
+    "usage": {
+      "input_tokens": 200,
+      "output_tokens": 80,
+      "cache_creation": { "ephemeral_1h_input_tokens": 0, "ephemeral_5m_input_tokens": 0 },
+      "cache_creation_input_tokens": 15,
+      "cache_read_input_tokens": 30,
+      "inference_geo": "unknown",
+      "iterations": [],
+      "server_tool_use": { "web_fetch_requests": 0, "web_search_requests": 0 },
+      "service_tier": "standard",
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-sonnet-4-6": {
+        "inputTokens": 200,
+        "outputTokens": 80,
+        "cacheReadInputTokens": 30,
+        "cacheCreationInputTokens": 15,
+        "webSearchRequests": 0,
+        "costUSD": 0.12,
+        "contextWindow": 200000,
+        "maxOutputTokens": 8192
+      }
+    },
+    "permission_denials": [],
+    "uuid": "uuid-result",
+    "session_id": "sess_top"
+  }
+]
