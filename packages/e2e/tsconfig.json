@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "src",
+    "baseUrl": "../..",
+    "paths": {
+      "@silverprotocol/core": ["packages/core/src/index.ts"],
+      "@silverprotocol/claude-agent-sdk": ["packages/claude-agent-sdk/src/index.ts"]
+    }
+  },
+  "references": [
+    { "path": "../core" },
+    { "path": "../claude-agent-sdk" }
+  ],
+  "include": ["src"]
+}

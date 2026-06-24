@@ -11,6 +11,9 @@ export default defineConfig({
       "@silverprotocol/core": fileURLToPath(
         new URL("./packages/core/src/index.ts", import.meta.url),
       ),
+      "@silverprotocol/claude-agent-sdk": fileURLToPath(
+        new URL("./packages/claude-agent-sdk/src/index.ts", import.meta.url),
+      ),
     },
   },
 });
