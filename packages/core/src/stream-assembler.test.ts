@@ -362,10 +362,10 @@ describe("emitExt reserved-key guard", () => {
       responseId: "resp_1",
       payload: { ok: true },
     });
-    const [ev] = a.drain();
-    expect(ev.type).toBe("ext.openai.unparsed"); // not "spoofed"
-    expect(ev.seq).not.toBe(999); // engine-assigned
-    expect("turnId" in ev).toBe(false); // reserved, dropped
-    expect(ev).toMatchObject({ responseId: "resp_1" }); // vendor key kept
+    const evs = a.drain();
+    expect(evs).toHaveLength(1);
+    expect(evs[0]).toMatchObject({ type: "ext.openai.unparsed", responseId: "resp_1" }); // type engine-owned (not "spoofed"); vendor key kept
+    expect(evs[0]?.seq).not.toBe(999); // engine-assigned
+    expect(evs[0]).not.toHaveProperty("turnId"); // reserved, dropped
   });
 });
