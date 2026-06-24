@@ -944,3 +944,189 @@ describe("createOpenaiNormalizer — text turn", () => {
     expect(r.needsResync).toBe(false);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Stateful createOpenaiNormalizer — T5b: tools path over engine
+//
+// Uses REAL shapes from /tmp/openai-spike-toolturn.json:
+//   - response.output_item.added (function_call) with snake_case call_id
+//   - response.function_call_arguments.delta/.done (fc_-keyed)
+//   - tool_output run-item with item.output carrying structuredContent
+//
+// BINDING canonical model (plan §"Spike Findings"):
+//   - toolStart ← model:response.output_item.added (item.type==="function_call")
+//   - toolArgsDelta/toolArgsAssembled ← function_call_arguments.delta/.done
+//   - toolDone ← tool_output run-item (structuredContent from item.output)
+//   - IGNORE tool_called run-item (superseded by output_item.added)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Minimal tool turn trimmed from the real spike capture.
+// Uses output_item.added (snake_case call_id) as authoritative toolStart source.
+const TOOL_TURN: JsonValue[] = [
+  // Authoritative turn open.
+  {
+    type: "raw_model_stream_event",
+    data: { type: "model", event: { type: "response.created", response: { id: "resp_tool_1" } } },
+  },
+  // Authoritative tool start: response.output_item.added with function_call item.
+  // Real shape from /tmp/openai-spike-toolturn.json: call_id is snake_case.
+  {
+    type: "raw_model_stream_event",
+    data: {
+      type: "model",
+      event: {
+        type: "response.output_item.added",
+        item: {
+          id: "fc_spike_1",
+          type: "function_call",
+          status: "in_progress",
+          arguments: "",
+          call_id: "call_spike_1",
+          name: "render_card",
+        },
+      },
+    },
+  },
+  // Args delta fragments (fc_-keyed).
+  {
+    type: "raw_model_stream_event",
+    data: {
+      type: "model",
+      event: { type: "response.function_call_arguments.delta", item_id: "fc_spike_1", delta: '{"q"' },
+    },
+  },
+  {
+    type: "raw_model_stream_event",
+    data: {
+      type: "model",
+      event: {
+        type: "response.function_call_arguments.delta",
+        item_id: "fc_spike_1",
+        delta: ':"x"}',
+      },
+    },
+  },
+  // Args done — full assembled JSON string.
+  {
+    type: "raw_model_stream_event",
+    data: {
+      type: "model",
+      event: {
+        type: "response.function_call_arguments.done",
+        item_id: "fc_spike_1",
+        arguments: '{"q":"x"}',
+      },
+    },
+  },
+  // tool_called run-item — MUST be IGNORED (superseded by output_item.added).
+  {
+    type: "run_item_stream_event",
+    name: "tool_called",
+    item: {
+      type: "tool_call_item",
+      rawItem: {
+        type: "function_call",
+        callId: "call_spike_1",
+        name: "render_card",
+        arguments: '{"q":"x"}',
+        status: "completed",
+        id: "fc_spike_1",
+      },
+    },
+  },
+  // tool_output run-item — authoritative toolDone source.
+  // item.output carries structuredContent (ggui cache marker).
+  {
+    type: "run_item_stream_event",
+    name: "tool_output",
+    item: {
+      type: "tool_call_output_item",
+      rawItem: {
+        type: "function_call_result",
+        name: "render_card",
+        callId: "call_spike_1",
+        status: "completed",
+        output: "rendered",
+      },
+      output: { structuredContent: { cache: { hit: true } } },
+    },
+  },
+  // Authoritative turn close.
+  {
+    type: "raw_model_stream_event",
+    data: {
+      type: "model",
+      event: {
+        type: "response.completed",
+        response: {
+          id: "resp_tool_1",
+          status: "completed",
+          usage: { input_tokens: 10, output_tokens: 5 },
+        },
+      },
+    },
+  },
+];
+
+describe("createOpenaiNormalizer — tools path (T5b)", () => {
+  it("emits tool.start with call_id as toolCallId (NOT fc_ id) from output_item.added", () => {
+    const n = createOpenaiNormalizer();
+    const evs = TOOL_TURN.flatMap((e) => n.push(e)).concat(n.flush());
+    const start = evs.find((e) => e.type === "tool.start");
+    expect(start).toBeDefined();
+    expect(start).toMatchObject({ name: "render_card", toolCallId: "call_spike_1" });
+    // toolCallId must be the call_id (call_spike_1), NOT the fc_ id (fc_spike_1).
+    expect((start as { toolCallId?: string }).toolCallId).not.toBe("fc_spike_1");
+  });
+
+  it("does NOT emit a duplicate tool.start from the tool_called run-item (IGNORED)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = TOOL_TURN.flatMap((e) => n.push(e)).concat(n.flush());
+    const starts = evs.filter((e) => e.type === "tool.start");
+    // Exactly ONE tool.start — from output_item.added only.
+    expect(starts).toHaveLength(1);
+  });
+
+  it("emits tool.args.assembled with parsed input from function_call_arguments.done", () => {
+    const n = createOpenaiNormalizer();
+    const evs = TOOL_TURN.flatMap((e) => n.push(e)).concat(n.flush());
+    const assembled = evs.find((e) => e.type === "tool.args.assembled");
+    expect(assembled).toBeDefined();
+    expect(assembled).toMatchObject({ toolCallId: "call_spike_1", input: { q: "x" } });
+  });
+
+  it("emits tool.done with structuredContent from item.output (cache marker)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = TOOL_TURN.flatMap((e) => n.push(e)).concat(n.flush());
+    const done = evs.find((e) => e.type === "tool.done") as {
+      toolCallId?: string;
+      outcome?: string;
+      structuredContent?: { cache?: { hit?: boolean } };
+    };
+    expect(done).toBeDefined();
+    expect(done?.toolCallId).toBe("call_spike_1");
+    expect(done?.outcome).toBe("ok");
+    expect(done?.structuredContent?.cache?.hit).toBe(true);
+  });
+
+  it("fold-identity: reducing the tool turn yields tool-call + tool-result blocks", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    for (const e of TOOL_TURN) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    expect(res.turns).toHaveLength(1);
+    // Tool-call block (input).
+    const allBlocks = res.messages.flatMap((m) => m.content);
+    const toolCallBlock = allBlocks.find((b) => b.type === "tool-call");
+    expect(toolCallBlock).toMatchObject({ type: "tool-call", name: "render_card", input: { q: "x" } });
+    // Tool-result block with structuredContent.
+    const toolResultBlock = allBlocks.find((b) => b.type === "tool-result");
+    expect(toolResultBlock).toMatchObject({ type: "tool-result" });
+    expect(
+      (toolResultBlock as { structuredContent?: { cache?: { hit?: boolean } } }).structuredContent
+        ?.cache?.hit,
+    ).toBe(true);
+  });
+});

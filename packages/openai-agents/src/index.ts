@@ -195,9 +195,15 @@ interface OpenAIToolCalledEvent {
 interface OpenAIToolOutputEvent {
   type: "run_item_stream_event";
   name: "tool_output";
-  // The normalizer reads `item.rawItem.output` (the protocol FunctionCallResultItem);
-  // the wrapper's own `output` field is unused and intentionally not modelled.
-  item: { type: "tool_call_output_item"; rawItem: OpenAIFunctionCallResultItem };
+  // `item.rawItem` carries the protocol FunctionCallResultItem (callId, output, status).
+  // `item.output` (the wrapper-level field) may carry a structured object with a
+  // `structuredContent` key — the ggui cache marker (e.g. `{ cache: { hit: true } }`)
+  // rides here. Cast-free extraction uses `isJsonObject` + `JsonValue.parse`.
+  item: {
+    type: "tool_call_output_item";
+    rawItem: OpenAIFunctionCallResultItem;
+    output?: JsonValue;
+  };
 }
 interface OpenAIReasoningEvent {
   type: "run_item_stream_event";
@@ -305,6 +311,22 @@ interface OpenAIResponsesCompleted {
   };
 }
 
+/** openai-node `ResponseOutputItemAddedEvent` — fired when a new output item starts.
+ *  When `item.type === "function_call"`, this is the AUTHORITATIVE tool-start source
+ *  (canonical model, A1). Note: the raw Responses event uses snake_case `call_id`
+ *  (DISTINCT from the run-item's camelCase `callId`). Carried via the `model` carrier. */
+interface OpenAIResponsesOutputItemAdded {
+  type: "response.output_item.added";
+  item: {
+    id: string; // the fc_… Responses item id
+    type: string; // "function_call" | "message" | "reasoning" | …
+    call_id?: string; // snake_case — only present when type==="function_call"
+    name?: string; // tool name — only present when type==="function_call"
+    status?: string;
+    arguments?: string;
+  };
+}
+
 /** openai-node `ResponseFailedEvent` — the response itself failed (e.g. rate limit).
  *  Carried via the `model` carrier. */
 interface OpenAIResponsesFailed {
@@ -326,6 +348,7 @@ interface OpenAIResponsesError {
  *  normalizer consumes (the carrier `event` payload). */
 type OpenAIRawResponsesEvent =
   | OpenAIResponsesCreated
+  | OpenAIResponsesOutputItemAdded
   | OpenAIResponsesFnArgsDelta
   | OpenAIResponsesFnArgsDone
   | OpenAIResponsesTextDelta
@@ -930,6 +953,15 @@ export function createOpenaiNormalizer(ctx?: NormalizerContext): Normalizer {
   // for it is a no-op — it must NOT reopen a fresh message/turn.
   const closedResponses = new Set<string>();
 
+  // Per-instance tool state (T5b — replaces the module-level statics for the factory path).
+  // fc_… item id → model call_id correlation, populated by response.output_item.added
+  // (the AUTHORITATIVE tool-start source per the canonical model, A1).
+  const instanceCallIdByItemId = new Map<string, string>();
+  // Accumulated function_call_arguments.delta fragments, keyed by fc_ item id.
+  // The engine accumulates for downstream use; `.done.arguments` carries the full
+  // string so argBuffers is primarily for the fallback path.
+  const instanceArgBuffers = new Map<string, string>();
+
   /**
    * Open the turn + message exactly once per response. Uses the real `response.id`
    * (`turn_<id>`) when known; synthesizes a stable id only if `response.created` was
@@ -1003,6 +1035,47 @@ export function createOpenaiNormalizer(ctx?: NormalizerContext): Normalizer {
         }
         return;
       }
+      case "response.output_item.added": {
+        // Authoritative tool-start source (canonical model, A1 §"Spike Findings").
+        // Only function_call items carry a tool name + call_id; other item types
+        // (message, reasoning) are no-op'd here — their lifecycle is handled elsewhere.
+        if (ev.item.type === "function_call" && ev.item.call_id !== undefined && ev.item.name !== undefined) {
+          const fcId = ev.item.id;
+          const callId = ev.item.call_id;
+          ensureResponseOpen();
+          // Record the fc_→call_id correlation (the raw argument events carry only
+          // the fc_ item id, not the call_id; this mapping allows recovery).
+          instanceCallIdByItemId.set(fcId, callId);
+          a.toolStart({
+            toolCallId: callId,
+            name: ev.item.name,
+            itemId: fcId,
+            messageId: msgId,
+          });
+        }
+        return;
+      }
+      case "response.function_call_arguments.delta": {
+        // Accumulate the fragment per fc_ item id (spec §8.1).
+        const prevDelta = instanceArgBuffers.get(ev.item_id) ?? "";
+        instanceArgBuffers.set(ev.item_id, prevDelta + ev.delta);
+        // Resolve to call_id for the engine (fall back to fc_ id defensively).
+        const callIdDelta = instanceCallIdByItemId.get(ev.item_id) ?? ev.item_id;
+        a.toolArgsDelta(callIdDelta, ev.delta, { cumulative: false });
+        return;
+      }
+      case "response.function_call_arguments.done": {
+        // Seal accumulated buffer → toolArgsAssembled. Prefer the event's full
+        // `arguments` string (the engine accumulates the delta path); fall back to
+        // the instance buffer when the done event omits it (defensive).
+        const buffered = instanceArgBuffers.get(ev.item_id) ?? "";
+        const raw = ev.arguments.length > 0 ? ev.arguments : buffered;
+        const input: JsonValue = JsonValue.parse(JSON.parse(raw));
+        const callIdDone = instanceCallIdByItemId.get(ev.item_id) ?? ev.item_id;
+        a.toolArgsAssembled(callIdDone, input);
+        instanceArgBuffers.delete(ev.item_id);
+        return;
+      }
       case "response.completed": {
         // Success close — guard close-once (the SDK emits completed TWICE). A
         // `undefined` return means this response is already closed → no-op the dupe.
@@ -1025,12 +1098,11 @@ export function createOpenaiNormalizer(ctx?: NormalizerContext): Normalizer {
         resetResponseState();
         return;
       }
-      // KNOWN-but-deferred raw families (ported in T5b/T5c) — no-op for now:
-      //   response.function_call_arguments.delta | .done  (tools, T5b)
+      // KNOWN-but-deferred raw families (ported in T5c) — no-op for now:
       //   response.incomplete | response.failed | error    (error arms, T5c)
       // Plus the duplicate raw families IGNORED per the canonical model:
-      //   response.output_text.done is handled below; in_progress/content_part/
-      //   output_item are not modelled on OpenAIRawResponsesEvent at all.
+      //   response.output_text.done is handled above; response.output_item.done,
+      //   response.in_progress, content_part.* are not authoritative sources.
       default:
         return;
     }
@@ -1039,9 +1111,38 @@ export function createOpenaiNormalizer(ctx?: NormalizerContext): Normalizer {
   /** Drive the engine from one (already-narrowed) OpenAIStreamEvent. */
   function drive(event: OpenAIStreamEvent): void {
     if (event.type === "run_item_stream_event") {
-      // KNOWN-but-deferred run-item families (tools/citations/reasoning/handoff/HITL)
-      // are ported in T5b/T5c. No-op here (NOT routed to `unparsed` — they are known).
-      return;
+      switch (event.name) {
+        case "tool_output": {
+          // Authoritative tool-result source (canonical model, A1). Drives toolDone
+          // with content + structuredContent (the ggui cache marker rides on item.output).
+          const rawItem = event.item.rawItem;
+          const outcome: ToolOutcome = rawItem.status === "incomplete" ? "error" : "ok";
+          const content = toolOutputToAgBlocks(rawItem.output);
+          // Extract structuredContent cast-free: item.output may be an object carrying
+          // { structuredContent: … }. Use isJsonObject + JsonValue.parse (not a cast).
+          const wrapperOutput = event.item.output;
+          const structuredContent: JsonValue | undefined =
+            isJsonObject(wrapperOutput) && isJsonObject(wrapperOutput.structuredContent)
+              ? JsonValue.parse(wrapperOutput.structuredContent)
+              : undefined;
+          a.toolDone({
+            toolCallId: rawItem.callId,
+            content,
+            outcome,
+            isError: rawItem.status === "incomplete",
+            ...(structuredContent !== undefined ? { structuredContent } : {}),
+          });
+          return;
+        }
+        case "tool_called":
+          // IGNORED — superseded by model:response.output_item.added, which is the
+          // authoritative tool-start source (canonical model, A1 §"Spike Findings").
+          return;
+        default:
+          // Other run-item families (citations/reasoning/handoff/HITL) are ported
+          // in T5c. No-op here (NOT routed to `unparsed` — they are known families).
+          return;
+      }
     }
 
     // raw_model_stream_event — `data` is the Agents SDK ResponseStreamEvent union.
