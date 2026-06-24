@@ -25,7 +25,7 @@ import {
   type AgSource,
   type AgUsage,
   JsonValue,
-  type Normalizer,
+  type RuleNormalizer,
   type ToolOutcome,
 } from "@silverprotocol/core";
 
@@ -425,7 +425,7 @@ function toolResultContentToAgBlocks(content: NonNullable<ToolResultContent>): A
 }
 
 // ─── the normalizer ───────────────────────────────────────────────────────────
-const claudeNormalizer: Normalizer<SDKMessage> = (msg) => {
+const claudeNormalizer: RuleNormalizer<SDKMessage> = (msg) => {
   const e = makeEmitter();
 
   if (msg.type === "assistant") {

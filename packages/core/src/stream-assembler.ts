@@ -78,22 +78,28 @@ export class StreamAssembler {
 
   // ── Internal helpers ────────────────────────────────────────────────────────
 
-  /** Emit one closed event into the buffer, assigning the next monotonic seq. */
-  #emit<T extends AgClosedEventType>(ev: Omit<T, "seq">): void {
-    const withSeq = { ...ev, seq: this.#seq++ } as T;
-    this.#buffer.push(withSeq);
+  /** Allocate the next monotonic seq counter value. */
+  #nextSeq(): number {
+    return this.#seq++;
+  }
+
+  /** Emit one closed event into the buffer. */
+  #emit(ev: AgClosedEventType): void {
+    this.#buffer.push(ev);
   }
 
   /** Ensure a turn.start has been emitted for `turnId`. If not seen, synthesize one. */
   #ensureTurn(turnId: string, threadId: string, opts?: { trigger?: AgTrigger }): void {
     if (this.#seenTurns.has(turnId)) return;
     this.#seenTurns.add(turnId);
-    this.#emit<TurnStartEvent>({
+    const ev: TurnStartEvent = {
       type: "turn.start",
+      seq: this.#nextSeq(),
       turnId,
       threadId,
       ...(opts?.trigger !== undefined ? { trigger: opts.trigger } : {}),
-    });
+    };
+    this.#emit(ev);
   }
 
   // ── Public API ──────────────────────────────────────────────────────────────
@@ -101,22 +107,16 @@ export class StreamAssembler {
   /**
    * Explicitly open a turn. Emits `turn.start` and seeds `#seenTurns` so a
    * following `openMessage` does NOT synthesize a duplicate.
+   * Delegates to `#ensureTurn` so the synthesis path lives in one place.
    */
   openTurn(turnId: string, threadId: string, opts?: { trigger?: AgTrigger }): void {
-    if (!this.#seenTurns.has(turnId)) {
-      this.#seenTurns.add(turnId);
-      this.#emit<TurnStartEvent>({
-        type: "turn.start",
-        turnId,
-        threadId,
-        ...(opts?.trigger !== undefined ? { trigger: opts.trigger } : {}),
-      });
-    }
+    this.#ensureTurn(turnId, threadId, opts);
   }
 
   /** Close a turn successfully. */
   closeTurnDone(turnId: string, fields: TurnDoneFields): void {
-    this.#emit<TurnDoneEvent>({ type: "turn.done", turnId, ...fields });
+    const ev: TurnDoneEvent = { type: "turn.done", seq: this.#nextSeq(), turnId, ...fields };
+    this.#emit(ev);
   }
 
   /** Close a turn with an error. */
@@ -124,11 +124,13 @@ export class StreamAssembler {
     turnId: string,
     fields: { message: string; code?: string; retriable?: boolean },
   ): void {
-    this.#emit<TurnErrorEvent>({
+    const ev: TurnErrorEvent = {
       type: "turn.error",
+      seq: this.#nextSeq(),
       turnId,
       ...fields,
-    });
+    };
+    this.#emit(ev);
   }
 
   /**
@@ -139,13 +141,15 @@ export class StreamAssembler {
     // I1: synthesize turn.start if this turn hasn't been opened yet.
     this.#ensureTurn(turnId, threadId);
     // Emit message.start.
-    this.#emit<MessageStartEvent>({
+    const ev: MessageStartEvent = {
       type: "message.start",
+      seq: this.#nextSeq(),
       id,
       turnId,
       threadId,
       ...rest,
-    });
+    };
+    this.#emit(ev);
     // Track as an open message.
     this.#openMessages.set(id, { turnId });
   }
@@ -153,11 +157,13 @@ export class StreamAssembler {
   /** Close a message stream. */
   closeMessage(id: string, usage?: AgUsage): void {
     this.#openMessages.delete(id);
-    this.#emit<MessageEndEvent>({
+    const ev: MessageEndEvent = {
       type: "message.end",
+      seq: this.#nextSeq(),
       id,
       ...(usage !== undefined ? { usage } : {}),
-    });
+    };
+    this.#emit(ev);
   }
 
   /**
@@ -167,20 +173,24 @@ export class StreamAssembler {
    */
   subagentStart(turnId: string, parentTurnId: string): void {
     this.#seenTurns.add(turnId);
-    this.#emit<SubagentStartEvent>({
+    const ev: SubagentStartEvent = {
       type: "subagent.start",
+      seq: this.#nextSeq(),
       turnId,
       parentTurnId,
-    });
+    };
+    this.#emit(ev);
   }
 
   /** Record a subagent turn done. */
   subagentDone(turnId: string, parentTurnId: string): void {
-    this.#emit<SubagentDoneEvent>({
+    const ev: SubagentDoneEvent = {
       type: "subagent.done",
+      seq: this.#nextSeq(),
       turnId,
       parentTurnId,
-    });
+    };
+    this.#emit(ev);
   }
 
   /**
@@ -198,7 +208,8 @@ export class StreamAssembler {
    */
   flush(): AgEvent[] {
     for (const [id] of this.#openMessages) {
-      this.#emit<MessageEndEvent>({ type: "message.end", id });
+      const ev: MessageEndEvent = { type: "message.end", seq: this.#nextSeq(), id };
+      this.#emit(ev);
     }
     this.#openMessages.clear();
     return this.drain();
