@@ -825,9 +825,8 @@ describe("subagent inner-tool-result routing contract", () => {
 // Pins that the Claude normalizer extracts structuredContent from the native
 // tool_result block and threads it onto tool.done (producer side).
 // The block shape is runtime-extended by the Claude Agent SDK beyond what the
-// Anthropic SDK's static ToolResultBlockParam declares, so the fixture uses
-// `as unknown as Parameters<typeof n.push>[0]` to bypass the static type gap
-// without casting the data itself.
+// Anthropic SDK's static ToolResultBlockParam declares; the fixture is a plain
+// JsonValue literal (push's parameter type) so it needs no cast.
 
 describe("tool_result.structuredContent surfacing", () => {
   it("surfaces tool_result.structuredContent onto tool.done", () => {
@@ -847,7 +846,7 @@ describe("tool_result.structuredContent surfacing", () => {
           },
         ],
       },
-    } as unknown as Parameters<typeof n.push>[0]);
+    });
     const done = evs.find((e) => e.type === "tool.done");
     expect(done).toMatchObject({
       type: "tool.done",
