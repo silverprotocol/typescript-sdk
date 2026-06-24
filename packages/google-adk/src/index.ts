@@ -58,7 +58,7 @@ import {
   type AgSafety,
   AgProviderMeta,
   JsonValue,
-  type Normalizer,
+  type RuleNormalizer,
   type ToolOutcome,
 } from "@silverprotocol/core";
 
@@ -555,7 +555,7 @@ function emitPart(e: ReturnType<typeof makeEmitter>, part: AdkPart, index: numbe
 }
 
 // ─── the normalizer ───────────────────────────────────────────────────────────
-const adkNormalizer: Normalizer<AdkEvent> = (event) => {
+const adkNormalizer: RuleNormalizer<AdkEvent> = (event) => {
   const e = makeEmitter();
   const key = turnKey(event);
   const parts = event.content?.parts ?? [];

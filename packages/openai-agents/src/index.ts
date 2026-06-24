@@ -66,7 +66,7 @@ import {
   type AgSafety,
   type AgCitation,
   JsonValue,
-  type Normalizer,
+  type RuleNormalizer,
   type ToolOutcome,
 } from "@silverprotocol/core";
 
@@ -480,7 +480,7 @@ function mapAnnotationsToCitations(
 }
 
 // ─── the normalizer ───────────────────────────────────────────────────────────
-const openaiNormalizer: Normalizer<OpenAIStreamEvent> = (event) => {
+const openaiNormalizer: RuleNormalizer<OpenAIStreamEvent> = (event) => {
   const e = makeEmitter();
 
   if (event.type === "run_item_stream_event") {

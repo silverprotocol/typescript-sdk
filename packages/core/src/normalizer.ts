@@ -1,12 +1,14 @@
 import jsonata from "jsonata";
 import { AgEvent } from "./agjson.js";
 
-// A normalizer translates one framework's wire I/O into AgJSON events.
-// Concrete normalizers (the @silverprotocol/<framework> packages) are typed
-// `Normalizer<SDKMessage>` etc.; `fromJsonata` returns `Normalizer<unknown>` —
-// the `unknown` is the genuine JSONata input boundary (any JSON value, spec §0.1),
-// not shaped data.
-export type Normalizer<TInput> = (input: TInput) => AgEvent[] | Promise<AgEvent[]>;
+// A rule-normalizer translates one framework's wire I/O into AgJSON events via a
+// pure function. Concrete normalizers (the @silverprotocol/<framework> packages)
+// are typed `RuleNormalizer<SDKMessage>` etc.; `fromJsonata` returns
+// `RuleNormalizer<unknown>` — the `unknown` is the genuine JSONata input boundary
+// (any JSON value, spec §0.1), not shaped data.
+// NOTE: renamed from `Normalizer<TInput>` to free the name for the stateful push/flush
+// interface (StreamAssembler).
+export type RuleNormalizer<TInput> = (input: TInput) => AgEvent[] | Promise<AgEvent[]>;
 
 // Typed error for the normalization boundary (e.g. the timeout/over-budget guard),
 // distinct from a Zod validation error on the produced events.
@@ -24,7 +26,7 @@ export class NormalizerError extends Error {
 // is the caller's responsibility (the rules are reviewed). Each produced value is
 // validated against `AgEvent`; a validation failure throws (the Router's per-event
 // guard catches it and emits a graceful per-event error).
-export function fromJsonata(rule: string, opts: { timeoutMs?: number } = {}): Normalizer<unknown> {
+export function fromJsonata(rule: string, opts: { timeoutMs?: number } = {}): RuleNormalizer<unknown> {
   const expr = jsonata(rule);
   const timeoutMs = opts.timeoutMs ?? 250;
   return async (input) => {
