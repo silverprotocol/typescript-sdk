@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
-import { AgEvent, fromJsonata } from "@silverprotocol/core";
-import normalize, { mapStopReason, ruleJsonata } from "./index.js";
+import { AgEvent, JsonValue } from "@silverprotocol/core";
+import createClaudeNormalizer, { mapStopReason } from "./index.js";
 
 // Types DERIVED from SDKMessage so the fixtures track the EXACT Anthropic SDK the
 // Claude Agent SDK bundles (a root-level @anthropic-ai/sdk copy may differ).
@@ -10,6 +10,19 @@ type SDKUser = Extract<SDKMessage, { type: "user" }>;
 type BetaMessage = SDKAssistant["message"];
 type UserContent = SDKUser["message"]["content"];
 type SDKAssistantError = SDKAssistant["error"];
+
+// Drive a fresh stateful normalizer once and collect the FULL assembled stream
+// (`push` + `flush`). This is the assembled-stream contract: a synthesized
+// `turn.start` heads each top-level turn, content/tool events carry a
+// backfilled `turnId`, and `seq` is turn-scoped monotonic (never reset per call).
+function run(msg: SDKMessage): AgEvent[] {
+  const n = createClaudeNormalizer();
+  // `push` takes the genuine JSON boundary (`JsonValue`, spec §0.1) — the same
+  // type the run-seam delivers after JSON.parse. The `SDKMessage`-typed fixture is
+  // validated through the boundary by `JsonValue.parse` (the real wire roundtrip),
+  // honest rather than a static cast (`SDKMessage` is not statically a `JsonValue`).
+  return [...n.push(JsonValue.parse(msg)), ...n.flush()];
+}
 
 // ─── fixtures (the EXACT shapes the run-seam yields; see code-worker.ts) ──────
 // A minimal valid BetaUsage for an assistant message (code-worker.ts:93).
@@ -164,48 +177,84 @@ function assertAllValid(evs: AgEvent[]): void {
   }
 }
 
-describe("claudeNormalizer — assistant text", () => {
-  it("maps an assistant text message to the message+text lifecycle", async () => {
-    const evs = await normalize(assistantMsg([{ type: "text", text: "hello", citations: null }]));
+// ─── ASSEMBLED-STREAM GOLDENS ─────────────────────────────────────────────────
+// These assert the FULL ordered AgEvent[] from the stateful normalizer driving
+// the StreamAssembler engine. Three intended differences vs. the old stateless
+// claudeNormalizer: (1) a synthesized `turn.start` heads each TOP-LEVEL turn;
+// (2) `turnId` is backfilled onto content/tool events; (3) `seq` is turn-scoped
+// monotonic. The nested-subagent turn is seeded by `subagent.start`, so it has
+// NO synthesized `turn.start`.
+
+const TOP_TURN = "turn_sess_fixture";
+
+describe("createClaudeNormalizer — assistant text (assembled golden)", () => {
+  it("synthesizes turn.start, backfills turnId, and uses turn-scoped seq", () => {
+    const evs = run(assistantMsg([{ type: "text", text: "hello", citations: null }]));
+    expect(evs).toEqual([
+      { type: "turn.start", seq: 0, turnId: TOP_TURN, threadId: "sess_fixture" },
+      {
+        type: "message.start",
+        seq: 1,
+        id: "msg_fixture_1",
+        role: "assistant",
+        turnId: TOP_TURN,
+        threadId: "sess_fixture",
+        model: "claude-test",
+      },
+      { type: "text.start", seq: 2, id: "msg_fixture_1:text:0", messageId: "msg_fixture_1", turnId: TOP_TURN },
+      { type: "text.delta", seq: 3, id: "msg_fixture_1:text:0", messageId: "msg_fixture_1", delta: "hello", turnId: TOP_TURN },
+      { type: "text.end", seq: 4, id: "msg_fixture_1:text:0", messageId: "msg_fixture_1", turnId: TOP_TURN },
+      {
+        type: "message.end",
+        seq: 5,
+        id: "msg_fixture_1",
+        usage: { inputTokens: 0, outputTokens: 0, cumulative: true },
+      },
+    ]);
+    assertAllValid(evs);
+  });
+
+  it("event types are in assembled order", () => {
+    const evs = run(assistantMsg([{ type: "text", text: "hello", citations: null }]));
     expect(evs.map((e) => e.type)).toEqual([
+      "turn.start",
       "message.start",
       "text.start",
       "text.delta",
       "text.end",
       "message.end",
     ]);
-    assertAllValid(evs);
   });
 
-  it("allocates a monotonic seq from 0", async () => {
-    const evs = await normalize(assistantMsg([{ type: "text", text: "hello", citations: null }]));
-    expect(evs.map((e) => e.seq)).toEqual([0, 1, 2, 3, 4]);
+  it("allocates a turn-scoped monotonic seq from 0", () => {
+    const evs = run(assistantMsg([{ type: "text", text: "hello", citations: null }]));
+    expect(evs.map((e) => e.seq)).toEqual([0, 1, 2, 3, 4, 5]);
   });
 
-  it("carries the assistant text through text.delta", async () => {
-    const evs = await normalize(assistantMsg([{ type: "text", text: "hello world", citations: null }]));
+  it("carries the assistant text through text.delta", () => {
+    const evs = run(assistantMsg([{ type: "text", text: "hello world", citations: null }]));
     const delta = evs.find((e) => e.type === "text.delta");
     expect(delta).toMatchObject({ type: "text.delta", delta: "hello world" });
   });
 });
 
-describe("claudeNormalizer — result success", () => {
-  it("maps a result success to turn.done with finishReason stop", async () => {
-    const evs = await normalize(resultSuccess("end_turn"));
-    expect(evs).toContainEqual(
-      expect.objectContaining({
-        type: "turn.done",
-        finishReason: "stop",
-        outcome: { type: "success", result: "all done" },
-      }),
-    );
+describe("createClaudeNormalizer — result success", () => {
+  it("maps a result success to turn.done with finishReason stop (NO synthesized turn.start)", () => {
+    const evs = run(resultSuccess("end_turn"));
+    expect(evs.map((e) => e.type)).toEqual(["turn.done"]);
+    expect(evs[0]).toMatchObject({
+      type: "turn.done",
+      turnId: TOP_TURN,
+      finishReason: "stop",
+      outcome: { type: "success", result: "all done" },
+    });
     assertAllValid(evs);
   });
 });
 
-describe("claudeNormalizer — tool_use", () => {
-  it("emits tool.start, tool.args.delta and the mandatory tool.args.assembled", async () => {
-    const evs = await normalize(
+describe("createClaudeNormalizer — tool_use", () => {
+  it("emits tool.start, tool.args.delta and the mandatory tool.args.assembled", () => {
+    const evs = run(
       assistantMsg([
         { type: "tool_use", id: "toolu_fixture_1", name: "get_weather", input: { city: "SF" } },
       ]),
@@ -215,14 +264,14 @@ describe("claudeNormalizer — tool_use", () => {
     expect(types).toContain("tool.args.delta");
     expect(types).toContain("tool.args.assembled");
     const start = evs.find((e) => e.type === "tool.start");
-    expect(start).toMatchObject({ toolCallId: "toolu_fixture_1", name: "get_weather" });
+    expect(start).toMatchObject({ toolCallId: "toolu_fixture_1", name: "get_weather", turnId: TOP_TURN });
     const assembled = evs.find((e) => e.type === "tool.args.assembled");
     expect(assembled).toMatchObject({ toolCallId: "toolu_fixture_1", input: { city: "SF" } });
     assertAllValid(evs);
   });
 
-  it("maps mcp_tool_use.server_name onto tool.start.serverName", async () => {
-    const evs = await normalize(
+  it("maps mcp_tool_use.server_name onto tool.start.serverName", () => {
+    const evs = run(
       assistantMsg([
         {
           type: "mcp_tool_use",
@@ -239,9 +288,9 @@ describe("claudeNormalizer — tool_use", () => {
   });
 });
 
-describe("claudeNormalizer — thinking", () => {
-  it("emits reasoning.start/delta/end and a signed reasoning.opaque", async () => {
-    const evs = await normalize(
+describe("createClaudeNormalizer — thinking", () => {
+  it("emits reasoning.start/delta/end and a signed reasoning.opaque", () => {
+    const evs = run(
       assistantMsg([{ type: "thinking", thinking: "let me think", signature: "sig_abc" }]),
     );
     const types = evs.map((e) => e.type);
@@ -253,18 +302,29 @@ describe("claudeNormalizer — thinking", () => {
     assertAllValid(evs);
   });
 
-  it("omits reasoning.opaque when the thinking block is unsigned", async () => {
-    const evs = await normalize(
+  it("omits reasoning.opaque when the thinking block is unsigned", () => {
+    const evs = run(
       assistantMsg([{ type: "thinking", thinking: "open thought", signature: "" }]),
     );
     expect(evs.map((e) => e.type)).not.toContain("reasoning.opaque");
     assertAllValid(evs);
   });
+
+  it("emits reasoning.start/end + redacted opaque for redacted_thinking", () => {
+    const evs = run(
+      assistantMsg([{ type: "redacted_thinking", data: "enc_blob" }]),
+    );
+    const opaque = evs.find((e) => e.type === "reasoning.opaque");
+    expect(opaque).toMatchObject({ kind: "redacted", value: "enc_blob", provider: "anthropic" });
+    // No visible reasoning.delta for redacted thinking.
+    expect(evs.map((e) => e.type)).not.toContain("reasoning.delta");
+    assertAllValid(evs);
+  });
 });
 
-describe("claudeNormalizer — tool_result", () => {
-  it("maps a user tool_result to tool.done with mcp content + outcome", async () => {
-    const evs = await normalize(toolResultMsg());
+describe("createClaudeNormalizer — tool_result", () => {
+  it("maps a user tool_result to tool.done with mcp content + outcome (NO turn.start)", () => {
+    const evs = run(toolResultMsg());
     expect(evs).toHaveLength(1);
     expect(evs[0]).toMatchObject({
       type: "tool.done",
@@ -272,15 +332,19 @@ describe("claudeNormalizer — tool_result", () => {
       outcome: "ok",
       content: [{ type: "text", text: "42" }],
     });
+    // Orphan user-side tool.done has no owning message and no parent → no turnId.
+    expect((evs[0] as { turnId?: string }).turnId).toBeUndefined();
     assertAllValid(evs);
   });
 });
 
-describe("claudeNormalizer — nested subagent turn", () => {
-  it("wraps a parent_tool_use_id message in subagent.start/done", async () => {
-    const evs = await normalize(
+describe("createClaudeNormalizer — nested subagent turn (assembled golden)", () => {
+  it("seeds the nested turn via subagent.start so there is NO synthesized turn.start", () => {
+    const evs = run(
       assistantMsg([{ type: "text", text: "sub", citations: null }], "toolu_parent_1"),
     );
+    // The nested turnId is turn_<session> (turnIdFor uses the session id); the
+    // subagent.start seeds it so openMessage does NOT synthesize a turn.start.
     expect(evs.map((e) => e.type)).toEqual([
       "subagent.start",
       "message.start",
@@ -291,8 +355,30 @@ describe("claudeNormalizer — nested subagent turn", () => {
       "subagent.done",
     ]);
     const start = evs.find((e) => e.type === "subagent.start");
-    expect(start).toMatchObject({ parentTurnId: "turn_toolu_parent_1" });
+    expect(start).toMatchObject({ turnId: TOP_TURN, parentTurnId: "turn_toolu_parent_1" });
+    const done = evs.find((e) => e.type === "subagent.done");
+    expect(done).toMatchObject({ turnId: TOP_TURN, parentTurnId: "turn_toolu_parent_1" });
     assertAllValid(evs);
+  });
+});
+
+describe("createClaudeNormalizer — graceful guard", () => {
+  it("emits exactly one ext.anthropic.unparsed for a non-SDKMessage input, no throw", () => {
+    const n = createClaudeNormalizer();
+    const evs = [...n.push("not-an-sdk-message"), ...n.flush()];
+    expect(evs).toHaveLength(1);
+    expect(evs[0]?.type).toBe("ext.anthropic.unparsed");
+    // The raw payload is preserved losslessly under `native`.
+    expect(evs[0]).toMatchObject({ native: "not-an-sdk-message" });
+    assertAllValid(evs);
+  });
+
+  it("emits ext.anthropic.unparsed for a structurally-wrong object (type key does NOT clobber)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [...n.push({ type: "assistant" }), ...n.flush()];
+    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.unparsed"]);
+    // The malformed object — which carries its own `type` — is nested under `native`.
+    expect(evs[0]).toMatchObject({ native: { type: "assistant" } });
   });
 });
 
@@ -309,40 +395,11 @@ describe("mapStopReason", () => {
   });
 });
 
-// ─── the portable JSONata rule (structural subset) ───────────────────────────
-describe("rule.jsonata — portable structural subset", () => {
-  it("maps the assistant-text structural subset the same as the TS normalizer", async () => {
-    const run = fromJsonata(ruleJsonata);
-    const msg = assistantMsg([{ type: "text", text: "hello", citations: null }]);
-    const evs = await run(msg);
-    expect(evs.map((e) => e.type)).toEqual([
-      "message.start",
-      "text.start",
-      "text.delta",
-      "text.end",
-      "message.end",
-    ]);
-    expect(evs.map((e) => e.seq)).toEqual([0, 1, 2, 3, 4]);
-    const delta = evs.find((e) => e.type === "text.delta");
-    expect(delta).toMatchObject({ delta: "hello" });
-    assertAllValid(evs);
-  });
+// ─── Extended population tests ───────────────────────────────────────────────
 
-  it("maps result-success to turn.done", async () => {
-    const run = fromJsonata(ruleJsonata);
-    const evs = await run(resultSuccess("end_turn"));
-    expect(evs).toContainEqual(
-      expect.objectContaining({ type: "turn.done", finishReason: "stop" }),
-    );
-    assertAllValid(evs);
-  });
-});
-
-// ─── B1: Extended population tests ───────────────────────────────────────────
-
-describe("claudeNormalizer — result success with usage", () => {
-  it("populates turn.done.usage from result success modelUsage", async () => {
-    const evs = await normalize(resultSuccess("end_turn"));
+describe("createClaudeNormalizer — result success with usage", () => {
+  it("populates turn.done.usage from result success modelUsage", () => {
+    const evs = run(resultSuccess("end_turn"));
     const done = evs.find((e) => e.type === "turn.done");
     expect(done).toMatchObject({
       type: "turn.done",
@@ -360,22 +417,21 @@ describe("claudeNormalizer — result success with usage", () => {
   });
 });
 
-describe("claudeNormalizer — result error", () => {
-  it("maps error_max_turns to turn.error with retriable: false", async () => {
-    const evs = await normalize(resultError("error_max_turns"));
-    expect(evs).toContainEqual(
-      expect.objectContaining({
-        type: "turn.error",
-        code: "error_max_turns",
-        retriable: false,
-        message: "max turns reached",
-      }),
-    );
+describe("createClaudeNormalizer — result error", () => {
+  it("maps error_max_turns to turn.error with retriable: false", () => {
+    const evs = run(resultError("error_max_turns"));
+    expect(evs.map((e) => e.type)).toEqual(["turn.error"]);
+    expect(evs[0]).toMatchObject({
+      type: "turn.error",
+      code: "error_max_turns",
+      retriable: false,
+      message: "max turns reached",
+    });
     assertAllValid(evs);
   });
 
-  it("maps error_during_execution to turn.error with retriable: true", async () => {
-    const evs = await normalize(resultError("error_during_execution"));
+  it("maps error_during_execution to turn.error with retriable: true", () => {
+    const evs = run(resultError("error_during_execution"));
     expect(evs).toContainEqual(
       expect.objectContaining({
         type: "turn.error",
@@ -387,9 +443,9 @@ describe("claudeNormalizer — result error", () => {
   });
 });
 
-describe("claudeNormalizer — refusal stop_reason", () => {
-  it("adds safety to turn.done when stop_reason is refusal", async () => {
-    const evs = await normalize(resultSuccess("refusal"));
+describe("createClaudeNormalizer — refusal stop_reason", () => {
+  it("adds safety to turn.done when stop_reason is refusal", () => {
+    const evs = run(resultSuccess("refusal"));
     const done = evs.find((e) => e.type === "turn.done");
     expect(done).toMatchObject({
       type: "turn.done",
@@ -400,9 +456,9 @@ describe("claudeNormalizer — refusal stop_reason", () => {
   });
 });
 
-describe("claudeNormalizer — text citations", () => {
-  it("emits a content.block with citations after text.end when citations are present", async () => {
-    const evs = await normalize(
+describe("createClaudeNormalizer — text citations", () => {
+  it("emits a content.block with citations after text.end when citations are present", () => {
+    const evs = run(
       assistantMsg([
         {
           type: "text",
@@ -441,8 +497,8 @@ describe("claudeNormalizer — text citations", () => {
   });
 });
 
-describe("claudeNormalizer — permission_denials", () => {
-  it("emits tool.start + tool.done denied for each permission denial", async () => {
+describe("createClaudeNormalizer — permission_denials", () => {
+  it("emits tool.start + tool.done denied for each permission denial", () => {
     const msg: SDKMessage = {
       type: "result",
       subtype: "success",
@@ -472,7 +528,9 @@ describe("claudeNormalizer — permission_denials", () => {
       uuid: "00000000-0000-0000-0000-000000000002",
       session_id: "sess_fixture",
     };
-    const evs = await normalize(msg);
+    const evs = run(msg);
+    // turn.done first, then the denial tool.start/tool.done pair.
+    expect(evs.map((e) => e.type)).toEqual(["turn.done", "tool.start", "tool.done"]);
     const toolStart = evs.find((e) => e.type === "tool.start");
     expect(toolStart).toMatchObject({ type: "tool.start", name: "bash" });
     const toolDone = evs.find((e) => e.type === "tool.done");
@@ -486,8 +544,8 @@ describe("claudeNormalizer — permission_denials", () => {
   });
 });
 
-describe("claudeNormalizer — message.end usage", () => {
-  it("populates message.end.usage from BetaMessage.usage", async () => {
+describe("createClaudeNormalizer — message.end usage", () => {
+  it("populates message.end.usage from BetaMessage.usage", () => {
     const nonZeroUsage: BetaMessage["usage"] = {
       input_tokens: 10,
       output_tokens: 5,
@@ -500,7 +558,7 @@ describe("claudeNormalizer — message.end usage", () => {
       service_tier: null,
       speed: null,
     };
-    const evs = await normalize(
+    const evs = run(
       assistantMsg([{ type: "text", text: "hi", citations: null }], null, {
         usage: nonZeroUsage,
       }),
@@ -514,12 +572,11 @@ describe("claudeNormalizer — message.end usage", () => {
   });
 });
 
-
 // ─── B1b: Extended population — providerExecuted, structured_output, parent_tool_use_id, server blocks ──
 
-describe("claudeNormalizer — B1b: providerExecuted from caller", () => {
-  it("sets providerExecuted: true for server_tool_use blocks", async () => {
-    const evs = await normalize(
+describe("createClaudeNormalizer — B1b: providerExecuted from caller", () => {
+  it("sets providerExecuted: true for server_tool_use blocks", () => {
+    const evs = run(
       assistantMsg([
         {
           type: "server_tool_use",
@@ -534,15 +591,14 @@ describe("claudeNormalizer — B1b: providerExecuted from caller", () => {
     assertAllValid(evs);
   });
 
-  it("does not set providerExecuted for regular tool_use with no caller", async () => {
-    const evs = await normalize(
+  it("does not set providerExecuted for regular tool_use with no caller", () => {
+    const evs = run(
       assistantMsg([
         { type: "tool_use", id: "toolu_1", name: "get_weather", input: { city: "SF" } },
       ]),
     );
     const start = evs.find((e) => e.type === "tool.start");
     expect(start).toBeDefined();
-    // providerExecuted should be absent/undefined for a direct tool_use without caller
     const toolStart = evs.find(
       (e): e is Extract<AgEvent, { type: "tool.start" }> => e.type === "tool.start",
     );
@@ -551,8 +607,8 @@ describe("claudeNormalizer — B1b: providerExecuted from caller", () => {
   });
 });
 
-describe("claudeNormalizer — B1b: structured_output", () => {
-  it("uses structured_output as turn.done.outcome.result when present", async () => {
+describe("createClaudeNormalizer — B1b: structured_output", () => {
+  it("uses structured_output as turn.done.outcome.result when present", () => {
     const msg: SDKMessage = {
       type: "result",
       subtype: "success",
@@ -581,7 +637,7 @@ describe("claudeNormalizer — B1b: structured_output", () => {
       uuid: "00000000-0000-0000-0000-000000000002",
       session_id: "sess_fixture",
     };
-    const evs = await normalize(msg);
+    const evs = run(msg);
     const done = evs.find((e) => e.type === "turn.done");
     expect(done).toMatchObject({
       type: "turn.done",
@@ -591,8 +647,8 @@ describe("claudeNormalizer — B1b: structured_output", () => {
   });
 });
 
-describe("claudeNormalizer — B1b: parent_tool_use_id on tool.done", () => {
-  it("sets tool.done.turnId from parent_tool_use_id on user message", async () => {
+describe("createClaudeNormalizer — B1b: parent_tool_use_id on tool.done", () => {
+  it("sets tool.done.turnId from parent_tool_use_id on user message", () => {
     const content: UserContent = [
       {
         type: "tool_result",
@@ -608,7 +664,7 @@ describe("claudeNormalizer — B1b: parent_tool_use_id on tool.done", () => {
       uuid: "00000000-0000-0000-0000-000000000003",
       session_id: "sess_fixture",
     };
-    const evs = await normalize(msg);
+    const evs = run(msg);
     expect(evs).toHaveLength(1);
     expect(evs[0]).toMatchObject({
       type: "tool.done",
@@ -621,14 +677,23 @@ describe("claudeNormalizer — B1b: parent_tool_use_id on tool.done", () => {
 
 // ─── deferral c: assistant error → turn.error ────────────────────────────────
 
-function assistantMsgWithError(error: NonNullable<SDKAssistantError>): SDKMessage {
-  const base = assistantMsg([]) as SDKAssistant;
-  return { ...base, error };
+// Build the assistant arm directly (typed `SDKAssistant`, which IS assignable to
+// `SDKMessage`) so the `error` field lands on the correct union member — no cast,
+// no spread onto a union-typed base whose `user` arm lacks `error`.
+function assistantMsgWithError(error: NonNullable<SDKAssistantError>): SDKAssistant {
+  return {
+    type: "assistant",
+    message: betaMessage([]),
+    parent_tool_use_id: null,
+    uuid: "00000000-0000-0000-0000-000000000001",
+    session_id: "sess_fixture",
+    error,
+  };
 }
 
-describe("claudeNormalizer — deferral c: assistant error → turn.error", () => {
-  it("emits turn.error with code and retriable:true for rate_limit", async () => {
-    const evs = await normalize(assistantMsgWithError("rate_limit"));
+describe("createClaudeNormalizer — deferral c: assistant error → turn.error", () => {
+  it("emits turn.error with code and retriable:true for rate_limit", () => {
+    const evs = run(assistantMsgWithError("rate_limit"));
     expect(evs).toContainEqual(
       expect.objectContaining({
         type: "turn.error",
@@ -639,8 +704,8 @@ describe("claudeNormalizer — deferral c: assistant error → turn.error", () =
     assertAllValid(evs);
   });
 
-  it("emits turn.error with retriable:false for billing_error", async () => {
-    const evs = await normalize(assistantMsgWithError("billing_error"));
+  it("emits turn.error with retriable:false for billing_error", () => {
+    const evs = run(assistantMsgWithError("billing_error"));
     expect(evs).toContainEqual(
       expect.objectContaining({
         type: "turn.error",
@@ -651,8 +716,8 @@ describe("claudeNormalizer — deferral c: assistant error → turn.error", () =
     assertAllValid(evs);
   });
 
-  it("emits turn.error with retriable:true for server_error", async () => {
-    const evs = await normalize(assistantMsgWithError("server_error"));
+  it("emits turn.error with retriable:true for server_error", () => {
+    const evs = run(assistantMsgWithError("server_error"));
     expect(evs).toContainEqual(
       expect.objectContaining({
         type: "turn.error",
@@ -664,9 +729,9 @@ describe("claudeNormalizer — deferral c: assistant error → turn.error", () =
   });
 });
 
-describe("claudeNormalizer — B1b: server blocks semantic homes", () => {
-  it("maps compaction block to content.block with type: compaction", async () => {
-    const evs = await normalize(
+describe("createClaudeNormalizer — B1b: server blocks semantic homes", () => {
+  it("maps compaction block to content.block with type: compaction", () => {
+    const evs = run(
       assistantMsg([
         {
           type: "compaction",
@@ -683,8 +748,8 @@ describe("claudeNormalizer — B1b: server blocks semantic homes", () => {
     assertAllValid(evs);
   });
 
-  it("maps mcp_tool_result to tool.done (not provider-raw)", async () => {
-    const evs = await normalize(
+  it("maps mcp_tool_result to tool.done (not provider-raw)", () => {
+    const evs = run(
       assistantMsg([
         {
           type: "mcp_tool_result",
@@ -701,7 +766,6 @@ describe("claudeNormalizer — B1b: server blocks semantic homes", () => {
       outcome: "ok",
       content: [{ type: "text", text: "tool result text" }],
     });
-    // Should NOT emit a provider-raw content.block
     const providerRaw = evs.find(
       (e) =>
         e.type === "content.block" &&
