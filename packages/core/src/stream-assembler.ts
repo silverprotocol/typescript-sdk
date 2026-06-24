@@ -200,10 +200,10 @@ export class StreamAssembler {
     this.#emit(ev);
   }
 
-  /** Close a turn with an error. */
+  /** Close a turn with an error. `usage` carries accrued usage on the interrupted turn (A1). */
   closeTurnError(
     turnId: string,
-    fields: { message: string; code?: string; retriable?: boolean },
+    fields: { message: string; code?: string; retriable?: boolean; usage?: AgUsage },
   ): void {
     const ev: TurnErrorEvent = {
       type: "turn.error",

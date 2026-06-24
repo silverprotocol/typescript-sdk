@@ -23,11 +23,14 @@
  * the raw Responses deltas (in the `model` carrier) carry the streamed text + the
  * per-fragment tool-call argument accumulation the spec mandates (§8.1).
  *
- * The normalizer is STATEFUL across calls (spec §8): it buffers
- * `function_call_arguments.delta` fragments per Responses item id and assembles
- * the mandatory `tool.args.assembled` on `.done`. `seq` is allocated
- * monotonically from 0 WITHIN each call; the Router rebases to a global ordinal
- * downstream (out of scope here).
+ * The sole entry point is the STATEFUL {@link createOpenaiNormalizer} factory:
+ * one fresh `StreamAssembler` per factory call holds the per-invoke closure state
+ * (turn anchoring, fc_→call_id correlation, arg buffers, refusal flag) and drives
+ * the engine from the SINGLE authoritative source per concern (BINDING canonical
+ * model, plan §"Spike Findings"). `seq` is allocated monotonically from 0 by the
+ * engine; the Router rebases to a global ordinal downstream (out of scope here).
+ * (The earlier per-call stateless `RuleNormalizer`/JSONata path was deleted in
+ * A1 T5c — pre-launch no-backcompat.)
  *
  * The `OpenAIStreamEvent` discriminated union below is a faithful PROJECTION of
  * the verified `@openai/agents` `RunStreamEvent` union + the openai-node
@@ -68,19 +71,9 @@ import {
   JsonValue,
   type Normalizer,
   type NormalizerContext,
-  type RuleNormalizer,
   StreamAssembler,
   type ToolOutcome,
 } from "@silverprotocol/core";
-
-import { ruleJsonata } from "./rule.js";
-
-/** The portable pure-structural JSONata subset (message text + tool.start/args.delta).
- *  Re-exported for cross-runtime reuse; the parsed `tool.args.assembled`, the
- *  arg-accumulation, the `rs_` reasoning replay, `tool_output`, and `turn.done`
- *  live in {@link openaiNormalizer}, authoritative for the live path. The canonical
- *  source of this string is the sibling `rule.jsonata` artifact. */
-export { ruleJsonata };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OpenAIStreamEvent — the HAND-DEFINED fixture contract (verified shapes above).
@@ -390,6 +383,20 @@ interface OpenAIRawModelStreamEvent {
   data: OpenAIResponseStreamEvent;
 }
 
+/** A SYNTHETIC terminal sentinel the host feeds the normalizer when the
+ *  `@openai/agents` runtime THROWS `MaxTurnsExceededError` from
+ *  `await stream.completed` after the stream ends (the spike confirmed
+ *  `max_turns` is NOT a native stream event). The host (T6) catches the throw
+ *  and injects this; the normalizer maps it to `turn.error{code:"max_turns",…}`.
+ *  Modeled as a real arm of the native union (NOT cast) so the guard + drive
+ *  switch handle it type-safely. `usage` mirrors the neutral `AgUsage` shape. */
+export interface OpenAIHostError {
+  type: "__host_error__";
+  code: string;
+  message: string;
+  usage?: AgUsage;
+}
+
 /** The fixture-contract input union (verified shapes; see file header). */
 export type OpenAIStreamEvent =
   | OpenAIMessageOutputEvent
@@ -398,23 +405,8 @@ export type OpenAIStreamEvent =
   | OpenAIReasoningEvent
   | OpenAIHandoffRequestedEvent
   | OpenAIToolApprovalRequestedEvent
-  | OpenAIRawModelStreamEvent;
-
-// ─── seq allocator ────────────────────────────────────────────────────────────
-// Monotonic per call, from 0. A tiny closure keeps the emit sites declarative.
-function makeEmitter() {
-  let seq = 0;
-  const events: AgEvent[] = [];
-  return {
-    push(ev: AgEvent): void {
-      events.push(ev);
-    },
-    next(): number {
-      return seq++;
-    },
-    events,
-  };
-}
+  | OpenAIRawModelStreamEvent
+  | OpenAIHostError;
 
 // ─── finish-reason → AgFinishReason (spec §4) ─────────────────────────────────
 // Maps any OpenAI completion / `response.incomplete_details.reason` to the
@@ -435,28 +427,6 @@ export function mapFinishReason(reason: string | undefined | null): AgFinishReas
       return "unknown";
   }
 }
-
-// ─── stateful arg buffer (spec §8.1) ──────────────────────────────────────────
-// `response.function_call_arguments.delta` fragments accumulate per Responses
-// item id; `.done` (or a wrapped `tool_called`) seals them into the mandatory
-// `tool.args.assembled`. The buffer survives ACROSS normalizer calls — the SDK
-// emits each fragment as its own stream event.
-const argBuffers = new Map<string, string>();
-
-// ─── fc_ → call_id correlation (spec §2) ──────────────────────────────────────
-// AgJSON `toolCallId` = the model `call_id`; the raw Responses events carry only
-// the `fc_…` item id, NOT the `call_id`. The `tool_called` run-item carries BOTH
-// (`callId` + `id`=`fc_…`), so we buffer the mapping there and look it up on the
-// raw `.done` path. Survives ACROSS normalizer calls (separate stream events).
-const callIdByItemId = new Map<string, string>();
-
-// ─── refusal turn tracking (Fix 1 / spec §4 finishReason:"refusal") ───────────
-// When a `message_output_created` item contains a `refusal` content part, this
-// flag is set so the downstream `response.completed` / `response_done` arm can
-// override finishReason to "refusal" instead of "stop". The OpenAI Agents SDK
-// emits at most one response per turn, so a single boolean sentinel is correct.
-// Cleared when the turn.done is emitted to avoid leaking across turns.
-let pendingRefusal = false;
 
 // ─── tool-output content → AgBlock[] (spec §2) ────────────────────────────────
 function toolOutputToAgBlocks(
@@ -523,362 +493,6 @@ function mapAnnotationsToCitations(
   return out.length > 0 ? out : undefined;
 }
 
-// ─── the normalizer ───────────────────────────────────────────────────────────
-const openaiNormalizer: RuleNormalizer<OpenAIStreamEvent> = (event) => {
-  const e = makeEmitter();
-
-  if (event.type === "run_item_stream_event") {
-    switch (event.name) {
-      case "message_output_created": {
-        const item = event.item.rawItem;
-        const id = item.id ?? "msg";
-        // Determine if any part has annotations (url_citation). When annotations
-        // are present we emit a content.block (with citations[]) in addition to
-        // the text lifecycle so citations survive the reduce() fold.
-        let hasAnnotations = false;
-        // Also detect refusal parts — emit their text instead of silently dropping,
-        // and record the item id so the downstream response.completed arm can set
-        // finishReason:"refusal" faithfully (Fix 1).
-        let hasRefusal = false;
-        let combinedText = "";
-        for (const part of item.content) {
-          if (part.type === "output_text") {
-            combinedText += part.text;
-            if (part.annotations && part.annotations.length > 0) hasAnnotations = true;
-          } else if (part.type === "refusal") {
-            combinedText += part.refusal;
-            hasRefusal = true;
-          }
-        }
-        if (hasRefusal) {
-          pendingRefusal = true;
-        }
-        e.push({ type: "text.start", seq: e.next(), id });
-        e.push({ type: "text.delta", seq: e.next(), id, delta: combinedText });
-        e.push({ type: "text.end", seq: e.next(), id });
-
-        // For any output_text parts that carry url_citation annotations, emit a
-        // content.block carrying the text + citations[] so reduce() can fold them.
-        if (hasAnnotations) {
-          for (const part of item.content) {
-            if (part.type === "output_text") {
-              const citations = mapAnnotationsToCitations(part.annotations, part.text);
-              if (citations !== undefined) {
-                const block: AgBlock = { type: "text", text: part.text, citations };
-                e.push({ type: "content.block", seq: e.next(), block });
-              }
-            }
-          }
-        }
-        return e.events;
-      }
-      case "tool_called": {
-        const item = event.item.rawItem;
-        // `arguments` is a JSON STRING (spec §4) — parse at this genuine
-        // deserialization boundary into JsonValue (no cast). call_id → toolCallId;
-        // the fc_ item id → itemId (DISTINCT, replay-load-bearing, spec §8).
-        const input: JsonValue = JsonValue.parse(JSON.parse(item.arguments));
-        e.push({
-          type: "tool.start",
-          seq: e.next(),
-          toolCallId: item.callId,
-          name: item.name,
-          itemId: item.id,
-        });
-        e.push({
-          type: "tool.args.delta",
-          seq: e.next(),
-          toolCallId: item.callId,
-          delta: item.arguments,
-        });
-        e.push({
-          type: "tool.args.assembled",
-          seq: e.next(),
-          toolCallId: item.callId,
-          input,
-        });
-        // The run-item path is AUTHORITATIVE for the call_id↔fc_ correlation: the
-        // fc_ itemId is already carried on `tool.start.itemId` above (its spec home;
-        // `tool.args.assembled` has no itemId slot). Record call_id keyed by fc_ id
-        // so the raw `.done` path (which lacks call_id) can recover the real
-        // toolCallId. The assembled wrapper also supersedes any scratch buffer.
-        if (item.id !== undefined) {
-          callIdByItemId.set(item.id, item.callId);
-          argBuffers.delete(item.id);
-        }
-        return e.events;
-      }
-      case "tool_output": {
-        const item = event.item.rawItem;
-        // Derive outcome from the result item status: incomplete → error (e.g. timeout).
-        const outcome: ToolOutcome = item.status === "incomplete" ? "error" : "ok";
-        e.push({
-          type: "tool.done",
-          seq: e.next(),
-          toolCallId: item.callId,
-          content: toolOutputToAgBlocks(item.output),
-          outcome,
-        });
-        return e.events;
-      }
-      case "reasoning_item_created": {
-        const item = event.item.rawItem;
-        const id = item.id ?? "reasoning";
-        const itemId = item.id;
-        // Visible reasoning text (the input_text parts).
-        const text = item.content.map((p) => p.text).join("");
-        e.push({ type: "reasoning.start", seq: e.next(), id, itemId });
-        if (text.length > 0) {
-          e.push({ type: "reasoning.delta", seq: e.next(), id, delta: text });
-        }
-        e.push({ type: "reasoning.end", seq: e.next(), id });
-        // The rs_ id + encrypted_content are the stateless-replay payload
-        // (spec §8.2/§10.4): reasoning.opaque kind:"ciphertext", echoed verbatim
-        // or multi-turn reasoning 400s.
-        const encrypted = item.providerData?.encrypted_content;
-        if (typeof encrypted === "string" && encrypted.length > 0) {
-          e.push({
-            type: "reasoning.opaque",
-            seq: e.next(),
-            id,
-            kind: "ciphertext",
-            value: encrypted,
-            itemId,
-            provider: "openai",
-          });
-        }
-        return e.events;
-      }
-      case "handoff_requested": {
-        // A handoff to another agent: emit handoff{kind:'transfer'} + subagent.start.
-        // The target agent name may come from rawItem.targetAgent (explicit) or be
-        // inferred from the function name by the platform; we use targetAgent when
-        // present.
-        const rawItem = event.item.rawItem;
-        const toAgentName = rawItem.targetAgent ?? rawItem.name;
-        const subTurnId = `turn_handoff_${rawItem.callId}`;
-        const parentTurnId = "turn_current";
-        e.push({
-          type: "handoff",
-          seq: e.next(),
-          kind: "transfer",
-          toAgentName,
-        });
-        e.push({
-          type: "subagent.start",
-          seq: e.next(),
-          turnId: subTurnId,
-          parentTurnId,
-          agentName: toAgentName,
-        });
-        return e.events;
-      }
-      case "tool_approval_requested": {
-        // A tool call awaiting human approval: emit hitl.ask{kind:'approval'} then
-        // seal the turn as paused (Fix 2 / brief §tool_approval_requested).
-        const rawItem = event.item.rawItem;
-        const askId = `ask_${rawItem.callId}`;
-        e.push({
-          type: "hitl.ask",
-          seq: e.next(),
-          askId,
-          kind: "approval",
-          toolCallId: rawItem.callId,
-          message: `Approve tool: ${rawItem.name}`,
-        });
-        e.push({
-          type: "turn.done",
-          seq: e.next(),
-          turnId: `turn_approval_${rawItem.callId}`,
-          outcome: {
-            type: "paused",
-            asks: [
-              {
-                askId,
-                kind: "approval",
-                toolCallId: rawItem.callId,
-                message: `Approve tool: ${rawItem.name}`,
-              },
-            ],
-          },
-          finishReason: "paused",
-        });
-        return e.events;
-      }
-      default: {
-        // Other RunItemStreamEventName values (tool_search_*, handoff_occurred, etc.)
-        // are unmodeled on this fixture seam. Rather than silently discarding them,
-        // emit a provider-raw block so nothing is lost.
-        const providerRawBlock: AgBlock = {
-          type: "provider-raw",
-          vendor: "openai",
-          raw: JsonValue.parse(event),
-        };
-        e.push({ type: "content.block", seq: e.next(), block: providerRawBlock });
-        return e.events;
-      }
-    }
-  }
-
-  // raw_model_stream_event — `data` is the Agents SDK `ResponseStreamEvent`
-  // (`StreamEvent`) union: the SDK literals + the generic `model` carrier whose
-  // `event` is the verbatim openai-node Responses event (snake_case fields).
-  const data = event.data;
-  switch (data.type) {
-    case "output_text_delta": {
-      // SDK-flattened streamed assistant text. No item id on the carrier literal,
-      // so attach to the open message generically (spec §4 binds to last message).
-      e.push({ type: "text.delta", seq: e.next(), id: "msg", delta: data.delta });
-      return e.events;
-    }
-    case "response_started": {
-      // Turn opener — no AgJSON event on this fixture seam (the run-item /
-      // response_done legs carry the load-bearing lifecycle).
-      return e.events;
-    }
-    case "response_done": {
-      // SDK turn terminator. Mirror response.completed → turn.done (stop).
-      // If any prior message_output_created in this turn carried a refusal part,
-      // override finishReason to "refusal" (Fix 1).
-      const finishReasonDone: AgFinishReason = pendingRefusal ? "refusal" : mapFinishReason(undefined);
-      pendingRefusal = false;
-      const usage = mapUsage(data.response?.usage);
-      e.push({
-        type: "turn.done",
-        seq: e.next(),
-        turnId: `turn_${data.response?.id ?? "openai"}`,
-        outcome: { type: "success" },
-        finishReason: finishReasonDone,
-        ...(usage !== undefined ? { usage } : {}),
-      });
-      return e.events;
-    }
-    case "model": {
-      // The verbatim openai-node Responses event rides in `event` (snake_case).
-      return handleRawResponsesEvent(data.event, e);
-    }
-    default: {
-      // Unhandled SDK StreamEvent — emit provider-raw so nothing is silently lost.
-      const providerRawBlock: AgBlock = {
-        type: "provider-raw",
-        vendor: "openai",
-        raw: JsonValue.parse(data),
-      };
-      e.push({ type: "content.block", seq: e.next(), block: providerRawBlock });
-      return e.events;
-    }
-  }
-};
-
-// ─── embedded openai-node Responses events (the `model` carrier payload) ──────
-// Real snake_case fields (`item_id`, `arguments`, `delta`, `incomplete_details`).
-function handleRawResponsesEvent(
-  ev: OpenAIRawResponsesEvent,
-  e: ReturnType<typeof makeEmitter>,
-): AgEvent[] {
-  switch (ev.type) {
-    case "response.output_text.delta": {
-      e.push({ type: "text.delta", seq: e.next(), id: ev.item_id, delta: ev.delta });
-      return e.events;
-    }
-    case "response.function_call_arguments.delta": {
-      // Accumulate the fragment per Responses fc_ item id (spec §8.1); no emit yet.
-      const prev = argBuffers.get(ev.item_id) ?? "";
-      argBuffers.set(ev.item_id, prev + ev.delta);
-      return e.events;
-    }
-    case "response.function_call_arguments.done": {
-      // Seal the accumulated buffer into the mandatory tool.args.assembled. Prefer
-      // the event's full `arguments`; fall back to the accumulated buffer.
-      const buffered = argBuffers.get(ev.item_id) ?? "";
-      const raw = ev.arguments.length > 0 ? ev.arguments : buffered;
-      const input: JsonValue = JsonValue.parse(JSON.parse(raw));
-      // toolCallId = the model call_id (spec §2), recovered via the fc_-keyed map
-      // populated by the run-item `tool_called` leg (the AUTHORITATIVE call_id↔fc_
-      // correlation). If no run-item correlated this fc_ id yet, fall back to the
-      // fc_ id as toolCallId — the run-item path remains authoritative and will
-      // carry the real call_id (and the fc_ itemId on tool.start) when it fires.
-      const toolCallId = callIdByItemId.get(ev.item_id) ?? ev.item_id;
-      e.push({
-        type: "tool.args.assembled",
-        seq: e.next(),
-        toolCallId,
-        input,
-      });
-      argBuffers.delete(ev.item_id);
-      return e.events;
-    }
-    case "response.completed":
-    case "response.incomplete": {
-      const reason = ev.response.incomplete_details?.reason;
-      const usage = mapUsage(ev.response.usage);
-      // content_filter → non-success outcome + safety signal.
-      // Any other incomplete reason → error outcome (not success).
-      // If a prior message_output_created in this turn carried a refusal part,
-      // override finishReason to "refusal" regardless of the completion reason (Fix 1).
-      let outcome: { type: "success" } | { type: "error"; message: string };
-      let safety: AgSafety[] | undefined;
-      let finishReason: AgFinishReason;
-      if (pendingRefusal) {
-        finishReason = "refusal";
-        pendingRefusal = false;
-        outcome = { type: "success" };
-      } else if (reason === "content_filter") {
-        finishReason = mapFinishReason(reason);
-        outcome = { type: "error", message: "content_filter" };
-        safety = [{ category: "content_filter", blocked: true }];
-      } else if (ev.type === "response.incomplete") {
-        finishReason = mapFinishReason(reason);
-        outcome = { type: "error", message: reason ?? "incomplete" };
-      } else {
-        finishReason = mapFinishReason(reason);
-        outcome = { type: "success" };
-      }
-      e.push({
-        type: "turn.done",
-        seq: e.next(),
-        turnId: `turn_${ev.response.id}`,
-        outcome,
-        finishReason,
-        ...(usage !== undefined ? { usage } : {}),
-        ...(safety !== undefined ? { safety } : {}),
-      });
-      return e.events;
-    }
-    case "response.failed": {
-      // The response itself failed (rate limit, server error, etc.).
-      const err = ev.response.error;
-      e.push({
-        type: "turn.error",
-        seq: e.next(),
-        message: err?.message ?? "response.failed",
-        ...(err?.code !== undefined ? { code: err.code } : {}),
-      });
-      return e.events;
-    }
-    case "error": {
-      // Top-level non-terminal error advisory (spec §4 bare `error` event).
-      e.push({
-        type: "error",
-        seq: e.next(),
-        message: ev.message,
-        ...(ev.code !== undefined ? { code: ev.code } : {}),
-      });
-      return e.events;
-    }
-    default: {
-      // Unhandled raw Responses event — emit provider-raw so nothing is silently lost.
-      const providerRawBlock: AgBlock = {
-        type: "provider-raw",
-        vendor: "openai",
-        raw: JsonValue.parse(ev),
-      };
-      e.push({ type: "content.block", seq: e.next(), block: providerRawBlock });
-      return e.events;
-    }
-  }
-}
-
 // ─── structural guard: unknown → OpenAIStreamEvent ────────────────────────────
 // `createOpenaiNormalizer().push` receives the genuine JSON boundary (`JsonValue`,
 // spec §0.1). The run-seam yields well-formed `OpenAIStreamEvent`s, but this is the
@@ -895,15 +509,19 @@ function isJsonObject(v: unknown): v is { readonly [k: string]: JsonValue } {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-// Only the OUTER envelope is validated here (the two RunStreamEvent families: a
-// `run_item_stream_event` with a string `name`, or a `raw_model_stream_event` with a
-// `data` object). The inner `drive` switch handles every nested arm structurally and
-// no-ops anything it does not recognise — so a partially-shaped-but-well-typed event
-// is never lost, and only a genuinely non-OpenAI-shaped payload falls to `unparsed`.
+// Only the OUTER envelope is validated here (the RunStreamEvent families: a
+// `run_item_stream_event` with a string `name`, a `raw_model_stream_event` with a
+// `data` object, or the synthetic `__host_error__` terminal sentinel the host feeds
+// on `MaxTurnsExceededError`). The inner `drive` switch handles every nested arm
+// structurally and no-ops anything it does not recognise — so a partially-shaped-but-
+// well-typed event is never lost, and only a genuinely non-OpenAI-shaped payload
+// falls to `unparsed`.
 function isOpenAIStreamEvent(v: unknown): v is OpenAIStreamEvent {
   if (!isJsonObject(v)) return false;
   if (v.type === "run_item_stream_event") return typeof v.name === "string";
   if (v.type === "raw_model_stream_event") return isJsonObject(v.data);
+  if (v.type === "__host_error__")
+    return typeof v.code === "string" && typeof v.message === "string";
   return false;
 }
 
@@ -962,6 +580,13 @@ export function createOpenaiNormalizer(ctx?: NormalizerContext): Normalizer {
   // string so argBuffers is primarily for the fallback path.
   const instanceArgBuffers = new Map<string, string>();
 
+  // Refusal tracking (T5c — instance state mirroring the old module-level
+  // `pendingRefusal`). Set when a `message_output_created` run-item carries a
+  // `refusal` content part; the downstream `response.completed` arm then closes
+  // the turn with `finishReason:"refusal"`. Cleared on every response close so it
+  // never leaks across turns.
+  let pendingRefusal = false;
+
   /**
    * Open the turn + message exactly once per response. Uses the real `response.id`
    * (`turn_<id>`) when known; synthesizes a stable id only if `response.created` was
@@ -993,6 +618,7 @@ export function createOpenaiNormalizer(ctx?: NormalizerContext): Normalizer {
     turnId = undefined;
     msgId = undefined;
     responseId = undefined;
+    pendingRefusal = false;
   }
 
   /**
@@ -1076,31 +702,74 @@ export function createOpenaiNormalizer(ctx?: NormalizerContext): Normalizer {
         instanceArgBuffers.delete(ev.item_id);
         return;
       }
-      case "response.completed": {
-        // Success close — guard close-once (the SDK emits completed TWICE). A
+      case "response.completed":
+      case "response.incomplete": {
+        // Terminal close — guard close-once (the SDK emits completed TWICE). A
         // `undefined` return means this response is already closed → no-op the dupe.
         if (ensureResponseOpen(ev.response.id) === undefined) return;
         if (turnId === undefined) return; // unreachable post-ensure; satisfies narrowing
-        // End any still-open text streams (defensive) before closing the message.
-        if (msgId !== undefined) {
-          for (const streamId of openTextStreams) a.textEnd(streamId, msgId);
-          a.closeMessage(msgId);
-        }
-        const finishReason: AgFinishReason = mapFinishReason(
-          ev.response.incomplete_details?.reason,
-        );
+        endOpenStreamsAndCloseMessage();
+        const reason = ev.response.incomplete_details?.reason;
         const usage = mapUsage(ev.response.usage);
-        a.closeTurnDone(turnId, {
-          outcome: { type: "success" },
-          finishReason,
-          ...(usage !== undefined ? { usage } : {}),
+        // Decision tree (mirrors the canonical model, A1):
+        //   refusal recorded         → closeTurnDone success, finishReason:"refusal"
+        //   content_filter           → closeTurnDone error-outcome + safety signal
+        //   any other incomplete     → closeTurnError{code:reason, usage}
+        //   plain completed          → closeTurnDone success
+        if (pendingRefusal) {
+          a.closeTurnDone(turnId, {
+            outcome: { type: "success" },
+            finishReason: "refusal",
+            ...(usage !== undefined ? { usage } : {}),
+          });
+        } else if (reason === "content_filter") {
+          const safety: AgSafety[] = [{ category: "content_filter", blocked: true }];
+          a.closeTurnDone(turnId, {
+            outcome: { type: "error", message: "content_filter" },
+            finishReason: mapFinishReason(reason),
+            safety,
+            ...(usage !== undefined ? { usage } : {}),
+          });
+        } else if (ev.type === "response.incomplete") {
+          a.closeTurnError(turnId, {
+            message: reason ?? "incomplete",
+            ...(reason !== undefined ? { code: reason } : {}),
+            ...(usage !== undefined ? { usage } : {}),
+          });
+        } else {
+          a.closeTurnDone(turnId, {
+            outcome: { type: "success" },
+            finishReason: mapFinishReason(reason),
+            ...(usage !== undefined ? { usage } : {}),
+          });
+        }
+        resetResponseState();
+        return;
+      }
+      case "response.failed": {
+        // The response itself failed (rate limit, server error, …). Close-once guard.
+        if (ensureResponseOpen(ev.response.id) === undefined) return;
+        if (turnId === undefined) return; // unreachable post-ensure; satisfies narrowing
+        endOpenStreamsAndCloseMessage();
+        const err = ev.response.error;
+        a.closeTurnError(turnId, {
+          message: err?.message ?? "response.failed",
+          ...(err?.code !== undefined ? { code: err.code } : {}),
         });
         resetResponseState();
         return;
       }
-      // KNOWN-but-deferred raw families (ported in T5c) — no-op for now:
-      //   response.incomplete | response.failed | error    (error arms, T5c)
-      // Plus the duplicate raw families IGNORED per the canonical model:
+      case "error": {
+        // Top-level NON-terminal advisory (spec §4 bare `error`). It does NOT close
+        // the turn — surface it on the lossless vendor channel without disturbing the
+        // open response lifecycle.
+        a.emitExt("openai", "error", {
+          message: ev.message,
+          ...(ev.code !== undefined ? { code: ev.code } : {}),
+        });
+        return;
+      }
+      // Duplicate raw families IGNORED per the canonical model:
       //   response.output_text.done is handled above; response.output_item.done,
       //   response.in_progress, content_part.* are not authoritative sources.
       default:
@@ -1108,8 +777,69 @@ export function createOpenaiNormalizer(ctx?: NormalizerContext): Normalizer {
     }
   }
 
+  /** End any still-open text streams (defensive), then close the open message. */
+  function endOpenStreamsAndCloseMessage(): void {
+    if (msgId !== undefined) {
+      for (const streamId of openTextStreams) a.textEnd(streamId, msgId);
+      a.closeMessage(msgId);
+    }
+  }
+
+  /**
+   * Map a `message_output_created` run-item to a CITATIONS SUPPLEMENT only —
+   * the text already streamed from the raw `response.output_text.delta` path, so
+   * this MUST NOT re-emit text. For each `output_text` part that carries
+   * url_citation annotations, emit a `content.block` (text + citations[]) so the
+   * citations survive the reduce fold. A `refusal` part sets `pendingRefusal` so
+   * the downstream `response.completed` arm closes with `finishReason:"refusal"`.
+   */
+  function driveMessageOutputCreated(item: OpenAIAssistantMessageItem): void {
+    for (const part of item.content) {
+      if (part.type === "refusal") {
+        pendingRefusal = true;
+        continue;
+      }
+      if (part.type === "output_text") {
+        const citations = mapAnnotationsToCitations(part.annotations, part.text);
+        if (citations !== undefined) {
+          ensureResponseOpen();
+          const block: AgBlock = { type: "text", text: part.text, citations };
+          a.contentBlock(msgId, block);
+        }
+      }
+    }
+  }
+
+  /**
+   * Map the synthetic `__host_error__` sentinel (host feeds it on
+   * `MaxTurnsExceededError`) to a terminal `turn.error{code, message, usage}`.
+   *  - A response turn is OPEN → close THAT turn (end streams, close message,
+   *    closeTurnError) so the error lands on the well-formed open turn.
+   *  - NO turn open (max_turns fired after the last response already completed) →
+   *    open a FRESH terminal turn via `ensureResponseOpen()` (which emits a
+   *    `turn.start` + `message.start` — `closeTurnError` alone does NOT synthesize
+   *    `turn.start`, so a bare close would leave a malformed start-less turn),
+   *    close its message, then closeTurnError. Either way the error is emitted on
+   *    a turn that has a `turn.start`.
+   */
+  function driveHostError(event: OpenAIHostError): void {
+    ensureResponseOpen();
+    if (turnId === undefined) return; // unreachable post-ensure; satisfies narrowing
+    endOpenStreamsAndCloseMessage();
+    a.closeTurnError(turnId, {
+      message: event.message,
+      code: event.code,
+      ...(event.usage !== undefined ? { usage: event.usage } : {}),
+    });
+    resetResponseState();
+  }
+
   /** Drive the engine from one (already-narrowed) OpenAIStreamEvent. */
   function drive(event: OpenAIStreamEvent): void {
+    if (event.type === "__host_error__") {
+      driveHostError(event);
+      return;
+    }
     if (event.type === "run_item_stream_event") {
       switch (event.name) {
         case "tool_output": {
@@ -1134,13 +864,18 @@ export function createOpenaiNormalizer(ctx?: NormalizerContext): Normalizer {
           });
           return;
         }
+        case "message_output_created":
+          // CITATIONS SUPPLEMENT only — the text already streamed from the raw delta
+          // (canonical model, A1). Records refusal + emits citation blocks; no text.
+          driveMessageOutputCreated(event.item.rawItem);
+          return;
         case "tool_called":
           // IGNORED — superseded by model:response.output_item.added, which is the
           // authoritative tool-start source (canonical model, A1 §"Spike Findings").
           return;
         default:
-          // Other run-item families (citations/reasoning/handoff/HITL) are ported
-          // in T5c. No-op here (NOT routed to `unparsed` — they are known families).
+          // Other run-item families (reasoning/handoff/HITL) are not yet ported.
+          // No-op here (NOT routed to `unparsed` — they are known families).
           return;
       }
     }
@@ -1185,6 +920,3 @@ export function createOpenaiNormalizer(ctx?: NormalizerContext): Normalizer {
     },
   };
 }
-
-export default openaiNormalizer;
-export { openaiNormalizer };
