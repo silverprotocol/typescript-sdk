@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { AgEvent, fromJsonata } from "@silverprotocol/core";
+import { AgEvent, fromJsonata, JsonValue, Reducer } from "@silverprotocol/core";
 import normalize, {
+  createOpenaiNormalizer,
   mapFinishReason,
   ruleJsonata,
   type OpenAIStreamEvent,
@@ -794,5 +795,152 @@ describe("rule.jsonata — portable structural subset", () => {
     const delta = evs.find((e) => e.type === "tool.args.delta");
     expect(delta).toMatchObject({ toolCallId: "call_j", delta: '{"city":"SF"}' });
     assertAllValid(evs);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Stateful createOpenaiNormalizer — A1 §5-6 (turn anchoring + text path).
+//
+// The corpus below is a faithful TRIM of the real `@openai/agents` capture
+// (`/tmp/openai-spike-toolturn.json`, second response) down to a single text
+// turn. It deliberately INCLUDES the SDK's redundant representations — the
+// `response_started` literal, the duplicated flattened `output_text_delta`
+// literal alongside each real `response.output_text.delta`, the `response_done`
+// literal, and the DUPLICATE 2nd `response.completed` — so the test pins that
+// the stateful normalizer drives the engine from the single authoritative
+// source per concern and ignores the rest (no triple-counted text, exactly one
+// turn close). Native inputs are plain `JsonValue` object literals (no cast):
+// `push` takes `JsonValue`.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TEXT_TURN: JsonValue[] = [
+  // SDK turn-start literal (IGNORE — duplicate of response.created).
+  { type: "raw_model_stream_event", data: { type: "response_started" } },
+  // Authoritative turn open: real response.id present at start.
+  {
+    type: "raw_model_stream_event",
+    data: { type: "model", event: { type: "response.created", response: { id: "resp_text_1" } } },
+  },
+  // In-progress duplicate (IGNORE).
+  {
+    type: "raw_model_stream_event",
+    data: {
+      type: "model",
+      event: { type: "response.in_progress", response: { id: "resp_text_1" } },
+    },
+  },
+  // First real text delta (item_id-keyed) + its flattened duplicate (IGNORE).
+  { type: "raw_model_stream_event", data: { type: "output_text_delta", delta: "Hel" } },
+  {
+    type: "raw_model_stream_event",
+    data: {
+      type: "model",
+      event: { type: "response.output_text.delta", item_id: "msg_text_1", delta: "Hel" },
+    },
+  },
+  // Second real text delta + its flattened duplicate (IGNORE).
+  { type: "raw_model_stream_event", data: { type: "output_text_delta", delta: "lo" } },
+  {
+    type: "raw_model_stream_event",
+    data: {
+      type: "model",
+      event: { type: "response.output_text.delta", item_id: "msg_text_1", delta: "lo" },
+    },
+  },
+  // Text end.
+  {
+    type: "raw_model_stream_event",
+    data: {
+      type: "model",
+      event: { type: "response.output_text.done", item_id: "msg_text_1", text: "Hello" },
+    },
+  },
+  // SDK turn terminator literal (IGNORE — duplicate of response.completed).
+  { type: "raw_model_stream_event", data: { type: "response_done" } },
+  // Authoritative close (#1).
+  {
+    type: "raw_model_stream_event",
+    data: {
+      type: "model",
+      event: {
+        type: "response.completed",
+        response: {
+          id: "resp_text_1",
+          status: "completed",
+          usage: { input_tokens: 5, output_tokens: 2, total_tokens: 7 },
+        },
+      },
+    },
+  },
+  // DUPLICATE 2nd response.completed (IGNORE — close-once guard).
+  {
+    type: "raw_model_stream_event",
+    data: {
+      type: "model",
+      event: {
+        type: "response.completed",
+        response: {
+          id: "resp_text_1",
+          status: "completed",
+          usage: { input_tokens: 5, output_tokens: 2, total_tokens: 7 },
+        },
+      },
+    },
+  },
+];
+
+describe("createOpenaiNormalizer — text turn", () => {
+  it("opens a turn at response start and emits assembled text under it (I1)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = TEXT_TURN.flatMap((e) => n.push(e)).concat(n.flush());
+
+    // (1) turn anchored to the real response.id.
+    const start = evs.find((e) => e.type === "turn.start");
+    expect(start).toMatchObject({ turnId: "turn_resp_text_1" });
+
+    // (2) every text.delta resolves to that turn (I1).
+    const text = evs.filter((e) => e.type === "text.delta");
+    expect(text.length).toBeGreaterThan(0);
+    expect(text.every((e) => "turnId" in e && e.turnId === "turn_resp_text_1")).toBe(true);
+
+    // (3) turn.start precedes the first text.delta in emitted order (I1 ordering).
+    const startIdx = evs.findIndex((e) => e.type === "turn.start");
+    const firstTextIdx = evs.findIndex((e) => e.type === "text.delta");
+    expect(startIdx).toBeGreaterThanOrEqual(0);
+    expect(firstTextIdx).toBeGreaterThanOrEqual(0);
+    expect(startIdx).toBeLessThan(firstTextIdx);
+  });
+
+  it("ignores the flattened output_text_delta duplicate (no double-counted text)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = TEXT_TURN.flatMap((e) => n.push(e)).concat(n.flush());
+    // The corpus carries TWO flattened `output_text_delta` literals alongside the
+    // two real `response.output_text.delta` events. Only the real (item_id-keyed)
+    // ones drive the engine → exactly two text.delta events, not four.
+    const deltas = evs.filter((e) => e.type === "text.delta");
+    expect(deltas).toHaveLength(2);
+    const reassembled = deltas
+      .map((e) => ("delta" in e && typeof e.delta === "string" ? e.delta : ""))
+      .join("");
+    expect(reassembled).toBe("Hello");
+  });
+
+  it("closes the turn exactly once despite the duplicate response.completed", () => {
+    const n = createOpenaiNormalizer();
+    const evs = TEXT_TURN.flatMap((e) => n.push(e)).concat(n.flush());
+    const closes = evs.filter((e) => e.type === "turn.done" || e.type === "turn.error");
+    expect(closes).toHaveLength(1);
+    expect(closes[0]).toMatchObject({ type: "turn.done", turnId: "turn_resp_text_1" });
+  });
+
+  it("fold-identity: reducing the AgEvent stream yields exactly one successful assistant turn", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    for (const e of TEXT_TURN) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    const res = r.result();
+    expect(res.turns).toHaveLength(1);
+    expect(res.turns[0]).toMatchObject({ outcome: { type: "success" } });
+    expect(r.needsResync).toBe(false);
   });
 });

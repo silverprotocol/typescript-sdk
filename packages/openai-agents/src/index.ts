@@ -66,7 +66,10 @@ import {
   type AgSafety,
   type AgCitation,
   JsonValue,
+  type Normalizer,
+  type NormalizerContext,
   type RuleNormalizer,
+  StreamAssembler,
   type ToolOutcome,
 } from "@silverprotocol/core";
 
@@ -244,6 +247,14 @@ interface OpenAIToolApprovalRequestedEvent {
 // generic `model` carrier. The verbatim openai-node Responses events ride INSIDE
 // the carrier's `event` field, using snake_case.
 
+/** openai-node `ResponseCreatedEvent` — the turn-open boundary. The real
+ *  `response.id` is present here at the START of the stream (spike-confirmed),
+ *  so it is the authoritative turn-anchor source (A1 canonical model). Carried via
+ *  the `model` carrier. */
+interface OpenAIResponsesCreated {
+  type: "response.created";
+  response: { id: string };
+}
 /** openai-node `ResponseFunctionCallArgumentsDeltaEvent` — the per-fragment
  *  argument delta (snake_case `item_id`/`delta`). */
 interface OpenAIResponsesFnArgsDelta {
@@ -264,6 +275,14 @@ interface OpenAIResponsesTextDelta {
   type: "response.output_text.delta";
   item_id: string;
   delta: string;
+}
+/** openai-node `ResponseTextDoneEvent` — the assistant-text stream for `item_id`
+ *  is complete (`text` carries the full assembled string). Carried via the `model`
+ *  carrier. Authoritative `text.end` source per the canonical event model (A1). */
+interface OpenAIResponsesTextDone {
+  type: "response.output_text.done";
+  item_id: string;
+  text?: string;
 }
 /** openai-node `ResponseUsage` — per-response token counts (snake_case). */
 interface OpenAIResponseUsage {
@@ -306,9 +325,11 @@ interface OpenAIResponsesError {
 /** The faithful projection of the openai-node `ResponseStreamEvent` events the
  *  normalizer consumes (the carrier `event` payload). */
 type OpenAIRawResponsesEvent =
+  | OpenAIResponsesCreated
   | OpenAIResponsesFnArgsDelta
   | OpenAIResponsesFnArgsDone
   | OpenAIResponsesTextDelta
+  | OpenAIResponsesTextDone
   | OpenAIResponsesCompleted
   | OpenAIResponsesFailed
   | OpenAIResponsesError;
@@ -833,6 +854,235 @@ function handleRawResponsesEvent(
       return e.events;
     }
   }
+}
+
+// ─── structural guard: unknown → OpenAIStreamEvent ────────────────────────────
+// `createOpenaiNormalizer().push` receives the genuine JSON boundary (`JsonValue`,
+// spec §0.1). The run-seam yields well-formed `OpenAIStreamEvent`s, but this is the
+// deserialization boundary, so we confirm the OUTER discriminant before driving the
+// engine. A user-defined type guard (not a cast) narrows on success; a failure routes
+// the raw payload to `ext.openai.unparsed` and returns (graceful, Tenet 6).
+//
+// The guard takes `unknown` (not `JsonValue`): `OpenAIStreamEvent`'s nested
+// interfaces have no index signature, so a `v is OpenAIStreamEvent` predicate over a
+// `JsonValue` param is rejected by TS (TS2677). `unknown` is the genuine boundary
+// input type and is predicate-compatible; the caller passes a `JsonValue`, which
+// widens to `unknown` losslessly (mirrors the Claude facet's `isSDKMessage`).
+function isJsonObject(v: unknown): v is { readonly [k: string]: JsonValue } {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+// Only the OUTER envelope is validated here (the two RunStreamEvent families: a
+// `run_item_stream_event` with a string `name`, or a `raw_model_stream_event` with a
+// `data` object). The inner `drive` switch handles every nested arm structurally and
+// no-ops anything it does not recognise — so a partially-shaped-but-well-typed event
+// is never lost, and only a genuinely non-OpenAI-shaped payload falls to `unparsed`.
+function isOpenAIStreamEvent(v: unknown): v is OpenAIStreamEvent {
+  if (!isJsonObject(v)) return false;
+  if (v.type === "run_item_stream_event") return typeof v.name === "string";
+  if (v.type === "raw_model_stream_event") return isJsonObject(v.data);
+  return false;
+}
+
+// ─── the stateful normalizer (A1 §5-6) ────────────────────────────────────────
+/**
+ * Build a stateful OpenAI-facet normalizer over a fresh {@link StreamAssembler}.
+ *
+ * OpenAI has no native `turn.start` and the assistant turn is delivered as a
+ * stream of redundant representations (the SDK emits `response_started`, a
+ * `model:response.created`, an in-progress duplicate, BOTH a flattened
+ * `output_text_delta` literal and the real item-id-keyed
+ * `model:response.output_text.delta`, a `response_done` literal, and TWO
+ * `model:response.completed` events per response). The normalizer drives the
+ * engine from the SINGLE authoritative source per concern (BINDING canonical
+ * model, plan §"Spike Findings") and ignores the rest:
+ *
+ *  - turn open  ← `model:response.created` (real `response.id` present at start)
+ *  - text       ← `model:response.output_text.delta` (carries `item_id`)
+ *  - text end   ← `model:response.output_text.done`
+ *  - turn close ← `model:response.completed` (guard close-once)
+ *
+ * `ensureResponseOpen()` opens turn + message exactly once per response;
+ * `closeResponse()` resets per-response state so the duplicate `response.completed`
+ * is a no-op.
+ *
+ * NOTE (T5a scope): tools, refusal, incomplete/failed error arms, citations,
+ * reasoning, handoff and HITL are NOT yet ported — they are KNOWN families and are
+ * no-op'd here (NOT routed to `unparsed`). T5b/T5c port them. `emitExt` is reserved
+ * for a genuinely unrecognisable OUTER envelope only (mirrors the Claude facet).
+ */
+export function createOpenaiNormalizer(ctx?: NormalizerContext): Normalizer {
+  const a = new StreamAssembler(ctx);
+  // OpenAI's native stream carries no thread/session id (unlike Claude's
+  // `session_id`), and `NormalizerContext` exposes only reconnect `seed` — so the
+  // threadId is the fixed facet label. The Router rebases ids downstream.
+  const threadId = "openai";
+
+  // Per-response anchoring state (one open response at a time on this seam).
+  let turnCounter = 0;
+  let turnId: string | undefined; // current open response's turn id
+  let msgId: string | undefined; // current open message id
+  let responseId: string | undefined; // real response.id once known
+  // Open text streams keyed by Responses item_id (textStart once per id).
+  const openTextStreams = new Set<string>();
+  // Close-once guard: the SDK emits `response.completed` TWICE per response. Once a
+  // response.id (or a synthesized turnId) has been closed, any further terminal event
+  // for it is a no-op — it must NOT reopen a fresh message/turn.
+  const closedResponses = new Set<string>();
+
+  /**
+   * Open the turn + message exactly once per response. Uses the real `response.id`
+   * (`turn_<id>`) when known; synthesizes a stable id only if `response.created` was
+   * somehow absent (defensive — the spike confirms the id is always present at start).
+   * Returns the close-once key (the real response.id, else the synthesized turnId),
+   * or `undefined` when the response has already been closed (caller must no-op).
+   */
+  function ensureResponseOpen(respId?: string): string | undefined {
+    // Already closed → never reopen (the duplicate `response.completed` lands here).
+    if (respId !== undefined && closedResponses.has(respId)) return undefined;
+    if (turnId !== undefined) {
+      // Backfill the real id if it arrives after a defensive synthesized open.
+      if (respId !== undefined && responseId === undefined) responseId = respId;
+      return responseId ?? turnId;
+    }
+    responseId = respId;
+    turnId = respId !== undefined ? `turn_${respId}` : `turn_${threadId}_${++turnCounter}`;
+    msgId = `msg_${turnId}`;
+    a.openTurn(turnId, threadId);
+    a.openMessage({ id: msgId, role: "assistant", turnId, threadId });
+    return responseId ?? turnId;
+  }
+
+  /** Reset per-response state after a close. Marks the response closed (close-once). */
+  function resetResponseState(): void {
+    const key = responseId ?? turnId;
+    if (key !== undefined) closedResponses.add(key);
+    openTextStreams.clear();
+    turnId = undefined;
+    msgId = undefined;
+    responseId = undefined;
+  }
+
+  /**
+   * Close any dangling open message/turn (flush path: a stream ended before
+   * `response.completed`). Ends open text streams, closes the message, and reuses
+   * `resetResponseState` so the response is marked closed.
+   */
+  function closeResponse(): void {
+    if (msgId !== undefined) {
+      for (const streamId of openTextStreams) a.textEnd(streamId, msgId);
+      a.closeMessage(msgId);
+    }
+    resetResponseState();
+  }
+
+  /** Drive the engine from one verbatim openai-node Responses event (snake_case). */
+  function driveRawResponsesEvent(ev: OpenAIRawResponsesEvent): void {
+    switch (ev.type) {
+      case "response.created": {
+        // Authoritative turn open — the real response.id is present at start.
+        ensureResponseOpen(ev.response.id);
+        return;
+      }
+      case "response.output_text.delta": {
+        ensureResponseOpen();
+        if (msgId === undefined) return; // unreachable post-ensure; satisfies the narrowing
+        if (!openTextStreams.has(ev.item_id)) {
+          openTextStreams.add(ev.item_id);
+          a.textStart(ev.item_id, msgId, { role: "assistant" });
+        }
+        // OpenAI text deltas are suffix-only fragments (cumulative:false, the default).
+        a.textDelta(ev.item_id, msgId, ev.delta, { cumulative: false });
+        return;
+      }
+      case "response.output_text.done": {
+        // Authoritative text-end for this item_id (canonical model).
+        if (msgId !== undefined && openTextStreams.has(ev.item_id)) {
+          openTextStreams.delete(ev.item_id);
+          a.textEnd(ev.item_id, msgId);
+        }
+        return;
+      }
+      case "response.completed": {
+        // Success close — guard close-once (the SDK emits completed TWICE). A
+        // `undefined` return means this response is already closed → no-op the dupe.
+        if (ensureResponseOpen(ev.response.id) === undefined) return;
+        if (turnId === undefined) return; // unreachable post-ensure; satisfies narrowing
+        // End any still-open text streams (defensive) before closing the message.
+        if (msgId !== undefined) {
+          for (const streamId of openTextStreams) a.textEnd(streamId, msgId);
+          a.closeMessage(msgId);
+        }
+        const finishReason: AgFinishReason = mapFinishReason(
+          ev.response.incomplete_details?.reason,
+        );
+        const usage = mapUsage(ev.response.usage);
+        a.closeTurnDone(turnId, {
+          outcome: { type: "success" },
+          finishReason,
+          ...(usage !== undefined ? { usage } : {}),
+        });
+        resetResponseState();
+        return;
+      }
+      // KNOWN-but-deferred raw families (ported in T5b/T5c) — no-op for now:
+      //   response.function_call_arguments.delta | .done  (tools, T5b)
+      //   response.incomplete | response.failed | error    (error arms, T5c)
+      // Plus the duplicate raw families IGNORED per the canonical model:
+      //   response.output_text.done is handled below; in_progress/content_part/
+      //   output_item are not modelled on OpenAIRawResponsesEvent at all.
+      default:
+        return;
+    }
+  }
+
+  /** Drive the engine from one (already-narrowed) OpenAIStreamEvent. */
+  function drive(event: OpenAIStreamEvent): void {
+    if (event.type === "run_item_stream_event") {
+      // KNOWN-but-deferred run-item families (tools/citations/reasoning/handoff/HITL)
+      // are ported in T5b/T5c. No-op here (NOT routed to `unparsed` — they are known).
+      return;
+    }
+
+    // raw_model_stream_event — `data` is the Agents SDK ResponseStreamEvent union.
+    const data = event.data;
+    switch (data.type) {
+      case "model": {
+        // The verbatim openai-node Responses event rides in `event` (snake_case).
+        driveRawResponsesEvent(data.event);
+        return;
+      }
+      // IGNORE the SDK-flattened duplicates (canonical model):
+      //   response_started   — duplicate of model:response.created
+      //   output_text_delta  — flattened duplicate of model:response.output_text.delta
+      //   response_done      — duplicate of model:response.completed
+      case "response_started":
+      case "output_text_delta":
+      case "response_done":
+      default:
+        return;
+    }
+  }
+
+  return {
+    push(native: JsonValue): AgEvent[] {
+      if (!isOpenAIStreamEvent(native)) {
+        // Graceful guard (Tenet 6): route a genuinely unrecognisable payload through
+        // the lossless vendor channel rather than throwing. Nest under `native` so a
+        // payload carrying its own `type` key does NOT clobber the event type.
+        a.emitExt("openai", "unparsed", { native });
+        return a.drain();
+      }
+      drive(native);
+      return a.drain();
+    },
+    flush(): AgEvent[] {
+      // Close any dangling open response (e.g. a stream that ended before
+      // response.completed), then flush the engine's dangling open messages (I7).
+      if (turnId !== undefined) closeResponse();
+      return a.flush();
+    },
+  };
 }
 
 export default openaiNormalizer;
