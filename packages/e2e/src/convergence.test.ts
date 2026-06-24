@@ -247,14 +247,14 @@ describe("canonicalizeAgjson — must-match set", () => {
     expect(textContent).toEqual(["First.", "Second."]);
   });
 
-  it("captures tool-result outcome", () => {
+  it("captures tool-result outcome and content", () => {
     const stream: JsonValue[] = [
       turnStart("t1"),
       toolDone("c1", "ok", [{ type: "text", text: "result" }], "t1"),
       turnDone("t1", "stop"),
     ];
     const { toolResults } = canonicalizeAgjson(stream);
-    expect(toolResults).toEqual([{ outcome: "ok" }]);
+    expect(toolResults).toEqual([{ outcome: "ok", content: [{ text: "result", type: "text" }] }]);
   });
 
   it("captures finishReason from turn.done", () => {
@@ -314,7 +314,7 @@ describe("assertConvergent — POSITIVE: different ids/seq/usage but same struct
       eventSequence: ["tool.start", "tool.args.assembled", "tool.done"],
       toolCalls: [{ name: "echo", input: { text: "hi" } }],
       textContent: ["Done."],
-      toolResults: [{ outcome: "ok" }],
+      toolResults: [{ outcome: "ok", content: [{ type: "text", text: "echo: hi" }] }],
       finishReason: "stop",
     };
     expect(() =>
@@ -332,7 +332,7 @@ describe("assertConvergent — NEGATIVE: structurally different schemas throw wi
     eventSequence: ["tool.start", "tool.args.assembled", "tool.done"],
     toolCalls: [{ name: "echo", input: { text: "hi" } }],
     textContent: ["Done."],
-    toolResults: [{ outcome: "ok" }],
+    toolResults: [{ outcome: "ok", content: [{ type: "text", text: "echo: hi" }] }],
     finishReason: "stop",
   };
 
@@ -369,7 +369,7 @@ describe("assertConvergent — NEGATIVE: structurally different schemas throw wi
   it("throws when toolResults outcome differs", () => {
     const different: CanonicalSchema = {
       ...base,
-      toolResults: [{ outcome: "error" }],
+      toolResults: [{ outcome: "error", content: [{ type: "text", text: "echo: hi" }] }],
     };
     expect(() =>
       assertConvergent(base, different, { scenario: "echo", fw1: "claude", fw2: "openai" }),
@@ -407,6 +407,23 @@ describe("assertConvergent — NEGATIVE: structurally different schemas throw wi
     expect(() =>
       assertConvergent(base, different, { scenario: "echo", fw1: "claude", fw2: "openai" }),
     ).toThrow(/toolCalls\.length mismatch/);
+  });
+
+  it("throws when tool-result content differs (PARIS vs LONDON)", () => {
+    // Two streams identical except the tool returns different content.
+    // Both outcomes are "ok" — only the content differs.
+    // assertConvergent MUST catch this and name it.
+    const paris: CanonicalSchema = {
+      ...base,
+      toolResults: [{ outcome: "ok", content: [{ type: "text", text: "PARIS" }] }],
+    };
+    const london: CanonicalSchema = {
+      ...base,
+      toolResults: [{ outcome: "ok", content: [{ type: "text", text: "LONDON" }] }],
+    };
+    expect(() =>
+      assertConvergent(paris, london, { scenario: "capital", fw1: "claude", fw2: "openai" }),
+    ).toThrow(/toolResults\[0\]\.content mismatch/);
   });
 
   it("error message names the specific mismatch fields", () => {

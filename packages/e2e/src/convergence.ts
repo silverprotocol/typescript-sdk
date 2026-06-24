@@ -34,8 +34,8 @@ export interface CanonicalSchema {
   toolCalls: Array<{ name: string; input: JsonValue }>;
   /** Assistant text blocks, each concatenated from their text.delta fragments. */
   textContent: string[];
-  /** Tool results: outcome only (content is provider-shaped). */
-  toolResults: Array<{ outcome: string }>;
+  /** Tool results: outcome + canonicalized content (keys sorted). */
+  toolResults: Array<{ outcome: string; content: JsonValue }>;
   /** Finish reason from the last turn.done that carries one, or undefined. */
   finishReason: string | undefined;
 }
@@ -123,7 +123,7 @@ const NOISE_EVENT_TYPES = new Set([
 export function sortKeys(value: JsonValue): JsonValue {
   if (!isObject(value)) {
     if (Array.isArray(value)) {
-      return (value as JsonValue[]).map(sortKeys);
+      return value.map(sortKeys);
     }
     return value;
   }
@@ -154,7 +154,7 @@ export function canonicalizeAgjson(agjson: JsonValue[]): CanonicalSchema {
   const eventSequence: string[] = [];
   const toolCalls: Array<{ name: string; input: JsonValue }> = [];
   const textContent: string[] = [];
-  const toolResults: Array<{ outcome: string }> = [];
+  const toolResults: Array<{ outcome: string; content: JsonValue }> = [];
   let finishReason: string | undefined;
 
   // Per-text-block accumulator: itemId (or id) → accumulated text.
@@ -233,11 +233,13 @@ export function canonicalizeAgjson(agjson: JsonValue[]): CanonicalSchema {
       continue;
     }
 
-    // ── Capture tool.done (record outcome) ──────────────────────────────────
+    // ── Capture tool.done (record outcome + canonicalized content) ──────────
     if (type === "tool.done") {
       const outcomeRaw = raw["outcome"];
       const outcome = typeof outcomeRaw === "string" ? outcomeRaw : "unknown";
-      toolResults.push({ outcome });
+      const contentRaw = raw["content"];
+      const content = contentRaw !== undefined ? sortKeys(contentRaw) : null;
+      toolResults.push({ outcome, content });
       if (!NOISE_EVENT_TYPES.has(type)) {
         eventSequence.push(type);
       }
@@ -352,6 +354,13 @@ export function assertConvergent(
       if (ra.outcome !== rb.outcome) {
         diffs.push(
           `toolResults[${i}].outcome mismatch: ${ctx.fw1}="${ra.outcome}" ${ctx.fw2}="${rb.outcome}"`,
+        );
+      }
+      if (JSON.stringify(sortKeys(ra.content)) !== JSON.stringify(sortKeys(rb.content))) {
+        diffs.push(
+          `toolResults[${i}].content mismatch:\n` +
+            `  ${ctx.fw1}: ${JSON.stringify(ra.content)}\n` +
+            `  ${ctx.fw2}: ${JSON.stringify(rb.content)}`,
         );
       }
     }
