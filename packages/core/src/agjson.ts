@@ -973,6 +973,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     message: z.string(),
     code: z.string().optional(),
     retriable: z.boolean().optional(),
+    usage: AgUsage.optional(), // EXTENDED — accrued usage on an interrupted turn (A1)
   }),
   z.object({ ...base, type: z.literal("turn.abort"), reason: z.string().optional() }),
   z.object({

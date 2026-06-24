@@ -526,6 +526,8 @@ export class Reducer {
           message: ev.message,
           ...(ev.code !== undefined ? { code: ev.code } : {}),
         };
+        // Usage is recorded VERBATIM — NO de-cumulation (mirrors turn.done; normalizer duty).
+        if (ev.usage !== undefined) turn.usage = ev.usage;
         break;
       }
 

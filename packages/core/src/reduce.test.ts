@@ -2202,3 +2202,22 @@ describe("reduce — R10 capstone: byte-identity + live-SSE↔history invariant"
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
 });
+
+// ── turn.error.usage fold (A1) ────────────────────────────────────────────────
+describe("turn.error.usage fold", () => {
+  it("records usage on the turn record for an errored turn", () => {
+    const r = new Reducer();
+    r.push({ type: "turn.start", seq: 0, threadId: "t1", turnId: "turn_1" });
+    r.push({
+      type: "turn.error",
+      seq: 1,
+      turnId: "turn_1",
+      message: "max turns",
+      code: "max_turns",
+      usage: { inputTokens: 10, outputTokens: 2, cumulative: false },
+    });
+    const turn = r.result().turns.find((t) => t.turnId === "turn_1");
+    expect(turn?.outcome).toEqual({ type: "error", message: "max turns", code: "max_turns" });
+    expect(turn?.usage).toEqual({ inputTokens: 10, outputTokens: 2, cumulative: false });
+  });
+});
