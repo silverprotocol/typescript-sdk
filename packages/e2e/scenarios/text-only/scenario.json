@@ -1,0 +1,6 @@
+{
+  "name": "text-only",
+  "prompt": "Write a single sentence describing the purpose of a conformance test harness.",
+  "mcpServers": [],
+  "steer": "Answer with exactly one sentence. Do not use any tools."
+}

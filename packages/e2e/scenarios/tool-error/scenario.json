@@ -1,0 +1,8 @@
+{
+  "name": "tool-error",
+  "prompt": "Call the fail tool and report what error it returned.",
+  "mcpServers": [
+    { "key": "errsrv", "kind": "error" }
+  ],
+  "steer": "You MUST call the tool mcp__errsrv__fail. The tool will return an error — report the error code and message exactly as returned. Do not skip the tool call."
+}

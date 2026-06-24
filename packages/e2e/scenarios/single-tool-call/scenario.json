@@ -1,0 +1,8 @@
+{
+  "name": "single-tool-call",
+  "prompt": "Echo the message 'conformance-probe' back to me using the available tool.",
+  "mcpServers": [
+    { "key": "t", "kind": "text" }
+  ],
+  "steer": "You MUST call the tool mcp__t__echo with message='conformance-probe'. Do not answer from memory."
+}

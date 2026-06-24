@@ -1,0 +1,8 @@
+{
+  "name": "multi-turn",
+  "prompt": "First call the echo tool with message='turn-one', then call it again with message='turn-two'. Report both results.",
+  "mcpServers": [
+    { "key": "t", "kind": "text" }
+  ],
+  "steer": "You MUST call the tool mcp__t__echo TWICE: first with message='turn-one', then with message='turn-two'. Do not skip either call."
+}

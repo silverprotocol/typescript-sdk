@@ -1,0 +1,8 @@
+{
+  "name": "app-spec-structured-result",
+  "prompt": "Render a UI card with title='Hello' and body='World' using the available tool.",
+  "mcpServers": [
+    { "key": "cards", "kind": "app-spec" }
+  ],
+  "steer": "You MUST call the tool mcp__cards__render_card with title='Hello' and body='World'. Do not answer from memory — the tool returns a structuredContent payload you must report back."
+}

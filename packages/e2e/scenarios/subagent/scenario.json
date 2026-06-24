@@ -1,0 +1,8 @@
+{
+  "name": "subagent",
+  "prompt": "Use the echo tool to confirm the subagent pipeline is working. Echo the text 'subagent-probe'.",
+  "mcpServers": [
+    { "key": "t", "kind": "text" }
+  ],
+  "steer": "You MUST call the tool mcp__t__echo with message='subagent-probe'. This tests the subagent message routing path — do not answer from memory."
+}
