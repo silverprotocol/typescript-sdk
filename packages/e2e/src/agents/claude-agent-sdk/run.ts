@@ -75,13 +75,17 @@ export async function* runClaudeCapture(input: CaptureRunInput): AsyncIterable<J
   // controller, not a signal).  If the caller doesn't provide a signal we
   // create a standalone controller so the query can still be cleaned up.
   const abortController = new AbortController();
-  if (input.abortSignal) {
-    if (input.abortSignal.aborted) {
-      abortController.abort(input.abortSignal.reason);
+  const signal = input.abortSignal;
+  // Named listener so the `finally` below can remove it — avoids leaking a
+  // listener on a caller-owned long-lived signal (T4 review).
+  const onAbort = (): void => {
+    abortController.abort(signal?.reason);
+  };
+  if (signal) {
+    if (signal.aborted) {
+      abortController.abort(signal.reason);
     } else {
-      input.abortSignal.addEventListener("abort", () => {
-        abortController.abort(input.abortSignal!.reason);
-      });
+      signal.addEventListener("abort", onAbort);
     }
   }
 
@@ -115,10 +119,16 @@ export async function* runClaudeCapture(input: CaptureRunInput): AsyncIterable<J
     },
   });
 
-  for await (const msg of response) {
-    // JSON round-trip materializes the WHOLE raw message (including fields typed
-    // as `unknown` by the SDK, e.g. SDKUserMessage's tool_use_result sibling)
-    // into plain JsonValue. No per-field cast needed.
-    yield JSON.parse(JSON.stringify(msg)) as JsonValue;
+  try {
+    for await (const msg of response) {
+      // JSON round-trip materializes the WHOLE raw message (including fields typed
+      // as `unknown` by the SDK, e.g. SDKUserMessage's tool_use_result sibling)
+      // into plain JsonValue. No per-field cast needed.
+      yield JSON.parse(JSON.stringify(msg)) as JsonValue;
+    }
+  } finally {
+    // Remove the abort listener (no-op if it was never added) so a long-lived
+    // caller signal doesn't accumulate listeners across captures.
+    signal?.removeEventListener("abort", onAbort);
   }
 }
