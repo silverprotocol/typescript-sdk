@@ -39,10 +39,17 @@ export type Scenario = z.infer<typeof Scenario>;
  *
  * Both lists are identical — every declared server's tool is expected to be
  * called (so capture validation can confirm the LLM actually used each tool).
+ *
+ * NOTE (subagent scenario): scenarios/subagent/scenario.json is structurally
+ * identical to single-tool-call (same mcp__t__echo derivation). The subagent
+ * distinction is prompt-steered today (via `steer`); it will become
+ * structurally distinct once subagent routing lands. The Scenario schema uses
+ * Zod's default strip mode, so `_note` keys in JSON are silently dropped —
+ * keep this prose note here rather than in the JSON file.
  */
 export function derivedTools(s: Scenario): { allowedTools: string[]; expectTools: string[] } {
   const names = s.mcpServers.map(
     ({ key, kind }) => `mcp__${key}__${knownToolFor(kind as MockKind)}`,
   );
-  return { allowedTools: names, expectTools: names };
+  return { allowedTools: [...names], expectTools: [...names] };
 }

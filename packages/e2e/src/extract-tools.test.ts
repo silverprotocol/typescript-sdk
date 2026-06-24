@@ -177,4 +177,11 @@ describe("extractToolCalls", () => {
     ];
     expect(extractToolCalls(native)).toEqual([]);
   });
+
+  it("handles message.content that is a plain string without throwing", () => {
+    const native: JsonValue[] = [
+      { type: "assistant", message: { content: "plain string content" } },
+    ];
+    expect(extractToolCalls(native)).toEqual([]);
+  });
 });

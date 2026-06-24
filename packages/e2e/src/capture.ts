@@ -8,11 +8,11 @@
  * runCapture steps:
  *   1. Boot each mcpServer mock via serveMock(kind, port) and assemble the
  *      { key: { url, bearer } } map the SDK expects.
- *   2. Run the agent via runClaudeCapture with derivedTools(s).allowedTools.
- *   3. Collect the raw native stream.
- *   4. ★ Verify extractToolCalls(native) ⊇ derivedTools(s).expectTools —
+ *   2. Run the agent via runClaudeCapture with derivedTools(s).allowedTools,
+ *      collecting raw native events into the `native` array.
+ *   3. ★ Verify extractToolCalls(native) ⊇ derivedTools(s).expectTools —
  *      if not, THROW (no half-cassette written).
- *   5. Produce { native, agjson, coverage } where agjson = normalize all
+ *   4. Produce { native, agjson, coverage } where agjson = normalize all
  *      native events via createClaudeNormalizer, coverage = census(...).
  */
 import type { JsonValue } from "@silverprotocol/core";
@@ -123,10 +123,7 @@ export async function runCapture(
       native.push(event);
     }
 
-    // ── Step 3: Collect raw native ──────────────────────────────────────────
-    // (Already collected in the loop above)
-
-    // ── Step 4: Verify expectTools ⊇ extractToolCalls(native) ────────────────
+    // ── Step 3: Verify expectTools ⊇ extractToolCalls(native) ────────────────
     const calledTools = extractToolCalls(native);
     const missingTools = expectTools.filter((t) => !calledTools.includes(t));
     if (missingTools.length > 0) {
@@ -138,7 +135,7 @@ export async function runCapture(
       );
     }
 
-    // ── Step 5: Normalize + census ─────────────────────────────────────────
+    // ── Step 4: Normalize + census ─────────────────────────────────────────
     const normalizer = deps.createClaudeNormalizer();
     const agEvents: JsonValue[] = [];
 
