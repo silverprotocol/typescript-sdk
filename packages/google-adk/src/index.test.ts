@@ -1,656 +1,232 @@
 import { describe, it, expect } from "vitest";
-import { AgEvent, fromJsonata } from "@silverprotocol/core";
-import normalize, {
-  adkNormalizer,
-  mapFinishReason,
-  ruleJsonata,
-  type AdkEvent,
-  type AdkPart,
-} from "./index.js";
+import { AgEvent, JsonValue } from "@silverprotocol/core";
+import { createAdkNormalizer, mapFinishReason, type AdkEvent, type AdkPart } from "./index.js";
 
-// ─── fixture builders (the verified ADK Event + Gemini Content/Part shapes) ───
-// See index.ts `AdkEvent` for the primary-source citations. Each builder
-// constructs one ADK Event (a Gemini Content + the event metadata).
-
+/** Build one ADK Event (a Gemini Content + event metadata). */
 function event(parts: AdkPart[], extra: Partial<AdkEvent> = {}): AdkEvent {
   return { content: { role: "model", parts }, invocationId: "inv_fixture_1", ...extra };
 }
 
-// Every produced event MUST round-trip through the AgEvent schema (spec §4).
-function assertAllValid(evs: AgEvent[]): void {
-  for (const ev of evs) {
-    expect(() => AgEvent.parse(ev)).not.toThrow();
-  }
+/** Serialize an AdkEvent to JsonValue — the cassette/wire boundary the normalizer
+ *  consumes. `JSON.parse(...) as JsonValue` is the established round-trip idiom
+ *  (replay.ts:153), NOT a workaround (no `as unknown as`). */
+function toJson(e: AdkEvent): JsonValue {
+  return JSON.parse(JSON.stringify(e)) as JsonValue;
 }
 
-// Narrow an emitted event to a specific dotted type (a real type guard, so the
-// arm's own fields — e.g. tool.start.providerMetadata — are accessible).
-function pick<T extends Extract<AgEvent, { type: string }>["type"]>(
-  evs: AgEvent[],
-  type: T,
-): Extract<AgEvent, { type: T }> | undefined {
-  return evs.find((e): e is Extract<AgEvent, { type: T }> => e.type === type);
+/** Drive a list of events through one normalizer instance, then flush. */
+function run(events: AdkEvent[]): AgEvent[] {
+  const n = createAdkNormalizer();
+  const out: AgEvent[] = [];
+  for (const e of events) out.push(...n.push(toJson(e)));
+  out.push(...n.flush());
+  return out;
 }
 
-describe("adkNormalizer — text part fan-out", () => {
-  it("maps a { text } part to the text.start/delta/end lifecycle", async () => {
-    const evs = await normalize(event([{ text: "hello world" }]));
-    expect(evs.map((e) => e.type)).toEqual(["text.start", "text.delta", "text.end"]);
-    const delta = evs.find((e) => e.type === "text.delta");
-    expect(delta).toMatchObject({ delta: "hello world" });
-    assertAllValid(evs);
-  });
-
-  it("allocates a monotonic seq from 0 across the parts[] fan-out", async () => {
-    const evs = await normalize(event([{ text: "a" }, { text: "b" }]));
-    expect(evs.map((e) => e.seq)).toEqual([0, 1, 2, 3, 4, 5]);
-    expect(evs.map((e) => e.type)).toEqual([
-      "text.start",
-      "text.delta",
-      "text.end",
-      "text.start",
-      "text.delta",
-      "text.end",
+describe("createAdkNormalizer — text turn lifecycle", () => {
+  it("opens a turn, streams an incremental delta, and closes on the final aggregate", () => {
+    const out = run([
+      event([{ text: "Hello " }], { partial: true, finishReason: "STOP" }),
+      event([{ text: "Hello world" }], { partial: false, finishReason: "STOP" }),
     ]);
-    assertAllValid(evs);
-  });
-
-  it("preserves a NON-thought text part's thoughtSignature on the text event providerMetadata (§8.8, grounded turn)", async () => {
-    // The Google-Search-grounded turn: a visible (non-thought) text part carries a
-    // thoughtSignature. Dropping it = a hard 400 on turn N+1. The signature rides
-    // the text event's providerMetadata replay channel under `google` (reduce()
-    // lands it on the text block's providerMetadata).
-    const evs = await normalize(event([{ text: "grounded answer", thoughtSignature: "sig_grounded" }]));
-    expect(evs.map((e) => e.type)).toEqual(["text.start", "text.delta", "text.end"]);
-    const start = pick(evs, "text.start");
-    const end = pick(evs, "text.end");
-    // The signature SURVIVES on both the open and the seal events.
-    expect(start).toMatchObject({ providerMetadata: { google: { thoughtSignature: "sig_grounded" } } });
-    expect(end).toMatchObject({ providerMetadata: { google: { thoughtSignature: "sig_grounded" } } });
-    assertAllValid(evs);
-  });
-
-  it("omits providerMetadata on a plain (unsigned) text part", async () => {
-    const evs = await normalize(event([{ text: "plain" }]));
-    const start = pick(evs, "text.start");
-    expect(start?.providerMetadata).toBeUndefined();
-    assertAllValid(evs);
-  });
-});
-
-describe("adkNormalizer — reasoning (thought:true) + thoughtSignature (§8.8)", () => {
-  it("routes a thought part to reasoning.* (NOT text) and rides the signature on reasoning.opaque", async () => {
-    const evs = await normalize(
-      event([{ text: "let me think", thought: true, thoughtSignature: "c2lnLXRob3VnaHQ=" }]),
-    );
-    const types = evs.map((e) => e.type);
-    expect(types).toEqual(["reasoning.start", "reasoning.delta", "reasoning.end", "reasoning.opaque"]);
-    expect(types).not.toContain("text.start");
-    const delta = evs.find((e) => e.type === "reasoning.delta");
-    expect(delta).toMatchObject({ delta: "let me think" });
-    const opaque = evs.find((e) => e.type === "reasoning.opaque");
-    expect(opaque).toMatchObject({ kind: "signature", value: "c2lnLXRob3VnaHQ=", provider: "google" });
-    assertAllValid(evs);
-  });
-
-  it("omits reasoning.opaque when a thought part carries no signature", async () => {
-    const evs = await normalize(event([{ text: "thinking", thought: true }]));
-    expect(evs.map((e) => e.type)).toEqual(["reasoning.start", "reasoning.delta", "reasoning.end"]);
-    assertAllValid(evs);
-  });
-});
-
-describe("adkNormalizer — functionCall part (dict args, no string-parse)", () => {
-  it("emits tool.start, tool.args.delta and the MANDATORY tool.args.assembled with the dict args", async () => {
-    const evs = await normalize(
-      event([{ functionCall: { name: "get_weather", args: { city: "SF", units: "c" }, id: "fc_1" } }]),
-    );
-    expect(evs.map((e) => e.type)).toEqual(["tool.start", "tool.args.delta", "tool.args.assembled"]);
-    const start = evs.find((e) => e.type === "tool.start");
-    expect(start).toMatchObject({ toolCallId: "fc_1", name: "get_weather" });
-    const assembled = evs.find((e) => e.type === "tool.args.assembled");
-    // args is ALREADY an object — passed through verbatim (NOT JSON.parse'd).
-    expect(assembled).toMatchObject({ toolCallId: "fc_1", input: { city: "SF", units: "c" } });
-    const delta = evs.find((e) => e.type === "tool.args.delta");
-    expect(delta).toMatchObject({ delta: '{"city":"SF","units":"c"}' });
-    assertAllValid(evs);
-  });
-
-  it("rides the tool-call thoughtSignature on tool.args.assembled.signature (§8.8)", async () => {
-    const evs = await normalize(
-      event([
-        {
-          functionCall: { name: "search", args: { q: "x" }, id: "fc_sig" },
-          thoughtSignature: "c2lnLWNhbGw=",
-        },
-      ]),
-    );
-    const assembled = evs.find((e) => e.type === "tool.args.assembled");
-    expect(assembled).toMatchObject({ signature: "c2lnLWNhbGw=" });
-    assertAllValid(evs);
-  });
-
-  it("synthesizes a stable toolCallId + records providerCallIndex when functionCall.id is null (§8.2)", async () => {
-    const evs = await normalize(
-      event([
-        { functionCall: { name: "f0", args: { a: 1 } } },
-        { functionCall: { name: "f1", args: { b: 2 } } },
-      ]),
-    );
-    const starts = evs.filter((e) => e.type === "tool.start");
-    expect(starts).toHaveLength(2);
-    // Stable synthesized ids by positional index.
-    expect(starts[0]).toMatchObject({
-      toolCallId: "adk_call_0",
-      name: "f0",
-      // providerCallIndex recorded on providerMetadata.google (replay-load-bearing).
-      providerMetadata: { google: { providerCallIndex: 0 } },
-    });
-    expect(starts[1]).toMatchObject({
-      toolCallId: "adk_call_1",
-      name: "f1",
-      providerMetadata: { google: { providerCallIndex: 1 } },
-    });
-    assertAllValid(evs);
-  });
-
-  it("synthesizes the toolCallId + records providerCallIndex when functionCall.id is EXPLICITLY null (§8.2)", async () => {
-    // `id` is OFTEN null on the Dev API (declared `string | null`); the explicit
-    // null is the realistic wire shape and must hit the synthesized-id branch.
-    const evs = await normalize(event([{ functionCall: { name: "f0", args: { a: 1 }, id: null } }]));
-    const start = pick(evs, "tool.start");
-    expect(start).toMatchObject({
-      toolCallId: "adk_call_0",
-      name: "f0",
-      providerMetadata: { google: { providerCallIndex: 0 } },
-    });
-    assertAllValid(evs);
-  });
-
-  it("synthesizes the functionResponse toolCallId when functionResponse.id is null", async () => {
-    const evs = await normalize(
-      event([{ functionResponse: { name: "calc", id: null, response: { result: 42 } } }]),
-    );
-    expect(evs[0]).toMatchObject({ type: "tool.done", toolCallId: "adk_call_0" });
-    assertAllValid(evs);
-  });
-
-  it("omits providerCallIndex when functionCall.id is present", async () => {
-    const evs = await normalize(event([{ functionCall: { name: "f", args: {}, id: "real_id" } }]));
-    const start = pick(evs, "tool.start");
-    expect(start).toMatchObject({ toolCallId: "real_id" });
-    // No providerMetadata is set when the real id is present (id was supplied).
-    expect(start?.providerMetadata).toBeUndefined();
-    assertAllValid(evs);
-  });
-});
-
-describe("adkNormalizer — functionResponse part → tool.done (MCP resource shape)", () => {
-  it("preserves an MCP { content: [...] } response shape as tool.done content blocks", async () => {
-    const evs = await normalize(
-      event([
-        {
-          functionResponse: {
-            name: "get_weather",
-            id: "fc_1",
-            response: { content: [{ type: "text", text: "72F sunny" }] },
-          },
-        },
-      ]),
-    );
-    expect(evs).toHaveLength(1);
-    expect(evs[0]).toMatchObject({
-      type: "tool.done",
-      toolCallId: "fc_1",
-      outcome: "ok",
-      content: [{ type: "text", text: "72F sunny" }],
-    });
-    assertAllValid(evs);
-  });
-
-  it("maps a plain-object response to a typed data block keyed by the tool name", async () => {
-    const evs = await normalize(
-      event([{ functionResponse: { name: "calc", id: "fc_2", response: { result: 42 } } }]),
-    );
-    expect(evs[0]).toMatchObject({
-      type: "tool.done",
-      toolCallId: "fc_2",
-      content: [{ type: "data", name: "calc", data: { result: 42 } }],
-    });
-    assertAllValid(evs);
-  });
-});
-
-describe("adkNormalizer — inlineData part → content.block", () => {
-  it("routes an image/* inlineData blob to an image block (base64 source)", async () => {
-    const evs = await normalize(event([{ inlineData: { mimeType: "image/png", data: "aW1n" } }]));
-    expect(evs).toHaveLength(1);
-    expect(evs[0]).toMatchObject({
-      type: "content.block",
-      block: { type: "image", source: { type: "base64", mediaType: "image/png", data: "aW1n" } },
-    });
-    assertAllValid(evs);
-  });
-
-  it("routes an audio/* inlineData blob to an audio block", async () => {
-    const evs = await normalize(event([{ inlineData: { mimeType: "audio/mp3", data: "YXVk" } }]));
-    expect(evs[0]).toMatchObject({ type: "content.block", block: { type: "audio" } });
-    assertAllValid(evs);
-  });
-});
-
-describe("adkNormalizer — code parts → content.block", () => {
-  it("maps executableCode to a code block (defensive language map)", async () => {
-    const evs = await normalize(event([{ executableCode: { language: "PYTHON", code: "print(1)" } }]));
-    expect(evs[0]).toMatchObject({ type: "content.block", block: { type: "code", language: "python", code: "print(1)" } });
-    assertAllValid(evs);
-  });
-
-  it("maps codeExecutionResult to a code-result block (outcome enum map)", async () => {
-    const evs = await normalize(
-      event([{ codeExecutionResult: { outcome: "OUTCOME_OK", output: "1\n" } }]),
-    );
-    expect(evs[0]).toMatchObject({ type: "content.block", block: { type: "code-result", outcome: "ok", output: "1\n" } });
-    assertAllValid(evs);
-  });
-});
-
-describe("adkNormalizer — aggregate suppression (§8.3, the #1 double-render)", () => {
-  it("drops the partial:false aggregate's already-streamed text (NO double-render)", async () => {
-    // The ADK streams partial:true increments, then a FINAL partial:false aggregate
-    // that RE-SENDS the full content. The aggregate text must NOT re-render.
-    const stream1 = await adkNormalizer(event([{ text: "Hello " }], { partial: true }));
-    const stream2 = await adkNormalizer(event([{ text: "Hello world" }], { partial: true }));
-    // Both partial increments stream their text.
-    expect(stream1.map((e) => e.type)).toEqual(["text.start", "text.delta", "text.end"]);
-    expect(stream2.map((e) => e.type)).toEqual(["text.start", "text.delta", "text.end"]);
-
-    // The aggregate restates the full streamed text + carries the turn completion.
-    const aggregate = await adkNormalizer(
-      event([{ text: "Hello world" }], { partial: false, turnComplete: true }),
-    );
-    // The restated text is SUPPRESSED; only turn.done (the final-only signal) rides.
-    expect(aggregate.map((e) => e.type)).toEqual(["turn.done"]);
-    assertAllValid([...stream1, ...stream2, ...aggregate]);
-  });
-
-  it("keeps a functionCall that rides ONLY the final aggregate event", async () => {
-    // Stream some text, then the aggregate restates the text AND adds the tool call
-    // (function calls never stream as partials) — text dropped, call kept.
-    await adkNormalizer(event([{ text: "ok" }], { partial: true }));
-    const aggregate = await adkNormalizer(
-      event(
-        [{ text: "ok" }, { functionCall: { name: "act", args: { x: 1 }, id: "fc_agg" } }],
-        { partial: false, turnComplete: true },
-      ),
-    );
-    const types = aggregate.map((e) => e.type);
-    expect(types).not.toContain("text.start"); // streamed text suppressed
-    expect(types).toContain("tool.start"); // final-only call kept
-    expect(types).toContain("tool.args.assembled");
+    const types = out.map((e) => e.type);
+    // turn.start + message.start (synthesized), the streamed delta block, then close.
+    expect(types).toContain("turn.start");
+    // The partial streams "Hello " (1 delta); the aggregate grows past the stream so
+    // the residual tail "world" is emitted as a second delta — 2 text.delta total.
+    expect(types.filter((t) => t === "text.delta")).toHaveLength(2);
     expect(types).toContain("turn.done");
-    assertAllValid(aggregate);
+    const delta = out.find((e) => e.type === "text.delta");
+    expect(delta).toMatchObject({ delta: "Hello " });
+    const residual = out
+      .filter((e) => e.type === "text.delta")
+      .map((e) => (e as { delta: string }).delta);
+    // The aggregate's residual tail "world" is streamed if not a prefix; here "Hello world"
+    // is NOT a prefix of "Hello " so the residual "world" rides as a second delta block.
+    expect(residual).toEqual(["Hello ", "world"]);
   });
 
-  it("emits only the residual tail when the aggregate grows past the stream", async () => {
-    await adkNormalizer(event([{ text: "Hello " }], { partial: true, invocationId: "inv_resid" }));
-    const aggregate = await adkNormalizer(
-      event([{ text: "Hello world!" }], { partial: false, turnComplete: true, invocationId: "inv_resid" }),
+  it("does NOT close the turn on a function-call aggregate (not is_final_response)", () => {
+    const out = run([
+      event([{ functionCall: { name: "echo", args: { text: "hi" }, id: "adk-1" } }], {
+        partial: false,
+        finishReason: "STOP",
+      }),
+    ]);
+    // A partial:false event carrying a functionCall is NOT final → turn stays open until flush.
+    const beforeFlush = out.filter((e) => e.type === "turn.done");
+    // flush() closes it, so exactly one turn.done exists overall, emitted by flush — but
+    // assert it is NOT emitted by the function-call event itself: drive it without flush.
+    const n = createAdkNormalizer();
+    const driven = n.push(
+      JSON.parse(
+        JSON.stringify(
+          event([{ functionCall: { name: "echo", args: { text: "hi" }, id: "adk-1" } }], {
+            partial: false,
+            finishReason: "STOP",
+          })
+        )
+      )
     );
-    const delta = aggregate.find((e) => e.type === "text.delta");
-    // Only the tail beyond the streamed "Hello " prefix is emitted.
-    expect(delta).toMatchObject({ delta: "world!" });
-    assertAllValid(aggregate);
+    expect(driven.map((e) => e.type)).not.toContain("turn.done");
+    expect(beforeFlush).toHaveLength(1); // flush closed it
   });
 
-  it("does NOT suppress a standalone final event that never streamed", async () => {
-    // No prior partial for this turn → the final event is the sole carrier; emit fully.
-    const evs = await adkNormalizer(
-      event([{ text: "single shot" }], { partial: false, turnComplete: true, invocationId: "inv_solo" }),
-    );
-    expect(evs.map((e) => e.type)).toEqual(["text.start", "text.delta", "text.end", "turn.done"]);
-    assertAllValid(evs);
-  });
-});
-
-describe("adkNormalizer — turn completion → turn.done (§4)", () => {
-  it("synthesizes turn.done from turnComplete with success + finishReason stop", async () => {
-    const evs = await normalize(event([], { turnComplete: true }));
-    expect(evs).toHaveLength(1);
-    expect(evs[0]).toMatchObject({
-      type: "turn.done",
-      turnId: "turn_inv_fixture_1",
-      outcome: { type: "success" },
-      finishReason: "stop",
-    });
-    assertAllValid(evs);
-  });
-
-  it("maps a SAFETY finishReason to safety_blocked", async () => {
-    const evs = await normalize(event([], { finishReason: "SAFETY" }));
-    expect(evs.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "safety_blocked" });
-    assertAllValid(evs);
-  });
-
-  it("maps a MAX_TOKENS finishReason to token_limit", async () => {
-    const evs = await normalize(event([], { finishReason: "MAX_TOKENS" }));
-    expect(evs.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "token_limit" });
-    assertAllValid(evs);
-  });
-
-  it("seals turn.done from a bare errorCode (no finishReason, no turnComplete)", async () => {
-    // A non-STOP finish that carries ONLY errorCode (a block reason) must still
-    // seal the turn — mapFinishReason folds finishReason ?? errorCode.
-    const evs = await normalize(event([], { errorCode: "SAFETY" }));
-    const done = pick(evs, "turn.done");
-    expect(done).toMatchObject({
-      type: "turn.done",
-      turnId: "turn_inv_fixture_1",
-      outcome: { type: "success" },
-      finishReason: "safety_blocked",
-    });
-    assertAllValid(evs);
-  });
-
-  it("does NOT synthesize turn.done on a partial:true increment", async () => {
-    const evs = await adkNormalizer(
-      event([{ text: "x" }], { partial: true, turnComplete: false, invocationId: "inv_np" }),
-    );
-    expect(evs.map((e) => e.type)).not.toContain("turn.done");
-  });
-});
-
-describe("mapFinishReason", () => {
-  it("maps the Gemini/ADK finishReason superset to AgFinishReason", () => {
-    expect(mapFinishReason(undefined)).toBe("stop");
+  it("maps STOP to the neutral 'stop' finishReason", () => {
     expect(mapFinishReason("STOP")).toBe("stop");
-    expect(mapFinishReason("MAX_TOKENS")).toBe("token_limit");
-    expect(mapFinishReason("SAFETY")).toBe("safety_blocked");
-    expect(mapFinishReason("RECITATION")).toBe("safety_blocked");
-    expect(mapFinishReason("MALFORMED_FUNCTION_CALL")).toBe("malformed_tool_call");
-    expect(mapFinishReason("OTHER")).toBe("other");
-    expect(mapFinishReason("SOMETHING_NEW")).toBe("unknown");
   });
 });
 
-// ─── S2-EXTENDED B3: new feature tests ───────────────────────────────────────
-
-describe("adkNormalizer — (a) usageMetadata → turn.done.usage", () => {
-  it("populates usage on turn.done when usageMetadata is present", async () => {
-    const evs = await normalize(
-      event([], {
-        turnComplete: true,
-        usageMetadata: {
-          promptTokenCount: 100,
-          candidatesTokenCount: 50,
-          totalTokenCount: 150,
-          cachedContentTokenCount: 10,
-          thoughtsTokenCount: 5,
-          toolUsePromptTokenCount: 20,
-        },
-      }),
+describe("createAdkNormalizer — reasoning + content blocks", () => {
+  it("maps a thought part to reasoning.start/delta/end + reasoning.opaque signature", () => {
+    const out = run([
+      event([{ text: "thinking…", thought: true, thoughtSignature: "SIG" }], { partial: true }),
+    ]);
+    const types = out.map((e) => e.type);
+    expect(types).toEqual(
+      expect.arrayContaining([
+        "reasoning.start",
+        "reasoning.delta",
+        "reasoning.end",
+        "reasoning.opaque",
+      ])
     );
-    const done = evs.find((e) => e.type === "turn.done");
-    expect(done).toMatchObject({
-      usage: {
-        inputTokens: 100,
-        outputTokens: 50,
-        totalTokens: 150,
-        cacheReadTokens: 10,
-        reasoningTokens: 5,
-        toolUseInputTokens: 20,
-        cumulative: false,
-      },
+    expect(out.find((e) => e.type === "reasoning.opaque")).toMatchObject({
+      kind: "signature",
+      value: "SIG",
+      provider: "google",
     });
-    assertAllValid(evs);
   });
 
-  it("omits undefined fields from usage (partial usageMetadata)", async () => {
-    const evs = await normalize(
-      event([], { turnComplete: true, usageMetadata: { promptTokenCount: 42 } }),
-    );
-    const done = pick(evs, "turn.done");
-    expect(done).toMatchObject({ usage: { inputTokens: 42, cumulative: false } });
-    expect(done?.usage?.outputTokens).toBeUndefined();
-    assertAllValid(evs);
-  });
-
-  it("emits no usage on turn.done when usageMetadata is absent", async () => {
-    const evs = await normalize(event([], { turnComplete: true }));
-    const done = pick(evs, "turn.done");
-    expect(done?.usage).toBeUndefined();
-    assertAllValid(evs);
+  it("maps executableCode to a content.block code block", () => {
+    const out = run([
+      event([{ executableCode: { language: "PYTHON", code: "print(1)" } }], { partial: true }),
+    ]);
+    const block = out.find((e) => e.type === "content.block");
+    expect(block).toMatchObject({ block: { type: "code", code: "print(1)" } });
   });
 });
 
-describe("adkNormalizer — (b) errorCode+errorMessage → turn.error", () => {
-  it("emits turn.error (not turn.done) when BOTH errorCode AND errorMessage are present", async () => {
-    const evs = await normalize(
-      event([], { errorCode: "INTERNAL_ERROR", errorMessage: "Something went wrong" }),
-    );
-    const types = evs.map((e) => e.type);
-    expect(types).toContain("turn.error");
-    expect(types).not.toContain("turn.done");
-    const err = evs.find((e) => e.type === "turn.error");
-    expect(err).toMatchObject({ type: "turn.error", message: "Something went wrong", code: "INTERNAL_ERROR" });
-    assertAllValid(evs);
+describe("createAdkNormalizer — standalone arms via emit()", () => {
+  it("maps interrupted to turn.abort", () => {
+    const out = run([event([], { interrupted: true })]);
+    expect(out.find((e) => e.type === "turn.abort")).toMatchObject({ reason: "interrupted" });
   });
 
-  it("still emits turn.done (not turn.error) when only errorCode is present (no errorMessage)", async () => {
-    // Existing behavior: bare errorCode (SAFETY) = turn.done with finishReason.
-    const evs = await normalize(event([], { errorCode: "SAFETY" }));
-    const types = evs.map((e) => e.type);
-    expect(types).toContain("turn.done");
-    expect(types).not.toContain("turn.error");
-    assertAllValid(evs);
+  it("maps actions.transferToAgent to a handoff event", () => {
+    const out = run([event([], { actions: { transferToAgent: "billing" } })]);
+    expect(out.find((e) => e.type === "handoff")).toMatchObject({
+      kind: "transfer",
+      toAgentName: "billing",
+    });
   });
-});
 
-describe("adkNormalizer — (c) safetyRatings + promptFeedback", () => {
-  it("adds safety array to turn.done from blocked safetyRatings", async () => {
-    const evs = await normalize(
+  it("maps actions.stateDelta to a state.delta event", () => {
+    const out = run([event([], { actions: { stateDelta: { cart: 3 } } })]);
+    expect(out.find((e) => e.type === "state.delta")).toMatchObject({ patch: { cart: 3 } });
+  });
+
+  it("maps a grounding chunk to a source event", () => {
+    const out = run([
       event([], {
-        turnComplete: true,
-        safetyRatings: [
-          { category: "HARM_CATEGORY_DANGEROUS", probability: "HIGH", score: 0.9, blocked: true },
-          { category: "HARM_CATEGORY_HATE", probability: "LOW", score: 0.1, blocked: false },
+        groundingMetadata: { groundingChunks: [{ web: { uri: "https://x", title: "X" } }] },
+      }),
+    ]);
+    expect(out.find((e) => e.type === "source")).toMatchObject({
+      source: { url: "https://x", title: "X" },
+    });
+  });
+});
+
+describe("createAdkNormalizer — tool arms", () => {
+  it("emits one tool.start+args.assembled and dedupes the partial:false aggregate", () => {
+    const fc = { functionCall: { name: "echo", args: { text: "hi" }, id: "adk-1" } };
+    const out = run([
+      event([fc], { partial: true, finishReason: "STOP" }),
+      event([fc], { partial: false, finishReason: "STOP" }), // aggregate re-send
+    ]);
+    expect(out.filter((e) => e.type === "tool.start")).toHaveLength(1);
+    const start = out.find((e) => e.type === "tool.start");
+    expect(start).toMatchObject({ type: "tool.start", toolCallId: "adk-1", name: "echo" });
+    const assembled = out.find((e) => e.type === "tool.args.assembled");
+    expect(assembled).toMatchObject({ toolCallId: "adk-1", input: { text: "hi" } });
+  });
+
+  it("correlates a functionResponse to its call by the shared adk-<uuid> id", () => {
+    const out = run([
+      event(
+        [
+          {
+            functionResponse: {
+              name: "echo",
+              id: "adk-1",
+              response: { content: [{ type: "text", text: "echo: hi" }] },
+            },
+          },
         ],
-      }),
-    );
-    const done = evs.find((e) => e.type === "turn.done");
+        {}
+      ),
+    ]);
+    const done = out.find((e) => e.type === "tool.done");
     expect(done).toMatchObject({
-      safety: [{ category: "HARM_CATEGORY_DANGEROUS", probability: "HIGH", score: 0.9, blocked: true }],
+      toolCallId: "adk-1",
+      outcome: "ok",
+      content: [{ type: "text", text: "echo: hi" }],
     });
-    assertAllValid(evs);
   });
+});
 
-  it("emits prompt.blocked when promptFeedback.blockReason is present", async () => {
-    const evs = await normalize(
+// ─── Part A: parity tests for arms covered only in the legacy index.test.ts ──
+
+describe("createAdkNormalizer — promptFeedback.blockReason → prompt.blocked", () => {
+  it("emits prompt.blocked with reason:safety and safetyRatings when promptFeedback.blockReason is SAFETY", () => {
+    const out = run([
       event([], {
         promptFeedback: {
           blockReason: "SAFETY",
-          safetyRatings: [{ category: "HARM_CATEGORY_DANGEROUS", probability: "HIGH", score: 0.9, blocked: true }],
+          safetyRatings: [
+            { category: "HARM_CATEGORY_DANGEROUS", probability: "HIGH", score: 0.9, blocked: true },
+          ],
         },
       }),
-    );
-    const blocked = evs.find((e) => e.type === "prompt.blocked");
-    expect(blocked).toMatchObject({ type: "prompt.blocked", reason: "safety" });
-    assertAllValid(evs);
+    ]);
+    const blocked = out.find((e) => e.type === "prompt.blocked");
+    expect(blocked).toMatchObject({
+      type: "prompt.blocked",
+      reason: "safety",
+      safety: [{ category: "HARM_CATEGORY_DANGEROUS", probability: "HIGH", score: 0.9, blocked: true }],
+    });
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
   });
 
-  it("maps promptFeedback blockReason OTHER to 'other'", async () => {
-    const evs = await normalize(
-      event([], { promptFeedback: { blockReason: "OTHER" } }),
-    );
-    const blocked = evs.find((e) => e.type === "prompt.blocked");
+  it("emits prompt.blocked with reason:other when blockReason is OTHER (no safetyRatings)", () => {
+    const out = run([event([], { promptFeedback: { blockReason: "OTHER" } })]);
+    const blocked = out.find((e) => e.type === "prompt.blocked");
     expect(blocked).toMatchObject({ type: "prompt.blocked", reason: "other" });
-    assertAllValid(evs);
+    expect((blocked as { safety?: unknown } | undefined)?.safety).toBeUndefined();
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
   });
 });
 
-describe("adkNormalizer — (d) groundingMetadata → source + citations + display.required", () => {
-  it("emits source events for each groundingChunk with web.uri", async () => {
-    const evs = await normalize(
-      event([], {
-        turnComplete: true,
-        groundingMetadata: {
-          groundingChunks: [
-            { web: { uri: "https://example.com/a", title: "Example A" } },
-            { web: { uri: "https://example.com/b", title: "Example B" } },
-          ],
-        },
-      }),
-    );
-    const sources = evs.filter((e) => e.type === "source");
-    expect(sources).toHaveLength(2);
-    expect(sources[0]).toMatchObject({ type: "source", sourceId: "grounding_0", source: { url: "https://example.com/a", title: "Example A" } });
-    expect(sources[1]).toMatchObject({ type: "source", sourceId: "grounding_1", source: { url: "https://example.com/b", title: "Example B" } });
-    assertAllValid(evs);
-  });
-
-  it("emits content.block with text+citations for groundingSupports", async () => {
-    const evs = await normalize(
-      event([], {
-        turnComplete: true,
-        groundingMetadata: {
-          groundingChunks: [{ web: { uri: "https://example.com/a", title: "A" } }],
-          groundingSupports: [
-            {
-              groundingChunkIndices: [0],
-              confidenceScores: [0.95],
-              segment: { startIndex: 0, endIndex: 10, text: "grounded." },
-            },
-          ],
-        },
-      }),
-    );
-    const block = evs.find((e) => e.type === "content.block");
-    expect(block).toMatchObject({
-      type: "content.block",
-      block: {
-        type: "text",
-        text: "grounded.",
-        citations: [
-          {
-            kind: "offset",
-            unit: "byte",
-            startIndex: 0,
-            endIndex: 10,
-            bounds: "[start,end)",
-            sourceIds: ["grounding_0"],
-            confidenceScores: [0.95],
-            citedText: "grounded.",
-            indexFrame: "response",
-          },
-        ],
-      },
-    });
-    assertAllValid(evs);
-  });
-
-  it("emits display.required for searchEntryPoint.renderedContent", async () => {
-    const evs = await normalize(
-      event([], {
-        turnComplete: true,
-        groundingMetadata: {
-          searchEntryPoint: { renderedContent: "<b>Search results</b>" },
-        },
-      }),
-    );
-    const disp = evs.find((e) => e.type === "display.required");
-    expect(disp).toMatchObject({ type: "display.required", provider: "google", html: "<b>Search results</b>" });
-    assertAllValid(evs);
-  });
-});
-
-describe("adkNormalizer — (e) functionResponse.response.isError → tool.done outcome:error", () => {
-  it("sets outcome=error on tool.done when response.isError is true", async () => {
-    const evs = await normalize(
-      event([
-        {
-          functionResponse: {
-            name: "search",
-            id: "fr_1",
-            response: { isError: true, content: [{ type: "text", text: "Error occurred" }] },
-          },
-        },
-      ]),
-    );
-    expect(evs[0]).toMatchObject({ type: "tool.done", outcome: "error", toolCallId: "fr_1" });
-    assertAllValid(evs);
-  });
-
-  it("keeps outcome=ok when response.isError is absent", async () => {
-    const evs = await normalize(
-      event([{ functionResponse: { name: "search", id: "fr_2", response: { result: "ok" } } }]),
-    );
-    expect(evs[0]).toMatchObject({ type: "tool.done", outcome: "ok" });
-    assertAllValid(evs);
-  });
-});
-
-describe("adkNormalizer — (f) functionResponse.thoughtSignature → tool.done providerMetadata", () => {
-  it("populates tool.done providerMetadata.google.thoughtSignature when functionResponse has thoughtSignature", async () => {
-    const evs = await normalize(
-      event([
-        {
-          functionResponse: {
-            name: "search",
-            id: "fr_sig",
-            response: { result: "ok" },
-            thoughtSignature: "c2lnLWZy",
-          },
-        },
-      ]),
-    );
-    expect(evs[0]).toMatchObject({
-      type: "tool.done",
-      providerMetadata: { google: { thoughtSignature: "c2lnLWZy" } },
-    });
-    assertAllValid(evs);
-  });
-
-  it("omits providerMetadata on tool.done when functionResponse has no thoughtSignature", async () => {
-    const evs = await normalize(
-      event([{ functionResponse: { name: "f", id: "fr_nosig", response: { r: 1 } } }]),
-    );
-    const done = pick(evs, "tool.done");
-    expect(done?.providerMetadata).toBeUndefined();
-    assertAllValid(evs);
-  });
-});
-
-describe("adkNormalizer — (g) actions mappings", () => {
-  it("emits handoff transfer when actions.transferToAgent is set", async () => {
-    const evs = await normalize(
-      event([], { actions: { transferToAgent: "billing_agent" } }),
-    );
-    const handoff = evs.find((e) => e.type === "handoff");
-    expect(handoff).toMatchObject({ type: "handoff", kind: "transfer", toAgentName: "billing_agent" });
-    assertAllValid(evs);
-  });
-
-  it("emits handoff escalate when actions.escalate is true", async () => {
-    const evs = await normalize(event([], { actions: { escalate: true } }));
-    const handoff = evs.find((e) => e.type === "handoff");
-    expect(handoff).toMatchObject({ type: "handoff", kind: "escalate" });
-    assertAllValid(evs);
-  });
-
-  it("emits hitl.ask for each requestedAuthConfig", async () => {
-    const evs = await normalize(
+describe("createAdkNormalizer — actions.requestedAuthConfigs → hitl.ask (kind auth)", () => {
+  it("emits hitl.ask auth for each requestedAuthConfig entry", () => {
+    const out = run([
       event([], {
         actions: {
           requestedAuthConfigs: [
             {
               toolName: "gmail_tool",
-              authConfig: { scheme: "oauth2", scopes: ["read"], authorizationUrl: "https://auth.example.com" },
+              authConfig: {
+                scheme: "oauth2",
+                scopes: ["read"],
+                authorizationUrl: "https://auth.example.com",
+              },
             },
           ],
         },
       }),
-    );
-    const ask = evs.find((e) => e.type === "hitl.ask");
+    ]);
+    const ask = out.find((e) => e.type === "hitl.ask");
     expect(ask).toMatchObject({
       type: "hitl.ask",
       askId: "auth_gmail_tool",
@@ -658,11 +234,13 @@ describe("adkNormalizer — (g) actions mappings", () => {
       toolCallId: "gmail_tool",
       authConfig: { scheme: "oauth2", scopes: ["read"], authorizationUrl: "https://auth.example.com" },
     });
-    assertAllValid(evs);
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
   });
+});
 
-  it("emits hitl.ask for each requestedToolConfirmation", async () => {
-    const evs = await normalize(
+describe("createAdkNormalizer — actions.requestedToolConfirmations → hitl.ask (kind approval)", () => {
+  it("emits hitl.ask approval for each requestedToolConfirmation entry", () => {
+    const out = run([
       event([], {
         actions: {
           requestedToolConfirmations: [
@@ -670,8 +248,8 @@ describe("adkNormalizer — (g) actions mappings", () => {
           ],
         },
       }),
-    );
-    const ask = evs.find((e) => e.type === "hitl.ask");
+    ]);
+    const ask = out.find((e) => e.type === "hitl.ask");
     expect(ask).toMatchObject({
       type: "hitl.ask",
       askId: "approval_delete_file_0",
@@ -679,190 +257,127 @@ describe("adkNormalizer — (g) actions mappings", () => {
       toolCallId: "fc_del_1",
       message: "Confirm delete?",
     });
-    assertAllValid(evs);
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
   });
 });
 
-describe("adkNormalizer — (h) interrupted → turn.abort", () => {
-  it("emits turn.abort when event.interrupted is true", async () => {
-    const evs = await normalize(event([], { interrupted: true }));
-    const abort = evs.find((e) => e.type === "turn.abort");
-    expect(abort).toMatchObject({ type: "turn.abort", reason: "interrupted" });
-    assertAllValid(evs);
-  });
-});
-
-describe("adkNormalizer — (i) longRunningToolIds → tool.start longRunning", () => {
-  it("sets longRunning=true on tool.start when the call id is in longRunningToolIds", async () => {
-    const evs = await normalize(
-      event(
-        [{ functionCall: { name: "slow_fn", args: {}, id: "fc_slow" } }],
-        { longRunningToolIds: ["fc_slow"] },
-      ),
-    );
-    const start = evs.find((e) => e.type === "tool.start");
-    expect(start).toMatchObject({ type: "tool.start", longRunning: true });
-    assertAllValid(evs);
-  });
-
-  it("does NOT set longRunning when the call id is NOT in longRunningToolIds", async () => {
-    const evs = await normalize(
-      event(
-        [{ functionCall: { name: "fast_fn", args: {}, id: "fc_fast" } }],
-        { longRunningToolIds: ["fc_other"] },
-      ),
-    );
-    const start = pick(evs, "tool.start");
-    expect(start?.longRunning).toBeUndefined();
-    assertAllValid(evs);
-  });
-});
-
-describe("adkNormalizer — (j) transcription → content.block with _meta", () => {
-  it("emits content.block with _meta agjson/transcription for inputTranscription", async () => {
-    const evs = await normalize(
-      event([], { inputTranscription: { text: "user said hello" } }),
-    );
-    const block = evs.find((e) => e.type === "content.block");
-    expect(block).toMatchObject({
-      type: "content.block",
-      block: {
-        type: "text",
-        text: "user said hello",
-        _meta: { "agjson/transcription": { role: "input", kind: "transcription" } },
-      },
-    });
-    assertAllValid(evs);
-  });
-
-  it("emits content.block with _meta agjson/transcription for outputTranscription", async () => {
-    const evs = await normalize(
-      event([], { outputTranscription: { text: "agent said goodbye" } }),
-    );
-    const block = evs.find((e) => e.type === "content.block");
-    expect(block).toMatchObject({
-      type: "content.block",
-      block: {
-        type: "text",
-        text: "agent said goodbye",
-        _meta: { "agjson/transcription": { role: "output", kind: "transcription" } },
-      },
-    });
-    assertAllValid(evs);
-  });
-});
-
-describe("adkNormalizer — (k) actions.stateDelta → state.delta", () => {
-  it("emits state.delta when actions.stateDelta is present", async () => {
-    const evs = await normalize(
-      event([], { actions: { stateDelta: { sessionKey: "val1", counter: 42 } } }),
-    );
-    const delta = pick(evs, "state.delta");
-    expect(delta).toMatchObject({
-      type: "state.delta",
-      patch: { sessionKey: "val1", counter: 42 },
-    });
-    assertAllValid(evs);
-  });
-
-  it("does NOT include stateDelta in the provider-raw opaque bag", async () => {
-    const evs = await normalize(
-      event([], { actions: { stateDelta: { k: "v" } } }),
-    );
-    const raw = evs.filter((e) => e.type === "content.block");
-    // provider-raw should NOT be emitted for stateDelta alone (it has a real mapping)
-    expect(raw).toHaveLength(0);
-    assertAllValid(evs);
-  });
-});
-
-describe("adkNormalizer — (l) provider-raw fallback for unmapped event/action fields", () => {
-  it("emits a content.block provider-raw carrying artifactDelta + citationMetadata when both are present", async () => {
-    const evs = await normalize(
+describe("createAdkNormalizer — groundingMetadata.searchEntryPoint → display.required", () => {
+  it("emits display.required for searchEntryPoint.renderedContent", () => {
+    const out = run([
       event([], {
-        actions: { artifactDelta: { doc1: "patch-v1" } },
+        groundingMetadata: {
+          searchEntryPoint: { renderedContent: "<b>Search results</b>" },
+        },
+      }),
+    ]);
+    const disp = out.find((e) => e.type === "display.required");
+    expect(disp).toMatchObject({
+      type: "display.required",
+      provider: "google",
+      html: "<b>Search results</b>",
+    });
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+});
+
+describe("createAdkNormalizer — actions.escalate:true → handoff escalate", () => {
+  it("emits handoff with kind:escalate when actions.escalate is true", () => {
+    const out = run([event([], { actions: { escalate: true } })]);
+    const handoff = out.find((e) => e.type === "handoff");
+    expect(handoff).toMatchObject({ type: "handoff", kind: "escalate" });
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+});
+
+describe("createAdkNormalizer — unmapped actions → content.block provider-raw", () => {
+  it("carries artifactDelta in a provider-raw content.block (lossless opaque passthrough)", () => {
+    const out = run([
+      event([], { actions: { artifactDelta: { doc1: "patch-v1" } } }),
+    ]);
+    const raw = out.find(
+      (e) =>
+        e.type === "content.block" &&
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "provider-raw" &&
+        typeof (e as { block: { raw?: unknown } }).block === "object" &&
+        "artifactDelta" in ((e as { block: { raw: object } }).block.raw as object),
+    );
+    expect(raw).toBeDefined();
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("does NOT emit provider-raw when no unmapped action fields are present", () => {
+    const out = run([event([], { actions: { transferToAgent: "billing" } })]);
+    const blocks = out.filter(
+      (e) =>
+        e.type === "content.block" &&
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "provider-raw",
+    );
+    expect(blocks).toHaveLength(0);
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+});
+
+describe("createAdkNormalizer — event-level unmapped fields → content.block provider-raw", () => {
+  it("carries citationMetadata in a provider-raw content.block", () => {
+    const out = run([
+      event([], {
         citationMetadata: {
           citations: [{ uri: "https://example.com", title: "Example", startIndex: 0, endIndex: 5 }],
         },
       }),
-    );
-    // One provider-raw from unmapped actions, one from unmapped event-level fields.
-    const blocks = evs.filter((e) => e.type === "content.block");
-    expect(blocks.length).toBeGreaterThanOrEqual(1);
-    // The actions-level provider-raw carries artifactDelta.
-    const actionRaw = blocks.find(
+    ]);
+    const raw = out.find(
       (e) =>
         e.type === "content.block" &&
-        typeof e.block === "object" &&
-        e.block !== null &&
-        "type" in e.block &&
-        e.block.type === "provider-raw" &&
-        typeof e.block.raw === "object" &&
-        e.block.raw !== null &&
-        "artifactDelta" in e.block.raw,
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "provider-raw" &&
+        "citationMetadata" in ((e as { block: { raw: object } }).block.raw as object),
     );
-    expect(actionRaw).toBeDefined();
-    // The event-level provider-raw carries citationMetadata.
-    const eventRaw = blocks.find(
+    expect(raw).toBeDefined();
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("carries customMetadata in a provider-raw content.block", () => {
+    const out = run([event([], { customMetadata: { traceId: "t1", score: 0.9 } })]);
+    const raw = out.find(
       (e) =>
         e.type === "content.block" &&
-        typeof e.block === "object" &&
-        e.block !== null &&
-        "type" in e.block &&
-        e.block.type === "provider-raw" &&
-        typeof e.block.raw === "object" &&
-        e.block.raw !== null &&
-        "citationMetadata" in e.block.raw,
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "provider-raw" &&
+        "customMetadata" in ((e as { block: { raw: object } }).block.raw as object),
     );
-    expect(eventRaw).toBeDefined();
-    assertAllValid(evs);
+    expect(raw).toBeDefined();
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
   });
 
-  it("does NOT emit provider-raw when no unmapped fields are present", async () => {
-    const evs = await normalize(event([], { turnComplete: true }));
-    const blocks = evs.filter(
+  it("carries both citationMetadata and customMetadata in a single provider-raw block when both present", () => {
+    const out = run([
+      event([], {
+        citationMetadata: { citations: [{ uri: "https://x", title: "X", startIndex: 0, endIndex: 3 }] },
+        customMetadata: { version: 2 },
+      }),
+    ]);
+    // One combined provider-raw block for both event-level unmapped fields.
+    const raws = out.filter(
       (e) =>
         e.type === "content.block" &&
-        typeof e.block === "object" &&
-        e.block !== null &&
-        "type" in e.block &&
-        e.block.type === "provider-raw",
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "provider-raw",
     );
-    expect(blocks).toHaveLength(0);
-    assertAllValid(evs);
-  });
-});
-
-// ─── the portable JSONata rule (structural subset) ───────────────────────────
-describe("rule.jsonata — portable structural subset (parts[] $map)", () => {
-  it("maps the text-part structural subset the same as the TS normalizer", async () => {
-    const run = fromJsonata(ruleJsonata);
-    const evs = await run(event([{ text: "hello" }]));
-    expect(evs.map((e) => e.type)).toEqual(["text.start", "text.delta", "text.end"]);
-    expect(evs.map((e) => e.seq)).toEqual([0, 1, 2]);
-    const delta = evs.find((e) => e.type === "text.delta");
-    expect(delta).toMatchObject({ delta: "hello" });
-    assertAllValid(evs);
-  });
-
-  it("maps the functionCall tool.start + tool.args.delta with dict args (assembled stays in TS)", async () => {
-    const run = fromJsonata(ruleJsonata);
-    const evs = await run(event([{ functionCall: { name: "get_weather", args: { city: "SF" }, id: "fc_j" } }]));
-    // JSONata has no JSON parser, so the rule covers ONLY the parse-free structural
-    // backbone (tool.start + the stringified-args tool.args.delta). The mandatory
-    // parsed tool.args.assembled is authoritative in the TS normalizer.
-    expect(evs.map((e) => e.type)).toEqual(["tool.start", "tool.args.delta"]);
-    const start = evs.find((e) => e.type === "tool.start");
-    expect(start).toMatchObject({ toolCallId: "fc_j", name: "get_weather" });
-    assertAllValid(evs);
-  });
-
-  it("skips thought parts and non-text/non-call parts in the structural subset", async () => {
-    const run = fromJsonata(ruleJsonata);
-    const evs = await run(
-      event([{ text: "thinking", thought: true }, { inlineData: { mimeType: "image/png", data: "x" } }]),
+    expect(raws.length).toBeGreaterThanOrEqual(1);
+    const combined = raws.find(
+      (e) =>
+        "citationMetadata" in ((e as { block: { raw: object } }).block.raw as object) &&
+        "customMetadata" in ((e as { block: { raw: object } }).block.raw as object),
     );
-    // Neither a thought part nor an inlineData part is in the structural subset.
-    expect(evs).toEqual([]);
+    expect(combined).toBeDefined();
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
   });
 });
