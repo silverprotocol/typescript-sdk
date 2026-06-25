@@ -107,6 +107,37 @@ describe("createAdkNormalizer — reasoning + content blocks", () => {
   });
 });
 
+describe("createAdkNormalizer — standalone arms via emit()", () => {
+  it("maps interrupted to turn.abort", () => {
+    const out = run([event([], { interrupted: true })]);
+    expect(out.find((e) => e.type === "turn.abort")).toMatchObject({ reason: "interrupted" });
+  });
+
+  it("maps actions.transferToAgent to a handoff event", () => {
+    const out = run([event([], { actions: { transferToAgent: "billing" } })]);
+    expect(out.find((e) => e.type === "handoff")).toMatchObject({
+      kind: "transfer",
+      toAgentName: "billing",
+    });
+  });
+
+  it("maps actions.stateDelta to a state.delta event", () => {
+    const out = run([event([], { actions: { stateDelta: { cart: 3 } } })]);
+    expect(out.find((e) => e.type === "state.delta")).toMatchObject({ patch: { cart: 3 } });
+  });
+
+  it("maps a grounding chunk to a source event", () => {
+    const out = run([
+      event([], {
+        groundingMetadata: { groundingChunks: [{ web: { uri: "https://x", title: "X" } }] },
+      }),
+    ]);
+    expect(out.find((e) => e.type === "source")).toMatchObject({
+      source: { url: "https://x", title: "X" },
+    });
+  });
+});
+
 describe("createAdkNormalizer — tool arms", () => {
   it("emits one tool.start+args.assembled and dedupes the partial:false aggregate", () => {
     const fc = { functionCall: { name: "echo", args: { text: "hi" }, id: "adk-1" } };

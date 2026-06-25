@@ -1091,6 +1091,151 @@ function driveAdkTopLevel(
       _meta: { "agjson/transcription": { role: "output", kind: "transcription" } },
     });
   }
+
+  // ── interrupted → turn.abort ──
+  if (event.interrupted === true) a.emit({ type: "turn.abort", reason: "interrupted" });
+
+  // ── promptFeedback → prompt.blocked ──
+  if (event.promptFeedback?.blockReason !== undefined) {
+    const reason = mapBlockReason(event.promptFeedback.blockReason);
+    const safety =
+      event.promptFeedback.safetyRatings !== undefined
+        ? event.promptFeedback.safetyRatings
+            .filter((r): r is typeof r & { category: string } => r.category !== undefined)
+            .map((r) => ({
+              category: r.category,
+              probability: r.probability,
+              score: r.score,
+              blocked: r.blocked,
+            }))
+        : undefined;
+    a.emit({ type: "prompt.blocked", reason, ...(safety !== undefined ? { safety } : {}) });
+  }
+
+  // ── groundingMetadata → source + citation content.block + display.required ──
+  if (event.groundingMetadata !== undefined) {
+    const gm = event.groundingMetadata;
+    if (gm.groundingChunks !== undefined) {
+      gm.groundingChunks.forEach((chunk, chunkIndex) => {
+        if (chunk.web?.uri !== undefined) {
+          a.emit({
+            type: "source",
+            sourceId: `grounding_${chunkIndex}`,
+            source: { url: chunk.web.uri, title: chunk.web.title },
+          });
+        }
+      });
+    }
+    if (gm.groundingSupports !== undefined) {
+      gm.groundingSupports.forEach((support) => {
+        const segText = support.segment?.text ?? "";
+        const citation: AgCitation = {
+          kind: "offset",
+          unit: "byte",
+          startIndex: support.segment?.startIndex ?? 0,
+          endIndex: support.segment?.endIndex ?? 0,
+          bounds: "[start,end)",
+          sourceIds: support.groundingChunkIndices?.map((i) => `grounding_${i}`) ?? [],
+          confidenceScores: support.confidenceScores ?? [],
+          citedText: segText,
+          indexFrame: "response",
+        };
+        a.contentBlock(messageId, { type: "text", text: segText, citations: [citation] });
+      });
+    }
+    if (gm.searchEntryPoint?.renderedContent !== undefined) {
+      a.emit({
+        type: "display.required",
+        provider: "google",
+        html: gm.searchEntryPoint.renderedContent,
+      });
+    }
+  }
+
+  // ── actions → handoff / hitl.ask / state.delta / provider-raw bag ──
+  const actions = event.actions;
+  if (actions !== undefined) {
+    if (actions.transferToAgent !== undefined) {
+      a.emit({ type: "handoff", kind: "transfer", toAgentName: actions.transferToAgent });
+    }
+    if (actions.escalate === true) a.emit({ type: "handoff", kind: "escalate" });
+    if (actions.requestedAuthConfigs !== undefined) {
+      for (const config of actions.requestedAuthConfigs) {
+        const toolName = config.toolName ?? "unknown";
+        const authConfig =
+          config.authConfig !== undefined
+            ? {
+                scheme: config.authConfig.scheme ?? "unknown",
+                ...(config.authConfig.scopes !== undefined
+                  ? { scopes: config.authConfig.scopes }
+                  : {}),
+                ...(config.authConfig.authorizationUrl !== undefined
+                  ? { authorizationUrl: config.authConfig.authorizationUrl }
+                  : {}),
+                ...(config.authConfig.tokenUrl !== undefined
+                  ? { tokenUrl: config.authConfig.tokenUrl }
+                  : {}),
+                ...(config.authConfig.clientId !== undefined
+                  ? { clientId: config.authConfig.clientId }
+                  : {}),
+                ...(config.authConfig.audience !== undefined
+                  ? { audience: config.authConfig.audience }
+                  : {}),
+              }
+            : undefined;
+        a.emit({
+          type: "hitl.ask",
+          askId: `auth_${toolName}`,
+          kind: "auth",
+          toolCallId: toolName,
+          ...(authConfig !== undefined ? { authConfig } : {}),
+        });
+      }
+    }
+    if (actions.requestedToolConfirmations !== undefined) {
+      actions.requestedToolConfirmations.forEach((conf, confIndex) => {
+        const toolName = conf.toolName ?? "unknown";
+        a.emit({
+          type: "hitl.ask",
+          askId: `approval_${toolName}_${confIndex}`,
+          kind: "approval",
+          toolCallId: conf.toolCallId ?? toolName,
+          ...(conf.message !== undefined ? { message: conf.message } : {}),
+        });
+      });
+    }
+    if (actions.stateDelta !== undefined)
+      a.emit({ type: "state.delta", patch: JsonValue.parse(actions.stateDelta) });
+
+    const unmappedActions: { [k: string]: JsonValue } = {};
+    if (actions.artifactDelta !== undefined)
+      unmappedActions["artifactDelta"] = JsonValue.parse(actions.artifactDelta);
+    if (actions.renderUiWidgets !== undefined)
+      unmappedActions["renderUiWidgets"] = JsonValue.parse(actions.renderUiWidgets);
+    if (actions.agentState !== undefined) unmappedActions["agentState"] = actions.agentState;
+    if (actions.endOfAgent !== undefined) unmappedActions["endOfAgent"] = actions.endOfAgent;
+    if (Object.keys(unmappedActions).length > 0) {
+      a.contentBlock(messageId, {
+        type: "provider-raw",
+        vendor: "google",
+        raw: JsonValue.parse(unmappedActions),
+      });
+    }
+  }
+
+  // ── event-level unmapped (citationMetadata / customMetadata) → provider-raw ──
+  const unmappedEvent: { [k: string]: JsonValue } = {};
+  if (event.citationMetadata !== undefined)
+    unmappedEvent["citationMetadata"] = JsonValue.parse(event.citationMetadata);
+  if (event.customMetadata !== undefined)
+    unmappedEvent["customMetadata"] = JsonValue.parse(event.customMetadata);
+  if (Object.keys(unmappedEvent).length > 0) {
+    a.contentBlock(messageId, {
+      type: "provider-raw",
+      vendor: "google",
+      raw: JsonValue.parse(unmappedEvent),
+    });
+  }
 }
 
 // ─── stateful factory: createAdkNormalizer ────────────────────────────────────
