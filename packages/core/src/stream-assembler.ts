@@ -42,6 +42,12 @@ type ToolArgsAssembledEvent  = Extract<AgClosedEventType, { type: "tool.args.ass
 type ToolDoneEvent           = Extract<AgClosedEventType, { type: "tool.done" }>;
 type ContentBlockEvent       = Extract<AgClosedEventType, { type: "content.block" }>;
 
+/** Distributes `Omit` over a union so each arm keeps its exact shape. */
+type DistributiveOmit<T, K extends keyof never> = T extends unknown ? Omit<T, K> : never;
+
+/** A complete closed event awaiting only the engine-owned `seq`. */
+export type SeqlessEvent = DistributiveOmit<AgClosedEventType, "seq">;
+
 /** Fields for `toolStart`: the tool.start arm minus base envelope fields. */
 export type ToolStartFields = Omit<ToolStartEvent, "type" | "seq" | "turnId">;
 
@@ -503,6 +509,21 @@ export class StreamAssembler {
       ),
     };
     this.#emitExt(ev);
+  }
+
+  /**
+   * Emit a complete standalone event the engine has no dedicated lifecycle for
+   * (e.g. handoff, state.delta, turn.abort, source, hitl.ask, prompt.blocked,
+   * display.required — all members of AgClosedEventType). The engine stamps the
+   * monotonic seq; the facet supplies every other field. This is the base
+   * primitive the 23 lifecycle methods are sugar over — it guarantees no
+   * AgClosedEventType is ever unreachable.
+   */
+  emit(ev: SeqlessEvent): void {
+    // seq-reconstruction: TS cannot prove `{...Omit<T,"seq">, seq}` is `T` across
+    // a distributed union (spread-over-union limitation). The single assertion
+    // below re-attaches the engine-owned field; it is NOT type erasure.
+    this.#emit({ ...ev, seq: this.#nextSeq() } as AgClosedEventType);
   }
 
   /**

@@ -369,3 +369,35 @@ describe("emitExt reserved-key guard", () => {
     expect(evs[0]).not.toHaveProperty("turnId"); // reserved, dropped
   });
 });
+
+describe("StreamAssembler.emit — base primitive for standalone events", () => {
+  it("stamps a monotonic seq on a seqless standalone event", () => {
+    const a = new StreamAssembler();
+    a.emit({ type: "state.delta", patch: { foo: 1 } });
+    const evs = a.drain();
+    expect(evs).toHaveLength(1);
+    expect(evs[0]).toMatchObject({ type: "state.delta", seq: 0, patch: { foo: 1 } });
+  });
+
+  it("keeps seq monotonic across emit() and lifecycle methods interleaved", () => {
+    const a = new StreamAssembler();
+    a.openTurn("turn_1", "thread_1"); // turn.start — seq 0
+    a.emit({ type: "turn.abort", reason: "interrupted" }); // seq 1
+    a.emit({ type: "handoff", kind: "transfer", toAgentName: "other" }); // seq 2
+    const evs = a.drain();
+    expect(evs.map((e) => e.seq)).toEqual([0, 1, 2]);
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "turn.abort", "handoff"]);
+  });
+
+  it("accepts every standalone ADK event type (compile + runtime)", () => {
+    const a = new StreamAssembler();
+    a.emit({ type: "source", sourceId: "s0", source: { url: "https://x" } });
+    a.emit({ type: "display.required", provider: "google", html: "<x/>" });
+    a.emit({ type: "handoff", kind: "escalate" });
+    a.emit({ type: "hitl.ask", askId: "a0", kind: "approval", toolCallId: "t0" });
+    a.emit({ type: "state.delta", patch: {} });
+    a.emit({ type: "prompt.blocked", reason: "safety" });
+    a.emit({ type: "turn.abort", reason: "interrupted" });
+    expect(a.drain()).toHaveLength(7);
+  });
+});
