@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@silverprotocol/core": "workspace:*",
-    "@silverprotocol/claude-agent-sdk": "workspace:*"
+    "@silverprotocol/claude-agent-sdk": "workspace:*",
+    "@silverprotocol/google-adk": "workspace:*",
+    "@silverprotocol/openai-agents": "workspace:*"
   },
   "devDependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.2.141",

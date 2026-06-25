@@ -33,6 +33,7 @@ import { fileURLToPath } from "node:url";
 import type { JsonValue } from "@silverprotocol/core";
 import { createClaudeNormalizer } from "@silverprotocol/claude-agent-sdk";
 import { createOpenaiNormalizer } from "@silverprotocol/openai-agents";
+import { createAdkNormalizer } from "@silverprotocol/google-adk";
 import { census, type CensusReport } from "./census.js";
 
 // ─── locating the guard JSONs (package root, alongside corpus/) ──────────────
@@ -111,16 +112,18 @@ async function readAllowlist(path: string): Promise<AllowlistEntry[]> {
 // ─── framework selector ────────────────────────────────────────────────────────
 
 /** The set of supported facet normalizer identifiers. */
-export type Framework = "claude" | "openai";
+export type Framework = "claude" | "openai" | "adk";
 
 /**
  * Infer the framework from a cassette filename (e.g. `claude.native.json` →
- * `"claude"`, `openai.native.json` → `"openai"`). Falls back to `"claude"` so
- * existing callers that do NOT pass a framework remain forward-compatible.
+ * `"claude"`, `openai.native.json` → `"openai"`, `adk.native.json` → `"adk"`).
+ * Falls back to `"claude"` so existing callers that do NOT pass a framework
+ * remain forward-compatible.
  */
 export function inferFramework(nativePath: string): Framework {
   const base = nativePath.split("/").pop() ?? "";
   if (base.startsWith("openai.")) return "openai";
+  if (base.startsWith("adk.")) return "adk";
   return "claude";
 }
 
@@ -144,7 +147,12 @@ export async function replayCassette(
   const fw = framework ?? inferFramework(nativePath);
 
   // ── Drive the real facet normalizer: push each event, then flush. ──────────
-  const normalizer = fw === "openai" ? createOpenaiNormalizer() : createClaudeNormalizer();
+  const normalizer =
+    fw === "openai"
+      ? createOpenaiNormalizer()
+      : fw === "adk"
+        ? createAdkNormalizer()
+        : createClaudeNormalizer();
   const agjson: JsonValue[] = [];
   for (const event of native) {
     for (const e of normalizer.push(event)) {

@@ -1,0 +1,61 @@
+[
+  {
+    "content": {
+      "parts": [{ "functionCall": { "id": "adk-echo", "args": { "text": "hi" }, "name": "echo" } }],
+      "role": "model"
+    },
+    "partial": true,
+    "finishReason": "STOP",
+    "usageMetadata": { "promptTokenCount": 78, "candidatesTokenCount": 13, "totalTokenCount": 91 },
+    "invocationId": "e-echo",
+    "author": "spike",
+    "id": "adk-evt-0"
+  },
+  {
+    "content": {
+      "parts": [{ "functionCall": { "id": "adk-echo", "args": { "text": "hi" }, "name": "echo" } }],
+      "role": "model"
+    },
+    "partial": false,
+    "finishReason": "STOP",
+    "usageMetadata": { "promptTokenCount": 78, "candidatesTokenCount": 13, "totalTokenCount": 91 },
+    "invocationId": "e-echo",
+    "author": "spike",
+    "id": "adk-evt-1"
+  },
+  {
+    "content": {
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "adk-echo",
+            "name": "echo",
+            "response": { "content": [{ "type": "text", "text": "echo: hi" }] }
+          }
+        }
+      ],
+      "role": "user"
+    },
+    "invocationId": "e-echo",
+    "author": "spike",
+    "id": "adk-evt-2"
+  },
+  {
+    "content": { "parts": [{ "text": "Done." }], "role": "model" },
+    "partial": true,
+    "finishReason": "STOP",
+    "usageMetadata": { "promptTokenCount": 95, "candidatesTokenCount": 3, "totalTokenCount": 98 },
+    "invocationId": "e-echo",
+    "author": "spike",
+    "id": "adk-evt-3"
+  },
+  {
+    "content": { "parts": [{ "text": "Done." }], "role": "model" },
+    "partial": false,
+    "finishReason": "STOP",
+    "usageMetadata": { "promptTokenCount": 95, "candidatesTokenCount": 3, "totalTokenCount": 98 },
+    "invocationId": "e-echo",
+    "author": "spike",
+    "id": "adk-evt-4"
+  }
+]

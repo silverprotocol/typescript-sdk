@@ -16,11 +16,13 @@
  *      c. GATE: assert `report.drops === []` AND `report.newFields === []`.
  *
  * 3. I4 cross-framework convergence gate:
- *    For each scenario that has BOTH `claude.native.json` AND `openai.native.json`:
- *      a. Replay both cassettes to produce their respective AgJSON streams.
+ *    For each scenario that has ALL THREE of `claude.native.json`,
+ *    `openai.native.json` AND `adk.native.json`:
+ *      a. Replay all three cassettes to produce their respective AgJSON streams.
  *      b. `canonicalizeAgjson` each stream → CanonicalSchema.
- *      c. `assertConvergent(claude, openai, ctx)` → throws on structural divergence.
- *    Scenarios with only one framework cassette are SKIPPED gracefully.
+ *      c. `assertConvergent` 3× pairwise (claude↔openai, claude↔adk, openai↔adk)
+ *         → throws on structural divergence.
+ *    Scenarios missing any framework cassette are SKIPPED gracefully.
  *
  * ★ This is a MACHINERY + SNAPSHOT self-consistency gate, NOT a real-lossiness
  *   gate ★ — the Claude seeds are hand-authored SDKMessage shapes; the OpenAI
@@ -122,41 +124,54 @@ describe("I4 cross-framework convergence gate", () => {
   for (const scn of allCorpusScenarios) {
     const isConvergenceScenario = (CONVERGENCE_SCENARIOS as readonly string[]).includes(scn);
 
-    it(`${scn}: ${isConvergenceScenario ? "asserts convergence" : "skips gracefully (not a convergence scenario)"}`, async () => {
+    it(`${scn}: ${isConvergenceScenario ? "asserts 3-way convergence" : "skips gracefully"}`, async () => {
       const claudePath = join(CORPUS_ROOT, scn, "claude.native.json");
       const openaiPath = join(CORPUS_ROOT, scn, "openai.native.json");
+      const adkPath = join(CORPUS_ROOT, scn, "adk.native.json");
 
-      const [hasClaudeNative, hasOpenaiNative] = await Promise.all([
+      const [hasClaude, hasOpenai, hasAdk] = await Promise.all([
         fileExists(claudePath),
         fileExists(openaiPath),
+        fileExists(adkPath),
       ]);
 
-      if (!isConvergenceScenario || !hasClaudeNative || !hasOpenaiNative) {
-        // Not a convergence scenario, or missing one cassette — skip gracefully.
+      if (!isConvergenceScenario || !hasClaude || !hasOpenai || !hasAdk) {
         console.log(
-          `I4 gate: skipping ${scn} (isConvergence=${isConvergenceScenario}, hasClaudeNative=${hasClaudeNative}, hasOpenaiNative=${hasOpenaiNative})`,
+          `I4 gate: skipping ${scn} (conv=${isConvergenceScenario}, claude=${hasClaude}, openai=${hasOpenai}, adk=${hasAdk})`,
         );
         return;
       }
 
-      // Convergence scenario with both cassettes present — assert structural equivalence.
-      const [claudeResult, openaiResult] = await Promise.all([
+      const [claude, openai, adk] = await Promise.all([
         replayCassette(claudePath, "claude"),
         replayCassette(openaiPath, "openai"),
+        replayCassette(adkPath, "adk"),
       ]);
 
-      const claudeCanonical = canonicalizeAgjson(claudeResult.agjson);
-      const openaiCanonical = canonicalizeAgjson(openaiResult.agjson);
+      const c = canonicalizeAgjson(claude.agjson);
+      const o = canonicalizeAgjson(openai.agjson);
+      const k = canonicalizeAgjson(adk.agjson);
 
-      // assertConvergent throws with an aggregated diff on any structural mismatch.
-      assertConvergent(claudeCanonical, openaiCanonical, {
-        scenario: scn,
-        fw1: "claude",
-        fw2: "openai",
-      });
-
-      // If we reach here, the two streams are structurally equivalent.
+      assertConvergent(c, o, { scenario: scn, fw1: "claude", fw2: "openai" });
+      assertConvergent(c, k, { scenario: scn, fw1: "claude", fw2: "adk" });
+      assertConvergent(o, k, { scenario: scn, fw1: "openai", fw2: "adk" });
       expect(true).toBe(true);
     });
   }
+});
+
+// ─── ADK non-vacuity guard ────────────────────────────────────────────────────
+// A deliberately-divergent ADK canonical MUST throw — proves the ADK arm is
+// actually compared (not silently skipped) by the 3-way gate.
+
+it("convergence-echo: ADK divergence is detected (non-vacuity)", async () => {
+  const claude = await replayCassette(
+    join(CORPUS_ROOT, "convergence-echo", "claude.native.json"),
+    "claude",
+  );
+  const c = canonicalizeAgjson(claude.agjson);
+  const tampered = { ...c, textContent: ["TAMPERED"] };
+  expect(() =>
+    assertConvergent(c, tampered, { scenario: "convergence-echo", fw1: "claude", fw2: "adk" }),
+  ).toThrow(/textContent mismatch/);
 });
