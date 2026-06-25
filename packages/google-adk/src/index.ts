@@ -948,9 +948,19 @@ function driveAdkPart(
   turnId: string,
   _assembledToolCalls: Set<string>
 ): string {
-  // ── REASONING (thought:true) — Task 4 ──
-  // (no-op placeholder; Task 4 fills)
+  // ── REASONING (thought:true) → reasoning.start/delta/end + opaque signature ──
   if (part.thought === true) {
+    const id = `reasoning:${index}`;
+    a.reasoningStart(id, messageId);
+    if (part.text !== undefined && part.text.length > 0) a.reasoningDelta(id, messageId, part.text);
+    a.reasoningEnd(id, messageId, { provider: "google" });
+    if (part.thoughtSignature !== undefined && part.thoughtSignature.length > 0) {
+      a.reasoningOpaque(id, messageId, {
+        kind: "signature",
+        value: part.thoughtSignature,
+        provider: "google",
+      });
+    }
     return "";
   }
 
@@ -1027,8 +1037,35 @@ function driveAdkPart(
     return "";
   }
 
-  // ── INLINE DATA / CODE / FILE — Task 5 ──
-  // no-op placeholder; Task 5 fills
+  // ── inlineData / executableCode / codeExecutionResult / fileData → content.block ──
+  if (part.inlineData !== undefined) {
+    a.contentBlock(messageId, inlineDataBlock(part.inlineData));
+    return "";
+  }
+  if (part.executableCode !== undefined) {
+    a.contentBlock(messageId, {
+      type: "code",
+      language: codeLanguage(part.executableCode.language),
+      code: part.executableCode.code,
+    });
+    return "";
+  }
+  if (part.codeExecutionResult !== undefined) {
+    a.contentBlock(messageId, {
+      type: "code-result",
+      outcome: codeOutcome(part.codeExecutionResult.outcome),
+      output: part.codeExecutionResult.output ?? "",
+    });
+    return "";
+  }
+  if (part.fileData !== undefined) {
+    a.contentBlock(messageId, {
+      type: "resource-link",
+      uri: part.fileData.fileUri,
+      mimeType: part.fileData.mimeType,
+    });
+    return "";
+  }
 
   return "";
 }
@@ -1039,11 +1076,21 @@ function driveAdkTopLevel(
   messageId: string,
   turnId: string
 ): void {
-  // Tasks 4–5 fill grounding / actions / promptFeedback / interrupted / transcription.
-  void a;
-  void event;
-  void messageId;
   void turnId;
+  if (event.inputTranscription?.text !== undefined) {
+    a.contentBlock(messageId, {
+      type: "text",
+      text: event.inputTranscription.text,
+      _meta: { "agjson/transcription": { role: "input", kind: "transcription" } },
+    });
+  }
+  if (event.outputTranscription?.text !== undefined) {
+    a.contentBlock(messageId, {
+      type: "text",
+      text: event.outputTranscription.text,
+      _meta: { "agjson/transcription": { role: "output", kind: "transcription" } },
+    });
+  }
 }
 
 // ─── stateful factory: createAdkNormalizer ────────────────────────────────────

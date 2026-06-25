@@ -77,6 +77,36 @@ describe("createAdkNormalizer — text turn lifecycle", () => {
   });
 });
 
+describe("createAdkNormalizer — reasoning + content blocks", () => {
+  it("maps a thought part to reasoning.start/delta/end + reasoning.opaque signature", () => {
+    const out = run([
+      event([{ text: "thinking…", thought: true, thoughtSignature: "SIG" }], { partial: true }),
+    ]);
+    const types = out.map((e) => e.type);
+    expect(types).toEqual(
+      expect.arrayContaining([
+        "reasoning.start",
+        "reasoning.delta",
+        "reasoning.end",
+        "reasoning.opaque",
+      ])
+    );
+    expect(out.find((e) => e.type === "reasoning.opaque")).toMatchObject({
+      kind: "signature",
+      value: "SIG",
+      provider: "google",
+    });
+  });
+
+  it("maps executableCode to a content.block code block", () => {
+    const out = run([
+      event([{ executableCode: { language: "PYTHON", code: "print(1)" } }], { partial: true }),
+    ]);
+    const block = out.find((e) => e.type === "content.block");
+    expect(block).toMatchObject({ block: { type: "code", code: "print(1)" } });
+  });
+});
+
 describe("createAdkNormalizer — tool arms", () => {
   it("emits one tool.start+args.assembled and dedupes the partial:false aggregate", () => {
     const fc = { functionCall: { name: "echo", args: { text: "hi" }, id: "adk-1" } };
