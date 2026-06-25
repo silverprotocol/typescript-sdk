@@ -56,9 +56,13 @@ import {
   type AgCitation,
   type AgFinishReason,
   type AgSafety,
+  type AgUsage,
   AgProviderMeta,
   JsonValue,
+  type Normalizer,
+  type NormalizerContext,
   type RuleNormalizer,
+  StreamAssembler,
   type ToolOutcome,
 } from "@silverprotocol/core";
 
@@ -281,6 +285,53 @@ export function mapFinishReason(reason: string | undefined | null): AgFinishReas
     default:
       return "unknown";
   }
+}
+
+// ─── stateful factory helpers ─────────────────────────────────────────────────
+
+/** True for a non-null, non-array plain JSON object (guard idiom from the OpenAI facet). */
+function isJsonObject(v: unknown): v is { readonly [k: string]: JsonValue } {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/** Outer-discriminant guard. ADK events carry an object `content` and/or an `invocationId`. */
+function isAdkEvent(v: unknown): v is AdkEvent {
+  if (!isJsonObject(v)) return false;
+  return isJsonObject(v["content"]) || typeof v["invocationId"] === "string";
+}
+
+/** ADK usageMetadata → neutral AgUsage (cumulative:false). Extracted from the legacy turn.done arm. */
+function mapUsage(um: AdkEvent["usageMetadata"]): AgUsage | undefined {
+  if (um === undefined) return undefined;
+  return {
+    ...(um.promptTokenCount !== undefined ? { inputTokens: um.promptTokenCount } : {}),
+    ...(um.candidatesTokenCount !== undefined ? { outputTokens: um.candidatesTokenCount } : {}),
+    ...(um.totalTokenCount !== undefined ? { totalTokens: um.totalTokenCount } : {}),
+    ...(um.cachedContentTokenCount !== undefined
+      ? { cacheReadTokens: um.cachedContentTokenCount }
+      : {}),
+    ...(um.thoughtsTokenCount !== undefined ? { reasoningTokens: um.thoughtsTokenCount } : {}),
+    ...(um.toolUsePromptTokenCount !== undefined
+      ? { toolUseInputTokens: um.toolUsePromptTokenCount }
+      : {}),
+    cumulative: false as const,
+  };
+}
+
+/** ADK blocked safetyRatings → neutral AgSafety[]. Extracted from the legacy turn.done arm. */
+function mapBlockedSafety(ratings: AdkEvent["safetyRatings"]): AgSafety[] | undefined {
+  if (ratings === undefined) return undefined;
+  const out = ratings
+    .filter(
+      (r): r is typeof r & { category: string } => r.blocked === true && r.category !== undefined
+    )
+    .map((r) => ({
+      category: r.category,
+      probability: r.probability,
+      score: r.score,
+      blocked: r.blocked,
+    }));
+  return out.length > 0 ? out : undefined;
 }
 
 // ─── promptFeedback.blockReason → prompt.blocked reason (spec §4) ────────────
@@ -886,3 +937,201 @@ const adkNormalizer: RuleNormalizer<AdkEvent> = (event) => {
 
 export default adkNormalizer;
 export { adkNormalizer };
+
+// ─── stateful factory: driveAdkPart (TEXT arm; Tasks 3–5 fill the rest) ──────
+function driveAdkPart(
+  a: StreamAssembler,
+  part: AdkPart,
+  index: number,
+  event: AdkEvent,
+  messageId: string,
+  _turnId: string,
+  _assembledToolCalls: Set<string>
+): string {
+  // ── REASONING (thought:true) — Task 4 ──
+  // (no-op placeholder; Task 4 fills)
+  if (part.thought === true) {
+    return "";
+  }
+
+  // ── TEXT ──
+  if (part.text !== undefined) {
+    const id = `text:${index}`;
+    const signed = part.thoughtSignature !== undefined && part.thoughtSignature.length > 0;
+    if (signed) {
+      // §8.8 — carry the signature on text.start/end providerMetadata via the emit primitive
+      // (textStart/textEnd sugar has no providerMetadata param).
+      const providerMetadata = AgProviderMeta.parse({
+        google: { thoughtSignature: part.thoughtSignature },
+      });
+      a.emit({ type: "text.start", id, providerMetadata });
+      a.textDelta(id, messageId, part.text);
+      a.emit({ type: "text.end", id, providerMetadata });
+    } else {
+      a.textStart(id, messageId);
+      a.textDelta(id, messageId, part.text);
+      a.textEnd(id, messageId);
+    }
+    return part.text;
+  }
+
+  // ── FUNCTION CALL — Task 3 ──
+  if (part.functionCall !== undefined) {
+    // no-op placeholder; Task 3 fills
+    void event;
+    return "";
+  }
+
+  // ── FUNCTION RESPONSE — Task 3 ──
+  if (part.functionResponse !== undefined) {
+    // no-op placeholder; Task 3 fills
+    return "";
+  }
+
+  // ── INLINE DATA / CODE / FILE — Task 5 ──
+  // no-op placeholder; Task 5 fills
+
+  return "";
+}
+
+function driveAdkTopLevel(
+  a: StreamAssembler,
+  event: AdkEvent,
+  messageId: string,
+  turnId: string
+): void {
+  // Tasks 4–5 fill grounding / actions / promptFeedback / interrupted / transcription.
+  void a;
+  void event;
+  void messageId;
+  void turnId;
+}
+
+// ─── stateful factory: createAdkNormalizer ────────────────────────────────────
+export function createAdkNormalizer(ctx?: NormalizerContext): Normalizer {
+  const a = new StreamAssembler(ctx);
+  const threadId = "google";
+  // §8.3 per-instance accumulator (replaces the module-level streamedText Map):
+  const streamedText = new Map<string, string>();
+  const openTurns = new Set<string>();
+  const closedTurns = new Set<string>();
+  const assembledToolCalls = new Set<string>(); // FC dedup across partial/aggregate (Task 3)
+
+  function ensureOpen(turnId: string): string {
+    const messageId = `msg_${turnId}`;
+    if (!openTurns.has(turnId)) {
+      openTurns.add(turnId);
+      a.openTurn(turnId, threadId);
+      a.openMessage({ id: messageId, role: "assistant", turnId, threadId });
+    }
+    return messageId;
+  }
+
+  function maybeCloseTurn(
+    event: AdkEvent,
+    turnId: string,
+    messageId: string,
+    isPartial: boolean
+  ): void {
+    if (isPartial || closedTurns.has(turnId)) return;
+    const parts = event.content?.parts ?? [];
+    const hasFunctionCall = parts.some((p) => p.functionCall !== undefined);
+    const interrupted = event.interrupted === true;
+    const hasCompletion =
+      event.turnComplete === true ||
+      event.finishReason !== undefined ||
+      event.errorCode !== undefined;
+    // is_final_response: a non-partial event with no pending function call and not interrupted.
+    if (hasFunctionCall || interrupted || !hasCompletion) return;
+    closedTurns.add(turnId);
+    a.closeMessage(messageId);
+    if (event.errorCode !== undefined && event.errorMessage !== undefined) {
+      a.closeTurnError(turnId, { message: event.errorMessage, code: event.errorCode });
+    } else {
+      const usage = mapUsage(event.usageMetadata);
+      const safety = mapBlockedSafety(event.safetyRatings);
+      a.closeTurnDone(turnId, {
+        outcome: { type: "success" },
+        finishReason: mapFinishReason(event.finishReason ?? event.errorCode),
+        ...(usage !== undefined ? { usage } : {}),
+        ...(safety !== undefined ? { safety } : {}),
+      });
+    }
+  }
+
+  function drive(event: AdkEvent): void {
+    const key = turnKey(event);
+    const turnId = `turn_${key}`;
+    const messageId = ensureOpen(turnId);
+    const parts = event.content?.parts ?? [];
+    const isPartial = event.partial === true;
+
+    // §8.3 — verbatim port of the legacy suppression, with e.push(...) → a.<primitive>.
+    const alreadyStreamed = streamedText.get(key) ?? "";
+    const isAggregate = !isPartial && alreadyStreamed.length > 0;
+    const aggregateText = isAggregate
+      ? parts
+          .filter((p) => p.thought !== true && p.functionCall === undefined && p.text !== undefined)
+          .map((p) => p.text ?? "")
+          .join("")
+      : "";
+    const suppressAggregateText =
+      isAggregate && aggregateText.length > 0 && alreadyStreamed.startsWith(aggregateText);
+    let residualTail =
+      isAggregate && !suppressAggregateText ? aggregateText.slice(alreadyStreamed.length) : "";
+    let accumulated = alreadyStreamed;
+
+    parts.forEach((part, index) => {
+      const isAggregateText =
+        isAggregate &&
+        part.thought !== true &&
+        part.functionCall === undefined &&
+        part.text !== undefined;
+      if (isAggregateText) {
+        if (suppressAggregateText) {
+          accumulated += part.text ?? "";
+          return;
+        }
+        if (residualTail.length > 0) {
+          const id = `text:${index}`;
+          a.textStart(id, messageId);
+          a.textDelta(id, messageId, residualTail);
+          a.textEnd(id, messageId);
+          residualTail = "";
+        }
+        accumulated += part.text ?? "";
+        return;
+      }
+      const contributed = driveAdkPart(a, part, index, event, messageId, turnId, assembledToolCalls);
+      if (isPartial) accumulated += contributed;
+    });
+
+    if (isPartial) streamedText.set(key, accumulated);
+    else if (isAggregate) streamedText.delete(key);
+
+    driveAdkTopLevel(a, event, messageId, turnId); // standalone/content arms (Tasks 4–5)
+    maybeCloseTurn(event, turnId, messageId, isPartial);
+  }
+
+  return {
+    push(native: JsonValue): AgEvent[] {
+      if (!isAdkEvent(native)) {
+        a.emitExt("google", "unparsed", { native });
+        return a.drain();
+      }
+      drive(native);
+      return a.drain();
+    },
+    flush(): AgEvent[] {
+      // Close any dangling open turn (interrupted stream before a final aggregate).
+      for (const turnId of openTurns) {
+        if (!closedTurns.has(turnId)) {
+          closedTurns.add(turnId);
+          a.closeMessage(`msg_${turnId}`);
+          a.closeTurnDone(turnId, { outcome: { type: "success" }, finishReason: "stop" });
+        }
+      }
+      return a.flush();
+    },
+  };
+}
