@@ -945,7 +945,7 @@ function driveAdkPart(
   index: number,
   event: AdkEvent,
   messageId: string,
-  _turnId: string,
+  turnId: string,
   _assembledToolCalls: Set<string>
 ): string {
   // ── REASONING (thought:true) — Task 4 ──
@@ -975,16 +975,55 @@ function driveAdkPart(
     return part.text;
   }
 
-  // ── FUNCTION CALL — Task 3 ──
+  // ── FUNCTION CALL → tool.start + tool.args.delta + tool.args.assembled ──
   if (part.functionCall !== undefined) {
-    // no-op placeholder; Task 3 fills
-    void event;
+    const fc = part.functionCall;
+    const realId = fc.id != null && fc.id.length > 0 ? fc.id : null;
+    const toolCallId = realId !== null ? realId : `adk_call_${index}`;
+    if (_assembledToolCalls.has(toolCallId)) return ""; // dedup the partial:false aggregate re-send
+    _assembledToolCalls.add(toolCallId);
+    const providerCallIndex = realId !== null ? undefined : index;
+    const input: JsonValue = JsonValue.parse(fc.args ?? {});
+    const longRunning =
+      event.longRunningToolIds !== undefined && event.longRunningToolIds.includes(toolCallId)
+        ? true
+        : undefined;
+    a.toolStart({
+      toolCallId,
+      name: fc.name,
+      index,
+      longRunning,
+      providerMetadata:
+        providerCallIndex !== undefined
+          ? AgProviderMeta.parse({ google: { providerCallIndex } })
+          : undefined,
+    });
+    a.toolArgsDelta(toolCallId, JSON.stringify(input));
+    a.toolArgsAssembled(toolCallId, input, {
+      signature:
+        part.thoughtSignature !== undefined && part.thoughtSignature.length > 0
+          ? part.thoughtSignature
+          : undefined,
+    });
     return "";
   }
 
-  // ── FUNCTION RESPONSE — Task 3 ──
+  // ── FUNCTION RESPONSE → tool.done ──
   if (part.functionResponse !== undefined) {
-    // no-op placeholder; Task 3 fills
+    const fr = part.functionResponse;
+    const realId = fr.id != null && fr.id.length > 0 ? fr.id : null;
+    const toolCallId = realId !== null ? realId : `adk_call_${index}`;
+    const outcome: ToolOutcome = fr.response?.["isError"] === true ? "error" : "ok";
+    a.toolDone({
+      toolCallId,
+      content: functionResponseToAgBlocks(fr.name, fr.response),
+      outcome,
+      turnId,
+      providerMetadata:
+        fr.thoughtSignature !== undefined && fr.thoughtSignature.length > 0
+          ? AgProviderMeta.parse({ google: { thoughtSignature: fr.thoughtSignature } })
+          : undefined,
+    });
     return "";
   }
 

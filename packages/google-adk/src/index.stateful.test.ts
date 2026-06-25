@@ -76,3 +76,41 @@ describe("createAdkNormalizer — text turn lifecycle", () => {
     expect(mapFinishReason("STOP")).toBe("stop");
   });
 });
+
+describe("createAdkNormalizer — tool arms", () => {
+  it("emits one tool.start+args.assembled and dedupes the partial:false aggregate", () => {
+    const fc = { functionCall: { name: "echo", args: { text: "hi" }, id: "adk-1" } };
+    const out = run([
+      event([fc], { partial: true, finishReason: "STOP" }),
+      event([fc], { partial: false, finishReason: "STOP" }), // aggregate re-send
+    ]);
+    expect(out.filter((e) => e.type === "tool.start")).toHaveLength(1);
+    const start = out.find((e) => e.type === "tool.start");
+    expect(start).toMatchObject({ type: "tool.start", toolCallId: "adk-1", name: "echo" });
+    const assembled = out.find((e) => e.type === "tool.args.assembled");
+    expect(assembled).toMatchObject({ toolCallId: "adk-1", input: { text: "hi" } });
+  });
+
+  it("correlates a functionResponse to its call by the shared adk-<uuid> id", () => {
+    const out = run([
+      event(
+        [
+          {
+            functionResponse: {
+              name: "echo",
+              id: "adk-1",
+              response: { content: [{ type: "text", text: "echo: hi" }] },
+            },
+          },
+        ],
+        {}
+      ),
+    ]);
+    const done = out.find((e) => e.type === "tool.done");
+    expect(done).toMatchObject({
+      toolCallId: "adk-1",
+      outcome: "ok",
+      content: [{ type: "text", text: "echo: hi" }],
+    });
+  });
+});
