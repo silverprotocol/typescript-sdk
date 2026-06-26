@@ -139,24 +139,18 @@ export interface AdkEvent {
     transferToAgent?: string;
     /** Escalate to a human or supervisor. */
     escalate?: boolean;
-    /** Request OAuth/auth configs from the caller (one per tool). */
-    requestedAuthConfigs?: Array<{
-      toolName?: string;
-      authConfig?: {
-        scheme?: string;
-        scopes?: string[];
-        authorizationUrl?: string;
-        tokenUrl?: string;
-        clientId?: string;
-        audience?: string;
-      };
-    }>;
-    /** Request user confirmation before executing a tool. */
-    requestedToolConfirmations?: Array<{
-      toolName?: string;
-      toolCallId?: string;
-      message?: string;
-    }>;
+    /** Request OAuth/auth configs from the caller. ADK serializes this as a
+     * dict keyed by the function-call-id (`dict[str, AuthConfig]`); the value
+     * is a complex, framework-specific AuthConfig (auth-scheme union +
+     * credentials) we carry opaquely. Empty -> `{}` (NOT an array, NOT
+     * omitted) — iterating it as an array throws "not iterable". */
+    requestedAuthConfigs?: { [callId: string]: JsonValue };
+    /** Request user confirmation before executing a tool. ADK serializes this
+     * as a dict keyed by the function-call-id (`dict[str, ToolConfirmation]`).
+     * Empty -> `{}`. */
+    requestedToolConfirmations?: {
+      [callId: string]: { hint?: string; confirmed?: boolean; payload?: JsonValue };
+    };
     /** State deltas to merge into the shared working copy. */
     stateDelta?: { [k: string]: JsonValue };
     /** Artifact deltas (keyed artifact patches). */
@@ -613,49 +607,36 @@ function driveAdkTopLevel(
     }
     if (actions.escalate === true) a.emit({ type: "handoff", kind: "escalate" });
     if (actions.requestedAuthConfigs !== undefined) {
-      for (const config of actions.requestedAuthConfigs) {
-        const toolName = config.toolName ?? "unknown";
-        const authConfig =
-          config.authConfig !== undefined
-            ? {
-                scheme: config.authConfig.scheme ?? "unknown",
-                ...(config.authConfig.scopes !== undefined
-                  ? { scopes: config.authConfig.scopes }
-                  : {}),
-                ...(config.authConfig.authorizationUrl !== undefined
-                  ? { authorizationUrl: config.authConfig.authorizationUrl }
-                  : {}),
-                ...(config.authConfig.tokenUrl !== undefined
-                  ? { tokenUrl: config.authConfig.tokenUrl }
-                  : {}),
-                ...(config.authConfig.clientId !== undefined
-                  ? { clientId: config.authConfig.clientId }
-                  : {}),
-                ...(config.authConfig.audience !== undefined
-                  ? { audience: config.authConfig.audience }
-                  : {}),
-              }
-            : undefined;
+      // ADK dict[str, AuthConfig] keyed by function-call-id. The AuthConfig is a
+      // complex framework-specific object (auth-scheme union + credentials) that
+      // does not fit the flat AgAuthConfig OAuth projection, so it rides opaque
+      // in `metadata` (AgJSON: framework-specifics lossless via metadata).
+      for (const [callId, authConfig] of Object.entries(actions.requestedAuthConfigs)) {
         a.emit({
           type: "hitl.ask",
-          askId: `auth_${toolName}`,
+          askId: `auth_${callId}`,
           kind: "auth",
-          toolCallId: toolName,
-          ...(authConfig !== undefined ? { authConfig } : {}),
+          toolCallId: callId,
+          metadata: { authConfig: JsonValue.parse(authConfig) },
         });
       }
     }
     if (actions.requestedToolConfirmations !== undefined) {
-      actions.requestedToolConfirmations.forEach((conf, confIndex) => {
-        const toolName = conf.toolName ?? "unknown";
+      // ADK dict[str, ToolConfirmation] keyed by function-call-id. `hint` maps to
+      // `message`; `confirmed`/`payload` ride opaque in `metadata`.
+      for (const [callId, conf] of Object.entries(actions.requestedToolConfirmations)) {
+        const metadata: { [k: string]: JsonValue } = {};
+        if (conf.confirmed !== undefined) metadata["confirmed"] = conf.confirmed;
+        if (conf.payload !== undefined) metadata["payload"] = JsonValue.parse(conf.payload);
         a.emit({
           type: "hitl.ask",
-          askId: `approval_${toolName}_${confIndex}`,
+          askId: `approval_${callId}`,
           kind: "approval",
-          toolCallId: conf.toolCallId ?? toolName,
-          ...(conf.message !== undefined ? { message: conf.message } : {}),
+          toolCallId: callId,
+          ...(conf.hint !== undefined ? { message: conf.hint } : {}),
+          ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
         });
-      });
+      }
     }
     if (actions.stateDelta !== undefined)
       a.emit({ type: "state.delta", patch: JsonValue.parse(actions.stateDelta) });

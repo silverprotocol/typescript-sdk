@@ -209,53 +209,70 @@ describe("createAdkNormalizer — promptFeedback.blockReason → prompt.blocked"
 });
 
 describe("createAdkNormalizer — actions.requestedAuthConfigs → hitl.ask (kind auth)", () => {
-  it("emits hitl.ask auth for each requestedAuthConfig entry", () => {
+  // ADK serializes requestedAuthConfigs as dict[str, AuthConfig] keyed by the
+  // function-call-id; the AuthConfig is complex/framework-specific and rides
+  // opaque in metadata.
+  it("emits hitl.ask auth for each requestedAuthConfig dict entry (key = call id)", () => {
     const out = run([
       event([], {
         actions: {
-          requestedAuthConfigs: [
-            {
-              toolName: "gmail_tool",
-              authConfig: {
-                scheme: "oauth2",
-                scopes: ["read"],
-                authorizationUrl: "https://auth.example.com",
-              },
+          requestedAuthConfigs: {
+            fc_gmail_1: {
+              authScheme: { type: "oauth2", flows: {} },
+              credentialKey: "adk_gmail_cred",
             },
-          ],
+          },
         },
       }),
     ]);
     const ask = out.find((e) => e.type === "hitl.ask");
     expect(ask).toMatchObject({
       type: "hitl.ask",
-      askId: "auth_gmail_tool",
+      askId: "auth_fc_gmail_1",
       kind: "auth",
-      toolCallId: "gmail_tool",
-      authConfig: { scheme: "oauth2", scopes: ["read"], authorizationUrl: "https://auth.example.com" },
+      toolCallId: "fc_gmail_1",
+      metadata: {
+        authConfig: { authScheme: { type: "oauth2", flows: {} }, credentialKey: "adk_gmail_cred" },
+      },
     });
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("emits no hitl.ask and does not throw when the dicts are empty {} (real ADK shape)", () => {
+    // Regression: real ADK sends requestedAuthConfigs/requestedToolConfirmations
+    // as {} (empty object) on EVERY event — iterating that as an array threw
+    // "actions.requestedAuthConfigs is not iterable" on every ADK event.
+    const out = run([
+      event([], {
+        actions: { requestedAuthConfigs: {}, requestedToolConfirmations: {} },
+      }),
+    ]);
+    expect(out.some((e) => e.type === "hitl.ask")).toBe(false);
     for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
   });
 });
 
 describe("createAdkNormalizer — actions.requestedToolConfirmations → hitl.ask (kind approval)", () => {
-  it("emits hitl.ask approval for each requestedToolConfirmation entry", () => {
+  // ADK serializes requestedToolConfirmations as dict[str, ToolConfirmation]
+  // keyed by the function-call-id; hint -> message, confirmed/payload -> metadata.
+  it("emits hitl.ask approval for each requestedToolConfirmation dict entry (key = call id)", () => {
     const out = run([
       event([], {
         actions: {
-          requestedToolConfirmations: [
-            { toolName: "delete_file", toolCallId: "fc_del_1", message: "Confirm delete?" },
-          ],
+          requestedToolConfirmations: {
+            fc_del_1: { hint: "Confirm delete?", confirmed: false, payload: { path: "/x" } },
+          },
         },
       }),
     ]);
     const ask = out.find((e) => e.type === "hitl.ask");
     expect(ask).toMatchObject({
       type: "hitl.ask",
-      askId: "approval_delete_file_0",
+      askId: "approval_fc_del_1",
       kind: "approval",
       toolCallId: "fc_del_1",
       message: "Confirm delete?",
+      metadata: { confirmed: false, payload: { path: "/x" } },
     });
     for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
   });
