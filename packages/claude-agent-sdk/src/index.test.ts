@@ -855,3 +855,46 @@ describe("tool_result.structuredContent surfacing", () => {
     });
   });
 });
+
+describe("createClaudeNormalizer — text block with citations omitted (real SDK wire shape)", () => {
+  // The @anthropic-ai/sdk type declares `citations: Array | null` (required), but
+  // the runtime OMITS it on a plain text block. push() takes the JsonValue boundary,
+  // so we feed the genuine omitted shape — no cast.
+  const native: JsonValue = {
+    type: "assistant",
+    parent_tool_use_id: null,
+    uuid: "00000000-0000-0000-0000-000000000001",
+    session_id: "sess_fixture",
+    message: {
+      id: "msg_fixture",
+      type: "message",
+      role: "assistant",
+      model: "claude-sonnet-4-6",
+      content: [{ type: "text", text: "hello" }], // ← no `citations` key
+      stop_reason: "end_turn",
+      stop_sequence: null,
+      usage: {
+        input_tokens: 0,
+        output_tokens: 0,
+        cache_creation: null,
+        cache_creation_input_tokens: null,
+        cache_read_input_tokens: null,
+        inference_geo: null,
+        iterations: null,
+        server_tool_use: null,
+        service_tier: null,
+        speed: null,
+      },
+    },
+  };
+
+  it("does not throw and emits text events with no contentBlock", () => {
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(native), ...n.flush()];
+    const types = evs.map((e) => e.type);
+    expect(types).toContain("text.start");
+    expect(types).toContain("text.delta");
+    expect(types).toContain("text.end");
+    expect(types).not.toContain("content.block"); // no citations → no contentBlock
+  });
+});

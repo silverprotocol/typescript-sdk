@@ -261,7 +261,7 @@ function emitAssistantBlock(
       a.textStart(id, messageId);
       a.textDelta(id, messageId, block.text);
       a.textEnd(id, messageId);
-      if (block.citations !== null && block.citations.length > 0) {
+      if (block.citations != null && block.citations.length > 0) {
         const mappedCitations = mapCitations(block.citations);
         a.contentBlock(messageId, { type: "text", text: block.text, citations: mappedCitations });
       }
