@@ -1,7 +1,7 @@
 /**
  * replay.test.ts — the KEYLESS replay CI gate.
  *
- * Two suites:
+ * Four suites:
  *
  * 1. Claude seed corpus (text-tool-turn / complete-result / app-spec):
  *    For each committed `claude.native.json`:
@@ -15,12 +15,27 @@
  *      b. SNAPSHOT: assert produced `agjson` deep-equals `openai.agjson.json`.
  *      c. GATE: assert `report.drops === []` AND `report.newFields === []`.
  *
- * 3. I4 cross-framework convergence gate:
+ * 3. ADK seed corpus (convergence-echo):
+ *    For each committed `adk.native.json` (hand-authored ADK `Event` fixture):
+ *      a. `replayCassette(native)` → drive the REAL ADK facet normalizer.
+ *      b. SNAPSHOT: assert produced `agjson` deep-equals `adk.agjson.json`.
+ *      c. GATE: assert `report.drops === []` AND `report.newFields === []`
+ *         (audit M59 — this gate previously did not exist; the ADK facet's
+ *         census was 100% unmeasured. Every drop/newField below is triaged
+ *         into `transforms.json` / `known-acceptable-drops.json` per the
+ *         Task 3 shapes, cited to `google-adk/src/index.ts` — see the Task 4
+ *         report for the full triage table).
+ *
+ * 4. I4 cross-framework convergence gate:
  *    For each scenario that has ALL THREE of `claude.native.json`,
  *    `openai.native.json` AND `adk.native.json`:
  *      a. Replay all three cassettes to produce their respective AgJSON streams.
- *      b. `canonicalizeAgjson` each stream → CanonicalSchema.
- *      c. `assertConvergent` 3× pairwise (claude↔openai, claude↔adk, openai↔adk)
+ *      b. GATE (audit M59): assert EACH framework's `report.drops === []` AND
+ *         `report.newFields === []` — the census is no longer computed then
+ *         discarded; a real per-framework drop on a convergence scenario now
+ *         fails this leg directly, not just the seed-corpus suites above.
+ *      c. `canonicalizeAgjson` each stream → CanonicalSchema.
+ *      d. `assertConvergent` 3× pairwise (claude↔openai, claude↔adk, openai↔adk)
  *         → throws on structural divergence.
  *    Scenarios missing any framework cassette are SKIPPED gracefully.
  *
@@ -45,6 +60,9 @@ const CLAUDE_SEEDS = ["text-tool-turn", "complete-result", "app-spec"] as const;
 
 /** Every OpenAI seed scenario under corpus/ that ships a committed native cassette. */
 const OPENAI_SEEDS = ["text-tool-turn"] as const;
+
+/** Every ADK seed scenario under corpus/ that ships a committed native cassette. */
+const ADK_SEEDS = ["convergence-echo"] as const;
 
 async function readSnapshotForFramework(scn: string, framework: string): Promise<JsonValue[]> {
   const raw = await readFile(join(CORPUS_ROOT, scn, `${framework}.agjson.json`), "utf8");
@@ -87,6 +105,24 @@ describe("replay CI gate — OpenAI seed corpus (machinery/snapshot self-consist
   }
 });
 
+describe("replay CI gate — ADK seed corpus (machinery/snapshot self-consistency)", () => {
+  for (const scn of ADK_SEEDS) {
+    describe(scn, () => {
+      it("agjson deep-equals the committed adk.agjson.json snapshot", async () => {
+        const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "adk.native.json"));
+        const expected = await readSnapshotForFramework(scn, "adk");
+        expect(agjson).toEqual(expected);
+      });
+
+      it("census reports NO drops and NO new fields (the gate)", async () => {
+        const { report } = await replayCassette(join(CORPUS_ROOT, scn, "adk.native.json"));
+        expect(report.drops).toEqual([]);
+        expect(report.newFields).toEqual([]);
+      });
+    });
+  }
+});
+
 // ─── I4 cross-framework convergence gate ─────────────────────────────────────
 
 /**
@@ -115,10 +151,11 @@ async function fileExists(p: string): Promise<boolean> {
 }
 
 describe("I4 cross-framework convergence gate", () => {
-  // Also check all CLAUDE_SEEDS and OPENAI_SEEDS — if a non-convergence scenario
-  // somehow acquires both cassettes, it should SKIP (not fail) via fileExists check.
+  // Also check all CLAUDE_SEEDS, OPENAI_SEEDS and ADK_SEEDS — if a
+  // non-convergence scenario somehow acquires all three cassettes, it should
+  // SKIP (not fail) via fileExists check.
   const allCorpusScenarios = [
-    ...new Set([...CLAUDE_SEEDS, ...OPENAI_SEEDS, ...CONVERGENCE_SCENARIOS]),
+    ...new Set([...CLAUDE_SEEDS, ...OPENAI_SEEDS, ...ADK_SEEDS, ...CONVERGENCE_SCENARIOS]),
   ];
 
   for (const scn of allCorpusScenarios) {
@@ -147,6 +184,20 @@ describe("I4 cross-framework convergence gate", () => {
         replayCassette(openaiPath, "openai"),
         replayCassette(adkPath, "adk"),
       ]);
+
+      // Census gate (audit M59): previously this test replayed all three
+      // cassettes and used ONLY `.agjson`, silently discarding `.report` —
+      // a computed-then-thrown-away census. Assert each framework's census
+      // is clean (post-triage) exactly like the seed-corpus suites above,
+      // so the I4 leg cannot go green while masking a real per-framework drop.
+      for (const [fw, { report }] of [
+        ["claude", claude],
+        ["openai", openai],
+        ["adk", adk],
+      ] as const) {
+        expect(report.drops, `${scn}/${fw}: census drops`).toEqual([]);
+        expect(report.newFields, `${scn}/${fw}: census newFields`).toEqual([]);
+      }
 
       const c = canonicalizeAgjson(claude.agjson);
       const o = canonicalizeAgjson(openai.agjson);

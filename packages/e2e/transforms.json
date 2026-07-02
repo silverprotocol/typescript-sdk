@@ -13,5 +13,13 @@
   "[*].tool_use_result.structuredContent.cache.hit": "[*].uiData.cache.hit",
   "[*].tool_use_result.structuredContent.cache.llmCallsAvoided": "[*].uiData.cache.llmCallsAvoided",
   "[*].usage.server_tool_use.web_fetch_requests": "[*].usage.serverToolRequests",
-  "[*].usage.server_tool_use.web_search_requests": "[*].usage.serverToolRequests"
+  "[*].usage.server_tool_use.web_search_requests": "[*].usage.serverToolRequests",
+  "[*].finishReason": "[*].finishReason",
+  "[*].usageMetadata.promptTokenCount": "[*].usage.inputTokens",
+  "[*].usageMetadata.candidatesTokenCount": "[*].usage.outputTokens",
+  "[*].usageMetadata.totalTokenCount": "[*].usage.totalTokens",
+  "[*].usage.cache_creation_input_tokens": "[*].usage.cacheWriteTokens",
+  "[*].usage.cache_read_input_tokens": "[*].usage.cacheReadTokens",
+  "[*].modelUsage.claude-sonnet-4-6.cacheReadInputTokens": "[*].usage.byModel.claude-sonnet-4-6.cacheReadTokens",
+  "[*].modelUsage.claude-sonnet-4-6.cacheCreationInputTokens": "[*].usage.byModel.claude-sonnet-4-6.cacheWriteTokens"
 }

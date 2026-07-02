@@ -34,6 +34,10 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // silently no-op'ing. Verified: the ONLY delta is the appended trailing
   // turn.abort event; no field additions/drops on the existing 9 events.
   { scenario: "app-spec", framework: "claude" },
+  // Task 4 (audit M59): the ADK facet's census was never measured — this is
+  // the FIRST-EVER regen of an ADK snapshot pair. See replay.test.ts's ADK
+  // seed suite + the Task 4 report for the full drop/newField triage.
+  { scenario: "convergence-echo", framework: "adk" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {
