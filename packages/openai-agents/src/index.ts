@@ -1,6 +1,5 @@
 /**
- * `@silverprotocol/openai-agents` — the OpenAI Agents SDK normalizer
- * (FIXTURE-TESTED ONLY; no guuey runtime emits this native input yet).
+ * `@silverprotocol/openai-agents` — the OpenAI Agents SDK normalizer.
  *
  * Translates the OpenAI Agents JS SDK stream-event union into AgJSON events
  * (`AgEvent[]`, spec §4). The Agents SDK surfaces TWO event families on its

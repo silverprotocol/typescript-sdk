@@ -1,6 +1,5 @@
 /**
- * `@silverprotocol/google-adk` — the Google Agent Development Kit normalizer
- * (FIXTURE-TESTED ONLY; no guuey runtime emits this native input yet).
+ * `@silverprotocol/google-adk` — the Google Agent Development Kit normalizer.
  *
  * Translates a Google ADK `Event` (a Gemini `Content` — role + `parts[]` — plus
  * the event metadata `partial` / `turnComplete` / `errorCode` / `finishReason` /

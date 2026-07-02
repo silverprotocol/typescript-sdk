@@ -1150,7 +1150,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     pendingInput: AgPendingInput.optional(),
     skipSummarization: z.boolean().optional(), // output-only async flag (§2.2)
     more: z.boolean().optional(), // output-only async flag — more:true SETS preliminary (§2.2)
-    preliminary: z.boolean().optional(), // output-only async flag (§2.2)
+    preliminary: z.boolean().optional(), // vestigial; unread by reduce() — the block flag derives from `more` (§2.2)
     candidateIndex: z.number().optional(), // absent ⇒ candidate 0 (§5 partitioning)
   }),
 

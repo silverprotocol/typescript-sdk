@@ -30,7 +30,7 @@ import { extractToolCalls } from "./extract-tools.js";
 export interface Cassette {
   /** Raw native Claude SDK event stream (JsonValue[]) */
   native: JsonValue[];
-  /** Normalized AgJSON events (AgEvent[], cast as JsonValue[] for wire serialization) */
+  /** Normalized AgJSON events (AgEvent[], via toWire() for transport) */
   agjson: JsonValue[];
   /** Census lossiness report */
   coverage: CensusReport;
