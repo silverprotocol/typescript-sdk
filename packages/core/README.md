@@ -1,6 +1,6 @@
 # @silverprotocol/core
 
-AgJSON core — the typed schema (`AgentInput` / `AgentEvent` / `AgentMessage`),
+AgJSON core — the typed schema (`AgInput` / `AgEvent` / `AgMessage`),
 the `Normalizer` interface, and the normative `reduce()`.
 
 ## Install
