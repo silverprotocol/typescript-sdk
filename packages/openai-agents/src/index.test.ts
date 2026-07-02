@@ -909,6 +909,71 @@ describe("createOpenaiNormalizer — message_output_created citations carrier (a
     expect(textEnd).toBeDefined();
     expect(textEnd?.citations).toBeUndefined();
   });
+
+  it("late arrival (response.completed lands FIRST, #128 live-proven ordering): annotations carry losslessly via ext.openai.late-citations, no phantom turn/message events", () => {
+    const n = createOpenaiNormalizer();
+    const rawAnnotations = [
+      {
+        type: "url_citation",
+        url: "https://example.com/france",
+        title: "France",
+        start_index: 0,
+        end_index: 5,
+      },
+    ];
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_late_cit" } }),
+      rawModel({
+        type: "response.output_text.delta",
+        item_id: "it_late",
+        delta: "Paris is the capital of France.",
+      }),
+      rawModel({
+        type: "response.output_text.done",
+        item_id: "it_late",
+        text: "Paris is the capital of France.",
+      }),
+      // Terminal close arrives FIRST — the live-proven #128 ordering.
+      rawModel({ type: "response.completed", response: { id: "resp_late_cit", status: "completed" } }),
+      // The run-item lands AFTER the round already closed, carrying the annotated part.
+      runItem("message_output_created", {
+        type: "message_output_item",
+        rawItem: {
+          type: "message",
+          role: "assistant",
+          status: "completed",
+          content: [
+            {
+              type: "output_text",
+              text: "Paris is the capital of France.",
+              annotations: rawAnnotations,
+            },
+          ],
+          id: "msg_late_cit_1",
+        },
+      }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+
+    // No phantom turn/message events synthesized for the late run-item — exactly
+    // one of each from the ORIGINAL round (never re-open via ensureResponseOpen).
+    const types = evs.map((e) => e.type);
+    expect(types.filter((t) => t === "turn.start")).toHaveLength(1);
+    expect(types.filter((t) => t === "message.start")).toHaveLength(1);
+    expect(types.filter((t) => t === "turn.done")).toHaveLength(1);
+    expect(types.filter((t) => t === "message.end")).toHaveLength(1);
+
+    // The annotations survive losslessly on the ext channel instead of being
+    // silently dropped by the late-arrival guard.
+    const lateCitations = evs.find((e) => e.type === "ext.openai.late-citations") as {
+      itemId?: string;
+      annotations?: unknown;
+    };
+    expect(lateCitations).toBeDefined();
+    expect(lateCitations?.itemId).toBe("msg_late_cit_1");
+    expect(lateCitations?.annotations).toEqual(rawAnnotations);
+  });
 });
 
 describe("createOpenaiNormalizer — capstone fold-identity over a combined corpus (T5c)", () => {

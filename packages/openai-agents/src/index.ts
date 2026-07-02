@@ -899,7 +899,12 @@ export function createOpenaiNormalizer(): Normalizer {
    * open a PHANTOM new turn once the response has already closed. If `msgId` is
    * `undefined` (already closed) the matching stream was already ended — without
    * citations — by the native-close fallback (`emitRoundClose` et al.); degrade
-   * gracefully and skip.
+   * gracefully and skip the `text.end` re-target. If the late part still carries
+   * annotations, though, they are NOT yet lost anywhere else — silently dropping
+   * them here would violate Tenet 6. Route them losslessly through the facet's
+   * existing unparsed/ext convention instead: `ext.openai.late-citations` carrying
+   * the run-item id + the raw annotations array verbatim (review finding on M22).
+   * A part with no annotations has nothing to lose — the plain `continue` stays.
    */
   function driveMessageOutputCreated(item: OpenAIAssistantMessageItem): void {
     for (const part of item.content) {
@@ -908,7 +913,16 @@ export function createOpenaiNormalizer(): Normalizer {
         continue;
       }
       if (part.type === "output_text") {
-        if (msgId === undefined) continue; // response already closed — see doc above
+        if (msgId === undefined) {
+          // response already closed — see doc above.
+          if (part.annotations !== undefined && part.annotations.length > 0) {
+            a.emitExt("openai", "late-citations", {
+              ...(item.id !== undefined ? { itemId: item.id } : {}),
+              annotations: JsonValue.parse(part.annotations),
+            });
+          }
+          continue;
+        }
         const streamId = openTextStreams.values().next().value;
         if (streamId === undefined) continue; // defensive: no matching open stream
         openTextStreams.delete(streamId);
