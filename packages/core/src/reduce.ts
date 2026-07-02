@@ -1136,13 +1136,14 @@ export class Reducer {
 }
 
 /**
- * Convenience fold: reduce an ordered array of AgEvents into an AgReduceResult.
- * Equivalent to `new Reducer(); events.forEach(r.push); r.result()`.
+ * Batch fold. Returns the folded result AND the resync signal — a parked fold
+ * is never a silent truncation (audit M50; INV-SEQ: "a conformant reducer MUST
+ * expose its resync condition to the caller").
  */
-export function reduce(events: AgEvent[]): AgReduceResult {
+export function reduce(events: AgEvent[]): { result: AgReduceResult; needsResync: boolean } {
   const r = new Reducer();
   for (const ev of events) {
     r.push(ev);
   }
-  return r.result();
+  return { result: r.result(), needsResync: r.needsResync };
 }

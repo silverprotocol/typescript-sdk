@@ -16,14 +16,23 @@ const MSG_START = {
 
 describe("reduce — scaffold", () => {
   it("reduce([]) returns the empty container (4 arrays, no state key)", () => {
-    const r = reduce([]);
-    expect(r).toEqual({ messages: [], artifacts: [], memory: [], turns: [] });
-    expect(() => AgReduceResult.parse(r)).not.toThrow();
+    const out = reduce([]);
+    expect(out.result).toEqual({ messages: [], artifacts: [], memory: [], turns: [] });
+    expect(out.needsResync).toBe(false);
+    expect(() => AgReduceResult.parse(out.result)).not.toThrow();
   });
   it("Reducer fed nothing matches reduce([]) and needsResync is false", () => {
     const acc = new Reducer();
-    expect(acc.result()).toEqual(reduce([]));
+    expect(acc.result()).toEqual(reduce([]).result);
     expect(acc.needsResync).toBe(false);
+  });
+  it("batch reduce() surfaces the park signal instead of a silently truncated result (audit M50)", () => {
+    const out = reduce([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      { type: "text.start", seq: 5, id: "x1", turnId: "t1" }, // forward gap ⇒ park
+    ]);
+    expect(out.needsResync).toBe(true);
+    expect(out.result.turns).toHaveLength(1); // the pre-park fold is still returned
   });
   // ALIASING REGRESSION (must-fix #7): a held snapshot must not see later pushes.
   // (full assertion lands once R2 implements text; here, assert result() arrays are
@@ -49,7 +58,7 @@ describe("reduce — R1 lifecycle", () => {
         turnId: "t1",
         trigger: { kind: "user" },
       },
-    ]);
+    ]).result;
     expect(r.turns).toHaveLength(1);
     expect(r.turns[0]).toMatchObject({
       turnId: "t1",
@@ -72,7 +81,7 @@ describe("reduce — R1 lifecycle", () => {
         threadId: "th1",
       },
       { type: "message.end", seq: 2, id: "m1" },
-    ]);
+    ]).result;
     expect(r.messages).toHaveLength(1);
     expect(r.messages[0]).toMatchObject({ id: "m1", role: "assistant", content: [] });
     expect(() => AgReduceResult.parse(r)).not.toThrow();
@@ -96,7 +105,7 @@ describe("reduce — R1 lifecycle", () => {
         id: "m1",
         usage: { inputTokens: 10, outputTokens: 42 },
       },
-    ]);
+    ]).result;
     expect(r.messages[0]?.usage).toMatchObject({ inputTokens: 10, outputTokens: 42 });
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
@@ -150,7 +159,7 @@ describe("reduce — R1 lifecycle", () => {
         parentTurnId: "t1",
         agentName: "helper",
       },
-    ]);
+    ]).result;
     expect(r.turns).toHaveLength(2);
     const nested = r.turns.find((t) => t.turnId === "t2");
     expect(nested).toBeDefined();
@@ -172,7 +181,7 @@ describe("reduce — R1 lifecycle", () => {
         turnId: "t2",
         parentTurnId: "never-opened-label",
       },
-    ]);
+    ]).result;
     const nested = r.turns.find((t) => t.turnId === "t2");
     expect(nested).toBeDefined();
     expect(nested?.parentTurnId).toBe("never-opened-label"); // wire value unchanged
@@ -185,7 +194,7 @@ describe("reduce — R1 lifecycle", () => {
     const r = reduce([
       { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1", trigger: { kind: "user" } },
       { type: "turn.start", seq: 5, threadId: "th1", turnId: "t1" },
-    ]);
+    ]).result;
     expect(r.turns).toHaveLength(1);
     expect(r.turns[0]?.turnId).toBe("t1");
     expect(() => AgReduceResult.parse(r)).not.toThrow();
@@ -215,13 +224,13 @@ describe("reduce — R1 lifecycle", () => {
   it("(g) step.start + step.done produce no AgReduceResult change", () => {
     const baseline = reduce([
       { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
-    ]);
+    ]).result;
 
     const withSteps = reduce([
       { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
       { type: "step.start", seq: 1, id: "s1", turnId: "t1" },
       { type: "step.done", seq: 2, id: "s1", usage: { outputTokens: 99 } },
-    ]);
+    ]).result;
 
     expect(withSteps).toEqual(baseline);
     expect(() => AgReduceResult.parse(withSteps)).not.toThrow();
@@ -243,7 +252,7 @@ describe("reduce — R2 text + reasoning blocks", () => {
       { type: "text.delta", seq: 3, id: "b1", delta: "Hello" },
       { type: "text.delta", seq: 4, id: "b1", delta: ", world" },
       { type: "text.end", seq: 5, id: "b1" },
-    ]);
+    ]).result;
     expect(r.messages).toHaveLength(1);
     const msg = r.messages[0];
     expect(msg?.content).toHaveLength(1);
@@ -284,7 +293,7 @@ describe("reduce — R2 text + reasoning blocks", () => {
         value: opaqueValue,
       },
       { type: "reasoning.end", seq: 6, id: "r1" },
-    ]);
+    ]).result;
     expect(r.messages[0]?.content).toHaveLength(1);
     const block = r.messages[0]?.content[0];
     expect(block?.type).toBe("reasoning");
@@ -395,7 +404,7 @@ describe("reduce — R3 tool-call + tool-result blocks", () => {
         turnId: "t1",
         threadId: "th1",
       },
-    ]);
+    ]).result;
     expect(r.messages[0]?.content).toHaveLength(1);
     const block = r.messages[0]?.content[0];
     expect(block?.type).toBe("tool-call");
@@ -454,7 +463,7 @@ describe("reduce — R3 tool-call + tool-result blocks", () => {
         turnId: "t1",
         threadId: "th1",
       },
-    ]);
+    ]).result;
     // Both tool-call and tool-result land in the message
     expect(r.messages[0]?.content).toHaveLength(2);
     const toolResult = r.messages[0]?.content[1];
@@ -493,7 +502,7 @@ describe("reduce — R3 tool-call + tool-result blocks", () => {
         turnId: "t1",
         threadId: "th1",
       },
-    ]);
+    ]).result;
     const toolResult = r.messages[0]?.content[1];
     expect(toolResult?.type).toBe("tool-result");
     if (toolResult?.type === "tool-result") {
@@ -620,7 +629,7 @@ describe("reduce — R4 content.block + message.metadata", () => {
         turnId: "t1",
         block: { type: "data", name: "live-only", id: "d-t", data: { x: 1 }, transient: true },
       },
-    ]);
+    ]).result;
     // Transient block must NOT appear in content
     expect(r.messages[0]?.content).toHaveLength(0);
     expect(() => AgReduceResult.parse(r)).not.toThrow();
@@ -638,7 +647,7 @@ describe("reduce — R4 content.block + message.metadata", () => {
         transient: true,
         block: { type: "data", name: "live-only", id: "d-t2", data: { x: 2 } },
       },
-    ]);
+    ]).result;
     expect(r.messages[0]?.content).toHaveLength(0);
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
@@ -677,7 +686,7 @@ describe("reduce — R4 content.block + message.metadata", () => {
       TURN_START,
       MSG_START,
       { type: "message.metadata", seq: 2, messageId: "m1", metadata: { tagged: true } },
-    ]);
+    ]).result;
     expect(r.messages[0]?.metadata).toMatchObject({ tagged: true });
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
@@ -765,7 +774,7 @@ describe("reduce — R5 turn-records", () => {
           ],
         },
       },
-    ]);
+    ]).result;
     expect(r.turns).toHaveLength(1);
     const turn = r.turns[0];
     expect(turn?.finishReason).toBe("paused");
@@ -795,7 +804,7 @@ describe("reduce — R5 turn-records", () => {
         finishReason: "pause_turn",
         outcome: { type: "success" },
       },
-    ]);
+    ]).result;
     const turn = r.turns[0];
     expect(turn?.finishReason).toBe("pause_turn");
     // No asks synthesized for pause_turn
@@ -814,7 +823,7 @@ describe("reduce — R5 turn-records", () => {
         message: "Something went wrong",
         code: "ERR_UPSTREAM",
       },
-    ]);
+    ]).result;
     expect(r.turns).toHaveLength(1);
     const turn = r.turns[0];
     expect(turn?.outcome).toBeDefined();
@@ -835,7 +844,7 @@ describe("reduce — R5 turn-records", () => {
         turnId: "t-orphan",
         message: "Pre-start error",
       },
-    ]);
+    ]).result;
     expect(r.turns).toHaveLength(1);
     const turn = r.turns[0];
     expect(turn?.turnId).toBe("t-orphan");
@@ -848,7 +857,7 @@ describe("reduce — R5 turn-records", () => {
     const r = reduce([
       { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
       { type: "turn.abort", seq: 1, turnId: "t1" },
-    ]);
+    ]).result;
     expect(r.turns).toHaveLength(1);
     const turn = r.turns[0];
     expect(turn?.taskState).toBe("aborted");
@@ -873,7 +882,7 @@ describe("reduce — R5 turn-records", () => {
         sourceId: "src-B",
         source: { url: "https://example.com/b", title: "B" },
       },
-    ]);
+    ]).result;
     expect(r.turns).toHaveLength(1);
     const turn = r.turns[0];
     expect(turn?.sourceIds).toEqual(["src-A", "src-B"]);
@@ -893,7 +902,7 @@ describe("reduce — R5 turn-records", () => {
         toAgentId: "agentB",
         toAgentName: "Agent B",
       },
-    ]);
+    ]).result;
     expect(r.turns).toHaveLength(1);
     const turn = r.turns[0];
     expect(turn?.handoffs).toHaveLength(1);
@@ -917,7 +926,7 @@ describe("reduce — R5 turn-records", () => {
         reason: "safety",
         safety: [{ category: "violence", score: 0.95, blocked: true }],
       },
-    ]);
+    ]).result;
     expect(r.turns).toHaveLength(1);
     const turn = r.turns[0];
     expect(turn?.safety).toHaveLength(1);
@@ -944,7 +953,7 @@ describe("reduce — R5 turn-records", () => {
         guardrailName: "content-policy",
         safety: [{ category: "hate", score: 0.99, blocked: true }],
       },
-    ]);
+    ]).result;
     expect(r.turns).toHaveLength(1);
     const turn = r.turns[0];
     expect(turn?.guardrails).toHaveLength(1);
@@ -970,7 +979,7 @@ describe("reduce — R5 turn-records", () => {
         provider: "google",
         html: "<p>Grounded by Google</p>",
       },
-    ]);
+    ]).result;
     expect(r.turns).toHaveLength(1);
     const turn = r.turns[0];
     expect(turn?.displayRequired).toHaveLength(1);
@@ -994,7 +1003,7 @@ describe("reduce — R5 turn-records", () => {
           profile: "ADVANCED",
         },
       },
-    ]);
+    ]).result;
     expect(r.turns).toHaveLength(1);
     const turn = r.turns[0];
     expect(turn?.capabilities).toBeDefined();
@@ -1041,7 +1050,7 @@ describe("reduce — R7 artifact + memory side-channels", () => {
         artifactId: "art1",
         lastChunk: true,
       },
-    ]);
+    ]).result;
     expect(r.artifacts).toHaveLength(1);
     const art = r.artifacts[0];
     expect(art?.artifactId).toBe("art1");
@@ -1088,7 +1097,7 @@ describe("reduce — R7 artifact + memory side-channels", () => {
         artifactId: "art2",
         lastChunk: true,
       },
-    ]);
+    ]).result;
     expect(r.artifacts).toHaveLength(1);
     const art = r.artifacts[0];
     expect(art?.parts).toHaveLength(2);
@@ -1109,7 +1118,7 @@ describe("reduce — R7 artifact + memory side-channels", () => {
         key: "name",
         value: "Ada",
       },
-    ]);
+    ]).result;
     expect(r.memory).toHaveLength(1);
     const rec = r.memory[0];
     expect(rec?.scope).toBe("user");
@@ -1126,7 +1135,7 @@ describe("reduce — R7 artifact + memory side-channels", () => {
         scope: "agent",
         value: {},
       },
-    ]);
+    ]).result;
     expect(r.memory).toHaveLength(1);
     const rec = r.memory[0];
     expect(rec?.scope).toBe("agent");
@@ -1215,7 +1224,7 @@ describe("reduce — R8 shared-state snapshot + delta", () => {
   it("(a) state.snapshot{snapshot:{a:1}} → result.state is {a:1}", () => {
     const r = reduce([
       { type: "state.snapshot", seq: 0, snapshot: { a: 1 } },
-    ]);
+    ]).result;
     expect(r.state).toEqual({ a: 1 });
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
@@ -1304,7 +1313,7 @@ describe("reduce — R8 shared-state snapshot + delta", () => {
   it("(c2) state.delta LangGraph with no prior state → creates {nodeX:{k:'v'}}", () => {
     const r = reduce([
       { type: "state.delta", seq: 0, patch: { nodeX: { k: "v" } } },
-    ]);
+    ]).result;
     expect(r.state).toEqual({ nodeX: { k: "v" } });
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
@@ -1343,7 +1352,7 @@ describe("reduce — R8 shared-state snapshot + delta", () => {
         turnId: "t1",
         threadId: "th1",
       },
-    ]);
+    ]).result;
     // R0 contract: state key must be absent (not undefined, not null — absent)
     expect("state" in r).toBe(false);
     expect(() => AgReduceResult.parse(r)).not.toThrow();
@@ -1831,19 +1840,19 @@ describe("reduce — R9 new-ops + resync + snapshot + live-only", () => {
       { type: "message.start" as const, seq: 1, id: "m1", role: "assistant" as const, turnId: "t1", threadId: "th1" },
     ];
 
-    const baseline = reduce(baseEvents);
+    const baseline = reduce(baseEvents).result;
 
     // Each live-only event must produce an identical result
     const withError = reduce([
       ...baseEvents,
       { type: "error" as const, seq: 2, message: "something failed", code: "ERR_FAIL" },
-    ]);
+    ]).result;
     expect(withError).toEqual(baseline);
 
     const withHostContext = reduce([
       ...baseEvents,
       { type: "host.context" as const, seq: 2, theme: { dark: true } },
-    ]);
+    ]).result;
     expect(withHostContext).toEqual(baseline);
 
     const withHitlAsk = reduce([
@@ -1857,7 +1866,7 @@ describe("reduce — R9 new-ops + resync + snapshot + live-only", () => {
         turnId: "t1",
         threadId: "th1",
       },
-    ]);
+    ]).result;
     expect(withHitlAsk).toEqual(baseline);
 
     const withUiSurface = reduce([
@@ -1870,12 +1879,12 @@ describe("reduce — R9 new-ops + resync + snapshot + live-only", () => {
         turnId: "t1",
         threadId: "th1",
       },
-    ]);
+    ]).result;
     expect(withUiSurface).toEqual(baseline);
 
     // ext.<vendor>.<key> — live-only via isClosedEvent guard (already exits early)
     // Verify the ext path also produces no change via the AgEvent union
-    expect(baseline).toEqual(reduce(baseEvents));
+    expect(baseline).toEqual(reduce(baseEvents).result);
 
     expect(() => AgReduceResult.parse(baseline)).not.toThrow();
     expect(() => AgReduceResult.parse(withError)).not.toThrow();
@@ -2173,22 +2182,27 @@ const EXPECTED_RESULT = {
 
 describe("reduce — R10 capstone: byte-identity + live-SSE↔history invariant", () => {
   it("byte-identity: reduce(CAPSTONE_EVENTS) deep-equals the hand-spelled EXPECTED_RESULT (toEqual, order-sensitive)", () => {
-    expect(reduce(CAPSTONE_EVENTS)).toEqual(EXPECTED_RESULT);
+    const out = reduce(CAPSTONE_EVENTS);
+    expect(out.result).toEqual(EXPECTED_RESULT);
+    expect(out.needsResync).toBe(false);
     // Also validate EXPECTED is a valid AgReduceResult (catches mis-spelled types)
     expect(() => AgReduceResult.parse(EXPECTED_RESULT)).not.toThrow();
   });
 
   it("live-SSE ↔ history: incremental Reducer.push() equals batch reduce()", () => {
-    const batch = reduce(CAPSTONE_EVENTS);
+    const out = reduce(CAPSTONE_EVENTS);
+    const batch = out.result;
+    expect(out.needsResync).toBe(false);
     const acc = new Reducer();
     for (const e of CAPSTONE_EVENTS) {
       acc.push(e);
     }
     expect(acc.result()).toEqual(batch);
+    expect(acc.needsResync).toBe(false);
   });
 
   it("interleaved-block-kind order: content[] is in ascending-seq-of-creating-event order (text < reasoning < tool-call)", () => {
-    const r = reduce(CAPSTONE_EVENTS);
+    const r = reduce(CAPSTONE_EVENTS).result;
     const m1 = r.messages.find((m) => m.id === "m1");
     expect(m1).toBeDefined();
     const content = m1?.content ?? [];
@@ -2209,10 +2223,13 @@ describe("reduce — R10 capstone: byte-identity + live-SSE↔history invariant"
       { type: "artifact.delta", seq: 2, artifactId: "a1", part: { type: "text", text: "A" }, append: true },
       { type: "artifact.delta", seq: 3, artifactId: "a1", part: { type: "text", text: "B" }, append: true },
     ];
-    const batch = reduce(events);
+    const out = reduce(events);
+    const batch = out.result;
+    expect(out.needsResync).toBe(false);
     const acc = new Reducer();
     for (const e of events) acc.push(e);
     expect(acc.result()).toEqual(batch);
+    expect(acc.needsResync).toBe(false);
     expect(batch.artifacts[0]?.parts[0]).toMatchObject({ type: "text", text: "AB" });
     // the original event array must NOT have been mutated by the fold
     const ev2 = events[2];
@@ -2230,10 +2247,13 @@ describe("reduce — R10 capstone: byte-identity + live-SSE↔history invariant"
       },
       { type: "source", seq: 1, turnId: "t1", sourceId: "s1", source: { url: "https://e.com" } },
     ];
-    const batch = reduce(events);
+    const out = reduce(events);
+    const batch = out.result;
+    expect(out.needsResync).toBe(false);
     const acc = new Reducer();
     for (const e of events) acc.push(e);
     expect(acc.result()).toEqual(batch);
+    expect(acc.needsResync).toBe(false);
     expect(batch.turns[0]?.sourceIds).toEqual(["s1"]); // not ["s1","s1"]
     // the snapshot event's turn object must NOT have been mutated (no sourceIds leaked in)
     expect(JSON.stringify(events[0])).not.toContain("sourceIds");
@@ -2254,7 +2274,7 @@ describe("reduce — R10 capstone: byte-identity + live-SSE↔history invariant"
       { type: "reasoning.opaque.delta", seq: 7, id: "r1", delta: "FRESHSIG" },
       { type: "reasoning.opaque", seq: 8, id: "r1", kind: "signature", value: "" },
     ];
-    const r = reduce(events);
+    const r = reduce(events).result;
     const m2 = r.messages[0];
     expect(m2?.id).toBe("m2");
     const rblock = m2?.content[0];
