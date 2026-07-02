@@ -778,10 +778,32 @@ export function createOpenaiNormalizer(): Normalizer {
         // Seal accumulated buffer → toolArgsAssembled. Prefer the event's full
         // `arguments` string (the engine accumulates the delta path); fall back to
         // the instance buffer when the done event omits it (defensive).
+        //
+        // `ev.arguments` is typed `string`, but this is the deserialization
+        // boundary (audit M46, §2.B): a nonconforming provider (OpenRouter et
+        // al.) can hand back an empty string, truncated JSON, or omit the
+        // field entirely — `JSON.parse` throws `SyntaxError` on the first two
+        // and `.length` throws `TypeError` on the third, all three of which
+        // used to escape push() uncaught. Widen the local binding (no cast —
+        // the boundary genuinely can hand back less than the type promises)
+        // and guard the parse: on any failure, degrade to a best-effort
+        // `tool.args.assembled` with `input:{}` (keeps the tool-call block
+        // fold-coherent, Tenet 6) and route the untouched raw signal through
+        // `ext.openai.unparsed` instead of throwing — an explicit `null`
+        // marker distinguishes "field never arrived" from "field arrived
+        // empty" (`""`), both preserved losslessly.
+        const rawArguments: string | undefined = ev.arguments;
         const buffered = instanceArgBuffers.get(ev.item_id) ?? "";
-        const raw = ev.arguments.length > 0 ? ev.arguments : buffered;
-        const input: JsonValue = JsonValue.parse(JSON.parse(raw));
+        const candidate =
+          rawArguments !== undefined && rawArguments.length > 0 ? rawArguments : buffered;
         const callIdDone = instanceCallIdByItemId.get(ev.item_id) ?? ev.item_id;
+        let input: JsonValue;
+        try {
+          input = JsonValue.parse(JSON.parse(candidate));
+        } catch {
+          input = {};
+          a.emitExt("openai", "unparsed", { itemId: ev.item_id, arguments: rawArguments ?? null });
+        }
         a.toolArgsAssembled(callIdDone, input);
         instanceArgBuffers.delete(ev.item_id);
         return;

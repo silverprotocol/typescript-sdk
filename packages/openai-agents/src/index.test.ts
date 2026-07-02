@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { AgReduceResult, JsonValue, Reducer } from "@silverprotocol/core";
+import { AgEvent, AgReduceResult, JsonValue, Reducer } from "@silverprotocol/core";
 import { createOpenaiNormalizer, mapFinishReason } from "./index.js";
 
 describe("mapFinishReason", () => {
@@ -369,6 +369,152 @@ describe("createOpenaiNormalizer — tools path (T5b)", () => {
         ?.cache?.hit,
     ).toBe(true);
   });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// M46 — function_call_arguments.done never crashes out of push() (audit
+// M46 / §2.B). Three reproduced crash paths on the raw `.done.arguments`
+// field: empty string and truncated JSON both threw `SyntaxError` out of
+// `JSON.parse`; an ABSENT `arguments` field (typed required, but this is the
+// deserialization boundary — a nonconforming provider such as OpenRouter can
+// omit it) threw `TypeError` at `.length`. All three now degrade per Tenet 6:
+// `push()` never throws, a best-effort `tool.args.assembled` with `input:{}`
+// keeps the tool-call block fold-coherent, and the untouched raw signal (or
+// an explicit `null` absent-marker, distinguishing "field omitted" from
+// "field arrived empty") rides losslessly on `ext.openai.unparsed`. A fourth
+// control pins that valid arguments still behave exactly as today (parsed
+// input, no unparsed emission).
+//
+// `driveRawResponsesEvent`'s `function_call_arguments.done` arm is reached
+// ONLY via `raw_model_stream_event` → `data.type === "model"` (the `drive()`
+// switch's default arm silently ignores the SDK's flattened-duplicate
+// literals — `response_started` / `output_text_delta` / `response_done` —
+// and there is no flattened-duplicate literal for tool-call-argument events),
+// so this IS the single-sourced path `push()` actually drives; there is no
+// bypass route for a malformed `.done` event to reach the engine unguarded.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// A minimal realistic tool turn: open → tool start → the (possibly
+// malformed) `.done` event under test → native close. No delta events
+// precede it, so the instance argument buffer is empty and the fallback
+// path (buffered content) never masks the failure under test.
+function argsDoneTurn(itemId: string, callId: string, doneEvent: JsonValue): JsonValue[] {
+  const respId = `resp_${callId}`;
+  return [
+    rawModel({ type: "response.created", response: { id: respId } }),
+    rawModel({
+      type: "response.output_item.added",
+      item: {
+        id: itemId,
+        type: "function_call",
+        status: "in_progress",
+        arguments: "",
+        call_id: callId,
+        name: "render_card",
+      },
+    }),
+    rawModel(doneEvent),
+    rawModel({ type: "response.completed", response: { id: respId, status: "completed" } }),
+  ];
+}
+
+describe("createOpenaiNormalizer — function_call_arguments.done never crashes out of push() (audit M46)", () => {
+  it("(a) empty-string arguments: push() does not throw; degrades to input:{} + ext.openai.unparsed carrying the empty string", () => {
+    const n = createOpenaiNormalizer();
+    const turn = argsDoneTurn("fc_empty_1", "call_empty_1", {
+      type: "response.function_call_arguments.done",
+      item_id: "fc_empty_1",
+      arguments: "",
+    });
+    let evs: AgEvent[] = [];
+    expect(() => {
+      evs = turn.flatMap((e) => n.push(e)).concat(n.flush());
+    }).not.toThrow();
+
+    const assembled = evs.find((e) => e.type === "tool.args.assembled");
+    expect(assembled).toMatchObject({ toolCallId: "call_empty_1", input: {} });
+
+    const unparsed = evs.find((e) => e.type === "ext.openai.unparsed") as
+      | { itemId?: unknown; arguments?: unknown }
+      | undefined;
+    expect(unparsed).toBeDefined();
+    expect(unparsed?.itemId).toBe("fc_empty_1");
+    expect(unparsed?.arguments).toBe("");
+  });
+
+  it("(b) truncated JSON arguments: push() does not throw; degrades to input:{} + ext.openai.unparsed carrying the truncated string verbatim", () => {
+    const n = createOpenaiNormalizer();
+    const truncated = '{"a": tru';
+    const turn = argsDoneTurn("fc_trunc_1", "call_trunc_1", {
+      type: "response.function_call_arguments.done",
+      item_id: "fc_trunc_1",
+      arguments: truncated,
+    });
+    let evs: AgEvent[] = [];
+    expect(() => {
+      evs = turn.flatMap((e) => n.push(e)).concat(n.flush());
+    }).not.toThrow();
+
+    const assembled = evs.find((e) => e.type === "tool.args.assembled");
+    expect(assembled).toMatchObject({ toolCallId: "call_trunc_1", input: {} });
+
+    const unparsed = evs.find((e) => e.type === "ext.openai.unparsed") as
+      | { itemId?: unknown; arguments?: unknown }
+      | undefined;
+    expect(unparsed).toBeDefined();
+    expect(unparsed?.itemId).toBe("fc_trunc_1");
+    expect(unparsed?.arguments).toBe(truncated);
+  });
+
+  it("(c) ABSENT arguments field: push() does not throw; degrades to input:{} + ext.openai.unparsed carrying a null absent-marker", () => {
+    const n = createOpenaiNormalizer();
+    // No `arguments` key at all — a nonconforming provider's payload. `push`
+    // takes `JsonValue`, so this is a genuine (not cast-forced) boundary input.
+    const turn = argsDoneTurn("fc_absent_1", "call_absent_1", {
+      type: "response.function_call_arguments.done",
+      item_id: "fc_absent_1",
+    });
+    let evs: AgEvent[] = [];
+    expect(() => {
+      evs = turn.flatMap((e) => n.push(e)).concat(n.flush());
+    }).not.toThrow();
+
+    const assembled = evs.find((e) => e.type === "tool.args.assembled");
+    expect(assembled).toMatchObject({ toolCallId: "call_absent_1", input: {} });
+
+    const unparsed = evs.find((e) => e.type === "ext.openai.unparsed") as
+      | { itemId?: unknown; arguments?: unknown }
+      | undefined;
+    expect(unparsed).toBeDefined();
+    expect(unparsed?.itemId).toBe("fc_absent_1");
+    // Distinct from case (a)'s `""` — the field never arrived at all.
+    expect(unparsed?.arguments).toBeNull();
+  });
+
+  it("(control) valid arguments: behaves exactly as today — parsed input, no unparsed emission", () => {
+    const n = createOpenaiNormalizer();
+    const turn = argsDoneTurn("fc_valid_1", "call_valid_1", {
+      type: "response.function_call_arguments.done",
+      item_id: "fc_valid_1",
+      arguments: '{"q":"x"}',
+    });
+    const evs = turn.flatMap((e) => n.push(e)).concat(n.flush());
+
+    const assembled = evs.find((e) => e.type === "tool.args.assembled");
+    expect(assembled).toMatchObject({ toolCallId: "call_valid_1", input: { q: "x" } });
+    expect(evs.find((e) => e.type === "ext.openai.unparsed")).toBeUndefined();
+  });
+
+  // NOTE: a Reducer-level fold-identity assertion (push a degraded turn's
+  // events through `Reducer` and assert `needsResync === false`) was tried
+  // here and dropped. It fails for a reason UNRELATED to this fix: any
+  // `emitExt` call — including the pre-existing M22 `ext.openai.late-citations`
+  // path — consumes a seq slot from the shared `StreamAssembler` counter, but
+  // `reduce()`'s `isClosedEvent` guard returns before updating `#lastSeq` for
+  // ext events (reduce.ts:127-131), so the NEXT closed event's seq looks like
+  // a forward gap and false-parks. That is a latent reducer defect orthogonal
+  // to M46 and out of this task's two-file scope (openai-agents/src/index.ts
+  // + index.test.ts) — flagged in the task report, not fixed here.
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
