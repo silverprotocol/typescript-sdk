@@ -1,0 +1,7 @@
+{
+  "kind": "fixture",
+  "capturedAt": null,
+  "sdkVersion": null,
+  "model": "claude-sonnet-4-6",
+  "note": "Hand-authored SDKMessage fixture (weather + subagent task: get_weather → Task subagent delegation) — NOT a live capture. Predates any convergence intent for this scenario; genuinely diverges from text-tool-turn/openai's echo task — see md-task-5-report.md §3's pinning test (\"text-tool-turn: claude vs openai — pre-existing task mismatch, BLOCKED, not a fixture bug\"). Added in commit 738bcab."
+}

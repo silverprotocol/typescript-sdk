@@ -1,0 +1,7 @@
+{
+  "kind": "capture",
+  "capturedAt": null,
+  "sdkVersion": "0.2.141",
+  "model": "claude-sonnet-4-6",
+  "note": "Captured during the harness slice (commit 738bcab) against @anthropic-ai/claude-agent-sdk 0.2.141 (the pinned version in packages/e2e/package.json at capture time). capturedAt was not recorded; model is read directly from the cassette's message.model field."
+}

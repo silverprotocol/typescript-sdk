@@ -1,0 +1,7 @@
+{
+  "kind": "capture",
+  "capturedAt": null,
+  "sdkVersion": null,
+  "model": "gpt-4o-mini-2024-07-18",
+  "note": "REAL @openai/agents stream capture (echo({text:\"hi\"}) → \"echo: hi\" → \"Done.\"), added in commit d5d149f. Byte-identical (md5-verified — see audit M60 §2.B / md-task-5-report.md §2) to text-tool-turn/openai.native.json: the SAME real capture is reused across both scenario directories, not two independent captures. capturedAt/sdkVersion were not recorded at capture time; model is read directly from the cassette's response.model field."
+}

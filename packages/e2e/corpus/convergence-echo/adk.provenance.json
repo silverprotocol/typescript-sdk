@@ -1,0 +1,7 @@
+{
+  "kind": "fixture",
+  "capturedAt": null,
+  "sdkVersion": null,
+  "model": null,
+  "note": "Hand-authored ADK Event fixture (commit eacf91b, \"light up I4 3-way convergence\") — NOT a live capture (no ADK runtime existed at authoring time). Authored to converge structurally with the real openai capture + the hand-authored claude fixture in this same directory. No model field exists anywhere in an ADK Event/LlmResponse shape to read."
+}

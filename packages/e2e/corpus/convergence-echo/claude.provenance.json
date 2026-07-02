@@ -1,0 +1,7 @@
+{
+  "kind": "fixture",
+  "capturedAt": null,
+  "sdkVersion": null,
+  "model": "claude-sonnet-4-6",
+  "note": "Hand-authored Claude SDKMessage echo fixture (commit d5d149f, \"I4 cross-framework convergence assertion\") — NOT a live capture; authored to converge structurally with the real openai capture in this same directory. model is read directly from the fixture's message.model field (documents which model the fixture represents, not a live invocation)."
+}

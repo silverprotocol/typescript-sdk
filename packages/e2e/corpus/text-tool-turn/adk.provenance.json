@@ -1,0 +1,7 @@
+{
+  "kind": "fixture",
+  "capturedAt": null,
+  "sdkVersion": null,
+  "model": null,
+  "note": "Hand-authored ADK Event fixture (Task 5 / M58 hardening, commit 2fdc680) — NOT a live capture (no ADK runtime existed at authoring time). Mirrors convergence-echo/adk.native.json's exact event grammar (functionCall partial→aggregate, functionResponse, text partial→aggregate) with distinct literal ids and usage numbers so it reads as hand-authored rather than a byte-copy. Content-pinned to the same echo task text-tool-turn/openai.native.json already captures (byte-identical to convergence-echo/openai.native.json). See md-task-5-report.md §2 for the full authoring rationale and the original inline provenance note this sidecar formalizes."
+}

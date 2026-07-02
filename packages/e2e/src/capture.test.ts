@@ -1,8 +1,9 @@
 /**
  * capture.test.ts — TDD RED: tests for runCapture.
  *
- * Risk-pass F4: fakes ONLY the LLM/process boundary (runClaudeCapture).
- * Uses REAL createClaudeNormalizer, REAL census, REAL extractToolCalls, REAL serveMock.
+ * Risk-pass F4: fakes ONLY the LLM/process boundary (runAgentCapture).
+ * Uses REAL createClaudeNormalizer (as opts.framework:"claude"'s createNormalizer),
+ * REAL census, REAL extractToolCalls, REAL serveMock.
  *
  * The fake native stream is built from HONEST SDKMessage shapes (an assistant turn
  * with a nested tool_use block) so it genuinely exercises normalize→census
@@ -132,14 +133,14 @@ function allocPort(): number {
 function makeRealDeps(fakeStream: JsonValue[]): CaptureDeps {
   return {
     // ★ ONLY the LLM/process boundary is faked.
-    async *runClaudeCapture(_input) {
+    async *runAgentCapture(_input) {
       for (const event of fakeStream) {
         yield event;
       }
     },
     // REAL collaborators:
     serveMock,
-    createClaudeNormalizer,
+    createNormalizer: createClaudeNormalizer,
     census,
   };
 }
@@ -158,7 +159,7 @@ describe("runCapture", () => {
     // text-only has no mcpServers → no tools expected; stream with no tools satisfies expectTools=[]
     const deps = makeRealDeps(fakeNativeNoTools());
 
-    const cassette: Cassette = await runCapture(scenario, deps, { ports: [] });
+    const cassette: Cassette = await runCapture(scenario, deps, { ports: [], framework: "claude" });
 
     expect(cassette).toHaveProperty("native");
     expect(cassette).toHaveProperty("agjson");
@@ -174,7 +175,7 @@ describe("runCapture", () => {
     });
 
     const deps = makeRealDeps(fakeNativeNoTools());
-    const cassette = await runCapture(scenario, deps, { ports: [] });
+    const cassette = await runCapture(scenario, deps, { ports: [], framework: "claude" });
 
     // The coverage report must have the census fields (drops, newFields).
     expect(cassette.coverage).toHaveProperty("drops");
@@ -190,7 +191,7 @@ describe("runCapture", () => {
     });
 
     const deps = makeRealDeps(fakeNativeNoTools());
-    const cassette = await runCapture(scenario, deps, { ports: [] });
+    const cassette = await runCapture(scenario, deps, { ports: [], framework: "claude" });
 
     // The REAL normalizer on an assistant text-only turn emits turn.start, message.start,
     // text.start, text.delta, text.end, message.end, turn.done — at least one event
@@ -213,7 +214,7 @@ describe("runCapture", () => {
     const port = allocPort();
     // The fake stream calls mcp__t__echo → satisfies expectTools
     const deps = makeRealDeps(fakeNativeWith("mcp__t__echo"));
-    const cassette = await runCapture(scenario, deps, { ports: [port] });
+    const cassette = await runCapture(scenario, deps, { ports: [port], framework: "claude" });
 
     expect(cassette).toHaveProperty("native");
     expect(cassette).toHaveProperty("agjson");
@@ -237,7 +238,7 @@ describe("runCapture", () => {
     const deps = makeRealDeps(fakeNativeNoTools());
 
     await expect(
-      runCapture(scenario, deps, { ports: [port] }),
+      runCapture(scenario, deps, { ports: [port], framework: "claude" }),
     ).rejects.toThrow();
   });
 
@@ -251,9 +252,9 @@ describe("runCapture", () => {
     const port = allocPort();
     let capturedInput: unknown;
 
-    // Wrap runClaudeCapture to capture the mcpServers map it receives
+    // Wrap runAgentCapture to capture the mcpServers map it receives
     const deps: CaptureDeps = {
-      async *runClaudeCapture(input) {
+      async *runAgentCapture(input) {
         capturedInput = input;
         yield* (async function* () {
           for (const event of fakeNativeWith("mcp__t__echo")) {
@@ -262,13 +263,13 @@ describe("runCapture", () => {
         })();
       },
       serveMock,
-      createClaudeNormalizer,
+      createNormalizer: createClaudeNormalizer,
       census,
     };
 
-    await runCapture(scenario, deps, { ports: [port] });
+    await runCapture(scenario, deps, { ports: [port], framework: "claude" });
 
-    // The input passed to runClaudeCapture must contain an mcpServers map
+    // The input passed to runAgentCapture must contain an mcpServers map
     // with "t" as the key and a url pointing to our port.
     expect(capturedInput).toBeDefined();
     const input = capturedInput as { mcpServers: Record<string, { url: string; bearer: string }> };

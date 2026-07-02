@@ -185,3 +185,85 @@ describe("extractToolCalls", () => {
     expect(extractToolCalls(native)).toEqual([]);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// extractToolCalls — framework param (Task 6)
+//
+// Ground-truthed against the REAL committed native cassettes:
+//   corpus/text-tool-turn/openai.native.json[14] — run_item_stream_event,
+//     name:"tool_called", item.type:"tool_call_item",
+//     item.rawItem: { type:"function_call", name:"echo", ... }
+//   corpus/text-tool-turn/adk.native.json[0] — content.parts[0].functionCall.name
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("extractToolCalls — framework=openai", () => {
+  it("extracts the tool name from a run_item_stream_event tool_call_item", () => {
+    const native: JsonValue[] = [
+      {
+        type: "run_item_stream_event",
+        name: "tool_called",
+        item: {
+          type: "tool_call_item",
+          rawItem: { type: "function_call", name: "echo", callId: "call_1", arguments: "{}" },
+        },
+      },
+    ];
+    expect(extractToolCalls(native, "openai")).toEqual(["echo"]);
+  });
+
+  it("ignores raw_model_stream_event and non-tool_call_item run_item events", () => {
+    const native: JsonValue[] = [
+      { type: "raw_model_stream_event", data: { type: "model", event: {} } },
+      {
+        type: "run_item_stream_event",
+        name: "tool_output",
+        item: { type: "tool_call_output_item", rawItem: { type: "function_call_result", name: "echo" } },
+      },
+    ];
+    expect(extractToolCalls(native, "openai")).toEqual([]);
+  });
+
+  it("returns [] for an empty stream", () => {
+    expect(extractToolCalls([], "openai")).toEqual([]);
+  });
+});
+
+describe("extractToolCalls — framework=adk", () => {
+  it("extracts the tool name from a content.parts[].functionCall", () => {
+    const native: JsonValue[] = [
+      {
+        content: { role: "model", parts: [{ functionCall: { id: "x", name: "echo", args: { text: "hi" } } }] },
+        partial: true,
+        invocationId: "e-1",
+        author: "spike",
+        id: "evt-0",
+      },
+    ];
+    expect(extractToolCalls(native, "adk")).toEqual(["echo"]);
+  });
+
+  it("ignores functionResponse and text-only parts", () => {
+    const native: JsonValue[] = [
+      {
+        content: {
+          role: "user",
+          parts: [{ functionResponse: { id: "x", name: "echo", response: { content: [] } } }],
+        },
+        invocationId: "e-1",
+        author: "user",
+        id: "evt-1",
+      },
+      {
+        content: { role: "model", parts: [{ text: "Done." }] },
+        invocationId: "e-1",
+        author: "spike",
+        id: "evt-2",
+      },
+    ];
+    expect(extractToolCalls(native, "adk")).toEqual([]);
+  });
+
+  it("returns [] for an empty stream", () => {
+    expect(extractToolCalls([], "adk")).toEqual([]);
+  });
+});

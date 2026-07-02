@@ -1,0 +1,7 @@
+{
+  "kind": "capture",
+  "capturedAt": null,
+  "sdkVersion": "0.2.141",
+  "model": null,
+  "note": "Captured during the harness slice (commit 738bcab) against @anthropic-ai/claude-agent-sdk 0.2.141 (the pinned version in packages/e2e/package.json at capture time). capturedAt was not recorded. model is null because this cassette's native stream is a single terminal `result` event — no `message.model` field is present anywhere in the captured bytes to read."
+}

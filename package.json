@@ -11,6 +11,7 @@
     "test": "vitest run",
     "typecheck": "tsc -b --noEmit",
     "e2e:replay": "vitest run packages/e2e",
+    "e2e:capture": "vitest run packages/e2e/src/capture-cli.test.ts",
     "pack:smoke": "node scripts/pack-smoke.mjs",
     "spec-drift": "node scripts/check-spec-drift.mjs"
   },

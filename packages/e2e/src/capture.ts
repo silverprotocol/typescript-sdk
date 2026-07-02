@@ -1,28 +1,35 @@
 /**
- * capture.ts — runCapture: boots scenario mocks, runs the LLM, verifies tool
- * calls, normalizes, and computes coverage. Produces a Cassette.
+ * capture.ts — runCapture: boots scenario mocks, runs the framework's capture
+ * agent, verifies tool calls, normalizes, and computes coverage. Produces a
+ * Cassette. Framework-parametric (Task 6) — see capture-cli.ts for the CLI
+ * entry that dispatches to a concrete agent per `pnpm e2e:capture <scenario>
+ * <framework>`.
  *
- * Dependency-injected for keyless testing (CaptureDeps). The CLI entry wires
- * real deps + writes the cassette to disk.
+ * Dependency-injected for keyless testing (CaptureDeps). capture-cli.ts wires
+ * real deps + writes the corpus triple + provenance sidecar to disk.
  *
  * runCapture steps:
  *   1. Boot each mcpServer mock via serveMock(kind, port) and assemble the
- *      { key: { url, bearer } } map the SDK expects.
- *   2. Run the agent via runClaudeCapture with derivedTools(s).allowedTools,
- *      collecting raw native events into the `native` array.
- *   3. ★ Verify extractToolCalls(native) ⊇ derivedTools(s).expectTools —
- *      if not, THROW (no half-cassette written).
+ *      { key: { url, bearer } } map the agent expects.
+ *   2. Run the agent via deps.runAgentCapture with derivedTools(s,
+ *      opts.framework).allowedTools, collecting raw native events into the
+ *      `native` array.
+ *   3. ★ Verify extractToolCalls(native, opts.framework) ⊇
+ *      derivedTools(s, opts.framework).expectTools — if not, THROW (no
+ *      half-cassette written).
  *   4. Produce { native, agjson, coverage } where agjson = normalize all
- *      native events via createClaudeNormalizer, coverage = census(...).
+ *      native events via deps.createNormalizer(), coverage = census(...).
  */
 import type { JsonValue, Normalizer } from "@silverprotocol/core";
 import { toWire } from "@silverprotocol/core";
-import type { CensusInput, CensusReport, AllowlistReview } from "./census.js";
+import type { CensusInput, CensusReport, AllowlistReview, Framework } from "./census.js";
 import type { MockKind } from "./mcp-mocks/tools.js";
 import type { MockHandle } from "./mcp-mocks/serve.js";
-import type { CaptureRunInput } from "./agents/claude-agent-sdk/run.js";
+import type { CaptureRunInput, CaptureRunFn } from "./agents/types.js";
 import { Scenario, derivedTools } from "./scenario.js";
 import { extractToolCalls } from "./extract-tools.js";
+
+export type { CaptureRunInput };
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
@@ -39,15 +46,15 @@ export interface Cassette {
 /**
  * Injected collaborators for runCapture.
  *
- * Fake ONLY runClaudeCapture in tests; the rest are REAL.
+ * Fake ONLY runAgentCapture in tests; the rest are REAL.
  */
 export interface CaptureDeps {
   /** The LLM/process boundary — yields raw native events. FAKED in tests. */
-  runClaudeCapture(input: CaptureRunInput): AsyncIterable<JsonValue>;
+  runAgentCapture: CaptureRunFn;
   /** Boots a mock MCP server on a given port. REAL in tests. */
   serveMock(kind: MockKind, port: number): MockHandle;
-  /** Creates a fresh stateful Claude normalizer. REAL in tests. */
-  createClaudeNormalizer(): Normalizer;
+  /** Creates a fresh stateful normalizer for opts.framework. REAL in tests. */
+  createNormalizer(): Normalizer;
   /** Runs the census lossiness analysis. REAL in tests. */
   census(input: CensusInput): CensusReport;
 }
@@ -60,7 +67,9 @@ export interface CaptureDeps {
  */
 export interface CaptureRunOptions {
   ports: number[];
-  /** Anthropic API key (live captures only). */
+  /** The framework whose capture agent + normalizer + tool-call reader to use. */
+  framework: Framework;
+  /** Provider API key (live captures only). */
   apiKey?: string;
   /** System prompt override. Defaults to scenario.steer if present. */
   systemPrompt?: string;
@@ -80,7 +89,7 @@ export async function runCapture(
   deps: CaptureDeps,
   opts: CaptureRunOptions,
 ): Promise<Cassette> {
-  const { allowedTools, expectTools } = derivedTools(scenario);
+  const { allowedTools, expectTools } = derivedTools(scenario, opts.framework);
 
   // ── Step 1: Boot mocks ────────────────────────────────────────────────────
   const handles: MockHandle[] = [];
@@ -119,12 +128,12 @@ export async function runCapture(
       ...(opts.apiKey !== undefined ? { apiKey: opts.apiKey } : {}),
     };
 
-    for await (const event of deps.runClaudeCapture(agentInput)) {
+    for await (const event of deps.runAgentCapture(agentInput)) {
       native.push(event);
     }
 
     // ── Step 3: Verify expectTools ⊇ extractToolCalls(native) ────────────────
-    const calledTools = extractToolCalls(native);
+    const calledTools = extractToolCalls(native, opts.framework);
     const missingTools = expectTools.filter((t) => !calledTools.includes(t));
     if (missingTools.length > 0) {
       throw new Error(
@@ -136,7 +145,7 @@ export async function runCapture(
     }
 
     // ── Step 4: Normalize + census ─────────────────────────────────────────
-    const normalizer = deps.createClaudeNormalizer();
+    const normalizer = deps.createNormalizer();
     const agEvents: JsonValue[] = [];
 
     for (const event of native) {
@@ -162,7 +171,7 @@ export async function runCapture(
       transforms: new Map<string, string>(),
       allowlist: new Map<string, AllowlistReview>(),
       registry: new Set<string>(),
-      framework: "claude",
+      framework: opts.framework,
     });
 
     return {
@@ -174,80 +183,4 @@ export async function runCapture(
     // ── Cleanup: close all mock servers ────────────────────────────────────
     await Promise.all(handles.map((h) => h.close()));
   }
-}
-
-// ─── CLI entry ────────────────────────────────────────────────────────────────
-// `pnpm e2e:capture <scenario-name>` — wires real deps + writes cassette.
-
-async function main(): Promise<void> {
-  const scenarioName = process.argv[2];
-  if (!scenarioName) {
-    process.stderr.write("Usage: pnpm e2e:capture <scenario-name>\n");
-    process.exit(1);
-  }
-
-  // Lazy imports so the module is still importable without them in test context.
-  const { createClaudeNormalizer } = await import("@silverprotocol/claude-agent-sdk");
-  const { census } = await import("./census.js");
-  const { serveMock } = await import("./mcp-mocks/serve.js");
-  const { runClaudeCapture } = await import("./agents/claude-agent-sdk/run.js");
-  const { createServer } = await import("node:net");
-  const { readFile, writeFile, mkdir } = await import("node:fs/promises");
-  const { join } = await import("node:path");
-  const { fileURLToPath } = await import("node:url");
-
-  const __dirname = fileURLToPath(new URL(".", import.meta.url));
-  const scenarioDir = join(__dirname, "..", "scenarios", scenarioName);
-  const scenarioFile = join(scenarioDir, "scenario.json");
-
-  let raw: string;
-  try {
-    raw = await readFile(scenarioFile, "utf8");
-  } catch {
-    process.stderr.write(`Scenario not found: ${scenarioFile}\n`);
-    process.exit(1);
-  }
-
-  const scenario = Scenario.parse(JSON.parse(raw));
-
-  // Allocate free ephemeral ports (one per mcpServer).
-  async function freePort(): Promise<number> {
-    return new Promise((resolve, reject) => {
-      const srv = createServer();
-      srv.listen(0, "127.0.0.1", () => {
-        const addr = srv.address();
-        if (addr === null || typeof addr === "string") {
-          srv.close();
-          reject(new Error("Could not get ephemeral port"));
-          return;
-        }
-        const port = addr.port;
-        srv.close(() => resolve(port));
-      });
-      srv.on("error", reject);
-    });
-  }
-
-  const ports: number[] = await Promise.all(
-    scenario.mcpServers.map(() => freePort()),
-  );
-
-  const cassette = await runCapture(
-    scenario,
-    { runClaudeCapture, serveMock, createClaudeNormalizer, census },
-    { ports, apiKey: process.env["ANTHROPIC_API_KEY"] },
-  );
-
-  const outFile = join(scenarioDir, "cassette.json");
-  await mkdir(scenarioDir, { recursive: true });
-  await writeFile(outFile, JSON.stringify(cassette, null, 2), "utf8");
-  process.stdout.write(`Cassette written: ${outFile}\n`);
-}
-
-// Run main() only when invoked as a script (not when imported by tests).
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch((err: unknown) => {
-    process.stderr.write(String(err) + "\n");
-    process.exit(1);
-  });
 }

@@ -165,4 +165,44 @@ describe("derivedTools", () => {
     const { allowedTools, expectTools } = derivedTools(s);
     expect(allowedTools).toEqual(expectTools);
   });
+
+  // ── framework param (Task 6) ──────────────────────────────────────────────
+  //
+  // Claude Code's own MCP-tool-naming convention (`mcp__<server>__<tool>`) is
+  // an artifact of the Claude Agent SDK's permission-gate string — it is NOT
+  // how the openai-agents-sdk / google-adk capture agents register or record
+  // tool calls. Ground-truthed against real committed native cassettes:
+  // `corpus/text-tool-turn/openai.native.json`'s tool_call_item.rawItem.name
+  // and `corpus/text-tool-turn/adk.native.json`'s content.parts[].functionCall.name
+  // both carry the BARE tool name ("echo"), never the mcp__key__ prefix.
+  it("omitting framework defaults to claude (prefixed names) — backward compatible", () => {
+    const s = Scenario.parse({
+      name: "single-tool-call",
+      prompt: "call echo",
+      mcpServers: [{ key: "t", kind: "text" }],
+    });
+    expect(derivedTools(s)).toEqual(derivedTools(s, "claude"));
+  });
+
+  it("framework=openai derives BARE tool names (no mcp__key__ prefix)", () => {
+    const s = Scenario.parse({
+      name: "single-tool-call",
+      prompt: "call echo",
+      mcpServers: [{ key: "t", kind: "text" }],
+    });
+    const { allowedTools, expectTools } = derivedTools(s, "openai");
+    expect(allowedTools).toEqual(["echo"]);
+    expect(expectTools).toEqual(["echo"]);
+  });
+
+  it("framework=adk derives BARE tool names (no mcp__key__ prefix)", () => {
+    const s = Scenario.parse({
+      name: "single-tool-call",
+      prompt: "call echo",
+      mcpServers: [{ key: "t", kind: "text" }],
+    });
+    const { allowedTools, expectTools } = derivedTools(s, "adk");
+    expect(allowedTools).toEqual(["echo"]);
+    expect(expectTools).toEqual(["echo"]);
+  });
 });
