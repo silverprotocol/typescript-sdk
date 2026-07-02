@@ -548,8 +548,12 @@ export class StreamAssembler {
    * M49: the lossless vendor channel never drops payload bytes. Non-object
    * payloads ride under `value`; reserved-envelope collisions relocate under
    * `shadowed` (the envelope stays engine-owned — ratified anti-clobber).
-   * Payload's own `value`/`shadowed` keys win the top-level slot; wrapper
-   * key is skipped when present.
+   * Payload's own `value` key wins the top-level slot when no wrapper is
+   * needed. The payload's own `shadowed` key is never clobbered by the
+   * relocation wrapper: when reserved-envelope collisions force the
+   * `shadowed` bag to exist, the payload's own `shadowed` value relocates
+   * INTO that bag under the nested key `shadowed` (`shadowed.shadowed`);
+   * when no collisions exist, the payload's own `shadowed` stays top-level.
    */
   emitExt(vendor: string, key: string, payload: JsonValue): void {
     // AgExtEvent: an object validated on the `type` regex `^ext\.[^.]+\..+$`
@@ -559,21 +563,25 @@ export class StreamAssembler {
       payload !== null && typeof payload === "object" && !Array.isArray(payload)
         ? payload
         : undefined;
-    // M49: the lossless vendor channel never drops payload bytes. Non-object
-    // payloads ride under `value`; reserved-envelope collisions relocate under
-    // `shadowed` (the envelope stays engine-owned — ratified anti-clobber).
     const safeEntries: Array<[string, JsonValue]> = [];
     const shadowed: Record<string, JsonValue> = {};
+    let payloadOwnShadowed: JsonValue | undefined;
     for (const [k, v] of Object.entries(objectPayload ?? {})) {
       if (RESERVED_EXT_KEYS.has(k)) shadowed[k] = v;
+      else if (k === "shadowed") payloadOwnShadowed = v;
       else safeEntries.push([k, v]);
+    }
+    const hasReservedCollisions = Object.keys(shadowed).length > 0;
+    if (payloadOwnShadowed !== undefined) {
+      if (hasReservedCollisions) shadowed.shadowed = payloadOwnShadowed;
+      else safeEntries.push(["shadowed", payloadOwnShadowed]);
     }
     const ev: AgEvent = {
       seq: this.#nextSeq(),
       type: `ext.${vendor}.${key}`,
       ...(objectPayload === undefined ? { value: payload } : {}),
       ...Object.fromEntries(safeEntries),
-      ...(Object.keys(shadowed).length > 0 ? { shadowed } : {}),
+      ...(hasReservedCollisions ? { shadowed } : {}),
     };
     this.#emitExt(ev);
   }

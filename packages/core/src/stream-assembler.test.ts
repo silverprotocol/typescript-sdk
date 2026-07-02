@@ -456,6 +456,20 @@ describe("emitExt losslessness (audit M49)", () => {
     expect(ev).toMatchObject({ type: "ext.acme.test", value: 1, other: "data" });
     expect(ev).not.toHaveProperty("shadowed");
   });
+
+  it("a payload's own shadowed key survives relocation (nested, never clobbered)", () => {
+    const a = new StreamAssembler();
+    a.emitExt("acme", "double", { shadowed: 5, seq: 1 });
+    const ev = a.drain()[0];
+    expect(ev).toMatchObject({ shadowed: { seq: 1, shadowed: 5 } });
+  });
+
+  it("wraps an array payload under `value` instead of dropping it", () => {
+    const a = new StreamAssembler();
+    a.emitExt("acme", "arr", [1, 2, 3]);
+    const ev = a.drain()[0];
+    expect(ev).toMatchObject({ value: [1, 2, 3] });
+  });
 });
 
 describe("emitExt reserved-key guard", () => {
@@ -472,7 +486,7 @@ describe("emitExt reserved-key guard", () => {
     expect(evs).toHaveLength(1);
     expect(evs[0]).toMatchObject({ type: "ext.openai.unparsed", responseId: "resp_1", shadowed: { seq: 999, type: "spoofed", turnId: "evil" } }); // type engine-owned (not "spoofed"); vendor key kept; reserved keys relocated
     expect(evs[0]?.seq).not.toBe(999); // engine-assigned
-    expect((evs[0] as any)?.shadowed?.type).toBe("spoofed"); // spoofed type preserved under shadowed
+    expect((evs[0] as { shadowed?: { type?: string } })?.shadowed?.type).toBe("spoofed"); // spoofed type preserved under shadowed
   });
 });
 
