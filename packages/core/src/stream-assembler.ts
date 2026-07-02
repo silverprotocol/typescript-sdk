@@ -17,7 +17,7 @@
  *  `openMessage` does NOT synthesize a spurious `turn.start` for an already-opened nested turn.
  */
 
-import type { AgEvent, AgClosedEventType, AgTrigger, AgUsage, AgRole, AgBlock, AgOpaqueKind, JsonValue } from "./agjson.js";
+import type { AgEvent, AgClosedEventType, AgTrigger, AgUsage, AgRole, AgBlock, AgOpaqueKind, AgProviderMeta, JsonValue } from "./agjson.js";
 
 // Extracted closed-event arm types (no `as` casts — Extract keeps types typed at source).
 type TurnStartEvent    = Extract<AgClosedEventType, { type: "turn.start" }>;
@@ -45,8 +45,17 @@ type ContentBlockEvent       = Extract<AgClosedEventType, { type: "content.block
 /** Distributes `Omit` over a union so each arm keeps its exact shape. */
 type DistributiveOmit<T, K extends keyof never> = T extends unknown ? Omit<T, K> : never;
 
-/** A complete closed event awaiting only the engine-owned `seq`. */
-export type SeqlessEvent = DistributiveOmit<AgClosedEventType, "seq">;
+/**
+ * A complete closed event awaiting only the engine-owned `seq`. Widened with
+ * `turnId?`/`messageId?` — schema-faithful per the §4 base envelope (every
+ * `AgClosedEventType` arm spreads `...base`, which already carries both), but
+ * `DistributiveOmit` over the union does not surface them uniformly to callers
+ * (e.g. `emit()`'s `ev.turnId` read) without this alias-level annotation.
+ */
+export type SeqlessEvent = DistributiveOmit<AgClosedEventType, "seq"> & {
+  turnId?: string;
+  messageId?: string;
+};
 
 /** Fields for `toolStart`: the tool.start arm minus base envelope fields. */
 export type ToolStartFields = Omit<ToolStartEvent, "type" | "seq" | "turnId">;
@@ -274,12 +283,19 @@ export class StreamAssembler {
       parentTurnId,
     };
     this.#emit(ev);
+    // INV-OWNER: after a nested turn closes, the owner fallback is the PARENT
+    // (audit B10 — stale #lastTurn silently misattributed post-subagent events).
+    this.#lastTurn = parentTurnId;
   }
 
   // ── TEXT primitives ─────────────────────────────────────────────────────────
 
   /** Emit `text.start` for a new text content stream. */
-  textStart(id: string, messageId: string, fields?: { role?: "assistant" }): void {
+  textStart(
+    id: string,
+    messageId: string,
+    fields?: { role?: "assistant"; providerMetadata?: AgProviderMeta },
+  ): void {
     const turnId = this.#resolveTurnId(undefined, messageId);
     const ev: TextStartEvent = {
       type: "text.start",
@@ -288,6 +304,7 @@ export class StreamAssembler {
       messageId,
       ...(turnId !== undefined ? { turnId } : {}),
       ...(fields?.role !== undefined ? { role: fields.role } : {}),
+      ...(fields?.providerMetadata !== undefined ? { providerMetadata: fields.providerMetadata } : {}),
     };
     this.#emit(ev);
   }
@@ -308,7 +325,7 @@ export class StreamAssembler {
   }
 
   /** Emit `text.end` for a finished text content stream. */
-  textEnd(id: string, messageId: string): void {
+  textEnd(id: string, messageId: string, fields?: { providerMetadata?: AgProviderMeta }): void {
     const turnId = this.#resolveTurnId(undefined, messageId);
     const ev: TextEndEvent = {
       type: "text.end",
@@ -316,6 +333,7 @@ export class StreamAssembler {
       id,
       messageId,
       ...(turnId !== undefined ? { turnId } : {}),
+      ...(fields?.providerMetadata !== undefined ? { providerMetadata: fields.providerMetadata } : {}),
     };
     this.#emit(ev);
   }
@@ -511,10 +529,17 @@ export class StreamAssembler {
    * AgClosedEventType is ever unreachable.
    */
   emit(ev: SeqlessEvent): void {
+    // INV-OWNER (SPEC §5.0): every emit path applies the same owner backfill
+    // as the sugar primitives — explicit turnId → owning message → last turn.
+    const turnId = ev.turnId ?? this.#resolveTurnId(undefined, ev.messageId);
     // seq-reconstruction: TS cannot prove `{...Omit<T,"seq">, seq}` is `T` across
     // a distributed union (spread-over-union limitation). The single assertion
     // below re-attaches the engine-owned field; it is NOT type erasure.
-    this.#emit({ ...ev, seq: this.#nextSeq() } as AgClosedEventType);
+    this.#emit({
+      ...ev,
+      ...(turnId !== undefined ? { turnId } : {}),
+      seq: this.#nextSeq(),
+    } as AgClosedEventType);
   }
 
   /**

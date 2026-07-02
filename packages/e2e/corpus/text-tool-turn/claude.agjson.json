@@ -235,7 +235,7 @@
   {
     "type": "tool.done",
     "seq": 29,
-    "turnId": "turn_sess_sub",
+    "turnId": "turn_toolu_task",
     "toolCallId": "toolu_task",
     "content": [
       {

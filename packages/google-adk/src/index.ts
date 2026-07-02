@@ -415,14 +415,14 @@ function driveAdkPart(
     const id = `text:${index}`;
     const signed = part.thoughtSignature !== undefined && part.thoughtSignature.length > 0;
     if (signed) {
-      // §8.8 — carry the signature on text.start/end providerMetadata via the emit primitive
-      // (textStart/textEnd sugar has no providerMetadata param).
+      // §8.8 — signature rides text.start/end providerMetadata via the sugar path
+      // (audit B10/#118).
       const providerMetadata = AgProviderMeta.parse({
         google: { thoughtSignature: part.thoughtSignature },
       });
-      a.emit({ type: "text.start", id, providerMetadata });
+      a.textStart(id, messageId, { providerMetadata });
       a.textDelta(id, messageId, part.text);
-      a.emit({ type: "text.end", id, providerMetadata });
+      a.textEnd(id, messageId, { providerMetadata });
     } else {
       a.textStart(id, messageId);
       a.textDelta(id, messageId, part.text);

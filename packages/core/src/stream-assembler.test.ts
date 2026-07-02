@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { StreamAssembler } from "./stream-assembler.js";
+import { AgProviderMeta } from "./agjson.js";
 
 // ── Existing T1 tests ──────────────────────────────────────────────────────────
 
@@ -13,6 +14,15 @@ it("subagentStart seeds the turn so openMessage does NOT add a turn.start", () =
   a.subagentStart("t2", "t1");
   a.openMessage({ id: "m1", role: "assistant", turnId: "t2", threadId: "th1" });
   expect(a.drain().map((e) => e.type)).toEqual(["subagent.start", "message.start"]); // NO turn.start
+});
+it("subagentDone restores the parent turn as the owner fallback (audit B10)", () => {
+  const a = new StreamAssembler();
+  a.openTurn("t1", "th1");
+  a.subagentStart("t2", "t1");
+  a.subagentDone("t2", "t1");
+  a.emit({ type: "text.start", id: "x1" }); // after subagent close, owner = parent
+  const textStart = a.drain().find((e) => e.type === "text.start");
+  expect(textStart?.turnId).toBe("t1");
 });
 it("assigns turn-scoped monotonic seq across primitive calls (I5)", () => {
   const a = new StreamAssembler();
@@ -190,6 +200,20 @@ describe("textStart / textDelta / textEnd shape", () => {
     const seqs = evs.map((e) => e.seq);
     expect(seqs).toEqual([...seqs].sort((a, b) => a - b)); // strictly increasing
     expect(new Set(seqs).size).toBe(seqs.length); // no duplicates
+  });
+
+  it("textStart/textEnd carry providerMetadata when supplied (#118)", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    const pm = AgProviderMeta.parse({ google: { thoughtSignature: "sig" } });
+    a.textStart("x1", "m1", { providerMetadata: pm });
+    a.textEnd("x1", "m1", { providerMetadata: pm });
+    const evs = a.drain();
+    // Cast: `providerMetadata` is not a base-envelope field carried by every AgEvent
+    // arm (unlike turnId/messageId), so it needs narrowing for property access —
+    // same established pattern as the other cross-arm assertions in this file.
+    expect((evs.find((e) => e.type === "text.start") as { providerMetadata?: AgProviderMeta } | undefined)?.providerMetadata).toEqual(pm);
+    expect((evs.find((e) => e.type === "text.end") as { providerMetadata?: AgProviderMeta } | undefined)?.providerMetadata).toEqual(pm);
   });
 });
 
@@ -399,5 +423,14 @@ describe("StreamAssembler.emit — base primitive for standalone events", () => 
     a.emit({ type: "prompt.blocked", reason: "safety" });
     a.emit({ type: "turn.abort", reason: "interrupted" });
     expect(a.drain()).toHaveLength(7);
+  });
+
+  it("emit() backfills turnId from the owner chain (INV-OWNER; audit B10)", () => {
+    const a = new StreamAssembler();
+    a.openTurn("t1", "th1");
+    a.emit({ type: "text.start", id: "x1" }); // raw emit, no owner ids
+    const evs = a.drain();
+    const textStart = evs.find((e) => e.type === "text.start");
+    expect(textStart?.turnId).toBe("t1");
   });
 });

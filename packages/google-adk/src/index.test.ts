@@ -105,6 +105,19 @@ describe("createAdkNormalizer — reasoning + content blocks", () => {
     const block = out.find((e) => e.type === "content.block");
     expect(block).toMatchObject({ block: { type: "code", code: "print(1)" } });
   });
+
+  it("signed non-thought text (§8.8 sugar path) emits text.start with messageId AND turnId populated (audit B10/#118)", () => {
+    const out = run([
+      event([{ text: "grounded answer", thoughtSignature: "SIG2" }], { partial: true }),
+    ]);
+    const textStart = out.find((e) => e.type === "text.start");
+    expect(textStart).toBeDefined();
+    expect((textStart as { messageId?: string } | undefined)?.messageId).toBeDefined();
+    expect(textStart?.turnId).toBeDefined();
+    expect((textStart as { providerMetadata?: unknown } | undefined)?.providerMetadata).toMatchObject({
+      google: { thoughtSignature: "SIG2" },
+    });
+  });
 });
 
 describe("createAdkNormalizer — standalone arms via emit()", () => {
