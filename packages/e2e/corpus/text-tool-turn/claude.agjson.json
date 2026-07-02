@@ -113,7 +113,8 @@
       }
     ],
     "outcome": "ok",
-    "isError": false
+    "isError": false,
+    "messageId": "toolu_weather:result"
   },
   {
     "type": "message.start",
@@ -244,7 +245,8 @@
       }
     ],
     "outcome": "ok",
-    "isError": false
+    "isError": false,
+    "messageId": "toolu_task:result"
   },
   {
     "type": "turn.done",

@@ -356,10 +356,61 @@ describe("createClaudeNormalizer — tool_result", () => {
       toolCallId: "toolu_fixture_1",
       outcome: "ok",
       content: [{ type: "text", text: "42" }],
+      // SPEC §5 tool.done adoption (audit B10; Task 8b): the plain tool_result
+      // path always carries a derived messageId so the reducer lands the result
+      // in its own dedicated ToolMessage rather than the (possibly already
+      // sealed) assistant message — see the messageId-adoption describe block
+      // below for the full fold-level regression pin.
+      messageId: "toolu_fixture_1:result",
     });
     // Orphan user-side tool.done has no owning message and no parent → no turnId.
     expect((evs[0] as { turnId?: string }).turnId).toBeUndefined();
     assertAllValid(evs);
+  });
+});
+
+// ── tool.done.messageId adoption (SPEC §5; audit B10; Task 8b) ────────────────
+// Regression pin for the Wave-1 park bug: the Claude SDK closes the assistant
+// message (message.end) BEFORE the tool_result user message arrives. Pre-Wave-1
+// this silently attached the result to the already-sealed assistant message
+// (the exact leak M19 was built to close). Post-enforcement (pre-8b) the plain
+// tool_result → tool.done call carried no messageId, so the reducer tried (and
+// failed) to attach to the assistant message's already-cleared open pointer and
+// PARKED the fold (needsResync=true) — everything after the first tool call in
+// any claude tool conversation was lost. Nothing in the submodule suites folds
+// a REAL claude tool conversation, so this was caught by guuey's blast-radius
+// fold-identity capstone. The fix: the facet derives a stable
+// `${toolCallId}:result` messageId, engaging the reducer's SPEC §5 adoption
+// path (Task 5) — a DEDICATED role:"tool" message, not an attach to the
+// assistant message.
+describe("createClaudeNormalizer — tool.done.messageId adoption (audit B10 / guuey fold-identity capstone; Task 8b)", () => {
+  it("standard tool round-trip (tool_use → message.end → tool_result) folds without park: the result lands in its own ToolMessage, not the sealed assistant message", () => {
+    const n = createClaudeNormalizer();
+    const toolCallId = "toolu_fixture_1"; // matches toolResultMsg()'s tool_use_id
+    const toolUseEvs = n.push(
+      JsonValue.parse(
+        assistantMsg([{ type: "tool_use", id: toolCallId, name: "get_weather", input: { city: "SF" } }]),
+      ),
+    );
+    const toolDoneEvs = n.push(JsonValue.parse(toolResultMsg()));
+    const events = [...toolUseEvs, ...toolDoneEvs];
+    assertAllValid(events);
+
+    const r = new Reducer();
+    for (const e of events) r.push(e);
+    expect(r.needsResync).toBe(false);
+
+    const result = r.result();
+    const toolMsg = result.messages.find((m) => m.id === `${toolCallId}:result`);
+    expect(toolMsg).toMatchObject({ role: "tool" });
+    expect(
+      toolMsg?.content.some((b) => b.type === "tool-result" && b.toolCallId === toolCallId),
+    ).toBe(true);
+
+    // The assistant message (sealed by message.end BEFORE the result arrived)
+    // must NOT carry the tool-result block — it adopted its own message.
+    const assistantResultMsg = result.messages.find((m) => m.id === "msg_fixture_1");
+    expect(assistantResultMsg?.content.every((b) => b.type !== "tool-result")).toBe(true);
   });
 });
 
@@ -745,6 +796,10 @@ describe("createClaudeNormalizer — B1b: parent_tool_use_id on tool.done", () =
       type: "tool.done",
       toolCallId: "toolu_fixture_1",
       turnId: "turn_toolu_parent_subagent_1",
+      // SPEC §5 tool.done adoption (audit B10; Task 8b): the derived messageId
+      // is independent of turnId routing — the subagent-routed result still
+      // adopts its own dedicated ToolMessage rather than attaching in-place.
+      messageId: "toolu_fixture_1:result",
     });
     assertAllValid(evs);
   });

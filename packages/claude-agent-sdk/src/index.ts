@@ -503,6 +503,14 @@ export function createClaudeNormalizer(): Normalizer {
               outcome,
               isError: block.is_error === true,
               turnId: toolTurnId,
+              // SPEC §5 tool.done adoption (audit B10; Task 8b): the Claude SDK
+              // closes the assistant message (message.end) BEFORE this tool_result
+              // arrives, so a messageId-less toolDone here has no open message to
+              // attach to and parks the fold (guuey fold-identity capstone caught
+              // this on a real claude tool conversation). A stable derived
+              // messageId engages the reducer's adoption path instead: the result
+              // lands in its OWN dedicated role:"tool" message.
+              messageId: `${block.tool_use_id}:result`,
               // §2.1 routing: MCP-Apps structuredContent (sibling with _meta.ui)
               // is surface data → uiData; base-MCP structuredContent → the model
               // channel. The sibling's copy is authoritative over the block-level

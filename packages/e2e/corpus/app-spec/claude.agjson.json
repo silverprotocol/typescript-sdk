@@ -83,6 +83,7 @@
     ],
     "outcome": "ok",
     "isError": false,
+    "messageId": "toolu_render_card:result",
     "uiData": {
       "title": "Hello",
       "body": "World",
