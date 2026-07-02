@@ -253,13 +253,14 @@ export class Reducer {
 
       // ── STEP lifecycle — structural scratch only, NO AgReduceResult landing ──
       case "step.start": {
-        // No AgReduceResult landing (spec §5 / brief §R1). No-op on output tree.
+        // Live-only structural marker (spec §5 step rows): steps have no
+        // AgReduceResult container — no-op on the output tree.
         break;
       }
 
       case "step.done": {
-        // No AgReduceResult landing (step.done.usage has no target; turn.done.usage
-        // is authoritative per spec §8.4 / brief §R1). No-op on output tree.
+        // Live-only structural marker (spec §5 step rows): step.done.usage has
+        // no fold target; turn.done.usage is the authoritative turn accounting.
         break;
       }
 
