@@ -356,6 +356,7 @@ export type AgBlock =
       toolMetadata?: AgMeta; // per-tool metadata bag (Vercel)
       dynamic?: boolean; // Vercel dynamic-vs-static tool distinction
       pendingInput?: AgPendingInput; // MCP MRTR carrier when outcome==="input_required"
+      preliminary?: boolean; // set when the result is partial/kept-open (tool.done.more:true); cleared by the final tool.done (audit M20)
       isError?: boolean; // MCP-frozen field, kept verbatim (derived: outcome==="error")
       providerMetadata?: AgProviderMeta;
       annotations?: AgAnnotations;
@@ -452,6 +453,7 @@ export const AgBlock: z.ZodType<AgBlock> = z.lazy(() =>
       toolMetadata: AgMeta.optional(),
       dynamic: z.boolean().optional(),
       pendingInput: AgPendingInput.optional(),
+      preliminary: z.boolean().optional(),
       isError: z.boolean().optional(),
       providerMetadata: AgProviderMeta.optional(),
       annotations: AgAnnotations.optional(),

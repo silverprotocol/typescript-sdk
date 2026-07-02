@@ -366,9 +366,12 @@ describe("reduce — R2 text + reasoning blocks", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("reduce — R3 tool-call + tool-result blocks", () => {
-  // (a) tool.start + tool.args.delta + tool.args.assembled → tool-call block
-  //     with assembled input (assembled wins over delta scratch)
-  it("(a) tool.start + args.delta + args.assembled → tool-call block with assembled input", () => {
+  // (a) tool.start + tool.args.delta + tool.args.assembled → the tool-call block's
+  //     final input reflects the assembled value (this fixture's delta-concatenation
+  //     and assembled input agree byte-for-byte, so — unlike its name previously
+  //     implied — it does NOT independently prove assembled-over-delta precedence
+  //     on a conflict; see (a2) below for the seeded-placeholder-before-assembled case)
+  it("(a) tool.start + args.delta + args.assembled → tool-call block reflects the assembled input (audit M20 mislabel fix)", () => {
     const r = reduce([
       TURN_START,
       MSG_START,
@@ -411,7 +414,7 @@ describe("reduce — R3 tool-call + tool-result blocks", () => {
     if (block?.type === "tool-call") {
       expect(block.toolCallId).toBe("tc1");
       expect(block.name).toBe("search");
-      // assembled input wins over delta scratch
+      // final input is the assembled value (delta scratch is discarded, not authoritative)
       expect(block.input).toEqual({ q: "x" });
     }
     expect(() => AgReduceResult.parse(r)).not.toThrow();
@@ -2449,6 +2452,125 @@ describe("INV-MSG seal + binding window enforcement (audit M19)", () => {
       messageMetadata: { k: 1 },
     });
     expect(r.result().messages[0]?.messageMetadata).toEqual({ k: 1 });
+  });
+
+  // Controller-added leg on Task 6 (review finding on Task 4's #closedTurns work,
+  // same INV-MSG class as the two tests above): the tool.done MERGE branch had NO
+  // closed-turn/sealed guard — a post-terminal straggler tool.done for a still-open
+  // more:true preliminary silently mutated a closed turn's published content.
+  it("a straggler tool.done for a still-open more:true preliminary parks after turn.error — never mutates the closed turn's published content (audit M20 controller leg)", () => {
+    const r = new Reducer();
+    for (const e of open) r.push(e);
+    r.push({
+      type: "tool.start",
+      seq: 2,
+      toolCallId: "c1",
+      name: "poll",
+      turnId: "t1",
+    });
+    r.push({
+      type: "tool.done",
+      seq: 3,
+      toolCallId: "c1",
+      content: [{ type: "text", text: "working..." }],
+      outcome: "ok",
+      more: true,
+      turnId: "t1",
+    });
+    r.push({
+      type: "turn.error",
+      seq: 4,
+      turnId: "t1",
+      message: "boom",
+    });
+    // Straggler final tool.done arrives AFTER the turn already closed.
+    r.push({
+      type: "tool.done",
+      seq: 5,
+      toolCallId: "c1",
+      content: [{ type: "text", text: "final (must never land)" }],
+      outcome: "ok",
+      turnId: "t1",
+    });
+    expect(r.needsResync).toBe(true);
+    const tr = r.result().messages[0]?.content.find((b) => b.type === "tool-result");
+    expect(tr?.type === "tool-result" && tr.content).toEqual([{ type: "text", text: "working..." }]);
+    expect(tr?.type === "tool-result" && tr.preliminary).toBe(true);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// tool-result typed `preliminary` + turn.done.messageId targeting (audit M20)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("tool-result typed preliminary + turn.done.messageId targeting (audit M20)", () => {
+  it("more:true lands a typed preliminary flag on the tool-result block (audit M20)", () => {
+    const r = new Reducer();
+    r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    r.push({
+      type: "message.start",
+      seq: 1,
+      id: "m1",
+      role: "assistant",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    r.push({ type: "tool.start", seq: 2, toolCallId: "c1", name: "poll", turnId: "t1" });
+    r.push({
+      type: "tool.done",
+      seq: 3,
+      toolCallId: "c1",
+      content: [],
+      outcome: "ok",
+      more: true,
+      turnId: "t1",
+    });
+    const blocks = r.result().messages[0]?.content ?? [];
+    const tr = blocks.find((b) => b.type === "tool-result");
+    expect(tr?.type === "tool-result" && tr.preliminary).toBe(true);
+    // final result clears it (merge = REPLACE, code-canonical)
+    r.push({
+      type: "tool.done",
+      seq: 4,
+      toolCallId: "c1",
+      content: [{ type: "text", text: "done" }],
+      outcome: "ok",
+      turnId: "t1",
+    });
+    const tr2 = r.result().messages[0]?.content.find((b) => b.type === "tool-result");
+    expect(tr2?.type === "tool-result" && tr2.preliminary).toBeUndefined();
+  });
+
+  it("turn.done.messageId targets the messageMetadata REPLACE-merge (audit M20)", () => {
+    const r = new Reducer();
+    r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    r.push({
+      type: "message.start",
+      seq: 1,
+      id: "m1",
+      role: "assistant",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    r.push({
+      type: "message.start",
+      seq: 2,
+      id: "m2",
+      role: "assistant",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    r.push({
+      type: "turn.done",
+      seq: 3,
+      turnId: "t1",
+      outcome: { type: "success" },
+      finishReason: "stop",
+      messageId: "m1",
+      messageMetadata: { k: 1 },
+    });
+    expect(r.result().messages.find((m) => m.id === "m1")?.messageMetadata).toEqual({ k: 1 });
+    expect(r.result().messages.find((m) => m.id === "m2")?.messageMetadata).toBeUndefined();
   });
 });
 

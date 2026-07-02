@@ -445,6 +445,16 @@ export class Reducer {
           if (msg === undefined) break;
           const block = msg.content[existingPos.index];
           if (block === undefined || block.type !== "tool-result") break;
+          // INV-MSG enforcement: a post-terminal straggler tool.done for a still-open
+          // more:true preliminary must never silently mutate a closed turn's already-
+          // published content. Resolve the block's owning turn via the
+          // #blockPos → messageId → message.turnId chain and park instead of mutating
+          // (mirrors the adoption path's closed-turn/sealed guard above).
+          const ownerTurnKey = msg.turnId ?? "unknown-turn";
+          if (this.#sealed.has(msg.id) || this.#closedTurns.has(ownerTurnKey)) {
+            this.#resync = true;
+            break;
+          }
           block.content = ev.content;
           if (ev.outcome !== undefined) block.outcome = ev.outcome;
           if (ev.isError !== undefined) block.isError = ev.isError;
@@ -455,8 +465,14 @@ export class Reducer {
           if (ev.errorCode !== undefined) block.errorCode = ev.errorCode;
           if (ev.pendingInput !== undefined) block.pendingInput = ev.pendingInput;
           block.providerMetadata = mergeProviderMeta(block.providerMetadata, ev.providerMetadata);
-          // If this final tool.done has no more:true, close (remove from open tracking).
-          if (!ev.more) {
+          // Typed preliminary flag mirrors the block's `more` state (audit M20):
+          // more:true keeps it set (partial, kept open); the final more-less tool.done
+          // REPLACES the result fields wholesale (merge = REPLACE, code-canonical) and
+          // clears it, closing (removing from open tracking).
+          if (ev.more) {
+            block.preliminary = true;
+          } else {
+            delete block.preliminary;
             this.#blockPos.delete(resultKey);
           }
         } else {
@@ -523,6 +539,7 @@ export class Reducer {
             ...(ev.dynamic !== undefined ? { dynamic: ev.dynamic } : {}),
             ...(ev.pendingInput !== undefined ? { pendingInput: ev.pendingInput } : {}),
             ...(ev.providerMetadata !== undefined ? { providerMetadata: ev.providerMetadata } : {}),
+            ...(ev.more === true ? { preliminary: true } : {}),
           };
           const index = msg.content.length;
           msg.content.push(block);
@@ -593,10 +610,11 @@ export class Reducer {
         if (ev.outcome.type === "paused") {
           turn.asks = ev.outcome.asks;
         }
-        // messageMetadata: REPLACE-merge onto the open message of this turn.
+        // messageMetadata: REPLACE-merge onto the message named by turn.done.messageId
+        // when present, else the open message of this turn (audit M20).
         // (Read happens BEFORE the binding window closes below.)
         if (ev.messageMetadata !== undefined) {
-          const msg = this.openMessage(ev.turnId, 0);
+          const msg = ev.messageId !== undefined ? this.#messages.get(ev.messageId) : this.openMessage(ev.turnId, 0);
           if (msg !== undefined) {
             msg.messageMetadata = ev.messageMetadata;
           }
