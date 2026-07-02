@@ -1908,6 +1908,45 @@ describe("reduce — R9 new-ops + resync + snapshot + live-only", () => {
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
 
+  // ── (e5)/(e6) seq accounting is universal — ext/live-only events advance
+  // #lastSeq too, so they neither mask a genuine forward gap (e6) nor
+  // false-park the fold when they sit between two closed events that ARE
+  // seq-adjacent-through-the-ext-slot (e5). Task 2b (core-wide fix): the
+  // engine's emitExt consumes a seq slot from the SAME monotonic counter as
+  // every other event, but push() used to early-return on isClosedEvent(ev)
+  // BEFORE the #lastSeq update — an ext.* event between two closed events made
+  // the next closed event look like a forward gap → false park → the rest of
+  // the fold silently voided (found by M46 review; fixed at reduce.ts push()).
+
+  // (e5) raw-events repro: closed(seq0) → ext.acme.x(seq1) → closed(seq2) —
+  // the ext event legitimately occupies seq1, so seq2 is NOT a gap. Both
+  // closed events must fold; needsResync must stay false.
+  it("(e5) an ext event occupying a seq slot between two closed events does NOT false-park (Task 2b)", () => {
+    const acc = new Reducer();
+    acc.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    acc.push({ type: "ext.acme.x", seq: 1, value: "live-only" });
+    acc.push({ type: "message.start", seq: 2, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+
+    expect(acc.needsResync).toBe(false);
+
+    const r = acc.result();
+    // Both closed events folded: the turn AND the message exist.
+    expect(r.turns.map((t) => t.turnId)).toContain("t1");
+    expect(r.messages.map((m) => m.id)).toContain("m1");
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (e6) genuine-forward-gap control: closed(seq0) → ext(seq5) — the ext
+  // event's OWN seq reveals a real gap (seq 1-4 never arrived), so gap
+  // detection must still work THROUGH ext events: this MUST park.
+  it("(e6) a genuine forward gap revealed BY an ext event still parks (gap detection works through ext events)", () => {
+    const acc = new Reducer();
+    acc.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    acc.push({ type: "ext.acme.y", seq: 5, value: "reveals-the-gap" });
+
+    expect(acc.needsResync).toBe(true);
+  });
+
   // ── (f) live-only sweep ─────────────────────────────────────────────────────
 
   // (f) live-only events produce NO change to the fold result

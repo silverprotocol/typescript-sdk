@@ -505,16 +505,48 @@ describe("createOpenaiNormalizer — function_call_arguments.done never crashes 
     expect(evs.find((e) => e.type === "ext.openai.unparsed")).toBeUndefined();
   });
 
-  // NOTE: a Reducer-level fold-identity assertion (push a degraded turn's
-  // events through `Reducer` and assert `needsResync === false`) was tried
-  // here and dropped. It fails for a reason UNRELATED to this fix: any
-  // `emitExt` call — including the pre-existing M22 `ext.openai.late-citations`
-  // path — consumes a seq slot from the shared `StreamAssembler` counter, but
-  // `reduce()`'s `isClosedEvent` guard returns before updating `#lastSeq` for
-  // ext events (reduce.ts:127-131), so the NEXT closed event's seq looks like
-  // a forward gap and false-parks. That is a latent reducer defect orthogonal
-  // to M46 and out of this task's two-file scope (openai-agents/src/index.ts
-  // + index.test.ts) — flagged in the task report, not fixed here.
+  // Reducer-level fold-identity assertion (Task 2b, core-wide fix): a
+  // Reducer-level assertion here was previously tried and DROPPED because
+  // `reduce()`'s `isClosedEvent` guard returned before updating `#lastSeq`
+  // for ext events, so the `ext.openai.unparsed` emission mid-degrade made
+  // the following closed event (`tool.args.assembled`) look like a forward
+  // seq gap and false-parked the whole fold (reduce.ts push()). That reducer
+  // defect is now fixed at its root (seq accounting is universal — every
+  // event, folded or not, advances #lastSeq) — this test proves the shipped
+  // M46 degrade path (`tool.start, ext.openai.unparsed, tool.args.assembled,
+  // …, turn.done`) folds clean end to end.
+  it("(reducer fold) the full M46 degrade path (tool.start, ext.openai.unparsed, tool.args.assembled, …, turn.done) folds clean through Reducer — needsResync===false (Task 2b core fix)", () => {
+    const n = createOpenaiNormalizer();
+    const turn = argsDoneTurn("fc_empty_2", "call_empty_2", {
+      type: "response.function_call_arguments.done",
+      item_id: "fc_empty_2",
+      arguments: "",
+    });
+    const evs = turn.flatMap((e) => n.push(e)).concat(n.flush());
+
+    // Sanity: the degrade path actually includes a live-only ext emission
+    // sandwiched between closed events — otherwise this test wouldn't be
+    // exercising the false-park bug at all.
+    expect(evs.some((e) => e.type === "ext.openai.unparsed")).toBe(true);
+
+    const r = new Reducer();
+    for (const ev of evs) r.push(ev);
+
+    expect(r.needsResync).toBe(false);
+
+    const result = r.result();
+    expect(() => AgReduceResult.parse(result)).not.toThrow();
+
+    const turnRecord = result.turns[0];
+    expect(turnRecord).toBeDefined();
+    expect(turnRecord?.outcome).toBeDefined();
+    expect(turnRecord?.finishReason).toBeDefined();
+
+    const toolCallBlock = result.messages
+      .flatMap((m) => m.content)
+      .find((b) => b.type === "tool-call" && b.toolCallId === "call_empty_2");
+    expect(toolCallBlock).toMatchObject({ input: {} });
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

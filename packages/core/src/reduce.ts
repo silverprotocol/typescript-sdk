@@ -125,13 +125,17 @@ export class Reducer {
    * R3–R10 fill remaining content types.
    */
   push(ev: AgEvent): void {
-    // Ext events (`ext.<vendor>.<key>`) are live-only / non-folding (§4/§12).
-    // Rule them out so the switch below sees the narrowed AgClosedEventType and
-    // avoids the AgExtEvent.catchall(JsonValue) index-signature field widening.
-    if (!isClosedEvent(ev)) return;
-
     // ── Seq-gap detection (R9) ────────────────────────────────────────────────
-    // After the first event (#lastSeq >= 0), a forward gap sets #resync (park).
+    // Seq accounting is UNIVERSAL (INV-SEQ: "gap-free ordinal" over the whole
+    // per-invoke stream) — EVERY well-formed event with a numeric seq advances
+    // the gap check, INCLUDING events the reducer does not fold (ext.* and
+    // other live-only events). This must run BEFORE the isClosedEvent skip
+    // below: an ext/live-only event between two closed events still occupies a
+    // seq slot, so skipping it here would let the NEXT closed event look like
+    // a forward gap that never happened (found by M46 review — the false-park
+    // this fixes voided every fold with an ext emission between closed events).
+    // After the first event (#lastSeq >= 0), a forward gap sets #resync (park)
+    // — including when an ext/live-only event is the one revealing the gap.
     if (this.#lastSeq >= 0 && ev.seq > this.#lastSeq + 1) {
       this.#resync = true;
     }
@@ -148,8 +152,16 @@ export class Reducer {
       }
     }
 
-    // Update #lastSeq for every processed event (including snapshots).
+    // Update #lastSeq for every processed event (including snapshots and
+    // non-folding ext/live-only events — seq accounting is universal, see above).
     this.#lastSeq = ev.seq;
+
+    // Ext events (`ext.<vendor>.<key>`) are live-only / non-folding (§4/§12).
+    // Rule them out HERE — after seq accounting above, so an ext event still
+    // advances the gap check/#lastSeq — so the switch below sees the narrowed
+    // AgClosedEventType and avoids the AgExtEvent.catchall(JsonValue)
+    // index-signature field widening.
+    if (!isClosedEvent(ev)) return;
 
     switch (ev.type) {
       // ── TURN lifecycle ─────────────────────────────────────────────────────
