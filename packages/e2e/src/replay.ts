@@ -5,8 +5,12 @@
  * event stream as JsonValue[]), runs it through the REAL facet normalizer for the
  * given framework (`createClaudeNormalizer` or `createOpenaiNormalizer` — push each
  * event, then flush), and runs the value `census` against the produced AgJSON,
- * loading the three committed guard JSONs (`transforms.json`,
- * `known-acceptable-drops.json`, `field-registry.json`).
+ * loading the three committed guard JSONs:
+ *   - `transforms.json`             — `{ "<source norm-path>": "<target norm-path>" }`
+ *   - `known-acceptable-drops.json` — `{ path, reason, reviewed, frameworks? }[]`
+ *   - `field-registry.json`         — `string[]` (unchanged)
+ * and threading the inferred/explicit `framework` through to `census` so
+ * framework-scoped allowlist entries filter correctly (audit M57).
  *
  * ★ HONEST FRAMING — what this gate IS and IS NOT ★
  *
@@ -35,7 +39,18 @@ import { toWire } from "@silverprotocol/core";
 import { createClaudeNormalizer } from "@silverprotocol/claude-agent-sdk";
 import { createOpenaiNormalizer } from "@silverprotocol/openai-agents";
 import { createAdkNormalizer } from "@silverprotocol/google-adk";
-import { census, type CensusReport } from "./census.js";
+import {
+  census,
+  type CensusReport,
+  type Framework,
+  type ReviewedShape,
+  type AllowlistReview,
+} from "./census.js";
+
+// Re-export: Framework is a census-domain concept (guard-scoping) but
+// replay.ts is its historical + primary public entry point (inferFramework,
+// replayCassette's `framework` param).
+export type { Framework };
 
 // ─── locating the guard JSONs (package root, alongside corpus/) ──────────────
 
@@ -73,7 +88,7 @@ async function readJsonArray(path: string): Promise<JsonValue[]> {
   return value;
 }
 
-/** Read a JSON file that must be a sorted array of strings (transforms / registry). */
+/** Read a JSON file that must be a sorted array of strings (the field registry). */
 async function readStringArray(path: string): Promise<string[]> {
   const value = await readJsonValue(path);
   if (!Array.isArray(value) || value.some((v) => typeof v !== "string")) {
@@ -82,38 +97,91 @@ async function readStringArray(path: string): Promise<string[]> {
   return value as string[];
 }
 
-/** One `{ path, reason }` record in the known-acceptable-drops allowlist. */
+/** Read the transforms guard: a JSON object mapping source norm-path → target
+ *  norm-path (census Rule 1 — a non-null source asserts a leaf exists at the
+ *  target norm-path in the agjson). */
+async function readTransforms(path: string): Promise<Map<string, string>> {
+  const value = await readJsonValue(path);
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`replay: expected a JSON object at ${path}`);
+  }
+  const out = new Map<string, string>();
+  for (const [source, target] of Object.entries(value)) {
+    if (typeof target !== "string") {
+      throw new Error(`replay: transforms entry "${source}" must map to a string target at ${path}`);
+    }
+    out.set(source, target);
+  }
+  return out;
+}
+
+const REVIEWED_SHAPES: readonly string[] = ["null-only", "any"] satisfies ReviewedShape[];
+const FRAMEWORKS: readonly string[] = ["claude", "openai", "adk"] satisfies Framework[];
+
+/** Type-predicate guard (no cast on the value) — narrows a parsed JsonValue to
+ *  the literal `ReviewedShape` union by membership in `REVIEWED_SHAPES`. */
+function isReviewedShape(v: JsonValue | undefined): v is ReviewedShape {
+  return typeof v === "string" && REVIEWED_SHAPES.includes(v);
+}
+
+/** Type-predicate guard (no cast on the value) — narrows a parsed JsonValue to
+ *  the literal `Framework` union by membership in `FRAMEWORKS`. */
+function isFramework(v: JsonValue | undefined): v is Framework {
+  return typeof v === "string" && FRAMEWORKS.includes(v);
+}
+
+/** One `{ path, reason, reviewed, frameworks? }` record in the
+ *  known-acceptable-drops allowlist. */
 export interface AllowlistEntry {
   path: string;
   reason: string;
+  reviewed: ReviewedShape;
+  frameworks?: Framework[];
 }
 
-/** Read the allowlist file: a sorted array of `{ path, reason }` records. */
-async function readAllowlist(path: string): Promise<AllowlistEntry[]> {
+/** Read the allowlist file: a sorted array of `{ path, reason, reviewed,
+ *  frameworks? }` records, and build the norm-path → AllowlistReview map
+ *  census consumes directly. */
+async function readAllowlist(
+  path: string,
+): Promise<{ entries: AllowlistEntry[]; byPath: Map<string, AllowlistReview> }> {
   const value = await readJsonValue(path);
   if (!Array.isArray(value)) {
     throw new Error(`replay: expected a JSON array at ${path}`);
   }
-  const out: AllowlistEntry[] = [];
+  const entries: AllowlistEntry[] = [];
+  const byPath = new Map<string, AllowlistReview>();
   for (const entry of value) {
     if (
       entry === null ||
       typeof entry !== "object" ||
       Array.isArray(entry) ||
       typeof entry.path !== "string" ||
-      typeof entry.reason !== "string"
+      typeof entry.reason !== "string" ||
+      !isReviewedShape(entry.reviewed)
     ) {
       throw new Error(`replay: malformed allowlist entry at ${path}`);
     }
-    out.push({ path: entry.path, reason: entry.reason });
+    const reviewed = entry.reviewed;
+    let frameworks: Framework[] | undefined;
+    if (entry.frameworks !== undefined) {
+      if (!Array.isArray(entry.frameworks) || !entry.frameworks.every(isFramework)) {
+        throw new Error(`replay: malformed allowlist entry frameworks at ${path} (path="${entry.path}")`);
+      }
+      frameworks = entry.frameworks;
+    }
+    entries.push({
+      path: entry.path,
+      reason: entry.reason,
+      reviewed,
+      ...(frameworks !== undefined ? { frameworks } : {}),
+    });
+    byPath.set(entry.path, { reviewed, ...(frameworks !== undefined ? { frameworks } : {}) });
   }
-  return out;
+  return { entries, byPath };
 }
 
 // ─── framework selector ────────────────────────────────────────────────────────
-
-/** The set of supported facet normalizer identifiers. */
-export type Framework = "claude" | "openai" | "adk";
 
 /**
  * Infer the framework from a cassette filename (e.g. `claude.native.json` →
@@ -167,8 +235,8 @@ export async function replayCassette(
   }
 
   // ── Load the three guard JSONs + run census. ───────────────────────────────
-  const [transforms, allowlistEntries, registry] = await Promise.all([
-    readStringArray(TRANSFORMS_PATH),
+  const [transforms, allowlist, registry] = await Promise.all([
+    readTransforms(TRANSFORMS_PATH),
     readAllowlist(ALLOWLIST_PATH),
     readStringArray(REGISTRY_PATH),
   ]);
@@ -176,9 +244,10 @@ export async function replayCassette(
   const report = census({
     native,
     agjson,
-    transforms: new Set(transforms),
-    allowlist: new Set(allowlistEntries.map((e) => e.path)),
+    transforms,
+    allowlist: allowlist.byPath,
     registry: new Set(registry),
+    framework: fw,
   });
 
   return { agjson, report };

@@ -1,12 +1,16 @@
-[
-  "[*].message.content[*].is_error",
-  "[*].message.stop_reason",
-  "[*].message.usage.cache_creation_input_tokens",
-  "[*].message.usage.cache_read_input_tokens",
-  "[*].modelUsage.claude-sonnet-4-6.webSearchRequests",
-  "[*].stop_reason",
-  "[*].tool_use_result.structuredContent.cache.hit",
-  "[*].tool_use_result.structuredContent.cache.llmCallsAvoided",
-  "[*].usage.server_tool_use.web_fetch_requests",
-  "[*].usage.server_tool_use.web_search_requests"
-]
+{
+  "[*].data.event.response.usage.input_tokens_details.cached_tokens": "[*].usage.cacheReadTokens",
+  "[*].data.event.response.usage.output_tokens_details.reasoning_tokens": "[*].usage.reasoningTokens",
+  "[*].data.response.usage.inputTokensDetails.cached_tokens": "[*].usage.cacheReadTokens",
+  "[*].data.response.usage.outputTokensDetails.reasoning_tokens": "[*].usage.reasoningTokens",
+  "[*].message.content[*].is_error": "[*].isError",
+  "[*].message.usage.cache_creation_input_tokens": "[*].usage.cacheWriteTokens",
+  "[*].message.usage.cache_read_input_tokens": "[*].usage.cacheReadTokens",
+  "[*].modelUsage.claude-sonnet-4-6.webSearchRequests": "[*].usage.byModel.claude-sonnet-4-6.serverToolRequests",
+  "[*].parent_tool_use_id": "[*].parentTurnId",
+  "[*].stop_reason": "[*].finishReason",
+  "[*].tool_use_result.structuredContent.cache.hit": "[*].uiData.cache.hit",
+  "[*].tool_use_result.structuredContent.cache.llmCallsAvoided": "[*].uiData.cache.llmCallsAvoided",
+  "[*].usage.server_tool_use.web_fetch_requests": "[*].usage.serverToolRequests",
+  "[*].usage.server_tool_use.web_search_requests": "[*].usage.serverToolRequests"
+}

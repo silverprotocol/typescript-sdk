@@ -17,7 +17,7 @@
  */
 import type { JsonValue, Normalizer } from "@silverprotocol/core";
 import { toWire } from "@silverprotocol/core";
-import type { CensusInput, CensusReport } from "./census.js";
+import type { CensusInput, CensusReport, AllowlistReview } from "./census.js";
 import type { MockKind } from "./mcp-mocks/tools.js";
 import type { MockHandle } from "./mcp-mocks/serve.js";
 import type { CaptureRunInput } from "./agents/claude-agent-sdk/run.js";
@@ -159,9 +159,10 @@ export async function runCapture(
     const coverage = deps.census({
       native: nativeValue,
       agjson: agjsonValue,
-      transforms: new Set<string>(),
-      allowlist: new Set<string>(),
+      transforms: new Map<string, string>(),
+      allowlist: new Map<string, AllowlistReview>(),
       registry: new Set<string>(),
+      framework: "claude",
     });
 
     return {
