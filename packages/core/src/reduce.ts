@@ -426,7 +426,36 @@ export class Reducer {
           }
         } else {
           // CREATE path: first tool.done for this toolCallId.
-          const msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
+          let msg: AgMessage | undefined;
+          if (ev.messageId !== undefined) {
+            // SPEC §5 tool.done row: the landed tool-result message ADOPTS
+            // ev.messageId as its own id (stable ToolMessage identity; audit B10).
+            msg = this.#messages.get(ev.messageId);
+            if (msg === undefined) {
+              // Defensively check if the target message would be sealed or turn closed.
+              // Guard against adopting into a sealed message (INV-MSG enforcement).
+              if (this.#sealed.has(ev.messageId)) {
+                this.#resync = true;
+                break;
+              }
+              const turn = this.ensureTurn(ev.turnId);
+              // Create new tool-result message with the adopted messageId.
+              msg = {
+                id: ev.messageId,
+                role: "tool",
+                content: [],
+                turnId: turn.turnId,
+                threadId: turn.threadId,
+              };
+              this.#messages.set(ev.messageId, msg);
+            } else if (this.#sealed.has(ev.messageId)) {
+              // Existing message is sealed — cannot adopt.
+              this.#resync = true;
+              break;
+            }
+          } else {
+            msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
+          }
           if (msg === undefined) { this.#resync = true; break; }
           const block: AgBlock = {
             type: "tool-result",

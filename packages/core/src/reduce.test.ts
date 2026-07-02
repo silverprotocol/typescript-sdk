@@ -2321,3 +2321,155 @@ describe("INV-MSG seal + binding window enforcement (audit M19)", () => {
     expect(r.result().messages[0]?.messageMetadata).toEqual({ k: 1 });
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// tool.done.messageId adoption (SPEC §5 fold row; audit B10)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("tool.done.messageId adoption (SPEC §5 fold row; audit B10)", () => {
+  it("lands the tool-result in a message that adopts messageId as its own id", () => {
+    const r = new Reducer();
+    r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    r.push({
+      type: "message.start",
+      seq: 1,
+      id: "m1",
+      role: "assistant",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    r.push({
+      type: "tool.start",
+      seq: 2,
+      toolCallId: "c1",
+      name: "search",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    r.push({
+      type: "tool.done",
+      seq: 3,
+      toolCallId: "c1",
+      content: [],
+      outcome: "ok",
+      turnId: "t1",
+      threadId: "th1",
+      messageId: "tm1",
+    });
+    const tm = r.result().messages.find((m) => m.id === "tm1");
+    expect(tm?.role).toBe("tool");
+    expect(tm?.content.some((b) => b.type === "tool-result" && b.toolCallId === "c1")).toBe(true);
+    expect(r.needsResync).toBe(false);
+  });
+
+  it("without messageId, the open-message attach behavior is unchanged", () => {
+    const r = new Reducer();
+    r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    r.push({
+      type: "message.start",
+      seq: 1,
+      id: "m1",
+      role: "assistant",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    r.push({
+      type: "tool.done",
+      seq: 2,
+      toolCallId: "c1",
+      content: [],
+      outcome: "ok",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    expect(
+      r
+        .result()
+        .messages.find((m) => m.id === "m1")
+        ?.content.some((b) => b.type === "tool-result")
+    ).toBe(true);
+  });
+
+  it("messageId adoption to an existing unsealed message succeeds", () => {
+    const r = new Reducer();
+    r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    // Pre-create message tm1 with role tool
+    r.push({
+      type: "message.start",
+      seq: 1,
+      id: "tm1",
+      role: "tool",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    r.push({
+      type: "tool.start",
+      seq: 2,
+      toolCallId: "c1",
+      name: "search",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    r.push({
+      type: "tool.done",
+      seq: 3,
+      toolCallId: "c1",
+      content: [{ type: "text", text: "result" }],
+      outcome: "ok",
+      turnId: "t1",
+      threadId: "th1",
+      messageId: "tm1",
+    });
+    const tm = r.result().messages.find((m) => m.id === "tm1");
+    expect(tm?.role).toBe("tool");
+    expect(tm?.content.some((b) => b.type === "tool-result" && b.toolCallId === "c1")).toBe(true);
+    expect(r.needsResync).toBe(false);
+  });
+
+  it("messageId adoption to a sealed message parks (resync), does not attach", () => {
+    const r = new Reducer();
+    r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    // Create an assistant message to hold the tool-call
+    r.push({
+      type: "message.start",
+      seq: 1,
+      id: "m1",
+      role: "assistant",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    r.push({
+      type: "tool.start",
+      seq: 2,
+      toolCallId: "c1",
+      name: "search",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    // Create and seal the tool-result message
+    r.push({
+      type: "message.start",
+      seq: 3,
+      id: "tm1",
+      role: "tool",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    r.push({ type: "message.end", seq: 4, id: "tm1" });
+    // Try to adopt the sealed message
+    r.push({
+      type: "tool.done",
+      seq: 5,
+      toolCallId: "c1",
+      content: [{ type: "text", text: "result" }],
+      outcome: "ok",
+      turnId: "t1",
+      threadId: "th1",
+      messageId: "tm1",
+    });
+    // Should set needsResync and NOT attach
+    expect(r.needsResync).toBe(true);
+    const tm = r.result().messages.find((m) => m.id === "tm1");
+    expect(tm?.content).toHaveLength(0); // No tool-result attached
+  });
+});
