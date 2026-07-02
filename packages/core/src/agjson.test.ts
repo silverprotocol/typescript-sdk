@@ -55,7 +55,7 @@ describe("AgEvent (CORE)", () => {
     for (const s of samples) expect(AgEvent.parse(s).type).toBe(s.type);
   });
 
-  it("rejects an unknown event type", () => {
+  it("rejects an unknown event type (PRODUCER posture — consumers use ingestAgEvent, §0.2)", () => {
     expect(() => AgEvent.parse({ type: "nope", seq: 0 })).toThrow();
   });
 });
