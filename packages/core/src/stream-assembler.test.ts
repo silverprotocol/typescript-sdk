@@ -30,11 +30,55 @@ it("assigns turn-scoped monotonic seq across primitive calls (I5)", () => {
   a.closeMessage("m1");
   expect(a.drain().map((e) => e.seq)).toEqual([0, 1, 2]);
 });
-it("flush() emits message.end for a dangling open message (I7)", () => {
+it("flush() emits message.end for a dangling open message (INV-FLUSH)", () => {
   const a = new StreamAssembler();
   a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
   a.drain();
   expect(a.flush().some((e) => e.type === "message.end")).toBe(true);
+});
+
+describe("INV-FLUSH turn closure (audit M21)", () => {
+  it("flush() closes a dangling turn with turn.abort(stream-truncated), never success", () => {
+    const a = new StreamAssembler();
+    a.openTurn("t1", "th1");
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    const evs = a.flush();
+    const msgEnd = evs.findIndex((e) => e.type === "message.end");
+    const abort = evs.findIndex((e) => e.type === "turn.abort");
+    expect(msgEnd).toBeGreaterThan(-1);
+    expect(abort).toBeGreaterThan(msgEnd); // message closes first
+    const abortEv = evs[abort];
+    expect(abortEv?.type === "turn.abort" && abortEv.reason).toBe("stream-truncated");
+    expect(evs.some((e) => e.type === "turn.done")).toBe(false);
+  });
+
+  it("flush() after a closed turn emits no turn events", () => {
+    const a = new StreamAssembler();
+    a.openTurn("t1", "th1");
+    a.closeTurnDone("t1", { outcome: { type: "success" }, finishReason: "stop" });
+    expect(a.drain().length).toBeGreaterThan(0);
+    expect(a.flush().filter((e) => e.type.startsWith("turn."))).toHaveLength(0);
+  });
+
+  it("a turn closed via raw emit(turn.abort) is not double-closed at flush", () => {
+    const a = new StreamAssembler();
+    a.openTurn("t1", "th1");
+    a.emit({ type: "turn.abort", reason: "interrupted" }); // turnId backfilled (Task 3)
+    a.drain();
+    expect(a.flush().filter((e) => e.type === "turn.abort")).toHaveLength(0);
+  });
+
+  it("nested dangling turns close innermost-first", () => {
+    const a = new StreamAssembler();
+    a.openTurn("t1", "th1");
+    a.subagentStart("t2", "t1");
+    a.drain();
+    const aborts = a.flush().filter((e) => e.type === "turn.abort");
+    expect(aborts.map((e) => (e.type === "turn.abort" ? e.turnId : undefined))).toEqual([
+      "t2",
+      "t1",
+    ]);
+  });
 });
 
 // ── T2 tests: content/tool/reasoning primitives ───────────────────────────────

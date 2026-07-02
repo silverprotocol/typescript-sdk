@@ -27,6 +27,13 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // for the INV-MSG rationale. Verified: the ONLY delta is the close-reordering
   // (tool.done now precedes message.end/turn.done); no field additions/drops.
   { scenario: "text-tool-turn", framework: "openai" },
+  // Task 6: INV-FLUSH turn closure (audit M21). This 2-message seed
+  // (assistant tool-call + user tool-result) never delivers a terminal
+  // `result` message — a genuinely truncated stream. flush() now truthfully
+  // closes the still-open turn with `turn.abort{stream-truncated}` instead of
+  // silently no-op'ing. Verified: the ONLY delta is the appended trailing
+  // turn.abort event; no field additions/drops on the existing 9 events.
+  { scenario: "app-spec", framework: "claude" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

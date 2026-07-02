@@ -55,8 +55,11 @@ describe("createAdkNormalizer — text turn lifecycle", () => {
     ]);
     // A partial:false event carrying a functionCall is NOT final → turn stays open until flush.
     const beforeFlush = out.filter((e) => e.type === "turn.done");
-    // flush() closes it, so exactly one turn.done exists overall, emitted by flush — but
-    // assert it is NOT emitted by the function-call event itself: drive it without flush.
+    const abortOnFlush = out.filter((e) => e.type === "turn.abort");
+    // The pending tool call never resolved before the stream ended, so flush()
+    // truthfully aborts the still-open turn as stream-truncated — NEVER a
+    // fabricated success close (audit M21). Assert neither is emitted by the
+    // function-call event itself: drive it without flush.
     const n = createAdkNormalizer();
     const driven = n.push(
       JSON.parse(
@@ -69,7 +72,9 @@ describe("createAdkNormalizer — text turn lifecycle", () => {
       )
     );
     expect(driven.map((e) => e.type)).not.toContain("turn.done");
-    expect(beforeFlush).toHaveLength(1); // flush closed it
+    expect(driven.map((e) => e.type)).not.toContain("turn.abort");
+    expect(beforeFlush).toHaveLength(0);
+    expect(abortOnFlush).toHaveLength(1); // flush aborts the still-open turn (stream-truncated)
   });
 
   it("maps STOP to the neutral 'stop' finishReason", () => {
@@ -124,6 +129,33 @@ describe("createAdkNormalizer — standalone arms via emit()", () => {
   it("maps interrupted to turn.abort", () => {
     const out = run([event([], { interrupted: true })]);
     expect(out.find((e) => e.type === "turn.abort")).toMatchObject({ reason: "interrupted" });
+  });
+
+  it("an interrupted:true event yields exactly ONE turn.abort(interrupted) and NO turn.done (audit M21)", () => {
+    // The self-contradiction repro: before the fix, the interrupted turn.abort
+    // was never registered in the facet's own `closedTurns`, so flush() would
+    // ALSO fabricate a success turn.done for the same turn.
+    const out = run([event([], { interrupted: true })]);
+    expect(out.filter((e) => e.type === "turn.abort")).toHaveLength(1);
+    expect(out.find((e) => e.type === "turn.abort")).toMatchObject({ reason: "interrupted" });
+    expect(out.some((e) => e.type === "turn.done")).toBe(false);
+  });
+
+  it("a stream ending without a final aggregate flushes message.end + turn.abort(stream-truncated), NO turn.done (audit M21)", () => {
+    // No `interrupted` flag, no `turnComplete`/`finishReason`/`errorCode` ever
+    // arrives — the ADK stream just stops mid-turn. flush() must close the
+    // dangling message then truthfully abort the still-open turn, never
+    // fabricate a success close.
+    const n = createAdkNormalizer();
+    const pushed = n.push(toJson(event([{ text: "partial…" }], { partial: true })));
+    const flushed = n.flush();
+    const out = [...pushed, ...flushed];
+    const msgEnd = out.findIndex((e) => e.type === "message.end");
+    const abort = out.findIndex((e) => e.type === "turn.abort");
+    expect(msgEnd).toBeGreaterThan(-1);
+    expect(abort).toBeGreaterThan(msgEnd);
+    expect(out[abort]).toMatchObject({ type: "turn.abort", reason: "stream-truncated" });
+    expect(out.some((e) => e.type === "turn.done")).toBe(false);
   });
 
   it("maps actions.transferToAgent to a handoff event", () => {

@@ -520,9 +520,9 @@ function driveAdkTopLevel(
   a: StreamAssembler,
   event: AdkEvent,
   messageId: string,
-  turnId: string
+  turnId: string,
+  closedTurns: Set<string>
 ): void {
-  void turnId;
   if (event.inputTranscription?.text !== undefined) {
     a.contentBlock(messageId, {
       type: "text",
@@ -539,7 +539,14 @@ function driveAdkTopLevel(
   }
 
   // ── interrupted → turn.abort ──
-  if (event.interrupted === true) a.emit({ type: "turn.abort", reason: "interrupted" });
+  // Mark the turn closed in the FACET's own bookkeeping too (audit M21): without
+  // this, `maybeCloseTurn`'s is_final_response path or `flush()` would later
+  // fabricate a success `turn.done` for a turn that already aborted — the
+  // self-contradiction the audit found.
+  if (event.interrupted === true) {
+    a.emit({ type: "turn.abort", reason: "interrupted" });
+    closedTurns.add(turnId);
+  }
 
   // ── promptFeedback → prompt.blocked ──
   if (event.promptFeedback?.blockReason !== undefined) {
@@ -773,7 +780,7 @@ export function createAdkNormalizer(): Normalizer {
     if (isPartial) streamedText.set(key, accumulated);
     else if (isAggregate) streamedText.delete(key);
 
-    driveAdkTopLevel(a, event, messageId, turnId); // standalone/content arms (Tasks 4–5)
+    driveAdkTopLevel(a, event, messageId, turnId, closedTurns); // standalone/content arms (Tasks 4–5)
     maybeCloseTurn(event, turnId, messageId, isPartial);
   }
 
@@ -787,12 +794,13 @@ export function createAdkNormalizer(): Normalizer {
       return a.drain();
     },
     flush(): AgEvent[] {
-      // Close any dangling open turn (interrupted stream before a final aggregate).
+      // Dangling open turns (interrupted stream before a final aggregate):
+      // close their message; the ENGINE flush closes the turn itself with
+      // turn.abort{stream-truncated} per INV-FLUSH — never success (audit M21).
       for (const turnId of openTurns) {
         if (!closedTurns.has(turnId)) {
           closedTurns.add(turnId);
           a.closeMessage(`msg_${turnId}`);
-          a.closeTurnDone(turnId, { outcome: { type: "success" }, finishReason: "stop" });
         }
       }
       return a.flush();

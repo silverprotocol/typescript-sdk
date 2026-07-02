@@ -188,6 +188,10 @@ function assertAllValid(evs: AgEvent[]): void {
 const TOP_TURN = "turn_sess_fixture";
 
 describe("createClaudeNormalizer — assistant text (assembled golden)", () => {
+  // `run()` = push the ONE assistant message + flush, with no terminal `result`
+  // message ever arriving — a genuinely truncated stream (the session never told
+  // us how it ended). Per INV-FLUSH (audit M21) flush() truthfully closes the
+  // still-open turn with `turn.abort{stream-truncated}`, never a silent no-op.
   it("synthesizes turn.start, backfills turnId, and uses turn-scoped seq", () => {
     const evs = run(assistantMsg([{ type: "text", text: "hello", citations: null }]));
     expect(evs).toEqual([
@@ -210,6 +214,7 @@ describe("createClaudeNormalizer — assistant text (assembled golden)", () => {
         id: "msg_fixture_1",
         usage: { inputTokens: 0, outputTokens: 0, cumulative: true },
       },
+      { type: "turn.abort", seq: 6, turnId: TOP_TURN, reason: "stream-truncated" },
     ]);
     assertAllValid(evs);
   });
@@ -223,18 +228,38 @@ describe("createClaudeNormalizer — assistant text (assembled golden)", () => {
       "text.delta",
       "text.end",
       "message.end",
+      "turn.abort",
     ]);
   });
 
   it("allocates a turn-scoped monotonic seq from 0", () => {
     const evs = run(assistantMsg([{ type: "text", text: "hello", citations: null }]));
-    expect(evs.map((e) => e.seq)).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(evs.map((e) => e.seq)).toEqual([0, 1, 2, 3, 4, 5, 6]);
   });
 
   it("carries the assistant text through text.delta", () => {
     const evs = run(assistantMsg([{ type: "text", text: "hello world", citations: null }]));
     const delta = evs.find((e) => e.type === "text.delta");
     expect(delta).toMatchObject({ type: "text.delta", delta: "hello world" });
+  });
+});
+
+describe("createClaudeNormalizer — INV-FLUSH truncation (audit M21)", () => {
+  it("flush() aborts a dangling turn as stream-truncated when the terminal result message never arrives", () => {
+    // The stream stops after an assistant message but the terminal `result`
+    // message never lands (session cut off) — flush() must truthfully abort
+    // the still-open turn, never fabricate a success turn.done.
+    const n = createClaudeNormalizer();
+    const pushed = n.push(JsonValue.parse(assistantMsg([{ type: "text", text: "hello", citations: null }])));
+    const flushed = n.flush();
+    const out = [...pushed, ...flushed];
+    const msgEnd = out.findIndex((e) => e.type === "message.end");
+    const abort = out.findIndex((e) => e.type === "turn.abort");
+    expect(msgEnd).toBeGreaterThan(-1);
+    expect(abort).toBeGreaterThan(msgEnd);
+    expect(out[abort]).toMatchObject({ type: "turn.abort", turnId: TOP_TURN, reason: "stream-truncated" });
+    expect(out.some((e) => e.type === "turn.done")).toBe(false);
+    assertAllValid(out);
   });
 });
 

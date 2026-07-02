@@ -27,6 +27,7 @@ type MessageStartEvent = Extract<AgClosedEventType, { type: "message.start" }>;
 type MessageEndEvent   = Extract<AgClosedEventType, { type: "message.end" }>;
 type SubagentStartEvent = Extract<AgClosedEventType, { type: "subagent.start" }>;
 type SubagentDoneEvent  = Extract<AgClosedEventType, { type: "subagent.done" }>;
+type TurnAbortEvent     = Extract<AgClosedEventType, { type: "turn.abort" }>;
 
 // T2 content/tool/reasoning event arm types.
 type TextStartEvent          = Extract<AgClosedEventType, { type: "text.start" }>;
@@ -107,6 +108,12 @@ export class StreamAssembler {
   // Once a turn is seen, openMessage will NOT synthesize a duplicate turn.start.
   #seenTurns = new Set<string>();
 
+  // turnIds currently OPEN (opened, not yet closed) — insertion order (JS Sets
+  // iterate in insertion order). Bookkept in the single emit funnel `#emit` so
+  // EVERY turn-lifecycle event (sugar primitives + raw `emit()`) keeps it correct.
+  // Drives `flush()`'s INV-FLUSH turn.abort closure (audit M21).
+  #openTurns = new Set<string>();
+
   // Insertion-ordered map of open messageId → its owning turnId.
   // Used by flush() to close dangling messages in the order they were opened.
   #openMessages = new Map<string, { turnId: string }>();
@@ -139,6 +146,27 @@ export class StreamAssembler {
 
   /** Emit one closed event into the buffer. */
   #emit(ev: AgClosedEventType): void {
+    // Turn-lifecycle bookkeeping (INV-TURN / INV-FLUSH; audit M21). `#emit` is the
+    // single funnel every primitive (and the raw `emit()` base primitive) routes
+    // through, so this is the one place that can never miss a turn open/close.
+    switch (ev.type) {
+      case "turn.start":
+      case "subagent.start":
+        this.#openTurns.add(ev.turnId);
+        break;
+      case "turn.done":
+      case "turn.error":
+      case "turn.abort": {
+        const closed = ev.turnId ?? this.#lastTurn;
+        if (closed !== undefined) this.#openTurns.delete(closed);
+        break;
+      }
+      case "subagent.done":
+        this.#openTurns.delete(ev.turnId);
+        break;
+      default:
+        break;
+    }
     this.#buffer.push(ev);
   }
 
@@ -552,8 +580,10 @@ export class StreamAssembler {
   }
 
   /**
-   * Flush dangling open messages: emit `message.end` for each open message
-   * in insertion order (I7), then drain.
+   * Flush per INV-FLUSH (SPEC §5.0): (1) synthetic `message.end` for each
+   * still-open message in insertion order; (2) `turn.abort{stream-truncated}`
+   * for each still-open turn, innermost (latest-opened) first — NEVER a
+   * success close (audit M21); (3) nothing else.
    */
   flush(): AgEvent[] {
     for (const [id] of this.#openMessages) {
@@ -561,6 +591,15 @@ export class StreamAssembler {
       this.#emit(ev);
     }
     this.#openMessages.clear();
+    for (const turnId of [...this.#openTurns].reverse()) {
+      const ev: TurnAbortEvent = {
+        type: "turn.abort",
+        seq: this.#nextSeq(),
+        turnId,
+        reason: "stream-truncated",
+      };
+      this.#emit(ev); // #emit bookkeeping deletes it from #openTurns
+    }
     return this.drain();
   }
 }

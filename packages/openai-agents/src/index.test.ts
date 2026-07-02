@@ -159,6 +159,32 @@ describe("createOpenaiNormalizer — text turn", () => {
   });
 });
 
+describe("createOpenaiNormalizer — INV-FLUSH truncation (audit M21)", () => {
+  it("flush() aborts a dangling turn as stream-truncated when response.completed never arrives (no stashed close)", () => {
+    // Truncate BEFORE any native close signal (`response.completed` /
+    // `.incomplete` / `.failed`) ever arrives — the NO-stash case (contrast
+    // with Task 4b's deferred-close stash, which replays a REAL turn.done at
+    // flush() when a tool result never lands for an already-completed round).
+    // Here the round itself never completed on the wire, so `flush()` must
+    // truthfully abort the still-open turn, never fabricate success.
+    const n = createOpenaiNormalizer();
+    const TRUNCATED = TEXT_TURN.slice(0, 8); // through response.output_text.done; no response.completed
+    const pushed = TRUNCATED.flatMap((e) => n.push(e));
+    const flushed = n.flush();
+    const out = [...pushed, ...flushed];
+    const msgEnd = out.findIndex((e) => e.type === "message.end");
+    const abort = out.findIndex((e) => e.type === "turn.abort");
+    expect(msgEnd).toBeGreaterThan(-1);
+    expect(abort).toBeGreaterThan(msgEnd);
+    expect(out[abort]).toMatchObject({
+      type: "turn.abort",
+      turnId: "turn_resp_text_1",
+      reason: "stream-truncated",
+    });
+    expect(out.some((e) => e.type === "turn.done")).toBe(false);
+  });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Stateful createOpenaiNormalizer — T5b: tools path over engine
 //

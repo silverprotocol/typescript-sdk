@@ -83,5 +83,11 @@
     ],
     "outcome": "ok",
     "isError": false
+  },
+  {
+    "type": "turn.abort",
+    "seq": 10,
+    "turnId": "turn_sess_appspec",
+    "reason": "stream-truncated"
   }
 ]
