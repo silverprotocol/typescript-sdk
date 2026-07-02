@@ -545,8 +545,11 @@ export class StreamAssembler {
   /**
    * Emit an open `ext.<vendor>.<key>` event (lossless vendor extension channel).
    * The type field is the only constraint: `ext.` + vendor + `.` + key.
-   * Reserved envelope keys (seq, type, id, turnId, messageId, parentId, _meta)
-   * are filtered from the payload to prevent clobbering the engine-assigned envelope.
+   * M49: the lossless vendor channel never drops payload bytes. Non-object
+   * payloads ride under `value`; reserved-envelope collisions relocate under
+   * `shadowed` (the envelope stays engine-owned — ratified anti-clobber).
+   * Payload's own `value`/`shadowed` keys win the top-level slot; wrapper
+   * key is skipped when present.
    */
   emitExt(vendor: string, key: string, payload: JsonValue): void {
     // AgExtEvent: an object validated on the `type` regex `^ext\.[^.]+\..+$`
@@ -556,12 +559,21 @@ export class StreamAssembler {
       payload !== null && typeof payload === "object" && !Array.isArray(payload)
         ? payload
         : undefined;
+    // M49: the lossless vendor channel never drops payload bytes. Non-object
+    // payloads ride under `value`; reserved-envelope collisions relocate under
+    // `shadowed` (the envelope stays engine-owned — ratified anti-clobber).
+    const safeEntries: Array<[string, JsonValue]> = [];
+    const shadowed: Record<string, JsonValue> = {};
+    for (const [k, v] of Object.entries(objectPayload ?? {})) {
+      if (RESERVED_EXT_KEYS.has(k)) shadowed[k] = v;
+      else safeEntries.push([k, v]);
+    }
     const ev: AgEvent = {
       seq: this.#nextSeq(),
       type: `ext.${vendor}.${key}`,
-      ...Object.fromEntries(
-        Object.entries(objectPayload ?? {}).filter(([k]) => !RESERVED_EXT_KEYS.has(k))
-      ),
+      ...(objectPayload === undefined ? { value: payload } : {}),
+      ...Object.fromEntries(safeEntries),
+      ...(Object.keys(shadowed).length > 0 ? { shadowed } : {}),
     };
     this.#emitExt(ev);
   }

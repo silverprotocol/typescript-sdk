@@ -432,8 +432,34 @@ describe("contentBlock / providerRaw / emitExt shape", () => {
   });
 });
 
+describe("emitExt losslessness (audit M49)", () => {
+  it("wraps a non-object payload under `value` instead of dropping it", () => {
+    const a = new StreamAssembler();
+    a.emitExt("acme", "ping", "hello");
+    const ev = a.drain()[0];
+    expect(ev).toMatchObject({ type: "ext.acme.ping", value: "hello" });
+  });
+
+  it("relocates reserved-key collisions under `shadowed` instead of deleting them", () => {
+    const a = new StreamAssembler();
+    a.emitExt("acme", "ping", { seq: 999, id: "x", safe: 1 });
+    const ev = a.drain()[0];
+    expect(ev).toBeDefined();
+    expect(ev?.seq).not.toBe(999); // envelope not clobbered (ratified assertion preserved)
+    expect(ev).toMatchObject({ safe: 1, shadowed: { seq: 999, id: "x" } });
+  });
+
+  it("payload's own `value` key wins; wrapper key skipped when present", () => {
+    const a = new StreamAssembler();
+    a.emitExt("acme", "test", { value: 1, other: "data" });
+    const ev = a.drain()[0];
+    expect(ev).toMatchObject({ type: "ext.acme.test", value: 1, other: "data" });
+    expect(ev).not.toHaveProperty("shadowed");
+  });
+});
+
 describe("emitExt reserved-key guard", () => {
-  it("drops reserved envelope keys from an object payload, keeps vendor keys", () => {
+  it("relocates reserved envelope keys from an object payload under `shadowed`, keeps vendor keys", () => {
     const a = new StreamAssembler();
     a.emitExt("openai", "unparsed", {
       seq: 999,
@@ -444,9 +470,9 @@ describe("emitExt reserved-key guard", () => {
     });
     const evs = a.drain();
     expect(evs).toHaveLength(1);
-    expect(evs[0]).toMatchObject({ type: "ext.openai.unparsed", responseId: "resp_1" }); // type engine-owned (not "spoofed"); vendor key kept
+    expect(evs[0]).toMatchObject({ type: "ext.openai.unparsed", responseId: "resp_1", shadowed: { seq: 999, type: "spoofed", turnId: "evil" } }); // type engine-owned (not "spoofed"); vendor key kept; reserved keys relocated
     expect(evs[0]?.seq).not.toBe(999); // engine-assigned
-    expect(evs[0]).not.toHaveProperty("turnId"); // reserved, dropped
+    expect((evs[0] as any)?.shadowed?.type).toBe("spoofed"); // spoofed type preserved under shadowed
   });
 });
 
