@@ -43,7 +43,8 @@
  *     (`RunItemStreamEvent` + `RunItemStreamEventName`;
  *      `RunRawModelStreamEvent.data: ResponseStreamEvent`)
  *   - openai/openai-agents-js packages/agents-core/src/items.ts
- *     (`RunMessageOutputItem`/`RunToolCallItem`/`RunToolCallOutputItem`/`RunReasoningItem`)
+ *     (`RunMessageOutputItem`/`RunToolCallItem`/`RunToolCallOutputItem`/`RunReasoningItem`/
+ *      `RunHandoffCallItem.{rawItem,agent}`/`RunHandoffOutputItem.{rawItem,sourceAgent,targetAgent}`)
  *   - openai/openai-agents-js packages/agents-core/src/types/protocol.ts
  *     (`AssistantMessageItem` / `FunctionCallItem.{callId,name,arguments,id}` /
  *      `FunctionCallResultItem.{callId,output}` / `ReasoningItem.{id,content,providerData}`;
@@ -204,24 +205,65 @@ interface OpenAIReasoningEvent {
   item: { type: "reasoning_item"; rawItem: OpenAIReasoningItem };
 }
 
-/** A handoff call item (RunHandoffCallItem) — the target agent name rides in
- *  the rawItem (FunctionCallItem-shaped) as `targetAgent` or can be inferred
- *  from the function name by convention. */
+/** Minimal projection of `@openai/agents`' `Agent` class — only `.name` is
+ *  consumed anywhere on this seam (fixture discipline: type ONLY what you
+ *  consume). Rides on `handoff_requested`'s wrapper (`agent`, the SOURCE
+ *  agent) and `handoff_occurred`'s wrapper (`sourceAgent`/`targetAgent`) —
+ *  audit M48 review, Finding 1. */
+export interface OpenAIAgentRef {
+  name: string;
+}
+
+/** A handoff call item (`RunHandoffCallItem.rawItem`) — verified against
+ *  @openai/agents-core 0.2.1's `protocol.FunctionCallItem`: `name`,
+ *  `arguments`, `callId`, `status?`, `id?`, `providerData?`. It carries NO
+ *  `targetAgent` field — that was an invented field on a false premise
+ *  (audit M48 review, Finding 1): the transfer target is not resolvable at
+ *  this point on the real wire (see {@link OpenAIHandoffRequestedEvent}). */
 interface OpenAIHandoffCallItem {
   type: "function_call";
   name: string;
   callId: string;
   arguments: string;
-  /** The target agent name, when the SDK surfaces it explicitly. */
-  targetAgent?: string;
   id?: string;
   providerData?: { [k: string]: JsonValue };
 }
 
+/** `handoff_requested` — the run-item wrapper (`RunHandoffCallItem`) carries
+ *  `agent` (real d.ts naming): the SOURCE agent whose LLM call produced this
+ *  handoff call — NOT the transfer target. The target agent is resolved only
+ *  once the handoff actually executes (verified against
+ *  @openai/agents-core 0.2.1's `runImplementation.mjs`: `executeHandoffCalls`
+ *  calls `handoff.onInvokeHandoff` — which resolves the new agent — AFTER
+ *  the `RunHandoffCallItem` carrying this event is already constructed), and
+ *  only appears on {@link OpenAIHandoffOccurredEvent}'s `targetAgent` below
+ *  (audit M48 review, Finding 1). */
 interface OpenAIHandoffRequestedEvent {
   type: "run_item_stream_event";
   name: "handoff_requested";
-  item: { type: "handoff_call_item"; rawItem: OpenAIHandoffCallItem };
+  item: { type: "handoff_call_item"; rawItem: OpenAIHandoffCallItem; agent: OpenAIAgentRef };
+}
+
+/** `handoff_occurred` — the REAL completion signal the original
+ *  `handoff_requested` mapping assumed did not exist (audit M48 review,
+ *  Finding 1; verified against @openai/agents-core 0.2.1's `events.d.ts`:
+ *  `RunItemStreamEventName` includes `'handoff_occurred'`). The wrapper is a
+ *  `RunHandoffOutputItem`: `rawItem` (the transfer's tool-output message,
+ *  protocol `FunctionCallResultItem`-shaped — reuses
+ *  {@link OpenAIFunctionCallResultItem}), `sourceAgent`, `targetAgent` (both
+ *  {@link OpenAIAgentRef}) — this is where BOTH agent identities are finally
+ *  known. */
+interface OpenAIHandoffOccurredItem {
+  type: "handoff_output_item";
+  rawItem: OpenAIFunctionCallResultItem;
+  sourceAgent: OpenAIAgentRef;
+  targetAgent: OpenAIAgentRef;
+}
+
+interface OpenAIHandoffOccurredEvent {
+  type: "run_item_stream_event";
+  name: "handoff_occurred";
+  item: OpenAIHandoffOccurredItem;
 }
 
 /** A tool approval request item (RunToolApprovalItem) — the function call that
@@ -246,20 +288,24 @@ interface OpenAIToolApprovalRequestedEvent {
  *  once every declared `name` literal has its own `case`, TS narrows the switched-
  *  on `event` to `never` inside `default` — legally so, since every name this type
  *  declares IS handled — but a real-wire `RunItemStreamEventName` this hand-typed
- *  union does NOT declare (e.g. `handoff_occurred`, `mcp_approval_requested`) still
+ *  union does NOT declare (e.g. `mcp_approval_requested`, `mcp_list_tools`) still
  *  reaches `default` at RUNTIME (the outer guard only checks `typeof name ===
  *  "string"`, file header). A binding declared at this wider (but still concrete,
  *  non-`any`/`unknown`) type reads `.name`/`.item` without the `never` narrowing
  *  the switched expression itself is subject to — not a cast, since the runtime
  *  value genuinely does have this type shape (any run-item event IS one of these
- *  six interfaces at the TS boundary; `default` is where the STATIC type and the
- *  DYNAMIC reality provably diverge, mirroring the M46 "widen, don't cast" fix). */
+ *  seven interfaces at the TS boundary; `default` is where the STATIC type and the
+ *  DYNAMIC reality provably diverge, mirroring the M46 "widen, don't cast" fix).
+ *  `handoff_occurred` used to be cited here as an example of an undeclared name —
+ *  it is now a declared arm (audit M48 review, Finding 1: the fixture originally
+ *  claimed no completion signal existed for a handoff; it does). */
 type OpenAIRunItemEvent =
   | OpenAIMessageOutputEvent
   | OpenAIToolCalledEvent
   | OpenAIToolOutputEvent
   | OpenAIReasoningEvent
   | OpenAIHandoffRequestedEvent
+  | OpenAIHandoffOccurredEvent
   | OpenAIToolApprovalRequestedEvent;
 
 // ── raw_model_stream_event arm ───────────────────────────────────────────────
@@ -428,6 +474,7 @@ export type OpenAIStreamEvent =
   | OpenAIToolOutputEvent
   | OpenAIReasoningEvent
   | OpenAIHandoffRequestedEvent
+  | OpenAIHandoffOccurredEvent
   | OpenAIToolApprovalRequestedEvent
   | OpenAIRawModelStreamEvent
   | OpenAIHostError;
@@ -577,14 +624,21 @@ function isOpenAIStreamEvent(v: unknown): v is OpenAIStreamEvent {
  * `closeResponse()` resets per-response state so the duplicate `response.completed`
  * is a no-op.
  *
- * `reasoning_item_created` / `handoff_requested` / `tool_approval_requested` (Task
- * 3, audit M48) map to `reasoning.start/delta/end/opaque`, a `handoff` event, and
- * `hitl.ask{kind:"approval"}` respectively — see `driveReasoningItemCreated` and the
- * run-item switch below for the full rationale (including why `handoff_requested`
- * maps to the standalone `handoff` event rather than `subagentStart`). `emitExt` is
- * reserved for a genuinely unrecognisable OUTER envelope AND — per the run-item
- * switch's default arm — a genuinely-unknown run-item `name` (mirrors the Claude
- * facet).
+ * `reasoning_item_created` / `tool_approval_requested` (Task 3, audit M48) map to
+ * `reasoning.start/delta/end/opaque` and `hitl.ask{kind:"approval"}` respectively —
+ * see `driveReasoningItemCreated` and the run-item switch below for the full
+ * rationale. `handoff_requested` / `handoff_occurred` (Task 3, audit M48 review
+ * Finding 1) map to a `subagentStart`/`subagentDone` PAIR bracketing the transfer —
+ * the ORIGINAL Task-3 mapping used a standalone `handoff` event on the false premise
+ * that the wire carried no completion signal; `handoff_occurred` IS that signal
+ * (verified against the installed `@openai/agents-core` 0.2.1 peer dep's
+ * `events.d.ts`). The bare `handoff` event still fires — carrying `toAgentName` —
+ * but only once it's actually known, at `handoff_occurred` (the target agent is not
+ * resolvable at `handoff_requested` time on the real wire; see the run-item switch's
+ * `handoff_requested`/`handoff_occurred` cases for the full rationale, including why
+ * identity can't ride the `subagentStart` call itself). `emitExt` is reserved for a
+ * genuinely unrecognisable OUTER envelope AND — per the run-item switch's default
+ * arm — a genuinely-unknown run-item `name` (mirrors the Claude facet).
  */
 export function createOpenaiNormalizer(): Normalizer {
   const a = new StreamAssembler();
@@ -604,6 +658,37 @@ export function createOpenaiNormalizer(): Normalizer {
   // response.id (or a synthesized turnId) has been closed, any further terminal event
   // for it is a no-op — it must NOT reopen a fresh message/turn.
   const closedResponses = new Set<string>();
+
+  // Task 3 (audit M48 review, Finding 1) — handoff-bracket state. Every
+  // run-item event on this seam arrives AFTER its owning round's
+  // `response.completed` on the real wire (M22 late-citations / Task 4b
+  // late-tool-result precedent — verified against @openai/agents-core
+  // 0.2.1's `run.mjs`/`runImplementation.mjs`: `streamStepItemsToRunResult`
+  // streams `processedResponse.newItems` — which includes the
+  // `handoff_call_item` — only AFTER the raw-event loop for that round
+  // completes, and the `handoff_output_item` from `executeHandoffCalls`
+  // streams later still, before the NEXT round's `response.created`). So by
+  // the time either `handoff_requested` or `handoff_occurred` lands, the
+  // per-response `turnId` var above has already been reset to `undefined` by
+  // `resetResponseState()` — this facet needs a tracker that SURVIVES that
+  // reset to resolve "the round that requested the handoff" as the subagent
+  // bracket's `parentTurnId`. Set once per genuinely-new round in
+  // `ensureResponseOpen()`; never cleared on close (deliberately — that's
+  // the whole point). Intermediate response rounds after a handoff continue
+  // opening their OWN top-level turns from their own `response.id` (openai's
+  // turn model) — the subagent pair BRACKETS the transfer, it does not
+  // re-parent later rounds to it.
+  let lastTopLevelTurnId: string | undefined;
+  // Per-invoke ordinal for the synthetic subagent turnId (`turn_handoff_<n>`).
+  let handoffOrdinal = 0;
+  // FIFO queue of open handoff brackets awaiting their matching
+  // `handoff_occurred` (paired turnId + the SAME parentTurnId `subagentStart`
+  // used — `subagentDone` must replay it verbatim, mirroring the
+  // claude-agent-sdk facet's paired start/done convention). Only one handoff
+  // genuinely executes per round on the real wire (`executeHandoffCalls`
+  // rejects the rest), so in practice at most one entry is ever open — FIFO
+  // is the defensively-correct match rule regardless.
+  const openHandoffs: { turnId: string; parentTurnId: string }[] = [];
 
   // Per-instance tool state (T5b — replaces the module-level statics for the factory path).
   // fc_… item id → model call_id correlation, populated by response.output_item.added
@@ -702,6 +787,9 @@ export function createOpenaiNormalizer(): Normalizer {
     responseId = respId;
     turnId = respId !== undefined ? `turn_${respId}` : `turn_${threadId}_${++turnCounter}`;
     msgId = `msg_${turnId}`;
+    // Task 3 (audit M48 review, Finding 1): survives resetResponseState() —
+    // see the closure-state doc above.
+    lastTopLevelTurnId = turnId;
     a.openTurn(turnId, threadId);
     a.openMessage({ id: msgId, role: "assistant", turnId, threadId });
     return responseId ?? turnId;
@@ -1018,12 +1106,28 @@ export function createOpenaiNormalizer(): Normalizer {
    * already open (every response always opens via `response.created` before any
    * run-item can arrive) rather than calling `ensureResponseOpen()` — reopening
    * here would risk a phantom turn on a late arrival. If `msgId` is undefined
-   * (response already closed) this degrades to a no-op — a late-arrival ext route
-   * (mirroring `ext.openai.late-citations`, M22) is deferred: unlike citations,
-   * no live capture has yet proven this ordering for reasoning items.
+   * (response already closed) this degrades gracefully — but NOT to a bare no-op
+   * when there is something REPLAY-LOAD-BEARING to lose: a plain summary-text-only
+   * late arrival has nothing irrecoverable to drop (the reasoning block itself
+   * never got opened, so `reasoning.start`/`.delta`/`.end` staying unemitted is the
+   * correct degrade), but the `rs_`/`encrypted_content` ZDR blob (spec §8.2/§10.4)
+   * is exactly the kind of payload Tenet 6 exists for — silently dropping it here
+   * was a genuine loss (review finding on M48). Mirrors `ext.openai.late-citations`
+   * (M22) exactly: route it through the lossless vendor channel instead of the bare
+   * return.
    */
   function driveReasoningItemCreated(item: OpenAIReasoningItem): void {
-    if (msgId === undefined) return; // defensive: response already closed
+    if (msgId === undefined) {
+      // response already closed — see doc above.
+      const lateEncrypted = item.providerData?.encrypted_content;
+      if (typeof lateEncrypted === "string" && lateEncrypted.length > 0) {
+        a.emitExt("openai", "late-reasoning", {
+          ...(item.id !== undefined ? { itemId: item.id } : {}),
+          encryptedContent: lateEncrypted,
+        });
+      }
+      return;
+    }
     const id = item.id ?? "reasoning";
     const itemId = item.id;
     const text = item.content.map((p) => p.text).join("");
@@ -1140,33 +1244,58 @@ export function createOpenaiNormalizer(): Normalizer {
           driveReasoningItemCreated(event.item.rawItem);
           return;
         case "handoff_requested": {
-          // Task 3 (audit M48) handoff mapping. The typed input
-          // (`OpenAIHandoffCallItem`) is FunctionCallItem-shaped: `name`, `callId`,
-          // `arguments`, and an OPTIONAL `targetAgent` — it carries no "from" agent
-          // identity at all, and this facet tracks no agent-identity concept
-          // anywhere (single fixed `threadId:"openai"`; unlike google-adk's
-          // per-message agentId/agentName). So `fromAgentId`/`toAgentId` are never
-          // fabricated; `toAgentName` is set only when the wire supplies
-          // `targetAgent` explicitly.
+          // Task 3 (audit M48 review, Finding 1) handoff mapping — FALSE-PREMISE
+          // FIX. The original mapping (a standalone `handoff` event) assumed the
+          // wire carried no completion signal for a handoff, so a `subagentStart`
+          // that MUST be matched by `subagentDone` couldn't be used safely (an
+          // unmatched one gets INV-FLUSH-aborted as `turn.abort{reason:"stream-
+          // truncated"}`, audit M21 — misrepresenting a genuinely-completed
+          // handoff). That premise was FALSE: `handoff_occurred` IS the
+          // completion signal (verified against the installed `@openai/agents`
+          // 0.2.1 peer dep's `events.d.ts` — `RunItemStreamEventName` includes
+          // `'handoff_occurred'`). So the nested-turn lifecycle IS determinable:
+          // bracket the transfer with `subagentStart` now / `subagentDone` at the
+          // matching `handoff_occurred` below (FIFO via `openHandoffs`).
           //
-          // Mapping to the standalone `handoff` event rather than `subagentStart`:
-          // the fixture contract declares ONLY `handoff_requested` — no
-          // `handoff_occurred`/completion counterpart exists on this seam — so
-          // there is no way to determine when (or whether) a nested subagent turn
-          // would close. `StreamAssembler.subagentStart` opens a turn that MUST be
-          // closed by a matching `subagentDone`; a subagent turn still open at
-          // `flush()` gets INV-FLUSH-aborted as `turn.abort{reason:"stream-
-          // truncated"}` (audit M21) — which would misrepresent a handoff that
-          // genuinely completed as a truncated stream. Since closure can't be
-          // determined from this wire, the `handoff` event (spec §4 bare-noun
-          // EVENT carve-out) is the safer mapping: it survives the fold
-          // (`turn.handoffs[]`, reduce.ts) without opening anything that must
-          // later be closed.
-          const item = event.item.rawItem;
+          // `item.agent` (real d.ts naming) is the SOURCE agent — the one whose
+          // LLM call produced this handoff call — NOT the transfer target (see
+          // `OpenAIHandoffRequestedEvent`'s doc: the target isn't resolved until
+          // the handoff actually executes). There is therefore no target identity
+          // to carry at this point — an earlier draft of this fix assumed there
+          // was; corrected. `StreamAssembler.subagentStart`'s SUGAR signature also
+          // carries neither `agentId` nor `agentName` params (only the
+          // `subagent.start` AgEvent SCHEMA arm does, agjson.ts — a live-only
+          // field the fold doesn't land on `AgTurnRecord` either, reduce.ts) and
+          // this fix's commit scope excludes core/stream-assembler.ts, so identity
+          // rides the follow-up bare `handoff` event instead (spec §4 bare-noun
+          // EVENT carve-out), emitted once it's actually known — paired with
+          // `subagentDone` in the `handoff_occurred` case below.
+          const ordinal = ++handoffOrdinal;
+          const handoffTurnId = `turn_handoff_${ordinal}`;
+          const parentTurnId = lastTopLevelTurnId ?? threadId;
+          openHandoffs.push({ turnId: handoffTurnId, parentTurnId });
+          a.subagentStart(handoffTurnId, parentTurnId);
+          return;
+        }
+        case "handoff_occurred": {
+          // Task 3 (audit M48 review, Finding 1) — the REAL completion signal.
+          // Both agent identities are finally known here (`RunHandoffOutputItem.
+          // sourceAgent`/`targetAgent`), so this is where the identity-carrying
+          // `handoff` event fires (mirrors the ORIGINAL mapping's shape —
+          // `kind:"transfer"` + `toAgentName` — just correctly timed to when the
+          // data actually exists on the wire). `fromAgentId`/`toAgentId` are still
+          // never fabricated from a name (no agent-id concept exists anywhere on
+          // this seam, unlike google-adk's per-message agentId/agentName).
+          const item = event.item;
+          const open = openHandoffs.shift(); // FIFO — see openHandoffs' doc.
+          if (open !== undefined) a.subagentDone(open.turnId, open.parentTurnId);
+          // Defensive orphan (no open bracket — e.g. a resumed/truncated stream):
+          // still emit the `handoff` event losslessly rather than dropping the
+          // now-known identity (Tenet 6) — it just doesn't close anything.
           a.emit({
             type: "handoff",
             kind: "transfer",
-            ...(item.targetAgent !== undefined ? { toAgentName: item.targetAgent } : {}),
+            toAgentName: item.targetAgent.name,
           });
           return;
         }
@@ -1190,7 +1319,7 @@ export function createOpenaiNormalizer(): Normalizer {
         }
         default:
           // A genuinely-unknown run-item name (a real-wire RunItemStreamEventName
-          // this fixture-contract union does not declare — e.g. `handoff_occurred`,
+          // this fixture-contract union does not declare — e.g.
           // `mcp_approval_requested`, `mcp_list_tools`). The OUTER guard
           // (`isOpenAIStreamEvent`) validates only `typeof name === "string"` (file
           // header), so an unrecognised name reaches here at runtime despite

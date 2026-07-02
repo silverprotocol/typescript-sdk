@@ -1185,19 +1185,28 @@ describe("createOpenaiNormalizer — capstone fold-identity over a combined corp
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Task 3 (audit M48) — port the three typed-but-no-op'd known run-item
-// families: reasoning_item_created (incl. rs_/encrypted_content ZDR replay),
-// handoff_requested, tool_approval_requested. Plus: the default arm now
-// routes genuinely-unknown run-item names to `ext.openai.unparsed` (the file's
-// stated convention, previously untrue — M48).
+// Task 3 (audit M48) — port the typed-but-no-op'd known run-item families:
+// reasoning_item_created (incl. rs_/encrypted_content ZDR replay),
+// handoff_requested + handoff_occurred, tool_approval_requested. Plus: the
+// default arm now routes genuinely-unknown run-item names to
+// `ext.openai.unparsed` (the file's stated convention, previously untrue — M48).
 //
-// Single-sourcing note: none of these three typed run-item interfaces has a
+// M48 REVIEW (Finding 1) corrected the handoff mapping's false premise: the
+// original port assumed `handoff_requested` had no completion signal on this
+// seam and mapped it to a standalone `handoff` event. The REAL installed SDK
+// (`@openai/agents` 0.2.1, this package's own peer dep) carries
+// `handoff_occurred` too (`RunHandoffOutputItem{sourceAgent,targetAgent}`) —
+// the mapping now brackets the transfer with `subagentStart`/`subagentDone`,
+// with the identity-carrying `handoff` event firing once both agent names are
+// actually known (at `handoff_occurred`, not `handoff_requested` — the target
+// is not resolvable at request time on the real wire; see index.ts).
+//
+// Single-sourcing note: none of these typed run-item interfaces has a
 // counterpart arm in `response.output_item.added` (that raw event only special-
-// cases `item.type === "function_call"`, and none of the three declares a
-// richer item shape there — reasoning's content/encrypted_content and
-// handoff's targetAgent exist ONLY on the run-item's `rawItem`). So the
-// run-item arm is the sole source for all three; `output_item.added` is left
-// untouched.
+// cases `item.type === "function_call"`, and none of these declares a richer
+// item shape there — reasoning's content/encrypted_content and the handoff
+// agents exist ONLY on the run-item wrappers). So the run-item arm is the sole
+// source for all of them; `output_item.added` is left untouched.
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("createOpenaiNormalizer — reasoning_item_created (Task 3, audit M48)", () => {
@@ -1322,13 +1331,75 @@ describe("createOpenaiNormalizer — reasoning_item_created (Task 3, audit M48)"
     expect(reasoningBlock?.itemId).toBe("rs_fold1");
     expect(() => AgReduceResult.parse(res)).not.toThrow();
   });
+
+  it("late arrival (response.completed lands FIRST): rs_/encrypted_content carries losslessly via ext.openai.late-reasoning instead of the bare-return guard silently dropping it (review finding on M48)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_late_reason" } }),
+      // Terminal close arrives FIRST — mirrors the #128 live-proven ordering
+      // (message_output_created / M22) that applies to every run-item on this seam.
+      rawModel({ type: "response.completed", response: { id: "resp_late_reason", status: "completed" } }),
+      // The reasoning run-item lands AFTER the round already closed.
+      runItem("reasoning_item_created", {
+        type: "reasoning_item",
+        rawItem: {
+          type: "reasoning",
+          id: "rs_late1",
+          content: [{ type: "input_text", text: "late thinking" }],
+          providerData: { encrypted_content: "ENC_LATE_BLOB" },
+        },
+      }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+
+    // No phantom reasoning block opened for the late run-item.
+    expect(evs.find((e) => e.type === "reasoning.start")).toBeUndefined();
+    expect(evs.find((e) => e.type === "reasoning.opaque")).toBeUndefined();
+
+    // The REPLAY-LOAD-BEARING encrypted_content blob survives losslessly on the
+    // ext channel instead of being silently dropped by the late-arrival guard.
+    const lateReasoning = evs.find((e) => e.type === "ext.openai.late-reasoning") as {
+      itemId?: string;
+      encryptedContent?: string;
+    };
+    expect(lateReasoning).toBeDefined();
+    expect(lateReasoning?.itemId).toBe("rs_late1");
+    expect(lateReasoning?.encryptedContent).toBe("ENC_LATE_BLOB");
+  });
+
+  it("late arrival with NO encrypted_content ⇒ no ext.openai.late-reasoning (nothing irrecoverable to lose, bare return still holds)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_late_reason2" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_late_reason2", status: "completed" } }),
+      runItem("reasoning_item_created", {
+        type: "reasoning_item",
+        rawItem: {
+          type: "reasoning",
+          id: "rs_late2",
+          content: [{ type: "input_text", text: "no zdr blob here" }],
+        },
+      }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    expect(evs.find((e) => e.type === "ext.openai.late-reasoning")).toBeUndefined();
+    expect(evs.find((e) => e.type === "reasoning.start")).toBeUndefined();
+  });
 });
 
-describe("createOpenaiNormalizer — handoff_requested (Task 3, audit M48)", () => {
-  it("⇒ a `handoff` event (NOT subagent.start) — the wire carries no completion signal, so opening a nested turn would get INV-FLUSH-aborted on a genuinely-completed handoff", () => {
+// handoff_requested / handoff_occurred (Task 3, audit M48; corrected by the M48
+// REVIEW, Finding 1). Every run-item on this seam — these two included — arrives
+// AFTER its owning round's `response.completed` on the real wire (mirrors the
+// #128 live-proven message_output_created ordering, M22 / Task 4b), so the
+// fixtures below put `response.completed` BEFORE the handoff run-items.
+describe("createOpenaiNormalizer — handoff_requested / handoff_occurred (Task 3, audit M48 review Finding 1)", () => {
+  it("handoff_requested ⇒ subagent.start; handoff_occurred ⇒ subagent.done (agent identity rides via the paired handoff event, not subagentStart)", () => {
     const n = createOpenaiNormalizer();
     const evs = [
       rawModel({ type: "response.created", response: { id: "resp_handoff_1" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_handoff_1", status: "completed" } }),
       runItem("handoff_requested", {
         type: "handoff_call_item",
         rawItem: {
@@ -1336,15 +1407,51 @@ describe("createOpenaiNormalizer — handoff_requested (Task 3, audit M48)", () 
           name: "transfer_to_billing_agent",
           callId: "call_handoff_1",
           arguments: "{}",
-          targetAgent: "billing_agent",
           id: "fc_handoff_1",
         },
+        agent: { name: "triage_agent" },
       }),
-      rawModel({ type: "response.completed", response: { id: "resp_handoff_1", status: "completed" } }),
+      runItem("handoff_occurred", {
+        type: "handoff_output_item",
+        rawItem: {
+          type: "function_call_result",
+          name: "transfer_to_billing_agent",
+          callId: "call_handoff_1",
+          status: "completed",
+          output: "Transferring to billing_agent",
+        },
+        sourceAgent: { name: "triage_agent" },
+        targetAgent: { name: "billing_agent" },
+      }),
     ]
       .flatMap((e) => n.push(e))
       .concat(n.flush());
 
+    const start = evs.find((e) => e.type === "subagent.start") as {
+      turnId?: string;
+      parentTurnId?: string;
+    };
+    expect(start).toBeDefined();
+    expect(start?.turnId).toBe("turn_handoff_1");
+    expect(start?.parentTurnId).toBe("turn_resp_handoff_1");
+
+    const done = evs.find((e) => e.type === "subagent.done") as {
+      turnId?: string;
+      parentTurnId?: string;
+    };
+    expect(done).toBeDefined();
+    expect(done?.turnId).toBe("turn_handoff_1");
+    expect(done?.parentTurnId).toBe("turn_resp_handoff_1");
+
+    // Ordering: start precedes done, which precedes (or is same-batch-adjacent
+    // to) the identity-carrying handoff event.
+    const startIndex = evs.findIndex((e) => e.type === "subagent.start");
+    const doneIndex = evs.findIndex((e) => e.type === "subagent.done");
+    expect(startIndex).toBeLessThan(doneIndex);
+
+    // Agent identity rides the follow-up `handoff` event — fired once BOTH
+    // names are actually known (handoff_occurred time), not fabricated at
+    // handoff_requested time.
     const handoff = evs.find((e) => e.type === "handoff") as {
       kind?: string;
       toAgentName?: string;
@@ -1354,62 +1461,87 @@ describe("createOpenaiNormalizer — handoff_requested (Task 3, audit M48)", () 
     expect(handoff).toBeDefined();
     expect(handoff?.kind).toBe("transfer");
     expect(handoff?.toAgentName).toBe("billing_agent");
-    // No agent-identity concept exists anywhere in this facet (single fixed
-    // threadId) — fromAgentId/toAgentId are never fabricated.
+    // No agent-ID concept exists anywhere on this seam (only names) —
+    // fromAgentId/toAgentId are never fabricated from a name.
     expect(handoff?.fromAgentId).toBeUndefined();
     expect(handoff?.toAgentId).toBeUndefined();
-
-    // Never a subagent lifecycle for this facet's handoff mapping.
-    expect(evs.find((e) => e.type === "subagent.start")).toBeUndefined();
-    expect(evs.find((e) => e.type === "subagent.done")).toBeUndefined();
   });
 
-  it("no targetAgent on the typed input ⇒ handoff event still fires, without a fabricated toAgentName", () => {
-    const n = createOpenaiNormalizer();
-    const evs = [
-      rawModel({ type: "response.created", response: { id: "resp_handoff_2" } }),
-      runItem("handoff_requested", {
-        type: "handoff_call_item",
-        rawItem: {
-          type: "function_call",
-          name: "transfer_to_agent",
-          callId: "call_handoff_2",
-          arguments: "{}",
-        },
-      }),
-      rawModel({ type: "response.completed", response: { id: "resp_handoff_2", status: "completed" } }),
-    ]
-      .flatMap((e) => n.push(e))
-      .concat(n.flush());
-    const handoff = evs.find((e) => e.type === "handoff") as { toAgentName?: string };
-    expect(handoff).toBeDefined();
-    expect(handoff?.toAgentName).toBeUndefined();
-  });
-
-  it("fold-identity: the handoff record lands on the turn's handoffs[], needsResync=false", () => {
+  it("fold-identity: the subagent turn record carries parentTurnId and the handoff lands on the parent round's handoffs[], needsResync=false (no park)", () => {
     const n = createOpenaiNormalizer();
     const r = new Reducer();
     const stream = [
-      rawModel({ type: "response.created", response: { id: "resp_handoff_3" } }),
+      rawModel({ type: "response.created", response: { id: "resp_handoff_2" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_handoff_2", status: "completed" } }),
       runItem("handoff_requested", {
         type: "handoff_call_item",
         rawItem: {
           type: "function_call",
           name: "transfer_to_billing_agent",
-          callId: "call_handoff_3",
+          callId: "call_handoff_2",
           arguments: "{}",
-          targetAgent: "billing_agent",
         },
+        agent: { name: "triage_agent" },
       }),
-      rawModel({ type: "response.completed", response: { id: "resp_handoff_3", status: "completed" } }),
+      runItem("handoff_occurred", {
+        type: "handoff_output_item",
+        rawItem: {
+          type: "function_call_result",
+          name: "transfer_to_billing_agent",
+          callId: "call_handoff_2",
+          status: "completed",
+          output: "Transferring to billing_agent",
+        },
+        sourceAgent: { name: "triage_agent" },
+        targetAgent: { name: "billing_agent" },
+      }),
     ];
     for (const e of stream) for (const ev of n.push(e)) r.push(ev);
     for (const ev of n.flush()) r.push(ev);
     expect(r.needsResync).toBe(false);
+
     const res = r.result();
-    const turn = res.turns.find((t) => t.turnId === "turn_resp_handoff_3");
-    expect(turn?.handoffs).toMatchObject([{ kind: "transfer", toAgentName: "billing_agent" }]);
+    const subTurn = res.turns.find((t) => t.turnId === "turn_handoff_1");
+    expect(subTurn).toBeDefined();
+    expect(subTurn?.parentTurnId).toBe("turn_resp_handoff_2");
+    expect(subTurn?.threadId).toBe("openai");
+
+    const parentTurn = res.turns.find((t) => t.turnId === "turn_resp_handoff_2");
+    expect(parentTurn?.handoffs).toMatchObject([{ kind: "transfer", toAgentName: "billing_agent" }]);
+
     expect(() => AgReduceResult.parse(res)).not.toThrow();
+  });
+
+  it("defensive orphan: handoff_occurred with NO open handoff ⇒ standalone handoff event, lossless, no subagent.done", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_handoff_3" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_handoff_3", status: "completed" } }),
+      // handoff_occurred arrives with no matching handoff_requested ever seen
+      // (e.g. a resumed/truncated stream).
+      runItem("handoff_occurred", {
+        type: "handoff_output_item",
+        rawItem: {
+          type: "function_call_result",
+          name: "transfer_to_billing_agent",
+          callId: "call_handoff_orphan",
+          status: "completed",
+          output: "Transferring to billing_agent",
+        },
+        sourceAgent: { name: "triage_agent" },
+        targetAgent: { name: "billing_agent" },
+      }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+
+    expect(evs.find((e) => e.type === "subagent.start")).toBeUndefined();
+    expect(evs.find((e) => e.type === "subagent.done")).toBeUndefined();
+
+    const handoff = evs.find((e) => e.type === "handoff") as { kind?: string; toAgentName?: string };
+    expect(handoff).toBeDefined();
+    expect(handoff?.kind).toBe("transfer");
+    expect(handoff?.toAgentName).toBe("billing_agent");
   });
 });
 
