@@ -283,13 +283,15 @@ interface OpenAIResponsesTextDone {
   item_id: string;
   text?: string;
 }
-/** openai-node `ResponseUsage` — per-response token counts (snake_case). */
+/** openai-node `ResponseUsage` — per-response token counts (snake_case).
+ *  Extends to include provider-specific fields like OpenRouter's `cost` superset. */
 interface OpenAIResponseUsage {
   input_tokens?: number;
   output_tokens?: number;
   total_tokens?: number;
   input_tokens_details?: { cached_tokens?: number };
   output_tokens_details?: { reasoning_tokens?: number };
+  cost?: number;
 }
 
 /** openai-node `ResponseCompletedEvent`/incomplete — `response.incomplete_details`
@@ -456,8 +458,7 @@ function mapUsage(usage: OpenAIResponseUsage | undefined): AgUsage | undefined {
   if (usage.output_tokens_details?.reasoning_tokens !== undefined)
     u.reasoningTokens = usage.output_tokens_details.reasoning_tokens;
   // Provider-reported cost (e.g. OpenRouter `cost`) maps verbatim to costUsd.
-  if ((usage as Record<string, unknown>).cost !== undefined)
-    u.costUsd = (usage as Record<string, unknown>).cost as number;
+  if (usage.cost !== undefined) u.costUsd = usage.cost;
   return u;
 }
 

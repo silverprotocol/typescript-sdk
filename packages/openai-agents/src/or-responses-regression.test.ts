@@ -23,8 +23,8 @@
 // running, not assumed). ONE fixture — the tool turn's TERMINAL `response.completed`
 // — deliberately keeps OpenRouter's FULL `response.usage` SUPERSET (`cost`,
 // `cost_details`, `is_byok`) so the test also pins that `mapUsage` tolerates the
-// superset and never leaks those money fields into `AgUsage` (cost is the broker
-// meter's job, not the normalizer's).
+// superset. Raw cost/cost_details/is_byok keys never leak into AgUsage; the
+// provider-reported cost maps verbatim to costUsd (audit M42).
 // ─────────────────────────────────────────────────────────────────────────────
 import { describe, it, expect } from "vitest";
 import { AgReduceResult, JsonValue, Reducer } from "@silverprotocol/core";
@@ -164,7 +164,7 @@ const TOOL_TURN: JsonValue[] = [
     text: "The weather in Paris is 21°C and sunny.",
   }),
   // Round-2 (TERMINAL) close — keeps OpenRouter's FULL usage SUPERSET on purpose:
-  // `cost`, `cost_details`, `is_byok` MUST NOT leak into AgUsage (broker's job).
+  // raw cost/cost_details/is_byok keys never leak into AgUsage; cost maps to costUsd.
   rawModel({
     type: "response.completed",
     response: {
