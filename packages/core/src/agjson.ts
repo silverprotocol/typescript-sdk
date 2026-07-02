@@ -974,7 +974,6 @@ export type AgSurfaceError = z.infer<typeof AgSurfaceError>;
 // Spread FIRST in each arm so an arm's required field overrides the optional base field.
 const base = {
   seq: z.number(),
-  ts: z.number().optional(),
   id: z.string().optional(),
   turnId: z.string().optional(),
   messageId: z.string().optional(),

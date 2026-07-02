@@ -10,7 +10,6 @@
  *   - all identity fields: `turnId`, `threadId`, `toolCallId`, `messageId`, `id`, `itemId`
  *   - `usage` — token counts differ per provider
  *   - `providerMetadata` — provider-specific opaque bag
- *   - `ts` — wall-clock timestamp
  *   - `model` — model identifier (provider-specific)
  *   - `_meta` — host-only metadata bag
  *   - any key matching `*_ms` (timing)
@@ -69,7 +68,6 @@ const MUST_IGNORE_KEYS = new Set([
   "itemId",
   "usage",
   "providerMetadata",
-  "ts",
   "model",
   "_meta",
 ]);

@@ -92,7 +92,6 @@ export interface Normalizer {
 const RESERVED_EXT_KEYS = new Set<string>([
   "seq",
   "type",
-  "ts",
   "id",
   "turnId",
   "messageId",
@@ -546,7 +545,7 @@ export class StreamAssembler {
   /**
    * Emit an open `ext.<vendor>.<key>` event (lossless vendor extension channel).
    * The type field is the only constraint: `ext.` + vendor + `.` + key.
-   * Reserved envelope keys (seq, type, ts, id, turnId, messageId, parentId, _meta)
+   * Reserved envelope keys (seq, type, id, turnId, messageId, parentId, _meta)
    * are filtered from the payload to prevent clobbering the engine-assigned envelope.
    */
   emitExt(vendor: string, key: string, payload: JsonValue): void {
