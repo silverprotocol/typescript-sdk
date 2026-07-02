@@ -9,7 +9,8 @@
   "scripts": {
     "build": "tsc -b",
     "test": "vitest run",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit",
+    "e2e:replay": "vitest run packages/e2e"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

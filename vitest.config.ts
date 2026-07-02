@@ -17,6 +17,9 @@ export default defineConfig({
       "@silverprotocol/openai-agents": fileURLToPath(
         new URL("./packages/openai-agents/src/index.ts", import.meta.url),
       ),
+      "@silverprotocol/google-adk": fileURLToPath(
+        new URL("./packages/google-adk/src/index.ts", import.meta.url),
+      ),
     },
   },
 });
