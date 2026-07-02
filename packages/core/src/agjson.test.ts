@@ -897,7 +897,6 @@ describe("AgInput (§3)", () => {
       answers: [{ askId: "a1", status: "resolved" }],
       capabilities: { hitl: { ask: true } },
       state: { shared: { k: "v" } },
-      lastSeq: 42,
       metadata: { "langgraph/threadId": "lg-th", "langgraph/checkpointId": "ckpt1" },
     });
     expect(inp.kind).toBe("resume");
@@ -920,7 +919,6 @@ describe("AgInput (§3)", () => {
       parentTurnId: "t0",
       capabilities: { streaming: { partialMessages: true } },
       state: { x: 1 },
-      lastSeq: 7,
       metadata: { foo: "bar" },
     });
     expect(e.protocol).toBe("agjson");

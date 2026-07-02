@@ -712,7 +712,6 @@ export const AgInputEnvelope = z.object({
   parentTurnId: z.string().optional(),
   capabilities: AgClientCapabilities.optional(),
   state: JsonValue.optional(),
-  lastSeq: z.number().optional(),
   metadata: AgMeta.optional(),
 });
 export type AgInputEnvelope = z.infer<typeof AgInputEnvelope>;
@@ -724,7 +723,6 @@ const inputEnvelope = {
   parentTurnId: z.string().optional(),
   capabilities: AgClientCapabilities.optional(),
   state: JsonValue.optional(),
-  lastSeq: z.number().optional(),
   metadata: AgMeta.optional(),
 };
 

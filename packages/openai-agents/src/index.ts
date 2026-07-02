@@ -70,7 +70,6 @@ import {
   type AgCitation,
   JsonValue,
   type Normalizer,
-  type NormalizerContext,
   StreamAssembler,
   type ToolOutcome,
 } from "@silverprotocol/core";
@@ -552,11 +551,11 @@ function isOpenAIStreamEvent(v: unknown): v is OpenAIStreamEvent {
  * no-op'd here (NOT routed to `unparsed`). T5b/T5c port them. `emitExt` is reserved
  * for a genuinely unrecognisable OUTER envelope only (mirrors the Claude facet).
  */
-export function createOpenaiNormalizer(ctx?: NormalizerContext): Normalizer {
-  const a = new StreamAssembler(ctx);
+export function createOpenaiNormalizer(): Normalizer {
+  const a = new StreamAssembler();
   // OpenAI's native stream carries no thread/session id (unlike Claude's
-  // `session_id`), and `NormalizerContext` exposes only reconnect `seed` — so the
-  // threadId is the fixed facet label. The Router rebases ids downstream.
+  // `session_id`), so the threadId is a fixed facet label. The Router rebases
+  // ids downstream.
   const threadId = "openai";
 
   // Per-response anchoring state (one open response at a time on this seam).

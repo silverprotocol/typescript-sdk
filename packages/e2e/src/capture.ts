@@ -16,7 +16,7 @@
  *      native events via createClaudeNormalizer, coverage = census(...).
  */
 import type { JsonValue } from "@silverprotocol/core";
-import type { Normalizer, NormalizerContext } from "@silverprotocol/core";
+import type { Normalizer } from "@silverprotocol/core";
 import type { CensusInput, CensusReport } from "./census.js";
 import type { MockKind } from "./mcp-mocks/tools.js";
 import type { MockHandle } from "./mcp-mocks/serve.js";
@@ -47,7 +47,7 @@ export interface CaptureDeps {
   /** Boots a mock MCP server on a given port. REAL in tests. */
   serveMock(kind: MockKind, port: number): MockHandle;
   /** Creates a fresh stateful Claude normalizer. REAL in tests. */
-  createClaudeNormalizer(ctx?: NormalizerContext): Normalizer;
+  createClaudeNormalizer(): Normalizer;
   /** Runs the census lossiness analysis. REAL in tests. */
   census(input: CensusInput): CensusReport;
 }

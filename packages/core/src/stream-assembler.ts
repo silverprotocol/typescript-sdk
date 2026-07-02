@@ -70,11 +70,6 @@ export interface OpenMessageFields {
 /** Fields required by `closeTurnDone`. */
 export type TurnDoneFields = Omit<TurnDoneEvent, "type" | "seq" | "turnId">;
 
-/** Reserved context for future stateful seeding (e.g. lastSeq for reconnect). */
-export interface NormalizerContext {
-  seed?: { lastSeq: number };
-}
-
 /** Stateful push/flush interface implemented by concrete Normalizer facets. */
 export interface Normalizer {
   push(native: import("./agjson.js").JsonValue): AgEvent[];
@@ -125,10 +120,6 @@ export class StreamAssembler {
 
   // Internal buffer that collects emitted events until drain() is called.
   #buffer: AgEvent[] = [];
-
-  constructor(_ctx?: NormalizerContext) {
-    // ctx is reserved for Slice 0+ seeding; unused here.
-  }
 
   // ── Internal helpers ────────────────────────────────────────────────────────
 

@@ -30,7 +30,6 @@ import {
   type AgEvent,
   JsonValue,
   type Normalizer,
-  type NormalizerContext,
   StreamAssembler,
   type ToolOutcome,
 } from "@silverprotocol/core";
@@ -409,8 +408,8 @@ function isSDKMessage(v: unknown): v is SDKMessage {
  * primitive calls, and drains the buffered `AgEvent[]`. `flush()` closes any
  * dangling open message (none, in Claude's complete-message model) and drains.
  */
-export function createClaudeNormalizer(ctx?: NormalizerContext): Normalizer {
-  const a = new StreamAssembler(ctx);
+export function createClaudeNormalizer(): Normalizer {
+  const a = new StreamAssembler();
 
   function drive(msg: SDKMessage): void {
     if (msg.type === "assistant") {

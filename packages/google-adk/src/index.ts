@@ -60,7 +60,6 @@ import {
   AgProviderMeta,
   JsonValue,
   type Normalizer,
-  type NormalizerContext,
   StreamAssembler,
   type ToolOutcome,
 } from "@silverprotocol/core";
@@ -673,8 +672,8 @@ function driveAdkTopLevel(
 }
 
 // ─── stateful factory: createAdkNormalizer ────────────────────────────────────
-export function createAdkNormalizer(ctx?: NormalizerContext): Normalizer {
-  const a = new StreamAssembler(ctx);
+export function createAdkNormalizer(): Normalizer {
+  const a = new StreamAssembler();
   const threadId = "google";
   // §8.3 per-instance accumulator (replaces the module-level streamedText Map):
   const streamedText = new Map<string, string>();
