@@ -3,19 +3,20 @@
  *
  * Four suites:
  *
- * 1. Claude seed corpus (text-tool-turn / complete-result / app-spec):
+ * 1. Claude seed corpus (text-tool-turn / complete-result / app-spec /
+ *    convergence-echo):
  *    For each committed `claude.native.json`:
  *      a. `replayCassette(native)` → drive the REAL Claude facet normalizer.
  *      b. SNAPSHOT: assert produced `agjson` deep-equals `claude.agjson.json`.
  *      c. GATE: assert `report.drops === []` AND `report.newFields === []`.
  *
- * 2. OpenAI seed corpus (text-tool-turn):
+ * 2. OpenAI seed corpus (text-tool-turn / convergence-echo):
  *    For each committed `openai.native.json` (REAL @openai/agents capture):
  *      a. `replayCassette(native)` → drive the REAL OpenAI facet normalizer.
  *      b. SNAPSHOT: assert produced `agjson` deep-equals `openai.agjson.json`.
  *      c. GATE: assert `report.drops === []` AND `report.newFields === []`.
  *
- * 3. ADK seed corpus (convergence-echo):
+ * 3. ADK seed corpus (convergence-echo / text-tool-turn):
  *    For each committed `adk.native.json` (hand-authored ADK `Event` fixture):
  *      a. `replayCassette(native)` → drive the REAL ADK facet normalizer.
  *      b. SNAPSHOT: assert produced `agjson` deep-equals `adk.agjson.json`.
@@ -55,14 +56,30 @@ import { canonicalizeAgjson, assertConvergent } from "./convergence.js";
 
 const CORPUS_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "corpus");
 
-/** Every Claude seed scenario under corpus/ that ships a committed native cassette. */
-const CLAUDE_SEEDS = ["text-tool-turn", "complete-result", "app-spec"] as const;
+/**
+ * Every Claude seed scenario under corpus/ that ships a committed native cassette.
+ * `convergence-echo` joins this list per audit M58: it was previously the ONLY
+ * live convergence check with NO snapshot/census backstop of its own — the
+ * vacuity-holed I4 assert was its sole gate. It now gets the same
+ * agjson-snapshot + census-clean machinery gate every other seed gets.
+ */
+const CLAUDE_SEEDS = ["text-tool-turn", "complete-result", "app-spec", "convergence-echo"] as const;
 
-/** Every OpenAI seed scenario under corpus/ that ships a committed native cassette. */
-const OPENAI_SEEDS = ["text-tool-turn"] as const;
+/**
+ * Every OpenAI seed scenario under corpus/ that ships a committed native cassette.
+ * `convergence-echo` joins this list per audit M58 (see the CLAUDE_SEEDS comment).
+ */
+const OPENAI_SEEDS = ["text-tool-turn", "convergence-echo"] as const;
 
-/** Every ADK seed scenario under corpus/ that ships a committed native cassette. */
-const ADK_SEEDS = ["convergence-echo"] as const;
+/**
+ * Every ADK seed scenario under corpus/ that ships a committed native cassette.
+ * `text-tool-turn` joins this list per M58 Task 5: a hand-authored ADK fixture
+ * (`corpus/text-tool-turn/adk.native.json`) producing the echo task — the SAME
+ * task `text-tool-turn/openai.native.json` already captures (see the
+ * CONVERGENCE_SCENARIOS comment below for why `text-tool-turn` itself is NOT
+ * added to the convergence-scenario list).
+ */
+const ADK_SEEDS = ["convergence-echo", "text-tool-turn"] as const;
 
 async function readSnapshotForFramework(scn: string, framework: string): Promise<JsonValue[]> {
   const raw = await readFile(join(CORPUS_ROOT, scn, `${framework}.agjson.json`), "utf8");
@@ -126,14 +143,31 @@ describe("replay CI gate — ADK seed corpus (machinery/snapshot self-consistenc
 // ─── I4 cross-framework convergence gate ─────────────────────────────────────
 
 /**
- * Convergence scenarios: corpus entries where BOTH claude.native.json AND
- * openai.native.json capture the IDENTICAL task and are expected to produce
- * structurally-equivalent AgJSON under canonicalization.
+ * Convergence scenarios: corpus entries where claude.native.json,
+ * openai.native.json AND adk.native.json capture the IDENTICAL task and are
+ * expected to produce structurally-equivalent AgJSON under canonicalization.
  *
- * The existing `text-tool-turn` scenario has both framework cassettes but they
- * represent DIFFERENT tasks (Claude = weather+subagent, OpenAI = echo) — they
- * are machinery/snapshot seeds for their respective framework suites, NOT
- * convergence pairs. Only `convergence-*` scenarios are wired to the I4 gate.
+ * The existing `text-tool-turn` scenario now has all three framework cassettes
+ * (Task 5 added `adk.native.json`) but they do NOT capture the identical task:
+ * Claude's `text-tool-turn/claude.native.json` is a hand-authored
+ * weather+subagent fixture (2 tool calls, a thinking block, a subagent turn) —
+ * an entirely different scenario from OpenAI's REAL @openai/agents echo-task
+ * capture (`text-tool-turn/openai.native.json`, byte-identical to
+ * `convergence-echo/openai.native.json`) that Task 5's ADK fixture correctly
+ * mirrors. This is a PRE-EXISTING divergence (claude's fixture predates any
+ * convergence intent for this scenario — it exists solely as a
+ * single-framework machinery/snapshot seed) — CONFIRMED empirically (Task 5):
+ * wiring `text-tool-turn` into this list throws
+ * `assertConvergent`'s claude-vs-openai check on eventSequence/toolCalls/
+ * textContent/toolResults before the ADK arm is even reached. Per the M58
+ * brief's explicit contingency ("do not weaken the gate or tune the fixture
+ * to dodge a genuine mismatch"), `text-tool-turn` stays OUT of
+ * CONVERGENCE_SCENARIOS — see the dedicated regression test below
+ * ("text-tool-turn: claude vs openai — pre-existing task mismatch (BLOCKED,
+ * not a fixture bug)") that pins the real divergence so it can't silently
+ * regress into a false "converges" claim. Only `convergence-*` scenarios (and
+ * any scenario future work makes genuinely task-identical across all three
+ * cassettes) belong in this list.
  *
  * For scenarios that do NOT appear in this list (including single-framework seeds),
  * the I4 gate skips gracefully.
@@ -225,4 +259,50 @@ it("convergence-echo: ADK divergence is detected (non-vacuity)", async () => {
   expect(() =>
     assertConvergent(c, tampered, { scenario: "convergence-echo", fw1: "claude", fw2: "adk" }),
   ).toThrow(/textContent mismatch/);
+});
+
+// ─── text-tool-turn: pre-existing claude/openai task mismatch (M58 Task 5) ───
+//
+// Task 5 added `corpus/text-tool-turn/adk.native.json` — a hand-authored ADK
+// fixture producing the SAME echo task `text-tool-turn/openai.native.json`
+// already captures (mirroring `convergence-echo/adk.native.json`'s event
+// grammar). Wiring `text-tool-turn` into CONVERGENCE_SCENARIOS to make it a
+// 3-way check was investigated and found BLOCKED: `text-tool-turn/
+// claude.native.json` is a DIFFERENT, pre-existing hand-authored fixture
+// (weather+subagent: 2 tool calls, a thinking block, a subagent turn) that
+// predates any convergence intent for this scenario — it exists solely as
+// Claude's own single-framework machinery/snapshot seed (see CLAUDE_SEEDS
+// above). This is a REAL semantic divergence, not a bug in the new ADK
+// fixture (which converges cleanly with the OpenAI echo task — see the
+// assertion below). Per the M58 brief's contingency, the gate is NOT weakened
+// and the fixture is NOT tuned to dodge the mismatch; this test PINS the
+// divergence so a future accidental CONVERGENCE_SCENARIOS addition fails
+// loudly with a clear pointer back to this comment instead of silently
+// asserting a false "converges".
+it("text-tool-turn: claude vs openai — pre-existing task mismatch (BLOCKED, not a fixture bug)", async () => {
+  const [claude, openai, adk] = await Promise.all([
+    replayCassette(join(CORPUS_ROOT, "text-tool-turn", "claude.native.json"), "claude"),
+    replayCassette(join(CORPUS_ROOT, "text-tool-turn", "openai.native.json"), "openai"),
+    replayCassette(join(CORPUS_ROOT, "text-tool-turn", "adk.native.json"), "adk"),
+  ]);
+  const c = canonicalizeAgjson(claude.agjson);
+  const o = canonicalizeAgjson(openai.agjson);
+  const k = canonicalizeAgjson(adk.agjson);
+
+  // claude (weather+subagent) vs openai (echo) — REAL divergence, pre-existing.
+  expect(() =>
+    assertConvergent(c, o, { scenario: "text-tool-turn", fw1: "claude", fw2: "openai" }),
+  ).toThrow(/toolCalls\.length mismatch|textContent mismatch/);
+
+  // The new ADK fixture is NOT the source of the divergence: it converges
+  // cleanly with openai's echo task (the task it was authored to match).
+  expect(() =>
+    assertConvergent(o, k, { scenario: "text-tool-turn", fw1: "openai", fw2: "adk" }),
+  ).not.toThrow();
+
+  // ...and correspondingly diverges from claude's DIFFERENT weather+subagent
+  // task, for the exact same pre-existing reason as claude-vs-openai above.
+  expect(() =>
+    assertConvergent(c, k, { scenario: "text-tool-turn", fw1: "claude", fw2: "adk" }),
+  ).toThrow(/toolCalls\.length mismatch|textContent mismatch/);
 });

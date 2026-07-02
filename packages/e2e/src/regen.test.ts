@@ -38,6 +38,19 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // the FIRST-EVER regen of an ADK snapshot pair. See replay.test.ts's ADK
   // seed suite + the Task 4 report for the full drop/newField triage.
   { scenario: "convergence-echo", framework: "adk" },
+  // Task 5 (audit M58): convergence-echo previously had NO claude/openai
+  // agjson+coverage snapshot of its own — the vacuity-holed I4 assert was
+  // its sole gate. FIRST-EVER regen of these two pairs; see the Task 5
+  // report for the census outcome (both clean — no new triage needed).
+  { scenario: "convergence-echo", framework: "claude" },
+  { scenario: "convergence-echo", framework: "openai" },
+  // Task 5 (audit M58): FIRST-EVER regen of the hand-authored
+  // text-tool-turn/adk.native.json fixture (mirrors convergence-echo's
+  // event grammar for the SAME echo task text-tool-turn/openai.native.json
+  // already captures — see the Task 5 report for the 3-way convergence
+  // investigation and why text-tool-turn is NOT added to
+  // CONVERGENCE_SCENARIOS).
+  { scenario: "text-tool-turn", framework: "adk" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

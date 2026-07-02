@@ -1,0 +1,61 @@
+[
+  {
+    "content": {
+      "parts": [{ "functionCall": { "id": "adk-tt-echo", "args": { "text": "hi" }, "name": "echo" } }],
+      "role": "model"
+    },
+    "partial": true,
+    "finishReason": "STOP",
+    "usageMetadata": { "promptTokenCount": 82, "candidatesTokenCount": 15, "totalTokenCount": 97 },
+    "invocationId": "e-text-tool-turn",
+    "author": "spike",
+    "id": "adk-tt-evt-0"
+  },
+  {
+    "content": {
+      "parts": [{ "functionCall": { "id": "adk-tt-echo", "args": { "text": "hi" }, "name": "echo" } }],
+      "role": "model"
+    },
+    "partial": false,
+    "finishReason": "STOP",
+    "usageMetadata": { "promptTokenCount": 82, "candidatesTokenCount": 15, "totalTokenCount": 97 },
+    "invocationId": "e-text-tool-turn",
+    "author": "spike",
+    "id": "adk-tt-evt-1"
+  },
+  {
+    "content": {
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "adk-tt-echo",
+            "name": "echo",
+            "response": { "content": [{ "type": "text", "text": "echo: hi" }] }
+          }
+        }
+      ],
+      "role": "user"
+    },
+    "invocationId": "e-text-tool-turn",
+    "author": "spike",
+    "id": "adk-tt-evt-2"
+  },
+  {
+    "content": { "parts": [{ "text": "Done." }], "role": "model" },
+    "partial": true,
+    "finishReason": "STOP",
+    "usageMetadata": { "promptTokenCount": 99, "candidatesTokenCount": 4, "totalTokenCount": 103 },
+    "invocationId": "e-text-tool-turn",
+    "author": "spike",
+    "id": "adk-tt-evt-3"
+  },
+  {
+    "content": { "parts": [{ "text": "Done." }], "role": "model" },
+    "partial": false,
+    "finishReason": "STOP",
+    "usageMetadata": { "promptTokenCount": 99, "candidatesTokenCount": 4, "totalTokenCount": 103 },
+    "invocationId": "e-text-tool-turn",
+    "author": "spike",
+    "id": "adk-tt-evt-4"
+  }
+]

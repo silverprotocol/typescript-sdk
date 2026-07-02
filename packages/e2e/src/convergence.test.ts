@@ -473,3 +473,81 @@ describe("canonicalizeAgjson — edge cases", () => {
     expect(schema.eventSequence).toEqual(["tool.start"]);
   });
 });
+
+// ─── assertConvergent — vacuity guard (audit M58) ────────────────────────────
+// The gate must never certify "convergent" over two canonicals that carry no
+// content-bearing evidence at all — no text, no tool call, no tool result.
+// Before this guard, two empty (or all-noise) canonicals were structurally
+// equal by construction (every field `[]`/`undefined`), so the diff checks
+// found nothing to report and silently "passed" — a vacuous, meaningless
+// certification. Two conformant-but-nothing-emitting normalizers must NOT be
+// able to certify "convergent" this way.
+
+describe("assertConvergent — vacuity guard: content-empty canonicals rejected", () => {
+  it("throws when both sides are canonicalizeAgjson([]) (the literal empty stream)", () => {
+    const a = canonicalizeAgjson([]);
+    const b = canonicalizeAgjson([]);
+    expect(() =>
+      assertConvergent(a, b, { scenario: "vacuous", fw1: "fw-a", fw2: "fw-b" }),
+    ).toThrow(/content-empty/i);
+  });
+
+  it("throws when both sides derive from an all-lifecycle-noise stream (no content-bearing events)", () => {
+    // turn.start / message.start / message.end / turn.done are ALL noise
+    // event types (NOISE_EVENT_TYPES) — this stream carries lifecycle
+    // envelope only, zero text/tool-call/tool-result content.
+    const noiseStream: JsonValue[] = [
+      turnStart("t1"),
+      messageStart("m1", "t1"),
+      messageEnd("m1"),
+      turnDone("t1", "stop"),
+    ];
+    const a = canonicalizeAgjson(noiseStream);
+    const b = canonicalizeAgjson(noiseStream);
+    // Sanity: the noise stream really does canonicalize to the empty schema
+    // shape (proves this test isn't accidentally exercising the diff path).
+    expect(a.eventSequence).toEqual([]);
+    expect(a.toolCalls).toEqual([]);
+    expect(a.textContent).toEqual([]);
+    expect(a.toolResults).toEqual([]);
+    expect(() =>
+      assertConvergent(a, b, { scenario: "all-noise", fw1: "fw-a", fw2: "fw-b" }),
+    ).toThrow(/content-empty/i);
+  });
+
+  it("does NOT reject a schema with only a finishReason set (finishReason alone is not content-bearing)", () => {
+    // finishReason is captured from turn.done, which is itself NOISE — a
+    // schema carrying only a finishReason (no text/tool) is still vacuous
+    // per the M58 guard definition (text/tool-call/tool-result only).
+    const a: CanonicalSchema = {
+      eventSequence: [],
+      toolCalls: [],
+      textContent: [],
+      toolResults: [],
+      finishReason: "stop",
+    };
+    const b: CanonicalSchema = { ...a };
+    expect(() =>
+      assertConvergent(a, b, { scenario: "finish-only", fw1: "fw-a", fw2: "fw-b" }),
+    ).toThrow(/content-empty/i);
+  });
+
+  it("does NOT trigger the vacuity guard when at least one side has content (falls through to normal diffing)", () => {
+    const empty = canonicalizeAgjson([]);
+    const withContent: CanonicalSchema = {
+      eventSequence: ["tool.start"],
+      toolCalls: [{ name: "echo", input: { text: "hi" } }],
+      textContent: [],
+      toolResults: [],
+      finishReason: undefined,
+    };
+    // Not vacuous — one side has real content, so the ordinary mismatch
+    // diagnostics fire instead of the vacuity guard's message.
+    expect(() =>
+      assertConvergent(empty, withContent, { scenario: "asymmetric", fw1: "fw-a", fw2: "fw-b" }),
+    ).not.toThrow(/content-empty/i);
+    expect(() =>
+      assertConvergent(empty, withContent, { scenario: "asymmetric", fw1: "fw-a", fw2: "fw-b" }),
+    ).toThrow(/toolCalls\.length mismatch/);
+  });
+});

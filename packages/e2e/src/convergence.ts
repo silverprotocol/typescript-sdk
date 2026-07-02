@@ -273,6 +273,32 @@ export function canonicalizeAgjson(agjson: JsonValue[]): CanonicalSchema {
   return { eventSequence, toolCalls, textContent, toolResults, finishReason };
 }
 
+// ─── non-emptiness guard (audit M58 — the vacuity hole) ───────────────────────
+
+/**
+ * True when a canonical schema carries NO content-bearing evidence at all:
+ * no assistant text, no tool call, no tool result. Defined precisely against
+ * `CanonicalSchema`'s actual shape (see the interface above) — `reasoning` is
+ * enumerated in audit M58's "text/tool-call/tool-result/reasoning" phrasing,
+ * but `canonicalizeAgjson` never represents reasoning in the canonical schema
+ * at all (`reasoning.*` is unconditionally NOISE — see NOISE_EVENT_TYPES and
+ * the module docstring's "Must-IGNORE" list), so the enumeration collapses to
+ * these three fields for this concrete shape. `eventSequence` and
+ * `finishReason` are deliberately excluded from this check: `eventSequence`
+ * is redundant with the three fields below (every non-noise event type that
+ * reaches it is emitted alongside a `toolCalls`/`toolResults` entry in this
+ * canonicalizer), and `finishReason` is a scalar outcome label, not content —
+ * a stream that closes with `finishReason: "stop"` and emits nothing else is
+ * still vacuous.
+ */
+function isContentEmpty(schema: CanonicalSchema): boolean {
+  return (
+    schema.textContent.length === 0 &&
+    schema.toolCalls.length === 0 &&
+    schema.toolResults.length === 0
+  );
+}
+
 // ─── assertConvergent ─────────────────────────────────────────────────────────
 
 /**
@@ -281,6 +307,10 @@ export function canonicalizeAgjson(agjson: JsonValue[]): CanonicalSchema {
  * failing check so the caller can fix all problems in one pass.
  *
  * Checks (in order):
+ *   0. non-emptiness guard — BOTH sides content-empty is rejected outright
+ *      (audit M58: two nothing-emitting canonicals are structurally equal by
+ *      construction, so checks 1-6 below would find zero diffs and silently
+ *      "pass" — a vacuous certification, not evidence of convergence).
  *   1. eventSequence deep-equal
  *   2. toolCalls length equal
  *   3. each toolCall name + input deep-equal (by position)
@@ -295,6 +325,17 @@ export function assertConvergent(
 ): void {
   const diffs: string[] = [];
   const label = `[${ctx.scenario}] ${ctx.fw1} vs ${ctx.fw2}`;
+
+  // ── 0. non-emptiness guard ────────────────────────────────────────────────
+  // Only rejects the BOTH-empty case: if exactly one side is content-empty,
+  // checks 1-6 below already surface a real (non-vacuous) mismatch.
+  if (isContentEmpty(a) && isContentEmpty(b)) {
+    throw new Error(
+      `Convergence assertion vacuous ${label}: both canonical schemas are content-empty ` +
+        `(no text, tool call, or tool result) — convergence cannot be asserted over empty ` +
+        `or all-lifecycle-noise output.`,
+    );
+  }
 
   // ── 1. eventSequence ──────────────────────────────────────────────────────
   if (JSON.stringify(a.eventSequence) !== JSON.stringify(b.eventSequence)) {
