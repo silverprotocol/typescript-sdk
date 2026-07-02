@@ -7,6 +7,7 @@
   "[*].message.usage.cache_creation_input_tokens": "[*].usage.cacheWriteTokens",
   "[*].message.usage.cache_read_input_tokens": "[*].usage.cacheReadTokens",
   "[*].modelUsage.claude-sonnet-4-6.webSearchRequests": "[*].usage.byModel.claude-sonnet-4-6.serverToolRequests",
+  "[*].data.event.response.incomplete_details.reason": "[*].finishReason",
   "[*].parent_tool_use_id": "[*].parentTurnId",
   "[*].stop_reason": "[*].finishReason",
   "[*].tool_use_result.structuredContent.cache.hit": "[*].uiData.cache.hit",
