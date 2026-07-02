@@ -182,6 +182,11 @@ export class Reducer {
 
       case "message.end": {
         this.#sealed.add(ev.id);
+        // INV-MSG: sealing removes the open-message pointer so a post-seal
+        // block-creating event degrades loudly (resync), never a silent attach.
+        for (const [pk, msgId] of this.#openMsg) {
+          if (msgId === ev.id) this.#openMsg.delete(pk);
+        }
         if (ev.usage !== undefined) {
           const msg = this.#messages.get(ev.id);
           if (msg !== undefined) {
@@ -509,12 +514,15 @@ export class Reducer {
           turn.asks = ev.outcome.asks;
         }
         // messageMetadata: REPLACE-merge onto the open message of this turn.
+        // (Read happens BEFORE the binding window closes below.)
         if (ev.messageMetadata !== undefined) {
           const msg = this.openMessage(ev.turnId, 0);
           if (msg !== undefined) {
             msg.messageMetadata = ev.messageMetadata;
           }
         }
+        // INV-MSG binding window: no blocks attach to a closed turn's messages.
+        this.#closeTurnWindow(ev.turnId);
         break;
       }
 
@@ -528,6 +536,8 @@ export class Reducer {
         };
         // Usage is recorded VERBATIM — NO de-cumulation (mirrors turn.done; normalizer duty).
         if (ev.usage !== undefined) turn.usage = ev.usage;
+        // INV-MSG binding window: no blocks attach to a closed turn's messages.
+        this.#closeTurnWindow(ev.turnId);
         break;
       }
 
@@ -535,6 +545,8 @@ export class Reducer {
         // Non-folding into content; sets taskState="aborted" on the turn record.
         const turn = this.ensureTurn(ev.turnId);
         turn.taskState = "aborted";
+        // INV-MSG binding window: no blocks attach to a closed turn's messages.
+        this.#closeTurnWindow(ev.turnId);
         break;
       }
 
@@ -940,7 +952,20 @@ export class Reducer {
     if (resolvedTurnId === undefined) return undefined;
     const msgId = this.#openMsg.get(partKey(resolvedTurnId, candidateIndex));
     if (msgId === undefined) return undefined;
+    // INV-MSG: a sealed message is never an attach target (belt-and-braces —
+    // message.end already clears the pointer; this covers any path that
+    // doesn't go through that clear, e.g. a future direct pointer mutation).
+    if (this.#sealed.has(msgId)) return undefined;
     return this.#messages.get(msgId);
+  }
+
+  /** Delete every open-message pointer belonging to a closed turn (INV-MSG). */
+  #closeTurnWindow(turnId: string | undefined): void {
+    const resolved = this.#resolveTurnId(turnId);
+    if (resolved === undefined) return;
+    for (const [pk] of this.#openMsg) {
+      if (pk.startsWith(`${resolved} `)) this.#openMsg.delete(pk);
+    }
   }
 
   /**

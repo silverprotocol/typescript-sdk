@@ -2268,3 +2268,56 @@ describe("tool.done.structuredContent fold", () => {
     });
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INV-MSG seal + binding-window enforcement (audit M19)
+//
+// A sealed message (message.end) or a closed turn (turn.done/error/abort) is
+// NEVER a valid attach target — a block-creating event that targets one must
+// degrade loudly (needsResync) instead of silently attaching past the seal.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("INV-MSG seal + binding window enforcement (audit M19)", () => {
+  const open: AgEvent[] = [
+    { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+    { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+  ];
+
+  it("a block-creating event after message.end parks (resync), never a silent attach", () => {
+    const r = new Reducer();
+    for (const e of open) r.push(e);
+    r.push({ type: "message.end", seq: 2, id: "m1" });
+    r.push({ type: "text.start", seq: 3, id: "x1", turnId: "t1" });
+    expect(r.needsResync).toBe(true);
+    const m1 = r.result().messages.find((m) => m.id === "m1");
+    expect(m1?.content).toHaveLength(0); // nothing attached to the sealed message
+  });
+
+  it("a block-creating event after turn.done parks (binding window closed)", () => {
+    const r = new Reducer();
+    for (const e of open) r.push(e);
+    r.push({
+      type: "turn.done",
+      seq: 2,
+      turnId: "t1",
+      outcome: { type: "success" },
+      finishReason: "stop",
+    });
+    r.push({ type: "text.start", seq: 3, id: "x1", turnId: "t1" });
+    expect(r.needsResync).toBe(true);
+  });
+
+  it("turn.done.messageMetadata still lands (read happens before the window closes)", () => {
+    const r = new Reducer();
+    for (const e of open) r.push(e);
+    r.push({
+      type: "turn.done",
+      seq: 2,
+      turnId: "t1",
+      outcome: { type: "success" },
+      finishReason: "stop",
+      messageMetadata: { k: 1 },
+    });
+    expect(r.result().messages[0]?.messageMetadata).toEqual({ k: 1 });
+  });
+});

@@ -497,17 +497,24 @@ export function createClaudeNormalizer(): Normalizer {
       // string result — it is the authoritative typed outcome payload (spec §4).
       const structuredOutput =
         msg.structured_output !== undefined ? JsonValue.parse(msg.structured_output) : undefined;
+      // Emit permission_denials as tool.start + tool.done denied pairs, inside a
+      // dedicated carrier message: the assistant message is already sealed, and
+      // INV-MSG (audit M19) forbids attaching to sealed messages / closed turns.
+      if (msg.permission_denials.length > 0) {
+        const denialMsgId = `${turnId}:denials`;
+        a.openMessage({ id: denialMsgId, role: "assistant", turnId, threadId: msg.session_id });
+        for (const denial of msg.permission_denials) {
+          a.toolStart({ toolCallId: denial.tool_use_id, name: denial.tool_name });
+          a.toolDone({ toolCallId: denial.tool_use_id, content: [], outcome: "denied" });
+        }
+        a.closeMessage(denialMsgId);
+      }
       a.closeTurnDone(turnId, {
         outcome: { type: "success", result: structuredOutput ?? msg.result },
         finishReason: mapStopReason(msg.stop_reason),
         usage: mapTurnUsage(msg.usage, msg.total_cost_usd, msg.modelUsage),
         safety,
       });
-      // Emit permission_denials as tool.start + tool.done denied pairs.
-      for (const denial of msg.permission_denials) {
-        a.toolStart({ toolCallId: denial.tool_use_id, name: denial.tool_name });
-        a.toolDone({ toolCallId: denial.tool_use_id, content: [], outcome: "denied" });
-      }
       return;
     }
 

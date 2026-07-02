@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
-import { AgEvent, JsonValue } from "@silverprotocol/core";
+import { AgEvent, JsonValue, Reducer } from "@silverprotocol/core";
 import createClaudeNormalizer, { mapStopReason } from "./index.js";
 
 // Types DERIVED from SDKMessage so the fixtures track the EXACT Anthropic SDK the
@@ -497,40 +497,59 @@ describe("createClaudeNormalizer — text citations", () => {
   });
 });
 
+// Shared fixture: a successful result carrying one permission denial (the
+// assistant's tool call for "bash" was blocked by the permission system).
+function resultWithDenial(): SDKMessage {
+  return {
+    type: "result",
+    subtype: "success",
+    result: "done",
+    stop_reason: "end_turn",
+    is_error: false,
+    duration_ms: 0,
+    duration_api_ms: 0,
+    num_turns: 1,
+    total_cost_usd: 0.05,
+    usage: {
+      input_tokens: 100,
+      output_tokens: 50,
+      cache_creation: { ephemeral_1h_input_tokens: 0, ephemeral_5m_input_tokens: 0 },
+      cache_creation_input_tokens: 10,
+      cache_read_input_tokens: 20,
+      inference_geo: "unknown",
+      iterations: [],
+      server_tool_use: { web_fetch_requests: 0, web_search_requests: 0 },
+      service_tier: "standard",
+      speed: "standard",
+    },
+    modelUsage: {},
+    permission_denials: [
+      { tool_name: "bash", tool_use_id: "toolu_denied_1", tool_input: { command: "rm -rf" } },
+    ],
+    uuid: "00000000-0000-0000-0000-000000000002",
+    session_id: "sess_fixture",
+  };
+}
+
 describe("createClaudeNormalizer — permission_denials", () => {
-  it("emits tool.start + tool.done denied for each permission denial", () => {
-    const msg: SDKMessage = {
-      type: "result",
-      subtype: "success",
-      result: "done",
-      stop_reason: "end_turn",
-      is_error: false,
-      duration_ms: 0,
-      duration_api_ms: 0,
-      num_turns: 1,
-      total_cost_usd: 0.05,
-      usage: {
-        input_tokens: 100,
-        output_tokens: 50,
-        cache_creation: { ephemeral_1h_input_tokens: 0, ephemeral_5m_input_tokens: 0 },
-        cache_creation_input_tokens: 10,
-        cache_read_input_tokens: 20,
-        inference_geo: "unknown",
-        iterations: [],
-        server_tool_use: { web_fetch_requests: 0, web_search_requests: 0 },
-        service_tier: "standard",
-        speed: "standard",
-      },
-      modelUsage: {},
-      permission_denials: [
-        { tool_name: "bash", tool_use_id: "toolu_denied_1", tool_input: { command: "rm -rf" } },
-      ],
-      uuid: "00000000-0000-0000-0000-000000000002",
-      session_id: "sess_fixture",
-    };
-    const evs = run(msg);
-    // turn.done first, then the denial tool.start/tool.done pair.
-    expect(evs.map((e) => e.type)).toEqual(["turn.done", "tool.start", "tool.done"]);
+  it("emits tool.start + tool.done denied for each permission denial, inside a carrier message BEFORE turn close (audit M19)", () => {
+    const evs = run(resultWithDenial());
+    // The denial carrier message opens+closes BEFORE turn.done: INV-MSG (audit
+    // M19) forbids attaching a tool.start/tool.done pair to the already-sealed
+    // assistant message or to a closed turn, so the denials get their own
+    // message, opened while the turn is still open.
+    expect(evs.map((e) => e.type)).toEqual([
+      "turn.start",
+      "message.start",
+      "tool.start",
+      "tool.done",
+      "message.end",
+      "turn.done",
+    ]);
+    const msgStart = evs.find((e) => e.type === "message.start");
+    expect(msgStart).toMatchObject({ type: "message.start", id: "turn_sess_fixture:denials" });
+    const msgEnd = evs.find((e) => e.type === "message.end");
+    expect(msgEnd).toMatchObject({ type: "message.end", id: "turn_sess_fixture:denials" });
     const toolStart = evs.find((e) => e.type === "tool.start");
     expect(toolStart).toMatchObject({ type: "tool.start", name: "bash" });
     const toolDone = evs.find((e) => e.type === "tool.done");
@@ -541,6 +560,37 @@ describe("createClaudeNormalizer — permission_denials", () => {
       content: [],
     });
     assertAllValid(evs);
+  });
+
+  it("permission denials fold into a dedicated carrier message, before turn close (audit M19)", () => {
+    const events = run(resultWithDenial());
+    // Local narrowing casts: `id` is not common to every `AgEvent` union arm
+    // (the `AgExtEvent.catchall(JsonValue)` template-literal `type` widens the
+    // union past what `e.type === "..."` alone narrows away — same structural
+    // reason documented for the analogous `providerMetadata` reads elsewhere
+    // in this test suite), so `Extract` pins the exact, already-checked arm.
+    const denialStart = events.findIndex((e) => {
+      if (e.type !== "message.start") return false;
+      return (e as Extract<AgEvent, { type: "message.start" }>).id.endsWith(":denials");
+    });
+    const turnDone = events.findIndex((e) => e.type === "turn.done");
+    expect(denialStart).toBeGreaterThan(-1);
+    expect(
+      events.some((e) => {
+        if (e.type !== "message.end") return false;
+        return (e as Extract<AgEvent, { type: "message.end" }>).id.endsWith(":denials");
+      }),
+    ).toBe(true);
+    expect(denialStart).toBeLessThan(turnDone); // denials precede turn close
+
+    // End-to-end: the fold must NOT park.
+    const r = new Reducer();
+    for (const e of events) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const carrier = r.result().messages.find((m) => m.id.endsWith(":denials"));
+    expect(
+      carrier?.content.some((b) => b.type === "tool-result" && b.outcome === "denied"),
+    ).toBe(true);
   });
 });
 
