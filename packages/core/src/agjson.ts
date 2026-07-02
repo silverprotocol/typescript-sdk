@@ -263,9 +263,10 @@ export type AgPendingInput = z.infer<typeof AgPendingInput>;
 // AgBlock — the full object-form union (spec §2). The SAME union appears in
 // both directions (input messages, output content, tool-result.content), so the
 // `tool-result.content` arm is recursively `AgBlock[]` and the schema is `z.lazy`.
-// CORE = text | image | tool-call | tool-result (spec §9); EXTENDED adds reasoning,
+// CORE = text | image | tool-call | tool-result; EXTENDED adds reasoning,
 // compaction, search-result, code, code-result, document, file, audio, data,
-// provider-raw, resource, resource-link, plus citations on `text`.
+// provider-raw, resource, resource-link, plus citations on `text` (spec §9 —
+// all 16 AgBlock kinds are CORE/EXTENDED; ADVANCED adds no additional kinds).
 // Every EXTENDED arm carries the optional `annotations` / `_meta` side channels
 // (and `providerMetadata` where the spec puts it).
 type BlockMeta = {
