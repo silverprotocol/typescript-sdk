@@ -438,6 +438,102 @@ describe("createClaudeNormalizer — nested subagent turn (assembled golden)", (
   });
 });
 
+// ─── Task 8c leg 4: inner tool-results route to the SUBAGENT's real turn ──────
+// Guuey capstone finding A: the wire-visible `subagent.start.parentTurnId`
+// label (e.g. `turn_${TASK_TOOL_ID}`) is a synthetic cross-ref, never opened
+// as a real turn. Before this fix, an INNER tool_result belonging to the
+// subagent's own session (a `user` message whose `parent_tool_use_id` matches
+// the spawning Task call) routed its `tool.done.turnId` to that synthetic
+// label — which the reducer's adoption path then fabricated into a phantom
+// turn (or, post leg 3, would park loudly). The facet now tracks
+// `parent_tool_use_id → subagent turnId` (derived from `subagentStart`) so
+// inner results route to the SUBAGENT's OWN turnId instead.
+describe("createClaudeNormalizer — inner tool-result routes to the subagent turn (Task 8c leg 4)", () => {
+  const TASK_TOOL_ID = "toolu_task";
+  const INNER_TOOL_ID = "toolu_inner_search";
+  const TOP_SESSION = "sess_top";
+  const SUB_SESSION = "sess_sub";
+
+  function topAssistantWithTaskCall(): SDKMessage {
+    return {
+      type: "assistant",
+      // betaMessage() hardcodes id "msg_fixture_1" — give the top and sub
+      // messages DISTINCT ids (as real Claude sessions do) so the sub
+      // message's message.start does not collide with the top message's
+      // already-#sealed id.
+      message: { ...betaMessage([
+        { type: "text", text: "Now delegating research.", citations: null },
+        { type: "tool_use", id: TASK_TOOL_ID, name: "Task", input: { prompt: "research cats" } },
+      ]), id: "msg_top_1" },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000a1",
+      session_id: TOP_SESSION,
+    };
+  }
+
+  function subAssistantWithInnerToolUse(): SDKMessage {
+    return {
+      type: "assistant",
+      message: {
+        ...betaMessage(
+          [{ type: "tool_use", id: INNER_TOOL_ID, name: "search", input: { q: "cats" } }],
+          { stop_reason: "tool_use" },
+        ),
+        id: "msg_sub_1",
+      },
+      parent_tool_use_id: TASK_TOOL_ID,
+      uuid: "00000000-0000-0000-0000-0000000000a2",
+      session_id: SUB_SESSION,
+    };
+  }
+
+  function innerToolResult(): SDKMessage {
+    const content: UserContent = [
+      {
+        type: "tool_result",
+        tool_use_id: INNER_TOOL_ID,
+        content: [{ type: "text", text: "cats are great" }],
+        is_error: false,
+      },
+    ];
+    return {
+      type: "user",
+      message: { role: "user", content },
+      parent_tool_use_id: TASK_TOOL_ID,
+      uuid: "00000000-0000-0000-0000-0000000000a3",
+      session_id: SUB_SESSION,
+    };
+  }
+
+  it("routes the inner tool.done to the SUBAGENT's own turnId, not the synthetic parentTurnId label", () => {
+    const n = createClaudeNormalizer();
+    const topEvs = n.push(JsonValue.parse(topAssistantWithTaskCall()));
+    const subEvs = n.push(JsonValue.parse(subAssistantWithInnerToolUse()));
+    const innerResultEvs = n.push(JsonValue.parse(innerToolResult()));
+    const events = [...topEvs, ...subEvs, ...innerResultEvs];
+    assertAllValid(events);
+
+    const innerDone = events.find(
+      (e) => e.type === "tool.done" && (e as { toolCallId: string }).toolCallId === INNER_TOOL_ID,
+    );
+    expect(innerDone).toMatchObject({
+      type: "tool.done",
+      turnId: `turn_${SUB_SESSION}`, // NOT "turn_toolu_task"
+      messageId: `${INNER_TOOL_ID}:result`,
+    });
+
+    const r = new Reducer();
+    for (const e of events) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const result = r.result();
+    expect(result.turns.map((t) => t.turnId).sort()).toEqual(
+      [`turn_${SUB_SESSION}`, `turn_${TOP_SESSION}`].sort(),
+    );
+    const subTurn = result.turns.find((t) => t.turnId === `turn_${SUB_SESSION}`);
+    expect(subTurn?.threadId).toBe(TOP_SESSION); // root threadId, not the synthetic label
+  });
+});
+
 describe("createClaudeNormalizer — graceful guard", () => {
   it("emits exactly one ext.anthropic.unparsed for a non-SDKMessage input, no throw", () => {
     const n = createClaudeNormalizer();

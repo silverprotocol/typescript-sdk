@@ -412,6 +412,16 @@ function isSDKMessage(v: unknown): v is SDKMessage {
 export function createClaudeNormalizer(): Normalizer {
   const a = new StreamAssembler();
 
+  // Task 8c leg 4 (guuey capstone finding A): the wire-visible `parentTurnId`
+  // label passed to subagent.start/.done (`turn_${parent_tool_use_id}`) is a
+  // synthetic cross-ref that was never opened as a real turn — it must stay on
+  // the wire (the guuey capstone asserts `parentTurnId === 'turn_<toolCallId>'`)
+  // but must NOT be reused to route an INNER tool_result's turnId. Track the
+  // REAL subagent turnId per spawning parent_tool_use_id, derived from the
+  // sub-session's own assistant arm at subagent.start time, so a later inner
+  // tool_result (same non-null parent_tool_use_id) can route to it instead.
+  const subagentTurnByParentToolUseId = new Map<string, string>();
+
   function drive(msg: SDKMessage): void {
     if (msg.type === "assistant") {
       const m = msg.message;
@@ -423,6 +433,9 @@ export function createClaudeNormalizer(): Normalizer {
       // (subagent). subagent.start is the SOLE nested-turn opener (spec §4/§5) and
       // seeds the turn so openMessage does NOT synthesize a duplicate turn.start.
       if (parentTurnId !== undefined) {
+        if (msg.parent_tool_use_id !== null) {
+          subagentTurnByParentToolUseId.set(msg.parent_tool_use_id, turnId);
+        }
         a.subagentStart(turnId, parentTurnId);
       }
 
@@ -460,8 +473,16 @@ export function createClaudeNormalizer(): Normalizer {
       // subagent reduce() correctly routes the result.
       const content = msg.message.content;
       if (typeof content !== "string") {
+        // Task 8c leg 4: prefer the REAL subagent turnId recorded at
+        // subagent.start time. Fall back to the old synthetic label only when
+        // it is unknown (e.g. a result delivered before its subagent.start
+        // was ever observed) — defensive; leg 3's never-opened-turn guard now
+        // parks loudly on that label instead of fabricating a phantom turn.
         const toolTurnId =
-          msg.parent_tool_use_id !== null ? `turn_${msg.parent_tool_use_id}` : undefined;
+          msg.parent_tool_use_id !== null
+            ? (subagentTurnByParentToolUseId.get(msg.parent_tool_use_id) ??
+              `turn_${msg.parent_tool_use_id}`)
+            : undefined;
         // tool_use_result sibling (SDK-injected rich MCP result; audit B7): carries
         // structuredContent (incl. render-cache markers) + _meta.ui the block-level
         // arm never sees. Applies only when the message has exactly ONE tool_result

@@ -159,6 +159,27 @@ describe("reduce — R1 lifecycle", () => {
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
 
+  // (d2) subagent.start falls back to a real turn's root threadId when the
+  // parent lookup misses (Task 8c leg 2 — guuey capstone finding A: claude's
+  // synthetic `turn_${toolCallId}` parentTurnId label was never opened as a
+  // real turn, so a naive fallback corrupted the subagent's own threadId).
+  it("(d2) subagent.start falls back to any real turn's threadId when the parent was never opened", () => {
+    const r = reduce([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      {
+        type: "subagent.start",
+        seq: 1,
+        turnId: "t2",
+        parentTurnId: "never-opened-label",
+      },
+    ]);
+    const nested = r.turns.find((t) => t.turnId === "t2");
+    expect(nested).toBeDefined();
+    expect(nested?.parentTurnId).toBe("never-opened-label"); // wire value unchanged
+    expect(nested?.threadId).toBe("th1"); // NOT "never-opened-label"
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
   // (e) duplicate turn.start → ONE turn (idempotent merge)
   it("(e) duplicate turn.start is idempotent — exactly one turn record", () => {
     const r = reduce([
@@ -2498,6 +2519,26 @@ describe("tool.done.messageId adoption (SPEC §5 fold row; audit B10)", () => {
     expect(r.needsResync).toBe(true);
     const tm = r.result().messages.find((m) => m.id === "tm1");
     expect(tm).toBeUndefined(); // no phantom message created
+  });
+
+  it("a lone orphan tool.done with NO turns at all parks — no phantom turn fabricated (Task 8c leg 3)", () => {
+    // Mirrors the guuey capstone repro 2 shape: a tool_result the assembler
+    // truly cannot place anywhere (no turn.start, no subagent.start — nothing
+    // was ever legitimately opened). Before leg 3, the CREATE path's
+    // ensureTurn() would happily fabricate an "unknown-turn" stub here instead
+    // of parking — defeating guuey's skipSnapshot degrade-loudly path.
+    const r = new Reducer();
+    r.push({
+      type: "tool.done",
+      seq: 0,
+      toolCallId: "orphan_1",
+      content: [{ type: "text", text: "result" }],
+      outcome: "ok",
+      messageId: "orphan:result",
+    });
+    expect(r.needsResync).toBe(true);
+    expect(r.result().turns).toHaveLength(0);
+    expect(r.result().messages).toHaveLength(0);
   });
 
   it("messageId adoption to an existing message of a closed turn (never sealed) parks — no silent attach", () => {

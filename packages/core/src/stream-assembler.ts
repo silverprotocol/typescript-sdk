@@ -128,6 +128,17 @@ export class StreamAssembler {
   // turnId nor messageId (e.g. an orphan tool.done). Mirrors guuey #lastTurn.
   #lastTurn: string | undefined = undefined;
 
+  // Stack of #lastTurn snapshots, one pushed per subagentStart and popped by
+  // the matching subagentDone (Task 8c leg 1 — guuey capstone finding A). The
+  // OLD owner-fallback reused the wire-visible `parentTurnId` argument directly
+  // as the restored owner, but a facet's `parentTurnId` label (e.g. claude's
+  // synthetic `turn_${toolCallId}` Task-tool cross-ref) MAY never have been
+  // opened as a real turn — reusing it fabricated a phantom turn and corrupted
+  // the subagent's own threadId derivation downstream. The stack instead
+  // restores the ENCLOSING turn that was actually current when the subagent
+  // opened, independent of whatever label the wire carries.
+  #turnStack: (string | undefined)[] = [];
+
   // Per-id cumulative delta buffer: tracks the last full incoming string per
   // content stream id. `textDelta`/`reasoningDelta`/`toolArgsDelta` with
   // `{cumulative:true}` slice off the prior to emit only the new suffix.
@@ -291,6 +302,10 @@ export class StreamAssembler {
    * `turn.start` (fix: subagent-turn-double-open / subagent-turnstart-ordering).
    */
   subagentStart(turnId: string, parentTurnId: string): void {
+    // Task 8c leg 1: snapshot the CURRENT owner before switching into the
+    // nested turn, so the matching subagentDone can restore it verbatim —
+    // never the (possibly synthetic) `parentTurnId` wire label.
+    this.#turnStack.push(this.#lastTurn);
     this.#seenTurns.add(turnId);
     this.#lastTurn = turnId;
     const ev: SubagentStartEvent = {
@@ -311,9 +326,13 @@ export class StreamAssembler {
       parentTurnId,
     };
     this.#emit(ev);
-    // INV-OWNER: after a nested turn closes, the owner fallback is the PARENT
-    // (audit B10 — stale #lastTurn silently misattributed post-subagent events).
-    this.#lastTurn = parentTurnId;
+    // INV-OWNER (Task 8c leg 1 — supersedes audit B10's parentTurnId reuse):
+    // restored to the ENCLOSING turn that was current when the subagent
+    // opened — never the wire parentTurnId label, which MAY be a synthetic
+    // cross-ref (e.g. claude's `turn_${toolCallId}`) that was never opened as
+    // a real turn. Fall back to the parentTurnId arg only when the stack is
+    // empty (defensive — should not happen for a well-formed start/done pair).
+    this.#lastTurn = this.#turnStack.length > 0 ? this.#turnStack.pop() : parentTurnId;
   }
 
   // ── TEXT primitives ─────────────────────────────────────────────────────────

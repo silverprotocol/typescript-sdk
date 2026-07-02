@@ -97,6 +97,13 @@ export class Reducer {
   // message of a closed turn — sealed or not, existing or not-yet-created —
   // is ever a valid attach/adoption target).
   #closedTurns: Set<string> = new Set();
+  // turnIds legitimately opened via turn.start / subagent.start (or restored
+  // by a messages.snapshot's turns?) — Task 8c leg 3 (guuey capstone finding
+  // B). Distinguishes "a real turn genuinely exists" from "ensureTurn() would
+  // happily fabricate a stub for this key" so the tool.done adoption CREATE
+  // path can degrade loudly (resync) instead of silently minting a phantom
+  // turn for a key that was never actually opened.
+  #openedTurns: Set<string> = new Set();
   // block/tool-call id → position in its owning message's content[], for REPLACE.
   #blockPos: Map<string, { messageId: string; index: number }> = new Map();
 
@@ -146,6 +153,8 @@ export class Reducer {
     switch (ev.type) {
       // ── TURN lifecycle ─────────────────────────────────────────────────────
       case "turn.start": {
+        // Task 8c leg 3: a turn.start always counts as a legitimately opened turn.
+        this.#openedTurns.add(ev.turnId);
         // Idempotent: if the turn already exists, merge defined fields only.
         const existing = this.#turns.get(ev.turnId);
         if (existing === undefined) {
@@ -202,12 +211,32 @@ export class Reducer {
 
       // ── SUBAGENT lifecycle ─────────────────────────────────────────────────
       case "subagent.start": {
+        // Task 8c leg 3: a subagent.start always counts as a legitimately
+        // opened turn, even on the idempotent-duplicate early return below.
+        this.#openedTurns.add(ev.turnId);
         // Idempotent: if the nested turn already exists, skip (never duplicate).
         if (this.#turns.has(ev.turnId)) break;
         // threadId is required on AgTurnRecord; inherit from the parent turn.
         // subagent.start does not carry threadId on the wire, so we look it up.
         const parentTurn = this.#turns.get(ev.parentTurnId);
-        const threadId = parentTurn?.threadId ?? ev.parentTurnId;
+        let threadId: string;
+        if (parentTurn !== undefined) {
+          threadId = parentTurn.threadId;
+        } else {
+          // Task 8c leg 2 (SPEC §1.2 + guuey capstone finding A): a parent
+          // lookup miss means ev.parentTurnId is a wire label that was never
+          // opened as a real turn (e.g. claude's synthetic `turn_${toolCallId}`
+          // Task-tool cross-ref) — NOT a legitimate cross-thread reference.
+          // Every entity in a fold shares one root threadId (SPEC §1.2), so
+          // fall back to any ALREADY-OPENED real turn's threadId instead of
+          // adopting the unresolvable label as this subagent's own threadId.
+          // A "real" turn is identified by threadId !== turnId — a defensive
+          // ensureTurn() stub uses its own turnId as a threadId placeholder
+          // and must never be picked here. `ev.parentTurnId` remains the last
+          // resort when no real turn exists yet.
+          const realTurn = [...this.#turns.values()].find((t) => t.threadId !== t.turnId);
+          threadId = realTurn?.threadId ?? ev.parentTurnId;
+        }
         this.#turns.set(ev.turnId, {
           turnId: ev.turnId,
           parentTurnId: ev.parentTurnId,
@@ -446,7 +475,16 @@ export class Reducer {
               existing !== undefined
                 ? (existing.turnId ?? "unknown-turn")
                 : (this.#resolveTurnId(ev.turnId) ?? ev.turnId ?? "unknown-turn");
-            if (this.#sealed.has(ev.messageId) || this.#closedTurns.has(targetTurnKey)) {
+            // Task 8c leg 3 (guuey capstone finding B): a turn that was never
+            // legitimately opened (turn.start / subagent.start / a snapshot's
+            // turns?) is just as invalid an adoption target as a sealed
+            // message or a closed turn — without this, ensureTurn() below
+            // would happily fabricate a phantom turn stub instead of parking.
+            if (
+              this.#sealed.has(ev.messageId) ||
+              this.#closedTurns.has(targetTurnKey) ||
+              !this.#openedTurns.has(targetTurnKey)
+            ) {
               this.#resync = true;
               break;
             }
@@ -884,6 +922,13 @@ export class Reducer {
         this.#sealed = new Set();
         this.#closedTurns = new Set();
         this.#blockPos = new Map();
+        // Task 8c leg 3: a snapshot-restored turn counts as opened (guuey
+        // capstone finding B) — reseed #openedTurns from the replaced turns in
+        // lockstep with #turns above; no turns replaced ⇒ no fresh legitimacy
+        // to assert (mirrors the unconditional #closedTurns reset above).
+        this.#openedTurns = ev.turns !== undefined
+          ? new Set(ev.turns.map((t) => t.turnId))
+          : new Set();
 
         // Un-park.
         this.#resync = false;

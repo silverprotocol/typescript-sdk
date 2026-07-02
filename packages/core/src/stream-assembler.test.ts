@@ -24,6 +24,18 @@ it("subagentDone restores the parent turn as the owner fallback (audit B10)", ()
   const textStart = a.drain().find((e) => e.type === "text.start");
   expect(textStart?.turnId).toBe("t1");
 });
+it("subagentDone restores the ENCLOSING turn via the stack, NOT a synthetic parentTurnId label (Task 8c leg 1)", () => {
+  const a = new StreamAssembler();
+  a.openTurn("t1", "th1");
+  // "SYNTHETIC_LABEL" is never opened as a real turn (mirrors claude's
+  // `turn_${toolCallId}` Task-tool wire marker) — the owner fallback must NOT
+  // resolve to it.
+  a.subagentStart("t2", "SYNTHETIC_LABEL");
+  a.subagentDone("t2", "SYNTHETIC_LABEL");
+  a.emit({ type: "text.start", id: "x" });
+  const textStart = a.drain().find((e) => e.type === "text.start");
+  expect(textStart?.turnId).toBe("t1"); // NOT "SYNTHETIC_LABEL"
+});
 it("assigns turn-scoped monotonic seq across primitive calls (I5)", () => {
   const a = new StreamAssembler();
   a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
