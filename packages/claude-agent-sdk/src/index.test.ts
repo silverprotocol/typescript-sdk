@@ -628,8 +628,8 @@ describe("createClaudeNormalizer — refusal stop_reason", () => {
   });
 });
 
-describe("createClaudeNormalizer — text citations", () => {
-  it("emits a content.block with citations after text.end when citations are present", () => {
+describe("createClaudeNormalizer — text citations (audit M22)", () => {
+  it("attaches citations to text.end and emits NO supplement content.block", () => {
     const evs = run(
       assistantMsg([
         {
@@ -647,25 +647,51 @@ describe("createClaudeNormalizer — text citations", () => {
         },
       ]),
     );
-    const contentBlock = evs.find(
-      (e) => e.type === "content.block" && (e as { block: { type: string } }).block.type === "text",
-    );
-    expect(contentBlock).toMatchObject({
-      type: "content.block",
-      block: {
-        type: "text",
-        text: "Some text with citations.",
-        citations: [
-          {
-            kind: "url",
-            url: "https://example.com",
-            encryptedIndex: "enc_abc",
-            indexFrame: "response",
-          },
-        ],
-      },
+    // No id-less duplicate supplement block — citations ride text.end.
+    expect(evs.find((e) => e.type === "content.block")).toBeUndefined();
+    const textEnd = evs.find((e) => e.type === "text.end");
+    expect(textEnd).toMatchObject({
+      type: "text.end",
+      citations: [
+        {
+          kind: "url",
+          url: "https://example.com",
+          encryptedIndex: "enc_abc",
+          indexFrame: "response",
+        },
+      ],
     });
     assertAllValid(evs);
+  });
+
+  it("folds to exactly ONE text block, with citations attached (no duplicate-fold)", () => {
+    const evs = run(
+      assistantMsg([
+        {
+          type: "text",
+          text: "Some text with citations.",
+          citations: [
+            {
+              type: "web_search_result_location",
+              url: "https://example.com",
+              encrypted_index: "enc_abc",
+              title: "Test Page",
+              cited_text: "Some text",
+            },
+          ],
+        },
+      ]),
+    );
+    const r = new Reducer();
+    for (const ev of evs) r.push(ev);
+    const blocks = r.result().messages[0]?.content ?? [];
+    const textBlocks = blocks.filter((b) => b.type === "text");
+    expect(textBlocks).toHaveLength(1);
+    expect(textBlocks[0]).toMatchObject({
+      type: "text",
+      text: "Some text with citations.",
+      citations: [{ kind: "url", url: "https://example.com" }],
+    });
   });
 });
 

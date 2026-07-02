@@ -257,14 +257,16 @@ function emitAssistantBlock(
 ): void {
   switch (block.type) {
     case "text": {
+      // Claude's assistant message is a COMPLETE structure (not a live stream), so
+      // citations are already known at the point text.end fires — they ride the
+      // STREAMED-text citations carrier (audit M22: text.end.citations), never as
+      // a duplicate id-less supplement block.
       const id = `${messageId}:text:${blockIndex}`;
+      const citations =
+        block.citations != null && block.citations.length > 0 ? mapCitations(block.citations) : undefined;
       a.textStart(id, messageId);
       a.textDelta(id, messageId, block.text);
-      a.textEnd(id, messageId);
-      if (block.citations != null && block.citations.length > 0) {
-        const mappedCitations = mapCitations(block.citations);
-        a.contentBlock(messageId, { type: "text", text: block.text, citations: mappedCitations });
-      }
+      a.textEnd(id, messageId, citations !== undefined ? { citations } : undefined);
       return;
     }
     case "thinking": {

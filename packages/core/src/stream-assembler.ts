@@ -17,7 +17,7 @@
  *  `openMessage` does NOT synthesize a spurious `turn.start` for an already-opened nested turn.
  */
 
-import type { AgEvent, AgClosedEventType, AgTrigger, AgUsage, AgRole, AgBlock, AgOpaqueKind, AgProviderMeta, JsonValue } from "./agjson.js";
+import type { AgEvent, AgClosedEventType, AgTrigger, AgUsage, AgRole, AgBlock, AgOpaqueKind, AgProviderMeta, AgCitation, JsonValue } from "./agjson.js";
 
 // Extracted closed-event arm types (no `as` casts — Extract keeps types typed at source).
 type TurnStartEvent    = Extract<AgClosedEventType, { type: "turn.start" }>;
@@ -370,8 +370,17 @@ export class StreamAssembler {
     this.#emit(ev);
   }
 
-  /** Emit `text.end` for a finished text content stream. */
-  textEnd(id: string, messageId: string, fields?: { providerMetadata?: AgProviderMeta }): void {
+  /**
+   * Emit `text.end` for a finished text content stream. `fields.citations` is the
+   * STREAMED-text citations carrier (audit M22): a normalizer passes citations for
+   * this block here — never as a duplicate id-less supplement block — and `reduce()`
+   * attaches them to the sealed block named by `id`.
+   */
+  textEnd(
+    id: string,
+    messageId: string,
+    fields?: { providerMetadata?: AgProviderMeta; citations?: AgCitation[] },
+  ): void {
     const turnId = this.#resolveTurnId(undefined, messageId);
     const ev: TextEndEvent = {
       type: "text.end",
@@ -380,6 +389,7 @@ export class StreamAssembler {
       messageId,
       ...(turnId !== undefined ? { turnId } : {}),
       ...(fields?.providerMetadata !== undefined ? { providerMetadata: fields.providerMetadata } : {}),
+      ...(fields?.citations !== undefined ? { citations: fields.citations } : {}),
     };
     this.#emit(ev);
   }

@@ -359,6 +359,34 @@ describe("reduce — R2 text + reasoning blocks", () => {
     expect(() => AgReduceResult.parse(snap)).not.toThrow();
     expect(() => AgReduceResult.parse(acc.result())).not.toThrow();
   });
+
+  // (e) STREAMED-text citations carrier: text.end.citations attaches to the
+  // sealed block — no duplicate supplement fold (audit M22).
+  it("a cited streamed text block folds ONCE, with citations attached at text.end (audit M22)", () => {
+    const r = new Reducer();
+    r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    r.push({
+      type: "message.start",
+      seq: 1,
+      id: "m1",
+      role: "assistant",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    r.push({ type: "text.start", seq: 2, id: "x1", turnId: "t1" });
+    r.push({ type: "text.delta", seq: 3, id: "x1", delta: "cited claim" });
+    r.push({
+      type: "text.end",
+      seq: 4,
+      id: "x1",
+      citations: [{ kind: "url", url: "https://x.test", citedText: "cited claim" }],
+    });
+    const blocks = r.result().messages[0]?.content ?? [];
+    expect(blocks.filter((b) => b.type === "text")).toHaveLength(1);
+    const t = blocks[0];
+    expect(t?.type === "text" && t.citations?.[0]).toMatchObject({ url: "https://x.test" });
+    expect(() => AgReduceResult.parse(r.result())).not.toThrow();
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

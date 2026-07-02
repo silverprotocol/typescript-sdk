@@ -779,8 +779,8 @@ describe("createOpenaiNormalizer — __host_error__ sentinel (T5c)", () => {
   });
 });
 
-describe("createOpenaiNormalizer — message_output_created citations supplement (T5c)", () => {
-  it("emits a content.block with citations and does NOT re-emit text", () => {
+describe("createOpenaiNormalizer — message_output_created citations carrier (audit M22)", () => {
+  it("attaches citations to text.end and does NOT re-emit text as a supplement", () => {
     const n = createOpenaiNormalizer();
     const evs = [
       rawModel({ type: "response.created", response: { id: "resp_cit_1" } }),
@@ -824,17 +824,65 @@ describe("createOpenaiNormalizer — message_output_created citations supplement
     ]
       .flatMap((e) => n.push(e))
       .concat(n.flush());
-    // The supplement emits a content.block carrying citations.
-    const block = evs.find((e) => e.type === "content.block") as {
-      block?: { type?: string; text?: string; citations?: Array<{ url?: string }> };
+    // No id-less duplicate supplement block — citations ride text.end.
+    expect(evs.find((e) => e.type === "content.block")).toBeUndefined();
+    const textEnd = evs.find((e) => e.type === "text.end") as {
+      id?: string;
+      citations?: Array<{ url?: string }>;
     };
-    expect(block).toBeDefined();
-    expect(block?.block?.type).toBe("text");
-    expect(block?.block?.citations?.[0]?.url).toBe("https://example.com/france");
+    expect(textEnd).toBeDefined();
+    expect(textEnd?.id).toBe("it_cit");
+    expect(textEnd?.citations?.[0]?.url).toBe("https://example.com/france");
     // Text was NOT re-emitted: exactly ONE text.delta (from the raw delta path),
     // not a second one from the run-item.
     const deltas = evs.filter((e) => e.type === "text.delta");
     expect(deltas).toHaveLength(1);
+  });
+
+  it("folds to exactly ONE text block, with citations attached (no duplicate-fold)", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    const stream = [
+      rawModel({ type: "response.created", response: { id: "resp_cit_2" } }),
+      rawModel({
+        type: "response.output_text.delta",
+        item_id: "it_cit2",
+        delta: "Paris is the capital of France.",
+      }),
+      rawModel({
+        type: "response.output_text.done",
+        item_id: "it_cit2",
+        text: "Paris is the capital of France.",
+      }),
+      runItem("message_output_created", {
+        type: "message_output_item",
+        rawItem: {
+          type: "message",
+          role: "assistant",
+          status: "completed",
+          content: [
+            {
+              type: "output_text",
+              text: "Paris is the capital of France.",
+              annotations: [{ type: "url_citation", url: "https://example.com/france", start_index: 0, end_index: 5 }],
+            },
+          ],
+          id: "msg_cit_2",
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_cit_2", status: "completed" } }),
+    ];
+    for (const e of stream) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    const blocks = r.result().messages[0]?.content ?? [];
+    const textBlocks = blocks.filter((b) => b.type === "text");
+    expect(textBlocks).toHaveLength(1);
+    expect(textBlocks[0]).toMatchObject({
+      type: "text",
+      text: "Paris is the capital of France.",
+      citations: [{ kind: "url", url: "https://example.com/france" }],
+    });
+    expect(() => AgReduceResult.parse(r.result())).not.toThrow();
   });
 
   it("does NOT emit a content.block when the message has no annotations", () => {
@@ -857,6 +905,9 @@ describe("createOpenaiNormalizer — message_output_created citations supplement
       .flatMap((e) => n.push(e))
       .concat(n.flush());
     expect(evs.find((e) => e.type === "content.block")).toBeUndefined();
+    const textEnd = evs.find((e) => e.type === "text.end") as { citations?: unknown };
+    expect(textEnd).toBeDefined();
+    expect(textEnd?.citations).toBeUndefined();
   });
 });
 

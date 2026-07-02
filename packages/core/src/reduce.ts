@@ -300,6 +300,10 @@ export class Reducer {
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "text") break;
         block.providerMetadata = mergeProviderMeta(block.providerMetadata, ev.providerMetadata);
+        // STREAMED-text citations carrier (audit M22): attach citations to the
+        // sealed block named by `ev.id` — never re-emitted as a duplicate
+        // supplement block.
+        if (ev.citations !== undefined) block.citations = ev.citations;
         break;
       }
 

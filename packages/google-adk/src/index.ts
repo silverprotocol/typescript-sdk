@@ -384,6 +384,28 @@ function functionResponseToAgBlocks(name: string, response: { [k: string]: JsonV
   return [{ type: "data", name, data: response }];
 }
 
+// ─── groundingMetadata.groundingSupports → ONE citations[] (audit M22) ────────
+// Each `groundingSupports` entry is a distinct SEGMENT of the SAME grounded text
+// output (its own offsets + sourceIds, self-contained), so collecting them into
+// one array — attached to the ONE streamed text block's `text.end` — is correct:
+// no per-segment supplement block, no duplicate-fold.
+function mapGroundingCitations(
+  gm: AdkEvent["groundingMetadata"]
+): AgCitation[] | undefined {
+  if (gm?.groundingSupports === undefined || gm.groundingSupports.length === 0) return undefined;
+  return gm.groundingSupports.map((support): AgCitation => ({
+    kind: "offset",
+    unit: "byte",
+    startIndex: support.segment?.startIndex ?? 0,
+    endIndex: support.segment?.endIndex ?? 0,
+    bounds: "[start,end)",
+    sourceIds: support.groundingChunkIndices?.map((i) => `grounding_${i}`) ?? [],
+    confidenceScores: support.confidenceScores ?? [],
+    citedText: support.segment?.text ?? "",
+    indexFrame: "response",
+  }));
+}
+
 // ─── stateful factory: driveAdkPart ──────────────────────────────────────────
 function driveAdkPart(
   a: StreamAssembler,
@@ -392,7 +414,8 @@ function driveAdkPart(
   event: AdkEvent,
   messageId: string,
   turnId: string,
-  _assembledToolCalls: Set<string>
+  _assembledToolCalls: Set<string>,
+  citations?: AgCitation[]
 ): string {
   // ── REASONING (thought:true) → reasoning.start/delta/end + opaque signature ──
   if (part.thought === true) {
@@ -414,6 +437,10 @@ function driveAdkPart(
   if (part.text !== undefined) {
     const id = `text:${index}`;
     const signed = part.thoughtSignature !== undefined && part.thoughtSignature.length > 0;
+    // STREAMED-text citations carrier (audit M22): `citations` collects ALL of this
+    // event's groundingSupports segments (each already carries its own offsets +
+    // sourceIds — see `mapGroundingCitations`) into ONE array attached at
+    // text.end — never as per-segment id-less supplement blocks.
     if (signed) {
       // §8.8 — signature rides text.start/end providerMetadata via the sugar path
       // (audit B10/#118).
@@ -422,11 +449,11 @@ function driveAdkPart(
       });
       a.textStart(id, messageId, { providerMetadata });
       a.textDelta(id, messageId, part.text);
-      a.textEnd(id, messageId, { providerMetadata });
+      a.textEnd(id, messageId, { providerMetadata, ...(citations !== undefined ? { citations } : {}) });
     } else {
       a.textStart(id, messageId);
       a.textDelta(id, messageId, part.text);
-      a.textEnd(id, messageId);
+      a.textEnd(id, messageId, citations !== undefined ? { citations } : undefined);
     }
     return part.text;
   }
@@ -565,7 +592,11 @@ function driveAdkTopLevel(
     a.emit({ type: "prompt.blocked", reason, ...(safety !== undefined ? { safety } : {}) });
   }
 
-  // ── groundingMetadata → source + citation content.block + display.required ──
+  // ── groundingMetadata → source + display.required ──────────────────────────
+  // groundingSupports (per-segment citations) are handled BEFORE this function
+  // runs — collected by `mapGroundingCitations` and attached to the streamed text
+  // block's `text.end.citations` in `drive()`/`driveAdkPart` (audit M22: was N
+  // id-less per-segment supplement blocks, one per grounding segment).
   if (event.groundingMetadata !== undefined) {
     const gm = event.groundingMetadata;
     if (gm.groundingChunks !== undefined) {
@@ -577,23 +608,6 @@ function driveAdkTopLevel(
             source: { url: chunk.web.uri, title: chunk.web.title },
           });
         }
-      });
-    }
-    if (gm.groundingSupports !== undefined) {
-      gm.groundingSupports.forEach((support) => {
-        const segText = support.segment?.text ?? "";
-        const citation: AgCitation = {
-          kind: "offset",
-          unit: "byte",
-          startIndex: support.segment?.startIndex ?? 0,
-          endIndex: support.segment?.endIndex ?? 0,
-          bounds: "[start,end)",
-          sourceIds: support.groundingChunkIndices?.map((i) => `grounding_${i}`) ?? [],
-          confidenceScores: support.confidenceScores ?? [],
-          citedText: segText,
-          indexFrame: "response",
-        };
-        a.contentBlock(messageId, { type: "text", text: segText, citations: [citation] });
       });
     }
     if (gm.searchEntryPoint?.renderedContent !== undefined) {
@@ -737,6 +751,18 @@ export function createAdkNormalizer(): Normalizer {
     const parts = event.content?.parts ?? [];
     const isPartial = event.partial === true;
 
+    // STREAMED-text citations carrier (audit M22): groundingMetadata is
+    // EVENT-level, not per-part. A Gemini grounding response carries the full
+    // grounded answer in a single (non-thought, non-function-call) text part, so
+    // the FIRST such part in this event's `parts[]` is the citation carrier for
+    // ALL of this event's groundingSupports segments — attached at that one
+    // part's text.end below (never a per-segment supplement block).
+    const citations = mapGroundingCitations(event.groundingMetadata);
+    const citedPartIndex =
+      citations !== undefined
+        ? parts.findIndex((p) => p.thought !== true && p.functionCall === undefined && p.text !== undefined)
+        : -1;
+
     // §8.3 — verbatim port of the legacy suppression, with e.push(...) → a.<primitive>.
     const alreadyStreamed = streamedText.get(key) ?? "";
     const isAggregate = !isPartial && alreadyStreamed.length > 0;
@@ -760,6 +786,12 @@ export function createAdkNormalizer(): Normalizer {
         part.text !== undefined;
       if (isAggregateText) {
         if (suppressAggregateText) {
+          // NOTE: fully-suppressed aggregate — this event emits NO text.end at all
+          // for this part; its text.end already fired on an earlier PARTIAL event.
+          // Gemini grounding metadata is not documented to land on an intermediate
+          // partial, so this combination is believed unreachable; if it occurs,
+          // citations are dropped rather than force-attached to the wrong
+          // (already-sealed) block.
           accumulated += part.text ?? "";
           return;
         }
@@ -767,13 +799,22 @@ export function createAdkNormalizer(): Normalizer {
           const id = `text:${index}`;
           a.textStart(id, messageId);
           a.textDelta(id, messageId, residualTail);
-          a.textEnd(id, messageId);
+          a.textEnd(id, messageId, index === citedPartIndex && citations !== undefined ? { citations } : undefined);
           residualTail = "";
         }
         accumulated += part.text ?? "";
         return;
       }
-      const contributed = driveAdkPart(a, part, index, event, messageId, turnId, assembledToolCalls);
+      const contributed = driveAdkPart(
+        a,
+        part,
+        index,
+        event,
+        messageId,
+        turnId,
+        assembledToolCalls,
+        index === citedPartIndex ? citations : undefined
+      );
       if (isPartial) accumulated += contributed;
     });
 

@@ -540,7 +540,11 @@ function isOpenAIStreamEvent(v: unknown): v is OpenAIStreamEvent {
  *
  *  - turn open  ← `model:response.created` (real `response.id` present at start)
  *  - text       ← `model:response.output_text.delta` (carries `item_id`)
- *  - text end   ← `model:response.output_text.done`
+ *  - text end   ← the `message_output_created` run-item (authoritative close +
+ *                 citations carrier, audit M22 — `response.output_text.done` is a
+ *                 no-op; text streams left open by it fall to the defensive
+ *                 close-any-dangling-stream fallback in `closeResponse()` /
+ *                 `endOpenStreamsAndCloseMessage()` / `emitRoundClose()`)
  *  - turn close ← `model:response.completed` (guard close-once)
  *
  * `ensureResponseOpen()` opens turn + message exactly once per response;
@@ -717,11 +721,13 @@ export function createOpenaiNormalizer(): Normalizer {
         return;
       }
       case "response.output_text.done": {
-        // Authoritative text-end for this item_id (canonical model).
-        if (msgId !== undefined && openTextStreams.has(ev.item_id)) {
-          openTextStreams.delete(ev.item_id);
-          a.textEnd(ev.item_id, msgId);
-        }
+        // NO-OP (audit M22): the citations carrier — `message_output_created` — is
+        // the authoritative text-end source (it also reports refusal parts and
+        // arrives with the annotated part, so closing here would emit `text.end`
+        // BEFORE citations are known). The stream stays in `openTextStreams`;
+        // `driveMessageOutputCreated` closes it (with citations if present), or —
+        // defensively, if that run-item never arrives — `closeResponse()` /
+        // `endOpenStreamsAndCloseMessage()` / `emitRoundClose()` do at native close.
         return;
       }
       case "response.output_item.added": {
@@ -855,8 +861,9 @@ export function createOpenaiNormalizer(): Normalizer {
         return;
       }
       // Duplicate raw families IGNORED per the canonical model:
-      //   response.output_text.done is handled above; response.output_item.done,
-      //   response.in_progress, content_part.* are not authoritative sources.
+      //   response.output_text.done is its own no-op arm above (audit M22);
+      //   response.output_item.done, response.in_progress, content_part.* are not
+      //   authoritative sources.
       default:
         return;
     }
@@ -871,12 +878,28 @@ export function createOpenaiNormalizer(): Normalizer {
   }
 
   /**
-   * Map a `message_output_created` run-item to a CITATIONS SUPPLEMENT only —
-   * the text already streamed from the raw `response.output_text.delta` path, so
-   * this MUST NOT re-emit text. For each `output_text` part that carries
-   * url_citation annotations, emit a `content.block` (text + citations[]) so the
-   * citations survive the reduce fold. A `refusal` part sets `pendingRefusal` so
-   * the downstream `response.completed` arm closes with `finishReason:"refusal"`.
+   * Map a `message_output_created` run-item: the AUTHORITATIVE text-end +
+   * citations source (audit M22). The text itself already streamed from the raw
+   * `response.output_text.delta` path — this MUST NOT re-emit it — but the
+   * `output_text` part's annotations are only known here (they are not present on
+   * `response.output_text.done`), so THIS is where the matching open text stream
+   * actually closes: `a.textEnd(id, msgId, { citations })`, citations attached
+   * directly to the streamed block (never a duplicate id-less supplement). A
+   * `refusal` part sets `pendingRefusal` so the downstream `response.completed`
+   * arm closes with `finishReason:"refusal"` (no text stream to close for it).
+   *
+   * Correlation: the Responses `item_id` used by the raw delta/done events and the
+   * run-item wrapper's `rawItem.id` are DIFFERENT id spaces on this SDK's surface,
+   * so the match is positional — FIFO against `openTextStreams` (insertion-ordered;
+   * in practice exactly one open stream per output_text part).
+   *
+   * On the real wire this run-item can arrive AFTER `response.completed` (verified
+   * by the #128 OpenRouter capture — round 2's `message_output_created` lands last,
+   * past the terminal close). Never `ensureResponseOpen()` here: doing so would
+   * open a PHANTOM new turn once the response has already closed. If `msgId` is
+   * `undefined` (already closed) the matching stream was already ended — without
+   * citations — by the native-close fallback (`emitRoundClose` et al.); degrade
+   * gracefully and skip.
    */
   function driveMessageOutputCreated(item: OpenAIAssistantMessageItem): void {
     for (const part of item.content) {
@@ -885,12 +908,12 @@ export function createOpenaiNormalizer(): Normalizer {
         continue;
       }
       if (part.type === "output_text") {
+        if (msgId === undefined) continue; // response already closed — see doc above
+        const streamId = openTextStreams.values().next().value;
+        if (streamId === undefined) continue; // defensive: no matching open stream
+        openTextStreams.delete(streamId);
         const citations = mapAnnotationsToCitations(part.annotations, part.text);
-        if (citations !== undefined) {
-          ensureResponseOpen();
-          const block: AgBlock = { type: "text", text: part.text, citations };
-          a.contentBlock(msgId, block);
-        }
+        a.textEnd(streamId, msgId, citations !== undefined ? { citations } : undefined);
       }
     }
   }

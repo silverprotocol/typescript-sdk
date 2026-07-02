@@ -1079,7 +1079,16 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     delta: z.string(),
     providerMetadata: AgProviderMeta.optional(),
   }),
-  z.object({ ...base, type: z.literal("text.end"), id: z.string(), providerMetadata: AgProviderMeta.optional() }),
+  z.object({
+    ...base,
+    type: z.literal("text.end"),
+    id: z.string(),
+    providerMetadata: AgProviderMeta.optional(),
+    // STREAMED-text citations carrier (audit M22): citations for a streamed text
+    // block arrive here (not as a duplicate id-less supplement block) and attach
+    // to the sealed block named by `id` (spec §5 text.end row).
+    citations: z.array(AgCitation).optional(),
+  }),
   z.object({
     ...base,
     type: z.literal("content.block"),

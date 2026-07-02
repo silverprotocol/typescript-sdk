@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { AgEvent, JsonValue } from "@silverprotocol/core";
+import { AgEvent, AgReduceResult, JsonValue, Reducer } from "@silverprotocol/core";
 import { createAdkNormalizer, mapFinishReason, type AdkEvent, type AdkPart } from "./index.js";
 
 /** Build one ADK Event (a Gemini Content + event metadata). */
@@ -180,6 +180,74 @@ describe("createAdkNormalizer — standalone arms via emit()", () => {
     expect(out.find((e) => e.type === "source")).toMatchObject({
       source: { url: "https://x", title: "X" },
     });
+  });
+});
+
+describe("createAdkNormalizer — groundingMetadata.groundingSupports → text.end citations (audit M22)", () => {
+  it("collects ALL segment citations into ONE array on the streamed text block's text.end (no per-segment supplements)", () => {
+    const out = run([
+      event([{ text: "Paris is the capital of France. It has a population of 2 million." }], {
+        partial: false,
+        finishReason: "STOP",
+        groundingMetadata: {
+          groundingChunks: [{ web: { uri: "https://x.test/france", title: "France" } }],
+          groundingSupports: [
+            {
+              segment: { startIndex: 0, endIndex: 32, text: "Paris is the capital of France." },
+              groundingChunkIndices: [0],
+              confidenceScores: [0.9],
+            },
+            {
+              segment: { startIndex: 33, endIndex: 68, text: "It has a population of 2 million." },
+              groundingChunkIndices: [0],
+              confidenceScores: [0.8],
+            },
+          ],
+        },
+      }),
+    ]);
+    // No id-less per-segment supplement blocks.
+    expect(out.filter((e) => e.type === "content.block")).toHaveLength(0);
+    const textEnd = out.find((e) => e.type === "text.end") as { citations?: Array<{ startIndex?: number }> };
+    expect(textEnd).toBeDefined();
+    expect(textEnd?.citations).toHaveLength(2);
+    expect(textEnd?.citations?.[0]).toMatchObject({ startIndex: 0, endIndex: 32 });
+    expect(textEnd?.citations?.[1]).toMatchObject({ startIndex: 33, endIndex: 68 });
+    // The source event for the grounding chunk is still emitted (unrelated to the
+    // per-segment supplement removal).
+    expect(out.find((e) => e.type === "source")).toMatchObject({
+      sourceId: "grounding_0",
+      source: { url: "https://x.test/france" },
+    });
+  });
+
+  it("folds to exactly ONE text block, with both segment citations attached", () => {
+    const evs = run([
+      event([{ text: "Paris is the capital of France." }], {
+        partial: false,
+        finishReason: "STOP",
+        groundingMetadata: {
+          groundingChunks: [{ web: { uri: "https://x.test/france", title: "France" } }],
+          groundingSupports: [
+            {
+              segment: { startIndex: 0, endIndex: 32, text: "Paris is the capital of France." },
+              groundingChunkIndices: [0],
+            },
+          ],
+        },
+      }),
+    ]);
+    const r = new Reducer();
+    for (const ev of evs) r.push(ev);
+    const blocks = r.result().messages[0]?.content ?? [];
+    const textBlocks = blocks.filter((b) => b.type === "text");
+    expect(textBlocks).toHaveLength(1);
+    expect(textBlocks[0]).toMatchObject({
+      type: "text",
+      text: "Paris is the capital of France.",
+      citations: [{ kind: "offset", startIndex: 0, endIndex: 32 }],
+    });
+    expect(() => AgReduceResult.parse(r.result())).not.toThrow();
   });
 });
 
