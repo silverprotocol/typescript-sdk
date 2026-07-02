@@ -12,6 +12,7 @@ import type {
   AgDisplayRequired,
   JsonValue,
 } from "./agjson.js";
+import { REMOVE_ALL } from "./agjson.js";
 import { applyPatch } from "./json-patch.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -859,9 +860,9 @@ export class Reducer {
 
       // ── MESSAGE.REMOVE (R9) ──────────────────────────────────────────────────
       case "message.remove": {
-        if (ev.id === "*") {
+        if (ev.id === REMOVE_ALL) {
           // REMOVE_ALL: remove every message of exactly the given turnId.
-          // Parse-enforced: id==="*" without turnId is already rejected.
+          // Parse-enforced: id===REMOVE_ALL without turnId is already rejected.
           const targetTurnId = ev.turnId;
           if (targetTurnId === undefined) break; // parse-rejected; should not reach
           const toRemove: string[] = [];

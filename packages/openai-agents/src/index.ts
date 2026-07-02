@@ -29,8 +29,8 @@
  * the engine from the SINGLE authoritative source per concern (BINDING canonical
  * model, plan §"Spike Findings"). `seq` is allocated monotonically from 0 by the
  * engine; the Router rebases to a global ordinal downstream (out of scope here).
- * (The earlier per-call stateless `RuleNormalizer`/JSONata path was deleted in
- * A1 T5c — pre-launch no-backcompat.)
+ * This is the sole normalizer contract for this package — no rule-based
+ * alternative exists.
  *
  * The `OpenAIStreamEvent` discriminated union below is a faithful PROJECTION of
  * the verified `@openai/agents` `RunStreamEvent` union + the openai-node
