@@ -67,10 +67,10 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 1, title: "reduce() invariant (full fold table + block insertion order)", disposition: "COVERED-BY", citation: "reduce.test.ts:2301-2333 \"R10 capstone\"" },
   { n: 2, title: "Reconnect (forward-gap park + snapshot-resync; backward jump folds normally)", disposition: "COVERED-BY", citation: "reduce.test.ts:1828-1953 (R9 e1-e6) + :1635-1828 (d1-d4)" },
   { n: 3, title: "Tool-result routing matrix (content/structuredContent/uiData/sideData)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.3" },
-  { n: 4, leg: "a", title: "Gemini signature loop — tool-call signature", disposition: "N/A", citation: "§10 preamble emit/re-input carve-out; §8 item 7 scoping" },
+  { n: 4, leg: "a", title: "Gemini signature loop — tool-call signature (ingest leg)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.4(a), facet-driven via createAdkNormalizer" },
   { n: 4, leg: "b", title: "Gemini signature loop — thinking-only turn", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.4(b), facet-driven via createAdkNormalizer" },
   { n: 4, leg: "c", title: "Gemini signature loop — Google-Search-grounded turn", disposition: "N/A", citation: "§10 preamble emit/re-input carve-out; no built-in-tool-step signature carrier in google-adk" },
-  { n: 4, leg: "openai", title: "OpenAI stateless reasoning loop (rs_/encrypted_content)", disposition: "COVERED-BY", citation: "openai-agents/src/index.test.ts:1212-1258" },
+  { n: 4, leg: "openai", title: "OpenAI stateless reasoning loop (rs_/encrypted_content)", disposition: "N/A", citation: "§10 preamble emit/re-input carve-out (ingest-capture sub-claim already COVERED by openai-agents/src/index.test.ts:1212-1258)" },
   { n: 5, title: "Source round-trips (MCP base64 + Anthropic url/file)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.5" },
   { n: 6, title: "Mandatory display (display.required not dropped)", disposition: "COVERED-BY", citation: "reduce.test.ts:1049 \"(h) display.required appends…\"" },
   { n: 7, title: "safety_blocked category", disposition: "COVERED-BY", citation: "openai-agents/src/index.test.ts:776 \"content_filter incomplete…\"" },
@@ -210,8 +210,21 @@ function adkEvent(parts: AdkPart[], extra: Partial<AdkEvent> = {}): AdkEvent {
 }
 
 describe("§10.4 — Gemini signature loop + OpenAI stateless reasoning loop", () => {
+  it("(a) a tool-call's thoughtSignature survives the ingest leg — functionCall part's thoughtSignature lands on the tool-call block's signature field (facet-driven via createAdkNormalizer)", () => {
+    const n = createAdkNormalizer();
+    const native = adkEvent([{ functionCall: { name: "echo", args: { x: 1 }, id: "adk-s10-4a" }, thoughtSignature: "SIG_TOOL_CALL" }], {
+      partial: true,
+    });
+    const out = n.push(toJsonValue(native)).concat(n.flush());
+
+    const r = new Reducer();
+    for (const ev of out) r.push(ev);
+    const block = r.result().messages[0]?.content.find((b) => b.type === "tool-call");
+    expect(block?.type === "tool-call" && block.signature).toBe("SIG_TOOL_CALL");
+  });
+
   it.skip(
-    "(a) tool-call signature survives emit→reduce→re-input — N/A: no facet in this repo ships an AgJSON→native emit/re-input surface (§10 preamble: \"ingest-only normalizers record them N/A\"; §8 item 7 scoping)",
+    "(a-reinput) tool-call signature re-input leg — N/A: no facet in this repo ships an AgJSON→native emit/re-input surface (§10 preamble: \"ingest-only normalizers record them N/A\"; §8 item 7 scoping)",
     () => {},
   );
 
@@ -238,31 +251,10 @@ describe("§10.4 — Gemini signature loop + OpenAI stateless reasoning loop", (
     () => {},
   );
 
-  it("(d) OpenAI stateless reasoning loop — COVERED-BY openai-agents/src/index.test.ts:1212-1258 \"rs_ id + summary text + encrypted_content ⇒ …\" (exhaustive: no-summary, no-encrypted-content, late-arrival edge cases); thin confirming re-assertion of the ingest-capture claim. The re-input leg (replaying rs_/encrypted_content + interleaved fc_ items on the NEXT API call) is N/A — no facet ships a re-input surface", () => {
-    const n = createOpenaiNormalizer();
-    const evs = ([
-      { type: "raw_model_stream_event", data: { type: "model", event: { type: "response.created", response: { id: "resp_s10_4" } } } },
-      {
-        type: "run_item_stream_event",
-        name: "reasoning_item_created",
-        item: {
-          type: "reasoning_item",
-          rawItem: {
-            type: "reasoning",
-            id: "rs_s10_4",
-            content: [{ type: "input_text", text: "thinking…" }],
-            providerData: { encrypted_content: "ENC_BLOB_S10_4" },
-          },
-        },
-      },
-      { type: "raw_model_stream_event", data: { type: "model", event: { type: "response.completed", response: { id: "resp_s10_4", status: "completed" } } } },
-    ] as JsonValue[])
-      .flatMap((e) => n.push(e))
-      .concat(n.flush());
-
-    const opaque = evs.find((e) => e.type === "reasoning.opaque");
-    expect(opaque).toMatchObject({ kind: "ciphertext", value: "ENC_BLOB_S10_4", itemId: "rs_s10_4", provider: "openai" });
-  });
+  it.skip(
+    "(d) OpenAI stateless reasoning loop — N/A: the item's claim is emit→reduce→re-input survival; no facet in this repo ships an AgJSON→native emit/re-input surface (§10 preamble). The ingest-capture sub-claim (rs_ id + summary text + encrypted_content handling; exhaustive: no-summary, no-encrypted-content, late-arrival edge cases) is already COVERED by openai-agents/src/index.test.ts:1212-1258",
+    () => {},
+  );
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
