@@ -1282,7 +1282,8 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     append: z.boolean(),
   }),
   z.object({ ...base, type: z.literal("artifact.end"), artifactId: z.string(), lastChunk: z.literal(true) }),
-  // ── RECONNECT / RESYNC ── full-state resync; REPLACE messages + turns + artifacts (§5).
+  // ── RECONNECT / RESYNC ── resync; REPLACE messages; turns/artifacts REPLACE per-container
+  // conditionally — only when the snapshot carries them; omitted containers are PRESERVED (§5).
   // memory REPLACES ONLY scope="thread" records; cross-thread (agent/user/skill) are untouched.
   z.object({
     ...base,
