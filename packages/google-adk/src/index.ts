@@ -406,6 +406,93 @@ function mapGroundingCitations(
   }));
 }
 
+// ─── null-id call mint state (audit M47) ──────────────────────────────────────
+// Gemini `functionCall.id` is often null on the Developer API (§8.2). Identity
+// MUST NOT derive from a per-event positional index (INV-BLOCK): two DIFFERENT
+// null-id calls that each land at parts[0] of DIFFERENT events would otherwise
+// collide on the same synthesized id — the M47 repro (sequential toolA/toolB,
+// both at parts[0]; toolB silently dropped, both results mis-keyed to toolA).
+//
+// Fix: mint a per-INVOKE ordinal id (`${turnId}:call:${ordinal}` — the ordinal
+// counter lives in this closure, once per Normalizer instance/invoke) and
+// correlate the (also possibly null-id) functionResponse back to its call via
+// a per-(turnId,name) FIFO queue of unconsumed minted ids — the response
+// carries the tool NAME, never the position, so name is the only reliable
+// correlator available at that site.
+//
+// The ADK `partial:false` AGGREGATE re-send (§8 item 3) repeats the exact same
+// functionCall content (name+args) while the call is still outstanding
+// (unresolved); that repeat must dedup to the SAME minted id rather than
+// minting a fresh one — `pendingByContent` keys on (turnId, name, argsJson),
+// the narrowest identity that catches the content-identical resend. A call is
+// evicted from both maps the moment its functionResponse consumes it, so a
+// LATER, genuinely distinct call with matching content mints afresh instead of
+// colliding with the already-resolved one.
+interface ToolCallMintState {
+  nextOrdinal: number;
+  /** (turnId,name,argsJson) -> already-minted toolCallId, only while unresolved. */
+  pendingByContent: Map<string, string>;
+  /** (turnId,name) -> FIFO queue of {id, contentKey} awaiting their functionResponse. */
+  pendingIdsByName: Map<string, Array<{ id: string; contentKey: string }>>;
+}
+
+function toolCallContentKey(
+  turnId: string,
+  name: string,
+  args: { [k: string]: JsonValue } | undefined
+): string {
+  return `${turnId} ${name} ${JSON.stringify(args ?? {})}`;
+}
+
+/** Mint the next per-invoke-ordinal call id — never derived from event position. */
+function mintFreshCallId(mint: ToolCallMintState, turnId: string): string {
+  const toolCallId = `${turnId}:call:${mint.nextOrdinal}`;
+  mint.nextOrdinal += 1;
+  return toolCallId;
+}
+
+/** Mint (or, for a content-identical still-PENDING call, REUSE) the toolCallId
+ *  for a null-id functionCall part. `resend:true` means this is the aggregate
+ *  re-send of an already-minted, not-yet-resolved call — the caller MUST NOT
+ *  re-emit tool.start/args for a resend (§8 item 3 suppression). */
+function mintNullIdCallId(
+  mint: ToolCallMintState,
+  turnId: string,
+  name: string,
+  args: { [k: string]: JsonValue } | undefined
+): { toolCallId: string; resend: boolean } {
+  const key = toolCallContentKey(turnId, name, args);
+  const pending = mint.pendingByContent.get(key);
+  if (pending !== undefined) return { toolCallId: pending, resend: true };
+  const toolCallId = mintFreshCallId(mint, turnId);
+  mint.pendingByContent.set(key, toolCallId);
+  const nameKey = `${turnId} ${name}`;
+  const queue = mint.pendingIdsByName.get(nameKey) ?? [];
+  queue.push({ id: toolCallId, contentKey: key });
+  mint.pendingIdsByName.set(nameKey, queue);
+  return { toolCallId, resend: false };
+}
+
+/** Correlate a null-id functionResponse to its call: pop the FIFO-oldest
+ *  unconsumed minted id for this (turnId,name) — the response carries the
+ *  NAME, never the position (§8 item 2). Evicts the content-pending entry too,
+ *  so a later genuinely-new same-content call mints fresh instead of
+ *  colliding with the now-resolved one. `undefined` when no call is pending
+ *  under that name (an orphan response — defensive; the caller mints fresh). */
+function consumeMintedCallId(
+  mint: ToolCallMintState,
+  turnId: string,
+  name: string
+): string | undefined {
+  const nameKey = `${turnId} ${name}`;
+  const queue = mint.pendingIdsByName.get(nameKey);
+  if (queue === undefined || queue.length === 0) return undefined;
+  const next = queue.shift();
+  if (next === undefined) return undefined;
+  mint.pendingByContent.delete(next.contentKey);
+  return next.id;
+}
+
 // ─── stateful factory: driveAdkPart ──────────────────────────────────────────
 function driveAdkPart(
   a: StreamAssembler,
@@ -415,6 +502,7 @@ function driveAdkPart(
   messageId: string,
   turnId: string,
   _assembledToolCalls: Set<string>,
+  mint: ToolCallMintState,
   citations?: AgCitation[]
 ): string {
   // ── REASONING (thought:true) → reasoning.start/delta/end + opaque signature ──
@@ -462,9 +550,19 @@ function driveAdkPart(
   if (part.functionCall !== undefined) {
     const fc = part.functionCall;
     const realId = fc.id != null && fc.id.length > 0 ? fc.id : null;
-    const toolCallId = realId !== null ? realId : `adk_call_${index}`;
-    if (_assembledToolCalls.has(toolCallId)) return ""; // dedup the partial:false aggregate re-send
-    _assembledToolCalls.add(toolCallId);
+    let toolCallId: string;
+    if (realId !== null) {
+      toolCallId = realId;
+      if (_assembledToolCalls.has(toolCallId)) return ""; // dedup the partial:false aggregate re-send
+      _assembledToolCalls.add(toolCallId);
+    } else {
+      // Null id (audit M47): mint a per-invoke-ordinal id, never a per-event
+      // positional one. A content-identical still-pending call (the aggregate
+      // re-send) REUSES its already-minted id and must not re-emit.
+      const minted = mintNullIdCallId(mint, turnId, fc.name, fc.args);
+      if (minted.resend) return ""; // dedup the partial:false aggregate re-send (content identity)
+      toolCallId = minted.toolCallId;
+    }
     const providerCallIndex = realId !== null ? undefined : index;
     const input: JsonValue = JsonValue.parse(fc.args ?? {});
     const longRunning =
@@ -495,7 +593,12 @@ function driveAdkPart(
   if (part.functionResponse !== undefined) {
     const fr = part.functionResponse;
     const realId = fr.id != null && fr.id.length > 0 ? fr.id : null;
-    const toolCallId = realId !== null ? realId : `adk_call_${index}`;
+    // Null id (audit M47): correlate to the minted id of ITS call via the
+    // per-(turnId,name) FIFO queue — the response carries the name, never the
+    // position. An orphan response (no pending call under that name) mints a
+    // fresh ordinal id defensively rather than reintroducing a positional guess.
+    const toolCallId =
+      realId !== null ? realId : consumeMintedCallId(mint, turnId, fr.name) ?? mintFreshCallId(mint, turnId);
     const outcome: ToolOutcome = fr.response?.["isError"] === true ? "error" : "ok";
     a.toolDone({
       toolCallId,
@@ -701,6 +804,14 @@ export function createAdkNormalizer(): Normalizer {
   const openTurns = new Set<string>();
   const closedTurns = new Set<string>();
   const assembledToolCalls = new Set<string>(); // FC dedup across partial/aggregate (Task 3)
+  // Null-id call mint state (audit M47) — per-invoke ordinal counter + the
+  // content/name correlation maps; lives exactly as long as this Normalizer
+  // instance (one invoke, per §8.0's lifetime rule).
+  const toolCallMint: ToolCallMintState = {
+    nextOrdinal: 0,
+    pendingByContent: new Map<string, string>(),
+    pendingIdsByName: new Map<string, Array<{ id: string; contentKey: string }>>(),
+  };
 
   function ensureOpen(turnId: string): string {
     const messageId = `msg_${turnId}`;
@@ -813,6 +924,7 @@ export function createAdkNormalizer(): Normalizer {
         messageId,
         turnId,
         assembledToolCalls,
+        toolCallMint,
         index === citedPartIndex ? citations : undefined
       );
       if (isPartial) accumulated += contributed;

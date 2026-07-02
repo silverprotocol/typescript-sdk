@@ -287,6 +287,96 @@ describe("createAdkNormalizer — tool arms", () => {
       content: [{ type: "text", text: "echo: hi" }],
     });
   });
+
+  // ─── audit M47: null-id fallback must mint per-INVOKE-ordinal ids, never
+  // per-event-positional ids — and the aggregate re-send dedup must key on
+  // content/window identity, not minted-id equality. ──────────────────────────
+
+  it("mints distinct per-invoke-ordinal ids for two SEQUENTIAL null-id calls at the same parts[0] index, and correlates each functionResponse to the right call (audit M47 repro)", () => {
+    const out = run([
+      event([{ functionCall: { name: "toolA", args: { a: 1 } } }], {
+        partial: false,
+        finishReason: "STOP",
+      }),
+      event([{ functionCall: { name: "toolB", args: { b: 2 } } }], {
+        partial: false,
+        finishReason: "STOP",
+      }),
+      event(
+        [
+          {
+            functionResponse: {
+              name: "toolA",
+              response: { content: [{ type: "text", text: "A done" }] },
+            },
+          },
+        ],
+        {}
+      ),
+      event(
+        [
+          {
+            functionResponse: {
+              name: "toolB",
+              response: { content: [{ type: "text", text: "B done" }] },
+            },
+          },
+        ],
+        {}
+      ),
+    ]);
+    const starts = out.filter((e) => e.type === "tool.start") as Array<{
+      toolCallId: string;
+      name: string;
+    }>;
+    // Before the fix: toolB silently vanished (index collision) — assert BOTH emit.
+    expect(starts).toHaveLength(2);
+    const startA = starts.find((s) => s.name === "toolA");
+    const startB = starts.find((s) => s.name === "toolB");
+    expect(startA).toBeDefined();
+    expect(startB).toBeDefined();
+    // Distinct minted ids — never a per-event-positional collision (`adk_call_0` twice).
+    expect(startA?.toolCallId).not.toBe(startB?.toolCallId);
+    // Identity never derives from the per-event positional index alone: the
+    // second call's id must not equal the ordinal-0 form the FIRST call gets.
+    expect(startB?.toolCallId).not.toBe(startA?.toolCallId);
+
+    const dones = out.filter((e) => e.type === "tool.done") as Array<{
+      toolCallId: string;
+      content: Array<{ text?: string }>;
+    }>;
+    expect(dones).toHaveLength(2);
+    // Before the fix: BOTH results were mis-keyed to the same collided id.
+    // Each response must correlate to ITS OWN call's minted id.
+    const doneA = dones.find((d) => d.toolCallId === startA?.toolCallId);
+    const doneB = dones.find((d) => d.toolCallId === startB?.toolCallId);
+    expect(doneA?.content[0]?.text).toBe("A done");
+    expect(doneB?.content[0]?.text).toBe("B done");
+  });
+
+  it("dedupes the partial:false aggregate re-send of a NULL-id call by content identity (not minted-id equality), and the response still correlates to the ONE minted id", () => {
+    const fc = { functionCall: { name: "echo", args: { text: "hi" } } }; // no id
+    const out = run([
+      event([fc], { partial: true, finishReason: "STOP" }),
+      event([fc], { partial: false, finishReason: "STOP" }), // aggregate re-send, identical content
+      event(
+        [
+          {
+            functionResponse: {
+              name: "echo",
+              response: { content: [{ type: "text", text: "echo: hi" }] },
+            },
+          },
+        ],
+        {}
+      ),
+    ]);
+    const starts = out.filter((e) => e.type === "tool.start");
+    expect(starts).toHaveLength(1); // the content-identical aggregate resend must NOT re-emit
+    const start = starts[0] as { toolCallId: string };
+    const done = out.find((e) => e.type === "tool.done") as { toolCallId: string } | undefined;
+    expect(done?.toolCallId).toBe(start.toolCallId);
+  });
 });
 
 // ─── Part A: parity tests for arms covered only in the legacy index.test.ts ──
