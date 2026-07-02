@@ -701,12 +701,22 @@ export const AgRunConfig = z.object({
 });
 export type AgRunConfig = z.infer<typeof AgRunConfig>;
 
+// The spec version this SDK implements (SPEC.md status line + §12). Consumers
+// reject a MAJOR mismatch and accept any same-major version (§12 negotiation).
+export const AGJSON_VERSION = "1.0.0-draft.1";
+
+const agjsonWireVersion = z
+  .string()
+  .refine((v) => /^\d+\./.test(v) && v.split(".")[0] === AGJSON_VERSION.split(".")[0], {
+    message: `AgJSON major-version mismatch (this SDK implements ${AGJSON_VERSION})`,
+  });
+
 // Shared envelope fields on EVERY AgInput variant (spec §3). `state` = shared-
 // state echo (opaque, §11.1); `metadata` may carry namespaced runtime-replay
 // handles (LangGraph `langgraph/threadId` / `langgraph/checkpointId`, A50).
 export const AgInputEnvelope = z.object({
   protocol: z.literal("agjson"),
-  version: z.string(),
+  version: agjsonWireVersion,
   threadId: z.string(),
   turnId: z.string(),
   parentTurnId: z.string().optional(),
@@ -717,7 +727,7 @@ export const AgInputEnvelope = z.object({
 export type AgInputEnvelope = z.infer<typeof AgInputEnvelope>;
 const inputEnvelope = {
   protocol: z.literal("agjson"),
-  version: z.string(),
+  version: agjsonWireVersion,
   threadId: z.string(),
   turnId: z.string(),
   parentTurnId: z.string().optional(),

@@ -24,6 +24,7 @@ import {
   REMOVE_ALL,
   AgMemoryRecord,
   AgUsage,
+  AGJSON_VERSION,
 } from "./agjson.js";
 
 describe("AgEvent (CORE)", () => {
@@ -818,7 +819,7 @@ describe("ADVANCED helper types", () => {
 // §3 helper config types AgReasoningConfig / AgToolDef / AgRunConfig.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const envelope = { protocol: "agjson" as const, version: "1.0.0", threadId: "th1", turnId: "t1" };
+const envelope = { protocol: "agjson" as const, version: AGJSON_VERSION, threadId: "th1", turnId: "t1" };
 
 describe("AgInput (§3)", () => {
   it("parses the kind:start variant (messages + run config)", () => {
@@ -1308,5 +1309,29 @@ describe("S2-EXTENDED additive fields", () => {
   it("AgMessage.usage round-trips the per-message usage landing field (reduce R1 prereq)", () => {
     const msg = AgMessage.parse({ id: "m", role: "assistant", content: [], usage: { outputTokens: 5 } });
     expect(msg.usage?.outputTokens).toBe(5);
+  });
+});
+
+describe("AGJSON_VERSION + wire-version validation (audit B17)", () => {
+  const envelope = {
+    protocol: "agjson",
+    threadId: "th1",
+    turnId: "t1",
+    kind: "start",
+    messages: [],
+  };
+
+  it("exports the spec version literal", () => {
+    expect(AGJSON_VERSION).toBe("1.0.0-draft.1");
+  });
+
+  it("accepts the current version and any same-major version", () => {
+    expect(AgInput.parse({ ...envelope, version: AGJSON_VERSION }).version).toBe(AGJSON_VERSION);
+    expect(AgInput.parse({ ...envelope, version: "1.2.3" }).version).toBe("1.2.3");
+  });
+
+  it("rejects a major-version mismatch and a non-semver string", () => {
+    expect(() => AgInput.parse({ ...envelope, version: "2.0.0" })).toThrow();
+    expect(() => AgInput.parse({ ...envelope, version: "banana" })).toThrow();
   });
 });
