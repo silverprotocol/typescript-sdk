@@ -430,20 +430,31 @@ function mapGroundingCitations(
 //
 // The correct dedup scope is the WINDOW, not "resolved-ness": the
 // aggregate-resend window spans this turn's first `partial:true` event to its
-// NEXT `partial:false` event, which CLOSES it — the facet's existing
-// partial/aggregate boundary (§8 item 3; see `isAggregate`/`streamedText` in
-// `drive()`). `openWindowCounts` is a per-turn MULTISET of (name,argsJson) ->
-// how many times that content was emitted so far in the CURRENTLY open
-// window. Every `partial:true` occurrence mints+emits and increments the
-// count. The closing `partial:false` event SUPPRESSES up to that many
-// occurrences of the same content (the resend) and mints+emits any EXCESS
-// occurrences fresh — the aggregate is authoritative for the window's full
-// call list, so two truly-parallel identical calls emit twice. `drive()`
-// CLEARS the window right after that closing event's parts are processed, so
-// a repeat invocation with identical content in a LATER window is never
-// collapsed — it mints+emits exactly like a first occurrence. A call outside
-// any window (no `partial:true` precursor at all) is never counted either
-// way, so flat standalone repeats always emit too.
+// NEXT `partial:false` event that carries that SAME content, which CLOSES it
+// — the facet's existing partial/aggregate boundary (§8 item 3; see
+// `isAggregate`/`streamedText` in `drive()`). `openWindowCounts` is a per-turn
+// MULTISET of (name,argsJson) -> how many times that content was emitted so
+// far in the CURRENTLY open window. Every `partial:true` occurrence
+// mints+emits and increments the count. The closing `partial:false` event
+// SUPPRESSES up to that many occurrences of the same content (the resend) and
+// mints+emits any EXCESS occurrences fresh — the aggregate is authoritative
+// for the window's full call list, so two truly-parallel identical calls emit
+// twice.
+//
+// Round-3 review finding (regression on this same finding b): the window's
+// lifecycle is scoped PER CONTENT KEY, not per turn. `mintNullIdCallId`
+// clears ONLY the contentKey entry it just fully consumed — it never touches
+// other content keys' entries, and nothing clears the whole turn's map on an
+// unrelated non-partial event (a different tool's call, a text aggregate).
+// The prior "clear the whole per-turn map after any non-partial event"
+// approach wiped a still-in-flight window whenever an unrelated non-partial
+// event landed first, causing that window's TRUE aggregate resend to see no
+// suppress-budget and re-mint+re-emit a duplicate tool.start. Per-contentKey
+// clearing means a repeat invocation with identical content in a LATER window
+// is still never collapsed — once ITS contentKey entry is cleared (by ITS OWN
+// closing event), a further occurrence mints+emits exactly like a first
+// occurrence. A call outside any window (no `partial:true` precursor at all)
+// is never counted either way, so flat standalone repeats always emit too.
 //
 // ── review finding (c): functionResponse correlation ───────────────────────
 // A functionResponse carries the tool NAME, never a position that reliably
@@ -507,12 +518,22 @@ function mintNullIdCallId(
     const windowCounts = mint.openWindowCounts.get(turnId);
     const emitted = windowCounts?.get(contentKey) ?? 0;
     if (emitted > 0) {
-      windowCounts?.set(contentKey, emitted - 1);
+      // Round-3 review finding: the window's lifecycle is scoped to THIS
+      // content key alone, never the whole turn. Once this occurrence's
+      // suppress-budget is fully consumed, delete just this contentKey's
+      // entry — an unrelated non-partial event for a DIFFERENT content key
+      // (or no null-id calls at all) must never touch it. `drive()` no
+      // longer blanket-clears `openWindowCounts` on turn-scope; entries for
+      // windows whose aggregate never arrives simply die with the invoke's
+      // closure (bounded, per-invoke).
+      if (emitted === 1) windowCounts?.delete(contentKey);
+      else windowCounts?.set(contentKey, emitted - 1);
       return { toolCallId: "", resend: true };
     }
-    // No open window, or this content's window budget is already exhausted:
-    // either a standalone call (no partial precursor) or an EXCESS occurrence
-    // in the aggregate (a genuinely-parallel identical call) — mint+emit fresh.
+    // No open window entry for this content, or this content's window budget
+    // is already exhausted: either a standalone call (no partial precursor)
+    // or an EXCESS occurrence in the aggregate (a genuinely-parallel
+    // identical call) — mint+emit fresh.
   }
   const toolCallId = mintFreshCallId(mint, turnId);
   if (isPartial) {
@@ -1017,12 +1038,19 @@ export function createAdkNormalizer(): Normalizer {
     if (isPartial) streamedText.set(key, accumulated);
     else if (isAggregate) streamedText.delete(key);
 
-    // Review finding b: close the resend window HERE, right after this
-    // non-partial event's parts are fully processed — the window spans a
-    // turn's first `partial:true` event to its NEXT `partial:false` event,
-    // which closes it (see the `ToolCallMintState` doc above). A no-op when
-    // no window was open for this turn (e.g. a standalone functionCall event).
-    if (!isPartial) toolCallMint.openWindowCounts.delete(turnId);
+    // Round-3 review finding (regression on finding b): the resend window's
+    // lifecycle is scoped PER CONTENT KEY, never per turn. `mintNullIdCallId`
+    // (see the `ToolCallMintState` doc above) already clears each null-id
+    // call's own contentKey entry as it's consumed while processing this
+    // event's parts, above. There is deliberately NO blanket
+    // `openWindowCounts.delete(turnId)` here anymore: that used to wipe the
+    // WHOLE turn's window map on ANY non-partial event, including one that
+    // carries no null-id calls for the still-open content key at all (a
+    // different tool's real-id call, a text aggregate) — which silently
+    // dropped a still-in-flight window and made its true aggregate resend
+    // re-mint+re-emit a duplicate tool.start. Entries for windows whose
+    // aggregate never arrives simply die with the invoke's closure — bounded,
+    // per-invoke.
 
     driveAdkTopLevel(a, event, messageId, turnId, closedTurns); // standalone/content arms (Tasks 4–5)
     maybeCloseTurn(event, turnId, messageId, isPartial);

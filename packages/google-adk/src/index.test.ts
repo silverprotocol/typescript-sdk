@@ -441,6 +441,46 @@ describe("createAdkNormalizer — tool arms", () => {
     for (const d of dones) expect(startIds.has(d.toolCallId)).toBe(true); // no orphan/dangling done
   });
 
+  it("an unrelated intervening non-partial event does NOT wipe a still-open resend window — the true aggregate resend still dedupes to ONE start (round-3 review finding on M47)", () => {
+    const echoFc = { functionCall: { name: "echo", args: { text: "hi" } } }; // no id — window-tracked
+    const out = run([
+      event([echoFc], { partial: true, finishReason: "STOP" }), // echo's resend window opens
+      event([{ functionCall: { name: "other", args: { x: 1 }, id: "adk-other" } }], {
+        partial: false,
+        finishReason: "STOP",
+      }), // UNRELATED non-partial event (different tool, real id) — must NOT clear echo's window
+      event([echoFc], { partial: false, finishReason: "STOP" }), // echo's TRUE aggregate resend, closes its own window
+      event(
+        [{ functionResponse: { name: "echo", response: { content: [{ type: "text", text: "echo: hi" }] } } }],
+        {}
+      ),
+      event(
+        [
+          {
+            functionResponse: {
+              name: "other",
+              id: "adk-other",
+              response: { content: [{ type: "text", text: "other done" }] },
+            },
+          },
+        ],
+        {}
+      ),
+    ]);
+    const starts = out.filter((e) => e.type === "tool.start") as Array<{ toolCallId: string; name: string }>;
+    const echoStarts = starts.filter((s) => s.name === "echo");
+    const otherStarts = starts.filter((s) => s.name === "other");
+    // Before the fix: the unrelated "other" non-partial event wiped the WHOLE
+    // per-turn window map, so echo's true aggregate resend saw no open budget
+    // and re-minted+re-emitted a SECOND tool.start (duplicate).
+    expect(echoStarts).toHaveLength(1);
+    expect(otherStarts).toHaveLength(1);
+    const dones = out.filter((e) => e.type === "tool.done") as Array<{ toolCallId: string }>;
+    expect(dones).toHaveLength(2); // one per call, correctly paired — no dangling done
+    const startIds = new Set(starts.map((s) => s.toolCallId));
+    for (const d of dones) expect(startIds.has(d.toolCallId)).toBe(true);
+  });
+
   it("ONE event carrying TWO same-name functionResponses correlates POSITIONALLY to the two pending calls (Gemini parallel-call convention, review finding c-i)", () => {
     const out = run([
       event([{ functionCall: { name: "search", args: { q: "apple" } } }], {
