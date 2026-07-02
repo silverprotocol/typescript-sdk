@@ -645,6 +645,125 @@ describe("createAdkNormalizer — actions.requestedToolConfirmations → hitl.as
   });
 });
 
+describe("createAdkNormalizer — HITL pauses fold as outcome:paused at the real close path (audit M26)", () => {
+  // The pause-signaling event carries no functionCall part (the call itself
+  // already streamed in an earlier event) but DOES carry the completion
+  // signals (turnComplete/finishReason) that make maybeCloseTurn's
+  // is_final_response check true — the REAL close path, not flush/truncation.
+  it("requestedAuthConfigs on the close-path event folds turn.done to outcome:paused with the ask, NOT success", () => {
+    const out = run([
+      event([], {
+        partial: false,
+        turnComplete: true,
+        actions: {
+          requestedAuthConfigs: {
+            fc_gmail_1: { authScheme: { type: "oauth2", flows: {} }, credentialKey: "adk_gmail_cred" },
+          },
+        },
+      }),
+    ]);
+    const done = out.find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({
+      type: "turn.done",
+      outcome: {
+        type: "paused",
+        asks: [
+          {
+            askId: "auth_fc_gmail_1",
+            kind: "auth",
+            toolCallId: "fc_gmail_1",
+            metadata: {
+              authConfig: { authScheme: { type: "oauth2", flows: {} }, credentialKey: "adk_gmail_cred" },
+            },
+          },
+        ],
+      },
+    });
+    expect(out.some((e) => e.type === "turn.abort")).toBe(false);
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("requestedToolConfirmations on the close-path event folds turn.done to outcome:paused with the ask, NOT success", () => {
+    const out = run([
+      event([], {
+        partial: false,
+        turnComplete: true,
+        actions: {
+          requestedToolConfirmations: {
+            fc_del_1: { hint: "Confirm delete?", confirmed: false, payload: { path: "/x" } },
+          },
+        },
+      }),
+    ]);
+    const done = out.find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({
+      type: "turn.done",
+      outcome: {
+        type: "paused",
+        asks: [
+          {
+            askId: "approval_fc_del_1",
+            kind: "approval",
+            toolCallId: "fc_del_1",
+            message: "Confirm delete?",
+            metadata: { confirmed: false, payload: { path: "/x" } },
+          },
+        ],
+      },
+    });
+    expect(out.some((e) => e.type === "turn.abort")).toBe(false);
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("folds asks from BOTH arms on the same close-path event, in emission order", () => {
+    const out = run([
+      event([], {
+        partial: false,
+        turnComplete: true,
+        actions: {
+          requestedAuthConfigs: {
+            fc_a: { scope: "x" },
+            fc_b: { scope: "y" },
+          },
+          requestedToolConfirmations: {
+            fc_c: { hint: "confirm?" },
+          },
+        },
+      }),
+    ]);
+    const done = out.find((e) => e.type === "turn.done") as
+      | { outcome?: { type?: string; asks?: Array<{ askId: string }> } }
+      | undefined;
+    expect(done?.outcome?.type).toBe("paused");
+    expect(done?.outcome?.asks?.map((a) => a.askId)).toEqual(["auth_fc_a", "auth_fc_b", "approval_fc_c"]);
+  });
+
+  it("a resolved/no-asks close-path event still closes outcome:success (control)", () => {
+    const out = run([
+      event([{ text: "Hello" }], { partial: false, turnComplete: true, finishReason: "STOP" }),
+    ]);
+    const done = out.find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({ type: "turn.done", outcome: { type: "success" } });
+  });
+
+  it("a truncated stream with pending asks but no close-path completion aborts at flush — never fabricates paused (INV-FLUSH)", () => {
+    // No turnComplete/finishReason/errorCode on this event, so maybeCloseTurn's
+    // is_final_response check never fires; the stream ends without a terminal.
+    // A truncated pause is a truncation (INV-FLUSH) — flush() aborts, it does
+    // NOT consult the pending-asks bookkeeping to fabricate a paused close.
+    const out = run([
+      event([], {
+        actions: {
+          requestedAuthConfigs: { fc_gmail_1: { scope: "x" } },
+        },
+      }),
+    ]);
+    expect(out.some((e) => e.type === "hitl.ask")).toBe(true);
+    expect(out.some((e) => e.type === "turn.done")).toBe(false);
+    expect(out.find((e) => e.type === "turn.abort")).toBeDefined();
+  });
+});
+
 describe("createAdkNormalizer — groundingMetadata.searchEntryPoint → display.required", () => {
   it("emits display.required for searchEntryPoint.renderedContent", () => {
     const out = run([

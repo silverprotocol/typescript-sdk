@@ -55,6 +55,7 @@ import {
   type AgBlock,
   type AgCitation,
   type AgFinishReason,
+  type AgPausedAsk,
   type AgSafety,
   type AgUsage,
   AgProviderMeta,
@@ -732,12 +733,27 @@ function driveAdkPart(
   return "";
 }
 
+/** Append `ask` to the turn's pending-asks list (creating it on first use).
+ *  Preserves emission order — asks accumulate in the order their originating
+ *  hitl.ask events were emitted, which `maybeCloseTurn` folds verbatim into
+ *  `turn.done.outcome.paused.asks[]` (audit M26). */
+function trackPendingAsk(
+  pendingAsks: Map<string, AgPausedAsk[]>,
+  turnId: string,
+  ask: AgPausedAsk
+): void {
+  const existing = pendingAsks.get(turnId);
+  if (existing !== undefined) existing.push(ask);
+  else pendingAsks.set(turnId, [ask]);
+}
+
 function driveAdkTopLevel(
   a: StreamAssembler,
   event: AdkEvent,
   messageId: string,
   turnId: string,
-  closedTurns: Set<string>
+  closedTurns: Set<string>,
+  pendingAsks: Map<string, AgPausedAsk[]>
 ): void {
   if (event.inputTranscription?.text !== undefined) {
     a.contentBlock(messageId, {
@@ -819,32 +835,40 @@ function driveAdkTopLevel(
       // ADK dict[str, AuthConfig] keyed by function-call-id. The AuthConfig is a
       // complex framework-specific object (auth-scheme union + credentials) that
       // does not fit the flat AgAuthConfig OAuth projection, so it rides opaque
-      // in `metadata` (AgJSON: framework-specifics lossless via metadata).
+      // in `metadata` (AgJSON: framework-specifics lossless via metadata; SPEC §8
+      // item 12's sanctioned carrier). The SAME ask fields are tracked in
+      // `pendingAsks` — if this turn's close-path event turns out to be THIS
+      // event (or a later one for the same turnId), `maybeCloseTurn` folds them
+      // into `turn.done.outcome.paused.asks[]` instead of fabricating success
+      // (audit M26).
       for (const [callId, authConfig] of Object.entries(actions.requestedAuthConfigs)) {
-        a.emit({
-          type: "hitl.ask",
+        const ask: AgPausedAsk = {
           askId: `auth_${callId}`,
           kind: "auth",
           toolCallId: callId,
           metadata: { authConfig: JsonValue.parse(authConfig) },
-        });
+        };
+        a.emit({ type: "hitl.ask", ...ask });
+        trackPendingAsk(pendingAsks, turnId, ask);
       }
     }
     if (actions.requestedToolConfirmations !== undefined) {
       // ADK dict[str, ToolConfirmation] keyed by function-call-id. `hint` maps to
-      // `message`; `confirmed`/`payload` ride opaque in `metadata`.
+      // `message`; `confirmed`/`payload` ride opaque in `metadata` (SPEC §8 item
+      // 18). Tracked in `pendingAsks` for the same paused-close fold as above.
       for (const [callId, conf] of Object.entries(actions.requestedToolConfirmations)) {
         const metadata: { [k: string]: JsonValue } = {};
         if (conf.confirmed !== undefined) metadata["confirmed"] = conf.confirmed;
         if (conf.payload !== undefined) metadata["payload"] = JsonValue.parse(conf.payload);
-        a.emit({
-          type: "hitl.ask",
+        const ask: AgPausedAsk = {
           askId: `approval_${callId}`,
           kind: "approval",
           toolCallId: callId,
           ...(conf.hint !== undefined ? { message: conf.hint } : {}),
           ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
-        });
+        };
+        a.emit({ type: "hitl.ask", ...ask });
+        trackPendingAsk(pendingAsks, turnId, ask);
       }
     }
     if (actions.stateDelta !== undefined)
@@ -889,6 +913,12 @@ export function createAdkNormalizer(): Normalizer {
   const streamedText = new Map<string, string>();
   const openTurns = new Set<string>();
   const closedTurns = new Set<string>();
+  // Per-turn HITL asks emitted by the two `actions.requested*` arms (audit
+  // M26) — populated in emission order by `trackPendingAsk` inside
+  // `driveAdkTopLevel`. Consulted ONLY by `maybeCloseTurn`'s REAL close path
+  // (the is_final_response aggregate); the `flush()` truncation path never
+  // reads it — see the comment there.
+  const pendingAsks = new Map<string, AgPausedAsk[]>();
   const assembledToolCalls = new Set<string>(); // FC dedup across partial/aggregate (Task 3)
   // Null-id call mint state (audit M47) — per-invoke ordinal counter + the
   // content/name correlation maps; lives exactly as long as this Normalizer
@@ -932,8 +962,14 @@ export function createAdkNormalizer(): Normalizer {
     } else {
       const usage = mapUsage(event.usageMetadata);
       const safety = mapBlockedSafety(event.safetyRatings);
+      // A turn with pending HITL asks (requestedAuthConfigs /
+      // requestedToolConfirmations, tracked by `trackPendingAsk` above) closes
+      // PAUSED, not success — the asks are real, unresolved requests the
+      // turn is parked on, never a fabricated success (audit M26 / SPEC §8
+      // items 12 + 18). `finishReason` stays the same mapping either way.
+      const asks = pendingAsks.get(turnId);
       a.closeTurnDone(turnId, {
-        outcome: { type: "success" },
+        outcome: asks !== undefined && asks.length > 0 ? { type: "paused", asks } : { type: "success" },
         finishReason: mapFinishReason(event.finishReason ?? event.errorCode),
         ...(usage !== undefined ? { usage } : {}),
         ...(safety !== undefined ? { safety } : {}),
@@ -1052,7 +1088,7 @@ export function createAdkNormalizer(): Normalizer {
     // aggregate never arrives simply die with the invoke's closure — bounded,
     // per-invoke.
 
-    driveAdkTopLevel(a, event, messageId, turnId, closedTurns); // standalone/content arms (Tasks 4–5)
+    driveAdkTopLevel(a, event, messageId, turnId, closedTurns, pendingAsks); // standalone/content arms (Tasks 4–5)
     maybeCloseTurn(event, turnId, messageId, isPartial);
   }
 
@@ -1069,6 +1105,11 @@ export function createAdkNormalizer(): Normalizer {
       // Dangling open turns (interrupted stream before a final aggregate):
       // close their message; the ENGINE flush closes the turn itself with
       // turn.abort{stream-truncated} per INV-FLUSH — never success (audit M21).
+      // This is deliberately true even when `pendingAsks` holds asks for one
+      // of these turns: a HITL pause that never reached the REAL close path
+      // (the is_final_response aggregate — see `maybeCloseTurn`) is an
+      // INTERRUPTED stream, not a resolved pause. A truncated pause is a
+      // truncation — `pendingAsks` is never consulted here (audit M26).
       for (const turnId of openTurns) {
         if (!closedTurns.has(turnId)) {
           closedTurns.add(turnId);
