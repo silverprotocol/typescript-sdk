@@ -852,16 +852,29 @@ describe("reduce — R5 turn-records", () => {
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
 
-  // (c) turn.abort → AgTurnRecord.taskState = "aborted"
-  it("(c) turn.abort sets AgTurnRecord.taskState = 'aborted'", () => {
+  // (c) turn.abort → AgTurnRecord.outcome = {type:"aborted"} (taskState is verbatim-A2A
+  // only and is NEVER reducer-invented — audit M29; was taskState="aborted" pre-fix).
+  it("(c) turn.abort folds outcome={type:'aborted'}, leaves taskState untouched (audit M29)", () => {
     const r = reduce([
       { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
       { type: "turn.abort", seq: 1, turnId: "t1" },
     ]).result;
     expect(r.turns).toHaveLength(1);
     const turn = r.turns[0];
-    expect(turn?.taskState).toBe("aborted");
+    expect(turn?.outcome).toEqual({ type: "aborted" });
+    expect(turn?.taskState).toBeUndefined();
     expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (c2) turn.abort with reason → outcome carries it; taskState stays verbatim-A2A-only
+  // (audit M29 — dedicated marker, symmetric with turn.error).
+  it("turn.abort folds a dedicated aborted outcome and leaves taskState verbatim-A2A (audit M29)", () => {
+    const r = new Reducer();
+    r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    r.push({ type: "turn.abort", seq: 1, turnId: "t1", reason: "stream-truncated" });
+    const turn = r.result().turns[0];
+    expect(turn?.outcome).toEqual({ type: "aborted", reason: "stream-truncated" });
+    expect(turn?.taskState).toBeUndefined();
   });
 
   // (d) source×2 → sourceIds[] in order (groundingChunks order preserved)
@@ -887,6 +900,29 @@ describe("reduce — R5 turn-records", () => {
     const turn = r.turns[0];
     expect(turn?.sourceIds).toEqual(["src-A", "src-B"]);
     expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (d2) source → the FULL record lands on sources[] (payload/chunkIndex/providerMetadata
+  // survive the fold, not just the bare sourceId) so citations can resolve post-fold
+  // (audit M23). sourceIds[] stays as the derived binding index.
+  it("source events land full records; citations can resolve post-fold (audit M23)", () => {
+    const r = new Reducer();
+    r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    r.push({
+      type: "source",
+      seq: 1,
+      sourceId: "s1",
+      source: { url: "https://x.test", title: "X" },
+      chunkIndex: 0,
+      turnId: "t1",
+    });
+    const turn = r.result().turns[0];
+    expect(turn?.sources?.[0]).toMatchObject({
+      sourceId: "s1",
+      source: { url: "https://x.test" },
+      chunkIndex: 0,
+    });
+    expect(turn?.sourceIds).toEqual(["s1"]); // derived, kept
   });
 
   // (e) handoff → handoffs[] with kind/fromAgentId/toAgentId/toAgentName
@@ -936,6 +972,16 @@ describe("reduce — R5 turn-records", () => {
       blocked: true,
     });
     expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  // (f2) prompt.blocked → the dedicated promptBlocked record lands the REQUIRED reason
+  // (and blockedness itself), even with no safety[] at all — a bare-reason block used
+  // to fold to ZERO trace (audit M28).
+  it("prompt.blocked folds its reason and blockedness even with empty safety (audit M28)", () => {
+    const r = new Reducer();
+    r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    r.push({ type: "prompt.blocked", seq: 1, turnId: "t1", reason: "safety" });
+    expect(r.result().turns[0]?.promptBlocked).toMatchObject({ reason: "safety" });
   });
 
   // (g) guardrail.result → guardrails[] entry appended
@@ -2153,6 +2199,8 @@ const EXPECTED_RESULT = {
       finishReason: "stop" as const,
       outcome: { type: "success" as const },
       sourceIds: ["src1"],
+      // audit M23: the full record lands on sources[], not just the bare sourceId.
+      sources: [{ sourceId: "src1", source: { url: "https://example.com", title: "Example" } }],
     },
     // t2 — nested turn (subagent.start at seq 3; threadId inherited from t1)
     {

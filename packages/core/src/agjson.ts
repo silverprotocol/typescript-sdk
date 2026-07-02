@@ -30,6 +30,21 @@ export const AgSource = z.discriminatedUnion("type", [
 ]);
 export type AgSource = z.infer<typeof AgSource>;
 
+// Grounding-source payload union (spec §2/§4): the §4 `source` event's payload
+// union, extracted here so it can be reused verbatim by BOTH the event arm and
+// AgTurnRecord.sources[] — one definition, DRY, cast-free (audit M23).
+export const AgSourcePayload = z.union([
+  AgSource,
+  z.object({ url: z.string(), title: z.string().optional() }),
+  z.object({
+    type: z.literal("document"),
+    mediaType: z.string().optional(),
+    title: z.string().optional(),
+    filename: z.string().optional(),
+  }),
+]);
+export type AgSourcePayload = z.infer<typeof AgSourcePayload>;
+
 // Finish-reason superset (spec §4).
 export const AgFinishReason = z.enum([
   "stop",
@@ -456,11 +471,14 @@ export const AgBlock: z.ZodType<AgBlock> = z.lazy(() =>
 
 // Outcome (spec §4). The within-run pause `{type:"paused", asks}` is the EXTENDED
 // (HITL) arm: the turn parks on one or more asks; `result` MAY accompany a pause
-// (a partial value emitted before parking).
+// (a partial value emitted before parking). `{type:"aborted"}` is turn.abort's
+// dedicated marker (symmetric with the error arm) — taskState is verbatim-A2A
+// only and is NEVER reducer-invented (audit M29).
 export const AgOutcome = z.discriminatedUnion("type", [
   z.object({ type: z.literal("success"), result: JsonValue.optional() }),
   z.object({ type: z.literal("error"), message: z.string(), code: z.string().optional() }),
   z.object({ type: z.literal("rejected"), reason: z.string().optional() }),
+  z.object({ type: z.literal("aborted"), reason: z.string().optional() }),
   z.object({ type: z.literal("paused"), asks: z.array(AgPausedAsk), result: JsonValue.optional() }),
 ]);
 export type AgOutcome = z.infer<typeof AgOutcome>;
@@ -561,8 +579,18 @@ export const AgTurnRecord = z.object({
   safety: z.array(AgSafety).optional(),
   handoffs: z.array(AgHandoffRecord).optional(),
   sourceIds: z.array(z.string()).optional(),
+  sources: z.array(z.object({
+    sourceId: z.string(),
+    source: AgSourcePayload, // the §4 source arm's payload union, landed verbatim (audit M23)
+    chunkIndex: z.number().optional(),
+    providerMetadata: AgProviderMeta.optional(),
+  })).optional(), // grounding sources folded from source events (audit M23); sourceIds stays as the derived index
+  promptBlocked: z.object({
+    reason: z.enum(["safety", "blocklist", "prohibited", "other"]), // mirrors the §4 prompt.blocked reason enum exactly
+    safety: z.array(AgSafety).optional(),
+  }).optional(), // audit M28
   asks: z.array(AgPausedAsk).optional(),
-  taskState: z.string().optional(), // verbatim A2A TaskState with no outcome target (A44)
+  taskState: z.string().optional(), // verbatim A2A TaskState (never reducer-invented — audit M29); no outcome-target mapping (A44)
   displayRequired: z.array(AgDisplayRequired).optional(),
   trigger: AgTrigger.optional(), // what triggered this turn (A2-additive)
   guardrails: z.array(z.object({
@@ -1193,16 +1221,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     ...base,
     type: z.literal("source"),
     sourceId: z.string(),
-    source: z.union([
-      AgSource,
-      z.object({ url: z.string(), title: z.string().optional() }),
-      z.object({
-        type: z.literal("document"),
-        mediaType: z.string().optional(),
-        title: z.string().optional(),
-        filename: z.string().optional(),
-      }),
-    ]),
+    source: AgSourcePayload,
     chunkIndex: z.number().optional(),
     providerMetadata: AgProviderMeta.optional(),
   }),

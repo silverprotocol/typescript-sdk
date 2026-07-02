@@ -624,9 +624,11 @@ export class Reducer {
       }
 
       case "turn.abort": {
-        // Non-folding into content; sets taskState="aborted" on the turn record.
+        // Non-folding into content; sets a dedicated aborted outcome on the turn record
+        // (symmetric with turn.error). taskState is verbatim-A2A only and is NEVER
+        // reducer-invented (audit M29) — it stays whatever a prior turn.done left it as.
         const turn = this.ensureTurn(ev.turnId);
-        turn.taskState = "aborted";
+        turn.outcome = { type: "aborted", ...(ev.reason !== undefined ? { reason: ev.reason } : {}) };
         // INV-MSG binding window: no blocks attach to a closed turn's messages.
         this.#closeTurnWindow(ev.turnId);
         this.#evictTurnScratch(ev.turnId);
@@ -634,12 +636,23 @@ export class Reducer {
       }
 
       case "source": {
-        // Append sourceId to the turn's sourceIds[] in order (preserve groundingChunks order).
+        // Append sourceId to the turn's sourceIds[] in order (preserve groundingChunks order),
+        // AND land the FULL record (payload/chunkIndex/providerMetadata) on sources[] so
+        // citations can resolve post-fold (audit M23) — sourceIds[] stays as the derived index.
         const turn = this.ensureTurn(ev.turnId);
         if (turn.sourceIds === undefined) {
           turn.sourceIds = [];
         }
         turn.sourceIds.push(ev.sourceId);
+        if (turn.sources === undefined) {
+          turn.sources = [];
+        }
+        turn.sources.push({
+          sourceId: ev.sourceId,
+          source: ev.source,
+          ...(ev.chunkIndex !== undefined ? { chunkIndex: ev.chunkIndex } : {}),
+          ...(ev.providerMetadata !== undefined ? { providerMetadata: ev.providerMetadata } : {}),
+        });
         break;
       }
 
@@ -660,7 +673,10 @@ export class Reducer {
       }
 
       case "prompt.blocked": {
-        // Record safety[] on the turn (merge — append to existing safety, or create).
+        // Record safety[] on the turn (merge — append to existing safety, or create) AND
+        // land the dedicated promptBlocked record {reason, safety?} so the REQUIRED reason
+        // and the blockedness itself survive the fold — a bare-reason block used to fold to
+        // ZERO trace (audit M28).
         const turn = this.ensureTurn(ev.turnId);
         if (ev.safety !== undefined) {
           if (turn.safety === undefined) {
@@ -669,6 +685,10 @@ export class Reducer {
             turn.safety = [...turn.safety, ...ev.safety];
           }
         }
+        turn.promptBlocked = {
+          reason: ev.reason,
+          ...(ev.safety !== undefined ? { safety: ev.safety } : {}),
+        };
         break;
       }
 
