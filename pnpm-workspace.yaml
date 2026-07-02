@@ -5,3 +5,24 @@
 # built standalone.
 packages:
   - "packages/*"
+# pnpm 11's build-approval gate (ERR_PNPM_IGNORED_BUILDS) fails a cold
+# `pnpm install` unless every dependency with a lifecycle script has an
+# explicit decision recorded here. Note: pnpm 11.2.2 does NOT read a
+# `pnpm.onlyBuiltDependencies` field from package.json (it warns "The
+# 'pnpm' field in package.json is no longer read by pnpm") and does NOT
+# honor `onlyBuiltDependencies:` in this file either — verified empirically
+# via `pnpm install` on a cold clone. The key pnpm 11 actually reads (and
+# auto-suggests via its own ERR_PNPM_IGNORED_BUILDS hint) is `allowBuilds`,
+# a per-package boolean map; every ignored-build package must be listed
+# explicitly (an empty/absent map still errors). None of these five need
+# their install scripts for this SDK: their build scripts are native/CLI
+# extras unused by the test suite (esbuild ships prebuilt platform
+# binaries as optionalDependencies, so its own postinstall isn't needed).
+# Verified: `pnpm install && pnpm typecheck && pnpm test && pnpm e2e:replay`
+# all green on a fresh clone with every entry set to `false`.
+allowBuilds:
+  '@google/genai': false
+  cpu-features: false
+  esbuild: false
+  protobufjs: false
+  ssh2: false
