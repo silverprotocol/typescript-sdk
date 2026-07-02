@@ -973,3 +973,64 @@ describe("createClaudeNormalizer — text block with citations omitted (real SDK
     expect(types).not.toContain("content.block"); // no citations → no contentBlock
   });
 });
+
+// ── tool_use_result sibling mapping (audit B7) ────────────────────────────────
+// The Claude Agent SDK attaches a message-level `tool_use_result` sibling to the
+// user message carrying the tool_result block(s) — the SDK's own rich MCP result
+// (structuredContent incl. render-cache markers, plus `_meta.ui` for MCP Apps),
+// distinct from whatever the block itself carries. §2.1 routes it: `_meta.ui`
+// present ⇒ uiData (surface data, model-hidden); else ⇒ structuredContent
+// (model-facing). The sibling's `_meta` rides verbatim on the event's `_meta`.
+// Multi-result messages are ambiguous (the sibling is message-level, not
+// per-block) and are skipped rather than misattributed.
+describe("tool_use_result sibling mapping (audit B7)", () => {
+  const oneToolResult: JsonValue[] = [
+    { type: "tool_result", tool_use_id: "c1", content: [] },
+  ];
+  const twoToolResults: JsonValue[] = [
+    { type: "tool_result", tool_use_id: "c1", content: [] },
+    { type: "tool_result", tool_use_id: "c2", content: [] },
+  ];
+  const userMsgWith = (
+    sibling: Record<string, JsonValue>,
+    content: JsonValue[] = oneToolResult,
+  ): JsonValue => ({
+    type: "user",
+    session_id: "s1",
+    parent_tool_use_id: null,
+    message: { role: "user", content },
+    tool_use_result: sibling,
+  });
+
+  it("routes sibling structuredContent to uiData when _meta.ui is present (MCP-Apps)", () => {
+    const n = createClaudeNormalizer();
+    const evs = n.push(
+      userMsgWith({
+        structuredContent: { cache: { hit: true, kind: "warm", llmCallsAvoided: 2 } },
+        _meta: { ui: { resourceUri: "ui://x", visibility: ["model"] } },
+      }),
+    );
+    const done = evs.find((e) => e.type === "tool.done");
+    expect(done?.type === "tool.done" && done.uiData).toEqual({
+      cache: { hit: true, kind: "warm", llmCallsAvoided: 2 },
+    });
+    expect(done?.type === "tool.done" && done._meta).toEqual({
+      ui: { resourceUri: "ui://x", visibility: ["model"] },
+    });
+  });
+
+  it("routes sibling structuredContent to structuredContent when no _meta.ui (base MCP)", () => {
+    const n = createClaudeNormalizer();
+    const evs = n.push(userMsgWith({ structuredContent: { answer: 42 } }));
+    const done = evs.find((e) => e.type === "tool.done");
+    expect(done?.type === "tool.done" && done.structuredContent).toEqual({ answer: 42 });
+  });
+
+  it("skips the sibling when the message carries more than one tool_result (ambiguous)", () => {
+    const msg = userMsgWith({ structuredContent: { x: 1 } }, twoToolResults);
+    const n = createClaudeNormalizer();
+    const dones = n.push(msg).filter((e) => e.type === "tool.done");
+    expect(dones).toHaveLength(2);
+    for (const d of dones) expect(d.type === "tool.done" && d.uiData).toBeUndefined();
+  });
+});

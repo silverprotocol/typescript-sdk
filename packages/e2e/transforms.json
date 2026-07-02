@@ -5,6 +5,8 @@
   "[*].message.usage.cache_read_input_tokens",
   "[*].modelUsage.claude-sonnet-4-6.webSearchRequests",
   "[*].stop_reason",
+  "[*].tool_use_result.structuredContent.cache.hit",
+  "[*].tool_use_result.structuredContent.cache.llmCallsAvoided",
   "[*].usage.server_tool_use.web_fetch_requests",
   "[*].usage.server_tool_use.web_search_requests"
 ]

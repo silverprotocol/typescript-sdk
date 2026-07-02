@@ -82,7 +82,24 @@
       }
     ],
     "outcome": "ok",
-    "isError": false
+    "isError": false,
+    "uiData": {
+      "title": "Hello",
+      "body": "World",
+      "cache": {
+        "hit": false,
+        "llmCallsAvoided": 0,
+        "kind": "cold"
+      }
+    },
+    "_meta": {
+      "ui": {
+        "resourceUri": "ui://mock/card",
+        "visibility": [
+          "model"
+        ]
+      }
+    }
   },
   {
     "type": "turn.abort",

@@ -24,6 +24,7 @@ import {
   type AgBlock,
   type AgCitation,
   type AgFinishReason,
+  AgMeta,
   type AgSafety,
   type AgSource,
   type AgUsage,
@@ -461,6 +462,27 @@ export function createClaudeNormalizer(): Normalizer {
       if (typeof content !== "string") {
         const toolTurnId =
           msg.parent_tool_use_id !== null ? `turn_${msg.parent_tool_use_id}` : undefined;
+        // tool_use_result sibling (SDK-injected rich MCP result; audit B7): carries
+        // structuredContent (incl. render-cache markers) + _meta.ui the block-level
+        // arm never sees. Applies only when the message has exactly ONE tool_result
+        // block (the sibling is message-level; multi-result attribution is ambiguous —
+        // skipped, and the census will surface it if a multi-result sibling ever occurs).
+        const rawMsg = isJsonObject(msg) ? msg : undefined;
+        const sibling =
+          rawMsg !== undefined && isJsonObject(rawMsg["tool_use_result"])
+            ? rawMsg["tool_use_result"]
+            : undefined;
+        const siblingSc =
+          sibling?.["structuredContent"] !== undefined
+            ? JsonValue.parse(sibling["structuredContent"])
+            : undefined;
+        const siblingMeta =
+          sibling !== undefined && isJsonObject(sibling["_meta"])
+            ? AgMeta.parse(sibling["_meta"])
+            : undefined;
+        const siblingHasUi = siblingMeta !== undefined && siblingMeta["ui"] !== undefined;
+        const toolResultCount = content.filter((b) => b.type === "tool_result").length;
+        const applySibling = sibling !== undefined && toolResultCount === 1;
         for (const block of content) {
           if (block.type === "tool_result") {
             const outcome: ToolOutcome = block.is_error === true ? "error" : "ok";
@@ -481,7 +503,20 @@ export function createClaudeNormalizer(): Normalizer {
               outcome,
               isError: block.is_error === true,
               turnId: toolTurnId,
-              ...(sc !== undefined ? { structuredContent: sc } : {}),
+              // §2.1 routing: MCP-Apps structuredContent (sibling with _meta.ui)
+              // is surface data → uiData; base-MCP structuredContent → the model
+              // channel. The sibling's copy is authoritative over the block-level
+              // one (it carries the full payload incl. cache markers).
+              ...(applySibling && siblingHasUi && siblingSc !== undefined
+                ? { uiData: siblingSc }
+                : {}),
+              ...(applySibling && !siblingHasUi && siblingSc !== undefined
+                ? { structuredContent: siblingSc }
+                : sc !== undefined
+                  ? { structuredContent: sc }
+                  : {}),
+              ...(applySibling && siblingHasUi && sc !== undefined ? { structuredContent: sc } : {}),
+              ...(applySibling && siblingMeta !== undefined ? { _meta: siblingMeta } : {}),
             });
           }
         }
