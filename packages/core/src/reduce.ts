@@ -928,7 +928,7 @@ export class Reducer {
         // to assert (mirrors the unconditional #closedTurns reset above).
         this.#openedTurns = ev.turns !== undefined
           ? new Set(ev.turns.map((t) => t.turnId))
-          : new Set();
+          : new Set(this.#turns.keys());
 
         // Un-park.
         this.#resync = false;

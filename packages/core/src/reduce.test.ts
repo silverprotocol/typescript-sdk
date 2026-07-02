@@ -1695,6 +1695,47 @@ describe("reduce — R9 new-ops + resync + snapshot + live-only", () => {
     expect(() => AgReduceResult.parse(acc.result())).not.toThrow();
   });
 
+  // (d5) turns-omitting messages.snapshot preserves adoption eligibility for preserved turns (M27 conditional replace)
+  it("a turns-omitting messages.snapshot preserves adoption eligibility for preserved turns (M27 conditional replace)", () => {
+    const r = new Reducer();
+    r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    r.push({
+      type: "message.start",
+      seq: 1,
+      id: "m1",
+      role: "assistant",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    r.push({
+      type: "tool.start",
+      seq: 2,
+      toolCallId: "c1",
+      name: "calc",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    // Push a messages.snapshot that OMITS turns (preserves the turn)
+    r.push({
+      type: "messages.snapshot",
+      seq: 3,
+      messages: [],
+    });
+    // After snapshot: turn t1 should still be eligible for tool.done adoption
+    r.push({
+      type: "tool.done",
+      seq: 4,
+      toolCallId: "c1",
+      content: [],
+      outcome: "ok",
+      turnId: "t1",
+      messageId: "tm1",
+      threadId: "th1",
+    });
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.find((m) => m.id === "tm1")).toBeDefined();
+  });
+
   // ── (e) seq-gap → resync; BOTH snapshot kinds clear it ─────────────────────
 
   // (e1) seq-gap (ev.seq > #lastSeq+1) → needsResync set; subsequent events ignored
