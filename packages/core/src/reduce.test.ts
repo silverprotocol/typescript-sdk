@@ -2637,3 +2637,44 @@ describe("tool.done.messageId adoption (SPEC §5 fold row; audit B10)", () => {
     expect(tm?.content).toHaveLength(0); // No tool-result silently attached
   });
 });
+
+describe("reducer scratch eviction at turn terminals (audit M51)", () => {
+  it("an errored turn's dangling opaque scratch cannot corrupt a later turn's same-id block (audit M51)", () => {
+    const r = new Reducer();
+    r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    r.push({
+      type: "message.start",
+      seq: 1,
+      id: "m1",
+      role: "assistant",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    r.push({ type: "reasoning.start", seq: 2, id: "r0", turnId: "t1" });
+    r.push({ type: "reasoning.opaque.delta", seq: 3, id: "r0", delta: "STALE" });
+    r.push({ type: "turn.error", seq: 4, turnId: "t1", message: "boom" }); // dangling scratch
+    // next invoke reuses the per-invoke id r0 (backward seq jump tolerated)
+    r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t2" });
+    r.push({
+      type: "message.start",
+      seq: 1,
+      id: "m2",
+      role: "assistant",
+      turnId: "t2",
+      threadId: "th1",
+    });
+    r.push({ type: "reasoning.start", seq: 2, id: "r0", turnId: "t2" });
+    r.push({
+      type: "reasoning.opaque",
+      seq: 3,
+      id: "r0",
+      kind: "signature",
+      value: "FRESH",
+      turnId: "t2",
+    });
+    const m2 = r.result().messages.find((m) => m.id === "m2");
+    const block = m2?.content.find((b) => b.type === "reasoning");
+    expect(block?.type === "reasoning" && block.opaque?.value).toBe("FRESH"); // not "STALE"+…
+    expect(r.needsResync).toBe(false);
+  });
+});

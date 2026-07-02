@@ -603,6 +603,7 @@ export class Reducer {
         }
         // INV-MSG binding window: no blocks attach to a closed turn's messages.
         this.#closeTurnWindow(ev.turnId);
+        this.#evictTurnScratch(ev.turnId);
         break;
       }
 
@@ -618,6 +619,7 @@ export class Reducer {
         if (ev.usage !== undefined) turn.usage = ev.usage;
         // INV-MSG binding window: no blocks attach to a closed turn's messages.
         this.#closeTurnWindow(ev.turnId);
+        this.#evictTurnScratch(ev.turnId);
         break;
       }
 
@@ -627,6 +629,7 @@ export class Reducer {
         turn.taskState = "aborted";
         // INV-MSG binding window: no blocks attach to a closed turn's messages.
         this.#closeTurnWindow(ev.turnId);
+        this.#evictTurnScratch(ev.turnId);
         break;
       }
 
@@ -1054,6 +1057,24 @@ export class Reducer {
     this.#closedTurns.add(resolved);
     for (const [pk] of this.#openMsg) {
       if (pk.startsWith(`${resolved} `)) this.#openMsg.delete(pk);
+    }
+  }
+
+  /**
+   * Evict dangling per-block streaming scratch owned by a closed turn
+   * (audit M51): #toolArgs/#opaque entries are otherwise reclaimed only on
+   * assembled/seal/snapshot — an errored/aborted turn leaks them and a reused
+   * per-invoke block id in a LATER turn would concatenate stale scratch.
+   */
+  #evictTurnScratch(turnId: string | undefined): void {
+    const resolved = this.#resolveTurnId(turnId);
+    if (resolved === undefined) return;
+    for (const [blockId, pos] of this.#blockPos) {
+      const msg = this.#messages.get(pos.messageId);
+      if (msg?.turnId === resolved) {
+        this.#toolArgs.delete(blockId);
+        this.#opaque.delete(blockId);
+      }
     }
   }
 
