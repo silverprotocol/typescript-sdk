@@ -15,8 +15,8 @@
  *   4. Produce { native, agjson, coverage } where agjson = normalize all
  *      native events via createClaudeNormalizer, coverage = census(...).
  */
-import type { JsonValue } from "@silverprotocol/core";
-import type { Normalizer } from "@silverprotocol/core";
+import type { JsonValue, Normalizer } from "@silverprotocol/core";
+import { toWire } from "@silverprotocol/core";
 import type { CensusInput, CensusReport } from "./census.js";
 import type { MockKind } from "./mcp-mocks/tools.js";
 import type { MockHandle } from "./mcp-mocks/serve.js";
@@ -142,15 +142,15 @@ export async function runCapture(
     for (const event of native) {
       const produced = normalizer.push(event);
       for (const e of produced) {
-        // AgEvent is valid JsonValue (spec §0.1) — JSON.parse(JSON.stringify(e))
-        // materializes the whole object as plain JsonValue without a cast.
-        agEvents.push(JSON.parse(JSON.stringify(e)) as JsonValue);
+        // Wire projection (audit D5-a) — toWire materializes the AgEvent as
+        // plain JsonValue for the cassette.
+        agEvents.push(toWire(e));
       }
     }
     // Flush any dangling open messages
     const flushed = normalizer.flush();
     for (const e of flushed) {
-      agEvents.push(JSON.parse(JSON.stringify(e)) as JsonValue);
+      agEvents.push(toWire(e));
     }
 
     const agjsonValue: JsonValue = agEvents;

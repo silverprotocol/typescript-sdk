@@ -21,6 +21,7 @@
 
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { JsonValue } from "@silverprotocol/core";
+import { toJsonValue } from "@silverprotocol/core";
 
 // ─── Public interface ─────────────────────────────────────────────────────────
 
@@ -121,10 +122,9 @@ export async function* runClaudeCapture(input: CaptureRunInput): AsyncIterable<J
 
   try {
     for await (const msg of response) {
-      // JSON round-trip materializes the WHOLE raw message (including fields typed
-      // as `unknown` by the SDK, e.g. SDKUserMessage's tool_use_result sibling)
-      // into plain JsonValue. No per-field cast needed.
-      yield JSON.parse(JSON.stringify(msg)) as JsonValue;
+      // Wire projection (audit D5-a) — toJsonValue materializes the WHOLE raw
+      // message (including fields typed as `unknown` by the SDK) into plain JsonValue.
+      yield toJsonValue(msg);
     }
   } finally {
     // Remove the abort listener (no-op if it was never added) so a long-lived

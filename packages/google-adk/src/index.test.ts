@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { AgEvent, AgReduceResult, JsonValue, Reducer } from "@silverprotocol/core";
+import { AgEvent, AgReduceResult, JsonValue, Reducer, toJsonValue } from "@silverprotocol/core";
 import { createAdkNormalizer, mapFinishReason, type AdkEvent, type AdkPart } from "./index.js";
 
 /** Build one ADK Event (a Gemini Content + event metadata). */
@@ -8,10 +8,10 @@ function event(parts: AdkPart[], extra: Partial<AdkEvent> = {}): AdkEvent {
 }
 
 /** Serialize an AdkEvent to JsonValue — the cassette/wire boundary the normalizer
- *  consumes. `JSON.parse(...) as JsonValue` is the established round-trip idiom
- *  (replay.ts:153), NOT a workaround (no `as unknown as`). */
+ *  consumes. Wire projection (audit D5-a): toJsonValue materializes the native
+ *  event as plain JsonValue. */
 function toJson(e: AdkEvent): JsonValue {
-  return JSON.parse(JSON.stringify(e)) as JsonValue;
+  return toJsonValue(e);
 }
 
 /** Drive a list of events through one normalizer instance, then flush. */

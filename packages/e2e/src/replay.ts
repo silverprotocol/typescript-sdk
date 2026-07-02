@@ -31,6 +31,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { JsonValue } from "@silverprotocol/core";
+import { toWire } from "@silverprotocol/core";
 import { createClaudeNormalizer } from "@silverprotocol/claude-agent-sdk";
 import { createOpenaiNormalizer } from "@silverprotocol/openai-agents";
 import { createAdkNormalizer } from "@silverprotocol/google-adk";
@@ -156,13 +157,13 @@ export async function replayCassette(
   const agjson: JsonValue[] = [];
   for (const event of native) {
     for (const e of normalizer.push(event)) {
-      // AgEvent is a valid JsonValue (spec §0.1) — round-trip through JSON so the
-      // committed snapshot compares plain JSON, exactly as the wire delivers it.
-      agjson.push(JSON.parse(JSON.stringify(e)) as JsonValue);
+      // Wire projection (audit D5-a) — toWire materializes the AgEvent as
+      // plain JsonValue, exactly as the wire delivers it.
+      agjson.push(toWire(e));
     }
   }
   for (const e of normalizer.flush()) {
-    agjson.push(JSON.parse(JSON.stringify(e)) as JsonValue);
+    agjson.push(toWire(e));
   }
 
   // ── Load the three guard JSONs + run census. ───────────────────────────────
