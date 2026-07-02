@@ -240,6 +240,28 @@ interface OpenAIToolApprovalRequestedEvent {
   item: { type: "tool_approval_item"; rawItem: OpenAIToolApprovalItem };
 }
 
+/** The union of every `run_item_stream_event` arm this fixture contract declares
+ *  (one per consumed `RunItemStreamEventName`). Used to hold a WIDENED reference
+ *  to a run-item event in the drive() switch's `default` arm (Task 3, audit M48):
+ *  once every declared `name` literal has its own `case`, TS narrows the switched-
+ *  on `event` to `never` inside `default` — legally so, since every name this type
+ *  declares IS handled — but a real-wire `RunItemStreamEventName` this hand-typed
+ *  union does NOT declare (e.g. `handoff_occurred`, `mcp_approval_requested`) still
+ *  reaches `default` at RUNTIME (the outer guard only checks `typeof name ===
+ *  "string"`, file header). A binding declared at this wider (but still concrete,
+ *  non-`any`/`unknown`) type reads `.name`/`.item` without the `never` narrowing
+ *  the switched expression itself is subject to — not a cast, since the runtime
+ *  value genuinely does have this type shape (any run-item event IS one of these
+ *  six interfaces at the TS boundary; `default` is where the STATIC type and the
+ *  DYNAMIC reality provably diverge, mirroring the M46 "widen, don't cast" fix). */
+type OpenAIRunItemEvent =
+  | OpenAIMessageOutputEvent
+  | OpenAIToolCalledEvent
+  | OpenAIToolOutputEvent
+  | OpenAIReasoningEvent
+  | OpenAIHandoffRequestedEvent
+  | OpenAIToolApprovalRequestedEvent;
+
 // ── raw_model_stream_event arm ───────────────────────────────────────────────
 // `RunRawModelStreamEvent.data` is the Agents SDK's own `ResponseStreamEvent`
 // union (`@openai/agents` protocol `StreamEvent`): the literals below + the
@@ -555,10 +577,14 @@ function isOpenAIStreamEvent(v: unknown): v is OpenAIStreamEvent {
  * `closeResponse()` resets per-response state so the duplicate `response.completed`
  * is a no-op.
  *
- * NOTE (T5a scope): tools, refusal, incomplete/failed error arms, citations,
- * reasoning, handoff and HITL are NOT yet ported — they are KNOWN families and are
- * no-op'd here (NOT routed to `unparsed`). T5b/T5c port them. `emitExt` is reserved
- * for a genuinely unrecognisable OUTER envelope only (mirrors the Claude facet).
+ * `reasoning_item_created` / `handoff_requested` / `tool_approval_requested` (Task
+ * 3, audit M48) map to `reasoning.start/delta/end/opaque`, a `handoff` event, and
+ * `hitl.ask{kind:"approval"}` respectively — see `driveReasoningItemCreated` and the
+ * run-item switch below for the full rationale (including why `handoff_requested`
+ * maps to the standalone `handoff` event rather than `subagentStart`). `emitExt` is
+ * reserved for a genuinely unrecognisable OUTER envelope AND — per the run-item
+ * switch's default arm — a genuinely-unknown run-item `name` (mirrors the Claude
+ * facet).
  */
 export function createOpenaiNormalizer(): Normalizer {
   const a = new StreamAssembler();
@@ -959,6 +985,66 @@ export function createOpenaiNormalizer(): Normalizer {
   }
 
   /**
+   * Map a `reasoning_item_created` run-item (Task 3, audit M48): the SOLE source
+   * for reasoning content on this seam — `response.output_item.added` only special-
+   * cases `item.type==="function_call"` (canonical model, A1); it carries no
+   * `content`/`providerData` for a `reasoning` item, so it structurally cannot
+   * supply the summary text or the ZDR blob and is left untouched (single-source
+   * per concern, no double-emit).
+   *
+   * The run-item wrapper delivers the reasoning item as ONE completed unit (unlike
+   * the incremental text/tool-arg deltas elsewhere in this facet), so
+   * start/delta/end/opaque all fire together, in that order, from this single call:
+   *  - `reasoning.start`  — opens the block; `itemId` carries the `rs_…` id.
+   *  - `reasoning.delta`  — the joined `input_text` parts, only if non-empty.
+   *  - `reasoning.end`    — closes the block.
+   *  - `reasoning.opaque` — ONLY when `providerData.encrypted_content` is present:
+   *    the OpenAI ZDR (`store:false`) stateless-replay blob (spec §8.2/§10.4),
+   *    `kind:"ciphertext"`, with `itemId` carrying the `rs_…` id again (REPLAY-
+   *    LOAD-BEARING — `reduce()`'s `reasoning.opaque` handler sets `block.itemId`
+   *    from it, spec §4 row for `reasoning.opaque`).
+   *
+   * `id`/`itemId` reuse the `rs_…` item id (falling back to a fixed placeholder
+   * only in the defensive case the id is absent — mirrors the original T5 port,
+   * commit c1f6f71, since deleted unported until this task).
+   *
+   * `reasoningStart`/`reasoningOpaque` carry `itemId`, which the StreamAssembler
+   * sugar methods do not expose a parameter for (only `reasoningDelta`/
+   * `reasoningEnd` are used via sugar) — `a.emit()` is the documented base
+   * primitive for exactly this case (StreamAssembler docstring: "guarantees no
+   * AgClosedEventType is ever unreachable").
+   *
+   * Mirrors `driveMessageOutputCreated`/`tool_output`: assumes the response is
+   * already open (every response always opens via `response.created` before any
+   * run-item can arrive) rather than calling `ensureResponseOpen()` — reopening
+   * here would risk a phantom turn on a late arrival. If `msgId` is undefined
+   * (response already closed) this degrades to a no-op — a late-arrival ext route
+   * (mirroring `ext.openai.late-citations`, M22) is deferred: unlike citations,
+   * no live capture has yet proven this ordering for reasoning items.
+   */
+  function driveReasoningItemCreated(item: OpenAIReasoningItem): void {
+    if (msgId === undefined) return; // defensive: response already closed
+    const id = item.id ?? "reasoning";
+    const itemId = item.id;
+    const text = item.content.map((p) => p.text).join("");
+    a.emit({ type: "reasoning.start", id, messageId: msgId, ...(itemId !== undefined ? { itemId } : {}) });
+    if (text.length > 0) a.reasoningDelta(id, msgId, text);
+    a.reasoningEnd(id, msgId);
+    const encrypted = item.providerData?.encrypted_content;
+    if (typeof encrypted === "string" && encrypted.length > 0) {
+      a.emit({
+        type: "reasoning.opaque",
+        id,
+        messageId: msgId,
+        kind: "ciphertext",
+        value: encrypted,
+        provider: "openai",
+        ...(itemId !== undefined ? { itemId } : {}),
+      });
+    }
+  }
+
+  /**
    * Map the synthetic `__host_error__` sentinel (host feeds it on
    * `MaxTurnsExceededError`) to a terminal `turn.error{code, message, usage}`.
    *  - A response turn is OPEN → close THAT turn (end streams, close message,
@@ -989,6 +1075,9 @@ export function createOpenaiNormalizer(): Normalizer {
       return;
     }
     if (event.type === "run_item_stream_event") {
+      // Widened reference for the switch's `default` arm — see OpenAIRunItemEvent's
+      // docstring (Task 3, audit M48).
+      const runItemEvent: OpenAIRunItemEvent = event;
       switch (event.name) {
         case "tool_output": {
           // Authoritative tool-result source (canonical model, A1). Drives toolDone
@@ -1045,9 +1134,74 @@ export function createOpenaiNormalizer(): Normalizer {
           // IGNORED — superseded by model:response.output_item.added, which is the
           // authoritative tool-start source (canonical model, A1 §"Spike Findings").
           return;
+        case "reasoning_item_created":
+          // SOLE source for reasoning content — see driveReasoningItemCreated's
+          // docstring for the single-sourcing rationale (Task 3, audit M48).
+          driveReasoningItemCreated(event.item.rawItem);
+          return;
+        case "handoff_requested": {
+          // Task 3 (audit M48) handoff mapping. The typed input
+          // (`OpenAIHandoffCallItem`) is FunctionCallItem-shaped: `name`, `callId`,
+          // `arguments`, and an OPTIONAL `targetAgent` — it carries no "from" agent
+          // identity at all, and this facet tracks no agent-identity concept
+          // anywhere (single fixed `threadId:"openai"`; unlike google-adk's
+          // per-message agentId/agentName). So `fromAgentId`/`toAgentId` are never
+          // fabricated; `toAgentName` is set only when the wire supplies
+          // `targetAgent` explicitly.
+          //
+          // Mapping to the standalone `handoff` event rather than `subagentStart`:
+          // the fixture contract declares ONLY `handoff_requested` — no
+          // `handoff_occurred`/completion counterpart exists on this seam — so
+          // there is no way to determine when (or whether) a nested subagent turn
+          // would close. `StreamAssembler.subagentStart` opens a turn that MUST be
+          // closed by a matching `subagentDone`; a subagent turn still open at
+          // `flush()` gets INV-FLUSH-aborted as `turn.abort{reason:"stream-
+          // truncated"}` (audit M21) — which would misrepresent a handoff that
+          // genuinely completed as a truncated stream. Since closure can't be
+          // determined from this wire, the `handoff` event (spec §4 bare-noun
+          // EVENT carve-out) is the safer mapping: it survives the fold
+          // (`turn.handoffs[]`, reduce.ts) without opening anything that must
+          // later be closed.
+          const item = event.item.rawItem;
+          a.emit({
+            type: "handoff",
+            kind: "transfer",
+            ...(item.targetAgent !== undefined ? { toAgentName: item.targetAgent } : {}),
+          });
+          return;
+        }
+        case "tool_approval_requested": {
+          // Task 3 (audit M48): a human-in-the-loop approval gate on a pending
+          // tool call. `askId` mirrors the `approval_${callId}` convention already
+          // established by the google-adk facet's `requestedToolConfirmations` arm
+          // (index.ts:653) for the same `kind:"approval"` semantics. The M26
+          // paused-fold discipline (surfacing this on the turn's `outcome.paused`)
+          // is ADK-scoped for this batch — `hitl.ask` is LIVE-ONLY on the fold
+          // (reduce.ts R9: no accumulator mutation), so emitting the ask alone is
+          // complete; the host/turn-close owns any pause semantics.
+          const item = event.item.rawItem;
+          a.emit({
+            type: "hitl.ask",
+            askId: `approval_${item.callId}`,
+            kind: "approval",
+            toolCallId: item.callId,
+          });
+          return;
+        }
         default:
-          // Other run-item families (reasoning/handoff/HITL) are not yet ported.
-          // No-op here (NOT routed to `unparsed` — they are known families).
+          // A genuinely-unknown run-item name (a real-wire RunItemStreamEventName
+          // this fixture-contract union does not declare — e.g. `handoff_occurred`,
+          // `mcp_approval_requested`, `mcp_list_tools`). The OUTER guard
+          // (`isOpenAIStreamEvent`) validates only `typeof name === "string"` (file
+          // header), so an unrecognised name reaches here at runtime despite
+          // `event`'s TS-narrowed `never` type (every literal this union declares
+          // is handled by a case above). Route losslessly per Tenet 6 — this is the
+          // file's stated ext.openai.unparsed convention for genuinely-unknown
+          // run-items (audit M48; previously a silent no-op here).
+          a.emitExt("openai", "unparsed", {
+            name: runItemEvent.name,
+            item: JsonValue.parse(runItemEvent.item),
+          });
           return;
       }
     }

@@ -1183,3 +1183,307 @@ describe("createOpenaiNormalizer — capstone fold-identity over a combined corp
     expect(() => AgReduceResult.parse(res)).not.toThrow();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Task 3 (audit M48) — port the three typed-but-no-op'd known run-item
+// families: reasoning_item_created (incl. rs_/encrypted_content ZDR replay),
+// handoff_requested, tool_approval_requested. Plus: the default arm now
+// routes genuinely-unknown run-item names to `ext.openai.unparsed` (the file's
+// stated convention, previously untrue — M48).
+//
+// Single-sourcing note: none of these three typed run-item interfaces has a
+// counterpart arm in `response.output_item.added` (that raw event only special-
+// cases `item.type === "function_call"`, and none of the three declares a
+// richer item shape there — reasoning's content/encrypted_content and
+// handoff's targetAgent exist ONLY on the run-item's `rawItem`). So the
+// run-item arm is the sole source for all three; `output_item.added` is left
+// untouched.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("createOpenaiNormalizer — reasoning_item_created (Task 3, audit M48)", () => {
+  it("rs_ id + summary text + encrypted_content ⇒ reasoning.start/delta/end + reasoning.opaque carrying the ZDR replay blob", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_reason_1" } }),
+      runItem("reasoning_item_created", {
+        type: "reasoning_item",
+        rawItem: {
+          type: "reasoning",
+          id: "rs_abc123",
+          content: [{ type: "input_text", text: "Thinking about the answer..." }],
+          providerData: { encrypted_content: "ENC_BLOB_XYZ" },
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_reason_1", status: "completed" } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+
+    const start = evs.find((e) => e.type === "reasoning.start") as {
+      itemId?: string;
+      id?: string;
+    };
+    expect(start).toBeDefined();
+    expect(start?.itemId).toBe("rs_abc123");
+
+    const delta = evs.find((e) => e.type === "reasoning.delta") as { delta?: string };
+    expect(delta?.delta).toBe("Thinking about the answer...");
+
+    const end = evs.find((e) => e.type === "reasoning.end");
+    expect(end).toBeDefined();
+
+    const opaque = evs.find((e) => e.type === "reasoning.opaque") as {
+      kind?: string;
+      value?: string;
+      itemId?: string;
+      provider?: string;
+    };
+    expect(opaque).toBeDefined();
+    expect(opaque?.kind).toBe("ciphertext");
+    expect(opaque?.value).toBe("ENC_BLOB_XYZ");
+    expect(opaque?.itemId).toBe("rs_abc123");
+    expect(opaque?.provider).toBe("openai");
+
+    // reasoning.start / reasoning.opaque share the same block `id`.
+    expect(opaque && start && (opaque as { id?: string }).id).toBe((start as { id?: string }).id);
+  });
+
+  it("no summary text ⇒ no reasoning.delta (start/end/opaque still fire)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_reason_2" } }),
+      runItem("reasoning_item_created", {
+        type: "reasoning_item",
+        rawItem: {
+          type: "reasoning",
+          id: "rs_notext",
+          content: [],
+          providerData: { encrypted_content: "ENC_2" },
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_reason_2", status: "completed" } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    expect(evs.find((e) => e.type === "reasoning.delta")).toBeUndefined();
+    expect(evs.find((e) => e.type === "reasoning.start")).toBeDefined();
+    expect(evs.find((e) => e.type === "reasoning.end")).toBeDefined();
+    expect(evs.find((e) => e.type === "reasoning.opaque")).toBeDefined();
+  });
+
+  it("no encrypted_content ⇒ no reasoning.opaque emitted", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_reason_3" } }),
+      runItem("reasoning_item_created", {
+        type: "reasoning_item",
+        rawItem: {
+          type: "reasoning",
+          id: "rs_noenc",
+          content: [{ type: "input_text", text: "hmm" }],
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_reason_3", status: "completed" } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    expect(evs.find((e) => e.type === "reasoning.opaque")).toBeUndefined();
+    expect(evs.find((e) => e.type === "reasoning.start")).toBeDefined();
+  });
+
+  it("fold-identity: the reasoning block round-trips with opaque.value + itemId, needsResync=false", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    const stream = [
+      rawModel({ type: "response.created", response: { id: "resp_reason_4" } }),
+      runItem("reasoning_item_created", {
+        type: "reasoning_item",
+        rawItem: {
+          type: "reasoning",
+          id: "rs_fold1",
+          content: [{ type: "input_text", text: "step by step" }],
+          providerData: { encrypted_content: "ENC_FOLD" },
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_reason_4", status: "completed" } }),
+    ];
+    for (const e of stream) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    const reasoningBlock = res.messages.flatMap((m) => m.content).find((b) => b.type === "reasoning") as {
+      opaque?: { kind?: string; value?: string };
+      itemId?: string;
+      text?: string;
+    };
+    expect(reasoningBlock).toBeDefined();
+    expect(reasoningBlock?.text).toBe("step by step");
+    expect(reasoningBlock?.opaque).toMatchObject({ kind: "ciphertext", value: "ENC_FOLD" });
+    expect(reasoningBlock?.itemId).toBe("rs_fold1");
+    expect(() => AgReduceResult.parse(res)).not.toThrow();
+  });
+});
+
+describe("createOpenaiNormalizer — handoff_requested (Task 3, audit M48)", () => {
+  it("⇒ a `handoff` event (NOT subagent.start) — the wire carries no completion signal, so opening a nested turn would get INV-FLUSH-aborted on a genuinely-completed handoff", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_handoff_1" } }),
+      runItem("handoff_requested", {
+        type: "handoff_call_item",
+        rawItem: {
+          type: "function_call",
+          name: "transfer_to_billing_agent",
+          callId: "call_handoff_1",
+          arguments: "{}",
+          targetAgent: "billing_agent",
+          id: "fc_handoff_1",
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_handoff_1", status: "completed" } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+
+    const handoff = evs.find((e) => e.type === "handoff") as {
+      kind?: string;
+      toAgentName?: string;
+      fromAgentId?: string;
+      toAgentId?: string;
+    };
+    expect(handoff).toBeDefined();
+    expect(handoff?.kind).toBe("transfer");
+    expect(handoff?.toAgentName).toBe("billing_agent");
+    // No agent-identity concept exists anywhere in this facet (single fixed
+    // threadId) — fromAgentId/toAgentId are never fabricated.
+    expect(handoff?.fromAgentId).toBeUndefined();
+    expect(handoff?.toAgentId).toBeUndefined();
+
+    // Never a subagent lifecycle for this facet's handoff mapping.
+    expect(evs.find((e) => e.type === "subagent.start")).toBeUndefined();
+    expect(evs.find((e) => e.type === "subagent.done")).toBeUndefined();
+  });
+
+  it("no targetAgent on the typed input ⇒ handoff event still fires, without a fabricated toAgentName", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_handoff_2" } }),
+      runItem("handoff_requested", {
+        type: "handoff_call_item",
+        rawItem: {
+          type: "function_call",
+          name: "transfer_to_agent",
+          callId: "call_handoff_2",
+          arguments: "{}",
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_handoff_2", status: "completed" } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    const handoff = evs.find((e) => e.type === "handoff") as { toAgentName?: string };
+    expect(handoff).toBeDefined();
+    expect(handoff?.toAgentName).toBeUndefined();
+  });
+
+  it("fold-identity: the handoff record lands on the turn's handoffs[], needsResync=false", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    const stream = [
+      rawModel({ type: "response.created", response: { id: "resp_handoff_3" } }),
+      runItem("handoff_requested", {
+        type: "handoff_call_item",
+        rawItem: {
+          type: "function_call",
+          name: "transfer_to_billing_agent",
+          callId: "call_handoff_3",
+          arguments: "{}",
+          targetAgent: "billing_agent",
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_handoff_3", status: "completed" } }),
+    ];
+    for (const e of stream) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    const turn = res.turns.find((t) => t.turnId === "turn_resp_handoff_3");
+    expect(turn?.handoffs).toMatchObject([{ kind: "transfer", toAgentName: "billing_agent" }]);
+    expect(() => AgReduceResult.parse(res)).not.toThrow();
+  });
+});
+
+describe("createOpenaiNormalizer — tool_approval_requested (Task 3, audit M48)", () => {
+  it("⇒ hitl.ask{kind:'approval', toolCallId, askId} — the M26 paused-fold discipline is ADK-scoped this batch; openai just emits the ask", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_approval_1" } }),
+      runItem("tool_approval_requested", {
+        type: "tool_approval_item",
+        rawItem: {
+          type: "function_call",
+          name: "send_email",
+          callId: "call_approval_1",
+          arguments: '{"to":"x@example.com"}',
+          id: "fc_approval_1",
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_approval_1", status: "completed" } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+
+    const ask = evs.find((e) => e.type === "hitl.ask") as {
+      kind?: string;
+      toolCallId?: string;
+      askId?: string;
+    };
+    expect(ask).toBeDefined();
+    expect(ask?.kind).toBe("approval");
+    expect(ask?.toolCallId).toBe("call_approval_1");
+    expect(ask?.askId).toBeDefined();
+    expect(typeof ask?.askId).toBe("string");
+  });
+
+  it("fold-identity: hitl.ask is live-only (no accumulator mutation) — needsResync stays false", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    const stream = [
+      rawModel({ type: "response.created", response: { id: "resp_approval_2" } }),
+      runItem("tool_approval_requested", {
+        type: "tool_approval_item",
+        rawItem: {
+          type: "function_call",
+          name: "send_email",
+          callId: "call_approval_2",
+          arguments: "{}",
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_approval_2", status: "completed" } }),
+    ];
+    for (const e of stream) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    expect(() => AgReduceResult.parse(r.result())).not.toThrow();
+  });
+});
+
+describe("createOpenaiNormalizer — default run-item arm (Task 3, audit M48)", () => {
+  it("a genuinely-unknown run-item name routes to ext.openai.unparsed (the file's stated convention, now true)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_unk_1" } }),
+      runItem("mcp_list_tools", { type: "mcp_list_tools_item", rawItem: { foo: "bar" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_unk_1", status: "completed" } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    const unparsed = evs.find((e) => e.type === "ext.openai.unparsed") as {
+      name?: string;
+      item?: unknown;
+    };
+    expect(unparsed).toBeDefined();
+    expect(unparsed?.name).toBe("mcp_list_tools");
+    expect(unparsed?.item).toEqual({ type: "mcp_list_tools_item", rawItem: { foo: "bar" } });
+  });
+});
