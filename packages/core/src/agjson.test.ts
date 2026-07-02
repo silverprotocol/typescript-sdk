@@ -568,11 +568,14 @@ describe("AgEvent (ADVANCED)", () => {
     for (const s of samples) expect(AgEvent.parse(s).type).toBe(s.type);
   });
 
-  it("accepts the ui.display-mode enum incl. coerced/granted modal", () => {
-    for (const mode of ["inline", "pip", "fullscreen", "modal"]) {
+  it("accepts the ui.display-mode enum (inline/pip/fullscreen) and rejects modal", () => {
+    for (const mode of ["inline", "pip", "fullscreen"]) {
       const ev = AgEvent.parse({ type: "ui.display-mode", seq: 0, mode, granted: mode });
       expect(ev.type).toBe("ui.display-mode");
     }
+    expect(() =>
+      AgEvent.parse({ type: "ui.display-mode", seq: 0, mode: "modal", granted: "modal" }),
+    ).toThrow();
   });
 
   it("accepts a ui.result / ui.action-result error with a JSON-Pointer path", () => {
@@ -1047,6 +1050,45 @@ describe("AgSurfaceInteraction (§3 / §6 / §11.8 un-merge)", () => {
       path: "/fields/name",
     });
     expect(e.a2uiMessage).toBe("error");
+  });
+
+  it("AgA2uiError accepts the function-call-failure shape (functionCallId, no surfaceId)", () => {
+    const e = AgA2uiError.parse({
+      surface: "a2ui",
+      a2uiMessage: "error",
+      functionCallId: "fc9",
+      code: "AGENT_ERROR",
+      message: "boom",
+    });
+    expect(e.functionCallId).toBe("fc9");
+  });
+
+  it("AgA2uiError rejects both-fields and neither-fields shapes (upstream XOR)", () => {
+    expect(() =>
+      AgA2uiError.parse({
+        surface: "a2ui",
+        a2uiMessage: "error",
+        surfaceId: "s1",
+        functionCallId: "fc1",
+        code: "X",
+        message: "m",
+      }),
+    ).toThrow();
+    expect(() =>
+      AgA2uiError.parse({ surface: "a2ui", a2uiMessage: "error", code: "X", message: "m" }),
+    ).toThrow();
+  });
+
+  it("AgA2uiError requires path for VALIDATION_FAILED", () => {
+    expect(() =>
+      AgA2uiError.parse({
+        surface: "a2ui",
+        a2uiMessage: "error",
+        surfaceId: "s1",
+        code: "VALIDATION_FAILED",
+        message: "m",
+      }),
+    ).toThrow();
   });
 
   it("AgMcpAppViewMessage narrows on the verbatim MCP method", () => {

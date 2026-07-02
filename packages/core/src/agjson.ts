@@ -780,16 +780,37 @@ export const AgA2uiFunctionResponse = z.object({
 });
 export type AgA2uiFunctionResponse = z.infer<typeof AgA2uiFunctionResponse>;
 
-// A2UI v1.0 client→server `error` (surface-side error report, e.g.
-// VALIDATION_FAILED). `path` = JSON-Pointer to the failed binding.
-export const AgA2uiError = z.object({
-  ...surfaceEnvelope,
-  surface: z.literal("a2ui"),
-  a2uiMessage: z.literal("error"),
-  code: z.string(),
-  message: z.string(),
-  path: z.string().optional(),
-});
+// A2UI v1.0 client→server `error` (Generic Error, upstream-faithful): carries
+// EXACTLY ONE of surfaceId (surface-scoped) | functionCallId (function-call
+// failure). `path` = JSON-Pointer; REQUIRED when code === "VALIDATION_FAILED".
+export const AgA2uiError = z
+  .object({
+    ...surfaceEnvelope,
+    surfaceId: z.string().optional(), // overrides the envelope: XOR with functionCallId
+    surface: z.literal("a2ui"),
+    a2uiMessage: z.literal("error"),
+    functionCallId: z.string().optional(),
+    code: z.string(),
+    message: z.string(),
+    path: z.string().optional(),
+  })
+  .superRefine((v, ctx) => {
+    if ((v.surfaceId === undefined) === (v.functionCallId === undefined)) {
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "AgA2uiError carries exactly one of surfaceId | functionCallId (A2UI v1.0 Generic Error)",
+        path: ["surfaceId"],
+      });
+    }
+    if (v.code === "VALIDATION_FAILED" && v.path === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        message: "VALIDATION_FAILED requires path (JSON-Pointer)",
+        path: ["path"],
+      });
+    }
+  });
 export type AgA2uiError = z.infer<typeof AgA2uiError>;
 
 // MCP Apps 2026-01-26 view→host RPCs (nested union on the verbatim JSON-RPC
@@ -919,9 +940,11 @@ export const AgInput = z.discriminatedUnion("kind", [
 ]);
 export type AgInput = z.infer<typeof AgInput>;
 
-// A2UI surface display-mode enum (spec §4 `ui.display-mode`). `modal` is
-// OpenAI-Apps ONLY (a host MUST NOT grant "modal" to an mcp-app surface).
-export const AgDisplayMode = z.enum(["inline", "pip", "fullscreen", "modal"]);
+// Surface display-mode enum (spec §4 `ui.display-mode`). Upstream OpenAI Apps
+// DisplayMode = pip | inline | fullscreen; MCP Apps ui/request-display-mode has
+// the same set. There is NO modal display mode (OpenAI's modal is the separate
+// requestModal API, not carried here).
+export const AgDisplayMode = z.enum(["inline", "pip", "fullscreen"]);
 export type AgDisplayMode = z.infer<typeof AgDisplayMode>;
 
 // Surface-RPC error (spec §4 `ui.result` / `ui.action-result`): `path` =
@@ -1307,7 +1330,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     ...base,
     type: z.literal("ui.display-mode"),
     mode: AgDisplayMode,
-    granted: AgDisplayMode.optional(), // authoritative reply leg (A52); modal = OpenAI-Apps ONLY
+    granted: AgDisplayMode.optional(), // authoritative reply leg (A52)
     surfaceId: z.string().optional(),
     toolCallId: z.string().optional(),
   }),
