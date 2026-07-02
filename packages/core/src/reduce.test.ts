@@ -2472,4 +2472,66 @@ describe("tool.done.messageId adoption (SPEC §5 fold row; audit B10)", () => {
     const tm = r.result().messages.find((m) => m.id === "tm1");
     expect(tm?.content).toHaveLength(0); // No tool-result attached
   });
+
+  it("messageId adoption into a never-existing message of a closed turn parks — no phantom message", () => {
+    const r = new Reducer();
+    r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    r.push({
+      type: "turn.done",
+      seq: 1,
+      turnId: "t1",
+      outcome: { type: "success" },
+      finishReason: "stop",
+    });
+    // tm1 never existed — the CREATE sub-path would otherwise happily fabricate
+    // it into the now-closed turn t1.
+    r.push({
+      type: "tool.done",
+      seq: 2,
+      toolCallId: "c1",
+      content: [{ type: "text", text: "result" }],
+      outcome: "ok",
+      turnId: "t1",
+      threadId: "th1",
+      messageId: "tm1",
+    });
+    expect(r.needsResync).toBe(true);
+    const tm = r.result().messages.find((m) => m.id === "tm1");
+    expect(tm).toBeUndefined(); // no phantom message created
+  });
+
+  it("messageId adoption to an existing message of a closed turn (never sealed) parks — no silent attach", () => {
+    const r = new Reducer();
+    r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    // tm1 is created but never sealed with message.end.
+    r.push({
+      type: "message.start",
+      seq: 1,
+      id: "tm1",
+      role: "tool",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    r.push({
+      type: "turn.done",
+      seq: 2,
+      turnId: "t1",
+      outcome: { type: "success" },
+      finishReason: "stop",
+    });
+    // tm1 is still unsealed, but its turn is closed — adoption must still park.
+    r.push({
+      type: "tool.done",
+      seq: 3,
+      toolCallId: "c1",
+      content: [{ type: "text", text: "result" }],
+      outcome: "ok",
+      turnId: "t1",
+      threadId: "th1",
+      messageId: "tm1",
+    });
+    expect(r.needsResync).toBe(true);
+    const tm = r.result().messages.find((m) => m.id === "tm1");
+    expect(tm?.content).toHaveLength(0); // No tool-result silently attached
+  });
 });

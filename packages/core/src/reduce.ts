@@ -93,6 +93,10 @@ export class Reducer {
   #openMsg: Map<string, string> = new Map();
   // Message ids sealed by message.end.
   #sealed: Set<string> = new Set();
+  // Resolved turnIds closed by turn.done/turn.error/turn.abort (INV-MSG: no
+  // message of a closed turn — sealed or not, existing or not-yet-created —
+  // is ever a valid attach/adoption target).
+  #closedTurns: Set<string> = new Set();
   // block/tool-call id → position in its owning message's content[], for REPLACE.
   #blockPos: Map<string, { messageId: string; index: number }> = new Map();
 
@@ -430,14 +434,25 @@ export class Reducer {
           if (ev.messageId !== undefined) {
             // SPEC §5 tool.done row: the landed tool-result message ADOPTS
             // ev.messageId as its own id (stable ToolMessage identity; audit B10).
-            msg = this.#messages.get(ev.messageId);
-            if (msg === undefined) {
-              // Defensively check if the target message would be sealed or turn closed.
-              // Guard against adopting into a sealed message (INV-MSG enforcement).
-              if (this.#sealed.has(ev.messageId)) {
-                this.#resync = true;
-                break;
-              }
+            const existing = this.#messages.get(ev.messageId);
+            // INV-MSG enforcement: a sealed message, or ANY message of a closed
+            // turn — including one that would need to be freshly created — is
+            // never a valid adoption target. Resolve the turn this adoption
+            // would land in (the existing message's own turnId, or the turnId
+            // ensureTurn() would assign a new message) BEFORE either sub-path
+            // runs, and park instead of silently attaching/creating past the
+            // seal or the turn's binding window.
+            const targetTurnKey =
+              existing !== undefined
+                ? (existing.turnId ?? "unknown-turn")
+                : (this.#resolveTurnId(ev.turnId) ?? ev.turnId ?? "unknown-turn");
+            if (this.#sealed.has(ev.messageId) || this.#closedTurns.has(targetTurnKey)) {
+              this.#resync = true;
+              break;
+            }
+            if (existing !== undefined) {
+              msg = existing;
+            } else {
               const turn = this.ensureTurn(ev.turnId);
               // Create new tool-result message with the adopted messageId.
               msg = {
@@ -448,10 +463,6 @@ export class Reducer {
                 threadId: turn.threadId,
               };
               this.#messages.set(ev.messageId, msg);
-            } else if (this.#sealed.has(ev.messageId)) {
-              // Existing message is sealed — cannot adopt.
-              this.#resync = true;
-              break;
             }
           } else {
             msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
@@ -871,6 +882,7 @@ export class Reducer {
         this.#opaque = new Map();
         this.#openMsg = new Map();
         this.#sealed = new Set();
+        this.#closedTurns = new Set();
         this.#blockPos = new Map();
 
         // Un-park.
@@ -992,6 +1004,7 @@ export class Reducer {
   #closeTurnWindow(turnId: string | undefined): void {
     const resolved = this.#resolveTurnId(turnId);
     if (resolved === undefined) return;
+    this.#closedTurns.add(resolved);
     for (const [pk] of this.#openMsg) {
       if (pk.startsWith(`${resolved} `)) this.#openMsg.delete(pk);
     }
