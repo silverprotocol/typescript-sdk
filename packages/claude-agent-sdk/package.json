@@ -1,8 +1,16 @@
 {
   "name": "@silverprotocol/claude-agent-sdk",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "AgJSON normalizer for the Claude Agent SDK (SDKMessage → AgEvent[]) — the live path.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/silverprotocol/typescript-sdk.git",
+    "directory": "packages/claude-agent-sdk"
+  },
+  "homepage": "https://github.com/silverprotocol/typescript-sdk#readme",
+  "bugs": { "url": "https://github.com/silverprotocol/typescript-sdk/issues" },
+  "publishConfig": { "access": "public" },
   "type": "module",
   "exports": {
     ".": {
@@ -12,9 +20,10 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist", "src"],
+  "files": ["dist", "src", "!src/**/*.test.ts", "!dist/**/*.test.*"],
   "scripts": {
     "build": "tsc -b --force",
+    "prepack": "rm -rf dist && tsc -b --force",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
@@ -23,6 +32,11 @@
   },
   "peerDependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.76"
+  },
+  "peerDependenciesMeta": {
+    "@anthropic-ai/claude-agent-sdk": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.76"

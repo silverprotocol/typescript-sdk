@@ -10,7 +10,8 @@
     "build": "tsc -b",
     "test": "vitest run",
     "typecheck": "tsc -b --noEmit",
-    "e2e:replay": "vitest run packages/e2e"
+    "e2e:replay": "vitest run packages/e2e",
+    "pack:smoke": "node scripts/pack-smoke.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
