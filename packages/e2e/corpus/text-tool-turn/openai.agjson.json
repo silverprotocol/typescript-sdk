@@ -61,13 +61,27 @@
     }
   },
   {
-    "type": "message.end",
+    "type": "tool.done",
     "seq": 9,
+    "turnId": "turn_resp_0e10e9968fce76e4006a3bdceffcb0819baceb37d4e408f02f",
+    "toolCallId": "call_EwiJuADOeCUSNTVk5BemtpWp",
+    "content": [
+      {
+        "type": "text",
+        "text": "echo: hi"
+      }
+    ],
+    "outcome": "ok",
+    "isError": false
+  },
+  {
+    "type": "message.end",
+    "seq": 10,
     "id": "msg_turn_resp_0e10e9968fce76e4006a3bdceffcb0819baceb37d4e408f02f"
   },
   {
     "type": "turn.done",
-    "seq": 10,
+    "seq": 11,
     "turnId": "turn_resp_0e10e9968fce76e4006a3bdceffcb0819baceb37d4e408f02f",
     "outcome": {
       "type": "success"
@@ -81,20 +95,6 @@
       "cacheReadTokens": 0,
       "reasoningTokens": 0
     }
-  },
-  {
-    "type": "tool.done",
-    "seq": 11,
-    "turnId": "turn_resp_0e10e9968fce76e4006a3bdceffcb0819baceb37d4e408f02f",
-    "toolCallId": "call_EwiJuADOeCUSNTVk5BemtpWp",
-    "content": [
-      {
-        "type": "text",
-        "text": "echo: hi"
-      }
-    ],
-    "outcome": "ok",
-    "isError": false
   },
   {
     "type": "turn.start",

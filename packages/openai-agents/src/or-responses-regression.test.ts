@@ -244,13 +244,17 @@ describe("OpenRouter /v1/responses (beta) rides the existing OpenAI normalizer (
     expect(() => AgReduceResult.parse(res)).not.toThrow();
   });
 
-  it("tool turn → tool.start/args.assembled/done + two turn.done, no cost leak (zero code change)", () => {
+  it("tool turn → tool.start/args.assembled/done + two turn.done, no cost leak (deferred-close order)", () => {
     const n = createOpenaiNormalizer();
     const evs = TOOL_TURN.flatMap((e) => n.push(e)).concat(n.flush());
     const types = evs.map((e) => e.type);
 
     // (1) Exact normalized AgEvent type sequence across BOTH round-trips. The 11
     // real text deltas of round 2 yield 11 text.delta events under one text.start.
+    // Round 1's close (message.end + turn.done) is DEFERRED past its late
+    // tool.done (SPEC §5.0 INV-MSG; Task 4b — the real wire delivers
+    // tool_output AFTER response.completed, so closing early would target an
+    // already-sealed message/closed turn and resync-park).
     expect(types).toEqual([
       // round 1: tool call
       "turn.start",
@@ -259,9 +263,9 @@ describe("OpenRouter /v1/responses (beta) rides the existing OpenAI normalizer (
       "tool.args.delta",
       "tool.args.delta",
       "tool.args.assembled",
+      "tool.done",
       "message.end",
       "turn.done",
-      "tool.done",
       // round 2: final text
       "turn.start",
       "message.start",

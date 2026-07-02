@@ -21,6 +21,12 @@ import { replayCassette } from "./replay.js";
 
 const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk" }> = [
   { scenario: "text-tool-turn", framework: "claude" },
+  // Task 4b: deferred round-close (message.end + turn.done past a late
+  // tool.done) reorders this scenario's tool-turn round — see
+  // or-responses-regression.test.ts and index.test.ts (Task 4b describe block)
+  // for the INV-MSG rationale. Verified: the ONLY delta is the close-reordering
+  // (tool.done now precedes message.end/turn.done); no field additions/drops.
+  { scenario: "text-tool-turn", framework: "openai" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

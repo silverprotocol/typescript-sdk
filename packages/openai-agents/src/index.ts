@@ -72,6 +72,7 @@ import {
   type Normalizer,
   StreamAssembler,
   type ToolOutcome,
+  type TurnDoneFields,
 } from "@silverprotocol/core";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -586,6 +587,69 @@ export function createOpenaiNormalizer(): Normalizer {
   // never leaks across turns.
   let pendingRefusal = false;
 
+  // ── Task 4b: defer a round's close past its pending tool results ───────────
+  // (SPEC §5.0 INV-MSG). On the real wire, the `tool_output` run-item arrives
+  // AFTER `response.completed` — closing at native-close time would put a later
+  // `tool.done` on an already-sealed message / closed turn, which `reduce()`
+  // correctly parks (resync). Per-turn pending set: toolCallIds that have had
+  // `tool.start` emitted but no `tool.done` yet.
+  const pendingToolsByTurn = new Map<string, Set<string>>();
+  // toolCallId → the turnId it started under. `tool_output` may land after this
+  // response's local `turnId` var has been reset (resetResponseState runs at
+  // native-close time regardless of deferral) and/or after a NEW round has
+  // opened, so the engine's #lastTurn backfill could misattribute a late result
+  // to the wrong turn without this explicit map.
+  const turnIdByToolCallId = new Map<string, string>();
+  // A round's close is MORE than `closeTurnDone`: `reduce()`'s message.end
+  // handler (SPEC §5.0 INV-MSG, same enforcement commit) clears the message's
+  // open-pointer UNCONDITIONALLY — independent of turn state — so a `tool.done`
+  // landing after `message.end` resync-parks just as surely as one landing
+  // after `turn.done`. Deferring `turn.done` alone is NOT sufficient: closing
+  // the message must be deferred too, or the late `tool.done` has nowhere live
+  // to attach. So the stash captures everything `endOpenStreamsAndCloseMessage`
+  // + `closeTurnDone` need — captured because `resetResponseState()` (which
+  // always runs at native-close time, deferred or not) clears the local
+  // `msgId`/`openTextStreams` vars before the drain can replay them.
+  interface StashedRoundClose {
+    msgId: string;
+    openTextStreamIds: string[];
+    fields: TurnDoneFields;
+  }
+  // Stashed close for a turn whose pending set was non-empty at close time,
+  // keyed by turnId. Consumed the moment its pending set drains (emitted right
+  // after the draining `tool.done`, same push() batch), or by `flush()`
+  // verbatim if the result never arrives (the round genuinely completed — a
+  // missing tool result must not swallow the close).
+  const stashedCloseByTurn = new Map<string, StashedRoundClose>();
+
+  /**
+   * End open text streams + close the message + closeTurnDone for `tid`, using
+   * whichever values are live right now (immediate path) or were captured at
+   * defer time (drain path) — same three calls either way.
+   */
+  function emitRoundClose(tid: string, mId: string, textStreamIds: readonly string[], fields: TurnDoneFields): void {
+    for (const streamId of textStreamIds) a.textEnd(streamId, mId);
+    a.closeMessage(mId);
+    a.closeTurnDone(tid, fields);
+  }
+
+  /**
+   * Close the round now, unless `tid`'s pending-tool set is non-empty — in
+   * which case stash everything the close needs (message id, dangling text
+   * stream ids, turn.done fields) for the `tool_output` handler (or `flush()`)
+   * to replay later. `closeTurnError` paths never call this (they close
+   * immediately via `endOpenStreamsAndCloseMessage` — an errored round's
+   * pending results are moot, by design).
+   */
+  function finishOrDeferRound(tid: string, mId: string, textStreamIds: readonly string[], fields: TurnDoneFields): void {
+    const pending = pendingToolsByTurn.get(tid);
+    if (pending !== undefined && pending.size > 0) {
+      stashedCloseByTurn.set(tid, { msgId: mId, openTextStreamIds: [...textStreamIds], fields });
+      return;
+    }
+    emitRoundClose(tid, mId, textStreamIds, fields);
+  }
+
   /**
    * Open the turn + message exactly once per response. Uses the real `response.id`
    * (`turn_<id>`) when known; synthesizes a stable id only if `response.created` was
@@ -677,6 +741,17 @@ export function createOpenaiNormalizer(): Normalizer {
             itemId: fcId,
             messageId: msgId,
           });
+          // Task 4b: this call is now pending a tool.done under the current turn
+          // (ensureResponseOpen() above guarantees `turnId` is defined here).
+          if (turnId !== undefined) {
+            let pending = pendingToolsByTurn.get(turnId);
+            if (pending === undefined) {
+              pending = new Set<string>();
+              pendingToolsByTurn.set(turnId, pending);
+            }
+            pending.add(callId);
+            turnIdByToolCallId.set(callId, turnId);
+          }
         }
         return;
       }
@@ -707,7 +782,12 @@ export function createOpenaiNormalizer(): Normalizer {
         // `undefined` return means this response is already closed → no-op the dupe.
         if (ensureResponseOpen(ev.response.id) === undefined) return;
         if (turnId === undefined) return; // unreachable post-ensure; satisfies narrowing
-        endOpenStreamsAndCloseMessage();
+        if (msgId === undefined) return; // unreachable post-ensure; satisfies narrowing
+        // Snapshot before any deferral: `resetResponseState()` below always
+        // clears these, but a deferred close needs them later (Task 4b).
+        const currentTurnId = turnId;
+        const currentMsgId = msgId;
+        const textStreamIds = Array.from(openTextStreams);
         const reason = ev.response.incomplete_details?.reason;
         const usage = mapUsage(ev.response.usage);
         // Decision tree (mirrors the canonical model, A1):
@@ -715,28 +795,34 @@ export function createOpenaiNormalizer(): Normalizer {
         //   content_filter           → closeTurnDone error-outcome + safety signal
         //   any other incomplete     → closeTurnError{code:reason, usage}
         //   plain completed          → closeTurnDone success
+        // Task 4b: every closeTurnDone arm below routes through
+        // `finishOrDeferRound` — a round with pending tool results stashes its
+        // ENTIRE close (message + turn) instead of emitting (INV-MSG).
+        // closeTurnError does NOT defer (an errored round's pending results are
+        // moot, by design) — it still closes the message immediately here.
         if (pendingRefusal) {
-          a.closeTurnDone(turnId, {
+          finishOrDeferRound(currentTurnId, currentMsgId, textStreamIds, {
             outcome: { type: "success" },
             finishReason: "refusal",
             ...(usage !== undefined ? { usage } : {}),
           });
         } else if (reason === "content_filter") {
           const safety: AgSafety[] = [{ category: "content_filter", blocked: true }];
-          a.closeTurnDone(turnId, {
+          finishOrDeferRound(currentTurnId, currentMsgId, textStreamIds, {
             outcome: { type: "error", message: "content_filter" },
             finishReason: mapFinishReason(reason),
             safety,
             ...(usage !== undefined ? { usage } : {}),
           });
         } else if (ev.type === "response.incomplete") {
-          a.closeTurnError(turnId, {
+          endOpenStreamsAndCloseMessage();
+          a.closeTurnError(currentTurnId, {
             message: reason ?? "incomplete",
             ...(reason !== undefined ? { code: reason } : {}),
             ...(usage !== undefined ? { usage } : {}),
           });
         } else {
-          a.closeTurnDone(turnId, {
+          finishOrDeferRound(currentTurnId, currentMsgId, textStreamIds, {
             outcome: { type: "success" },
             finishReason: mapFinishReason(reason),
             ...(usage !== undefined ? { usage } : {}),
@@ -854,13 +940,37 @@ export function createOpenaiNormalizer(): Normalizer {
             isJsonObject(wrapperOutput) && isJsonObject(wrapperOutput.structuredContent)
               ? JsonValue.parse(wrapperOutput.structuredContent)
               : undefined;
+          // Task 4b: resolve the OWNING turn explicitly (this result may land
+          // after a later round has opened, so the engine's #lastTurn backfill
+          // could misattribute it) and pass it through so toolDone binds to the
+          // correct — possibly already-closed-pending-this-result — turn.
+          const doneTurnId = turnIdByToolCallId.get(rawItem.callId);
           a.toolDone({
             toolCallId: rawItem.callId,
             content,
             outcome,
             isError: rawItem.status === "incomplete",
             ...(structuredContent !== undefined ? { structuredContent } : {}),
+            ...(doneTurnId !== undefined ? { turnId: doneTurnId } : {}),
           });
+          if (doneTurnId !== undefined) {
+            turnIdByToolCallId.delete(rawItem.callId);
+            const pending = pendingToolsByTurn.get(doneTurnId);
+            if (pending !== undefined) {
+              pending.delete(rawItem.callId);
+              if (pending.size === 0) {
+                const stashed = stashedCloseByTurn.get(doneTurnId);
+                if (stashed !== undefined) {
+                  // The pending set just drained — emit the deferred
+                  // message.end + turn.done immediately after this tool.done,
+                  // same push() batch (INV-MSG: the message must still be open
+                  // when tool.done lands, so message.end waits for this too).
+                  stashedCloseByTurn.delete(doneTurnId);
+                  emitRoundClose(doneTurnId, stashed.msgId, stashed.openTextStreamIds, stashed.fields);
+                }
+              }
+            }
+          }
           return;
         }
         case "message_output_created":
@@ -913,8 +1023,18 @@ export function createOpenaiNormalizer(): Normalizer {
     },
     flush(): AgEvent[] {
       // Close any dangling open response (e.g. a stream that ended before
-      // response.completed), then flush the engine's dangling open messages (I7).
+      // response.completed) — unrelated to Task 4b: that round never reached a
+      // native close signal at all, so it has no stashed closeTurnDone.
       if (turnId !== undefined) closeResponse();
+      // Task 4b: emit any still-stashed closes BEFORE delegating to the engine's
+      // flush. Each stashed round genuinely completed on the wire — a tool
+      // result that never arrives must not swallow that close (message.end +
+      // turn.done both replay here, verbatim, in the order INV-MSG requires).
+      for (const [tid, stashed] of stashedCloseByTurn) {
+        emitRoundClose(tid, stashed.msgId, stashed.openTextStreamIds, stashed.fields);
+      }
+      stashedCloseByTurn.clear();
+      // Flush the engine's dangling open messages (I7).
       return a.flush();
     },
   };

@@ -346,6 +346,165 @@ describe("createOpenaiNormalizer — tools path (T5b)", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Task 4b — defer a round's close past its pending tool results (INV-MSG).
+//
+// On the real OpenAI/OpenRouter wire, the `tool_output` run-item arrives AFTER
+// `response.completed` (verified by the #128 spike capture — see
+// or-responses-regression.test.ts). Forwarding native order verbatim emits
+// `tool.done` on an already-closed turn, which `reduce()` correctly parks
+// (SPEC §5.0 INV-MSG). Deferring `turn.done` ALONE is not sufficient: reduce()'s
+// `message.end` handler also clears the message's open-pointer unconditionally
+// (independent of turn state), so a `tool.done` landing after `message.end`
+// resync-parks just the same. The facet must stash the round's ENTIRE close —
+// message.end AND turn.done — until its pending tool results have landed, then
+// replay both immediately after the draining `tool.done` (same push() batch;
+// message.end first, so the reducer's INV-MSG binding window never sees a
+// block-creating event target a sealed message OR a closed turn) — or, if the
+// result never arrives, at `flush()` (the round genuinely completed on the wire).
+// ─────────────────────────────────────────────────────────────────────────────
+
+// A tool round trimmed to the REAL late-arrival order: response.completed
+// fires BEFORE the tool_output run-item (unlike the T5b `TOOL_TURN` fixture
+// above, which — like the real SDK's run-item dispatch in most captures —
+// happens to enqueue tool_output first; this fixture pins the problematic
+// order explicitly).
+const TOOL_TURN_LATE_RESULT: JsonValue[] = [
+  rawModel({ type: "response.created", response: { id: "resp_late_1" } }),
+  rawModel({
+    type: "response.output_item.added",
+    item: {
+      id: "fc_late_1",
+      type: "function_call",
+      status: "in_progress",
+      arguments: "",
+      call_id: "call_late_1",
+      name: "get_weather",
+    },
+  }),
+  rawModel({
+    type: "response.function_call_arguments.delta",
+    item_id: "fc_late_1",
+    delta: '{"city":',
+  }),
+  rawModel({
+    type: "response.function_call_arguments.delta",
+    item_id: "fc_late_1",
+    delta: '"Paris"}',
+  }),
+  rawModel({
+    type: "response.function_call_arguments.done",
+    item_id: "fc_late_1",
+    arguments: '{"city":"Paris"}',
+  }),
+  // Native round-close arrives BEFORE the tool_output run-item — the real-wire
+  // bug order this task fixes.
+  rawModel({
+    type: "response.completed",
+    response: {
+      id: "resp_late_1",
+      status: "completed",
+      usage: { input_tokens: 10, output_tokens: 5 },
+    },
+  }),
+  // tool_output arrives LATE (after response.completed).
+  runItem("tool_output", {
+    type: "tool_call_output_item",
+    rawItem: {
+      type: "function_call_result",
+      name: "get_weather",
+      callId: "call_late_1",
+      status: "completed",
+      output: "21C and sunny",
+    },
+    output: "21C and sunny",
+  }),
+];
+
+describe("createOpenaiNormalizer — defer turn.done past pending tool results (Task 4b, INV-MSG)", () => {
+  it("late tool_output (after response.completed) ⇒ drained order ends …, tool.done, message.end, turn.done", () => {
+    const n = createOpenaiNormalizer();
+    const evs = TOOL_TURN_LATE_RESULT.flatMap((e) => n.push(e)).concat(n.flush());
+    const types = evs.map((e) => e.type);
+
+    // The ENTIRE close (message.end + turn.done) is deferred past the late
+    // tool.done — NOT emitted at response.completed time (which is where
+    // native order would place it).
+    expect(types).toEqual([
+      "turn.start",
+      "message.start",
+      "tool.start",
+      "tool.args.delta",
+      "tool.args.delta",
+      "tool.args.assembled",
+      "tool.done",
+      "message.end",
+      "turn.done",
+    ]);
+
+    // Full fold: no resync-park, tool-result attached inside the (one) turn.
+    const r = new Reducer();
+    const fn = createOpenaiNormalizer();
+    for (const e of TOOL_TURN_LATE_RESULT) for (const ev of fn.push(e)) r.push(ev);
+    for (const ev of fn.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    expect(res.turns).toHaveLength(1);
+    expect(res.turns[0]).toMatchObject({ finishReason: "stop", outcome: { type: "success" } });
+    const toolResult = res.messages.flatMap((m) => m.content).find((b) => b.type === "tool-result") as {
+      content?: Array<{ type?: string; text?: string }>;
+      outcome?: string;
+    };
+    expect(toolResult).toBeDefined();
+    expect(toolResult?.outcome).toBe("ok");
+    expect(toolResult?.content?.[0]).toMatchObject({ type: "text", text: "21C and sunny" });
+    expect(() => AgReduceResult.parse(res)).not.toThrow();
+  });
+
+  it("tool_output never arrives ⇒ flush() emits the stashed turn.done (not turn.abort)", () => {
+    const n = createOpenaiNormalizer();
+    // Drop the trailing tool_output run-item — the result never lands.
+    const withoutToolOutput = TOOL_TURN_LATE_RESULT.slice(0, -1);
+    const evs = withoutToolOutput.flatMap((e) => n.push(e)).concat(n.flush());
+    const types = evs.map((e) => e.type);
+
+    // No tool.done was ever emitted, but the round's genuine completion still
+    // surfaces via flush() as turn.done — never turn.abort.
+    expect(types).not.toContain("tool.done");
+    expect(types).not.toContain("turn.abort");
+    expect(types.filter((t) => t === "turn.done")).toHaveLength(1);
+
+    const done = evs.find((e) => e.type === "turn.done") as {
+      turnId?: string;
+      finishReason?: string;
+      outcome?: { type?: string };
+    };
+    expect(done).toBeDefined();
+    expect(done?.turnId).toBe("turn_resp_late_1");
+    // finishReason/outcome come from the STASHED payload (the original close),
+    // not a synthesized abort.
+    expect(done?.finishReason).toBe("stop");
+    expect(done?.outcome).toMatchObject({ type: "success" });
+  });
+
+  it("a no-tools round closes turn.done immediately — deferral never engages", () => {
+    const n = createOpenaiNormalizer();
+    const evs = TEXT_TURN.flatMap((e) => n.push(e)).concat(n.flush());
+    // Identical to the pre-Task-4b order (TEXT_TURN has no tool calls, so the
+    // pending set is always empty — closeTurnDone is never deferred).
+    expect(evs.map((e) => e.type)).toEqual([
+      "turn.start",
+      "message.start",
+      "text.start",
+      "text.delta",
+      "text.delta",
+      "text.end",
+      "message.end",
+      "turn.done",
+    ]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Stateful createOpenaiNormalizer — T5c: errors / incomplete / refusal /
 // __host_error__ sentinel + citations supplement.
 //
