@@ -827,6 +827,8 @@ export type AgA2uiError = z.infer<typeof AgA2uiError>;
 // MCP Apps 2026-01-26 view→host RPCs (nested union on the verbatim JSON-RPC
 // `method`). `content`/`structuredContent` kept VERBATIM (MCP-frozen, §0.4).
 // ui/request-display-mode has NO modal mode (OpenAI-only).
+// Core-MCP view→host plumbing (tools/call, resources/read, notifications/message) are host-mediated,
+// never forwarded as AgMcpAppViewMessage; a view-initiated tools/call enters only as a client tool-result.
 export const AgMcpAppViewMessage = z.discriminatedUnion("method", [
   z.object({
     ...surfaceEnvelope,
