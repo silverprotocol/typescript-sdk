@@ -332,19 +332,21 @@ describe("OpenRouter /v1/responses (beta) rides the existing OpenAI normalizer (
     // (3) Schema validity.
     expect(() => AgReduceResult.parse(res)).not.toThrow();
 
-    // (4) Cost-leak guard: the TERMINAL turn's usage carried OpenRouter's full
-    // superset (`cost`/`cost_details`/`is_byok`). AgUsage keeps the token counts
-    // and DROPS the money fields entirely (cost is the broker meter's job).
+    // (4) Cost mapping: the TERMINAL turn's usage carried OpenRouter's full
+    // superset (`cost`/`cost_details`/`is_byok`). AgUsage maps the provider-REPORTED
+    // cost figure verbatim to costUsd (cost is provider-reported wire data with
+    // a first-class AgUsage home; guuey's broker meters off the teed wire and
+    // reads no normalizer costUsd — audit M42 canonical).
     const terminalTurn = res.turns.find((t) => t.turnId === "turn_gen-1782801070-T4gq9Oz4Bv5AoSog1Cxd");
     expect(terminalTurn?.usage).toMatchObject({
       inputTokens: 267,
       outputTokens: 12,
       totalTokens: 279,
+      costUsd: 3.951e-5,
     });
     const usageKeys = Object.keys(terminalTurn?.usage ?? {});
     expect(usageKeys).not.toContain("cost");
     expect(usageKeys).not.toContain("cost_details");
     expect(usageKeys).not.toContain("is_byok");
-    expect(usageKeys).not.toContain("costUsd");
   });
 });

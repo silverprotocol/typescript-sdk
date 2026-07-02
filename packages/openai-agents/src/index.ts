@@ -455,6 +455,9 @@ function mapUsage(usage: OpenAIResponseUsage | undefined): AgUsage | undefined {
     u.cacheReadTokens = usage.input_tokens_details.cached_tokens;
   if (usage.output_tokens_details?.reasoning_tokens !== undefined)
     u.reasoningTokens = usage.output_tokens_details.reasoning_tokens;
+  // Provider-reported cost (e.g. OpenRouter `cost`) maps verbatim to costUsd.
+  if ((usage as Record<string, unknown>).cost !== undefined)
+    u.costUsd = (usage as Record<string, unknown>).cost as number;
   return u;
 }
 
