@@ -406,7 +406,8 @@ function mapGroundingCitations(
   }));
 }
 
-// ─── null-id call mint state (audit M47) ──────────────────────────────────────
+// ─── null-id call mint state (audit M47; window/correlation redesign — review
+// findings b/c on M47) ──────────────────────────────────────────────────────
 // Gemini `functionCall.id` is often null on the Developer API (§8.2). Identity
 // MUST NOT derive from a per-event positional index (INV-BLOCK): two DIFFERENT
 // null-id calls that each land at parts[0] of DIFFERENT events would otherwise
@@ -414,26 +415,64 @@ function mapGroundingCitations(
 // both at parts[0]; toolB silently dropped, both results mis-keyed to toolA).
 //
 // Fix: mint a per-INVOKE ordinal id (`${turnId}:call:${ordinal}` — the ordinal
-// counter lives in this closure, once per Normalizer instance/invoke) and
-// correlate the (also possibly null-id) functionResponse back to its call via
-// a per-(turnId,name) FIFO queue of unconsumed minted ids — the response
-// carries the tool NAME, never the position, so name is the only reliable
-// correlator available at that site.
+// counter lives in this closure, once per Normalizer instance/invoke).
 //
+// ── review finding (b): window-scoped multiset dedup, not "unresolved" ─────
 // The ADK `partial:false` AGGREGATE re-send (§8 item 3) repeats the exact same
-// functionCall content (name+args) while the call is still outstanding
-// (unresolved); that repeat must dedup to the SAME minted id rather than
-// minting a fresh one — `pendingByContent` keys on (turnId, name, argsJson),
-// the narrowest identity that catches the content-identical resend. A call is
-// evicted from both maps the moment its functionResponse consumes it, so a
-// LATER, genuinely distinct call with matching content mints afresh instead of
-// colliding with the already-resolved one.
+// functionCall content (name+args) the partial event(s) already streamed —
+// that repeat must dedup to the SAME minted id, not mint a fresh one. The
+// PRIOR fix keyed this dedup on "still unresolved" (a call stayed collapsible
+// until its functionResponse landed) — but that collapses a GENUINELY
+// REPEATED invocation (the same name+args called a SECOND time before the
+// first resolves): the second call's tool.start silently vanished, and its
+// later functionResponse then had no pending id left to consume, so it minted
+// a FRESH one — a dangling tool.done with no matching tool.start.
+//
+// The correct dedup scope is the WINDOW, not "resolved-ness": the
+// aggregate-resend window spans this turn's first `partial:true` event to its
+// NEXT `partial:false` event, which CLOSES it — the facet's existing
+// partial/aggregate boundary (§8 item 3; see `isAggregate`/`streamedText` in
+// `drive()`). `openWindowCounts` is a per-turn MULTISET of (name,argsJson) ->
+// how many times that content was emitted so far in the CURRENTLY open
+// window. Every `partial:true` occurrence mints+emits and increments the
+// count. The closing `partial:false` event SUPPRESSES up to that many
+// occurrences of the same content (the resend) and mints+emits any EXCESS
+// occurrences fresh — the aggregate is authoritative for the window's full
+// call list, so two truly-parallel identical calls emit twice. `drive()`
+// CLEARS the window right after that closing event's parts are processed, so
+// a repeat invocation with identical content in a LATER window is never
+// collapsed — it mints+emits exactly like a first occurrence. A call outside
+// any window (no `partial:true` precursor at all) is never counted either
+// way, so flat standalone repeats always emit too.
+//
+// ── review finding (c): functionResponse correlation ───────────────────────
+// A functionResponse carries the tool NAME, never a position that reliably
+// maps back to its call (SPEC.md:914's `providerCallIndex` is a *re-input*
+// echo concern, not a receive-side correlator). Three cases, by shape:
+//  (i) ONE event with MULTIPLE functionResponses: Gemini's parallel-call
+//      convention is that a batch of results mirrors its calls' array
+//      position — the same rationale `providerCallIndex` records at mint
+//      time (§8 item 2). Resolved by a dedicated event-scoped pre-pass in
+//      `drive()` that calls `consumeMintedCallId` once per response, IN
+//      EVENT ORDER — exactly the positional pairing that convention implies.
+//  (ii) a single, standalone functionResponse in its own event: still FIFO
+//      per (turnId,name) via `consumeMintedCallId`. Two same-name calls whose
+//      responses resolve OUT OF ORDER across separate events are genuinely
+//      INDISTINGUISHABLE on this wire — no field ties a response to a
+//      specific call beyond the name — so FIFO-by-mint-order is the
+//      documented best-available approximation, not a claimed fix.
+//  (iii) an ORPHAN response (no pending mint under that name at all) must NOT
+//      fabricate a dangling tool.done — the whole functionResponse rides
+//      losslessly via `ext.google.unparsed` instead (mirrors the openai
+//      `late-*` ext precedents), handled at the `driveAdkPart` call site.
 interface ToolCallMintState {
   nextOrdinal: number;
-  /** (turnId,name,argsJson) -> already-minted toolCallId, only while unresolved. */
-  pendingByContent: Map<string, string>;
-  /** (turnId,name) -> FIFO queue of {id, contentKey} awaiting their functionResponse. */
-  pendingIdsByName: Map<string, Array<{ id: string; contentKey: string }>>;
+  /** turnId -> (contentKey -> emitted-count) for the CURRENTLY open resend
+   *  window. No entry (or an empty map) for a turnId means no window is open
+   *  for it right now. */
+  openWindowCounts: Map<string, Map<string, number>>;
+  /** (turnId,name) -> FIFO queue of minted ids awaiting their functionResponse. */
+  pendingIdsByName: Map<string, string[]>;
 }
 
 function toolCallContentKey(
@@ -451,34 +490,52 @@ function mintFreshCallId(mint: ToolCallMintState, turnId: string): string {
   return toolCallId;
 }
 
-/** Mint (or, for a content-identical still-PENDING call, REUSE) the toolCallId
- *  for a null-id functionCall part. `resend:true` means this is the aggregate
- *  re-send of an already-minted, not-yet-resolved call — the caller MUST NOT
- *  re-emit tool.start/args for a resend (§8 item 3 suppression). */
+/** Mint (or, within the still-open resend window's already-emitted budget for
+ *  this exact content, SUPPRESS) the toolCallId for a null-id functionCall
+ *  part. `resend:true` means the caller MUST NOT re-emit tool.start/args for
+ *  this occurrence (§8 item 3 suppression; review finding-b window-scoped
+ *  multiset dedup — see the file-header doc above for the full rationale). */
 function mintNullIdCallId(
   mint: ToolCallMintState,
   turnId: string,
   name: string,
-  args: { [k: string]: JsonValue } | undefined
+  args: { [k: string]: JsonValue } | undefined,
+  isPartial: boolean
 ): { toolCallId: string; resend: boolean } {
-  const key = toolCallContentKey(turnId, name, args);
-  const pending = mint.pendingByContent.get(key);
-  if (pending !== undefined) return { toolCallId: pending, resend: true };
+  const contentKey = toolCallContentKey(turnId, name, args);
+  if (!isPartial) {
+    const windowCounts = mint.openWindowCounts.get(turnId);
+    const emitted = windowCounts?.get(contentKey) ?? 0;
+    if (emitted > 0) {
+      windowCounts?.set(contentKey, emitted - 1);
+      return { toolCallId: "", resend: true };
+    }
+    // No open window, or this content's window budget is already exhausted:
+    // either a standalone call (no partial precursor) or an EXCESS occurrence
+    // in the aggregate (a genuinely-parallel identical call) — mint+emit fresh.
+  }
   const toolCallId = mintFreshCallId(mint, turnId);
-  mint.pendingByContent.set(key, toolCallId);
+  if (isPartial) {
+    const windowCounts = mint.openWindowCounts.get(turnId) ?? new Map<string, number>();
+    windowCounts.set(contentKey, (windowCounts.get(contentKey) ?? 0) + 1);
+    mint.openWindowCounts.set(turnId, windowCounts);
+  }
   const nameKey = `${turnId} ${name}`;
   const queue = mint.pendingIdsByName.get(nameKey) ?? [];
-  queue.push({ id: toolCallId, contentKey: key });
+  queue.push(toolCallId);
   mint.pendingIdsByName.set(nameKey, queue);
   return { toolCallId, resend: false };
 }
 
 /** Correlate a null-id functionResponse to its call: pop the FIFO-oldest
- *  unconsumed minted id for this (turnId,name) — the response carries the
- *  NAME, never the position (§8 item 2). Evicts the content-pending entry too,
- *  so a later genuinely-new same-content call mints fresh instead of
- *  colliding with the now-resolved one. `undefined` when no call is pending
- *  under that name (an orphan response — defensive; the caller mints fresh). */
+ *  unconsumed minted id for this (turnId,name). Called once per response, IN
+ *  EVENT ORDER, by `drive()`'s pre-pass — for a multi-response event this IS
+ *  the positional pairing Gemini's parallel-call convention describes
+ *  (finding c-i); for a lone cross-event response it's the best-available
+ *  FIFO approximation, since out-of-order same-name responses carry no field
+ *  that disambiguates them further (finding c-ii). `undefined` means no call
+ *  is pending under that name — an ORPHAN response (finding c-iii); the
+ *  caller must NOT mint a fresh id for it. */
 function consumeMintedCallId(
   mint: ToolCallMintState,
   turnId: string,
@@ -487,10 +544,7 @@ function consumeMintedCallId(
   const nameKey = `${turnId} ${name}`;
   const queue = mint.pendingIdsByName.get(nameKey);
   if (queue === undefined || queue.length === 0) return undefined;
-  const next = queue.shift();
-  if (next === undefined) return undefined;
-  mint.pendingByContent.delete(next.contentKey);
-  return next.id;
+  return queue.shift();
 }
 
 // ─── stateful factory: driveAdkPart ──────────────────────────────────────────
@@ -501,8 +555,10 @@ function driveAdkPart(
   event: AdkEvent,
   messageId: string,
   turnId: string,
+  isPartial: boolean,
   _assembledToolCalls: Set<string>,
   mint: ToolCallMintState,
+  nullIdResponseIds: Map<number, string | undefined>,
   citations?: AgCitation[]
 ): string {
   // ── REASONING (thought:true) → reasoning.start/delta/end + opaque signature ──
@@ -557,10 +613,12 @@ function driveAdkPart(
       _assembledToolCalls.add(toolCallId);
     } else {
       // Null id (audit M47): mint a per-invoke-ordinal id, never a per-event
-      // positional one. A content-identical still-pending call (the aggregate
-      // re-send) REUSES its already-minted id and must not re-emit.
-      const minted = mintNullIdCallId(mint, turnId, fc.name, fc.args);
-      if (minted.resend) return ""; // dedup the partial:false aggregate re-send (content identity)
+      // positional one. A content-identical occurrence still within the open
+      // resend window's emitted budget (the aggregate re-send) is SUPPRESSED
+      // — window-scoped multiset dedup, review finding-b (see the
+      // `ToolCallMintState` doc above).
+      const minted = mintNullIdCallId(mint, turnId, fc.name, fc.args, isPartial);
+      if (minted.resend) return ""; // dedup the partial:false aggregate re-send (window-scoped content identity)
       toolCallId = minted.toolCallId;
     }
     const providerCallIndex = realId !== null ? undefined : index;
@@ -593,12 +651,19 @@ function driveAdkPart(
   if (part.functionResponse !== undefined) {
     const fr = part.functionResponse;
     const realId = fr.id != null && fr.id.length > 0 ? fr.id : null;
-    // Null id (audit M47): correlate to the minted id of ITS call via the
-    // per-(turnId,name) FIFO queue — the response carries the name, never the
-    // position. An orphan response (no pending call under that name) mints a
-    // fresh ordinal id defensively rather than reintroducing a positional guess.
-    const toolCallId =
-      realId !== null ? realId : consumeMintedCallId(mint, turnId, fr.name) ?? mintFreshCallId(mint, turnId);
+    // Null id (audit M47): correlation was already resolved by `drive()`'s
+    // event-scoped pre-pass (positional for a multi-response event, FIFO for
+    // a lone one — review finding c-i/c-ii; see `consumeMintedCallId` doc).
+    const toolCallId = realId ?? nullIdResponseIds.get(index);
+    if (toolCallId === undefined) {
+      // Orphan response (review finding c-iii): no pending mint exists under
+      // this name. Minting a fresh id here would fabricate a dangling
+      // tool.done with no matching tool.start — exactly the M47-review bug.
+      // Carry the whole functionResponse losslessly instead (mirrors the
+      // openai `late-*` ext precedents).
+      a.emitExt("google", "unparsed", { functionResponse: JsonValue.parse(fr), turnId });
+      return "";
+    }
     const outcome: ToolOutcome = fr.response?.["isError"] === true ? "error" : "ok";
     a.toolDone({
       toolCallId,
@@ -809,8 +874,8 @@ export function createAdkNormalizer(): Normalizer {
   // instance (one invoke, per §8.0's lifetime rule).
   const toolCallMint: ToolCallMintState = {
     nextOrdinal: 0,
-    pendingByContent: new Map<string, string>(),
-    pendingIdsByName: new Map<string, Array<{ id: string; contentKey: string }>>(),
+    openWindowCounts: new Map<string, Map<string, number>>(),
+    pendingIdsByName: new Map<string, string[]>(),
   };
 
   function ensureOpen(turnId: string): string {
@@ -874,6 +939,23 @@ export function createAdkNormalizer(): Normalizer {
         ? parts.findIndex((p) => p.thought !== true && p.functionCall === undefined && p.text !== undefined)
         : -1;
 
+    // Review finding c-i/c-ii: resolve null-id functionResponse correlation
+    // for the WHOLE event up front, in array order, BEFORE any tool.done is
+    // emitted — Gemini's parallel-call convention is that a batch of results
+    // mirrors its calls' array position (the same rationale `providerCallIndex`
+    // records at mint time, §8 item 2). Doing this as one event-scoped pass
+    // (rather than resolving inline as each part streams past) is what makes a
+    // multi-response event's positional pairing an explicit, testable
+    // guarantee instead of an accident of loop order. A lone response in its
+    // own event is the degenerate one-element case of the same pass.
+    const nullIdResponseIds = new Map<number, string | undefined>();
+    parts.forEach((part, idx) => {
+      const fr = part.functionResponse;
+      if (fr === undefined) return;
+      if (fr.id != null && fr.id.length > 0) return; // real id — resolved directly, not via this map
+      nullIdResponseIds.set(idx, consumeMintedCallId(toolCallMint, turnId, fr.name));
+    });
+
     // §8.3 — verbatim port of the legacy suppression, with e.push(...) → a.<primitive>.
     const alreadyStreamed = streamedText.get(key) ?? "";
     const isAggregate = !isPartial && alreadyStreamed.length > 0;
@@ -923,8 +1005,10 @@ export function createAdkNormalizer(): Normalizer {
         event,
         messageId,
         turnId,
+        isPartial,
         assembledToolCalls,
         toolCallMint,
+        nullIdResponseIds,
         index === citedPartIndex ? citations : undefined
       );
       if (isPartial) accumulated += contributed;
@@ -932,6 +1016,13 @@ export function createAdkNormalizer(): Normalizer {
 
     if (isPartial) streamedText.set(key, accumulated);
     else if (isAggregate) streamedText.delete(key);
+
+    // Review finding b: close the resend window HERE, right after this
+    // non-partial event's parts are fully processed — the window spans a
+    // turn's first `partial:true` event to its NEXT `partial:false` event,
+    // which closes it (see the `ToolCallMintState` doc above). A no-op when
+    // no window was open for this turn (e.g. a standalone functionCall event).
+    if (!isPartial) toolCallMint.openWindowCounts.delete(turnId);
 
     driveAdkTopLevel(a, event, messageId, turnId, closedTurns); // standalone/content arms (Tasks 4–5)
     maybeCloseTurn(event, turnId, messageId, isPartial);

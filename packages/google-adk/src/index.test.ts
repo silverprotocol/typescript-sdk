@@ -377,6 +377,130 @@ describe("createAdkNormalizer — tool arms", () => {
     const done = out.find((e) => e.type === "tool.done") as { toolCallId: string } | undefined;
     expect(done?.toolCallId).toBe(start.toolCallId);
   });
+
+  // ─── review findings (b)/(c) on M47: window-scoped resend dedup +
+  // positional/orphan functionResponse correlation ──────────────────────────
+
+  it("does NOT collapse a genuinely repeated invocation across two SEPARATE aggregate-resend windows — each mints+emits its own start, correctly paired to its own response (review finding b)", () => {
+    const fc = { functionCall: { name: "echo", args: { text: "hi" } } }; // no id, identical content both times
+    const out = run([
+      event([fc], { partial: true, finishReason: "STOP" }), // window 1 opens
+      event([fc], { partial: false, finishReason: "STOP" }), // window 1 aggregate closes (suppresses its resend)
+      event([fc], { partial: true, finishReason: "STOP" }), // window 2 opens — SAME content, window 1 already closed
+      event([fc], { partial: false, finishReason: "STOP" }), // window 2 aggregate closes (suppresses ITS OWN resend)
+      event(
+        [{ functionResponse: { name: "echo", response: { content: [{ type: "text", text: "first" }] } } }],
+        {}
+      ),
+      event(
+        [{ functionResponse: { name: "echo", response: { content: [{ type: "text", text: "second" }] } } }],
+        {}
+      ),
+    ]);
+    const starts = out.filter((e) => e.type === "tool.start") as Array<{ toolCallId: string }>;
+    // Before the fix: window 2's partial was ALSO collapsed into window 1's
+    // still-"unresolved" id (no response had landed yet) — only ONE start.
+    expect(starts).toHaveLength(2);
+    expect(starts[0]?.toolCallId).not.toBe(starts[1]?.toolCallId);
+    const dones = out.filter((e) => e.type === "tool.done") as Array<{
+      toolCallId: string;
+      content: Array<{ text?: string }>;
+    }>;
+    expect(dones).toHaveLength(2);
+    const startIds = new Set(starts.map((s) => s.toolCallId));
+    // No dangling done: every response correlates to a REAL prior start.
+    for (const d of dones) expect(startIds.has(d.toolCallId)).toBe(true);
+    const first = dones.find((d) => d.content[0]?.text === "first");
+    const second = dones.find((d) => d.content[0]?.text === "second");
+    expect(first?.toolCallId).toBe(starts[0]?.toolCallId);
+    expect(second?.toolCallId).toBe(starts[1]?.toolCallId);
+  });
+
+  it("a genuinely repeated invocation with NO partial precursor at all (flat standalone repeats) still yields two paired start/done, never a dangling done (review finding b2)", () => {
+    const fc = { functionCall: { name: "echo", args: { text: "hi" } } };
+    const out = run([
+      event([fc], { partial: false, finishReason: "STOP" }), // call 1 (standalone, no window)
+      event([fc], { partial: false, finishReason: "STOP" }), // call 2 (standalone, SAME content, BEFORE any response)
+      event(
+        [{ functionResponse: { name: "echo", response: { content: [{ type: "text", text: "first" }] } } }],
+        {}
+      ),
+      event(
+        [{ functionResponse: { name: "echo", response: { content: [{ type: "text", text: "second" }] } } }],
+        {}
+      ),
+    ]);
+    const starts = out.filter((e) => e.type === "tool.start") as Array<{ toolCallId: string }>;
+    // Before the fix: call 2 was swallowed by the "unresolved" content-key
+    // dedup — only ONE start, and the second response then minted a FRESH,
+    // never-started id (a dangling tool.done).
+    expect(starts).toHaveLength(2);
+    const dones = out.filter((e) => e.type === "tool.done") as Array<{ toolCallId: string }>;
+    expect(dones).toHaveLength(2);
+    const startIds = new Set(starts.map((s) => s.toolCallId));
+    for (const d of dones) expect(startIds.has(d.toolCallId)).toBe(true); // no orphan/dangling done
+  });
+
+  it("ONE event carrying TWO same-name functionResponses correlates POSITIONALLY to the two pending calls (Gemini parallel-call convention, review finding c-i)", () => {
+    const out = run([
+      event([{ functionCall: { name: "search", args: { q: "apple" } } }], {
+        partial: false,
+        finishReason: "STOP",
+      }),
+      event([{ functionCall: { name: "search", args: { q: "banana" } } }], {
+        partial: false,
+        finishReason: "STOP",
+      }),
+      event(
+        [
+          {
+            functionResponse: {
+              name: "search",
+              response: { content: [{ type: "text", text: "apple result" }] },
+            },
+          },
+          {
+            functionResponse: {
+              name: "search",
+              response: { content: [{ type: "text", text: "banana result" }] },
+            },
+          },
+        ],
+        {}
+      ),
+    ]);
+    const starts = out.filter((e) => e.type === "tool.start") as Array<{ toolCallId: string }>;
+    expect(starts).toHaveLength(2);
+    const dones = out.filter((e) => e.type === "tool.done") as Array<{
+      toolCallId: string;
+      content: Array<{ text?: string }>;
+    }>;
+    expect(dones).toHaveLength(2);
+    const first = dones.find((d) => d.toolCallId === starts[0]?.toolCallId);
+    const second = dones.find((d) => d.toolCallId === starts[1]?.toolCallId);
+    expect(first?.content[0]?.text).toBe("apple result");
+    expect(second?.content[0]?.text).toBe("banana result");
+  });
+
+  it("an ORPHAN functionResponse (no pending call under that name) does NOT fabricate a dangling tool.done — it rides losslessly via ext.google.unparsed (review finding c-iii)", () => {
+    const out = run([
+      event(
+        [
+          {
+            functionResponse: {
+              name: "ghost",
+              response: { content: [{ type: "text", text: "nobody called me" }] },
+            },
+          },
+        ],
+        {}
+      ),
+    ]);
+    expect(out.some((e) => e.type === "tool.done")).toBe(false);
+    const ext = out.find((e) => e.type === "ext.google.unparsed");
+    expect(ext).toBeDefined();
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
 });
 
 // ─── Part A: parity tests for arms covered only in the legacy index.test.ts ──
