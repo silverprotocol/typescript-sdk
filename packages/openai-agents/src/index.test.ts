@@ -2038,24 +2038,123 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: computer_call (fix
   });
 });
 
-describe("createOpenaiNormalizer — tool_search_* family: documented lossless carry (playbook 2026-07-03)", () => {
-  // Finding #4 (minor — the report's own recommendation followed): tool_search
-  // is NOT ported to a first-class tool.start/done lifecycle. Its payload shape
-  // (arguments: unknown; output: a `tools` catalog listing, not model-readable
-  // tool-result content) doesn't fit the tool.start/args/done triple without
-  // inventing new semantics — the existing `ext.openai.unparsed` carry is
-  // already lossless and correctly reached (both names are genuinely absent
-  // from the facet's declared run-item name union). This test LOCKS IN that
-  // this adaptation did not accidentally change that.
-  it("tool_search_called falls through to ext.openai.unparsed, not a fabricated tool.start", () => {
+describe("createOpenaiNormalizer — built-in tool lifecycle: tool_search (fixture-drift ratchet disposition, 2026-07-03)", () => {
+  // tool_search_called/tool_search_output_created were the last weak
+  // `carried` entries in the fixture-drift ratchet manifest. Wire-truth
+  // re-investigation against the installed @openai/agents-core 0.12.0
+  // (dist/types/protocol.d.ts, dist/events.d.ts, dist/runner/modelOutputs.mjs
+  // + streaming.mjs + tooling.mjs) found: (1) these are DEDICATED
+  // RunItemStreamEventName literals (not a tool_called/tool_output reuse —
+  // §8 item 20's family), (2) they stream as a PAIRED call+output (mirrors
+  // shell_call/apply_patch_call/computer_call, not hosted_tool_call's
+  // single-shot collapse), (3) the output's `tools` array is a genuine
+  // structured retrieval listing (never opaque), so an honest first-class
+  // tool.start/tool.done lifecycle IS supportable — see
+  // `driveToolSearchCalled`/`driveToolSearchOutput`'s docs in index.ts.
+  const TOOL_SEARCH_ROUND: JsonValue[] = [
+    rawModel({ type: "response.created", response: { id: "resp_search_1" } }),
+    runItem("tool_search_called", {
+      type: "tool_search_call_item",
+      rawItem: {
+        type: "tool_search_call",
+        callId: "call_search_1",
+        execution: "server",
+        arguments: { query: "weather tools" },
+        id: "item_search_1",
+      },
+    }),
+    runItem("tool_search_output_created", {
+      type: "tool_search_output_item",
+      rawItem: {
+        type: "tool_search_output",
+        callId: "call_search_1",
+        tools: [{ type: "tool_reference", functionName: "get_weather" }],
+      },
+    }),
+    rawModel({ type: "response.completed", response: { id: "resp_search_1", status: "completed" } }),
+  ];
+
+  it("synthesizes tool.start with name builtin:tool_search from the tool_search_called wrapper", () => {
+    const n = createOpenaiNormalizer();
+    const evs = TOOL_SEARCH_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const starts = evs.filter((e) => e.type === "tool.start");
+    expect(starts).toHaveLength(1);
+    expect(starts[0]).toMatchObject({ toolCallId: "call_search_1", name: "builtin:tool_search" });
+  });
+
+  it("emits tool.args.assembled with the call's arguments object, carried verbatim (not JSON-string-parsed)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = TOOL_SEARCH_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const assembled = evs.find((e) => e.type === "tool.args.assembled");
+    expect(assembled).toMatchObject({ toolCallId: "call_search_1", input: { query: "weather tools" } });
+  });
+
+  it("emits tool.done with the tools listing as a `data` block and outcome:ok", () => {
+    const n = createOpenaiNormalizer();
+    const evs = TOOL_SEARCH_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const done = evs.find((e) => e.type === "tool.done") as {
+      toolCallId?: string;
+      outcome?: string;
+      content?: { type: string; name?: string; data?: unknown }[];
+    };
+    expect(done?.toolCallId).toBe("call_search_1");
+    expect(done?.outcome).toBe("ok");
+    expect(done?.content).toEqual([
+      { type: "data", name: "tool_search_results", data: [{ type: "tool_reference", functionName: "get_weather" }] },
+    ]);
+  });
+
+  it("no orphaned tool.done — tool.start always precedes tool.done for the same toolCallId", () => {
+    const n = createOpenaiNormalizer();
+    const evs = TOOL_SEARCH_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const startIdx = evs.findIndex((e) => e.type === "tool.start");
+    const doneIdx = evs.findIndex((e) => e.type === "tool.done");
+    expect(startIdx).toBeGreaterThanOrEqual(0);
+    expect(doneIdx).toBeGreaterThan(startIdx);
+  });
+
+  it("correlates via providerData.call_id — the SDK's own client-executed built-in-loader output shape (createClientToolSearchOutputFromTools)", () => {
     const n = createOpenaiNormalizer();
     const evs = [
-      rawModel({ type: "response.created", response: { id: "resp_search_1" } }),
+      rawModel({ type: "response.created", response: { id: "resp_search_2" } }),
       runItem("tool_search_called", {
         type: "tool_search_call_item",
-        rawItem: { type: "tool_search_call", callId: "call_search_1", arguments: { query: "weather" } },
+        rawItem: {
+          type: "tool_search_call",
+          id: "item_search_2",
+          execution: "client",
+          arguments: { paths: ["weather"] },
+        },
       }),
-      rawModel({ type: "response.completed", response: { id: "resp_search_1", status: "completed" } }),
+      // No top-level call_id/callId/id — only providerData.call_id, exactly
+      // agents-core 0.12.0's toolSearch.mjs createClientToolSearchOutputFromTools shape.
+      runItem("tool_search_output_created", {
+        type: "tool_search_output_item",
+        rawItem: {
+          type: "tool_search_output",
+          tools: [{ type: "function", name: "get_weather" }],
+          providerData: { call_id: "item_search_2", execution: "client" },
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_search_2", status: "completed" } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    const start = evs.find((e) => e.type === "tool.start") as { toolCallId?: string };
+    const done = evs.find((e) => e.type === "tool.done") as { toolCallId?: string };
+    expect(start?.toolCallId).toBe("item_search_2");
+    expect(done?.toolCallId).toBe("item_search_2");
+  });
+
+  it("degrades to ext.openai.unparsed (no fabricated tool.start) when a call carries no identifiable id at all", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_search_3" } }),
+      runItem("tool_search_called", {
+        type: "tool_search_call_item",
+        rawItem: { type: "tool_search_call", arguments: { query: "x" } }, // no id, callId, or call_id
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_search_3", status: "completed" } }),
     ]
       .flatMap((e) => n.push(e))
       .concat(n.flush());
@@ -2064,21 +2163,53 @@ describe("createOpenaiNormalizer — tool_search_* family: documented lossless c
     expect(unparsed?.name).toBe("tool_search_called");
   });
 
-  it("tool_search_output_created falls through to ext.openai.unparsed, not a fabricated tool.done", () => {
+  it("degrades to ext.openai.unparsed (no fabricated tool.done) when an output carries no identifiable id at all", () => {
     const n = createOpenaiNormalizer();
     const evs = [
-      rawModel({ type: "response.created", response: { id: "resp_search_2" } }),
+      rawModel({ type: "response.created", response: { id: "resp_search_4" } }),
       runItem("tool_search_output_created", {
         type: "tool_search_output_item",
-        rawItem: { type: "tool_search_output", callId: "call_search_1", tools: [{ name: "weather" }] },
+        rawItem: { type: "tool_search_output", tools: [] },
       }),
-      rawModel({ type: "response.completed", response: { id: "resp_search_2", status: "completed" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_search_4", status: "completed" } }),
     ]
       .flatMap((e) => n.push(e))
       .concat(n.flush());
     expect(evs.some((e) => e.type === "tool.done")).toBe(false);
     const unparsed = evs.find((e) => e.type === "ext.openai.unparsed") as { name?: string };
     expect(unparsed?.name).toBe("tool_search_output_created");
+  });
+
+  it("carries a zero-match search (empty tools[]) as an empty-array data block, not dropped", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_search_5" } }),
+      runItem("tool_search_called", {
+        type: "tool_search_call_item",
+        rawItem: { type: "tool_search_call", callId: "call_search_5", arguments: { query: "nonexistent" } },
+      }),
+      runItem("tool_search_output_created", {
+        type: "tool_search_output_item",
+        rawItem: { type: "tool_search_output", callId: "call_search_5", tools: [] },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_search_5", status: "completed" } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    const done = evs.find((e) => e.type === "tool.done") as { content?: { type: string; data?: unknown }[] };
+    expect(done?.content).toEqual([{ type: "data", name: "tool_search_results", data: [] }]);
+  });
+
+  it("fold: no resync, exactly one tool-call + tool-result block pair, no park", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    for (const e of TOOL_SEARCH_ROUND) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    const allBlocks = res.messages.flatMap((m) => m.content);
+    expect(allBlocks.filter((b) => b.type === "tool-call")).toHaveLength(1);
+    expect(allBlocks.filter((b) => b.type === "tool-result")).toHaveLength(1);
   });
 });
 

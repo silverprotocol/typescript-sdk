@@ -344,6 +344,88 @@ export interface OpenAIComputerCallResultItem {
   providerData?: { [k: string]: JsonValue };
 }
 
+// ── OpenAI native Tool-Search built-in shapes (fixture-drift ratchet
+// disposition, 2026-07-03 — the last weak `carried` entries. Verified against
+// @openai/agents-core 0.12.0's `dist/types/protocol.d.ts`: `ToolSearchCallItem`
+// / `ToolSearchOutputItem`; `dist/events.d.ts`: `tool_search_called`/
+// `tool_search_output_created` are DEDICATED `RunItemStreamEventName` literals
+// — UNLIKE shell/apply-patch/computer/hosted-tool (§8 item 20), which all
+// REUSE the pre-existing `tool_called`/`tool_output` names. `dist/runner/
+// modelOutputs.mjs` confirms the PAIRED shape (mirrors shell_call/
+// apply_patch_call/computer_call, not hosted_tool_call's single-shot
+// collapse): `processModelResponse`/`processModelResponseAsync` push a
+// `RunToolSearchCallItem` then, when the output is already resolved this SAME
+// step — server-hosted execution returns both together in one
+// `modelResponse.output`; client execution resolves synchronously via the
+// SDK's own built-in `{paths}` loader or an AWAITED custom `toolSearchTool.
+// execute()` — a `RunToolSearchOutputItem` right after; `dist/runner/
+// streaming.mjs`'s `getRunItemStreamEventName` maps each RunItem class to its
+// OWN event name, so these stream as TWO SEPARATE `RunItemStreamEvent`s (a
+// `tool_search_called` followed by a `tool_search_output_created`), not one
+// collapsed event.
+
+/** protocol `ToolSearchCallItem` (a `tool_search_called` rawItem — the model
+ *  searching a large tool catalog before invoking a specific tool; hosted
+ *  server-side (`execution:"server"`) or client-executed (`execution:
+ *  "client"`, either `Runner`'s built-in `{paths:string[]}` loader or a
+ *  custom `toolSearchTool({execution:"client", execute})`)). Carries NO
+ *  `name` field — the facet synthesizes `name:"builtin:tool_search"` (§8
+ *  quirk, mirrors shell_call/apply_patch_call/computer_call). UNLIKE those
+ *  three (and unlike every other builtin's REQUIRED `callId: z.ZodString`),
+ *  `call_id`/`callId` are BOTH optional AND nullable on this wire — the
+ *  SDK's own runtime (`dist/tooling.mjs`'s `getToolSearchProviderCallId`/
+ *  `getToolSearchMatchKey`) falls back through `providerData.call_id` →
+ *  `providerData.callId` → the item's own `id` → (only when NEITHER side of
+ *  a pairing has ANY identifiable id) blind FIFO positional matching against
+ *  pending calls. `resolveToolSearchCallId` (below, near `driveToolSearchCalled`)
+ *  mirrors the id-fallback chain — NOT the FIFO fallback: fabricating a
+ *  positional-match correlation with no supporting id would risk silently
+ *  pairing two UNRELATED calls, so that case instead degrades to
+ *  `ext.openai.unparsed` (Tenet 6 — never fabricate a correlation id).
+ *  `arguments` is `z.ZodUnknown` (NOT a JSON STRING like `FunctionCallItem.
+ *  arguments`) — provider-defined (`{paths, query}` for the built-in hosted
+ *  loader; a custom shape for a registered `toolSearchTool`) — carried
+ *  through verbatim like `computer_call`'s `action`/`actions`, never
+ *  JSON.parsed. */
+export interface OpenAIToolSearchCallItem {
+  type: "tool_search_call";
+  id?: string;
+  call_id?: string | null;
+  callId?: string | null;
+  execution?: "client" | "server";
+  arguments?: JsonValue;
+  status?: string;
+  providerData?: { [k: string]: JsonValue };
+}
+
+/** protocol `ToolSearchOutputItem` (the `tool_search_output_created` rawItem
+ *  for a resolved tool-search call). `tools` is, per the SDK's own zod-schema
+ *  doc comment, "tool references or concrete tool definitions" — an array of
+ *  provider-defined records (`{type:"tool_reference", functionName,
+ *  namespace}` / a serialized function-tool definition / `{type:"namespace",
+ *  name, description, tools:[...]}` / hosted-MCP provider data) — a
+ *  structured retrieval LISTING, never natural-language text. Carried
+ *  verbatim as a single AgBlock `data` block (the spec's escape hatch for
+ *  structured non-text tool content — mirrors `computer_call_result`'s
+ *  `file`-block treatment of its OWN non-text payload) rather than inventing
+ *  a text rendering with no wire precedent; this is ALREADY full-fidelity
+ *  (unlike `shell_call_output`'s lossy stdout/stderr join), so no separate
+ *  `structuredContent` duplicate is warranted. `status` is an UNCONSTRAINED
+ *  string (unlike shell/apply-patch's closed `'in_progress'|'completed'|
+ *  'incomplete'` enum) — no documented error discriminant exists on this
+ *  wire arm, so — mirroring `computer_call_result`'s identical precedent —
+ *  every occurrence maps to `outcome:"ok"`. */
+export interface OpenAIToolSearchOutputItem {
+  type: "tool_search_output";
+  id?: string;
+  call_id?: string | null;
+  callId?: string | null;
+  execution?: "client" | "server";
+  status?: string;
+  tools: { [k: string]: JsonValue }[];
+  providerData?: { [k: string]: JsonValue };
+}
+
 /** protocol `InputText` (the visible reasoning content part). */
 export interface OpenAIReasoningTextPart {
   type: "input_text";
@@ -421,6 +503,32 @@ interface OpenAIToolOutputEvent {
     customData?: JsonValue;
   };
 }
+
+/** `tool_search_called` — a DEDICATED run-item event name (verified against
+ *  @openai/agents-core 0.12.0's `dist/events.d.ts`: `RunItemStreamEventName`
+ *  gained `'tool_search_called'`/`'tool_search_output_created'` as their OWN
+ *  literals — UNLIKE shell/apply-patch/computer/hosted-tool, which all reuse
+ *  the pre-existing `tool_called`/`tool_output` names (§8 item 20). The
+ *  run-item's own `.type` discriminant is `"tool_search_call_item"` (verified
+ *  against `dist/items.d.ts`'s `RunToolSearchCallItem`). See
+ *  `OpenAIToolSearchCallItem`'s doc for the full wire-truth citations. */
+interface OpenAIToolSearchCalledEvent {
+  type: "run_item_stream_event";
+  name: "tool_search_called";
+  item: { type: "tool_search_call_item"; rawItem: OpenAIToolSearchCallItem };
+}
+
+/** `tool_search_output_created` — the paired completion event (see
+ *  `OpenAIToolSearchOutputItem`'s doc for the wire-truth citations on why
+ *  this is PAIRED, not collapsed like `hosted_tool_call`). The run-item's own
+ *  `.type` discriminant is `"tool_search_output_item"` (`dist/items.d.ts`'s
+ *  `RunToolSearchOutputItem`). */
+interface OpenAIToolSearchOutputCreatedEvent {
+  type: "run_item_stream_event";
+  name: "tool_search_output_created";
+  item: { type: "tool_search_output_item"; rawItem: OpenAIToolSearchOutputItem };
+}
+
 interface OpenAIReasoningEvent {
   type: "run_item_stream_event";
   name: "reasoning_item_created";
@@ -525,6 +633,8 @@ type OpenAIRunItemEvent =
   | OpenAIMessageOutputEvent
   | OpenAIToolCalledEvent
   | OpenAIToolOutputEvent
+  | OpenAIToolSearchCalledEvent
+  | OpenAIToolSearchOutputCreatedEvent
   | OpenAIReasoningEvent
   | OpenAIHandoffRequestedEvent
   | OpenAIHandoffOccurredEvent
@@ -694,6 +804,8 @@ export type OpenAIStreamEvent =
   | OpenAIMessageOutputEvent
   | OpenAIToolCalledEvent
   | OpenAIToolOutputEvent
+  | OpenAIToolSearchCalledEvent
+  | OpenAIToolSearchOutputCreatedEvent
   | OpenAIReasoningEvent
   | OpenAIHandoffRequestedEvent
   | OpenAIHandoffOccurredEvent
@@ -1651,6 +1763,102 @@ export function createOpenaiNormalizer(): Normalizer {
   }
 
   /**
+   * Resolve the correlation id for a `tool_search_call`/`tool_search_output`
+   * pair — mirrors agents-core 0.12.0's own id-fallback chain
+   * (`dist/tooling.mjs`'s `getToolSearchProviderCallId`/`getToolSearchMatchKey`:
+   * `callId ?? call_id ?? providerData.call_id ?? providerData.callId ?? id`),
+   * stopping short of its blind FIFO positional fallback (used by the real
+   * runtime only when NEITHER a field NOR `id` resolves on EITHER side of a
+   * pairing — not something this per-event facet can safely replicate:
+   * blindly popping the oldest pending call would risk silently correlating
+   * two UNRELATED tool_search calls with no supporting id at all). Returns
+   * undefined when genuinely unresolvable — the caller degrades to
+   * `ext.openai.unparsed` rather than fabricating a correlation id (Tenet 6).
+   */
+  function resolveToolSearchCallId(
+    rawItem: OpenAIToolSearchCallItem | OpenAIToolSearchOutputItem,
+  ): string | undefined {
+    if (typeof rawItem.callId === "string" && rawItem.callId.length > 0) return rawItem.callId;
+    if (typeof rawItem.call_id === "string" && rawItem.call_id.length > 0) return rawItem.call_id;
+    const providerData = rawItem.providerData;
+    if (isJsonObject(providerData)) {
+      if (typeof providerData.call_id === "string" && providerData.call_id.length > 0) return providerData.call_id;
+      if (typeof providerData.callId === "string" && providerData.callId.length > 0) return providerData.callId;
+    }
+    if (typeof rawItem.id === "string" && rawItem.id.length > 0) return rawItem.id;
+    return undefined;
+  }
+
+  /**
+   * Map a `tool_search_called` run-item (fixture-drift ratchet disposition,
+   * 2026-07-03 — the manifest's four `tool_search_*` entries flip from
+   * `carried` to `handled`). A DEDICATED event name, not a `tool_called`
+   * reuse (see `OpenAIToolSearchCalledEvent`'s doc) — this run-item wrapper
+   * is the SOLE tool-start source (no raw-stream literal exists for it, same
+   * rationale as `hosted_tool_call`/shell/apply-patch/computer). `arguments`
+   * (`z.ZodUnknown`) is carried through verbatim like `computer_call`'s
+   * `action`/`actions` (never JSON.parsed — it is not a JSON STRING like
+   * `FunctionCallItem.arguments`). Registers as a PENDING tool (Task 4b
+   * discipline) — the paired `tool_search_output_created` typically lands in
+   * the SAME step (server-hosted execution, or synchronously-resolved client
+   * execution — see the file header's wire-truth citations), but if the
+   * call's execution can't be resolved this turn (no client `toolSearchTool`
+   * configured and no immediate hosted-server output), it may never arrive —
+   * the existing INV-FLUSH stream-truncation handling degrades that exactly
+   * like any other unresolved pending tool call, no special-casing needed.
+   */
+  function driveToolSearchCalled(rawItem: OpenAIToolSearchCallItem): void {
+    ensureResponseOpen();
+    if (msgId === undefined) return; // unreachable post-ensure; satisfies narrowing
+    const toolCallId = resolveToolSearchCallId(rawItem);
+    if (toolCallId === undefined) {
+      // Genuinely unresolvable correlation id — never fabricate one (Tenet 6).
+      a.emitExt("openai", "unparsed", { name: "tool_search_called", item: JsonValue.parse(rawItem) });
+      return;
+    }
+    a.toolStart({
+      toolCallId,
+      name: "builtin:tool_search",
+      ...(rawItem.id !== undefined ? { itemId: rawItem.id } : {}),
+      messageId: msgId,
+    });
+    const input: JsonValue = JsonValue.parse(rawItem.arguments ?? {});
+    a.toolArgsDelta(toolCallId, JSON.stringify(input));
+    a.toolArgsAssembled(toolCallId, input);
+    registerPendingTool(toolCallId);
+  }
+
+  /**
+   * Map a `tool_search_output_created` run-item — the paired completion (see
+   * `OpenAIToolSearchOutputItem`'s doc). `tools` is a structured retrieval
+   * listing (tool references/definitions), never natural-language text —
+   * carried verbatim as a single AgBlock `data` block (the spec's escape
+   * hatch for structured non-text tool content) rather than inventing a text
+   * rendering with no wire precedent; this is ALREADY full-fidelity (no lossy
+   * collapse occurs, unlike `shell_call_output`'s stdout/stderr join), so no
+   * separate `structuredContent` duplicate is needed. No error discriminant
+   * exists on this wire's free-form `status` string — mirrors
+   * `computer_call_result`'s identical precedent: every occurrence maps to
+   * `outcome:"ok"`.
+   */
+  function driveToolSearchOutput(rawItem: OpenAIToolSearchOutputItem): void {
+    const toolCallId = resolveToolSearchCallId(rawItem);
+    if (toolCallId === undefined) {
+      a.emitExt("openai", "unparsed", { name: "tool_search_output_created", item: JsonValue.parse(rawItem) });
+      return;
+    }
+    const content: AgBlock[] = [{ type: "data", name: "tool_search_results", data: JsonValue.parse(rawItem.tools) }];
+    const doneTurnId = resolvePendingTurnId(toolCallId);
+    a.toolDone({
+      toolCallId,
+      content,
+      outcome: "ok",
+      ...(doneTurnId !== undefined ? { turnId: doneTurnId } : {}),
+    });
+    drainPendingTool(toolCallId, doneTurnId);
+  }
+
+  /**
    * Map the synthetic `__host_error__` sentinel (host feeds it on
    * `MaxTurnsExceededError`) to a terminal `turn.error{code, message, usage}`.
    *  - A response turn is OPEN → close THAT turn (end streams, close message,
@@ -1742,6 +1950,15 @@ export function createOpenaiNormalizer(): Normalizer {
           driveBuiltinToolCalled(rawItem);
           return;
         }
+        case "tool_search_called":
+          // Fixture-drift ratchet disposition (2026-07-03) — a DEDICATED
+          // event name (not a `tool_called` reuse). See
+          // `driveToolSearchCalled`'s doc for the full lifecycle rationale.
+          driveToolSearchCalled(event.item.rawItem);
+          return;
+        case "tool_search_output_created":
+          driveToolSearchOutput(event.item.rawItem);
+          return;
         case "reasoning_item_created":
           // SOLE source for reasoning content — see driveReasoningItemCreated's
           // docstring for the single-sourcing rationale (Task 3, audit M48).
