@@ -1764,27 +1764,28 @@ export function createOpenaiNormalizer(): Normalizer {
 
   /**
    * Resolve the correlation id for a `tool_search_call`/`tool_search_output`
-   * pair — mirrors agents-core 0.12.0's own id-fallback chain
+   * pair — matches agents-core 0.12.0's own id-fallback chain exactly
    * (`dist/tooling.mjs`'s `getToolSearchProviderCallId`/`getToolSearchMatchKey`:
-   * `callId ?? call_id ?? providerData.call_id ?? providerData.callId ?? id`),
-   * stopping short of its blind FIFO positional fallback (used by the real
-   * runtime only when NEITHER a field NOR `id` resolves on EITHER side of a
-   * pairing — not something this per-event facet can safely replicate:
-   * blindly popping the oldest pending call would risk silently correlating
-   * two UNRELATED tool_search calls with no supporting id at all). Returns
-   * undefined when genuinely unresolvable — the caller degrades to
-   * `ext.openai.unparsed` rather than fabricating a correlation id (Tenet 6).
+   * `providerData.call_id ?? providerData.callId ?? call_id ?? callId ?? id`),
+   * with providerData fields checked FIRST. Stops short of the SDK's blind FIFO
+   * positional fallback (used by the real runtime only when NEITHER a field NOR
+   * `id` resolves on EITHER side of a pairing — not something this per-event
+   * facet can safely replicate: blindly popping the oldest pending call would
+   * risk silently correlating two UNRELATED tool_search calls with no supporting
+   * id at all). Returns undefined when genuinely unresolvable — the caller
+   * degrades to `ext.openai.unparsed` rather than fabricating a correlation id
+   * (Tenet 6).
    */
   function resolveToolSearchCallId(
     rawItem: OpenAIToolSearchCallItem | OpenAIToolSearchOutputItem,
   ): string | undefined {
-    if (typeof rawItem.callId === "string" && rawItem.callId.length > 0) return rawItem.callId;
-    if (typeof rawItem.call_id === "string" && rawItem.call_id.length > 0) return rawItem.call_id;
     const providerData = rawItem.providerData;
     if (isJsonObject(providerData)) {
       if (typeof providerData.call_id === "string" && providerData.call_id.length > 0) return providerData.call_id;
       if (typeof providerData.callId === "string" && providerData.callId.length > 0) return providerData.callId;
     }
+    if (typeof rawItem.call_id === "string" && rawItem.call_id.length > 0) return rawItem.call_id;
+    if (typeof rawItem.callId === "string" && rawItem.callId.length > 0) return rawItem.callId;
     if (typeof rawItem.id === "string" && rawItem.id.length > 0) return rawItem.id;
     return undefined;
   }

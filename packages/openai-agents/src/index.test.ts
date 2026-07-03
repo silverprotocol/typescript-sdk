@@ -2211,6 +2211,81 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: tool_search (fixtu
     expect(allBlocks.filter((b) => b.type === "tool-call")).toHaveLength(1);
     expect(allBlocks.filter((b) => b.type === "tool-result")).toHaveLength(1);
   });
+
+  it("divergent-channel regression (review finding): call and output carry different ids on different channels, resolveToolSearchCallId precedence (providerData first) ensures pairing on the authoritative providerData.call_id", () => {
+    // The call item carries top-level callId "A", but the output carries ONLY
+    // providerData.call_id "B". If the resolver checks top-level callId FIRST
+    // (the old wrong order), tool.start resolves to "A" and tool.done resolves
+    // to "B" → silent mis-pair (unlinked tool-call/tool-result blocks, no
+    // resync). The correct precedence (providerData FIRST) resolves both to "B"
+    // and they link correctly.
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_div_1" } }),
+      runItem("tool_search_called", {
+        type: "tool_search_call_item",
+        rawItem: {
+          type: "tool_search_call",
+          callId: "call_divergent_A", // top-level callId is "A"
+          execution: "client",
+          arguments: { query: "test" },
+          providerData: { call_id: "call_divergent_B" }, // but providerData.call_id is "B"
+        },
+      }),
+      runItem("tool_search_output_created", {
+        type: "tool_search_output_item",
+        rawItem: {
+          type: "tool_search_output",
+          tools: [{ type: "tool_reference", functionName: "test_tool" }],
+          providerData: { call_id: "call_divergent_B" }, // output carries ONLY providerData.call_id "B"
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_div_1", status: "completed" } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+
+    // Both tool.start and tool.done resolve to "B" (the authoritative providerData.call_id).
+    const start = evs.find((e) => e.type === "tool.start") as { toolCallId?: string };
+    const done = evs.find((e) => e.type === "tool.done") as { toolCallId?: string };
+    expect(start?.toolCallId).toBe("call_divergent_B");
+    expect(done?.toolCallId).toBe("call_divergent_B");
+
+    // Full fold: they pair correctly (one tool-call + one tool-result, same id), no resync-park.
+    const n2 = createOpenaiNormalizer();
+    const r = new Reducer();
+    const corpus = [
+      rawModel({ type: "response.created", response: { id: "resp_div_2" } }),
+      runItem("tool_search_called", {
+        type: "tool_search_call_item",
+        rawItem: {
+          type: "tool_search_call",
+          callId: "call_divergent_A",
+          execution: "client",
+          arguments: { query: "test" },
+          providerData: { call_id: "call_divergent_B" },
+        },
+      }),
+      runItem("tool_search_output_created", {
+        type: "tool_search_output_item",
+        rawItem: {
+          type: "tool_search_output",
+          tools: [{ type: "tool_reference", functionName: "test_tool" }],
+          providerData: { call_id: "call_divergent_B" },
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_div_2", status: "completed" } }),
+    ];
+    for (const e of corpus) for (const ev of n2.push(e)) r.push(ev);
+    for (const ev of n2.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    const allBlocks = res.messages.flatMap((m) => m.content);
+    const toolCall = allBlocks.find((b) => b.type === "tool-call") as { toolCallId?: string };
+    const toolResult = allBlocks.find((b) => b.type === "tool-result") as { toolCallId?: string };
+    expect(toolCall?.toolCallId).toBe("call_divergent_B");
+    expect(toolResult?.toolCallId).toBe("call_divergent_B");
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
