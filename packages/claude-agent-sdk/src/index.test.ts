@@ -979,6 +979,194 @@ describe("createClaudeNormalizer — deferral c: assistant error → turn.error"
     );
     assertAllValid(evs);
   });
+
+  // Finding #2 (minor, playbook 2026-07-03 SDK-bump adaptation, claude-agent-sdk
+  // 0.2.141 → 0.3.199): `SDKAssistantMessageError` gained `overloaded` and
+  // `model_not_found`.
+  it("emits turn.error with retriable:true for overloaded", () => {
+    const evs = run(assistantMsgWithError("overloaded"));
+    expect(evs).toContainEqual(
+      expect.objectContaining({
+        type: "turn.error",
+        code: "overloaded",
+        retriable: true,
+      }),
+    );
+    assertAllValid(evs);
+  });
+
+  it("emits turn.error with retriable:false for model_not_found (permanent misconfiguration, not transient)", () => {
+    const evs = run(assistantMsgWithError("model_not_found"));
+    expect(evs).toContainEqual(
+      expect.objectContaining({
+        type: "turn.error",
+        code: "model_not_found",
+        retriable: false,
+      }),
+    );
+    assertAllValid(evs);
+  });
+});
+
+// ─── Finding #1 (critical): refusal-fallback retraction protocol ─────────────
+// playbook 2026-07-03 SDK-bump adaptation (claude-agent-sdk 0.2.141 → 0.3.199).
+// New wire: SDKAssistantMessage.supersedes? + the system message
+// SDKModelRefusalFallbackMessage{retracted_message_uuids} — the SDK retried a
+// refused turn on a fallback model and instructs eviction of the refused leg.
+// LOCKED MAPPING: message.remove per retracted uuid, translated through the
+// facet's own uuid(msg.uuid)→messageId(m.id / `${tool_use_id}:result`)
+// convention — a DIFFERENT id space (SPEC §8 item 19).
+describe("createClaudeNormalizer — refusal-fallback retraction (playbook 2026-07-03)", () => {
+  const REFUSED_UUID = "00000000-0000-0000-0000-0000000000f1";
+  const FALLBACK_UUID = "00000000-0000-0000-0000-0000000000f2";
+  const NOTICE_UUID = "00000000-0000-0000-0000-0000000000f3";
+
+  function refusedAssistant(): SDKMessage {
+    return {
+      type: "assistant",
+      message: {
+        ...betaMessage([{ type: "text", text: "I can't help with that.", citations: null }], {
+          stop_reason: "refusal",
+        }),
+        id: "msg_refused",
+      },
+      parent_tool_use_id: null,
+      uuid: REFUSED_UUID,
+      session_id: "sess_fixture",
+    };
+  }
+
+  function fallbackAssistant(supersedes: string[]): SDKMessage {
+    return {
+      type: "assistant",
+      message: { ...betaMessage([{ type: "text", text: "Sure — here is the answer.", citations: null }]), id: "msg_fallback" },
+      parent_tool_use_id: null,
+      uuid: FALLBACK_UUID,
+      session_id: "sess_fixture",
+      supersedes,
+    };
+  }
+
+  function refusalFallbackNotice(retracted: string[]): SDKMessage {
+    return {
+      type: "system",
+      subtype: "model_refusal_fallback",
+      trigger: "refusal",
+      direction: "retry",
+      original_model: "claude-a",
+      fallback_model: "claude-b",
+      request_id: null,
+      retracted_message_uuids: retracted,
+      content: "Switched to a fallback model.",
+      uuid: NOTICE_UUID,
+      session_id: "sess_fixture",
+    };
+  }
+
+  it("carries the raw uuid list as providerMetadata on the fallback message's first block", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(refusedAssistant())),
+      ...n.push(JsonValue.parse(fallbackAssistant([REFUSED_UUID]))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const fallbackTextStart = evs.find(
+      (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_fallback",
+    );
+    expect(fallbackTextStart).toMatchObject({ providerMetadata: { supersedes: [REFUSED_UUID] } });
+  });
+
+  it("supersedes evicts the refused leg via message.remove 'on arrival'", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(refusedAssistant())),
+      ...n.push(JsonValue.parse(fallbackAssistant([REFUSED_UUID]))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    expect(evs).toContainEqual(expect.objectContaining({ type: "message.remove", id: "msg_refused" }));
+  });
+
+  it("the end-of-turn model_refusal_fallback notice re-evicts idempotently (no error, no fold hazard)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(refusedAssistant())),
+      ...n.push(JsonValue.parse(fallbackAssistant([REFUSED_UUID]))),
+      ...n.push(JsonValue.parse(refusalFallbackNotice([REFUSED_UUID]))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const removes = evs.filter((e) => e.type === "message.remove");
+    // Once from `supersedes` (on arrival), once from the notice (idempotent) —
+    // both target the SAME id; reduce()'s #removeMessage no-ops the repeat.
+    expect(removes).toHaveLength(2);
+    for (const r of removes) expect(r).toMatchObject({ id: "msg_refused" });
+  });
+
+  it("retraction targeting an unknown uuid is a graceful no-op (Tenet 6 — never fabricates a remove)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(fallbackAssistant(["00000000-0000-0000-0000-00000000dead"]))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    expect(evs.some((e) => e.type === "message.remove")).toBe(false);
+  });
+
+  it("also evicts a tombstoned tool_result frame named in the retraction (not only assistant frames)", () => {
+    const n = createClaudeNormalizer();
+    const refusedToolResult = toolResultMsg(); // uuid "…0003", produces "toolu_fixture_1:result"
+    const evs = [
+      ...n.push(JsonValue.parse(refusedToolResult)),
+      ...n.push(JsonValue.parse(fallbackAssistant(["00000000-0000-0000-0000-000000000003"]))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    expect(evs).toContainEqual(
+      expect.objectContaining({ type: "message.remove", id: "toolu_fixture_1:result" }),
+    );
+  });
+
+  it("fold: the refused leg is GONE, the fallback leg is present, no resync (money-path safe)", () => {
+    const n = createClaudeNormalizer();
+    const events = [
+      ...n.push(JsonValue.parse(refusedAssistant())),
+      ...n.push(JsonValue.parse(fallbackAssistant([REFUSED_UUID]))),
+      ...n.push(JsonValue.parse(refusalFallbackNotice([REFUSED_UUID]))),
+      ...n.push(JsonValue.parse(resultSuccess("end_turn"))),
+      ...n.flush(),
+    ];
+    assertAllValid(events);
+    const r = new Reducer();
+    for (const e of events) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const result = r.result();
+    expect(result.messages.find((m) => m.id === "msg_refused")).toBeUndefined();
+    const fallbackMsg = result.messages.find((m) => m.id === "msg_fallback");
+    expect(fallbackMsg).toBeDefined();
+    expect(
+      fallbackMsg?.content.some((b) => b.type === "text" && b.text.includes("Sure")),
+    ).toBe(true);
+  });
+
+  it("usage stays verbatim cumulative — the facet does not invent usage subtraction for the refused leg", () => {
+    // The turn's cumulative usage (mapTurnUsage/mapMessageUsage) is untouched by
+    // this adaptation: the SDK's own result.usage/modelUsage already accounts for
+    // whatever billing the refusal-fallback retry accrued server-side (playbook
+    // brief's usage caution). Assert the existing verbatim/cumulative contract
+    // still holds unchanged in a retraction turn.
+    const n = createClaudeNormalizer();
+    const events = [
+      ...n.push(JsonValue.parse(refusedAssistant())),
+      ...n.push(JsonValue.parse(fallbackAssistant([REFUSED_UUID]))),
+      ...n.push(JsonValue.parse(refusalFallbackNotice([REFUSED_UUID]))),
+      ...n.push(JsonValue.parse(resultSuccess("end_turn"))),
+      ...n.flush(),
+    ];
+    const turnDone = events.find((e) => e.type === "turn.done");
+    expect(turnDone).toMatchObject({ usage: { cumulative: true } });
+  });
 });
 
 describe("createClaudeNormalizer — B1b: server blocks semantic homes", () => {

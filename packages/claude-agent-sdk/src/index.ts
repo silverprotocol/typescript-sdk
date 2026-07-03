@@ -25,6 +25,7 @@ import {
   type AgCitation,
   type AgFinishReason,
   AgMeta,
+  AgProviderMeta,
   type AgSafety,
   type AgSource,
   type AgUsage,
@@ -50,6 +51,10 @@ type ContentBlockParam = Extract<UserContent, readonly unknown[]>[number];
 type ToolResultBlock = Extract<ContentBlockParam, { type: "tool_result" }>;
 type ToolResultContent = ToolResultBlock["content"];
 type ImageBlockSource = Extract<ContentBlockParam, { type: "image" }>["source"];
+// Assistant-side mcp_tool_result content (distinct shape from the user-side
+// tool_result content mapped by `toolResultContentToAgBlocks`).
+type McpToolResultBlock = Extract<BetaContentBlock, { type: "mcp_tool_result" }>;
+type McpToolResultContent = McpToolResultBlock["content"];
 
 // ─── Additional types derived from SDKMessage (version-correct) ──────────────
 type SDKResultMsg = Extract<SDKMessage, { type: "result" }>;
@@ -246,14 +251,42 @@ function toolResultContentToAgBlocks(content: NonNullable<ToolResultContent>): A
   return out;
 }
 
+// Assistant-side mcp_tool_result content → AgBlock[] (distinct shape from the
+// user-side tool_result content mapped by `toolResultContentToAgBlocks` above).
+// A `for...of` loop, not `.map` — playbook 2026-07-03 SDK-bump adaptation: the
+// 0.3.199 `SDKMessage` union widened enough that `.map`/`.forEach`/`.filter`
+// callback PARAMETER inference silently degrades to implicit `any` on this
+// content shape (a known TS limitation calling an array method on a value typed
+// as a union of structurally-different array types); a plain loop sidesteps it
+// without an explicit-but-redundant parameter annotation, matching this file's
+// established iteration style everywhere else.
+function mcpToolResultContentToAgBlocks(content: McpToolResultContent): AgBlock[] {
+  if (typeof content === "string") {
+    return content.length > 0 ? [{ type: "text", text: content }] : [];
+  }
+  const out: AgBlock[] = [];
+  for (const tb of content) out.push({ type: "text", text: tb.text });
+  return out;
+}
+
 // ─── assistant content block fan-out (spec §4 mapping table) ──────────────────
 // Per content[] block, drive the engine to emit its lifecycle events under the
-// open message named by `messageId`.
+// open message named by `messageId`. `blockProviderMetadata` is the refusal-
+// fallback `supersedes` carrier (playbook 2026-07-03 SDK-bump adaptation,
+// Finding #1 / §8 item 19): the caller passes it ONLY for blockIndex 0 of a
+// superseding message, mirroring the established "signature on first block"
+// precedent (§8 item 8, Gemini thoughtSignature). `text`/`thinking`/
+// `redacted_thinking`/`tool_use` family all have a providerMetadata slot on
+// their *.start event and land it there; the remaining rarer block-0 shapes
+// (image/resource/mcp_tool_result/compaction) have no providerMetadata slot on
+// `content.block` and drop the annotation (NOT the retraction itself, which
+// already executed via `message.remove` regardless — see `drive()`).
 function emitAssistantBlock(
   a: StreamAssembler,
   block: BetaContentBlock,
   messageId: string,
   blockIndex: number,
+  blockProviderMetadata?: AgProviderMeta,
 ): void {
   switch (block.type) {
     case "text": {
@@ -264,14 +297,23 @@ function emitAssistantBlock(
       const id = `${messageId}:text:${blockIndex}`;
       const citations =
         block.citations != null && block.citations.length > 0 ? mapCitations(block.citations) : undefined;
-      a.textStart(id, messageId);
+      a.textStart(id, messageId, blockProviderMetadata !== undefined ? { providerMetadata: blockProviderMetadata } : undefined);
       a.textDelta(id, messageId, block.text);
       a.textEnd(id, messageId, citations !== undefined ? { citations } : undefined);
       return;
     }
     case "thinking": {
       const id = `${messageId}:reasoning:${blockIndex}`;
-      a.reasoningStart(id, messageId);
+      if (blockProviderMetadata !== undefined) {
+        // reasoningStart's sugar signature has no providerMetadata parameter
+        // (only textStart's does) — `a.emit()` is the documented base
+        // primitive for exactly this case (schema DOES support it on
+        // reasoning.start; StreamAssembler docstring: "guarantees no
+        // AgClosedEventType is ever unreachable").
+        a.emit({ type: "reasoning.start", id, messageId, providerMetadata: blockProviderMetadata });
+      } else {
+        a.reasoningStart(id, messageId);
+      }
       a.reasoningDelta(id, messageId, block.thinking);
       a.reasoningEnd(id, messageId);
       // The Anthropic thinking signature is replay-load-bearing (spec §8/§10):
@@ -289,7 +331,11 @@ function emitAssistantBlock(
     case "redacted_thinking": {
       // No visible text; the redacted blob is the replay-load-bearing opaque part.
       const id = `${messageId}:reasoning:${blockIndex}`;
-      a.reasoningStart(id, messageId);
+      if (blockProviderMetadata !== undefined) {
+        a.emit({ type: "reasoning.start", id, messageId, providerMetadata: blockProviderMetadata });
+      } else {
+        a.reasoningStart(id, messageId);
+      }
       a.reasoningEnd(id, messageId);
       a.reasoningOpaque(id, messageId, {
         kind: "redacted",
@@ -325,6 +371,7 @@ function emitAssistantBlock(
         index: blockIndex,
         messageId,
         providerExecuted,
+        ...(blockProviderMetadata !== undefined ? { providerMetadata: blockProviderMetadata } : {}),
       });
       a.toolArgsDelta(toolCallId, JSON.stringify(input));
       a.toolArgsAssembled(toolCallId, input);
@@ -333,12 +380,7 @@ function emitAssistantBlock(
     case "mcp_tool_result": {
       // MCP tool results from the assistant side: map to tool.done with content + outcome.
       const outcome: ToolOutcome = block.is_error ? "error" : "ok";
-      const content: AgBlock[] =
-        typeof block.content === "string"
-          ? block.content.length > 0
-            ? [{ type: "text", text: block.content }]
-            : []
-          : block.content.map((tb): AgBlock => ({ type: "text", text: tb.text }));
+      const content: AgBlock[] = mcpToolResultContentToAgBlocks(block.content);
       a.toolDone({
         toolCallId: block.tool_use_id,
         content,
@@ -424,12 +466,66 @@ export function createClaudeNormalizer(): Normalizer {
   // tool_result (same non-null parent_tool_use_id) can route to it instead.
   const subagentTurnByParentToolUseId = new Map<string, string>();
 
+  // Playbook 2026-07-03 SDK-bump adaptation, Finding #1 (critical) — refusal-
+  // fallback retraction (§8 item 19). `supersedes` / `retracted_message_uuids`
+  // name PRIOR DELIVERED MESSAGES by their wire-frame `uuid` (`msg.uuid`) — a
+  // DIFFERENT id space from the messageIds this facet actually emits (`m.id`
+  // for an assistant frame's `message.start`, `${tool_use_id}:result` for an
+  // ADOPTED tool-result frame, §8 item 15). Track uuid → the messageId(s) it
+  // produced so a later retraction can translate before emitting
+  // `message.remove` — "translated through the facet's uuid→messageId
+  // convention" per the adaptation brief.
+  const messageIdsByUuid = new Map<string, string[]>();
+
+  function registerUuid(uuid: string | undefined, ids: readonly string[]): void {
+    if (uuid === undefined || ids.length === 0) return;
+    const existing = messageIdsByUuid.get(uuid);
+    if (existing !== undefined) existing.push(...ids);
+    else messageIdsByUuid.set(uuid, [...ids]);
+  }
+
+  // Evict every messageId ever produced for each uuid in `uuids`. An uuid this
+  // facet never observed is skipped (Tenet 6: nothing is fabricated — the fold
+  // has nothing live under an unknown id anyway; `reduce()`'s `#removeMessage`
+  // is a documented no-op on an unknown id regardless). Safe to call from BOTH
+  // retraction sources without double-effect: `supersedes` fires "on arrival"
+  // (the field's own doc: evict immediately, treat this frame as canonical)
+  // and the end-of-turn `model_refusal_fallback` notice re-asserts the same
+  // uuids as "the complete audit record for the turn" — `#removeMessage`
+  // no-ops a repeat remove, so processing both sources is idempotent.
+  function retractUuids(uuids: readonly string[]): void {
+    for (const uuid of uuids) {
+      const ids = messageIdsByUuid.get(uuid);
+      if (ids === undefined) continue;
+      for (const id of ids) {
+        a.emit({ type: "message.remove", id });
+      }
+    }
+  }
+
   function drive(msg: SDKMessage): void {
     if (msg.type === "assistant") {
       const m = msg.message;
       const turnId = turnIdFor(msg.session_id, m.id);
       const parentTurnId =
         msg.parent_tool_use_id !== null ? `turn_${msg.parent_tool_use_id}` : undefined;
+
+      // Finding #1 (critical): this frame supersedes prior delivered messages
+      // (refusal-fallback retry) — evict them "on arrival", per the field's own
+      // doc, before opening the canonical replacement below. Idempotent with
+      // the end-of-turn `model_refusal_fallback` notice (see the `system`
+      // branch further down) — see `retractUuids`'s doc.
+      if (msg.supersedes !== undefined && msg.supersedes.length > 0) {
+        retractUuids(msg.supersedes);
+      }
+      // The raw uuid list is ALSO carried losslessly as `providerMetadata` on
+      // this message's first content block (mirrors the "signature on first
+      // block" precedent, §8 item 8) — an audit trail independent of whether
+      // every targeted uuid was resolvable above.
+      const supersedesMeta: AgProviderMeta | undefined =
+        msg.supersedes !== undefined && msg.supersedes.length > 0
+          ? AgProviderMeta.parse({ supersedes: msg.supersedes })
+          : undefined;
 
       // A non-null parent_tool_use_id ⇒ this assistant message is a NESTED turn
       // (subagent). subagent.start is the SOLE nested-turn opener (spec §4/§5) and
@@ -448,7 +544,12 @@ export function createClaudeNormalizer(): Normalizer {
         threadId: msg.session_id,
         model: m.model,
       });
-      m.content.forEach((block, i) => emitAssistantBlock(a, block, m.id, i));
+      // A plain indexed loop, not `.forEach` — see `mcpToolResultContentToAgBlocks`'s
+      // doc: `.forEach`'s callback parameter inference degrades to implicit `any`
+      // on this content shape post-0.3.199.
+      for (let i = 0; i < m.content.length; i++) {
+        emitAssistantBlock(a, m.content[i], m.id, i, i === 0 ? supersedesMeta : undefined);
+      }
       a.closeMessage(m.id, mapMessageUsage(m.usage));
 
       // If the assistant turn carries an error signal (rate_limit, billing_error, etc.),
@@ -458,13 +559,23 @@ export function createClaudeNormalizer(): Normalizer {
         a.closeTurnError(turnId, {
           message: errCode,
           code: errCode,
-          retriable: errCode === "rate_limit" || errCode === "server_error",
+          // Finding #2 (minor): `overloaded` (transient capacity error, a first
+          // cousin of rate_limit/server_error) joins the retriable set.
+          // `model_not_found` (a permanent misconfiguration — e.g. a stale/
+          // decommissioned model id) is deliberately EXCLUDED: explicit
+          // false-by-omission, not an oversight (playbook 2026-07-03 SDK-bump
+          // adaptation, Finding #2).
+          retriable: errCode === "rate_limit" || errCode === "server_error" || errCode === "overloaded",
         });
       }
 
       if (parentTurnId !== undefined) {
         a.subagentDone(turnId, parentTurnId);
       }
+
+      // Record this frame's own uuid → the messageId it produced, so a LATER
+      // retraction naming this uuid can translate it (Finding #1).
+      registerUuid(msg.uuid, [m.id]);
       return;
     }
 
@@ -504,8 +615,17 @@ export function createClaudeNormalizer(): Normalizer {
             ? AgMeta.parse(sibling["_meta"])
             : undefined;
         const siblingHasUi = siblingMeta !== undefined && siblingMeta["ui"] !== undefined;
-        const toolResultCount = content.filter((b) => b.type === "tool_result").length;
+        // A `for...of` count, not `.filter(...).length` — see
+        // `mcpToolResultContentToAgBlocks`'s doc: array-method callback
+        // parameter inference degrades to implicit `any` on this content shape
+        // post-0.3.199.
+        let toolResultCount = 0;
+        for (const b of content) if (b.type === "tool_result") toolResultCount++;
         const applySibling = sibling !== undefined && toolResultCount === 1;
+        // Finding #1: this frame's own uuid may later be named by a retraction
+        // (a refused leg's tombstoned tool_results, per the field's own doc) —
+        // collect every adopted messageId this frame produces below.
+        const resultMessageIds: string[] = [];
         for (const block of content) {
           if (block.type === "tool_result") {
             const outcome: ToolOutcome = block.is_error === true ? "error" : "ok";
@@ -520,6 +640,8 @@ export function createClaudeNormalizer(): Normalizer {
               blockAsObj?.["structuredContent"] !== undefined
                 ? JsonValue.parse(blockAsObj["structuredContent"])
                 : undefined;
+            const resultMessageId = `${block.tool_use_id}:result`;
+            resultMessageIds.push(resultMessageId);
             a.toolDone({
               toolCallId: block.tool_use_id,
               content: toolContent,
@@ -533,7 +655,7 @@ export function createClaudeNormalizer(): Normalizer {
               // this on a real claude tool conversation). A stable derived
               // messageId engages the reducer's adoption path instead: the result
               // lands in its OWN dedicated role:"tool" message.
-              messageId: `${block.tool_use_id}:result`,
+              messageId: resultMessageId,
               // §2.1 routing: MCP-Apps structuredContent (sibling with _meta.ui)
               // is surface data → uiData; base-MCP structuredContent → the model
               // channel. The sibling's copy is authoritative over the block-level
@@ -551,6 +673,9 @@ export function createClaudeNormalizer(): Normalizer {
             });
           }
         }
+        // Finding #1: record this frame's uuid → the adopted messageId(s) it
+        // produced, so a later retraction naming this uuid can translate it.
+        registerUuid(msg.uuid, resultMessageIds);
       }
       return;
     }
@@ -599,6 +724,18 @@ export function createClaudeNormalizer(): Normalizer {
         code: subtype,
         retriable,
       });
+      return;
+    }
+
+    if (msg.type === "system" && msg.subtype === "model_refusal_fallback") {
+      // Finding #1 (critical): the end-of-turn authoritative eviction record —
+      // "the complete audit record for the turn" per the field's own doc.
+      // Idempotent with the earlier `supersedes`-triggered eviction above (see
+      // `retractUuids`'s doc); also the ONLY retraction path when a consumer
+      // never observed (or a normalizer instance never processed) the
+      // superseding assistant frame's own `supersedes` field directly.
+      const uuids = Array.isArray(msg.retracted_message_uuids) ? msg.retracted_message_uuids : [];
+      retractUuids(uuids);
       return;
     }
 
