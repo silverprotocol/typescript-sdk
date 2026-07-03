@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import { AgEvent, JsonValue, Reducer } from "@silverprotocol/core";
@@ -1484,5 +1486,395 @@ describe("tool_use_result sibling mapping (audit B7)", () => {
     const dones = n.push(msg).filter((e) => e.type === "tool.done");
     expect(dones).toHaveLength(2);
     for (const d of dones) expect(d.type === "tool.done" && d.uiData).toBeUndefined();
+  });
+});
+
+// ─── fixture-drift ratchet — the 16 remaining `silently-dropped` claude arms
+// (2026-07-03 follow-up to the SDKInformationalMessage flagship fix above) ────
+// Per-arm decision procedure (see `.superpowers/sdd/claude-arms-disposition-report.md`
+// for the full table + wire-shape citations):
+//  1. SDKPermissionDeniedMessage -> HANDLED: routed into the existing W1
+//     `<turnId>:denials` carrier (audit M19) as enrichment, not a duplicate pair.
+//  2. The other 15 -> uniform lossless carry `ext.anthropic.frame{kind, frame}`
+//     (SPEC §8 item 22 / §12) — including the Task* subagent-progress family
+//     and SDKModelRefusalNoFallbackMessage, both STUDIED against an
+//     existing-home mapping and rejected (see index.ts's `anthropicFrameKind`
+//     doc comment for the full reasoning: tool_use_id is OPTIONAL on every
+//     Task* arm, so the family is a broader "tasks panel" superset, not 1:1
+//     with Task-tool subagent adoption; forcing the mapping risks the M22
+//     double-fold hazard).
+
+// Every fixture below includes a representative slice of the arm's OPTIONAL
+// fields (not just the required minimum) so the "byte-preserved frame" assertion
+// actually exercises verbatim carry rather than an accidentally-minimal shape.
+
+function modelRefusalNoFallbackMsg(): SDKMessage {
+  return {
+    type: "system",
+    subtype: "model_refusal_no_fallback",
+    original_model: "claude-opus-test",
+    request_id: "req_123",
+    api_refusal_category: "content_policy",
+    api_refusal_explanation: "The request violates usage policy.",
+    refused_user_message_uuid: "00000000-0000-0000-0000-0000000000a1",
+    content: "I can't help with that request.",
+    uuid: "00000000-0000-0000-0000-0000000000a2",
+    session_id: "sess_fixture",
+  };
+}
+
+function localCommandOutputMsg(): SDKMessage {
+  return {
+    type: "system",
+    subtype: "local_command_output",
+    content: "Compacted 12 messages, saved 4200 tokens.",
+    uuid: "00000000-0000-0000-0000-0000000000b1",
+    session_id: "sess_fixture",
+  };
+}
+
+function hookProgressMsg(): SDKMessage {
+  return {
+    type: "system",
+    subtype: "hook_progress",
+    hook_id: "hook_1",
+    hook_name: "lint-on-save",
+    hook_event: "PostToolUse",
+    stdout: "Running eslint...\n",
+    stderr: "",
+    output: "Running eslint...\n",
+    uuid: "00000000-0000-0000-0000-0000000000c1",
+    session_id: "sess_fixture",
+  };
+}
+
+function hookResponseMsg(): SDKMessage {
+  return {
+    type: "system",
+    subtype: "hook_response",
+    hook_id: "hook_1",
+    hook_name: "lint-on-save",
+    hook_event: "PostToolUse",
+    output: "0 problems",
+    stdout: "0 problems",
+    stderr: "",
+    exit_code: 0,
+    outcome: "success",
+    uuid: "00000000-0000-0000-0000-0000000000c2",
+    session_id: "sess_fixture",
+  };
+}
+
+function authStatusMsg(): SDKMessage {
+  return {
+    type: "auth_status",
+    isAuthenticating: true,
+    output: ["Visit https://example.com/authorize to continue."],
+    uuid: "00000000-0000-0000-0000-0000000000d1",
+    session_id: "sess_fixture",
+  };
+}
+
+function taskNotificationMsg(): SDKMessage {
+  return {
+    type: "system",
+    subtype: "task_notification",
+    task_id: "task_1",
+    tool_use_id: "toolu_task_1",
+    status: "completed",
+    output_file: "/tmp/task_1_output.md",
+    summary: "Investigated the failing test and found the root cause.",
+    uuid: "00000000-0000-0000-0000-0000000000e1",
+    session_id: "sess_fixture",
+  };
+}
+
+function taskStartedMsg(): SDKMessage {
+  return {
+    type: "system",
+    subtype: "task_started",
+    task_id: "task_1",
+    tool_use_id: "toolu_task_1",
+    description: "Research the flaky test failure.",
+    subagent_type: "general-purpose",
+    uuid: "00000000-0000-0000-0000-0000000000e2",
+    session_id: "sess_fixture",
+  };
+}
+
+function taskUpdatedMsg(): SDKMessage {
+  return {
+    type: "system",
+    subtype: "task_updated",
+    task_id: "task_1",
+    patch: { status: "running", description: "Still investigating." },
+    uuid: "00000000-0000-0000-0000-0000000000e3",
+    session_id: "sess_fixture",
+  };
+}
+
+function taskProgressMsg(): SDKMessage {
+  return {
+    type: "system",
+    subtype: "task_progress",
+    task_id: "task_1",
+    tool_use_id: "toolu_task_1",
+    description: "Investigating the flaky test.",
+    usage: { total_tokens: 500, tool_uses: 2, duration_ms: 1200 },
+    last_tool_name: "Bash",
+    summary: "Ran the test suite twice to confirm flakiness.",
+    uuid: "00000000-0000-0000-0000-0000000000e4",
+    session_id: "sess_fixture",
+  };
+}
+
+function notificationMsg(): SDKMessage {
+  return {
+    type: "system",
+    subtype: "notification",
+    key: "long_running_tool",
+    text: "This tool call is taking longer than usual.",
+    priority: "medium",
+    uuid: "00000000-0000-0000-0000-0000000000f1",
+    session_id: "sess_fixture",
+  };
+}
+
+function filesPersistedMsg(): SDKMessage {
+  return {
+    type: "system",
+    subtype: "files_persisted",
+    files: [{ filename: "report.pdf", file_id: "file_1" }],
+    failed: [{ filename: "chart.png", error: "upload timed out" }],
+    processed_at: "2026-07-03T00:00:00Z",
+    uuid: "00000000-0000-0000-0000-0000000000f2",
+    session_id: "sess_fixture",
+  };
+}
+
+function toolUseSummaryMsg(): SDKMessage {
+  return {
+    type: "tool_use_summary",
+    summary: "Read 3 files and ran 1 test suite.",
+    preceding_tool_use_ids: ["toolu_1", "toolu_2", "toolu_3"],
+    uuid: "00000000-0000-0000-0000-0000000000f3",
+    session_id: "sess_fixture",
+  };
+}
+
+function memoryRecallMsg(): SDKMessage {
+  return {
+    type: "system",
+    subtype: "memory_recall",
+    mode: "select",
+    memories: [
+      { path: "/home/user/.claude/memory/project.md", scope: "personal", content: "Prefers tabs over spaces." },
+    ],
+    uuid: "00000000-0000-0000-0000-0000000000f5",
+    session_id: "sess_fixture",
+  };
+}
+
+function promptSuggestionMsg(): SDKMessage {
+  return {
+    type: "prompt_suggestion",
+    suggestion: "Would you like me to also update the changelog?",
+    uuid: "00000000-0000-0000-0000-0000000000f6",
+    session_id: "sess_fixture",
+  };
+}
+
+function mirrorErrorMsg(): SDKMessage {
+  return {
+    type: "system",
+    subtype: "mirror_error",
+    error: "Failed to sync session to cloud mirror: connection reset.",
+    key: { projectKey: "proj_1", sessionId: "sess_fixture" },
+    uuid: "00000000-0000-0000-0000-0000000000f7",
+    session_id: "sess_fixture",
+  };
+}
+
+const CARRIED_ARMS: ReadonlyArray<{ armName: string; kind: string; msg: SDKMessage }> = [
+  { armName: "SDKModelRefusalNoFallbackMessage", kind: "model_refusal_no_fallback", msg: modelRefusalNoFallbackMsg() },
+  { armName: "SDKLocalCommandOutputMessage", kind: "local_command_output", msg: localCommandOutputMsg() },
+  { armName: "SDKHookProgressMessage", kind: "hook_progress", msg: hookProgressMsg() },
+  { armName: "SDKHookResponseMessage", kind: "hook_response", msg: hookResponseMsg() },
+  { armName: "SDKAuthStatusMessage", kind: "auth_status", msg: authStatusMsg() },
+  { armName: "SDKTaskNotificationMessage", kind: "task_notification", msg: taskNotificationMsg() },
+  { armName: "SDKTaskStartedMessage", kind: "task_started", msg: taskStartedMsg() },
+  { armName: "SDKTaskUpdatedMessage", kind: "task_updated", msg: taskUpdatedMsg() },
+  { armName: "SDKTaskProgressMessage", kind: "task_progress", msg: taskProgressMsg() },
+  { armName: "SDKNotificationMessage", kind: "notification", msg: notificationMsg() },
+  { armName: "SDKFilesPersistedEvent", kind: "files_persisted", msg: filesPersistedMsg() },
+  { armName: "SDKToolUseSummaryMessage", kind: "tool_use_summary", msg: toolUseSummaryMsg() },
+  { armName: "SDKMemoryRecallMessage", kind: "memory_recall", msg: memoryRecallMsg() },
+  { armName: "SDKPromptSuggestionMessage", kind: "prompt_suggestion", msg: promptSuggestionMsg() },
+  { armName: "SDKMirrorErrorMessage", kind: "mirror_error", msg: mirrorErrorMsg() },
+];
+
+describe("createClaudeNormalizer — uniform vendor-frame carry (ext.anthropic.frame, fixture-drift ratchet)", () => {
+  it.each(CARRIED_ARMS)(
+    "$armName emits exactly one ext.anthropic.frame{kind:$kind}, byte-preserved, no park on fold",
+    ({ kind, msg }) => {
+      const n = createClaudeNormalizer();
+      const evs = [...n.push(JsonValue.parse(msg)), ...n.flush()];
+      assertAllValid(evs);
+      expect(evs).toHaveLength(1);
+      expect(evs[0]).toMatchObject({ type: "ext.anthropic.frame", kind });
+      // `frame` rides the VERBATIM native message — no field-by-field
+      // reinterpretation. Same narrowing convention as the
+      // SDKInformationalMessage tests above (AgExtEvent's `type` is a
+      // regex-validated `string`, not a discriminated-union literal, so
+      // `Extract`/`===`-narrowing can't pin the ext arm the way it does for
+      // AgClosedEventType members).
+      expect((evs[0] as { frame?: unknown }).frame).toEqual(msg);
+
+      const r = new Reducer();
+      for (const e of evs) r.push(e);
+      expect(r.needsResync).toBe(false);
+    },
+  );
+
+  it("a carried frame sandwiched inside a real turn does not false-park the fold (M22/M46 lesson)", () => {
+    const n = createClaudeNormalizer();
+    const events = [
+      ...n.push(JsonValue.parse(assistantMsg([{ type: "text", text: "hi", citations: null }]))),
+      ...n.push(JsonValue.parse(localCommandOutputMsg())),
+      ...n.push(JsonValue.parse(resultSuccess("end_turn"))),
+      ...n.flush(),
+    ];
+    assertAllValid(events);
+    expect(events.some((e) => e.type === "ext.anthropic.frame")).toBe(true);
+    const r = new Reducer();
+    for (const e of events) r.push(e);
+    expect(r.needsResync).toBe(false);
+  });
+});
+
+// ─── SDKPermissionDeniedMessage — the "real judgment case" existing-home fix ──
+// (audit M19's W1 `<turnId>:denials` carrier). The standalone live denial
+// notice is the SAME fact the terminal `permission_denials[]` aggregate
+// already turns into a tool.start+tool.done{denied} pair — this fix enriches
+// THAT pair (rejection message text + decision-reason/agent-id
+// providerMetadata) instead of emitting a second, duplicate pair (M22).
+function permissionDeniedMsg(overrides?: {
+  agent_id?: string;
+  decision_reason_type?: string;
+  decision_reason?: string;
+}): SDKMessage {
+  return {
+    type: "system",
+    subtype: "permission_denied",
+    tool_name: "bash",
+    tool_use_id: "toolu_denied_1",
+    message: "This command was blocked by a deny rule (no destructive filesystem operations).",
+    ...(overrides?.agent_id !== undefined ? { agent_id: overrides.agent_id } : {}),
+    ...(overrides?.decision_reason_type !== undefined ? { decision_reason_type: overrides.decision_reason_type } : {}),
+    ...(overrides?.decision_reason !== undefined ? { decision_reason: overrides.decision_reason } : {}),
+    uuid: "00000000-0000-0000-0000-0000000000g1",
+    session_id: "sess_fixture",
+  };
+}
+
+describe("createClaudeNormalizer — SDKPermissionDeniedMessage enriches the W1 <turnId>:denials carrier (audit M19)", () => {
+  it("the live frame alone produces NO standalone event (recorded, not emitted — avoids the M22 double-fold hazard)", () => {
+    const n = createClaudeNormalizer();
+    const evs = n.push(JsonValue.parse(permissionDeniedMsg()));
+    expect(evs).toHaveLength(0);
+  });
+
+  it("enriches the aggregate denial's tool.done with the live rejection message + decision-reason providerMetadata", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(
+        JsonValue.parse(
+          permissionDeniedMsg({
+            agent_id: "agent_1",
+            decision_reason_type: "rule",
+            decision_reason: "matches deny-rule 'no rm -rf'",
+          }),
+        ),
+      ),
+      ...n.push(JsonValue.parse(resultWithDenial())),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const toolStarts = evs.filter(
+      (e): e is Extract<AgEvent, { type: "tool.start" }> =>
+        e.type === "tool.start" && e.toolCallId === "toolu_denied_1",
+    );
+    const toolDones = evs.filter(
+      (e): e is Extract<AgEvent, { type: "tool.done" }> => e.type === "tool.done" && e.toolCallId === "toolu_denied_1",
+    );
+    // No duplicate pair from the live frame — exactly the ONE pair the
+    // already-handled aggregate produces, now enriched.
+    expect(toolStarts).toHaveLength(1);
+    expect(toolDones).toHaveLength(1);
+    expect(toolDones[0]).toMatchObject({
+      outcome: "denied",
+      content: [{ type: "text", text: "This command was blocked by a deny rule (no destructive filesystem operations)." }],
+      providerMetadata: {
+        decisionReasonType: "rule",
+        decisionReason: "matches deny-rule 'no rm -rf'",
+        agentId: "agent_1",
+      },
+    });
+  });
+
+  it("falls back to empty content + no providerMetadata when no live frame preceded the aggregate (pre-existing behavior unchanged)", () => {
+    const evs = run(resultWithDenial());
+    const toolDone = evs.find(
+      (e): e is Extract<AgEvent, { type: "tool.done" }> => e.type === "tool.done",
+    );
+    expect(toolDone).toMatchObject({ outcome: "denied", content: [] });
+    expect(toolDone?.providerMetadata).toBeUndefined();
+  });
+
+  it("fold: the enriched denial carrier folds clean through Reducer — needsResync===false", () => {
+    const n = createClaudeNormalizer();
+    const events = [
+      ...n.push(JsonValue.parse(permissionDeniedMsg({ decision_reason: "classifier auto-deny" }))),
+      ...n.push(JsonValue.parse(resultWithDenial())),
+      ...n.flush(),
+    ];
+    assertAllValid(events);
+    const r = new Reducer();
+    for (const e of events) r.push(e);
+    expect(r.needsResync).toBe(false);
+  });
+});
+
+// ─── fixture-drift gate: the claude manifest must have ZERO remaining
+// `silently-dropped` members (this task's entire point) ───────────────────────
+interface SdkSurfaceManifestEntry {
+  disposition: string;
+  note: string;
+}
+interface SdkSurfaceManifest {
+  members: Record<string, SdkSurfaceManifestEntry>;
+}
+
+describe("fixture-drift ratchet — packages/claude-agent-sdk/sdk-surface.json manifest", () => {
+  function loadManifest(): SdkSurfaceManifest {
+    const manifestPath = fileURLToPath(new URL("../sdk-surface.json", import.meta.url));
+    return JSON.parse(readFileSync(manifestPath, "utf8")) as SdkSurfaceManifest;
+  }
+
+  it("has ZERO remaining silently-dropped members", () => {
+    const manifest = loadManifest();
+    const silentlyDropped = Object.entries(manifest.members)
+      .filter(([, entry]) => entry.disposition === "silently-dropped")
+      .map(([name]) => name);
+    expect(silentlyDropped).toEqual([]);
+  });
+
+  it("every member disposes to a recognised, non-dropped disposition", () => {
+    const manifest = loadManifest();
+    const VALID = new Set(["handled", "carried", "router-plane", "not-applicable"]);
+    const invalid = Object.entries(manifest.members)
+      .filter(([, entry]) => !VALID.has(entry.disposition))
+      .map(([name, entry]) => `${name}: ${entry.disposition}`);
+    expect(invalid).toEqual([]);
   });
 });

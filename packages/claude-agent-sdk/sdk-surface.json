@@ -1,5 +1,5 @@
 {
-  "$comment": "Ratchet manifest for the fixture-drift gate (scripts/check-fixture-drift.mjs). Members are the `SDKMessage` union's arm TYPE NAMES, extracted mechanically from `export declare type SDKMessage = A | B | …;` in @anthropic-ai/claude-agent-sdk/sdk.d.ts. Dispositions were seeded 2026-07-03 by reading src/index.ts (the facet's `drive()` switch) + every arm's own field declarations in sdk.d.ts + the two playbook reports (.superpowers/sdd/playbook-sdk-bumps-report.md, playbook-facet-adaptations-report.md). handled = the facet has a dedicated branch; carried = routed to ext.anthropic.* losslessly; router-plane = pure SDK/CLI/session control-plane telemetry with no conversational free-text payload, ignored by the facet's own documented design (index.ts's blanket 'carry no AgJSON-relevant content' comment, or a more specific documented rationale noted per-entry) — verified by reading the arm's actual fields, not assumed from its name; not-applicable = provably cannot occur on this SDK's wire (unused on this manifest — every named SDKMessage arm is structurally reachable); silently-dropped = reaches the facet, carries real informational payload, and has NO route (ext or otherwise) — a genuine pre-existing gap, documented honestly per Task 6 (playbook backlog C / audit MC-T3 lesson) rather than papered over as not-applicable or router-plane. See .superpowers/sdd/pb-task-6-report.md for the full disposition rationale, including two findings that CONTRADICT playbook-sdk-bumps-report.md's own prior classification (SDKInformationalMessage, SDKConversationResetMessage's sibling reasoning).",
+  "$comment": "Ratchet manifest for the fixture-drift gate (scripts/check-fixture-drift.mjs). Members are the `SDKMessage` union's arm TYPE NAMES, extracted mechanically from `export declare type SDKMessage = A | B | …;` in @anthropic-ai/claude-agent-sdk/sdk.d.ts. Dispositions were seeded 2026-07-03 by reading src/index.ts (the facet's `drive()` switch) + every arm's own field declarations in sdk.d.ts + the two playbook reports (.superpowers/sdd/playbook-sdk-bumps-report.md, playbook-facet-adaptations-report.md). handled = the facet has a dedicated branch; carried = routed to ext.anthropic.* losslessly; router-plane = pure SDK/CLI/session control-plane telemetry with no conversational free-text payload, ignored by the facet's own documented design (index.ts's blanket 'carry no AgJSON-relevant content' comment, or a more specific documented rationale noted per-entry) — verified by reading the arm's actual fields, not assumed from its name; not-applicable = provably cannot occur on this SDK's wire (unused on this manifest — every named SDKMessage arm is structurally reachable); silently-dropped = reaches the facet, carries real informational payload, and has NO route (ext or otherwise) — a genuine pre-existing gap, documented honestly rather than papered over as not-applicable or router-plane. ZERO members remain `silently-dropped` as of the claude-arms-disposition task (2026-07-03 follow-up): SDKInformationalMessage was fixed first (flagship finding, carried); the remaining 16 were closed in one pass — 15 via the uniform `ext.anthropic.frame{kind, frame}` lossless-carry convention (SPEC §8 item 22 / §12), and SDKPermissionDeniedMessage via existing-home enrichment of the already-handled W1 `<turnId>:denials` carrier (audit M19). See .superpowers/sdd/pb-task-6-report.md for the original seeding rationale and .superpowers/sdd/claude-arms-disposition-report.md for the full per-arm closure decisions + wire-shape citations.",
   "sdkPackage": "@anthropic-ai/claude-agent-sdk",
   "verifiedAt": "0.3.199",
   "members": {
@@ -48,24 +48,24 @@
       "note": "subtype 'model_refusal_fallback' — the retraction protocol (Finding #1, playbook 2026-07-03): retracted_message_uuids -> message.remove via the uuid->messageId map. NOTE: the message's OWN `content: string` field (a human-readable notice, distinct from the retraction ids) is NOT read/emitted anywhere — a minor residual gap on an otherwise-handled arm, not elevated to a separate disposition since the arm's primary (and highest-severity) concern is fixed."
     },
     "SDKModelRefusalNoFallbackMessage": {
-      "disposition": "silently-dropped",
-      "note": "FINDING: subtype 'model_refusal_no_fallback' carries original_model, request_id, api_refusal_category?, api_refusal_explanation?, refused_user_message_uuid?, AND its own `content: string` — none read, no ext route. playbook-facet-adaptations-report.md's Finding #1 discussion notes the CORE fact of a no-fallback refusal is redundantly available via a DIFFERENT wire frame (mapStopReason('refusal') on the assistant/result message), but that redundancy covers only the bare fact, not this frame's own richer category/explanation/content fields, which are unroutable and lost."
+      "disposition": "carried",
+      "note": "FIXED (fixture-drift ratchet, claude-arms-disposition task): STUDIED as an existing-home candidate against the stop_reason:'refusal' terminal handling (mapStopReason + the closeTurnDone safety flag) — that path ALREADY produces the terminal 'a refusal happened' signal, so this frame's OWN diagnostic fields (original_model, request_id, api_refusal_category?, api_refusal_explanation?, refused_user_message_uuid?, content) are ENRICHMENT with no precise existing home, not a forced fit. Carried losslessly via `ext.anthropic.frame{kind:'model_refusal_no_fallback', frame}` (SPEC §8 item 22)."
     },
     "SDKLocalCommandOutputMessage": {
-      "disposition": "silently-dropped",
-      "note": "FINDING: subtype 'local_command_output' carries `content: string` — the actual output text of a local slash-command execution (e.g. /compact, /help). This is genuine transcript-visible content a consumer would expect to see; dropped with no route."
+      "disposition": "carried",
+      "note": "FIXED (fixture-drift ratchet): subtype 'local_command_output' carries `content: string` — the actual output text of a local slash-command execution (e.g. /compact, /help). No existing AgJSON home for local-CLI-command output; carried losslessly via `ext.anthropic.frame{kind:'local_command_output', frame}` (SPEC §8 item 22) rather than dropped."
     },
     "SDKHookStartedMessage": {
       "disposition": "router-plane",
       "note": "subtype 'hook_started' — hook_id/hook_name/hook_event are identifiers/labels only, no free-text payload. Pure lifecycle ping for a local PreToolUse/PostToolUse CLI hook (SDK/CLI plumbing, not model conversation content)."
     },
     "SDKHookProgressMessage": {
-      "disposition": "silently-dropped",
-      "note": "FINDING: subtype 'hook_progress' carries real stdout/stderr/output TEXT (a local hook script's live output). Dropped with no route. (Judgment call: hooks are CLI-tooling plumbing rather than model conversation, but the text is genuine diagnostic content a consumer could plausibly want — flagged honestly rather than assumed away.)"
+      "disposition": "carried",
+      "note": "FIXED (fixture-drift ratchet): subtype 'hook_progress' carries real stdout/stderr/output TEXT (a local hook script's live output). No existing AgJSON home for CLI-hook diagnostic text; carried losslessly via `ext.anthropic.frame{kind:'hook_progress', frame}` (SPEC §8 item 22) rather than dropped."
     },
     "SDKHookResponseMessage": {
-      "disposition": "silently-dropped",
-      "note": "FINDING: subtype 'hook_response' carries output/stdout/stderr/exit_code/outcome — the local hook's completed result text. Dropped with no route. Same judgment-call caveat as SDKHookProgressMessage."
+      "disposition": "carried",
+      "note": "FIXED (fixture-drift ratchet): subtype 'hook_response' carries output/stdout/stderr/exit_code/outcome — the local hook's completed result text. Carried losslessly via `ext.anthropic.frame{kind:'hook_response', frame}` (SPEC §8 item 22), same rationale as SDKHookProgressMessage."
     },
     "SDKPluginInstallMessage": {
       "disposition": "router-plane",
@@ -76,24 +76,24 @@
       "note": "type:'tool_progress' — tool_use_id/tool_name/parent_tool_use_id/elapsed_time_seconds/task_id?. A 'still running' progress heartbeat; no free-text payload beyond identifiers and a numeric duration."
     },
     "SDKAuthStatusMessage": {
-      "disposition": "silently-dropped",
-      "note": "FINDING: type:'auth_status' carries `output: string[]` (very likely OAuth-flow instructions/URLs shown to the user, e.g. 'visit this URL to authenticate') + error?. Dropped with no route — plausibly real UX-blocking content."
+      "disposition": "carried",
+      "note": "FIXED (fixture-drift ratchet): type:'auth_status' carries `output: string[]` (very likely OAuth-flow instructions/URLs shown to the user, e.g. 'visit this URL to authenticate') + error?. No existing AgJSON home for auth-flow UX text; carried losslessly via `ext.anthropic.frame{kind:'auth_status', frame}` (SPEC §8 item 22)."
     },
     "SDKTaskNotificationMessage": {
-      "disposition": "silently-dropped",
-      "note": "FINDING (Task* family, 1 of 4): subtype 'task_notification' carries `output_file: string` + `summary: string` (a completed background-task's summary/output path) — dropped, no route. The sibling SDKTaskStartedMessage's own doc comment explicitly says this family is meant to 'appear in a tasks panel' — a legitimate consumer-facing surface with no AgJSON representation today."
+      "disposition": "carried",
+      "note": "FIXED (Task* family, 1 of 4; fixture-drift ratchet): subtype 'task_notification' carries `output_file: string` + `summary: string`. STUDIED against the facet's already-derived subagent lifecycle (parent_tool_use_id -> subagentStart/Done) and deliberately NOT folded into it: `tool_use_id` is OPTIONAL on this arm (a background task may have none), and `summary` would DUPLICATE content the nested subagent's own tool_use/tool_result stream already conveys once correlation resolves (the M22 double-fold hazard). Carried losslessly via `ext.anthropic.frame{kind:'task_notification', frame}` (SPEC §8 item 22) — a broader 'tasks panel' surface, not 1:1 with Task-tool subagent adoption."
     },
     "SDKTaskStartedMessage": {
-      "disposition": "silently-dropped",
-      "note": "FINDING (Task* family, 2 of 4): subtype 'task_started' carries `description: string` + prompt? + subagent_type?/task_type?/workflow_name? — real text describing a background subagent task. Dropped, no route. Doc comment: 'Ambient/housekeeping task... it may still appear in a tasks panel.'"
+      "disposition": "carried",
+      "note": "FIXED (Task* family, 2 of 4; fixture-drift ratchet): subtype 'task_started' carries `description: string` + prompt? + subagent_type?/task_type?/workflow_name?. STUDIED against subagent.start enrichment (providerMetadata) and rejected: subagent.start's schema has no providerMetadata slot (only agentId/agentName), and `task_type:'local_workflow'` tasks carry NO tool_use_id at all (not 1:1 with Task-tool subagent adoption) — reaching an existing home would require bypassing the subagentStart() sugar primitive's turn-stack bookkeeping via the raw emit() base primitive, a core/src change outside this task's boundary invariant. Carried losslessly via `ext.anthropic.frame{kind:'task_started', frame}` (SPEC §8 item 22)."
     },
     "SDKTaskUpdatedMessage": {
-      "disposition": "silently-dropped",
-      "note": "FINDING (Task* family, 3 of 4): subtype 'task_updated' carries a `patch` with optional description/error text (a state-machine delta for a background task). Dropped, no route."
+      "disposition": "carried",
+      "note": "FIXED (Task* family, 3 of 4; fixture-drift ratchet): subtype 'task_updated' carries a `patch` with optional description/error text (a state-machine delta for a background task, `task_id`-keyed, no tool_use_id field at all). Same STUDY conclusion as the sibling Task* arms — a broader tasks-panel superset, not 1:1 with subagent adoption. Carried losslessly via `ext.anthropic.frame{kind:'task_updated', frame}` (SPEC §8 item 22)."
     },
     "SDKTaskProgressMessage": {
-      "disposition": "silently-dropped",
-      "note": "FINDING (Task* family, 4 of 4): subtype 'task_progress' carries `description: string` + summary? + last_tool_name? — real text. Dropped, no route."
+      "disposition": "carried",
+      "note": "FIXED (Task* family, 4 of 4; fixture-drift ratchet): subtype 'task_progress' carries `description: string` + summary? + last_tool_name? — real text, but `last_tool_name`/`summary` would DUPLICATE what the nested subagent's own tool_use/tool_result stream already conveys (M22 double-fold hazard), same STUDY conclusion as SDKTaskNotificationMessage. Carried losslessly via `ext.anthropic.frame{kind:'task_progress', frame}` (SPEC §8 item 22)."
     },
     "SDKThinkingTokensMessage": {
       "disposition": "router-plane",
@@ -112,20 +112,20 @@
       "note": "subtype 'commands_changed' — commands: SlashCommand[], a full re-sync of the CLI's slash-command palette (CLI affordance metadata), not conversational content. Matches playbook-sdk-bumps-report.md's own classification (\"Clients should REPLACE their cached command list\")."
     },
     "SDKNotificationMessage": {
-      "disposition": "silently-dropped",
-      "note": "FINDING: subtype 'notification' carries key/`text: string`/priority/color?/timeout_ms? — an explicit user-facing toast/banner primitive by shape. Clearly meant for display; entirely dropped, no route."
+      "disposition": "carried",
+      "note": "FIXED (fixture-drift ratchet): subtype 'notification' carries key/`text: string`/priority/color?/timeout_ms? — an explicit user-facing toast/banner primitive by shape. No existing AgJSON home for a toast primitive; carried losslessly via `ext.anthropic.frame{kind:'notification', frame}` (SPEC §8 item 22)."
     },
     "SDKFilesPersistedEvent": {
-      "disposition": "silently-dropped",
-      "note": "FINDING: subtype 'files_persisted' carries files[] (filename/file_id) and failed[] (filename/`error: string`) — real deliverable/failure records (e.g. artifacts the agent produced). Dropped, no route."
+      "disposition": "carried",
+      "note": "FIXED (fixture-drift ratchet): subtype 'files_persisted' carries files[] (filename/file_id) and failed[] (filename/`error: string`) — real deliverable/failure records. Carried losslessly via `ext.anthropic.frame{kind:'files_persisted', frame}` (SPEC §8 item 22)."
     },
     "SDKToolUseSummaryMessage": {
-      "disposition": "silently-dropped",
-      "note": "FINDING: type:'tool_use_summary' carries `summary: string` + preceding_tool_use_ids — a real prose summary of prior tool activity. Dropped, no route."
+      "disposition": "carried",
+      "note": "FIXED (fixture-drift ratchet): type:'tool_use_summary' carries `summary: string` + preceding_tool_use_ids — a real prose summary of prior tool activity. Carried losslessly via `ext.anthropic.frame{kind:'tool_use_summary', frame}` (SPEC §8 item 22)."
     },
     "SDKMemoryRecallMessage": {
-      "disposition": "silently-dropped",
-      "note": "FINDING (significant): subtype 'memory_recall' carries memories[].content? — the actual recalled-memory BODY TEXT injected into the model's context (mode:'select'|'synthesize'). This is genuine context/provenance content (what the model just read), dropped with no route — relevant for session audit."
+      "disposition": "carried",
+      "note": "FIXED (fixture-drift ratchet, significant): subtype 'memory_recall' carries memories[].content? — the actual recalled-memory BODY TEXT injected into the model's context (mode:'select'|'synthesize'). Genuine context/provenance content relevant for session audit; carried losslessly via `ext.anthropic.frame{kind:'memory_recall', frame}` (SPEC §8 item 22)."
     },
     "SDKRateLimitEvent": {
       "disposition": "router-plane",
@@ -136,16 +136,16 @@
       "note": "subtype 'elicitation_complete' — carries only mcp_server_name + elicitation_id (a completion SIGNAL, no payload). Any elicited response DATA, if surfaced at all on this wire, would ride via a different mechanism (e.g. a subsequent tool_result) not represented by this arm's own fields — this arm itself has no content to lose."
     },
     "SDKPermissionDeniedMessage": {
-      "disposition": "silently-dropped",
-      "note": "FINDING: subtype 'permission_denied' is a STANDALONE live denial notification, distinct from (and richer than) the already-handled `SDKResultMessage.permission_denials[]` aggregate (which drive() reads for tool_use_id/tool_name only, synthesizing tool.start+tool.done{outcome:'denied'} pairs). THIS arm additionally carries agent_id?, decision_reason_type?, decision_reason? (human-readable), and `message: string` (the rejection text) — none read from this arm, no route. Partial redundancy: the denied tool.start/tool.done PAIR is produced via the OTHER wire path; only this arm's richer diagnostic fields are lost."
+      "disposition": "handled",
+      "note": "FIXED (fixture-drift ratchet, existing-home mapping): subtype 'permission_denied' is a STANDALONE live denial notification, the SAME fact the already-handled `SDKResultMessage.permission_denials[]` aggregate turns into a tool.start+tool.done{outcome:'denied'} pair inside the W1 `<turnId>:denials` carrier (audit M19). Rather than emit a SECOND pair (the M22 double-fold hazard), `drive()` records this frame's richer fields (agent_id?, decision_reason_type?, decision_reason?, `message` — the actual rejection text) keyed by tool_use_id, and the aggregate handler enriches its tool.done.content with the live message + a providerMetadata bag with the decision-reason/agent-id context when a matching live frame preceded it."
     },
     "SDKPromptSuggestionMessage": {
-      "disposition": "silently-dropped",
-      "note": "FINDING: type:'prompt_suggestion' carries `suggestion: string` — a real suggested follow-up prompt for the user. Dropped, no route."
+      "disposition": "carried",
+      "note": "FIXED (fixture-drift ratchet): type:'prompt_suggestion' carries `suggestion: string` — a real suggested follow-up prompt for the user. Carried losslessly via `ext.anthropic.frame{kind:'prompt_suggestion', frame}` (SPEC §8 item 22)."
     },
     "SDKMirrorErrorMessage": {
-      "disposition": "silently-dropped",
-      "note": "FINDING: subtype 'mirror_error' carries `error: string` — a background cloud-sync/mirror failure diagnostic (its entire purpose is reporting an error). Dropped, no route."
+      "disposition": "carried",
+      "note": "FIXED (fixture-drift ratchet): subtype 'mirror_error' carries `error: string` — a background cloud-sync/mirror failure diagnostic. Carried losslessly via `ext.anthropic.frame{kind:'mirror_error', frame}` (SPEC §8 item 22)."
     },
     "SDKInformationalMessage": {
       "disposition": "carried",

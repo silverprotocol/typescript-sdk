@@ -446,6 +446,78 @@ function isSDKMessage(v: unknown): v is SDKMessage {
   return typeof t === "string";
 }
 
+// ─── uniform lossless carry: the fixture-drift ratchet's remaining 15
+// `silently-dropped` claude arms (2026-07-03 follow-up to the
+// SDKInformationalMessage flagship fix) ────────────────────────────────────
+// Per-arm field inspection (sdk.d.ts) confirmed each carries genuine
+// consumer-facing content (hook stdout/stderr, slash-command output,
+// OAuth-flow instructions, toast notifications, file-persistence receipts,
+// tool-use-summary prose, recalled-memory body text, a no-fallback refusal's
+// own diagnostic fields, suggested-prompt text, mirror-sync errors, and the
+// Task* subagent-progress family) with NO existing AgJSON vocabulary home.
+//
+// The Task* family (task_started/task_progress/task_updated/task_notification)
+// was STUDIED against the facet's ALREADY-derived subagent lifecycle
+// (parent_tool_use_id -> subagentStart/Done in `drive()` below) and
+// deliberately NOT folded into it: `tool_use_id` is OPTIONAL on every Task*
+// arm (a `task_type:"local_workflow"` background task carries NONE at all —
+// this family is a broader "tasks panel" superset, not 1:1 with Task-tool
+// subagent adoption), and task_progress/task_notification's own
+// `summary`/`last_tool_name` would DUPLICATE content the nested subagent's
+// own tool_use/tool_result stream already conveys once correlation resolves
+// — the M22 double-fold hazard. `description` enrichment onto
+// subagent.start was also considered and rejected: `subagent.start`'s
+// schema carries no providerMetadata slot (only agentId/agentName), and
+// reaching it would require bypassing the `subagentStart()` sugar
+// primitive's turn-stack bookkeeping via the raw `emit()` base primitive —
+// a core/src change, outside this task's facet+manifest+SPEC-§8/§12
+// boundary invariant.
+//
+// SDKModelRefusalNoFallbackMessage was STUDIED against the existing
+// `stop_reason:"refusal"` terminal handling (mapStopReason + the
+// closeTurnDone safety flag in `drive()`'s result-success branch): that
+// path ALREADY produces the terminal "a refusal happened" signal, so this
+// frame's OWN diagnostic fields (api_refusal_category/explanation/
+// original_model/content) are enrichment with no precise existing home —
+// carried, not forced onto an unrelated event.
+//
+// SDKPermissionDeniedMessage is the ONE arm that DOES map onto an existing
+// home (the W1 `<turnId>:denials` carrier, audit M19) — see the dedicated
+// branch + `deniedLiveByToolUseId` in `createClaudeNormalizer()` below; it
+// is deliberately EXCLUDED from the carried sets here.
+//
+// ONE uniform key — `ext.anthropic.frame{kind, frame}` (SPEC §8 item 22 /
+// §12) — not 15 distinct ext keys (ext-vocabulary sprawl, the standing
+// review Minor this closes). `kind` is the frame's own discriminating
+// subtype/type string; `frame` is the VERBATIM native message
+// (JsonValue.parse at the opaque pass-through boundary, no cast, no
+// field-by-field reinterpretation — the whole frame rides losslessly).
+const CARRIED_SYSTEM_SUBTYPES = new Set<string>([
+  "model_refusal_no_fallback",
+  "local_command_output",
+  "hook_progress",
+  "hook_response",
+  "task_notification",
+  "task_started",
+  "task_updated",
+  "task_progress",
+  "notification",
+  "files_persisted",
+  "memory_recall",
+  "mirror_error",
+]);
+const CARRIED_STANDALONE_TYPES = new Set<string>(["auth_status", "tool_use_summary", "prompt_suggestion"]);
+
+// Returns the uniform-carry `kind` string for `msg` if it is one of the arms
+// disposed `carried` in sdk-surface.json, else undefined (leaves router-plane
+// / dedicated-branch arms — including SDKPermissionDeniedMessage — untouched).
+function anthropicFrameKind(msg: SDKMessage): string | undefined {
+  if (msg.type === "system") {
+    return CARRIED_SYSTEM_SUBTYPES.has(msg.subtype) ? msg.subtype : undefined;
+  }
+  return CARRIED_STANDALONE_TYPES.has(msg.type) ? msg.type : undefined;
+}
+
 // ─── the stateful normalizer ──────────────────────────────────────────────────
 /**
  * Build a stateful Claude-facet normalizer over a fresh {@link StreamAssembler}.
@@ -476,6 +548,19 @@ export function createClaudeNormalizer(): Normalizer {
   // `message.remove` — "translated through the facet's uuid→messageId
   // convention" per the adaptation brief.
   const messageIdsByUuid = new Map<string, string[]>();
+
+  // Fixture-drift ratchet (SDKPermissionDeniedMessage, "handled" via existing-
+  // home mapping): live per-denial diagnostic recorded by the standalone
+  // `permission_denied` frame (fires DURING the turn, before the terminal
+  // result) — keyed by tool_use_id so the terminal `permission_denials[]`
+  // aggregate (the ALREADY-handled W1 `<turnId>:denials` carrier, audit M19)
+  // can enrich its tool.done with the actual rejection text + decision-reason
+  // context, instead of emitting a SECOND tool.start/tool.done pair for the
+  // same denial (the M22 double-fold hazard).
+  const deniedLiveByToolUseId = new Map<
+    string,
+    { message: string; decisionReasonType?: string; decisionReason?: string; agentId?: string }
+  >();
 
   function registerUuid(uuid: string | undefined, ids: readonly string[]): void {
     if (uuid === undefined || ids.length === 0) return;
@@ -695,8 +780,31 @@ export function createClaudeNormalizer(): Normalizer {
         const denialMsgId = `${turnId}:denials`;
         a.openMessage({ id: denialMsgId, role: "assistant", turnId, threadId: msg.session_id });
         for (const denial of msg.permission_denials) {
+          // Fixture-drift ratchet finding (SDKPermissionDeniedMessage,
+          // "handled" via existing-home mapping): enrich with the live
+          // standalone denial notice recorded above (keyed by tool_use_id),
+          // when one preceded this aggregate — the actual rejection text
+          // returned to the model, plus decision-reason/agent-id context —
+          // rather than leaving a bare empty-content stub. No second
+          // tool.start/tool.done pair is ever emitted for the live frame
+          // itself (see the dedicated `permission_denied` branch below).
+          const live = deniedLiveByToolUseId.get(denial.tool_use_id);
+          const liveMeta: AgProviderMeta | undefined =
+            live !== undefined &&
+            (live.decisionReasonType !== undefined || live.decisionReason !== undefined || live.agentId !== undefined)
+              ? AgProviderMeta.parse({
+                  ...(live.decisionReasonType !== undefined ? { decisionReasonType: live.decisionReasonType } : {}),
+                  ...(live.decisionReason !== undefined ? { decisionReason: live.decisionReason } : {}),
+                  ...(live.agentId !== undefined ? { agentId: live.agentId } : {}),
+                })
+              : undefined;
           a.toolStart({ toolCallId: denial.tool_use_id, name: denial.tool_name });
-          a.toolDone({ toolCallId: denial.tool_use_id, content: [], outcome: "denied" });
+          a.toolDone({
+            toolCallId: denial.tool_use_id,
+            content: live !== undefined ? [{ type: "text", text: live.message }] : [],
+            outcome: "denied",
+            ...(liveMeta !== undefined ? { providerMetadata: liveMeta } : {}),
+          });
         }
         a.closeMessage(denialMsgId);
       }
@@ -755,6 +863,32 @@ export function createClaudeNormalizer(): Normalizer {
       // superseding assistant frame's own `supersedes` field directly.
       const uuids = Array.isArray(msg.retracted_message_uuids) ? msg.retracted_message_uuids : [];
       retractUuids(uuids);
+      return;
+    }
+
+    if (msg.type === "system" && msg.subtype === "permission_denied") {
+      // Fixture-drift ratchet finding: this standalone LIVE denial notice is
+      // the SAME fact the already-handled `SDKResultMessage.permission_denials[]`
+      // aggregate turns into a tool.start+tool.done{denied} pair inside the
+      // W1 `<turnId>:denials` carrier (audit M19, above) — do NOT emit a
+      // second pair here (the M22 double-fold hazard). Record this frame's
+      // richer diagnostic fields only; the aggregate handler consumes them.
+      deniedLiveByToolUseId.set(msg.tool_use_id, {
+        message: msg.message,
+        ...(msg.decision_reason_type !== undefined ? { decisionReasonType: msg.decision_reason_type } : {}),
+        ...(msg.decision_reason !== undefined ? { decisionReason: msg.decision_reason } : {}),
+        ...(msg.agent_id !== undefined ? { agentId: msg.agent_id } : {}),
+      });
+      return;
+    }
+
+    // Fixture-drift ratchet (2026-07-03 follow-up): the remaining 15
+    // `silently-dropped` arms carry genuine consumer-facing content with no
+    // existing AgJSON home — uniform lossless carry (see `anthropicFrameKind`
+    // doc comment above for the full per-arm reasoning, SPEC §8 item 22).
+    const carriedKind = anthropicFrameKind(msg);
+    if (carriedKind !== undefined) {
+      a.emitExt("anthropic", "frame", { kind: carriedKind, frame: JsonValue.parse(msg) });
       return;
     }
 
