@@ -1,0 +1,2127 @@
+[
+  {
+    "data": {
+      "type": "response_started",
+      "providerData": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_0ab564dea5f73f94006a47407c41e48199958078d43d047429",
+          "object": "response",
+          "created_at": 1783054460,
+          "status": "in_progress",
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__cards__render_card with title='Hello' and body='World'. Do not answer from memory — the tool returns a structuredContent payload you must report back.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.5-2026-04-23",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "current_turn",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Renders a mock UI card and returns the MCP App-spec shape.",
+              "name": "render_card",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "description": "Card title",
+                    "type": "string"
+                  },
+                  "body": {
+                    "description": "Card body text",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_0ab564dea5f73f94006a47407c41e48199958078d43d047429",
+          "object": "response",
+          "created_at": 1783054460,
+          "status": "in_progress",
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__cards__render_card with title='Hello' and body='World'. Do not answer from memory — the tool returns a structuredContent payload you must report back.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.5-2026-04-23",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "current_turn",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Renders a mock UI card and returns the MCP App-spec shape.",
+              "name": "render_card",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "description": "Card title",
+                    "type": "string"
+                  },
+                  "body": {
+                    "description": "Card body text",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.in_progress",
+        "response": {
+          "id": "resp_0ab564dea5f73f94006a47407c41e48199958078d43d047429",
+          "object": "response",
+          "created_at": 1783054460,
+          "status": "in_progress",
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__cards__render_card with title='Hello' and body='World'. Do not answer from memory — the tool returns a structuredContent payload you must report back.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.5-2026-04-23",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "current_turn",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Renders a mock UI card and returns the MCP App-spec shape.",
+              "name": "render_card",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "description": "Card title",
+                    "type": "string"
+                  },
+                  "body": {
+                    "description": "Card body text",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 1
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "fc_0ab564dea5f73f94006a47407d800c819986bfb291c9c81618",
+          "type": "function_call",
+          "status": "in_progress",
+          "arguments": "",
+          "call_id": "call_GeFrf5o5JmErLLsIRgZs1AQU",
+          "name": "render_card"
+        },
+        "output_index": 0,
+        "sequence_number": 2
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "{\"",
+        "item_id": "fc_0ab564dea5f73f94006a47407d800c819986bfb291c9c81618",
+        "obfuscation": "8qyFsoidB6OzPF",
+        "output_index": 0,
+        "sequence_number": 3
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "title",
+        "item_id": "fc_0ab564dea5f73f94006a47407d800c819986bfb291c9c81618",
+        "obfuscation": "Sff3CeFmHzM",
+        "output_index": 0,
+        "sequence_number": 4
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "\":\"",
+        "item_id": "fc_0ab564dea5f73f94006a47407d800c819986bfb291c9c81618",
+        "obfuscation": "L3Fg568OzAKhy",
+        "output_index": 0,
+        "sequence_number": 5
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "Hello",
+        "item_id": "fc_0ab564dea5f73f94006a47407d800c819986bfb291c9c81618",
+        "obfuscation": "rV3T39LNc81",
+        "output_index": 0,
+        "sequence_number": 6
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "\",\"",
+        "item_id": "fc_0ab564dea5f73f94006a47407d800c819986bfb291c9c81618",
+        "obfuscation": "ovXrMOHfUfeHv",
+        "output_index": 0,
+        "sequence_number": 7
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "body",
+        "item_id": "fc_0ab564dea5f73f94006a47407d800c819986bfb291c9c81618",
+        "obfuscation": "7O67CecCUcat",
+        "output_index": 0,
+        "sequence_number": 8
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "\":\"",
+        "item_id": "fc_0ab564dea5f73f94006a47407d800c819986bfb291c9c81618",
+        "obfuscation": "5Z74onZEFFwPk",
+        "output_index": 0,
+        "sequence_number": 9
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "World",
+        "item_id": "fc_0ab564dea5f73f94006a47407d800c819986bfb291c9c81618",
+        "obfuscation": "ppnPYI5rh1K",
+        "output_index": 0,
+        "sequence_number": 10
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "\"}",
+        "item_id": "fc_0ab564dea5f73f94006a47407d800c819986bfb291c9c81618",
+        "obfuscation": "CQPwUEL5NVERcV",
+        "output_index": 0,
+        "sequence_number": 11
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.done",
+        "arguments": "{\"title\":\"Hello\",\"body\":\"World\"}",
+        "item_id": "fc_0ab564dea5f73f94006a47407d800c819986bfb291c9c81618",
+        "output_index": 0,
+        "sequence_number": 12
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "fc_0ab564dea5f73f94006a47407d800c819986bfb291c9c81618",
+          "type": "function_call",
+          "status": "completed",
+          "arguments": "{\"title\":\"Hello\",\"body\":\"World\"}",
+          "call_id": "call_GeFrf5o5JmErLLsIRgZs1AQU",
+          "name": "render_card"
+        },
+        "output_index": 0,
+        "sequence_number": 13
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_done",
+      "response": {
+        "id": "resp_0ab564dea5f73f94006a47407c41e48199958078d43d047429",
+        "requestId": "64ae75cc-79ec-42af-aeaa-8a1d66e398e8",
+        "output": [
+          {
+            "type": "function_call",
+            "id": "fc_0ab564dea5f73f94006a47407d800c819986bfb291c9c81618",
+            "callId": "call_GeFrf5o5JmErLLsIRgZs1AQU",
+            "name": "render_card",
+            "status": "completed",
+            "arguments": "{\"title\":\"Hello\",\"body\":\"World\"}",
+            "providerData": {
+              "id": "fc_0ab564dea5f73f94006a47407d800c819986bfb291c9c81618",
+              "type": "function_call"
+            }
+          }
+        ],
+        "usage": {
+          "inputTokens": 131,
+          "outputTokens": 22,
+          "totalTokens": 153,
+          "inputTokensDetails": {
+            "cached_tokens": 0
+          },
+          "outputTokensDetails": {
+            "reasoning_tokens": 0
+          },
+          "requestUsageEntries": [
+            {
+              "inputTokens": 131,
+              "outputTokens": 22,
+              "totalTokens": 153,
+              "inputTokensDetails": {
+                "cached_tokens": 0
+              },
+              "outputTokensDetails": {
+                "reasoning_tokens": 0
+              },
+              "endpoint": "responses.create"
+            }
+          ]
+        },
+        "providerData": {
+          "object": "response",
+          "created_at": 1783054460,
+          "status": "completed",
+          "background": false,
+          "completed_at": 1783054461,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__cards__render_card with title='Hello' and body='World'. Do not answer from memory — the tool returns a structuredContent payload you must report back.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.5-2026-04-23",
+          "moderation": null,
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "current_turn",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Renders a mock UI card and returns the MCP App-spec shape.",
+              "name": "render_card",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "description": "Card title",
+                    "type": "string"
+                  },
+                  "body": {
+                    "description": "Card body text",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "user": null,
+          "metadata": {}
+        }
+      },
+      "providerData": {
+        "type": "response.completed",
+        "sequence_number": 14
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_0ab564dea5f73f94006a47407c41e48199958078d43d047429",
+          "object": "response",
+          "created_at": 1783054460,
+          "status": "completed",
+          "background": false,
+          "completed_at": 1783054461,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__cards__render_card with title='Hello' and body='World'. Do not answer from memory — the tool returns a structuredContent payload you must report back.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.5-2026-04-23",
+          "moderation": null,
+          "output": [
+            {
+              "id": "fc_0ab564dea5f73f94006a47407d800c819986bfb291c9c81618",
+              "type": "function_call",
+              "status": "completed",
+              "arguments": "{\"title\":\"Hello\",\"body\":\"World\"}",
+              "call_id": "call_GeFrf5o5JmErLLsIRgZs1AQU",
+              "name": "render_card"
+            }
+          ],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "current_turn",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Renders a mock UI card and returns the MCP App-spec shape.",
+              "name": "render_card",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "description": "Card title",
+                    "type": "string"
+                  },
+                  "body": {
+                    "description": "Card body text",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": {
+            "input_tokens": 131,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens": 22,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "total_tokens": 153
+          },
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 14
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_0ab564dea5f73f94006a47407c41e48199958078d43d047429",
+          "object": "response",
+          "created_at": 1783054460,
+          "status": "completed",
+          "background": false,
+          "completed_at": 1783054461,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__cards__render_card with title='Hello' and body='World'. Do not answer from memory — the tool returns a structuredContent payload you must report back.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.5-2026-04-23",
+          "moderation": null,
+          "output": [
+            {
+              "id": "fc_0ab564dea5f73f94006a47407d800c819986bfb291c9c81618",
+              "type": "function_call",
+              "status": "completed",
+              "arguments": "{\"title\":\"Hello\",\"body\":\"World\"}",
+              "call_id": "call_GeFrf5o5JmErLLsIRgZs1AQU",
+              "name": "render_card"
+            }
+          ],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "current_turn",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Renders a mock UI card and returns the MCP App-spec shape.",
+              "name": "render_card",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "description": "Card title",
+                    "type": "string"
+                  },
+                  "body": {
+                    "description": "Card body text",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": {
+            "input_tokens": 131,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens": 22,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "total_tokens": 153
+          },
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 14
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "name": "tool_called",
+    "item": {
+      "type": "tool_call_item",
+      "rawItem": {
+        "providerData": {
+          "id": "fc_0ab564dea5f73f94006a47407d800c819986bfb291c9c81618",
+          "type": "function_call"
+        },
+        "id": "fc_0ab564dea5f73f94006a47407d800c819986bfb291c9c81618",
+        "type": "function_call",
+        "callId": "call_GeFrf5o5JmErLLsIRgZs1AQU",
+        "name": "render_card",
+        "status": "completed",
+        "arguments": "{\"title\":\"Hello\",\"body\":\"World\"}"
+      },
+      "agent": {
+        "name": "spike"
+      }
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "name": "tool_output",
+    "item": {
+      "type": "tool_call_output_item",
+      "rawItem": {
+        "type": "function_call_result",
+        "name": "render_card",
+        "callId": "call_GeFrf5o5JmErLLsIRgZs1AQU",
+        "status": "completed",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "{\"title\":\"Hello\",\"body\":\"World\"}"
+          }
+        ]
+      },
+      "agent": {
+        "name": "spike"
+      },
+      "output": "{\"type\":\"text\",\"text\":\"{\\\"title\\\":\\\"Hello\\\",\\\"body\\\":\\\"World\\\"}\"}",
+      "customData": {
+        "structuredContent": {
+          "title": "Hello",
+          "body": "World",
+          "cache": {
+            "hit": false,
+            "llmCallsAvoided": 0,
+            "kind": "cold"
+          }
+        }
+      }
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_started",
+      "providerData": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_0ab564dea5f73f94006a47407e2c6c81998521b91ef17d17a9",
+          "object": "response",
+          "created_at": 1783054462,
+          "status": "in_progress",
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__cards__render_card with title='Hello' and body='World'. Do not answer from memory — the tool returns a structuredContent payload you must report back.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.5-2026-04-23",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "current_turn",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Renders a mock UI card and returns the MCP App-spec shape.",
+              "name": "render_card",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "description": "Card title",
+                    "type": "string"
+                  },
+                  "body": {
+                    "description": "Card body text",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_0ab564dea5f73f94006a47407e2c6c81998521b91ef17d17a9",
+          "object": "response",
+          "created_at": 1783054462,
+          "status": "in_progress",
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__cards__render_card with title='Hello' and body='World'. Do not answer from memory — the tool returns a structuredContent payload you must report back.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.5-2026-04-23",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "current_turn",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Renders a mock UI card and returns the MCP App-spec shape.",
+              "name": "render_card",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "description": "Card title",
+                    "type": "string"
+                  },
+                  "body": {
+                    "description": "Card body text",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.in_progress",
+        "response": {
+          "id": "resp_0ab564dea5f73f94006a47407e2c6c81998521b91ef17d17a9",
+          "object": "response",
+          "created_at": 1783054462,
+          "status": "in_progress",
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__cards__render_card with title='Hello' and body='World'. Do not answer from memory — the tool returns a structuredContent payload you must report back.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.5-2026-04-23",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "current_turn",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Renders a mock UI card and returns the MCP App-spec shape.",
+              "name": "render_card",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "description": "Card title",
+                    "type": "string"
+                  },
+                  "body": {
+                    "description": "Card body text",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 1
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+          "type": "message",
+          "status": "in_progress",
+          "content": [],
+          "phase": "final_answer",
+          "role": "assistant"
+        },
+        "output_index": 0,
+        "sequence_number": 2
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.content_part.added",
+        "content_index": 0,
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "output_index": 0,
+        "part": {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": ""
+        },
+        "sequence_number": 3
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "{\"",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "obfuscation": "efbLqnvFUUGOUv",
+        "output_index": 0,
+        "sequence_number": 4
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "{\"",
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "obfuscation": "efbLqnvFUUGOUv",
+        "output_index": 0,
+        "sequence_number": 4
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "title",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "obfuscation": "vUyyJRUGDaG",
+        "output_index": 0,
+        "sequence_number": 5
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "title",
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "obfuscation": "vUyyJRUGDaG",
+        "output_index": 0,
+        "sequence_number": 5
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "\":\"",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "obfuscation": "bWE8iwPmi9NNC",
+        "output_index": 0,
+        "sequence_number": 6
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "\":\"",
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "obfuscation": "bWE8iwPmi9NNC",
+        "output_index": 0,
+        "sequence_number": 6
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "Hello",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "obfuscation": "NCfhdjJE7pR",
+        "output_index": 0,
+        "sequence_number": 7
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "Hello",
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "obfuscation": "NCfhdjJE7pR",
+        "output_index": 0,
+        "sequence_number": 7
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "\",\"",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "obfuscation": "TrE3RLiSJQrXk",
+        "output_index": 0,
+        "sequence_number": 8
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "\",\"",
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "obfuscation": "TrE3RLiSJQrXk",
+        "output_index": 0,
+        "sequence_number": 8
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "body",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "obfuscation": "yZqS7QYZ82vN",
+        "output_index": 0,
+        "sequence_number": 9
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "body",
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "obfuscation": "yZqS7QYZ82vN",
+        "output_index": 0,
+        "sequence_number": 9
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "\":\"",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "obfuscation": "x4kGyjGcgZA3D",
+        "output_index": 0,
+        "sequence_number": 10
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "\":\"",
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "obfuscation": "x4kGyjGcgZA3D",
+        "output_index": 0,
+        "sequence_number": 10
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "World",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "obfuscation": "q1qe9g7jgIt",
+        "output_index": 0,
+        "sequence_number": 11
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "World",
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "obfuscation": "q1qe9g7jgIt",
+        "output_index": 0,
+        "sequence_number": 11
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "\"}",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "obfuscation": "TicEy8eblPLdwg",
+        "output_index": 0,
+        "sequence_number": 12
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "\"}",
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "obfuscation": "TicEy8eblPLdwg",
+        "output_index": 0,
+        "sequence_number": 12
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.done",
+        "content_index": 0,
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "logprobs": [],
+        "output_index": 0,
+        "sequence_number": 13,
+        "text": "{\"title\":\"Hello\",\"body\":\"World\"}"
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.content_part.done",
+        "content_index": 0,
+        "item_id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "output_index": 0,
+        "part": {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "{\"title\":\"Hello\",\"body\":\"World\"}"
+        },
+        "sequence_number": 14
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+          "type": "message",
+          "status": "completed",
+          "content": [
+            {
+              "type": "output_text",
+              "annotations": [],
+              "logprobs": [],
+              "text": "{\"title\":\"Hello\",\"body\":\"World\"}"
+            }
+          ],
+          "phase": "final_answer",
+          "role": "assistant"
+        },
+        "output_index": 0,
+        "sequence_number": 15
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_done",
+      "response": {
+        "id": "resp_0ab564dea5f73f94006a47407e2c6c81998521b91ef17d17a9",
+        "requestId": "b1d6e86e-129c-40e7-8a99-b6b35e1b15c1",
+        "output": [
+          {
+            "id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "{\"title\":\"Hello\",\"body\":\"World\"}",
+                "providerData": {
+                  "annotations": [],
+                  "logprobs": []
+                }
+              }
+            ],
+            "status": "completed",
+            "providerData": {
+              "phase": "final_answer"
+            }
+          }
+        ],
+        "usage": {
+          "inputTokens": 173,
+          "outputTokens": 13,
+          "totalTokens": 186,
+          "inputTokensDetails": {
+            "cached_tokens": 0
+          },
+          "outputTokensDetails": {
+            "reasoning_tokens": 0
+          },
+          "requestUsageEntries": [
+            {
+              "inputTokens": 173,
+              "outputTokens": 13,
+              "totalTokens": 186,
+              "inputTokensDetails": {
+                "cached_tokens": 0
+              },
+              "outputTokensDetails": {
+                "reasoning_tokens": 0
+              },
+              "endpoint": "responses.create"
+            }
+          ]
+        },
+        "providerData": {
+          "object": "response",
+          "created_at": 1783054462,
+          "status": "completed",
+          "background": false,
+          "completed_at": 1783054463,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__cards__render_card with title='Hello' and body='World'. Do not answer from memory — the tool returns a structuredContent payload you must report back.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.5-2026-04-23",
+          "moderation": null,
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "current_turn",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Renders a mock UI card and returns the MCP App-spec shape.",
+              "name": "render_card",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "description": "Card title",
+                    "type": "string"
+                  },
+                  "body": {
+                    "description": "Card body text",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "user": null,
+          "metadata": {}
+        }
+      },
+      "providerData": {
+        "type": "response.completed",
+        "sequence_number": 16
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_0ab564dea5f73f94006a47407e2c6c81998521b91ef17d17a9",
+          "object": "response",
+          "created_at": 1783054462,
+          "status": "completed",
+          "background": false,
+          "completed_at": 1783054463,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__cards__render_card with title='Hello' and body='World'. Do not answer from memory — the tool returns a structuredContent payload you must report back.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.5-2026-04-23",
+          "moderation": null,
+          "output": [
+            {
+              "id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+              "type": "message",
+              "status": "completed",
+              "content": [
+                {
+                  "type": "output_text",
+                  "annotations": [],
+                  "logprobs": [],
+                  "text": "{\"title\":\"Hello\",\"body\":\"World\"}"
+                }
+              ],
+              "phase": "final_answer",
+              "role": "assistant"
+            }
+          ],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "current_turn",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Renders a mock UI card and returns the MCP App-spec shape.",
+              "name": "render_card",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "description": "Card title",
+                    "type": "string"
+                  },
+                  "body": {
+                    "description": "Card body text",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": {
+            "input_tokens": 173,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens": 13,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "total_tokens": 186
+          },
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 16
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_0ab564dea5f73f94006a47407e2c6c81998521b91ef17d17a9",
+          "object": "response",
+          "created_at": 1783054462,
+          "status": "completed",
+          "background": false,
+          "completed_at": 1783054463,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__cards__render_card with title='Hello' and body='World'. Do not answer from memory — the tool returns a structuredContent payload you must report back.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.5-2026-04-23",
+          "moderation": null,
+          "output": [
+            {
+              "id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+              "type": "message",
+              "status": "completed",
+              "content": [
+                {
+                  "type": "output_text",
+                  "annotations": [],
+                  "logprobs": [],
+                  "text": "{\"title\":\"Hello\",\"body\":\"World\"}"
+                }
+              ],
+              "phase": "final_answer",
+              "role": "assistant"
+            }
+          ],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "current_turn",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Renders a mock UI card and returns the MCP App-spec shape.",
+              "name": "render_card",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "description": "Card title",
+                    "type": "string"
+                  },
+                  "body": {
+                    "description": "Card body text",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": {
+            "input_tokens": 173,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens": 13,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "total_tokens": 186
+          },
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 16
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "name": "message_output_created",
+    "item": {
+      "type": "message_output_item",
+      "rawItem": {
+        "providerData": {
+          "phase": "final_answer"
+        },
+        "id": "msg_0ab564dea5f73f94006a47407f48848199974ac2a5771bfa94",
+        "type": "message",
+        "role": "assistant",
+        "status": "completed",
+        "content": [
+          {
+            "providerData": {
+              "annotations": [],
+              "logprobs": []
+            },
+            "type": "output_text",
+            "text": "{\"title\":\"Hello\",\"body\":\"World\"}"
+          }
+        ]
+      },
+      "agent": {
+        "name": "spike"
+      }
+    },
+    "type": "run_item_stream_event"
+  }
+]

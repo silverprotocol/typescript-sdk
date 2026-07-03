@@ -12,6 +12,8 @@
   "[*].stop_reason": "[*].finishReason",
   "[*].tool_use_result.structuredContent.cache.hit": "[*].uiData.cache.hit",
   "[*].tool_use_result.structuredContent.cache.llmCallsAvoided": "[*].uiData.cache.llmCallsAvoided",
+  "[*].item.customData.structuredContent.cache.hit": "[*].structuredContent.cache.hit",
+  "[*].item.customData.structuredContent.cache.llmCallsAvoided": "[*].structuredContent.cache.llmCallsAvoided",
   "[*].usage.server_tool_use.web_fetch_requests": "[*].usage.serverToolRequests",
   "[*].usage.server_tool_use.web_search_requests": "[*].usage.serverToolRequests",
   "[*].finishReason": "[*].finishReason",

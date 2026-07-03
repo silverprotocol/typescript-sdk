@@ -86,8 +86,22 @@ const CLAUDE_SEEDS = [
  * ALSO what surfaced Finding #2 (the facet's `toolOutputToAgBlocks` missing the
  * `input_text` array-form discriminant, silently dropping every MCP tool
  * result under `@openai/agents-core` 0.12.0) — fixed the same playbook step.
+ *
+ * `app-spec-structured-result` joins this list per the 2026-07-03 playbook
+ * FOLLOW-UP: the FIRST live capture of a structuredContent-bearing MCP tool
+ * (render_card) against gpt-5.5 / agents-core 0.12.0 (kind:"capture" — see
+ * corpus/app-spec-structured-result/openai.provenance.json). This capture
+ * proves `extractStructuredContent`'s `item.customData.structuredContent`
+ * channel end-to-end (the fix for the exploratory finding the echo-gpt55
+ * playbook step reported but did not fix — see the openai-agents facet's
+ * `extractStructuredContent` doc for the full wire-truth citations).
  */
-const OPENAI_SEEDS = ["text-tool-turn", "convergence-echo", "echo-gpt55"] as const;
+const OPENAI_SEEDS = [
+  "text-tool-turn",
+  "convergence-echo",
+  "echo-gpt55",
+  "app-spec-structured-result",
+] as const;
 
 /**
  * Every ADK seed scenario under corpus/ that ships a committed native cassette.

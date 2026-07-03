@@ -65,6 +65,15 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // the FIXED facet.
   { scenario: "echo-sonnet5", framework: "claude" },
   { scenario: "echo-gpt55", framework: "openai" },
+  // Playbook 2026-07-03 follow-up (structuredContent under 0.12.0 fix): FIRST
+  // live capture of a structuredContent-bearing MCP tool (render_card,
+  // app-spec-structured-result) against gpt-5.5 / agents-core 0.12.0, proving
+  // the customDataExtractor + extractStructuredContent fix end-to-end. Same
+  // empty-guard-maps reason as echo-sonnet5/echo-gpt55 above — the committed
+  // coverage.json needs this regen pass to reflect the real guard-filtered
+  // census (drops===[], newFields===[] after triage — see known-acceptable-
+  // drops.json/transforms.json/field-registry.json additions in the same commit).
+  { scenario: "app-spec-structured-result", framework: "openai" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {
