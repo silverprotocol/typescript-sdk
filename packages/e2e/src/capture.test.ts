@@ -278,4 +278,52 @@ describe("runCapture", () => {
     expect(tServer?.url).toContain(`${port}`);
     expect(typeof tServer?.bearer).toBe("string");
   });
+
+  it("forwards opts.model to the agent's CaptureRunInput.model when set", async () => {
+    const scenario = Scenario.parse({ name: "text-only", prompt: "Say something." });
+    let capturedInput: unknown;
+
+    const deps: CaptureDeps = {
+      async *runAgentCapture(input) {
+        capturedInput = input;
+        yield* (async function* () {
+          for (const event of fakeNativeNoTools()) {
+            yield event;
+          }
+        })();
+      },
+      serveMock,
+      createNormalizer: createClaudeNormalizer,
+      census,
+    };
+
+    await runCapture(scenario, deps, { ports: [], framework: "claude", model: "claude-sonnet-5" });
+
+    const input = capturedInput as { model?: string };
+    expect(input.model).toBe("claude-sonnet-5");
+  });
+
+  it("omits model from CaptureRunInput when opts.model is not set (agent's own default applies)", async () => {
+    const scenario = Scenario.parse({ name: "text-only", prompt: "Say something." });
+    let capturedInput: unknown;
+
+    const deps: CaptureDeps = {
+      async *runAgentCapture(input) {
+        capturedInput = input;
+        yield* (async function* () {
+          for (const event of fakeNativeNoTools()) {
+            yield event;
+          }
+        })();
+      },
+      serveMock,
+      createNormalizer: createClaudeNormalizer,
+      census,
+    };
+
+    await runCapture(scenario, deps, { ports: [], framework: "claude" });
+
+    const input = capturedInput as { model?: string };
+    expect(input.model).toBeUndefined();
+  });
 });

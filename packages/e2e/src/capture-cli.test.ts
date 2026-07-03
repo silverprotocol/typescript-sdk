@@ -37,7 +37,13 @@ import { census } from "./census.js";
 import { serveMock } from "./mcp-mocks/serve.js";
 import { Scenario } from "./scenario.js";
 import type { CaptureDeps } from "./capture.js";
-import { isFramework, runCaptureAndWrite, runCaptureCli } from "./capture-cli.js";
+import {
+  isFramework,
+  resolveModel,
+  resolveSdkVersion,
+  runCaptureAndWrite,
+  runCaptureCli,
+} from "./capture-cli.js";
 import { isProvenanceKind } from "./provenance.js";
 
 // ─── isFramework ─────────────────────────────────────────────────────────────
@@ -53,6 +59,80 @@ describe("isFramework", () => {
     expect(isFramework("gemini")).toBe(false);
     expect(isFramework("")).toBe(false);
     expect(isFramework("Claude")).toBe(false);
+  });
+});
+
+// ─── resolveModel (CAPTURE_MODEL override plumbing) ──────────────────────────
+
+describe("resolveModel", () => {
+  const ENV_VAR = "CAPTURE_MODEL";
+
+  function withCaptureModel<T>(value: string | undefined, fn: () => T): T {
+    const saved = process.env[ENV_VAR];
+    if (value === undefined) {
+      delete process.env[ENV_VAR];
+    } else {
+      process.env[ENV_VAR] = value;
+    }
+    try {
+      return fn();
+    } finally {
+      if (saved === undefined) {
+        delete process.env[ENV_VAR];
+      } else {
+        process.env[ENV_VAR] = saved;
+      }
+    }
+  }
+
+  it("falls back to each framework's own DEFAULT_MODEL when CAPTURE_MODEL is unset", () => {
+    withCaptureModel(undefined, () => {
+      expect(resolveModel("claude")).toBe("claude-sonnet-4-6");
+      expect(resolveModel("openai")).toBe("gpt-4o-mini");
+      expect(resolveModel("adk")).toBe("gemini-2.5-flash");
+    });
+  });
+
+  it("CAPTURE_MODEL wins over the framework default when set", () => {
+    withCaptureModel("claude-sonnet-5", () => {
+      expect(resolveModel("claude")).toBe("claude-sonnet-5");
+    });
+    withCaptureModel("gpt-5.5", () => {
+      expect(resolveModel("openai")).toBe("gpt-5.5");
+    });
+  });
+
+  it("an empty-string CAPTURE_MODEL is treated as unset (falls back to default)", () => {
+    withCaptureModel("", () => {
+      expect(resolveModel("claude")).toBe("claude-sonnet-4-6");
+    });
+  });
+});
+
+// ─── resolveSdkVersion (keyless — reads real installed package.json) ────────
+//
+// Regression test for a real bug found during the 2026-07-03 playbook's
+// FIRST-EVER live capture run: the naive `require.resolve(\`${pkg}/
+// package.json\`)` throws `ERR_PACKAGE_PATH_NOT_EXPORTED` for any package
+// whose `exports` map omits a `./package.json` subpath — true of BOTH
+// `@anthropic-ai/claude-agent-sdk` and `@openai/agents` as installed here —
+// so every prior "capture" silently wrote `sdkVersion: null` to its
+// provenance sidecar. This asserts the walk-up-from-main-entry fix actually
+// resolves a real, non-null version string.
+
+describe("resolveSdkVersion", () => {
+  it("resolves the real installed @anthropic-ai/claude-agent-sdk version (non-null)", async () => {
+    const version = await resolveSdkVersion("claude");
+    expect(version).not.toBeNull();
+    expect(typeof version).toBe("string");
+    expect(version).toMatch(/^\d+\.\d+\.\d+/);
+  });
+
+  it("resolves the real installed @openai/agents version (non-null)", async () => {
+    const version = await resolveSdkVersion("openai");
+    expect(version).not.toBeNull();
+    expect(typeof version).toBe("string");
+    expect(version).toMatch(/^\d+\.\d+\.\d+/);
   });
 });
 

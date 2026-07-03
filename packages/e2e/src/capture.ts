@@ -73,6 +73,13 @@ export interface CaptureRunOptions {
   apiKey?: string;
   /** System prompt override. Defaults to scenario.steer if present. */
   systemPrompt?: string;
+  /**
+   * Model ID override, forwarded verbatim to the capture agent's
+   * `CaptureRunInput.model`. Omitted → each agent's own hardcoded default
+   * literal applies (see agents/claude-agent-sdk/run.ts,
+   * agents/openai-agents-sdk/run.ts, agents/google-adk/run.ts).
+   */
+  model?: string;
 }
 
 // ─── runCapture ────────────────────────────────────────────────────────────────
@@ -126,6 +133,7 @@ export async function runCapture(
       allowedTools,
       ...(systemPrompt !== undefined ? { systemPrompt } : {}),
       ...(opts.apiKey !== undefined ? { apiKey: opts.apiKey } : {}),
+      ...(opts.model !== undefined ? { model: opts.model } : {}),
     };
 
     for await (const event of deps.runAgentCapture(agentInput)) {

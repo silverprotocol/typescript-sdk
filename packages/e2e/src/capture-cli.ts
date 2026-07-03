@@ -80,16 +80,31 @@ const SDK_PACKAGE: Record<Framework, string> = {
   adk: "@iqai/adk",
 };
 
-/** The default model each capture agent uses when `CaptureRunOptions` does
- *  not override it (capture.ts / CaptureRunOptions has no model-override
- *  field today — this mirrors each agent's own hardcoded default literal;
- *  see agents/claude-agent-sdk/run.ts, agents/openai-agents-sdk/run.ts,
- *  agents/google-adk/run.ts). */
+/** The default model each capture agent uses when `CaptureRunOptions.model`
+ *  is not set (mirrors each agent's own hardcoded default literal; see
+ *  agents/claude-agent-sdk/run.ts, agents/openai-agents-sdk/run.ts,
+ *  agents/google-adk/run.ts). Overridable per-run via the `CAPTURE_MODEL`
+ *  env var (see `resolveModel` below) — e.g. for capturing a newly-released
+ *  model before it becomes any agent's hardcoded default. */
 const DEFAULT_MODEL: Record<Framework, string> = {
   claude: "claude-sonnet-4-6",
   openai: "gpt-4o-mini",
   adk: "gemini-2.5-flash",
 };
+
+/**
+ * Resolves the model ID for this capture run: `CAPTURE_MODEL` env var wins
+ * when set (non-empty), else the framework's own `DEFAULT_MODEL`. A single
+ * env var (not per-framework) is intentional — one capture invocation
+ * targets exactly one framework, so there is no ambiguity to disambiguate.
+ *
+ * Exported for direct unit testing (pure function of env + framework — no
+ * need to drive it through the OPERATOR-GATED `runCaptureCli`).
+ */
+export function resolveModel(framework: Framework): string {
+  const override = process.env["CAPTURE_MODEL"];
+  return override && override.length > 0 ? override : DEFAULT_MODEL[framework];
+}
 
 const FRAMEWORKS: readonly Framework[] = ["claude", "openai", "adk"];
 
@@ -98,14 +113,56 @@ export function isFramework(v: string): v is Framework {
   return (FRAMEWORKS as readonly string[]).includes(v);
 }
 
+/**
+ * Walks up from a resolved module file until it finds the `package.json`
+ * whose `name` field matches `pkgName`, and returns its parsed contents.
+ *
+ * `require.resolve(\`${pkg}/package.json\`)` (the naive approach) THROWS
+ * `ERR_PACKAGE_PATH_NOT_EXPORTED` for any package whose `exports` map omits
+ * a `./package.json` subpath — verified empirically (playbook 2026-07-03
+ * live capture run): BOTH `@anthropic-ai/claude-agent-sdk` (0.2.141 AND
+ * 0.3.199) and `@openai/agents` (0.12.0) have `exports` maps with no
+ * `./package.json` entry, so that call silently threw and the caller's
+ * try/catch returned `null` for every capture ever run — a bug that never
+ * surfaced because no live capture had run before this playbook step. The
+ * package's own `.` export (its main entry) IS always resolvable, so this
+ * walks up from there — bounded to 5 levels (real packages are 0-2 levels
+ * deep: e.g. `@anthropic-ai/claude-agent-sdk`'s main is `sdk.mjs` directly in
+ * the package root; `@openai/agents`'s main is one level down in `dist/`).
+ */
+async function readPackageJsonByWalkingUpFrom(
+  mainEntryPath: string,
+  pkgName: string,
+): Promise<{ version?: string } | null> {
+  let dir = dirname(mainEntryPath);
+  for (let depth = 0; depth < 5; depth++) {
+    const candidate = join(dir, "package.json");
+    try {
+      const raw = await readFile(candidate, "utf8");
+      const parsed = JSON.parse(raw) as { name?: string; version?: string };
+      if (parsed.name === pkgName) {
+        return parsed;
+      }
+    } catch {
+      // Not found at this level (or unparsable) — keep walking up.
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break; // reached filesystem root
+    dir = parent;
+  }
+  return null;
+}
+
 /** Reads the installed SDK package's own `package.json#version` — the REAL
- *  resolved version (not the package.json range, which may be a caret). */
-async function resolveSdkVersion(framework: Framework): Promise<string | null> {
+ *  resolved version (not the package.json range, which may be a caret).
+ *  Exported for direct unit testing (keyless — reads only local
+ *  node_modules, no network/API key needed). */
+export async function resolveSdkVersion(framework: Framework): Promise<string | null> {
   try {
-    const pkgJsonPath = require.resolve(`${SDK_PACKAGE[framework]}/package.json`);
-    const raw = await readFile(pkgJsonPath, "utf8");
-    const parsed = JSON.parse(raw) as { version?: string };
-    return parsed.version ?? null;
+    const pkgName = SDK_PACKAGE[framework];
+    const mainEntryPath = require.resolve(pkgName);
+    const parsed = await readPackageJsonByWalkingUpFrom(mainEntryPath, pkgName);
+    return parsed?.version ?? null;
   } catch {
     return null;
   }
@@ -225,14 +282,15 @@ export async function runCaptureCli(scenarioName: string, framework: Framework):
   const deps: CaptureDeps = { runAgentCapture, serveMock, createNormalizer, census };
 
   const sdkVersion = await resolveSdkVersion(framework);
+  const model = resolveModel(framework);
   const outDir = join(PACKAGE_ROOT, "corpus", scenarioName);
 
   const { outDir: written } = await runCaptureAndWrite(
     scenario,
     deps,
-    { ports, framework, apiKey },
+    { ports, framework, apiKey, model },
     outDir,
-    { sdkVersion, model: DEFAULT_MODEL[framework] },
+    { sdkVersion, model },
   );
 
   return written;
