@@ -21,5 +21,13 @@
   "[*].usage.cache_creation_input_tokens": "[*].usage.cacheWriteTokens",
   "[*].usage.cache_read_input_tokens": "[*].usage.cacheReadTokens",
   "[*].modelUsage.claude-sonnet-4-6.cacheReadInputTokens": "[*].usage.byModel.claude-sonnet-4-6.cacheReadTokens",
-  "[*].modelUsage.claude-sonnet-4-6.cacheCreationInputTokens": "[*].usage.byModel.claude-sonnet-4-6.cacheWriteTokens"
+  "[*].modelUsage.claude-sonnet-4-6.cacheCreationInputTokens": "[*].usage.byModel.claude-sonnet-4-6.cacheWriteTokens",
+  "[*].modelUsage.claude-sonnet-5.webSearchRequests": "[*].usage.byModel.claude-sonnet-5.serverToolRequests",
+  "[*].modelUsage.claude-sonnet-5.cacheReadInputTokens": "[*].usage.byModel.claude-sonnet-5.cacheReadTokens",
+  "[*].modelUsage.claude-sonnet-5.cacheCreationInputTokens": "[*].usage.byModel.claude-sonnet-5.cacheWriteTokens",
+  "[*].modelUsage.claude-haiku-4-5-20251001.webSearchRequests": "[*].usage.byModel.claude-haiku-4-5-20251001.serverToolRequests",
+  "[*].modelUsage.claude-haiku-4-5-20251001.cacheReadInputTokens": "[*].usage.byModel.claude-haiku-4-5-20251001.cacheReadTokens",
+  "[*].modelUsage.claude-haiku-4-5-20251001.cacheCreationInputTokens": "[*].usage.byModel.claude-haiku-4-5-20251001.cacheWriteTokens",
+  "[*].data.response.usage.requestUsageEntries[*].inputTokensDetails.cached_tokens": "[*].usage.cacheReadTokens",
+  "[*].data.response.usage.requestUsageEntries[*].outputTokensDetails.reasoning_tokens": "[*].usage.reasoningTokens"
 }
