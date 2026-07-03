@@ -2040,3 +2040,141 @@ describe("createOpenaiNormalizer — function_call_result array-form output (Fin
     ]);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// structuredContent under 0.12.0's native MCP client (playbook 2026-07-03
+// follow-up, tracked follow-up from the 2026-07-03 playbook's exploratory
+// finding). Wire-truth investigation (see `extractStructuredContent`'s doc):
+//
+//  - `@openai/agents-core` 0.12.0's own `mcpToFunctionTool` unconditionally
+//    drops `CallToolResult.structuredContent` at the MCP-call boundary
+//    UNLESS the caller's `MCPServer` config sets `customDataExtractor`
+//    (0.12+ only) — in which case the extractor's return value lands
+//    verbatim on the wrapper's NEW sibling field, `item.customData`
+//    (`RunToolCallOutputItem.customData`, `dist/items.mjs`).
+//  - Without that opt-in, the wrapper's `item.output` field is a
+//    JSON-stringified STRING of the bare content item (VERIFIED against the
+//    real committed `echo-gpt55` capture,
+//    `packages/e2e/corpus/echo-gpt55/openai.native.json`:
+//    `item.output === '{"type":"text","text":"conformance-probe-gpt55"}'`)
+//    — never an object with a `.structuredContent` key, and never contains
+//    structuredContent at all (there is nothing to extract from it).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("createOpenaiNormalizer — tool_output structuredContent under 0.12.0 (playbook 2026-07-03 follow-up)", () => {
+  it("extracts structuredContent from item.customData (the customDataExtractor channel)", () => {
+    const n = createOpenaiNormalizer();
+    const payload = { title: "Hello", body: "World" };
+    const cacheMarker = { hit: false, llmCallsAvoided: 0, kind: "cold" };
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_customdata_1" } }),
+      rawModel({
+        type: "response.output_item.added",
+        item: { id: "fc_customdata_1", type: "function_call", call_id: "call_customdata_1", name: "render_card" },
+      }),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: {
+          type: "function_call_result",
+          name: "render_card",
+          callId: "call_customdata_1",
+          status: "completed",
+          // Real 0.12.0 MCP tool-result wire shape (array + input_text, Finding #2).
+          output: [{ type: "input_text", text: JSON.stringify(payload) }],
+        },
+        // Real 0.12.0 wrapper shape: item.output is a JSON-stringified STRING
+        // of the bare content item — NEVER an object with .structuredContent
+        // (verified against the echo-gpt55 capture).
+        output: JSON.stringify({ type: "text", text: JSON.stringify(payload) }),
+        // The NEW 0.12.0 channel: populated only when the caller's MCPServer
+        // config sets customDataExtractor (see run.ts). This is where the
+        // ggui cache marker actually rides on real 0.12.0 wire.
+        customData: { structuredContent: { ...payload, cache: cacheMarker } },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_customdata_1", status: "completed" } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+
+    const done = evs.find((e) => e.type === "tool.done") as {
+      toolCallId?: string;
+      content?: { type: string; text?: string }[];
+      structuredContent?: { title?: string; body?: string; cache?: { hit?: boolean } };
+    };
+    expect(done?.toolCallId).toBe("call_customdata_1");
+    // content still carries the plain-text form (Finding #2 regression guard).
+    expect(done?.content).toEqual([{ type: "text", text: JSON.stringify(payload) }]);
+    // structuredContent recovered from the customData channel.
+    expect(done?.structuredContent).toEqual({ ...payload, cache: cacheMarker });
+  });
+
+  it("yields NO structuredContent when neither home is populated (the ordinary plain-text case — echo-gpt55 shape)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_nostruct_1" } }),
+      rawModel({
+        type: "response.output_item.added",
+        item: { id: "fc_nostruct_1", type: "function_call", call_id: "call_nostruct_1", name: "echo" },
+      }),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: {
+          type: "function_call_result",
+          name: "echo",
+          callId: "call_nostruct_1",
+          status: "completed",
+          output: [{ type: "input_text", text: "conformance-probe-gpt55" }],
+        },
+        // Real echo-gpt55 wire byte-for-byte: a JSON string, no structuredContent key.
+        output: '{"type":"text","text":"conformance-probe-gpt55"}',
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_nostruct_1", status: "completed" } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+
+    const done = evs.find((e) => e.type === "tool.done") as {
+      content?: { type: string; text?: string }[];
+      structuredContent?: unknown;
+    };
+    expect(done?.content).toEqual([{ type: "text", text: "conformance-probe-gpt55" }]);
+    expect(done?.structuredContent).toBeUndefined();
+  });
+
+  it("never throws push() on a malformed (non-JSON) item.output string — degrades to no structuredContent", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_malformed_1" } }),
+      rawModel({
+        type: "response.output_item.added",
+        item: { id: "fc_malformed_1", type: "function_call", call_id: "call_malformed_1", name: "echo" },
+      }),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: {
+          type: "function_call_result",
+          name: "echo",
+          callId: "call_malformed_1",
+          status: "completed",
+          output: "plain unstructured tool text, not JSON at all",
+        },
+        // A plain (non-MCP) local tool can legitimately return a bare string
+        // that is NOT JSON — toSmartString passes strings through unchanged.
+        output: "plain unstructured tool text, not JSON at all",
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_malformed_1", status: "completed" } }),
+    ];
+
+    let out: AgEvent[] = [];
+    expect(() => {
+      out = evs.flatMap((e) => n.push(e)).concat(n.flush());
+    }).not.toThrow();
+
+    const toolDone = out.find((e) => e.type === "tool.done") as {
+      content?: { type: string; text?: string }[];
+      structuredContent?: unknown;
+    };
+    expect(toolDone?.content).toEqual([{ type: "text", text: "plain unstructured tool text, not JSON at all" }]);
+    expect(toolDone?.structuredContent).toBeUndefined();
+  });
+});

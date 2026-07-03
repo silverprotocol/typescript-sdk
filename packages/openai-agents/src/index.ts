@@ -341,14 +341,31 @@ interface OpenAIToolOutputEvent {
   // `item.rawItem` carries the protocol FunctionCallResultItem (callId, output, status)
   // — OR, widened (Finding #1), a Shell/Apply-Patch result (DIFFERENT `output`
   // shape per discriminant; `hosted_tool_call` never reaches this event, see its
-  // own doc). `item.output` (the wrapper-level field) may carry a structured
-  // object with a `structuredContent` key — the ggui cache marker (e.g.
-  // `{ cache: { hit: true } }`) rides here. Cast-free extraction uses
-  // `isJsonObject` + `JsonValue.parse`.
+  // own doc).
+  //
+  // structuredContent (the ggui cache marker, spec §2.1/§4) has TWO
+  // peer-supported homes on this wrapper (playbook 2026-07-03 follow-up,
+  // `extractStructuredContent`'s doc has the full wire-truth citations):
+  //  - `item.customData` — populated ONLY when the caller's `MCPServer`
+  //    config sets `customDataExtractor` (agents-core 0.12.0+); this is the
+  //    ONLY channel `@openai/agents`'s NATIVE MCP client ever carries real
+  //    structuredContent through, verified against agents-core 0.12.0's
+  //    `mcpToFunctionTool`.
+  //  - `item.output` (the wrapper-level field) — a defensive/legacy home:
+  //    an object keyed by `.structuredContent`, for callers that front their
+  //    OWN local (non-MCP-native) function tools returning a full
+  //    `CallToolResult`-shaped object verbatim. NEVER produced by
+  //    `@openai/agents`'s native MCP client in any peer-declared version
+  //    (0.2.0–0.12.x) — kept as defense-in-depth, not a verified wire shape.
+  //    Under 0.12.0's native MCP client this field is instead a
+  //    JSON-stringified STRING (e.g. `'{"type":"text","text":"…"}'`) with no
+  //    structuredContent inside it — parsed SAFELY as a fallback.
+  // Cast-free extraction uses `isJsonObject` + `JsonValue.parse` throughout.
   item: {
     type: "tool_call_output_item";
     rawItem: OpenAIFunctionCallResultItem | OpenAIShellCallResultItem | OpenAIApplyPatchCallResultItem;
     output?: JsonValue;
+    customData?: JsonValue;
   };
 }
 interface OpenAIReasoningEvent {
@@ -736,6 +753,80 @@ function mapAnnotationsToCitations(
 // widens to `unknown` losslessly (mirrors the Claude facet's `isSDKMessage`).
 function isJsonObject(v: unknown): v is { readonly [k: string]: JsonValue } {
   return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/**
+ * Extract `structuredContent` (the ggui cache-marker channel, spec §2.1/§4)
+ * from a `tool_output` run-item's wrapper fields. Playbook 2026-07-03
+ * follow-up — the ORIGINAL extraction (feat 0969469) assumed `wrapperOutput`
+ * would be an object keyed by `.structuredContent`; a live capture
+ * (`echo-gpt55`, gpt-5.5 / agents-core 0.12.0) proved that assumption never
+ * matches real `@openai/agents` native-MCP wire — `wrapperOutput` there is a
+ * JSON-STRINGIFIED string (`'{"type":"text","text":"…"}'`), because
+ * `RunToolCallOutputItem.toJSON()` (agents-core 0.12.0's `dist/items.mjs`)
+ * runs `.output` through `toSmartString`, which passes strings through
+ * unchanged but JSON.stringifies objects — and the object it stringifies
+ * (`content[0]`, the raw MCP content ITEM) never had a `.structuredContent`
+ * sibling to begin with: `mcpToFunctionTool`'s `invoke()`
+ * (agents-core 0.12.0's `dist/mcp.mjs:672-738`) reads
+ * `result.structuredContent` off the full `CallToolResult` but discards it
+ * unless `useStructuredContent` is `true` (which instead merges it into the
+ * MODEL-VISIBLE text — a spec violation, not a fix; rejected, see
+ * `packages/e2e/src/agents/openai-agents-sdk/run.ts`) — so under the SDK
+ * default, structuredContent is unconditionally dropped BEFORE it ever
+ * reaches `item.output`. This is true for `@openai/agents-core` 0.2.1 too
+ * (grep-verified: zero mentions of `structuredContent` anywhere in its
+ * `dist/`) — the whole `>=0.2.0 <0.13` peer range's native MCP client drops
+ * it by default; there is no version where the ORIGINAL assumed shape was
+ * ever real wire truth for a native-MCP-routed tool call.
+ *
+ * The ONE real channel `@openai/agents-core` 0.12.0 offers is
+ * `MCPServer.customDataExtractor` (absent before 0.12): a per-server
+ * callback that receives `{ …, structuredContent }` and whose (JSON-
+ * validated, SDK-normalized) return value lands verbatim on
+ * `RunToolCallOutputItem.customData` — a NEW sibling field to `.output`,
+ * included as-is (not smart-stringified) by `toJSON()`. This requires the
+ * CALLER (the agent/worker that constructs the `MCPServer`) to opt in —
+ * the facet cannot conjure data the wire never carries. Two homes are
+ * checked, in order:
+ *
+ *  1. `customData.structuredContent` — the 0.12.0+ channel above.
+ *  2. `wrapperOutput.structuredContent` — kept as defense-in-depth for
+ *     callers whose OWN local (non-MCP-native) tool wrapping manually
+ *     returns a full `CallToolResult`-shaped object (unverified against the
+ *     SDK's native MCP client, but a real possible shape for a custom local
+ *     tool's return value); also tried after a SAFE `JSON.parse` when
+ *     `wrapperOutput` is a string (never throws out of `push()` — Tenet 6;
+ *     a parse failure or a parsed value with no `.structuredContent` key is
+ *     the ordinary case for a plain-text tool result, not an anomaly worth
+ *     an `ext` carry).
+ *
+ * Neither home firing (the common case — most tool results carry no
+ * structuredContent at all) is NOT a drop: it correctly yields `undefined`.
+ */
+function extractStructuredContent(
+  wrapperOutput: JsonValue | undefined,
+  customData: JsonValue | undefined,
+): JsonValue | undefined {
+  if (isJsonObject(customData) && isJsonObject(customData.structuredContent)) {
+    return JsonValue.parse(customData.structuredContent);
+  }
+  if (isJsonObject(wrapperOutput) && isJsonObject(wrapperOutput.structuredContent)) {
+    return JsonValue.parse(wrapperOutput.structuredContent);
+  }
+  if (typeof wrapperOutput === "string") {
+    try {
+      const parsed: unknown = JSON.parse(wrapperOutput);
+      if (isJsonObject(parsed) && isJsonObject(parsed.structuredContent)) {
+        return JsonValue.parse(parsed.structuredContent);
+      }
+    } catch {
+      // Not JSON, or JSON with no `.structuredContent` key — the ordinary
+      // shape for a plain-text tool result. No structuredContent to extract;
+      // never throw out of push() (Tenet 6).
+    }
+  }
+  return undefined;
 }
 
 // Only the OUTER envelope is validated here (the RunStreamEvent families: a
@@ -1531,16 +1622,12 @@ export function createOpenaiNormalizer(): Normalizer {
             return;
           }
           // Authoritative tool-result source (canonical model, A1). Drives toolDone
-          // with content + structuredContent (the ggui cache marker rides on item.output).
+          // with content + structuredContent (the ggui cache marker — see
+          // `extractStructuredContent`'s doc for the two peer-supported homes and
+          // the playbook 2026-07-03 wire-truth findings behind them).
           const outcome: ToolOutcome = rawItem.status === "incomplete" ? "error" : "ok";
           const content = toolOutputToAgBlocks(rawItem.output);
-          // Extract structuredContent cast-free: item.output may be an object carrying
-          // { structuredContent: … }. Use isJsonObject + JsonValue.parse (not a cast).
-          const wrapperOutput = event.item.output;
-          const structuredContent: JsonValue | undefined =
-            isJsonObject(wrapperOutput) && isJsonObject(wrapperOutput.structuredContent)
-              ? JsonValue.parse(wrapperOutput.structuredContent)
-              : undefined;
+          const structuredContent = extractStructuredContent(event.item.output, event.item.customData);
           // Task 4b: resolve the OWNING turn explicitly (this result may land
           // after a later round has opened, so the engine's #lastTurn backfill
           // could misattribute it) and pass it through so toolDone binds to the
