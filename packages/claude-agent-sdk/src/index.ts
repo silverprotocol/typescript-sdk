@@ -727,6 +727,25 @@ export function createClaudeNormalizer(): Normalizer {
       return;
     }
 
+    if (msg.type === "system" && msg.subtype === "informational") {
+      // Fixture-drift ratchet FLAGSHIP finding (2026-07-03): CONTRADICTS
+      // playbook-sdk-bumps-report.md's prior classification of this arm as a
+      // "control-plane/CLI-UX signal, no model output". Direct field
+      // inspection (sdk.d.ts) shows `content`/`level`/`prevent_continuation?`
+      // are genuinely conversation/UX-relevant (transcript notices, an
+      // explanation for why a turn halted, e.g. a Stop hook denial) — not
+      // telemetry. LOCKED DISPOSITION: no first-class AgJSON event exists for
+      // this today (a `notice` core event is a future spec-process decision,
+      // §8 item 21) — carry it losslessly via the facet's established
+      // `ext.anthropic.*` convention rather than drop it.
+      a.emitExt("anthropic", "informational", {
+        content: msg.content,
+        level: msg.level,
+        ...(msg.prevent_continuation !== undefined ? { preventContinuation: msg.prevent_continuation } : {}),
+      });
+      return;
+    }
+
     if (msg.type === "system" && msg.subtype === "model_refusal_fallback") {
       // Finding #1 (critical): the end-of-turn authoritative eviction record —
       // "the complete audit record for the turn" per the field's own doc.

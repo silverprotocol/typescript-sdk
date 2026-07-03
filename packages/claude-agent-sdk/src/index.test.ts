@@ -1169,6 +1169,93 @@ describe("createClaudeNormalizer — refusal-fallback retraction (playbook 2026-
   });
 });
 
+// ─── SDKInformationalMessage — fixture-drift ratchet FLAGSHIP finding ─────────
+// (2026-07-03). CONTRADICTS playbook-sdk-bumps-report.md's own prior
+// classification of this arm as a "control-plane/CLI-UX signal, no model
+// output" — direct field inspection (sdk.d.ts) shows `content`/`level`/
+// `prevent_continuation?` are genuinely conversation/UX-relevant (transcript
+// notices, an explanation for why a turn halted — e.g. a Stop hook denial),
+// not telemetry. LOCKED DISPOSITION (boundary-invariant respecting — no new
+// core event type, no SPEC §4/§5 change): live-only lossless carry via
+// `ext.anthropic.informational{content, level, preventContinuation}` (SPEC §8
+// item 21) rather than a silent drop.
+describe("createClaudeNormalizer — SDKInformationalMessage (fixture-drift ratchet, 2026-07-03)", () => {
+  function informationalMsg(overrides?: {
+    level?: "info" | "notice" | "suggestion" | "warning";
+    prevent_continuation?: boolean;
+  }): SDKMessage {
+    return {
+      type: "system",
+      subtype: "informational",
+      content: "Context window is getting full — consider /compact.",
+      level: overrides?.level ?? "notice",
+      uuid: "00000000-0000-0000-0000-0000000000f4",
+      session_id: "sess_fixture",
+      ...(overrides?.prevent_continuation !== undefined
+        ? { prevent_continuation: overrides.prevent_continuation }
+        : {}),
+    };
+  }
+
+  it("emits exactly one ext.anthropic.informational event, byte-preserving content/level", () => {
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(JsonValue.parse(informationalMsg())), ...n.flush()];
+    assertAllValid(evs);
+    expect(evs).toHaveLength(1);
+    expect(evs[0]).toMatchObject({
+      type: "ext.anthropic.informational",
+      content: "Context window is getting full — consider /compact.",
+      level: "notice",
+    });
+  });
+
+  it("carries prevent_continuation as preventContinuation when present", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(informationalMsg({ level: "warning", prevent_continuation: true }))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    expect(evs).toHaveLength(1);
+    expect(evs[0]).toMatchObject({
+      type: "ext.anthropic.informational",
+      level: "warning",
+      preventContinuation: true,
+    });
+  });
+
+  it("omits preventContinuation when prevent_continuation is absent on the wire (no fabricated field)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(JsonValue.parse(informationalMsg())), ...n.flush()];
+    expect((evs[0] as { preventContinuation?: unknown }).preventContinuation).toBeUndefined();
+  });
+
+  it("does NOT silently drop the notice — no bare no-op (regression pin for the flagship finding)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(JsonValue.parse(informationalMsg())), ...n.flush()];
+    // Pre-fix this frame produced ZERO events (a silent drop). Post-fix it
+    // produces exactly the one ext carry above — never nothing.
+    expect(evs.length).toBeGreaterThan(0);
+    expect(evs.some((e) => e.type === "ext.anthropic.informational")).toBe(true);
+  });
+
+  it("fold: an informational notice sandwiched inside a real turn folds clean through Reducer — needsResync===false (T2b: ext events never false-park a fold)", () => {
+    const n = createClaudeNormalizer();
+    const events = [
+      ...n.push(JsonValue.parse(assistantMsg([{ type: "text", text: "hello", citations: null }]))),
+      ...n.push(JsonValue.parse(informationalMsg())),
+      ...n.push(JsonValue.parse(resultSuccess("end_turn"))),
+      ...n.flush(),
+    ];
+    assertAllValid(events);
+    expect(events.some((e) => e.type === "ext.anthropic.informational")).toBe(true);
+
+    const r = new Reducer();
+    for (const e of events) r.push(e);
+    expect(r.needsResync).toBe(false);
+  });
+});
+
 describe("createClaudeNormalizer — B1b: server blocks semantic homes", () => {
   it("maps compaction block to content.block with type: compaction", () => {
     const evs = run(
