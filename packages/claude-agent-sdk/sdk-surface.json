@@ -1,0 +1,159 @@
+{
+  "$comment": "Ratchet manifest for the fixture-drift gate (scripts/check-fixture-drift.mjs). Members are the `SDKMessage` union's arm TYPE NAMES, extracted mechanically from `export declare type SDKMessage = A | B | …;` in @anthropic-ai/claude-agent-sdk/sdk.d.ts. Dispositions were seeded 2026-07-03 by reading src/index.ts (the facet's `drive()` switch) + every arm's own field declarations in sdk.d.ts + the two playbook reports (.superpowers/sdd/playbook-sdk-bumps-report.md, playbook-facet-adaptations-report.md). handled = the facet has a dedicated branch; carried = routed to ext.anthropic.* losslessly; router-plane = pure SDK/CLI/session control-plane telemetry with no conversational free-text payload, ignored by the facet's own documented design (index.ts's blanket 'carry no AgJSON-relevant content' comment, or a more specific documented rationale noted per-entry) — verified by reading the arm's actual fields, not assumed from its name; not-applicable = provably cannot occur on this SDK's wire (unused on this manifest — every named SDKMessage arm is structurally reachable); silently-dropped = reaches the facet, carries real informational payload, and has NO route (ext or otherwise) — a genuine pre-existing gap, documented honestly per Task 6 (playbook backlog C / audit MC-T3 lesson) rather than papered over as not-applicable or router-plane. See .superpowers/sdd/pb-task-6-report.md for the full disposition rationale, including two findings that CONTRADICT playbook-sdk-bumps-report.md's own prior classification (SDKInformationalMessage, SDKConversationResetMessage's sibling reasoning).",
+  "sdkPackage": "@anthropic-ai/claude-agent-sdk",
+  "verifiedAt": "0.3.199",
+  "members": {
+    "SDKAssistantMessage": {
+      "disposition": "handled",
+      "note": "Primary content branch in drive(): content-block fan-out (text/thinking/tool_use/mcp_tool_result/compaction/…), closeMessage, turn.error on msg.error, and the refusal-fallback `supersedes` retraction (Finding #1, message.remove via uuid->messageId map)."
+    },
+    "SDKUserMessage": {
+      "disposition": "handled",
+      "note": "tool_result content blocks -> tool.done (adopted messageId `${toolCallId}:result`); reads structuredContent + the tool_use_result sibling for MCP-Apps UI data."
+    },
+    "SDKUserMessageReplay": {
+      "disposition": "handled",
+      "note": "Shares the SAME runtime discriminant (`type:'user'`) as SDKUserMessage, so drive()'s `msg.type === \"user\"` branch structurally processes it identically (message.content is the same MessageParam shape). Replay-specific fields (isSynthetic, priority, shouldQuery, origin, file_attachments?) are not separately read — shouldQuery is a host-side replay-behavior flag (not AgJSON content); file_attachments?:unknown[] is unverified (could be redundant with content-block image/file parts, or a distinct UI-metadata carrier) — flagged for follow-up, not elevated to silently-dropped since the arm's PRIMARY content path is handled."
+    },
+    "SDKResultMessage": {
+      "disposition": "handled",
+      "note": "Union of SDKResultSuccess | SDKResultError. Success -> closeTurnDone (outcome/finishReason/usage/safety/permission_denials as denied tool.start+tool.done pairs). Every non-success subtype -> closeTurnError (errors joined, code=subtype, retriable = subtype !== 'error_max_turns')."
+    },
+    "SDKSystemMessage": {
+      "disposition": "router-plane",
+      "note": "subtype 'init' — session-initialization handshake (agents/tools/mcp_servers/model/permissionMode/slash_commands/skills/plugins/…). Verified fields: all identifiers/labels/enums, no conversational free text. Matches index.ts's documented blanket no-op for 'system, partial-assistant, status, …'."
+    },
+    "SDKPartialAssistantMessage": {
+      "disposition": "router-plane",
+      "note": "type:'stream_event' — the raw incremental BetaRawMessageStreamEvent delta stream. NOT a content loss: the file's own header doc states the facet's architecture treats Claude's assistant turn as a COMPLETE-message structure (message.content[] is the whole turn, not a stream of deltas) and relies solely on the buffered SDKAssistantMessage. This is a deliberate, documented design choice — the SAME final content arrives complete afterward. Trade-off: no live token-by-token streaming granularity on this seam (a UX/latency difference, not a data-loss one)."
+    },
+    "SDKCompactBoundaryMessage": {
+      "disposition": "router-plane",
+      "note": "subtype 'compact_boundary' — compaction BOOKKEEPING (trigger/pre_tokens/post_tokens/duration_ms/preserved_segment/preserved_messages uuids), all numeric/enum/uuid fields, no free text. The actual compacted SUMMARY CONTENT rides separately on the assistant message's own 'compaction' content block, already handled by emitAssistantBlock's `case \"compaction\"`."
+    },
+    "SDKStatusMessage": {
+      "disposition": "router-plane",
+      "note": "subtype 'status' — status:SDKStatus ('compacting'|'requesting'|null), permissionMode, compact_result enum. NOTE: optional `compact_error?: string` (a rare compaction-FAILURE diagnostic string) has no route — a narrow, disclosed residual gap, not elevated to silently-dropped since it is one optional field on an otherwise pure status ping."
+    },
+    "SDKAPIRetryMessage": {
+      "disposition": "router-plane",
+      "note": "subtype 'api_retry' — attempt/max_retries/retry_delay_ms/error_status/error(enum code). Pure retry-mechanics telemetry, matches playbook-sdk-bumps-report.md's 'control-plane/CLI-UX signal' classification for the sibling arms in this bump."
+    },
+    "SDKControlRequestProgressMessage": {
+      "disposition": "router-plane",
+      "note": "UNVERIFIABLE: no independently-resolvable declaration anywhere in the bundled sdk.d.ts (confirmed absent — appears only as a name inside the SDKMessage union literal; a .d.ts-bundler dedup artifact on Anthropic's publish side per playbook-sdk-bumps-report.md). Disposition follows that report's own explicit classification ('control-plane/CLI-UX signal, no model output'), UNVERIFIED against actual field shape — flag this as lower-confidence given SDKInformationalMessage below shows the same report's classifications do not always hold up under direct field inspection."
+    },
+    "SDKModelRefusalFallbackMessage": {
+      "disposition": "handled",
+      "note": "subtype 'model_refusal_fallback' — the retraction protocol (Finding #1, playbook 2026-07-03): retracted_message_uuids -> message.remove via the uuid->messageId map. NOTE: the message's OWN `content: string` field (a human-readable notice, distinct from the retraction ids) is NOT read/emitted anywhere — a minor residual gap on an otherwise-handled arm, not elevated to a separate disposition since the arm's primary (and highest-severity) concern is fixed."
+    },
+    "SDKModelRefusalNoFallbackMessage": {
+      "disposition": "silently-dropped",
+      "note": "FINDING: subtype 'model_refusal_no_fallback' carries original_model, request_id, api_refusal_category?, api_refusal_explanation?, refused_user_message_uuid?, AND its own `content: string` — none read, no ext route. playbook-facet-adaptations-report.md's Finding #1 discussion notes the CORE fact of a no-fallback refusal is redundantly available via a DIFFERENT wire frame (mapStopReason('refusal') on the assistant/result message), but that redundancy covers only the bare fact, not this frame's own richer category/explanation/content fields, which are unroutable and lost."
+    },
+    "SDKLocalCommandOutputMessage": {
+      "disposition": "silently-dropped",
+      "note": "FINDING: subtype 'local_command_output' carries `content: string` — the actual output text of a local slash-command execution (e.g. /compact, /help). This is genuine transcript-visible content a consumer would expect to see; dropped with no route."
+    },
+    "SDKHookStartedMessage": {
+      "disposition": "router-plane",
+      "note": "subtype 'hook_started' — hook_id/hook_name/hook_event are identifiers/labels only, no free-text payload. Pure lifecycle ping for a local PreToolUse/PostToolUse CLI hook (SDK/CLI plumbing, not model conversation content)."
+    },
+    "SDKHookProgressMessage": {
+      "disposition": "silently-dropped",
+      "note": "FINDING: subtype 'hook_progress' carries real stdout/stderr/output TEXT (a local hook script's live output). Dropped with no route. (Judgment call: hooks are CLI-tooling plumbing rather than model conversation, but the text is genuine diagnostic content a consumer could plausibly want — flagged honestly rather than assumed away.)"
+    },
+    "SDKHookResponseMessage": {
+      "disposition": "silently-dropped",
+      "note": "FINDING: subtype 'hook_response' carries output/stdout/stderr/exit_code/outcome — the local hook's completed result text. Dropped with no route. Same judgment-call caveat as SDKHookProgressMessage."
+    },
+    "SDKPluginInstallMessage": {
+      "disposition": "router-plane",
+      "note": "subtype 'plugin_install' — status enum (started/installed/failed/completed) + name?. Plugin-ecosystem lifecycle event, not conversation content. NOTE: optional `error?: string` on a 'failed' status has no route — a narrow, disclosed residual gap."
+    },
+    "SDKToolProgressMessage": {
+      "disposition": "router-plane",
+      "note": "type:'tool_progress' — tool_use_id/tool_name/parent_tool_use_id/elapsed_time_seconds/task_id?. A 'still running' progress heartbeat; no free-text payload beyond identifiers and a numeric duration."
+    },
+    "SDKAuthStatusMessage": {
+      "disposition": "silently-dropped",
+      "note": "FINDING: type:'auth_status' carries `output: string[]` (very likely OAuth-flow instructions/URLs shown to the user, e.g. 'visit this URL to authenticate') + error?. Dropped with no route — plausibly real UX-blocking content."
+    },
+    "SDKTaskNotificationMessage": {
+      "disposition": "silently-dropped",
+      "note": "FINDING (Task* family, 1 of 4): subtype 'task_notification' carries `output_file: string` + `summary: string` (a completed background-task's summary/output path) — dropped, no route. The sibling SDKTaskStartedMessage's own doc comment explicitly says this family is meant to 'appear in a tasks panel' — a legitimate consumer-facing surface with no AgJSON representation today."
+    },
+    "SDKTaskStartedMessage": {
+      "disposition": "silently-dropped",
+      "note": "FINDING (Task* family, 2 of 4): subtype 'task_started' carries `description: string` + prompt? + subagent_type?/task_type?/workflow_name? — real text describing a background subagent task. Dropped, no route. Doc comment: 'Ambient/housekeeping task... it may still appear in a tasks panel.'"
+    },
+    "SDKTaskUpdatedMessage": {
+      "disposition": "silently-dropped",
+      "note": "FINDING (Task* family, 3 of 4): subtype 'task_updated' carries a `patch` with optional description/error text (a state-machine delta for a background task). Dropped, no route."
+    },
+    "SDKTaskProgressMessage": {
+      "disposition": "silently-dropped",
+      "note": "FINDING (Task* family, 4 of 4): subtype 'task_progress' carries `description: string` + summary? + last_tool_name? — real text. Dropped, no route."
+    },
+    "SDKThinkingTokensMessage": {
+      "disposition": "router-plane",
+      "note": "subtype 'thinking_tokens' — estimated_tokens/estimated_tokens_delta, pure numeric telemetry. Matches playbook-sdk-bumps-report.md's own classification."
+    },
+    "SDKSessionStateChangedMessage": {
+      "disposition": "router-plane",
+      "note": "subtype 'session_state_changed' — state: 'idle'|'running'|'requires_action', a pure enum, no free text."
+    },
+    "SDKWorkerShuttingDownMessage": {
+      "disposition": "router-plane",
+      "note": "subtype 'worker_shutting_down' — `reason: string` is explicitly documented on the wire as 'short snake_case reason set by the host CLI (not user input)', i.e. a code, not free prose. Matches playbook-sdk-bumps-report.md's own classification."
+    },
+    "SDKCommandsChangedMessage": {
+      "disposition": "router-plane",
+      "note": "subtype 'commands_changed' — commands: SlashCommand[], a full re-sync of the CLI's slash-command palette (CLI affordance metadata), not conversational content. Matches playbook-sdk-bumps-report.md's own classification (\"Clients should REPLACE their cached command list\")."
+    },
+    "SDKNotificationMessage": {
+      "disposition": "silently-dropped",
+      "note": "FINDING: subtype 'notification' carries key/`text: string`/priority/color?/timeout_ms? — an explicit user-facing toast/banner primitive by shape. Clearly meant for display; entirely dropped, no route."
+    },
+    "SDKFilesPersistedEvent": {
+      "disposition": "silently-dropped",
+      "note": "FINDING: subtype 'files_persisted' carries files[] (filename/file_id) and failed[] (filename/`error: string`) — real deliverable/failure records (e.g. artifacts the agent produced). Dropped, no route."
+    },
+    "SDKToolUseSummaryMessage": {
+      "disposition": "silently-dropped",
+      "note": "FINDING: type:'tool_use_summary' carries `summary: string` + preceding_tool_use_ids — a real prose summary of prior tool activity. Dropped, no route."
+    },
+    "SDKMemoryRecallMessage": {
+      "disposition": "silently-dropped",
+      "note": "FINDING (significant): subtype 'memory_recall' carries memories[].content? — the actual recalled-memory BODY TEXT injected into the model's context (mode:'select'|'synthesize'). This is genuine context/provenance content (what the model just read), dropped with no route — relevant for session audit."
+    },
+    "SDKRateLimitEvent": {
+      "disposition": "router-plane",
+      "note": "type:'rate_limit_event' — rate_limit_info: SDKRateLimitInfo is entirely enum/numeric/boolean fields (status/resetsAt/rateLimitType/utilization/overageStatus/…), no free text. Pure billing/capacity telemetry."
+    },
+    "SDKElicitationCompleteMessage": {
+      "disposition": "router-plane",
+      "note": "subtype 'elicitation_complete' — carries only mcp_server_name + elicitation_id (a completion SIGNAL, no payload). Any elicited response DATA, if surfaced at all on this wire, would ride via a different mechanism (e.g. a subsequent tool_result) not represented by this arm's own fields — this arm itself has no content to lose."
+    },
+    "SDKPermissionDeniedMessage": {
+      "disposition": "silently-dropped",
+      "note": "FINDING: subtype 'permission_denied' is a STANDALONE live denial notification, distinct from (and richer than) the already-handled `SDKResultMessage.permission_denials[]` aggregate (which drive() reads for tool_use_id/tool_name only, synthesizing tool.start+tool.done{outcome:'denied'} pairs). THIS arm additionally carries agent_id?, decision_reason_type?, decision_reason? (human-readable), and `message: string` (the rejection text) — none read from this arm, no route. Partial redundancy: the denied tool.start/tool.done PAIR is produced via the OTHER wire path; only this arm's richer diagnostic fields are lost."
+    },
+    "SDKPromptSuggestionMessage": {
+      "disposition": "silently-dropped",
+      "note": "FINDING: type:'prompt_suggestion' carries `suggestion: string` — a real suggested follow-up prompt for the user. Dropped, no route."
+    },
+    "SDKMirrorErrorMessage": {
+      "disposition": "silently-dropped",
+      "note": "FINDING: subtype 'mirror_error' carries `error: string` — a background cloud-sync/mirror failure diagnostic (its entire purpose is reporting an error). Dropped, no route."
+    },
+    "SDKInformationalMessage": {
+      "disposition": "silently-dropped",
+      "note": "FLAGSHIP FINDING — CONTRADICTS playbook-sdk-bumps-report.md's own prior classification of this arm as a 'control-plane/CLI-UX signal, no model output'. Direct inspection of sdk.d.ts shows subtype 'informational' carries `content: string` PLUS an explicit `level: 'info'|'notice'|'suggestion'|'warning'` render-treatment doc-commented as controlling literal UI display ('info shows only in transcript mode; notice renders in inactive gray; suggestion/warning are more prominent'), and `prevent_continuation?: boolean` ('execution stops after this message, e.g. a Stop hook denied continuation') — i.e. it can signal WHY a turn halted. This is genuinely conversation/UX-relevant content, not telemetry, and it is entirely dropped with no route. Exactly the class of drift this gate exists to catch mechanically rather than by reviewer trust in a prior report's prose."
+    },
+    "SDKConversationResetMessage": {
+      "disposition": "router-plane",
+      "note": "UNVERIFIABLE: no independently-resolvable declaration in the bundled sdk.d.ts (same bundler dedup artifact as SDKControlRequestProgressMessage). Disposition follows playbook-sdk-bumps-report.md's implicit classification (one of its '6 of 8 arms' deemed fine, though not named explicitly by wire-string since its shape was already unreadable when that report was written) — UNVERIFIED against actual fields. Given the SDKInformationalMessage finding above shows this report's own classifications can be wrong on inspection, this entry is disposed with explicitly LOWER confidence; re-verify the moment Anthropic's .d.ts bundling exposes its real shape."
+    }
+  }
+}

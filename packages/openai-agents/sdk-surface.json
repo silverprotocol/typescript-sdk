@@ -1,0 +1,113 @@
+{
+  "$comment": "Ratchet manifest for the fixture-drift gate (scripts/check-fixture-drift.mjs). @openai/agents-core exposes TWO separate wire inventories the OpenAI facet consumes — kept as separate sections (per Task 6's brief) so a rename in one is attributable without conflating it with drift in the other: (1) runItemStreamEventName — the RunItemStreamEventName string-literal union from dist/events.d.ts (the `name` discriminant on every run_item_stream_event); (2) protocolItem — the top-level `type:` discriminants of the ModelItem union in dist/types/protocol.d.ts (the full bidirectional protocol-item vocabulary; a superset of OutputModelItem that also includes computer_call_result, used for input-history reconstruction). Resolved via @openai/agents (packages/e2e's exact devDependency pin) -> its own @openai/agents-core dependency, since agents-core is transitive and not directly pinned by either facet package.json. Dispositions were seeded 2026-07-03 by reading src/index.ts's drive()/driveRawResponsesEvent() switches + protocol.d.ts's per-item field shapes + the two playbook reports. handled = the facet has a dedicated, correct branch; carried = routed to ext.openai.* losslessly (the run-item switch's documented default arm); router-plane = n/a for this facet (every OpenAI event that reaches push() either maps to a concern in scope or is an already-documented ignored-duplicate of an authoritative source — noted per-entry, not a distinct control-plane class here); not-applicable = provably cannot occur on the RunItemStreamEvent/RunRawModelStreamEvent streams this facet ingests (justified per-entry — e.g. an item type only reachable via a DIFFERENT sub-union than the ones the 9 named run-item events wrap); silently-dropped = reaches the facet via an ALREADY-handled event name, carries real payload, and falls through to a generic path with no ext route — includes TWO NEW findings (computer_call / computer_call_result) that are a residual, unfixed instance of the exact orphan-tool.done bug class playbook-facet-adaptations-report.md's Finding #1 fixed for shell_call/apply_patch_call, but left uncovered for OpenAI's Computer-Use built-in tool. See .superpowers/sdd/pb-task-6-report.md for the full rationale.",
+  "sdkPackage": "@openai/agents-core",
+  "verifiedAt": "0.12.0",
+  "sections": {
+    "runItemStreamEventName": {
+      "$comment": "The `name` discriminant of a run_item_stream_event (dist/events.d.ts `RunItemStreamEventName`).",
+      "members": {
+        "message_output_created": {
+          "disposition": "handled",
+          "note": "driveMessageOutputCreated() — the authoritative text-end + citations source (audit M22); refusal parts set pendingRefusal."
+        },
+        "tool_called": {
+          "disposition": "handled",
+          "note": "rawItem.type==='function_call' is deliberately ignored here (superseded by the authoritative raw response.output_item.added path); rawItem.type in {shell_call, apply_patch_call, hosted_tool_call} -> driveBuiltinToolCalled() (Finding #1). See the protocolItem section for the residual computer_call gap on this SAME event name."
+        },
+        "tool_output": {
+          "disposition": "handled",
+          "note": "rawItem.type in {shell_call_output, apply_patch_call_output} -> driveBuiltinToolOutput(); function_call_result -> the generic toolOutputToAgBlocks() path with structuredContent extraction. See the protocolItem section for the residual computer_call_result gap on this SAME event name."
+        },
+        "reasoning_item_created": {
+          "disposition": "handled",
+          "note": "driveReasoningItemCreated() — sole source for reasoning content on this seam (start/delta/end/opaque incl. the ZDR encrypted_content replay blob)."
+        },
+        "handoff_requested": {
+          "disposition": "handled",
+          "note": "Opens a subagentStart bracket keyed by a synthetic turn_handoff_<n> id (audit M48 Finding 1)."
+        },
+        "handoff_occurred": {
+          "disposition": "handled",
+          "note": "Closes the matching subagentStart bracket (FIFO) + emits the identity-carrying `handoff` event once both agent identities are known (audit M48 Finding 1)."
+        },
+        "tool_approval_requested": {
+          "disposition": "handled",
+          "note": "Maps to `hitl.ask{kind:'approval'}` (audit M48)."
+        },
+        "tool_search_called": {
+          "disposition": "carried",
+          "note": "Not a declared arm of OpenAIRunItemEvent -> falls to drive()'s run-item switch `default` arm -> a.emitExt('openai','unparsed',{name,item}), losslessly. Matches playbook-facet-adaptations-report.md's Finding #4 ('Documented carry' — no dedicated tool.start/tool.done lifecycle; the item has no name/input to synthesize one from, and the output is a retrieval listing, not model-readable content)."
+        },
+        "tool_search_output_created": {
+          "disposition": "carried",
+          "note": "Same default-arm ext.openai.unparsed carry as tool_search_called — see that entry's note and playbook-facet-adaptations-report.md Finding #4."
+        }
+      }
+    },
+    "protocolItem": {
+      "$comment": "Top-level `type:` discriminants of dist/types/protocol.d.ts's `ModelItem` union (the full bidirectional protocol-item vocabulary — a superset of OutputModelItem that also includes computer_call_result).",
+      "members": {
+        "message": {
+          "disposition": "handled",
+          "note": "The rawItem of message_output_created's RunMessageOutputItem (assistant role, per the facet's own OpenAIAssistantMessageItem type) -> driveMessageOutputCreated(). ModelItem's user/system-role 'message' arms are input-side history reconstruction, not reachable on this facet's ingestion boundary (RunItemStreamEvent only ever wraps the assistant's own output)."
+        },
+        "tool_search_call": {
+          "disposition": "carried",
+          "note": "Rides inside the tool_search_called run-item's rawItem, which is carried verbatim via ext.openai.unparsed (see the runItemStreamEventName section)."
+        },
+        "tool_search_output": {
+          "disposition": "carried",
+          "note": "Rides inside the tool_search_output_created run-item's rawItem, carried verbatim via ext.openai.unparsed (see the runItemStreamEventName section)."
+        },
+        "hosted_tool_call": {
+          "disposition": "handled",
+          "note": "The rawItem of a tool_called run-item for a provider-hosted built-in (web_search/code_interpreter/file_search/image_generation/mcp/…) -> driveBuiltinToolCalled(): tool.start + tool.done fire together (hosted tools resolve server-side within the same turn, verified against agents-core 0.12.0's runner/modelOutputs.mjs — never paired with a separate tool_output)."
+        },
+        "function_call": {
+          "disposition": "handled",
+          "note": "Handled via the AUTHORITATIVE raw response.output_item.added stream (driveRawResponsesEvent, canonical model A1), not the run-item wrapper — the tool_called-wrapper occurrence of this SAME discriminant is a documented, deliberate no-op ('IGNORED — superseded by model:response.output_item.added') to avoid a double tool.start. Content is not lost; it arrives via the other authoritative path."
+        },
+        "computer_call": {
+          "disposition": "silently-dropped",
+          "note": "NEW FINDING (not in either playbook report): confirmed a real arm of ToolCallItem (dist/types/protocol.d.ts) alongside shell_call/apply_patch_call/hosted_tool_call/function_call, so it rides the SAME already-handled `tool_called` event. driveBuiltinToolCalled()'s type-narrowing only recognizes shell_call/apply_patch_call explicitly and falls back to the hosted_tool_call branch (`rawItem.name`) for anything else — but ComputerUseCallItem has NO `name` field, so `builtinToolName()` returns `undefined` at runtime and a.toolStart() is called with a malformed/undefined `name`. This is a residual, UNFIXED instance of the exact orphan/malformed-emission bug class playbook-facet-adaptations-report.md's Finding #1 fixed for shell_call/apply_patch_call, left uncovered for OpenAI's Computer-Use built-in tool. Plausible (unverified, would need a live capture or StreamAssembler source read to confirm) that toolStart's schema validation throws on a missing required `name`, which would violate this codebase's Tenet-6 never-throw invariant — flagged as the more severe of the two computer-use findings."
+        },
+        "shell_call": {
+          "disposition": "handled",
+          "note": "The rawItem of a tool_called run-item for OpenAI's native shell built-in -> driveBuiltinToolCalled() (Finding #1); no `name` field on the wire, facet synthesizes name:'builtin:shell'."
+        },
+        "apply_patch_call": {
+          "disposition": "handled",
+          "note": "The rawItem of a tool_called run-item for OpenAI's native apply-patch built-in -> driveBuiltinToolCalled() (Finding #1); no `name` field on the wire, facet synthesizes name:'builtin:apply_patch'."
+        },
+        "function_call_result": {
+          "disposition": "handled",
+          "note": "The rawItem of the generic tool_output path -> toolOutputToAgBlocks() (text/input_text content) + extractStructuredContent() (the ggui cache-marker channel, two peer-supported homes)."
+        },
+        "computer_call_result": {
+          "disposition": "silently-dropped",
+          "note": "NEW FINDING (not in either playbook report): confirmed part of RunToolCallOutputItem.rawItem's widened union (FunctionCallResultItem | ComputerCallResultItem | ShellCallResultItem | ApplyPatchCallResultItem, per playbook-facet-adaptations-report.md Finding #2's own text), so it rides the already-handled `tool_output` event. The `tool_output` switch only special-cases shell_call_output/apply_patch_call_output explicitly and falls through to the GENERIC function_call_result path (toolOutputToAgBlocks) for anything else — but ComputerCallResultItem.output is `{type:'computer_screenshot', data:string}` (a base64 screenshot), a discriminant toolOutputToAgBlocks's `part.type === 'text' || part.type === 'input_text'` check never matches. Result: content=[] — an orphaned tool.done with silently-EMPTY content, discarding the screenshot entirely. This is the SAME orphan-hazard bug class Finding #1 fixed for shell/apply-patch results, confirmed still present (unfixed) for OpenAI's Computer-Use tool output."
+        },
+        "shell_call_output": {
+          "disposition": "handled",
+          "note": "driveBuiltinToolOutput() — per-command stdout/stderr joined to text content + the full array kept verbatim as structuredContent; outcome:'error' on any timeout/non-zero exit (Finding #1)."
+        },
+        "apply_patch_call_output": {
+          "disposition": "handled",
+          "note": "driveBuiltinToolOutput() — output string -> text content; status:'failed' -> outcome:'error' (Finding #1)."
+        },
+        "reasoning": {
+          "disposition": "handled",
+          "note": "The rawItem of reasoning_item_created -> driveReasoningItemCreated() (start/delta/end/opaque incl. the rs_… id and ZDR encrypted_content replay blob)."
+        },
+        "compaction": {
+          "disposition": "not-applicable",
+          "note": "Not a member of ToolCallItem (5 arms: computer_call/shell_call/apply_patch_call/function_call/hosted_tool_call), the tool-output rawItem union (4 arms), AssistantMessageItem, ReasoningItem, Handoff*Item, ToolSearchCall/OutputItem, or ToolApprovalItem — i.e. not reachable via any of the 9 RunItemStreamEventName wrappers this facet's push() boundary ingests. Only appears in the broader ModelItem/OutputModelItem unions used for other purposes (e.g. full-response item-list / session-history serialization), which is outside this stream. Provably absent from the run-item event surface, not merely unhandled."
+        },
+        "unknown": {
+          "disposition": "not-applicable",
+          "note": "Same reasoning as compaction: UnknownItem (protocol.d.ts's explicit 'catch all for items that are not part of the protocol') is not a member of any of the 9 RunItemStreamEventName-wrapped rawItem sub-unions (verified: ToolCallItem's 5 arms do not include it; nor do the message/reasoning/handoff/tool-search/approval item shapes). Only reachable via the broader ModelItem/OutputModelItem unions outside this facet's ingestion boundary."
+        }
+      }
+    }
+  }
+}

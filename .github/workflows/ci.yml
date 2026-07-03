@@ -34,6 +34,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm spec-drift
+      - run: pnpm fixture-drift
       - run: pnpm test
       - run: pnpm e2e:replay
 

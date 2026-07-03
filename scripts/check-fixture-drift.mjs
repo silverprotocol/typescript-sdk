@@ -1,0 +1,508 @@
+#!/usr/bin/env node
+/**
+ * Facet SDK-surface ratchet gate (playbook backlog Task 6 / audit MC-T3 lesson).
+ *
+ * MC-T3's lesson: the last SDK bump (claude-agent-sdk 0.2.141->0.3.199,
+ * @openai/agents 0.2.1->0.12.0) shipped several new wire families that TS's
+ * structural typing absorbed SILENTLY — the compiler stayed green while real
+ * wire families went unhandled (see .superpowers/sdd/playbook-sdk-bumps-report.md).
+ * Those were caught by careful reviewer reading, not mechanically. This gate
+ * makes that check durable: it diffs each facet's ACTUAL installed SDK member
+ * inventory against a per-facet ratchet manifest (`sdk-surface.json`) that
+ * records an honest, human-adjudicated disposition for every member. A member
+ * the SDK has but the manifest doesn't know about FAILS the gate BY NAME,
+ * forcing a triage disposition before the bump can land quietly. A member the
+ * manifest expects but the SDK no longer has ALSO fails (removal = breaking
+ * drift). Style precedent: `scripts/check-spec-drift.mjs` (same repo — mirror
+ * its `extractStatement` bracket-depth-tracked statement-slicing, `--self-test`
+ * discipline, and exit-code conventions). Zero deps, pure Node.
+ *
+ * # What is compared, per facet
+ *
+ * **claude-agent-sdk** (`packages/claude-agent-sdk/sdk-surface.json`): the
+ * `SDKMessage` union's arm TYPE NAMES, extracted from the single
+ * `export declare type SDKMessage = A | B | …;` line of
+ * `@anthropic-ai/claude-agent-sdk/sdk.d.ts`.
+ *
+ * **openai-agents** (`packages/openai-agents/sdk-surface.json`): TWO separate
+ * inventories from `@openai/agents-core`'s `.d.ts`, kept as separate manifest
+ * sections so a rename in one is attributable without conflating it with drift
+ * in the other:
+ *   1. `runItemStreamEventName` — the `RunItemStreamEventName` string-literal
+ *      union (`dist/events.d.ts`) — the `name` discriminant on every
+ *      `run_item_stream_event`.
+ *   2. `protocolItem` — the top-level `type:` discriminants of the `ModelItem`
+ *      discriminated union (`dist/types/protocol.d.ts`) — the full
+ *      bidirectional protocol-item vocabulary (a superset of `OutputModelItem`
+ *      that also includes `computer_call_result`, relevant for input-history
+ *      reconstruction).
+ *
+ * # Resolution
+ *
+ * Both SDKs are resolved via `packages/e2e`'s EXACT devDependency pins (the
+ * capture-agent leg — the same version the playbook's drift/adaptation ritual
+ * itself diffs against), using `createRequire` scoped to `packages/e2e` so
+ * resolution cannot escape into an unrelated outer workspace's `node_modules`
+ * (verified hazard: a naive `require.resolve(pkg, {paths:[…]})` walk from a
+ * package with no local hoist for `pkg` can walk all the way past this
+ * repo's own `node_modules` root). `@openai/agents-core` is transitive (not a
+ * direct dependency of either facet package or of `packages/e2e`), so it is
+ * resolved in a SECOND hop: resolve `@openai/agents` first (a direct
+ * `packages/e2e` devDependency), then resolve `@openai/agents-core` scoped to
+ * agents' own installed directory (its sibling in the same pnpm store
+ * subtree) — this stays local and never escapes.
+ *
+ * If a facet's SDK package cannot be resolved (not installed — e.g. a
+ * standalone open-source clone before `pnpm --filter e2e install`), that
+ * facet's check is SKIPPED gracefully (a message, no failure) rather than
+ * erroring — the gate only enforces drift on facets it can actually verify.
+ *
+ * # Usage
+ *
+ *   node scripts/check-fixture-drift.mjs              # verify repo state
+ *   node scripts/check-fixture-drift.mjs --self-test   # + negative-case proof
+ *
+ * `--self-test` re-runs the comparison against an in-memory-mutated copy of
+ * each resolvable facet's REAL extracted inventory (one fake member injected,
+ * one real manifest-known member removed) and asserts the checker reports
+ * BOTH the injected phantom member and the now-missing real one. If NO facet
+ * is resolvable in the current environment, a synthetic in-memory fixture
+ * proves the comparator can still fail, so `--self-test` is never vacuously
+ * green. This proves the detector can actually fail (M58's lesson — a gate
+ * that cannot fail is a defect — applied to this gate too).
+ */
+import { readFile } from "node:fs/promises";
+import { existsSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, resolve } from "node:path";
+
+const scriptDir = import.meta.dirname;
+// scripts/ -> typescript/ (this manifest pair + the two facet packages all
+// live under sdks/typescript, unlike check-spec-drift.mjs's SPEC.md which
+// lives one level further up at the repo root).
+const typescriptRoot = resolve(scriptDir, "..");
+const e2eDir = resolve(typescriptRoot, "packages", "e2e");
+const e2ePackageJson = resolve(e2eDir, "package.json");
+
+const VALID_DISPOSITIONS = new Set([
+  "handled",
+  "carried",
+  "router-plane",
+  "not-applicable",
+  "silently-dropped",
+]);
+
+// -----------------------------------------------------------------------------
+// Generic helpers
+// -----------------------------------------------------------------------------
+
+/**
+ * Slice a `name STARTMARKER … ;` top-level statement out of `src`, starting at
+ * the first occurrence of `startMarker`. Tracks `{`, `(`, `[` depth so
+ * semicolons nested inside object/array literals don't false-terminate the
+ * scan; returns the substring up to and including the first `;` seen at depth
+ * 0. Returns null if `startMarker` or a terminating top-level `;` isn't found.
+ * (Mirrors `check-spec-drift.mjs`'s helper of the same name exactly.)
+ */
+function extractStatement(src, startMarker) {
+  const start = src.indexOf(startMarker);
+  if (start === -1) return null;
+  let depth = 0;
+  for (let i = start; i < src.length; i++) {
+    const ch = src[i];
+    if (ch === "{" || ch === "(" || ch === "[") depth++;
+    else if (ch === "}" || ch === ")" || ch === "]") depth--;
+    else if (ch === ";" && depth === 0) return src.slice(start, i + 1);
+  }
+  return null;
+}
+
+/**
+ * Walk up from `requireFn.resolve(packageName)`'s resolved entry file until a
+ * `package.json` whose own `name` field matches `packageName` is found. This
+ * is the standard "find the package root" algorithm — needed because modern
+ * packages' `exports` maps forbid resolving `<pkg>/package.json` directly
+ * (`ERR_PACKAGE_PATH_NOT_EXPORTED`), and the resolved main-entry file is often
+ * nested (e.g. `dist/index.js`), not a direct child of the package root.
+ */
+function resolvePackageRoot(requireFn, packageName) {
+  const entryPath = requireFn.resolve(packageName);
+  let dir = dirname(entryPath);
+  for (;;) {
+    const pkgJsonPath = resolve(dir, "package.json");
+    if (existsSync(pkgJsonPath)) {
+      const pkg = JSON.parse(readFileSync(pkgJsonPath, "utf8"));
+      if (pkg.name === packageName) return { dir, version: pkg.version };
+    }
+    const parent = dirname(dir);
+    if (parent === dir) {
+      throw new Error(`could not locate the package root for "${packageName}" above ${entryPath}`);
+    }
+    dir = parent;
+  }
+}
+
+/** Set difference as a sorted array: elements of `a` not present in `b`. */
+function setMinus(a, b) {
+  const bSet = new Set(b);
+  return [...new Set(a)].filter((x) => !bSet.has(x)).sort();
+}
+
+// -----------------------------------------------------------------------------
+// Family extraction
+// -----------------------------------------------------------------------------
+
+/**
+ * Extract the `SDKMessage` union's arm TYPE NAMES from a claude-agent-sdk
+ * `sdk.d.ts` full text: `export declare type SDKMessage = A | B | …;` is a
+ * single flat union of type-alias names (no nested braces), so a plain
+ * `|`-split of the statement body (after slicing the statement out with
+ * `extractStatement`, which tracks bracket depth for the terminating `;`)
+ * suffices.
+ */
+function extractClaudeSdkMessageArms(sdkDtsText) {
+  const marker = "export declare type SDKMessage =";
+  const stmt = extractStatement(sdkDtsText, marker);
+  if (stmt == null) {
+    throw new Error("sdk.d.ts: `export declare type SDKMessage = …;` union not found");
+  }
+  const body = stmt.slice(marker.length, -1); // drop the marker prefix + trailing `;`
+  return body
+    .split("|")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
+/**
+ * Extract the `RunItemStreamEventName` string-literal union members from an
+ * `@openai/agents-core` `dist/events.d.ts` full text:
+ * `export type RunItemStreamEventName = 'a' | 'b' | …;`.
+ */
+function extractOpenaiRunItemStreamEventNames(eventsDtsText) {
+  const marker = "export type RunItemStreamEventName =";
+  const stmt = extractStatement(eventsDtsText, marker);
+  if (stmt == null) {
+    throw new Error("events.d.ts: `RunItemStreamEventName` union not found");
+  }
+  const body = stmt.slice(marker.length, -1);
+  const re = /'([a-zA-Z_][a-zA-Z0-9_]*)'/g;
+  const out = [];
+  let m;
+  while ((m = re.exec(body)) !== null) out.push(m[1]);
+  return out;
+}
+
+/**
+ * Given the full text of a `z.ZodDiscriminatedUnion<[ARM1, ARM2, …], "type">`
+ * (or `z.ZodUnion<readonly [...]>`) TS-compiled zod `.d.ts` statement, extract
+ * each top-level ARM's own `type:` literal — i.e. the arm's discriminant, NOT
+ * any `type:` literal nested deeper inside a content/action/output sub-union.
+ *
+ * Each arm is `z.ZodObject<{ … }, z.core.$strip>` (or `$loose`); this scans
+ * for every `z.ZodObject<{` occurrence, tracks `{`/`}` depth from there to
+ * find that SPECIFIC arm's matching close, then looks for the FIRST
+ * `type: z.ZodLiteral<"…">` (or the optional-wrapped
+ * `type: z.ZodOptional<z.ZodLiteral<"…">>` form used by role-tagged message
+ * arms) inside that slice. Because every arm in this SDK's protocol schema
+ * declares its own discriminant early (right after `providerData`/`id`,
+ * before any nested content array reopens `{`/`[` depth), the FIRST match
+ * within an arm's own bounds is reliably that arm's discriminant, not a
+ * nested one — verified empirically against every arm of `ModelItem` (see
+ * `.superpowers/sdd/pb-task-6-report.md`). After processing an arm, the
+ * search resumes AFTER its closing brace, so nested `z.ZodObject<{` matches
+ * inside content/action sub-unions are skipped entirely, never miscounted as
+ * top-level arms.
+ */
+function extractUnionArmTypeLiterals(statementText) {
+  const armStartRe = /z\.ZodObject<\{/g;
+  const results = [];
+  let m;
+  while ((m = armStartRe.exec(statementText)) !== null) {
+    const start = m.index + m[0].length - 1; // position of the arm's opening `{`
+    let depth = 0;
+    let end = -1;
+    for (let i = start; i < statementText.length; i++) {
+      const ch = statementText[i];
+      if (ch === "{") depth++;
+      else if (ch === "}") {
+        depth--;
+        if (depth === 0) {
+          end = i;
+          break;
+        }
+      }
+    }
+    if (end === -1) continue; // malformed/truncated input; skip defensively
+    const armBody = statementText.slice(start, end + 1);
+    const typeMatch = /type:\s*z\.Zod(?:Optional<z\.Zod)?Literal<"([a-zA-Z][a-zA-Z0-9_]*)">/.exec(armBody);
+    if (typeMatch) results.push(typeMatch[1]);
+    armStartRe.lastIndex = end;
+  }
+  return [...new Set(results)];
+}
+
+/**
+ * Extract the `ModelItem` discriminated union's top-level protocol-item
+ * `type:` discriminants from an `@openai/agents-core` `dist/types/protocol.d.ts`
+ * full text.
+ */
+function extractOpenaiModelItemTypes(protocolDtsText) {
+  const marker = "export declare const ModelItem: z.ZodUnion<readonly [";
+  const stmt = extractStatement(protocolDtsText, marker);
+  if (stmt == null) {
+    throw new Error("protocol.d.ts: `ModelItem` union not found");
+  }
+  return extractUnionArmTypeLiterals(stmt);
+}
+
+// -----------------------------------------------------------------------------
+// SDK resolution (graceful skip when not installed)
+// -----------------------------------------------------------------------------
+
+class SdkNotInstalled extends Error {}
+
+/** Resolve claude-agent-sdk's `sdk.d.ts` via packages/e2e's exact devDependency pin. */
+async function resolveClaudeSdk() {
+  let pkg;
+  try {
+    const requireFromE2e = createRequire(e2ePackageJson);
+    pkg = resolvePackageRoot(requireFromE2e, "@anthropic-ai/claude-agent-sdk");
+  } catch (err) {
+    throw new SdkNotInstalled(String(err instanceof Error ? err.message : err));
+  }
+  const dtsPath = resolve(pkg.dir, "sdk.d.ts");
+  if (!existsSync(dtsPath)) {
+    throw new SdkNotInstalled(`sdk.d.ts not found under resolved package root ${pkg.dir}`);
+  }
+  const dts = await readFile(dtsPath, "utf8");
+  return { version: pkg.version, dts };
+}
+
+/**
+ * Resolve `@openai/agents-core`'s `events.d.ts` + `protocol.d.ts` via
+ * packages/e2e's exact `@openai/agents` devDependency pin, then a second hop
+ * to its own (transitive) `@openai/agents-core` dependency.
+ */
+async function resolveOpenaiSdk() {
+  let pkg;
+  try {
+    const requireFromE2e = createRequire(e2ePackageJson);
+    const agentsEntry = requireFromE2e.resolve("@openai/agents");
+    const requireFromAgents = createRequire(agentsEntry);
+    pkg = resolvePackageRoot(requireFromAgents, "@openai/agents-core");
+  } catch (err) {
+    throw new SdkNotInstalled(String(err instanceof Error ? err.message : err));
+  }
+  const eventsDtsPath = resolve(pkg.dir, "dist", "events.d.ts");
+  const protocolDtsPath = resolve(pkg.dir, "dist", "types", "protocol.d.ts");
+  if (!existsSync(eventsDtsPath) || !existsSync(protocolDtsPath)) {
+    throw new SdkNotInstalled(`events.d.ts / types/protocol.d.ts not found under resolved package root ${pkg.dir}`);
+  }
+  const [eventsDts, protocolDts] = await Promise.all([
+    readFile(eventsDtsPath, "utf8"),
+    readFile(protocolDtsPath, "utf8"),
+  ]);
+  return { version: pkg.version, eventsDts, protocolDts };
+}
+
+// -----------------------------------------------------------------------------
+// Manifest loading + comparison
+// -----------------------------------------------------------------------------
+
+async function loadManifest(path) {
+  const text = await readFile(path, "utf8");
+  return JSON.parse(text);
+}
+
+/** Validate every manifest entry has a recognised `disposition`. */
+function validateManifestMembers(label, membersObj) {
+  const findings = [];
+  for (const [name, entry] of Object.entries(membersObj)) {
+    if (entry == null || typeof entry !== "object" || typeof entry.disposition !== "string") {
+      findings.push(`  ${label}: manifest entry "${name}" is malformed — expected { disposition, note }`);
+      continue;
+    }
+    if (!VALID_DISPOSITIONS.has(entry.disposition)) {
+      findings.push(
+        `  ${label}: manifest entry "${name}" has an unrecognised disposition "${entry.disposition}" (expected one of ${[...VALID_DISPOSITIONS].join(", ")})`,
+      );
+    }
+  }
+  return findings;
+}
+
+/**
+ * Compare an installed member-name inventory against a manifest's `members`
+ * map. Returns a list of finding lines (empty = clean). An installed member
+ * absent from the manifest FAILS (forces a triage disposition — the M-C-T3
+ * lesson). A manifest member absent from the installed inventory ALSO FAILS
+ * (the SDK removed/renamed something the manifest still expects — breaking
+ * drift).
+ */
+function compareMembers(label, installedMembers, manifestMembers) {
+  const findings = [];
+  const manifestNames = Object.keys(manifestMembers);
+
+  const unknownToManifest = setMinus(installedMembers, manifestNames);
+  const goneFromSdk = setMinus(manifestNames, installedMembers);
+
+  if (unknownToManifest.length > 0) {
+    findings.push(
+      `  ${label}: on the SDK but MISSING a disposition in the manifest (new/unhandled member — triage required): ${unknownToManifest.join(", ")}`,
+    );
+  }
+  if (goneFromSdk.length > 0) {
+    findings.push(
+      `  ${label}: in the manifest but REMOVED from the installed SDK (breaking drift — update the manifest): ${goneFromSdk.join(", ")}`,
+    );
+  }
+  return findings;
+}
+
+// -----------------------------------------------------------------------------
+// Per-facet inventory assembly
+// -----------------------------------------------------------------------------
+
+/**
+ * Build the list of `{ label, installed, manifestMembers }` inventories for
+ * every RESOLVABLE facet, plus a list of skip messages for facets whose SDK
+ * package could not be resolved. Shared by the real run and `--self-test`
+ * (which needs the REAL extracted inventories to mutate in-memory).
+ */
+async function gatherInventories() {
+  const inventories = [];
+  const skips = [];
+
+  const claudeManifestPath = resolve(typescriptRoot, "packages", "claude-agent-sdk", "sdk-surface.json");
+  try {
+    const [manifest, sdk] = await Promise.all([loadManifest(claudeManifestPath), resolveClaudeSdk()]);
+    inventories.push({
+      facet: "claude",
+      label: `claude SDKMessage union (installed ${sdk.version}, manifest verifiedAt ${manifest.verifiedAt})`,
+      installed: extractClaudeSdkMessageArms(sdk.dts),
+      manifestMembers: manifest.members,
+      manifestValidationLabel: "claude sdk-surface.json",
+    });
+  } catch (err) {
+    if (err instanceof SdkNotInstalled) {
+      skips.push(`claude-agent-sdk: SKIPPED (SDK not resolvable) — ${err.message}`);
+    } else {
+      throw err;
+    }
+  }
+
+  const openaiManifestPath = resolve(typescriptRoot, "packages", "openai-agents", "sdk-surface.json");
+  try {
+    const [manifest, sdk] = await Promise.all([loadManifest(openaiManifestPath), resolveOpenaiSdk()]);
+    inventories.push({
+      facet: "openai",
+      label: `openai RunItemStreamEventName (installed @openai/agents-core ${sdk.version}, manifest verifiedAt ${manifest.verifiedAt})`,
+      installed: extractOpenaiRunItemStreamEventNames(sdk.eventsDts),
+      manifestMembers: manifest.sections.runItemStreamEventName.members,
+      manifestValidationLabel: "openai sdk-surface.json (runItemStreamEventName)",
+    });
+    inventories.push({
+      facet: "openai",
+      label: `openai ModelItem protocol-item type (installed @openai/agents-core ${sdk.version}, manifest verifiedAt ${manifest.verifiedAt})`,
+      installed: extractOpenaiModelItemTypes(sdk.protocolDts),
+      manifestMembers: manifest.sections.protocolItem.members,
+      manifestValidationLabel: "openai sdk-surface.json (protocolItem)",
+    });
+  } catch (err) {
+    if (err instanceof SdkNotInstalled) {
+      skips.push(`openai-agents: SKIPPED (SDK not resolvable) — ${err.message}`);
+    } else {
+      throw err;
+    }
+  }
+
+  return { inventories, skips };
+}
+
+// -----------------------------------------------------------------------------
+// Self-test (negative-case proof)
+// -----------------------------------------------------------------------------
+
+const PHANTOM_MEMBER = "PhantomMemberInjectedBySelfTest";
+
+/**
+ * Run the injected-phantom + removed-real-member negative case against one
+ * inventory. Returns the finding lines (must be non-empty on both counts for
+ * the self-test to pass).
+ */
+function selfTestOneInventory(inventory) {
+  const manifestNames = Object.keys(inventory.manifestMembers);
+  if (manifestNames.length === 0) {
+    throw new Error(`self-test: "${inventory.label}" has an empty manifest — cannot pick a member to remove`);
+  }
+  const removedName = [...manifestNames].sort()[0];
+
+  const mutatedInstalled = [...inventory.installed, PHANTOM_MEMBER].filter((m) => m !== removedName);
+  return compareMembers(inventory.label, mutatedInstalled, inventory.manifestMembers);
+}
+
+/** Synthetic fallback so `--self-test` still proves something when no real facet is installed. */
+function selfTestSynthetic() {
+  const manifestMembers = { real_member: { disposition: "handled", note: "synthetic self-test fixture" } };
+  const installed = [PHANTOM_MEMBER]; // "real_member" deliberately absent -> gone-from-SDK finding
+  return compareMembers("synthetic fixture (no facet SDK resolvable in this environment)", installed, manifestMembers);
+}
+
+function runSelfTest(inventories) {
+  const allFindings = inventories.length > 0 ? inventories.flatMap(selfTestOneInventory) : selfTestSynthetic();
+
+  const mentionsPhantom = allFindings.some((f) => f.includes(PHANTOM_MEMBER));
+  const mentionsRemoval = allFindings.some((f) => f.includes("REMOVED from the installed SDK"));
+  if (!mentionsPhantom || !mentionsRemoval) {
+    console.error("\n✖ --self-test: negative case did not surface the expected drift.");
+    console.error("findings were:");
+    for (const line of allFindings) console.error(line);
+    process.exit(1);
+  }
+  console.log("\n✓ --self-test: negative case produced the expected drift:");
+  for (const line of allFindings) console.log(line);
+}
+
+// -----------------------------------------------------------------------------
+// main
+// -----------------------------------------------------------------------------
+
+async function main() {
+  const args = process.argv.slice(2);
+  const selfTest = args.includes("--self-test");
+
+  const { inventories, skips } = await gatherInventories();
+
+  for (const s of skips) console.log(`⊘ ${s}`);
+
+  const findings = [];
+  for (const inv of inventories) {
+    findings.push(...validateManifestMembers(inv.manifestValidationLabel, inv.manifestMembers));
+    findings.push(...compareMembers(inv.label, inv.installed, inv.manifestMembers));
+  }
+
+  if (findings.length > 0) {
+    console.error(`\n✖ facet SDK-surface drift detected (${findings.length} issue(s)):\n`);
+    for (const line of findings) console.error(line);
+    console.error(
+      "\nFix: add an honest `disposition` (handled|carried|router-plane|not-applicable|silently-dropped) + `note` " +
+        "for every new member in the relevant sdk-surface.json, or remove an entry whose member the SDK dropped.",
+    );
+    process.exit(1);
+  }
+
+  if (inventories.length === 0) {
+    console.log("⊘ no facet SDK was resolvable in this environment — nothing to check (this is not a failure)");
+  } else {
+    for (const inv of inventories) {
+      console.log(`✓ ${inv.label} in sync (${inv.installed.length} member(s) checked)`);
+    }
+  }
+
+  if (selfTest) runSelfTest(inventories);
+}
+
+main().catch((err) => {
+  console.error(`✖ check-fixture-drift crashed: ${err.stack || err.message}`);
+  process.exit(1);
+});
