@@ -99,6 +99,29 @@ export interface AdkPart {
   codeExecutionResult?: { outcome?: string; output?: string };
   /** A reference to an uploaded file (passed through opaquely). */
   fileData?: { mimeType?: string; fileUri: string };
+  /** Media resolution hint for the input media (fixture-drift ratchet finding,
+   *  google-adk-ratchet task) — carried opaquely via `driveAdkPart`'s
+   *  unmapped-part-fields provider-raw block; never interpreted. */
+  mediaResolution?: JsonValue;
+  /** Video metadata accompanying `inlineData`/`fileData` (fixture-drift
+   *  ratchet finding): the genai `Part` doc states it "should only be
+   *  specified while the video data is presented in inline_data or
+   *  file_data" — i.e. it normally rides ALONGSIDE an already-handled kind,
+   *  not standalone. Carried opaquely via the same unmapped-part-fields
+   *  provider-raw block (checked unconditionally, before the primary
+   *  if-chain's early return — see `driveAdkPart`). */
+  videoMetadata?: JsonValue;
+  /** A server-side tool call the model predicts, which the client is
+   *  expected to echo back (fixture-drift ratchet finding) — distinct from
+   *  the client-executed `functionCall`. Carried opaquely via provider-raw. */
+  toolCall?: JsonValue;
+  /** The client-supplied result of a server-side `toolCall` (fixture-drift
+   *  ratchet finding). Carried opaquely via provider-raw. */
+  toolResponse?: JsonValue;
+  /** Free-form per-part custom metadata, e.g. a source-file name or a
+   *  multiplex hint for multiple Part streams (fixture-drift ratchet
+   *  finding). Carried opaquely via provider-raw. */
+  partMetadata?: JsonValue;
 }
 
 /** A Gemini `Content` — the role + the part list. ADK normalizes Gemini's
@@ -220,6 +243,12 @@ export interface AdkEvent {
   outputTranscription?: { text?: string };
   /** Opaque per-event custom metadata bag. */
   customMetadata?: { [k: string]: JsonValue };
+  /** Index of the candidate response (meaningful when the request's
+   *  candidateCount > 1) — fixture-drift ratchet finding (google-adk-ratchet
+   *  task): absent from this contract entirely until now. Carried via the
+   *  event-level unmapped-fields provider-raw block (`driveAdkTopLevel`,
+   *  alongside `citationMetadata`/`customMetadata`; SPEC §8 item 23). */
+  candidateIndex?: number;
 }
 
 // ─── finishReason → AgFinishReason (spec §4) ──────────────────────────────────
@@ -582,6 +611,37 @@ function driveAdkPart(
   nullIdResponseIds: Map<number, string | undefined>,
   citations?: AgCitation[]
 ): string {
+  // ── UNMAPPED PART FIELDS (mediaResolution/videoMetadata/toolCall/toolResponse/
+  // partMetadata) → provider-raw content.block (fixture-drift ratchet finding,
+  // google-adk-ratchet task; Tenet-6; SPEC §8 item 23). These genai `Part`
+  // fields have NO route in the kind-specific if-chain below. Checked
+  // UNCONDITIONALLY, before that if-chain's early returns, because
+  // `videoMetadata` normally rides ALONGSIDE an already-handled `inlineData`/
+  // `fileData` part (genai's own doc: "should only be specified while the
+  // video data is presented in inline_data or file_data") — a check placed
+  // AFTER the if-chain would never see a sibling field on a part that already
+  // matched a primary kind and returned. Mirrors `driveAdkTopLevel`'s
+  // `unmappedActions`/`unmappedEvent` carry pattern (named-field ledger, not a
+  // generic reflection-over-keys catch-all — fixture discipline: type/carry
+  // only what is verified on the wire).
+  const unmappedPartFields: { [k: string]: JsonValue } = {};
+  if (part.mediaResolution !== undefined)
+    unmappedPartFields["mediaResolution"] = JsonValue.parse(part.mediaResolution);
+  if (part.videoMetadata !== undefined)
+    unmappedPartFields["videoMetadata"] = JsonValue.parse(part.videoMetadata);
+  if (part.toolCall !== undefined) unmappedPartFields["toolCall"] = JsonValue.parse(part.toolCall);
+  if (part.toolResponse !== undefined)
+    unmappedPartFields["toolResponse"] = JsonValue.parse(part.toolResponse);
+  if (part.partMetadata !== undefined)
+    unmappedPartFields["partMetadata"] = JsonValue.parse(part.partMetadata);
+  if (Object.keys(unmappedPartFields).length > 0) {
+    a.contentBlock(messageId, {
+      type: "provider-raw",
+      vendor: "google",
+      raw: JsonValue.parse(unmappedPartFields),
+    });
+  }
+
   // ── REASONING (thought:true) → reasoning.start/delta/end + opaque signature ──
   if (part.thought === true) {
     const id = `reasoning:${index}`;
@@ -889,8 +949,36 @@ function driveAdkTopLevel(
     }
   }
 
-  // ── event-level unmapped (citationMetadata / customMetadata) → provider-raw ──
+  // ── event-level unmapped (citationMetadata / customMetadata / candidateIndex /
+  // branch) → provider-raw ──
+  // candidateIndex/branch are fixture-drift ratchet findings (google-adk-ratchet
+  // task; SPEC §8 item 23): candidateIndex was entirely absent from the
+  // AdkEvent contract; branch was ALREADY typed but never read anywhere in
+  // drive()/driveAdkTopLevel. Both are genuinely OPTIONAL on the real
+  // @iqai/adk Event class (only set for multi-candidate / multi-agent-branch
+  // scenarios), so carrying them opportunistically here matches the
+  // citationMetadata/customMetadata precedent.
+  //
+  // `author`/`timestamp` are ALSO real, currently-unread AdkEvent fields
+  // (same manifest inventory) but are DELIBERATELY NOT folded into this bag:
+  // unlike the four fields above, both are REQUIRED (non-optional) on the
+  // real @iqai/adk `Event` class (`author: string`, `timestamp: number`) —
+  // i.e. present on EVERY real event, not an occasional payload. Verified
+  // empirically: adding them here fired a provider-raw content.block on
+  // every single native event in packages/e2e's captured adk fixtures
+  // (author:"spike" is set on all 5 events of both corpus scenarios),
+  // breaking the recorded golden `*.agjson.json` snapshots AND the
+  // cross-framework convergence assertions (adk's sequence gained
+  // content.block noise claude/openai's equivalent streams don't have) —
+  // regenerating those cassette fixtures is outside this ratchet's boundary
+  // (facet + manifests + script + SPEC §8 only). Disposed honestly as
+  // `silently-dropped` in sdk-surface.json rather than landed here; a more
+  // precise, non-noisy home (e.g. an agent-identity field on message.start
+  // for `author`, or the SPEC.md-sanctioned `_meta.timestamp` bare-key for
+  // `timestamp`) is a future spec-process decision, not a mechanical carry.
   const unmappedEvent: { [k: string]: JsonValue } = {};
+  if (event.candidateIndex !== undefined) unmappedEvent["candidateIndex"] = event.candidateIndex;
+  if (event.branch !== undefined) unmappedEvent["branch"] = event.branch;
   if (event.citationMetadata !== undefined)
     unmappedEvent["citationMetadata"] = JsonValue.parse(event.citationMetadata);
   if (event.customMetadata !== undefined)

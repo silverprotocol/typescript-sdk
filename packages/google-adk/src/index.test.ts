@@ -883,4 +883,142 @@ describe("createAdkNormalizer — event-level unmapped fields → content.block 
     expect(combined).toBeDefined();
     for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
   });
+
+  // fixture-drift ratchet (google-adk-ratchet task): candidateIndex/branch are
+  // real @iqai/adk Event/LlmResponse fields the hand-typed AdkEvent contract
+  // either lacked (candidateIndex) or declared but NEVER READ (branch) —
+  // genuinely vanishing findings, folded into this SAME event-level
+  // unmapped-fields carry. Both are genuinely OPTIONAL on the real Event
+  // class (multi-candidate / multi-agent-branch scenarios only).
+  it("carries candidateIndex in a provider-raw content.block", () => {
+    const out = run([event([], { candidateIndex: 1 })]);
+    const raw = out.find(
+      (e) =>
+        e.type === "content.block" &&
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "provider-raw" &&
+        "candidateIndex" in ((e as { block: { raw: object } }).block.raw as object),
+    );
+    expect(raw).toBeDefined();
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("carries branch in a provider-raw content.block", () => {
+    const out = run([event([], { branch: "agent_1.agent_2" })]);
+    const raw = out.find(
+      (e) =>
+        e.type === "content.block" &&
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "provider-raw" &&
+        "branch" in ((e as { block: { raw: object } }).block.raw as object),
+    );
+    expect(raw).toBeDefined();
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  // `author`/`timestamp` are ALSO real, currently-unread AdkEvent fields, but
+  // are DELIBERATELY excluded from the generic carry (unlike candidateIndex/
+  // branch above): both are REQUIRED on the real @iqai/adk `Event` class
+  // (present on EVERY event, not an occasional payload) — auto-carrying them
+  // here would emit a provider-raw content.block on every single native
+  // event, which empirically broke packages/e2e's captured golden fixtures
+  // and cross-framework convergence assertions (out of this ratchet's
+  // facet+manifests+script+SPEC-§8 boundary to regenerate). Disposed
+  // honestly as `silently-dropped` in sdk-surface.json instead of landed —
+  // this test documents that boundary explicitly rather than leaving it an
+  // untested assumption.
+  it("does NOT carry author/timestamp (ubiquitous-on-the-real-wire fields; disposed silently-dropped)", () => {
+    const out = run([event([], { author: "billing_agent", timestamp: "2026-07-03T00:00:00Z" })]);
+    const blocks = out.filter(
+      (e) =>
+        e.type === "content.block" &&
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "provider-raw",
+    );
+    expect(blocks).toHaveLength(0);
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+});
+
+describe("createAdkNormalizer — unmapped Part fields → content.block provider-raw", () => {
+  // fixture-drift ratchet (google-adk-ratchet task): mediaResolution/videoMetadata/
+  // toolCall/toolResponse/partMetadata are real @google/genai `Part` fields with
+  // NO route anywhere in driveAdkPart's if-chain — a genuinely-vanishing finding
+  // (Tenet-6), fixed via the SAME provider-raw content.block carry pattern
+  // already used for unmapped actions/event fields. SPEC §8 item 23.
+  it("carries videoMetadata ALONGSIDE the already-handled inlineData block on the SAME part", () => {
+    // genai's own doc: videoMetadata "should only be specified while the video
+    // data is presented in inline_data or file_data" — i.e. it is a SIBLING of
+    // an already-matched primary kind, not a standalone part. The if-chain
+    // returns as soon as it matches `inlineData`, so this proves the carry
+    // fires BEFORE that early return, not only when nothing else matches.
+    const out = run([
+      event([
+        {
+          inlineData: { mimeType: "video/mp4", data: "AAAA" },
+          videoMetadata: { startOffset: "1.0s", endOffset: "3.0s" },
+        },
+      ]),
+    ]);
+    const fileBlock = out.find(
+      (e) =>
+        e.type === "content.block" &&
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "file",
+    );
+    expect(fileBlock).toBeDefined();
+    const rawBlock = out.find(
+      (e) =>
+        e.type === "content.block" &&
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "provider-raw" &&
+        "videoMetadata" in ((e as { block: { raw: object } }).block.raw as object),
+    );
+    expect(rawBlock).toBeDefined();
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("carries a standalone toolCall/toolResponse/mediaResolution/partMetadata part", () => {
+    const out = run([
+      event([
+        {
+          toolCall: { name: "google_search" },
+          toolResponse: { result: "ok" },
+          mediaResolution: { level: "MEDIA_RESOLUTION_LOW" },
+          partMetadata: { source: "upload.txt" },
+        },
+      ]),
+    ]);
+    const raw = out.find(
+      (e) =>
+        e.type === "content.block" &&
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "provider-raw" &&
+        "toolCall" in ((e as { block: { raw: object } }).block.raw as object) &&
+        "toolResponse" in ((e as { block: { raw: object } }).block.raw as object) &&
+        "mediaResolution" in ((e as { block: { raw: object } }).block.raw as object) &&
+        "partMetadata" in ((e as { block: { raw: object } }).block.raw as object),
+    );
+    expect(raw).toBeDefined();
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("does NOT emit provider-raw for a plain text part with none of these fields", () => {
+    const out = run([event([{ text: "hello" }], { partial: false, turnComplete: true })]);
+    const blocks = out.filter(
+      (e) =>
+        e.type === "content.block" &&
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "provider-raw",
+    );
+    expect(blocks).toHaveLength(0);
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
 });
