@@ -94,13 +94,31 @@ export async function* runClaudeCapture(input: CaptureRunInput): AsyncIterable<J
   // shape (lifted from the ggui sample agent.ts L226-236, minus the @ggui-ai/* deps).
   const sdkMcpServers: Record<
     string,
-    { type: "http"; url: string; headers: { Authorization: string } }
+    { type: "http"; url: string; headers: { Authorization: string }; alwaysLoad: true }
   > = {};
   for (const [name, cfg] of Object.entries(input.mcpServers)) {
     sdkMcpServers[name] = {
       type: "http",
       url: cfg.url,
       headers: { Authorization: `Bearer ${cfg.bearer}` },
+      // SDK 0.3.199 introduced tool-search deferred loading: by default an
+      // HTTP MCP server's tools are NOT included in the turn-1 prompt — the
+      // model must invoke a built-in tool-search capability to discover them
+      // first. This harness disables ALL built-in tools (`tools: []` below,
+      // by design — captures must exercise ONLY the scenario's declared MCP
+      // tools), which also removes that tool-search capability, so a
+      // deferred MCP tool schema is NEVER loaded into context. Verified
+      // empirically live (playbook 2026-07-03): without `alwaysLoad`, the
+      // model narrates a fabricated `<tool_call>...</tool_call>` in PLAIN
+      // TEXT instead of emitting a real `tool_use` content block (the SDK
+      // never sees the tool exists) — silently producing a hallucinated
+      // "capture" with zero real tool calls in the native stream. Setting
+      // `alwaysLoad: true` forces the server's tools to be eagerly included
+      // in the prompt every time (bypassing tool-search entirely), matching
+      // this harness's synchronous single-mock-server startup, at the cost
+      // of blocking `query()` startup on the mock server's connect (capped
+      // at the SDK's standard 5s timeout — negligible for a local mock).
+      alwaysLoad: true,
     };
   }
 
