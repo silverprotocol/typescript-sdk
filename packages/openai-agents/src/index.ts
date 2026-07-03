@@ -158,6 +158,122 @@ export interface OpenAIFunctionCallResultItem {
   providerData?: { [k: string]: JsonValue };
 }
 
+// ── OpenAI native BUILT-IN tool call shapes (playbook 2026-07-03 SDK-bump
+// adaptation, Finding #1 — @openai/agents-core 0.2.1 → 0.12.0). Shell /
+// Apply-Patch / Hosted-tool calls carry NO dedicated RunItemStreamEventName —
+// they reuse the pre-existing `tool_called`/`tool_output` names with NEW
+// `rawItem` shapes (verified against @openai/agents-core 0.12.0's
+// `types/protocol.ts`: `ShellCallItem` / `ShellCallResultItem` /
+// `ApplyPatchCallItem` / `ApplyPatchCallResultItem` / `HostedToolCallItem`).
+
+/** protocol `ShellAction` — the shell tool's per-call command spec. */
+export interface OpenAIShellAction {
+  commands: string[];
+  timeoutMs?: number;
+  maxOutputLength?: number;
+}
+
+/** protocol `ShellCallItem` (a `tool_called` rawItem for OpenAI's native shell
+ *  built-in tool). Carries NO `name` field — the wire identifies the tool
+ *  purely by `type`; the facet synthesizes `name:"builtin:shell"` (§8 quirk).
+ *  Unlike `function_call`, there is no per-fragment argument-delta stream for
+ *  this shape on this seam — the whole `action` arrives complete on this ONE
+ *  wrapper, so this run-item (not the raw stream) is the sole tool-start
+ *  source for it. */
+export interface OpenAIShellCallItem {
+  type: "shell_call";
+  callId: string;
+  status?: "in_progress" | "completed" | "incomplete";
+  action: OpenAIShellAction;
+  id?: string;
+  providerData?: { [k: string]: JsonValue };
+}
+
+/** protocol `ShellCallOutcome` (per-command exit signal). */
+export interface OpenAIShellCallOutcome {
+  type: "timeout" | "exit";
+  exitCode?: number | null;
+}
+
+/** protocol `ShellCallOutputContent` (one command's stdout/stderr/outcome). */
+export interface OpenAIShellCallOutputContent {
+  stdout: string;
+  stderr: string;
+  outcome: OpenAIShellCallOutcome;
+}
+
+/** protocol `ShellCallResultItem` (the `rawItem` of a `tool_output` run-item for
+ *  a completed shell call). `output` is an ARRAY of per-command results — a
+ *  DIFFERENT shape from `OpenAIFunctionCallResultItem.output` (a bare string /
+ *  content-part union); the two must NOT be handled by the same generic path
+ *  (that was the orphan-hazard: shape-compatible-enough field NAMES let a
+ *  `tool.done` fire with silently-empty content). */
+export interface OpenAIShellCallResultItem {
+  type: "shell_call_output";
+  callId: string;
+  maxOutputLength?: number;
+  output: OpenAIShellCallOutputContent[];
+  id?: string;
+  providerData?: { [k: string]: JsonValue };
+}
+
+/** protocol `ApplyPatchOperation` (one file edit — create/update/delete). */
+export interface OpenAIApplyPatchOperation {
+  type: "create_file" | "update_file" | "delete_file";
+  path: string;
+  diff?: string;
+  moveTo?: string;
+}
+
+/** protocol `ApplyPatchCallItem` (a `tool_called` rawItem for OpenAI's native
+ *  apply-patch built-in tool). Carries NO `name` field; the facet synthesizes
+ *  `name:"builtin:apply_patch"` (§8 quirk). Same single-wrapper-is-authoritative
+ *  rationale as {@link OpenAIShellCallItem}. */
+export interface OpenAIApplyPatchCallItem {
+  type: "apply_patch_call";
+  callId: string;
+  status: "in_progress" | "completed";
+  operation: OpenAIApplyPatchOperation;
+  id?: string;
+  providerData?: { [k: string]: JsonValue };
+}
+
+/** protocol `ApplyPatchCallResultItem` (the `rawItem` of a `tool_output`
+ *  run-item for a completed apply-patch call). */
+export interface OpenAIApplyPatchCallResultItem {
+  type: "apply_patch_call_output";
+  callId: string;
+  status: "completed" | "failed";
+  output?: string;
+  id?: string;
+  providerData?: { [k: string]: JsonValue };
+}
+
+/** protocol `HostedToolCallItem` (a `tool_called` rawItem for a
+ *  provider-HOSTED built-in tool — web_search / code_interpreter /
+ *  file_search / image_generation / mcp / … — normalized into this ONE
+ *  umbrella shape only at the run-item layer: the raw `response.output_item.
+ *  added` event NEVER carries `item.type === "hosted_tool_call"` literally —
+ *  each underlying OpenAI hosted tool has its OWN distinct raw wire type, so
+ *  this discriminant only exists here). UNLIKE `function_call`/`shell_call`/
+ *  `apply_patch_call`, this item carries its OWN `output` when it streams:
+ *  OpenAI's hosted tools execute server-side within the same model turn, so
+ *  by the time this wrapper delivers it, the call is already resolved —
+ *  there is no separate `tool_output` run-item for this shape (verified
+ *  against @openai/agents-core 0.12.0's `runner/modelOutputs.mjs`: a
+ *  `hosted_tool_call` output item is pushed as a single `RunToolCallItem`,
+ *  never paired with a `RunToolCallOutputItem`). The facet emits
+ *  `tool.start` + `tool.done` TOGETHER from this one event. */
+export interface OpenAIHostedToolCallItem {
+  type: "hosted_tool_call";
+  id?: string;
+  name: string;
+  arguments?: string;
+  status?: string;
+  output?: string;
+  providerData?: { [k: string]: JsonValue };
+}
+
 /** protocol `InputText` (the visible reasoning content part). */
 export interface OpenAIReasoningTextPart {
   type: "input_text";
@@ -183,18 +299,27 @@ interface OpenAIMessageOutputEvent {
 interface OpenAIToolCalledEvent {
   type: "run_item_stream_event";
   name: "tool_called";
-  item: { type: "tool_call_item"; rawItem: OpenAIFunctionCallItem };
+  // Widened (playbook 2026-07-03 SDK-bump adaptation, Finding #1): Shell /
+  // Apply-Patch / Hosted-tool built-ins reuse this SAME event name with a
+  // DIFFERENT `rawItem` discriminant — see the three interfaces above.
+  item: {
+    type: "tool_call_item";
+    rawItem: OpenAIFunctionCallItem | OpenAIShellCallItem | OpenAIApplyPatchCallItem | OpenAIHostedToolCallItem;
+  };
 }
 interface OpenAIToolOutputEvent {
   type: "run_item_stream_event";
   name: "tool_output";
-  // `item.rawItem` carries the protocol FunctionCallResultItem (callId, output, status).
-  // `item.output` (the wrapper-level field) may carry a structured object with a
-  // `structuredContent` key — the ggui cache marker (e.g. `{ cache: { hit: true } }`)
-  // rides here. Cast-free extraction uses `isJsonObject` + `JsonValue.parse`.
+  // `item.rawItem` carries the protocol FunctionCallResultItem (callId, output, status)
+  // — OR, widened (Finding #1), a Shell/Apply-Patch result (DIFFERENT `output`
+  // shape per discriminant; `hosted_tool_call` never reaches this event, see its
+  // own doc). `item.output` (the wrapper-level field) may carry a structured
+  // object with a `structuredContent` key — the ggui cache marker (e.g.
+  // `{ cache: { hit: true } }`) rides here. Cast-free extraction uses
+  // `isJsonObject` + `JsonValue.parse`.
   item: {
     type: "tool_call_output_item";
-    rawItem: OpenAIFunctionCallResultItem;
+    rawItem: OpenAIFunctionCallResultItem | OpenAIShellCallResultItem | OpenAIApplyPatchCallResultItem;
     output?: JsonValue;
   };
 }
@@ -718,6 +843,25 @@ export function createOpenaiNormalizer(): Normalizer {
   // opened, so the engine's #lastTurn backfill could misattribute a late result
   // to the wrong turn without this explicit map.
   const turnIdByToolCallId = new Map<string, string>();
+
+  /**
+   * Register `callId` as pending a `tool.done` under the CURRENT open turn
+   * (Task 4b). Shared by the raw `response.output_item.added` function_call
+   * path and the built-in Shell/Apply-Patch `tool_called` synthesis path
+   * (playbook 2026-07-03 SDK-bump adaptation, Finding #1) — both start a call
+   * whose result arrives via a LATER `tool_output` run-item. No-ops if no turn
+   * is open (defensive; every caller already calls `ensureResponseOpen()` first).
+   */
+  function registerPendingTool(callId: string): void {
+    if (turnId === undefined) return;
+    let pending = pendingToolsByTurn.get(turnId);
+    if (pending === undefined) {
+      pending = new Set<string>();
+      pendingToolsByTurn.set(turnId, pending);
+    }
+    pending.add(callId);
+    turnIdByToolCallId.set(callId, turnId);
+  }
   // A round's close is MORE than `closeTurnDone`: `reduce()`'s message.end
   // handler (SPEC §5.0 INV-MSG, same enforcement commit) clears the message's
   // open-pointer UNCONDITIONALLY — independent of turn state — so a `tool.done`
@@ -866,15 +1010,7 @@ export function createOpenaiNormalizer(): Normalizer {
           });
           // Task 4b: this call is now pending a tool.done under the current turn
           // (ensureResponseOpen() above guarantees `turnId` is defined here).
-          if (turnId !== undefined) {
-            let pending = pendingToolsByTurn.get(turnId);
-            if (pending === undefined) {
-              pending = new Set<string>();
-              pendingToolsByTurn.set(turnId, pending);
-            }
-            pending.add(callId);
-            turnIdByToolCallId.set(callId, turnId);
-          }
+          registerPendingTool(callId);
         }
         return;
       }
@@ -1147,6 +1283,176 @@ export function createOpenaiNormalizer(): Normalizer {
     }
   }
 
+  /** Resolve the turn a pending tool call started under (Task 4b) — a plain
+   *  lookup, no side effects; call BEFORE `a.toolDone` so its `turnId` field
+   *  can be set explicitly (the result may land after a later round opened). */
+  function resolvePendingTurnId(callId: string): string | undefined {
+    return turnIdByToolCallId.get(callId);
+  }
+
+  /**
+   * After `a.toolDone` has fired for `callId` under `doneTurnId`, clear the
+   * pending bookkeeping and — if the turn's pending set just drained to empty
+   * — replay any stashed deferred round-close (Task 4b, INV-MSG). Shared by
+   * the `function_call` `tool_output` arm and the built-in Shell/Apply-Patch
+   * `tool_output` arm (playbook 2026-07-03 SDK-bump adaptation, Finding #1).
+   */
+  function drainPendingTool(callId: string, doneTurnId: string | undefined): void {
+    if (doneTurnId === undefined) return;
+    turnIdByToolCallId.delete(callId);
+    const pending = pendingToolsByTurn.get(doneTurnId);
+    if (pending === undefined) return;
+    pending.delete(callId);
+    if (pending.size === 0) {
+      const stashed = stashedCloseByTurn.get(doneTurnId);
+      if (stashed !== undefined) {
+        // The pending set just drained — emit the deferred message.end +
+        // turn.done immediately after this tool.done, same push() batch
+        // (INV-MSG: the message must still be open when tool.done lands, so
+        // message.end waits for this too).
+        stashedCloseByTurn.delete(doneTurnId);
+        emitRoundClose(doneTurnId, stashed.msgId, stashed.openTextStreamIds, stashed.fields);
+      }
+    }
+  }
+
+  /** True if any shell command in `entries` timed out or exited non-zero. */
+  function shellOutputHasError(entries: readonly OpenAIShellCallOutputContent[]): boolean {
+    for (const entry of entries) {
+      if (entry.outcome.type === "timeout") return true;
+      if (entry.outcome.type === "exit" && entry.outcome.exitCode !== 0) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Map a `tool_output` run-item whose `rawItem` is a Shell or Apply-Patch
+   * result (playbook 2026-07-03 SDK-bump adaptation, Finding #1). These do
+   * NOT share `OpenAIFunctionCallResultItem`'s `output` shape (a bare string /
+   * content-part union) — `shell_call_output.output` is an ARRAY of per-command
+   * `{stdout,stderr,outcome}` records, `apply_patch_call_output.output` is an
+   * optional bare string — so they need their OWN mapping, not
+   * `toolOutputToAgBlocks` (that was the orphan hazard: calling the generic
+   * function_call mapper on these shapes silently produced EMPTY content,
+   * since neither record type has the `.type === "text"` discriminant
+   * `toolOutputToAgBlocks` checks for).
+   */
+  function driveBuiltinToolOutput(
+    rawItem: OpenAIShellCallResultItem | OpenAIApplyPatchCallResultItem,
+  ): void {
+    const toolCallId = rawItem.callId;
+    let content: AgBlock[];
+    let outcome: ToolOutcome;
+    let structuredContent: JsonValue | undefined;
+    if (rawItem.type === "shell_call_output") {
+      content = [];
+      for (const entry of rawItem.output) {
+        const text = [entry.stdout, entry.stderr].filter((s) => s.length > 0).join("\n");
+        if (text.length > 0) content.push({ type: "text", text });
+      }
+      outcome = shellOutputHasError(rawItem.output) ? "error" : "ok";
+      // The full per-command record (stdout/stderr/exit code) is lossy to
+      // collapse into text-only content — carry it verbatim as structuredContent
+      // too (mirrors the function_call path's ggui-cache-marker precedent).
+      structuredContent = JsonValue.parse(rawItem.output);
+    } else {
+      content = rawItem.output !== undefined && rawItem.output.length > 0 ? [{ type: "text", text: rawItem.output }] : [];
+      outcome = rawItem.status === "failed" ? "error" : "ok";
+    }
+    const doneTurnId = resolvePendingTurnId(toolCallId);
+    a.toolDone({
+      toolCallId,
+      content,
+      outcome,
+      isError: outcome === "error",
+      ...(structuredContent !== undefined ? { structuredContent } : {}),
+      ...(doneTurnId !== undefined ? { turnId: doneTurnId } : {}),
+    });
+    drainPendingTool(toolCallId, doneTurnId);
+  }
+
+  /** Synthesize `name` for the built-in discriminants that carry none on the
+   *  wire (§8 quirk) — `shell_call`/`apply_patch_call` have no `name` field at
+   *  all; `hosted_tool_call` already carries a real one. */
+  function builtinToolName(
+    rawItem: OpenAIShellCallItem | OpenAIApplyPatchCallItem | OpenAIHostedToolCallItem,
+  ): string {
+    if (rawItem.type === "shell_call") return "builtin:shell";
+    if (rawItem.type === "apply_patch_call") return "builtin:apply_patch";
+    return rawItem.name;
+  }
+
+  /** Parse a JSON-string tool argument at the deserialization boundary,
+   *  degrading gracefully (Tenet 6) rather than throwing on malformed input —
+   *  mirrors `response.function_call_arguments.done`'s established degrade
+   *  path (audit M46). */
+  function parseJsonArguments(itemId: string | undefined, raw: string | undefined): JsonValue {
+    if (raw === undefined || raw.length === 0) return {};
+    try {
+      return JsonValue.parse(JSON.parse(raw));
+    } catch {
+      a.emitExt("openai", "unparsed", { itemId: itemId ?? null, arguments: raw });
+      return {};
+    }
+  }
+
+  /**
+   * Map a `tool_called` run-item whose `rawItem` is one of OpenAI's native
+   * built-in tool call shapes (Shell / Apply-Patch / Hosted-tool — playbook
+   * 2026-07-03 SDK-bump adaptation, Finding #1). Unlike `function_call` (whose
+   * tool-start rides the raw `response.output_item.added` stream — the
+   * authoritative source, canonical model A1), this run-item wrapper is the
+   * SOLE source for these three: `shell_call`/`apply_patch_call` carry no
+   * per-fragment argument-delta stream on this seam (no equivalent of
+   * `response.function_call_arguments.delta` exists for them — the whole
+   * action/operation arrives complete on this one wrapper), and
+   * `hosted_tool_call` has no raw-wire literal AT ALL (see its own doc — it is
+   * an agents-core-internal umbrella normalized only at this run-item layer).
+   * `ensureResponseOpen()` mirrors the raw function_call path's treatment
+   * (both are tool-START signals expected EARLY in a round, unlike the
+   * LATE-arriving `tool_output`/`message_output_created` run-items this file
+   * already documents) — residual ordering risk if a future capture shows
+   * otherwise is flagged in the adaptation report, not silently assumed away.
+   *
+   * `shell_call`/`apply_patch_call` are PENDING calls (their result arrives via
+   * a LATER `tool_output` run-item, same Task-4b deferred-round-close
+   * discipline as `function_call`) — registered via `registerPendingTool`.
+   * `hosted_tool_call` is different: OpenAI's hosted tools execute server-side
+   * within the SAME model turn, so the item is already resolved (`output`
+   * present) by the time this wrapper streams — `tool.start` + `tool.done`
+   * fire together from this ONE event (see its own doc) — no pending
+   * registration.
+   */
+  function driveBuiltinToolCalled(
+    rawItem: OpenAIShellCallItem | OpenAIApplyPatchCallItem | OpenAIHostedToolCallItem,
+  ): void {
+    ensureResponseOpen();
+    if (msgId === undefined) return; // unreachable post-ensure; satisfies narrowing
+    const toolCallId = rawItem.type === "hosted_tool_call" ? (rawItem.id ?? rawItem.name) : rawItem.callId;
+    const name = builtinToolName(rawItem);
+    a.toolStart({
+      toolCallId,
+      name,
+      ...(rawItem.id !== undefined ? { itemId: rawItem.id } : {}),
+      messageId: msgId,
+    });
+    const input: JsonValue =
+      rawItem.type === "shell_call"
+        ? JsonValue.parse(rawItem.action)
+        : rawItem.type === "apply_patch_call"
+          ? JsonValue.parse(rawItem.operation)
+          : parseJsonArguments(rawItem.id, rawItem.arguments);
+    a.toolArgsDelta(toolCallId, JSON.stringify(input));
+    a.toolArgsAssembled(toolCallId, input);
+    if (rawItem.type === "hosted_tool_call") {
+      const content: AgBlock[] =
+        rawItem.output !== undefined && rawItem.output.length > 0 ? [{ type: "text", text: rawItem.output }] : [];
+      a.toolDone({ toolCallId, content, outcome: "ok" });
+      return;
+    }
+    registerPendingTool(toolCallId);
+  }
+
   /**
    * Map the synthetic `__host_error__` sentinel (host feeds it on
    * `MaxTurnsExceededError`) to a terminal `turn.error{code, message, usage}`.
@@ -1183,9 +1489,17 @@ export function createOpenaiNormalizer(): Normalizer {
       const runItemEvent: OpenAIRunItemEvent = event;
       switch (event.name) {
         case "tool_output": {
+          const rawItem = event.item.rawItem;
+          // Finding #1 (critical): Shell/Apply-Patch results do NOT share
+          // `OpenAIFunctionCallResultItem.output`'s shape — see
+          // `driveBuiltinToolOutput`'s doc for why the generic path below is
+          // wrong for them (the orphan-hazard this adaptation fixes).
+          if (rawItem.type === "shell_call_output" || rawItem.type === "apply_patch_call_output") {
+            driveBuiltinToolOutput(rawItem);
+            return;
+          }
           // Authoritative tool-result source (canonical model, A1). Drives toolDone
           // with content + structuredContent (the ggui cache marker rides on item.output).
-          const rawItem = event.item.rawItem;
           const outcome: ToolOutcome = rawItem.status === "incomplete" ? "error" : "ok";
           const content = toolOutputToAgBlocks(rawItem.output);
           // Extract structuredContent cast-free: item.output may be an object carrying
@@ -1199,7 +1513,7 @@ export function createOpenaiNormalizer(): Normalizer {
           // after a later round has opened, so the engine's #lastTurn backfill
           // could misattribute it) and pass it through so toolDone binds to the
           // correct — possibly already-closed-pending-this-result — turn.
-          const doneTurnId = turnIdByToolCallId.get(rawItem.callId);
+          const doneTurnId = resolvePendingTurnId(rawItem.callId);
           a.toolDone({
             toolCallId: rawItem.callId,
             content,
@@ -1208,24 +1522,7 @@ export function createOpenaiNormalizer(): Normalizer {
             ...(structuredContent !== undefined ? { structuredContent } : {}),
             ...(doneTurnId !== undefined ? { turnId: doneTurnId } : {}),
           });
-          if (doneTurnId !== undefined) {
-            turnIdByToolCallId.delete(rawItem.callId);
-            const pending = pendingToolsByTurn.get(doneTurnId);
-            if (pending !== undefined) {
-              pending.delete(rawItem.callId);
-              if (pending.size === 0) {
-                const stashed = stashedCloseByTurn.get(doneTurnId);
-                if (stashed !== undefined) {
-                  // The pending set just drained — emit the deferred
-                  // message.end + turn.done immediately after this tool.done,
-                  // same push() batch (INV-MSG: the message must still be open
-                  // when tool.done lands, so message.end waits for this too).
-                  stashedCloseByTurn.delete(doneTurnId);
-                  emitRoundClose(doneTurnId, stashed.msgId, stashed.openTextStreamIds, stashed.fields);
-                }
-              }
-            }
-          }
+          drainPendingTool(rawItem.callId, doneTurnId);
           return;
         }
         case "message_output_created":
@@ -1233,10 +1530,20 @@ export function createOpenaiNormalizer(): Normalizer {
           // (canonical model, A1). Records refusal + emits citation blocks; no text.
           driveMessageOutputCreated(event.item.rawItem);
           return;
-        case "tool_called":
-          // IGNORED — superseded by model:response.output_item.added, which is the
-          // authoritative tool-start source (canonical model, A1 §"Spike Findings").
+        case "tool_called": {
+          const rawItem = event.item.rawItem;
+          if (rawItem.type === "function_call") {
+            // IGNORED — superseded by model:response.output_item.added, which is
+            // the authoritative tool-start source (canonical model, A1
+            // §"Spike Findings").
+            return;
+          }
+          // Finding #1 (critical): Shell / Apply-Patch / Hosted-tool built-ins
+          // — this run-item wrapper (not the raw stream) is the SOLE tool-start
+          // source for these three (see `driveBuiltinToolCalled`'s doc).
+          driveBuiltinToolCalled(rawItem);
           return;
+        }
         case "reasoning_item_created":
           // SOLE source for reasoning content — see driveReasoningItemCreated's
           // docstring for the single-sourcing rationale (Task 3, audit M48).

@@ -1619,3 +1619,333 @@ describe("createOpenaiNormalizer — default run-item arm (Task 3, audit M48)", 
     expect(unparsed?.item).toEqual({ type: "mcp_list_tools_item", rawItem: { foo: "bar" } });
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Finding #1 (critical, playbook 2026-07-03 SDK-bump adaptation, @openai/agents
+// 0.2.1 → 0.12.0): Shell / Apply-Patch / Hosted-tool built-in calls reuse the
+// EXISTING `tool_called`/`tool_output` run-item names with NEW `rawItem`
+// shapes the facet's authoritative `response.output_item.added`-only tool-start
+// path never recognized — before this fix, `tool_output` WOULD still fire a
+// generic `tool.done` (shape-compatible field names) with NO matching
+// `tool.start` ever emitted: an orphaned done. Fixed by making the `tool_called`/
+// `tool_output` run-item WRAPPER (not the raw stream) the sole tool-start/done
+// source for these three discriminants — full start/args/done lifecycle, one
+// test per discriminant + a combined fold test.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("createOpenaiNormalizer — built-in tool lifecycle: shell_call (playbook 2026-07-03)", () => {
+  const SHELL_ROUND: JsonValue[] = [
+    rawModel({ type: "response.created", response: { id: "resp_shell_1" } }),
+    runItem("tool_called", {
+      type: "tool_call_item",
+      rawItem: {
+        type: "shell_call",
+        callId: "call_shell_1",
+        status: "in_progress",
+        action: { commands: ["ls", "-la"], timeoutMs: 5000 },
+        id: "item_shell_1",
+      },
+    }),
+    // Defensive: a real capture may ALSO fire the raw output_item.added for
+    // this item — the (unchanged, function_call-only) raw path must no-op it,
+    // not double-start.
+    rawModel({
+      type: "response.output_item.added",
+      item: { id: "item_shell_1", type: "shell_call", call_id: "call_shell_1" },
+    }),
+    runItem("tool_output", {
+      type: "tool_call_output_item",
+      rawItem: {
+        type: "shell_call_output",
+        callId: "call_shell_1",
+        output: [{ stdout: "file1\nfile2\n", stderr: "", outcome: { type: "exit", exitCode: 0 } }],
+      },
+    }),
+    rawModel({ type: "response.completed", response: { id: "resp_shell_1", status: "completed" } }),
+  ];
+
+  it("synthesizes tool.start with name builtin:shell from the tool_called wrapper", () => {
+    const n = createOpenaiNormalizer();
+    const evs = SHELL_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const starts = evs.filter((e) => e.type === "tool.start");
+    expect(starts).toHaveLength(1); // exactly one — the raw output_item.added no-ops
+    expect(starts[0]).toMatchObject({ toolCallId: "call_shell_1", name: "builtin:shell" });
+  });
+
+  it("emits tool.args.assembled with the shell action object", () => {
+    const n = createOpenaiNormalizer();
+    const evs = SHELL_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const assembled = evs.find((e) => e.type === "tool.args.assembled");
+    expect(assembled).toMatchObject({
+      toolCallId: "call_shell_1",
+      input: { commands: ["ls", "-la"], timeoutMs: 5000 },
+    });
+  });
+
+  it("emits tool.done with the joined stdout/stderr as content and outcome:ok for a clean exit", () => {
+    const n = createOpenaiNormalizer();
+    const evs = SHELL_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const done = evs.find((e) => e.type === "tool.done") as {
+      toolCallId?: string;
+      outcome?: string;
+      content?: { type: string; text?: string }[];
+    };
+    expect(done?.toolCallId).toBe("call_shell_1");
+    expect(done?.outcome).toBe("ok");
+    expect(done?.content?.[0]).toMatchObject({ type: "text", text: "file1\nfile2\n" });
+  });
+
+  it("maps a non-zero exit code to outcome:error", () => {
+    const n = createOpenaiNormalizer();
+    const errorRound = SHELL_ROUND.map((e) =>
+      e === SHELL_ROUND[3]
+        ? runItem("tool_output", {
+            type: "tool_call_output_item",
+            rawItem: {
+              type: "shell_call_output",
+              callId: "call_shell_1",
+              output: [{ stdout: "", stderr: "not found", outcome: { type: "exit", exitCode: 1 } }],
+            },
+          })
+        : e,
+    );
+    const evs = errorRound.flatMap((e) => n.push(e)).concat(n.flush());
+    const done = evs.find((e) => e.type === "tool.done") as { outcome?: string; isError?: boolean };
+    expect(done?.outcome).toBe("error");
+    expect(done?.isError).toBe(true);
+  });
+
+  it("no orphaned tool.done — tool.start always precedes tool.done for the same toolCallId", () => {
+    const n = createOpenaiNormalizer();
+    const evs = SHELL_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const startIdx = evs.findIndex((e) => e.type === "tool.start");
+    const doneIdx = evs.findIndex((e) => e.type === "tool.done");
+    expect(startIdx).toBeGreaterThanOrEqual(0);
+    expect(doneIdx).toBeGreaterThan(startIdx);
+  });
+
+  it("fold: no resync, exactly one tool-call + tool-result block pair, no park", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    for (const e of SHELL_ROUND) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    const allBlocks = res.messages.flatMap((m) => m.content);
+    expect(allBlocks.filter((b) => b.type === "tool-call")).toHaveLength(1);
+    expect(allBlocks.filter((b) => b.type === "tool-result")).toHaveLength(1);
+  });
+});
+
+describe("createOpenaiNormalizer — built-in tool lifecycle: apply_patch_call (playbook 2026-07-03)", () => {
+  const APPLY_PATCH_ROUND: JsonValue[] = [
+    rawModel({ type: "response.created", response: { id: "resp_patch_1" } }),
+    runItem("tool_called", {
+      type: "tool_call_item",
+      rawItem: {
+        type: "apply_patch_call",
+        callId: "call_patch_1",
+        status: "in_progress",
+        operation: { type: "create_file", path: "hello.txt", diff: "+hello" },
+        id: "item_patch_1",
+      },
+    }),
+    runItem("tool_output", {
+      type: "tool_call_output_item",
+      rawItem: {
+        type: "apply_patch_call_output",
+        callId: "call_patch_1",
+        status: "completed",
+        output: "applied",
+      },
+    }),
+    rawModel({ type: "response.completed", response: { id: "resp_patch_1", status: "completed" } }),
+  ];
+
+  it("synthesizes tool.start with name builtin:apply_patch and the operation as args", () => {
+    const n = createOpenaiNormalizer();
+    const evs = APPLY_PATCH_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const start = evs.find((e) => e.type === "tool.start");
+    expect(start).toMatchObject({ toolCallId: "call_patch_1", name: "builtin:apply_patch" });
+    const assembled = evs.find((e) => e.type === "tool.args.assembled");
+    expect(assembled).toMatchObject({
+      toolCallId: "call_patch_1",
+      input: { type: "create_file", path: "hello.txt", diff: "+hello" },
+    });
+  });
+
+  it("emits tool.done with outcome:ok for status:completed", () => {
+    const n = createOpenaiNormalizer();
+    const evs = APPLY_PATCH_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const done = evs.find((e) => e.type === "tool.done") as {
+      outcome?: string;
+      content?: { type: string; text?: string }[];
+    };
+    expect(done?.outcome).toBe("ok");
+    expect(done?.content?.[0]).toMatchObject({ type: "text", text: "applied" });
+  });
+
+  it("maps status:failed to outcome:error", () => {
+    const n = createOpenaiNormalizer();
+    const failedRound = APPLY_PATCH_ROUND.map((e) =>
+      e === APPLY_PATCH_ROUND[2]
+        ? runItem("tool_output", {
+            type: "tool_call_output_item",
+            rawItem: {
+              type: "apply_patch_call_output",
+              callId: "call_patch_1",
+              status: "failed",
+              output: "permission denied",
+            },
+          })
+        : e,
+    );
+    const evs = failedRound.flatMap((e) => n.push(e)).concat(n.flush());
+    const done = evs.find((e) => e.type === "tool.done") as { outcome?: string; isError?: boolean };
+    expect(done?.outcome).toBe("error");
+    expect(done?.isError).toBe(true);
+  });
+
+  it("fold: no resync, no orphan tool.done", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    for (const e of APPLY_PATCH_ROUND) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    const allBlocks = res.messages.flatMap((m) => m.content);
+    expect(allBlocks.filter((b) => b.type === "tool-call")).toHaveLength(1);
+    expect(allBlocks.filter((b) => b.type === "tool-result")).toHaveLength(1);
+  });
+});
+
+describe("createOpenaiNormalizer — built-in tool lifecycle: hosted_tool_call (playbook 2026-07-03)", () => {
+  // Unlike shell_call/apply_patch_call, a hosted tool call is ALREADY RESOLVED
+  // (output present) by the time the ONE tool_called wrapper streams — there is
+  // no separate tool_output for it (verified against @openai/agents-core
+  // 0.12.0's runner/modelOutputs.mjs).
+  const HOSTED_ROUND: JsonValue[] = [
+    rawModel({ type: "response.created", response: { id: "resp_hosted_1" } }),
+    runItem("tool_called", {
+      type: "tool_call_item",
+      rawItem: {
+        type: "hosted_tool_call",
+        id: "item_hosted_1",
+        name: "web_search_call",
+        arguments: '{"query":"weather today"}',
+        status: "completed",
+        output: "It is sunny.",
+      },
+    }),
+    rawModel({ type: "response.completed", response: { id: "resp_hosted_1", status: "completed" } }),
+  ];
+
+  it("emits tool.start with the item's own real name (no builtin: synthesis)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = HOSTED_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const start = evs.find((e) => e.type === "tool.start");
+    expect(start).toMatchObject({ toolCallId: "item_hosted_1", name: "web_search_call" });
+  });
+
+  it("emits tool.args.assembled by parsing the arguments JSON string", () => {
+    const n = createOpenaiNormalizer();
+    const evs = HOSTED_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const assembled = evs.find((e) => e.type === "tool.args.assembled");
+    expect(assembled).toMatchObject({ input: { query: "weather today" } });
+  });
+
+  it("emits tool.start THEN tool.done TOGETHER from the single tool_called event (no separate tool_output)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = HOSTED_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const startIdx = evs.findIndex((e) => e.type === "tool.start");
+    const doneIdx = evs.findIndex((e) => e.type === "tool.done");
+    expect(startIdx).toBeGreaterThanOrEqual(0);
+    expect(doneIdx).toBeGreaterThan(startIdx);
+    const done = evs.find((e) => e.type === "tool.done") as {
+      outcome?: string;
+      content?: { type: string; text?: string }[];
+    };
+    expect(done?.outcome).toBe("ok");
+    expect(done?.content?.[0]).toMatchObject({ type: "text", text: "It is sunny." });
+  });
+
+  it("malformed arguments JSON degrades gracefully — ext.openai.unparsed, not a crash", () => {
+    const n = createOpenaiNormalizer();
+    const malformedRound = HOSTED_ROUND.map((e) =>
+      e === HOSTED_ROUND[1]
+        ? runItem("tool_called", {
+            type: "tool_call_item",
+            rawItem: {
+              type: "hosted_tool_call",
+              id: "item_hosted_2",
+              name: "web_search_call",
+              arguments: "{not-json",
+              status: "completed",
+              output: "It is sunny.",
+            },
+          })
+        : e,
+    );
+    expect(() => malformedRound.flatMap((e) => n.push(e))).not.toThrow();
+    const evs = malformedRound.flatMap((e) => n.push(e)).concat(n.flush());
+    expect(evs.some((e) => e.type === "ext.openai.unparsed")).toBe(true);
+    const assembled = evs.find((e) => e.type === "tool.args.assembled");
+    expect(assembled).toMatchObject({ input: {} });
+  });
+
+  it("fold: no resync, one tool-call + tool-result block pair", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    for (const e of HOSTED_ROUND) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    const allBlocks = res.messages.flatMap((m) => m.content);
+    expect(allBlocks.filter((b) => b.type === "tool-call")).toHaveLength(1);
+    expect(allBlocks.filter((b) => b.type === "tool-result")).toHaveLength(1);
+  });
+});
+
+describe("createOpenaiNormalizer — tool_search_* family: documented lossless carry (playbook 2026-07-03)", () => {
+  // Finding #4 (minor — the report's own recommendation followed): tool_search
+  // is NOT ported to a first-class tool.start/done lifecycle. Its payload shape
+  // (arguments: unknown; output: a `tools` catalog listing, not model-readable
+  // tool-result content) doesn't fit the tool.start/args/done triple without
+  // inventing new semantics — the existing `ext.openai.unparsed` carry is
+  // already lossless and correctly reached (both names are genuinely absent
+  // from the facet's declared run-item name union). This test LOCKS IN that
+  // this adaptation did not accidentally change that.
+  it("tool_search_called falls through to ext.openai.unparsed, not a fabricated tool.start", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_search_1" } }),
+      runItem("tool_search_called", {
+        type: "tool_search_call_item",
+        rawItem: { type: "tool_search_call", callId: "call_search_1", arguments: { query: "weather" } },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_search_1", status: "completed" } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    expect(evs.some((e) => e.type === "tool.start")).toBe(false);
+    const unparsed = evs.find((e) => e.type === "ext.openai.unparsed") as { name?: string };
+    expect(unparsed?.name).toBe("tool_search_called");
+  });
+
+  it("tool_search_output_created falls through to ext.openai.unparsed, not a fabricated tool.done", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_search_2" } }),
+      runItem("tool_search_output_created", {
+        type: "tool_search_output_item",
+        rawItem: { type: "tool_search_output", callId: "call_search_1", tools: [{ name: "weather" }] },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_search_2", status: "completed" } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    expect(evs.some((e) => e.type === "tool.done")).toBe(false);
+    const unparsed = evs.find((e) => e.type === "ext.openai.unparsed") as { name?: string };
+    expect(unparsed?.name).toBe("tool_search_output_created");
+  });
+});
