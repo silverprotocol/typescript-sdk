@@ -140,21 +140,49 @@ export interface OpenAIFunctionCallItem {
   providerData?: { [k: string]: JsonValue };
 }
 
-/** protocol `ToolOutputText` arm of `FunctionCallResultItem.output`. */
+/** protocol `ToolOutputText` — the BARE-OBJECT arm of `FunctionCallResultItem.
+ *  output` (`output: {type:"text", text}`, not wrapped in an array). */
 export interface OpenAIToolOutputText {
   type: "text";
   text: string;
 }
 
+/**
+ * protocol array-form element of `FunctionCallResultItem.output`
+ * (`output: [...]`) — playbook 2026-07-03 SDK-bump adaptation, Finding #2
+ * (critical). `@openai/agents-core` 0.12.0's real zod schema
+ * (`protocol.d.ts`'s `FunctionCallResultItem`) discriminates the ARRAY arm's
+ * elements with `input_text`/`input_image`/`input_file` literals — DIFFERENT
+ * from the bare-object arm's `text`/`image`/`file` literals ({@link
+ * OpenAIToolOutputText}). The prior 0.12.0 adaptation missed this: it typed
+ * the array arm as `OpenAIToolOutputText[]` (i.e. assumed array elements ALSO
+ * use `type:"text"`), so `toolOutputToAgBlocks`'s `part.type === "text"`
+ * check never matched a real array-shaped tool result — VERIFIED LIVE
+ * (playbook 2026-07-03, echo-gpt55 capture): every MCP tool call's result
+ * silently produced `tool.done.content: []`, discarding the tool's entire
+ * output text. `@openai/agents-core` 0.12.0 uses this array+`input_text`
+ * shape for MCP-routed tool-call results (the common case for this SDK's own
+ * MCP client) — this was never exercised by a live capture before now (the
+ * committed openai seed cassettes predate 0.12.0). Only the text arm is
+ * modeled/handled here, matching the PRE-EXISTING scope of the bare-object
+ * arm (which also only maps `type:"text"`, never `type:"image"`/`"file"`) —
+ * `input_image`/`input_file` array elements remain intentionally unhandled.
+ */
+export interface OpenAIToolOutputInputText {
+  type: "input_text";
+  text: string;
+}
+
 /** protocol `FunctionCallResultItem` (the `rawItem` of a tool_call_output_item).
- *  `output` is a string OR a content object/array; the wrapper's own `output`
- *  field carries the stringified primary output. */
+ *  `output` is a string, a bare content object ({@link OpenAIToolOutputText}),
+ *  or a content-part ARRAY ({@link OpenAIToolOutputInputText}[]) — the wrapper's
+ *  own `output` field carries the stringified primary output. */
 export interface OpenAIFunctionCallResultItem {
   type: "function_call_result";
   name: string;
   callId: string;
   status: "in_progress" | "completed" | "incomplete";
-  output: string | OpenAIToolOutputText | OpenAIToolOutputText[];
+  output: string | OpenAIToolOutputText | OpenAIToolOutputInputText[];
   providerData?: { [k: string]: JsonValue };
 }
 
@@ -633,7 +661,11 @@ function toolOutputToAgBlocks(
   const parts = Array.isArray(output) ? output : [output];
   const out: AgBlock[] = [];
   for (const part of parts) {
-    if (part.type === "text") out.push({ type: "text", text: part.text });
+    // Two DIFFERENT text discriminants ride this seam (Finding #2 above):
+    // "text" on the bare-object arm, "input_text" on the array arm.
+    if (part.type === "text" || part.type === "input_text") {
+      out.push({ type: "text", text: part.text });
+    }
   }
   return out;
 }

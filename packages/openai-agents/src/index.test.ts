@@ -1949,3 +1949,94 @@ describe("createOpenaiNormalizer — tool_search_* family: documented lossless c
     expect(unparsed?.name).toBe("tool_search_output_created");
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Finding #2 (CRITICAL, live-proven playbook 2026-07-03 gap): the array-form
+// arm of `FunctionCallResultItem.output` uses an `input_text` discriminant —
+// DIFFERENT from the bare-object arm's `text` discriminant
+// ({@link OpenAIToolOutputText} vs the array's `input_text` elements,
+// verified against @openai/agents-core 0.12.0's own zod schema,
+// `protocol.d.ts`). The PRIOR 0.12.0 adaptation typed (and matched) the array
+// arm as if it also used `type:"text"`, so `toolOutputToAgBlocks` silently
+// produced `[]` for every array-shaped tool result — this is 0.12.0's actual
+// wire shape for MCP-routed tool calls (VERIFIED LIVE against the real
+// `echo-gpt55` capture: `tool.done.content` was `[]` before this fix, with
+// the tool's entire result text ("conformance-probe-gpt55") discarded).
+// This gap was never caught by any prior unit test — every existing
+// `function_call_result` fixture used either a bare string or the bare-object
+// `{type:"text"}` form, never the array form.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("createOpenaiNormalizer — function_call_result array-form output (Finding #2, playbook 2026-07-03)", () => {
+  it("tool.done.content carries the text from an array-shaped output ([{type:'input_text', text}])", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_arrout_1" } }),
+      rawModel({
+        type: "response.output_item.added",
+        item: { id: "fc_arrout_1", type: "function_call", call_id: "call_arrout_1", name: "echo" },
+      }),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: {
+          type: "function_call_result",
+          name: "echo",
+          callId: "call_arrout_1",
+          status: "completed",
+          // The REAL 0.12.0 MCP tool-result wire shape (array + input_text) —
+          // NOT the bare-object {type:"text"} shape.
+          output: [{ type: "input_text", text: "conformance-probe" }],
+        },
+        output: '{"type":"text","text":"conformance-probe"}',
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_arrout_1", status: "completed" } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+
+    const done = evs.find((e) => e.type === "tool.done") as {
+      toolCallId?: string;
+      outcome?: string;
+      content?: { type: string; text?: string }[];
+    };
+    expect(done?.toolCallId).toBe("call_arrout_1");
+    expect(done?.outcome).toBe("ok");
+    // Before the fix: content was [] (the text was silently dropped).
+    expect(done?.content).toEqual([{ type: "text", text: "conformance-probe" }]);
+  });
+
+  it("multiple input_text array elements are all carried, in order", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_arrout_2" } }),
+      rawModel({
+        type: "response.output_item.added",
+        item: { id: "fc_arrout_2", type: "function_call", call_id: "call_arrout_2", name: "echo" },
+      }),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: {
+          type: "function_call_result",
+          name: "echo",
+          callId: "call_arrout_2",
+          status: "completed",
+          output: [
+            { type: "input_text", text: "first" },
+            { type: "input_text", text: "second" },
+          ],
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_arrout_2", status: "completed" } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+
+    const done = evs.find((e) => e.type === "tool.done") as {
+      content?: { type: string; text?: string }[];
+    };
+    expect(done?.content).toEqual([
+      { type: "text", text: "first" },
+      { type: "text", text: "second" },
+    ]);
+  });
+});
