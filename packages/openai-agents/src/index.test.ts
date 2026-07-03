@@ -1994,6 +1994,48 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: computer_call (fix
     expect(allBlocks.filter((b) => b.type === "tool-call")).toHaveLength(1);
     expect(allBlocks.filter((b) => b.type === "tool-result")).toHaveLength(1);
   });
+
+  it("(ratchet finding) computer_call with actions[] batch (no action field) — the batch carries through to tool.args.assembled input (SDK precedence: actions ?? action)", () => {
+    const n = createOpenaiNormalizer();
+    // A computer_call with actions batch but NO action field — SDK reads actions first.
+    // The fixture uses a plausible two-action batch (click + type).
+    const batchRound: JsonValue[] = [
+      rawModel({ type: "response.created", response: { id: "resp_computer_batch_1" } }),
+      runItem("tool_called", {
+        type: "tool_call_item",
+        rawItem: {
+          type: "computer_call",
+          callId: "call_computer_batch_1",
+          status: "in_progress",
+          // actions populated, action absent — SDK reads actions FIRST
+          actions: [
+            { type: "click", coordinate: [100, 200] },
+            { type: "type", text: "hello" },
+          ],
+          id: "item_computer_batch_1",
+        },
+      }),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: {
+          type: "computer_call_result",
+          callId: "call_computer_batch_1",
+          output: { type: "computer_screenshot", data: "aGVsbG8=" },
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_computer_batch_1", status: "completed" } }),
+    ];
+    const evs = batchRound.flatMap((e) => n.push(e)).concat(n.flush());
+
+    // Regression: the batch MUST be carried through to the input, not silently lost
+    // to {}. Byte-preserves whatever went into actions.
+    const assembled = evs.find((e) => e.type === "tool.args.assembled");
+    expect(assembled).toBeDefined();
+    expect((assembled as { input?: unknown }).input).toEqual([
+      { type: "click", coordinate: [100, 200] },
+      { type: "type", text: "hello" },
+    ]);
+  });
 });
 
 describe("createOpenaiNormalizer — tool_search_* family: documented lossless carry (playbook 2026-07-03)", () => {

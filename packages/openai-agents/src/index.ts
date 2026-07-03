@@ -313,18 +313,20 @@ export interface OpenAIHostedToolCallItem {
 /** protocol `ComputerUseCallItem` (a `tool_called` rawItem for OpenAI's native
  *  Computer-Use built-in tool). Carries NO `name` field — the facet synthesizes
  *  `name:"builtin:computer"` (§8 quirk, mirrors shell_call/apply_patch_call).
- *  `action` (the single computer action — click/scroll/type/screenshot/…,
- *  protocol.d.ts's own 8-arm discriminated union) is OPTIONAL on the wire and
- *  carried through verbatim as the tool's args payload; its nested fields are
- *  not interpreted here (fixture discipline: type only what is consumed — the
- *  facet never branches on a specific action kind). Same
- *  single-wrapper-is-authoritative rationale as {@link OpenAIShellCallItem}:
- *  no per-fragment argument-delta stream exists for this shape on this seam. */
+ *  The wire carries BOTH `action` (a single computer action — click/scroll/type/screenshot/…)
+ *  and `actions` (a batch array of actions); the SDK's own runtime reads `actions` FIRST
+ *  (if populated), falling back to `action`. Both are OPTIONAL on the wire and carried
+ *  through verbatim as the tool's args payload; nested fields are not interpreted here
+ *  (fixture discipline: type only what is consumed — the facet never branches on a
+ *  specific action kind). Same single-wrapper-is-authoritative rationale as
+ *  {@link OpenAIShellCallItem}: no per-fragment argument-delta stream exists for this
+ *  shape on this seam. The normalizer MUST mirror the SDK's precedence: `actions ?? action ?? {}`. */
 export interface OpenAIComputerCallItem {
   type: "computer_call";
   callId: string;
   status: "in_progress" | "completed" | "incomplete";
   action?: JsonValue;
+  actions?: JsonValue;
   id?: string;
   providerData?: { [k: string]: JsonValue };
 }
@@ -1635,7 +1637,7 @@ export function createOpenaiNormalizer(): Normalizer {
         : rawItem.type === "apply_patch_call"
           ? JsonValue.parse(rawItem.operation)
           : rawItem.type === "computer_call"
-            ? JsonValue.parse(rawItem.action ?? {})
+            ? JsonValue.parse(rawItem.actions ?? rawItem.action ?? {})
             : parseJsonArguments(rawItem.id, rawItem.arguments);
     a.toolArgsDelta(toolCallId, JSON.stringify(input));
     a.toolArgsAssembled(toolCallId, input);
