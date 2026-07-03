@@ -51,6 +51,20 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // investigation and why text-tool-turn is NOT added to
   // CONVERGENCE_SCENARIOS).
   { scenario: "text-tool-turn", framework: "adk" },
+  // Playbook 2026-07-03 (model-release run): FIRST-EVER regen of the new
+  // live-model seed cassettes. The corpus triple `pnpm e2e:capture` writes at
+  // capture time computes `coverage.json` against EMPTY guard maps (capture.ts's
+  // runCapture inline census — it never loads transforms.json/known-acceptable-
+  // drops.json/field-registry.json), so the committed coverage.json needs this
+  // regen pass to reflect the REAL guard-filtered census (the one replay.test.ts's
+  // CI gate actually asserts against). echo-gpt55/openai's agjson.json ALSO needs
+  // regenerating for a second reason: it was captured before this same playbook
+  // step's Finding #2 fix (toolOutputToAgBlocks's missing "input_text" arm) — the
+  // committed capture-time agjson had `tool.done.content: []` (the tool result
+  // text silently dropped); this regen re-normalizes the SAME native.json through
+  // the FIXED facet.
+  { scenario: "echo-sonnet5", framework: "claude" },
+  { scenario: "echo-gpt55", framework: "openai" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

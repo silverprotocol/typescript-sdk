@@ -1,0 +1,150 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_2a6a0505-b983-42f1-aacc-38ba3c445cb5",
+    "threadId": "2a6a0505-b983-42f1-aacc-38ba3c445cb5"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_01SkZvyB9xnVAKvd9hE6PrhM",
+    "turnId": "turn_2a6a0505-b983-42f1-aacc-38ba3c445cb5",
+    "threadId": "2a6a0505-b983-42f1-aacc-38ba3c445cb5",
+    "role": "assistant",
+    "model": "claude-sonnet-5"
+  },
+  {
+    "type": "tool.start",
+    "seq": 2,
+    "turnId": "turn_2a6a0505-b983-42f1-aacc-38ba3c445cb5",
+    "toolCallId": "toolu_01AQCKAxbZXd4z3DTgXqwUEN",
+    "name": "mcp__t__echo",
+    "index": 0,
+    "messageId": "msg_01SkZvyB9xnVAKvd9hE6PrhM",
+    "providerExecuted": false
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 3,
+    "toolCallId": "toolu_01AQCKAxbZXd4z3DTgXqwUEN",
+    "delta": "{\"message\":\"conformance-probe-sonnet5\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 4,
+    "toolCallId": "toolu_01AQCKAxbZXd4z3DTgXqwUEN",
+    "input": {
+      "message": "conformance-probe-sonnet5"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 5,
+    "id": "msg_01SkZvyB9xnVAKvd9hE6PrhM",
+    "usage": {
+      "inputTokens": 663,
+      "outputTokens": 63,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "tool.done",
+    "seq": 6,
+    "turnId": "turn_2a6a0505-b983-42f1-aacc-38ba3c445cb5",
+    "toolCallId": "toolu_01AQCKAxbZXd4z3DTgXqwUEN",
+    "content": [
+      {
+        "type": "text",
+        "text": "conformance-probe-sonnet5"
+      }
+    ],
+    "outcome": "ok",
+    "isError": false,
+    "messageId": "toolu_01AQCKAxbZXd4z3DTgXqwUEN:result"
+  },
+  {
+    "type": "message.start",
+    "seq": 7,
+    "id": "msg_01M69QMmKcYQuRUKPQ4KY9hC",
+    "turnId": "turn_2a6a0505-b983-42f1-aacc-38ba3c445cb5",
+    "threadId": "2a6a0505-b983-42f1-aacc-38ba3c445cb5",
+    "role": "assistant",
+    "model": "claude-sonnet-5"
+  },
+  {
+    "type": "text.start",
+    "seq": 8,
+    "id": "msg_01M69QMmKcYQuRUKPQ4KY9hC:text:0",
+    "messageId": "msg_01M69QMmKcYQuRUKPQ4KY9hC",
+    "turnId": "turn_2a6a0505-b983-42f1-aacc-38ba3c445cb5"
+  },
+  {
+    "type": "text.delta",
+    "seq": 9,
+    "id": "msg_01M69QMmKcYQuRUKPQ4KY9hC:text:0",
+    "messageId": "msg_01M69QMmKcYQuRUKPQ4KY9hC",
+    "delta": "The tool returned: **conformance-probe-sonnet5**",
+    "turnId": "turn_2a6a0505-b983-42f1-aacc-38ba3c445cb5"
+  },
+  {
+    "type": "text.end",
+    "seq": 10,
+    "id": "msg_01M69QMmKcYQuRUKPQ4KY9hC:text:0",
+    "messageId": "msg_01M69QMmKcYQuRUKPQ4KY9hC",
+    "turnId": "turn_2a6a0505-b983-42f1-aacc-38ba3c445cb5"
+  },
+  {
+    "type": "message.end",
+    "seq": 11,
+    "id": "msg_01M69QMmKcYQuRUKPQ4KY9hC",
+    "usage": {
+      "inputTokens": 743,
+      "outputTokens": 1,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "turn.done",
+    "seq": 12,
+    "turnId": "turn_2a6a0505-b983-42f1-aacc-38ba3c445cb5",
+    "outcome": {
+      "type": "success",
+      "result": "The tool returned: **conformance-probe-sonnet5**"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 1406,
+      "outputTokens": 85,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "serverToolRequests": 0,
+      "costUsd": 0.006096,
+      "cumulative": true,
+      "byModel": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 538,
+          "outputTokens": 13,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "costUsd": 0.0006029999999999999,
+          "serverToolRequests": 0,
+          "cumulative": true
+        },
+        "claude-sonnet-5": {
+          "inputTokens": 1406,
+          "outputTokens": 85,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "costUsd": 0.005493,
+          "serverToolRequests": 0,
+          "cumulative": true
+        }
+      }
+    }
+  }
+]

@@ -62,14 +62,32 @@ const CORPUS_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "corpus"
  * live convergence check with NO snapshot/census backstop of its own — the
  * vacuity-holed I4 assert was its sole gate. It now gets the same
  * agjson-snapshot + census-clean machinery gate every other seed gets.
+ *
+ * `echo-sonnet5` joins this list per the 2026-07-03 model-release playbook: the
+ * FIRST live capture against the new `claude-sonnet-5` model (kind:"capture",
+ * real sdkVersion — see corpus/echo-sonnet5/claude.provenance.json), landing the
+ * new model's wire shape as a standing measurement rather than a one-off probe.
  */
-const CLAUDE_SEEDS = ["text-tool-turn", "complete-result", "app-spec", "convergence-echo"] as const;
+const CLAUDE_SEEDS = [
+  "text-tool-turn",
+  "complete-result",
+  "app-spec",
+  "convergence-echo",
+  "echo-sonnet5",
+] as const;
 
 /**
  * Every OpenAI seed scenario under corpus/ that ships a committed native cassette.
  * `convergence-echo` joins this list per audit M58 (see the CLAUDE_SEEDS comment).
+ *
+ * `echo-gpt55` joins this list per the 2026-07-03 model-release playbook: the
+ * FIRST live capture against the new `gpt-5.5` model (kind:"capture", real
+ * sdkVersion — see corpus/echo-gpt55/openai.provenance.json). This capture is
+ * ALSO what surfaced Finding #2 (the facet's `toolOutputToAgBlocks` missing the
+ * `input_text` array-form discriminant, silently dropping every MCP tool
+ * result under `@openai/agents-core` 0.12.0) — fixed the same playbook step.
  */
-const OPENAI_SEEDS = ["text-tool-turn", "convergence-echo"] as const;
+const OPENAI_SEEDS = ["text-tool-turn", "convergence-echo", "echo-gpt55"] as const;
 
 /**
  * Every ADK seed scenario under corpus/ that ships a committed native cassette.
