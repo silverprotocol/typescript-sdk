@@ -1,14 +1,14 @@
 {
-  "$comment": "Ratchet manifest for the fixture-drift gate (scripts/check-fixture-drift.mjs), google-adk facet (the google-adk-ratchet task, 2026-07-03 — the third facet wired into the gate, after claude-agent-sdk + openai-agents). UNLIKE the other two facets, google-adk does NOT import its upstream SDK at runtime — `packages/google-adk/src/index.ts`'s `AdkEvent`/`AdkPart` are a HAND-TYPED PROJECTION of the verified wire (the file header cites google/adk-python's `Event`/`LlmResponse` classes + the Gemini `Content`/`Part` REST shapes; `@iqai/adk` is only an OPTIONAL peerDependency, never imported). So the 'inventory' this manifest ratchets is not 'does the facet's own import surface still match' (there is no such import) but 'does the INSTALLED reference SDKs' actual field vocabulary still match what the hand-typed contract assumes' — the two ground truths available in this workspace (both resolved via packages/e2e's `@iqai/adk` devDependency pin; `@google/genai` is TRANSITIVE, not a direct e2e dependency, resolved in a second hop scoped to @iqai/adk's own installed subtree, mirroring the openai-agents manifest's agents->agents-core hop): (1) `partKind` — the Gemini `Part` interface's own field names, from `@google/genai`'s bundled `dist/genai.d.ts` (the part-kind vocabulary this facet's `driveAdkPart` if-chain switches on); (2) `eventField` — the `Event`/`LlmResponse` class field names, from `@iqai/adk`'s bundled `dist/index.d.ts` (`Event extends LlmResponse`; both classes' OWN fields are flattened into one inventory, since the hand-typed `AdkEvent` interface itself makes no such split). Dispositions were seeded 2026-07-03 by reading `driveAdkPart`/`driveAdkTopLevel`/`maybeCloseTurn` line-by-line against every installed field. handled = the facet has a dedicated, correct branch (or is genuinely CONSUMED for correlation, e.g. `id` in `turnKey()`); carried = routed losslessly to the existing `provider-raw` content.block carry (mirrors `driveAdkTopLevel`'s pre-existing `unmappedActions`/`unmappedEvent` named-field-ledger pattern — NOT a generic reflect-over-keys catch-all); not-applicable = provably cannot be a meaningful JSON-wire value on this facet's ingestion boundary; silently-dropped = a genuine, disclosed gap left un-landed (see below). FIVE findings were closed by carries: on `partKind`, ADDING the unmapped-part-fields carry (a new, unconditional check at the TOP of `driveAdkPart`, checked BEFORE the kind-specific if-chain's early returns — necessary because `videoMetadata` normally rides ALONGSIDE an already-matched `inlineData`/`fileData` part per genai's own doc, so a check placed only in an 'else' fallback would never see it) closed `mediaResolution`/`videoMetadata`/`toolCall`/`toolResponse`/`partMetadata`; on `eventField`, extending the PRE-EXISTING `unmappedEvent` bag in `driveAdkTopLevel` closed `candidateIndex` (absent from the hand-typed contract entirely) and `branch` (already typed on `AdkEvent` but never read). TWO findings were seeded, investigated, then DELIBERATELY left `silently-dropped` rather than landed: `author`/`timestamp` are ALSO real, currently-unread `AdkEvent` fields, but BOTH are REQUIRED (non-optional) on the real @iqai/adk `Event` class (present on EVERY event, unlike the genuinely-optional `candidateIndex`/`branch`) — empirically, folding them into the generic carry fired a provider-raw content.block on every single native event in packages/e2e's captured adk fixtures (`author:\"spike\"` is set on all events of both corpus scenarios), breaking the recorded golden `*.agjson.json` snapshots and the cross-framework convergence assertions; regenerating those cassette fixtures is outside this ratchet's boundary (facet + manifests + script + SPEC §8 only). See their own per-entry notes below and `index.test.ts`'s explicit negative-control test. SPEC §8 item 23 documents the FOUR carries that DID land (`candidateIndex`/`branch` + the five `partKind` fields). See .superpowers/sdd/adk-ratchet-report.md for the full rationale + wire citations.",
+  "$comment": "Ratchet manifest for the fixture-drift gate (scripts/check-fixture-drift.mjs), google-adk facet (the google-adk-ratchet task, 2026-07-03 \u2014 the third facet wired into the gate, after claude-agent-sdk + openai-agents). UNLIKE the other two facets, google-adk does NOT import its upstream SDK at runtime \u2014 `packages/google-adk/src/index.ts`'s `AdkEvent`/`AdkPart` are a HAND-TYPED PROJECTION of the verified wire (the file header cites google/adk-python's `Event`/`LlmResponse` classes + the Gemini `Content`/`Part` REST shapes; `@iqai/adk` is only an OPTIONAL peerDependency, never imported). So the 'inventory' this manifest ratchets is not 'does the facet's own import surface still match' (there is no such import) but 'does the INSTALLED reference SDKs' actual field vocabulary still match what the hand-typed contract assumes' \u2014 the two ground truths available in this workspace (both resolved via packages/e2e's `@iqai/adk` devDependency pin; `@google/genai` is TRANSITIVE, not a direct e2e dependency, resolved in a second hop scoped to @iqai/adk's own installed subtree, mirroring the openai-agents manifest's agents->agents-core hop): (1) `partKind` \u2014 the Gemini `Part` interface's own field names, from `@google/genai`'s bundled `dist/genai.d.ts` (the part-kind vocabulary this facet's `driveAdkPart` if-chain switches on); (2) `eventField` \u2014 the `Event`/`LlmResponse` class field names, from `@iqai/adk`'s bundled `dist/index.d.ts` (`Event extends LlmResponse`; both classes' OWN fields are flattened into one inventory, since the hand-typed `AdkEvent` interface itself makes no such split). Dispositions were seeded 2026-07-03 by reading `driveAdkPart`/`driveAdkTopLevel`/`maybeCloseTurn` line-by-line against every installed field. handled = the facet has a dedicated, correct branch (or is genuinely CONSUMED for correlation, e.g. `id` in `turnKey()`); carried = routed losslessly to the existing `provider-raw` content.block carry (mirrors `driveAdkTopLevel`'s pre-existing `unmappedActions`/`unmappedEvent` named-field-ledger pattern \u2014 NOT a generic reflect-over-keys catch-all); not-applicable = provably cannot be a meaningful JSON-wire value on this facet's ingestion boundary; silently-dropped = a genuine, disclosed gap left un-landed (see below). FIVE findings were closed by carries: on `partKind`, ADDING the unmapped-part-fields carry (a new, unconditional check at the TOP of `driveAdkPart`, checked BEFORE the kind-specific if-chain's early returns \u2014 necessary because `videoMetadata` normally rides ALONGSIDE an already-matched `inlineData`/`fileData` part per genai's own doc, so a check placed only in an 'else' fallback would never see it) closed `mediaResolution`/`videoMetadata`/`toolCall`/`toolResponse`/`partMetadata`; on `eventField`, extending the PRE-EXISTING `unmappedEvent` bag in `driveAdkTopLevel` closed `candidateIndex` (absent from the hand-typed contract entirely) and `branch` (already typed on `AdkEvent` but never read). TWO findings were seeded, investigated, then DELIBERATELY left `silently-dropped` rather than landed: `author`/`timestamp` are ALSO real, currently-unread `AdkEvent` fields, but BOTH are REQUIRED (non-optional) on the real @iqai/adk `Event` class (present on EVERY event, unlike the genuinely-optional `candidateIndex`/`branch`) \u2014 empirically, folding them into the generic carry fired a provider-raw content.block on every single native event in packages/e2e's captured adk fixtures (`author:\"spike\"` is set on all events of both corpus scenarios), breaking the recorded golden `*.agjson.json` snapshots and the cross-framework convergence assertions; regenerating those cassette fixtures is outside this ratchet's boundary (facet + manifests + script + SPEC \u00a78 only). See their own per-entry notes below and `index.test.ts`'s explicit negative-control test. SPEC \u00a78 item 23 documents the FOUR carries that DID land (`candidateIndex`/`branch` + the five `partKind` fields). See .superpowers/sdd/adk-ratchet-report.md for the full rationale + wire citations.",
   "sections": {
     "partKind": {
-      "$comment": "The Gemini `Part` interface's own field names (`@google/genai`'s `dist/genai.d.ts`, `export declare interface Part { … }`) — the part-kind vocabulary `driveAdkPart` switches on. `thought`/`thoughtSignature` are MODIFIER fields (ride alongside `text`/`functionCall`/`functionResponse`, never a kind of their own), listed here as their own members because they are still distinct installed field names the gate must track.",
+      "$comment": "The Gemini `Part` interface's own field names (`@google/genai`'s `dist/genai.d.ts`, `export declare interface Part { \u2026 }`) \u2014 the part-kind vocabulary `driveAdkPart` switches on. `thought`/`thoughtSignature` are MODIFIER fields (ride alongside `text`/`functionCall`/`functionResponse`, never a kind of their own), listed here as their own members because they are still distinct installed field names the gate must track.",
       "sdkPackage": "@google/genai",
       "verifiedAt": "1.52.0",
       "members": {
         "text": {
           "disposition": "handled",
-          "note": "Primary text content -> text.start/delta/end (with citations/providerMetadata.google.thoughtSignature when signed, audit M22/§8.8). When the SAME part also has `thought:true`, it routes to reasoning.* instead (see the `thought` entry) — `driveAdkPart` checks `thought` FIRST and returns before reaching the text branch, so a thought+text part is never double-emitted."
+          "note": "Primary text content -> text.start/delta/end (with citations/providerMetadata.google.thoughtSignature when signed, audit M22/\u00a78.8). When the SAME part also has `thought:true`, it routes to reasoning.* instead (see the `thought` entry) \u2014 `driveAdkPart` checks `thought` FIRST and returns before reaching the text branch, so a thought+text part is never double-emitted."
         },
         "thought": {
           "disposition": "handled",
@@ -16,11 +16,11 @@
         },
         "thoughtSignature": {
           "disposition": "handled",
-          "note": "Per-part base64 replay signature (§8.8, echo-or-400). Rides FOUR places depending on which sibling field is set on the SAME part: reasoning.opaque (thought parts), text.start/end.providerMetadata.google.thoughtSignature (signed non-thought text, e.g. Google-Search-grounded turns), tool.args.assembled.signature (functionCall parts), and tool.done.providerMetadata.google.thoughtSignature (functionResponse parts)."
+          "note": "Per-part base64 replay signature (\u00a78.8, echo-or-400). Rides FOUR places depending on which sibling field is set on the SAME part: reasoning.opaque (thought parts), text.start/end.providerMetadata.google.thoughtSignature (signed non-thought text, e.g. Google-Search-grounded turns), tool.args.assembled.signature (functionCall parts), and tool.done.providerMetadata.google.thoughtSignature (functionResponse parts)."
         },
         "functionCall": {
           "disposition": "handled",
-          "note": "tool.start + tool.args.delta + tool.args.assembled. Null-id minting (audit M47, window-scoped multiset dedup for the partial:false aggregate re-send — see ToolCallMintState's file-header doc) when `functionCall.id` is absent, as it often is on the Developer API."
+          "note": "tool.start + tool.args.delta + tool.args.assembled. Null-id minting (audit M47, window-scoped multiset dedup for the partial:false aggregate re-send \u2014 see ToolCallMintState's file-header doc) when `functionCall.id` is absent, as it often is on the Developer API."
         },
         "functionResponse": {
           "disposition": "handled",
@@ -28,7 +28,7 @@
         },
         "inlineData": {
           "disposition": "handled",
-          "note": "inlineDataBlock() routes by MIME prefix to the image/audio/file AgBlock arm (spec §2)."
+          "note": "inlineDataBlock() routes by MIME prefix to the image/audio/file AgBlock arm (spec \u00a72)."
         },
         "executableCode": {
           "disposition": "handled",
@@ -44,15 +44,15 @@
         },
         "mediaResolution": {
           "disposition": "carried",
-          "note": "FIXED (fixture-drift ratchet, google-adk-ratchet task): was NOT read anywhere in driveAdkPart — a genuinely-vanishing finding (Tenet-6). Now carried via the new unconditional unmapped-part-fields provider-raw content.block (checked at the TOP of driveAdkPart, before the kind-specific if-chain). SPEC §8 item 23."
+          "note": "FIXED (fixture-drift ratchet, google-adk-ratchet task): was NOT read anywhere in driveAdkPart \u2014 a genuinely-vanishing finding (Tenet-6). Now carried via the new unconditional unmapped-part-fields provider-raw content.block (checked at the TOP of driveAdkPart, before the kind-specific if-chain). SPEC \u00a78 item 23."
         },
         "videoMetadata": {
           "disposition": "carried",
-          "note": "FIXED (fixture-drift ratchet): per genai's own doc ('should only be specified while the video data is presented in inline_data or file_data'), this field normally rides ALONGSIDE an already-handled inlineData/fileData part — but driveAdkPart's if-chain RETURNS as soon as it matches the primary kind, so a naive 'else' fallback placed AFTER the if-chain would never see this sibling field on a part whose primary content WAS handled. Fixed by checking unconditionally BEFORE the if-chain instead (same fix as mediaResolution). Verified with a fixture carrying BOTH inlineData and videoMetadata on the same part (index.test.ts). SPEC §8 item 23."
+          "note": "FIXED (fixture-drift ratchet): per genai's own doc ('should only be specified while the video data is presented in inline_data or file_data'), this field normally rides ALONGSIDE an already-handled inlineData/fileData part \u2014 but driveAdkPart's if-chain RETURNS as soon as it matches the primary kind, so a naive 'else' fallback placed AFTER the if-chain would never see this sibling field on a part whose primary content WAS handled. Fixed by checking unconditionally BEFORE the if-chain instead (same fix as mediaResolution). Verified with a fixture carrying BOTH inlineData and videoMetadata on the same part (index.test.ts). SPEC \u00a78 item 23."
         },
         "toolCall": {
           "disposition": "carried",
-          "note": "FIXED (fixture-drift ratchet): 'Server-side tool call...the client is expected to echo this message back to the API' — a live-API/bidi construct, DISTINCT from the client-executed `functionCall` (echo-only semantics, no AgJSON tool-lifecycle concept models it). Carried via the same unmapped-part-fields provider-raw block rather than dropped."
+          "note": "FIXED (fixture-drift ratchet): 'Server-side tool call...the client is expected to echo this message back to the API' \u2014 a live-API/bidi construct, DISTINCT from the client-executed `functionCall` (echo-only semantics, no AgJSON tool-lifecycle concept models it). Carried via the same unmapped-part-fields provider-raw block rather than dropped."
         },
         "toolResponse": {
           "disposition": "carried",
@@ -65,13 +65,13 @@
       }
     },
     "eventField": {
-      "$comment": "The `Event`/`LlmResponse` class field names (`@iqai/adk`'s `dist/index.d.ts`; `declare class Event extends LlmResponse`). Both classes' own fields are flattened into ONE inventory (13 from LlmResponse + 6 additional from Event, `id` deduplicated) — matching how the hand-typed `AdkEvent` interface itself makes no LlmResponse/Event split. Nested sub-object field names (e.g. AdkContent.role, EventActions' own members) are OUT OF SCOPE for this section — it covers only the TOP-LEVEL Event/LlmResponse field names, analogous to how the openai manifest's protocolItem section covers only top-level ModelItem discriminants, not fields nested inside a content/action sub-union.",
+      "$comment": "The `Event`/`LlmResponse` class field names (`@iqai/adk`'s `dist/index.d.ts`; `declare class Event extends LlmResponse`). Both classes' own fields are flattened into ONE inventory (13 from LlmResponse + 6 additional from Event, `id` deduplicated) \u2014 matching how the hand-typed `AdkEvent` interface itself makes no LlmResponse/Event split. Nested sub-object field names (e.g. AdkContent.role, EventActions' own members) are OUT OF SCOPE for this section \u2014 it covers only the TOP-LEVEL Event/LlmResponse field names, analogous to how the openai manifest's protocolItem section covers only top-level ModelItem discriminants, not fields nested inside a content/action sub-union.",
       "sdkPackage": "@iqai/adk",
       "verifiedAt": "0.1.22",
       "members": {
         "id": {
           "disposition": "handled",
-          "note": "Consumed as the turnKey() fallback (`ev.invocationId && ev.invocationId.length > 0 ? ev.invocationId : ev.id ?? \"adk\"`) when invocationId is absent — genuinely read, not merely typed."
+          "note": "Consumed as the turnKey() fallback (`ev.invocationId && ev.invocationId.length > 0 ? ev.invocationId : ev.id ?? \"adk\"`) when invocationId is absent \u2014 genuinely read, not merely typed."
         },
         "content": {
           "disposition": "handled",
@@ -83,7 +83,7 @@
         },
         "partial": {
           "disposition": "handled",
-          "note": "isPartial drives the entire streaming/aggregate-suppression state machine (§8.3, the #1 ADK double-render quirk)."
+          "note": "isPartial drives the entire streaming/aggregate-suppression state machine (\u00a78.3, the #1 ADK double-render quirk)."
         },
         "turnComplete": {
           "disposition": "handled",
@@ -95,11 +95,11 @@
         },
         "errorMessage": {
           "disposition": "handled",
-          "note": "turn.error `message` — gates whether a completed turn with errorCode closes via closeTurnError (both set) vs closeTurnDone (errorCode alone, e.g. a non-fatal block reason)."
+          "note": "turn.error `message` \u2014 gates whether a completed turn with errorCode closes via closeTurnError (both set) vs closeTurnDone (errorCode alone, e.g. a non-fatal block reason)."
         },
         "interrupted": {
           "disposition": "handled",
-          "note": "-> turn.abort{reason:'interrupted'} + marks the turn closed in the facet's own bookkeeping (audit M21, SPEC §8 item 17: interruption terminals are never success)."
+          "note": "-> turn.abort{reason:'interrupted'} + marks the turn closed in the facet's own bookkeeping (audit M21, SPEC \u00a78 item 17: interruption terminals are never success)."
         },
         "customMetadata": {
           "disposition": "carried",
@@ -111,7 +111,7 @@
         },
         "candidateIndex": {
           "disposition": "carried",
-          "note": "FIXED (fixture-drift ratchet, google-adk-ratchet task): absent from the hand-typed AdkEvent contract ENTIRELY until this task — a genuinely-vanishing finding, not merely an unread field. Real, wire-serializable numeric data ('index of the candidate response', meaningful when a request's candidateCount > 1). Added to AdkEvent + folded into the existing event-level unmappedEvent provider-raw carry. SPEC §8 item 23."
+          "note": "FIXED (fixture-drift ratchet, google-adk-ratchet task): absent from the hand-typed AdkEvent contract ENTIRELY until this task \u2014 a genuinely-vanishing finding, not merely an unread field. Real, wire-serializable numeric data ('index of the candidate response', meaningful when a request's candidateCount > 1). Added to AdkEvent + folded into the existing event-level unmappedEvent provider-raw carry. SPEC \u00a78 item 23."
         },
         "finishReason": {
           "disposition": "handled",
@@ -119,7 +119,7 @@
         },
         "error": {
           "disposition": "not-applicable",
-          "note": "'Error object if the response is an error' — a local in-process JS `Error` INSTANCE (an SDK convenience field), not a JSON-wire-serializable value: a bare Error has no own enumerable properties, so JSON.stringify(new Error(...)) yields '{}' — nothing meaningful crosses this facet's AdkEvent JSON boundary via this field. Also semantically redundant with the SAME class's already-handled errorCode/errorMessage STRING pair, which IS the wire-serializable error signal. Provably not a value this facet's ingestion boundary (a JsonValue-typed AdkEvent) can carry in any useful form."
+          "note": "'Error object if the response is an error' \u2014 a local in-process JS `Error` INSTANCE (an SDK convenience field), not a JSON-wire-serializable value: a bare Error has no own enumerable properties, so JSON.stringify(new Error(...)) yields '{}' \u2014 nothing meaningful crosses this facet's AdkEvent JSON boundary via this field. Also semantically redundant with the SAME class's already-handled errorCode/errorMessage STRING pair, which IS the wire-serializable error signal. Provably not a value this facet's ingestion boundary (a JsonValue-typed AdkEvent) can carry in any useful form."
         },
         "invocationId": {
           "disposition": "handled",
@@ -127,11 +127,11 @@
         },
         "author": {
           "disposition": "silently-dropped",
-          "note": "REAL FINDING (fixture-drift ratchet, google-adk-ratchet task): ALREADY typed on AdkEvent ('user' or the agent name) but NEVER READ anywhere in drive()/driveAdkTopLevel/maybeCloseTurn — a more insidious class of finding than a missing field, since the contract's presence gave a false impression of coverage. INVESTIGATED but DELIBERATELY NOT folded into the generic unmappedEvent carry (unlike candidateIndex/branch): `author` is REQUIRED (non-optional, `author: string`) on the real @iqai/adk `Event` class — present on EVERY event, not an occasional payload. Empirically, carrying it here fired a provider-raw content.block on all 5 events of BOTH packages/e2e adk corpus scenarios (`author:\"spike\"`), breaking the recorded golden `*.agjson.json` snapshots and the cross-framework convergence assertions (adk's sequence gained content.block noise claude/openai's equivalent streams lack) — regenerating those cassette fixtures is outside this ratchet's boundary (facet+manifests+script+SPEC-§8 only). A more precise, non-noisy home (e.g. an agent-identity field on message.start, for multi-agent transcript attribution) is a plausible FUTURE spec-process enhancement. index.test.ts documents this boundary with an explicit negative-control test."
+          "note": "REAL FINDING (fixture-drift ratchet, google-adk-ratchet task): ALREADY typed on AdkEvent ('user' or the agent name) but NEVER READ anywhere in drive()/driveAdkTopLevel/maybeCloseTurn \u2014 a more insidious class of finding than a missing field, since the contract's presence gave a false impression of coverage. INVESTIGATED but DELIBERATELY NOT folded into the generic unmappedEvent carry (unlike candidateIndex/branch): `author` is REQUIRED (non-optional, `author: string`) on the real @iqai/adk `Event` class \u2014 present on EVERY event, not an occasional payload. Empirically, carrying it here fired a provider-raw content.block on all 5 events of BOTH packages/e2e adk corpus scenarios (`author:\"spike\"`), breaking the recorded golden `*.agjson.json` snapshots and the cross-framework convergence assertions (adk's sequence gained content.block noise claude/openai's equivalent streams lack) \u2014 regenerating those cassette fixtures is outside this ratchet's boundary (facet+manifests+script+SPEC-\u00a78 only). A more precise, non-noisy home (e.g. an agent-identity field on message.start, for multi-agent transcript attribution) is a plausible FUTURE spec-process enhancement. index.test.ts documents this boundary with an explicit negative-control test."
         },
         "actions": {
           "disposition": "handled",
-          "note": "transferToAgent -> handoff{kind:'transfer'}; escalate -> handoff{kind:'escalate'}; requestedAuthConfigs/requestedToolConfirmations -> hitl.ask{kind:'auth'|'approval'} folded into turn.done.outcome.paused.asks[] (audit M26, SPEC §8 items 12+18); stateDelta -> state.delta; artifactDelta/renderUiWidgets/agentState/endOfAgent -> the pre-existing unmappedActions provider-raw carry (driveAdkTopLevel)."
+          "note": "transferToAgent -> handoff{kind:'transfer'}; escalate -> handoff{kind:'escalate'}; requestedAuthConfigs/requestedToolConfirmations -> hitl.ask{kind:'auth'|'approval'} folded into turn.done.outcome.paused.asks[] (audit M26, SPEC \u00a78 items 12+18); stateDelta -> state.delta; artifactDelta/renderUiWidgets/agentState/endOfAgent -> the pre-existing unmappedActions provider-raw carry (driveAdkTopLevel)."
         },
         "longRunningToolIds": {
           "disposition": "handled",
@@ -139,11 +139,11 @@
         },
         "branch": {
           "disposition": "carried",
-          "note": "FIXED (fixture-drift ratchet): ALREADY typed on AdkEvent ('multi-agent routing', format agent_1.agent_2.agent_3) but NEVER READ prior to this task — same insidious-finding class as `author`. Folded into the event-level unmappedEvent provider-raw carry. A more precise home (a branch/lineage field alongside handoff/subagent routing) is a plausible future spec-process enhancement. SPEC §8 item 23."
+          "note": "FIXED (fixture-drift ratchet): ALREADY typed on AdkEvent ('multi-agent routing', format agent_1.agent_2.agent_3) but NEVER READ prior to this task \u2014 same insidious-finding class as `author`. Folded into the event-level unmappedEvent provider-raw carry. A more precise home (a branch/lineage field alongside handoff/subagent routing) is a plausible future spec-process enhancement. SPEC \u00a78 item 23."
         },
         "timestamp": {
           "disposition": "silently-dropped",
-          "note": "REAL FINDING (fixture-drift ratchet, google-adk-ratchet task): ALREADY typed on AdkEvent ('ISO timestamp of the event' per this contract's own doc, though the INSTALLED @iqai/adk 0.1.22 Event class types it as a `number` — seconds since epoch, a shape divergence noted for a future runtime-adapter fix, out of scope for this name-only ratchet) but NEVER READ anywhere. INVESTIGATED but DELIBERATELY NOT folded into the generic carry, for the SAME reason as `author`: `timestamp` is REQUIRED (non-optional, `timestamp: number`) on the real @iqai/adk `Event` class — present on EVERY event. Carrying it here would fire on every native event in real usage, same noise/breakage risk empirically confirmed for `author`. DISCLOSED residual: SPEC.md's conformance item 13 documents a MORE PRECISE existing home for a source timestamp — the bare-key `_meta.timestamp` convention — but attaching it correctly would require choosing WHICH of this one native event's several fanned-out AgEvents anchors the stamp, a design decision beyond this ratchet's mechanical-carry scope. index.test.ts documents this boundary with an explicit negative-control test."
+          "note": "REAL FINDING (fixture-drift ratchet, google-adk-ratchet task): ALREADY typed on AdkEvent ('ISO timestamp of the event' per this contract's own doc, though the INSTALLED @iqai/adk 0.1.22 Event class types it as a `number` \u2014 seconds since epoch, a shape divergence noted for a future runtime-adapter fix, out of scope for this name-only ratchet) but NEVER READ anywhere. INVESTIGATED but DELIBERATELY NOT folded into the generic carry, for the SAME reason as `author`: `timestamp` is REQUIRED (non-optional, `timestamp: number`) on the real @iqai/adk `Event` class \u2014 present on EVERY event. Carrying it here would fire on every native event in real usage, same noise/breakage risk empirically confirmed for `author`. DISCLOSED residual: SPEC.md's conformance item 13 documents a MORE PRECISE existing home for a source timestamp \u2014 the bare-key `_meta.timestamp` convention \u2014 but attaching it correctly would require choosing WHICH of this one native event's several fanned-out AgEvents anchors the stamp, a design decision beyond this ratchet's mechanical-carry scope. index.test.ts documents this boundary with an explicit negative-control test. Deeper rationale: wall-clock per-event timestamps are the SAME nondeterminism class the AgJSON base envelope deliberately omits (the deleted ts? field, audit M52 / INV-FOLD) \u2014 carrying it as content would reintroduce nondeterministic snapshots even if the field were rare."
         }
       }
     }
