@@ -53,24 +53,28 @@ export async function* runOpenaiCapture(input: CaptureRunInput): AsyncIterable<J
         name,
         url: cfg.url,
         requestInit: { headers: { Authorization: `Bearer ${cfg.bearer}` } },
-        // NOTE (playbook 2026-07-03, exploratory live probe against the
-        // app-spec/structuredContent mock — NOT part of this playbook's
-        // required echo-sonnet5/echo-gpt55 captures, neither of which touch
-        // structuredContent): `@openai/agents-core` 0.12.0's `MCPServer.
-        // useStructuredContent` (default `false`) does NOT restore the
-        // shape `../../index.ts`'s structuredContent extraction expects
-        // (`isJsonObject(wrapperOutput) && isJsonObject(wrapperOutput.
-        // structuredContent)`) either way — `item.output` is a
-        // JSON-stringified STRING under 0.12.0 regardless of this flag
-        // (false: plain content text only; true: MCP structuredContent
-        // fields merged into the model-visible text, which would leak the
-        // ggui cache-marker payload into the model's context — a behavior
-        // change, not a fix). Left at the SDK default (false, unset) rather
-        // than flipping a flag that doesn't fix the underlying facet/wire
-        // mismatch and does change model-visible behavior. Reported as a
-        // FACET finding (not fixed here — out of scope for this playbook
-        // step, which fixes AGENT wiring only): see the playbook capture
-        // report for the full repro + recommended follow-up.
+        // Playbook 2026-07-03 follow-up (structuredContent-under-0.12.0 fix):
+        // `@openai/agents-core` 0.12.0's `MCPServer.useStructuredContent`
+        // (default `false`) was considered and REJECTED — flipping it merges
+        // MCP `structuredContent` into the MODEL-VISIBLE tool-result text
+        // instead of restoring a separate channel, which would leak the ggui
+        // cache-marker payload into what the model sees (a behavior change,
+        // not a fix). Left unset (SDK default).
+        //
+        // `customDataExtractor` is the real, additive channel: it does NOT
+        // touch model-visible content — its return value lands verbatim on
+        // the wrapper's `item.customData` field (`RunToolCallOutputItem.
+        // customData`, agents-core 0.12.0's `dist/items.mjs`), which
+        // `../../../openai-agents/src/index.ts`'s `extractStructuredContent`
+        // now reads. This is what actually carries the ggui cache marker
+        // through on real 0.12.0 wire — verified against agents-core
+        // 0.12.0's `mcpToFunctionTool` (`dist/mcp.mjs:672-738`) and
+        // `normalizeToolOutputCustomData` (`dist/utils/customData.mjs`, which
+        // JSON-round-trips and validates the return value itself). A no-op
+        // for tools that return no structuredContent (returns `undefined`,
+        // which the SDK drops — no new field appears on the wire for them).
+        customDataExtractor: (context) =>
+          context.structuredContent !== undefined ? { structuredContent: context.structuredContent } : undefined,
       }),
   );
 
