@@ -1906,6 +1906,96 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: hosted_tool_call (
   });
 });
 
+// ─── computer_call / computer_call_result (fixture-drift ratchet finding, ────
+// 2026-07-03) — the SAME orphan-tool.done bug class Finding #1 fixed for
+// shell_call/apply_patch_call, confirmed still present for OpenAI's
+// Computer-Use built-in tool (which rides the exact SAME `tool_called`/
+// `tool_output` event names). `ComputerUseCallItem` carries NO `name` field
+// (unlike hosted_tool_call, which has one) — pre-fix, `builtinToolName()`'s
+// fallback (`rawItem.name`) would have synthesized `name: undefined` on
+// `a.toolStart()`. `ComputerCallResultItem.output` is `{type:"computer_
+// screenshot", data}` (a base64 PNG) — pre-fix, the generic
+// `toolOutputToAgBlocks` path's `.type === "text"` check never matched it,
+// producing an orphaned tool.done with silently-EMPTY content.
+describe("createOpenaiNormalizer — built-in tool lifecycle: computer_call (fixture-drift ratchet, 2026-07-03)", () => {
+  const COMPUTER_ROUND: JsonValue[] = [
+    rawModel({ type: "response.created", response: { id: "resp_computer_1" } }),
+    runItem("tool_called", {
+      type: "tool_call_item",
+      rawItem: {
+        type: "computer_call",
+        callId: "call_computer_1",
+        status: "in_progress",
+        action: { type: "screenshot" },
+        id: "item_computer_1",
+      },
+    }),
+    runItem("tool_output", {
+      type: "tool_call_output_item",
+      rawItem: {
+        type: "computer_call_result",
+        callId: "call_computer_1",
+        output: { type: "computer_screenshot", data: "aGVsbG8=" },
+      },
+    }),
+    rawModel({ type: "response.completed", response: { id: "resp_computer_1", status: "completed" } }),
+  ];
+
+  it("synthesizes tool.start with name builtin:computer (regression: NOT name:undefined)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = COMPUTER_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const starts = evs.filter((e) => e.type === "tool.start");
+    expect(starts).toHaveLength(1); // exactly one — no double-start
+    expect(starts[0]).toMatchObject({ toolCallId: "call_computer_1", name: "builtin:computer" });
+    expect((starts[0] as { name?: unknown }).name).not.toBeUndefined();
+  });
+
+  it("emits tool.args.assembled with the computer action object carried through verbatim", () => {
+    const n = createOpenaiNormalizer();
+    const evs = COMPUTER_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const assembled = evs.find((e) => e.type === "tool.args.assembled");
+    expect(assembled).toMatchObject({ toolCallId: "call_computer_1", input: { type: "screenshot" } });
+  });
+
+  it("emits tool.done with the screenshot landed as a file block (base64 PNG) — regression: NOT orphaned-empty content", () => {
+    const n = createOpenaiNormalizer();
+    const evs = COMPUTER_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const done = evs.find((e) => e.type === "tool.done") as {
+      toolCallId?: string;
+      outcome?: string;
+      content?: { type: string; source?: { type: string; mediaType?: string; data?: string } }[];
+    };
+    expect(done?.toolCallId).toBe("call_computer_1");
+    expect(done?.outcome).toBe("ok");
+    expect(done?.content).toHaveLength(1);
+    expect(done?.content?.[0]).toMatchObject({
+      type: "file",
+      source: { type: "base64", mediaType: "image/png", data: "aGVsbG8=" },
+    });
+  });
+
+  it("no orphaned tool.done — tool.start always precedes tool.done for the same toolCallId", () => {
+    const n = createOpenaiNormalizer();
+    const evs = COMPUTER_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const startIdx = evs.findIndex((e) => e.type === "tool.start");
+    const doneIdx = evs.findIndex((e) => e.type === "tool.done");
+    expect(startIdx).toBeGreaterThanOrEqual(0);
+    expect(doneIdx).toBeGreaterThan(startIdx);
+  });
+
+  it("fold: no resync, exactly one tool-call + tool-result block pair, no park", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    for (const e of COMPUTER_ROUND) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    const allBlocks = res.messages.flatMap((m) => m.content);
+    expect(allBlocks.filter((b) => b.type === "tool-call")).toHaveLength(1);
+    expect(allBlocks.filter((b) => b.type === "tool-result")).toHaveLength(1);
+  });
+});
+
 describe("createOpenaiNormalizer — tool_search_* family: documented lossless carry (playbook 2026-07-03)", () => {
   // Finding #4 (minor — the report's own recommendation followed): tool_search
   // is NOT ported to a first-class tool.start/done lifecycle. Its payload shape

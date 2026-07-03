@@ -302,6 +302,46 @@ export interface OpenAIHostedToolCallItem {
   providerData?: { [k: string]: JsonValue };
 }
 
+// ── OpenAI native Computer-Use built-in tool shapes (fixture-drift ratchet
+// finding, 2026-07-03 — Task 6's `sdk-surface.json` inventory surfaced that
+// `computer_call`/`computer_call_result` ride the SAME `tool_called`/
+// `tool_output` event names Finding #1 already fixed for shell/apply-patch,
+// but were left uncovered by that fix. Verified against
+// @openai/agents-core 0.12.0's `dist/types/protocol.d.ts`: `ComputerUseCallItem`
+// / `ComputerCallResultItem`.)
+
+/** protocol `ComputerUseCallItem` (a `tool_called` rawItem for OpenAI's native
+ *  Computer-Use built-in tool). Carries NO `name` field — the facet synthesizes
+ *  `name:"builtin:computer"` (§8 quirk, mirrors shell_call/apply_patch_call).
+ *  `action` (the single computer action — click/scroll/type/screenshot/…,
+ *  protocol.d.ts's own 8-arm discriminated union) is OPTIONAL on the wire and
+ *  carried through verbatim as the tool's args payload; its nested fields are
+ *  not interpreted here (fixture discipline: type only what is consumed — the
+ *  facet never branches on a specific action kind). Same
+ *  single-wrapper-is-authoritative rationale as {@link OpenAIShellCallItem}:
+ *  no per-fragment argument-delta stream exists for this shape on this seam. */
+export interface OpenAIComputerCallItem {
+  type: "computer_call";
+  callId: string;
+  status: "in_progress" | "completed" | "incomplete";
+  action?: JsonValue;
+  id?: string;
+  providerData?: { [k: string]: JsonValue };
+}
+
+/** protocol `ComputerCallResultItem` (the `rawItem` of a `tool_output` run-item
+ *  for a completed Computer-Use call). `output` is ALWAYS the
+ *  `computer_screenshot` shape (a base64-encoded PNG screenshot) — NO
+ *  `status`/error discriminant exists on this wire arm (unlike shell/apply-
+ *  patch results), so the facet maps every occurrence to `outcome:"ok"`. */
+export interface OpenAIComputerCallResultItem {
+  type: "computer_call_result";
+  callId: string;
+  output: { type: "computer_screenshot"; data: string };
+  id?: string;
+  providerData?: { [k: string]: JsonValue };
+}
+
 /** protocol `InputText` (the visible reasoning content part). */
 export interface OpenAIReasoningTextPart {
   type: "input_text";
@@ -327,19 +367,26 @@ interface OpenAIMessageOutputEvent {
 interface OpenAIToolCalledEvent {
   type: "run_item_stream_event";
   name: "tool_called";
-  // Widened (playbook 2026-07-03 SDK-bump adaptation, Finding #1): Shell /
-  // Apply-Patch / Hosted-tool built-ins reuse this SAME event name with a
-  // DIFFERENT `rawItem` discriminant — see the three interfaces above.
+  // Widened (playbook 2026-07-03 SDK-bump adaptation, Finding #1 + the
+  // fixture-drift ratchet's computer_call finding): Shell / Apply-Patch /
+  // Computer-Use / Hosted-tool built-ins reuse this SAME event name with a
+  // DIFFERENT `rawItem` discriminant — see the four interfaces above.
   item: {
     type: "tool_call_item";
-    rawItem: OpenAIFunctionCallItem | OpenAIShellCallItem | OpenAIApplyPatchCallItem | OpenAIHostedToolCallItem;
+    rawItem:
+      | OpenAIFunctionCallItem
+      | OpenAIShellCallItem
+      | OpenAIApplyPatchCallItem
+      | OpenAIComputerCallItem
+      | OpenAIHostedToolCallItem;
   };
 }
 interface OpenAIToolOutputEvent {
   type: "run_item_stream_event";
   name: "tool_output";
   // `item.rawItem` carries the protocol FunctionCallResultItem (callId, output, status)
-  // — OR, widened (Finding #1), a Shell/Apply-Patch result (DIFFERENT `output`
+  // — OR, widened (Finding #1 + the fixture-drift ratchet's computer_call_result
+  // finding), a Shell/Apply-Patch/Computer-Use result (DIFFERENT `output`
   // shape per discriminant; `hosted_tool_call` never reaches this event, see its
   // own doc).
   //
@@ -363,7 +410,11 @@ interface OpenAIToolOutputEvent {
   // Cast-free extraction uses `isJsonObject` + `JsonValue.parse` throughout.
   item: {
     type: "tool_call_output_item";
-    rawItem: OpenAIFunctionCallResultItem | OpenAIShellCallResultItem | OpenAIApplyPatchCallResultItem;
+    rawItem:
+      | OpenAIFunctionCallResultItem
+      | OpenAIShellCallResultItem
+      | OpenAIApplyPatchCallResultItem
+      | OpenAIComputerCallResultItem;
     output?: JsonValue;
     customData?: JsonValue;
   };
@@ -1449,19 +1500,22 @@ export function createOpenaiNormalizer(): Normalizer {
   }
 
   /**
-   * Map a `tool_output` run-item whose `rawItem` is a Shell or Apply-Patch
-   * result (playbook 2026-07-03 SDK-bump adaptation, Finding #1). These do
-   * NOT share `OpenAIFunctionCallResultItem`'s `output` shape (a bare string /
-   * content-part union) — `shell_call_output.output` is an ARRAY of per-command
-   * `{stdout,stderr,outcome}` records, `apply_patch_call_output.output` is an
-   * optional bare string — so they need their OWN mapping, not
+   * Map a `tool_output` run-item whose `rawItem` is a Shell, Apply-Patch, or
+   * Computer-Use result (playbook 2026-07-03 SDK-bump adaptation, Finding #1;
+   * `computer_call_result` added by the fixture-drift ratchet finding, same
+   * date). These do NOT share `OpenAIFunctionCallResultItem`'s `output` shape
+   * (a bare string / content-part union) — `shell_call_output.output` is an
+   * ARRAY of per-command `{stdout,stderr,outcome}` records,
+   * `apply_patch_call_output.output` is an optional bare string,
+   * `computer_call_result.output` is a `{type:"computer_screenshot", data}`
+   * base64-PNG record — so they need their OWN mapping, not
    * `toolOutputToAgBlocks` (that was the orphan hazard: calling the generic
    * function_call mapper on these shapes silently produced EMPTY content,
-   * since neither record type has the `.type === "text"` discriminant
+   * since none of these record types has the `.type === "text"` discriminant
    * `toolOutputToAgBlocks` checks for).
    */
   function driveBuiltinToolOutput(
-    rawItem: OpenAIShellCallResultItem | OpenAIApplyPatchCallResultItem,
+    rawItem: OpenAIShellCallResultItem | OpenAIApplyPatchCallResultItem | OpenAIComputerCallResultItem,
   ): void {
     const toolCallId = rawItem.callId;
     let content: AgBlock[];
@@ -1478,6 +1532,19 @@ export function createOpenaiNormalizer(): Normalizer {
       // collapse into text-only content — carry it verbatim as structuredContent
       // too (mirrors the function_call path's ggui-cache-marker precedent).
       structuredContent = JsonValue.parse(rawItem.output);
+    } else if (rawItem.type === "computer_call_result") {
+      // spec §8 item 20's extended discriminant: the screenshot is base64 image
+      // data, not text — land it as an AgBlock `file` block (AgSource's
+      // `base64` arm) rather than dropping it via the text-only path.
+      content = [
+        {
+          type: "file",
+          source: { type: "base64", mediaType: "image/png", data: rawItem.output.data },
+          filename: "screenshot.png",
+        },
+      ];
+      // No status/error discriminant exists on this wire arm (unlike shell/apply-patch).
+      outcome = "ok";
     } else {
       content = rawItem.output !== undefined && rawItem.output.length > 0 ? [{ type: "text", text: rawItem.output }] : [];
       outcome = rawItem.status === "failed" ? "error" : "ok";
@@ -1495,13 +1562,14 @@ export function createOpenaiNormalizer(): Normalizer {
   }
 
   /** Synthesize `name` for the built-in discriminants that carry none on the
-   *  wire (§8 quirk) — `shell_call`/`apply_patch_call` have no `name` field at
-   *  all; `hosted_tool_call` already carries a real one. */
+   *  wire (§8 quirk) — `shell_call`/`apply_patch_call`/`computer_call` have no
+   *  `name` field at all; `hosted_tool_call` already carries a real one. */
   function builtinToolName(
-    rawItem: OpenAIShellCallItem | OpenAIApplyPatchCallItem | OpenAIHostedToolCallItem,
+    rawItem: OpenAIShellCallItem | OpenAIApplyPatchCallItem | OpenAIComputerCallItem | OpenAIHostedToolCallItem,
   ): string {
     if (rawItem.type === "shell_call") return "builtin:shell";
     if (rawItem.type === "apply_patch_call") return "builtin:apply_patch";
+    if (rawItem.type === "computer_call") return "builtin:computer";
     return rawItem.name;
   }
 
@@ -1521,12 +1589,14 @@ export function createOpenaiNormalizer(): Normalizer {
 
   /**
    * Map a `tool_called` run-item whose `rawItem` is one of OpenAI's native
-   * built-in tool call shapes (Shell / Apply-Patch / Hosted-tool — playbook
-   * 2026-07-03 SDK-bump adaptation, Finding #1). Unlike `function_call` (whose
-   * tool-start rides the raw `response.output_item.added` stream — the
-   * authoritative source, canonical model A1), this run-item wrapper is the
-   * SOLE source for these three: `shell_call`/`apply_patch_call` carry no
-   * per-fragment argument-delta stream on this seam (no equivalent of
+   * built-in tool call shapes (Shell / Apply-Patch / Computer-Use / Hosted-tool
+   * — playbook 2026-07-03 SDK-bump adaptation, Finding #1; `computer_call`
+   * added by the fixture-drift ratchet finding, same date). Unlike
+   * `function_call` (whose tool-start rides the raw `response.output_item.
+   * added` stream — the authoritative source, canonical model A1), this
+   * run-item wrapper is the SOLE source for these four: `shell_call`/
+   * `apply_patch_call`/`computer_call` carry no per-fragment argument-delta
+   * stream on this seam (no equivalent of
    * `response.function_call_arguments.delta` exists for them — the whole
    * action/operation arrives complete on this one wrapper), and
    * `hosted_tool_call` has no raw-wire literal AT ALL (see its own doc — it is
@@ -1537,17 +1607,17 @@ export function createOpenaiNormalizer(): Normalizer {
    * already documents) — residual ordering risk if a future capture shows
    * otherwise is flagged in the adaptation report, not silently assumed away.
    *
-   * `shell_call`/`apply_patch_call` are PENDING calls (their result arrives via
-   * a LATER `tool_output` run-item, same Task-4b deferred-round-close
-   * discipline as `function_call`) — registered via `registerPendingTool`.
-   * `hosted_tool_call` is different: OpenAI's hosted tools execute server-side
-   * within the SAME model turn, so the item is already resolved (`output`
-   * present) by the time this wrapper streams — `tool.start` + `tool.done`
-   * fire together from this ONE event (see its own doc) — no pending
-   * registration.
+   * `shell_call`/`apply_patch_call`/`computer_call` are PENDING calls (their
+   * result arrives via a LATER `tool_output` run-item, same Task-4b
+   * deferred-round-close discipline as `function_call`) — registered via
+   * `registerPendingTool`. `hosted_tool_call` is different: OpenAI's hosted
+   * tools execute server-side within the SAME model turn, so the item is
+   * already resolved (`output` present) by the time this wrapper streams —
+   * `tool.start` + `tool.done` fire together from this ONE event (see its own
+   * doc) — no pending registration.
    */
   function driveBuiltinToolCalled(
-    rawItem: OpenAIShellCallItem | OpenAIApplyPatchCallItem | OpenAIHostedToolCallItem,
+    rawItem: OpenAIShellCallItem | OpenAIApplyPatchCallItem | OpenAIComputerCallItem | OpenAIHostedToolCallItem,
   ): void {
     ensureResponseOpen();
     if (msgId === undefined) return; // unreachable post-ensure; satisfies narrowing
@@ -1564,7 +1634,9 @@ export function createOpenaiNormalizer(): Normalizer {
         ? JsonValue.parse(rawItem.action)
         : rawItem.type === "apply_patch_call"
           ? JsonValue.parse(rawItem.operation)
-          : parseJsonArguments(rawItem.id, rawItem.arguments);
+          : rawItem.type === "computer_call"
+            ? JsonValue.parse(rawItem.action ?? {})
+            : parseJsonArguments(rawItem.id, rawItem.arguments);
     a.toolArgsDelta(toolCallId, JSON.stringify(input));
     a.toolArgsAssembled(toolCallId, input);
     if (rawItem.type === "hosted_tool_call") {
@@ -1613,11 +1685,16 @@ export function createOpenaiNormalizer(): Normalizer {
       switch (event.name) {
         case "tool_output": {
           const rawItem = event.item.rawItem;
-          // Finding #1 (critical): Shell/Apply-Patch results do NOT share
-          // `OpenAIFunctionCallResultItem.output`'s shape — see
-          // `driveBuiltinToolOutput`'s doc for why the generic path below is
-          // wrong for them (the orphan-hazard this adaptation fixes).
-          if (rawItem.type === "shell_call_output" || rawItem.type === "apply_patch_call_output") {
+          // Finding #1 (critical) + the fixture-drift ratchet's
+          // computer_call_result finding: Shell/Apply-Patch/Computer-Use
+          // results do NOT share `OpenAIFunctionCallResultItem.output`'s shape
+          // — see `driveBuiltinToolOutput`'s doc for why the generic path
+          // below is wrong for them (the orphan-hazard this adaptation fixes).
+          if (
+            rawItem.type === "shell_call_output" ||
+            rawItem.type === "apply_patch_call_output" ||
+            rawItem.type === "computer_call_result"
+          ) {
             driveBuiltinToolOutput(rawItem);
             return;
           }
