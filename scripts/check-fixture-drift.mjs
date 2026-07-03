@@ -37,25 +37,46 @@
  *      that also includes `computer_call_result`, relevant for input-history
  *      reconstruction).
  *
+ * **google-adk** (`packages/google-adk/sdk-surface.json`): UNLIKE the other
+ * two facets, this one does not import its upstream SDK at runtime — the
+ * facet's `AdkEvent`/`AdkPart` are a HAND-TYPED PROJECTION of the verified
+ * wire (`@iqai/adk` is an optional peerDependency, never imported). So the
+ * inventory ratchets "does the INSTALLED reference SDKs' field vocabulary
+ * still match what the hand-typed contract assumes", via TWO separate
+ * sections, each resolved from a DIFFERENT npm package (kept separate for the
+ * same attributability reason as openai-agents' two sections):
+ *   1. `partKind` — the Gemini `Part` interface's own field names
+ *      (`@google/genai`'s `dist/genai.d.ts`, `export declare interface Part`)
+ *      — the part-kind vocabulary the facet's `driveAdkPart` switches on.
+ *   2. `eventField` — the `Event`/`LlmResponse` class field names
+ *      (`@iqai/adk`'s `dist/index.d.ts`; `Event extends LlmResponse`, both
+ *      classes' own fields flattened into one inventory).
+ *
  * # Resolution
  *
- * Both SDKs are resolved via `packages/e2e`'s EXACT devDependency pins (the
- * capture-agent leg — the same version the playbook's drift/adaptation ritual
- * itself diffs against), using `createRequire` scoped to `packages/e2e` so
- * resolution cannot escape into an unrelated outer workspace's `node_modules`
- * (verified hazard: a naive `require.resolve(pkg, {paths:[…]})` walk from a
- * package with no local hoist for `pkg` can walk all the way past this
- * repo's own `node_modules` root). `@openai/agents-core` is transitive (not a
- * direct dependency of either facet package or of `packages/e2e`), so it is
- * resolved in a SECOND hop: resolve `@openai/agents` first (a direct
- * `packages/e2e` devDependency), then resolve `@openai/agents-core` scoped to
- * agents' own installed directory (its sibling in the same pnpm store
- * subtree) — this stays local and never escapes.
+ * All three facets' SDKs are resolved via `packages/e2e`'s EXACT devDependency
+ * pins (the capture-agent leg — the same version the playbook's
+ * drift/adaptation ritual itself diffs against), using `createRequire` scoped
+ * to `packages/e2e` so resolution cannot escape into an unrelated outer
+ * workspace's `node_modules` (verified hazard: a naive
+ * `require.resolve(pkg, {paths:[…]})` walk from a package with no local hoist
+ * for `pkg` can walk all the way past this repo's own `node_modules` root).
+ * Two packages are TRANSITIVE (not a direct dependency of their facet package
+ * or of `packages/e2e`), so each is resolved in a SECOND hop: `@openai/agents-
+ * core` via `@openai/agents` (a direct `packages/e2e` devDependency) scoped to
+ * agents' own installed directory; `@google/genai` via `@iqai/adk` (also a
+ * direct `packages/e2e` devDependency) scoped to adk's own installed
+ * directory — both hops stay local (the sibling in the same pnpm store
+ * subtree) and never escape.
  *
  * If a facet's SDK package cannot be resolved (not installed — e.g. a
  * standalone open-source clone before `pnpm --filter e2e install`), that
  * facet's check is SKIPPED gracefully (a message, no failure) rather than
  * erroring — the gate only enforces drift on facets it can actually verify.
+ * For google-adk, resolution of EITHER `@iqai/adk` or (via its second hop)
+ * `@google/genai` failing skips BOTH of the facet's sections together (one
+ * unit, mirroring how an openai-agents resolution failure skips both of ITS
+ * sections).
  *
  * # Usage
  *
@@ -255,6 +276,120 @@ function extractOpenaiModelItemTypes(protocolDtsText) {
   return extractUnionArmTypeLiterals(stmt);
 }
 
+/**
+ * Slice the BODY (excluding the outer braces) of a `headerMarker … { … }`
+ * brace block out of `src` — used for google-adk's `declare class`/
+ * `declare interface` bodies (a shape `extractStatement` doesn't fit: those
+ * end at a matching `}`, not a top-level `;`). `headerMarker` MUST end with
+ * the block's own opening `{` (e.g. `"declare class LlmResponse {"`); depth
+ * tracking starts AT that `{` so it is depth 1, and the scan returns the
+ * slice up to (excluding) the `}` that first brings depth back to 0.
+ */
+function extractBraceBlockBody(src, headerMarker) {
+  if (!headerMarker.endsWith("{")) {
+    throw new Error(`extractBraceBlockBody: headerMarker must end with "{": ${headerMarker}`);
+  }
+  const start = src.indexOf(headerMarker);
+  if (start === -1) return null;
+  const braceStart = start + headerMarker.length - 1; // index of the marker's own trailing "{"
+  let depth = 0;
+  for (let i = braceStart; i < src.length; i++) {
+    const ch = src[i];
+    if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) return src.slice(braceStart + 1, i);
+    }
+  }
+  return null;
+}
+
+/** Strip `/* … *\/` block comments (this helper's only caller feeds it bundled
+ *  `.d.ts` class/interface bodies, which use JSDoc `/**…*\/` comments — never
+ *  `//` line comments — so only block-comment stripping is needed here). */
+function stripBlockComments(text) {
+  return text.replace(/\/\*[\s\S]*?\*\//g, "");
+}
+
+/**
+ * Split `body` into top-level (`{`/`(`/`[`-depth-tracked) `;`-terminated
+ * statements, discarding the trailing empty tail after the last `;`.
+ */
+function splitTopLevelStatements(body) {
+  const out = [];
+  let depth = 0;
+  let stmtStart = 0;
+  for (let i = 0; i < body.length; i++) {
+    const ch = body[i];
+    if (ch === "{" || ch === "(" || ch === "[") depth++;
+    else if (ch === "}" || ch === ")" || ch === "]") depth--;
+    else if (ch === ";" && depth === 0) {
+      out.push(body.slice(stmtStart, i));
+      stmtStart = i + 1;
+    }
+  }
+  return out;
+}
+
+// A field declaration's name is followed IMMEDIATELY (modulo an optional
+// `?`) by `:` (e.g. `text?: string`). A METHOD's name is instead followed by
+// `(` (`isFinalResponse(): boolean`), and a modifier-prefixed member
+// (`private`/`protected`/`static`/`readonly`/`constructor`/`get`/`set`) never
+// matches at all, because the modifier word itself is followed by a SPACE,
+// not `?`/`:` — so methods, accessors, and modified members are excluded
+// structurally, with no separate keyword-denylist needed.
+const FIELD_DECL_RE = /^([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\??\s*:/;
+
+/**
+ * Extract top-level DATA FIELD names (never method names) declared directly
+ * inside a `declare class X { … }` / `declare interface X { … }` body text
+ * (comments already assumed present — this function strips them itself).
+ */
+function extractFieldNames(bodyText) {
+  const stripped = stripBlockComments(bodyText);
+  const names = [];
+  for (const raw of splitTopLevelStatements(stripped)) {
+    const stmt = raw.trim();
+    if (stmt.length === 0) continue;
+    const m = FIELD_DECL_RE.exec(stmt);
+    if (m) names.push(m[1]);
+  }
+  return [...new Set(names)];
+}
+
+/**
+ * Extract the Gemini `Part` interface's own field names from an
+ * `@google/genai` `dist/genai.d.ts` full text
+ * (`export declare interface Part { … }`).
+ */
+function extractGenaiPartFields(genaiDtsText) {
+  const marker = "export declare interface Part {";
+  const body = extractBraceBlockBody(genaiDtsText, marker);
+  if (body == null) {
+    throw new Error("genai.d.ts: `export declare interface Part { … }` not found");
+  }
+  return extractFieldNames(body);
+}
+
+/**
+ * Extract the `Event`/`LlmResponse` class field names from an `@iqai/adk`
+ * `dist/index.d.ts` full text. `Event extends LlmResponse`; both classes' OWN
+ * fields are flattened into one Set (deduplicating `id`, redeclared on both).
+ */
+function extractAdkEventFields(indexDtsText) {
+  const llmResponseMarker = "declare class LlmResponse {";
+  const eventMarker = "declare class Event extends LlmResponse {";
+  const llmResponseBody = extractBraceBlockBody(indexDtsText, llmResponseMarker);
+  if (llmResponseBody == null) {
+    throw new Error("index.d.ts: `declare class LlmResponse { … }` not found");
+  }
+  const eventBody = extractBraceBlockBody(indexDtsText, eventMarker);
+  if (eventBody == null) {
+    throw new Error("index.d.ts: `declare class Event extends LlmResponse { … }` not found");
+  }
+  return [...new Set([...extractFieldNames(llmResponseBody), ...extractFieldNames(eventBody)])];
+}
+
 // -----------------------------------------------------------------------------
 // SDK resolution (graceful skip when not installed)
 // -----------------------------------------------------------------------------
@@ -303,6 +438,50 @@ async function resolveOpenaiSdk() {
     readFile(protocolDtsPath, "utf8"),
   ]);
   return { version: pkg.version, eventsDts, protocolDts };
+}
+
+/**
+ * Resolve BOTH google-adk ground truths: `@iqai/adk`'s `dist/index.d.ts` via
+ * packages/e2e's exact devDependency pin, and `@google/genai`'s
+ * `dist/genai.d.ts` via a second hop scoped to `@iqai/adk`'s own installed
+ * directory (transitive — `@google/genai` is not a direct dependency of
+ * `packages/e2e` or of the google-adk facet package; mirrors
+ * `resolveOpenaiSdk`'s agents -> agents-core hop). Both are required for the
+ * facet's TWO manifest sections, so either one failing to resolve throws
+ * `SdkNotInstalled` for the whole facet (both sections skip together).
+ */
+async function resolveGoogleAdkSdks() {
+  let adkPkg;
+  try {
+    const requireFromE2e = createRequire(e2ePackageJson);
+    adkPkg = resolvePackageRoot(requireFromE2e, "@iqai/adk");
+  } catch (err) {
+    throw new SdkNotInstalled(String(err instanceof Error ? err.message : err));
+  }
+  const indexDtsPath = resolve(adkPkg.dir, "dist", "index.d.ts");
+  if (!existsSync(indexDtsPath)) {
+    throw new SdkNotInstalled(`dist/index.d.ts not found under resolved package root ${adkPkg.dir}`);
+  }
+
+  let genaiPkg;
+  try {
+    const requireFromE2e = createRequire(e2ePackageJson);
+    const adkEntry = requireFromE2e.resolve("@iqai/adk");
+    const requireFromAdk = createRequire(adkEntry);
+    genaiPkg = resolvePackageRoot(requireFromAdk, "@google/genai");
+  } catch (err) {
+    throw new SdkNotInstalled(String(err instanceof Error ? err.message : err));
+  }
+  const genaiDtsPath = resolve(genaiPkg.dir, "dist", "genai.d.ts");
+  if (!existsSync(genaiDtsPath)) {
+    throw new SdkNotInstalled(`dist/genai.d.ts not found under resolved package root ${genaiPkg.dir}`);
+  }
+
+  const [indexDts, genaiDts] = await Promise.all([
+    readFile(indexDtsPath, "utf8"),
+    readFile(genaiDtsPath, "utf8"),
+  ]);
+  return { adkVersion: adkPkg.version, indexDts, genaiVersion: genaiPkg.version, genaiDts };
 }
 
 // -----------------------------------------------------------------------------
@@ -411,6 +590,31 @@ async function gatherInventories() {
   } catch (err) {
     if (err instanceof SdkNotInstalled) {
       skips.push(`openai-agents: SKIPPED (SDK not resolvable) — ${err.message}`);
+    } else {
+      throw err;
+    }
+  }
+
+  const googleAdkManifestPath = resolve(typescriptRoot, "packages", "google-adk", "sdk-surface.json");
+  try {
+    const [manifest, sdk] = await Promise.all([loadManifest(googleAdkManifestPath), resolveGoogleAdkSdks()]);
+    inventories.push({
+      facet: "google-adk",
+      label: `google-adk Part kind (installed @google/genai ${sdk.genaiVersion}, manifest verifiedAt ${manifest.sections.partKind.verifiedAt})`,
+      installed: extractGenaiPartFields(sdk.genaiDts),
+      manifestMembers: manifest.sections.partKind.members,
+      manifestValidationLabel: "google-adk sdk-surface.json (partKind)",
+    });
+    inventories.push({
+      facet: "google-adk",
+      label: `google-adk Event/LlmResponse field (installed @iqai/adk ${sdk.adkVersion}, manifest verifiedAt ${manifest.sections.eventField.verifiedAt})`,
+      installed: extractAdkEventFields(sdk.indexDts),
+      manifestMembers: manifest.sections.eventField.members,
+      manifestValidationLabel: "google-adk sdk-surface.json (eventField)",
+    });
+  } catch (err) {
+    if (err instanceof SdkNotInstalled) {
+      skips.push(`google-adk: SKIPPED (SDK not resolvable) — ${err.message}`);
     } else {
       throw err;
     }
