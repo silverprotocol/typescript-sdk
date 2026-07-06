@@ -1,0 +1,172 @@
+name: Release
+
+# npm publish path for the @silverprotocol/* SDK cohort, via npm Trusted
+# Publishing (GitHub OIDC — no NPM_TOKEN secret anywhere).
+#
+# This file lives under `sdks/typescript/.github/workflows/` in the private
+# workspace repo and appears at `.github/workflows/release.yml` in the public
+# `github.com/silverprotocol/typescript-sdk` mirror after the subtree push —
+# the mirror is where releases run (the trusted-publisher config on npmjs.com
+# must point at THAT repo).
+#
+# Release model (mirrors ggui's oss/release.yml): "publish what's in git."
+#   - Versions come from each `packages/<pkg>/package.json` as committed.
+#     This workflow never mutates package.json or git state.
+#   - Already-published `name@version` targets are skipped (idempotent
+#     re-runs after a partial publish), never overwritten.
+#   - Publish order is fixed leaf-first: core, then the three normalizers.
+#
+# Triggers:
+#   1. `workflow_dispatch` — dry-run by default; a live publish requires
+#      `dry-run: false` AND `confirm: yes` (a misclick cannot ship).
+#   2. `release: [published]` — cutting a GitHub Release IS the human
+#      acknowledgement; always live.
+#
+# npmjs.com one-time setup (org owner): for each package, configure a
+# Trusted Publisher — owner `silverprotocol`, repo `typescript-sdk`,
+# workflow `release.yml`, environment `npm-publish`; allowed actions
+# `npm publish` + `npm stage publish`.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "If true (default), pnpm publish --dry-run only — nothing lands on npm."
+        required: false
+        type: boolean
+        default: true
+      confirm:
+        description: "Must be exactly 'yes' to allow a live (non-dry-run) dispatch publish."
+        required: false
+        default: "no"
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: Publish gate (full CI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm spec-drift
+      - run: pnpm fixture-drift
+      - run: pnpm test
+      - run: pnpm e2e:replay
+      - run: pnpm pack:smoke
+
+  publish:
+    name: Publish to npm (OIDC trusted publishing)
+    needs: gate
+    runs-on: ubuntu-latest
+    # The GitHub environment named in the npmjs trusted-publisher config.
+    environment: npm-publish
+    permissions:
+      contents: read
+      # Required for npm Trusted Publishing + `--provenance`.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          # Deliberately NO `registry-url:` — setting it writes an
+          # `_authToken=${NODE_AUTH_TOKEN}` line to .npmrc, and with the
+          # token unset (we use OIDC) pnpm passes the literal placeholder
+          # through and the registry 404s BEFORE OIDC fallback fires
+          # (see ggui oss/release.yml for the full war story).
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Resolve run mode
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "dry_run=false" >> "$GITHUB_OUTPUT"
+          elif [ "${{ inputs.dry-run }}" = "false" ] && [ "${{ inputs.confirm }}" = "yes" ]; then
+            echo "dry_run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "dry_run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish (leaf-first, idempotent)
+        env:
+          DRY_RUN: ${{ steps.mode.outputs.dry_run }}
+        run: |
+          set -euo pipefail
+          # Fixed leaf-first order — core is every normalizer's dependency.
+          ORDER=(core claude-agent-sdk openai-agents google-adk)
+
+          TODO=()
+          for pkg in "${ORDER[@]}"; do
+            name=$(node -pe "require('./packages/$pkg/package.json').name")
+            ver=$(node -pe "require('./packages/$pkg/package.json').version")
+            if [ -n "$(npm view "$name@$ver" version 2>/dev/null)" ]; then
+              echo "• $name@$ver already on npm — skipping"
+              continue
+            fi
+            TODO+=("$pkg")
+          done
+
+          if [ "${#TODO[@]}" -eq 0 ]; then
+            echo "Nothing to publish — every target version is already on npm."
+            exit 0
+          fi
+
+          # Dry-run GATE first: pack + validate every target before any
+          # irreversible publish. (--provenance is omitted here — dry runs
+          # cannot mint provenance.)
+          for pkg in "${TODO[@]}"; do
+            (cd "packages/$pkg" && pnpm publish --dry-run --no-git-checks)
+          done
+
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "DRY RUN — stopping before live publish. Targets validated:"
+            printf '  %s\n' "${TODO[@]}"
+            exit 0
+          fi
+
+          for pkg in "${TODO[@]}"; do
+            name=$(node -pe "require('./packages/$pkg/package.json').name")
+            ver=$(node -pe "require('./packages/$pkg/package.json').version")
+            echo "Publishing $name@$ver ..."
+            (cd "packages/$pkg" && pnpm publish --provenance --no-git-checks)
+          done
+
+      - name: Post-publish consumer smoke
+        if: steps.mode.outputs.dry_run == 'false'
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/consumer-smoke && cd /tmp/consumer-smoke
+          npm init -y >/dev/null
+          for attempt in 1 2 3 4 5; do
+            if npm install @silverprotocol/core @silverprotocol/claude-agent-sdk @silverprotocol/openai-agents @silverprotocol/google-adk; then
+              break
+            fi
+            echo "npm install failed (registry propagation?) — retry $attempt/5 in 20s"
+            sleep 20
+          done
+          node -e '
+            const { Reducer } = require("@silverprotocol/core");
+            const { createClaudeNormalizer } = require("@silverprotocol/claude-agent-sdk");
+            const { createOpenaiNormalizer } = require("@silverprotocol/openai-agents");
+            const { createAdkNormalizer } = require("@silverprotocol/google-adk");
+            const n = createClaudeNormalizer();
+            if (typeof n.push !== "function" || typeof n.flush !== "function") throw new Error("normalizer shape");
+            new Reducer(); createOpenaiNormalizer(); createAdkNormalizer();
+            console.log("consumer smoke OK — all four packages import and construct");
+          '
