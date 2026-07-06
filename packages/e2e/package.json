@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.199",
+    "@google/genai": "^1.52.0",
     "@iqai/adk": "^0.1.22",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@openai/agents": "0.12.0",

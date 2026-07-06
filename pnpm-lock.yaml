@@ -55,6 +55,9 @@ importers:
       '@anthropic-ai/claude-agent-sdk':
         specifier: 0.3.199
         version: 0.3.199(@anthropic-ai/sdk@0.93.0(zod@4.4.3))(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(zod@4.4.3)
+      '@google/genai':
+        specifier: ^1.52.0
+        version: 1.52.0(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))
       '@iqai/adk':
         specifier: ^0.1.22
         version: 0.1.22(@opentelemetry/core@2.8.0(@opentelemetry/api@1.9.1))(@types/node@24.13.2)(@types/pg@8.15.4)(react@19.2.7)(typescript@5.9.3)(ws@8.21.0)
