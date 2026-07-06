@@ -38,5 +38,5 @@ drops anything unparseable; `Reducer` folds a validated stream into the
 normative state snapshot. `AGJSON_VERSION` is the wire-version string this
 build of the SDK implements.
 
-Spec: `SPEC.md` in the SilverProtocol workspace (published with the first
+Spec: `SPEC.md` at the repo root of [silverprotocol/typescript-sdk](https://github.com/silverprotocol/typescript-sdk) (published with the first
 release); wire version `1.0.0-draft.1`.

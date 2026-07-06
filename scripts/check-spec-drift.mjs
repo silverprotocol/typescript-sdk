@@ -53,11 +53,10 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const scriptDir = import.meta.dirname;
-// scripts/ -> typescript/ -> sdks/ -> silverprotocol/ (repo root; SPEC.md lives
-// one level above the sdks/typescript publishable subtree — see the B12
-// SPEC-publish-channel gap, tracked separately and out of scope here).
-const repoRoot = resolve(scriptDir, "..", "..", "..");
-const specPath = resolve(repoRoot, "SPEC.md");
+// SPEC.md lives at the sdks/typescript subtree root (B12 decision, 2026-07-06:
+// the spec ships WITH the open-source SDK — same path resolves in both the
+// private workspace umbrella and the public typescript-sdk mirror).
+const specPath = resolve(scriptDir, "..", "SPEC.md");
 const agjsonPath = resolve(scriptDir, "..", "packages", "core", "src", "agjson.ts");
 
 const EXT_SENTINEL = "ext.<vendor>.<key>";
