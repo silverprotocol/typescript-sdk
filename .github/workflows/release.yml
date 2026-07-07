@@ -39,6 +39,12 @@ on:
         description: "Must be exactly 'yes' to allow a live (non-dry-run) dispatch publish."
         required: false
         default: "no"
+      prerelease:
+        description: "Prerelease channel. 'none' (default) publishes the committed STABLE versions to the `latest` tag. alpha/beta/rc auto-numbers the next <base>-<channel>.<N> across the cohort, rewrites versions in-runner (never committed), and publishes under that dist-tag — so `npm i @silverprotocol/core` keeps resolving to latest stable; consumers opt in via `@alpha`/`@beta`/`@rc`."
+        required: false
+        default: "none"
+        type: choice
+        options: [none, alpha, beta, rc]
   release:
     types: [published]
 
@@ -50,9 +56,9 @@ jobs:
     name: Publish gate (full CI)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v5
         with:
           node-version: "24"
           cache: pnpm
@@ -75,11 +81,11 @@ jobs:
       # Required for npm Trusted Publishing + `--provenance`.
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "24"
           cache: pnpm
@@ -103,19 +109,66 @@ jobs:
             echo "dry_run=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Publish (leaf-first, idempotent)
+      - name: Publish (leaf-first, tag-aware)
+        id: publish
         env:
           DRY_RUN: ${{ steps.mode.outputs.dry_run }}
+          # release events always publish committed STABLE versions; the
+          # prerelease channel is a dispatch-only input.
+          CHANNEL: ${{ github.event_name == 'release' && 'none' || inputs.prerelease }}
         run: |
           set -euo pipefail
           # Fixed leaf-first order — core is every normalizer's dependency.
           ORDER=(core claude-agent-sdk openai-agents google-adk)
 
+          # dist-tag: stable → latest; a prerelease channel → its own tag, so
+          # `npm i @silverprotocol/core` keeps resolving to the latest STABLE.
+          # (pnpm's default is `latest` for ALL versions, so --tag is required
+          # here or a prerelease would clobber `latest`.)
+          if [ "$CHANNEL" = "none" ]; then TAG=latest; else TAG="$CHANNEL"; fi
+          echo "channel=$CHANNEL  dist-tag=$TAG"
+
+          if [ "$CHANNEL" != "none" ]; then
+            # Prerelease: BASE = committed version with any suffix stripped
+            # (0.2.0-alpha.3 → 0.2.0). Find the highest existing
+            # <base>-<channel>.<N> across the WHOLE cohort on npm, target N+1,
+            # and rewrite every package.json in-runner (git stays committed).
+            BASE=$(node -pe "require('./packages/core/package.json').version.split('-')[0]")
+            MAX_N=-1
+            for pkg in "${ORDER[@]}"; do
+              name=$(node -pe "require('./packages/$pkg/package.json').name")
+              urlname=$(printf '%s' "$name" | sed 's|@|%40|;s|/|%2F|')
+              # capture body with `|| true` so a 404/transport blip degrades to -1
+              body=$(curl -s "https://registry.npmjs.org/$urlname" || true)
+              n=$(printf '%s' "$body" | BASE="$BASE" CHANNEL="$CHANNEL" node -e '
+                let s=""; process.stdin.on("data",d=>s+=d); process.stdin.on("end",()=>{
+                  try {
+                    const d=JSON.parse(s);
+                    const re=new RegExp("^"+process.env.BASE.replace(/[.]/g,"\\.")+"-"+process.env.CHANNEL+"\\.(\\d+)$");
+                    const ns=Object.keys(d.versions||{}).map(v=>{const m=v.match(re);return m?parseInt(m[1],10):null;}).filter(x=>x!==null);
+                    console.log(ns.length?Math.max(...ns):-1);
+                  } catch { console.log(-1); }
+                });')
+              [ "$n" -gt "$MAX_N" ] && MAX_N=$n
+            done
+            TARGET="$BASE-$CHANNEL.$((MAX_N + 1))"
+            echo "::notice::Prerelease target $TARGET (dist-tag $TAG; highest existing $CHANNEL across cohort was $MAX_N)"
+            for pkg in "${ORDER[@]}"; do
+              node -e "const f='packages/$pkg/package.json';const j=require('./'+f);j.version='$TARGET';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n');"
+            done
+          fi
+
+          # Expose what will be (or already is) published, for the smoke step.
+          echo "published_version=$(node -pe "require('./packages/core/package.json').version")" >> "$GITHUB_OUTPUT"
+          echo "dist_tag=$TAG" >> "$GITHUB_OUTPUT"
+
+          # Build the publish list. Stable skips versions already on npm
+          # (idempotent re-runs); a freshly-computed prerelease TARGET is new.
           TODO=()
           for pkg in "${ORDER[@]}"; do
             name=$(node -pe "require('./packages/$pkg/package.json').name")
             ver=$(node -pe "require('./packages/$pkg/package.json').version")
-            if [ -n "$(npm view "$name@$ver" version 2>/dev/null)" ]; then
+            if [ "$CHANNEL" = "none" ] && [ -n "$(npm view "$name@$ver" version 2>/dev/null)" ]; then
               echo "• $name@$ver already on npm — skipping"
               continue
             fi
@@ -131,30 +184,34 @@ jobs:
           # irreversible publish. (--provenance is omitted here — dry runs
           # cannot mint provenance.)
           for pkg in "${TODO[@]}"; do
-            (cd "packages/$pkg" && pnpm publish --dry-run --no-git-checks)
+            (cd "packages/$pkg" && pnpm publish --dry-run --no-git-checks --tag "$TAG")
           done
 
           if [ "$DRY_RUN" = "true" ]; then
-            echo "DRY RUN — stopping before live publish. Targets validated:"
-            printf '  %s\n' "${TODO[@]}"
+            echo "DRY RUN — stopping before live publish. dist-tag '$TAG', targets:"
+            for pkg in "${TODO[@]}"; do echo "  $pkg@$(node -pe "require('./packages/$pkg/package.json').version")"; done
             exit 0
           fi
 
           for pkg in "${TODO[@]}"; do
             name=$(node -pe "require('./packages/$pkg/package.json').name")
             ver=$(node -pe "require('./packages/$pkg/package.json').version")
-            echo "Publishing $name@$ver ..."
-            (cd "packages/$pkg" && pnpm publish --provenance --no-git-checks)
+            echo "Publishing $name@$ver → dist-tag '$TAG' ..."
+            (cd "packages/$pkg" && pnpm publish --provenance --no-git-checks --tag "$TAG")
           done
 
       - name: Post-publish consumer smoke
         if: steps.mode.outputs.dry_run == 'false'
+        env:
+          VER: ${{ steps.publish.outputs.published_version }}
         run: |
           set -euo pipefail
+          # Install the EXACT version just published — for a prerelease, `latest`
+          # is unchanged, so pinning the version is what actually smokes it.
           mkdir -p /tmp/consumer-smoke && cd /tmp/consumer-smoke
           npm init -y >/dev/null
           for attempt in 1 2 3 4 5; do
-            if npm install @silverprotocol/core @silverprotocol/claude-agent-sdk @silverprotocol/openai-agents @silverprotocol/google-adk; then
+            if npm install "@silverprotocol/core@$VER" "@silverprotocol/claude-agent-sdk@$VER" "@silverprotocol/openai-agents@$VER" "@silverprotocol/google-adk@$VER"; then
               break
             fi
             echo "npm install failed (registry propagation?) — retry $attempt/5 in 20s"
