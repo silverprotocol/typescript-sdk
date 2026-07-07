@@ -82,7 +82,11 @@ export type TurnDoneFields = Omit<TurnDoneEvent, "type" | "seq" | "turnId">;
 
 /** Stateful push/flush interface implemented by concrete Normalizer facets. */
 export interface Normalizer {
-  push(native: import("./agjson.js").JsonValue): AgEvent[];
+  // `unknown`, not `JsonValue`: callers feed their framework's *live* native
+  // events (e.g. OpenAI `RunStreamEvent`, ADK `Event`) whose static types aren't
+  // structurally `JsonValue`. Each `push` structurally guards the input at
+  // runtime and routes anything unrecognized to a lossless `unparsed` channel.
+  push(native: unknown): AgEvent[];
   flush(): AgEvent[];
 }
 
