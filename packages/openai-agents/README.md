@@ -1,33 +1,48 @@
 # @silverprotocol/openai-agents
 
 AgJSON normalizer for the OpenAI Agents SDK (`RunItemStreamEvent` / Responses
-streaming → `AgEvent[]`) — fixture-tested.
+streaming → `AgEvent[]`) — fixture-tested. It **sits on top of your OpenAI
+Agents run** and translates its native stream into framework-neutral AgJSON;
+it doesn't replace the SDK you already use.
 
 ## Install
 
 ```sh
-npm install @silverprotocol/openai-agents
+npm install @silverprotocol/openai-agents @openai/agents
 ```
 
-`@silverprotocol/core` is a required peer (installed automatically as a
-dependency). `@openai/agents` is an OPTIONAL peer — only needed if you want
-its native stream-event types; it is not required at import time.
+`@silverprotocol/core` is a required peer (pulled in automatically).
+`@openai/agents` is the OpenAI Agents SDK itself — you need it to *produce* the
+stream. (The normalizer handles the native events structurally, so if you only
+feed it already-captured events it's just a type-level peer.)
 
 ## Usage
 
 ```ts
+import { Agent, run } from "@openai/agents";
 import { createOpenaiNormalizer } from "@silverprotocol/openai-agents";
 
+const agent = new Agent({ name: "Assistant", instructions: "Use the echo tool." });
 const n = createOpenaiNormalizer();
-const events = [];
-for (const native of stream) events.push(...n.push(native));
-events.push(...n.flush());
+const agEvents = [];
+
+// `run(..., { stream: true })` is the OpenAI Agents SDK's own streamed run —
+// you keep using your framework as-is; this package normalizes what it emits.
+const stream = await run(agent, "call the echo tool", { stream: true });
+for await (const native of stream) agEvents.push(...n.push(native));
+await stream.completed;              // let the run finish
+agEvents.push(...n.flush());         // seal anything still open
 ```
 
-`stream` is whatever async/sync iterable of native OpenAI Agents SDK stream
-events your run yields (`RunItemStreamEvent`s or raw Responses-API streaming
-events, both are handled). `push()` returns the `AgEvent[]` synthesized from
-that native event; `flush()` drains any buffered end-of-stream state.
+`push()` returns the `AgEvent[]` synthesized from each native stream event
+(`RunItemStreamEvent`s or raw Responses-API events — both handled); `flush()`
+drains buffered end-of-stream state. Any async/sync iterable of those native
+events works — a live streamed run, or events you captured earlier.
 
-Spec: `SPEC.md` at the repo root of [silverprotocol/typescript-sdk](https://github.com/silverprotocol/typescript-sdk) (published with the first
-release); wire version `1.0.0-draft.1`.
+Then fold the resulting `AgEvent`s into messages and turns with
+`@silverprotocol/core`'s `reduce()` — the same client code regardless of which
+framework produced the stream.
+
+Spec: [silverprotocol.io/AgJSON](https://silverprotocol.io/AgJSON) — canonical
+in [silverprotocol/AgJSON](https://github.com/silverprotocol/AgJSON); wire
+version `1.0.0-draft.1`.
