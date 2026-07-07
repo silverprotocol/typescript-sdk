@@ -1,6 +1,6 @@
 {
   "name": "@silverprotocol/core",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "AgJSON core — the typed schema (AgInput / AgEvent / AgMessage), the Normalizer interface, and the normative reduce().",
   "license": "MIT",
   "repository": {

@@ -21,7 +21,7 @@
  * a functionCall part. Echo-or-400: a dropped signature breaks turn N+1.
  *
  * ── PRIMARY-SOURCE VERIFICATION (June 2026; the ADK SDK is NOT installed —
- * `@iqai/adk` is an OPTIONAL peerDependency, NOT imported). The `AdkEvent` type
+ * `@google/adk` is an OPTIONAL peerDependency, NOT imported). The `AdkEvent` type
  * below is a faithful PROJECTION of the verified shapes, hand-defined as the
  * fixture contract until the ADK runtime is wired:
  *   - google/adk-python src/google/adk/events/event.py — the `Event` class
@@ -955,14 +955,14 @@ function driveAdkTopLevel(
   // task; SPEC §8 item 23): candidateIndex was entirely absent from the
   // AdkEvent contract; branch was ALREADY typed but never read anywhere in
   // drive()/driveAdkTopLevel. Both are genuinely OPTIONAL on the real
-  // @iqai/adk Event class (only set for multi-candidate / multi-agent-branch
+  // @google/adk Event class (only set for multi-candidate / multi-agent-branch
   // scenarios), so carrying them opportunistically here matches the
   // citationMetadata/customMetadata precedent.
   //
   // `author`/`timestamp` are ALSO real, currently-unread AdkEvent fields
   // (same manifest inventory) but are DELIBERATELY NOT folded into this bag:
   // unlike the four fields above, both are REQUIRED (non-optional) on the
-  // real @iqai/adk `Event` class (`author: string`, `timestamp: number`) —
+  // real @google/adk `Event` class (`author: string`, `timestamp: number`) —
   // i.e. present on EVERY real event, not an occasional payload. Verified
   // empirically: adding them here fired a provider-raw content.block on
   // every single native event in packages/e2e's captured adk fixtures

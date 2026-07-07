@@ -1,43 +1,48 @@
 # @silverprotocol/google-adk
 
-AgJSON normalizer for the Google Agent Development Kit (ADK `Event` / Gemini
-`Content.parts[]` → `AgEvent[]`) — fixture-tested. It **sits on top of your ADK
-runner** and translates the events it yields into framework-neutral AgJSON; it
-doesn't replace the SDK you already use.
+AgJSON normalizer for the **official Google Agent Development Kit** —
+[`@google/adk`](https://github.com/google/adk-js) (ADK `Event` / Gemini
+`Content.parts[]` → `AgEvent[]`). It **sits on top of your ADK runner** and
+translates the events it yields into framework-neutral AgJSON; it doesn't
+replace the SDK you already use.
 
 ## Install
 
 ```sh
-npm install @silverprotocol/google-adk @iqai/adk
+npm install @silverprotocol/google-adk @google/adk
 ```
 
-`@silverprotocol/core` is a required peer (pulled in automatically). `@iqai/adk`
-is the ADK-TS runtime itself — you need it to *produce* the events. (The
-normalizer handles ADK `Event`s structurally, so if you only feed it
-already-captured events it's just a type-level peer.)
+`@silverprotocol/core` is a required peer (pulled in automatically). `@google/adk`
+is the Google ADK itself — you need it to *produce* the events. (The normalizer
+guards ADK `Event`s structurally, so if you only feed it already-captured events
+it's just a type-level peer.)
 
 ## Usage
 
 ```ts
-import { AgentBuilder } from "@iqai/adk";
+import { LlmAgent, InMemoryRunner } from "@google/adk";
 import { createAdkNormalizer } from "@silverprotocol/google-adk";
 
-// Build your ADK agent as usual — this package normalizes what it emits.
-const { runner, session } = await AgentBuilder.create("assistant")
-  .withModel("gemini-2.5-flash")
-  .withInstruction("Use the echo tool.")
-  .build();
+// Build your ADK agent + runner as usual — this package normalizes what it emits.
+const agent = new LlmAgent({
+  name: "assistant",
+  model: "gemini-3.5-flash",
+  instruction: "Use the echo tool.",
+});
+const runner = new InMemoryRunner({ agent });
+const session = await runner.sessionService.createSession({
+  appName: runner.appName,
+  userId: "user-1",
+});
 
 const n = createAdkNormalizer();
 const agEvents = [];
-
 for await (const native of runner.runAsync({
-  userId: session.userId, // the session build() created — must match, or "Session not found"
+  userId: session.userId, // must match the session you created
   sessionId: session.id,
   newMessage: { parts: [{ text: "call the echo tool" }] },
-})) {
+}))
   agEvents.push(...n.push(native)); // one ADK Event → 0+ AgEvents
-}
 agEvents.push(...n.flush());        // seal anything still open
 ```
 
