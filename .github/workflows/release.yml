@@ -208,15 +208,28 @@ jobs:
           set -euo pipefail
           # Install the EXACT version just published — for a prerelease, `latest`
           # is unchanged, so pinning the version is what actually smokes it.
+          # A freshly-published version can take a while to reach npm's read
+          # replicas, so wait generously (12 × 30s ≈ 6 min) before giving up —
+          # and fail cleanly if it never resolves, rather than falling through
+          # to a confusing MODULE_NOT_FOUND.
           mkdir -p /tmp/consumer-smoke && cd /tmp/consumer-smoke
           npm init -y >/dev/null
-          for attempt in 1 2 3 4 5; do
-            if npm install "@silverprotocol/core@$VER" "@silverprotocol/claude-agent-sdk@$VER" "@silverprotocol/openai-agents@$VER" "@silverprotocol/google-adk@$VER"; then
-              break
+          ok=0
+          for attempt in $(seq 1 12); do
+            if npm install --no-audit --no-fund \
+                "@silverprotocol/core@$VER" \
+                "@silverprotocol/claude-agent-sdk@$VER" \
+                "@silverprotocol/openai-agents@$VER" \
+                "@silverprotocol/google-adk@$VER"; then
+              ok=1; break
             fi
-            echo "npm install failed (registry propagation?) — retry $attempt/5 in 20s"
-            sleep 20
+            echo "@$VER not resolvable yet (registry propagation) — attempt $attempt/12, retrying in 30s"
+            sleep 30
           done
+          if [ "$ok" -ne 1 ]; then
+            echo "::error::consumer smoke could not install @$VER after ~6 min of propagation wait"
+            exit 1
+          fi
           node -e '
             const { Reducer } = require("@silverprotocol/core");
             const { createClaudeNormalizer } = require("@silverprotocol/claude-agent-sdk");
