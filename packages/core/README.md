@@ -78,12 +78,16 @@ framework-neutral, ready to send over the wire, persist, or feed straight to the
 `Reducer` above:
 
 ```ts
+// `query` is the Claude Agent SDK's own streaming call — you keep using
+// your framework as-is; the normalizer just translates what it emits.
+import { query } from "@anthropic-ai/claude-agent-sdk";
 import { createClaudeNormalizer } from "@silverprotocol/claude-agent-sdk";
 
 const n = createClaudeNormalizer();
 const agEvents = [];
-for await (const native of claudeStream) agEvents.push(...n.push(native));
-agEvents.push(...n.flush());
+for await (const native of query({ prompt: "call the echo tool" }))
+  agEvents.push(...n.push(native)); // one native event → 0+ AgEvents
+agEvents.push(...n.flush());        // seal anything still open
 ```
 
 ## Learn more
