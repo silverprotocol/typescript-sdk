@@ -40,7 +40,7 @@ const agEvents = [];
 for await (const native of runner.runAsync({
   userId: session.userId, // must match the session you created
   sessionId: session.id,
-  newMessage: { parts: [{ text: "call the echo tool" }] },
+  newMessage: { role: "user", parts: [{ text: "call the echo tool" }] }, // role is REQUIRED: adk-js drops role-less turns from tool-loop replays (400)
 }))
   agEvents.push(...n.push(native)); // one ADK Event → 0+ AgEvents
 agEvents.push(...n.flush());        // seal anything still open
