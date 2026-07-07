@@ -1,6 +1,6 @@
 {
   "name": "@silverprotocol/openai-agents",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "AgJSON normalizer for the OpenAI Agents SDK (RunItemStreamEvent / Responses streaming → AgEvent[]) — fixture-tested.",
   "license": "MIT",
   "repository": {
