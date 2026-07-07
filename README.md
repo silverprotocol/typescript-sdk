@@ -1,5 +1,11 @@
 # @silverprotocol/typescript-sdk
 
+[![core](https://img.shields.io/npm/v/%40silverprotocol%2Fcore?label=core&color=0a7)](https://www.npmjs.com/package/@silverprotocol/core)
+[![claude-agent-sdk](https://img.shields.io/npm/v/%40silverprotocol%2Fclaude-agent-sdk?label=claude-agent-sdk&color=0a7)](https://www.npmjs.com/package/@silverprotocol/claude-agent-sdk)
+[![openai-agents](https://img.shields.io/npm/v/%40silverprotocol%2Fopenai-agents?label=openai-agents&color=0a7)](https://www.npmjs.com/package/@silverprotocol/openai-agents)
+[![google-adk](https://img.shields.io/npm/v/%40silverprotocol%2Fgoogle-adk?label=google-adk&color=0a7)](https://www.npmjs.com/package/@silverprotocol/google-adk)
+[![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
+
 The TypeScript SDK for **AgJSON** — the open, neutral, typed transport for
 normalized agent-framework I/O. Open source (MIT).
 
