@@ -8,8 +8,21 @@
     "url": "git+https://github.com/silverprotocol/typescript-sdk.git",
     "directory": "packages/core"
   },
-  "homepage": "https://github.com/silverprotocol/typescript-sdk#readme",
+  "homepage": "https://silverprotocol.io/AgJSON",
   "bugs": { "url": "https://github.com/silverprotocol/typescript-sdk/issues" },
+  "keywords": [
+    "agjson",
+    "agent",
+    "agents",
+    "ai",
+    "llm",
+    "normalizer",
+    "protocol",
+    "streaming",
+    "mcp",
+    "claude",
+    "openai"
+  ],
   "publishConfig": { "access": "public" },
   "type": "module",
   "exports": {
