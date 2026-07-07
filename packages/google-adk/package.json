@@ -1,6 +1,6 @@
 {
   "name": "@silverprotocol/google-adk",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "AgJSON normalizer for the official Google Agent Development Kit — @google/adk (ADK Event / Gemini Content.parts[] → AgEvent[]).",
   "license": "MIT",
   "repository": {
