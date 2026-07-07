@@ -25,6 +25,7 @@ allowBuilds:
   cpu-features: false
   esbuild: false
   protobufjs: false
+  sqlite3: false
   ssh2: false
 minimumReleaseAgeExclude:
   - '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.199'

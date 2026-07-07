@@ -5,9 +5,12 @@
  * ★ ADJUDICATION (Task 6 Step 3) — a REAL TypeScript ADK agent, not a python
  * shell-out ★
  *
- * The official Google ADK is Python-only, but `@iqai/adk` ("Agent Development
- * Kit for TypeScript", IQAI — a peerDependency of `@silverprotocol/google-adk`
- * since that package's inception) is a genuine, independently-maintained TS
+ * HISTORY: at capture time this agent was wired to `@iqai/adk` ("Agent
+ * Development Kit for TypeScript", IQAI — the ORIGINAL peer of
+ * `@silverprotocol/google-adk`). The publishable peer has since been retargeted
+ * to the OFFICIAL `@google/adk` (google/adk-js, stable since Oct 2025); this
+ * capture agent + the fixture-drift ratchet's ground truth should follow in a
+ * future task. `@iqai/adk` remains a genuine, independently-maintained TS
  * port whose `Event extends LlmResponse` class is a STRUCTURAL match for the
  * Python `google.adk.events.event.Event` shape our normalizer targets
  * (`invocationId`/`author`/`actions`/`branch`/`id` on `Event`;
