@@ -54,7 +54,7 @@ import { resolve } from "node:path";
 
 const scriptDir = import.meta.dirname;
 // The canonical spec lives in the neutral flagship (protocol/SPEC.md ->
-// github.com/silverprotocol/silverprotocol). This SDK vendors a byte-identical
+// github.com/silverprotocol/AgJSON). This SDK vendors a byte-identical
 // FOLLOWER copy at its subtree root, synced from the canonical via
 // protocol/scripts/sync-spec.mjs, so this gate can resolve a SPEC.md beside
 // agjson.ts self-containedly — the same path resolves in both the private
