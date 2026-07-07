@@ -53,9 +53,12 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const scriptDir = import.meta.dirname;
-// SPEC.md lives at the sdks/typescript subtree root (B12 decision, 2026-07-06:
-// the spec ships WITH the open-source SDK — same path resolves in both the
-// private workspace umbrella and the public typescript-sdk mirror).
+// The canonical spec lives in the neutral flagship (protocol/SPEC.md ->
+// github.com/silverprotocol/silverprotocol). This SDK vendors a byte-identical
+// FOLLOWER copy at its subtree root, synced from the canonical via
+// protocol/scripts/sync-spec.mjs, so this gate can resolve a SPEC.md beside
+// agjson.ts self-containedly — the same path resolves in both the private
+// workspace umbrella and the public typescript-sdk mirror.
 const specPath = resolve(scriptDir, "..", "SPEC.md");
 const agjsonPath = resolve(scriptDir, "..", "packages", "core", "src", "agjson.ts");
 
