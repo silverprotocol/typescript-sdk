@@ -23,7 +23,7 @@
  *     ANTHROPIC_API_KEY=sk-... pnpm e2e:capture
  *
  * Key env var per framework: claude=ANTHROPIC_API_KEY, openai=OPENAI_API_KEY,
- * adk=GOOGLE_API_KEY. Writes corpus/<scenario>/<framework>.{native,agjson,
+ * adk=GEMINI_API_KEY. Writes corpus/<scenario>/<framework>.{native,agjson,
  * coverage,provenance}.json. NOT part of the CI gate — runs only with
  * CAPTURE=1 set by the operator.
  */
@@ -298,7 +298,7 @@ describe("runCaptureCli — key fail-fast (OPERATOR-GATED)", () => {
   const CASES = [
     { framework: "claude", envVar: "ANTHROPIC_API_KEY" },
     { framework: "openai", envVar: "OPENAI_API_KEY" },
-    { framework: "adk", envVar: "GOOGLE_API_KEY" },
+    { framework: "adk", envVar: "GEMINI_API_KEY" },
   ] as const;
 
   for (const { framework, envVar } of CASES) {

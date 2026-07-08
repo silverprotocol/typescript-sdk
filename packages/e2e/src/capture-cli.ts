@@ -69,7 +69,7 @@ const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const KEY_ENV_VAR: Record<Framework, string> = {
   claude: "ANTHROPIC_API_KEY",
   openai: "OPENAI_API_KEY",
-  adk: "GOOGLE_API_KEY",
+  adk: "GEMINI_API_KEY",
 };
 
 /** The npm package whose installed `package.json#version` is this
@@ -77,7 +77,7 @@ const KEY_ENV_VAR: Record<Framework, string> = {
 const SDK_PACKAGE: Record<Framework, string> = {
   claude: "@anthropic-ai/claude-agent-sdk",
   openai: "@openai/agents",
-  adk: "@iqai/adk",
+  adk: "@google/adk",
 };
 
 /** The default model each capture agent uses when `CaptureRunOptions.model`
