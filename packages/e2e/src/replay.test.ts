@@ -111,7 +111,28 @@ const OPENAI_SEEDS = [
  * CONVERGENCE_SCENARIOS comment below for why `text-tool-turn` itself is NOT
  * added to the convergence-scenario list).
  */
-const ADK_SEEDS = ["convergence-echo", "text-tool-turn"] as const;
+/**
+ * `single-tool-call` / `text-only` / `multi-turn` / `tool-error` join this list
+ * per the 2026-07-08 census-triage run: the FIRST live @google/adk 1.3.0
+ * captures (gemini-2.5-flash, kind:"capture" — see each dir's
+ * adk.provenance.json) beyond the two hand-authored convergence fixtures. They
+ * are ADK-ONLY cassettes (no claude/openai sibling), so they land here as
+ * standing snapshot + census-gate seeds but are NOT convergence scenarios (see
+ * CONVERGENCE_SCENARIOS). Their raw capture-time drops/newFields (invocationId,
+ * author, id, timestamp, content.role, the usageMetadata family, finishReason,
+ * thoughtSignature, functionCall.args, functionResponse fields) are triaged into
+ * transforms.json, known-acceptable-drops.json and field-registry.json, each
+ * cited to the exact createAdkNormalizer code path — see the census-triage
+ * commit body.
+ */
+const ADK_SEEDS = [
+  "convergence-echo",
+  "text-tool-turn",
+  "single-tool-call",
+  "text-only",
+  "multi-turn",
+  "tool-error",
+] as const;
 
 async function readSnapshotForFramework(scn: string, framework: string): Promise<JsonValue[]> {
   const raw = await readFile(join(CORPUS_ROOT, scn, `${framework}.agjson.json`), "utf8");

@@ -5,6 +5,7 @@
   "[*].api_error_status",
   "[*].author",
   "[*].claude_code_version",
+  "[*].content.parts[*].functionCall.args.message",
   "[*].content.parts[*].functionCall.args.text",
   "[*].content.parts[*].functionCall.id",
   "[*].content.parts[*].functionCall.name",
@@ -12,7 +13,9 @@
   "[*].content.parts[*].functionResponse.name",
   "[*].content.parts[*].functionResponse.response.content[*].text",
   "[*].content.parts[*].functionResponse.response.content[*].type",
+  "[*].content.parts[*].functionResponse.response.isError",
   "[*].content.parts[*].text",
+  "[*].content.parts[*].thoughtSignature",
   "[*].content.role",
   "[*].cwd",
   "[*].data.delta",
@@ -414,6 +417,10 @@
   "[*].usage.speed",
   "[*].usageMetadata.candidatesTokenCount",
   "[*].usageMetadata.promptTokenCount",
+  "[*].usageMetadata.promptTokensDetails[*].modality",
+  "[*].usageMetadata.promptTokensDetails[*].tokenCount",
+  "[*].usageMetadata.serviceTier",
+  "[*].usageMetadata.thoughtsTokenCount",
   "[*].usageMetadata.totalTokenCount",
   "[*].uuid"
 ]

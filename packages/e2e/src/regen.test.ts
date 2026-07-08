@@ -74,6 +74,18 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // census (drops===[], newFields===[] after triage — see known-acceptable-
   // drops.json/transforms.json/field-registry.json additions in the same commit).
   { scenario: "app-spec-structured-result", framework: "openai" },
+  // Census-triage run 2026-07-08: the four FIRST live @google/adk 1.3.0
+  // cassettes (gemini-2.5-flash) beyond the hand-authored convergence
+  // fixtures. Their committed coverage.json was written at capture time
+  // against EMPTY guard maps (capture.ts's inline census); this regen pass
+  // recomputes it against the REAL guard-filtered census (the one
+  // replay.test.ts's ADK_SEEDS gate asserts) — drops:[] newFields:[] after the
+  // transforms/known-acceptable-drops/field-registry triage in the same commit.
+  // agjson.json is re-derived through the (unchanged) facet and stays identical.
+  { scenario: "single-tool-call", framework: "adk" },
+  { scenario: "text-only", framework: "adk" },
+  { scenario: "multi-turn", framework: "adk" },
+  { scenario: "tool-error", framework: "adk" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {
