@@ -1,0 +1,153 @@
+{
+  "drops": [
+    {
+      "path": "[0].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab"
+    },
+    {
+      "path": "[0].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[0].id",
+      "norm": "[*].id",
+      "value": "9X7rT5NT"
+    },
+    {
+      "path": "[0].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1783480544796
+    },
+    {
+      "path": "[0].content.role",
+      "norm": "[*].content.role",
+      "value": "model"
+    },
+    {
+      "path": "[0].usageMetadata.promptTokenCount",
+      "norm": "[*].usageMetadata.promptTokenCount",
+      "value": 103
+    },
+    {
+      "path": "[0].usageMetadata.totalTokenCount",
+      "norm": "[*].usageMetadata.totalTokenCount",
+      "value": 173
+    },
+    {
+      "path": "[0].usageMetadata.promptTokensDetails[0].modality",
+      "norm": "[*].usageMetadata.promptTokensDetails[*].modality",
+      "value": "TEXT"
+    },
+    {
+      "path": "[0].usageMetadata.promptTokensDetails[0].tokenCount",
+      "norm": "[*].usageMetadata.promptTokensDetails[*].tokenCount",
+      "value": 103
+    },
+    {
+      "path": "[0].usageMetadata.thoughtsTokenCount",
+      "norm": "[*].usageMetadata.thoughtsTokenCount",
+      "value": 54
+    },
+    {
+      "path": "[0].usageMetadata.serviceTier",
+      "norm": "[*].usageMetadata.serviceTier",
+      "value": "standard"
+    },
+    {
+      "path": "[0].finishReason",
+      "norm": "[*].finishReason",
+      "value": "STOP"
+    },
+    {
+      "path": "[1].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab"
+    },
+    {
+      "path": "[1].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[1].content.role",
+      "norm": "[*].content.role",
+      "value": "user"
+    },
+    {
+      "path": "[1].id",
+      "norm": "[*].id",
+      "value": "chsL8tEG"
+    },
+    {
+      "path": "[1].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1783480546095
+    },
+    {
+      "path": "[2].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab"
+    },
+    {
+      "path": "[2].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[2].id",
+      "norm": "[*].id",
+      "value": "IZjids2K"
+    },
+    {
+      "path": "[2].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1783480546119
+    },
+    {
+      "path": "[2].content.role",
+      "norm": "[*].content.role",
+      "value": "model"
+    },
+    {
+      "path": "[2].usageMetadata.promptTokensDetails[0].modality",
+      "norm": "[*].usageMetadata.promptTokensDetails[*].modality",
+      "value": "TEXT"
+    },
+    {
+      "path": "[2].usageMetadata.serviceTier",
+      "norm": "[*].usageMetadata.serviceTier",
+      "value": "standard"
+    },
+    {
+      "path": "[2].finishReason",
+      "norm": "[*].finishReason",
+      "value": "STOP"
+    }
+  ],
+  "newFields": [
+    "[*].invocationId",
+    "[*].author",
+    "[*].id",
+    "[*].timestamp",
+    "[*].content.parts[*].functionCall.name",
+    "[*].content.parts[*].functionCall.args.message",
+    "[*].content.parts[*].functionCall.id",
+    "[*].content.parts[*].thoughtSignature",
+    "[*].content.role",
+    "[*].usageMetadata.promptTokenCount",
+    "[*].usageMetadata.candidatesTokenCount",
+    "[*].usageMetadata.totalTokenCount",
+    "[*].usageMetadata.promptTokensDetails[*].modality",
+    "[*].usageMetadata.promptTokensDetails[*].tokenCount",
+    "[*].usageMetadata.thoughtsTokenCount",
+    "[*].usageMetadata.serviceTier",
+    "[*].finishReason",
+    "[*].content.parts[*].functionResponse.id",
+    "[*].content.parts[*].functionResponse.name",
+    "[*].content.parts[*].functionResponse.response.content[*].type",
+    "[*].content.parts[*].functionResponse.response.content[*].text",
+    "[*].content.parts[*].text"
+  ]
+}

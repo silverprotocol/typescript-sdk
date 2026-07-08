@@ -1,0 +1,37 @@
+[
+  {
+    "invocationId": "e-bbc6ec0c-6ecc-45a3-b491-45acba737d19",
+    "author": "spike",
+    "id": "N8lDHMTK",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1783480565327,
+    "content": {
+      "parts": [
+        {
+          "text": "A conformance test harness verifies whether an implementation accurately adheres to the specifications and standards it is designed to meet."
+        }
+      ],
+      "role": "model"
+    },
+    "usageMetadata": {
+      "promptTokenCount": 40,
+      "candidatesTokenCount": 21,
+      "totalTokenCount": 103,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 40
+        }
+      ],
+      "thoughtsTokenCount": 42,
+      "serviceTier": "standard"
+    },
+    "finishReason": "STOP"
+  }
+]

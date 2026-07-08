@@ -1,0 +1,158 @@
+{
+  "drops": [
+    {
+      "path": "[0].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-536c5fea-34da-409a-b919-787dba39d665"
+    },
+    {
+      "path": "[0].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[0].id",
+      "norm": "[*].id",
+      "value": "aiekYh6Q"
+    },
+    {
+      "path": "[0].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1783480574264
+    },
+    {
+      "path": "[0].content.role",
+      "norm": "[*].content.role",
+      "value": "model"
+    },
+    {
+      "path": "[0].usageMetadata.promptTokenCount",
+      "norm": "[*].usageMetadata.promptTokenCount",
+      "value": 94
+    },
+    {
+      "path": "[0].usageMetadata.totalTokenCount",
+      "norm": "[*].usageMetadata.totalTokenCount",
+      "value": 140
+    },
+    {
+      "path": "[0].usageMetadata.promptTokensDetails[0].modality",
+      "norm": "[*].usageMetadata.promptTokensDetails[*].modality",
+      "value": "TEXT"
+    },
+    {
+      "path": "[0].usageMetadata.promptTokensDetails[0].tokenCount",
+      "norm": "[*].usageMetadata.promptTokensDetails[*].tokenCount",
+      "value": 94
+    },
+    {
+      "path": "[0].usageMetadata.thoughtsTokenCount",
+      "norm": "[*].usageMetadata.thoughtsTokenCount",
+      "value": 38
+    },
+    {
+      "path": "[0].usageMetadata.serviceTier",
+      "norm": "[*].usageMetadata.serviceTier",
+      "value": "standard"
+    },
+    {
+      "path": "[0].finishReason",
+      "norm": "[*].finishReason",
+      "value": "STOP"
+    },
+    {
+      "path": "[1].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-536c5fea-34da-409a-b919-787dba39d665"
+    },
+    {
+      "path": "[1].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[1].content.role",
+      "norm": "[*].content.role",
+      "value": "user"
+    },
+    {
+      "path": "[1].content.parts[0].functionResponse.response.isError",
+      "norm": "[*].content.parts[*].functionResponse.response.isError",
+      "value": true
+    },
+    {
+      "path": "[1].id",
+      "norm": "[*].id",
+      "value": "r3FN9UFf"
+    },
+    {
+      "path": "[1].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1783480575314
+    },
+    {
+      "path": "[2].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-536c5fea-34da-409a-b919-787dba39d665"
+    },
+    {
+      "path": "[2].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[2].id",
+      "norm": "[*].id",
+      "value": "j43yc3m7"
+    },
+    {
+      "path": "[2].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1783480575325
+    },
+    {
+      "path": "[2].content.role",
+      "norm": "[*].content.role",
+      "value": "model"
+    },
+    {
+      "path": "[2].usageMetadata.promptTokensDetails[0].modality",
+      "norm": "[*].usageMetadata.promptTokensDetails[*].modality",
+      "value": "TEXT"
+    },
+    {
+      "path": "[2].usageMetadata.serviceTier",
+      "norm": "[*].usageMetadata.serviceTier",
+      "value": "standard"
+    },
+    {
+      "path": "[2].finishReason",
+      "norm": "[*].finishReason",
+      "value": "STOP"
+    }
+  ],
+  "newFields": [
+    "[*].invocationId",
+    "[*].author",
+    "[*].id",
+    "[*].timestamp",
+    "[*].content.parts[*].functionCall.name",
+    "[*].content.parts[*].functionCall.id",
+    "[*].content.parts[*].thoughtSignature",
+    "[*].content.role",
+    "[*].usageMetadata.promptTokenCount",
+    "[*].usageMetadata.candidatesTokenCount",
+    "[*].usageMetadata.totalTokenCount",
+    "[*].usageMetadata.promptTokensDetails[*].modality",
+    "[*].usageMetadata.promptTokensDetails[*].tokenCount",
+    "[*].usageMetadata.thoughtsTokenCount",
+    "[*].usageMetadata.serviceTier",
+    "[*].finishReason",
+    "[*].content.parts[*].functionResponse.id",
+    "[*].content.parts[*].functionResponse.name",
+    "[*].content.parts[*].functionResponse.response.content[*].type",
+    "[*].content.parts[*].functionResponse.response.content[*].text",
+    "[*].content.parts[*].functionResponse.response.isError",
+    "[*].content.parts[*].text"
+  ]
+}

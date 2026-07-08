@@ -1,0 +1,151 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab",
+    "threadId": "google"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab",
+    "turnId": "turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab",
+    "threadId": "google",
+    "role": "assistant"
+  },
+  {
+    "type": "tool.start",
+    "seq": 2,
+    "turnId": "turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab",
+    "toolCallId": "adk-5e25963a-5f96-4847-83e1-49cff7dd4ea5",
+    "name": "echo",
+    "index": 0
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 3,
+    "toolCallId": "adk-5e25963a-5f96-4847-83e1-49cff7dd4ea5",
+    "delta": "{\"message\":\"conformance-probe\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 4,
+    "toolCallId": "adk-5e25963a-5f96-4847-83e1-49cff7dd4ea5",
+    "input": {
+      "message": "conformance-probe"
+    },
+    "signature": "CoUCARFNMg+02wTRqzktpU1qp8ju2XCxfzJi8oAJOtK944Ifo+1m8TzbS9XObLSjwMlbItFDHqW0EYikUOXJNGOLYqdxivCNW5X5PrW0az28fv+ylebUxt6SGsAgAW92o3DRiNe8Hgd9K6NHfQwf8PxNGWxNJrnF482HBT7CirGiQjf5OLeIHp4AE2eZMlk9tprjRs5wsrmwqLU4lsgtOTLBmYu7KJ4n+ILepAXWKwwIsT8BKNhur4sCOalobsUEoiccxHpxR4peU/TRtgGLLXJCYKIld1z49YusmpIDGeVafmMChkHJZByziLOHPGJT0ALnUIDNItyl2tRJcYOZx9XlLSNsiKSy"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab",
+    "seq": 5
+  },
+  {
+    "type": "content.block",
+    "seq": 6,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab",
+    "turnId": "turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab"
+  },
+  {
+    "type": "tool.done",
+    "seq": 7,
+    "turnId": "turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab",
+    "toolCallId": "adk-5e25963a-5f96-4847-83e1-49cff7dd4ea5",
+    "content": [
+      {
+        "type": "text",
+        "text": "conformance-probe"
+      }
+    ],
+    "outcome": "ok"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab",
+    "seq": 8
+  },
+  {
+    "type": "content.block",
+    "seq": 9,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab",
+    "turnId": "turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab"
+  },
+  {
+    "type": "text.start",
+    "seq": 10,
+    "id": "text:0",
+    "messageId": "msg_turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab",
+    "turnId": "turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab"
+  },
+  {
+    "type": "text.delta",
+    "seq": 11,
+    "id": "text:0",
+    "messageId": "msg_turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab",
+    "delta": "The message 'conformance-probe' has been echoed back.",
+    "turnId": "turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab"
+  },
+  {
+    "type": "text.end",
+    "seq": 12,
+    "id": "text:0",
+    "messageId": "msg_turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab",
+    "turnId": "turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab",
+    "seq": 13
+  },
+  {
+    "type": "content.block",
+    "seq": 14,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab",
+    "turnId": "turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab"
+  },
+  {
+    "type": "message.end",
+    "seq": 15,
+    "id": "msg_turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab"
+  },
+  {
+    "type": "turn.done",
+    "seq": 16,
+    "turnId": "turn_e-464a2c1c-9fdc-4dd8-b781-fa3fc2b81eab",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 146,
+      "outputTokens": 13,
+      "totalTokens": 159,
+      "cumulative": false
+    }
+  }
+]

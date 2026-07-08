@@ -1,0 +1,60 @@
+{
+  "drops": [
+    {
+      "path": "[0].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-bbc6ec0c-6ecc-45a3-b491-45acba737d19"
+    },
+    {
+      "path": "[0].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[0].id",
+      "norm": "[*].id",
+      "value": "N8lDHMTK"
+    },
+    {
+      "path": "[0].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1783480565327
+    },
+    {
+      "path": "[0].content.role",
+      "norm": "[*].content.role",
+      "value": "model"
+    },
+    {
+      "path": "[0].usageMetadata.promptTokensDetails[0].modality",
+      "norm": "[*].usageMetadata.promptTokensDetails[*].modality",
+      "value": "TEXT"
+    },
+    {
+      "path": "[0].usageMetadata.serviceTier",
+      "norm": "[*].usageMetadata.serviceTier",
+      "value": "standard"
+    },
+    {
+      "path": "[0].finishReason",
+      "norm": "[*].finishReason",
+      "value": "STOP"
+    }
+  ],
+  "newFields": [
+    "[*].invocationId",
+    "[*].author",
+    "[*].id",
+    "[*].timestamp",
+    "[*].content.parts[*].text",
+    "[*].content.role",
+    "[*].usageMetadata.promptTokenCount",
+    "[*].usageMetadata.candidatesTokenCount",
+    "[*].usageMetadata.totalTokenCount",
+    "[*].usageMetadata.promptTokensDetails[*].modality",
+    "[*].usageMetadata.promptTokensDetails[*].tokenCount",
+    "[*].usageMetadata.thoughtsTokenCount",
+    "[*].usageMetadata.serviceTier",
+    "[*].finishReason"
+  ]
+}
