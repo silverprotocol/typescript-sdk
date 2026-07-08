@@ -884,12 +884,15 @@ describe("createAdkNormalizer — event-level unmapped fields → content.block 
     for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
   });
 
-  // fixture-drift ratchet (google-adk-ratchet task): candidateIndex/branch are
-  // real @iqai/adk Event/LlmResponse fields the hand-typed AdkEvent contract
-  // either lacked (candidateIndex) or declared but NEVER READ (branch) —
-  // genuinely vanishing findings, folded into this SAME event-level
-  // unmapped-fields carry. Both are genuinely OPTIONAL on the real Event
-  // class (multi-candidate / multi-agent-branch scenarios only).
+  // fixture-drift ratchet: branch is a real @google/adk Event field the
+  // hand-typed AdkEvent contract declared but NEVER READ (a vanishing
+  // finding), folded into this SAME event-level unmapped-fields carry.
+  // candidateIndex is NOT on @google/adk's Event/LlmResponse (it was dropped
+  // from the ratchet's eventField inventory in the 2026-07-08 @google/adk
+  // migration — it is a @google/genai GenerateContentResponse field), but the
+  // facet still defensively types + carries it for multi-candidate responses.
+  // Both are OPTIONAL, so a normal single-candidate / single-agent event
+  // carries neither.
   it("carries candidateIndex in a provider-raw content.block", () => {
     const out = run([event([], { candidateIndex: 1 })]);
     const raw = out.find(
@@ -920,9 +923,9 @@ describe("createAdkNormalizer — event-level unmapped fields → content.block 
 
   // `author`/`timestamp` are ALSO real, currently-unread AdkEvent fields, but
   // are DELIBERATELY excluded from the generic carry (unlike candidateIndex/
-  // branch above): both are REQUIRED on the real @iqai/adk `Event` class
-  // (present on EVERY event, not an occasional payload) — auto-carrying them
-  // here would emit a provider-raw content.block on every single native
+  // branch above): on @google/adk 1.3.0 `timestamp` is REQUIRED and `author`,
+  // though OPTIONAL, is present on EVERY captured event (not an occasional
+  // payload) — auto-carrying them would emit a provider-raw content.block on every single native
   // event, which empirically broke packages/e2e's captured golden fixtures
   // and cross-framework convergence assertions (out of this ratchet's
   // facet+manifests+script+SPEC-§8 boundary to regenerate). Disposed

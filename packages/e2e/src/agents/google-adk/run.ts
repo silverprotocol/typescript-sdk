@@ -7,11 +7,11 @@
  * HISTORY: at first-capture time this agent was wired to the COMMUNITY
  * `@iqai/adk` TS port because the OFFICIAL SDK's TS release lagged. It is now
  * on the OFFICIAL `@google/adk` — the exact SDK `@silverprotocol/google-adk`'s
- * normalizer targets (the fixture-drift ratchet's `sdk-surface.json` still
- * reads `@iqai/adk`'s `.d.ts` as its Event/LlmResponse ground truth; migrating
- * THAT ground truth to `@google/adk` is a separate, deferred task — see the
- * manifest's own `$comment`. `@iqai/adk` therefore stays an e2e devDependency
- * for the ratchet only; it is NOT imported here). The native `Event` stream
+ * normalizer targets. The fixture-drift ratchet's `sdk-surface.json` ALSO
+ * migrated its Event/LlmResponse ground truth to `@google/adk` (2026-07-08 —
+ * see the manifest's own `$comment`), so `@iqai/adk` has been REMOVED from the
+ * e2e devDependencies entirely; it is no longer imported OR resolved anywhere.
+ * The native `Event` stream
  * this agent yields is a Gemini `Content` (role + `parts[]`) plus the
  * `LlmResponse` metadata (`partial` / `turnComplete` / `errorCode` /
  * `finishReason` / `actions`) — the SAME wire shape the normalizer + the

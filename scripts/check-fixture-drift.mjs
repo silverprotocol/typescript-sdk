@@ -40,7 +40,7 @@
  * **google-adk** (`packages/google-adk/sdk-surface.json`): UNLIKE the other
  * two facets, this one does not import its upstream SDK at runtime — the
  * facet's `AdkEvent`/`AdkPart` are a HAND-TYPED PROJECTION of the verified
- * wire (`@iqai/adk` is an optional peerDependency, never imported). So the
+ * wire (`@google/adk` is an optional peerDependency, never imported). So the
  * inventory ratchets "does the INSTALLED reference SDKs' field vocabulary
  * still match what the hand-typed contract assumes", via TWO separate
  * sections, each resolved from a DIFFERENT npm package (kept separate for the
@@ -48,9 +48,11 @@
  *   1. `partKind` — the Gemini `Part` interface's own field names
  *      (`@google/genai`'s `dist/genai.d.ts`, `export declare interface Part`)
  *      — the part-kind vocabulary the facet's `driveAdkPart` switches on.
- *   2. `eventField` — the `Event`/`LlmResponse` class field names
- *      (`@iqai/adk`'s `dist/index.d.ts`; `Event extends LlmResponse`, both
- *      classes' own fields flattened into one inventory).
+ *   2. `eventField` — the `Event`/`LlmResponse` interface field names, from the
+ *      OFFICIAL `@google/adk`'s split `dist/types/events/event.d.ts` +
+ *      `dist/types/models/llm_response.d.ts` (`Event extends LlmResponse`, both
+ *      interfaces' own fields flattened into one inventory). This retargeted
+ *      from the old, unofficial `@iqai/adk` when the capture agent did.
  *
  * # Resolution
  *
@@ -61,22 +63,21 @@
  * workspace's `node_modules` (verified hazard: a naive
  * `require.resolve(pkg, {paths:[…]})` walk from a package with no local hoist
  * for `pkg` can walk all the way past this repo's own `node_modules` root).
- * Two packages are TRANSITIVE (not a direct dependency of their facet package
- * or of `packages/e2e`), so each is resolved in a SECOND hop: `@openai/agents-
- * core` via `@openai/agents` (a direct `packages/e2e` devDependency) scoped to
- * agents' own installed directory; `@google/genai` via `@iqai/adk` (also a
- * direct `packages/e2e` devDependency) scoped to adk's own installed
- * directory — both hops stay local (the sibling in the same pnpm store
- * subtree) and never escape.
+ * One package is TRANSITIVE (not a direct dependency of its facet package or of
+ * `packages/e2e`) and is resolved in a SECOND hop: `@openai/agents-core` via
+ * `@openai/agents` (a direct `packages/e2e` devDependency) scoped to agents'
+ * own installed directory — the hop stays local (the sibling in the same pnpm
+ * store subtree) and never escapes. `@google/adk` and `@google/genai` are now
+ * BOTH direct `packages/e2e` devDependencies, resolved directly (the old
+ * `@google/genai`-via-`@iqai/adk` second hop is gone with `@iqai/adk` itself).
  *
  * If a facet's SDK package cannot be resolved (not installed — e.g. a
  * standalone open-source clone before `pnpm --filter e2e install`), that
  * facet's check is SKIPPED gracefully (a message, no failure) rather than
  * erroring — the gate only enforces drift on facets it can actually verify.
- * For google-adk, resolution of EITHER `@iqai/adk` or (via its second hop)
- * `@google/genai` failing skips BOTH of the facet's sections together (one
- * unit, mirroring how an openai-agents resolution failure skips both of ITS
- * sections).
+ * For google-adk, resolution of EITHER `@google/adk` or `@google/genai`
+ * failing skips BOTH of the facet's sections together (one unit, mirroring how
+ * an openai-agents resolution failure skips both of ITS sections).
  *
  * # Usage
  *
@@ -372,20 +373,26 @@ function extractGenaiPartFields(genaiDtsText) {
 }
 
 /**
- * Extract the `Event`/`LlmResponse` class field names from an `@iqai/adk`
- * `dist/index.d.ts` full text. `Event extends LlmResponse`; both classes' OWN
- * fields are flattened into one Set (deduplicating `id`, redeclared on both).
+ * Extract the `Event`/`LlmResponse` interface field names from the OFFICIAL
+ * `@google/adk`'s bundled `.d.ts` files. Unlike the old `@iqai/adk` bundle
+ * (one `dist/index.d.ts` with both as `declare class`), `@google/adk` splits
+ * them across two files and declares them as `export interface`:
+ *   - `Event extends LlmResponse` lives in `dist/types/events/event.d.ts`
+ *   - `LlmResponse` lives in `dist/types/models/llm_response.d.ts`
+ * Both interfaces' OWN fields are flattened into one Set (`id` is Event-only
+ * here, so nothing dedups, but the Set keeps the contract robust if a future
+ * version redeclares a field on both).
  */
-function extractAdkEventFields(indexDtsText) {
-  const llmResponseMarker = "declare class LlmResponse {";
-  const eventMarker = "declare class Event extends LlmResponse {";
-  const llmResponseBody = extractBraceBlockBody(indexDtsText, llmResponseMarker);
+function extractAdkEventFields(eventDtsText, llmResponseDtsText) {
+  const llmResponseMarker = "export interface LlmResponse {";
+  const eventMarker = "export interface Event extends LlmResponse {";
+  const llmResponseBody = extractBraceBlockBody(llmResponseDtsText, llmResponseMarker);
   if (llmResponseBody == null) {
-    throw new Error("index.d.ts: `declare class LlmResponse { … }` not found");
+    throw new Error("llm_response.d.ts: `export interface LlmResponse { … }` not found");
   }
-  const eventBody = extractBraceBlockBody(indexDtsText, eventMarker);
+  const eventBody = extractBraceBlockBody(eventDtsText, eventMarker);
   if (eventBody == null) {
-    throw new Error("index.d.ts: `declare class Event extends LlmResponse { … }` not found");
+    throw new Error("event.d.ts: `export interface Event extends LlmResponse { … }` not found");
   }
   return [...new Set([...extractFieldNames(llmResponseBody), ...extractFieldNames(eventBody)])];
 }
@@ -441,34 +448,42 @@ async function resolveOpenaiSdk() {
 }
 
 /**
- * Resolve BOTH google-adk ground truths: `@iqai/adk`'s `dist/index.d.ts` via
- * packages/e2e's exact devDependency pin, and `@google/genai`'s
- * `dist/genai.d.ts` via a second hop scoped to `@iqai/adk`'s own installed
- * directory (transitive — `@google/genai` is not a direct dependency of
- * `packages/e2e` or of the google-adk facet package; mirrors
- * `resolveOpenaiSdk`'s agents -> agents-core hop). Both are required for the
- * facet's TWO manifest sections, so either one failing to resolve throws
- * `SdkNotInstalled` for the whole facet (both sections skip together).
+ * Resolve BOTH google-adk ground truths, each via packages/e2e's exact
+ * devDependency pins:
+ *   - `eventField`: the OFFICIAL `@google/adk`'s `Event`/`LlmResponse`
+ *     interfaces, split across `dist/types/events/event.d.ts` +
+ *     `dist/types/models/llm_response.d.ts` (a direct `packages/e2e`
+ *     devDependency — the retarget from the old, unofficial `@iqai/adk`).
+ *   - `partKind`: `@google/genai`'s `dist/genai.d.ts` — resolved DIRECTLY from
+ *     `packages/e2e` (it is now a direct `packages/e2e` devDependency, so the
+ *     old transitive second hop through the ADK package is no longer needed;
+ *     `@google/adk` depends on the SAME `@google/genai` and both resolve to the
+ *     identical installed copy). The Gemini `Part` interface is still defined in
+ *     `@google/genai` — `@google/adk` re-imports it, it does not redeclare it.
+ * Both are required for the facet's TWO manifest sections, so either one
+ * failing to resolve throws `SdkNotInstalled` for the whole facet (both
+ * sections skip together).
  */
 async function resolveGoogleAdkSdks() {
   let adkPkg;
   try {
     const requireFromE2e = createRequire(e2ePackageJson);
-    adkPkg = resolvePackageRoot(requireFromE2e, "@iqai/adk");
+    adkPkg = resolvePackageRoot(requireFromE2e, "@google/adk");
   } catch (err) {
     throw new SdkNotInstalled(String(err instanceof Error ? err.message : err));
   }
-  const indexDtsPath = resolve(adkPkg.dir, "dist", "index.d.ts");
-  if (!existsSync(indexDtsPath)) {
-    throw new SdkNotInstalled(`dist/index.d.ts not found under resolved package root ${adkPkg.dir}`);
+  const eventDtsPath = resolve(adkPkg.dir, "dist", "types", "events", "event.d.ts");
+  const llmResponseDtsPath = resolve(adkPkg.dir, "dist", "types", "models", "llm_response.d.ts");
+  if (!existsSync(eventDtsPath) || !existsSync(llmResponseDtsPath)) {
+    throw new SdkNotInstalled(
+      `dist/types/events/event.d.ts / dist/types/models/llm_response.d.ts not found under resolved package root ${adkPkg.dir}`,
+    );
   }
 
   let genaiPkg;
   try {
     const requireFromE2e = createRequire(e2ePackageJson);
-    const adkEntry = requireFromE2e.resolve("@iqai/adk");
-    const requireFromAdk = createRequire(adkEntry);
-    genaiPkg = resolvePackageRoot(requireFromAdk, "@google/genai");
+    genaiPkg = resolvePackageRoot(requireFromE2e, "@google/genai");
   } catch (err) {
     throw new SdkNotInstalled(String(err instanceof Error ? err.message : err));
   }
@@ -477,11 +492,18 @@ async function resolveGoogleAdkSdks() {
     throw new SdkNotInstalled(`dist/genai.d.ts not found under resolved package root ${genaiPkg.dir}`);
   }
 
-  const [indexDts, genaiDts] = await Promise.all([
-    readFile(indexDtsPath, "utf8"),
+  const [eventDts, llmResponseDts, genaiDts] = await Promise.all([
+    readFile(eventDtsPath, "utf8"),
+    readFile(llmResponseDtsPath, "utf8"),
     readFile(genaiDtsPath, "utf8"),
   ]);
-  return { adkVersion: adkPkg.version, indexDts, genaiVersion: genaiPkg.version, genaiDts };
+  return {
+    adkVersion: adkPkg.version,
+    eventDts,
+    llmResponseDts,
+    genaiVersion: genaiPkg.version,
+    genaiDts,
+  };
 }
 
 // -----------------------------------------------------------------------------
@@ -607,8 +629,8 @@ async function gatherInventories() {
     });
     inventories.push({
       facet: "google-adk",
-      label: `google-adk Event/LlmResponse field (installed @iqai/adk ${sdk.adkVersion}, manifest verifiedAt ${manifest.sections.eventField.verifiedAt})`,
-      installed: extractAdkEventFields(sdk.indexDts),
+      label: `google-adk Event/LlmResponse field (installed @google/adk ${sdk.adkVersion}, manifest verifiedAt ${manifest.sections.eventField.verifiedAt})`,
+      installed: extractAdkEventFields(sdk.eventDts, sdk.llmResponseDts),
       manifestMembers: manifest.sections.eventField.members,
       manifestValidationLabel: "google-adk sdk-surface.json (eventField)",
     });
