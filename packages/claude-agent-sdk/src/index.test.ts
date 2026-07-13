@@ -1,3 +1,4 @@
+import type { UUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
@@ -1038,7 +1039,7 @@ describe("createClaudeNormalizer — refusal-fallback retraction (playbook 2026-
     };
   }
 
-  function fallbackAssistant(supersedes: string[]): SDKMessage {
+  function fallbackAssistant(supersedes: UUID[]): SDKMessage {
     return {
       type: "assistant",
       message: { ...betaMessage([{ type: "text", text: "Sure — here is the answer.", citations: null }]), id: "msg_fallback" },
@@ -1628,6 +1629,28 @@ function taskProgressMsg(): SDKMessage {
   };
 }
 
+function conversationResetMsg(): SDKMessage {
+  return {
+    type: "conversation_reset",
+    new_conversation_id: "00000000-0000-0000-0000-0000000000c1",
+    uuid: "00000000-0000-0000-0000-0000000000c2",
+    session_id: "sess_fixture",
+  };
+}
+
+function backgroundTasksChangedMsg(): SDKMessage {
+  return {
+    type: "system",
+    subtype: "background_tasks_changed",
+    tasks: [
+      { task_id: "task_1", task_type: "subagent", description: "Research the flaky test failure." },
+      { task_id: "task_2", task_type: "local_workflow", description: "Run the nightly audit workflow." },
+    ],
+    uuid: "00000000-0000-0000-0000-0000000000e5",
+    session_id: "sess_fixture",
+  };
+}
+
 function notificationMsg(): SDKMessage {
   return {
     type: "system",
@@ -1705,6 +1728,8 @@ const CARRIED_ARMS: ReadonlyArray<{ armName: string; kind: string; msg: SDKMessa
   { armName: "SDKTaskStartedMessage", kind: "task_started", msg: taskStartedMsg() },
   { armName: "SDKTaskUpdatedMessage", kind: "task_updated", msg: taskUpdatedMsg() },
   { armName: "SDKTaskProgressMessage", kind: "task_progress", msg: taskProgressMsg() },
+  { armName: "SDKBackgroundTasksChangedMessage", kind: "background_tasks_changed", msg: backgroundTasksChangedMsg() },
+  { armName: "SDKConversationResetMessage", kind: "conversation_reset", msg: conversationResetMsg() },
   { armName: "SDKNotificationMessage", kind: "notification", msg: notificationMsg() },
   { armName: "SDKFilesPersistedEvent", kind: "files_persisted", msg: filesPersistedMsg() },
   { armName: "SDKToolUseSummaryMessage", kind: "tool_use_summary", msg: toolUseSummaryMsg() },

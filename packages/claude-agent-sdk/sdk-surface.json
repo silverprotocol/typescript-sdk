@@ -1,7 +1,7 @@
 {
   "$comment": "Ratchet manifest for the fixture-drift gate (scripts/check-fixture-drift.mjs). Members are the `SDKMessage` union's arm TYPE NAMES, extracted mechanically from `export declare type SDKMessage = A | B | …;` in @anthropic-ai/claude-agent-sdk/sdk.d.ts. Dispositions were seeded 2026-07-03 by reading src/index.ts (the facet's `drive()` switch) + every arm's own field declarations in sdk.d.ts + the two playbook reports (.superpowers/sdd/playbook-sdk-bumps-report.md, playbook-facet-adaptations-report.md). handled = the facet has a dedicated branch; carried = routed to ext.anthropic.* losslessly; router-plane = pure SDK/CLI/session control-plane telemetry with no conversational free-text payload, ignored by the facet's own documented design (index.ts's blanket 'carry no AgJSON-relevant content' comment, or a more specific documented rationale noted per-entry) — verified by reading the arm's actual fields, not assumed from its name; not-applicable = provably cannot occur on this SDK's wire (unused on this manifest — every named SDKMessage arm is structurally reachable); silently-dropped = reaches the facet, carries real informational payload, and has NO route (ext or otherwise) — a genuine pre-existing gap, documented honestly rather than papered over as not-applicable or router-plane. ZERO members remain `silently-dropped` as of the claude-arms-disposition task (2026-07-03 follow-up): SDKInformationalMessage was fixed first (flagship finding, carried); the remaining 16 were closed in one pass — 15 via the uniform `ext.anthropic.frame{kind, frame}` lossless-carry convention (SPEC §8 item 22 / §12), and SDKPermissionDeniedMessage via existing-home enrichment of the already-handled W1 `<turnId>:denials` carrier (audit M19). See .superpowers/sdd/pb-task-6-report.md for the original seeding rationale and .superpowers/sdd/claude-arms-disposition-report.md for the full per-arm closure decisions + wire-shape citations.",
   "sdkPackage": "@anthropic-ai/claude-agent-sdk",
-  "verifiedAt": "0.3.199",
+  "verifiedAt": "0.3.207",
   "verified": [
     {
       "sdkVersion": "0.2.141",
@@ -13,6 +13,12 @@
       "date": "2026-07-03",
       "silverprotocol": "0.1.0",
       "evidence": "live capture: echo-sonnet5 corpus (claude-sonnet-5) + drift-gate member seeding at 0.3.199"
+    },
+    {
+      "sdkVersion": "0.3.207",
+      "date": "2026-07-13",
+      "silverprotocol": "0.3.3",
+      "evidence": "fixture suite + drift gate + full 0.3.199->0.3.207 d.ts diff audit: one new arm (SDKBackgroundTasksChangedMessage, carried); two previously-UNVERIFIABLE arms now declared and re-triaged (control_request_progress router-plane CONFIRMED; conversation_reset UPGRADED to carried); field-level deltas triaged (SDKMessageOrigin observer kinds + peer body — disclosed gap; TerminalReason +6 values — unread, disclosed; init capabilities — router-plane); no removals"
     }
   ],
   "members": {
@@ -22,7 +28,7 @@
     },
     "SDKUserMessage": {
       "disposition": "handled",
-      "note": "tool_result content blocks -> tool.done (adopted messageId `${toolCallId}:result`); reads structuredContent + the tool_use_result sibling for MCP-Apps UI data."
+      "note": "tool_result content blocks -> tool.done (adopted messageId `${toolCallId}:result`); reads structuredContent + the tool_use_result sibling for MCP-Apps UI data. DISCLOSED FIELD-LEVEL GAP (0.3.207 bump audit): SDKMessageOrigin (`origin?:` on this arm) gained 'observer'/'observer-activity' kinds and a peer-variant `body?: string` — the SDK's canonical DECODED message body ('render this instead of re-parsing the message text'). The facet never reads `origin`, so a peer message folds from the envelope-wrapped msg.message text, not the decoded body. Routing origin.body into the fold is a behavior change to user-message folding (golden-fixture impact) — deferred to its own slice, disclosed here rather than silently absorbed."
     },
     "SDKUserMessageReplay": {
       "disposition": "handled",
@@ -30,11 +36,11 @@
     },
     "SDKResultMessage": {
       "disposition": "handled",
-      "note": "Union of SDKResultSuccess | SDKResultError. Success -> closeTurnDone (outcome/finishReason/usage/safety/permission_denials as denied tool.start+tool.done pairs). Every non-success subtype -> closeTurnError (errors joined, code=subtype, retriable = subtype !== 'error_max_turns')."
+      "note": "Union of SDKResultSuccess | SDKResultError. Success -> closeTurnDone (outcome/finishReason/usage/safety/permission_denials as denied tool.start+tool.done pairs). Every non-success subtype -> closeTurnError (errors joined, code=subtype, retriable = subtype !== 'error_max_turns'). FIELD-LEVEL DELTAS at 0.3.207 (name-only ratchet cannot see these; recorded from the full d.ts diff): (1) TerminalReason (`terminal_reason?:` on both result arms) widened by six values (api_error, malformed_tool_use_exhausted, budget_exhausted, structured_output_retry_exhausted, tool_deferred_unavailable, turn_setup_failed) — the facet reads `subtype`, never `terminal_reason`, so behavior is unchanged; the finer-grained reason is a disclosed unread field (candidate enrichment for turn.done/turn.error codes in a future slice). (2) `origin?:` — same SDKMessageOrigin delta as SDKUserMessage's disclosure."
     },
     "SDKSystemMessage": {
       "disposition": "router-plane",
-      "note": "subtype 'init' — session-initialization handshake (agents/tools/mcp_servers/model/permissionMode/slash_commands/skills/plugins/…). Verified fields: all identifiers/labels/enums, no conversational free text. Matches index.ts's documented blanket no-op for 'system, partial-assistant, status, …'."
+      "note": "subtype 'init' — session-initialization handshake (agents/tools/mcp_servers/model/permissionMode/slash_commands/skills/plugins/…). Verified fields (re-checked at 0.3.207): all identifiers/labels/enums — incl. the NEW `capabilities?: string[]` (protocol feature-detection flags, e.g. 'interrupt_receipt_v1') — no conversational free text. Matches index.ts's documented blanket no-op for 'system, partial-assistant, status, …'."
     },
     "SDKPartialAssistantMessage": {
       "disposition": "router-plane",
@@ -54,7 +60,7 @@
     },
     "SDKControlRequestProgressMessage": {
       "disposition": "router-plane",
-      "note": "UNVERIFIABLE: no independently-resolvable declaration anywhere in the bundled sdk.d.ts (confirmed absent — appears only as a name inside the SDKMessage union literal; a .d.ts-bundler dedup artifact on Anthropic's publish side per playbook-sdk-bumps-report.md). Disposition follows that report's own explicit classification ('control-plane/CLI-UX signal, no model output'), UNVERIFIED against actual field shape — flag this as lower-confidence given SDKInformationalMessage below shows the same report's classifications do not always hold up under direct field inspection."
+      "note": "RE-VERIFIED at 0.3.207 (the prior note's own trigger — 'no independently-resolvable declaration' — fired: sdk.d.ts now declares the full shape): {type:'system', subtype:'control_request_progress', request_id, status:'started'|'api_retry', attempt?, max_retries?, retry_delay_ms?, error_status?}. Identifiers/enums/numerics only, NO free text — control-request retry telemetry, exactly the SDKHookStartedMessage/SDKRateLimitEvent precedent. router-plane disposition CONFIRMED against the real fields (previously it followed playbook-sdk-bumps-report.md's classification unverified)."
     },
     "SDKModelRefusalFallbackMessage": {
       "disposition": "handled",
@@ -107,6 +113,10 @@
     "SDKTaskProgressMessage": {
       "disposition": "carried",
       "note": "FIXED (Task* family, 4 of 4; fixture-drift ratchet): subtype 'task_progress' carries `description: string` + summary? + last_tool_name? — real text, but `last_tool_name`/`summary` would DUPLICATE what the nested subagent's own tool_use/tool_result stream already conveys (M22 double-fold hazard), same STUDY conclusion as SDKTaskNotificationMessage. Carried losslessly via `ext.anthropic.frame{kind:'task_progress', frame}` (SPEC §8 item 22)."
+    },
+    "SDKBackgroundTasksChangedMessage": {
+      "disposition": "carried",
+      "note": "FIXED (Task* family, 5 of 5; 0.3.207 bump, 2026-07-13): subtype 'background_tasks_changed' is the LEVEL signal to the four task_* edge bookends — the full live-background-task set, REPLACE semantics, emitted on every membership change. Carries per-task free-text `description` (task_id/task_type are identifiers), so the router-plane disposition does not fit; carried losslessly via `ext.anthropic.frame{kind:'background_tasks_changed', frame}` exactly like its four edge siblings (added to CARRIED_SYSTEM_SUBTYPES). The SDK's own doc says not to correlate it with the edge stream (ordering unspecified, per-process level) — carrying whole-frame keeps that contract intact for consumers."
     },
     "SDKThinkingTokensMessage": {
       "disposition": "router-plane",
@@ -165,8 +175,8 @@
       "note": "FLAGSHIP FINDING, FIXED (fixture-drift ratchet, 2026-07-03) — CONTRADICTS playbook-sdk-bumps-report.md's own prior classification of this arm as a 'control-plane/CLI-UX signal, no model output'. Direct inspection of sdk.d.ts shows subtype 'informational' carries `content: string` PLUS an explicit `level: 'info'|'notice'|'suggestion'|'warning'` render-treatment doc-commented as controlling literal UI display ('info shows only in transcript mode; notice renders in inactive gray; suggestion/warning are more prominent'), and `prevent_continuation?: boolean` ('execution stops after this message, e.g. a Stop hook denied continuation') — i.e. it can signal WHY a turn halted. This is genuinely conversation/UX-relevant content, not telemetry. LOCKED DISPOSITION (boundary-invariant respecting — no new core event type, no SPEC §4/§5 change): live-only lossless carry via `ext.anthropic.informational{content, level, preventContinuation}` (index.ts's `drive()`), the facet's established ext convention. This is semantically correct, not a stopgap: transient UI notices are §12 live-only vendor-channel material; a first-class `notice` core event is a future spec-process decision (SPEC §8 item 21 notes this explicitly). Exactly the class of drift this gate exists to catch mechanically rather than by reviewer trust in a prior report's prose."
     },
     "SDKConversationResetMessage": {
-      "disposition": "router-plane",
-      "note": "UNVERIFIABLE: no independently-resolvable declaration in the bundled sdk.d.ts (same bundler dedup artifact as SDKControlRequestProgressMessage). Disposition follows playbook-sdk-bumps-report.md's implicit classification (one of its '6 of 8 arms' deemed fine, though not named explicitly by wire-string since its shape was already unreadable when that report was written) — UNVERIFIED against actual fields. Given the SDKInformationalMessage finding above shows this report's own classifications can be wrong on inspection, this entry is disposed with explicitly LOWER confidence; re-verify the moment Anthropic's .d.ts bundling exposes its real shape."
+      "disposition": "carried",
+      "note": "RE-TRIAGED at 0.3.207 (previously UNVERIFIABLE + router-plane-by-report-classification; the declaration now exists): {type:'conversation_reset', new_conversation_id: UUID}. A session-identity ROTATION signal — no free text, but the old no-op made the rotation INVISIBLE to AgJSON consumers correlating by conversation id, an untracked correlation break. Carried losslessly via ext.anthropic.frame{kind:'conversation_reset'} (added to CARRIED_STANDALONE_TYPES). A first-class thread-rotation mapping is a future spec-process decision."
     }
   }
 }

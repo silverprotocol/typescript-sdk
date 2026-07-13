@@ -446,9 +446,10 @@ function isSDKMessage(v: unknown): v is SDKMessage {
   return typeof t === "string";
 }
 
-// ─── uniform lossless carry: the fixture-drift ratchet's remaining 15
-// `silently-dropped` claude arms (2026-07-03 follow-up to the
-// SDKInformationalMessage flagship fix) ────────────────────────────────────
+// ─── uniform lossless carry: 17 claude arms — the fixture-drift ratchet's
+// original 15 `silently-dropped` arms (2026-07-03 follow-up to the
+// SDKInformationalMessage flagship fix) + 2 added on the 0.3.207 bump
+// (2026-07-13: background_tasks_changed, conversation_reset) ────────────────
 // Per-arm field inspection (sdk.d.ts) confirmed each carries genuine
 // consumer-facing content (hook stdout/stderr, slash-command output,
 // OAuth-flow instructions, toast notifications, file-persistence receipts,
@@ -501,12 +502,27 @@ const CARRIED_SYSTEM_SUBTYPES = new Set<string>([
   "task_started",
   "task_updated",
   "task_progress",
+  // Task* family, 5 of 5 (0.3.207 bump, 2026-07-13): the LEVEL signal to the
+  // four edge bookends above — full live-background-task set, REPLACE
+  // semantics, per-task free-text `description`. Same carry, same rationale.
+  "background_tasks_changed",
   "notification",
   "files_persisted",
   "memory_recall",
   "mirror_error",
 ]);
-const CARRIED_STANDALONE_TYPES = new Set<string>(["auth_status", "tool_use_summary", "prompt_suggestion"]);
+const CARRIED_STANDALONE_TYPES = new Set<string>([
+  "auth_status",
+  "tool_use_summary",
+  "prompt_suggestion",
+  // 0.3.207 bump (2026-07-13): the previously-UNVERIFIABLE arm's shape is now
+  // declared — {type:'conversation_reset', new_conversation_id: UUID}. A
+  // session-identity ROTATION signal: no free text, but dropping it silently
+  // breaks any consumer correlating by conversation id (the old router-plane
+  // no-op made the rotation invisible). Carried whole-frame; a first-class
+  // thread-rotation mapping is a future spec decision, not a mechanical carry.
+  "conversation_reset",
+]);
 
 // Returns the uniform-carry `kind` string for `msg` if it is one of the arms
 // disposed `carried` in sdk-surface.json, else undefined (leaves router-plane
@@ -633,7 +649,12 @@ export function createClaudeNormalizer(): Normalizer {
       // doc: `.forEach`'s callback parameter inference degrades to implicit `any`
       // on this content shape post-0.3.199.
       for (let i = 0; i < m.content.length; i++) {
-        emitAssistantBlock(a, m.content[i], m.id, i, i === 0 ? supersedesMeta : undefined);
+        const block = m.content[i];
+        // noUncheckedIndexedAccess: structurally unreachable for i < length,
+        // but the real 0.3.207 union (unlike 0.3.199's any-collapse) makes
+        // the indexed access `| undefined` — guard, never assert.
+        if (block === undefined) continue;
+        emitAssistantBlock(a, block, m.id, i, i === 0 ? supersedesMeta : undefined);
       }
       a.closeMessage(m.id, mapMessageUsage(m.usage));
 
@@ -882,10 +903,10 @@ export function createClaudeNormalizer(): Normalizer {
       return;
     }
 
-    // Fixture-drift ratchet (2026-07-03 follow-up): the remaining 15
-    // `silently-dropped` arms carry genuine consumer-facing content with no
-    // existing AgJSON home — uniform lossless carry (see `anthropicFrameKind`
-    // doc comment above for the full per-arm reasoning, SPEC §8 item 22).
+    // Fixture-drift ratchet (2026-07-03 follow-up; +2 on the 0.3.207 bump):
+    // 17 carried arms with genuine consumer-facing content and no existing
+    // AgJSON home — uniform lossless carry (see `anthropicFrameKind` doc
+    // comment above for the full per-arm reasoning, SPEC §8 item 22).
     const carriedKind = anthropicFrameKind(msg);
     if (carriedKind !== undefined) {
       a.emitExt("anthropic", "frame", { kind: carriedKind, frame: JsonValue.parse(msg) });
