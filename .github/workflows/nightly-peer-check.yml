@@ -1,0 +1,129 @@
+name: Nightly peer check
+
+# Watches the three upstream agent SDKs this repo normalizes. Every night:
+#   scan   — compare each facet's npm dist-tags.latest against the DECLARED
+#            peerDependencies range (scripts/check-peer-latest.mjs; the same
+#            range render-compat.mjs publishes to the READMEs).
+#   test   — one matrix leg per peer: force latest via pnpm override and run
+#            the keyless gate suite (scripts/nightly-peer-leg.mjs).
+#   report — file deduplicated GitHub issues (scripts/nightly-peer-report.mjs):
+#              [peer-drift]  latest is outside the declared range
+#              [peer-compat] latest is in range but the gates fail
+#            Dedup key is the EXACT issue title (searched open+closed, so a
+#            wontfix stays closed for that version); newer issues auto-close
+#            superseded open ones for the same peer + signal.
+#
+# Like ci.yml this runs on the standalone typescript-sdk mirror (this
+# directory is the repo root there); inside the private workspace/guuey
+# supertrees the file is inert. Keyless: no secrets, no LLM calls — a green
+# night vouches for import/type/wire-fixture compatibility with latest, NOT
+# live behavior (that is `pnpm e2e:capture`, a human step in the ritual).
+#
+# A red night is the feature, not a flake: either upstream moved out of range,
+# an in-range release broke the gates, or the scan/report infra itself needs
+# attention (the report job exits 1 only for infra problems). Note GitHub
+# suspends cron workflows after ~60 days without repo activity — the Actions
+# tab will show a re-enable banner if that happens.
+
+on:
+  schedule:
+    - cron: "47 19 * * *" # 19:47 UTC = 04:47 KST, overnight for the maintainer
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-peer-check
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: latest upstream vs declared ranges
+    # schedule runs only on the canonical mirror (not forks); manual dispatch
+    # is allowed anywhere for debugging.
+    if: github.event_name != 'schedule' || github.repository == 'silverprotocol/typescript-sdk'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      peers: ${{ steps.scan.outputs.peers }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+      # the scan script is dependency-free (no pnpm install needed): assert
+      # its range evaluator against the spec table, then hit the registry.
+      - run: node scripts/check-peer-latest.mjs --self-test
+      - id: scan
+        run: node scripts/check-peer-latest.mjs
+
+  test-latest:
+    name: "${{ matrix.peer.facet }}: force ${{ matrix.peer.name }}@${{ matrix.peer.latest }}"
+    needs: scan
+    strategy:
+      fail-fast: false
+      matrix:
+        peer: ${{ fromJSON(needs.scan.outputs.peers) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: pnpm
+      # matrix values flow through env, never into shell text — a hostile
+      # version string from the registry must stay data, not code (the leg
+      # script also re-validates both against strict grammars).
+      - name: override to latest + gate suite
+        env:
+          PEER_NAME: ${{ matrix.peer.name }}
+          PEER_LATEST: ${{ matrix.peer.latest }}
+        run: node scripts/nightly-peer-leg.mjs "$PEER_NAME" "$PEER_LATEST" --out leg-result
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: peer-result-${{ matrix.peer.facet }}
+          path: leg-result/
+          # "Re-run failed jobs" is routine here (red legs are this
+          # workflow's expected output); without this the re-run 409s on the
+          # attempt-1 artifact and the report would read stale results.
+          overwrite: true
+          # a leg that died before writing result.json shows up in the report
+          # job as an infra problem — warn here rather than double-failing.
+          if-no-files-found: warn
+          retention-days: 14
+
+  report:
+    name: file deduplicated issues
+    needs: [scan, test-latest]
+    # test-latest legs are EXPECTED to fail on drift nights — report runs
+    # whenever the scan succeeded. !cancelled() (not always()) so a run the
+    # maintainer kills mid-matrix doesn't file issues from partial artifacts
+    # (a missing-artifact [peer-drift] body would be wrong, and the
+    # title-keyed dedup would then block the corrected one).
+    if: ${{ !cancelled() && needs.scan.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: peer-result-*
+          path: leg-results
+      - name: reconstruct scan verdicts
+        env:
+          SCAN_JSON: ${{ needs.scan.outputs.peers }}
+        run: printf '%s' "$SCAN_JSON" > scan.json
+      - name: file issues (dedup by exact title)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/nightly-peer-report.mjs --scan scan.json --results leg-results --repo "$GITHUB_REPOSITORY"

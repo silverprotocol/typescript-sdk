@@ -59,6 +59,15 @@ underlying contract has two layers:
   (by importing `render-compat.mjs`'s staleness check) that the rendered
   README tables are current — one gate, no separate step to forget.
 
+A **nightly watchdog** (`.github/workflows/nightly-peer-check.yml`) closes the
+loop from upstream's side: every night CI compares each facet's npm
+`dist-tags.latest` against the declared peer range, force-installs latest via
+pnpm override on a throwaway checkout, and runs the keyless gates against it —
+filing a deduplicated issue when upstream moves out of range (`peer-drift`) or
+an in-range release breaks the gates (`peer-compat`). A green night vouches
+for import/type/wire-fixture compatibility only; live behavior remains the
+ritual's job.
+
 Compatibility is **wire-shape compatibility**, not compile compatibility: the
 normalizers never import their SDK — they are hand-typed projections of the
 verified wire. New mappings are additive and structural, so newer normalizer
