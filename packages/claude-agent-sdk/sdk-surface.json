@@ -19,6 +19,12 @@
       "date": "2026-07-13",
       "silverprotocol": "0.3.3",
       "evidence": "fixture suite + drift gate + full 0.3.199->0.3.207 d.ts diff audit: one new arm (SDKBackgroundTasksChangedMessage, carried); two previously-UNVERIFIABLE arms now declared and re-triaged (control_request_progress router-plane CONFIRMED; conversation_reset UPGRADED to carried); field-level deltas triaged (SDKMessageOrigin observer kinds + peer body — disclosed gap; TerminalReason +6 values — unread, disclosed; init capabilities — router-plane); no removals"
+    },
+    {
+      "sdkVersion": "0.3.207",
+      "date": "2026-07-13",
+      "silverprotocol": "0.3.3",
+      "evidence": "LIVE capture: echo-sonnet5 standing seed REFRESHED at 0.3.207 (claude-sonnet-5) — zero unparsed events; init's new capabilities[] observed live (interrupt_receipt_v1, msg_lifecycle_v1) and triaged per the pre-existing router-plane disposition the d.ts-diff audit seeded"
     }
   ],
   "members": {

@@ -4,6 +4,7 @@
   "[*].apiKeySource",
   "[*].api_error_status",
   "[*].author",
+  "[*].capabilities[*]",
   "[*].claude_code_version",
   "[*].content.parts[*].functionCall.args.message",
   "[*].content.parts[*].functionCall.args.text",

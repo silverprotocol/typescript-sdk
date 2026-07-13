@@ -32,6 +32,7 @@ facet's per-field dispositions, including its disclosed `silently-dropped` gaps)
 
 | `@anthropic-ai/claude-agent-sdk` | verified | with | evidence |
 | --- | --- | --- | --- |
+| `0.3.207` | 2026-07-13 | 0.3.3 | LIVE capture: echo-sonnet5 standing seed REFRESHED at 0.3.207 (claude-sonnet-5) — zero unparsed events; init's new capabilities[] observed live (interrupt_receipt_v1, msg_lifecycle_v1) and triaged per the pre-existing router-plane disposition the d.ts-diff audit seeded |
 | `0.3.207` | 2026-07-13 | 0.3.3 | fixture suite + drift gate + full 0.3.199->0.3.207 d.ts diff audit: one new arm (SDKBackgroundTasksChangedMessage, carried); two previously-UNVERIFIABLE arms now declared and re-triaged (control_request_progress router-plane CONFIRMED; conversation_reset UPGRADED to carried); field-level deltas triaged (SDKMessageOrigin observer kinds + peer body — disclosed gap; TerminalReason +6 values — unread, disclosed; init capabilities — router-plane); no removals |
 | `0.3.199` | 2026-07-03 | 0.1.0 | live capture: echo-sonnet5 corpus (claude-sonnet-5) + drift-gate member seeding at 0.3.199 |
 | `0.2.141` | 2026-06-24 |  | live captures: app-spec + complete-result corpus (claude-sonnet-4-6), landed with the corpus-seed commit 738bcab; provenance sidecars recorded retroactively 2026-07-02 (kind:capture, capturedAt unrecorded) |

@@ -2312,5 +2312,13 @@
       "claude",
       "adk"
     ]
+  },
+  {
+    "path": "[*].capabilities[*]",
+    "reason": "claude: NEW system/init bootstrap field at @anthropic-ai/claude-agent-sdk 0.3.207 — protocol feature-detection flags (live values: interrupt_receipt_v1, msg_lifecycle_v1). Same class as the sibling init fields ([*].agents[*] et al.): session capability-catalog metadata, not turn content; disposed router-plane in claude-agent-sdk/sdk-surface.json's SDKSystemMessage entry (re-verified at 0.3.207, the d.ts-diff audit predicted this field before the wire carried it). First observed live: echo-sonnet5 refresh at 0.3.207 (playbook 2026-07-13).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
   }
 ]
