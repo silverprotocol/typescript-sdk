@@ -77,7 +77,7 @@ const KEY_ENV_VAR: Record<Framework, string> = {
 const SDK_PACKAGE: Record<Framework, string> = {
   claude: "@anthropic-ai/claude-agent-sdk",
   openai: "@openai/agents",
-  adk: "@iqai/adk",
+  adk: "@google/adk",
 };
 
 /** The default model each capture agent uses when `CaptureRunOptions.model`

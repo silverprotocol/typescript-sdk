@@ -1,5 +1,5 @@
 /**
- * Smoke tests for the standalone Google ADK (`@iqai/adk`) capture agent.
+ * Smoke tests for the standalone Google ADK (`@google/adk`) capture agent.
  *
  * Structural validation only (Task 6 — see run.ts's header for the full
  * adjudication). Validates module-load contract, the public shape of the

@@ -884,12 +884,16 @@ describe("createAdkNormalizer — event-level unmapped fields → content.block 
     for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
   });
 
-  // fixture-drift ratchet (google-adk-ratchet task): candidateIndex/branch are
-  // real @iqai/adk Event/LlmResponse fields the hand-typed AdkEvent contract
-  // either lacked (candidateIndex) or declared but NEVER READ (branch) —
+  // fixture-drift ratchet (google-adk-ratchet task): candidateIndex/branch
+  // were real upstream Event/LlmResponse fields the hand-typed AdkEvent
+  // contract either lacked (candidateIndex — @iqai/adk-era surface, absent
+  // from the official @google/adk 1.3.0; the carry stays as harmless
+  // tolerance for older wire) or declared but NEVER READ (branch) —
   // genuinely vanishing findings, folded into this SAME event-level
-  // unmapped-fields carry. Both are genuinely OPTIONAL on the real Event
-  // class (multi-candidate / multi-agent-branch scenarios only).
+  // unmapped-fields carry. Both are genuinely OPTIONAL wire payloads
+  // (multi-candidate / multi-agent-branch scenarios only). modelVersion
+  // joined on the official-SDK retarget (2026-07-13): a genuinely-optional
+  // @google/adk 1.3.0 LlmResponse field, same carry precedent.
   it("carries candidateIndex in a provider-raw content.block", () => {
     const out = run([event([], { candidateIndex: 1 })]);
     const raw = out.find(
@@ -918,9 +922,25 @@ describe("createAdkNormalizer — event-level unmapped fields → content.block 
     for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
   });
 
+  it("carries modelVersion in a provider-raw content.block (official @google/adk 1.3.0 retarget)", () => {
+    const out = run([event([], { modelVersion: "gemini-3.5-flash-001" })]);
+    const raw = out.find(
+      (e) =>
+        e.type === "content.block" &&
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "provider-raw" &&
+        "modelVersion" in ((e as { block: { raw: object } }).block.raw as object),
+    );
+    expect(raw).toBeDefined();
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
   // `author`/`timestamp` are ALSO real, currently-unread AdkEvent fields, but
-  // are DELIBERATELY excluded from the generic carry (unlike candidateIndex/
-  // branch above): both are REQUIRED on the real @iqai/adk `Event` class
+  // are DELIBERATELY excluded from the generic carry (unlike branch/
+  // modelVersion above): on the official @google/adk 1.3.0 Event interface
+  // `timestamp` is REQUIRED and `author?` optional-in-type but set by the
+  // runner on every appended event in practice
   // (present on EVERY event, not an occasional payload) — auto-carrying them
   // here would emit a provider-raw content.block on every single native
   // event, which empirically broke packages/e2e's captured golden fixtures

@@ -247,8 +247,16 @@ export interface AdkEvent {
    *  candidateCount > 1) — fixture-drift ratchet finding (google-adk-ratchet
    *  task): absent from this contract entirely until now. Carried via the
    *  event-level unmapped-fields provider-raw block (`driveAdkTopLevel`,
-   *  alongside `citationMetadata`/`customMetadata`; SPEC §8 item 23). */
+   *  alongside `citationMetadata`/`customMetadata`; SPEC §8 item 23).
+   *  NOTE (official-SDK retarget, 2026-07-13): `@google/adk` 1.3.0's
+   *  `LlmResponse` does NOT declare this field (it was `@iqai/adk` surface) —
+   *  the carry stays as a harmless structural tolerance for older wire. */
   candidateIndex?: number;
+  /** The model version that produced this response (official `@google/adk`
+   *  `LlmResponse.modelVersion`, new on the 1.3.0 retarget) — carried via the
+   *  event-level unmapped-fields provider-raw block, same ratchet precedent
+   *  as `candidateIndex`/`branch`. */
+  modelVersion?: string;
 }
 
 // ─── finishReason → AgFinishReason (spec §4) ──────────────────────────────────
@@ -950,35 +958,37 @@ function driveAdkTopLevel(
   }
 
   // ── event-level unmapped (citationMetadata / customMetadata / candidateIndex /
-  // branch) → provider-raw ──
+  // branch / modelVersion) → provider-raw ──
   // candidateIndex/branch are fixture-drift ratchet findings (google-adk-ratchet
   // task; SPEC §8 item 23): candidateIndex was entirely absent from the
   // AdkEvent contract; branch was ALREADY typed but never read anywhere in
-  // drive()/driveAdkTopLevel. Both are genuinely OPTIONAL on the real
-  // @google/adk Event class (only set for multi-candidate / multi-agent-branch
-  // scenarios), so carrying them opportunistically here matches the
-  // citationMetadata/customMetadata precedent.
+  // drive()/driveAdkTopLevel. modelVersion joined on the official-SDK retarget
+  // (2026-07-13): a genuinely-optional `@google/adk` 1.3.0 `LlmResponse` field
+  // absent from `@iqai/adk`'s surface, closed by the same opportunistic-carry
+  // precedent (absent from all recorded fixtures — no golden-snapshot impact).
   //
   // `author`/`timestamp` are ALSO real, currently-unread AdkEvent fields
-  // (same manifest inventory) but are DELIBERATELY NOT folded into this bag:
-  // unlike the four fields above, both are REQUIRED (non-optional) on the
-  // real @google/adk `Event` class (`author: string`, `timestamp: number`) —
-  // i.e. present on EVERY real event, not an occasional payload. Verified
-  // empirically: adding them here fired a provider-raw content.block on
-  // every single native event in packages/e2e's captured adk fixtures
-  // (author:"spike" is set on all 5 events of both corpus scenarios),
-  // breaking the recorded golden `*.agjson.json` snapshots AND the
-  // cross-framework convergence assertions (adk's sequence gained
-  // content.block noise claude/openai's equivalent streams don't have) —
-  // regenerating those cassette fixtures is outside this ratchet's boundary
-  // (facet + manifests + script + SPEC §8 only). Disposed honestly as
-  // `silently-dropped` in sdk-surface.json rather than landed here; a more
-  // precise, non-noisy home (e.g. an agent-identity field on message.start
-  // for `author`, or the SPEC.md-sanctioned `_meta.timestamp` bare-key for
-  // `timestamp`) is a future spec-process decision, not a mechanical carry.
+  // (same manifest inventory) but are DELIBERATELY NOT folded into this bag.
+  // On the official `@google/adk` 1.3.0 `Event` interface `timestamp: number`
+  // is REQUIRED and `author?: string` is optional in the TYPE — but the
+  // runner sets author on every event it appends in practice, so the
+  // original empirical point stands unchanged: folding either into this
+  // carry fired a provider-raw content.block on every single native event in
+  // packages/e2e's captured adk fixtures (author:"spike" is set on all 5
+  // events of both corpus scenarios), breaking the recorded golden
+  // `*.agjson.json` snapshots AND the cross-framework convergence assertions
+  // (adk's sequence gained content.block noise claude/openai's equivalent
+  // streams don't have) — regenerating those cassette fixtures is outside
+  // this ratchet's boundary (facet + manifests + script + SPEC §8 only).
+  // Disposed honestly as `silently-dropped` in sdk-surface.json rather than
+  // landed here; a more precise, non-noisy home (e.g. an agent-identity
+  // field on message.start for `author`, or the SPEC.md-sanctioned
+  // `_meta.timestamp` bare-key for `timestamp`) is a future spec-process
+  // decision, not a mechanical carry.
   const unmappedEvent: { [k: string]: JsonValue } = {};
   if (event.candidateIndex !== undefined) unmappedEvent["candidateIndex"] = event.candidateIndex;
   if (event.branch !== undefined) unmappedEvent["branch"] = event.branch;
+  if (event.modelVersion !== undefined) unmappedEvent["modelVersion"] = event.modelVersion;
   if (event.citationMetadata !== undefined)
     unmappedEvent["citationMetadata"] = JsonValue.parse(event.citationMetadata);
   if (event.customMetadata !== undefined)
