@@ -74,6 +74,16 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // census (drops===[], newFields===[] after triage — see known-acceptable-
   // drops.json/transforms.json/field-registry.json additions in the same commit).
   { scenario: "app-spec-structured-result", framework: "openai" },
+  // Playbook 2026-07-13 (model-release run, gpt-5.6 + official @google/adk):
+  // FIRST-EVER regen of the two new live seeds. Same empty-guard-maps reason
+  // as echo-sonnet5/echo-gpt55 above. echo-gemini35/adk's agjson.json ALSO
+  // needs regenerating for a second reason: it was captured before the
+  // per-turn usage-summation fix this same playbook step landed (the census
+  // caught the tool round's usageMetadata — incl. thoughtsTokenCount 125 —
+  // vanishing from turn.done; the regen re-normalizes the SAME native.json
+  // through the fixed facet).
+  { scenario: "echo-gpt56", framework: "openai" },
+  { scenario: "echo-gemini35", framework: "adk" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

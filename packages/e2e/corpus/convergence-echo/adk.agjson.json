@@ -84,9 +84,9 @@
     },
     "finishReason": "stop",
     "usage": {
-      "inputTokens": 95,
-      "outputTokens": 3,
-      "totalTokens": 98,
+      "inputTokens": 173,
+      "outputTokens": 16,
+      "totalTokens": 189,
       "cumulative": false
     }
   }

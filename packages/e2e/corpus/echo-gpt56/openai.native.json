@@ -1,0 +1,1809 @@
+[
+  {
+    "data": {
+      "type": "response_started",
+      "providerData": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_050c417a797e68b0006a54b7437fcc819aa667715e398dd0e4",
+          "object": "response",
+          "created_at": 1783936835,
+          "status": "in_progress",
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_050c417a797e68b0006a54b7437fcc819aa667715e398dd0e4",
+          "object": "response",
+          "created_at": 1783936835,
+          "status": "in_progress",
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.in_progress",
+        "response": {
+          "id": "resp_050c417a797e68b0006a54b7437fcc819aa667715e398dd0e4",
+          "object": "response",
+          "created_at": 1783936835,
+          "status": "in_progress",
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 1
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+          "type": "function_call",
+          "status": "in_progress",
+          "arguments": "",
+          "call_id": "call_LuS9cRYR6pmjjvjNgnYUlQVa",
+          "name": "echo"
+        },
+        "output_index": 0,
+        "sequence_number": 2
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "{\"",
+        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+        "obfuscation": "4BIf5HQIlu6NDf",
+        "output_index": 0,
+        "sequence_number": 3
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "message",
+        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+        "obfuscation": "sM8CfkaML",
+        "output_index": 0,
+        "sequence_number": 4
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "\":\"",
+        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+        "obfuscation": "MxP3qZtjRqDqb",
+        "output_index": 0,
+        "sequence_number": 5
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "con",
+        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+        "obfuscation": "nZUeHFkuyfh3F",
+        "output_index": 0,
+        "sequence_number": 6
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "formance",
+        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+        "obfuscation": "gxMOf3Y6",
+        "output_index": 0,
+        "sequence_number": 7
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "-pro",
+        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+        "obfuscation": "6mW7MvZfDnpB",
+        "output_index": 0,
+        "sequence_number": 8
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "be",
+        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+        "obfuscation": "OONFns5aTsPxI2",
+        "output_index": 0,
+        "sequence_number": 9
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "-g",
+        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+        "obfuscation": "KJEfgQsDROkvGC",
+        "output_index": 0,
+        "sequence_number": 10
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "pt",
+        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+        "obfuscation": "rHfCI0YidUeo63",
+        "output_index": 0,
+        "sequence_number": 11
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "56",
+        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+        "obfuscation": "Ds8kJWi543VSjL",
+        "output_index": 0,
+        "sequence_number": 12
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "\"}",
+        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+        "obfuscation": "JLPiHaDRjRPb40",
+        "output_index": 0,
+        "sequence_number": 13
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.done",
+        "arguments": "{\"message\":\"conformance-probe-gpt56\"}",
+        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+        "output_index": 0,
+        "sequence_number": 14
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+          "type": "function_call",
+          "status": "completed",
+          "arguments": "{\"message\":\"conformance-probe-gpt56\"}",
+          "call_id": "call_LuS9cRYR6pmjjvjNgnYUlQVa",
+          "name": "echo"
+        },
+        "output_index": 0,
+        "sequence_number": 15
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_done",
+      "response": {
+        "id": "resp_050c417a797e68b0006a54b7437fcc819aa667715e398dd0e4",
+        "requestId": "req_d33dbcca25234bbc8c3b79faa5e85d43",
+        "output": [
+          {
+            "type": "function_call",
+            "id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+            "callId": "call_LuS9cRYR6pmjjvjNgnYUlQVa",
+            "name": "echo",
+            "status": "completed",
+            "arguments": "{\"message\":\"conformance-probe-gpt56\"}",
+            "providerData": {
+              "id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+              "type": "function_call"
+            }
+          }
+        ],
+        "usage": {
+          "inputTokens": 108,
+          "outputTokens": 23,
+          "totalTokens": 131,
+          "inputTokensDetails": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "outputTokensDetails": {
+            "reasoning_tokens": 0
+          },
+          "requestUsageEntries": [
+            {
+              "inputTokens": 108,
+              "outputTokens": 23,
+              "totalTokens": 131,
+              "inputTokensDetails": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0
+              },
+              "outputTokensDetails": {
+                "reasoning_tokens": 0
+              },
+              "endpoint": "responses.create"
+            }
+          ]
+        },
+        "providerData": {
+          "object": "response",
+          "created_at": 1783936835,
+          "status": "completed",
+          "background": false,
+          "completed_at": 1783936839,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.6-sol",
+          "moderation": null,
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "user": null,
+          "metadata": {}
+        }
+      },
+      "providerData": {
+        "type": "response.completed",
+        "sequence_number": 16
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_050c417a797e68b0006a54b7437fcc819aa667715e398dd0e4",
+          "object": "response",
+          "created_at": 1783936835,
+          "status": "completed",
+          "background": false,
+          "completed_at": 1783936839,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.6-sol",
+          "moderation": null,
+          "output": [
+            {
+              "id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+              "type": "function_call",
+              "status": "completed",
+              "arguments": "{\"message\":\"conformance-probe-gpt56\"}",
+              "call_id": "call_LuS9cRYR6pmjjvjNgnYUlQVa",
+              "name": "echo"
+            }
+          ],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": {
+            "input_tokens": 108,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 23,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "total_tokens": 131
+          },
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 16
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "name": "tool_called",
+    "item": {
+      "type": "tool_call_item",
+      "rawItem": {
+        "providerData": {
+          "id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+          "type": "function_call"
+        },
+        "id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+        "type": "function_call",
+        "callId": "call_LuS9cRYR6pmjjvjNgnYUlQVa",
+        "name": "echo",
+        "status": "completed",
+        "arguments": "{\"message\":\"conformance-probe-gpt56\"}"
+      },
+      "agent": {
+        "name": "spike"
+      }
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "name": "tool_output",
+    "item": {
+      "type": "tool_call_output_item",
+      "rawItem": {
+        "type": "function_call_result",
+        "name": "echo",
+        "callId": "call_LuS9cRYR6pmjjvjNgnYUlQVa",
+        "status": "completed",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "conformance-probe-gpt56"
+          }
+        ]
+      },
+      "agent": {
+        "name": "spike"
+      },
+      "output": "{\"type\":\"text\",\"text\":\"conformance-probe-gpt56\"}"
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_started",
+      "providerData": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_050c417a797e68b0006a54b747b708819a9eb41151a11d88c4",
+          "object": "response",
+          "created_at": 1783936839,
+          "status": "in_progress",
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_050c417a797e68b0006a54b747b708819a9eb41151a11d88c4",
+          "object": "response",
+          "created_at": 1783936839,
+          "status": "in_progress",
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.in_progress",
+        "response": {
+          "id": "resp_050c417a797e68b0006a54b747b708819a9eb41151a11d88c4",
+          "object": "response",
+          "created_at": 1783936839,
+          "status": "in_progress",
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 1
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+          "type": "message",
+          "status": "in_progress",
+          "content": [],
+          "phase": "final_answer",
+          "role": "assistant"
+        },
+        "output_index": 0,
+        "sequence_number": 2
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.content_part.added",
+        "content_index": 0,
+        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "output_index": 0,
+        "part": {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": ""
+        },
+        "sequence_number": 3
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "con",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "logprobs": [],
+        "obfuscation": "P4tcJx1OEjgzM",
+        "output_index": 0,
+        "sequence_number": 4
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "con",
+        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "logprobs": [],
+        "obfuscation": "P4tcJx1OEjgzM",
+        "output_index": 0,
+        "sequence_number": 4
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "formance",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "logprobs": [],
+        "obfuscation": "WmpqksBZ",
+        "output_index": 0,
+        "sequence_number": 5
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "formance",
+        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "logprobs": [],
+        "obfuscation": "WmpqksBZ",
+        "output_index": 0,
+        "sequence_number": 5
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "-pro",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "logprobs": [],
+        "obfuscation": "77vwiWiBNehZ",
+        "output_index": 0,
+        "sequence_number": 6
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "-pro",
+        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "logprobs": [],
+        "obfuscation": "77vwiWiBNehZ",
+        "output_index": 0,
+        "sequence_number": 6
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "be",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "logprobs": [],
+        "obfuscation": "29tR8Pa7KbeWQ7",
+        "output_index": 0,
+        "sequence_number": 7
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "be",
+        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "logprobs": [],
+        "obfuscation": "29tR8Pa7KbeWQ7",
+        "output_index": 0,
+        "sequence_number": 7
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "-g",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "logprobs": [],
+        "obfuscation": "EAClfmiqi8y0FP",
+        "output_index": 0,
+        "sequence_number": 8
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "-g",
+        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "logprobs": [],
+        "obfuscation": "EAClfmiqi8y0FP",
+        "output_index": 0,
+        "sequence_number": 8
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "pt",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "logprobs": [],
+        "obfuscation": "lad9UiQvhlKdVF",
+        "output_index": 0,
+        "sequence_number": 9
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "pt",
+        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "logprobs": [],
+        "obfuscation": "lad9UiQvhlKdVF",
+        "output_index": 0,
+        "sequence_number": 9
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "56",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "logprobs": [],
+        "obfuscation": "b515uc5Vxd1wCR",
+        "output_index": 0,
+        "sequence_number": 10
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "56",
+        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "logprobs": [],
+        "obfuscation": "b515uc5Vxd1wCR",
+        "output_index": 0,
+        "sequence_number": 10
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.done",
+        "content_index": 0,
+        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "logprobs": [],
+        "output_index": 0,
+        "sequence_number": 11,
+        "text": "conformance-probe-gpt56"
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.content_part.done",
+        "content_index": 0,
+        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "output_index": 0,
+        "part": {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "conformance-probe-gpt56"
+        },
+        "sequence_number": 12
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+          "type": "message",
+          "status": "completed",
+          "content": [
+            {
+              "type": "output_text",
+              "annotations": [],
+              "logprobs": [],
+              "text": "conformance-probe-gpt56"
+            }
+          ],
+          "phase": "final_answer",
+          "role": "assistant"
+        },
+        "output_index": 0,
+        "sequence_number": 13
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_done",
+      "response": {
+        "id": "resp_050c417a797e68b0006a54b747b708819a9eb41151a11d88c4",
+        "requestId": "req_97615b3e50f549309a1894dece50f8b0",
+        "output": [
+          {
+            "id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "conformance-probe-gpt56",
+                "providerData": {
+                  "annotations": [],
+                  "logprobs": []
+                }
+              }
+            ],
+            "status": "completed",
+            "providerData": {
+              "phase": "final_answer"
+            }
+          }
+        ],
+        "usage": {
+          "inputTokens": 148,
+          "outputTokens": 11,
+          "totalTokens": 159,
+          "inputTokensDetails": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "outputTokensDetails": {
+            "reasoning_tokens": 0
+          },
+          "requestUsageEntries": [
+            {
+              "inputTokens": 148,
+              "outputTokens": 11,
+              "totalTokens": 159,
+              "inputTokensDetails": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0
+              },
+              "outputTokensDetails": {
+                "reasoning_tokens": 0
+              },
+              "endpoint": "responses.create"
+            }
+          ]
+        },
+        "providerData": {
+          "object": "response",
+          "created_at": 1783936839,
+          "status": "completed",
+          "background": false,
+          "completed_at": 1783936840,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.6-sol",
+          "moderation": null,
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "user": null,
+          "metadata": {}
+        }
+      },
+      "providerData": {
+        "type": "response.completed",
+        "sequence_number": 14
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_050c417a797e68b0006a54b747b708819a9eb41151a11d88c4",
+          "object": "response",
+          "created_at": 1783936839,
+          "status": "completed",
+          "background": false,
+          "completed_at": 1783936840,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-5.6-sol",
+          "moderation": null,
+          "output": [
+            {
+              "id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+              "type": "message",
+              "status": "completed",
+              "content": [
+                {
+                  "type": "output_text",
+                  "annotations": [],
+                  "logprobs": [],
+                  "text": "conformance-probe-gpt56"
+                }
+              ],
+              "phase": "final_answer",
+              "role": "assistant"
+            }
+          ],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "none",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": {
+            "input_tokens": 148,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 11,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "total_tokens": 159
+          },
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 14
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "name": "message_output_created",
+    "item": {
+      "type": "message_output_item",
+      "rawItem": {
+        "providerData": {
+          "phase": "final_answer"
+        },
+        "id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "type": "message",
+        "role": "assistant",
+        "status": "completed",
+        "content": [
+          {
+            "providerData": {
+              "annotations": [],
+              "logprobs": []
+            },
+            "type": "output_text",
+            "text": "conformance-probe-gpt56"
+          }
+        ]
+      },
+      "agent": {
+        "name": "spike"
+      }
+    },
+    "type": "run_item_stream_event"
+  }
+]

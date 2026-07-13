@@ -1,0 +1,10 @@
+{
+  "drops": [],
+  "newFields": [
+    "[*].content.parts[*].functionCall.args.message",
+    "[*].content.parts[*].thoughtSignature",
+    "[*].usageMetadata.promptTokensDetails[*].modality",
+    "[*].usageMetadata.promptTokensDetails[*].tokenCount",
+    "[*].usageMetadata.serviceTier"
+  ]
+}

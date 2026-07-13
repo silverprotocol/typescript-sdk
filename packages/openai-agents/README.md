@@ -32,6 +32,7 @@ facet's per-field dispositions, including its disclosed `silently-dropped` gaps)
 
 | `@openai/agents` | verified | with | evidence |
 | --- | --- | --- | --- |
+| `0.13.2` | 2026-07-13 | 0.3.3 | LIVE capture: echo-gpt56 corpus (gpt-5.6) — landed as a standing replay/census seed; cache_write_tokens mapping confirmed on real wire (turn.done usage.cacheWriteTokens); zero unparsed events |
 | `0.13.2` | 2026-07-13 | 0.3.3 | fixture suite + drift gate + adversarially-verified 0.12.0->0.13.2 wire-surface audit (GPT-5.6 era: cache_write_tokens mapped, invalidFinalOutput late-message rescue; hosted multi-agent + programmatic tool calling documented KNOWN-DEFERRED); live capture pending (echo-gpt56 scenario ready) |
 | `0.12.0` | 2026-07-03 | 0.1.0 | live captures: echo-gpt55 + app-spec-structured-result corpus (gpt-5.5) |
 <!-- compat:end -->

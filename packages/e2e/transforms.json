@@ -31,5 +31,9 @@
   "[*].modelUsage.claude-haiku-4-5-20251001.cacheReadInputTokens": "[*].usage.byModel.claude-haiku-4-5-20251001.cacheReadTokens",
   "[*].modelUsage.claude-haiku-4-5-20251001.cacheCreationInputTokens": "[*].usage.byModel.claude-haiku-4-5-20251001.cacheWriteTokens",
   "[*].data.response.usage.requestUsageEntries[*].inputTokensDetails.cached_tokens": "[*].usage.cacheReadTokens",
-  "[*].data.response.usage.requestUsageEntries[*].outputTokensDetails.reasoning_tokens": "[*].usage.reasoningTokens"
+  "[*].data.response.usage.requestUsageEntries[*].outputTokensDetails.reasoning_tokens": "[*].usage.reasoningTokens",
+  "[*].data.event.response.usage.input_tokens_details.cache_write_tokens": "[*].usage.cacheWriteTokens",
+  "[*].data.response.usage.inputTokensDetails.cache_write_tokens": "[*].usage.cacheWriteTokens",
+  "[*].data.response.usage.requestUsageEntries[*].inputTokensDetails.cache_write_tokens": "[*].usage.cacheWriteTokens",
+  "[*].usageMetadata.thoughtsTokenCount": "[*].usage.reasoningTokens"
 }

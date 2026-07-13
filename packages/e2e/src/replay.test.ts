@@ -101,6 +101,11 @@ const OPENAI_SEEDS = [
   "convergence-echo",
   "echo-gpt55",
   "app-spec-structured-result",
+  // 2026-07-13 model-release playbook (same rationale as echo-sonnet5): the
+  // FIRST live capture against gpt-5.6 (@openai/agents 0.13.2), landing the
+  // new model's wire shape as a standing measurement rather than a one-off
+  // probe (kind:"capture" — see corpus/echo-gpt56/openai.provenance.json).
+  "echo-gpt56",
 ] as const;
 
 /**
@@ -111,7 +116,15 @@ const OPENAI_SEEDS = [
  * CONVERGENCE_SCENARIOS comment below for why `text-tool-turn` itself is NOT
  * added to the convergence-scenario list).
  */
-const ADK_SEEDS = ["convergence-echo", "text-tool-turn"] as const;
+const ADK_SEEDS = [
+  "convergence-echo",
+  "text-tool-turn",
+  // 2026-07-13: the FIRST live conformance capture on the OFFICIAL
+  // @google/adk (1.3.0, gemini-3.5-flash) — unlike the two hand-authored
+  // fixtures above, this is real captured wire (kind:"capture" — see
+  // corpus/echo-gemini35/adk.provenance.json).
+  "echo-gemini35",
+] as const;
 
 async function readSnapshotForFramework(scn: string, framework: string): Promise<JsonValue[]> {
   const raw = await readFile(join(CORPUS_ROOT, scn, `${framework}.agjson.json`), "utf8");

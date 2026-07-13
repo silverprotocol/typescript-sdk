@@ -14,6 +14,12 @@
       "date": "2026-07-13",
       "silverprotocol": "0.3.3",
       "evidence": "fixture suite + drift gate + adversarially-verified 0.12.0->0.13.2 wire-surface audit (GPT-5.6 era: cache_write_tokens mapped, invalidFinalOutput late-message rescue; hosted multi-agent + programmatic tool calling documented KNOWN-DEFERRED); live capture pending (echo-gpt56 scenario ready)"
+    },
+    {
+      "sdkVersion": "0.13.2",
+      "date": "2026-07-13",
+      "silverprotocol": "0.3.3",
+      "evidence": "LIVE capture: echo-gpt56 corpus (gpt-5.6) — landed as a standing replay/census seed; cache_write_tokens mapping confirmed on real wire (turn.done usage.cacheWriteTokens); zero unparsed events"
     }
   ],
   "sections": {

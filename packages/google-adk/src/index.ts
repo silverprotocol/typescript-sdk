@@ -319,6 +319,33 @@ function mapUsage(um: AdkEvent["usageMetadata"]): AgUsage | undefined {
   };
 }
 
+/** The usageMetadata fields mapUsage consumes — the summable per-LLM-call
+ *  token counters a turn's accumulator adds up (see maybeCloseTurn). */
+const USAGE_SUM_FIELDS = [
+  "promptTokenCount",
+  "candidatesTokenCount",
+  "totalTokenCount",
+  "cachedContentTokenCount",
+  "thoughtsTokenCount",
+  "toolUsePromptTokenCount",
+] as const;
+
+/** Fold one event's usageMetadata into a turn's running accumulator
+ *  (field-wise sum; absent fields stay absent so mapUsage's presence checks
+ *  keep working). Returns the accumulator (creating it on first use). */
+function accumulateUsage(
+  acc: NonNullable<AdkEvent["usageMetadata"]> | undefined,
+  um: AdkEvent["usageMetadata"],
+): NonNullable<AdkEvent["usageMetadata"]> | undefined {
+  if (um === undefined) return acc;
+  const next = acc ?? {};
+  for (const field of USAGE_SUM_FIELDS) {
+    const v = um[field];
+    if (v !== undefined) next[field] = (next[field] ?? 0) + v;
+  }
+  return next;
+}
+
 /** ADK blocked safetyRatings → neutral AgSafety[]. Extracted from the legacy turn.done arm. */
 function mapBlockedSafety(ratings: AdkEvent["safetyRatings"]): AgSafety[] | undefined {
   if (ratings === undefined) return undefined;
@@ -1010,6 +1037,18 @@ export function createAdkNormalizer(): Normalizer {
   const streamedText = new Map<string, string>();
   const openTurns = new Set<string>();
   const closedTurns = new Set<string>();
+  // Per-turn usageMetadata accumulator (2026-07-13, echo-gemini35 live-capture
+  // finding): ADK usageMetadata is PER-LLM-CALL and one ADK turn spans EVERY
+  // round of the invocation (turnKey = invocationId) — reading only the
+  // closing event's usageMetadata dropped every intermediate round's tokens
+  // (the live tool round's promptTokenCount/candidatesTokenCount AND its
+  // thoughtsTokenCount vanished from turn.done; census Rule 1 caught the
+  // transforms-registered thoughtsTokenCount target never landing). Summed
+  // over the turn's NON-PARTIAL events only: the partial:true stream and its
+  // partial:false aggregate re-send carry the SAME per-round usage (§8.3's
+  // double-render quirk applies to usage too), so counting non-partial
+  // events counts each round exactly once.
+  const usageByTurn = new Map<string, NonNullable<AdkEvent["usageMetadata"]>>();
   // Per-turn HITL asks emitted by the two `actions.requested*` arms (audit
   // M26) — populated in emission order by `trackPendingAsk` inside
   // `driveAdkTopLevel`. Consulted ONLY by `maybeCloseTurn`'s REAL close path
@@ -1043,6 +1082,11 @@ export function createAdkNormalizer(): Normalizer {
     isPartial: boolean
   ): void {
     if (isPartial || closedTurns.has(turnId)) return;
+    // Every non-partial event contributes its per-round usage to the turn's
+    // accumulator — including functionCall rounds, which never close the
+    // turn themselves (see the usageByTurn doc above).
+    const accumulated = accumulateUsage(usageByTurn.get(turnId), event.usageMetadata);
+    if (accumulated !== undefined) usageByTurn.set(turnId, accumulated);
     const parts = event.content?.parts ?? [];
     const hasFunctionCall = parts.some((p) => p.functionCall !== undefined);
     const interrupted = event.interrupted === true;
@@ -1057,7 +1101,7 @@ export function createAdkNormalizer(): Normalizer {
     if (event.errorCode !== undefined && event.errorMessage !== undefined) {
       a.closeTurnError(turnId, { message: event.errorMessage, code: event.errorCode });
     } else {
-      const usage = mapUsage(event.usageMetadata);
+      const usage = mapUsage(usageByTurn.get(turnId) ?? event.usageMetadata);
       const safety = mapBlockedSafety(event.safetyRatings);
       // A turn with pending HITL asks (requestedAuthConfigs /
       // requestedToolConfirmations, tracked by `trackPendingAsk` above) closes

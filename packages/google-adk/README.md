@@ -33,6 +33,7 @@ facet's per-field dispositions, including its disclosed `silently-dropped` gaps)
 
 | `@google/adk` | verified | with | evidence |
 | --- | --- | --- | --- |
+| `1.3.0` | 2026-07-13 | 0.3.3 | LIVE conformance capture: echo-gemini35 corpus (gemini-3.5-flash, official MCPToolset over Streamable HTTP) — landed as a standing replay/census seed; census caught + fixed per-turn usage summation (intermediate rounds' usageMetadata incl. thoughtsTokenCount now summed into turn.done) |
 | `1.3.0` | 2026-07-13 | 0.3.3 | drift-gate eventField re-seed against the official interfaces (24 members) + e2e harness migration off @iqai/adk; live conformance capture pending |
 | `1.3.0` | 2026-07-07 | 0.3.1 | live validation: launch/validation/e2e-adk-google*.mjs (text + tool turns; upstream google/adk-js#475 diagnosed to root cause and filed) |
 <!-- compat:end -->

@@ -1042,3 +1042,51 @@ describe("createAdkNormalizer — unmapped Part fields → content.block provide
     for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
   });
 });
+
+describe("createAdkNormalizer — per-turn usage summation (echo-gemini35 live-capture finding, 2026-07-13)", () => {
+  // ADK usageMetadata is PER-LLM-CALL and one turn spans every round of the
+  // invocation — turn.done usage must SUM the rounds, not report only the
+  // closing event's call (which silently dropped the tool round's tokens and
+  // the whole thoughtsTokenCount on the real gemini-3.5-flash wire).
+  it("sums usageMetadata across the invocation's rounds (tool round + final round)", () => {
+    const out = run([
+      // Round 1: functionCall (never closes the turn) — with thinking tokens.
+      event([{ functionCall: { id: "fc_1", name: "echo", args: { message: "hi" } } }], {
+        finishReason: "STOP",
+        usageMetadata: { promptTokenCount: 109, candidatesTokenCount: 22, totalTokenCount: 256, thoughtsTokenCount: 125 },
+      }),
+      // Tool result (no usage).
+      event([{ functionResponse: { id: "fc_1", name: "echo", response: { output: "hi" } } }]),
+      // Round 2: final text — closes the turn.
+      event([{ text: "Echoed: hi" }], {
+        finishReason: "STOP",
+        usageMetadata: { promptTokenCount: 285, candidatesTokenCount: 9, totalTokenCount: 294 },
+      }),
+    ]);
+    const done = out.find((e) => e.type === "turn.done") as { usage?: Record<string, unknown> };
+    expect(done?.usage).toMatchObject({
+      cumulative: false,
+      inputTokens: 394,
+      outputTokens: 31,
+      totalTokens: 550,
+      reasoningTokens: 125,
+    });
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("counts each round ONCE despite the partial:true stream + partial:false aggregate re-send carrying the same usage (§8.3)", () => {
+    const usage1 = { promptTokenCount: 82, candidatesTokenCount: 15, totalTokenCount: 97 };
+    const usage2 = { promptTokenCount: 99, candidatesTokenCount: 4, totalTokenCount: 103 };
+    const out = run([
+      event([{ functionCall: { id: "fc_1", name: "echo", args: { message: "hi" } } }], { partial: true, finishReason: "STOP", usageMetadata: usage1 }),
+      event([{ functionCall: { id: "fc_1", name: "echo", args: { message: "hi" } } }], { partial: false, finishReason: "STOP", usageMetadata: usage1 }),
+      event([{ functionResponse: { id: "fc_1", name: "echo", response: { output: "hi" } } }]),
+      event([{ text: "Echoed: hi" }], { partial: true, finishReason: "STOP", usageMetadata: usage2 }),
+      event([{ text: "Echoed: hi" }], { partial: false, finishReason: "STOP", usageMetadata: usage2 }),
+    ]);
+    const done = out.find((e) => e.type === "turn.done") as { usage?: Record<string, unknown> };
+    // 97-round + 103-round each counted exactly once: 82+99 / 15+4 / 97+103.
+    expect(done?.usage).toMatchObject({ inputTokens: 181, outputTokens: 19, totalTokens: 200 });
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+});
