@@ -84,6 +84,16 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // through the fixed facet).
   { scenario: "echo-gpt56", framework: "openai" },
   { scenario: "echo-gemini35", framework: "adk" },
+  // Mirror reconciliation (2026-07-13): four live @google/adk 1.3.0 cassettes
+  // captured 2026-07-08 directly on the public mirror (parallel migration,
+  // never subtree-pulled). native+provenance adopted verbatim; these regen
+  // targets produce their agjson/coverage through the CURRENT facet (per-turn
+  // usage summation) + current guard files — the mirror's derived copies were
+  // deliberately not adopted.
+  { scenario: "multi-turn", framework: "adk" },
+  { scenario: "single-tool-call", framework: "adk" },
+  { scenario: "text-only", framework: "adk" },
+  { scenario: "tool-error", framework: "adk" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

@@ -1,0 +1,78 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_e-bbc6ec0c-6ecc-45a3-b491-45acba737d19",
+    "threadId": "google"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_turn_e-bbc6ec0c-6ecc-45a3-b491-45acba737d19",
+    "turnId": "turn_e-bbc6ec0c-6ecc-45a3-b491-45acba737d19",
+    "threadId": "google",
+    "role": "assistant"
+  },
+  {
+    "type": "text.start",
+    "seq": 2,
+    "id": "text:0",
+    "messageId": "msg_turn_e-bbc6ec0c-6ecc-45a3-b491-45acba737d19",
+    "turnId": "turn_e-bbc6ec0c-6ecc-45a3-b491-45acba737d19"
+  },
+  {
+    "type": "text.delta",
+    "seq": 3,
+    "id": "text:0",
+    "messageId": "msg_turn_e-bbc6ec0c-6ecc-45a3-b491-45acba737d19",
+    "delta": "A conformance test harness verifies whether an implementation accurately adheres to the specifications and standards it is designed to meet.",
+    "turnId": "turn_e-bbc6ec0c-6ecc-45a3-b491-45acba737d19"
+  },
+  {
+    "type": "text.end",
+    "seq": 4,
+    "id": "text:0",
+    "messageId": "msg_turn_e-bbc6ec0c-6ecc-45a3-b491-45acba737d19",
+    "turnId": "turn_e-bbc6ec0c-6ecc-45a3-b491-45acba737d19"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-bbc6ec0c-6ecc-45a3-b491-45acba737d19",
+    "seq": 5
+  },
+  {
+    "type": "content.block",
+    "seq": 6,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-bbc6ec0c-6ecc-45a3-b491-45acba737d19",
+    "turnId": "turn_e-bbc6ec0c-6ecc-45a3-b491-45acba737d19"
+  },
+  {
+    "type": "message.end",
+    "seq": 7,
+    "id": "msg_turn_e-bbc6ec0c-6ecc-45a3-b491-45acba737d19"
+  },
+  {
+    "type": "turn.done",
+    "seq": 8,
+    "turnId": "turn_e-bbc6ec0c-6ecc-45a3-b491-45acba737d19",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 40,
+      "outputTokens": 21,
+      "totalTokens": 103,
+      "reasoningTokens": 42,
+      "cumulative": false
+    }
+  }
+]

@@ -9,6 +9,11 @@
     },
     {
       "sdkVersion": "1.3.0",
+      "date": "2026-07-08",
+      "evidence": "LIVE captures: multi-turn + single-tool-call + text-only + tool-error corpus (gemini-2.5-flash) — captured directly on the public typescript-sdk mirror by a parallel migration effort; adopted into the workspace 2026-07-13 (native+provenance verbatim, agjson/coverage regenerated through the current facet) and landed as standing replay/census seeds"
+    },
+    {
+      "sdkVersion": "1.3.0",
       "date": "2026-07-13",
       "silverprotocol": "0.3.3",
       "evidence": "drift-gate eventField re-seed against the official interfaces (24 members) + e2e harness migration off @iqai/adk; live conformance capture pending"

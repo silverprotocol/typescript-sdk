@@ -124,6 +124,16 @@ const ADK_SEEDS = [
   // fixtures above, this is real captured wire (kind:"capture" — see
   // corpus/echo-gemini35/adk.provenance.json).
   "echo-gemini35",
+  // 2026-07-13 mirror reconciliation: four live @google/adk 1.3.0 cassettes
+  // (gemini-2.5-flash, captured 2026-07-08) originally landed DIRECTLY on the
+  // public typescript-sdk mirror by a parallel migration effort and never
+  // subtree-pulled back. Adopted here (native + provenance verbatim; agjson/
+  // coverage REGENERATED through the current facet — per-turn usage summation
+  // + current guard files postdate the mirror's derived copies).
+  "multi-turn",
+  "single-tool-call",
+  "text-only",
+  "tool-error",
 ] as const;
 
 async function readSnapshotForFramework(scn: string, framework: string): Promise<JsonValue[]> {

@@ -2320,5 +2320,13 @@
     "frameworks": [
       "claude"
     ]
+  },
+  {
+    "path": "[*].content.parts[*].functionResponse.response.isError",
+    "reason": "adk: the boolean error flag inside a Gemini functionResponse.response - IS read by driveAdkPart (index.ts:748: fr.response?.[\"isError\"] === true ? \"error\" : \"ok\") to drive tool.done.outcome, but the ambient boolean value itself has no verbatim AgJSON home (the outcome enum string 'error'/'ok' is a derived rename, and true is ambient so cannot be trusted as coverage). Mirrors the claude [*].is_error precedent (ambient boolean restating a subtype, carried as done-vs-error) and the openai [*].data.event.arguments precedent (consumed but the raw value has no verbatim home).",
+    "reviewed": "any",
+    "frameworks": [
+      "adk"
+    ]
   }
 ]

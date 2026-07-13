@@ -14,6 +14,7 @@
   "[*].content.parts[*].functionResponse.name",
   "[*].content.parts[*].functionResponse.response.content[*].text",
   "[*].content.parts[*].functionResponse.response.content[*].type",
+  "[*].content.parts[*].functionResponse.response.isError",
   "[*].content.parts[*].text",
   "[*].content.parts[*].thoughtSignature",
   "[*].content.role",

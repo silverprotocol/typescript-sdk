@@ -1,0 +1,160 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_e-536c5fea-34da-409a-b919-787dba39d665",
+    "threadId": "google"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_turn_e-536c5fea-34da-409a-b919-787dba39d665",
+    "turnId": "turn_e-536c5fea-34da-409a-b919-787dba39d665",
+    "threadId": "google",
+    "role": "assistant"
+  },
+  {
+    "type": "tool.start",
+    "seq": 2,
+    "turnId": "turn_e-536c5fea-34da-409a-b919-787dba39d665",
+    "toolCallId": "adk-90b70200-fc8f-4865-9bff-af13e46649d0",
+    "name": "fail",
+    "index": 0
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 3,
+    "toolCallId": "adk-90b70200-fc8f-4865-9bff-af13e46649d0",
+    "delta": "{}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 4,
+    "toolCallId": "adk-90b70200-fc8f-4865-9bff-af13e46649d0",
+    "input": {},
+    "signature": "CrsBARFNMg/K868w56AzxROYm9hBQgT4ml+QO76IlRLDRPQDj2GMACz9igWgyh0ctYRuER0A88dodJ1tPtrxRebNxmnDRvBEtFBSe0rycCr0ndYfd+41bx2KW0npwduOcg7/qJ2KSuWZMuj4UuTymjuTiWmTWNbO+B/jG70tWGnyaDhi5ALbUNt5Mq04c9i9PNhsIRzKxplhE2Aew3cdC+3pZzKB4U2lkWxhbffIbzLeZwMeDG8FLMWckHKD3g=="
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-536c5fea-34da-409a-b919-787dba39d665",
+    "seq": 5
+  },
+  {
+    "type": "content.block",
+    "seq": 6,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-536c5fea-34da-409a-b919-787dba39d665",
+    "turnId": "turn_e-536c5fea-34da-409a-b919-787dba39d665"
+  },
+  {
+    "type": "tool.done",
+    "seq": 7,
+    "turnId": "turn_e-536c5fea-34da-409a-b919-787dba39d665",
+    "toolCallId": "adk-90b70200-fc8f-4865-9bff-af13e46649d0",
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"error\":{\"code\":\"E_MOCK\",\"message\":\"boom\"}}"
+      }
+    ],
+    "outcome": "error"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-536c5fea-34da-409a-b919-787dba39d665",
+    "seq": 8
+  },
+  {
+    "type": "content.block",
+    "seq": 9,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-536c5fea-34da-409a-b919-787dba39d665",
+    "turnId": "turn_e-536c5fea-34da-409a-b919-787dba39d665"
+  },
+  {
+    "type": "text.start",
+    "seq": 10,
+    "id": "text:0",
+    "messageId": "msg_turn_e-536c5fea-34da-409a-b919-787dba39d665",
+    "turnId": "turn_e-536c5fea-34da-409a-b919-787dba39d665",
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "CowEARFNMg9RpN6sPzRxPxWWO9mMIdnDuWZ9hmjamUy/Z0p3l3AVzwhDJXe9Epzy0OnZuHVccI/6RkVGE44Q/ARBopDs62oXfz6tNLziS0/iXrqqa/OE4bpc4kXztON+qAQfgaB83xQ5auyXsr5NotbFS2khhiwNnnMWm4dvpDLp2o55/q/5LNl54bezd+9tokidf5fOqXjmdAaxwpR3xvg5sNecn0hYiW4gvLKhtUWaxizJYlQeTxpnrILSE0zPY7VNDIKf6kuDpeFgfwG1qI/amkxyNQYpiywMW8CiqFutZqTZ3pEur8XFTXR0ufPgih/sRbCQ5Jm7/Oa2zIQlrIdoBDnOv+iOwG+kuxZNIvHajZ2qdkdzAeto7DNMnN09BrS7aYOjywdWHLQT/XYb4VGVcpZcEPos/UlEOJCdXidxJD8X2j91Vddk7ZSDojyLtoxQ7CINt4WgvM/zBrZa5UqRaPCPzTaJL01NmCBEAG4CSbIc2zN5uRA2RReAZHNGH6ayX/6b0aVky77kQdxLeZp8ONQ93ABf/QVlSLiOxyXrlYbeLgjj7yx1bfyEnLqyw3vqjgMo0M37b+C5oxiKygF6RY6ln0zf+U8sdFsbOU2MNBFWpIXBES/lyKTx/juxz4uE5SFwBhNR5mKOory8RRcX+4OBc5PSFDEhhd+4lquMpTRyc+OpPp5+viro7Dk="
+      }
+    }
+  },
+  {
+    "type": "text.delta",
+    "seq": 11,
+    "id": "text:0",
+    "messageId": "msg_turn_e-536c5fea-34da-409a-b919-787dba39d665",
+    "delta": "The `fail` tool returned an error. The error code is `E_MOCK` and the error message is `boom`.",
+    "turnId": "turn_e-536c5fea-34da-409a-b919-787dba39d665"
+  },
+  {
+    "type": "text.end",
+    "seq": 12,
+    "id": "text:0",
+    "messageId": "msg_turn_e-536c5fea-34da-409a-b919-787dba39d665",
+    "turnId": "turn_e-536c5fea-34da-409a-b919-787dba39d665",
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "CowEARFNMg9RpN6sPzRxPxWWO9mMIdnDuWZ9hmjamUy/Z0p3l3AVzwhDJXe9Epzy0OnZuHVccI/6RkVGE44Q/ARBopDs62oXfz6tNLziS0/iXrqqa/OE4bpc4kXztON+qAQfgaB83xQ5auyXsr5NotbFS2khhiwNnnMWm4dvpDLp2o55/q/5LNl54bezd+9tokidf5fOqXjmdAaxwpR3xvg5sNecn0hYiW4gvLKhtUWaxizJYlQeTxpnrILSE0zPY7VNDIKf6kuDpeFgfwG1qI/amkxyNQYpiywMW8CiqFutZqTZ3pEur8XFTXR0ufPgih/sRbCQ5Jm7/Oa2zIQlrIdoBDnOv+iOwG+kuxZNIvHajZ2qdkdzAeto7DNMnN09BrS7aYOjywdWHLQT/XYb4VGVcpZcEPos/UlEOJCdXidxJD8X2j91Vddk7ZSDojyLtoxQ7CINt4WgvM/zBrZa5UqRaPCPzTaJL01NmCBEAG4CSbIc2zN5uRA2RReAZHNGH6ayX/6b0aVky77kQdxLeZp8ONQ93ABf/QVlSLiOxyXrlYbeLgjj7yx1bfyEnLqyw3vqjgMo0M37b+C5oxiKygF6RY6ln0zf+U8sdFsbOU2MNBFWpIXBES/lyKTx/juxz4uE5SFwBhNR5mKOory8RRcX+4OBc5PSFDEhhd+4lquMpTRyc+OpPp5+viro7Dk="
+      }
+    }
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-536c5fea-34da-409a-b919-787dba39d665",
+    "seq": 13
+  },
+  {
+    "type": "content.block",
+    "seq": 14,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-536c5fea-34da-409a-b919-787dba39d665",
+    "turnId": "turn_e-536c5fea-34da-409a-b919-787dba39d665"
+  },
+  {
+    "type": "message.end",
+    "seq": 15,
+    "id": "msg_turn_e-536c5fea-34da-409a-b919-787dba39d665"
+  },
+  {
+    "type": "turn.done",
+    "seq": 16,
+    "turnId": "turn_e-536c5fea-34da-409a-b919-787dba39d665",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 240,
+      "outputTokens": 35,
+      "totalTokens": 452,
+      "reasoningTokens": 177,
+      "cumulative": false
+    }
+  }
+]

@@ -1,0 +1,189 @@
+[
+  {
+    "invocationId": "e-1eca3185-1ab1-4413-b1e7-e434328671dd",
+    "author": "spike",
+    "id": "oQjjePMX",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1783480568724,
+    "content": {
+      "parts": [
+        {
+          "functionCall": {
+            "name": "echo",
+            "args": {
+              "message": "turn-one"
+            },
+            "id": "adk-f6b9c1d8-1801-4979-ab97-bb019c7f084e"
+          },
+          "thoughtSignature": "CtEBARFNMg+nYb6SvbZ0akS/La33UKaEdpcopwY+dJhrjl7xytKqflPL10Vz6gaQ0hxCIKUlNKgqruZuRZtgTx/5BQkf+T2qgG4KjffiPgA5QWegngH0G8Xf3GjGTIVmrE9Cv2UkshgxxuVobwMjFAs0J6sWOgTNSuibANGIF+EtoG9I54G4R3KLqVOURsRyiEIi+D/aMtRpC8xneTteitDYwtGGQpskVzPji6Q0xVuluPfry6uEV/h6cBh9m6cv4lbNXZq/nC+K/+eYxwI7hpVPEYU="
+        }
+      ],
+      "role": "model"
+    },
+    "usageMetadata": {
+      "promptTokenCount": 124,
+      "candidatesTokenCount": 15,
+      "totalTokenCount": 186,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 124
+        }
+      ],
+      "thoughtsTokenCount": 47,
+      "serviceTier": "standard"
+    },
+    "finishReason": "STOP"
+  },
+  {
+    "invocationId": "e-1eca3185-1ab1-4413-b1e7-e434328671dd",
+    "author": "spike",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "adk-f6b9c1d8-1801-4979-ab97-bb019c7f084e",
+            "name": "echo",
+            "response": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "turn-one"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "yaer9jXB",
+    "longRunningToolIds": [],
+    "timestamp": 1783480569856
+  },
+  {
+    "invocationId": "e-1eca3185-1ab1-4413-b1e7-e434328671dd",
+    "author": "spike",
+    "id": "DGpbLLzV",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1783480569877,
+    "content": {
+      "parts": [
+        {
+          "text": "The first call to the `echo` tool returned: `turn-one`.\n",
+          "thoughtSignature": "CroBARFNMg9/Rb5Sly9INUvT8HobS3kI7U6BH6inrH2z1pegQAmikbhFQqvEvpOeQ7DPB9MvTEZx4gq1CLFulGxlovqTwbHJdKq7rDg+KSgdCkTCehWEZfPDzvxKOzpfZX+EGnNdZS6enZ3rlKaBjsqyNLOdX5+6f3vMoxHwTSi2FFtBj6XZXiowZ3WWtcbktyaKYjpAn2mUuMzCprHqHpKtkwR1JH7SUPMBwZ23JI9Te/i5F9t5Zvwb8kqk"
+        },
+        {
+          "functionCall": {
+            "name": "echo",
+            "args": {
+              "message": "turn-two"
+            },
+            "id": "adk-33319be5-fb2c-4ff2-99fb-24ab9fe8f7eb"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "usageMetadata": {
+      "promptTokenCount": 165,
+      "candidatesTokenCount": 32,
+      "totalTokenCount": 236,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 165
+        }
+      ],
+      "thoughtsTokenCount": 39,
+      "serviceTier": "standard"
+    },
+    "finishReason": "STOP"
+  },
+  {
+    "invocationId": "e-1eca3185-1ab1-4413-b1e7-e434328671dd",
+    "author": "spike",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "adk-33319be5-fb2c-4ff2-99fb-24ab9fe8f7eb",
+            "name": "echo",
+            "response": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "turn-two"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "s909JS1D",
+    "longRunningToolIds": [],
+    "timestamp": 1783480571048
+  },
+  {
+    "invocationId": "e-1eca3185-1ab1-4413-b1e7-e434328671dd",
+    "author": "spike",
+    "id": "FzxjOrxy",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1783480571069,
+    "content": {
+      "parts": [
+        {
+          "text": "The second call to the `echo` tool returned: `turn-two`.",
+          "thoughtSignature": "CvABARFNMg8iNLKduR/wxpSunLhwcXY1QajTcXAUOUiRipzG84cTE9hPooxFptfDN5Qx1Hey4gDkHjnEHRVj0hdGqSp/DE0191/we3YkUnoiD2a2BcB6ri1ZI38zaaKjEOheyL26ErAzjR305FIj+LxhnOMXgK40LEFYovC1j0StUVQ3RBDr3QxbHshg81EC27N5I1/CDnStyNXn8SopyjWodn4SdbytXBAsMnIyJfgr7lGRYT26qzu2b7F3rusDNHKWE9p4temmAN2LCnwrL/pJ4oZhzP+GhsWyNV31/cLP+Wn0p6E92UdD//vcK4uvscf0"
+        }
+      ],
+      "role": "model"
+    },
+    "usageMetadata": {
+      "promptTokenCount": 223,
+      "candidatesTokenCount": 16,
+      "totalTokenCount": 292,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 223
+        }
+      ],
+      "thoughtsTokenCount": 53,
+      "serviceTier": "standard"
+    },
+    "finishReason": "STOP"
+  }
+]
