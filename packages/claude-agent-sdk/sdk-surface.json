@@ -2,6 +2,19 @@
   "$comment": "Ratchet manifest for the fixture-drift gate (scripts/check-fixture-drift.mjs). Members are the `SDKMessage` union's arm TYPE NAMES, extracted mechanically from `export declare type SDKMessage = A | B | …;` in @anthropic-ai/claude-agent-sdk/sdk.d.ts. Dispositions were seeded 2026-07-03 by reading src/index.ts (the facet's `drive()` switch) + every arm's own field declarations in sdk.d.ts + the two playbook reports (.superpowers/sdd/playbook-sdk-bumps-report.md, playbook-facet-adaptations-report.md). handled = the facet has a dedicated branch; carried = routed to ext.anthropic.* losslessly; router-plane = pure SDK/CLI/session control-plane telemetry with no conversational free-text payload, ignored by the facet's own documented design (index.ts's blanket 'carry no AgJSON-relevant content' comment, or a more specific documented rationale noted per-entry) — verified by reading the arm's actual fields, not assumed from its name; not-applicable = provably cannot occur on this SDK's wire (unused on this manifest — every named SDKMessage arm is structurally reachable); silently-dropped = reaches the facet, carries real informational payload, and has NO route (ext or otherwise) — a genuine pre-existing gap, documented honestly rather than papered over as not-applicable or router-plane. ZERO members remain `silently-dropped` as of the claude-arms-disposition task (2026-07-03 follow-up): SDKInformationalMessage was fixed first (flagship finding, carried); the remaining 16 were closed in one pass — 15 via the uniform `ext.anthropic.frame{kind, frame}` lossless-carry convention (SPEC §8 item 22 / §12), and SDKPermissionDeniedMessage via existing-home enrichment of the already-handled W1 `<turnId>:denials` carrier (audit M19). See .superpowers/sdd/pb-task-6-report.md for the original seeding rationale and .superpowers/sdd/claude-arms-disposition-report.md for the full per-arm closure decisions + wire-shape citations.",
   "sdkPackage": "@anthropic-ai/claude-agent-sdk",
   "verifiedAt": "0.3.199",
+  "verified": [
+    {
+      "sdkVersion": "0.2.141",
+      "date": "2026-06-24",
+      "evidence": "live captures: app-spec + complete-result corpus (claude-sonnet-4-6), landed with the corpus-seed commit 738bcab; provenance sidecars recorded retroactively 2026-07-02 (kind:capture, capturedAt unrecorded)"
+    },
+    {
+      "sdkVersion": "0.3.199",
+      "date": "2026-07-03",
+      "silverprotocol": "0.1.0",
+      "evidence": "live capture: echo-sonnet5 corpus (claude-sonnet-5) + drift-gate member seeding at 0.3.199"
+    }
+  ],
   "members": {
     "SDKAssistantMessage": {
       "disposition": "handled",

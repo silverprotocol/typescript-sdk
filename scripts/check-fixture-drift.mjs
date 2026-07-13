@@ -98,6 +98,7 @@ import { readFile } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
+import { checkCompatStaleness } from "./render-compat.mjs";
 
 const scriptDir = import.meta.dirname;
 // scripts/ -> typescript/ (this manifest pair + the two facet packages all
@@ -427,8 +428,12 @@ async function resolveClaudeSdk() {
  */
 async function resolveOpenaiSdk() {
   let pkg;
+  let agentsVersion;
   try {
     const requireFromE2e = createRequire(e2ePackageJson);
+    // The umbrella package's OWN version — the version the `verified` log
+    // records (no agents-core version-lockstep assumption needed).
+    agentsVersion = resolvePackageRoot(requireFromE2e, "@openai/agents").version;
     const agentsEntry = requireFromE2e.resolve("@openai/agents");
     const requireFromAgents = createRequire(agentsEntry);
     pkg = resolvePackageRoot(requireFromAgents, "@openai/agents-core");
@@ -444,7 +449,7 @@ async function resolveOpenaiSdk() {
     readFile(eventsDtsPath, "utf8"),
     readFile(protocolDtsPath, "utf8"),
   ]);
-  return { version: pkg.version, eventsDts, protocolDts };
+  return { version: pkg.version, agentsVersion, eventsDts, protocolDts };
 }
 
 /**
@@ -565,10 +570,18 @@ function compareMembers(label, installedMembers, manifestMembers) {
 async function gatherInventories() {
   const inventories = [];
   const skips = [];
+  const verifiedChecks = [];
 
   const claudeManifestPath = resolve(typescriptRoot, "packages", "claude-agent-sdk", "sdk-surface.json");
   try {
     const [manifest, sdk] = await Promise.all([loadManifest(claudeManifestPath), resolveClaudeSdk()]);
+    verifiedChecks.push({
+      facet: "claude-agent-sdk",
+      sdkName: "@anthropic-ai/claude-agent-sdk",
+      installedVersion: sdk.version,
+      manifestVerifiedAt: manifest.verifiedAt,
+      verifiedLog: manifest.verified,
+    });
     inventories.push({
       facet: "claude",
       label: `claude SDKMessage union (installed ${sdk.version}, manifest verifiedAt ${manifest.verifiedAt})`,
@@ -587,6 +600,15 @@ async function gatherInventories() {
   const openaiManifestPath = resolve(typescriptRoot, "packages", "openai-agents", "sdk-surface.json");
   try {
     const [manifest, sdk] = await Promise.all([loadManifest(openaiManifestPath), resolveOpenaiSdk()]);
+    verifiedChecks.push({
+      facet: "openai-agents",
+      sdkName: "@openai/agents",
+      // The umbrella package's own resolved version — NOT agents-core's (no
+      // lockstep assumption; review finding on the earlier stand-in).
+      installedVersion: sdk.agentsVersion,
+      manifestVerifiedAt: manifest.verifiedAt,
+      verifiedLog: manifest.verified,
+    });
     inventories.push({
       facet: "openai",
       label: `openai RunItemStreamEventName (installed @openai/agents-core ${sdk.version}, manifest verifiedAt ${manifest.verifiedAt})`,
@@ -612,6 +634,15 @@ async function gatherInventories() {
   const googleAdkManifestPath = resolve(typescriptRoot, "packages", "google-adk", "sdk-surface.json");
   try {
     const [manifest, sdk] = await Promise.all([loadManifest(googleAdkManifestPath), resolveGoogleAdkSdks()]);
+    verifiedChecks.push({
+      facet: "google-adk",
+      sdkName: "@google/adk",
+      installedVersion: sdk.adkVersion,
+      // The section tracking the SAME SDK as the `verified` log (partKind
+      // tracks @google/genai — deliberately not this).
+      manifestVerifiedAt: manifest.sections.eventField.verifiedAt,
+      verifiedLog: manifest.verified,
+    });
     inventories.push({
       facet: "google-adk",
       label: `google-adk Part kind (installed @google/genai ${sdk.genaiVersion}, manifest verifiedAt ${manifest.sections.partKind.verifiedAt})`,
@@ -634,7 +665,45 @@ async function gatherInventories() {
     }
   }
 
-  return { inventories, skips };
+  return { inventories, skips, verifiedChecks };
+}
+
+// -----------------------------------------------------------------------------
+// `verified` log consistency (the compatibility map's honesty check)
+// -----------------------------------------------------------------------------
+
+/**
+ * Assert each facet's sdk-surface.json `verified` log (the append-only
+ * compatibility evidence rendered into README tables by render-compat.mjs)
+ * is current: its NEWEST entry must record the exact SDK version installed
+ * via packages/e2e's pin. A mismatch means the pin moved without the
+ * verification ritual (drift gate + fixtures ± live capture) being recorded
+ * — the log would silently understate or overstate compatibility. A facet
+ * with NO `verified` log yet is skipped (adoption is per-facet).
+ */
+function checkVerifiedLogs(verifiedChecks) {
+  const findings = [];
+  for (const check of verifiedChecks) {
+    if (!Array.isArray(check.verifiedLog) || check.verifiedLog.length === 0) continue;
+    const newest = check.verifiedLog[check.verifiedLog.length - 1];
+    if (newest.sdkVersion !== check.installedVersion) {
+      findings.push(
+        `  ${check.facet}: installed ${check.sdkName} ${check.installedVersion} but sdk-surface.json's newest ` +
+          `\`verified\` entry records ${newest.sdkVersion} — run the verification ritual against ` +
+          `${check.installedVersion} and APPEND a \`verified\` entry (then \`node scripts/render-compat.mjs\`).`,
+      );
+    }
+    // `verifiedAt` (the label field) tracks the same SDK — keep it in
+    // lockstep with the log so the two can never tell different stories
+    // (review finding: this diff itself had to hand-bump one).
+    if (check.manifestVerifiedAt !== undefined && check.manifestVerifiedAt !== newest.sdkVersion) {
+      findings.push(
+        `  ${check.facet}: sdk-surface.json's \`verifiedAt\` (${check.manifestVerifiedAt}) disagrees with its newest ` +
+          `\`verified\` entry (${newest.sdkVersion}) — update \`verifiedAt\` when appending the entry.`,
+      );
+    }
+  }
+  return findings;
 }
 
 // -----------------------------------------------------------------------------
@@ -666,12 +735,28 @@ function selfTestSynthetic() {
   return compareMembers("synthetic fixture (no facet SDK resolvable in this environment)", installed, manifestMembers);
 }
 
-function runSelfTest(inventories) {
+function runSelfTest(inventories, verifiedChecks) {
   const allFindings = inventories.length > 0 ? inventories.flatMap(selfTestOneInventory) : selfTestSynthetic();
+
+  // Negative case for the verified-log class too (same doctrine: a gate that
+  // cannot fail is a defect). Mutate IN-MEMORY COPIES only: a phantom
+  // installed version must trip the newest-entry check, and a phantom
+  // `verifiedAt` must trip the lockstep check.
+  for (const check of verifiedChecks.filter((c) => Array.isArray(c.verifiedLog) && c.verifiedLog.length > 0)) {
+    allFindings.push(
+      ...checkVerifiedLogs([{ ...check, installedVersion: `999.999.999-${PHANTOM_MEMBER}` }]),
+      ...checkVerifiedLogs([{ ...check, manifestVerifiedAt: `999.999.999-${PHANTOM_MEMBER}` }]),
+    );
+  }
+  const verifiedNegativesExpected = verifiedChecks.some(
+    (c) => Array.isArray(c.verifiedLog) && c.verifiedLog.length > 0,
+  );
+  const mentionsVerifiedLog = allFindings.some((f) => f.includes("`verified` entry"));
+  const mentionsVerifiedAt = allFindings.some((f) => f.includes("`verifiedAt`"));
 
   const mentionsPhantom = allFindings.some((f) => f.includes(PHANTOM_MEMBER));
   const mentionsRemoval = allFindings.some((f) => f.includes("REMOVED from the installed SDK"));
-  if (!mentionsPhantom || !mentionsRemoval) {
+  if (!mentionsPhantom || !mentionsRemoval || (verifiedNegativesExpected && (!mentionsVerifiedLog || !mentionsVerifiedAt))) {
     console.error("\n✖ --self-test: negative case did not surface the expected drift.");
     console.error("findings were:");
     for (const line of allFindings) console.error(line);
@@ -689,7 +774,7 @@ async function main() {
   const args = process.argv.slice(2);
   const selfTest = args.includes("--self-test");
 
-  const { inventories, skips } = await gatherInventories();
+  const { inventories, skips, verifiedChecks } = await gatherInventories();
 
   for (const s of skips) console.log(`⊘ ${s}`);
 
@@ -698,13 +783,20 @@ async function main() {
     findings.push(...validateManifestMembers(inv.manifestValidationLabel, inv.manifestMembers));
     findings.push(...compareMembers(inv.label, inv.installed, inv.manifestMembers));
   }
+  findings.push(...checkVerifiedLogs(verifiedChecks));
+  // README compat tables are generated FROM the verified logs — a stale
+  // table fails this same gate (the root README's "cannot silently go
+  // stale" claim is enforced here, not merely asserted).
+  findings.push(...(await checkCompatStaleness()));
 
   if (findings.length > 0) {
     console.error(`\n✖ facet SDK-surface drift detected (${findings.length} issue(s)):\n`);
     for (const line of findings) console.error(line);
     console.error(
-      "\nFix: add an honest `disposition` (handled|carried|router-plane|not-applicable|silently-dropped) + `note` " +
-        "for every new member in the relevant sdk-surface.json, or remove an entry whose member the SDK dropped.",
+      "\nFix — member drift: add an honest `disposition` (handled|carried|router-plane|not-applicable|silently-dropped) " +
+        "+ `note` for every new member in the relevant sdk-surface.json, or remove an entry whose member the SDK dropped." +
+        "\nFix — verified-log / compat-table drift: APPEND a `verified` entry (+ matching `verifiedAt`) after the " +
+        "verification ritual passes, then run `node scripts/render-compat.mjs`.",
     );
     process.exit(1);
   }
@@ -717,7 +809,7 @@ async function main() {
     }
   }
 
-  if (selfTest) runSelfTest(inventories);
+  if (selfTest) runSelfTest(inventories, verifiedChecks);
 }
 
 main().catch((err) => {
