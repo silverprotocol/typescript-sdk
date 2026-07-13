@@ -159,6 +159,46 @@ describe("createOpenaiNormalizer — text turn", () => {
   });
 });
 
+describe("createOpenaiNormalizer — cache_write_tokens usage detail (openai ≥6.46 / GPT-5.6-era wire)", () => {
+  it("maps usage.input_tokens_details.cache_write_tokens → turn.done usage.cacheWriteTokens", () => {
+    // openai 6.46 adds `cache_write_tokens` as a REQUIRED member of
+    // `ResponseUsage.InputTokensDetails` (responses.d.ts:5894; absent ≤6.44) —
+    // shipped to this normalizer's seam by @openai/agents 0.13.2's ^6.46 pin.
+    // AgUsage.cacheWriteTokens existed all along (core agjson.ts:176); this
+    // pins that the wire detail lands there instead of being dropped.
+    const WRITE_USAGE_TURN: JsonValue[] = [
+      ...TEXT_TURN.slice(0, 8), // through response.output_text.done
+      {
+        type: "raw_model_stream_event",
+        data: {
+          type: "model",
+          event: {
+            type: "response.completed",
+            response: {
+              id: "resp_text_1",
+              status: "completed",
+              usage: {
+                input_tokens: 5,
+                input_tokens_details: { cached_tokens: 3, cache_write_tokens: 2 },
+                output_tokens: 2,
+                total_tokens: 7,
+              },
+            },
+          },
+        },
+      },
+    ];
+    const n = createOpenaiNormalizer();
+    const evs = WRITE_USAGE_TURN.flatMap((e) => n.push(e)).concat(n.flush());
+    const done = evs.find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({
+      type: "turn.done",
+      turnId: "turn_resp_text_1",
+      usage: { cumulative: false, inputTokens: 5, cacheReadTokens: 3, cacheWriteTokens: 2 },
+    });
+  });
+});
+
 describe("createOpenaiNormalizer — INV-FLUSH truncation (audit M21)", () => {
   it("flush() aborts a dangling turn as stream-truncated when response.completed never arrives (no stashed close)", () => {
     // Truncate BEFORE any native close signal (`response.completed` /
@@ -1151,6 +1191,176 @@ describe("createOpenaiNormalizer — message_output_created citations carrier (a
     expect(lateCitations).toBeDefined();
     expect(lateCitations?.itemId).toBe("msg_late_cit_1");
     expect(lateCitations?.annotations).toEqual(rawAnnotations);
+  });
+});
+
+describe("createOpenaiNormalizer — id-less synthesized final message (agents-core ≥0.13.2 errorHandlers.invalidFinalOutput)", () => {
+  // agents-core 0.13.2's invalidFinalOutput recovery pushes a final assistant
+  // message via createRunErrorFinalOutputItem (errorHandlers.mjs:23 →
+  // helpers/message.mjs:45-59): NO id, NO annotations, NO preceding
+  // response.output_text.delta events, arriving past the terminal close. Its
+  // text is the SDK-reported final output — it must carry losslessly via
+  // ext.openai.late-message, never vanish and never graft onto the closed turn.
+  const SYNTHESIZED_TEXT = "I could not produce the requested structured output.";
+  const CORPUS: JsonValue[] = [
+    rawModel({ type: "response.created", response: { id: "resp_inv_final" } }),
+    // The model's own (schema-invalid) output streamed normally…
+    rawModel({ type: "response.output_text.delta", item_id: "it_inv", delta: '{"oops": tru' }),
+    rawModel({ type: "response.output_text.done", item_id: "it_inv", text: '{"oops": tru' }),
+    // …the round closed…
+    rawModel({ type: "response.completed", response: { id: "resp_inv_final", status: "completed" } }),
+    // …then the handler-synthesized id-less message lands (exact rawItem shape
+    // from helpers/message.mjs:45-59 — no id, no annotations).
+    runItem("message_output_created", {
+      type: "message_output_item",
+      rawItem: {
+        type: "message",
+        role: "assistant",
+        status: "completed",
+        content: [{ type: "output_text", text: SYNTHESIZED_TEXT }],
+      },
+    }),
+  ];
+
+  it("routes the never-streamed text losslessly via ext.openai.late-message (anchored to the closed turn); no phantom turn/text events", () => {
+    const n = createOpenaiNormalizer();
+    const evs = CORPUS.flatMap((e) => n.push(e)).concat(n.flush());
+
+    const late = evs.find((e) => e.type === "ext.openai.late-message") as {
+      text?: unknown;
+      forTurnId?: unknown;
+    };
+    expect(late).toBeDefined();
+    expect(late?.text).toBe(SYNTHESIZED_TEXT);
+    // Fold anchor: the retained top-level turnId of the turn it belongs to
+    // (`forTurnId` — the envelope's `turnId` is a reserved ext key).
+    expect(late?.forTurnId).toBe("turn_resp_inv_final");
+
+    // Never re-open the turn or emit streamed-text events for it (INV-MSG).
+    const types = evs.map((e) => e.type);
+    expect(types.filter((t) => t === "turn.start")).toHaveLength(1);
+    expect(types.filter((t) => t === "turn.done")).toHaveLength(1);
+    const doneIdx = types.indexOf("turn.done");
+    expect(types.slice(doneIdx + 1)).not.toContain("text.start");
+    expect(types.slice(doneIdx + 1)).not.toContain("text.delta");
+    expect(types.slice(doneIdx + 1)).not.toContain("text.end");
+  });
+
+  it("fold-identity: the corpus reduces cleanly (needsResync=false)", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    for (const e of CORPUS) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.result().turns).toHaveLength(1);
+    expect(r.needsResync).toBe(false);
+  });
+
+  it("id-less synthesized message arriving while a text stream is STILL OPEN never consumes the FIFO stream (review finding: mis-correlation interleaving)", () => {
+    const n = createOpenaiNormalizer();
+    const pushed = [
+      rawModel({ type: "response.created", response: { id: "resp_open_synth" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "it_open", delta: "streaming…" }),
+      // Synthesized id-less item lands BEFORE the terminal close, stream open.
+      runItem("message_output_created", {
+        type: "message_output_item",
+        rawItem: {
+          type: "message",
+          role: "assistant",
+          status: "completed",
+          content: [{ type: "output_text", text: SYNTHESIZED_TEXT }],
+        },
+      }),
+      // The model's own id'd message closes its genuine stream afterwards.
+      runItem("message_output_created", {
+        type: "message_output_item",
+        rawItem: {
+          type: "message",
+          role: "assistant",
+          status: "completed",
+          content: [{ type: "output_text", text: "streaming…" }],
+          id: "msg_open_1",
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_open_synth", status: "completed" } }),
+    ].flatMap((e) => n.push(e));
+    const evs = pushed.concat(n.flush());
+
+    // The synthesized text rides ext; the genuine stream still gets its own
+    // text.end (the id'd run-item found it un-consumed).
+    const late = evs.find((e) => e.type === "ext.openai.late-message") as { text?: unknown };
+    expect(late?.text).toBe(SYNTHESIZED_TEXT);
+    expect(evs.filter((e) => e.type === "text.end")).toHaveLength(1);
+  });
+
+  it("never throws on an envelope-only-validated output_text part MISSING `text` (push() never-throw contract)", () => {
+    const n = createOpenaiNormalizer();
+    const push = (): unknown[] => [
+      rawModel({ type: "response.created", response: { id: "resp_malformed" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_malformed", status: "completed" } }),
+      runItem("message_output_created", {
+        type: "message_output_item",
+        rawItem: {
+          type: "message",
+          role: "assistant",
+          status: "completed",
+          content: [{ type: "output_text" }], // no `text` — malformed/partial wire
+        },
+      }),
+    ].flatMap((e) => n.push(e));
+    expect(push).not.toThrow();
+    expect(push().find((e: unknown) => (e as { type?: string }).type === "ext.openai.late-message")).toBeUndefined();
+  });
+
+  it("id-less post-close part WITH annotations keeps the documented late-citations channel (late-message never absorbs it)", () => {
+    const n = createOpenaiNormalizer();
+    const rawAnnotations = [
+      { type: "url_citation", url: "https://example.com", start_index: 0, end_index: 4 },
+    ];
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_idless_ann" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_idless_ann", status: "completed" } }),
+      runItem("message_output_created", {
+        type: "message_output_item",
+        rawItem: {
+          type: "message",
+          role: "assistant",
+          status: "completed",
+          content: [{ type: "output_text", text: "cited", annotations: rawAnnotations }],
+        },
+      }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    const late = evs.find((e) => e.type === "ext.openai.late-message") as { annotations?: unknown };
+    expect(late).toBeDefined();
+    expect(late?.annotations).toBeUndefined();
+    const citations = evs.find((e) => e.type === "ext.openai.late-citations") as {
+      annotations?: unknown;
+    };
+    expect(citations?.annotations).toEqual(rawAnnotations);
+  });
+
+  it("an id'd late run-item (#128 ordering) still takes the late-citations path — no late-message", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_idd_late" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "it_idd", delta: "Hi" }),
+      rawModel({ type: "response.output_text.done", item_id: "it_idd", text: "Hi" }),
+      rawModel({ type: "response.completed", response: { id: "resp_idd_late", status: "completed" } }),
+      runItem("message_output_created", {
+        type: "message_output_item",
+        rawItem: {
+          type: "message",
+          role: "assistant",
+          status: "completed",
+          content: [{ type: "output_text", text: "Hi" }],
+          id: "msg_idd_late_1",
+        },
+      }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    expect(evs.find((e) => e.type === "ext.openai.late-message")).toBeUndefined();
   });
 });
 

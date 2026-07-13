@@ -60,6 +60,29 @@
  * `@openai/agents` is declared an OPTIONAL peerDependency (for when its native
  * types are wanted) but is NOT imported — this package is fixture-only and the
  * SDK is not installed.
+ *
+ * KNOWN-DEFERRED (@openai/agents 0.13.2 audit, 2026-07-13 — adversarially
+ * verified against both versions' dists; every surface below is OPT-IN and
+ * needs a live capture before a faithful mapping slice, per fixture
+ * discipline):
+ *   - EXPERIMENTAL hosted multi-agent (`@openai/agents-openai/experimental/
+ *     hosted-multi-agent`, opt-in via `multi_agent:{enabled:true}` +
+ *     `OpenAI-Beta: responses_multi_agent=v1`): subagent `response.output_text.
+ *     delta`s are indistinguishable from root-agent text at this seam (FIFO
+ *     textEnd would mis-correlate); `agent_message` / `multi_agent_call` /
+ *     `multi_agent_call_output` collaboration items and `agent.agent_name`
+ *     attribution no-op in the raw-model arms; merged multi-response usage
+ *     never reaches the `model:response.completed` usage seam (turn.done
+ *     undercounts). Consumers of AgJSON see a plausible single-agent turn —
+ *     mapping this without live wire would fabricate correlation (Tenet 6).
+ *   - openai ≥6.46 programmatic tool calling (`program`/`program_output` output
+ *     items + `caller:{type,caller_id}` on tool items; reachable only via the
+ *     `providerData` tool escape hatch — agents-openai 0.13.2's own converters
+ *     add no arm, so nothing reaches the run-item seam either): raw
+ *     `output_item.added/.done` carriers no-op here; `caller` attribution rides
+ *     unread in providerData.
+ *   - `response.inject.created`/`.failed` (hosted multi-agent lifecycle):
+ *     verified immaterial — client-initiated echo, no content loss.
  */
 import {
   type AgEvent,
@@ -684,12 +707,14 @@ interface OpenAIResponsesTextDone {
   text?: string;
 }
 /** openai-node `ResponseUsage` — per-response token counts (snake_case).
- *  Extends to include provider-specific fields like OpenRouter's `cost` superset. */
+ *  Extends to include provider-specific fields like OpenRouter's `cost` superset.
+ *  `cache_write_tokens` is openai ≥6.46 wire (GPT-5.6-era explicit prompt
+ *  caching; required member of `InputTokensDetails` there, absent ≤6.44). */
 interface OpenAIResponseUsage {
   input_tokens?: number;
   output_tokens?: number;
   total_tokens?: number;
-  input_tokens_details?: { cached_tokens?: number };
+  input_tokens_details?: { cached_tokens?: number; cache_write_tokens?: number };
   output_tokens_details?: { reasoning_tokens?: number };
   cost?: number;
 }
@@ -862,6 +887,8 @@ function mapUsage(usage: OpenAIResponseUsage | undefined): AgUsage | undefined {
   if (usage.total_tokens !== undefined) u.totalTokens = usage.total_tokens;
   if (usage.input_tokens_details?.cached_tokens !== undefined)
     u.cacheReadTokens = usage.input_tokens_details.cached_tokens;
+  if (usage.input_tokens_details?.cache_write_tokens !== undefined)
+    u.cacheWriteTokens = usage.input_tokens_details.cache_write_tokens;
   if (usage.output_tokens_details?.reasoning_tokens !== undefined)
     u.reasoningTokens = usage.output_tokens_details.reasoning_tokens;
   // Provider-reported cost (e.g. OpenRouter `cost`) maps verbatim to costUsd.
@@ -1468,6 +1495,31 @@ export function createOpenaiNormalizer(): Normalizer {
    * existing unparsed/ext convention instead: `ext.openai.late-citations` carrying
    * the run-item id + the raw annotations array verbatim (review finding on M22).
    * A part with no annotations has nothing to lose — the plain `continue` stays.
+   *
+   * ID-LESS SYNTHESIZED MESSAGE (agents-core ≥0.13.2): `errorHandlers.
+   * invalidFinalOutput` recovery pushes a final assistant message built by
+   * `createRunErrorFinalOutputItem` (errorHandlers.mjs:23 → helpers/message.mjs:
+   * 45-59) — `{type:"message", role:"assistant", status:"completed", content:
+   * [{type:"output_text", text}]}` with NO `id`, NO annotations, and NO preceding
+   * `response.output_text.delta` events (the handler synthesizes the text; it
+   * never streamed). It arrives past the terminal close, where the drop points
+   * below would eat its text — a completed turn whose SDK-reported final output
+   * never reaches AgJSON (Tenet 6 violation). Every message the model itself
+   * produces carries an id on this seam (`msg_…`/`msg_tmp_…`, #128 capture), so
+   * `item.id === undefined` discriminates "this text never streamed". Id-less
+   * parts are handled FIRST and never enter the FIFO stream match: pairing a
+   * never-streamed part against an open stream would close the model's own
+   * stream against the wrong text (and drop the synthesized text with it).
+   * Routing: text → `ext.openai.late-message` (with the retained top-level
+   * turnId as the `forTurnId` fold anchor); annotations (none in practice for the synthesized
+   * item, but structurally possible) keep riding the DOCUMENTED
+   * `ext.openai.late-citations` channel — late-message never absorbs it.
+   * Never emit real text.start/delta/end here — fabricating a stream id for a
+   * block the wire never streamed is exactly the correlation-invention Tenet 6
+   * forbids, and grafting text onto a closed turn breaks INV-MSG at the
+   * Reducer. Cost of the discriminator on a hypothetical provider that omits
+   * message ids on genuinely-streamed text: one redundant vendor ext event —
+   * never a duplicated or corrupted core stream.
    */
   function driveMessageOutputCreated(item: OpenAIAssistantMessageItem): void {
     for (const part of item.content) {
@@ -1476,11 +1528,32 @@ export function createOpenaiNormalizer(): Normalizer {
         continue;
       }
       if (part.type === "output_text") {
+        if (item.id === undefined) {
+          // Id-less ⇒ synthesized, never streamed — see doc above. The typeof
+          // guard is load-bearing: rawItem is envelope-only-validated wire
+          // data, and push() must never throw (Tenet 6).
+          if (typeof part.text === "string" && part.text.length > 0) {
+            // `forTurnId`, not `turnId`: the envelope's `turnId` is a RESERVED
+            // ext key (engine-owned; a payload `turnId` would relocate under
+            // `shadowed` per the M49 anti-clobber).
+            const anchor = turnId ?? lastTopLevelTurnId;
+            a.emitExt("openai", "late-message", {
+              text: part.text,
+              ...(anchor !== undefined ? { forTurnId: anchor } : {}),
+            });
+          }
+          if (part.annotations !== undefined && part.annotations.length > 0) {
+            a.emitExt("openai", "late-citations", {
+              annotations: JsonValue.parse(part.annotations),
+            });
+          }
+          continue;
+        }
         if (msgId === undefined) {
           // response already closed — see doc above.
           if (part.annotations !== undefined && part.annotations.length > 0) {
             a.emitExt("openai", "late-citations", {
-              ...(item.id !== undefined ? { itemId: item.id } : {}),
+              itemId: item.id,
               annotations: JsonValue.parse(part.annotations),
             });
           }
