@@ -21,9 +21,12 @@
  * normalizer under test needed no change: it was retargeted to the official
  * peer in v0.3.0 and live-validated by launch/validation/e2e-adk-google*.mjs).
  *
- * `newMessage.role: "user"` is LOAD-BEARING: a role-less Content triggered an
- * upstream 400 (google/adk-js#475, filed by @wanseob; diagnosed to root cause
- * in the v0.3.1 fix) — do not drop it.
+ * `newMessage.role: "user"` is LOAD-BEARING on ≤1.3.0: a role-less Content
+ * triggered an upstream 400 (google/adk-js#475, filed by @wanseob; diagnosed
+ * to root cause in the v0.3.1 fix). Upstream merged the fix 2026-07-13
+ * (google/adk-js#478 — defaults role to 'user' when omitted; unreleased as of
+ * 1.3.0). Keep setting it explicitly regardless: correct on every version,
+ * and explicit beats defaulted for a conformance capture.
  *
  * OPERATOR-GATED: requires `GOOGLE_API_KEY` (or `CaptureRunInput.apiKey`) at
  * ITERATION time (the function is an async generator — no work happens, and
