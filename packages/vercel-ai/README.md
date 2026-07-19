@@ -33,6 +33,7 @@ facet's per-field dispositions, including its disclosed `silently-dropped` gaps)
 
 | `ai` | verified | with | evidence |
 | --- | --- | --- | --- |
+| `7.0.31` | 2026-07-20 | 0.3.3 | LIVE conformance capture: echo-gpt56 corpus (gpt-4o-mini via @ai-sdk/openai, official @ai-sdk/mcp Streamable-HTTP client against the harness mock) — landed as a standing replay seed; full two-step tool loop normalized (tool.start/args/assembled/done -> text step -> turn.done), zero unparsed/frame carries; deterministic replay green across the corpus. Census dispositions seeded from the capture (disclosed drops: tool-input-start.toolMetadata.clientName, dynamic flag on input-start) |
 | `7.0.26` | 2026-07-20 | 0.3.3 | full drive switch + 20-test fixture suite replaying REAL mock-captured fullStream sequences at ai@7.0.26 (text/reasoning/two-step tool with id-correlation R1, per-step message model R3, three error arms R4, abort ordering R5, content-filter mapping, forward-compat frame carries) incl. Reducer folds; D1 burn-down contract finals empirically verified; live conformance capture pending |
 <!-- compat:end -->
 

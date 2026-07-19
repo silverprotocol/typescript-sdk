@@ -1,0 +1,678 @@
+{
+  "drops": [
+    {
+      "path": "[0].type",
+      "norm": "[*].type",
+      "value": "start"
+    },
+    {
+      "path": "[1].type",
+      "norm": "[*].type",
+      "value": "start-step"
+    },
+    {
+      "path": "[2].type",
+      "norm": "[*].type",
+      "value": "tool-input-start"
+    },
+    {
+      "path": "[2].dynamic",
+      "norm": "[*].dynamic",
+      "value": true
+    },
+    {
+      "path": "[2].toolMetadata.clientName",
+      "norm": "[*].toolMetadata.clientName",
+      "value": "ai-sdk-mcp-client"
+    },
+    {
+      "path": "[3].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[4].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[5].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[6].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[7].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[8].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[9].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[10].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[11].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[12].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[13].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[14].type",
+      "norm": "[*].type",
+      "value": "tool-input-end"
+    },
+    {
+      "path": "[15].type",
+      "norm": "[*].type",
+      "value": "tool-call"
+    },
+    {
+      "path": "[15].providerMetadata.openai.itemId",
+      "norm": "[*].providerMetadata.openai.itemId",
+      "value": "fc_0ef89466be4a78e7006a5d62236f048199b6582c312d5ef14c"
+    },
+    {
+      "path": "[15].toolMetadata.clientName",
+      "norm": "[*].toolMetadata.clientName",
+      "value": "ai-sdk-mcp-client"
+    },
+    {
+      "path": "[15].dynamic",
+      "norm": "[*].dynamic",
+      "value": true
+    },
+    {
+      "path": "[16].type",
+      "norm": "[*].type",
+      "value": "tool-result"
+    },
+    {
+      "path": "[16].output.isError",
+      "norm": "[*].output.isError",
+      "value": false
+    },
+    {
+      "path": "[16].dynamic",
+      "norm": "[*].dynamic",
+      "value": true
+    },
+    {
+      "path": "[16].providerMetadata.openai.itemId",
+      "norm": "[*].providerMetadata.openai.itemId",
+      "value": "fc_0ef89466be4a78e7006a5d62236f048199b6582c312d5ef14c"
+    },
+    {
+      "path": "[16].toolMetadata.clientName",
+      "norm": "[*].toolMetadata.clientName",
+      "value": "ai-sdk-mcp-client"
+    },
+    {
+      "path": "[17].type",
+      "norm": "[*].type",
+      "value": "finish-step"
+    },
+    {
+      "path": "[17].finishReason",
+      "norm": "[*].finishReason",
+      "value": "tool-calls"
+    },
+    {
+      "path": "[17].usage.inputTokenDetails.cacheReadTokens",
+      "norm": "[*].usage.inputTokenDetails.cacheReadTokens",
+      "value": 0
+    },
+    {
+      "path": "[17].usage.inputTokenDetails.cacheWriteTokens",
+      "norm": "[*].usage.inputTokenDetails.cacheWriteTokens",
+      "value": 0
+    },
+    {
+      "path": "[17].usage.outputTokenDetails.reasoningTokens",
+      "norm": "[*].usage.outputTokenDetails.reasoningTokens",
+      "value": 0
+    },
+    {
+      "path": "[17].usage.raw.input_tokens_details.cached_tokens",
+      "norm": "[*].usage.raw.input_tokens_details.cached_tokens",
+      "value": 0
+    },
+    {
+      "path": "[17].usage.raw.input_tokens_details.cache_write_tokens",
+      "norm": "[*].usage.raw.input_tokens_details.cache_write_tokens",
+      "value": 0
+    },
+    {
+      "path": "[17].usage.raw.output_tokens_details.reasoning_tokens",
+      "norm": "[*].usage.raw.output_tokens_details.reasoning_tokens",
+      "value": 0
+    },
+    {
+      "path": "[17].performance.stepTimeMs",
+      "norm": "[*].performance.stepTimeMs",
+      "value": 3519.9641250000004
+    },
+    {
+      "path": "[17].performance.toolExecutionMs.call_P9V6G0h2gVsWqupLPr8114uJ",
+      "norm": "[*].performance.toolExecutionMs.call_P9V6G0h2gVsWqupLPr8114uJ",
+      "value": 9.92587500000036
+    },
+    {
+      "path": "[17].performance.responseTimeMs",
+      "norm": "[*].performance.responseTimeMs",
+      "value": 3507.503083
+    },
+    {
+      "path": "[17].performance.effectiveOutputTokensPerSecond",
+      "norm": "[*].performance.effectiveOutputTokensPerSecond",
+      "value": 5.70206198732513
+    },
+    {
+      "path": "[17].performance.outputTokensPerSecond",
+      "norm": "[*].performance.outputTokensPerSecond",
+      "value": 61.58032820356676
+    },
+    {
+      "path": "[17].performance.inputTokensPerSecond",
+      "norm": "[*].performance.inputTokensPerSecond",
+      "value": 30.47703751580139
+    },
+    {
+      "path": "[17].performance.effectiveTotalTokensPerSecond",
+      "norm": "[*].performance.effectiveTotalTokensPerSecond",
+      "value": 33.35706262585201
+    },
+    {
+      "path": "[17].performance.timeToFirstOutputMs",
+      "norm": "[*].performance.timeToFirstOutputMs",
+      "value": 3182.724041
+    },
+    {
+      "path": "[17].performance.timeBetweenOutputChunksMs.min",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.min",
+      "value": 0.10179199999993216
+    },
+    {
+      "path": "[17].performance.timeBetweenOutputChunksMs.p10",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.p10",
+      "value": 0.12487499999997453
+    },
+    {
+      "path": "[17].performance.timeBetweenOutputChunksMs.median",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.median",
+      "value": 0.23058300000002419
+    },
+    {
+      "path": "[17].performance.timeBetweenOutputChunksMs.avg",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.avg",
+      "value": 6.800310636363644
+    },
+    {
+      "path": "[17].performance.timeBetweenOutputChunksMs.p90",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.p90",
+      "value": 6.511082999999871
+    },
+    {
+      "path": "[17].performance.timeBetweenOutputChunksMs.max",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.max",
+      "value": 65.904
+    },
+    {
+      "path": "[17].providerMetadata.openai.serviceTier",
+      "norm": "[*].providerMetadata.openai.serviceTier",
+      "value": "default"
+    },
+    {
+      "path": "[17].response.timestamp",
+      "norm": "[*].response.timestamp",
+      "value": "2026-07-19T23:47:45.000Z"
+    },
+    {
+      "path": "[17].response.headers.access-control-expose-headers",
+      "norm": "[*].response.headers.access-control-expose-headers",
+      "value": "X-Request-ID, CF-Ray, CF-Ray"
+    },
+    {
+      "path": "[17].response.headers.alt-svc",
+      "norm": "[*].response.headers.alt-svc",
+      "value": "h3=\":443\"; ma=86400"
+    },
+    {
+      "path": "[17].response.headers.cf-cache-status",
+      "norm": "[*].response.headers.cf-cache-status",
+      "value": "DYNAMIC"
+    },
+    {
+      "path": "[17].response.headers.cf-ray",
+      "norm": "[*].response.headers.cf-ray",
+      "value": "a1dd9cea9e8b83f1-ICN"
+    },
+    {
+      "path": "[17].response.headers.connection",
+      "norm": "[*].response.headers.connection",
+      "value": "keep-alive"
+    },
+    {
+      "path": "[17].response.headers.content-type",
+      "norm": "[*].response.headers.content-type",
+      "value": "text/event-stream; charset=utf-8"
+    },
+    {
+      "path": "[17].response.headers.date",
+      "norm": "[*].response.headers.date",
+      "value": "Sun, 19 Jul 2026 23:47:45 GMT"
+    },
+    {
+      "path": "[17].response.headers.openai-organization",
+      "norm": "[*].response.headers.openai-organization",
+      "value": "alohomora-company"
+    },
+    {
+      "path": "[17].response.headers.openai-processing-ms",
+      "norm": "[*].response.headers.openai-processing-ms",
+      "value": "153"
+    },
+    {
+      "path": "[17].response.headers.openai-project",
+      "norm": "[*].response.headers.openai-project",
+      "value": "proj_ZN1JUSrsvFLEcIBrWjUCXGks"
+    },
+    {
+      "path": "[17].response.headers.openai-version",
+      "norm": "[*].response.headers.openai-version",
+      "value": "2020-10-01"
+    },
+    {
+      "path": "[17].response.headers.server",
+      "norm": "[*].response.headers.server",
+      "value": "cloudflare"
+    },
+    {
+      "path": "[17].response.headers.set-cookie",
+      "norm": "[*].response.headers.set-cookie",
+      "value": "__cf_bm=h3KcdLeB.8X8oD9Q5aRZ4kmLZNjW4uSdc3qx7EqjipI-1784504864.4135106-1.0.1.1-7.nCLYd61n538gTcEtfl3JHRV_kFZebrCk1XqjLl1wHn5yD2uUP8ufnqflzHbaLMHC3GQHkVQ1ES4ECO80orxPQ1AV2DGH1Kt4DBttKU2uQ3oCigoY1n3XEtBnQi4AbV; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.openai.com; Expires=Mon, 20 Jul 2026 00:17:45 GMT"
+    },
+    {
+      "path": "[17].response.headers.strict-transport-security",
+      "norm": "[*].response.headers.strict-transport-security",
+      "value": "max-age=31536000; includeSubDomains; preload"
+    },
+    {
+      "path": "[17].response.headers.transfer-encoding",
+      "norm": "[*].response.headers.transfer-encoding",
+      "value": "chunked"
+    },
+    {
+      "path": "[17].response.headers.x-content-type-options",
+      "norm": "[*].response.headers.x-content-type-options",
+      "value": "nosniff"
+    },
+    {
+      "path": "[17].response.headers.x-request-id",
+      "norm": "[*].response.headers.x-request-id",
+      "value": "req_ec9c6e15df1b4254819a59cd089b93be"
+    },
+    {
+      "path": "[18].type",
+      "norm": "[*].type",
+      "value": "start-step"
+    },
+    {
+      "path": "[19].type",
+      "norm": "[*].type",
+      "value": "text-start"
+    },
+    {
+      "path": "[20].type",
+      "norm": "[*].type",
+      "value": "text-delta"
+    },
+    {
+      "path": "[21].type",
+      "norm": "[*].type",
+      "value": "text-delta"
+    },
+    {
+      "path": "[22].type",
+      "norm": "[*].type",
+      "value": "text-delta"
+    },
+    {
+      "path": "[23].type",
+      "norm": "[*].type",
+      "value": "text-delta"
+    },
+    {
+      "path": "[24].type",
+      "norm": "[*].type",
+      "value": "text-delta"
+    },
+    {
+      "path": "[25].type",
+      "norm": "[*].type",
+      "value": "text-delta"
+    },
+    {
+      "path": "[26].type",
+      "norm": "[*].type",
+      "value": "text-delta"
+    },
+    {
+      "path": "[27].type",
+      "norm": "[*].type",
+      "value": "text-end"
+    },
+    {
+      "path": "[28].type",
+      "norm": "[*].type",
+      "value": "finish-step"
+    },
+    {
+      "path": "[28].usage.inputTokenDetails.cacheReadTokens",
+      "norm": "[*].usage.inputTokenDetails.cacheReadTokens",
+      "value": 0
+    },
+    {
+      "path": "[28].usage.inputTokenDetails.cacheWriteTokens",
+      "norm": "[*].usage.inputTokenDetails.cacheWriteTokens",
+      "value": 0
+    },
+    {
+      "path": "[28].usage.outputTokenDetails.reasoningTokens",
+      "norm": "[*].usage.outputTokenDetails.reasoningTokens",
+      "value": 0
+    },
+    {
+      "path": "[28].usage.raw.input_tokens_details.cached_tokens",
+      "norm": "[*].usage.raw.input_tokens_details.cached_tokens",
+      "value": 0
+    },
+    {
+      "path": "[28].usage.raw.input_tokens_details.cache_write_tokens",
+      "norm": "[*].usage.raw.input_tokens_details.cache_write_tokens",
+      "value": 0
+    },
+    {
+      "path": "[28].usage.raw.output_tokens_details.reasoning_tokens",
+      "norm": "[*].usage.raw.output_tokens_details.reasoning_tokens",
+      "value": 0
+    },
+    {
+      "path": "[28].performance.stepTimeMs",
+      "norm": "[*].performance.stepTimeMs",
+      "value": 1624.6268330000003
+    },
+    {
+      "path": "[28].performance.responseTimeMs",
+      "norm": "[*].performance.responseTimeMs",
+      "value": 1622.9019579999995
+    },
+    {
+      "path": "[28].performance.effectiveOutputTokensPerSecond",
+      "norm": "[*].performance.effectiveOutputTokensPerSecond",
+      "value": 5.545621505744713
+    },
+    {
+      "path": "[28].performance.outputTokensPerSecond",
+      "norm": "[*].performance.outputTokensPerSecond",
+      "value": 2288.814284846027
+    },
+    {
+      "path": "[28].performance.inputTokensPerSecond",
+      "norm": "[*].performance.inputTokensPerSecond",
+      "value": 79.06262409068017
+    },
+    {
+      "path": "[28].performance.effectiveTotalTokensPerSecond",
+      "norm": "[*].performance.effectiveTotalTokensPerSecond",
+      "value": 84.41668292078063
+    },
+    {
+      "path": "[28].performance.timeToFirstOutputMs",
+      "norm": "[*].performance.timeToFirstOutputMs",
+      "value": 1618.9697909999995
+    },
+    {
+      "path": "[28].performance.timeBetweenOutputChunksMs.min",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.min",
+      "value": 0.14474999999947613
+    },
+    {
+      "path": "[28].performance.timeBetweenOutputChunksMs.p10",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.p10",
+      "value": 0.14474999999947613
+    },
+    {
+      "path": "[28].performance.timeBetweenOutputChunksMs.median",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.median",
+      "value": 0.19383300000026793
+    },
+    {
+      "path": "[28].performance.timeBetweenOutputChunksMs.avg",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.avg",
+      "value": 0.28081250000013824
+    },
+    {
+      "path": "[28].performance.timeBetweenOutputChunksMs.p90",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.p90",
+      "value": 0.6367090000003373
+    },
+    {
+      "path": "[28].performance.timeBetweenOutputChunksMs.max",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.max",
+      "value": 0.6367090000003373
+    },
+    {
+      "path": "[28].providerMetadata.openai.serviceTier",
+      "norm": "[*].providerMetadata.openai.serviceTier",
+      "value": "default"
+    },
+    {
+      "path": "[28].response.timestamp",
+      "norm": "[*].response.timestamp",
+      "value": "2026-07-19T23:47:48.000Z"
+    },
+    {
+      "path": "[28].response.headers.access-control-expose-headers",
+      "norm": "[*].response.headers.access-control-expose-headers",
+      "value": "X-Request-ID, CF-Ray, CF-Ray"
+    },
+    {
+      "path": "[28].response.headers.alt-svc",
+      "norm": "[*].response.headers.alt-svc",
+      "value": "h3=\":443\"; ma=86400"
+    },
+    {
+      "path": "[28].response.headers.cf-cache-status",
+      "norm": "[*].response.headers.cf-cache-status",
+      "value": "DYNAMIC"
+    },
+    {
+      "path": "[28].response.headers.cf-ray",
+      "norm": "[*].response.headers.cf-ray",
+      "value": "a1dd9d003afc83f1-ICN"
+    },
+    {
+      "path": "[28].response.headers.connection",
+      "norm": "[*].response.headers.connection",
+      "value": "keep-alive"
+    },
+    {
+      "path": "[28].response.headers.content-type",
+      "norm": "[*].response.headers.content-type",
+      "value": "text/event-stream; charset=utf-8"
+    },
+    {
+      "path": "[28].response.headers.date",
+      "norm": "[*].response.headers.date",
+      "value": "Sun, 19 Jul 2026 23:47:48 GMT"
+    },
+    {
+      "path": "[28].response.headers.openai-organization",
+      "norm": "[*].response.headers.openai-organization",
+      "value": "alohomora-company"
+    },
+    {
+      "path": "[28].response.headers.openai-processing-ms",
+      "norm": "[*].response.headers.openai-processing-ms",
+      "value": "139"
+    },
+    {
+      "path": "[28].response.headers.openai-project",
+      "norm": "[*].response.headers.openai-project",
+      "value": "proj_ZN1JUSrsvFLEcIBrWjUCXGks"
+    },
+    {
+      "path": "[28].response.headers.openai-version",
+      "norm": "[*].response.headers.openai-version",
+      "value": "2020-10-01"
+    },
+    {
+      "path": "[28].response.headers.server",
+      "norm": "[*].response.headers.server",
+      "value": "cloudflare"
+    },
+    {
+      "path": "[28].response.headers.set-cookie",
+      "norm": "[*].response.headers.set-cookie",
+      "value": "__cf_bm=VUTcyk7Ul4T6cL1EX6fT5pAy1yIpz_1S_yp8WK.00vI-1784504867.8759015-1.0.1.1-1DO8M.Quwvqx7e5zEYdf_gOQeC7CNPHsNK2TC1NTe80reEQXT4NDeyKefU4XZh5gE4dda2Xpar7f6voLJZyWlo9sdo77yoAgkUvF6KOA7qVYCM2YcfqEjtpfmghSyhpr; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.openai.com; Expires=Mon, 20 Jul 2026 00:17:48 GMT"
+    },
+    {
+      "path": "[28].response.headers.strict-transport-security",
+      "norm": "[*].response.headers.strict-transport-security",
+      "value": "max-age=31536000; includeSubDomains; preload"
+    },
+    {
+      "path": "[28].response.headers.transfer-encoding",
+      "norm": "[*].response.headers.transfer-encoding",
+      "value": "chunked"
+    },
+    {
+      "path": "[28].response.headers.x-content-type-options",
+      "norm": "[*].response.headers.x-content-type-options",
+      "value": "nosniff"
+    },
+    {
+      "path": "[28].response.headers.x-request-id",
+      "norm": "[*].response.headers.x-request-id",
+      "value": "req_69f9b36806fb446d830c094bdb5faef2"
+    },
+    {
+      "path": "[29].type",
+      "norm": "[*].type",
+      "value": "finish"
+    },
+    {
+      "path": "[29].totalUsage.inputTokenDetails.cacheReadTokens",
+      "norm": "[*].totalUsage.inputTokenDetails.cacheReadTokens",
+      "value": 0
+    },
+    {
+      "path": "[29].totalUsage.inputTokenDetails.cacheWriteTokens",
+      "norm": "[*].totalUsage.inputTokenDetails.cacheWriteTokens",
+      "value": 0
+    },
+    {
+      "path": "[29].totalUsage.outputTokenDetails.reasoningTokens",
+      "norm": "[*].totalUsage.outputTokenDetails.reasoningTokens",
+      "value": 0
+    }
+  ],
+  "newFields": [
+    "[*].type",
+    "[*].id",
+    "[*].toolName",
+    "[*].dynamic",
+    "[*].toolMetadata.clientName",
+    "[*].toolMetadata.toolName",
+    "[*].delta",
+    "[*].toolCallId",
+    "[*].input.message",
+    "[*].providerMetadata.openai.itemId",
+    "[*].output.content[*].type",
+    "[*].output.content[*].text",
+    "[*].output.isError",
+    "[*].finishReason",
+    "[*].usage.inputTokens",
+    "[*].usage.inputTokenDetails.noCacheTokens",
+    "[*].usage.inputTokenDetails.cacheReadTokens",
+    "[*].usage.inputTokenDetails.cacheWriteTokens",
+    "[*].usage.outputTokens",
+    "[*].usage.outputTokenDetails.textTokens",
+    "[*].usage.outputTokenDetails.reasoningTokens",
+    "[*].usage.totalTokens",
+    "[*].usage.raw.input_tokens",
+    "[*].usage.raw.input_tokens_details.cached_tokens",
+    "[*].usage.raw.input_tokens_details.cache_write_tokens",
+    "[*].usage.raw.output_tokens",
+    "[*].usage.raw.output_tokens_details.reasoning_tokens",
+    "[*].performance.stepTimeMs",
+    "[*].performance.toolExecutionMs.call_P9V6G0h2gVsWqupLPr8114uJ",
+    "[*].performance.responseTimeMs",
+    "[*].performance.effectiveOutputTokensPerSecond",
+    "[*].performance.outputTokensPerSecond",
+    "[*].performance.inputTokensPerSecond",
+    "[*].performance.effectiveTotalTokensPerSecond",
+    "[*].performance.timeToFirstOutputMs",
+    "[*].performance.timeBetweenOutputChunksMs.min",
+    "[*].performance.timeBetweenOutputChunksMs.p10",
+    "[*].performance.timeBetweenOutputChunksMs.median",
+    "[*].performance.timeBetweenOutputChunksMs.avg",
+    "[*].performance.timeBetweenOutputChunksMs.p90",
+    "[*].performance.timeBetweenOutputChunksMs.max",
+    "[*].providerMetadata.openai.responseId",
+    "[*].providerMetadata.openai.serviceTier",
+    "[*].response.id",
+    "[*].response.timestamp",
+    "[*].response.modelId",
+    "[*].response.headers.access-control-expose-headers",
+    "[*].response.headers.alt-svc",
+    "[*].response.headers.cf-cache-status",
+    "[*].response.headers.cf-ray",
+    "[*].response.headers.connection",
+    "[*].response.headers.content-type",
+    "[*].response.headers.date",
+    "[*].response.headers.openai-organization",
+    "[*].response.headers.openai-processing-ms",
+    "[*].response.headers.openai-project",
+    "[*].response.headers.openai-version",
+    "[*].response.headers.server",
+    "[*].response.headers.set-cookie",
+    "[*].response.headers.strict-transport-security",
+    "[*].response.headers.transfer-encoding",
+    "[*].response.headers.x-content-type-options",
+    "[*].response.headers.x-request-id",
+    "[*].text",
+    "[*].totalUsage.inputTokens",
+    "[*].totalUsage.inputTokenDetails.noCacheTokens",
+    "[*].totalUsage.inputTokenDetails.cacheReadTokens",
+    "[*].totalUsage.inputTokenDetails.cacheWriteTokens",
+    "[*].totalUsage.outputTokens",
+    "[*].totalUsage.outputTokenDetails.textTokens",
+    "[*].totalUsage.outputTokenDetails.reasoningTokens",
+    "[*].totalUsage.totalTokens"
+  ]
+}

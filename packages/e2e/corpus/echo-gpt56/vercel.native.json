@@ -1,0 +1,356 @@
+[
+  {
+    "type": "start"
+  },
+  {
+    "type": "start-step",
+    "request": {},
+    "warnings": []
+  },
+  {
+    "type": "tool-input-start",
+    "id": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "toolName": "echo",
+    "dynamic": true,
+    "toolMetadata": {
+      "clientName": "ai-sdk-mcp-client",
+      "toolName": "echo"
+    }
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "{\""
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "message"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "\":\""
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "con"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "formance"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "-pro"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "be"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "-g"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "pt"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "56"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "\"}"
+  },
+  {
+    "type": "tool-input-end",
+    "id": "call_P9V6G0h2gVsWqupLPr8114uJ"
+  },
+  {
+    "type": "tool-call",
+    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "toolName": "echo",
+    "input": {
+      "message": "conformance-probe-gpt56"
+    },
+    "providerMetadata": {
+      "openai": {
+        "itemId": "fc_0ef89466be4a78e7006a5d62236f048199b6582c312d5ef14c"
+      }
+    },
+    "toolMetadata": {
+      "clientName": "ai-sdk-mcp-client",
+      "toolName": "echo"
+    },
+    "dynamic": true
+  },
+  {
+    "type": "tool-result",
+    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "toolName": "echo",
+    "input": {
+      "message": "conformance-probe-gpt56"
+    },
+    "output": {
+      "content": [
+        {
+          "type": "text",
+          "text": "conformance-probe-gpt56"
+        }
+      ],
+      "isError": false
+    },
+    "dynamic": true,
+    "providerMetadata": {
+      "openai": {
+        "itemId": "fc_0ef89466be4a78e7006a5d62236f048199b6582c312d5ef14c"
+      }
+    },
+    "toolMetadata": {
+      "clientName": "ai-sdk-mcp-client",
+      "toolName": "echo"
+    }
+  },
+  {
+    "type": "finish-step",
+    "finishReason": "tool-calls",
+    "usage": {
+      "inputTokens": 97,
+      "inputTokenDetails": {
+        "noCacheTokens": 97,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 20,
+      "outputTokenDetails": {
+        "textTokens": 20,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 117,
+      "raw": {
+        "input_tokens": 97,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0
+        },
+        "output_tokens": 20,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      }
+    },
+    "performance": {
+      "stepTimeMs": 3519.9641250000004,
+      "toolExecutionMs": {
+        "call_P9V6G0h2gVsWqupLPr8114uJ": 9.92587500000036
+      },
+      "responseTimeMs": 3507.503083,
+      "effectiveOutputTokensPerSecond": 5.70206198732513,
+      "outputTokensPerSecond": 61.58032820356676,
+      "inputTokensPerSecond": 30.47703751580139,
+      "effectiveTotalTokensPerSecond": 33.35706262585201,
+      "timeToFirstOutputMs": 3182.724041,
+      "timeBetweenOutputChunksMs": {
+        "min": 0.10179199999993216,
+        "p10": 0.12487499999997453,
+        "median": 0.23058300000002419,
+        "avg": 6.800310636363644,
+        "p90": 6.511082999999871,
+        "max": 65.904
+      }
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0ef89466be4a78e7006a5d62214aac8199b6f130c4e5a7ce86",
+        "serviceTier": "default"
+      }
+    },
+    "response": {
+      "id": "resp_0ef89466be4a78e7006a5d62214aac8199b6f130c4e5a7ce86",
+      "timestamp": "2026-07-19T23:47:45.000Z",
+      "modelId": "gpt-4o-mini-2024-07-18",
+      "headers": {
+        "access-control-expose-headers": "X-Request-ID, CF-Ray, CF-Ray",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a1dd9cea9e8b83f1-ICN",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream; charset=utf-8",
+        "date": "Sun, 19 Jul 2026 23:47:45 GMT",
+        "openai-organization": "alohomora-company",
+        "openai-processing-ms": "153",
+        "openai-project": "proj_ZN1JUSrsvFLEcIBrWjUCXGks",
+        "openai-version": "2020-10-01",
+        "server": "cloudflare",
+        "set-cookie": "__cf_bm=h3KcdLeB.8X8oD9Q5aRZ4kmLZNjW4uSdc3qx7EqjipI-1784504864.4135106-1.0.1.1-7.nCLYd61n538gTcEtfl3JHRV_kFZebrCk1XqjLl1wHn5yD2uUP8ufnqflzHbaLMHC3GQHkVQ1ES4ECO80orxPQ1AV2DGH1Kt4DBttKU2uQ3oCigoY1n3XEtBnQi4AbV; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.openai.com; Expires=Mon, 20 Jul 2026 00:17:45 GMT",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "x-content-type-options": "nosniff",
+        "x-request-id": "req_ec9c6e15df1b4254819a59cd089b93be"
+      }
+    }
+  },
+  {
+    "type": "start-step",
+    "request": {},
+    "warnings": []
+  },
+  {
+    "type": "text-start",
+    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e"
+      }
+    }
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "text": "con"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "text": "formance"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "text": "-pro"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "text": "be"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "text": "-g"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "text": "pt"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "text": "56"
+  },
+  {
+    "type": "text-end",
+    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e"
+      }
+    }
+  },
+  {
+    "type": "finish-step",
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 128,
+      "inputTokenDetails": {
+        "noCacheTokens": 128,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 9,
+      "outputTokenDetails": {
+        "textTokens": 9,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 137,
+      "raw": {
+        "input_tokens": 128,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0
+        },
+        "output_tokens": 9,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      }
+    },
+    "performance": {
+      "stepTimeMs": 1624.6268330000003,
+      "toolExecutionMs": {},
+      "responseTimeMs": 1622.9019579999995,
+      "effectiveOutputTokensPerSecond": 5.545621505744713,
+      "outputTokensPerSecond": 2288.814284846027,
+      "inputTokensPerSecond": 79.06262409068017,
+      "effectiveTotalTokensPerSecond": 84.41668292078063,
+      "timeToFirstOutputMs": 1618.9697909999995,
+      "timeBetweenOutputChunksMs": {
+        "min": 0.14474999999947613,
+        "p10": 0.14474999999947613,
+        "median": 0.19383300000026793,
+        "avg": 0.28081250000013824,
+        "p90": 0.6367090000003373,
+        "max": 0.6367090000003373
+      }
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0187d8f27d1d304e006a5d622407848198b5fddda40978bc65",
+        "serviceTier": "default"
+      }
+    },
+    "response": {
+      "id": "resp_0187d8f27d1d304e006a5d622407848198b5fddda40978bc65",
+      "timestamp": "2026-07-19T23:47:48.000Z",
+      "modelId": "gpt-4o-mini-2024-07-18",
+      "headers": {
+        "access-control-expose-headers": "X-Request-ID, CF-Ray, CF-Ray",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a1dd9d003afc83f1-ICN",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream; charset=utf-8",
+        "date": "Sun, 19 Jul 2026 23:47:48 GMT",
+        "openai-organization": "alohomora-company",
+        "openai-processing-ms": "139",
+        "openai-project": "proj_ZN1JUSrsvFLEcIBrWjUCXGks",
+        "openai-version": "2020-10-01",
+        "server": "cloudflare",
+        "set-cookie": "__cf_bm=VUTcyk7Ul4T6cL1EX6fT5pAy1yIpz_1S_yp8WK.00vI-1784504867.8759015-1.0.1.1-1DO8M.Quwvqx7e5zEYdf_gOQeC7CNPHsNK2TC1NTe80reEQXT4NDeyKefU4XZh5gE4dda2Xpar7f6voLJZyWlo9sdo77yoAgkUvF6KOA7qVYCM2YcfqEjtpfmghSyhpr; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.openai.com; Expires=Mon, 20 Jul 2026 00:17:48 GMT",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "x-content-type-options": "nosniff",
+        "x-request-id": "req_69f9b36806fb446d830c094bdb5faef2"
+      }
+    }
+  },
+  {
+    "type": "finish",
+    "finishReason": "stop",
+    "totalUsage": {
+      "inputTokens": 225,
+      "inputTokenDetails": {
+        "noCacheTokens": 225,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 29,
+      "outputTokenDetails": {
+        "textTokens": 29,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 254
+    }
+  }
+]

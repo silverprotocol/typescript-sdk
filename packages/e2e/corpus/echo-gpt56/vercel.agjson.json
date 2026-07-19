@@ -1,0 +1,289 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_vercel_1",
+    "threadId": "vercel"
+  },
+  {
+    "type": "step.start",
+    "id": "step_1",
+    "turnId": "turn_vercel_1",
+    "seq": 1
+  },
+  {
+    "type": "message.start",
+    "seq": 2,
+    "id": "msg_turn_vercel_1_s1",
+    "turnId": "turn_vercel_1",
+    "threadId": "vercel",
+    "role": "assistant",
+    "stepId": "step_1"
+  },
+  {
+    "type": "tool.start",
+    "seq": 3,
+    "turnId": "turn_vercel_1",
+    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "name": "echo",
+    "messageId": "msg_turn_vercel_1_s1",
+    "dynamic": true
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 4,
+    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "{\""
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 5,
+    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "message"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 6,
+    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "\":\""
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 7,
+    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "con"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 8,
+    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "formance"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 9,
+    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "-pro"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 10,
+    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "be"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 11,
+    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "-g"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 12,
+    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "pt"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 13,
+    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "56"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 14,
+    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "delta": "\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 15,
+    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "input": {
+      "message": "conformance-probe-gpt56"
+    }
+  },
+  {
+    "type": "tool.done",
+    "seq": 16,
+    "turnId": "turn_vercel_1",
+    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "outcome": "ok",
+    "structuredContent": {
+      "content": [
+        {
+          "type": "text",
+          "text": "conformance-probe-gpt56"
+        }
+      ],
+      "isError": false
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"content\":[{\"type\":\"text\",\"text\":\"conformance-probe-gpt56\"}],\"isError\":false}"
+      }
+    ],
+    "dynamic": true
+  },
+  {
+    "type": "message.metadata",
+    "messageId": "msg_turn_vercel_1_s1",
+    "metadata": {
+      "responseId": "resp_0ef89466be4a78e7006a5d62214aac8199b6f130c4e5a7ce86",
+      "model": "gpt-4o-mini-2024-07-18"
+    },
+    "turnId": "turn_vercel_1",
+    "seq": 17
+  },
+  {
+    "type": "message.end",
+    "seq": 18,
+    "id": "msg_turn_vercel_1_s1",
+    "usage": {
+      "inputTokens": 97,
+      "outputTokens": 20,
+      "totalTokens": 117,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 0
+    }
+  },
+  {
+    "type": "step.done",
+    "id": "step_1",
+    "turnId": "turn_vercel_1",
+    "seq": 19
+  },
+  {
+    "type": "step.start",
+    "id": "step_2",
+    "turnId": "turn_vercel_1",
+    "seq": 20
+  },
+  {
+    "type": "message.start",
+    "seq": 21,
+    "id": "msg_turn_vercel_1_s2",
+    "turnId": "turn_vercel_1",
+    "threadId": "vercel",
+    "role": "assistant",
+    "stepId": "step_2"
+  },
+  {
+    "type": "text.start",
+    "seq": 22,
+    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "messageId": "msg_turn_vercel_1_s2",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 23,
+    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "con",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 24,
+    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "formance",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 25,
+    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "-pro",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 26,
+    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "be",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 27,
+    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "-g",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 28,
+    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "pt",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 29,
+    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "56",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.end",
+    "seq": 30,
+    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "messageId": "msg_turn_vercel_1_s2",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "message.metadata",
+    "messageId": "msg_turn_vercel_1_s2",
+    "metadata": {
+      "responseId": "resp_0187d8f27d1d304e006a5d622407848198b5fddda40978bc65",
+      "model": "gpt-4o-mini-2024-07-18"
+    },
+    "turnId": "turn_vercel_1",
+    "seq": 31
+  },
+  {
+    "type": "message.end",
+    "seq": 32,
+    "id": "msg_turn_vercel_1_s2",
+    "usage": {
+      "inputTokens": 128,
+      "outputTokens": 9,
+      "totalTokens": 137,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 0
+    }
+  },
+  {
+    "type": "step.done",
+    "id": "step_2",
+    "turnId": "turn_vercel_1",
+    "seq": 33
+  },
+  {
+    "type": "turn.done",
+    "seq": 34,
+    "turnId": "turn_vercel_1",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 225,
+      "outputTokens": 29,
+      "totalTokens": 254,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 0
+    }
+  }
+]
