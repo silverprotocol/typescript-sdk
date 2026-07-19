@@ -52,6 +52,11 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "24"
+          # These jobs are dependency-free (node scripts only, no pnpm install).
+          # setup-node@v5 defaults package-manager-cache:true, auto-detects pnpm
+          # from the lockfile, and hard-fails when the binary is absent — the
+          # bug that failed every nightly since this workflow shipped.
+          package-manager-cache: false
       # the scan script is dependency-free (no pnpm install needed): assert
       # its range evaluator against the spec table, then hit the registry.
       - run: node scripts/check-peer-latest.mjs --self-test
@@ -115,6 +120,11 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "24"
+          # These jobs are dependency-free (node scripts only, no pnpm install).
+          # setup-node@v5 defaults package-manager-cache:true, auto-detects pnpm
+          # from the lockfile, and hard-fails when the binary is absent — the
+          # bug that failed every nightly since this workflow shipped.
+          package-manager-cache: false
       - uses: actions/download-artifact@v4
         with:
           pattern: peer-result-*
