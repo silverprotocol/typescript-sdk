@@ -90,31 +90,36 @@ function main() {
 
   applyOverride(peer, version);
 
+  // Policy neutralization for EVERY stage of this throwaway leg (note: pnpm 11
+  // ignores npm_config_* entirely — only pnpm_config_* is read):
+  //  - minimum_release_age=0: testing a release that may be hours old is this
+  //    job's entire purpose. Two distinct enforcement points need it — the
+  //    resolution gate at `pnpm install` (hard-fails exact pins younger than an
+  //    explicit threshold, ERR_PNPM_NO_MATURE_MATCHING_VERSION), AND pnpm 11's
+  //    verify-deps-before-run lockfile check that re-validates the lockfile
+  //    against supply-chain policies on every subsequent `pnpm <script>`
+  //    invocation. The original implementation attached this env to the
+  //    install stage only, so the leg's install PASSED and then `pnpm
+  //    typecheck` rejected the freshly-written lockfile entries
+  //    (ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION) — the false [peer-compat]
+  //    signal in run 29681822311 (issue #2). Neutralization must ride every
+  //    stage.
+  //  - strict_dep_builds=false: on CI, a dependency with a lifecycle script
+  //    missing from allowBuilds hard-fails the install
+  //    (ERR_PNPM_IGNORED_BUILDS) — a newer peer adding one transitive
+  //    postinstall would masquerade as [peer-compat]. Downgraded to a warning
+  //    WITHOUT executing the script; if the skipped script genuinely matters,
+  //    typecheck/test/replay fail with real evidence instead.
+  const LEG_ENV = {
+    pnpm_config_minimum_release_age: "0",
+    pnpm_config_strict_dep_builds: "false",
+  };
+
   const stages = [
     {
       key: "install",
       cmd: ["pnpm", "install", "--no-frozen-lockfile"],
       required: true,
-      // Both env overrides verified empirically against pnpm 11.2.2 (note:
-      // pnpm 11 ignores npm_config_* entirely — only pnpm_config_* is read):
-      //  - minimum_release_age=0: with no explicit minimumReleaseAge the
-      //    default gate is LOOSE (installs succeed; pnpm auto-appends to
-      //    minimumReleaseAgeExclude — harmless on this throwaway checkout),
-      //    but an explicit setting hard-fails exact pins younger than the
-      //    threshold with ERR_PNPM_NO_MATURE_MATCHING_VERSION. Testing a
-      //    release that may be hours old is this job's entire purpose, so
-      //    the gate is pinned off either way.
-      //  - strict_dep_builds=false: on CI, a dependency with a lifecycle
-      //    script missing from allowBuilds hard-fails the install
-      //    (ERR_PNPM_IGNORED_BUILDS) — a newer peer adding one transitive
-      //    postinstall would masquerade as [peer-compat]. This downgrades
-      //    that to a warning WITHOUT executing the script; if the skipped
-      //    script genuinely matters, typecheck/test/replay fail with real
-      //    evidence instead.
-      extraEnv: {
-        pnpm_config_minimum_release_age: "0",
-        pnpm_config_strict_dep_builds: "false",
-      },
     },
     { key: "typecheck", cmd: ["pnpm", "typecheck"], required: true },
     { key: "test", cmd: ["pnpm", "test"], required: true },
@@ -135,7 +140,7 @@ function main() {
     console.log(`::group::${stage.key}${stage.required ? "" : " (informational)"} — ${stage.cmd.join(" ")}`);
     const { ok, output } = run(stage.cmd[0], stage.cmd.slice(1), {
       capture: stage.capture ?? false,
-      extraEnv: stage.extraEnv ?? {},
+      extraEnv: { ...LEG_ENV, ...(stage.extraEnv ?? {}) },
     });
     if (output !== null) {
       process.stdout.write(output);
