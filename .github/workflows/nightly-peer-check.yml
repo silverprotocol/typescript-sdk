@@ -87,7 +87,7 @@ jobs:
           PEER_NAME: ${{ matrix.peer.name }}
           PEER_LATEST: ${{ matrix.peer.latest }}
         run: node scripts/nightly-peer-leg.mjs "$PEER_NAME" "$PEER_LATEST" --out leg-result
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: peer-result-${{ matrix.peer.facet }}
@@ -125,7 +125,7 @@ jobs:
           # from the lockfile, and hard-fails when the binary is absent — the
           # bug that failed every nightly since this workflow shipped.
           package-manager-cache: false
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           pattern: peer-result-*
           path: leg-results
