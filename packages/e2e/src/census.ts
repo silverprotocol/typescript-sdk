@@ -48,7 +48,7 @@ export interface Leaf {
 
 /** The set of supported facet normalizer identifiers (guard-scoping domain —
  *  replay.ts infers this from the cassette filename and threads it through). */
-export type Framework = "claude" | "openai" | "adk";
+export type Framework = "claude" | "openai" | "adk" | "vercel";
 
 /**
  * How a `known-acceptable-drops.json` entry's shape was reviewed:

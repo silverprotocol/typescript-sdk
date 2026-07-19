@@ -70,6 +70,8 @@ const KEY_ENV_VAR: Record<Framework, string> = {
   claude: "ANTHROPIC_API_KEY",
   openai: "OPENAI_API_KEY",
   adk: "GOOGLE_API_KEY",
+  // The vercel capture runs the @ai-sdk/openai provider — same key as "openai".
+  vercel: "OPENAI_API_KEY",
 };
 
 /** The npm package whose installed `package.json#version` is this
@@ -78,6 +80,7 @@ const SDK_PACKAGE: Record<Framework, string> = {
   claude: "@anthropic-ai/claude-agent-sdk",
   openai: "@openai/agents",
   adk: "@google/adk",
+  vercel: "ai",
 };
 
 /** The default model each capture agent uses when `CaptureRunOptions.model`
@@ -90,6 +93,8 @@ const DEFAULT_MODEL: Record<Framework, string> = {
   claude: "claude-sonnet-4-6",
   openai: "gpt-4o-mini",
   adk: "gemini-2.5-flash",
+  // Same model family as "openai" — the two facets share provider + corpus.
+  vercel: "gpt-4o-mini",
 };
 
 /**
@@ -106,7 +111,7 @@ export function resolveModel(framework: Framework): string {
   return override && override.length > 0 ? override : DEFAULT_MODEL[framework];
 }
 
-const FRAMEWORKS: readonly Framework[] = ["claude", "openai", "adk"];
+const FRAMEWORKS: readonly Framework[] = ["claude", "openai", "adk", "vercel"];
 
 /** Type-predicate guard — no cast on the value. */
 export function isFramework(v: string): v is Framework {
@@ -241,6 +246,13 @@ async function loadFrameworkDeps(
       import("@silverprotocol/openai-agents"),
     ]);
     return { runAgentCapture: runOpenaiCapture, createNormalizer: createOpenaiNormalizer };
+  }
+  if (framework === "vercel") {
+    const [{ runVercelCapture }, { createVercelNormalizer }] = await Promise.all([
+      import("./agents/vercel-ai/run.js"),
+      import("@silverprotocol/vercel-ai"),
+    ]);
+    return { runAgentCapture: runVercelCapture, createNormalizer: createVercelNormalizer };
   }
   const [{ runAdkCapture }, { createAdkNormalizer }] = await Promise.all([
     import("./agents/google-adk/run.js"),

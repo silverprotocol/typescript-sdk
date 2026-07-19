@@ -118,8 +118,23 @@ function extractAdkToolCalls(native: JsonValue[]): string[] {
  * Returns the names of every tool call in `native`, dispatched by
  * `framework` (default `"claude"`).
  */
+/** Walks a raw Vercel AI SDK TextStreamPart stream ({type:"tool-call"} parts). */
+function extractVercelToolCalls(native: JsonValue[]): string[] {
+  const names: string[] = [];
+  for (const event of native) {
+    if (!isObject(event)) continue;
+    if (event["type"] !== "tool-call") continue;
+    const name = event["toolName"];
+    if (typeof name === "string") {
+      names.push(name);
+    }
+  }
+  return names;
+}
+
 export function extractToolCalls(native: JsonValue[], framework: Framework = "claude"): string[] {
   if (framework === "openai") return extractOpenaiToolCalls(native);
   if (framework === "adk") return extractAdkToolCalls(native);
+  if (framework === "vercel") return extractVercelToolCalls(native);
   return extractClaudeToolCalls(native);
 }

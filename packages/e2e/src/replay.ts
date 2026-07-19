@@ -39,6 +39,7 @@ import { toWire } from "@silverprotocol/core";
 import { createClaudeNormalizer } from "@silverprotocol/claude-agent-sdk";
 import { createOpenaiNormalizer } from "@silverprotocol/openai-agents";
 import { createAdkNormalizer } from "@silverprotocol/google-adk";
+import { createVercelNormalizer } from "@silverprotocol/vercel-ai";
 import {
   census,
   type CensusReport,
@@ -116,7 +117,7 @@ async function readTransforms(path: string): Promise<Map<string, string>> {
 }
 
 const REVIEWED_SHAPES: readonly string[] = ["null-only", "any"] satisfies ReviewedShape[];
-const FRAMEWORKS: readonly string[] = ["claude", "openai", "adk"] satisfies Framework[];
+const FRAMEWORKS: readonly string[] = ["claude", "openai", "adk", "vercel"] satisfies Framework[];
 
 /** Type-predicate guard (no cast on the value) — narrows a parsed JsonValue to
  *  the literal `ReviewedShape` union by membership in `REVIEWED_SHAPES`. */
@@ -193,6 +194,7 @@ export function inferFramework(nativePath: string): Framework {
   const base = nativePath.split("/").pop() ?? "";
   if (base.startsWith("openai.")) return "openai";
   if (base.startsWith("adk.")) return "adk";
+  if (base.startsWith("vercel.")) return "vercel";
   return "claude";
 }
 
@@ -221,7 +223,9 @@ export async function replayCassette(
       ? createOpenaiNormalizer()
       : fw === "adk"
         ? createAdkNormalizer()
-        : createClaudeNormalizer();
+        : fw === "vercel"
+          ? createVercelNormalizer()
+          : createClaudeNormalizer();
   const agjson: JsonValue[] = [];
   for (const event of native) {
     for (const e of normalizer.push(event)) {
