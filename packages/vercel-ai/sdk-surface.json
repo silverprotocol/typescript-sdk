@@ -1,0 +1,12 @@
+{
+  "$comment": "Ratchet manifest for the fixture-drift gate (scripts/check-fixture-drift.mjs), vercel-ai facet \u2014 the fourth facet. STATUS: this facet is NOT yet registered in check-fixture-drift.mjs's gatherInventories(), so no member inventory is ratcheted and checkVerifiedLogs does not yet cross-check `verified` against an installed pin. What IS live: render-compat.mjs lists this facet in FACETS and renders `verified` into README.md's compat table, and the drift gate fails on a stale table via checkCompatStaleness. Like google-adk, this facet never imports its upstream SDK \u2014 src/index.ts's VercelStreamPart is a hand-defined structural projection of `ai`'s TextStreamPart union (`ai` is an optional peerDependency only). PLANNED on gate registration (with exact e2e pins, per docs/plans/2026-07-14-vercel-ai-facet-brief.md item 9): a `streamPartType` section \u2014 the TextStreamPart union's top-level `type:` discriminants from the installed `ai` d.ts, the vocabulary the drive switch dispatches on, with per-member dispositions seeded by reading the drive switch line-by-line against every discriminant.",
+  "verified": [
+    {
+      "sdkVersion": "7.0.26",
+      "date": "2026-07-20",
+      "silverprotocol": "0.3.3",
+      "evidence": "full drive switch + 20-test fixture suite replaying REAL mock-captured fullStream sequences at ai@7.0.26 (text/reasoning/two-step tool with id-correlation R1, per-step message model R3, three error arms R4, abort ordering R5, content-filter mapping, forward-compat frame carries) incl. Reducer folds; D1 burn-down contract finals empirically verified; live conformance capture pending"
+    }
+  ],
+  "sections": {}
+}

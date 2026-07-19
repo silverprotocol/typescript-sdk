@@ -33,7 +33,7 @@ import { fileURLToPath } from "node:url";
 
 const typescriptRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-const FACETS = ["claude-agent-sdk", "openai-agents", "google-adk"];
+const FACETS = ["claude-agent-sdk", "openai-agents", "google-adk", "vercel-ai"];
 const BEGIN = "<!-- compat:begin -->";
 const END = "<!-- compat:end -->";
 

@@ -119,7 +119,7 @@ jobs:
         run: |
           set -euo pipefail
           # Fixed leaf-first order — core is every normalizer's dependency.
-          ORDER=(core claude-agent-sdk openai-agents google-adk)
+          ORDER=(core claude-agent-sdk openai-agents google-adk vercel-ai)
 
           # dist-tag: stable → latest; a prerelease channel → its own tag, so
           # `npm i @silverprotocol/core` keeps resolving to the latest STABLE.
@@ -220,7 +220,8 @@ jobs:
                 "@silverprotocol/core@$VER" \
                 "@silverprotocol/claude-agent-sdk@$VER" \
                 "@silverprotocol/openai-agents@$VER" \
-                "@silverprotocol/google-adk@$VER"; then
+                "@silverprotocol/google-adk@$VER" \
+                "@silverprotocol/vercel-ai@$VER"; then
               ok=1; break
             fi
             echo "@$VER not resolvable yet (registry propagation) — attempt $attempt/12, retrying in 30s"
@@ -235,8 +236,9 @@ jobs:
             const { createClaudeNormalizer } = require("@silverprotocol/claude-agent-sdk");
             const { createOpenaiNormalizer } = require("@silverprotocol/openai-agents");
             const { createAdkNormalizer } = require("@silverprotocol/google-adk");
+            const { createVercelNormalizer } = require("@silverprotocol/vercel-ai");
             const n = createClaudeNormalizer();
             if (typeof n.push !== "function" || typeof n.flush !== "function") throw new Error("normalizer shape");
-            new Reducer(); createOpenaiNormalizer(); createAdkNormalizer();
-            console.log("consumer smoke OK — all four packages import and construct");
+            new Reducer(); createOpenaiNormalizer(); createAdkNormalizer(); createVercelNormalizer();
+            console.log("consumer smoke OK — all five packages import and construct");
           '

@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
-const pkgs = ["core", "claude-agent-sdk", "openai-agents", "google-adk"];
+const pkgs = ["core", "claude-agent-sdk", "openai-agents", "google-adk", "vercel-ai"];
 const work = mkdtempSync(join(tmpdir(), "sp-pack-smoke-"));
 const run = (cmd, cwd) => execSync(cmd, { cwd, stdio: "pipe" }).toString();
 
@@ -63,9 +63,13 @@ const checks = [
     "@silverprotocol/google-adk",
     "m => { if (typeof m.createAdkNormalizer !== 'function') throw new Error('adk export missing'); }",
   ],
+  [
+    "@silverprotocol/vercel-ai",
+    "m => { if (typeof m.createVercelNormalizer !== 'function') throw new Error('vercel export missing'); }",
+  ],
 ];
 for (const [name, fn] of checks) {
   run(`node -e "import('${name}').then(${fn}).then(() => console.log('ok ${name}'))"`, app);
   console.log(`ok ${name}`);
 }
-console.log("pack-smoke: all four packages import clean");
+console.log("pack-smoke: all five packages import clean");
