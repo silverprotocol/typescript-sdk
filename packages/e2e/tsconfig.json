@@ -8,7 +8,8 @@
       "@silverprotocol/core": ["packages/core/src/index.ts"],
       "@silverprotocol/claude-agent-sdk": ["packages/claude-agent-sdk/src/index.ts"],
       "@silverprotocol/openai-agents": ["packages/openai-agents/src/index.ts"],
-      "@silverprotocol/google-adk": ["packages/google-adk/src/index.ts"]
+      "@silverprotocol/google-adk": ["packages/google-adk/src/index.ts"],
+      "@silverprotocol/vercel-ai": ["packages/vercel-ai/src/index.ts"]
     }
   },
   "references": [

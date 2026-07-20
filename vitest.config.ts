@@ -20,6 +20,9 @@ export default defineConfig({
       "@silverprotocol/google-adk": fileURLToPath(
         new URL("./packages/google-adk/src/index.ts", import.meta.url),
       ),
+      "@silverprotocol/vercel-ai": fileURLToPath(
+        new URL("./packages/vercel-ai/src/index.ts", import.meta.url),
+      ),
     },
   },
 });
