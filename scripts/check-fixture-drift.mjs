@@ -95,6 +95,7 @@
  * that cannot fail is a defect — applied to this gate too).
  */
 import { readFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
@@ -788,6 +789,21 @@ async function main() {
   // table fails this same gate (the root README's "cannot silently go
   // stale" claim is enforced here, not merely asserted).
   findings.push(...(await checkCompatStaleness()));
+
+  // The site's frameworks page + llms.txt render from a committed
+  // site/src/data/compat.json generated off these same verified logs
+  // (site/scripts/sync-compat.mjs). Workspace-only surface: the public
+  // typescript-sdk mirror has no site/, so this check self-skips there.
+  const siteSync = resolve(typescriptRoot, "..", "..", "site", "scripts", "sync-compat.mjs");
+  if (existsSync(siteSync)) {
+    try {
+      execFileSync(process.execPath, [siteSync, "--check"], { stdio: "pipe" });
+    } catch {
+      findings.push(
+        "  site: src/data/compat.json is STALE vs the verified logs — run `node site/scripts/sync-compat.mjs` (workspace root) and commit the result",
+      );
+    }
+  }
 
   if (findings.length > 0) {
     console.error(`\n✖ facet SDK-surface drift detected (${findings.length} issue(s)):\n`);
