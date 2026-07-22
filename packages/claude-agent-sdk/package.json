@@ -1,6 +1,6 @@
 {
   "name": "@silverprotocol/claude-agent-sdk",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "AgJSON normalizer for the Claude Agent SDK (SDKMessage \u2192 AgEvent[]) \u2014 the live path.",
   "license": "MIT",
   "repository": {
