@@ -1,4 +1,822 @@
 {
-  "drops": [],
-  "newFields": []
+  "drops": [
+    {
+      "path": "[0].type",
+      "norm": "[*].type",
+      "value": "system"
+    },
+    {
+      "path": "[0].subtype",
+      "norm": "[*].subtype",
+      "value": "init"
+    },
+    {
+      "path": "[0].cwd",
+      "norm": "[*].cwd",
+      "value": "/Users/gustavo/Projects/silverprotocol/sdks/typescript/packages/e2e"
+    },
+    {
+      "path": "[0].mcp_servers[0].name",
+      "norm": "[*].mcp_servers[*].name",
+      "value": "t"
+    },
+    {
+      "path": "[0].mcp_servers[0].status",
+      "norm": "[*].mcp_servers[*].status",
+      "value": "connected"
+    },
+    {
+      "path": "[0].permissionMode",
+      "norm": "[*].permissionMode",
+      "value": "default"
+    },
+    {
+      "path": "[0].slash_commands[0]",
+      "norm": "[*].slash_commands[*]",
+      "value": "deep-research"
+    },
+    {
+      "path": "[0].slash_commands[1]",
+      "norm": "[*].slash_commands[*]",
+      "value": "design-sync"
+    },
+    {
+      "path": "[0].slash_commands[2]",
+      "norm": "[*].slash_commands[*]",
+      "value": "dataviz"
+    },
+    {
+      "path": "[0].slash_commands[3]",
+      "norm": "[*].slash_commands[*]",
+      "value": "update-config"
+    },
+    {
+      "path": "[0].slash_commands[4]",
+      "norm": "[*].slash_commands[*]",
+      "value": "verify"
+    },
+    {
+      "path": "[0].slash_commands[5]",
+      "norm": "[*].slash_commands[*]",
+      "value": "debug"
+    },
+    {
+      "path": "[0].slash_commands[6]",
+      "norm": "[*].slash_commands[*]",
+      "value": "code-review"
+    },
+    {
+      "path": "[0].slash_commands[7]",
+      "norm": "[*].slash_commands[*]",
+      "value": "simplify"
+    },
+    {
+      "path": "[0].slash_commands[8]",
+      "norm": "[*].slash_commands[*]",
+      "value": "batch"
+    },
+    {
+      "path": "[0].slash_commands[9]",
+      "norm": "[*].slash_commands[*]",
+      "value": "fewer-permission-prompts"
+    },
+    {
+      "path": "[0].slash_commands[10]",
+      "norm": "[*].slash_commands[*]",
+      "value": "doctor"
+    },
+    {
+      "path": "[0].slash_commands[11]",
+      "norm": "[*].slash_commands[*]",
+      "value": "loop"
+    },
+    {
+      "path": "[0].slash_commands[12]",
+      "norm": "[*].slash_commands[*]",
+      "value": "claude-api"
+    },
+    {
+      "path": "[0].slash_commands[13]",
+      "norm": "[*].slash_commands[*]",
+      "value": "run"
+    },
+    {
+      "path": "[0].slash_commands[14]",
+      "norm": "[*].slash_commands[*]",
+      "value": "run-skill-generator"
+    },
+    {
+      "path": "[0].slash_commands[15]",
+      "norm": "[*].slash_commands[*]",
+      "value": "agents"
+    },
+    {
+      "path": "[0].slash_commands[16]",
+      "norm": "[*].slash_commands[*]",
+      "value": "clear"
+    },
+    {
+      "path": "[0].slash_commands[17]",
+      "norm": "[*].slash_commands[*]",
+      "value": "color"
+    },
+    {
+      "path": "[0].slash_commands[18]",
+      "norm": "[*].slash_commands[*]",
+      "value": "compact"
+    },
+    {
+      "path": "[0].slash_commands[19]",
+      "norm": "[*].slash_commands[*]",
+      "value": "config"
+    },
+    {
+      "path": "[0].slash_commands[20]",
+      "norm": "[*].slash_commands[*]",
+      "value": "context"
+    },
+    {
+      "path": "[0].slash_commands[21]",
+      "norm": "[*].slash_commands[*]",
+      "value": "effort"
+    },
+    {
+      "path": "[0].slash_commands[22]",
+      "norm": "[*].slash_commands[*]",
+      "value": "fast"
+    },
+    {
+      "path": "[0].slash_commands[23]",
+      "norm": "[*].slash_commands[*]",
+      "value": "heapdump"
+    },
+    {
+      "path": "[0].slash_commands[24]",
+      "norm": "[*].slash_commands[*]",
+      "value": "init"
+    },
+    {
+      "path": "[0].slash_commands[25]",
+      "norm": "[*].slash_commands[*]",
+      "value": "mcp"
+    },
+    {
+      "path": "[0].slash_commands[26]",
+      "norm": "[*].slash_commands[*]",
+      "value": "model"
+    },
+    {
+      "path": "[0].slash_commands[27]",
+      "norm": "[*].slash_commands[*]",
+      "value": "__remote-workflow"
+    },
+    {
+      "path": "[0].slash_commands[28]",
+      "norm": "[*].slash_commands[*]",
+      "value": "workflow-launch-exec"
+    },
+    {
+      "path": "[0].slash_commands[29]",
+      "norm": "[*].slash_commands[*]",
+      "value": "reload-skills"
+    },
+    {
+      "path": "[0].slash_commands[30]",
+      "norm": "[*].slash_commands[*]",
+      "value": "rename"
+    },
+    {
+      "path": "[0].slash_commands[31]",
+      "norm": "[*].slash_commands[*]",
+      "value": "review"
+    },
+    {
+      "path": "[0].slash_commands[32]",
+      "norm": "[*].slash_commands[*]",
+      "value": "security-review"
+    },
+    {
+      "path": "[0].slash_commands[33]",
+      "norm": "[*].slash_commands[*]",
+      "value": "usage"
+    },
+    {
+      "path": "[0].slash_commands[34]",
+      "norm": "[*].slash_commands[*]",
+      "value": "insights"
+    },
+    {
+      "path": "[0].slash_commands[35]",
+      "norm": "[*].slash_commands[*]",
+      "value": "recap"
+    },
+    {
+      "path": "[0].slash_commands[36]",
+      "norm": "[*].slash_commands[*]",
+      "value": "goal"
+    },
+    {
+      "path": "[0].slash_commands[37]",
+      "norm": "[*].slash_commands[*]",
+      "value": "design"
+    },
+    {
+      "path": "[0].slash_commands[38]",
+      "norm": "[*].slash_commands[*]",
+      "value": "design-consent"
+    },
+    {
+      "path": "[0].slash_commands[39]",
+      "norm": "[*].slash_commands[*]",
+      "value": "design-revoke"
+    },
+    {
+      "path": "[0].slash_commands[40]",
+      "norm": "[*].slash_commands[*]",
+      "value": "team-onboarding"
+    },
+    {
+      "path": "[0].apiKeySource",
+      "norm": "[*].apiKeySource",
+      "value": "ANTHROPIC_API_KEY"
+    },
+    {
+      "path": "[0].claude_code_version",
+      "norm": "[*].claude_code_version",
+      "value": "2.1.217"
+    },
+    {
+      "path": "[0].output_style",
+      "norm": "[*].output_style",
+      "value": "default"
+    },
+    {
+      "path": "[0].agents[0]",
+      "norm": "[*].agents[*]",
+      "value": "claude"
+    },
+    {
+      "path": "[0].agents[1]",
+      "norm": "[*].agents[*]",
+      "value": "Explore"
+    },
+    {
+      "path": "[0].agents[2]",
+      "norm": "[*].agents[*]",
+      "value": "general-purpose"
+    },
+    {
+      "path": "[0].agents[3]",
+      "norm": "[*].agents[*]",
+      "value": "Plan"
+    },
+    {
+      "path": "[0].agents[4]",
+      "norm": "[*].agents[*]",
+      "value": "statusline-setup"
+    },
+    {
+      "path": "[0].skills[0]",
+      "norm": "[*].skills[*]",
+      "value": "deep-research"
+    },
+    {
+      "path": "[0].skills[1]",
+      "norm": "[*].skills[*]",
+      "value": "design-sync"
+    },
+    {
+      "path": "[0].skills[2]",
+      "norm": "[*].skills[*]",
+      "value": "dataviz"
+    },
+    {
+      "path": "[0].skills[3]",
+      "norm": "[*].skills[*]",
+      "value": "update-config"
+    },
+    {
+      "path": "[0].skills[4]",
+      "norm": "[*].skills[*]",
+      "value": "verify"
+    },
+    {
+      "path": "[0].skills[5]",
+      "norm": "[*].skills[*]",
+      "value": "debug"
+    },
+    {
+      "path": "[0].skills[6]",
+      "norm": "[*].skills[*]",
+      "value": "code-review"
+    },
+    {
+      "path": "[0].skills[7]",
+      "norm": "[*].skills[*]",
+      "value": "simplify"
+    },
+    {
+      "path": "[0].skills[8]",
+      "norm": "[*].skills[*]",
+      "value": "batch"
+    },
+    {
+      "path": "[0].skills[9]",
+      "norm": "[*].skills[*]",
+      "value": "fewer-permission-prompts"
+    },
+    {
+      "path": "[0].skills[10]",
+      "norm": "[*].skills[*]",
+      "value": "doctor"
+    },
+    {
+      "path": "[0].skills[11]",
+      "norm": "[*].skills[*]",
+      "value": "loop"
+    },
+    {
+      "path": "[0].skills[12]",
+      "norm": "[*].skills[*]",
+      "value": "claude-api"
+    },
+    {
+      "path": "[0].skills[13]",
+      "norm": "[*].skills[*]",
+      "value": "run"
+    },
+    {
+      "path": "[0].skills[14]",
+      "norm": "[*].skills[*]",
+      "value": "run-skill-generator"
+    },
+    {
+      "path": "[0].capabilities[0]",
+      "norm": "[*].capabilities[*]",
+      "value": "interrupt_receipt_v1"
+    },
+    {
+      "path": "[0].capabilities[1]",
+      "norm": "[*].capabilities[*]",
+      "value": "msg_lifecycle_v1"
+    },
+    {
+      "path": "[0].analytics_disabled",
+      "norm": "[*].analytics_disabled",
+      "value": false
+    },
+    {
+      "path": "[0].product_feedback_disabled",
+      "norm": "[*].product_feedback_disabled",
+      "value": false
+    },
+    {
+      "path": "[0].uuid",
+      "norm": "[*].uuid",
+      "value": "65abb5d6-044c-4400-8c74-28c422d62be7"
+    },
+    {
+      "path": "[0].memory_paths.auto",
+      "norm": "[*].memory_paths.auto",
+      "value": "/Users/gustavo/.claude/projects/-Users-gustavo-Projects-silverprotocol/memory/"
+    },
+    {
+      "path": "[0].fast_mode_state",
+      "norm": "[*].fast_mode_state",
+      "value": "off"
+    },
+    {
+      "path": "[1].message.type",
+      "norm": "[*].message.type",
+      "value": "message"
+    },
+    {
+      "path": "[1].message.content[0].type",
+      "norm": "[*].message.content[*].type",
+      "value": "tool_use"
+    },
+    {
+      "path": "[1].message.content[0].caller.type",
+      "norm": "[*].message.content[*].caller.type",
+      "value": "direct"
+    },
+    {
+      "path": "[1].message.stop_reason",
+      "norm": "[*].message.stop_reason",
+      "value": null
+    },
+    {
+      "path": "[1].message.stop_sequence",
+      "norm": "[*].message.stop_sequence",
+      "value": null
+    },
+    {
+      "path": "[1].message.stop_details",
+      "norm": "[*].message.stop_details",
+      "value": null
+    },
+    {
+      "path": "[1].message.usage.cache_read_input_tokens",
+      "norm": "[*].message.usage.cache_read_input_tokens",
+      "value": 0
+    },
+    {
+      "path": "[1].message.usage.cache_creation.ephemeral_1h_input_tokens",
+      "norm": "[*].message.usage.cache_creation.ephemeral_1h_input_tokens",
+      "value": 0
+    },
+    {
+      "path": "[1].message.usage.service_tier",
+      "norm": "[*].message.usage.service_tier",
+      "value": "standard"
+    },
+    {
+      "path": "[1].message.usage.inference_geo",
+      "norm": "[*].message.usage.inference_geo",
+      "value": "global"
+    },
+    {
+      "path": "[1].message.diagnostics",
+      "norm": "[*].message.diagnostics",
+      "value": null
+    },
+    {
+      "path": "[1].message.context_management",
+      "norm": "[*].message.context_management",
+      "value": null
+    },
+    {
+      "path": "[1].parent_tool_use_id",
+      "norm": "[*].parent_tool_use_id",
+      "value": null
+    },
+    {
+      "path": "[1].uuid",
+      "norm": "[*].uuid",
+      "value": "4fa12a87-c7b4-4f57-b001-4acbf6671200"
+    },
+    {
+      "path": "[1].timestamp",
+      "norm": "[*].timestamp",
+      "value": "2026-07-22T09:52:13.617Z"
+    },
+    {
+      "path": "[1].request_id",
+      "norm": "[*].request_id",
+      "value": "req_011CdGtcEzmcJxaRa93VSkb7"
+    },
+    {
+      "path": "[1].tool_use_meta[0].display_name",
+      "norm": "[*].tool_use_meta[*].display_name",
+      "value": "Echo"
+    },
+    {
+      "path": "[1].tool_use_meta[0].server_display_name",
+      "norm": "[*].tool_use_meta[*].server_display_name",
+      "value": "mock-text"
+    },
+    {
+      "path": "[2].type",
+      "norm": "[*].type",
+      "value": "user"
+    },
+    {
+      "path": "[2].message.role",
+      "norm": "[*].message.role",
+      "value": "user"
+    },
+    {
+      "path": "[2].message.content[0].type",
+      "norm": "[*].message.content[*].type",
+      "value": "tool_result"
+    },
+    {
+      "path": "[2].parent_tool_use_id",
+      "norm": "[*].parent_tool_use_id",
+      "value": null
+    },
+    {
+      "path": "[2].uuid",
+      "norm": "[*].uuid",
+      "value": "31c39e86-8a82-4f16-b138-183b420ea60b"
+    },
+    {
+      "path": "[2].timestamp",
+      "norm": "[*].timestamp",
+      "value": "2026-07-22T09:52:13.645Z"
+    },
+    {
+      "path": "[3].message.type",
+      "norm": "[*].message.type",
+      "value": "message"
+    },
+    {
+      "path": "[3].message.stop_reason",
+      "norm": "[*].message.stop_reason",
+      "value": null
+    },
+    {
+      "path": "[3].message.stop_sequence",
+      "norm": "[*].message.stop_sequence",
+      "value": null
+    },
+    {
+      "path": "[3].message.stop_details",
+      "norm": "[*].message.stop_details",
+      "value": null
+    },
+    {
+      "path": "[3].message.usage.cache_creation.ephemeral_1h_input_tokens",
+      "norm": "[*].message.usage.cache_creation.ephemeral_1h_input_tokens",
+      "value": 0
+    },
+    {
+      "path": "[3].message.usage.service_tier",
+      "norm": "[*].message.usage.service_tier",
+      "value": "standard"
+    },
+    {
+      "path": "[3].message.usage.inference_geo",
+      "norm": "[*].message.usage.inference_geo",
+      "value": "global"
+    },
+    {
+      "path": "[3].message.diagnostics",
+      "norm": "[*].message.diagnostics",
+      "value": null
+    },
+    {
+      "path": "[3].message.context_management",
+      "norm": "[*].message.context_management",
+      "value": null
+    },
+    {
+      "path": "[3].parent_tool_use_id",
+      "norm": "[*].parent_tool_use_id",
+      "value": null
+    },
+    {
+      "path": "[3].uuid",
+      "norm": "[*].uuid",
+      "value": "36ff1580-f398-4f7b-a0f1-577ad9245061"
+    },
+    {
+      "path": "[3].timestamp",
+      "norm": "[*].timestamp",
+      "value": "2026-07-22T09:52:15.930Z"
+    },
+    {
+      "path": "[3].request_id",
+      "norm": "[*].request_id",
+      "value": "req_011CdGtcTuf1J3HhhvWNuS3n"
+    },
+    {
+      "path": "[4].type",
+      "norm": "[*].type",
+      "value": "result"
+    },
+    {
+      "path": "[4].is_error",
+      "norm": "[*].is_error",
+      "value": false
+    },
+    {
+      "path": "[4].api_error_status",
+      "norm": "[*].api_error_status",
+      "value": null
+    },
+    {
+      "path": "[4].duration_ms",
+      "norm": "[*].duration_ms",
+      "value": 5460
+    },
+    {
+      "path": "[4].duration_api_ms",
+      "norm": "[*].duration_api_ms",
+      "value": 7825
+    },
+    {
+      "path": "[4].ttft_ms",
+      "norm": "[*].ttft_ms",
+      "value": 3126
+    },
+    {
+      "path": "[4].ttft_stream_ms",
+      "norm": "[*].ttft_stream_ms",
+      "value": 2384
+    },
+    {
+      "path": "[4].time_to_request_ms",
+      "norm": "[*].time_to_request_ms",
+      "value": 172
+    },
+    {
+      "path": "[4].stop_reason",
+      "norm": "[*].stop_reason",
+      "value": "end_turn"
+    },
+    {
+      "path": "[4].usage.server_tool_use.web_search_requests",
+      "norm": "[*].usage.server_tool_use.web_search_requests",
+      "value": 0
+    },
+    {
+      "path": "[4].usage.server_tool_use.web_fetch_requests",
+      "norm": "[*].usage.server_tool_use.web_fetch_requests",
+      "value": 0
+    },
+    {
+      "path": "[4].usage.service_tier",
+      "norm": "[*].usage.service_tier",
+      "value": "standard"
+    },
+    {
+      "path": "[4].usage.cache_creation.ephemeral_1h_input_tokens",
+      "norm": "[*].usage.cache_creation.ephemeral_1h_input_tokens",
+      "value": 0
+    },
+    {
+      "path": "[4].usage.inference_geo",
+      "norm": "[*].usage.inference_geo",
+      "value": "global"
+    },
+    {
+      "path": "[4].usage.iterations[0].output_tokens",
+      "norm": "[*].usage.iterations[*].output_tokens",
+      "value": 22
+    },
+    {
+      "path": "[4].usage.iterations[0].cache_creation.ephemeral_1h_input_tokens",
+      "norm": "[*].usage.iterations[*].cache_creation.ephemeral_1h_input_tokens",
+      "value": 0
+    },
+    {
+      "path": "[4].usage.iterations[0].type",
+      "norm": "[*].usage.iterations[*].type",
+      "value": "message"
+    },
+    {
+      "path": "[4].usage.speed",
+      "norm": "[*].usage.speed",
+      "value": "standard"
+    },
+    {
+      "path": "[4].modelUsage.claude-haiku-4-5-20251001.cacheReadInputTokens",
+      "norm": "[*].modelUsage.claude-haiku-4-5-20251001.cacheReadInputTokens",
+      "value": 0
+    },
+    {
+      "path": "[4].modelUsage.claude-haiku-4-5-20251001.cacheCreationInputTokens",
+      "norm": "[*].modelUsage.claude-haiku-4-5-20251001.cacheCreationInputTokens",
+      "value": 0
+    },
+    {
+      "path": "[4].modelUsage.claude-haiku-4-5-20251001.webSearchRequests",
+      "norm": "[*].modelUsage.claude-haiku-4-5-20251001.webSearchRequests",
+      "value": 0
+    },
+    {
+      "path": "[4].modelUsage.claude-haiku-4-5-20251001.contextWindow",
+      "norm": "[*].modelUsage.claude-haiku-4-5-20251001.contextWindow",
+      "value": 200000
+    },
+    {
+      "path": "[4].modelUsage.claude-haiku-4-5-20251001.maxOutputTokens",
+      "norm": "[*].modelUsage.claude-haiku-4-5-20251001.maxOutputTokens",
+      "value": 32000
+    },
+    {
+      "path": "[4].modelUsage.claude-sonnet-5.webSearchRequests",
+      "norm": "[*].modelUsage.claude-sonnet-5.webSearchRequests",
+      "value": 0
+    },
+    {
+      "path": "[4].modelUsage.claude-sonnet-5.contextWindow",
+      "norm": "[*].modelUsage.claude-sonnet-5.contextWindow",
+      "value": 1000000
+    },
+    {
+      "path": "[4].modelUsage.claude-sonnet-5.maxOutputTokens",
+      "norm": "[*].modelUsage.claude-sonnet-5.maxOutputTokens",
+      "value": 64000
+    },
+    {
+      "path": "[4].terminal_reason",
+      "norm": "[*].terminal_reason",
+      "value": "completed"
+    },
+    {
+      "path": "[4].fast_mode_state",
+      "norm": "[*].fast_mode_state",
+      "value": "off"
+    },
+    {
+      "path": "[4].uuid",
+      "norm": "[*].uuid",
+      "value": "4f2b86f7-3b13-4014-8bc2-45d4cde3b314"
+    }
+  ],
+  "newFields": [
+    "[*].type",
+    "[*].subtype",
+    "[*].cwd",
+    "[*].session_id",
+    "[*].tools[*]",
+    "[*].mcp_servers[*].name",
+    "[*].mcp_servers[*].status",
+    "[*].model",
+    "[*].permissionMode",
+    "[*].slash_commands[*]",
+    "[*].apiKeySource",
+    "[*].claude_code_version",
+    "[*].output_style",
+    "[*].agents[*]",
+    "[*].skills[*]",
+    "[*].capabilities[*]",
+    "[*].analytics_disabled",
+    "[*].product_feedback_disabled",
+    "[*].uuid",
+    "[*].memory_paths.auto",
+    "[*].fast_mode_state",
+    "[*].message.model",
+    "[*].message.id",
+    "[*].message.type",
+    "[*].message.role",
+    "[*].message.content[*].type",
+    "[*].message.content[*].id",
+    "[*].message.content[*].name",
+    "[*].message.content[*].input.message",
+    "[*].message.content[*].caller.type",
+    "[*].message.stop_reason",
+    "[*].message.stop_sequence",
+    "[*].message.stop_details",
+    "[*].message.usage.input_tokens",
+    "[*].message.usage.cache_creation_input_tokens",
+    "[*].message.usage.cache_read_input_tokens",
+    "[*].message.usage.cache_creation.ephemeral_5m_input_tokens",
+    "[*].message.usage.cache_creation.ephemeral_1h_input_tokens",
+    "[*].message.usage.output_tokens",
+    "[*].message.usage.service_tier",
+    "[*].message.usage.inference_geo",
+    "[*].message.diagnostics",
+    "[*].message.context_management",
+    "[*].parent_tool_use_id",
+    "[*].timestamp",
+    "[*].request_id",
+    "[*].tool_use_meta[*].id",
+    "[*].tool_use_meta[*].display_name",
+    "[*].tool_use_meta[*].server_display_name",
+    "[*].message.content[*].tool_use_id",
+    "[*].message.content[*].content[*].type",
+    "[*].message.content[*].content[*].text",
+    "[*].tool_use_result[*].type",
+    "[*].tool_use_result[*].text",
+    "[*].message.content[*].text",
+    "[*].is_error",
+    "[*].api_error_status",
+    "[*].duration_ms",
+    "[*].duration_api_ms",
+    "[*].ttft_ms",
+    "[*].ttft_stream_ms",
+    "[*].time_to_request_ms",
+    "[*].num_turns",
+    "[*].result",
+    "[*].stop_reason",
+    "[*].total_cost_usd",
+    "[*].usage.input_tokens",
+    "[*].usage.cache_creation_input_tokens",
+    "[*].usage.cache_read_input_tokens",
+    "[*].usage.output_tokens",
+    "[*].usage.server_tool_use.web_search_requests",
+    "[*].usage.server_tool_use.web_fetch_requests",
+    "[*].usage.service_tier",
+    "[*].usage.cache_creation.ephemeral_1h_input_tokens",
+    "[*].usage.cache_creation.ephemeral_5m_input_tokens",
+    "[*].usage.inference_geo",
+    "[*].usage.iterations[*].input_tokens",
+    "[*].usage.iterations[*].output_tokens",
+    "[*].usage.iterations[*].cache_read_input_tokens",
+    "[*].usage.iterations[*].cache_creation_input_tokens",
+    "[*].usage.iterations[*].cache_creation.ephemeral_5m_input_tokens",
+    "[*].usage.iterations[*].cache_creation.ephemeral_1h_input_tokens",
+    "[*].usage.iterations[*].type",
+    "[*].usage.speed",
+    "[*].modelUsage.claude-haiku-4-5-20251001.inputTokens",
+    "[*].modelUsage.claude-haiku-4-5-20251001.outputTokens",
+    "[*].modelUsage.claude-haiku-4-5-20251001.cacheReadInputTokens",
+    "[*].modelUsage.claude-haiku-4-5-20251001.cacheCreationInputTokens",
+    "[*].modelUsage.claude-haiku-4-5-20251001.webSearchRequests",
+    "[*].modelUsage.claude-haiku-4-5-20251001.costUSD",
+    "[*].modelUsage.claude-haiku-4-5-20251001.contextWindow",
+    "[*].modelUsage.claude-haiku-4-5-20251001.maxOutputTokens",
+    "[*].modelUsage.claude-sonnet-5.inputTokens",
+    "[*].modelUsage.claude-sonnet-5.outputTokens",
+    "[*].modelUsage.claude-sonnet-5.cacheReadInputTokens",
+    "[*].modelUsage.claude-sonnet-5.cacheCreationInputTokens",
+    "[*].modelUsage.claude-sonnet-5.webSearchRequests",
+    "[*].modelUsage.claude-sonnet-5.costUSD",
+    "[*].modelUsage.claude-sonnet-5.contextWindow",
+    "[*].modelUsage.claude-sonnet-5.maxOutputTokens",
+    "[*].terminal_reason"
+  ]
 }

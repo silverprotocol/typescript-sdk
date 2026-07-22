@@ -1,7 +1,7 @@
 {
   "$comment": "Ratchet manifest for the fixture-drift gate (scripts/check-fixture-drift.mjs). @openai/agents-core exposes TWO separate wire inventories the OpenAI facet consumes — kept as separate sections (per Task 6's brief) so a rename in one is attributable without conflating it with drift in the other: (1) runItemStreamEventName — the RunItemStreamEventName string-literal union from dist/events.d.ts (the `name` discriminant on every run_item_stream_event); (2) protocolItem — the top-level `type:` discriminants of the ModelItem union in dist/types/protocol.d.ts (the full bidirectional protocol-item vocabulary; a superset of OutputModelItem that also includes computer_call_result, used for input-history reconstruction). Resolved via @openai/agents (packages/e2e's exact devDependency pin) -> its own @openai/agents-core dependency, since agents-core is transitive and not directly pinned by either facet package.json. Dispositions were seeded 2026-07-03 by reading src/index.ts's drive()/driveRawResponsesEvent() switches + protocol.d.ts's per-item field shapes + the two playbook reports. handled = the facet has a dedicated, correct branch; carried = routed to ext.openai.* losslessly (the run-item switch's documented default arm); router-plane = n/a for this facet (every OpenAI event that reaches push() either maps to a concern in scope or is an already-documented ignored-duplicate of an authoritative source — noted per-entry, not a distinct control-plane class here); not-applicable = provably cannot occur on the RunItemStreamEvent/RunRawModelStreamEvent streams this facet ingests (justified per-entry — e.g. an item type only reachable via a DIFFERENT sub-union than the ones the 9 named run-item events wrap); silently-dropped = reaches the facet via an ALREADY-handled event name, carries real payload, and falls through to a generic path with no ext route. Ratchet-fix update (2026-07-03, ratchet-findings-fix task): the two `computer_call`/`computer_call_result` entries this manifest ORIGINALLY seeded as `silently-dropped` findings (the same orphan-tool.done bug class playbook-facet-adaptations-report.md's Finding #1 fixed for shell_call/apply_patch_call, left uncovered for OpenAI's Computer-Use built-in tool) are now `handled` — `builtinToolName()`/`driveBuiltinToolCalled()`/`driveBuiltinToolOutput()` in index.ts were extended to recognize both discriminants (see their own per-entry notes below). See .superpowers/sdd/pb-task-6-report.md for the full original-finding rationale and .superpowers/sdd/ratchet-findings-fix-report.md for the fix. Tool-search disposition update (2026-07-03, tool-search-disposition task): the last weak `carried` entries — the tool_search_called/tool_search_output_created run-items and the tool_search_call/tool_search_output protocol items — are now `handled`. Re-investigation against the installed agents-core 0.12.0 wire (dist/events.d.ts, dist/runner/modelOutputs.mjs + streaming.mjs + tooling.mjs) superseded playbook-facet-adaptations-report.md's Finding #4 (seeded from an older premise): the family has its OWN dedicated RunItemStreamEventName pair (not a tool_called/tool_output reuse), streams as a PAIRED call+output, and the output's `tools` array is a genuine (non-opaque) structured retrieval listing — an honest tool.start/tool.done lifecycle is supportable. `driveToolSearchCalled()`/`driveToolSearchOutput()`/`resolveToolSearchCallId()` in index.ts implement it (see their own per-entry notes below). See .superpowers/sdd/tool-search-disposition-report.md for the full rationale.",
   "sdkPackage": "@openai/agents-core",
-  "verifiedAt": "0.13.2",
+  "verifiedAt": "0.13.5",
   "verified": [
     {
       "sdkVersion": "0.12.0",
@@ -20,6 +20,18 @@
       "date": "2026-07-13",
       "silverprotocol": "0.3.3",
       "evidence": "LIVE capture: echo-gpt56 corpus (gpt-5.6) — landed as a standing replay/census seed; cache_write_tokens mapping confirmed on real wire (turn.done usage.cacheWriteTokens); zero unparsed events"
+    },
+    {
+      "sdkVersion": "0.13.5",
+      "date": "2026-07-22",
+      "silverprotocol": "0.3.5",
+      "evidence": "fixture suite + drift gate + full 0.13.2->0.13.5 agents-core d.ts/dist diff audit: events/items/usage/protocol item shapes and the stream emitters (runner/streaming.mjs, runner/modelOutputs.mjs) byte-identical; sole wire-relevant delta is an optional camelCase itemId on the SDK-flattened output_text_delta arm (protocol.d.ts StreamEventTextStream) — deliberately no-op'd as the documented duplicate of the authoritative model:response.output_text.delta path, whose snake_case item_id is unchanged; the rest is request-side tool-definition plumbing (FunctionTool/SerializedFunctionTool providerData, explicitly stripped from tool_search_output payloads by serializeFunctionToolForToolSearchOutput) and sandbox/tracing infra"
+    },
+    {
+      "sdkVersion": "0.13.5",
+      "date": "2026-07-22",
+      "silverprotocol": "0.3.5",
+      "evidence": "LIVE capture: echo-gpt56 standing seed REFRESHED at 0.13.5 (gpt-5.6) — the new itemId OBSERVED live on the flattened output_text_delta arm and triaged (census allowlist + field registry, first-observed provenance recorded); replay + census gates green (zero untriaged drops)"
     }
   ],
   "sections": {

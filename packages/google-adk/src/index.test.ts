@@ -936,6 +936,20 @@ describe("createAdkNormalizer — event-level unmapped fields → content.block 
     for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
   });
 
+  it("carries interactionId in a provider-raw content.block (@google/adk 1.4.0 LlmResponse field)", () => {
+    const out = run([event([], { interactionId: "int_abc123" })]);
+    const raw = out.find(
+      (e) =>
+        e.type === "content.block" &&
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "provider-raw" &&
+        "interactionId" in ((e as { block: { raw: object } }).block.raw as object),
+    );
+    expect(raw).toBeDefined();
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
   // `author`/`timestamp` are ALSO real, currently-unread AdkEvent fields, but
   // are DELIBERATELY excluded from the generic carry (unlike branch/
   // modelVersion above): on the official @google/adk 1.3.0 Event interface

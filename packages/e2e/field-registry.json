@@ -116,6 +116,7 @@
   "[*].data.event.sequence_number",
   "[*].data.event.text",
   "[*].data.event.type",
+  "[*].data.itemId",
   "[*].data.providerData.content_index",
   "[*].data.providerData.item_id",
   "[*].data.providerData.obfuscation",

@@ -1,4 +1,4462 @@
 {
-  "drops": [],
-  "newFields": []
+  "drops": [
+    {
+      "path": "[0].data.type",
+      "norm": "[*].data.type",
+      "value": "response_started"
+    },
+    {
+      "path": "[0].data.providerData.type",
+      "norm": "[*].data.providerData.type",
+      "value": "response.created"
+    },
+    {
+      "path": "[0].data.providerData.response.id",
+      "norm": "[*].data.providerData.response.id",
+      "value": "resp_07825c108fedd028006a6092d2fd9c8198a73e6f41b6d587cb"
+    },
+    {
+      "path": "[0].data.providerData.response.object",
+      "norm": "[*].data.providerData.response.object",
+      "value": "response"
+    },
+    {
+      "path": "[0].data.providerData.response.created_at",
+      "norm": "[*].data.providerData.response.created_at",
+      "value": 1784713939
+    },
+    {
+      "path": "[0].data.providerData.response.status",
+      "norm": "[*].data.providerData.response.status",
+      "value": "in_progress"
+    },
+    {
+      "path": "[0].data.providerData.response.background",
+      "norm": "[*].data.providerData.response.background",
+      "value": false
+    },
+    {
+      "path": "[0].data.providerData.response.completed_at",
+      "norm": "[*].data.providerData.response.completed_at",
+      "value": null
+    },
+    {
+      "path": "[0].data.providerData.response.error",
+      "norm": "[*].data.providerData.response.error",
+      "value": null
+    },
+    {
+      "path": "[0].data.providerData.response.frequency_penalty",
+      "norm": "[*].data.providerData.response.frequency_penalty",
+      "value": 0
+    },
+    {
+      "path": "[0].data.providerData.response.incomplete_details",
+      "norm": "[*].data.providerData.response.incomplete_details",
+      "value": null
+    },
+    {
+      "path": "[0].data.providerData.response.instructions",
+      "norm": "[*].data.providerData.response.instructions",
+      "value": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory."
+    },
+    {
+      "path": "[0].data.providerData.response.max_output_tokens",
+      "norm": "[*].data.providerData.response.max_output_tokens",
+      "value": null
+    },
+    {
+      "path": "[0].data.providerData.response.max_tool_calls",
+      "norm": "[*].data.providerData.response.max_tool_calls",
+      "value": null
+    },
+    {
+      "path": "[0].data.providerData.response.model",
+      "norm": "[*].data.providerData.response.model",
+      "value": "gpt-5.6-sol"
+    },
+    {
+      "path": "[0].data.providerData.response.moderation",
+      "norm": "[*].data.providerData.response.moderation",
+      "value": null
+    },
+    {
+      "path": "[0].data.providerData.response.parallel_tool_calls",
+      "norm": "[*].data.providerData.response.parallel_tool_calls",
+      "value": true
+    },
+    {
+      "path": "[0].data.providerData.response.presence_penalty",
+      "norm": "[*].data.providerData.response.presence_penalty",
+      "value": 0
+    },
+    {
+      "path": "[0].data.providerData.response.previous_response_id",
+      "norm": "[*].data.providerData.response.previous_response_id",
+      "value": null
+    },
+    {
+      "path": "[0].data.providerData.response.prompt_cache_key",
+      "norm": "[*].data.providerData.response.prompt_cache_key",
+      "value": null
+    },
+    {
+      "path": "[0].data.providerData.response.prompt_cache_retention",
+      "norm": "[*].data.providerData.response.prompt_cache_retention",
+      "value": "24h"
+    },
+    {
+      "path": "[0].data.providerData.response.reasoning.context",
+      "norm": "[*].data.providerData.response.reasoning.context",
+      "value": "all_turns"
+    },
+    {
+      "path": "[0].data.providerData.response.reasoning.effort",
+      "norm": "[*].data.providerData.response.reasoning.effort",
+      "value": "none"
+    },
+    {
+      "path": "[0].data.providerData.response.reasoning.mode",
+      "norm": "[*].data.providerData.response.reasoning.mode",
+      "value": "standard"
+    },
+    {
+      "path": "[0].data.providerData.response.reasoning.summary",
+      "norm": "[*].data.providerData.response.reasoning.summary",
+      "value": null
+    },
+    {
+      "path": "[0].data.providerData.response.safety_identifier",
+      "norm": "[*].data.providerData.response.safety_identifier",
+      "value": null
+    },
+    {
+      "path": "[0].data.providerData.response.service_tier",
+      "norm": "[*].data.providerData.response.service_tier",
+      "value": "auto"
+    },
+    {
+      "path": "[0].data.providerData.response.store",
+      "norm": "[*].data.providerData.response.store",
+      "value": true
+    },
+    {
+      "path": "[0].data.providerData.response.text.verbosity",
+      "norm": "[*].data.providerData.response.text.verbosity",
+      "value": "low"
+    },
+    {
+      "path": "[0].data.providerData.response.tool_choice",
+      "norm": "[*].data.providerData.response.tool_choice",
+      "value": "auto"
+    },
+    {
+      "path": "[0].data.providerData.response.tool_usage.image_gen.input_tokens",
+      "norm": "[*].data.providerData.response.tool_usage.image_gen.input_tokens",
+      "value": 0
+    },
+    {
+      "path": "[0].data.providerData.response.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "norm": "[*].data.providerData.response.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[0].data.providerData.response.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "norm": "[*].data.providerData.response.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[0].data.providerData.response.tool_usage.image_gen.output_tokens",
+      "norm": "[*].data.providerData.response.tool_usage.image_gen.output_tokens",
+      "value": 0
+    },
+    {
+      "path": "[0].data.providerData.response.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "norm": "[*].data.providerData.response.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[0].data.providerData.response.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "norm": "[*].data.providerData.response.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[0].data.providerData.response.tool_usage.image_gen.total_tokens",
+      "norm": "[*].data.providerData.response.tool_usage.image_gen.total_tokens",
+      "value": 0
+    },
+    {
+      "path": "[0].data.providerData.response.tool_usage.web_search.num_requests",
+      "norm": "[*].data.providerData.response.tool_usage.web_search.num_requests",
+      "value": 0
+    },
+    {
+      "path": "[0].data.providerData.response.tools[0].type",
+      "norm": "[*].data.providerData.response.tools[*].type",
+      "value": "function"
+    },
+    {
+      "path": "[0].data.providerData.response.tools[0].description",
+      "norm": "[*].data.providerData.response.tools[*].description",
+      "value": "Echoes the input message back as text."
+    },
+    {
+      "path": "[0].data.providerData.response.tools[0].output_schema",
+      "norm": "[*].data.providerData.response.tools[*].output_schema",
+      "value": null
+    },
+    {
+      "path": "[0].data.providerData.response.tools[0].parameters.type",
+      "norm": "[*].data.providerData.response.tools[*].parameters.type",
+      "value": "object"
+    },
+    {
+      "path": "[0].data.providerData.response.tools[0].parameters.properties.message.description",
+      "norm": "[*].data.providerData.response.tools[*].parameters.properties.message.description",
+      "value": "The text to echo"
+    },
+    {
+      "path": "[0].data.providerData.response.tools[0].parameters.properties.message.type",
+      "norm": "[*].data.providerData.response.tools[*].parameters.properties.message.type",
+      "value": "string"
+    },
+    {
+      "path": "[0].data.providerData.response.tools[0].parameters.$schema",
+      "norm": "[*].data.providerData.response.tools[*].parameters.$schema",
+      "value": "http://json-schema.org/draft-07/schema#"
+    },
+    {
+      "path": "[0].data.providerData.response.tools[0].parameters.additionalProperties",
+      "norm": "[*].data.providerData.response.tools[*].parameters.additionalProperties",
+      "value": true
+    },
+    {
+      "path": "[0].data.providerData.response.tools[0].strict",
+      "norm": "[*].data.providerData.response.tools[*].strict",
+      "value": false
+    },
+    {
+      "path": "[0].data.providerData.response.top_logprobs",
+      "norm": "[*].data.providerData.response.top_logprobs",
+      "value": 0
+    },
+    {
+      "path": "[0].data.providerData.response.top_p",
+      "norm": "[*].data.providerData.response.top_p",
+      "value": 0.98
+    },
+    {
+      "path": "[0].data.providerData.response.truncation",
+      "norm": "[*].data.providerData.response.truncation",
+      "value": "disabled"
+    },
+    {
+      "path": "[0].data.providerData.response.usage",
+      "norm": "[*].data.providerData.response.usage",
+      "value": null
+    },
+    {
+      "path": "[0].data.providerData.response.user",
+      "norm": "[*].data.providerData.response.user",
+      "value": null
+    },
+    {
+      "path": "[0].data.providerData.sequence_number",
+      "norm": "[*].data.providerData.sequence_number",
+      "value": 0
+    },
+    {
+      "path": "[0].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[1].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[1].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.created"
+    },
+    {
+      "path": "[1].data.event.response.id",
+      "norm": "[*].data.event.response.id",
+      "value": "resp_07825c108fedd028006a6092d2fd9c8198a73e6f41b6d587cb"
+    },
+    {
+      "path": "[1].data.event.response.object",
+      "norm": "[*].data.event.response.object",
+      "value": "response"
+    },
+    {
+      "path": "[1].data.event.response.created_at",
+      "norm": "[*].data.event.response.created_at",
+      "value": 1784713939
+    },
+    {
+      "path": "[1].data.event.response.status",
+      "norm": "[*].data.event.response.status",
+      "value": "in_progress"
+    },
+    {
+      "path": "[1].data.event.response.background",
+      "norm": "[*].data.event.response.background",
+      "value": false
+    },
+    {
+      "path": "[1].data.event.response.completed_at",
+      "norm": "[*].data.event.response.completed_at",
+      "value": null
+    },
+    {
+      "path": "[1].data.event.response.error",
+      "norm": "[*].data.event.response.error",
+      "value": null
+    },
+    {
+      "path": "[1].data.event.response.frequency_penalty",
+      "norm": "[*].data.event.response.frequency_penalty",
+      "value": 0
+    },
+    {
+      "path": "[1].data.event.response.incomplete_details",
+      "norm": "[*].data.event.response.incomplete_details",
+      "value": null
+    },
+    {
+      "path": "[1].data.event.response.instructions",
+      "norm": "[*].data.event.response.instructions",
+      "value": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory."
+    },
+    {
+      "path": "[1].data.event.response.max_output_tokens",
+      "norm": "[*].data.event.response.max_output_tokens",
+      "value": null
+    },
+    {
+      "path": "[1].data.event.response.max_tool_calls",
+      "norm": "[*].data.event.response.max_tool_calls",
+      "value": null
+    },
+    {
+      "path": "[1].data.event.response.model",
+      "norm": "[*].data.event.response.model",
+      "value": "gpt-5.6-sol"
+    },
+    {
+      "path": "[1].data.event.response.moderation",
+      "norm": "[*].data.event.response.moderation",
+      "value": null
+    },
+    {
+      "path": "[1].data.event.response.parallel_tool_calls",
+      "norm": "[*].data.event.response.parallel_tool_calls",
+      "value": true
+    },
+    {
+      "path": "[1].data.event.response.presence_penalty",
+      "norm": "[*].data.event.response.presence_penalty",
+      "value": 0
+    },
+    {
+      "path": "[1].data.event.response.previous_response_id",
+      "norm": "[*].data.event.response.previous_response_id",
+      "value": null
+    },
+    {
+      "path": "[1].data.event.response.prompt_cache_key",
+      "norm": "[*].data.event.response.prompt_cache_key",
+      "value": null
+    },
+    {
+      "path": "[1].data.event.response.prompt_cache_retention",
+      "norm": "[*].data.event.response.prompt_cache_retention",
+      "value": "24h"
+    },
+    {
+      "path": "[1].data.event.response.reasoning.context",
+      "norm": "[*].data.event.response.reasoning.context",
+      "value": "all_turns"
+    },
+    {
+      "path": "[1].data.event.response.reasoning.effort",
+      "norm": "[*].data.event.response.reasoning.effort",
+      "value": "none"
+    },
+    {
+      "path": "[1].data.event.response.reasoning.mode",
+      "norm": "[*].data.event.response.reasoning.mode",
+      "value": "standard"
+    },
+    {
+      "path": "[1].data.event.response.reasoning.summary",
+      "norm": "[*].data.event.response.reasoning.summary",
+      "value": null
+    },
+    {
+      "path": "[1].data.event.response.safety_identifier",
+      "norm": "[*].data.event.response.safety_identifier",
+      "value": null
+    },
+    {
+      "path": "[1].data.event.response.service_tier",
+      "norm": "[*].data.event.response.service_tier",
+      "value": "auto"
+    },
+    {
+      "path": "[1].data.event.response.store",
+      "norm": "[*].data.event.response.store",
+      "value": true
+    },
+    {
+      "path": "[1].data.event.response.text.verbosity",
+      "norm": "[*].data.event.response.text.verbosity",
+      "value": "low"
+    },
+    {
+      "path": "[1].data.event.response.tool_choice",
+      "norm": "[*].data.event.response.tool_choice",
+      "value": "auto"
+    },
+    {
+      "path": "[1].data.event.response.tool_usage.image_gen.input_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.input_tokens",
+      "value": 0
+    },
+    {
+      "path": "[1].data.event.response.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[1].data.event.response.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[1].data.event.response.tool_usage.image_gen.output_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.output_tokens",
+      "value": 0
+    },
+    {
+      "path": "[1].data.event.response.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[1].data.event.response.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[1].data.event.response.tool_usage.image_gen.total_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.total_tokens",
+      "value": 0
+    },
+    {
+      "path": "[1].data.event.response.tool_usage.web_search.num_requests",
+      "norm": "[*].data.event.response.tool_usage.web_search.num_requests",
+      "value": 0
+    },
+    {
+      "path": "[1].data.event.response.tools[0].type",
+      "norm": "[*].data.event.response.tools[*].type",
+      "value": "function"
+    },
+    {
+      "path": "[1].data.event.response.tools[0].description",
+      "norm": "[*].data.event.response.tools[*].description",
+      "value": "Echoes the input message back as text."
+    },
+    {
+      "path": "[1].data.event.response.tools[0].output_schema",
+      "norm": "[*].data.event.response.tools[*].output_schema",
+      "value": null
+    },
+    {
+      "path": "[1].data.event.response.tools[0].parameters.type",
+      "norm": "[*].data.event.response.tools[*].parameters.type",
+      "value": "object"
+    },
+    {
+      "path": "[1].data.event.response.tools[0].parameters.properties.message.description",
+      "norm": "[*].data.event.response.tools[*].parameters.properties.message.description",
+      "value": "The text to echo"
+    },
+    {
+      "path": "[1].data.event.response.tools[0].parameters.properties.message.type",
+      "norm": "[*].data.event.response.tools[*].parameters.properties.message.type",
+      "value": "string"
+    },
+    {
+      "path": "[1].data.event.response.tools[0].parameters.$schema",
+      "norm": "[*].data.event.response.tools[*].parameters.$schema",
+      "value": "http://json-schema.org/draft-07/schema#"
+    },
+    {
+      "path": "[1].data.event.response.tools[0].parameters.additionalProperties",
+      "norm": "[*].data.event.response.tools[*].parameters.additionalProperties",
+      "value": true
+    },
+    {
+      "path": "[1].data.event.response.tools[0].strict",
+      "norm": "[*].data.event.response.tools[*].strict",
+      "value": false
+    },
+    {
+      "path": "[1].data.event.response.top_logprobs",
+      "norm": "[*].data.event.response.top_logprobs",
+      "value": 0
+    },
+    {
+      "path": "[1].data.event.response.top_p",
+      "norm": "[*].data.event.response.top_p",
+      "value": 0.98
+    },
+    {
+      "path": "[1].data.event.response.truncation",
+      "norm": "[*].data.event.response.truncation",
+      "value": "disabled"
+    },
+    {
+      "path": "[1].data.event.response.usage",
+      "norm": "[*].data.event.response.usage",
+      "value": null
+    },
+    {
+      "path": "[1].data.event.response.user",
+      "norm": "[*].data.event.response.user",
+      "value": null
+    },
+    {
+      "path": "[1].data.event.sequence_number",
+      "norm": "[*].data.event.sequence_number",
+      "value": 0
+    },
+    {
+      "path": "[1].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[1].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[1].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[2].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[2].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.in_progress"
+    },
+    {
+      "path": "[2].data.event.response.id",
+      "norm": "[*].data.event.response.id",
+      "value": "resp_07825c108fedd028006a6092d2fd9c8198a73e6f41b6d587cb"
+    },
+    {
+      "path": "[2].data.event.response.object",
+      "norm": "[*].data.event.response.object",
+      "value": "response"
+    },
+    {
+      "path": "[2].data.event.response.created_at",
+      "norm": "[*].data.event.response.created_at",
+      "value": 1784713939
+    },
+    {
+      "path": "[2].data.event.response.status",
+      "norm": "[*].data.event.response.status",
+      "value": "in_progress"
+    },
+    {
+      "path": "[2].data.event.response.background",
+      "norm": "[*].data.event.response.background",
+      "value": false
+    },
+    {
+      "path": "[2].data.event.response.completed_at",
+      "norm": "[*].data.event.response.completed_at",
+      "value": null
+    },
+    {
+      "path": "[2].data.event.response.error",
+      "norm": "[*].data.event.response.error",
+      "value": null
+    },
+    {
+      "path": "[2].data.event.response.frequency_penalty",
+      "norm": "[*].data.event.response.frequency_penalty",
+      "value": 0
+    },
+    {
+      "path": "[2].data.event.response.incomplete_details",
+      "norm": "[*].data.event.response.incomplete_details",
+      "value": null
+    },
+    {
+      "path": "[2].data.event.response.instructions",
+      "norm": "[*].data.event.response.instructions",
+      "value": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory."
+    },
+    {
+      "path": "[2].data.event.response.max_output_tokens",
+      "norm": "[*].data.event.response.max_output_tokens",
+      "value": null
+    },
+    {
+      "path": "[2].data.event.response.max_tool_calls",
+      "norm": "[*].data.event.response.max_tool_calls",
+      "value": null
+    },
+    {
+      "path": "[2].data.event.response.model",
+      "norm": "[*].data.event.response.model",
+      "value": "gpt-5.6-sol"
+    },
+    {
+      "path": "[2].data.event.response.moderation",
+      "norm": "[*].data.event.response.moderation",
+      "value": null
+    },
+    {
+      "path": "[2].data.event.response.parallel_tool_calls",
+      "norm": "[*].data.event.response.parallel_tool_calls",
+      "value": true
+    },
+    {
+      "path": "[2].data.event.response.presence_penalty",
+      "norm": "[*].data.event.response.presence_penalty",
+      "value": 0
+    },
+    {
+      "path": "[2].data.event.response.previous_response_id",
+      "norm": "[*].data.event.response.previous_response_id",
+      "value": null
+    },
+    {
+      "path": "[2].data.event.response.prompt_cache_key",
+      "norm": "[*].data.event.response.prompt_cache_key",
+      "value": null
+    },
+    {
+      "path": "[2].data.event.response.prompt_cache_retention",
+      "norm": "[*].data.event.response.prompt_cache_retention",
+      "value": "24h"
+    },
+    {
+      "path": "[2].data.event.response.reasoning.context",
+      "norm": "[*].data.event.response.reasoning.context",
+      "value": "all_turns"
+    },
+    {
+      "path": "[2].data.event.response.reasoning.effort",
+      "norm": "[*].data.event.response.reasoning.effort",
+      "value": "none"
+    },
+    {
+      "path": "[2].data.event.response.reasoning.mode",
+      "norm": "[*].data.event.response.reasoning.mode",
+      "value": "standard"
+    },
+    {
+      "path": "[2].data.event.response.reasoning.summary",
+      "norm": "[*].data.event.response.reasoning.summary",
+      "value": null
+    },
+    {
+      "path": "[2].data.event.response.safety_identifier",
+      "norm": "[*].data.event.response.safety_identifier",
+      "value": null
+    },
+    {
+      "path": "[2].data.event.response.service_tier",
+      "norm": "[*].data.event.response.service_tier",
+      "value": "auto"
+    },
+    {
+      "path": "[2].data.event.response.store",
+      "norm": "[*].data.event.response.store",
+      "value": true
+    },
+    {
+      "path": "[2].data.event.response.text.verbosity",
+      "norm": "[*].data.event.response.text.verbosity",
+      "value": "low"
+    },
+    {
+      "path": "[2].data.event.response.tool_choice",
+      "norm": "[*].data.event.response.tool_choice",
+      "value": "auto"
+    },
+    {
+      "path": "[2].data.event.response.tool_usage.image_gen.input_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.input_tokens",
+      "value": 0
+    },
+    {
+      "path": "[2].data.event.response.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[2].data.event.response.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[2].data.event.response.tool_usage.image_gen.output_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.output_tokens",
+      "value": 0
+    },
+    {
+      "path": "[2].data.event.response.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[2].data.event.response.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[2].data.event.response.tool_usage.image_gen.total_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.total_tokens",
+      "value": 0
+    },
+    {
+      "path": "[2].data.event.response.tool_usage.web_search.num_requests",
+      "norm": "[*].data.event.response.tool_usage.web_search.num_requests",
+      "value": 0
+    },
+    {
+      "path": "[2].data.event.response.tools[0].type",
+      "norm": "[*].data.event.response.tools[*].type",
+      "value": "function"
+    },
+    {
+      "path": "[2].data.event.response.tools[0].description",
+      "norm": "[*].data.event.response.tools[*].description",
+      "value": "Echoes the input message back as text."
+    },
+    {
+      "path": "[2].data.event.response.tools[0].output_schema",
+      "norm": "[*].data.event.response.tools[*].output_schema",
+      "value": null
+    },
+    {
+      "path": "[2].data.event.response.tools[0].parameters.type",
+      "norm": "[*].data.event.response.tools[*].parameters.type",
+      "value": "object"
+    },
+    {
+      "path": "[2].data.event.response.tools[0].parameters.properties.message.description",
+      "norm": "[*].data.event.response.tools[*].parameters.properties.message.description",
+      "value": "The text to echo"
+    },
+    {
+      "path": "[2].data.event.response.tools[0].parameters.properties.message.type",
+      "norm": "[*].data.event.response.tools[*].parameters.properties.message.type",
+      "value": "string"
+    },
+    {
+      "path": "[2].data.event.response.tools[0].parameters.$schema",
+      "norm": "[*].data.event.response.tools[*].parameters.$schema",
+      "value": "http://json-schema.org/draft-07/schema#"
+    },
+    {
+      "path": "[2].data.event.response.tools[0].parameters.additionalProperties",
+      "norm": "[*].data.event.response.tools[*].parameters.additionalProperties",
+      "value": true
+    },
+    {
+      "path": "[2].data.event.response.tools[0].strict",
+      "norm": "[*].data.event.response.tools[*].strict",
+      "value": false
+    },
+    {
+      "path": "[2].data.event.response.top_logprobs",
+      "norm": "[*].data.event.response.top_logprobs",
+      "value": 0
+    },
+    {
+      "path": "[2].data.event.response.top_p",
+      "norm": "[*].data.event.response.top_p",
+      "value": 0.98
+    },
+    {
+      "path": "[2].data.event.response.truncation",
+      "norm": "[*].data.event.response.truncation",
+      "value": "disabled"
+    },
+    {
+      "path": "[2].data.event.response.usage",
+      "norm": "[*].data.event.response.usage",
+      "value": null
+    },
+    {
+      "path": "[2].data.event.response.user",
+      "norm": "[*].data.event.response.user",
+      "value": null
+    },
+    {
+      "path": "[2].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[2].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[2].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[3].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[3].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.output_item.added"
+    },
+    {
+      "path": "[3].data.event.item.type",
+      "norm": "[*].data.event.item.type",
+      "value": "function_call"
+    },
+    {
+      "path": "[3].data.event.item.status",
+      "norm": "[*].data.event.item.status",
+      "value": "in_progress"
+    },
+    {
+      "path": "[3].data.event.item.arguments",
+      "norm": "[*].data.event.item.arguments",
+      "value": ""
+    },
+    {
+      "path": "[3].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[3].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[3].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[3].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[4].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[4].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.function_call_arguments.delta"
+    },
+    {
+      "path": "[4].data.event.obfuscation",
+      "norm": "[*].data.event.obfuscation",
+      "value": "plNUNQj3pxz8Ay"
+    },
+    {
+      "path": "[4].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[4].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[4].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[4].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[5].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[5].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.function_call_arguments.delta"
+    },
+    {
+      "path": "[5].data.event.obfuscation",
+      "norm": "[*].data.event.obfuscation",
+      "value": "ggygqjd4I"
+    },
+    {
+      "path": "[5].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[5].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[5].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[5].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[6].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[6].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.function_call_arguments.delta"
+    },
+    {
+      "path": "[6].data.event.obfuscation",
+      "norm": "[*].data.event.obfuscation",
+      "value": "9jtNmrMrfvMKT"
+    },
+    {
+      "path": "[6].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[6].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[6].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[6].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[7].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[7].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.function_call_arguments.delta"
+    },
+    {
+      "path": "[7].data.event.obfuscation",
+      "norm": "[*].data.event.obfuscation",
+      "value": "oKGBBMVwTZypz"
+    },
+    {
+      "path": "[7].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[7].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[7].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[7].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[8].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[8].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.function_call_arguments.delta"
+    },
+    {
+      "path": "[8].data.event.obfuscation",
+      "norm": "[*].data.event.obfuscation",
+      "value": "nn9XI9Ha"
+    },
+    {
+      "path": "[8].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[8].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[8].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[8].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[9].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[9].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.function_call_arguments.delta"
+    },
+    {
+      "path": "[9].data.event.obfuscation",
+      "norm": "[*].data.event.obfuscation",
+      "value": "u1gtSxfay1vT"
+    },
+    {
+      "path": "[9].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[9].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[9].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[9].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[10].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[10].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.function_call_arguments.delta"
+    },
+    {
+      "path": "[10].data.event.obfuscation",
+      "norm": "[*].data.event.obfuscation",
+      "value": "NrPAH0RS8Wa1NJ"
+    },
+    {
+      "path": "[10].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[10].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[10].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[10].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[11].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[11].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.function_call_arguments.delta"
+    },
+    {
+      "path": "[11].data.event.obfuscation",
+      "norm": "[*].data.event.obfuscation",
+      "value": "XoRxQ87AVBiYgL"
+    },
+    {
+      "path": "[11].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[11].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[11].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[11].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[12].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[12].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.function_call_arguments.delta"
+    },
+    {
+      "path": "[12].data.event.obfuscation",
+      "norm": "[*].data.event.obfuscation",
+      "value": "SCnTePzZF6W7TH"
+    },
+    {
+      "path": "[12].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[12].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[12].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[12].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[13].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[13].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.function_call_arguments.delta"
+    },
+    {
+      "path": "[13].data.event.obfuscation",
+      "norm": "[*].data.event.obfuscation",
+      "value": "RxseyGtiWe80Vi"
+    },
+    {
+      "path": "[13].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[13].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[13].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[13].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[14].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[14].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.function_call_arguments.delta"
+    },
+    {
+      "path": "[14].data.event.obfuscation",
+      "norm": "[*].data.event.obfuscation",
+      "value": "BCGFB5qd5R3jcZ"
+    },
+    {
+      "path": "[14].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[14].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[14].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[14].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[15].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[15].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.function_call_arguments.done"
+    },
+    {
+      "path": "[15].data.event.arguments",
+      "norm": "[*].data.event.arguments",
+      "value": "{\"message\":\"conformance-probe-gpt56\"}"
+    },
+    {
+      "path": "[15].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[15].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[15].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[15].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[16].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[16].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.output_item.done"
+    },
+    {
+      "path": "[16].data.event.item.type",
+      "norm": "[*].data.event.item.type",
+      "value": "function_call"
+    },
+    {
+      "path": "[16].data.event.item.status",
+      "norm": "[*].data.event.item.status",
+      "value": "completed"
+    },
+    {
+      "path": "[16].data.event.item.arguments",
+      "norm": "[*].data.event.item.arguments",
+      "value": "{\"message\":\"conformance-probe-gpt56\"}"
+    },
+    {
+      "path": "[16].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[16].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[16].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[16].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[17].data.type",
+      "norm": "[*].data.type",
+      "value": "response_done"
+    },
+    {
+      "path": "[17].data.response.id",
+      "norm": "[*].data.response.id",
+      "value": "resp_07825c108fedd028006a6092d2fd9c8198a73e6f41b6d587cb"
+    },
+    {
+      "path": "[17].data.response.requestId",
+      "norm": "[*].data.response.requestId",
+      "value": "req_3939402268bd481485977af7a030a983"
+    },
+    {
+      "path": "[17].data.response.output[0].type",
+      "norm": "[*].data.response.output[*].type",
+      "value": "function_call"
+    },
+    {
+      "path": "[17].data.response.output[0].status",
+      "norm": "[*].data.response.output[*].status",
+      "value": "completed"
+    },
+    {
+      "path": "[17].data.response.output[0].arguments",
+      "norm": "[*].data.response.output[*].arguments",
+      "value": "{\"message\":\"conformance-probe-gpt56\"}"
+    },
+    {
+      "path": "[17].data.response.output[0].providerData.type",
+      "norm": "[*].data.response.output[*].providerData.type",
+      "value": "function_call"
+    },
+    {
+      "path": "[17].data.response.usage.inputTokensDetails.cache_write_tokens",
+      "norm": "[*].data.response.usage.inputTokensDetails.cache_write_tokens",
+      "value": 0
+    },
+    {
+      "path": "[17].data.response.usage.inputTokensDetails.cached_tokens",
+      "norm": "[*].data.response.usage.inputTokensDetails.cached_tokens",
+      "value": 0
+    },
+    {
+      "path": "[17].data.response.usage.outputTokensDetails.reasoning_tokens",
+      "norm": "[*].data.response.usage.outputTokensDetails.reasoning_tokens",
+      "value": 0
+    },
+    {
+      "path": "[17].data.response.usage.requestUsageEntries[0].inputTokensDetails.cache_write_tokens",
+      "norm": "[*].data.response.usage.requestUsageEntries[*].inputTokensDetails.cache_write_tokens",
+      "value": 0
+    },
+    {
+      "path": "[17].data.response.usage.requestUsageEntries[0].inputTokensDetails.cached_tokens",
+      "norm": "[*].data.response.usage.requestUsageEntries[*].inputTokensDetails.cached_tokens",
+      "value": 0
+    },
+    {
+      "path": "[17].data.response.usage.requestUsageEntries[0].outputTokensDetails.reasoning_tokens",
+      "norm": "[*].data.response.usage.requestUsageEntries[*].outputTokensDetails.reasoning_tokens",
+      "value": 0
+    },
+    {
+      "path": "[17].data.response.usage.requestUsageEntries[0].endpoint",
+      "norm": "[*].data.response.usage.requestUsageEntries[*].endpoint",
+      "value": "responses.create"
+    },
+    {
+      "path": "[17].data.response.providerData.object",
+      "norm": "[*].data.response.providerData.object",
+      "value": "response"
+    },
+    {
+      "path": "[17].data.response.providerData.created_at",
+      "norm": "[*].data.response.providerData.created_at",
+      "value": 1784713939
+    },
+    {
+      "path": "[17].data.response.providerData.status",
+      "norm": "[*].data.response.providerData.status",
+      "value": "completed"
+    },
+    {
+      "path": "[17].data.response.providerData.background",
+      "norm": "[*].data.response.providerData.background",
+      "value": false
+    },
+    {
+      "path": "[17].data.response.providerData.completed_at",
+      "norm": "[*].data.response.providerData.completed_at",
+      "value": 1784713940
+    },
+    {
+      "path": "[17].data.response.providerData.error",
+      "norm": "[*].data.response.providerData.error",
+      "value": null
+    },
+    {
+      "path": "[17].data.response.providerData.frequency_penalty",
+      "norm": "[*].data.response.providerData.frequency_penalty",
+      "value": 0
+    },
+    {
+      "path": "[17].data.response.providerData.incomplete_details",
+      "norm": "[*].data.response.providerData.incomplete_details",
+      "value": null
+    },
+    {
+      "path": "[17].data.response.providerData.instructions",
+      "norm": "[*].data.response.providerData.instructions",
+      "value": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory."
+    },
+    {
+      "path": "[17].data.response.providerData.max_output_tokens",
+      "norm": "[*].data.response.providerData.max_output_tokens",
+      "value": null
+    },
+    {
+      "path": "[17].data.response.providerData.max_tool_calls",
+      "norm": "[*].data.response.providerData.max_tool_calls",
+      "value": null
+    },
+    {
+      "path": "[17].data.response.providerData.model",
+      "norm": "[*].data.response.providerData.model",
+      "value": "gpt-5.6-sol"
+    },
+    {
+      "path": "[17].data.response.providerData.moderation",
+      "norm": "[*].data.response.providerData.moderation",
+      "value": null
+    },
+    {
+      "path": "[17].data.response.providerData.parallel_tool_calls",
+      "norm": "[*].data.response.providerData.parallel_tool_calls",
+      "value": true
+    },
+    {
+      "path": "[17].data.response.providerData.presence_penalty",
+      "norm": "[*].data.response.providerData.presence_penalty",
+      "value": 0
+    },
+    {
+      "path": "[17].data.response.providerData.previous_response_id",
+      "norm": "[*].data.response.providerData.previous_response_id",
+      "value": null
+    },
+    {
+      "path": "[17].data.response.providerData.prompt_cache_key",
+      "norm": "[*].data.response.providerData.prompt_cache_key",
+      "value": null
+    },
+    {
+      "path": "[17].data.response.providerData.prompt_cache_retention",
+      "norm": "[*].data.response.providerData.prompt_cache_retention",
+      "value": "24h"
+    },
+    {
+      "path": "[17].data.response.providerData.reasoning.context",
+      "norm": "[*].data.response.providerData.reasoning.context",
+      "value": "all_turns"
+    },
+    {
+      "path": "[17].data.response.providerData.reasoning.effort",
+      "norm": "[*].data.response.providerData.reasoning.effort",
+      "value": "none"
+    },
+    {
+      "path": "[17].data.response.providerData.reasoning.mode",
+      "norm": "[*].data.response.providerData.reasoning.mode",
+      "value": "standard"
+    },
+    {
+      "path": "[17].data.response.providerData.reasoning.summary",
+      "norm": "[*].data.response.providerData.reasoning.summary",
+      "value": null
+    },
+    {
+      "path": "[17].data.response.providerData.safety_identifier",
+      "norm": "[*].data.response.providerData.safety_identifier",
+      "value": null
+    },
+    {
+      "path": "[17].data.response.providerData.service_tier",
+      "norm": "[*].data.response.providerData.service_tier",
+      "value": "default"
+    },
+    {
+      "path": "[17].data.response.providerData.store",
+      "norm": "[*].data.response.providerData.store",
+      "value": true
+    },
+    {
+      "path": "[17].data.response.providerData.text.verbosity",
+      "norm": "[*].data.response.providerData.text.verbosity",
+      "value": "low"
+    },
+    {
+      "path": "[17].data.response.providerData.tool_choice",
+      "norm": "[*].data.response.providerData.tool_choice",
+      "value": "auto"
+    },
+    {
+      "path": "[17].data.response.providerData.tool_usage.image_gen.input_tokens",
+      "norm": "[*].data.response.providerData.tool_usage.image_gen.input_tokens",
+      "value": 0
+    },
+    {
+      "path": "[17].data.response.providerData.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "norm": "[*].data.response.providerData.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[17].data.response.providerData.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "norm": "[*].data.response.providerData.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[17].data.response.providerData.tool_usage.image_gen.output_tokens",
+      "norm": "[*].data.response.providerData.tool_usage.image_gen.output_tokens",
+      "value": 0
+    },
+    {
+      "path": "[17].data.response.providerData.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "norm": "[*].data.response.providerData.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[17].data.response.providerData.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "norm": "[*].data.response.providerData.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[17].data.response.providerData.tool_usage.image_gen.total_tokens",
+      "norm": "[*].data.response.providerData.tool_usage.image_gen.total_tokens",
+      "value": 0
+    },
+    {
+      "path": "[17].data.response.providerData.tool_usage.web_search.num_requests",
+      "norm": "[*].data.response.providerData.tool_usage.web_search.num_requests",
+      "value": 0
+    },
+    {
+      "path": "[17].data.response.providerData.tools[0].type",
+      "norm": "[*].data.response.providerData.tools[*].type",
+      "value": "function"
+    },
+    {
+      "path": "[17].data.response.providerData.tools[0].description",
+      "norm": "[*].data.response.providerData.tools[*].description",
+      "value": "Echoes the input message back as text."
+    },
+    {
+      "path": "[17].data.response.providerData.tools[0].output_schema",
+      "norm": "[*].data.response.providerData.tools[*].output_schema",
+      "value": null
+    },
+    {
+      "path": "[17].data.response.providerData.tools[0].parameters.type",
+      "norm": "[*].data.response.providerData.tools[*].parameters.type",
+      "value": "object"
+    },
+    {
+      "path": "[17].data.response.providerData.tools[0].parameters.properties.message.description",
+      "norm": "[*].data.response.providerData.tools[*].parameters.properties.message.description",
+      "value": "The text to echo"
+    },
+    {
+      "path": "[17].data.response.providerData.tools[0].parameters.properties.message.type",
+      "norm": "[*].data.response.providerData.tools[*].parameters.properties.message.type",
+      "value": "string"
+    },
+    {
+      "path": "[17].data.response.providerData.tools[0].parameters.$schema",
+      "norm": "[*].data.response.providerData.tools[*].parameters.$schema",
+      "value": "http://json-schema.org/draft-07/schema#"
+    },
+    {
+      "path": "[17].data.response.providerData.tools[0].parameters.additionalProperties",
+      "norm": "[*].data.response.providerData.tools[*].parameters.additionalProperties",
+      "value": true
+    },
+    {
+      "path": "[17].data.response.providerData.tools[0].strict",
+      "norm": "[*].data.response.providerData.tools[*].strict",
+      "value": false
+    },
+    {
+      "path": "[17].data.response.providerData.top_logprobs",
+      "norm": "[*].data.response.providerData.top_logprobs",
+      "value": 0
+    },
+    {
+      "path": "[17].data.response.providerData.top_p",
+      "norm": "[*].data.response.providerData.top_p",
+      "value": 0.98
+    },
+    {
+      "path": "[17].data.response.providerData.truncation",
+      "norm": "[*].data.response.providerData.truncation",
+      "value": "disabled"
+    },
+    {
+      "path": "[17].data.response.providerData.user",
+      "norm": "[*].data.response.providerData.user",
+      "value": null
+    },
+    {
+      "path": "[17].data.providerData.type",
+      "norm": "[*].data.providerData.type",
+      "value": "response.completed"
+    },
+    {
+      "path": "[17].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[18].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[18].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.completed"
+    },
+    {
+      "path": "[18].data.event.response.id",
+      "norm": "[*].data.event.response.id",
+      "value": "resp_07825c108fedd028006a6092d2fd9c8198a73e6f41b6d587cb"
+    },
+    {
+      "path": "[18].data.event.response.object",
+      "norm": "[*].data.event.response.object",
+      "value": "response"
+    },
+    {
+      "path": "[18].data.event.response.created_at",
+      "norm": "[*].data.event.response.created_at",
+      "value": 1784713939
+    },
+    {
+      "path": "[18].data.event.response.status",
+      "norm": "[*].data.event.response.status",
+      "value": "completed"
+    },
+    {
+      "path": "[18].data.event.response.background",
+      "norm": "[*].data.event.response.background",
+      "value": false
+    },
+    {
+      "path": "[18].data.event.response.completed_at",
+      "norm": "[*].data.event.response.completed_at",
+      "value": 1784713940
+    },
+    {
+      "path": "[18].data.event.response.error",
+      "norm": "[*].data.event.response.error",
+      "value": null
+    },
+    {
+      "path": "[18].data.event.response.frequency_penalty",
+      "norm": "[*].data.event.response.frequency_penalty",
+      "value": 0
+    },
+    {
+      "path": "[18].data.event.response.incomplete_details",
+      "norm": "[*].data.event.response.incomplete_details",
+      "value": null
+    },
+    {
+      "path": "[18].data.event.response.instructions",
+      "norm": "[*].data.event.response.instructions",
+      "value": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory."
+    },
+    {
+      "path": "[18].data.event.response.max_output_tokens",
+      "norm": "[*].data.event.response.max_output_tokens",
+      "value": null
+    },
+    {
+      "path": "[18].data.event.response.max_tool_calls",
+      "norm": "[*].data.event.response.max_tool_calls",
+      "value": null
+    },
+    {
+      "path": "[18].data.event.response.model",
+      "norm": "[*].data.event.response.model",
+      "value": "gpt-5.6-sol"
+    },
+    {
+      "path": "[18].data.event.response.moderation",
+      "norm": "[*].data.event.response.moderation",
+      "value": null
+    },
+    {
+      "path": "[18].data.event.response.output[0].type",
+      "norm": "[*].data.event.response.output[*].type",
+      "value": "function_call"
+    },
+    {
+      "path": "[18].data.event.response.output[0].status",
+      "norm": "[*].data.event.response.output[*].status",
+      "value": "completed"
+    },
+    {
+      "path": "[18].data.event.response.output[0].arguments",
+      "norm": "[*].data.event.response.output[*].arguments",
+      "value": "{\"message\":\"conformance-probe-gpt56\"}"
+    },
+    {
+      "path": "[18].data.event.response.parallel_tool_calls",
+      "norm": "[*].data.event.response.parallel_tool_calls",
+      "value": true
+    },
+    {
+      "path": "[18].data.event.response.presence_penalty",
+      "norm": "[*].data.event.response.presence_penalty",
+      "value": 0
+    },
+    {
+      "path": "[18].data.event.response.previous_response_id",
+      "norm": "[*].data.event.response.previous_response_id",
+      "value": null
+    },
+    {
+      "path": "[18].data.event.response.prompt_cache_key",
+      "norm": "[*].data.event.response.prompt_cache_key",
+      "value": null
+    },
+    {
+      "path": "[18].data.event.response.prompt_cache_retention",
+      "norm": "[*].data.event.response.prompt_cache_retention",
+      "value": "24h"
+    },
+    {
+      "path": "[18].data.event.response.reasoning.context",
+      "norm": "[*].data.event.response.reasoning.context",
+      "value": "all_turns"
+    },
+    {
+      "path": "[18].data.event.response.reasoning.effort",
+      "norm": "[*].data.event.response.reasoning.effort",
+      "value": "none"
+    },
+    {
+      "path": "[18].data.event.response.reasoning.mode",
+      "norm": "[*].data.event.response.reasoning.mode",
+      "value": "standard"
+    },
+    {
+      "path": "[18].data.event.response.reasoning.summary",
+      "norm": "[*].data.event.response.reasoning.summary",
+      "value": null
+    },
+    {
+      "path": "[18].data.event.response.safety_identifier",
+      "norm": "[*].data.event.response.safety_identifier",
+      "value": null
+    },
+    {
+      "path": "[18].data.event.response.service_tier",
+      "norm": "[*].data.event.response.service_tier",
+      "value": "default"
+    },
+    {
+      "path": "[18].data.event.response.store",
+      "norm": "[*].data.event.response.store",
+      "value": true
+    },
+    {
+      "path": "[18].data.event.response.text.verbosity",
+      "norm": "[*].data.event.response.text.verbosity",
+      "value": "low"
+    },
+    {
+      "path": "[18].data.event.response.tool_choice",
+      "norm": "[*].data.event.response.tool_choice",
+      "value": "auto"
+    },
+    {
+      "path": "[18].data.event.response.tool_usage.image_gen.input_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.input_tokens",
+      "value": 0
+    },
+    {
+      "path": "[18].data.event.response.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[18].data.event.response.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[18].data.event.response.tool_usage.image_gen.output_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.output_tokens",
+      "value": 0
+    },
+    {
+      "path": "[18].data.event.response.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[18].data.event.response.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[18].data.event.response.tool_usage.image_gen.total_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.total_tokens",
+      "value": 0
+    },
+    {
+      "path": "[18].data.event.response.tool_usage.web_search.num_requests",
+      "norm": "[*].data.event.response.tool_usage.web_search.num_requests",
+      "value": 0
+    },
+    {
+      "path": "[18].data.event.response.tools[0].type",
+      "norm": "[*].data.event.response.tools[*].type",
+      "value": "function"
+    },
+    {
+      "path": "[18].data.event.response.tools[0].description",
+      "norm": "[*].data.event.response.tools[*].description",
+      "value": "Echoes the input message back as text."
+    },
+    {
+      "path": "[18].data.event.response.tools[0].output_schema",
+      "norm": "[*].data.event.response.tools[*].output_schema",
+      "value": null
+    },
+    {
+      "path": "[18].data.event.response.tools[0].parameters.type",
+      "norm": "[*].data.event.response.tools[*].parameters.type",
+      "value": "object"
+    },
+    {
+      "path": "[18].data.event.response.tools[0].parameters.properties.message.description",
+      "norm": "[*].data.event.response.tools[*].parameters.properties.message.description",
+      "value": "The text to echo"
+    },
+    {
+      "path": "[18].data.event.response.tools[0].parameters.properties.message.type",
+      "norm": "[*].data.event.response.tools[*].parameters.properties.message.type",
+      "value": "string"
+    },
+    {
+      "path": "[18].data.event.response.tools[0].parameters.$schema",
+      "norm": "[*].data.event.response.tools[*].parameters.$schema",
+      "value": "http://json-schema.org/draft-07/schema#"
+    },
+    {
+      "path": "[18].data.event.response.tools[0].parameters.additionalProperties",
+      "norm": "[*].data.event.response.tools[*].parameters.additionalProperties",
+      "value": true
+    },
+    {
+      "path": "[18].data.event.response.tools[0].strict",
+      "norm": "[*].data.event.response.tools[*].strict",
+      "value": false
+    },
+    {
+      "path": "[18].data.event.response.top_logprobs",
+      "norm": "[*].data.event.response.top_logprobs",
+      "value": 0
+    },
+    {
+      "path": "[18].data.event.response.top_p",
+      "norm": "[*].data.event.response.top_p",
+      "value": 0.98
+    },
+    {
+      "path": "[18].data.event.response.truncation",
+      "norm": "[*].data.event.response.truncation",
+      "value": "disabled"
+    },
+    {
+      "path": "[18].data.event.response.usage.input_tokens_details.cache_write_tokens",
+      "norm": "[*].data.event.response.usage.input_tokens_details.cache_write_tokens",
+      "value": 0
+    },
+    {
+      "path": "[18].data.event.response.usage.input_tokens_details.cached_tokens",
+      "norm": "[*].data.event.response.usage.input_tokens_details.cached_tokens",
+      "value": 0
+    },
+    {
+      "path": "[18].data.event.response.usage.output_tokens_details.reasoning_tokens",
+      "norm": "[*].data.event.response.usage.output_tokens_details.reasoning_tokens",
+      "value": 0
+    },
+    {
+      "path": "[18].data.event.response.user",
+      "norm": "[*].data.event.response.user",
+      "value": null
+    },
+    {
+      "path": "[18].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[18].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[18].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[19].name",
+      "norm": "[*].name",
+      "value": "tool_called"
+    },
+    {
+      "path": "[19].item.type",
+      "norm": "[*].item.type",
+      "value": "tool_call_item"
+    },
+    {
+      "path": "[19].item.rawItem.providerData.type",
+      "norm": "[*].item.rawItem.providerData.type",
+      "value": "function_call"
+    },
+    {
+      "path": "[19].item.rawItem.type",
+      "norm": "[*].item.rawItem.type",
+      "value": "function_call"
+    },
+    {
+      "path": "[19].item.rawItem.status",
+      "norm": "[*].item.rawItem.status",
+      "value": "completed"
+    },
+    {
+      "path": "[19].item.rawItem.arguments",
+      "norm": "[*].item.rawItem.arguments",
+      "value": "{\"message\":\"conformance-probe-gpt56\"}"
+    },
+    {
+      "path": "[19].item.agent.name",
+      "norm": "[*].item.agent.name",
+      "value": "spike"
+    },
+    {
+      "path": "[19].type",
+      "norm": "[*].type",
+      "value": "run_item_stream_event"
+    },
+    {
+      "path": "[20].name",
+      "norm": "[*].name",
+      "value": "tool_output"
+    },
+    {
+      "path": "[20].item.type",
+      "norm": "[*].item.type",
+      "value": "tool_call_output_item"
+    },
+    {
+      "path": "[20].item.rawItem.type",
+      "norm": "[*].item.rawItem.type",
+      "value": "function_call_result"
+    },
+    {
+      "path": "[20].item.rawItem.status",
+      "norm": "[*].item.rawItem.status",
+      "value": "completed"
+    },
+    {
+      "path": "[20].item.rawItem.output[0].type",
+      "norm": "[*].item.rawItem.output[*].type",
+      "value": "input_text"
+    },
+    {
+      "path": "[20].item.agent.name",
+      "norm": "[*].item.agent.name",
+      "value": "spike"
+    },
+    {
+      "path": "[20].item.output",
+      "norm": "[*].item.output",
+      "value": "{\"type\":\"text\",\"text\":\"conformance-probe-gpt56\"}"
+    },
+    {
+      "path": "[20].type",
+      "norm": "[*].type",
+      "value": "run_item_stream_event"
+    },
+    {
+      "path": "[21].data.type",
+      "norm": "[*].data.type",
+      "value": "response_started"
+    },
+    {
+      "path": "[21].data.providerData.type",
+      "norm": "[*].data.providerData.type",
+      "value": "response.created"
+    },
+    {
+      "path": "[21].data.providerData.response.id",
+      "norm": "[*].data.providerData.response.id",
+      "value": "resp_07825c108fedd028006a6092d4965c8198bf4ac2608f19627b"
+    },
+    {
+      "path": "[21].data.providerData.response.object",
+      "norm": "[*].data.providerData.response.object",
+      "value": "response"
+    },
+    {
+      "path": "[21].data.providerData.response.created_at",
+      "norm": "[*].data.providerData.response.created_at",
+      "value": 1784713940
+    },
+    {
+      "path": "[21].data.providerData.response.status",
+      "norm": "[*].data.providerData.response.status",
+      "value": "in_progress"
+    },
+    {
+      "path": "[21].data.providerData.response.background",
+      "norm": "[*].data.providerData.response.background",
+      "value": false
+    },
+    {
+      "path": "[21].data.providerData.response.completed_at",
+      "norm": "[*].data.providerData.response.completed_at",
+      "value": null
+    },
+    {
+      "path": "[21].data.providerData.response.error",
+      "norm": "[*].data.providerData.response.error",
+      "value": null
+    },
+    {
+      "path": "[21].data.providerData.response.frequency_penalty",
+      "norm": "[*].data.providerData.response.frequency_penalty",
+      "value": 0
+    },
+    {
+      "path": "[21].data.providerData.response.incomplete_details",
+      "norm": "[*].data.providerData.response.incomplete_details",
+      "value": null
+    },
+    {
+      "path": "[21].data.providerData.response.instructions",
+      "norm": "[*].data.providerData.response.instructions",
+      "value": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory."
+    },
+    {
+      "path": "[21].data.providerData.response.max_output_tokens",
+      "norm": "[*].data.providerData.response.max_output_tokens",
+      "value": null
+    },
+    {
+      "path": "[21].data.providerData.response.max_tool_calls",
+      "norm": "[*].data.providerData.response.max_tool_calls",
+      "value": null
+    },
+    {
+      "path": "[21].data.providerData.response.model",
+      "norm": "[*].data.providerData.response.model",
+      "value": "gpt-5.6-sol"
+    },
+    {
+      "path": "[21].data.providerData.response.moderation",
+      "norm": "[*].data.providerData.response.moderation",
+      "value": null
+    },
+    {
+      "path": "[21].data.providerData.response.parallel_tool_calls",
+      "norm": "[*].data.providerData.response.parallel_tool_calls",
+      "value": true
+    },
+    {
+      "path": "[21].data.providerData.response.presence_penalty",
+      "norm": "[*].data.providerData.response.presence_penalty",
+      "value": 0
+    },
+    {
+      "path": "[21].data.providerData.response.previous_response_id",
+      "norm": "[*].data.providerData.response.previous_response_id",
+      "value": null
+    },
+    {
+      "path": "[21].data.providerData.response.prompt_cache_key",
+      "norm": "[*].data.providerData.response.prompt_cache_key",
+      "value": null
+    },
+    {
+      "path": "[21].data.providerData.response.prompt_cache_retention",
+      "norm": "[*].data.providerData.response.prompt_cache_retention",
+      "value": "24h"
+    },
+    {
+      "path": "[21].data.providerData.response.reasoning.context",
+      "norm": "[*].data.providerData.response.reasoning.context",
+      "value": "all_turns"
+    },
+    {
+      "path": "[21].data.providerData.response.reasoning.effort",
+      "norm": "[*].data.providerData.response.reasoning.effort",
+      "value": "none"
+    },
+    {
+      "path": "[21].data.providerData.response.reasoning.mode",
+      "norm": "[*].data.providerData.response.reasoning.mode",
+      "value": "standard"
+    },
+    {
+      "path": "[21].data.providerData.response.reasoning.summary",
+      "norm": "[*].data.providerData.response.reasoning.summary",
+      "value": null
+    },
+    {
+      "path": "[21].data.providerData.response.safety_identifier",
+      "norm": "[*].data.providerData.response.safety_identifier",
+      "value": null
+    },
+    {
+      "path": "[21].data.providerData.response.service_tier",
+      "norm": "[*].data.providerData.response.service_tier",
+      "value": "auto"
+    },
+    {
+      "path": "[21].data.providerData.response.store",
+      "norm": "[*].data.providerData.response.store",
+      "value": true
+    },
+    {
+      "path": "[21].data.providerData.response.text.verbosity",
+      "norm": "[*].data.providerData.response.text.verbosity",
+      "value": "low"
+    },
+    {
+      "path": "[21].data.providerData.response.tool_choice",
+      "norm": "[*].data.providerData.response.tool_choice",
+      "value": "auto"
+    },
+    {
+      "path": "[21].data.providerData.response.tool_usage.image_gen.input_tokens",
+      "norm": "[*].data.providerData.response.tool_usage.image_gen.input_tokens",
+      "value": 0
+    },
+    {
+      "path": "[21].data.providerData.response.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "norm": "[*].data.providerData.response.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[21].data.providerData.response.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "norm": "[*].data.providerData.response.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[21].data.providerData.response.tool_usage.image_gen.output_tokens",
+      "norm": "[*].data.providerData.response.tool_usage.image_gen.output_tokens",
+      "value": 0
+    },
+    {
+      "path": "[21].data.providerData.response.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "norm": "[*].data.providerData.response.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[21].data.providerData.response.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "norm": "[*].data.providerData.response.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[21].data.providerData.response.tool_usage.image_gen.total_tokens",
+      "norm": "[*].data.providerData.response.tool_usage.image_gen.total_tokens",
+      "value": 0
+    },
+    {
+      "path": "[21].data.providerData.response.tool_usage.web_search.num_requests",
+      "norm": "[*].data.providerData.response.tool_usage.web_search.num_requests",
+      "value": 0
+    },
+    {
+      "path": "[21].data.providerData.response.tools[0].type",
+      "norm": "[*].data.providerData.response.tools[*].type",
+      "value": "function"
+    },
+    {
+      "path": "[21].data.providerData.response.tools[0].description",
+      "norm": "[*].data.providerData.response.tools[*].description",
+      "value": "Echoes the input message back as text."
+    },
+    {
+      "path": "[21].data.providerData.response.tools[0].output_schema",
+      "norm": "[*].data.providerData.response.tools[*].output_schema",
+      "value": null
+    },
+    {
+      "path": "[21].data.providerData.response.tools[0].parameters.type",
+      "norm": "[*].data.providerData.response.tools[*].parameters.type",
+      "value": "object"
+    },
+    {
+      "path": "[21].data.providerData.response.tools[0].parameters.properties.message.description",
+      "norm": "[*].data.providerData.response.tools[*].parameters.properties.message.description",
+      "value": "The text to echo"
+    },
+    {
+      "path": "[21].data.providerData.response.tools[0].parameters.properties.message.type",
+      "norm": "[*].data.providerData.response.tools[*].parameters.properties.message.type",
+      "value": "string"
+    },
+    {
+      "path": "[21].data.providerData.response.tools[0].parameters.$schema",
+      "norm": "[*].data.providerData.response.tools[*].parameters.$schema",
+      "value": "http://json-schema.org/draft-07/schema#"
+    },
+    {
+      "path": "[21].data.providerData.response.tools[0].parameters.additionalProperties",
+      "norm": "[*].data.providerData.response.tools[*].parameters.additionalProperties",
+      "value": true
+    },
+    {
+      "path": "[21].data.providerData.response.tools[0].strict",
+      "norm": "[*].data.providerData.response.tools[*].strict",
+      "value": false
+    },
+    {
+      "path": "[21].data.providerData.response.top_logprobs",
+      "norm": "[*].data.providerData.response.top_logprobs",
+      "value": 0
+    },
+    {
+      "path": "[21].data.providerData.response.top_p",
+      "norm": "[*].data.providerData.response.top_p",
+      "value": 0.98
+    },
+    {
+      "path": "[21].data.providerData.response.truncation",
+      "norm": "[*].data.providerData.response.truncation",
+      "value": "disabled"
+    },
+    {
+      "path": "[21].data.providerData.response.usage",
+      "norm": "[*].data.providerData.response.usage",
+      "value": null
+    },
+    {
+      "path": "[21].data.providerData.response.user",
+      "norm": "[*].data.providerData.response.user",
+      "value": null
+    },
+    {
+      "path": "[21].data.providerData.sequence_number",
+      "norm": "[*].data.providerData.sequence_number",
+      "value": 0
+    },
+    {
+      "path": "[21].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[22].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[22].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.created"
+    },
+    {
+      "path": "[22].data.event.response.id",
+      "norm": "[*].data.event.response.id",
+      "value": "resp_07825c108fedd028006a6092d4965c8198bf4ac2608f19627b"
+    },
+    {
+      "path": "[22].data.event.response.object",
+      "norm": "[*].data.event.response.object",
+      "value": "response"
+    },
+    {
+      "path": "[22].data.event.response.created_at",
+      "norm": "[*].data.event.response.created_at",
+      "value": 1784713940
+    },
+    {
+      "path": "[22].data.event.response.status",
+      "norm": "[*].data.event.response.status",
+      "value": "in_progress"
+    },
+    {
+      "path": "[22].data.event.response.background",
+      "norm": "[*].data.event.response.background",
+      "value": false
+    },
+    {
+      "path": "[22].data.event.response.completed_at",
+      "norm": "[*].data.event.response.completed_at",
+      "value": null
+    },
+    {
+      "path": "[22].data.event.response.error",
+      "norm": "[*].data.event.response.error",
+      "value": null
+    },
+    {
+      "path": "[22].data.event.response.frequency_penalty",
+      "norm": "[*].data.event.response.frequency_penalty",
+      "value": 0
+    },
+    {
+      "path": "[22].data.event.response.incomplete_details",
+      "norm": "[*].data.event.response.incomplete_details",
+      "value": null
+    },
+    {
+      "path": "[22].data.event.response.instructions",
+      "norm": "[*].data.event.response.instructions",
+      "value": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory."
+    },
+    {
+      "path": "[22].data.event.response.max_output_tokens",
+      "norm": "[*].data.event.response.max_output_tokens",
+      "value": null
+    },
+    {
+      "path": "[22].data.event.response.max_tool_calls",
+      "norm": "[*].data.event.response.max_tool_calls",
+      "value": null
+    },
+    {
+      "path": "[22].data.event.response.model",
+      "norm": "[*].data.event.response.model",
+      "value": "gpt-5.6-sol"
+    },
+    {
+      "path": "[22].data.event.response.moderation",
+      "norm": "[*].data.event.response.moderation",
+      "value": null
+    },
+    {
+      "path": "[22].data.event.response.parallel_tool_calls",
+      "norm": "[*].data.event.response.parallel_tool_calls",
+      "value": true
+    },
+    {
+      "path": "[22].data.event.response.presence_penalty",
+      "norm": "[*].data.event.response.presence_penalty",
+      "value": 0
+    },
+    {
+      "path": "[22].data.event.response.previous_response_id",
+      "norm": "[*].data.event.response.previous_response_id",
+      "value": null
+    },
+    {
+      "path": "[22].data.event.response.prompt_cache_key",
+      "norm": "[*].data.event.response.prompt_cache_key",
+      "value": null
+    },
+    {
+      "path": "[22].data.event.response.prompt_cache_retention",
+      "norm": "[*].data.event.response.prompt_cache_retention",
+      "value": "24h"
+    },
+    {
+      "path": "[22].data.event.response.reasoning.context",
+      "norm": "[*].data.event.response.reasoning.context",
+      "value": "all_turns"
+    },
+    {
+      "path": "[22].data.event.response.reasoning.effort",
+      "norm": "[*].data.event.response.reasoning.effort",
+      "value": "none"
+    },
+    {
+      "path": "[22].data.event.response.reasoning.mode",
+      "norm": "[*].data.event.response.reasoning.mode",
+      "value": "standard"
+    },
+    {
+      "path": "[22].data.event.response.reasoning.summary",
+      "norm": "[*].data.event.response.reasoning.summary",
+      "value": null
+    },
+    {
+      "path": "[22].data.event.response.safety_identifier",
+      "norm": "[*].data.event.response.safety_identifier",
+      "value": null
+    },
+    {
+      "path": "[22].data.event.response.service_tier",
+      "norm": "[*].data.event.response.service_tier",
+      "value": "auto"
+    },
+    {
+      "path": "[22].data.event.response.store",
+      "norm": "[*].data.event.response.store",
+      "value": true
+    },
+    {
+      "path": "[22].data.event.response.text.verbosity",
+      "norm": "[*].data.event.response.text.verbosity",
+      "value": "low"
+    },
+    {
+      "path": "[22].data.event.response.tool_choice",
+      "norm": "[*].data.event.response.tool_choice",
+      "value": "auto"
+    },
+    {
+      "path": "[22].data.event.response.tool_usage.image_gen.input_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.input_tokens",
+      "value": 0
+    },
+    {
+      "path": "[22].data.event.response.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[22].data.event.response.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[22].data.event.response.tool_usage.image_gen.output_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.output_tokens",
+      "value": 0
+    },
+    {
+      "path": "[22].data.event.response.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[22].data.event.response.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[22].data.event.response.tool_usage.image_gen.total_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.total_tokens",
+      "value": 0
+    },
+    {
+      "path": "[22].data.event.response.tool_usage.web_search.num_requests",
+      "norm": "[*].data.event.response.tool_usage.web_search.num_requests",
+      "value": 0
+    },
+    {
+      "path": "[22].data.event.response.tools[0].type",
+      "norm": "[*].data.event.response.tools[*].type",
+      "value": "function"
+    },
+    {
+      "path": "[22].data.event.response.tools[0].description",
+      "norm": "[*].data.event.response.tools[*].description",
+      "value": "Echoes the input message back as text."
+    },
+    {
+      "path": "[22].data.event.response.tools[0].output_schema",
+      "norm": "[*].data.event.response.tools[*].output_schema",
+      "value": null
+    },
+    {
+      "path": "[22].data.event.response.tools[0].parameters.type",
+      "norm": "[*].data.event.response.tools[*].parameters.type",
+      "value": "object"
+    },
+    {
+      "path": "[22].data.event.response.tools[0].parameters.properties.message.description",
+      "norm": "[*].data.event.response.tools[*].parameters.properties.message.description",
+      "value": "The text to echo"
+    },
+    {
+      "path": "[22].data.event.response.tools[0].parameters.properties.message.type",
+      "norm": "[*].data.event.response.tools[*].parameters.properties.message.type",
+      "value": "string"
+    },
+    {
+      "path": "[22].data.event.response.tools[0].parameters.$schema",
+      "norm": "[*].data.event.response.tools[*].parameters.$schema",
+      "value": "http://json-schema.org/draft-07/schema#"
+    },
+    {
+      "path": "[22].data.event.response.tools[0].parameters.additionalProperties",
+      "norm": "[*].data.event.response.tools[*].parameters.additionalProperties",
+      "value": true
+    },
+    {
+      "path": "[22].data.event.response.tools[0].strict",
+      "norm": "[*].data.event.response.tools[*].strict",
+      "value": false
+    },
+    {
+      "path": "[22].data.event.response.top_logprobs",
+      "norm": "[*].data.event.response.top_logprobs",
+      "value": 0
+    },
+    {
+      "path": "[22].data.event.response.top_p",
+      "norm": "[*].data.event.response.top_p",
+      "value": 0.98
+    },
+    {
+      "path": "[22].data.event.response.truncation",
+      "norm": "[*].data.event.response.truncation",
+      "value": "disabled"
+    },
+    {
+      "path": "[22].data.event.response.usage",
+      "norm": "[*].data.event.response.usage",
+      "value": null
+    },
+    {
+      "path": "[22].data.event.response.user",
+      "norm": "[*].data.event.response.user",
+      "value": null
+    },
+    {
+      "path": "[22].data.event.sequence_number",
+      "norm": "[*].data.event.sequence_number",
+      "value": 0
+    },
+    {
+      "path": "[22].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[22].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[22].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[23].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[23].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.in_progress"
+    },
+    {
+      "path": "[23].data.event.response.id",
+      "norm": "[*].data.event.response.id",
+      "value": "resp_07825c108fedd028006a6092d4965c8198bf4ac2608f19627b"
+    },
+    {
+      "path": "[23].data.event.response.object",
+      "norm": "[*].data.event.response.object",
+      "value": "response"
+    },
+    {
+      "path": "[23].data.event.response.created_at",
+      "norm": "[*].data.event.response.created_at",
+      "value": 1784713940
+    },
+    {
+      "path": "[23].data.event.response.status",
+      "norm": "[*].data.event.response.status",
+      "value": "in_progress"
+    },
+    {
+      "path": "[23].data.event.response.background",
+      "norm": "[*].data.event.response.background",
+      "value": false
+    },
+    {
+      "path": "[23].data.event.response.completed_at",
+      "norm": "[*].data.event.response.completed_at",
+      "value": null
+    },
+    {
+      "path": "[23].data.event.response.error",
+      "norm": "[*].data.event.response.error",
+      "value": null
+    },
+    {
+      "path": "[23].data.event.response.frequency_penalty",
+      "norm": "[*].data.event.response.frequency_penalty",
+      "value": 0
+    },
+    {
+      "path": "[23].data.event.response.incomplete_details",
+      "norm": "[*].data.event.response.incomplete_details",
+      "value": null
+    },
+    {
+      "path": "[23].data.event.response.instructions",
+      "norm": "[*].data.event.response.instructions",
+      "value": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory."
+    },
+    {
+      "path": "[23].data.event.response.max_output_tokens",
+      "norm": "[*].data.event.response.max_output_tokens",
+      "value": null
+    },
+    {
+      "path": "[23].data.event.response.max_tool_calls",
+      "norm": "[*].data.event.response.max_tool_calls",
+      "value": null
+    },
+    {
+      "path": "[23].data.event.response.model",
+      "norm": "[*].data.event.response.model",
+      "value": "gpt-5.6-sol"
+    },
+    {
+      "path": "[23].data.event.response.moderation",
+      "norm": "[*].data.event.response.moderation",
+      "value": null
+    },
+    {
+      "path": "[23].data.event.response.parallel_tool_calls",
+      "norm": "[*].data.event.response.parallel_tool_calls",
+      "value": true
+    },
+    {
+      "path": "[23].data.event.response.presence_penalty",
+      "norm": "[*].data.event.response.presence_penalty",
+      "value": 0
+    },
+    {
+      "path": "[23].data.event.response.previous_response_id",
+      "norm": "[*].data.event.response.previous_response_id",
+      "value": null
+    },
+    {
+      "path": "[23].data.event.response.prompt_cache_key",
+      "norm": "[*].data.event.response.prompt_cache_key",
+      "value": null
+    },
+    {
+      "path": "[23].data.event.response.prompt_cache_retention",
+      "norm": "[*].data.event.response.prompt_cache_retention",
+      "value": "24h"
+    },
+    {
+      "path": "[23].data.event.response.reasoning.context",
+      "norm": "[*].data.event.response.reasoning.context",
+      "value": "all_turns"
+    },
+    {
+      "path": "[23].data.event.response.reasoning.effort",
+      "norm": "[*].data.event.response.reasoning.effort",
+      "value": "none"
+    },
+    {
+      "path": "[23].data.event.response.reasoning.mode",
+      "norm": "[*].data.event.response.reasoning.mode",
+      "value": "standard"
+    },
+    {
+      "path": "[23].data.event.response.reasoning.summary",
+      "norm": "[*].data.event.response.reasoning.summary",
+      "value": null
+    },
+    {
+      "path": "[23].data.event.response.safety_identifier",
+      "norm": "[*].data.event.response.safety_identifier",
+      "value": null
+    },
+    {
+      "path": "[23].data.event.response.service_tier",
+      "norm": "[*].data.event.response.service_tier",
+      "value": "auto"
+    },
+    {
+      "path": "[23].data.event.response.store",
+      "norm": "[*].data.event.response.store",
+      "value": true
+    },
+    {
+      "path": "[23].data.event.response.text.verbosity",
+      "norm": "[*].data.event.response.text.verbosity",
+      "value": "low"
+    },
+    {
+      "path": "[23].data.event.response.tool_choice",
+      "norm": "[*].data.event.response.tool_choice",
+      "value": "auto"
+    },
+    {
+      "path": "[23].data.event.response.tool_usage.image_gen.input_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.input_tokens",
+      "value": 0
+    },
+    {
+      "path": "[23].data.event.response.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[23].data.event.response.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[23].data.event.response.tool_usage.image_gen.output_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.output_tokens",
+      "value": 0
+    },
+    {
+      "path": "[23].data.event.response.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[23].data.event.response.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[23].data.event.response.tool_usage.image_gen.total_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.total_tokens",
+      "value": 0
+    },
+    {
+      "path": "[23].data.event.response.tool_usage.web_search.num_requests",
+      "norm": "[*].data.event.response.tool_usage.web_search.num_requests",
+      "value": 0
+    },
+    {
+      "path": "[23].data.event.response.tools[0].type",
+      "norm": "[*].data.event.response.tools[*].type",
+      "value": "function"
+    },
+    {
+      "path": "[23].data.event.response.tools[0].description",
+      "norm": "[*].data.event.response.tools[*].description",
+      "value": "Echoes the input message back as text."
+    },
+    {
+      "path": "[23].data.event.response.tools[0].output_schema",
+      "norm": "[*].data.event.response.tools[*].output_schema",
+      "value": null
+    },
+    {
+      "path": "[23].data.event.response.tools[0].parameters.type",
+      "norm": "[*].data.event.response.tools[*].parameters.type",
+      "value": "object"
+    },
+    {
+      "path": "[23].data.event.response.tools[0].parameters.properties.message.description",
+      "norm": "[*].data.event.response.tools[*].parameters.properties.message.description",
+      "value": "The text to echo"
+    },
+    {
+      "path": "[23].data.event.response.tools[0].parameters.properties.message.type",
+      "norm": "[*].data.event.response.tools[*].parameters.properties.message.type",
+      "value": "string"
+    },
+    {
+      "path": "[23].data.event.response.tools[0].parameters.$schema",
+      "norm": "[*].data.event.response.tools[*].parameters.$schema",
+      "value": "http://json-schema.org/draft-07/schema#"
+    },
+    {
+      "path": "[23].data.event.response.tools[0].parameters.additionalProperties",
+      "norm": "[*].data.event.response.tools[*].parameters.additionalProperties",
+      "value": true
+    },
+    {
+      "path": "[23].data.event.response.tools[0].strict",
+      "norm": "[*].data.event.response.tools[*].strict",
+      "value": false
+    },
+    {
+      "path": "[23].data.event.response.top_logprobs",
+      "norm": "[*].data.event.response.top_logprobs",
+      "value": 0
+    },
+    {
+      "path": "[23].data.event.response.top_p",
+      "norm": "[*].data.event.response.top_p",
+      "value": 0.98
+    },
+    {
+      "path": "[23].data.event.response.truncation",
+      "norm": "[*].data.event.response.truncation",
+      "value": "disabled"
+    },
+    {
+      "path": "[23].data.event.response.usage",
+      "norm": "[*].data.event.response.usage",
+      "value": null
+    },
+    {
+      "path": "[23].data.event.response.user",
+      "norm": "[*].data.event.response.user",
+      "value": null
+    },
+    {
+      "path": "[23].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[23].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[23].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[24].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[24].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.output_item.added"
+    },
+    {
+      "path": "[24].data.event.item.status",
+      "norm": "[*].data.event.item.status",
+      "value": "in_progress"
+    },
+    {
+      "path": "[24].data.event.item.phase",
+      "norm": "[*].data.event.item.phase",
+      "value": "final_answer"
+    },
+    {
+      "path": "[24].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[24].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[24].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[24].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[25].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[25].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.content_part.added"
+    },
+    {
+      "path": "[25].data.event.content_index",
+      "norm": "[*].data.event.content_index",
+      "value": 0
+    },
+    {
+      "path": "[25].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[25].data.event.part.type",
+      "norm": "[*].data.event.part.type",
+      "value": "output_text"
+    },
+    {
+      "path": "[25].data.event.part.text",
+      "norm": "[*].data.event.part.text",
+      "value": ""
+    },
+    {
+      "path": "[25].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[25].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[25].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[26].data.type",
+      "norm": "[*].data.type",
+      "value": "output_text_delta"
+    },
+    {
+      "path": "[26].data.providerData.type",
+      "norm": "[*].data.providerData.type",
+      "value": "response.output_text.delta"
+    },
+    {
+      "path": "[26].data.providerData.content_index",
+      "norm": "[*].data.providerData.content_index",
+      "value": 0
+    },
+    {
+      "path": "[26].data.providerData.obfuscation",
+      "norm": "[*].data.providerData.obfuscation",
+      "value": "yPdeh1y4M8ycQ"
+    },
+    {
+      "path": "[26].data.providerData.output_index",
+      "norm": "[*].data.providerData.output_index",
+      "value": 0
+    },
+    {
+      "path": "[26].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[27].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[27].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.output_text.delta"
+    },
+    {
+      "path": "[27].data.event.content_index",
+      "norm": "[*].data.event.content_index",
+      "value": 0
+    },
+    {
+      "path": "[27].data.event.obfuscation",
+      "norm": "[*].data.event.obfuscation",
+      "value": "yPdeh1y4M8ycQ"
+    },
+    {
+      "path": "[27].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[27].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[27].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[27].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[28].data.type",
+      "norm": "[*].data.type",
+      "value": "output_text_delta"
+    },
+    {
+      "path": "[28].data.providerData.type",
+      "norm": "[*].data.providerData.type",
+      "value": "response.output_text.delta"
+    },
+    {
+      "path": "[28].data.providerData.content_index",
+      "norm": "[*].data.providerData.content_index",
+      "value": 0
+    },
+    {
+      "path": "[28].data.providerData.obfuscation",
+      "norm": "[*].data.providerData.obfuscation",
+      "value": "B8WVfHYM"
+    },
+    {
+      "path": "[28].data.providerData.output_index",
+      "norm": "[*].data.providerData.output_index",
+      "value": 0
+    },
+    {
+      "path": "[28].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[29].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[29].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.output_text.delta"
+    },
+    {
+      "path": "[29].data.event.content_index",
+      "norm": "[*].data.event.content_index",
+      "value": 0
+    },
+    {
+      "path": "[29].data.event.obfuscation",
+      "norm": "[*].data.event.obfuscation",
+      "value": "B8WVfHYM"
+    },
+    {
+      "path": "[29].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[29].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[29].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[29].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[30].data.type",
+      "norm": "[*].data.type",
+      "value": "output_text_delta"
+    },
+    {
+      "path": "[30].data.providerData.type",
+      "norm": "[*].data.providerData.type",
+      "value": "response.output_text.delta"
+    },
+    {
+      "path": "[30].data.providerData.content_index",
+      "norm": "[*].data.providerData.content_index",
+      "value": 0
+    },
+    {
+      "path": "[30].data.providerData.obfuscation",
+      "norm": "[*].data.providerData.obfuscation",
+      "value": "yGWgzL6lhIUK"
+    },
+    {
+      "path": "[30].data.providerData.output_index",
+      "norm": "[*].data.providerData.output_index",
+      "value": 0
+    },
+    {
+      "path": "[30].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[31].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[31].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.output_text.delta"
+    },
+    {
+      "path": "[31].data.event.content_index",
+      "norm": "[*].data.event.content_index",
+      "value": 0
+    },
+    {
+      "path": "[31].data.event.obfuscation",
+      "norm": "[*].data.event.obfuscation",
+      "value": "yGWgzL6lhIUK"
+    },
+    {
+      "path": "[31].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[31].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[31].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[31].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[32].data.type",
+      "norm": "[*].data.type",
+      "value": "output_text_delta"
+    },
+    {
+      "path": "[32].data.providerData.type",
+      "norm": "[*].data.providerData.type",
+      "value": "response.output_text.delta"
+    },
+    {
+      "path": "[32].data.providerData.content_index",
+      "norm": "[*].data.providerData.content_index",
+      "value": 0
+    },
+    {
+      "path": "[32].data.providerData.obfuscation",
+      "norm": "[*].data.providerData.obfuscation",
+      "value": "YgGSB2OxsN0RU6"
+    },
+    {
+      "path": "[32].data.providerData.output_index",
+      "norm": "[*].data.providerData.output_index",
+      "value": 0
+    },
+    {
+      "path": "[32].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[33].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[33].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.output_text.delta"
+    },
+    {
+      "path": "[33].data.event.content_index",
+      "norm": "[*].data.event.content_index",
+      "value": 0
+    },
+    {
+      "path": "[33].data.event.obfuscation",
+      "norm": "[*].data.event.obfuscation",
+      "value": "YgGSB2OxsN0RU6"
+    },
+    {
+      "path": "[33].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[33].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[33].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[33].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[34].data.type",
+      "norm": "[*].data.type",
+      "value": "output_text_delta"
+    },
+    {
+      "path": "[34].data.providerData.type",
+      "norm": "[*].data.providerData.type",
+      "value": "response.output_text.delta"
+    },
+    {
+      "path": "[34].data.providerData.content_index",
+      "norm": "[*].data.providerData.content_index",
+      "value": 0
+    },
+    {
+      "path": "[34].data.providerData.obfuscation",
+      "norm": "[*].data.providerData.obfuscation",
+      "value": "hAPTuvGrgHo6iw"
+    },
+    {
+      "path": "[34].data.providerData.output_index",
+      "norm": "[*].data.providerData.output_index",
+      "value": 0
+    },
+    {
+      "path": "[34].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[35].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[35].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.output_text.delta"
+    },
+    {
+      "path": "[35].data.event.content_index",
+      "norm": "[*].data.event.content_index",
+      "value": 0
+    },
+    {
+      "path": "[35].data.event.obfuscation",
+      "norm": "[*].data.event.obfuscation",
+      "value": "hAPTuvGrgHo6iw"
+    },
+    {
+      "path": "[35].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[35].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[35].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[35].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[36].data.type",
+      "norm": "[*].data.type",
+      "value": "output_text_delta"
+    },
+    {
+      "path": "[36].data.providerData.type",
+      "norm": "[*].data.providerData.type",
+      "value": "response.output_text.delta"
+    },
+    {
+      "path": "[36].data.providerData.content_index",
+      "norm": "[*].data.providerData.content_index",
+      "value": 0
+    },
+    {
+      "path": "[36].data.providerData.obfuscation",
+      "norm": "[*].data.providerData.obfuscation",
+      "value": "PBASqBFRkebsfo"
+    },
+    {
+      "path": "[36].data.providerData.output_index",
+      "norm": "[*].data.providerData.output_index",
+      "value": 0
+    },
+    {
+      "path": "[36].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[37].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[37].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.output_text.delta"
+    },
+    {
+      "path": "[37].data.event.content_index",
+      "norm": "[*].data.event.content_index",
+      "value": 0
+    },
+    {
+      "path": "[37].data.event.obfuscation",
+      "norm": "[*].data.event.obfuscation",
+      "value": "PBASqBFRkebsfo"
+    },
+    {
+      "path": "[37].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[37].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[37].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[37].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[38].data.type",
+      "norm": "[*].data.type",
+      "value": "output_text_delta"
+    },
+    {
+      "path": "[38].data.providerData.type",
+      "norm": "[*].data.providerData.type",
+      "value": "response.output_text.delta"
+    },
+    {
+      "path": "[38].data.providerData.content_index",
+      "norm": "[*].data.providerData.content_index",
+      "value": 0
+    },
+    {
+      "path": "[38].data.providerData.obfuscation",
+      "norm": "[*].data.providerData.obfuscation",
+      "value": "BJ1tSyIqpFqc6O"
+    },
+    {
+      "path": "[38].data.providerData.output_index",
+      "norm": "[*].data.providerData.output_index",
+      "value": 0
+    },
+    {
+      "path": "[38].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[39].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[39].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.output_text.delta"
+    },
+    {
+      "path": "[39].data.event.content_index",
+      "norm": "[*].data.event.content_index",
+      "value": 0
+    },
+    {
+      "path": "[39].data.event.obfuscation",
+      "norm": "[*].data.event.obfuscation",
+      "value": "BJ1tSyIqpFqc6O"
+    },
+    {
+      "path": "[39].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[39].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[39].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[39].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[40].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[40].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.output_text.done"
+    },
+    {
+      "path": "[40].data.event.content_index",
+      "norm": "[*].data.event.content_index",
+      "value": 0
+    },
+    {
+      "path": "[40].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[40].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[40].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[40].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[41].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[41].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.content_part.done"
+    },
+    {
+      "path": "[41].data.event.content_index",
+      "norm": "[*].data.event.content_index",
+      "value": 0
+    },
+    {
+      "path": "[41].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[41].data.event.part.type",
+      "norm": "[*].data.event.part.type",
+      "value": "output_text"
+    },
+    {
+      "path": "[41].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[41].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[41].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[42].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[42].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.output_item.done"
+    },
+    {
+      "path": "[42].data.event.item.status",
+      "norm": "[*].data.event.item.status",
+      "value": "completed"
+    },
+    {
+      "path": "[42].data.event.item.content[0].type",
+      "norm": "[*].data.event.item.content[*].type",
+      "value": "output_text"
+    },
+    {
+      "path": "[42].data.event.item.phase",
+      "norm": "[*].data.event.item.phase",
+      "value": "final_answer"
+    },
+    {
+      "path": "[42].data.event.output_index",
+      "norm": "[*].data.event.output_index",
+      "value": 0
+    },
+    {
+      "path": "[42].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[42].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[42].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[43].data.type",
+      "norm": "[*].data.type",
+      "value": "response_done"
+    },
+    {
+      "path": "[43].data.response.id",
+      "norm": "[*].data.response.id",
+      "value": "resp_07825c108fedd028006a6092d4965c8198bf4ac2608f19627b"
+    },
+    {
+      "path": "[43].data.response.requestId",
+      "norm": "[*].data.response.requestId",
+      "value": "req_e1e242ce1c0f4eabba5d23d841c0b4e4"
+    },
+    {
+      "path": "[43].data.response.output[0].content[0].type",
+      "norm": "[*].data.response.output[*].content[*].type",
+      "value": "output_text"
+    },
+    {
+      "path": "[43].data.response.output[0].status",
+      "norm": "[*].data.response.output[*].status",
+      "value": "completed"
+    },
+    {
+      "path": "[43].data.response.output[0].providerData.phase",
+      "norm": "[*].data.response.output[*].providerData.phase",
+      "value": "final_answer"
+    },
+    {
+      "path": "[43].data.response.usage.inputTokensDetails.cache_write_tokens",
+      "norm": "[*].data.response.usage.inputTokensDetails.cache_write_tokens",
+      "value": 0
+    },
+    {
+      "path": "[43].data.response.usage.inputTokensDetails.cached_tokens",
+      "norm": "[*].data.response.usage.inputTokensDetails.cached_tokens",
+      "value": 0
+    },
+    {
+      "path": "[43].data.response.usage.outputTokensDetails.reasoning_tokens",
+      "norm": "[*].data.response.usage.outputTokensDetails.reasoning_tokens",
+      "value": 0
+    },
+    {
+      "path": "[43].data.response.usage.requestUsageEntries[0].inputTokensDetails.cache_write_tokens",
+      "norm": "[*].data.response.usage.requestUsageEntries[*].inputTokensDetails.cache_write_tokens",
+      "value": 0
+    },
+    {
+      "path": "[43].data.response.usage.requestUsageEntries[0].inputTokensDetails.cached_tokens",
+      "norm": "[*].data.response.usage.requestUsageEntries[*].inputTokensDetails.cached_tokens",
+      "value": 0
+    },
+    {
+      "path": "[43].data.response.usage.requestUsageEntries[0].outputTokensDetails.reasoning_tokens",
+      "norm": "[*].data.response.usage.requestUsageEntries[*].outputTokensDetails.reasoning_tokens",
+      "value": 0
+    },
+    {
+      "path": "[43].data.response.usage.requestUsageEntries[0].endpoint",
+      "norm": "[*].data.response.usage.requestUsageEntries[*].endpoint",
+      "value": "responses.create"
+    },
+    {
+      "path": "[43].data.response.providerData.object",
+      "norm": "[*].data.response.providerData.object",
+      "value": "response"
+    },
+    {
+      "path": "[43].data.response.providerData.created_at",
+      "norm": "[*].data.response.providerData.created_at",
+      "value": 1784713940
+    },
+    {
+      "path": "[43].data.response.providerData.status",
+      "norm": "[*].data.response.providerData.status",
+      "value": "completed"
+    },
+    {
+      "path": "[43].data.response.providerData.background",
+      "norm": "[*].data.response.providerData.background",
+      "value": false
+    },
+    {
+      "path": "[43].data.response.providerData.completed_at",
+      "norm": "[*].data.response.providerData.completed_at",
+      "value": 1784713941
+    },
+    {
+      "path": "[43].data.response.providerData.error",
+      "norm": "[*].data.response.providerData.error",
+      "value": null
+    },
+    {
+      "path": "[43].data.response.providerData.frequency_penalty",
+      "norm": "[*].data.response.providerData.frequency_penalty",
+      "value": 0
+    },
+    {
+      "path": "[43].data.response.providerData.incomplete_details",
+      "norm": "[*].data.response.providerData.incomplete_details",
+      "value": null
+    },
+    {
+      "path": "[43].data.response.providerData.instructions",
+      "norm": "[*].data.response.providerData.instructions",
+      "value": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory."
+    },
+    {
+      "path": "[43].data.response.providerData.max_output_tokens",
+      "norm": "[*].data.response.providerData.max_output_tokens",
+      "value": null
+    },
+    {
+      "path": "[43].data.response.providerData.max_tool_calls",
+      "norm": "[*].data.response.providerData.max_tool_calls",
+      "value": null
+    },
+    {
+      "path": "[43].data.response.providerData.model",
+      "norm": "[*].data.response.providerData.model",
+      "value": "gpt-5.6-sol"
+    },
+    {
+      "path": "[43].data.response.providerData.moderation",
+      "norm": "[*].data.response.providerData.moderation",
+      "value": null
+    },
+    {
+      "path": "[43].data.response.providerData.parallel_tool_calls",
+      "norm": "[*].data.response.providerData.parallel_tool_calls",
+      "value": true
+    },
+    {
+      "path": "[43].data.response.providerData.presence_penalty",
+      "norm": "[*].data.response.providerData.presence_penalty",
+      "value": 0
+    },
+    {
+      "path": "[43].data.response.providerData.previous_response_id",
+      "norm": "[*].data.response.providerData.previous_response_id",
+      "value": null
+    },
+    {
+      "path": "[43].data.response.providerData.prompt_cache_key",
+      "norm": "[*].data.response.providerData.prompt_cache_key",
+      "value": null
+    },
+    {
+      "path": "[43].data.response.providerData.prompt_cache_retention",
+      "norm": "[*].data.response.providerData.prompt_cache_retention",
+      "value": "24h"
+    },
+    {
+      "path": "[43].data.response.providerData.reasoning.context",
+      "norm": "[*].data.response.providerData.reasoning.context",
+      "value": "all_turns"
+    },
+    {
+      "path": "[43].data.response.providerData.reasoning.effort",
+      "norm": "[*].data.response.providerData.reasoning.effort",
+      "value": "none"
+    },
+    {
+      "path": "[43].data.response.providerData.reasoning.mode",
+      "norm": "[*].data.response.providerData.reasoning.mode",
+      "value": "standard"
+    },
+    {
+      "path": "[43].data.response.providerData.reasoning.summary",
+      "norm": "[*].data.response.providerData.reasoning.summary",
+      "value": null
+    },
+    {
+      "path": "[43].data.response.providerData.safety_identifier",
+      "norm": "[*].data.response.providerData.safety_identifier",
+      "value": null
+    },
+    {
+      "path": "[43].data.response.providerData.service_tier",
+      "norm": "[*].data.response.providerData.service_tier",
+      "value": "default"
+    },
+    {
+      "path": "[43].data.response.providerData.store",
+      "norm": "[*].data.response.providerData.store",
+      "value": true
+    },
+    {
+      "path": "[43].data.response.providerData.text.verbosity",
+      "norm": "[*].data.response.providerData.text.verbosity",
+      "value": "low"
+    },
+    {
+      "path": "[43].data.response.providerData.tool_choice",
+      "norm": "[*].data.response.providerData.tool_choice",
+      "value": "auto"
+    },
+    {
+      "path": "[43].data.response.providerData.tool_usage.image_gen.input_tokens",
+      "norm": "[*].data.response.providerData.tool_usage.image_gen.input_tokens",
+      "value": 0
+    },
+    {
+      "path": "[43].data.response.providerData.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "norm": "[*].data.response.providerData.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[43].data.response.providerData.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "norm": "[*].data.response.providerData.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[43].data.response.providerData.tool_usage.image_gen.output_tokens",
+      "norm": "[*].data.response.providerData.tool_usage.image_gen.output_tokens",
+      "value": 0
+    },
+    {
+      "path": "[43].data.response.providerData.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "norm": "[*].data.response.providerData.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[43].data.response.providerData.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "norm": "[*].data.response.providerData.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[43].data.response.providerData.tool_usage.image_gen.total_tokens",
+      "norm": "[*].data.response.providerData.tool_usage.image_gen.total_tokens",
+      "value": 0
+    },
+    {
+      "path": "[43].data.response.providerData.tool_usage.web_search.num_requests",
+      "norm": "[*].data.response.providerData.tool_usage.web_search.num_requests",
+      "value": 0
+    },
+    {
+      "path": "[43].data.response.providerData.tools[0].type",
+      "norm": "[*].data.response.providerData.tools[*].type",
+      "value": "function"
+    },
+    {
+      "path": "[43].data.response.providerData.tools[0].description",
+      "norm": "[*].data.response.providerData.tools[*].description",
+      "value": "Echoes the input message back as text."
+    },
+    {
+      "path": "[43].data.response.providerData.tools[0].output_schema",
+      "norm": "[*].data.response.providerData.tools[*].output_schema",
+      "value": null
+    },
+    {
+      "path": "[43].data.response.providerData.tools[0].parameters.type",
+      "norm": "[*].data.response.providerData.tools[*].parameters.type",
+      "value": "object"
+    },
+    {
+      "path": "[43].data.response.providerData.tools[0].parameters.properties.message.description",
+      "norm": "[*].data.response.providerData.tools[*].parameters.properties.message.description",
+      "value": "The text to echo"
+    },
+    {
+      "path": "[43].data.response.providerData.tools[0].parameters.properties.message.type",
+      "norm": "[*].data.response.providerData.tools[*].parameters.properties.message.type",
+      "value": "string"
+    },
+    {
+      "path": "[43].data.response.providerData.tools[0].parameters.$schema",
+      "norm": "[*].data.response.providerData.tools[*].parameters.$schema",
+      "value": "http://json-schema.org/draft-07/schema#"
+    },
+    {
+      "path": "[43].data.response.providerData.tools[0].parameters.additionalProperties",
+      "norm": "[*].data.response.providerData.tools[*].parameters.additionalProperties",
+      "value": true
+    },
+    {
+      "path": "[43].data.response.providerData.tools[0].strict",
+      "norm": "[*].data.response.providerData.tools[*].strict",
+      "value": false
+    },
+    {
+      "path": "[43].data.response.providerData.top_logprobs",
+      "norm": "[*].data.response.providerData.top_logprobs",
+      "value": 0
+    },
+    {
+      "path": "[43].data.response.providerData.top_p",
+      "norm": "[*].data.response.providerData.top_p",
+      "value": 0.98
+    },
+    {
+      "path": "[43].data.response.providerData.truncation",
+      "norm": "[*].data.response.providerData.truncation",
+      "value": "disabled"
+    },
+    {
+      "path": "[43].data.response.providerData.user",
+      "norm": "[*].data.response.providerData.user",
+      "value": null
+    },
+    {
+      "path": "[43].data.providerData.type",
+      "norm": "[*].data.providerData.type",
+      "value": "response.completed"
+    },
+    {
+      "path": "[43].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[44].data.type",
+      "norm": "[*].data.type",
+      "value": "model"
+    },
+    {
+      "path": "[44].data.event.type",
+      "norm": "[*].data.event.type",
+      "value": "response.completed"
+    },
+    {
+      "path": "[44].data.event.response.id",
+      "norm": "[*].data.event.response.id",
+      "value": "resp_07825c108fedd028006a6092d4965c8198bf4ac2608f19627b"
+    },
+    {
+      "path": "[44].data.event.response.object",
+      "norm": "[*].data.event.response.object",
+      "value": "response"
+    },
+    {
+      "path": "[44].data.event.response.created_at",
+      "norm": "[*].data.event.response.created_at",
+      "value": 1784713940
+    },
+    {
+      "path": "[44].data.event.response.status",
+      "norm": "[*].data.event.response.status",
+      "value": "completed"
+    },
+    {
+      "path": "[44].data.event.response.background",
+      "norm": "[*].data.event.response.background",
+      "value": false
+    },
+    {
+      "path": "[44].data.event.response.completed_at",
+      "norm": "[*].data.event.response.completed_at",
+      "value": 1784713941
+    },
+    {
+      "path": "[44].data.event.response.error",
+      "norm": "[*].data.event.response.error",
+      "value": null
+    },
+    {
+      "path": "[44].data.event.response.frequency_penalty",
+      "norm": "[*].data.event.response.frequency_penalty",
+      "value": 0
+    },
+    {
+      "path": "[44].data.event.response.incomplete_details",
+      "norm": "[*].data.event.response.incomplete_details",
+      "value": null
+    },
+    {
+      "path": "[44].data.event.response.instructions",
+      "norm": "[*].data.event.response.instructions",
+      "value": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt56'. Do not answer from memory."
+    },
+    {
+      "path": "[44].data.event.response.max_output_tokens",
+      "norm": "[*].data.event.response.max_output_tokens",
+      "value": null
+    },
+    {
+      "path": "[44].data.event.response.max_tool_calls",
+      "norm": "[*].data.event.response.max_tool_calls",
+      "value": null
+    },
+    {
+      "path": "[44].data.event.response.model",
+      "norm": "[*].data.event.response.model",
+      "value": "gpt-5.6-sol"
+    },
+    {
+      "path": "[44].data.event.response.moderation",
+      "norm": "[*].data.event.response.moderation",
+      "value": null
+    },
+    {
+      "path": "[44].data.event.response.output[0].status",
+      "norm": "[*].data.event.response.output[*].status",
+      "value": "completed"
+    },
+    {
+      "path": "[44].data.event.response.output[0].content[0].type",
+      "norm": "[*].data.event.response.output[*].content[*].type",
+      "value": "output_text"
+    },
+    {
+      "path": "[44].data.event.response.output[0].phase",
+      "norm": "[*].data.event.response.output[*].phase",
+      "value": "final_answer"
+    },
+    {
+      "path": "[44].data.event.response.parallel_tool_calls",
+      "norm": "[*].data.event.response.parallel_tool_calls",
+      "value": true
+    },
+    {
+      "path": "[44].data.event.response.presence_penalty",
+      "norm": "[*].data.event.response.presence_penalty",
+      "value": 0
+    },
+    {
+      "path": "[44].data.event.response.previous_response_id",
+      "norm": "[*].data.event.response.previous_response_id",
+      "value": null
+    },
+    {
+      "path": "[44].data.event.response.prompt_cache_key",
+      "norm": "[*].data.event.response.prompt_cache_key",
+      "value": null
+    },
+    {
+      "path": "[44].data.event.response.prompt_cache_retention",
+      "norm": "[*].data.event.response.prompt_cache_retention",
+      "value": "24h"
+    },
+    {
+      "path": "[44].data.event.response.reasoning.context",
+      "norm": "[*].data.event.response.reasoning.context",
+      "value": "all_turns"
+    },
+    {
+      "path": "[44].data.event.response.reasoning.effort",
+      "norm": "[*].data.event.response.reasoning.effort",
+      "value": "none"
+    },
+    {
+      "path": "[44].data.event.response.reasoning.mode",
+      "norm": "[*].data.event.response.reasoning.mode",
+      "value": "standard"
+    },
+    {
+      "path": "[44].data.event.response.reasoning.summary",
+      "norm": "[*].data.event.response.reasoning.summary",
+      "value": null
+    },
+    {
+      "path": "[44].data.event.response.safety_identifier",
+      "norm": "[*].data.event.response.safety_identifier",
+      "value": null
+    },
+    {
+      "path": "[44].data.event.response.service_tier",
+      "norm": "[*].data.event.response.service_tier",
+      "value": "default"
+    },
+    {
+      "path": "[44].data.event.response.store",
+      "norm": "[*].data.event.response.store",
+      "value": true
+    },
+    {
+      "path": "[44].data.event.response.text.verbosity",
+      "norm": "[*].data.event.response.text.verbosity",
+      "value": "low"
+    },
+    {
+      "path": "[44].data.event.response.tool_choice",
+      "norm": "[*].data.event.response.tool_choice",
+      "value": "auto"
+    },
+    {
+      "path": "[44].data.event.response.tool_usage.image_gen.input_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.input_tokens",
+      "value": 0
+    },
+    {
+      "path": "[44].data.event.response.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.input_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[44].data.event.response.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.input_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[44].data.event.response.tool_usage.image_gen.output_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.output_tokens",
+      "value": 0
+    },
+    {
+      "path": "[44].data.event.response.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.output_tokens_details.image_tokens",
+      "value": 0
+    },
+    {
+      "path": "[44].data.event.response.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.output_tokens_details.text_tokens",
+      "value": 0
+    },
+    {
+      "path": "[44].data.event.response.tool_usage.image_gen.total_tokens",
+      "norm": "[*].data.event.response.tool_usage.image_gen.total_tokens",
+      "value": 0
+    },
+    {
+      "path": "[44].data.event.response.tool_usage.web_search.num_requests",
+      "norm": "[*].data.event.response.tool_usage.web_search.num_requests",
+      "value": 0
+    },
+    {
+      "path": "[44].data.event.response.tools[0].type",
+      "norm": "[*].data.event.response.tools[*].type",
+      "value": "function"
+    },
+    {
+      "path": "[44].data.event.response.tools[0].description",
+      "norm": "[*].data.event.response.tools[*].description",
+      "value": "Echoes the input message back as text."
+    },
+    {
+      "path": "[44].data.event.response.tools[0].output_schema",
+      "norm": "[*].data.event.response.tools[*].output_schema",
+      "value": null
+    },
+    {
+      "path": "[44].data.event.response.tools[0].parameters.type",
+      "norm": "[*].data.event.response.tools[*].parameters.type",
+      "value": "object"
+    },
+    {
+      "path": "[44].data.event.response.tools[0].parameters.properties.message.description",
+      "norm": "[*].data.event.response.tools[*].parameters.properties.message.description",
+      "value": "The text to echo"
+    },
+    {
+      "path": "[44].data.event.response.tools[0].parameters.properties.message.type",
+      "norm": "[*].data.event.response.tools[*].parameters.properties.message.type",
+      "value": "string"
+    },
+    {
+      "path": "[44].data.event.response.tools[0].parameters.$schema",
+      "norm": "[*].data.event.response.tools[*].parameters.$schema",
+      "value": "http://json-schema.org/draft-07/schema#"
+    },
+    {
+      "path": "[44].data.event.response.tools[0].parameters.additionalProperties",
+      "norm": "[*].data.event.response.tools[*].parameters.additionalProperties",
+      "value": true
+    },
+    {
+      "path": "[44].data.event.response.tools[0].strict",
+      "norm": "[*].data.event.response.tools[*].strict",
+      "value": false
+    },
+    {
+      "path": "[44].data.event.response.top_logprobs",
+      "norm": "[*].data.event.response.top_logprobs",
+      "value": 0
+    },
+    {
+      "path": "[44].data.event.response.top_p",
+      "norm": "[*].data.event.response.top_p",
+      "value": 0.98
+    },
+    {
+      "path": "[44].data.event.response.truncation",
+      "norm": "[*].data.event.response.truncation",
+      "value": "disabled"
+    },
+    {
+      "path": "[44].data.event.response.usage.input_tokens_details.cache_write_tokens",
+      "norm": "[*].data.event.response.usage.input_tokens_details.cache_write_tokens",
+      "value": 0
+    },
+    {
+      "path": "[44].data.event.response.usage.input_tokens_details.cached_tokens",
+      "norm": "[*].data.event.response.usage.input_tokens_details.cached_tokens",
+      "value": 0
+    },
+    {
+      "path": "[44].data.event.response.usage.output_tokens_details.reasoning_tokens",
+      "norm": "[*].data.event.response.usage.output_tokens_details.reasoning_tokens",
+      "value": 0
+    },
+    {
+      "path": "[44].data.event.response.user",
+      "norm": "[*].data.event.response.user",
+      "value": null
+    },
+    {
+      "path": "[44].data.providerData.rawModelEventSource",
+      "norm": "[*].data.providerData.rawModelEventSource",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[44].source",
+      "norm": "[*].source",
+      "value": "openai-responses"
+    },
+    {
+      "path": "[44].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[45].name",
+      "norm": "[*].name",
+      "value": "message_output_created"
+    },
+    {
+      "path": "[45].item.type",
+      "norm": "[*].item.type",
+      "value": "message_output_item"
+    },
+    {
+      "path": "[45].item.rawItem.providerData.phase",
+      "norm": "[*].item.rawItem.providerData.phase",
+      "value": "final_answer"
+    },
+    {
+      "path": "[45].item.rawItem.status",
+      "norm": "[*].item.rawItem.status",
+      "value": "completed"
+    },
+    {
+      "path": "[45].item.rawItem.content[0].type",
+      "norm": "[*].item.rawItem.content[*].type",
+      "value": "output_text"
+    },
+    {
+      "path": "[45].item.agent.name",
+      "norm": "[*].item.agent.name",
+      "value": "spike"
+    },
+    {
+      "path": "[45].type",
+      "norm": "[*].type",
+      "value": "run_item_stream_event"
+    }
+  ],
+  "newFields": [
+    "[*].data.type",
+    "[*].data.providerData.type",
+    "[*].data.providerData.response.id",
+    "[*].data.providerData.response.object",
+    "[*].data.providerData.response.created_at",
+    "[*].data.providerData.response.status",
+    "[*].data.providerData.response.background",
+    "[*].data.providerData.response.completed_at",
+    "[*].data.providerData.response.error",
+    "[*].data.providerData.response.frequency_penalty",
+    "[*].data.providerData.response.incomplete_details",
+    "[*].data.providerData.response.instructions",
+    "[*].data.providerData.response.max_output_tokens",
+    "[*].data.providerData.response.max_tool_calls",
+    "[*].data.providerData.response.model",
+    "[*].data.providerData.response.moderation",
+    "[*].data.providerData.response.parallel_tool_calls",
+    "[*].data.providerData.response.presence_penalty",
+    "[*].data.providerData.response.previous_response_id",
+    "[*].data.providerData.response.prompt_cache_key",
+    "[*].data.providerData.response.prompt_cache_retention",
+    "[*].data.providerData.response.reasoning.context",
+    "[*].data.providerData.response.reasoning.effort",
+    "[*].data.providerData.response.reasoning.mode",
+    "[*].data.providerData.response.reasoning.summary",
+    "[*].data.providerData.response.safety_identifier",
+    "[*].data.providerData.response.service_tier",
+    "[*].data.providerData.response.store",
+    "[*].data.providerData.response.temperature",
+    "[*].data.providerData.response.text.format.type",
+    "[*].data.providerData.response.text.verbosity",
+    "[*].data.providerData.response.tool_choice",
+    "[*].data.providerData.response.tool_usage.image_gen.input_tokens",
+    "[*].data.providerData.response.tool_usage.image_gen.input_tokens_details.image_tokens",
+    "[*].data.providerData.response.tool_usage.image_gen.input_tokens_details.text_tokens",
+    "[*].data.providerData.response.tool_usage.image_gen.output_tokens",
+    "[*].data.providerData.response.tool_usage.image_gen.output_tokens_details.image_tokens",
+    "[*].data.providerData.response.tool_usage.image_gen.output_tokens_details.text_tokens",
+    "[*].data.providerData.response.tool_usage.image_gen.total_tokens",
+    "[*].data.providerData.response.tool_usage.web_search.num_requests",
+    "[*].data.providerData.response.tools[*].type",
+    "[*].data.providerData.response.tools[*].description",
+    "[*].data.providerData.response.tools[*].name",
+    "[*].data.providerData.response.tools[*].output_schema",
+    "[*].data.providerData.response.tools[*].parameters.type",
+    "[*].data.providerData.response.tools[*].parameters.properties.message.description",
+    "[*].data.providerData.response.tools[*].parameters.properties.message.type",
+    "[*].data.providerData.response.tools[*].parameters.$schema",
+    "[*].data.providerData.response.tools[*].parameters.additionalProperties",
+    "[*].data.providerData.response.tools[*].strict",
+    "[*].data.providerData.response.top_logprobs",
+    "[*].data.providerData.response.top_p",
+    "[*].data.providerData.response.truncation",
+    "[*].data.providerData.response.usage",
+    "[*].data.providerData.response.user",
+    "[*].data.providerData.sequence_number",
+    "[*].type",
+    "[*].data.event.type",
+    "[*].data.event.response.id",
+    "[*].data.event.response.object",
+    "[*].data.event.response.created_at",
+    "[*].data.event.response.status",
+    "[*].data.event.response.background",
+    "[*].data.event.response.completed_at",
+    "[*].data.event.response.error",
+    "[*].data.event.response.frequency_penalty",
+    "[*].data.event.response.incomplete_details",
+    "[*].data.event.response.instructions",
+    "[*].data.event.response.max_output_tokens",
+    "[*].data.event.response.max_tool_calls",
+    "[*].data.event.response.model",
+    "[*].data.event.response.moderation",
+    "[*].data.event.response.parallel_tool_calls",
+    "[*].data.event.response.presence_penalty",
+    "[*].data.event.response.previous_response_id",
+    "[*].data.event.response.prompt_cache_key",
+    "[*].data.event.response.prompt_cache_retention",
+    "[*].data.event.response.reasoning.context",
+    "[*].data.event.response.reasoning.effort",
+    "[*].data.event.response.reasoning.mode",
+    "[*].data.event.response.reasoning.summary",
+    "[*].data.event.response.safety_identifier",
+    "[*].data.event.response.service_tier",
+    "[*].data.event.response.store",
+    "[*].data.event.response.temperature",
+    "[*].data.event.response.text.format.type",
+    "[*].data.event.response.text.verbosity",
+    "[*].data.event.response.tool_choice",
+    "[*].data.event.response.tool_usage.image_gen.input_tokens",
+    "[*].data.event.response.tool_usage.image_gen.input_tokens_details.image_tokens",
+    "[*].data.event.response.tool_usage.image_gen.input_tokens_details.text_tokens",
+    "[*].data.event.response.tool_usage.image_gen.output_tokens",
+    "[*].data.event.response.tool_usage.image_gen.output_tokens_details.image_tokens",
+    "[*].data.event.response.tool_usage.image_gen.output_tokens_details.text_tokens",
+    "[*].data.event.response.tool_usage.image_gen.total_tokens",
+    "[*].data.event.response.tool_usage.web_search.num_requests",
+    "[*].data.event.response.tools[*].type",
+    "[*].data.event.response.tools[*].description",
+    "[*].data.event.response.tools[*].name",
+    "[*].data.event.response.tools[*].output_schema",
+    "[*].data.event.response.tools[*].parameters.type",
+    "[*].data.event.response.tools[*].parameters.properties.message.description",
+    "[*].data.event.response.tools[*].parameters.properties.message.type",
+    "[*].data.event.response.tools[*].parameters.$schema",
+    "[*].data.event.response.tools[*].parameters.additionalProperties",
+    "[*].data.event.response.tools[*].strict",
+    "[*].data.event.response.top_logprobs",
+    "[*].data.event.response.top_p",
+    "[*].data.event.response.truncation",
+    "[*].data.event.response.usage",
+    "[*].data.event.response.user",
+    "[*].data.event.sequence_number",
+    "[*].data.providerData.rawModelEventSource",
+    "[*].source",
+    "[*].data.event.item.id",
+    "[*].data.event.item.type",
+    "[*].data.event.item.status",
+    "[*].data.event.item.arguments",
+    "[*].data.event.item.call_id",
+    "[*].data.event.item.name",
+    "[*].data.event.output_index",
+    "[*].data.event.delta",
+    "[*].data.event.item_id",
+    "[*].data.event.obfuscation",
+    "[*].data.event.arguments",
+    "[*].data.response.id",
+    "[*].data.response.requestId",
+    "[*].data.response.output[*].type",
+    "[*].data.response.output[*].id",
+    "[*].data.response.output[*].callId",
+    "[*].data.response.output[*].name",
+    "[*].data.response.output[*].status",
+    "[*].data.response.output[*].arguments",
+    "[*].data.response.output[*].providerData.id",
+    "[*].data.response.output[*].providerData.type",
+    "[*].data.response.usage.inputTokens",
+    "[*].data.response.usage.outputTokens",
+    "[*].data.response.usage.totalTokens",
+    "[*].data.response.usage.inputTokensDetails.cache_write_tokens",
+    "[*].data.response.usage.inputTokensDetails.cached_tokens",
+    "[*].data.response.usage.outputTokensDetails.reasoning_tokens",
+    "[*].data.response.usage.requestUsageEntries[*].inputTokens",
+    "[*].data.response.usage.requestUsageEntries[*].outputTokens",
+    "[*].data.response.usage.requestUsageEntries[*].totalTokens",
+    "[*].data.response.usage.requestUsageEntries[*].inputTokensDetails.cache_write_tokens",
+    "[*].data.response.usage.requestUsageEntries[*].inputTokensDetails.cached_tokens",
+    "[*].data.response.usage.requestUsageEntries[*].outputTokensDetails.reasoning_tokens",
+    "[*].data.response.usage.requestUsageEntries[*].endpoint",
+    "[*].data.response.providerData.object",
+    "[*].data.response.providerData.created_at",
+    "[*].data.response.providerData.status",
+    "[*].data.response.providerData.background",
+    "[*].data.response.providerData.completed_at",
+    "[*].data.response.providerData.error",
+    "[*].data.response.providerData.frequency_penalty",
+    "[*].data.response.providerData.incomplete_details",
+    "[*].data.response.providerData.instructions",
+    "[*].data.response.providerData.max_output_tokens",
+    "[*].data.response.providerData.max_tool_calls",
+    "[*].data.response.providerData.model",
+    "[*].data.response.providerData.moderation",
+    "[*].data.response.providerData.parallel_tool_calls",
+    "[*].data.response.providerData.presence_penalty",
+    "[*].data.response.providerData.previous_response_id",
+    "[*].data.response.providerData.prompt_cache_key",
+    "[*].data.response.providerData.prompt_cache_retention",
+    "[*].data.response.providerData.reasoning.context",
+    "[*].data.response.providerData.reasoning.effort",
+    "[*].data.response.providerData.reasoning.mode",
+    "[*].data.response.providerData.reasoning.summary",
+    "[*].data.response.providerData.safety_identifier",
+    "[*].data.response.providerData.service_tier",
+    "[*].data.response.providerData.store",
+    "[*].data.response.providerData.temperature",
+    "[*].data.response.providerData.text.format.type",
+    "[*].data.response.providerData.text.verbosity",
+    "[*].data.response.providerData.tool_choice",
+    "[*].data.response.providerData.tool_usage.image_gen.input_tokens",
+    "[*].data.response.providerData.tool_usage.image_gen.input_tokens_details.image_tokens",
+    "[*].data.response.providerData.tool_usage.image_gen.input_tokens_details.text_tokens",
+    "[*].data.response.providerData.tool_usage.image_gen.output_tokens",
+    "[*].data.response.providerData.tool_usage.image_gen.output_tokens_details.image_tokens",
+    "[*].data.response.providerData.tool_usage.image_gen.output_tokens_details.text_tokens",
+    "[*].data.response.providerData.tool_usage.image_gen.total_tokens",
+    "[*].data.response.providerData.tool_usage.web_search.num_requests",
+    "[*].data.response.providerData.tools[*].type",
+    "[*].data.response.providerData.tools[*].description",
+    "[*].data.response.providerData.tools[*].name",
+    "[*].data.response.providerData.tools[*].output_schema",
+    "[*].data.response.providerData.tools[*].parameters.type",
+    "[*].data.response.providerData.tools[*].parameters.properties.message.description",
+    "[*].data.response.providerData.tools[*].parameters.properties.message.type",
+    "[*].data.response.providerData.tools[*].parameters.$schema",
+    "[*].data.response.providerData.tools[*].parameters.additionalProperties",
+    "[*].data.response.providerData.tools[*].strict",
+    "[*].data.response.providerData.top_logprobs",
+    "[*].data.response.providerData.top_p",
+    "[*].data.response.providerData.truncation",
+    "[*].data.response.providerData.user",
+    "[*].data.event.response.output[*].id",
+    "[*].data.event.response.output[*].type",
+    "[*].data.event.response.output[*].status",
+    "[*].data.event.response.output[*].arguments",
+    "[*].data.event.response.output[*].call_id",
+    "[*].data.event.response.output[*].name",
+    "[*].data.event.response.usage.input_tokens",
+    "[*].data.event.response.usage.input_tokens_details.cache_write_tokens",
+    "[*].data.event.response.usage.input_tokens_details.cached_tokens",
+    "[*].data.event.response.usage.output_tokens",
+    "[*].data.event.response.usage.output_tokens_details.reasoning_tokens",
+    "[*].data.event.response.usage.total_tokens",
+    "[*].name",
+    "[*].item.type",
+    "[*].item.rawItem.providerData.id",
+    "[*].item.rawItem.providerData.type",
+    "[*].item.rawItem.id",
+    "[*].item.rawItem.type",
+    "[*].item.rawItem.callId",
+    "[*].item.rawItem.name",
+    "[*].item.rawItem.status",
+    "[*].item.rawItem.arguments",
+    "[*].item.agent.name",
+    "[*].item.rawItem.output[*].type",
+    "[*].item.rawItem.output[*].text",
+    "[*].item.output",
+    "[*].data.event.item.phase",
+    "[*].data.event.item.role",
+    "[*].data.event.content_index",
+    "[*].data.event.part.type",
+    "[*].data.event.part.text",
+    "[*].data.delta",
+    "[*].data.itemId",
+    "[*].data.providerData.content_index",
+    "[*].data.providerData.item_id",
+    "[*].data.providerData.obfuscation",
+    "[*].data.providerData.output_index",
+    "[*].data.event.text",
+    "[*].data.event.item.content[*].type",
+    "[*].data.event.item.content[*].text",
+    "[*].data.response.output[*].role",
+    "[*].data.response.output[*].content[*].type",
+    "[*].data.response.output[*].content[*].text",
+    "[*].data.response.output[*].providerData.phase",
+    "[*].data.event.response.output[*].content[*].type",
+    "[*].data.event.response.output[*].content[*].text",
+    "[*].data.event.response.output[*].phase",
+    "[*].data.event.response.output[*].role",
+    "[*].item.rawItem.providerData.phase",
+    "[*].item.rawItem.role",
+    "[*].item.rawItem.content[*].type",
+    "[*].item.rawItem.content[*].text"
+  ]
 }

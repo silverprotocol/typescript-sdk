@@ -5,9 +5,9 @@
       "providerData": {
         "type": "response.created",
         "response": {
-          "id": "resp_050c417a797e68b0006a54b7437fcc819aa667715e398dd0e4",
+          "id": "resp_07825c108fedd028006a6092d2fd9c8198a73e6f41b6d587cb",
           "object": "response",
-          "created_at": 1783936835,
+          "created_at": 1784713939,
           "status": "in_progress",
           "background": false,
           "completed_at": null,
@@ -99,9 +99,9 @@
       "event": {
         "type": "response.created",
         "response": {
-          "id": "resp_050c417a797e68b0006a54b7437fcc819aa667715e398dd0e4",
+          "id": "resp_07825c108fedd028006a6092d2fd9c8198a73e6f41b6d587cb",
           "object": "response",
-          "created_at": 1783936835,
+          "created_at": 1784713939,
           "status": "in_progress",
           "background": false,
           "completed_at": null,
@@ -197,9 +197,9 @@
       "event": {
         "type": "response.in_progress",
         "response": {
-          "id": "resp_050c417a797e68b0006a54b7437fcc819aa667715e398dd0e4",
+          "id": "resp_07825c108fedd028006a6092d2fd9c8198a73e6f41b6d587cb",
           "object": "response",
-          "created_at": 1783936835,
+          "created_at": 1784713939,
           "status": "in_progress",
           "background": false,
           "completed_at": null,
@@ -295,11 +295,11 @@
       "event": {
         "type": "response.output_item.added",
         "item": {
-          "id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+          "id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
           "type": "function_call",
           "status": "in_progress",
           "arguments": "",
-          "call_id": "call_LuS9cRYR6pmjjvjNgnYUlQVa",
+          "call_id": "call_ddEVj1TXGMUJ85yGw5mK1cCi",
           "name": "echo"
         },
         "output_index": 0,
@@ -318,8 +318,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "{\"",
-        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
-        "obfuscation": "4BIf5HQIlu6NDf",
+        "item_id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
+        "obfuscation": "plNUNQj3pxz8Ay",
         "output_index": 0,
         "sequence_number": 3
       },
@@ -336,8 +336,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "message",
-        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
-        "obfuscation": "sM8CfkaML",
+        "item_id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
+        "obfuscation": "ggygqjd4I",
         "output_index": 0,
         "sequence_number": 4
       },
@@ -354,8 +354,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "\":\"",
-        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
-        "obfuscation": "MxP3qZtjRqDqb",
+        "item_id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
+        "obfuscation": "9jtNmrMrfvMKT",
         "output_index": 0,
         "sequence_number": 5
       },
@@ -372,8 +372,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "con",
-        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
-        "obfuscation": "nZUeHFkuyfh3F",
+        "item_id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
+        "obfuscation": "oKGBBMVwTZypz",
         "output_index": 0,
         "sequence_number": 6
       },
@@ -390,8 +390,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "formance",
-        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
-        "obfuscation": "gxMOf3Y6",
+        "item_id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
+        "obfuscation": "nn9XI9Ha",
         "output_index": 0,
         "sequence_number": 7
       },
@@ -408,8 +408,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "-pro",
-        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
-        "obfuscation": "6mW7MvZfDnpB",
+        "item_id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
+        "obfuscation": "u1gtSxfay1vT",
         "output_index": 0,
         "sequence_number": 8
       },
@@ -426,8 +426,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "be",
-        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
-        "obfuscation": "OONFns5aTsPxI2",
+        "item_id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
+        "obfuscation": "NrPAH0RS8Wa1NJ",
         "output_index": 0,
         "sequence_number": 9
       },
@@ -444,8 +444,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "-g",
-        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
-        "obfuscation": "KJEfgQsDROkvGC",
+        "item_id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
+        "obfuscation": "XoRxQ87AVBiYgL",
         "output_index": 0,
         "sequence_number": 10
       },
@@ -462,8 +462,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "pt",
-        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
-        "obfuscation": "rHfCI0YidUeo63",
+        "item_id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
+        "obfuscation": "SCnTePzZF6W7TH",
         "output_index": 0,
         "sequence_number": 11
       },
@@ -480,8 +480,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "56",
-        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
-        "obfuscation": "Ds8kJWi543VSjL",
+        "item_id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
+        "obfuscation": "RxseyGtiWe80Vi",
         "output_index": 0,
         "sequence_number": 12
       },
@@ -498,8 +498,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "\"}",
-        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
-        "obfuscation": "JLPiHaDRjRPb40",
+        "item_id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
+        "obfuscation": "BCGFB5qd5R3jcZ",
         "output_index": 0,
         "sequence_number": 13
       },
@@ -516,7 +516,7 @@
       "event": {
         "type": "response.function_call_arguments.done",
         "arguments": "{\"message\":\"conformance-probe-gpt56\"}",
-        "item_id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+        "item_id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
         "output_index": 0,
         "sequence_number": 14
       },
@@ -533,11 +533,11 @@
       "event": {
         "type": "response.output_item.done",
         "item": {
-          "id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+          "id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
           "type": "function_call",
           "status": "completed",
           "arguments": "{\"message\":\"conformance-probe-gpt56\"}",
-          "call_id": "call_LuS9cRYR6pmjjvjNgnYUlQVa",
+          "call_id": "call_ddEVj1TXGMUJ85yGw5mK1cCi",
           "name": "echo"
         },
         "output_index": 0,
@@ -554,18 +554,18 @@
     "data": {
       "type": "response_done",
       "response": {
-        "id": "resp_050c417a797e68b0006a54b7437fcc819aa667715e398dd0e4",
-        "requestId": "req_d33dbcca25234bbc8c3b79faa5e85d43",
+        "id": "resp_07825c108fedd028006a6092d2fd9c8198a73e6f41b6d587cb",
+        "requestId": "req_3939402268bd481485977af7a030a983",
         "output": [
           {
             "type": "function_call",
-            "id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
-            "callId": "call_LuS9cRYR6pmjjvjNgnYUlQVa",
+            "id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
+            "callId": "call_ddEVj1TXGMUJ85yGw5mK1cCi",
             "name": "echo",
             "status": "completed",
             "arguments": "{\"message\":\"conformance-probe-gpt56\"}",
             "providerData": {
-              "id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+              "id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
               "type": "function_call"
             }
           }
@@ -599,10 +599,10 @@
         },
         "providerData": {
           "object": "response",
-          "created_at": 1783936835,
+          "created_at": 1784713939,
           "status": "completed",
           "background": false,
-          "completed_at": 1783936839,
+          "completed_at": 1784713940,
           "error": null,
           "frequency_penalty": 0,
           "incomplete_details": null,
@@ -692,12 +692,12 @@
       "event": {
         "type": "response.completed",
         "response": {
-          "id": "resp_050c417a797e68b0006a54b7437fcc819aa667715e398dd0e4",
+          "id": "resp_07825c108fedd028006a6092d2fd9c8198a73e6f41b6d587cb",
           "object": "response",
-          "created_at": 1783936835,
+          "created_at": 1784713939,
           "status": "completed",
           "background": false,
-          "completed_at": 1783936839,
+          "completed_at": 1784713940,
           "error": null,
           "frequency_penalty": 0,
           "incomplete_details": null,
@@ -708,11 +708,11 @@
           "moderation": null,
           "output": [
             {
-              "id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+              "id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
               "type": "function_call",
               "status": "completed",
               "arguments": "{\"message\":\"conformance-probe-gpt56\"}",
-              "call_id": "call_LuS9cRYR6pmjjvjNgnYUlQVa",
+              "call_id": "call_ddEVj1TXGMUJ85yGw5mK1cCi",
               "name": "echo"
             }
           ],
@@ -810,12 +810,12 @@
       "type": "tool_call_item",
       "rawItem": {
         "providerData": {
-          "id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+          "id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
           "type": "function_call"
         },
-        "id": "fc_050c417a797e68b0006a54b7473488819abd50549079c6ae2f",
+        "id": "fc_07825c108fedd028006a6092d410bc81988f2c93c98ef15659",
         "type": "function_call",
-        "callId": "call_LuS9cRYR6pmjjvjNgnYUlQVa",
+        "callId": "call_ddEVj1TXGMUJ85yGw5mK1cCi",
         "name": "echo",
         "status": "completed",
         "arguments": "{\"message\":\"conformance-probe-gpt56\"}"
@@ -833,7 +833,7 @@
       "rawItem": {
         "type": "function_call_result",
         "name": "echo",
-        "callId": "call_LuS9cRYR6pmjjvjNgnYUlQVa",
+        "callId": "call_ddEVj1TXGMUJ85yGw5mK1cCi",
         "status": "completed",
         "output": [
           {
@@ -855,9 +855,9 @@
       "providerData": {
         "type": "response.created",
         "response": {
-          "id": "resp_050c417a797e68b0006a54b747b708819a9eb41151a11d88c4",
+          "id": "resp_07825c108fedd028006a6092d4965c8198bf4ac2608f19627b",
           "object": "response",
-          "created_at": 1783936839,
+          "created_at": 1784713940,
           "status": "in_progress",
           "background": false,
           "completed_at": null,
@@ -949,9 +949,9 @@
       "event": {
         "type": "response.created",
         "response": {
-          "id": "resp_050c417a797e68b0006a54b747b708819a9eb41151a11d88c4",
+          "id": "resp_07825c108fedd028006a6092d4965c8198bf4ac2608f19627b",
           "object": "response",
-          "created_at": 1783936839,
+          "created_at": 1784713940,
           "status": "in_progress",
           "background": false,
           "completed_at": null,
@@ -1047,9 +1047,9 @@
       "event": {
         "type": "response.in_progress",
         "response": {
-          "id": "resp_050c417a797e68b0006a54b747b708819a9eb41151a11d88c4",
+          "id": "resp_07825c108fedd028006a6092d4965c8198bf4ac2608f19627b",
           "object": "response",
-          "created_at": 1783936839,
+          "created_at": 1784713940,
           "status": "in_progress",
           "background": false,
           "completed_at": null,
@@ -1145,7 +1145,7 @@
       "event": {
         "type": "response.output_item.added",
         "item": {
-          "id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+          "id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
           "type": "message",
           "status": "in_progress",
           "content": [],
@@ -1168,7 +1168,7 @@
       "event": {
         "type": "response.content_part.added",
         "content_index": 0,
-        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "item_id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
         "output_index": 0,
         "part": {
           "type": "output_text",
@@ -1189,12 +1189,13 @@
     "data": {
       "type": "output_text_delta",
       "delta": "con",
+      "itemId": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
       "providerData": {
         "type": "response.output_text.delta",
         "content_index": 0,
-        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "item_id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
         "logprobs": [],
-        "obfuscation": "P4tcJx1OEjgzM",
+        "obfuscation": "yPdeh1y4M8ycQ",
         "output_index": 0,
         "sequence_number": 4
       }
@@ -1208,9 +1209,9 @@
         "type": "response.output_text.delta",
         "content_index": 0,
         "delta": "con",
-        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "item_id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
         "logprobs": [],
-        "obfuscation": "P4tcJx1OEjgzM",
+        "obfuscation": "yPdeh1y4M8ycQ",
         "output_index": 0,
         "sequence_number": 4
       },
@@ -1225,12 +1226,13 @@
     "data": {
       "type": "output_text_delta",
       "delta": "formance",
+      "itemId": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
       "providerData": {
         "type": "response.output_text.delta",
         "content_index": 0,
-        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "item_id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
         "logprobs": [],
-        "obfuscation": "WmpqksBZ",
+        "obfuscation": "B8WVfHYM",
         "output_index": 0,
         "sequence_number": 5
       }
@@ -1244,9 +1246,9 @@
         "type": "response.output_text.delta",
         "content_index": 0,
         "delta": "formance",
-        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "item_id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
         "logprobs": [],
-        "obfuscation": "WmpqksBZ",
+        "obfuscation": "B8WVfHYM",
         "output_index": 0,
         "sequence_number": 5
       },
@@ -1261,12 +1263,13 @@
     "data": {
       "type": "output_text_delta",
       "delta": "-pro",
+      "itemId": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
       "providerData": {
         "type": "response.output_text.delta",
         "content_index": 0,
-        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "item_id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
         "logprobs": [],
-        "obfuscation": "77vwiWiBNehZ",
+        "obfuscation": "yGWgzL6lhIUK",
         "output_index": 0,
         "sequence_number": 6
       }
@@ -1280,9 +1283,9 @@
         "type": "response.output_text.delta",
         "content_index": 0,
         "delta": "-pro",
-        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "item_id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
         "logprobs": [],
-        "obfuscation": "77vwiWiBNehZ",
+        "obfuscation": "yGWgzL6lhIUK",
         "output_index": 0,
         "sequence_number": 6
       },
@@ -1297,12 +1300,13 @@
     "data": {
       "type": "output_text_delta",
       "delta": "be",
+      "itemId": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
       "providerData": {
         "type": "response.output_text.delta",
         "content_index": 0,
-        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "item_id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
         "logprobs": [],
-        "obfuscation": "29tR8Pa7KbeWQ7",
+        "obfuscation": "YgGSB2OxsN0RU6",
         "output_index": 0,
         "sequence_number": 7
       }
@@ -1316,9 +1320,9 @@
         "type": "response.output_text.delta",
         "content_index": 0,
         "delta": "be",
-        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "item_id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
         "logprobs": [],
-        "obfuscation": "29tR8Pa7KbeWQ7",
+        "obfuscation": "YgGSB2OxsN0RU6",
         "output_index": 0,
         "sequence_number": 7
       },
@@ -1333,12 +1337,13 @@
     "data": {
       "type": "output_text_delta",
       "delta": "-g",
+      "itemId": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
       "providerData": {
         "type": "response.output_text.delta",
         "content_index": 0,
-        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "item_id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
         "logprobs": [],
-        "obfuscation": "EAClfmiqi8y0FP",
+        "obfuscation": "hAPTuvGrgHo6iw",
         "output_index": 0,
         "sequence_number": 8
       }
@@ -1352,9 +1357,9 @@
         "type": "response.output_text.delta",
         "content_index": 0,
         "delta": "-g",
-        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "item_id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
         "logprobs": [],
-        "obfuscation": "EAClfmiqi8y0FP",
+        "obfuscation": "hAPTuvGrgHo6iw",
         "output_index": 0,
         "sequence_number": 8
       },
@@ -1369,12 +1374,13 @@
     "data": {
       "type": "output_text_delta",
       "delta": "pt",
+      "itemId": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
       "providerData": {
         "type": "response.output_text.delta",
         "content_index": 0,
-        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "item_id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
         "logprobs": [],
-        "obfuscation": "lad9UiQvhlKdVF",
+        "obfuscation": "PBASqBFRkebsfo",
         "output_index": 0,
         "sequence_number": 9
       }
@@ -1388,9 +1394,9 @@
         "type": "response.output_text.delta",
         "content_index": 0,
         "delta": "pt",
-        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "item_id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
         "logprobs": [],
-        "obfuscation": "lad9UiQvhlKdVF",
+        "obfuscation": "PBASqBFRkebsfo",
         "output_index": 0,
         "sequence_number": 9
       },
@@ -1405,12 +1411,13 @@
     "data": {
       "type": "output_text_delta",
       "delta": "56",
+      "itemId": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
       "providerData": {
         "type": "response.output_text.delta",
         "content_index": 0,
-        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "item_id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
         "logprobs": [],
-        "obfuscation": "b515uc5Vxd1wCR",
+        "obfuscation": "BJ1tSyIqpFqc6O",
         "output_index": 0,
         "sequence_number": 10
       }
@@ -1424,9 +1431,9 @@
         "type": "response.output_text.delta",
         "content_index": 0,
         "delta": "56",
-        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "item_id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
         "logprobs": [],
-        "obfuscation": "b515uc5Vxd1wCR",
+        "obfuscation": "BJ1tSyIqpFqc6O",
         "output_index": 0,
         "sequence_number": 10
       },
@@ -1443,7 +1450,7 @@
       "event": {
         "type": "response.output_text.done",
         "content_index": 0,
-        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "item_id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
         "logprobs": [],
         "output_index": 0,
         "sequence_number": 11,
@@ -1462,7 +1469,7 @@
       "event": {
         "type": "response.content_part.done",
         "content_index": 0,
-        "item_id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "item_id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
         "output_index": 0,
         "part": {
           "type": "output_text",
@@ -1485,7 +1492,7 @@
       "event": {
         "type": "response.output_item.done",
         "item": {
-          "id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+          "id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
           "type": "message",
           "status": "completed",
           "content": [
@@ -1513,11 +1520,11 @@
     "data": {
       "type": "response_done",
       "response": {
-        "id": "resp_050c417a797e68b0006a54b747b708819a9eb41151a11d88c4",
-        "requestId": "req_97615b3e50f549309a1894dece50f8b0",
+        "id": "resp_07825c108fedd028006a6092d4965c8198bf4ac2608f19627b",
+        "requestId": "req_e1e242ce1c0f4eabba5d23d841c0b4e4",
         "output": [
           {
-            "id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+            "id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
             "type": "message",
             "role": "assistant",
             "content": [
@@ -1565,10 +1572,10 @@
         },
         "providerData": {
           "object": "response",
-          "created_at": 1783936839,
+          "created_at": 1784713940,
           "status": "completed",
           "background": false,
-          "completed_at": 1783936840,
+          "completed_at": 1784713941,
           "error": null,
           "frequency_penalty": 0,
           "incomplete_details": null,
@@ -1658,12 +1665,12 @@
       "event": {
         "type": "response.completed",
         "response": {
-          "id": "resp_050c417a797e68b0006a54b747b708819a9eb41151a11d88c4",
+          "id": "resp_07825c108fedd028006a6092d4965c8198bf4ac2608f19627b",
           "object": "response",
-          "created_at": 1783936839,
+          "created_at": 1784713940,
           "status": "completed",
           "background": false,
-          "completed_at": 1783936840,
+          "completed_at": 1784713941,
           "error": null,
           "frequency_penalty": 0,
           "incomplete_details": null,
@@ -1674,7 +1681,7 @@
           "moderation": null,
           "output": [
             {
-              "id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+              "id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
               "type": "message",
               "status": "completed",
               "content": [
@@ -1785,7 +1792,7 @@
         "providerData": {
           "phase": "final_answer"
         },
-        "id": "msg_050c417a797e68b0006a54b7486488819aacc0b53e40439c37",
+        "id": "msg_07825c108fedd028006a6092d582108198bdb1749f20806cd9",
         "type": "message",
         "role": "assistant",
         "status": "completed",

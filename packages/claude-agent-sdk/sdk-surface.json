@@ -1,7 +1,7 @@
 {
   "$comment": "Ratchet manifest for the fixture-drift gate (scripts/check-fixture-drift.mjs). Members are the `SDKMessage` union's arm TYPE NAMES, extracted mechanically from `export declare type SDKMessage = A | B | …;` in @anthropic-ai/claude-agent-sdk/sdk.d.ts. Dispositions were seeded 2026-07-03 by reading src/index.ts (the facet's `drive()` switch) + every arm's own field declarations in sdk.d.ts + the two playbook reports (.superpowers/sdd/playbook-sdk-bumps-report.md, playbook-facet-adaptations-report.md). handled = the facet has a dedicated branch; carried = routed to ext.anthropic.* losslessly; router-plane = pure SDK/CLI/session control-plane telemetry with no conversational free-text payload, ignored by the facet's own documented design (index.ts's blanket 'carry no AgJSON-relevant content' comment, or a more specific documented rationale noted per-entry) — verified by reading the arm's actual fields, not assumed from its name; not-applicable = provably cannot occur on this SDK's wire (unused on this manifest — every named SDKMessage arm is structurally reachable); silently-dropped = reaches the facet, carries real informational payload, and has NO route (ext or otherwise) — a genuine pre-existing gap, documented honestly rather than papered over as not-applicable or router-plane. ZERO members remain `silently-dropped` as of the claude-arms-disposition task (2026-07-03 follow-up): SDKInformationalMessage was fixed first (flagship finding, carried); the remaining 16 were closed in one pass — 15 via the uniform `ext.anthropic.frame{kind, frame}` lossless-carry convention (SPEC §8 item 22 / §12), and SDKPermissionDeniedMessage via existing-home enrichment of the already-handled W1 `<turnId>:denials` carrier (audit M19). See .superpowers/sdd/pb-task-6-report.md for the original seeding rationale and .superpowers/sdd/claude-arms-disposition-report.md for the full per-arm closure decisions + wire-shape citations.",
   "sdkPackage": "@anthropic-ai/claude-agent-sdk",
-  "verifiedAt": "0.3.207",
+  "verifiedAt": "0.3.217",
   "verified": [
     {
       "sdkVersion": "0.2.141",
@@ -25,16 +25,28 @@
       "date": "2026-07-13",
       "silverprotocol": "0.3.3",
       "evidence": "LIVE capture: echo-sonnet5 standing seed REFRESHED at 0.3.207 (claude-sonnet-5) — zero unparsed events; init's new capabilities[] observed live (interrupt_receipt_v1, msg_lifecycle_v1) and triaged per the pre-existing router-plane disposition the d.ts-diff audit seeded"
+    },
+    {
+      "sdkVersion": "0.3.217",
+      "date": "2026-07-22",
+      "silverprotocol": "0.3.5",
+      "evidence": "fixture suite + drift gate + full 0.3.207->0.3.217 sdk.d.ts diff audit (586-line diff; SDKMessage union membership byte-identical, TerminalReason/SDKAssistantMessageError/@anthropic-ai-sdk peer range unchanged, no removals on any wire arm): every wire delta is a field addition on an existing arm, triaged into member notes — SDKAssistantMessage resumed_from_incomplete_thinking (DISCLOSED GAP: replay-load-bearing per its own doc; providerMetadata carry deferred to its own slice) + aborted + timestamp; SDKResultSuccess user_message_uuid/request_sent_wall_ms (unread telemetry); tool_progress heartbeat/subagent_type/subagent_retry (router-plane re-confirmed); origin verifiedPeerPid/fromSession/subkind growth inside the already-disclosed unread origin; init plugins[].version"
+    },
+    {
+      "sdkVersion": "0.3.217",
+      "date": "2026-07-22",
+      "silverprotocol": "0.3.5",
+      "evidence": "LIVE capture: echo-sonnet5 standing seed REFRESHED at 0.3.217 (claude-sonnet-5) — replay + census gates green (zero untriaged drops, zero new fields); none of the 0.3.217 d.ts additions (resumed_from_incomplete_thinking/aborted/timestamp) appeared on this scenario's wire"
     }
   ],
   "members": {
     "SDKAssistantMessage": {
       "disposition": "handled",
-      "note": "Primary content branch in drive(): content-block fan-out (text/thinking/tool_use/mcp_tool_result/compaction/…), closeMessage, turn.error on msg.error, and the refusal-fallback `supersedes` retraction (Finding #1, message.remove via uuid->messageId map)."
+      "note": "Primary content branch in drive(): content-block fan-out (text/thinking/tool_use/mcp_tool_result/compaction/…), closeMessage, turn.error on msg.error, and the refusal-fallback `supersedes` retraction (Finding #1, message.remove via uuid->messageId map). FIELD-LEVEL DELTAS at 0.3.217 (full d.ts diff audit, 2026-07-22): three new optional fields on this arm, none read by the facet — (1) resumed_from_incomplete_thinking?: true — DISCLOSED GAP, replay-load-bearing per its own doc (a history replayed through the bridge must carry the flag back for the normalizer to keep the run's prefix on the wire; the reasoningOpaque signature carry alone is no longer sufficient for byte-exact bridge replay of a max-output-tokens-recovered turn) — natural home is the first-block providerMetadata precedent (same as `supersedes`), deferred to its own slice; (2) aborted?: true — an interrupt-truncated assistant frame currently folds indistinguishably from a complete one (truncation signal unread); (3) timestamp?: string — display-only wall-clock, do-not-order-by; its doc also officially confirms multiple assistant frames may share one message.id, the exact behavior the m.id-keyed openMessage/closeMessage fold already tolerates. None of the three appeared on the 0.3.217 echo-sonnet5 live re-capture."
     },
     "SDKUserMessage": {
       "disposition": "handled",
-      "note": "tool_result content blocks -> tool.done (adopted messageId `${toolCallId}:result`); reads structuredContent + the tool_use_result sibling for MCP-Apps UI data. DISCLOSED FIELD-LEVEL GAP (0.3.207 bump audit): SDKMessageOrigin (`origin?:` on this arm) gained 'observer'/'observer-activity' kinds and a peer-variant `body?: string` — the SDK's canonical DECODED message body ('render this instead of re-parsing the message text'). The facet never reads `origin`, so a peer message folds from the envelope-wrapped msg.message text, not the decoded body. Routing origin.body into the fold is a behavior change to user-message folding (golden-fixture impact) — deferred to its own slice, disclosed here rather than silently absorbed."
+      "note": "tool_result content blocks -> tool.done (adopted messageId `${toolCallId}:result`); reads structuredContent + the tool_use_result sibling for MCP-Apps UI data. DISCLOSED FIELD-LEVEL GAP (0.3.207 bump audit): SDKMessageOrigin (`origin?:` on this arm) gained 'observer'/'observer-activity' kinds and a peer-variant `body?: string` — the SDK's canonical DECODED message body ('render this instead of re-parsing the message text'). The facet never reads `origin`, so a peer message folds from the envelope-wrapped msg.message text, not the decoded body. Routing origin.body into the fold is a behavior change to user-message folding (golden-fixture impact) — deferred to its own slice, disclosed here rather than silently absorbed. 0.3.217 bump audit: the unread `origin` grows again — peer variant gains fromSession?: string (host-openable session id, navigation target only) and verifiedPeerPid?: number (kernel-verified SO_PEERCRED pid; the doc keys sender identity on it, never on the forgeable `from`), the task-notification variant gains subkind?: 'scheduled-trigger', and an ABSENT origin is now documented as unattributed, failing closed at strict isHuman() trust gates. The deferred origin-routing slice grows in scope; the deferral rationale is unchanged."
     },
     "SDKUserMessageReplay": {
       "disposition": "handled",
@@ -42,11 +54,11 @@
     },
     "SDKResultMessage": {
       "disposition": "handled",
-      "note": "Union of SDKResultSuccess | SDKResultError. Success -> closeTurnDone (outcome/finishReason/usage/safety/permission_denials as denied tool.start+tool.done pairs). Every non-success subtype -> closeTurnError (errors joined, code=subtype, retriable = subtype !== 'error_max_turns'). FIELD-LEVEL DELTAS at 0.3.207 (name-only ratchet cannot see these; recorded from the full d.ts diff): (1) TerminalReason (`terminal_reason?:` on both result arms) widened by six values (api_error, malformed_tool_use_exhausted, budget_exhausted, structured_output_retry_exhausted, tool_deferred_unavailable, turn_setup_failed) — the facet reads `subtype`, never `terminal_reason`, so behavior is unchanged; the finer-grained reason is a disclosed unread field (candidate enrichment for turn.done/turn.error codes in a future slice). (2) `origin?:` — same SDKMessageOrigin delta as SDKUserMessage's disclosure."
+      "note": "Union of SDKResultSuccess | SDKResultError. Success -> closeTurnDone (outcome/finishReason/usage/safety/permission_denials as denied tool.start+tool.done pairs). Every non-success subtype -> closeTurnError (errors joined, code=subtype, retriable = subtype !== 'error_max_turns'). FIELD-LEVEL DELTAS at 0.3.207 (name-only ratchet cannot see these; recorded from the full d.ts diff): (1) TerminalReason (`terminal_reason?:` on both result arms) widened by six values (api_error, malformed_tool_use_exhausted, budget_exhausted, structured_output_retry_exhausted, tool_deferred_unavailable, turn_setup_failed) — the facet reads `subtype`, never `terminal_reason`, so behavior is unchanged; the finer-grained reason is a disclosed unread field (candidate enrichment for turn.done/turn.error codes in a future slice). (2) `origin?:` — same SDKMessageOrigin delta as SDKUserMessage's disclosure. 0.3.217 bump audit: SDKResultSuccess additionally gains user_message_uuid?: string (correlation to the triggering user message) and request_sent_wall_ms?: number — same unread-telemetry class as the ttft_* family; behavior unchanged."
     },
     "SDKSystemMessage": {
       "disposition": "router-plane",
-      "note": "subtype 'init' — session-initialization handshake (agents/tools/mcp_servers/model/permissionMode/slash_commands/skills/plugins/…). Verified fields (re-checked at 0.3.207): all identifiers/labels/enums — incl. the NEW `capabilities?: string[]` (protocol feature-detection flags, e.g. 'interrupt_receipt_v1') — no conversational free text. Matches index.ts's documented blanket no-op for 'system, partial-assistant, status, …'."
+      "note": "subtype 'init' — session-initialization handshake (agents/tools/mcp_servers/model/permissionMode/slash_commands/skills/plugins/…). Verified fields (re-checked at 0.3.207): all identifiers/labels/enums — incl. the NEW `capabilities?: string[]` (protocol feature-detection flags, e.g. 'interrupt_receipt_v1') — no conversational free text. Matches index.ts's documented blanket no-op for 'system, partial-assistant, status, …'. 0.3.217 bump audit: init's plugins[] entries gain version?: string (verbatim from the plugin's own plugin.json — plugin-author-controlled, validate before trusting; still an identifier, not free text); router-plane disposition unchanged."
     },
     "SDKPartialAssistantMessage": {
       "disposition": "router-plane",
@@ -98,7 +110,7 @@
     },
     "SDKToolProgressMessage": {
       "disposition": "router-plane",
-      "note": "type:'tool_progress' — tool_use_id/tool_name/parent_tool_use_id/elapsed_time_seconds/task_id?. A 'still running' progress heartbeat; no free-text payload beyond identifiers and a numeric duration."
+      "note": "type:'tool_progress' — tool_use_id/tool_name/parent_tool_use_id/elapsed_time_seconds/task_id?. A 'still running' progress heartbeat; no free-text payload beyond identifiers and a numeric duration. 0.3.217 bump audit: arm gains heartbeat?: boolean, subagent_type?: string, and subagent_retry? (the SDKAPIRetryMessage shape relocated per-tool: agent_id/attempt/max_retries/retry_delay_ms/error_status/error_category) — all identifiers, numerics and enum-like codes, no free text; router-plane rationale re-verified against the new fields."
     },
     "SDKAuthStatusMessage": {
       "disposition": "carried",

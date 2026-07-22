@@ -257,6 +257,11 @@ export interface AdkEvent {
    *  event-level unmapped-fields provider-raw block, same ratchet precedent
    *  as `candidateIndex`/`branch`. */
   modelVersion?: string;
+  /** The interaction ID returned by the model, if any (official `@google/adk`
+   *  `LlmResponse.interactionId`, new in 1.4.0) — model-response identity,
+   *  carried via the event-level unmapped-fields provider-raw block, same
+   *  ratchet precedent as `modelVersion`. */
+  interactionId?: string;
 }
 
 // ─── finishReason → AgFinishReason (spec §4) ──────────────────────────────────
@@ -985,7 +990,7 @@ function driveAdkTopLevel(
   }
 
   // ── event-level unmapped (citationMetadata / customMetadata / candidateIndex /
-  // branch / modelVersion) → provider-raw ──
+  // branch / modelVersion / interactionId) → provider-raw ──
   // candidateIndex/branch are fixture-drift ratchet findings (google-adk-ratchet
   // task; SPEC §8 item 23): candidateIndex was entirely absent from the
   // AdkEvent contract; branch was ALREADY typed but never read anywhere in
@@ -1016,6 +1021,7 @@ function driveAdkTopLevel(
   if (event.candidateIndex !== undefined) unmappedEvent["candidateIndex"] = event.candidateIndex;
   if (event.branch !== undefined) unmappedEvent["branch"] = event.branch;
   if (event.modelVersion !== undefined) unmappedEvent["modelVersion"] = event.modelVersion;
+  if (event.interactionId !== undefined) unmappedEvent["interactionId"] = event.interactionId;
   if (event.citationMetadata !== undefined)
     unmappedEvent["citationMetadata"] = JsonValue.parse(event.citationMetadata);
   if (event.customMetadata !== undefined)

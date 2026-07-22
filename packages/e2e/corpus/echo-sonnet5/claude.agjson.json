@@ -2,38 +2,38 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_2e1d5360-dc19-418f-8380-f216d28669a1",
-    "threadId": "2e1d5360-dc19-418f-8380-f216d28669a1"
+    "turnId": "turn_a3209d83-121a-4b37-bf2d-7142a7425b8a",
+    "threadId": "a3209d83-121a-4b37-bf2d-7142a7425b8a"
   },
   {
     "type": "message.start",
     "seq": 1,
-    "id": "msg_011CcyxvQdccwvJeDBQ3hVYv",
-    "turnId": "turn_2e1d5360-dc19-418f-8380-f216d28669a1",
-    "threadId": "2e1d5360-dc19-418f-8380-f216d28669a1",
+    "id": "msg_011CdGtcGu853QMYpWYDXkVT",
+    "turnId": "turn_a3209d83-121a-4b37-bf2d-7142a7425b8a",
+    "threadId": "a3209d83-121a-4b37-bf2d-7142a7425b8a",
     "role": "assistant",
     "model": "claude-sonnet-5"
   },
   {
     "type": "tool.start",
     "seq": 2,
-    "turnId": "turn_2e1d5360-dc19-418f-8380-f216d28669a1",
-    "toolCallId": "toolu_015R8D1qW8kXiGmuNcWJpp87",
+    "turnId": "turn_a3209d83-121a-4b37-bf2d-7142a7425b8a",
+    "toolCallId": "toolu_01RWRc8WF1DgLHKLRzhueubq",
     "name": "mcp__t__echo",
     "index": 0,
-    "messageId": "msg_011CcyxvQdccwvJeDBQ3hVYv",
+    "messageId": "msg_011CdGtcGu853QMYpWYDXkVT",
     "providerExecuted": false
   },
   {
     "type": "tool.args.delta",
     "seq": 3,
-    "toolCallId": "toolu_015R8D1qW8kXiGmuNcWJpp87",
+    "toolCallId": "toolu_01RWRc8WF1DgLHKLRzhueubq",
     "delta": "{\"message\":\"conformance-probe-sonnet5\"}"
   },
   {
     "type": "tool.args.assembled",
     "seq": 4,
-    "toolCallId": "toolu_015R8D1qW8kXiGmuNcWJpp87",
+    "toolCallId": "toolu_01RWRc8WF1DgLHKLRzhueubq",
     "input": {
       "message": "conformance-probe-sonnet5"
     }
@@ -41,20 +41,20 @@
   {
     "type": "message.end",
     "seq": 5,
-    "id": "msg_011CcyxvQdccwvJeDBQ3hVYv",
+    "id": "msg_011CdGtcGu853QMYpWYDXkVT",
     "usage": {
-      "inputTokens": 903,
-      "outputTokens": 63,
+      "inputTokens": 2,
+      "outputTokens": 52,
       "cacheReadTokens": 0,
-      "cacheWriteTokens": 0,
+      "cacheWriteTokens": 1158,
       "cumulative": true
     }
   },
   {
     "type": "tool.done",
     "seq": 6,
-    "turnId": "turn_2e1d5360-dc19-418f-8380-f216d28669a1",
-    "toolCallId": "toolu_015R8D1qW8kXiGmuNcWJpp87",
+    "turnId": "turn_a3209d83-121a-4b37-bf2d-7142a7425b8a",
+    "toolCallId": "toolu_01RWRc8WF1DgLHKLRzhueubq",
     "content": [
       {
         "type": "text",
@@ -63,84 +63,84 @@
     ],
     "outcome": "ok",
     "isError": false,
-    "messageId": "toolu_015R8D1qW8kXiGmuNcWJpp87:result"
+    "messageId": "toolu_01RWRc8WF1DgLHKLRzhueubq:result"
   },
   {
     "type": "message.start",
     "seq": 7,
-    "id": "msg_011CcyxvqCy8i1vAx6JdnesD",
-    "turnId": "turn_2e1d5360-dc19-418f-8380-f216d28669a1",
-    "threadId": "2e1d5360-dc19-418f-8380-f216d28669a1",
+    "id": "msg_011CdGtcV4cMDZPcvmY6MJBq",
+    "turnId": "turn_a3209d83-121a-4b37-bf2d-7142a7425b8a",
+    "threadId": "a3209d83-121a-4b37-bf2d-7142a7425b8a",
     "role": "assistant",
     "model": "claude-sonnet-5"
   },
   {
     "type": "text.start",
     "seq": 8,
-    "id": "msg_011CcyxvqCy8i1vAx6JdnesD:text:0",
-    "messageId": "msg_011CcyxvqCy8i1vAx6JdnesD",
-    "turnId": "turn_2e1d5360-dc19-418f-8380-f216d28669a1"
+    "id": "msg_011CdGtcV4cMDZPcvmY6MJBq:text:0",
+    "messageId": "msg_011CdGtcV4cMDZPcvmY6MJBq",
+    "turnId": "turn_a3209d83-121a-4b37-bf2d-7142a7425b8a"
   },
   {
     "type": "text.delta",
     "seq": 9,
-    "id": "msg_011CcyxvqCy8i1vAx6JdnesD:text:0",
-    "messageId": "msg_011CcyxvqCy8i1vAx6JdnesD",
+    "id": "msg_011CdGtcV4cMDZPcvmY6MJBq:text:0",
+    "messageId": "msg_011CdGtcV4cMDZPcvmY6MJBq",
     "delta": "The tool returned: **conformance-probe-sonnet5**",
-    "turnId": "turn_2e1d5360-dc19-418f-8380-f216d28669a1"
+    "turnId": "turn_a3209d83-121a-4b37-bf2d-7142a7425b8a"
   },
   {
     "type": "text.end",
     "seq": 10,
-    "id": "msg_011CcyxvqCy8i1vAx6JdnesD:text:0",
-    "messageId": "msg_011CcyxvqCy8i1vAx6JdnesD",
-    "turnId": "turn_2e1d5360-dc19-418f-8380-f216d28669a1"
+    "id": "msg_011CdGtcV4cMDZPcvmY6MJBq:text:0",
+    "messageId": "msg_011CdGtcV4cMDZPcvmY6MJBq",
+    "turnId": "turn_a3209d83-121a-4b37-bf2d-7142a7425b8a"
   },
   {
     "type": "message.end",
     "seq": 11,
-    "id": "msg_011CcyxvqCy8i1vAx6JdnesD",
+    "id": "msg_011CdGtcV4cMDZPcvmY6MJBq",
     "usage": {
-      "inputTokens": 983,
-      "outputTokens": 1,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0,
+      "inputTokens": 2,
+      "outputTokens": 4,
+      "cacheReadTokens": 1158,
+      "cacheWriteTokens": 80,
       "cumulative": true
     }
   },
   {
     "type": "turn.done",
     "seq": 12,
-    "turnId": "turn_2e1d5360-dc19-418f-8380-f216d28669a1",
+    "turnId": "turn_a3209d83-121a-4b37-bf2d-7142a7425b8a",
     "outcome": {
       "type": "success",
       "result": "The tool returned: **conformance-probe-sonnet5**"
     },
     "finishReason": "stop",
     "usage": {
-      "inputTokens": 1886,
+      "inputTokens": 4,
       "outputTokens": 85,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0,
+      "cacheReadTokens": 1158,
+      "cacheWriteTokens": 1238,
       "serverToolRequests": 0,
-      "costUsd": 0.007536,
+      "costUsd": 0.006889899999999999,
       "cumulative": true,
       "byModel": {
         "claude-haiku-4-5-20251001": {
           "inputTokens": 538,
-          "outputTokens": 13,
+          "outputTokens": 15,
           "cacheReadTokens": 0,
           "cacheWriteTokens": 0,
-          "costUsd": 0.0006029999999999999,
+          "costUsd": 0.0006129999999999999,
           "serverToolRequests": 0,
           "cumulative": true
         },
         "claude-sonnet-5": {
-          "inputTokens": 1886,
+          "inputTokens": 4,
           "outputTokens": 85,
-          "cacheReadTokens": 0,
-          "cacheWriteTokens": 0,
-          "costUsd": 0.006933,
+          "cacheReadTokens": 1158,
+          "cacheWriteTokens": 1238,
+          "costUsd": 0.0062769,
           "serverToolRequests": 0,
           "cumulative": true
         }

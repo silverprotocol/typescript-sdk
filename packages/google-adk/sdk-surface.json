@@ -29,13 +29,25 @@
       "date": "2026-07-22",
       "silverprotocol": "0.3.3",
       "evidence": "day-one gemini-3.6-flash validation: live text + tool-loop e2e clean, census-grade capture landed as standing replay seed (corpus echo-gemini36) with native field-set diffed against the gemini-3.5-flash baseline \u2014 zero new wire fields, all dispositions transfer, replay gate green"
+    },
+    {
+      "sdkVersion": "1.4.0",
+      "date": "2026-07-22",
+      "silverprotocol": "0.3.5",
+      "evidence": "fixture suite + drift gate + full 1.3.0->1.4.0 d.ts diff audit: exactly ONE new Event/LlmResponse wire field \u2014 interactionId (opt-in Interactions API identity; carried via the unmappedEvent provider-raw ledger per the modelVersion precedent, with mirror test) \u2014 all other deltas config/tooling-plane (hasThoughts/pruneThoughts helpers, RunnerConfig app/resumabilityConfig, CompositeSessionKey refactor). genai 1.52.0->2.x MAJOR diffed clean: Part/Content/FunctionCall/FunctionResponse/GenerateContentResponseUsageMetadata byte-identical at 2.12.0 AND 2.13.0 (partKind verifiedAt advanced to the installed 2.12.0). google/adk-js#478 (fix for the role-less-newMessage 400 we filed as #475) verified SHIPPED in 1.4.0's dist (runner.js defaults role to 'user', esm :113-114) AND live-confirmed: a deliberately role-less newMessage survived a full gemini-3.6-flash tool-loop replay"
+    },
+    {
+      "sdkVersion": "1.4.0",
+      "date": "2026-07-22",
+      "silverprotocol": "0.3.5",
+      "evidence": "LIVE capture: echo-gemini36 standing seed REFRESHED at 1.4.0 (gemini-3.6-flash, genai 2.12.0 underneath) \u2014 replay + census gates green (zero untriaged drops, zero new fields); interactionId absent from wire as expected (harness never enables useInteractionsApi)"
     }
   ],
   "sections": {
     "partKind": {
-      "$comment": "The Gemini `Part` interface's own field names (`@google/genai`'s `dist/genai.d.ts`, `export declare interface Part { \u2026 }`) \u2014 the part-kind vocabulary `driveAdkPart` switches on. `thought`/`thoughtSignature` are MODIFIER fields (ride alongside `text`/`functionCall`/`functionResponse`, never a kind of their own), listed here as their own members because they are still distinct installed field names the gate must track.",
+      "$comment": "The Gemini `Part` interface's own field names (`@google/genai`'s `dist/genai.d.ts`, `export declare interface Part { \u2026 }`) \u2014 the part-kind vocabulary `driveAdkPart` switches on. `thought`/`thoughtSignature` are MODIFIER fields (ride alongside `text`/`functionCall`/`functionResponse`, never a kind of their own), listed here as their own members because they are still distinct installed field names the gate must track. RE-VERIFIED 2026-07-22 (adk 1.4.0 peer bump): @google/adk 1.4.0 moves its @google/genai dependency across the 1.x->2.x MAJOR (declares ^2.9.0; installed resolution 2.12.0) \u2014 the extracted `Part` interface block is byte-identical across 1.52.0/2.12.0/2.13.0 (and Content/FunctionCall/FunctionResponse/GenerateContentResponseUsageMetadata carry doc-comment rewording only), so every disposition below transfers unchanged; verifiedAt advanced to the installed 2.12.0, with the newest published 2.13.0 diffed identical.",
       "sdkPackage": "@google/genai",
-      "verifiedAt": "1.52.0",
+      "verifiedAt": "2.12.0",
       "members": {
         "text": {
           "disposition": "handled",
@@ -98,7 +110,7 @@
     "eventField": {
       "$comment": "The `Event`/`LlmResponse` interface field names (the OFFICIAL `@google/adk`'s `dist/types/events/event.d.ts` + `dist/types/models/llm_response.d.ts`; `export interface Event extends LlmResponse`). Both interfaces' own fields are flattened into ONE inventory (17 from LlmResponse + 7 from Event, `id` only on Event in the official layout) \u2014 matching how the hand-typed `AdkEvent` interface itself makes no LlmResponse/Event split. Nested sub-object field names (e.g. AdkContent.role, EventActions' own members) are OUT OF SCOPE for this section \u2014 it covers only the TOP-LEVEL Event/LlmResponse field names, analogous to how the openai manifest's protocolItem section covers only top-level ModelItem discriminants, not fields nested inside a content/action sub-union. (Retargeted 2026-07-13 from `@iqai/adk` 0.1.22's bundled `declare class` pair \u2014 see the top-level $comment's RETARGETED note for the inventory delta.)",
       "sdkPackage": "@google/adk",
-      "verifiedAt": "1.3.0",
+      "verifiedAt": "1.4.0",
       "members": {
         "id": {
           "disposition": "handled",
@@ -151,6 +163,10 @@
         "modelVersion": {
           "disposition": "carried",
           "note": "NEW on the official-SDK retarget (2026-07-13): `@google/adk` 1.3.0 LlmResponse field absent from @iqai/adk's surface ('the model version that produced this response'). Genuinely optional response metadata \u2014 closed by the same opportunistic-carry precedent as candidateIndex/branch: added to AdkEvent + the event-level unmappedEvent provider-raw ledger. Absent from all recorded fixtures (they pre-date the field), so no golden-snapshot impact."
+        },
+        "interactionId": {
+          "disposition": "carried",
+          "note": "NEW in `@google/adk` 1.4.0 (llm_response.d.ts:83: 'The interaction ID returned by the model, if any'). Model-response identity metadata, populated only via the opt-in Interactions API path (GeminiParams.useInteractionsApi, also new in 1.4.0) \u2014 genuinely optional on this facet's ingestion boundary; closed by the same opportunistic-carry precedent as modelVersion: added to AdkEvent + driveAdkTopLevel's event-level unmappedEvent provider-raw ledger (2026-07-22 peer-bump ritual, with mirror test). Absent from all recorded fixtures and captures (the harness never enables useInteractionsApi), so no golden-snapshot impact. Caveat vs the author/timestamp noise rule: if an Interactions-API capture ever lands as a seed the field may ride every model event of a run \u2014 revisit toward a first-class correlation home then."
         },
         "liveSessionResumptionUpdate": {
           "disposition": "not-applicable",

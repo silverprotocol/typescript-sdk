@@ -1648,6 +1648,14 @@
     ]
   },
   {
+    "path": "[*].data.itemId",
+    "reason": "openai: NEW optional correlation id on the SDK-flattened output_text_delta arm (@openai/agents-core 0.13.5, protocol.d.ts StreamEventTextStream.itemId — 'the ID of the output item this delta belongs to'); the flattened arm is IGNORED as the documented duplicate of the authoritative model:response.output_text.delta path, whose snake_case item_id is unchanged and already drives text correlation. First observed live 2026-07-22 (echo-gpt56 @0.13.5 peer-bump re-capture).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
     "path": "[*].duration_api_ms",
     "reason": "result wall-clock telemetry; not part of the AgJSON turn record (no semantic home, non-replayable).",
     "reviewed": "any",
