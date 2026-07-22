@@ -87,9 +87,10 @@ describe("resolveModel", () => {
 
   it("falls back to each framework's own DEFAULT_MODEL when CAPTURE_MODEL is unset", () => {
     withCaptureModel(undefined, () => {
-      expect(resolveModel("claude")).toBe("claude-sonnet-4-6");
-      expect(resolveModel("openai")).toBe("gpt-4o-mini");
-      expect(resolveModel("adk")).toBe("gemini-2.5-flash");
+      expect(resolveModel("claude")).toBe("claude-sonnet-5");
+      expect(resolveModel("openai")).toBe("gpt-5.6");
+      expect(resolveModel("adk")).toBe("gemini-3.6-flash");
+      expect(resolveModel("vercel")).toBe("gpt-5.6");
     });
   });
 
@@ -104,7 +105,7 @@ describe("resolveModel", () => {
 
   it("an empty-string CAPTURE_MODEL is treated as unset (falls back to default)", () => {
     withCaptureModel("", () => {
-      expect(resolveModel("claude")).toBe("claude-sonnet-4-6");
+      expect(resolveModel("claude")).toBe("claude-sonnet-5");
     });
   });
 });
@@ -148,7 +149,7 @@ function fakeNativeNoTools(): JsonValue[] {
       parent_tool_use_id: null,
       message: {
         id: "msg_text_only",
-        model: "claude-sonnet-4-6",
+        model: "claude-sonnet-5",
         role: "assistant",
         stop_reason: "end_turn",
         stop_sequence: null,
@@ -213,7 +214,7 @@ describe("runCaptureAndWrite", () => {
         makeDeps(),
         { ports: [], framework: "claude" },
         outDir,
-        { sdkVersion: "0.2.141", model: "claude-sonnet-4-6" },
+        { sdkVersion: "0.2.141", model: "claude-sonnet-5" },
       );
 
       // The corpus triple — the path shape replay.ts actually reads
@@ -235,7 +236,7 @@ describe("runCaptureAndWrite", () => {
       expect(isProvenanceKind(p["kind"])).toBe(true);
       expect(p["kind"]).toBe("capture");
       expect(p["sdkVersion"]).toBe("0.2.141");
-      expect(p["model"]).toBe("claude-sonnet-4-6");
+      expect(p["model"]).toBe("claude-sonnet-5");
       // capturedAt is a REAL just-now ISO timestamp, not null/invented.
       expect(typeof p["capturedAt"]).toBe("string");
       const capturedAt = Date.parse(p["capturedAt"] as string);

@@ -49,7 +49,7 @@ import { createAdkNormalizer } from "@silverprotocol/google-adk";
 // Build your ADK agent + runner as usual — this package normalizes what it emits.
 const agent = new LlmAgent({
   name: "assistant",
-  model: "gemini-3.5-flash",
+  model: "gemini-3.6-flash",
   instruction: "Use the echo tool.",
 });
 const runner = new InMemoryRunner({ agent });

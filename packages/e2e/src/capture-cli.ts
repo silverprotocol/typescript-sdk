@@ -90,11 +90,14 @@ const SDK_PACKAGE: Record<Framework, string> = {
  *  env var (see `resolveModel` below) — e.g. for capturing a newly-released
  *  model before it becomes any agent's hardcoded default. */
 const DEFAULT_MODEL: Record<Framework, string> = {
-  claude: "claude-sonnet-4-6",
-  openai: "gpt-4o-mini",
-  adk: "gemini-2.5-flash",
+  // Policy: each default is the NEWEST model live-verified with that facet in
+  // the committed corpus (see corpus/*/​*.provenance.json) — bump only after a
+  // clean capture at the new model lands as a replay seed.
+  claude: "claude-sonnet-5",
+  openai: "gpt-5.6",
+  adk: "gemini-3.6-flash",
   // Same model family as "openai" — the two facets share provider + corpus.
-  vercel: "gpt-4o-mini",
+  vercel: "gpt-5.6",
 };
 
 /**

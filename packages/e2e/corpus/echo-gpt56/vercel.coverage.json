@@ -13,27 +13,47 @@
     {
       "path": "[2].type",
       "norm": "[*].type",
-      "value": "tool-input-start"
+      "value": "reasoning-start"
     },
     {
-      "path": "[2].dynamic",
-      "norm": "[*].dynamic",
-      "value": true
+      "path": "[2].providerMetadata.openai.itemId",
+      "norm": "[*].providerMetadata.openai.itemId",
+      "value": "rs_00c4f778c32ec547006a606c6c927481998bcafa3d5cd0c873"
     },
     {
-      "path": "[2].toolMetadata.clientName",
-      "norm": "[*].toolMetadata.clientName",
-      "value": "ai-sdk-mcp-client"
+      "path": "[2].providerMetadata.openai.reasoningEncryptedContent",
+      "norm": "[*].providerMetadata.openai.reasoningEncryptedContent",
+      "value": "gAAAAABqYGxsmY5GEFXRXCPDJ54OIQTSY8E0YzX2bWEsfpmzt7zLalrj0xU2gkZ_vdkDhGzQMbYIdYZhijSMVH23iFa2lYhex0m3XUfrsXYxfFWT4poKV6Q0hdlNdpOv5lxJ3CjOAFrySvPC9uAQfo1uCm2SJ4OJy3FSoufJDALJQ17Qh6DEUpZrU36StCyd7EKJvBEp_XSfjl2RZi3U4-drBlHBWQIhXs8e5KI82SLiTMUoKTY2kyWZ-4-pzVIqtyKeh-_CR6AOZfnu8pDWGQStdp3r-2O9HTM7yZJZO_XbSTR2RJeb71R6KkR3h880xZlHN1hBhOf5Sl6ci1010b8QXq37S2miCU3QEhrlsyLnGscXRZ6qlo-tFi4Xj_PdqeUTsUuJfu9q9GaVdeQS1w2cFhg0S0kCefJL8bD65KFoNcL360ys1-_Dk8A9Q5TPpWyfyPvS81SCnBx9SfMaJcVNXXsL3HuuJB0prw9Bz1BQW9P6jpl6nVE2rvQ0Fh-7490H4smLWOwxtjr003SYr1Ih8FmsSkzo_8JNELZOvC6kfZB7PxaBsbv-bz5UytYiR3qLRS0S9u7cpa0YDIYJu8NeC_BhwYwxTmpDjgTVsiAPO4joq4SRxZZ2aJBhJ0yC0xoX1Kaa7EqJRvec55f6y3XWnU0ABcuhqMCFlXK-Yz0OCWQwy98DTTQ_hDg8E6MD2UlkKdnWgYL6FmZJS7cviO5ozN39ZQteGbHeG_pooSMgmc5DzDYwgzikc41iIVtL-ioEhpkR8LTudMEGDtx9lDY2r1iG83H0Kc7g6Z3UrEnsivmbNBmcdzKPdQZY-Vzv27G10kz4xke0KJz00sL-llUXzcRd1nSJl6BNnIiHZcpHTshzMHe61KMZCGbSm3OQWQB0GgvjuFw13CVbc52Cjfn4EfG7dRjOjg=="
     },
     {
       "path": "[3].type",
       "norm": "[*].type",
-      "value": "tool-input-delta"
+      "value": "reasoning-end"
+    },
+    {
+      "path": "[3].providerMetadata.openai.itemId",
+      "norm": "[*].providerMetadata.openai.itemId",
+      "value": "rs_00c4f778c32ec547006a606c6c927481998bcafa3d5cd0c873"
+    },
+    {
+      "path": "[3].providerMetadata.openai.reasoningEncryptedContent",
+      "norm": "[*].providerMetadata.openai.reasoningEncryptedContent",
+      "value": "gAAAAABqYGxskL2pfKQdzxxiMxDSI10kMsR1tT0nl-owdKFzCY33yP733jSs_oVzn7gQkN5KBZ3JpnTFRMx8KWB6yZsy0sqdtCdEuiaGs_yjQczaO9DSo0gbuTp2aZlTmRc_DOZnju2BDTpfLDndpw4kVJkBVV4S0xjXdN2y9TfgXKPKdewhLp54h9iP4NaZTgDRVcbe0g-l6c7mLpePs7m-ednpKv2r4WqQjn4VGKrL1sAALRMf6cIC9wpLW3EDHfKCHVy3HXU_fG5u3CkLVIGCHHvptZEAEsTAYurNv8BCST0RDH9Ln6BDLIlCYUeLYiYK1aTfTMDctLu1aqtl-Uez2oh6pfxVlmOiWy8w9pttMiqKva9h3NPonpJkuFMjcIly-WZDeWwqAM8n6QGq1zdEEGYJe2lMC7maz-xZu7iEzfdpZblg75S-XU-q0qN0KILdBB1v1q8fGOW2VhFqzTR-X48_DUDVBuozPOhEyQ4vOEYaX59IplBl1zWxv3VMO7ty21_Tl04JiFLffQDs4F79iPacUJtcZZzHtzVbCM6lWtj1ARzF2k9V71IJPidjsEcdpoawYIprfwW4dyL5ILyyeI11Uc9Aa6CTCgfCs7kQN_3GxjYvHjq1PctV3Itr1-8b_REKVZbn2akYwqLhIvzKZW8wAvhdUfwT8SkmY13DoEszU0cO8rD9vBYZJZGCUo_XjpC7U60LM0bvNU_wozpLEqOgfc-4S6aS9OJjhTzysvFqLukF9TApePTLvXUXNabEeRF_buc_8RxhWo_2ktCUZClhOp045DWQMLyLtZ0tHuj6bacUCc_fLcSAFh1pXAV5APudNhXH-fsl5FhKtgOQs5f-sW_I_mYk_wK9Qh17cA7ZZDI3sPfI0VJpPiYVSKsvFn2Zx3W7T44Z_RVi-caYIEH_glLFJXCJrz_2q_85kXuxaQkBQ802nBcfuqlPy2-rMvoHwcsDcKRwucidFpx1FJEWs71XyMsrAoMhVBONtSH2_vm9Q-QwU4pisVmNQ4mcnsytpPcVdqcWJ9MEAy6AonFtsAkDRWqwrejb1jlPHn_1hmSAkcA="
     },
     {
       "path": "[4].type",
       "norm": "[*].type",
-      "value": "tool-input-delta"
+      "value": "tool-input-start"
+    },
+    {
+      "path": "[4].dynamic",
+      "norm": "[*].dynamic",
+      "value": true
+    },
+    {
+      "path": "[4].toolMetadata.clientName",
+      "norm": "[*].toolMetadata.clientName",
+      "value": "ai-sdk-mcp-client"
     },
     {
       "path": "[5].type",
@@ -83,277 +103,307 @@
     {
       "path": "[14].type",
       "norm": "[*].type",
-      "value": "tool-input-end"
+      "value": "tool-input-delta"
     },
     {
       "path": "[15].type",
       "norm": "[*].type",
-      "value": "tool-call"
-    },
-    {
-      "path": "[15].providerMetadata.openai.itemId",
-      "norm": "[*].providerMetadata.openai.itemId",
-      "value": "fc_0ef89466be4a78e7006a5d62236f048199b6582c312d5ef14c"
-    },
-    {
-      "path": "[15].toolMetadata.clientName",
-      "norm": "[*].toolMetadata.clientName",
-      "value": "ai-sdk-mcp-client"
-    },
-    {
-      "path": "[15].dynamic",
-      "norm": "[*].dynamic",
-      "value": true
+      "value": "tool-input-delta"
     },
     {
       "path": "[16].type",
       "norm": "[*].type",
-      "value": "tool-result"
-    },
-    {
-      "path": "[16].output.isError",
-      "norm": "[*].output.isError",
-      "value": false
-    },
-    {
-      "path": "[16].dynamic",
-      "norm": "[*].dynamic",
-      "value": true
-    },
-    {
-      "path": "[16].providerMetadata.openai.itemId",
-      "norm": "[*].providerMetadata.openai.itemId",
-      "value": "fc_0ef89466be4a78e7006a5d62236f048199b6582c312d5ef14c"
-    },
-    {
-      "path": "[16].toolMetadata.clientName",
-      "norm": "[*].toolMetadata.clientName",
-      "value": "ai-sdk-mcp-client"
+      "value": "tool-input-end"
     },
     {
       "path": "[17].type",
       "norm": "[*].type",
-      "value": "finish-step"
+      "value": "tool-call"
     },
     {
-      "path": "[17].finishReason",
-      "norm": "[*].finishReason",
-      "value": "tool-calls"
+      "path": "[17].providerMetadata.openai.itemId",
+      "norm": "[*].providerMetadata.openai.itemId",
+      "value": "fc_00c4f778c32ec547006a606c6cf1288199bf98a116fdf2759e"
     },
     {
-      "path": "[17].usage.inputTokenDetails.cacheReadTokens",
-      "norm": "[*].usage.inputTokenDetails.cacheReadTokens",
-      "value": 0
+      "path": "[17].toolMetadata.clientName",
+      "norm": "[*].toolMetadata.clientName",
+      "value": "ai-sdk-mcp-client"
     },
     {
-      "path": "[17].usage.inputTokenDetails.cacheWriteTokens",
-      "norm": "[*].usage.inputTokenDetails.cacheWriteTokens",
-      "value": 0
-    },
-    {
-      "path": "[17].usage.outputTokenDetails.reasoningTokens",
-      "norm": "[*].usage.outputTokenDetails.reasoningTokens",
-      "value": 0
-    },
-    {
-      "path": "[17].usage.raw.input_tokens_details.cached_tokens",
-      "norm": "[*].usage.raw.input_tokens_details.cached_tokens",
-      "value": 0
-    },
-    {
-      "path": "[17].usage.raw.input_tokens_details.cache_write_tokens",
-      "norm": "[*].usage.raw.input_tokens_details.cache_write_tokens",
-      "value": 0
-    },
-    {
-      "path": "[17].usage.raw.output_tokens_details.reasoning_tokens",
-      "norm": "[*].usage.raw.output_tokens_details.reasoning_tokens",
-      "value": 0
-    },
-    {
-      "path": "[17].performance.stepTimeMs",
-      "norm": "[*].performance.stepTimeMs",
-      "value": 3519.9641250000004
-    },
-    {
-      "path": "[17].performance.toolExecutionMs.call_P9V6G0h2gVsWqupLPr8114uJ",
-      "norm": "[*].performance.toolExecutionMs.call_P9V6G0h2gVsWqupLPr8114uJ",
-      "value": 9.92587500000036
-    },
-    {
-      "path": "[17].performance.responseTimeMs",
-      "norm": "[*].performance.responseTimeMs",
-      "value": 3507.503083
-    },
-    {
-      "path": "[17].performance.effectiveOutputTokensPerSecond",
-      "norm": "[*].performance.effectiveOutputTokensPerSecond",
-      "value": 5.70206198732513
-    },
-    {
-      "path": "[17].performance.outputTokensPerSecond",
-      "norm": "[*].performance.outputTokensPerSecond",
-      "value": 61.58032820356676
-    },
-    {
-      "path": "[17].performance.inputTokensPerSecond",
-      "norm": "[*].performance.inputTokensPerSecond",
-      "value": 30.47703751580139
-    },
-    {
-      "path": "[17].performance.effectiveTotalTokensPerSecond",
-      "norm": "[*].performance.effectiveTotalTokensPerSecond",
-      "value": 33.35706262585201
-    },
-    {
-      "path": "[17].performance.timeToFirstOutputMs",
-      "norm": "[*].performance.timeToFirstOutputMs",
-      "value": 3182.724041
-    },
-    {
-      "path": "[17].performance.timeBetweenOutputChunksMs.min",
-      "norm": "[*].performance.timeBetweenOutputChunksMs.min",
-      "value": 0.10179199999993216
-    },
-    {
-      "path": "[17].performance.timeBetweenOutputChunksMs.p10",
-      "norm": "[*].performance.timeBetweenOutputChunksMs.p10",
-      "value": 0.12487499999997453
-    },
-    {
-      "path": "[17].performance.timeBetweenOutputChunksMs.median",
-      "norm": "[*].performance.timeBetweenOutputChunksMs.median",
-      "value": 0.23058300000002419
-    },
-    {
-      "path": "[17].performance.timeBetweenOutputChunksMs.avg",
-      "norm": "[*].performance.timeBetweenOutputChunksMs.avg",
-      "value": 6.800310636363644
-    },
-    {
-      "path": "[17].performance.timeBetweenOutputChunksMs.p90",
-      "norm": "[*].performance.timeBetweenOutputChunksMs.p90",
-      "value": 6.511082999999871
-    },
-    {
-      "path": "[17].performance.timeBetweenOutputChunksMs.max",
-      "norm": "[*].performance.timeBetweenOutputChunksMs.max",
-      "value": 65.904
-    },
-    {
-      "path": "[17].providerMetadata.openai.serviceTier",
-      "norm": "[*].providerMetadata.openai.serviceTier",
-      "value": "default"
-    },
-    {
-      "path": "[17].response.timestamp",
-      "norm": "[*].response.timestamp",
-      "value": "2026-07-19T23:47:45.000Z"
-    },
-    {
-      "path": "[17].response.headers.access-control-expose-headers",
-      "norm": "[*].response.headers.access-control-expose-headers",
-      "value": "X-Request-ID, CF-Ray, CF-Ray"
-    },
-    {
-      "path": "[17].response.headers.alt-svc",
-      "norm": "[*].response.headers.alt-svc",
-      "value": "h3=\":443\"; ma=86400"
-    },
-    {
-      "path": "[17].response.headers.cf-cache-status",
-      "norm": "[*].response.headers.cf-cache-status",
-      "value": "DYNAMIC"
-    },
-    {
-      "path": "[17].response.headers.cf-ray",
-      "norm": "[*].response.headers.cf-ray",
-      "value": "a1dd9cea9e8b83f1-ICN"
-    },
-    {
-      "path": "[17].response.headers.connection",
-      "norm": "[*].response.headers.connection",
-      "value": "keep-alive"
-    },
-    {
-      "path": "[17].response.headers.content-type",
-      "norm": "[*].response.headers.content-type",
-      "value": "text/event-stream; charset=utf-8"
-    },
-    {
-      "path": "[17].response.headers.date",
-      "norm": "[*].response.headers.date",
-      "value": "Sun, 19 Jul 2026 23:47:45 GMT"
-    },
-    {
-      "path": "[17].response.headers.openai-organization",
-      "norm": "[*].response.headers.openai-organization",
-      "value": "alohomora-company"
-    },
-    {
-      "path": "[17].response.headers.openai-processing-ms",
-      "norm": "[*].response.headers.openai-processing-ms",
-      "value": "153"
-    },
-    {
-      "path": "[17].response.headers.openai-project",
-      "norm": "[*].response.headers.openai-project",
-      "value": "proj_ZN1JUSrsvFLEcIBrWjUCXGks"
-    },
-    {
-      "path": "[17].response.headers.openai-version",
-      "norm": "[*].response.headers.openai-version",
-      "value": "2020-10-01"
-    },
-    {
-      "path": "[17].response.headers.server",
-      "norm": "[*].response.headers.server",
-      "value": "cloudflare"
-    },
-    {
-      "path": "[17].response.headers.set-cookie",
-      "norm": "[*].response.headers.set-cookie",
-      "value": "__cf_bm=h3KcdLeB.8X8oD9Q5aRZ4kmLZNjW4uSdc3qx7EqjipI-1784504864.4135106-1.0.1.1-7.nCLYd61n538gTcEtfl3JHRV_kFZebrCk1XqjLl1wHn5yD2uUP8ufnqflzHbaLMHC3GQHkVQ1ES4ECO80orxPQ1AV2DGH1Kt4DBttKU2uQ3oCigoY1n3XEtBnQi4AbV; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.openai.com; Expires=Mon, 20 Jul 2026 00:17:45 GMT"
-    },
-    {
-      "path": "[17].response.headers.strict-transport-security",
-      "norm": "[*].response.headers.strict-transport-security",
-      "value": "max-age=31536000; includeSubDomains; preload"
-    },
-    {
-      "path": "[17].response.headers.transfer-encoding",
-      "norm": "[*].response.headers.transfer-encoding",
-      "value": "chunked"
-    },
-    {
-      "path": "[17].response.headers.x-content-type-options",
-      "norm": "[*].response.headers.x-content-type-options",
-      "value": "nosniff"
-    },
-    {
-      "path": "[17].response.headers.x-request-id",
-      "norm": "[*].response.headers.x-request-id",
-      "value": "req_ec9c6e15df1b4254819a59cd089b93be"
+      "path": "[17].dynamic",
+      "norm": "[*].dynamic",
+      "value": true
     },
     {
       "path": "[18].type",
       "norm": "[*].type",
-      "value": "start-step"
+      "value": "tool-result"
+    },
+    {
+      "path": "[18].output.isError",
+      "norm": "[*].output.isError",
+      "value": false
+    },
+    {
+      "path": "[18].dynamic",
+      "norm": "[*].dynamic",
+      "value": true
+    },
+    {
+      "path": "[18].providerMetadata.openai.itemId",
+      "norm": "[*].providerMetadata.openai.itemId",
+      "value": "fc_00c4f778c32ec547006a606c6cf1288199bf98a116fdf2759e"
+    },
+    {
+      "path": "[18].toolMetadata.clientName",
+      "norm": "[*].toolMetadata.clientName",
+      "value": "ai-sdk-mcp-client"
     },
     {
       "path": "[19].type",
       "norm": "[*].type",
-      "value": "text-start"
+      "value": "finish-step"
+    },
+    {
+      "path": "[19].finishReason",
+      "norm": "[*].finishReason",
+      "value": "tool-calls"
+    },
+    {
+      "path": "[19].usage.inputTokenDetails.cacheReadTokens",
+      "norm": "[*].usage.inputTokenDetails.cacheReadTokens",
+      "value": 0
+    },
+    {
+      "path": "[19].usage.inputTokenDetails.cacheWriteTokens",
+      "norm": "[*].usage.inputTokenDetails.cacheWriteTokens",
+      "value": 0
+    },
+    {
+      "path": "[19].usage.raw.input_tokens_details.cached_tokens",
+      "norm": "[*].usage.raw.input_tokens_details.cached_tokens",
+      "value": 0
+    },
+    {
+      "path": "[19].usage.raw.input_tokens_details.cache_write_tokens",
+      "norm": "[*].usage.raw.input_tokens_details.cache_write_tokens",
+      "value": 0
+    },
+    {
+      "path": "[19].performance.stepTimeMs",
+      "norm": "[*].performance.stepTimeMs",
+      "value": 3170.2308329999996
+    },
+    {
+      "path": "[19].performance.toolExecutionMs.call_OIvSkPTh758OxibgjQWpa0rX",
+      "norm": "[*].performance.toolExecutionMs.call_OIvSkPTh758OxibgjQWpa0rX",
+      "value": 11.923667000000023
+    },
+    {
+      "path": "[19].performance.responseTimeMs",
+      "norm": "[*].performance.responseTimeMs",
+      "value": 3154.601084
+    },
+    {
+      "path": "[19].performance.effectiveOutputTokensPerSecond",
+      "norm": "[*].performance.effectiveOutputTokensPerSecond",
+      "value": 15.849864584653139
+    },
+    {
+      "path": "[19].performance.outputTokensPerSecond",
+      "norm": "[*].performance.outputTokensPerSecond",
+      "value": 197.76935939537944
+    },
+    {
+      "path": "[19].performance.inputTokensPerSecond",
+      "norm": "[*].performance.inputTokensPerSecond",
+      "value": 35.15082229142219
+    },
+    {
+      "path": "[19].performance.effectiveTotalTokensPerSecond",
+      "norm": "[*].performance.effectiveTotalTokensPerSecond",
+      "value": 48.18358833734554
+    },
+    {
+      "path": "[19].performance.timeToFirstOutputMs",
+      "norm": "[*].performance.timeToFirstOutputMs",
+      "value": 2901.781334
+    },
+    {
+      "path": "[19].performance.timeBetweenOutputChunksMs.min",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.min",
+      "value": 0.39341700000022684
+    },
+    {
+      "path": "[19].performance.timeBetweenOutputChunksMs.p10",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.p10",
+      "value": 0.5813750000002074
+    },
+    {
+      "path": "[19].performance.timeBetweenOutputChunksMs.median",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.median",
+      "value": 1.1165000000000873
+    },
+    {
+      "path": "[19].performance.timeBetweenOutputChunksMs.avg",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.avg",
+      "value": 12.004128727272763
+    },
+    {
+      "path": "[19].performance.timeBetweenOutputChunksMs.p90",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.p90",
+      "value": 55.55104100000017
+    },
+    {
+      "path": "[19].performance.timeBetweenOutputChunksMs.max",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.max",
+      "value": 58.59954199999993
+    },
+    {
+      "path": "[19].providerMetadata.openai.serviceTier",
+      "norm": "[*].providerMetadata.openai.serviceTier",
+      "value": "default"
+    },
+    {
+      "path": "[19].providerMetadata.openai.reasoningContext",
+      "norm": "[*].providerMetadata.openai.reasoningContext",
+      "value": "all_turns"
+    },
+    {
+      "path": "[19].response.timestamp",
+      "norm": "[*].response.timestamp",
+      "value": "2026-07-22T07:08:27.000Z"
+    },
+    {
+      "path": "[19].response.headers.access-control-expose-headers",
+      "norm": "[*].response.headers.access-control-expose-headers",
+      "value": "X-Request-ID, CF-Ray, CF-Ray"
+    },
+    {
+      "path": "[19].response.headers.alt-svc",
+      "norm": "[*].response.headers.alt-svc",
+      "value": "h3=\":443\"; ma=86400"
+    },
+    {
+      "path": "[19].response.headers.cf-cache-status",
+      "norm": "[*].response.headers.cf-cache-status",
+      "value": "DYNAMIC"
+    },
+    {
+      "path": "[19].response.headers.cf-ray",
+      "norm": "[*].response.headers.cf-ray",
+      "value": "a1f09d37ee14834c-ICN"
+    },
+    {
+      "path": "[19].response.headers.connection",
+      "norm": "[*].response.headers.connection",
+      "value": "keep-alive"
+    },
+    {
+      "path": "[19].response.headers.content-type",
+      "norm": "[*].response.headers.content-type",
+      "value": "text/event-stream; charset=utf-8"
+    },
+    {
+      "path": "[19].response.headers.date",
+      "norm": "[*].response.headers.date",
+      "value": "Wed, 22 Jul 2026 07:08:27 GMT"
+    },
+    {
+      "path": "[19].response.headers.openai-organization",
+      "norm": "[*].response.headers.openai-organization",
+      "value": "alohomora-company"
+    },
+    {
+      "path": "[19].response.headers.openai-processing-ms",
+      "norm": "[*].response.headers.openai-processing-ms",
+      "value": "518"
+    },
+    {
+      "path": "[19].response.headers.openai-project",
+      "norm": "[*].response.headers.openai-project",
+      "value": "proj_ZN1JUSrsvFLEcIBrWjUCXGks"
+    },
+    {
+      "path": "[19].response.headers.openai-version",
+      "norm": "[*].response.headers.openai-version",
+      "value": "2020-10-01"
+    },
+    {
+      "path": "[19].response.headers.server",
+      "norm": "[*].response.headers.server",
+      "value": "cloudflare"
+    },
+    {
+      "path": "[19].response.headers.set-cookie",
+      "norm": "[*].response.headers.set-cookie",
+      "value": "__cf_bm=VOEHfyXzqG_eiq_Mxkp.ILQ06DR7ozXLsqnPpNK1Lgs-1784704106.2293625-1.0.1.1-3c9bt67bW7mDxxpkd4tJ4Et5GDmgs3UzSBrFZ.BFp.ZdScMQX.wiZjXZ6LVYaQUs4Z55SoBLwF8rmf5I2aMuyFklsJ7_tJN1vOmpu7Tl1aflO00Ayeo9pO68IMYRbYTa; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.openai.com; Expires=Wed, 22 Jul 2026 07:38:27 GMT"
+    },
+    {
+      "path": "[19].response.headers.strict-transport-security",
+      "norm": "[*].response.headers.strict-transport-security",
+      "value": "max-age=31536000; includeSubDomains; preload"
+    },
+    {
+      "path": "[19].response.headers.transfer-encoding",
+      "norm": "[*].response.headers.transfer-encoding",
+      "value": "chunked"
+    },
+    {
+      "path": "[19].response.headers.x-content-type-options",
+      "norm": "[*].response.headers.x-content-type-options",
+      "value": "nosniff"
+    },
+    {
+      "path": "[19].response.headers.x-ratelimit-limit-requests",
+      "norm": "[*].response.headers.x-ratelimit-limit-requests",
+      "value": "10000"
+    },
+    {
+      "path": "[19].response.headers.x-ratelimit-limit-tokens",
+      "norm": "[*].response.headers.x-ratelimit-limit-tokens",
+      "value": "4000000"
+    },
+    {
+      "path": "[19].response.headers.x-ratelimit-remaining-requests",
+      "norm": "[*].response.headers.x-ratelimit-remaining-requests",
+      "value": "9999"
+    },
+    {
+      "path": "[19].response.headers.x-ratelimit-remaining-tokens",
+      "norm": "[*].response.headers.x-ratelimit-remaining-tokens",
+      "value": "3999463"
+    },
+    {
+      "path": "[19].response.headers.x-ratelimit-reset-requests",
+      "norm": "[*].response.headers.x-ratelimit-reset-requests",
+      "value": "6ms"
+    },
+    {
+      "path": "[19].response.headers.x-ratelimit-reset-tokens",
+      "norm": "[*].response.headers.x-ratelimit-reset-tokens",
+      "value": "8ms"
+    },
+    {
+      "path": "[19].response.headers.x-request-id",
+      "norm": "[*].response.headers.x-request-id",
+      "value": "req_ce2d20b2089e403e8db5137d1fe15c44"
     },
     {
       "path": "[20].type",
       "norm": "[*].type",
-      "value": "text-delta"
+      "value": "start-step"
     },
     {
       "path": "[21].type",
       "norm": "[*].type",
-      "value": "text-delta"
+      "value": "text-start"
+    },
+    {
+      "path": "[21].providerMetadata.openai.phase",
+      "norm": "[*].providerMetadata.openai.phase",
+      "value": "final_answer"
     },
     {
       "path": "[22].type",
@@ -383,227 +433,274 @@
     {
       "path": "[27].type",
       "norm": "[*].type",
-      "value": "text-end"
+      "value": "text-delta"
     },
     {
       "path": "[28].type",
       "norm": "[*].type",
-      "value": "finish-step"
-    },
-    {
-      "path": "[28].usage.inputTokenDetails.cacheReadTokens",
-      "norm": "[*].usage.inputTokenDetails.cacheReadTokens",
-      "value": 0
-    },
-    {
-      "path": "[28].usage.inputTokenDetails.cacheWriteTokens",
-      "norm": "[*].usage.inputTokenDetails.cacheWriteTokens",
-      "value": 0
-    },
-    {
-      "path": "[28].usage.outputTokenDetails.reasoningTokens",
-      "norm": "[*].usage.outputTokenDetails.reasoningTokens",
-      "value": 0
-    },
-    {
-      "path": "[28].usage.raw.input_tokens_details.cached_tokens",
-      "norm": "[*].usage.raw.input_tokens_details.cached_tokens",
-      "value": 0
-    },
-    {
-      "path": "[28].usage.raw.input_tokens_details.cache_write_tokens",
-      "norm": "[*].usage.raw.input_tokens_details.cache_write_tokens",
-      "value": 0
-    },
-    {
-      "path": "[28].usage.raw.output_tokens_details.reasoning_tokens",
-      "norm": "[*].usage.raw.output_tokens_details.reasoning_tokens",
-      "value": 0
-    },
-    {
-      "path": "[28].performance.stepTimeMs",
-      "norm": "[*].performance.stepTimeMs",
-      "value": 1624.6268330000003
-    },
-    {
-      "path": "[28].performance.responseTimeMs",
-      "norm": "[*].performance.responseTimeMs",
-      "value": 1622.9019579999995
-    },
-    {
-      "path": "[28].performance.effectiveOutputTokensPerSecond",
-      "norm": "[*].performance.effectiveOutputTokensPerSecond",
-      "value": 5.545621505744713
-    },
-    {
-      "path": "[28].performance.outputTokensPerSecond",
-      "norm": "[*].performance.outputTokensPerSecond",
-      "value": 2288.814284846027
-    },
-    {
-      "path": "[28].performance.inputTokensPerSecond",
-      "norm": "[*].performance.inputTokensPerSecond",
-      "value": 79.06262409068017
-    },
-    {
-      "path": "[28].performance.effectiveTotalTokensPerSecond",
-      "norm": "[*].performance.effectiveTotalTokensPerSecond",
-      "value": 84.41668292078063
-    },
-    {
-      "path": "[28].performance.timeToFirstOutputMs",
-      "norm": "[*].performance.timeToFirstOutputMs",
-      "value": 1618.9697909999995
-    },
-    {
-      "path": "[28].performance.timeBetweenOutputChunksMs.min",
-      "norm": "[*].performance.timeBetweenOutputChunksMs.min",
-      "value": 0.14474999999947613
-    },
-    {
-      "path": "[28].performance.timeBetweenOutputChunksMs.p10",
-      "norm": "[*].performance.timeBetweenOutputChunksMs.p10",
-      "value": 0.14474999999947613
-    },
-    {
-      "path": "[28].performance.timeBetweenOutputChunksMs.median",
-      "norm": "[*].performance.timeBetweenOutputChunksMs.median",
-      "value": 0.19383300000026793
-    },
-    {
-      "path": "[28].performance.timeBetweenOutputChunksMs.avg",
-      "norm": "[*].performance.timeBetweenOutputChunksMs.avg",
-      "value": 0.28081250000013824
-    },
-    {
-      "path": "[28].performance.timeBetweenOutputChunksMs.p90",
-      "norm": "[*].performance.timeBetweenOutputChunksMs.p90",
-      "value": 0.6367090000003373
-    },
-    {
-      "path": "[28].performance.timeBetweenOutputChunksMs.max",
-      "norm": "[*].performance.timeBetweenOutputChunksMs.max",
-      "value": 0.6367090000003373
-    },
-    {
-      "path": "[28].providerMetadata.openai.serviceTier",
-      "norm": "[*].providerMetadata.openai.serviceTier",
-      "value": "default"
-    },
-    {
-      "path": "[28].response.timestamp",
-      "norm": "[*].response.timestamp",
-      "value": "2026-07-19T23:47:48.000Z"
-    },
-    {
-      "path": "[28].response.headers.access-control-expose-headers",
-      "norm": "[*].response.headers.access-control-expose-headers",
-      "value": "X-Request-ID, CF-Ray, CF-Ray"
-    },
-    {
-      "path": "[28].response.headers.alt-svc",
-      "norm": "[*].response.headers.alt-svc",
-      "value": "h3=\":443\"; ma=86400"
-    },
-    {
-      "path": "[28].response.headers.cf-cache-status",
-      "norm": "[*].response.headers.cf-cache-status",
-      "value": "DYNAMIC"
-    },
-    {
-      "path": "[28].response.headers.cf-ray",
-      "norm": "[*].response.headers.cf-ray",
-      "value": "a1dd9d003afc83f1-ICN"
-    },
-    {
-      "path": "[28].response.headers.connection",
-      "norm": "[*].response.headers.connection",
-      "value": "keep-alive"
-    },
-    {
-      "path": "[28].response.headers.content-type",
-      "norm": "[*].response.headers.content-type",
-      "value": "text/event-stream; charset=utf-8"
-    },
-    {
-      "path": "[28].response.headers.date",
-      "norm": "[*].response.headers.date",
-      "value": "Sun, 19 Jul 2026 23:47:48 GMT"
-    },
-    {
-      "path": "[28].response.headers.openai-organization",
-      "norm": "[*].response.headers.openai-organization",
-      "value": "alohomora-company"
-    },
-    {
-      "path": "[28].response.headers.openai-processing-ms",
-      "norm": "[*].response.headers.openai-processing-ms",
-      "value": "139"
-    },
-    {
-      "path": "[28].response.headers.openai-project",
-      "norm": "[*].response.headers.openai-project",
-      "value": "proj_ZN1JUSrsvFLEcIBrWjUCXGks"
-    },
-    {
-      "path": "[28].response.headers.openai-version",
-      "norm": "[*].response.headers.openai-version",
-      "value": "2020-10-01"
-    },
-    {
-      "path": "[28].response.headers.server",
-      "norm": "[*].response.headers.server",
-      "value": "cloudflare"
-    },
-    {
-      "path": "[28].response.headers.set-cookie",
-      "norm": "[*].response.headers.set-cookie",
-      "value": "__cf_bm=VUTcyk7Ul4T6cL1EX6fT5pAy1yIpz_1S_yp8WK.00vI-1784504867.8759015-1.0.1.1-1DO8M.Quwvqx7e5zEYdf_gOQeC7CNPHsNK2TC1NTe80reEQXT4NDeyKefU4XZh5gE4dda2Xpar7f6voLJZyWlo9sdo77yoAgkUvF6KOA7qVYCM2YcfqEjtpfmghSyhpr; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.openai.com; Expires=Mon, 20 Jul 2026 00:17:48 GMT"
-    },
-    {
-      "path": "[28].response.headers.strict-transport-security",
-      "norm": "[*].response.headers.strict-transport-security",
-      "value": "max-age=31536000; includeSubDomains; preload"
-    },
-    {
-      "path": "[28].response.headers.transfer-encoding",
-      "norm": "[*].response.headers.transfer-encoding",
-      "value": "chunked"
-    },
-    {
-      "path": "[28].response.headers.x-content-type-options",
-      "norm": "[*].response.headers.x-content-type-options",
-      "value": "nosniff"
-    },
-    {
-      "path": "[28].response.headers.x-request-id",
-      "norm": "[*].response.headers.x-request-id",
-      "value": "req_69f9b36806fb446d830c094bdb5faef2"
+      "value": "text-delta"
     },
     {
       "path": "[29].type",
       "norm": "[*].type",
+      "value": "text-end"
+    },
+    {
+      "path": "[29].providerMetadata.openai.phase",
+      "norm": "[*].providerMetadata.openai.phase",
+      "value": "final_answer"
+    },
+    {
+      "path": "[30].type",
+      "norm": "[*].type",
+      "value": "finish-step"
+    },
+    {
+      "path": "[30].usage.inputTokenDetails.cacheReadTokens",
+      "norm": "[*].usage.inputTokenDetails.cacheReadTokens",
+      "value": 0
+    },
+    {
+      "path": "[30].usage.inputTokenDetails.cacheWriteTokens",
+      "norm": "[*].usage.inputTokenDetails.cacheWriteTokens",
+      "value": 0
+    },
+    {
+      "path": "[30].usage.outputTokenDetails.reasoningTokens",
+      "norm": "[*].usage.outputTokenDetails.reasoningTokens",
+      "value": 0
+    },
+    {
+      "path": "[30].usage.raw.input_tokens_details.cached_tokens",
+      "norm": "[*].usage.raw.input_tokens_details.cached_tokens",
+      "value": 0
+    },
+    {
+      "path": "[30].usage.raw.input_tokens_details.cache_write_tokens",
+      "norm": "[*].usage.raw.input_tokens_details.cache_write_tokens",
+      "value": 0
+    },
+    {
+      "path": "[30].usage.raw.output_tokens_details.reasoning_tokens",
+      "norm": "[*].usage.raw.output_tokens_details.reasoning_tokens",
+      "value": 0
+    },
+    {
+      "path": "[30].performance.stepTimeMs",
+      "norm": "[*].performance.stepTimeMs",
+      "value": 2799.174709
+    },
+    {
+      "path": "[30].performance.responseTimeMs",
+      "norm": "[*].performance.responseTimeMs",
+      "value": 2796.3584170000004
+    },
+    {
+      "path": "[30].performance.effectiveOutputTokensPerSecond",
+      "norm": "[*].performance.effectiveOutputTokensPerSecond",
+      "value": 3.9336874461897704
+    },
+    {
+      "path": "[30].performance.outputTokensPerSecond",
+      "norm": "[*].performance.outputTokensPerSecond",
+      "value": 70.89960558484954
+    },
+    {
+      "path": "[30].performance.inputTokensPerSecond",
+      "norm": "[*].performance.inputTokensPerSecond",
+      "value": 63.98583780930864
+    },
+    {
+      "path": "[30].performance.effectiveTotalTokensPerSecond",
+      "norm": "[*].performance.effectiveTotalTokensPerSecond",
+      "value": 64.36943093765079
+    },
+    {
+      "path": "[30].performance.timeToFirstOutputMs",
+      "norm": "[*].performance.timeToFirstOutputMs",
+      "value": 2641.2094580000003
+    },
+    {
+      "path": "[30].performance.timeBetweenOutputChunksMs.min",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.min",
+      "value": 0.5213749999993524
+    },
+    {
+      "path": "[30].performance.timeBetweenOutputChunksMs.p10",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.p10",
+      "value": 0.5213749999993524
+    },
+    {
+      "path": "[30].performance.timeBetweenOutputChunksMs.median",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.median",
+      "value": 0.8377920000002632
+    },
+    {
+      "path": "[30].performance.timeBetweenOutputChunksMs.avg",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.avg",
+      "value": 1.0829723333332975
+    },
+    {
+      "path": "[30].performance.timeBetweenOutputChunksMs.p90",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.p90",
+      "value": 2.099083000000064
+    },
+    {
+      "path": "[30].performance.timeBetweenOutputChunksMs.max",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.max",
+      "value": 2.099083000000064
+    },
+    {
+      "path": "[30].providerMetadata.openai.serviceTier",
+      "norm": "[*].providerMetadata.openai.serviceTier",
+      "value": "default"
+    },
+    {
+      "path": "[30].providerMetadata.openai.reasoningContext",
+      "norm": "[*].providerMetadata.openai.reasoningContext",
+      "value": "all_turns"
+    },
+    {
+      "path": "[30].response.timestamp",
+      "norm": "[*].response.timestamp",
+      "value": "2026-07-22T07:08:29.000Z"
+    },
+    {
+      "path": "[30].response.headers.access-control-expose-headers",
+      "norm": "[*].response.headers.access-control-expose-headers",
+      "value": "X-Request-ID, CF-Ray, CF-Ray"
+    },
+    {
+      "path": "[30].response.headers.alt-svc",
+      "norm": "[*].response.headers.alt-svc",
+      "value": "h3=\":443\"; ma=86400"
+    },
+    {
+      "path": "[30].response.headers.cf-cache-status",
+      "norm": "[*].response.headers.cf-cache-status",
+      "value": "DYNAMIC"
+    },
+    {
+      "path": "[30].response.headers.cf-ray",
+      "norm": "[*].response.headers.cf-ray",
+      "value": "a1f09d4b6cde834c-ICN"
+    },
+    {
+      "path": "[30].response.headers.connection",
+      "norm": "[*].response.headers.connection",
+      "value": "keep-alive"
+    },
+    {
+      "path": "[30].response.headers.content-type",
+      "norm": "[*].response.headers.content-type",
+      "value": "text/event-stream; charset=utf-8"
+    },
+    {
+      "path": "[30].response.headers.date",
+      "norm": "[*].response.headers.date",
+      "value": "Wed, 22 Jul 2026 07:08:29 GMT"
+    },
+    {
+      "path": "[30].response.headers.openai-organization",
+      "norm": "[*].response.headers.openai-organization",
+      "value": "alohomora-company"
+    },
+    {
+      "path": "[30].response.headers.openai-processing-ms",
+      "norm": "[*].response.headers.openai-processing-ms",
+      "value": "343"
+    },
+    {
+      "path": "[30].response.headers.openai-project",
+      "norm": "[*].response.headers.openai-project",
+      "value": "proj_ZN1JUSrsvFLEcIBrWjUCXGks"
+    },
+    {
+      "path": "[30].response.headers.openai-version",
+      "norm": "[*].response.headers.openai-version",
+      "value": "2020-10-01"
+    },
+    {
+      "path": "[30].response.headers.server",
+      "norm": "[*].response.headers.server",
+      "value": "cloudflare"
+    },
+    {
+      "path": "[30].response.headers.set-cookie",
+      "norm": "[*].response.headers.set-cookie",
+      "value": "__cf_bm=uwxzDQcTfXT0005uKvi8t15Jlp9Li4R99B64DIs6V_I-1784704109.3463454-1.0.1.1-.eEbx_bE79p5XzDhpvF2Aokxe1Wz2CZGSxttad1jTXHu9Ivn6.Y335TWf52dk.AX8CVcQzFFVlNWV97Pd8YhhkymQLsdOnCl_yyj0r5Qq4Gh5iGwbbWXZiep6sF.t1qZ; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.openai.com; Expires=Wed, 22 Jul 2026 07:38:29 GMT"
+    },
+    {
+      "path": "[30].response.headers.strict-transport-security",
+      "norm": "[*].response.headers.strict-transport-security",
+      "value": "max-age=31536000; includeSubDomains; preload"
+    },
+    {
+      "path": "[30].response.headers.transfer-encoding",
+      "norm": "[*].response.headers.transfer-encoding",
+      "value": "chunked"
+    },
+    {
+      "path": "[30].response.headers.x-content-type-options",
+      "norm": "[*].response.headers.x-content-type-options",
+      "value": "nosniff"
+    },
+    {
+      "path": "[30].response.headers.x-ratelimit-limit-requests",
+      "norm": "[*].response.headers.x-ratelimit-limit-requests",
+      "value": "10000"
+    },
+    {
+      "path": "[30].response.headers.x-ratelimit-limit-tokens",
+      "norm": "[*].response.headers.x-ratelimit-limit-tokens",
+      "value": "4000000"
+    },
+    {
+      "path": "[30].response.headers.x-ratelimit-remaining-requests",
+      "norm": "[*].response.headers.x-ratelimit-remaining-requests",
+      "value": "9999"
+    },
+    {
+      "path": "[30].response.headers.x-ratelimit-remaining-tokens",
+      "norm": "[*].response.headers.x-ratelimit-remaining-tokens",
+      "value": "3999396"
+    },
+    {
+      "path": "[30].response.headers.x-ratelimit-reset-requests",
+      "norm": "[*].response.headers.x-ratelimit-reset-requests",
+      "value": "6ms"
+    },
+    {
+      "path": "[30].response.headers.x-ratelimit-reset-tokens",
+      "norm": "[*].response.headers.x-ratelimit-reset-tokens",
+      "value": "9ms"
+    },
+    {
+      "path": "[30].response.headers.x-request-id",
+      "norm": "[*].response.headers.x-request-id",
+      "value": "req_d93c708cee474c55ac1e2b7c71ca51e9"
+    },
+    {
+      "path": "[31].type",
+      "norm": "[*].type",
       "value": "finish"
     },
     {
-      "path": "[29].totalUsage.inputTokenDetails.cacheReadTokens",
+      "path": "[31].totalUsage.inputTokenDetails.cacheReadTokens",
       "norm": "[*].totalUsage.inputTokenDetails.cacheReadTokens",
       "value": 0
     },
     {
-      "path": "[29].totalUsage.inputTokenDetails.cacheWriteTokens",
+      "path": "[31].totalUsage.inputTokenDetails.cacheWriteTokens",
       "norm": "[*].totalUsage.inputTokenDetails.cacheWriteTokens",
-      "value": 0
-    },
-    {
-      "path": "[29].totalUsage.outputTokenDetails.reasoningTokens",
-      "norm": "[*].totalUsage.outputTokenDetails.reasoningTokens",
       "value": 0
     }
   ],
   "newFields": [
     "[*].type",
     "[*].id",
+    "[*].providerMetadata.openai.itemId",
+    "[*].providerMetadata.openai.reasoningEncryptedContent",
     "[*].toolName",
     "[*].dynamic",
     "[*].toolMetadata.clientName",
@@ -611,7 +708,6 @@
     "[*].delta",
     "[*].toolCallId",
     "[*].input.message",
-    "[*].providerMetadata.openai.itemId",
     "[*].output.content[*].type",
     "[*].output.content[*].text",
     "[*].output.isError",
@@ -630,7 +726,7 @@
     "[*].usage.raw.output_tokens",
     "[*].usage.raw.output_tokens_details.reasoning_tokens",
     "[*].performance.stepTimeMs",
-    "[*].performance.toolExecutionMs.call_P9V6G0h2gVsWqupLPr8114uJ",
+    "[*].performance.toolExecutionMs.call_OIvSkPTh758OxibgjQWpa0rX",
     "[*].performance.responseTimeMs",
     "[*].performance.effectiveOutputTokensPerSecond",
     "[*].performance.outputTokensPerSecond",
@@ -645,6 +741,7 @@
     "[*].performance.timeBetweenOutputChunksMs.max",
     "[*].providerMetadata.openai.responseId",
     "[*].providerMetadata.openai.serviceTier",
+    "[*].providerMetadata.openai.reasoningContext",
     "[*].response.id",
     "[*].response.timestamp",
     "[*].response.modelId",
@@ -664,7 +761,14 @@
     "[*].response.headers.strict-transport-security",
     "[*].response.headers.transfer-encoding",
     "[*].response.headers.x-content-type-options",
+    "[*].response.headers.x-ratelimit-limit-requests",
+    "[*].response.headers.x-ratelimit-limit-tokens",
+    "[*].response.headers.x-ratelimit-remaining-requests",
+    "[*].response.headers.x-ratelimit-remaining-tokens",
+    "[*].response.headers.x-ratelimit-reset-requests",
+    "[*].response.headers.x-ratelimit-reset-tokens",
     "[*].response.headers.x-request-id",
+    "[*].providerMetadata.openai.phase",
     "[*].text",
     "[*].totalUsage.inputTokens",
     "[*].totalUsage.inputTokenDetails.noCacheTokens",

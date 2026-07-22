@@ -21,93 +21,107 @@
     "stepId": "step_1"
   },
   {
-    "type": "tool.start",
+    "type": "reasoning.start",
     "seq": 3,
+    "id": "rs_00c4f778c32ec547006a606c6c927481998bcafa3d5cd0c873:0",
+    "messageId": "msg_turn_vercel_1_s1",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "reasoning.end",
+    "seq": 4,
+    "id": "rs_00c4f778c32ec547006a606c6c927481998bcafa3d5cd0c873:0",
+    "messageId": "msg_turn_vercel_1_s1",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "tool.start",
+    "seq": 5,
     "turnId": "turn_vercel_1",
-    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
     "name": "echo",
     "messageId": "msg_turn_vercel_1_s1",
     "dynamic": true
   },
   {
     "type": "tool.args.delta",
-    "seq": 4,
-    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "seq": 6,
+    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
     "delta": "{\""
   },
   {
     "type": "tool.args.delta",
-    "seq": 5,
-    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "seq": 7,
+    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
     "delta": "message"
   },
   {
     "type": "tool.args.delta",
-    "seq": 6,
-    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "seq": 8,
+    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
     "delta": "\":\""
   },
   {
     "type": "tool.args.delta",
-    "seq": 7,
-    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "seq": 9,
+    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
     "delta": "con"
   },
   {
     "type": "tool.args.delta",
-    "seq": 8,
-    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "seq": 10,
+    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
     "delta": "formance"
   },
   {
     "type": "tool.args.delta",
-    "seq": 9,
-    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "seq": 11,
+    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
     "delta": "-pro"
   },
   {
     "type": "tool.args.delta",
-    "seq": 10,
-    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "seq": 12,
+    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
     "delta": "be"
   },
   {
     "type": "tool.args.delta",
-    "seq": 11,
-    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "seq": 13,
+    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
     "delta": "-g"
   },
   {
     "type": "tool.args.delta",
-    "seq": 12,
-    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "seq": 14,
+    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
     "delta": "pt"
   },
   {
     "type": "tool.args.delta",
-    "seq": 13,
-    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "seq": 15,
+    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
     "delta": "56"
   },
   {
     "type": "tool.args.delta",
-    "seq": 14,
-    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "seq": 16,
+    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
     "delta": "\"}"
   },
   {
     "type": "tool.args.assembled",
-    "seq": 15,
-    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "seq": 17,
+    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
     "input": {
       "message": "conformance-probe-gpt56"
     }
   },
   {
     "type": "tool.done",
-    "seq": 16,
+    "seq": 18,
     "turnId": "turn_vercel_1",
-    "toolCallId": "call_P9V6G0h2gVsWqupLPr8114uJ",
+    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
     "outcome": "ok",
     "structuredContent": {
       "content": [
@@ -130,40 +144,40 @@
     "type": "message.metadata",
     "messageId": "msg_turn_vercel_1_s1",
     "metadata": {
-      "responseId": "resp_0ef89466be4a78e7006a5d62214aac8199b6f130c4e5a7ce86",
-      "model": "gpt-4o-mini-2024-07-18"
+      "responseId": "resp_00c4f778c32ec547006a606c6b32f08199ba5fe6d999771421",
+      "model": "gpt-5.6-sol"
     },
     "turnId": "turn_vercel_1",
-    "seq": 17
+    "seq": 19
   },
   {
     "type": "message.end",
-    "seq": 18,
+    "seq": 20,
     "id": "msg_turn_vercel_1_s1",
     "usage": {
-      "inputTokens": 97,
-      "outputTokens": 20,
-      "totalTokens": 117,
+      "inputTokens": 102,
+      "outputTokens": 50,
+      "totalTokens": 152,
       "cacheReadTokens": 0,
       "cacheWriteTokens": 0,
-      "reasoningTokens": 0
+      "reasoningTokens": 25
     }
   },
   {
     "type": "step.done",
     "id": "step_1",
     "turnId": "turn_vercel_1",
-    "seq": 19
+    "seq": 21
   },
   {
     "type": "step.start",
     "id": "step_2",
     "turnId": "turn_vercel_1",
-    "seq": 20
+    "seq": 22
   },
   {
     "type": "message.start",
-    "seq": 21,
+    "seq": 23,
     "id": "msg_turn_vercel_1_s2",
     "turnId": "turn_vercel_1",
     "threadId": "vercel",
@@ -172,71 +186,71 @@
   },
   {
     "type": "text.start",
-    "seq": 22,
-    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "seq": 24,
+    "id": "msg_00c4f778c32ec547006a606c6fe5008199acd1975e7b884516",
     "messageId": "msg_turn_vercel_1_s2",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "text.delta",
-    "seq": 23,
-    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "seq": 25,
+    "id": "msg_00c4f778c32ec547006a606c6fe5008199acd1975e7b884516",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "con",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "text.delta",
-    "seq": 24,
-    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "seq": 26,
+    "id": "msg_00c4f778c32ec547006a606c6fe5008199acd1975e7b884516",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "formance",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "text.delta",
-    "seq": 25,
-    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "seq": 27,
+    "id": "msg_00c4f778c32ec547006a606c6fe5008199acd1975e7b884516",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "-pro",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "text.delta",
-    "seq": 26,
-    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "seq": 28,
+    "id": "msg_00c4f778c32ec547006a606c6fe5008199acd1975e7b884516",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "be",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "text.delta",
-    "seq": 27,
-    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "seq": 29,
+    "id": "msg_00c4f778c32ec547006a606c6fe5008199acd1975e7b884516",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "-g",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "text.delta",
-    "seq": 28,
-    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "seq": 30,
+    "id": "msg_00c4f778c32ec547006a606c6fe5008199acd1975e7b884516",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "pt",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "text.delta",
-    "seq": 29,
-    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "seq": 31,
+    "id": "msg_00c4f778c32ec547006a606c6fe5008199acd1975e7b884516",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "56",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "text.end",
-    "seq": 30,
-    "id": "msg_0187d8f27d1d304e006a5d622532e0819880eb9607a619172e",
+    "seq": 32,
+    "id": "msg_00c4f778c32ec547006a606c6fe5008199acd1975e7b884516",
     "messageId": "msg_turn_vercel_1_s2",
     "turnId": "turn_vercel_1"
   },
@@ -244,20 +258,20 @@
     "type": "message.metadata",
     "messageId": "msg_turn_vercel_1_s2",
     "metadata": {
-      "responseId": "resp_0187d8f27d1d304e006a5d622407848198b5fddda40978bc65",
-      "model": "gpt-4o-mini-2024-07-18"
+      "responseId": "resp_00c4f778c32ec547006a606c6d7ecc819987de2f85a3504a9b",
+      "model": "gpt-5.6-sol"
     },
     "turnId": "turn_vercel_1",
-    "seq": 31
+    "seq": 33
   },
   {
     "type": "message.end",
-    "seq": 32,
+    "seq": 34,
     "id": "msg_turn_vercel_1_s2",
     "usage": {
-      "inputTokens": 128,
-      "outputTokens": 9,
-      "totalTokens": 137,
+      "inputTokens": 169,
+      "outputTokens": 11,
+      "totalTokens": 180,
       "cacheReadTokens": 0,
       "cacheWriteTokens": 0,
       "reasoningTokens": 0
@@ -267,23 +281,23 @@
     "type": "step.done",
     "id": "step_2",
     "turnId": "turn_vercel_1",
-    "seq": 33
+    "seq": 35
   },
   {
     "type": "turn.done",
-    "seq": 34,
+    "seq": 36,
     "turnId": "turn_vercel_1",
     "outcome": {
       "type": "success"
     },
     "finishReason": "stop",
     "usage": {
-      "inputTokens": 225,
-      "outputTokens": 29,
-      "totalTokens": 254,
+      "inputTokens": 271,
+      "outputTokens": 61,
+      "totalTokens": 332,
       "cacheReadTokens": 0,
       "cacheWriteTokens": 0,
-      "reasoningTokens": 0
+      "reasoningTokens": 25
     }
   }
 ]
