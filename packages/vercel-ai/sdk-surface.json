@@ -12,6 +12,12 @@
       "date": "2026-07-20",
       "silverprotocol": "0.3.3",
       "evidence": "LIVE conformance capture: echo-gpt56 corpus (gpt-4o-mini via @ai-sdk/openai, official @ai-sdk/mcp Streamable-HTTP client against the harness mock) \u2014 landed as a standing replay seed; full two-step tool loop normalized (tool.start/args/assembled/done -> text step -> turn.done), zero unparsed/frame carries; deterministic replay green across the corpus. Census dispositions seeded from the capture (disclosed drops: tool-input-start.toolMetadata.clientName, dynamic flag on input-start)"
+    },
+    {
+      "sdkVersion": "7.0.31",
+      "date": "2026-07-22",
+      "silverprotocol": "0.3.3",
+      "evidence": "provider-breadth probe via @ai-sdk/google on day-one gemini-3.6-flash: live streamText tool loop plus thinking-forced run (thinkingConfig.includeThoughts), zero unparsed and zero frame carries, clean two-step reduce \u2014 first non-OpenAI provider live-verified through this facet"
     }
   ],
   "sections": {}
