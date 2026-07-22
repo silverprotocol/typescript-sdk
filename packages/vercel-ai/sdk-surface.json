@@ -18,6 +18,12 @@
       "date": "2026-07-22",
       "silverprotocol": "0.3.3",
       "evidence": "provider-breadth probe via @ai-sdk/google on day-one gemini-3.6-flash: live streamText tool loop plus thinking-forced run (thinkingConfig.includeThoughts), zero unparsed and zero frame carries, clean two-step reduce \u2014 first non-OpenAI provider live-verified through this facet"
+    },
+    {
+      "sdkVersion": "7.0.34",
+      "date": "2026-07-22",
+      "silverprotocol": "0.3.3",
+      "evidence": "nightly watchdog flagged ai@7.0.34 (issue #3): e2e-harness-only type skew between ai@7.0.34 and @ai-sdk/mcp@2.0.15 ToolSet \u2014 normalizer package unaffected (never imports the SDK); fixed by aligning companion pins (@ai-sdk/mcp 2.0.16, @ai-sdk/openai 4.0.17); live gpt-5.6 tool-loop re-capture at 7.0.34 clean (reasoning parts included, zero ext carries), replay gate green"
     }
   ],
   "sections": {}

@@ -23,14 +23,14 @@
   {
     "type": "reasoning.start",
     "seq": 3,
-    "id": "rs_00c4f778c32ec547006a606c6c927481998bcafa3d5cd0c873:0",
+    "id": "rs_0b47109d77260a9f006a6074c489bc8199907f6eb16fb47221:0",
     "messageId": "msg_turn_vercel_1_s1",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "reasoning.end",
     "seq": 4,
-    "id": "rs_00c4f778c32ec547006a606c6c927481998bcafa3d5cd0c873:0",
+    "id": "rs_0b47109d77260a9f006a6074c489bc8199907f6eb16fb47221:0",
     "messageId": "msg_turn_vercel_1_s1",
     "turnId": "turn_vercel_1"
   },
@@ -38,7 +38,7 @@
     "type": "tool.start",
     "seq": 5,
     "turnId": "turn_vercel_1",
-    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
+    "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "name": "echo",
     "messageId": "msg_turn_vercel_1_s1",
     "dynamic": true
@@ -46,73 +46,73 @@
   {
     "type": "tool.args.delta",
     "seq": 6,
-    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
+    "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "{\""
   },
   {
     "type": "tool.args.delta",
     "seq": 7,
-    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
+    "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "message"
   },
   {
     "type": "tool.args.delta",
     "seq": 8,
-    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
+    "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "\":\""
   },
   {
     "type": "tool.args.delta",
     "seq": 9,
-    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
+    "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "con"
   },
   {
     "type": "tool.args.delta",
     "seq": 10,
-    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
+    "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "formance"
   },
   {
     "type": "tool.args.delta",
     "seq": 11,
-    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
+    "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "-pro"
   },
   {
     "type": "tool.args.delta",
     "seq": 12,
-    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
+    "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "be"
   },
   {
     "type": "tool.args.delta",
     "seq": 13,
-    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
+    "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "-g"
   },
   {
     "type": "tool.args.delta",
     "seq": 14,
-    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
+    "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "pt"
   },
   {
     "type": "tool.args.delta",
     "seq": 15,
-    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
+    "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "56"
   },
   {
     "type": "tool.args.delta",
     "seq": 16,
-    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
+    "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "\"}"
   },
   {
     "type": "tool.args.assembled",
     "seq": 17,
-    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
+    "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "input": {
       "message": "conformance-probe-gpt56"
     }
@@ -121,7 +121,7 @@
     "type": "tool.done",
     "seq": 18,
     "turnId": "turn_vercel_1",
-    "toolCallId": "call_OIvSkPTh758OxibgjQWpa0rX",
+    "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "outcome": "ok",
     "structuredContent": {
       "content": [
@@ -144,7 +144,7 @@
     "type": "message.metadata",
     "messageId": "msg_turn_vercel_1_s1",
     "metadata": {
-      "responseId": "resp_00c4f778c32ec547006a606c6b32f08199ba5fe6d999771421",
+      "responseId": "resp_0b47109d77260a9f006a6074c3ae588199b9fd69553529802e",
       "model": "gpt-5.6-sol"
     },
     "turnId": "turn_vercel_1",
@@ -156,11 +156,11 @@
     "id": "msg_turn_vercel_1_s1",
     "usage": {
       "inputTokens": 102,
-      "outputTokens": 50,
-      "totalTokens": 152,
+      "outputTokens": 69,
+      "totalTokens": 171,
       "cacheReadTokens": 0,
       "cacheWriteTokens": 0,
-      "reasoningTokens": 25
+      "reasoningTokens": 44
     }
   },
   {
@@ -187,14 +187,14 @@
   {
     "type": "text.start",
     "seq": 24,
-    "id": "msg_00c4f778c32ec547006a606c6fe5008199acd1975e7b884516",
+    "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
     "messageId": "msg_turn_vercel_1_s2",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "text.delta",
     "seq": 25,
-    "id": "msg_00c4f778c32ec547006a606c6fe5008199acd1975e7b884516",
+    "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "con",
     "turnId": "turn_vercel_1"
@@ -202,7 +202,7 @@
   {
     "type": "text.delta",
     "seq": 26,
-    "id": "msg_00c4f778c32ec547006a606c6fe5008199acd1975e7b884516",
+    "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "formance",
     "turnId": "turn_vercel_1"
@@ -210,7 +210,7 @@
   {
     "type": "text.delta",
     "seq": 27,
-    "id": "msg_00c4f778c32ec547006a606c6fe5008199acd1975e7b884516",
+    "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "-pro",
     "turnId": "turn_vercel_1"
@@ -218,7 +218,7 @@
   {
     "type": "text.delta",
     "seq": 28,
-    "id": "msg_00c4f778c32ec547006a606c6fe5008199acd1975e7b884516",
+    "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "be",
     "turnId": "turn_vercel_1"
@@ -226,7 +226,7 @@
   {
     "type": "text.delta",
     "seq": 29,
-    "id": "msg_00c4f778c32ec547006a606c6fe5008199acd1975e7b884516",
+    "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "-g",
     "turnId": "turn_vercel_1"
@@ -234,7 +234,7 @@
   {
     "type": "text.delta",
     "seq": 30,
-    "id": "msg_00c4f778c32ec547006a606c6fe5008199acd1975e7b884516",
+    "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "pt",
     "turnId": "turn_vercel_1"
@@ -242,7 +242,7 @@
   {
     "type": "text.delta",
     "seq": 31,
-    "id": "msg_00c4f778c32ec547006a606c6fe5008199acd1975e7b884516",
+    "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "56",
     "turnId": "turn_vercel_1"
@@ -250,7 +250,7 @@
   {
     "type": "text.end",
     "seq": 32,
-    "id": "msg_00c4f778c32ec547006a606c6fe5008199acd1975e7b884516",
+    "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
     "messageId": "msg_turn_vercel_1_s2",
     "turnId": "turn_vercel_1"
   },
@@ -258,7 +258,7 @@
     "type": "message.metadata",
     "messageId": "msg_turn_vercel_1_s2",
     "metadata": {
-      "responseId": "resp_00c4f778c32ec547006a606c6d7ecc819987de2f85a3504a9b",
+      "responseId": "resp_0b47109d77260a9f006a6074c5b7d481999adb8990617b4f82",
       "model": "gpt-5.6-sol"
     },
     "turnId": "turn_vercel_1",
@@ -269,9 +269,9 @@
     "seq": 34,
     "id": "msg_turn_vercel_1_s2",
     "usage": {
-      "inputTokens": 169,
+      "inputTokens": 188,
       "outputTokens": 11,
-      "totalTokens": 180,
+      "totalTokens": 199,
       "cacheReadTokens": 0,
       "cacheWriteTokens": 0,
       "reasoningTokens": 0
@@ -292,12 +292,12 @@
     },
     "finishReason": "stop",
     "usage": {
-      "inputTokens": 271,
-      "outputTokens": 61,
-      "totalTokens": 332,
+      "inputTokens": 290,
+      "outputTokens": 80,
+      "totalTokens": 370,
       "cacheReadTokens": 0,
       "cacheWriteTokens": 0,
-      "reasoningTokens": 25
+      "reasoningTokens": 44
     }
   }
 ]
