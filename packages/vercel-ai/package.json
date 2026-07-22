@@ -1,7 +1,7 @@
 {
   "name": "@silverprotocol/vercel-ai",
-  "version": "0.3.3",
-  "description": "AgJSON normalizer for the Vercel AI SDK (fullStream TextStreamPart → AgEvent[]).",
+  "version": "0.3.4",
+  "description": "AgJSON normalizer for the Vercel AI SDK (fullStream TextStreamPart \u2192 AgEvent[]).",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -9,8 +9,12 @@
     "directory": "packages/vercel-ai"
   },
   "homepage": "https://github.com/silverprotocol/typescript-sdk#readme",
-  "bugs": { "url": "https://github.com/silverprotocol/typescript-sdk/issues" },
-  "publishConfig": { "access": "public" },
+  "bugs": {
+    "url": "https://github.com/silverprotocol/typescript-sdk/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "exports": {
     ".": {
@@ -20,7 +24,12 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist", "src", "!src/**/*.test.ts", "!dist/**/*.test.*"],
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts",
+    "!dist/**/*.test.*"
+  ],
   "scripts": {
     "build": "tsc -b --force",
     "prepack": "rm -rf dist && tsc -b --force",

@@ -1,7 +1,7 @@
 {
   "name": "@silverprotocol/core",
-  "version": "0.3.3",
-  "description": "AgJSON core — the typed schema (AgInput / AgEvent / AgMessage), the Normalizer interface, and the normative reduce().",
+  "version": "0.3.4",
+  "description": "AgJSON core \u2014 the typed schema (AgInput / AgEvent / AgMessage), the Normalizer interface, and the normative reduce().",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -9,7 +9,9 @@
     "directory": "packages/core"
   },
   "homepage": "https://silverprotocol.io/AgJSON",
-  "bugs": { "url": "https://github.com/silverprotocol/typescript-sdk/issues" },
+  "bugs": {
+    "url": "https://github.com/silverprotocol/typescript-sdk/issues"
+  },
   "keywords": [
     "agjson",
     "agent",
@@ -23,7 +25,9 @@
     "claude",
     "openai"
   ],
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "exports": {
     ".": {
@@ -33,7 +37,12 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist", "src", "!src/**/*.test.ts", "!dist/**/*.test.*"],
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts",
+    "!dist/**/*.test.*"
+  ],
   "scripts": {
     "build": "tsc -b",
     "prepack": "rm -rf dist && tsc -b --force",
