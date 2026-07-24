@@ -1,17 +1,22 @@
 {
   "drops": [
     {
-      "path": "[1].type",
+      "path": "[0].type",
       "norm": "[*].type",
-      "value": "user"
+      "value": "system"
     },
     {
-      "path": "[4].type",
+      "path": "[3].type",
       "norm": "[*].type",
       "value": "user"
     },
     {
       "path": "[5].type",
+      "norm": "[*].type",
+      "value": "user"
+    },
+    {
+      "path": "[7].type",
       "norm": "[*].type",
       "value": "result"
     }

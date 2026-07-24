@@ -19,7 +19,7 @@ import { join } from "node:path";
 import { describe, it } from "vitest";
 import { replayCassette } from "./replay.js";
 
-const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk" }> = [
+const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk" | "vercel" }> = [
   { scenario: "text-tool-turn", framework: "claude" },
   // Task 4b: deferred round-close (message.end + turn.done past a late
   // tool.done) reorders this scenario's tool-turn round — see
@@ -94,6 +94,18 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "single-tool-call", framework: "adk" },
   { scenario: "text-only", framework: "adk" },
   { scenario: "tool-error", framework: "adk" },
+  // 2026-07-25 (workspace#2 + seed-enrollment repair): the two new live
+  // captures plus the two previously-unenrolled seeds. Same empty-guard-maps
+  // reason as echo-sonnet5 above. app-spec-gemini36/adk's agjson.json ALSO
+  // needs regenerating for a second reason: it was captured before the
+  // MCP-Apps sibling carry landed (functionResponseToToolDoneFields — the
+  // census caught structuredContent/_meta.ui.resourceUri vanishing from
+  // tool.done; the regen re-normalizes the SAME native.json through the
+  // fixed facet).
+  { scenario: "app-update-sonnet5", framework: "claude" },
+  { scenario: "app-spec-gemini36", framework: "adk" },
+  { scenario: "echo-gemini36", framework: "adk" },
+  { scenario: "echo-gpt56", framework: "vercel" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

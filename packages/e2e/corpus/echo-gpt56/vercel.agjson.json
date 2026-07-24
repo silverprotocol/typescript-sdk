@@ -35,8 +35,18 @@
     "turnId": "turn_vercel_1"
   },
   {
-    "type": "tool.start",
+    "type": "reasoning.opaque",
     "seq": 5,
+    "id": "rs_0b47109d77260a9f006a6074c489bc8199907f6eb16fb47221:0",
+    "messageId": "msg_turn_vercel_1_s1",
+    "kind": "encrypted",
+    "value": "gAAAAABqYHTFgf3KBkxNzVCXLE79K8xBIgL2CdjSUV5L0QF64u40UIyJSPDWmv135eUYOR1V6HR-sx8WvhJUZKP-oxSXyot-V9MspU3TQ6fufLskLEiavtPGalkNMXCTJzTQtGIXAze2qOzvOVWSyILTRJ7MJbg9Va5Rvs-zV-xcA5vygugCXgPd7RPUnkJwwrTEoIBYoFZhtVO_0Mpfa07jeLFJfpuVBVzCMCJpMMcwwgQHY_2glmeHSfYWVl6o2JB7vKQcq130ouzVxl2tRs3A9hHBJzdLJswhi9L6zkzRbpLNMJ-WXw3DbbIm3wJYFXvTR3VsLEFQ9d0nCB1kp9uSTgFB2W2Z8JM5sRZ5uFjfH8l-xvRFKL1fCbNVRtLczKgpZO6ufJXrsR6A4LhhkXQv0NhbVdXRs9v16nFSCiiLcLAXl0n4N5aquXHF_TzWcJs2RDT6I30-D0QW2FA3MBopDcBForXRBAYxKNREs2wDdiaekGOv6wojwiOp09E1wyYIKko7GZ6Nqd6ky7MICD-a431kltbApC5e--rucFcOavANfJF8eGOkHSWM2ZfJWcpKHrzNOWe8y_VlGnnPvFYInp5Ai5Qh33G7XV4LK_1zXzGTOV9eibN0NiKt4ZPjJ4AbNOGA0RbW_0OFoQ48CMdLBGexKIwvu5DthOrT1NbjBPc7nPX64QTnX6YjveSXIFNZw4TKr-9nDehQ2WFpE7Tgkrxyit-lPdHrvxwJUXh2PMKHLCY0zAb7TxUqRPMzxyKnlFrFVGypXPHkpF7e-CWRHHiHiwr2GidURd_S5iFMd_gEiD97LyeTX91_e2guCFEeuPa1_Gd9C__EkQT6HUqohaj6VFC2zWr9br2vJZN1l71DPIa3UijaUmySZpHvuxVsfDPqj6TFjCQHncAky-_Z5aOO81l2X5MZQqwolQf8vhmWJoXNOBhBG_Cj6oSJwLrZPcZZvs6T3n1wsBPErAQyBH0tec35svd5fPropuQRjltLLANhZTgGNxpTFK_iUZ4lIVuW6cscmHXthz8THan3BPGZ8uQbdO8VYvGk7F9IlvARjrlvcgRFRS1POFHQF3r60qGedBZT-EzkKRb22AUUoqpYnDJZBDiq9PizkDlGS4D-ZypScQ8x9lbHh0Cl2RQSkh8fD9NFrKenoVWUBFZlLYQj74RG7g==",
+    "turnId": "turn_vercel_1",
+    "provider": "openai"
+  },
+  {
+    "type": "tool.start",
+    "seq": 6,
     "turnId": "turn_vercel_1",
     "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "name": "echo",
@@ -45,73 +55,73 @@
   },
   {
     "type": "tool.args.delta",
-    "seq": 6,
+    "seq": 7,
     "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "{\""
   },
   {
     "type": "tool.args.delta",
-    "seq": 7,
+    "seq": 8,
     "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "message"
   },
   {
     "type": "tool.args.delta",
-    "seq": 8,
+    "seq": 9,
     "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "\":\""
   },
   {
     "type": "tool.args.delta",
-    "seq": 9,
+    "seq": 10,
     "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "con"
   },
   {
     "type": "tool.args.delta",
-    "seq": 10,
+    "seq": 11,
     "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "formance"
   },
   {
     "type": "tool.args.delta",
-    "seq": 11,
+    "seq": 12,
     "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "-pro"
   },
   {
     "type": "tool.args.delta",
-    "seq": 12,
+    "seq": 13,
     "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "be"
   },
   {
     "type": "tool.args.delta",
-    "seq": 13,
+    "seq": 14,
     "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "-g"
   },
   {
     "type": "tool.args.delta",
-    "seq": 14,
+    "seq": 15,
     "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "pt"
   },
   {
     "type": "tool.args.delta",
-    "seq": 15,
+    "seq": 16,
     "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "56"
   },
   {
     "type": "tool.args.delta",
-    "seq": 16,
+    "seq": 17,
     "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "delta": "\"}"
   },
   {
     "type": "tool.args.assembled",
-    "seq": 17,
+    "seq": 18,
     "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "input": {
       "message": "conformance-probe-gpt56"
@@ -119,7 +129,7 @@
   },
   {
     "type": "tool.done",
-    "seq": 18,
+    "seq": 19,
     "turnId": "turn_vercel_1",
     "toolCallId": "call_nNqoO280pEGRyzZrAlXj6LiP",
     "outcome": "ok",
@@ -148,11 +158,11 @@
       "model": "gpt-5.6-sol"
     },
     "turnId": "turn_vercel_1",
-    "seq": 19
+    "seq": 20
   },
   {
     "type": "message.end",
-    "seq": 20,
+    "seq": 21,
     "id": "msg_turn_vercel_1_s1",
     "usage": {
       "inputTokens": 102,
@@ -167,17 +177,17 @@
     "type": "step.done",
     "id": "step_1",
     "turnId": "turn_vercel_1",
-    "seq": 21
+    "seq": 22
   },
   {
     "type": "step.start",
     "id": "step_2",
     "turnId": "turn_vercel_1",
-    "seq": 22
+    "seq": 23
   },
   {
     "type": "message.start",
-    "seq": 23,
+    "seq": 24,
     "id": "msg_turn_vercel_1_s2",
     "turnId": "turn_vercel_1",
     "threadId": "vercel",
@@ -186,17 +196,9 @@
   },
   {
     "type": "text.start",
-    "seq": 24,
-    "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
-    "messageId": "msg_turn_vercel_1_s2",
-    "turnId": "turn_vercel_1"
-  },
-  {
-    "type": "text.delta",
     "seq": 25,
     "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
     "messageId": "msg_turn_vercel_1_s2",
-    "delta": "con",
     "turnId": "turn_vercel_1"
   },
   {
@@ -204,7 +206,7 @@
     "seq": 26,
     "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
     "messageId": "msg_turn_vercel_1_s2",
-    "delta": "formance",
+    "delta": "con",
     "turnId": "turn_vercel_1"
   },
   {
@@ -212,7 +214,7 @@
     "seq": 27,
     "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
     "messageId": "msg_turn_vercel_1_s2",
-    "delta": "-pro",
+    "delta": "formance",
     "turnId": "turn_vercel_1"
   },
   {
@@ -220,7 +222,7 @@
     "seq": 28,
     "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
     "messageId": "msg_turn_vercel_1_s2",
-    "delta": "be",
+    "delta": "-pro",
     "turnId": "turn_vercel_1"
   },
   {
@@ -228,7 +230,7 @@
     "seq": 29,
     "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
     "messageId": "msg_turn_vercel_1_s2",
-    "delta": "-g",
+    "delta": "be",
     "turnId": "turn_vercel_1"
   },
   {
@@ -236,7 +238,7 @@
     "seq": 30,
     "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
     "messageId": "msg_turn_vercel_1_s2",
-    "delta": "pt",
+    "delta": "-g",
     "turnId": "turn_vercel_1"
   },
   {
@@ -244,12 +246,20 @@
     "seq": 31,
     "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
     "messageId": "msg_turn_vercel_1_s2",
+    "delta": "pt",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 32,
+    "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
+    "messageId": "msg_turn_vercel_1_s2",
     "delta": "56",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "text.end",
-    "seq": 32,
+    "seq": 33,
     "id": "msg_0b47109d77260a9f006a6074c680788199a40f550cbd7041c5",
     "messageId": "msg_turn_vercel_1_s2",
     "turnId": "turn_vercel_1"
@@ -262,11 +272,11 @@
       "model": "gpt-5.6-sol"
     },
     "turnId": "turn_vercel_1",
-    "seq": 33
+    "seq": 34
   },
   {
     "type": "message.end",
-    "seq": 34,
+    "seq": 35,
     "id": "msg_turn_vercel_1_s2",
     "usage": {
       "inputTokens": 188,
@@ -281,11 +291,11 @@
     "type": "step.done",
     "id": "step_2",
     "turnId": "turn_vercel_1",
-    "seq": 35
+    "seq": 36
   },
   {
     "type": "turn.done",
-    "seq": 36,
+    "seq": 37,
     "turnId": "turn_vercel_1",
     "outcome": {
       "type": "success"

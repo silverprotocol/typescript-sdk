@@ -1,0 +1,293 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
+    "threadId": "8e998b00-d358-4e18-87c9-731180ee3603"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_011CdMAmb6dKtbrbtGX4QPnE",
+    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
+    "threadId": "8e998b00-d358-4e18-87c9-731180ee3603",
+    "role": "assistant",
+    "model": "claude-sonnet-5"
+  },
+  {
+    "type": "reasoning.start",
+    "seq": 2,
+    "id": "msg_011CdMAmb6dKtbrbtGX4QPnE:reasoning:0",
+    "messageId": "msg_011CdMAmb6dKtbrbtGX4QPnE",
+    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603"
+  },
+  {
+    "type": "reasoning.delta",
+    "seq": 3,
+    "id": "msg_011CdMAmb6dKtbrbtGX4QPnE:reasoning:0",
+    "messageId": "msg_011CdMAmb6dKtbrbtGX4QPnE",
+    "delta": "",
+    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603"
+  },
+  {
+    "type": "reasoning.end",
+    "seq": 4,
+    "id": "msg_011CdMAmb6dKtbrbtGX4QPnE:reasoning:0",
+    "messageId": "msg_011CdMAmb6dKtbrbtGX4QPnE",
+    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603"
+  },
+  {
+    "type": "reasoning.opaque",
+    "seq": 5,
+    "id": "msg_011CdMAmb6dKtbrbtGX4QPnE:reasoning:0",
+    "messageId": "msg_011CdMAmb6dKtbrbtGX4QPnE",
+    "kind": "signature",
+    "value": "EqsCCokBCBAYAipAiwUwpAVggx36GGLNWM3r/AAuSpPiO9KV/LArjFztg50nMlyHVGQuTRjPb0Bx2wYYBbrCZkMwYklANzsDiAN6NzIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiQ2NThiNDdmOS0wMWUyLTQ3OTgtYjViZS00NGUyYTM1ZDhjY2ESDAuumU1BcLsBFKtJlhoMLgn4zACitxgyyAOzIjA8ofB1hL4vYcLyoWskWYPfEvZCCRWmIBk4xnDzgnex9FCEapUVIt9Uv/YyF3T8dvgqTzwytIwdsZwdYHm7Ud5yYYGBRSy5r0SLpey7izCyq0CSEm+6LcYjgyC9sDsPYn6j6pEp9BoVwEzU/3M1P5hpworyv2yW/7s0huLOeSq9busYAQ==",
+    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
+    "provider": "anthropic"
+  },
+  {
+    "type": "message.end",
+    "seq": 6,
+    "id": "msg_011CdMAmb6dKtbrbtGX4QPnE",
+    "usage": {
+      "inputTokens": 2,
+      "outputTokens": 2,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 1404,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "message.start",
+    "seq": 7,
+    "id": "msg_011CdMAmb6dKtbrbtGX4QPnE",
+    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
+    "threadId": "8e998b00-d358-4e18-87c9-731180ee3603",
+    "role": "assistant",
+    "model": "claude-sonnet-5"
+  },
+  {
+    "type": "tool.start",
+    "seq": 8,
+    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
+    "toolCallId": "toolu_01BnYNQJEDJ9t18WafZ971Db",
+    "name": "mcp__cards__render_card",
+    "index": 0,
+    "messageId": "msg_011CdMAmb6dKtbrbtGX4QPnE",
+    "providerExecuted": false
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 9,
+    "toolCallId": "toolu_01BnYNQJEDJ9t18WafZ971Db",
+    "delta": "{\"title\":\"Hello\",\"body\":\"World\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 10,
+    "toolCallId": "toolu_01BnYNQJEDJ9t18WafZ971Db",
+    "input": {
+      "title": "Hello",
+      "body": "World"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 11,
+    "id": "msg_011CdMAmb6dKtbrbtGX4QPnE",
+    "usage": {
+      "inputTokens": 2,
+      "outputTokens": 2,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 1404,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "tool.done",
+    "seq": 12,
+    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
+    "toolCallId": "toolu_01BnYNQJEDJ9t18WafZ971Db",
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"title\":\"Hello\",\"body\":\"World\",\"revision\":1,\"kind\":\"render\"}"
+      }
+    ],
+    "outcome": "ok",
+    "isError": false,
+    "messageId": "toolu_01BnYNQJEDJ9t18WafZ971Db:result",
+    "uiData": {
+      "title": "Hello",
+      "body": "World",
+      "revision": 1,
+      "kind": "render"
+    },
+    "_meta": {
+      "ui": {
+        "resourceUri": "ui://mock/card",
+        "visibility": [
+          "model"
+        ]
+      }
+    }
+  },
+  {
+    "type": "message.start",
+    "seq": 13,
+    "id": "msg_011CdMAmj8pfQzfemRZz2mRX",
+    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
+    "threadId": "8e998b00-d358-4e18-87c9-731180ee3603",
+    "role": "assistant",
+    "model": "claude-sonnet-5"
+  },
+  {
+    "type": "tool.start",
+    "seq": 14,
+    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
+    "toolCallId": "toolu_01QJV5ErrKnEooBLM6P9C3FD",
+    "name": "mcp__cards__update_card",
+    "index": 0,
+    "messageId": "msg_011CdMAmj8pfQzfemRZz2mRX",
+    "providerExecuted": false
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 15,
+    "toolCallId": "toolu_01QJV5ErrKnEooBLM6P9C3FD",
+    "delta": "{\"title\":\"Hello\",\"body\":\"Updated World\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 16,
+    "toolCallId": "toolu_01QJV5ErrKnEooBLM6P9C3FD",
+    "input": {
+      "title": "Hello",
+      "body": "Updated World"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 17,
+    "id": "msg_011CdMAmj8pfQzfemRZz2mRX",
+    "usage": {
+      "inputTokens": 2,
+      "outputTokens": 72,
+      "cacheReadTokens": 1404,
+      "cacheWriteTokens": 129,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "tool.done",
+    "seq": 18,
+    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
+    "toolCallId": "toolu_01QJV5ErrKnEooBLM6P9C3FD",
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"title\":\"Hello\",\"body\":\"Updated World\",\"revision\":2,\"kind\":\"update\"}"
+      }
+    ],
+    "outcome": "ok",
+    "isError": false,
+    "messageId": "toolu_01QJV5ErrKnEooBLM6P9C3FD:result",
+    "uiData": {
+      "title": "Hello",
+      "body": "Updated World",
+      "revision": 2,
+      "kind": "update"
+    },
+    "_meta": {
+      "ui": {
+        "resourceUri": "ui://mock/card",
+        "visibility": [
+          "model"
+        ]
+      }
+    }
+  },
+  {
+    "type": "message.start",
+    "seq": 19,
+    "id": "msg_011CdMAmqQ7KNdQoeS9CqpZp",
+    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
+    "threadId": "8e998b00-d358-4e18-87c9-731180ee3603",
+    "role": "assistant",
+    "model": "claude-sonnet-5"
+  },
+  {
+    "type": "text.start",
+    "seq": 20,
+    "id": "msg_011CdMAmqQ7KNdQoeS9CqpZp:text:0",
+    "messageId": "msg_011CdMAmqQ7KNdQoeS9CqpZp",
+    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603"
+  },
+  {
+    "type": "text.delta",
+    "seq": 21,
+    "id": "msg_011CdMAmqQ7KNdQoeS9CqpZp:text:0",
+    "messageId": "msg_011CdMAmqQ7KNdQoeS9CqpZp",
+    "delta": "The card was rendered and then updated successfully. Final state returned by the update tool:\n\n- **Title:** Hello\n- **Body:** Updated World\n- **Revision:** 2",
+    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603"
+  },
+  {
+    "type": "text.end",
+    "seq": 22,
+    "id": "msg_011CdMAmqQ7KNdQoeS9CqpZp:text:0",
+    "messageId": "msg_011CdMAmqQ7KNdQoeS9CqpZp",
+    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603"
+  },
+  {
+    "type": "message.end",
+    "seq": 23,
+    "id": "msg_011CdMAmqQ7KNdQoeS9CqpZp",
+    "usage": {
+      "inputTokens": 2,
+      "outputTokens": 1,
+      "cacheReadTokens": 1533,
+      "cacheWriteTokens": 115,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "turn.done",
+    "seq": 24,
+    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
+    "outcome": {
+      "type": "success",
+      "result": "The card was rendered and then updated successfully. Final state returned by the update tool:\n\n- **Title:** Hello\n- **Body:** Updated World\n- **Revision:** 2"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 6,
+      "outputTokens": 236,
+      "cacheReadTokens": 2937,
+      "cacheWriteTokens": 1648,
+      "serverToolRequests": 0,
+      "costUsd": 0.0112461,
+      "cumulative": true,
+      "byModel": {
+        "claude-sonnet-5": {
+          "inputTokens": 6,
+          "outputTokens": 236,
+          "cacheReadTokens": 2937,
+          "cacheWriteTokens": 1648,
+          "costUsd": 0.010619100000000001,
+          "serverToolRequests": 0,
+          "cumulative": true
+        },
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 547,
+          "outputTokens": 16,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "costUsd": 0.000627,
+          "serverToolRequests": 0,
+          "cumulative": true
+        }
+      }
+    }
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "name": "app-update-sonnet5",
+  "prompt": "Render a UI card with title='Hello' and body='World', then update that same card to title='Hello' and body='Updated World'.",
+  "mcpServers": [
+    {
+      "key": "cards",
+      "kind": "app-update"
+    }
+  ],
+  "steer": "You MUST first call mcp__cards__render_card with title='Hello' and body='World', and AFTER its result arrives you MUST call mcp__cards__update_card with title='Hello' and body='Updated World'. Two tool calls, in that order. Do not answer from memory — report the final revision the update tool returns."
+}

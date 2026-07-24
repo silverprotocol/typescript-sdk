@@ -13,7 +13,7 @@
 
 import { describe, it, expect, afterEach } from "vitest";
 import * as net from "node:net";
-import { knownToolFor } from "./tools.js";
+import { knownToolFor, knownToolsFor } from "./tools.js";
 import { serveMock } from "./serve.js";
 import { callTool } from "./client.js";
 
@@ -54,6 +54,22 @@ describe("knownToolFor", () => {
 
   it('returns "fail" for kind "error"', () => {
     expect(knownToolFor("error")).toBe("fail");
+  });
+
+  it('returns "update_card" (the distinctive tool) for kind "app-update"', () => {
+    expect(knownToolFor("app-update")).toBe("update_card");
+  });
+});
+
+describe("knownToolsFor", () => {
+  it("returns one-element arrays for single-tool kinds", () => {
+    expect(knownToolsFor("text")).toEqual(["echo"]);
+    expect(knownToolsFor("app-spec")).toEqual(["render_card"]);
+    expect(knownToolsFor("error")).toEqual(["fail"]);
+  });
+
+  it('returns ["render_card", "update_card"] in call order for "app-update"', () => {
+    expect(knownToolsFor("app-update")).toEqual(["render_card", "update_card"]);
   });
 });
 
@@ -144,6 +160,16 @@ describe("tools/list", () => {
     const tools = (result as { tools: Array<{ name: string }> }).tools;
     expect(tools.map((t) => t.name)).toEqual([knownToolFor("error")]);
   });
+
+  it('app-update mock lists exactly ["render_card", "update_card"]', async () => {
+    const port = await getFreePort();
+    const mock = serveMock("app-update", port);
+    close = mock.close;
+
+    const result = await callTool(mock.url, "tools/list", null);
+    const tools = (result as { tools: Array<{ name: string }> }).tools;
+    expect(tools.map((t) => t.name).sort()).toEqual([...knownToolsFor("app-update")].sort());
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -214,6 +240,49 @@ describe("app-spec mock (render_card)", () => {
 
     expect(r._meta.ui.resourceUri).toBe("ui://mock/card");
     expect(r._meta.ui.visibility).toContain("model");
+  });
+});
+
+describe("app-update mock (render_card + update_card)", () => {
+  let close: (() => Promise<void>) | undefined;
+
+  afterEach(async () => {
+    if (close) {
+      await close();
+      close = undefined;
+    }
+  });
+
+  it("render_card returns revision 1 / kind 'render'; update_card returns revision 2 / kind 'update'; SAME resourceUri", async () => {
+    const port = await getFreePort();
+    const mock = serveMock("app-update", port);
+    close = mock.close;
+
+    const [renderName, updateName] = knownToolsFor("app-update") as [string, string];
+
+    type CardResult = {
+      structuredContent: { revision: number; kind: string; title?: string; body?: string };
+      _meta: { ui: { resourceUri: string; visibility: string[] } };
+    };
+
+    const rendered = (await callTool(mock.url, renderName, {
+      title: "Hello",
+      body: "World",
+    })) as CardResult;
+    const updated = (await callTool(mock.url, updateName, {
+      title: "Hello",
+      body: "Updated World",
+    })) as CardResult;
+
+    expect(rendered.structuredContent.revision).toBe(1);
+    expect(rendered.structuredContent.kind).toBe("render");
+    expect(updated.structuredContent.revision).toBe(2);
+    expect(updated.structuredContent.kind).toBe("update");
+
+    // The re-render beat: both results anchor the SAME ui resource.
+    expect(rendered._meta.ui.resourceUri).toBe("ui://mock/card");
+    expect(updated._meta.ui.resourceUri).toBe(rendered._meta.ui.resourceUri);
+    expect(updated._meta.ui.visibility).toContain("model");
   });
 });
 

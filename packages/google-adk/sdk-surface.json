@@ -41,6 +41,12 @@
       "date": "2026-07-22",
       "silverprotocol": "0.3.5",
       "evidence": "LIVE capture: echo-gemini36 standing seed REFRESHED at 1.4.0 (gemini-3.6-flash, genai 2.12.0 underneath) \u2014 replay + census gates green (zero untriaged drops, zero new fields); interactionId absent from wire as expected (harness never enables useInteractionsApi)"
+    },
+    {
+      "sdkVersion": "1.4.0",
+      "date": "2026-07-25",
+      "silverprotocol": "0.3.6",
+      "evidence": "FIRST adk MCP-Apps capture (workspace#2): live gemini-3.6-flash render_card via the official MCPToolset \u2014 corpus app-spec-gemini36 landed as a CI-standing replay seed; the census caught functionResponse.response's MCP-Apps SIBLINGS (structuredContent + _meta.ui.resourceUri) silently dropped by the content-array branch \u2014 FIXED: functionResponseToToolDoneFields now carries both onto tool.done's first-class \u00a72.1 channels (converging with the openai facet's extractStructuredContent precedent), mirror tests added, cassette regenerated through the fixed facet, replay + census gates green"
     }
   ],
   "sections": {

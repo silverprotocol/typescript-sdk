@@ -238,6 +238,55 @@ describe("reasoning lifecycle (captured reasoning-then-text)", () => {
     expect(types(out)).toContain("reasoning.end");
     expectAllParse(out);
   });
+
+  it("does NOT emit reasoning.opaque when reasoning-end carries no providerMetadata", () => {
+    const out = run(parts);
+    expect(types(out)).not.toContain("reasoning.opaque");
+  });
+});
+
+describe("encrypted-reasoning carry (captured echo-gpt56 @ai 7.0.34 reasoning-end shape — first vercel census triage, 2026-07-25)", () => {
+  const parts = [
+    { type: "start" },
+    { type: "start-step", request: {}, warnings: [] },
+    {
+      type: "reasoning-start",
+      id: "rs_abc:0",
+      providerMetadata: {
+        openai: { itemId: "rs_abc", reasoningEncryptedContent: "gAAAA-early-snapshot" },
+      },
+    },
+    { type: "reasoning-delta", id: "rs_abc:0", text: "thinking..." },
+    {
+      type: "reasoning-end",
+      id: "rs_abc:0",
+      providerMetadata: {
+        openai: { itemId: "rs_abc", reasoningEncryptedContent: "gAAAA-final-blob" },
+      },
+    },
+    { type: "finish-step", finishReason: "stop", usage: USAGE, response: RESPONSE_S1 },
+    { type: "finish", finishReason: "stop", totalUsage: USAGE },
+  ];
+
+  it("carries reasoning-end's providerMetadata.<provider>.reasoningEncryptedContent as reasoning.opaque {kind:'encrypted'} (the claude signature / adk thoughtSignature analog)", () => {
+    const out = run(parts);
+    const opaque = out.find((e) => e.type === "reasoning.opaque") as
+      | { id: string; kind: string; value: string; provider?: string }
+      | undefined;
+    expect(opaque).toBeDefined();
+    expect(opaque).toMatchObject({
+      id: "rs_abc:0",
+      kind: "encrypted",
+      value: "gAAAA-final-blob", // the END blob (final/authoritative), not the start snapshot
+      provider: "openai",
+    });
+    // exactly one carry — the reasoning-start snapshot is not separately emitted
+    expect(out.filter((e) => e.type === "reasoning.opaque")).toHaveLength(1);
+    // ordering: opaque follows reasoning.end, like the claude facet's sequence
+    const typesArr = types(out);
+    expect(typesArr.indexOf("reasoning.opaque")).toBeGreaterThan(typesArr.indexOf("reasoning.end"));
+    expectAllParse(out);
+  });
 });
 
 describe("error arm A — in-band error, provider still finishes (captured error-midstream-finish)", () => {

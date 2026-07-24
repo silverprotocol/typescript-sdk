@@ -1,0 +1,130 @@
+[
+  {
+    "invocationId": "e-507a46e9-2029-4d47-9c6c-c701672e1165",
+    "author": "spike",
+    "id": "pIooDIAm",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1784909180852,
+    "content": {
+      "parts": [
+        {
+          "functionCall": {
+            "name": "render_card",
+            "args": {
+              "title": "Hello",
+              "body": "World"
+            },
+            "id": "Gq1frfhr"
+          },
+          "thoughtSignature": "EqoDCqcDARFNMg9PJYvf/STd3dpClj31fDJd32J2BKSQ2lhsT0W7MA+46OqNMu6RDyM3lM60i5kIfVhgp69ZiSbE/2TQH8dOpiOWMJMULZ6HMXbo8n8ILtwcsG+IXzCYOCgyHunHm/jSia6WtDyYwNC3q91G931QcHTRyEuEMHfGakRtaavgT3+osy9MmmgpjDUK4ErDuqUA99veN1NmH8ljFvqHyOBrrI9YblF2T4QwJrvAXuQ60GdaCxP5nF8cBKuLXtueC+uv2J/IxZYsiBsrTCyIrQxjaNusu5IxBng9wI/szlRgA82Gkd4/1DXwyNpsGRpe/bCBfLaAOjM4uYBZWCb87kdeWMWIFAUJXn0yCSP+rl0SKjL3udlX3+s3neCF73uhm6TBqPgoHEJzeB1KM6PqCdAdkhF1kO4odiRqsOHJ9/WVMUt7pOxT2RpXK9KRBh1jN3NsdHGeJpdXol06D33VVd/Q5/GVM15vdjFnSpFzA/YOgz/Q2FE6h0IHQox0GIPTffDWqG6hOLIGqFHIZ7sG6Sfl2Qub8TX2ALxccCjE/LY0LZi5ryCb"
+        }
+      ],
+      "role": "model"
+    },
+    "usageMetadata": {
+      "promptTokenCount": 139,
+      "candidatesTokenCount": 22,
+      "totalTokenCount": 256,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 139
+        }
+      ],
+      "thoughtsTokenCount": 95,
+      "serviceTier": "standard"
+    },
+    "finishReason": "STOP"
+  },
+  {
+    "invocationId": "e-507a46e9-2029-4d47-9c6c-c701672e1165",
+    "author": "spike",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "Gq1frfhr",
+            "name": "render_card",
+            "response": {
+              "_meta": {
+                "ui": {
+                  "resourceUri": "ui://mock/card",
+                  "visibility": [
+                    "model"
+                  ]
+                }
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "{\"title\":\"Hello\",\"body\":\"World\"}"
+                }
+              ],
+              "structuredContent": {
+                "title": "Hello",
+                "body": "World",
+                "cache": {
+                  "hit": false,
+                  "llmCallsAvoided": 0,
+                  "kind": "cold"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "p763NDAz",
+    "longRunningToolIds": [],
+    "timestamp": 1784909182495
+  },
+  {
+    "invocationId": "e-507a46e9-2029-4d47-9c6c-c701672e1165",
+    "author": "spike",
+    "id": "gW577cxQ",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1784909182503,
+    "content": {
+      "parts": [
+        {
+          "text": "The UI card has been rendered successfully.\n\n**Response Payload / Structured Content:**\n```json\n{\n  \"title\": \"Hello\",\n  \"body\": \"World\",\n  \"cache\": {\n    \"hit\": false,\n    \"kind\": \"cold\",\n    \"llmCallsAvoided\": 0\n  }\n}\n```",
+          "thoughtSignature": "ErgCCrUCARFNMg8ccdubwyOw441v+DLMTT+3X6Jib+VGU+T/Jjqr/NMYxjdKOcvSrdPtZDj4qvj31oN4PcaoOSE+IU1YynK7ztLVu50NTN5fd1QyUIcvQRjRwAaHoH3RQ4VFOlJB7OnALNyRzT4yTHNvBjLGTg6V0PMnmtCZ6xFVpHPjX7Ijh0B2PHbYZouFHTox20sKLyvhQraTdMQceNIhW8u7XanplxJlCHy1g52UCLhllZeifAkTVMT7p/bP6qxUZPolrBRghQgxNaaNZ4hYotytMJEWlqIY6cnPZ3E7/OwWHayezIYEolH7BJVNJdI3w9Xl5DNzw0xzn4UNeB6iWd1VWIIMWMIP8TGe/29SL3NSHBDhjZor0Zxv4j+zOBcD3fP/y9DwjqOzaFP3esBnu4/HP+lZtwYG"
+        }
+      ],
+      "role": "model"
+    },
+    "usageMetadata": {
+      "promptTokenCount": 345,
+      "candidatesTokenCount": 76,
+      "totalTokenCount": 492,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 345
+        }
+      ],
+      "thoughtsTokenCount": 71,
+      "serviceTier": "standard"
+    },
+    "finishReason": "STOP"
+  }
+]

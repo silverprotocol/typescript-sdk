@@ -2161,11 +2161,12 @@
   },
   {
     "path": "[*].type",
-    "reason": "top-level stream-event/message discriminant, consumed structurally to route normalization, never a value-bearing payload: the Claude SDKMessage discriminant (assistant/user/result) and the @openai/agents top-level stream-event discriminant (raw_model_stream_event/run_item_stream_event) share this norm-path but are unrelated fields per framework (audit M57 cross-framework collision — the same norm-path, different semantic field, both structural).",
+    "reason": "top-level stream-event/message discriminant, consumed structurally to route normalization, never a value-bearing payload: the Claude SDKMessage discriminant (assistant/user/result) and the @openai/agents top-level stream-event discriminant (raw_model_stream_event/run_item_stream_event) share this norm-path but are unrelated fields per framework (audit M57 cross-framework collision — the same norm-path, different semantic field, both structural). EXTENDED to vercel (first vercel triage 2026-07-25, echo-gpt56 @ai 7.0.34): the TextStreamPart discriminant, consumed structurally by createVercelNormalizer's drive() switch — same shared-norm-path treatment (M57 cross-framework collision: same norm-path, unrelated field per framework). NOTE: allowlist paths must be UNIQUE — census builds a Map keyed by path, so a second entry for the same path CLOBBERS the first (this merge repairs exactly that regression).",
     "reviewed": "any",
     "frameworks": [
       "claude",
-      "openai"
+      "openai",
+      "vercel"
     ]
   },
   {
@@ -2335,6 +2336,438 @@
     "reviewed": "any",
     "frameworks": [
       "adk"
+    ]
+  },
+  {
+    "path": "[*].providerMetadata.openai.itemId",
+    "reason": "vercel: OpenAI Responses item-id echo the AI SDK attaches to reasoning-start/end (rs_…), tool-call/tool-result (fc_…) and text-start/end (msg_…) parts — never read by createVercelNormalizer (zero providerMetadata call sites in index.ts). The load-bearing correlations ARE carried elsewhere: the reasoning part id `<itemId>:<idx>` is carried verbatim as reasoning.start/end id (rs_ itemId recoverable as its prefix), the text-start id equals the msg_ itemId (carried as text.start id), and tool correlation rides toolCallId (call_…, carried); the fc_ item id is a provider-side echo with no replay-load-bearing role (Responses replay pairs function items on call_id). If the reasoningEncryptedContent facet gap is fixed via reasoning.opaque, the rs_ itemId should ride along. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].toolMetadata.clientName",
+    "reason": "vercel: MCP-tool sidecar metadata the AI SDK attaches to tool-input-start/tool-call/tool-result parts — the MCP client instance name ('ai-sdk-mcp-client'), agent config/environment metadata; never read by createVercelNormalizer (zero toolMetadata call sites), no AgJSON home (mirrors the openai agent-config-echo precedent). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].toolMetadata.toolName",
+    "reason": "vercel: MCP-tool sidecar metadata on tool-input-start/tool-call/tool-result parts — value-identical duplicate of the top-level toolName the facet DOES consume (index.ts:289/318 → tool.start.name, see transforms); never read by createVercelNormalizer. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].usage.inputTokenDetails.noCacheTokens",
+    "reason": "vercel: LanguageModelUsage detail counter with no AgUsage shape — derivable from the mapped counters (noCacheTokens = inputTokens − cacheReadTokens − cacheWriteTokens; all three carried via mapUsage, index.ts:111-131, which deliberately reads only the AgUsage-shaped fields). Verified derivable in both finish-steps (102=102−0−0, 188=188−0−0). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].usage.outputTokenDetails.textTokens",
+    "reason": "vercel: LanguageModelUsage detail counter with no AgUsage shape — derivable from the mapped counters (textTokens = outputTokens − reasoningTokens; both carried via mapUsage, index.ts:111-131). Verified derivable in both finish-steps (25=69−44, 11=11−0). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].totalUsage.inputTokenDetails.noCacheTokens",
+    "reason": "vercel: finish.totalUsage detail counter with no AgUsage shape — derivable from the mapped turn.done.usage counters (noCacheTokens = inputTokens − cacheReadTokens − cacheWriteTokens; all carried via mapUsage, index.ts:111-131/399). Verified derivable (290=290−0−0). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].totalUsage.outputTokenDetails.textTokens",
+    "reason": "vercel: finish.totalUsage detail counter with no AgUsage shape — derivable from the mapped turn.done.usage counters (textTokens = outputTokens − reasoningTokens; both carried via mapUsage, index.ts:111-131/399). Verified derivable (36=80−44). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].usage.raw.input_tokens",
+    "reason": "vercel: finish-step.usage.raw — the provider's untyped snake_case usage echo the AI SDK attaches beside the typed LanguageModelUsage bag; value-identical duplicate of the typed counters mapUsage consumes (index.ts:111-131 reads only the typed inputTokens/…Details fields, never raw). Verified value-identical in both finish-steps (raw.input_tokens ≡ usage.inputTokens: 102/188). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].usage.raw.input_tokens_details.cached_tokens",
+    "reason": "vercel: finish-step.usage.raw untyped provider usage echo — value-identical duplicate of the typed usage.inputTokenDetails.cacheReadTokens that mapUsage consumes (index.ts:120-122; see transforms). Verified value-identical in both finish-steps (0≡0). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].usage.raw.input_tokens_details.cache_write_tokens",
+    "reason": "vercel: finish-step.usage.raw untyped provider usage echo — value-identical duplicate of the typed usage.inputTokenDetails.cacheWriteTokens that mapUsage consumes (index.ts:123-125; see transforms). Verified value-identical in both finish-steps (0≡0). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].usage.raw.output_tokens",
+    "reason": "vercel: finish-step.usage.raw untyped provider usage echo — value-identical duplicate of the typed usage.outputTokens that mapUsage consumes (index.ts:118). Verified value-identical in both finish-steps (69/11). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].usage.raw.output_tokens_details.reasoning_tokens",
+    "reason": "vercel: finish-step.usage.raw untyped provider usage echo — value-identical duplicate of the typed usage.outputTokenDetails.reasoningTokens that mapUsage consumes (index.ts:126-128; see transforms). Verified value-identical in both finish-steps (44/0). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.stepTimeMs",
+    "reason": "vercel: SDK-computed wall-clock/throughput telemetry block on finish-step (ai@7 `performance` addition) — never read by createVercelNormalizer (zero performance call sites), nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms/duration_api_ms/api_error_status precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.toolExecutionMs.call_nNqoO280pEGRyzZrAlXj6LiP",
+    "reason": "vercel: SDK-computed per-tool-call wall-clock telemetry on finish-step.performance, keyed by this cassette's toolCallId (per-key path mirrors the modelUsage.<model> per-key precedent; future cassettes mint new keys) — never read by createVercelNormalizer, nondeterministic timing, non-replayable. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.responseTimeMs",
+    "reason": "vercel: SDK-computed wall-clock/throughput telemetry block on finish-step (ai@7 `performance` addition) — never read by createVercelNormalizer (zero performance call sites), nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms/duration_api_ms/api_error_status precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.effectiveOutputTokensPerSecond",
+    "reason": "vercel: SDK-computed wall-clock/throughput telemetry block on finish-step (ai@7 `performance` addition) — never read by createVercelNormalizer (zero performance call sites), nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms/duration_api_ms/api_error_status precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.outputTokensPerSecond",
+    "reason": "vercel: SDK-computed wall-clock/throughput telemetry block on finish-step (ai@7 `performance` addition) — never read by createVercelNormalizer (zero performance call sites), nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms/duration_api_ms/api_error_status precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.inputTokensPerSecond",
+    "reason": "vercel: SDK-computed wall-clock/throughput telemetry block on finish-step (ai@7 `performance` addition) — never read by createVercelNormalizer (zero performance call sites), nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms/duration_api_ms/api_error_status precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.effectiveTotalTokensPerSecond",
+    "reason": "vercel: SDK-computed wall-clock/throughput telemetry block on finish-step (ai@7 `performance` addition) — never read by createVercelNormalizer (zero performance call sites), nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms/duration_api_ms/api_error_status precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.timeToFirstOutputMs",
+    "reason": "vercel: SDK-computed wall-clock/throughput telemetry block on finish-step (ai@7 `performance` addition) — never read by createVercelNormalizer (zero performance call sites), nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms/duration_api_ms/api_error_status precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.timeBetweenOutputChunksMs.min",
+    "reason": "vercel: SDK-computed inter-chunk latency percentile in the finish-step performance telemetry block (ai@7 addition) — never read by createVercelNormalizer, nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.timeBetweenOutputChunksMs.p10",
+    "reason": "vercel: SDK-computed inter-chunk latency percentile in the finish-step performance telemetry block (ai@7 addition) — never read by createVercelNormalizer, nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.timeBetweenOutputChunksMs.median",
+    "reason": "vercel: SDK-computed inter-chunk latency percentile in the finish-step performance telemetry block (ai@7 addition) — never read by createVercelNormalizer, nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.timeBetweenOutputChunksMs.avg",
+    "reason": "vercel: SDK-computed inter-chunk latency percentile in the finish-step performance telemetry block (ai@7 addition) — never read by createVercelNormalizer, nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.timeBetweenOutputChunksMs.p90",
+    "reason": "vercel: SDK-computed inter-chunk latency percentile in the finish-step performance telemetry block (ai@7 addition) — never read by createVercelNormalizer, nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.timeBetweenOutputChunksMs.max",
+    "reason": "vercel: SDK-computed inter-chunk latency percentile in the finish-step performance telemetry block (ai@7 addition) — never read by createVercelNormalizer, nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].providerMetadata.openai.responseId",
+    "reason": "vercel: finish-step providerMetadata echo — value-identical duplicate of finish-step.response.id, which the facet DOES consume into the message.metadata event's metadata.responseId (index.ts:379-387; see the [*].response.id transform); never read by createVercelNormalizer (zero providerMetadata call sites). Verified value-identical in both steps. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].providerMetadata.openai.serviceTier",
+    "reason": "vercel: provider service-tier echo on finish-step providerMetadata ('default') — response metadata, never read by createVercelNormalizer, no AgJSON home (mirrors the openai [*].data.event.response.service_tier and claude [*].usage.service_tier precedents). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].providerMetadata.openai.reasoningContext",
+    "reason": "vercel: reasoning-config echo on finish-step providerMetadata ('all_turns') — sibling of the openai [*].data.event.response.reasoning.context/effort config-echo precedent; never read by createVercelNormalizer, no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].providerMetadata.openai.phase",
+    "reason": "vercel: the gpt-5.5+ 'phase' discriminant surfacing through the AI SDK as providerMetadata.openai.phase on text-start/text-end — the SAME wire family as the openai framework's FLAGGED FOR FOLLOW-UP [*].data.event.item.phase entries (playbook 2026-07-03): every occurrence in this echo scenario is the single constant 'final_answer'; this triage does NOT establish that other phase values (e.g. an intermediate/draft phase) would be equally safe to ignore — the openai follow-up investigation covers this field family and should include this vercel carrier. Never read by createVercelNormalizer. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.timestamp",
+    "reason": "vercel: wall-clock response timestamp on finish-step.response — the facet reads only response.id/modelId from this object (index.ts:379-380); nondeterministic timing telemetry, same class as the claude/adk [*].timestamp precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.access-control-expose-headers",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — transport/infra telemetry (CORS/CDN/rate-limit/cookie headers), never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.alt-svc",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — transport/infra telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.cf-cache-status",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — transport/infra telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.cf-ray",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — transport/infra telemetry (CDN trace id), never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.connection",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — transport/infra telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.content-type",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — transport/infra telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.date",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — wall-clock transport telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.openai-organization",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — account/infra telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.openai-processing-ms",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — timing telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.openai-project",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — account/infra telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.openai-version",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — API-version telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.server",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — transport/infra telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.set-cookie",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — Cloudflare bot-management session cookie, transport telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.strict-transport-security",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — TLS-policy transport telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.transfer-encoding",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — transport telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.x-content-type-options",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — security-policy transport telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.x-ratelimit-limit-requests",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — rate-limit telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.x-ratelimit-limit-tokens",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — rate-limit telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.x-ratelimit-remaining-requests",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — rate-limit telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.x-ratelimit-remaining-tokens",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — rate-limit telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.x-ratelimit-reset-requests",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — rate-limit telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.x-ratelimit-reset-tokens",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — rate-limit telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].response.headers.x-request-id",
+    "reason": "vercel: raw HTTP response-header echo on finish-step.response.headers — per-request trace id, transport telemetry, never read by createVercelNormalizer (only response.id/modelId are consumed, index.ts:379-380); no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
     ]
   }
 ]

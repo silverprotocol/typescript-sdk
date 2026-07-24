@@ -108,6 +108,19 @@ describe("derivedTools", () => {
     expect(expectTools).toContain("mcp__t__echo");
   });
 
+  it("derives BOTH mcp__key__render_card and mcp__key__update_card for an app-update server (multi-tool kind)", () => {
+    const s = Scenario.parse({
+      name: "app-update",
+      prompt: "p",
+      mcpServers: [{ key: "cards", kind: "app-update" }],
+    });
+    const { allowedTools, expectTools } = derivedTools(s);
+    expect(allowedTools).toEqual(["mcp__cards__render_card", "mcp__cards__update_card"]);
+    expect(expectTools).toEqual(allowedTools);
+    // bare names on the non-claude naming path
+    expect(derivedTools(s, "adk").expectTools).toEqual(["render_card", "update_card"]);
+  });
+
   it("derives mcp__key__render_card for an app-spec server", () => {
     const s = Scenario.parse({
       name: "app-spec",

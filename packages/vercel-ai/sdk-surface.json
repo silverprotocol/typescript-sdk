@@ -24,6 +24,12 @@
       "date": "2026-07-22",
       "silverprotocol": "0.3.3",
       "evidence": "nightly watchdog flagged ai@7.0.34 (issue #3): e2e-harness-only type skew between ai@7.0.34 and @ai-sdk/mcp@2.0.15 ToolSet \u2014 normalizer package unaffected (never imports the SDK); fixed by aligning companion pins (@ai-sdk/mcp 2.0.16, @ai-sdk/openai 4.0.17); live gpt-5.6 tool-loop re-capture at 7.0.34 clean (reasoning parts included, zero ext carries), replay gate green"
+    },
+    {
+      "sdkVersion": "7.0.34",
+      "date": "2026-07-25",
+      "silverprotocol": "0.3.6",
+      "evidence": "FIRST full census triage of the vercel wire (echo-gpt56 enrolled as a CI-standing replay seed under a new VERCEL_SEEDS gate list \u2014 enrollment repair): 138 drops / 78 new fields classified into 24 transforms, 55 vercel-scoped allowlist entries and 78 registry paths; the ONE genuine loss exposed \u2014 providerMetadata.<provider>.reasoningEncryptedContent, the replay-load-bearing analog of claude's `signature` / adk's `thoughtSignature` \u2014 is now carried as reasoning.opaque {kind:'encrypted'} on reasoning-end (provider-agnostic, fixture tests added); replay + census gates green"
     }
   ],
   "sections": {}

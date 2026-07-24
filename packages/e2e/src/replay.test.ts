@@ -74,6 +74,10 @@ const CLAUDE_SEEDS = [
   "app-spec",
   "convergence-echo",
   "echo-sonnet5",
+  // 2026-07-25 (workspace#2): the *_update / re-render carry-fidelity sequence
+  // — render_card then update_card against ONE ui resourceUri (kind:"capture",
+  // claude-sonnet-5 @0.3.217 — see corpus/app-update-sonnet5/claude.provenance.json).
+  "app-update-sonnet5",
 ] as const;
 
 /**
@@ -134,6 +138,27 @@ const ADK_SEEDS = [
   "single-tool-call",
   "text-only",
   "tool-error",
+  // 2026-07-25 ENROLLMENT REPAIR: captured 2026-07-22 (day-one gemini-3.6-flash
+  // validation) and verified then via native field-set diff + ad-hoc replay,
+  // but never added to this list — the "standing replay seed" claim in the
+  // evidence log is CI-enforced only from this commit on.
+  "echo-gemini36",
+  // 2026-07-25 (workspace#2): FIRST adk MCP-Apps capture — functionResponse
+  // .response carries content[]/structuredContent/_meta.ui.resourceUri through
+  // the official MCPToolset (kind:"capture", gemini-3.6-flash @1.4.0 — see
+  // corpus/app-spec-gemini36/adk.provenance.json).
+  "app-spec-gemini36",
+] as const;
+
+/**
+ * Every Vercel seed scenario under corpus/ that ships a committed native
+ * cassette. 2026-07-25 ENROLLMENT REPAIR (same rationale as echo-gemini36
+ * above): echo-gpt56/vercel.* landed 2026-07-21/22 (facet v0 live capture,
+ * re-captured at ai@7.0.34) and was verified ad-hoc in those work windows,
+ * but no vercel gate list existed — this list makes the seeds CI-standing.
+ */
+const VERCEL_SEEDS = [
+  "echo-gpt56",
 ] as const;
 
 async function readSnapshotForFramework(scn: string, framework: string): Promise<JsonValue[]> {
@@ -188,6 +213,24 @@ describe("replay CI gate — ADK seed corpus (machinery/snapshot self-consistenc
 
       it("census reports NO drops and NO new fields (the gate)", async () => {
         const { report } = await replayCassette(join(CORPUS_ROOT, scn, "adk.native.json"));
+        expect(report.drops).toEqual([]);
+        expect(report.newFields).toEqual([]);
+      });
+    });
+  }
+});
+
+describe("replay CI gate — Vercel seed corpus (machinery/snapshot self-consistency)", () => {
+  for (const scn of VERCEL_SEEDS) {
+    describe(scn, () => {
+      it("agjson deep-equals the committed vercel.agjson.json snapshot", async () => {
+        const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "vercel.native.json"));
+        const expected = await readSnapshotForFramework(scn, "vercel");
+        expect(agjson).toEqual(expected);
+      });
+
+      it("census reports NO drops and NO new fields (the gate)", async () => {
+        const { report } = await replayCassette(join(CORPUS_ROOT, scn, "vercel.native.json"));
         expect(report.drops).toEqual([]);
         expect(report.newFields).toEqual([]);
       });

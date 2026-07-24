@@ -54,6 +54,7 @@ import {
   type AgBlock,
   type AgCitation,
   type AgFinishReason,
+  type AgMeta,
   type AgPausedAsk,
   type AgSafety,
   type AgUsage,
@@ -425,13 +426,31 @@ function turnKey(ev: AdkEvent): string {
 // the positional index on tool.start/tool-call `providerCallIndex` so re-input can
 // restore name+position correlation when echoing functionResponse parts.
 
-// ─── functionResponse.response → AgBlock[] (spec §2, MCP resource shape) ──────
+// ─── functionResponse.response → tool.done channels (spec §2/§2.1, MCP shape) ──
 // The Gemini functionResponse.response is a JSON OBJECT (the function result).
 // Preserve its shape: an MCP-style { content: AgBlock[] } passes through as the
 // model-facing content blocks; otherwise the whole object rides a single `data`
 // block (typed, addressable by the function name) so nothing is dropped.
-function functionResponseToAgBlocks(name: string, response: { [k: string]: JsonValue } | undefined): AgBlock[] {
-  if (response === undefined) return [];
+//
+// MCP-Apps siblings (workspace#2, first adk MCP-Apps capture 2026-07-25):
+// on the MCP-shape branch, `structuredContent` and `_meta` ride ALONGSIDE the
+// content array (the app-spec shape — `_meta.ui.resourceUri` is the MCP-Apps
+// surface anchor). Reading only `content` silently dropped both — caught by
+// the census on corpus/app-spec-gemini36. They now land on the tool.done's
+// first-class §2.1 channels, converging with the openai facet's
+// extractStructuredContent precedent (corpus/app-spec-structured-result). The
+// non-MCP branch never had this gap: the whole object (siblings included)
+// already rides the data block.
+interface FunctionResponseToolDoneFields {
+  content: AgBlock[];
+  structuredContent?: JsonValue;
+  _meta?: AgMeta;
+}
+function functionResponseToToolDoneFields(
+  name: string,
+  response: { [k: string]: JsonValue } | undefined,
+): FunctionResponseToolDoneFields {
+  if (response === undefined) return { content: [] };
   // MCP resource shape: a `content` array of MCP content blocks (text/image/…).
   const content = response["content"];
   if (Array.isArray(content)) {
@@ -447,10 +466,19 @@ function functionResponseToAgBlocks(name: string, response: { [k: string]: JsonV
       // Preserve any non-text MCP content part losslessly as a provider-raw block.
       out.push({ type: "provider-raw", vendor: "google", raw: part });
     }
-    return out;
+    const meta = response["_meta"];
+    return {
+      content: out,
+      ...(response["structuredContent"] !== undefined
+        ? { structuredContent: response["structuredContent"] }
+        : {}),
+      ...(meta !== null && typeof meta === "object" && !Array.isArray(meta)
+        ? { _meta: meta as AgMeta }
+        : {}),
+    };
   }
   // Non-MCP plain object result → a typed `data` block keyed by the tool name.
-  return [{ type: "data", name, data: response }];
+  return { content: [{ type: "data", name, data: response }] };
 }
 
 // ─── groundingMetadata.groundingSupports → ONE citations[] (audit M22) ────────
@@ -788,7 +816,7 @@ function driveAdkPart(
     const outcome: ToolOutcome = fr.response?.["isError"] === true ? "error" : "ok";
     a.toolDone({
       toolCallId,
-      content: functionResponseToAgBlocks(fr.name, fr.response),
+      ...functionResponseToToolDoneFields(fr.name, fr.response),
       outcome,
       turnId,
       providerMetadata:

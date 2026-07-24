@@ -1,4 +1,10 @@
 {
-  "drops": [],
+  "drops": [
+    {
+      "path": "[1].type",
+      "norm": "[*].type",
+      "value": "user"
+    }
+  ],
   "newFields": []
 }

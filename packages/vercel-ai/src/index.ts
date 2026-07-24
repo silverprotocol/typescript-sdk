@@ -278,7 +278,27 @@ export function createVercelNormalizer(): Normalizer {
         const id = str(part["id"]);
         if (id === undefined) break;
         openReasoningIds.delete(id);
-        a.reasoningEnd(id, ensureMessage());
+        const msg = ensureMessage();
+        a.reasoningEnd(id, msg);
+        // Encrypted-reasoning carry (first vercel census triage, 2026-07-25,
+        // corpus/echo-gpt56): providerMetadata.<provider>.reasoningEncryptedContent
+        // is the replay-load-bearing signature analog of claude's `signature` /
+        // adk's `thoughtSignature` — both sibling facets carry theirs via
+        // reasoning.opaque, so this facet must too (Tenet: lossless on
+        // replay-load-bearing payload). The end-of-block blob is the final,
+        // authoritative one (the reasoning-start occurrence is an earlier
+        // snapshot of the same channel). Provider-agnostic: the AI SDK nests
+        // the field under whichever provider produced the part.
+        const pm = rec(part["providerMetadata"]);
+        if (pm !== undefined) {
+          for (const [provider, entry] of Object.entries(pm)) {
+            const bag = rec(entry);
+            const encrypted = bag === undefined ? undefined : str(bag["reasoningEncryptedContent"]);
+            if (encrypted !== undefined) {
+              a.reasoningOpaque(id, msg, { kind: "encrypted", value: encrypted, provider });
+            }
+          }
+        }
         return;
       }
 

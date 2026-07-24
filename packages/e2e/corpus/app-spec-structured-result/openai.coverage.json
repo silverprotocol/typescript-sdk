@@ -1,4 +1,255 @@
 {
-  "drops": [],
+  "drops": [
+    {
+      "path": "[0].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[1].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[2].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[3].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[4].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[5].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[6].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[7].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[8].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[9].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[10].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[11].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[12].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[13].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[14].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[15].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[16].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[17].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[18].type",
+      "norm": "[*].type",
+      "value": "run_item_stream_event"
+    },
+    {
+      "path": "[19].type",
+      "norm": "[*].type",
+      "value": "run_item_stream_event"
+    },
+    {
+      "path": "[20].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[21].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[22].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[23].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[24].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[25].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[26].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[27].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[28].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[29].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[30].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[31].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[32].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[33].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[34].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[35].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[36].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[37].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[38].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[39].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[40].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[41].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[42].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[43].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[44].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[45].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[46].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[47].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[48].type",
+      "norm": "[*].type",
+      "value": "raw_model_stream_event"
+    },
+    {
+      "path": "[49].type",
+      "norm": "[*].type",
+      "value": "run_item_stream_event"
+    }
+  ],
   "newFields": []
 }

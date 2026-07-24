@@ -288,6 +288,64 @@ describe("createAdkNormalizer — tool arms", () => {
     });
   });
 
+  it("carries MCP-Apps siblings (structuredContent + _meta) alongside the content array onto tool.done's §2.1 channels (workspace#2, app-spec-gemini36 census finding)", () => {
+    const out = run([
+      event(
+        [
+          {
+            functionResponse: {
+              name: "render_card",
+              id: "adk-1",
+              response: {
+                content: [{ type: "text", text: '{"title":"Hello","body":"World"}' }],
+                structuredContent: {
+                  title: "Hello",
+                  body: "World",
+                  cache: { hit: false, llmCallsAvoided: 0, kind: "cold" },
+                },
+                _meta: { ui: { resourceUri: "ui://mock/card", visibility: ["model"] } },
+              },
+            },
+          },
+        ],
+        {}
+      ),
+    ]);
+    const done = out.find((e) => e.type === "tool.done");
+    expect(done).toMatchObject({
+      toolCallId: "adk-1",
+      outcome: "ok",
+      content: [{ type: "text", text: '{"title":"Hello","body":"World"}' }],
+      structuredContent: {
+        title: "Hello",
+        body: "World",
+        cache: { hit: false, llmCallsAvoided: 0, kind: "cold" },
+      },
+      _meta: { ui: { resourceUri: "ui://mock/card", visibility: ["model"] } },
+    });
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("does NOT set structuredContent/_meta when the MCP-shape response lacks them (echo shape unchanged)", () => {
+    const out = run([
+      event(
+        [
+          {
+            functionResponse: {
+              name: "echo",
+              id: "adk-1",
+              response: { content: [{ type: "text", text: "echo: hi" }] },
+            },
+          },
+        ],
+        {}
+      ),
+    ]);
+    const done = out.find((e) => e.type === "tool.done") as Record<string, unknown>;
+    expect("structuredContent" in done).toBe(false);
+    expect("_meta" in done).toBe(false);
+  });
+
   // ─── audit M47: null-id fallback must mint per-INVOKE-ordinal ids, never
   // per-event-positional ids — and the aggregate re-send dedup must key on
   // content/window identity, not minted-id equality. ──────────────────────────

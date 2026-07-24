@@ -9,7 +9,7 @@
  * The Scenario schema does NOT contain allowedTools/expectTools fields.
  */
 import { z } from "zod";
-import { knownToolFor, type MockKind } from "./mcp-mocks/tools.js";
+import { knownToolsFor, type MockKind } from "./mcp-mocks/tools.js";
 import type { Framework } from "./census.js";
 
 // ─── Scenario schema ──────────────────────────────────────────────────────────
@@ -21,7 +21,7 @@ export const Scenario = z.object({
     .array(
       z.object({
         key: z.string(),
-        kind: z.enum(["text", "app-spec", "error"]),
+        kind: z.enum(["text", "app-spec", "app-update", "error"]),
       }),
     )
     .default([]),
@@ -61,9 +61,13 @@ export function derivedTools(
   s: Scenario,
   framework: Framework = "claude",
 ): { allowedTools: string[]; expectTools: string[] } {
-  const names = s.mcpServers.map(({ key, kind }) => {
-    const tool = knownToolFor(kind as MockKind);
-    return framework === "claude" ? `mcp__${key}__${tool}` : tool;
-  });
+  // flatMap: a kind may register MORE than one tool (app-update registers
+  // render_card + update_card — the *_update/re-render sequence). Every
+  // registered tool is both allowed and expected.
+  const names = s.mcpServers.flatMap(({ key, kind }) =>
+    knownToolsFor(kind as MockKind).map((tool) =>
+      framework === "claude" ? `mcp__${key}__${tool}` : tool,
+    ),
+  );
   return { allowedTools: [...names], expectTools: [...names] };
 }

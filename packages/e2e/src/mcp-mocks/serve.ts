@@ -18,6 +18,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import type { MockKind } from "./tools.js";
 import { registerTextTool } from "./text.js";
 import { registerAppSpecTool } from "./app-spec.js";
+import { registerAppUpdateTools } from "./app-update.js";
 import { registerErrorTool } from "./error.js";
 
 export interface MockHandle {
@@ -34,6 +35,9 @@ function registerTools(server: McpServer, kind: MockKind): void {
       break;
     case "app-spec":
       registerAppSpecTool(server);
+      break;
+    case "app-update":
+      registerAppUpdateTools(server);
       break;
     case "error":
       registerErrorTool(server);

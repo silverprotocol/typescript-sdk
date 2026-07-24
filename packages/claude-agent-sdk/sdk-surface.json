@@ -37,6 +37,12 @@
       "date": "2026-07-22",
       "silverprotocol": "0.3.5",
       "evidence": "LIVE capture: echo-sonnet5 standing seed REFRESHED at 0.3.217 (claude-sonnet-5) — replay + census gates green (zero untriaged drops, zero new fields); none of the 0.3.217 d.ts additions (resumed_from_incomplete_thinking/aborted/timestamp) appeared on this scenario's wire"
+    },
+    {
+      "sdkVersion": "0.3.217",
+      "date": "2026-07-25",
+      "silverprotocol": "0.3.6",
+      "evidence": "LIVE capture: app-update-sonnet5 standing seed (workspace#2 *_update / re-render carry-fidelity sequence — render_card then update_card against ONE ui resourceUri, claude-sonnet-5): two-beat tool sequence captured clean; the census also surfaced a sonnet-5 empty-thinking+signature frame folding correctly to reasoning.delta('') + reasoning.opaque (triaged via the thinking→delta transform); replay + census gates green"
     }
   ],
   "members": {
