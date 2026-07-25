@@ -1880,6 +1880,91 @@ interface SdkSurfaceManifest {
   members: Record<string, SdkSurfaceManifestEntry>;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 0.3.217 wrapper-level assistant carries (bump-audit gap closure): the
+// `resumed_from_incomplete_thinking` (replay-load-bearing per its own doc) and
+// `aborted` (interrupt-truncation signal) wrapper siblings join the supersedes
+// first-block providerMetadata carrier (§8 item 8); a BLOCK-LESS aborted frame
+// rides message.metadata instead (no block to anchor).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from_incomplete_thinking / aborted)", () => {
+  function wrapperAssistant(extra: { [k: string]: unknown }, content?: unknown[]): unknown {
+    return {
+      type: "assistant",
+      message: {
+        ...betaMessage(
+          (content ?? [{ type: "text", text: "continued answer.", citations: null }]) as never,
+        ),
+        id: "msg_wrapper",
+      },
+      parent_tool_use_id: null,
+      uuid: "018f0000-0000-7000-8000-00000000aaaa",
+      session_id: "sess_fixture",
+      ...extra,
+    };
+  }
+
+  it("carries resumed_from_incomplete_thinking:true as providerMetadata on the first block", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(wrapperAssistant({ resumed_from_incomplete_thinking: true }))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const firstBlock = evs.find(
+      (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
+    );
+    expect(firstBlock).toMatchObject({
+      providerMetadata: { resumed_from_incomplete_thinking: true },
+    });
+  });
+
+  it("carries aborted:true the same way, merged with supersedes when both present", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(
+        JsonValue.parse(
+          wrapperAssistant({
+            aborted: true,
+            supersedes: ["018f0000-0000-7000-8000-00000000bbbb"],
+          }),
+        ),
+      ),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const firstBlock = evs.find(
+      (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
+    );
+    expect(firstBlock).toMatchObject({
+      providerMetadata: {
+        aborted: true,
+        supersedes: ["018f0000-0000-7000-8000-00000000bbbb"],
+      },
+    });
+  });
+
+  it("BLOCK-LESS aborted frame: the carry rides a message.metadata event (no block to anchor)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(JsonValue.parse(wrapperAssistant({ aborted: true }, []))), ...n.flush()];
+    assertAllValid(evs);
+    const meta = evs.find((e) => e.type === "message.metadata");
+    expect(meta).toMatchObject({ messageId: "msg_wrapper", metadata: { aborted: true } });
+  });
+
+  it("emits NO wrapper carry when neither flag nor supersedes is present (existing wire unchanged)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(JsonValue.parse(wrapperAssistant({}))), ...n.flush()];
+    assertAllValid(evs);
+    const firstBlock = evs.find(
+      (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
+    ) as { providerMetadata?: unknown };
+    expect(firstBlock.providerMetadata).toBeUndefined();
+    expect(evs.some((e) => e.type === "message.metadata")).toBe(false);
+  });
+});
+
 describe("fixture-drift ratchet — packages/claude-agent-sdk/sdk-surface.json manifest", () => {
   function loadManifest(): SdkSurfaceManifest {
     const manifestPath = fileURLToPath(new URL("../sdk-surface.json", import.meta.url));

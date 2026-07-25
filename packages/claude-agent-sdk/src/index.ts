@@ -623,10 +623,33 @@ export function createClaudeNormalizer(): Normalizer {
       // this message's first content block (mirrors the "signature on first
       // block" precedent, §8 item 8) — an audit trail independent of whether
       // every targeted uuid was resolvable above.
-      const supersedesMeta: AgProviderMeta | undefined =
-        msg.supersedes !== undefined && msg.supersedes.length > 0
-          ? AgProviderMeta.parse({ supersedes: msg.supersedes })
-          : undefined;
+      //
+      // 0.3.217 wrapper-level siblings join the SAME first-block carrier
+      // (closing the two disclosed gaps from the 0.3.217 bump audit), wire
+      // names kept verbatim:
+      //  - `resumed_from_incomplete_thinking`: REPLAY-LOAD-BEARING per its own
+      //    doc — this turn continued the preceding truncated assistant turn
+      //    inside its trailing signed thinking block, and a history replayed
+      //    through the bridge must carry the flag back; without this carry the
+      //    reasoningOpaque signature alone cannot reconstruct the run's prefix.
+      //  - `aborted`: the interrupt-truncation signal (stop_reason never
+      //    received; content may end mid-word) — without it a truncated frame
+      //    folds indistinguishably from a complete one.
+      // An aborted frame can be truncated before ANY content block existed —
+      // with no block to anchor, the carry rides a `message.metadata` event
+      // (the merge-into-message channel) instead; see below the block loop.
+      const wrapperMetaRaw: { [k: string]: JsonValue } = {};
+      if (msg.supersedes !== undefined && msg.supersedes.length > 0) {
+        wrapperMetaRaw["supersedes"] = msg.supersedes;
+      }
+      if (msg.resumed_from_incomplete_thinking === true) {
+        wrapperMetaRaw["resumed_from_incomplete_thinking"] = true;
+      }
+      if (msg.aborted === true) {
+        wrapperMetaRaw["aborted"] = true;
+      }
+      const wrapperMeta: AgProviderMeta | undefined =
+        Object.keys(wrapperMetaRaw).length > 0 ? AgProviderMeta.parse(wrapperMetaRaw) : undefined;
 
       // A non-null parent_tool_use_id ⇒ this assistant message is a NESTED turn
       // (subagent). subagent.start is the SOLE nested-turn opener (spec §4/§5) and
@@ -654,7 +677,12 @@ export function createClaudeNormalizer(): Normalizer {
         // but the real 0.3.207 union (unlike 0.3.199's any-collapse) makes
         // the indexed access `| undefined` — guard, never assert.
         if (block === undefined) continue;
-        emitAssistantBlock(a, block, m.id, i, i === 0 ? supersedesMeta : undefined);
+        emitAssistantBlock(a, block, m.id, i, i === 0 ? wrapperMeta : undefined);
+      }
+      // Block-less frame (e.g. aborted before any content streamed): no first
+      // block exists to anchor the wrapper carry — ride message.metadata.
+      if (m.content.length === 0 && wrapperMeta !== undefined) {
+        a.emit({ type: "message.metadata", messageId: m.id, metadata: wrapperMetaRaw });
       }
       a.closeMessage(m.id, mapMessageUsage(m.usage));
 

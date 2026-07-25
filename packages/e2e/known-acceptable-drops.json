@@ -2443,8 +2443,8 @@
     ]
   },
   {
-    "path": "[*].performance.toolExecutionMs.call_nNqoO280pEGRyzZrAlXj6LiP",
-    "reason": "vercel: SDK-computed per-tool-call wall-clock telemetry on finish-step.performance, keyed by this cassette's toolCallId (per-key path mirrors the modelUsage.<model> per-key precedent; future cassettes mint new keys) — never read by createVercelNormalizer, nondeterministic timing, non-replayable. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "path": "[*].performance.toolExecutionMs.{*}",
+    "reason": "vercel: SDK-computed per-tool-call wall-clock telemetry on finish-step.performance, keyed by the RUN-GENERATED toolCallId — a literal-key entry would go stale on every re-capture, so this is a {*} dynamic-key wildcard entry (census.ts compileWildcardPath; exact entries always win over wildcards). Never read by createVercelNormalizer. First vercel triage 2026-07-25, echo-gpt56 @ai 7.0.34.",
     "reviewed": "any",
     "frameworks": [
       "vercel"

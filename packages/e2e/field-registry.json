@@ -401,7 +401,7 @@
   "[*].performance.timeBetweenOutputChunksMs.p10",
   "[*].performance.timeBetweenOutputChunksMs.p90",
   "[*].performance.timeToFirstOutputMs",
-  "[*].performance.toolExecutionMs.call_nNqoO280pEGRyzZrAlXj6LiP",
+  "[*].performance.toolExecutionMs.{*}",
   "[*].permissionMode",
   "[*].product_feedback_disabled",
   "[*].providerMetadata.openai.itemId",

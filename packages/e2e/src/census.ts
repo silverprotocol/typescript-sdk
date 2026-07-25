@@ -95,6 +95,31 @@ export interface CensusReport {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// dynamic-key wildcard ({*})
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Allowlist/registry paths may contain `{*}` as a KEY segment wildcard,
+ * matching exactly one dot-delimited object key (never crossing a `.`).
+ *
+ * Rationale (first vercel triage, 2026-07-25): some native wire keys are
+ * per-run generated ids — e.g. ai@7's finish-step telemetry
+ * `performance.toolExecutionMs.<toolCallId>` — so a literal-key entry goes
+ * stale on EVERY re-capture, minting a fresh untriaged path each time
+ * (allowlist + registry churn with zero information). `{*}` entries classify
+ * the POSITION once. Note the asymmetry with `[*]`: array indices are
+ * normalized to `[*]` by normalizePath at flatten time, but object keys are
+ * preserved verbatim (they are usually semantic — tool names, header names);
+ * `{*}` is the OPT-IN escape hatch for the generated-key exception, matched
+ * at LOOKUP time. Exact entries always win over wildcard entries.
+ */
+export function compileWildcardPath(pattern: string): (norm: string) => boolean {
+  const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`^${escaped.replaceAll("\\{\\*\\}", "[^.]+")}$`);
+  return (norm) => re.test(norm);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // normalizePath
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -226,6 +251,16 @@ export function census(input: CensusInput): CensusReport {
   const agJsonValues = collectValues(agjson);
   const agJsonNormPaths = new Set(flattenLeaves(agjson).map((l) => l.norm));
 
+  // Precompile {*} dynamic-key wildcard entries (see compileWildcardPath).
+  const wildcardAllow: Array<[(norm: string) => boolean, AllowlistReview]> = [];
+  for (const [path, review] of allowlist) {
+    if (path.includes("{*}")) wildcardAllow.push([compileWildcardPath(path), review]);
+  }
+  const wildcardRegistry: Array<(norm: string) => boolean> = [];
+  for (const path of registry) {
+    if (path.includes("{*}")) wildcardRegistry.push(compileWildcardPath(path));
+  }
+
   const drops: Leaf[] = [];
   const seenNewFields = new Set<string>();
   const newFields: string[] = [];
@@ -233,7 +268,11 @@ export function census(input: CensusInput): CensusReport {
   for (const leaf of leaves) {
     // Track new norm-paths (before classification, so even mapped/allowlisted
     // paths that are new to the registry are surfaced for triage).
-    if (!registry.has(leaf.norm) && !seenNewFields.has(leaf.norm)) {
+    if (
+      !registry.has(leaf.norm) &&
+      !wildcardRegistry.some((m) => m(leaf.norm)) &&
+      !seenNewFields.has(leaf.norm)
+    ) {
       seenNewFields.add(leaf.norm);
       newFields.push(leaf.norm);
     }
@@ -250,7 +289,9 @@ export function census(input: CensusInput): CensusReport {
     }
 
     // ── Rule 2: allowlist (shape-scoped) ─────────────────────────────────────
-    const review = allowlist.get(leaf.norm);
+    // Exact entry wins; a {*} dynamic-key wildcard entry is the fallback.
+    const review =
+      allowlist.get(leaf.norm) ?? wildcardAllow.find(([m]) => m(leaf.norm))?.[1];
     if (review !== undefined) {
       const outOfScope =
         review.frameworks !== undefined &&

@@ -175,6 +175,47 @@ describe("census", () => {
     };
   }
 
+  // ── {*} dynamic-key wildcard (compileWildcardPath) ────────────────────────
+
+  it("a {*} allowlist entry covers a run-generated object key (single segment only); exact entries win", () => {
+    const input = makeInput({
+      native: [
+        {
+          performance: {
+            toolExecutionMs: { call_RUNGENERATED123: 41.5 },
+            nested: { deeper: { call_x: 1.5 } },
+          },
+        },
+      ],
+      agjson: {},
+      allowlist: new Map<string, AllowlistReview>([
+        ["[*].performance.toolExecutionMs.{*}", { reviewed: "any" }],
+      ]),
+      registry: new Set(["[*].performance.toolExecutionMs.{*}"]),
+    });
+    const report = census(input);
+    // the wildcard-covered leaf is neither a drop nor a newField…
+    expect(report.drops.find((d) => d.norm.includes("toolExecutionMs"))).toBeUndefined();
+    expect(report.newFields.filter((f) => f.includes("toolExecutionMs"))).toEqual([]);
+    // …but a {*} never crosses a `.` — the deeper path stays untriaged.
+    expect(report.newFields).toContain("[*].performance.nested.deeper.call_x");
+    expect(report.drops.find((d) => d.norm === "[*].performance.nested.deeper.call_x")).toBeDefined();
+  });
+
+  it("{*} wildcard respects framework scoping like any allowlist entry", () => {
+    const input = makeInput({
+      native: [{ performance: { toolExecutionMs: { call_abc: 7.7 } } }],
+      agjson: {},
+      allowlist: new Map<string, AllowlistReview>([
+        ["[*].performance.toolExecutionMs.{*}", { reviewed: "any", frameworks: ["vercel"] }],
+      ]),
+      registry: new Set(["[*].performance.toolExecutionMs.{*}"]),
+      framework: "claude", // out of scope → entry does not apply
+    });
+    const report = census(input);
+    expect(report.drops.find((d) => d.norm === "[*].performance.toolExecutionMs.call_abc")).toBeDefined();
+  });
+
   // ── Rule 4: distinctive value absent from AgJSON → drop ──────────────────
 
   it("reports a distinctive native value absent from the AgJSON as a drop", () => {
