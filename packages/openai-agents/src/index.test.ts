@@ -1362,6 +1362,61 @@ describe("createOpenaiNormalizer — id-less synthesized final message (agents-c
       .concat(n.flush());
     expect(evs.find((e) => e.type === "ext.openai.late-message")).toBeUndefined();
   });
+
+  it("an id'd post-close part carries phase via ext.openai.late-phase (live 0.14.0 wire ordering — census-caught)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_late_phase" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "it_lp", delta: "Done" }),
+      rawModel({ type: "response.output_text.done", item_id: "it_lp", text: "Done" }),
+      rawModel({ type: "response.completed", response: { id: "resp_late_phase", status: "completed" } }),
+      runItem("message_output_created", {
+        type: "message_output_item",
+        rawItem: {
+          type: "message",
+          role: "assistant",
+          status: "completed",
+          content: [{ type: "output_text", text: "Done" }],
+          id: "msg_lp_1",
+          phase: "final_answer",
+        },
+      }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    const late = evs.find((e) => e.type === "ext.openai.late-phase") as {
+      itemId?: unknown;
+      phase?: unknown;
+    };
+    expect(late).toBeDefined();
+    expect(late.itemId).toBe("msg_lp_1");
+    expect(late.phase).toBe("final_answer");
+    // The closed message gained nothing: no text.end after the close, no late-message.
+    expect(evs.find((e) => e.type === "ext.openai.late-message")).toBeUndefined();
+  });
+
+  it("an id'd post-close part WITHOUT phase emits no late-phase (0.13.5-shaped negative control)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_lp_neg" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "it_lpn", delta: "Hi" }),
+      rawModel({ type: "response.output_text.done", item_id: "it_lpn", text: "Hi" }),
+      rawModel({ type: "response.completed", response: { id: "resp_lp_neg", status: "completed" } }),
+      runItem("message_output_created", {
+        type: "message_output_item",
+        rawItem: {
+          type: "message",
+          role: "assistant",
+          status: "completed",
+          content: [{ type: "output_text", text: "Hi" }],
+          id: "msg_lpn_1",
+        },
+      }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    expect(evs.find((e) => e.type === "ext.openai.late-phase")).toBeUndefined();
+  });
 });
 
 describe("createOpenaiNormalizer — capstone fold-identity over a combined corpus (T5c)", () => {
@@ -2724,5 +2779,451 @@ describe("createOpenaiNormalizer — tool_output structuredContent under 0.12.0 
     };
     expect(toolDone?.content).toEqual([{ type: "text", text: "plain unstructured tool text, not JSON at all" }]);
     expect(toolDone?.structuredContent).toBeUndefined();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// agents-core 0.13.5 → 0.14.0 carry (2026-07-29): programmatic tool calling
+// (`program`/`program_output` protocol items + `caller` provenance),
+// AssistantMessageItem.phase, ShellCallResultItem.status. Synthetic frames
+// mirror the verified 0.14.0 `dist/types/protocol.d.ts` shapes; every block
+// includes a 0.13.5-shaped negative control (output unchanged).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("createOpenaiNormalizer — programmatic tool calling: program/program_output (agents-core 0.14.0)", () => {
+  const PROGRAM_ROUND: JsonValue[] = [
+    rawModel({ type: "response.created", response: { id: "resp_prog_1" } }),
+    runItem("tool_called", {
+      type: "tool_call_item",
+      rawItem: {
+        type: "program",
+        callId: "call_prog_1",
+        code: "results = [search(q) for q in queries]",
+        fingerprint: "fp_abc123",
+        id: "item_prog_1",
+      },
+    }),
+    // Defensive: a real capture may ALSO fire the raw output_item.added carrier
+    // for the program item — the (function_call-only) raw path must no-op it,
+    // not double-start.
+    rawModel({
+      type: "response.output_item.added",
+      item: { id: "item_prog_1", type: "program" },
+    }),
+    runItem("tool_output", {
+      type: "tool_call_output_item",
+      rawItem: {
+        type: "program_output",
+        callId: "call_prog_1",
+        output: '["r1","r2"]',
+        status: "completed",
+      },
+    }),
+    rawModel({ type: "response.completed", response: { id: "resp_prog_1", status: "completed" } }),
+  ];
+
+  it("synthesizes tool.start with name builtin:program (rawItem-derived, NOT the wrapper's 'programmatic_tool_calling')", () => {
+    const n = createOpenaiNormalizer();
+    const evs = PROGRAM_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const starts = evs.filter((e) => e.type === "tool.start");
+    expect(starts).toHaveLength(1); // exactly one — the raw output_item.added no-ops
+    expect(starts[0]).toMatchObject({
+      toolCallId: "call_prog_1",
+      name: "builtin:program",
+      itemId: "item_prog_1",
+    });
+  });
+
+  it("carries {code, fingerprint} verbatim as tool.args.assembled input (the shell/apply-patch whole-payload precedent)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = PROGRAM_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const assembled = evs.find((e) => e.type === "tool.args.assembled");
+    expect(assembled).toMatchObject({
+      toolCallId: "call_prog_1",
+      input: { code: "results = [search(q) for q in queries]", fingerprint: "fp_abc123" },
+    });
+  });
+
+  it("emits tool.done correlated by callId with the output string as text content and outcome:ok for status:completed", () => {
+    const n = createOpenaiNormalizer();
+    const evs = PROGRAM_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const done = evs.find((e) => e.type === "tool.done") as {
+      toolCallId?: string;
+      outcome?: string;
+      isError?: boolean;
+      content?: { type: string; text?: string }[];
+    };
+    expect(done?.toolCallId).toBe("call_prog_1");
+    expect(done?.outcome).toBe("ok");
+    expect(done?.isError).toBe(false);
+    expect(done?.content).toEqual([{ type: "text", text: '["r1","r2"]' }]);
+  });
+
+  it("maps status:incomplete to outcome:error (a truncated program run never folds as success)", () => {
+    const n = createOpenaiNormalizer();
+    const incompleteRound = PROGRAM_ROUND.map((e) =>
+      e === PROGRAM_ROUND[3]
+        ? runItem("tool_output", {
+            type: "tool_call_output_item",
+            rawItem: {
+              type: "program_output",
+              callId: "call_prog_1",
+              output: "partial",
+              status: "incomplete",
+            },
+          })
+        : e,
+    );
+    const evs = incompleteRound.flatMap((e) => n.push(e)).concat(n.flush());
+    const done = evs.find((e) => e.type === "tool.done") as { outcome?: string; isError?: boolean };
+    expect(done?.outcome).toBe("error");
+    expect(done?.isError).toBe(true);
+  });
+
+  it("no orphaned tool.done — tool.start always precedes tool.done for the same toolCallId", () => {
+    const n = createOpenaiNormalizer();
+    const evs = PROGRAM_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const startIdx = evs.findIndex((e) => e.type === "tool.start");
+    const doneIdx = evs.findIndex((e) => e.type === "tool.done");
+    expect(startIdx).toBeGreaterThanOrEqual(0);
+    expect(doneIdx).toBeGreaterThan(startIdx);
+  });
+
+  it("fold: no resync, exactly one tool-call + tool-result block pair, no park", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    for (const e of PROGRAM_ROUND) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    const allBlocks = res.messages.flatMap((m) => m.content);
+    expect(allBlocks.filter((b) => b.type === "tool-call")).toHaveLength(1);
+    expect(allBlocks.filter((b) => b.type === "tool-result")).toHaveLength(1);
+  });
+});
+
+describe("createOpenaiNormalizer — ToolCaller provenance (agents-core 0.14.0)", () => {
+  // A program-issued function call + its result: the caller rides the
+  // AUTHORITATIVE raw output_item.added (verbatim openai-node snake_case
+  // caller_id) on the start side, and the run-item result's own camelCase
+  // field on the done side.
+  const CALLER_ROUND: JsonValue[] = [
+    rawModel({ type: "response.created", response: { id: "resp_caller_1" } }),
+    rawModel({
+      type: "response.output_item.added",
+      item: {
+        id: "fc_caller_1",
+        type: "function_call",
+        call_id: "call_fn_1",
+        name: "get_weather",
+        caller: { type: "program", caller_id: "call_prog_1" },
+      },
+    }),
+    rawModel({
+      type: "response.function_call_arguments.done",
+      item_id: "fc_caller_1",
+      arguments: '{"city":"Paris"}',
+    }),
+    runItem("tool_output", {
+      type: "tool_call_output_item",
+      rawItem: {
+        type: "function_call_result",
+        name: "get_weather",
+        callId: "call_fn_1",
+        status: "completed",
+        output: "sunny",
+        caller: { type: "program", callerId: "call_prog_1" },
+      },
+    }),
+    rawModel({ type: "response.completed", response: { id: "resp_caller_1", status: "completed" } }),
+  ];
+
+  it("tool.start carries providerMetadata.caller normalized to camelCase ({type:'program', callerId}) from the raw snake_case caller_id", () => {
+    const n = createOpenaiNormalizer();
+    const evs = CALLER_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const start = evs.find((e) => e.type === "tool.start") as {
+      providerMetadata?: { caller?: { type?: string; callerId?: string } };
+    };
+    expect(start?.providerMetadata).toEqual({
+      caller: { type: "program", callerId: "call_prog_1" },
+    });
+  });
+
+  it("tool.done carries the result item's own providerMetadata.caller (both fields preserved)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = CALLER_ROUND.flatMap((e) => n.push(e)).concat(n.flush());
+    const done = evs.find((e) => e.type === "tool.done") as {
+      providerMetadata?: { caller?: { type?: string; callerId?: string } };
+      content?: { type: string; text?: string }[];
+    };
+    expect(done?.providerMetadata).toEqual({
+      caller: { type: "program", callerId: "call_prog_1" },
+    });
+    expect(done?.content).toEqual([{ type: "text", text: "sunny" }]);
+  });
+
+  it("caller {type:'direct'} carries verbatim (no fabricated callerId)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_caller_2" } }),
+      rawModel({
+        type: "response.output_item.added",
+        item: {
+          id: "fc_caller_2",
+          type: "function_call",
+          call_id: "call_fn_2",
+          name: "echo",
+          caller: { type: "direct" },
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_caller_2", status: "completed" } }),
+    ].flatMap((e) => n.push(e)).concat(n.flush());
+    const start = evs.find((e) => e.type === "tool.start") as {
+      providerMetadata?: { caller?: { type?: string; callerId?: string } };
+    };
+    expect(start?.providerMetadata).toEqual({ caller: { type: "direct" } });
+  });
+
+  it("shell_call caller rides tool.start providerMetadata (call-side carry on a built-in)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_caller_3" } }),
+      runItem("tool_called", {
+        type: "tool_call_item",
+        rawItem: {
+          type: "shell_call",
+          callId: "call_shell_c1",
+          status: "in_progress",
+          action: { commands: ["ls"] },
+          id: "item_shell_c1",
+          caller: { type: "program", callerId: "call_prog_9" },
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_caller_3", status: "completed" } }),
+    ].flatMap((e) => n.push(e)).concat(n.flush());
+    const start = evs.find((e) => e.type === "tool.start") as {
+      name?: string;
+      providerMetadata?: { caller?: { type?: string; callerId?: string } };
+    };
+    expect(start?.name).toBe("builtin:shell");
+    expect(start?.providerMetadata).toEqual({
+      caller: { type: "program", callerId: "call_prog_9" },
+    });
+  });
+
+  it("negative control (0.13.5-shaped frames, no caller anywhere) ⇒ NO providerMetadata key on tool.start or tool.done", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_caller_4" } }),
+      rawModel({
+        type: "response.output_item.added",
+        item: { id: "fc_caller_4", type: "function_call", call_id: "call_fn_4", name: "echo" },
+      }),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: {
+          type: "function_call_result",
+          name: "echo",
+          callId: "call_fn_4",
+          status: "completed",
+          output: "ok",
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_caller_4", status: "completed" } }),
+    ].flatMap((e) => n.push(e)).concat(n.flush());
+    const start = evs.find((e) => e.type === "tool.start") as { providerMetadata?: unknown };
+    const done = evs.find((e) => e.type === "tool.done") as { providerMetadata?: unknown };
+    expect(start).toBeDefined();
+    expect(done).toBeDefined();
+    expect("providerMetadata" in (start as object)).toBe(false);
+    expect("providerMetadata" in (done as object)).toBe(false);
+  });
+});
+
+describe("createOpenaiNormalizer — ShellCallResultItem.status (agents-core 0.14.0)", () => {
+  function shellRound(resultRawItem: JsonValue): JsonValue[] {
+    return [
+      rawModel({ type: "response.created", response: { id: "resp_shst_1" } }),
+      runItem("tool_called", {
+        type: "tool_call_item",
+        rawItem: {
+          type: "shell_call",
+          callId: "call_shst_1",
+          status: "in_progress",
+          action: { commands: ["ls"] },
+          id: "item_shst_1",
+        },
+      }),
+      runItem("tool_output", { type: "tool_call_output_item", rawItem: resultRawItem }),
+      rawModel({ type: "response.completed", response: { id: "resp_shst_1", status: "completed" } }),
+    ];
+  }
+
+  it("status:incomplete forces outcome:error even when every command exited 0 (never success)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = shellRound({
+      type: "shell_call_output",
+      callId: "call_shst_1",
+      status: "incomplete",
+      output: [{ stdout: "partial listing", stderr: "", outcome: { type: "exit", exitCode: 0 } }],
+    }).flatMap((e) => n.push(e)).concat(n.flush());
+    const done = evs.find((e) => e.type === "tool.done") as {
+      outcome?: string;
+      isError?: boolean;
+      providerMetadata?: { status?: string };
+    };
+    expect(done?.outcome).toBe("error");
+    expect(done?.isError).toBe(true);
+    // The raw status is carried verbatim — the outcome mapping alone cannot recover it.
+    expect(done?.providerMetadata).toEqual({ status: "incomplete" });
+  });
+
+  it("status:completed keeps the per-command outcome mapping (ok on clean exits) + verbatim status carry", () => {
+    const n = createOpenaiNormalizer();
+    const evs = shellRound({
+      type: "shell_call_output",
+      callId: "call_shst_1",
+      status: "completed",
+      output: [{ stdout: "file1", stderr: "", outcome: { type: "exit", exitCode: 0 } }],
+    }).flatMap((e) => n.push(e)).concat(n.flush());
+    const done = evs.find((e) => e.type === "tool.done") as {
+      outcome?: string;
+      providerMetadata?: { status?: string };
+    };
+    expect(done?.outcome).toBe("ok");
+    expect(done?.providerMetadata).toEqual({ status: "completed" });
+  });
+
+  it("negative control (0.13.5-shaped result, no status field) ⇒ exit-code-only mapping, NO providerMetadata key", () => {
+    const n = createOpenaiNormalizer();
+    const evs = shellRound({
+      type: "shell_call_output",
+      callId: "call_shst_1",
+      output: [{ stdout: "file1", stderr: "", outcome: { type: "exit", exitCode: 0 } }],
+    }).flatMap((e) => n.push(e)).concat(n.flush());
+    const done = evs.find((e) => e.type === "tool.done") as { outcome?: string };
+    expect(done?.outcome).toBe("ok");
+    expect("providerMetadata" in (done as object)).toBe(false);
+  });
+});
+
+describe("createOpenaiNormalizer — AssistantMessageItem.phase (agents-core 0.14.0)", () => {
+  function phaseRound(messageRawItem: JsonValue): JsonValue[] {
+    return [
+      rawModel({ type: "response.created", response: { id: "resp_phase_1" } }),
+      rawModel({
+        type: "response.output_text.delta",
+        item_id: "msg_phase_1",
+        delta: "The answer is 42.",
+      }),
+      runItem("message_output_created", { type: "message_output_item", rawItem: messageRawItem }),
+      rawModel({ type: "response.completed", response: { id: "resp_phase_1", status: "completed" } }),
+    ];
+  }
+
+  it("carries phase on the matching text.end's providerMetadata (per-part, not message-level)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = phaseRound({
+      type: "message",
+      role: "assistant",
+      status: "completed",
+      phase: "final_answer",
+      id: "msg_phase_1",
+      content: [{ type: "output_text", text: "The answer is 42." }],
+    }).flatMap((e) => n.push(e)).concat(n.flush());
+    const end = evs.find((e) => e.type === "text.end") as {
+      providerMetadata?: { phase?: string };
+    };
+    expect(end?.providerMetadata).toEqual({ phase: "final_answer" });
+  });
+
+  it("phase coexists with citations on the same text.end (both carriers intact)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = phaseRound({
+      type: "message",
+      role: "assistant",
+      status: "completed",
+      phase: "commentary",
+      id: "msg_phase_1",
+      content: [
+        {
+          type: "output_text",
+          text: "The answer is 42.",
+          annotations: [
+            { type: "url_citation", url: "https://example.com", title: "t", start_index: 0, end_index: 3 },
+          ],
+        },
+      ],
+    }).flatMap((e) => n.push(e)).concat(n.flush());
+    const end = evs.find((e) => e.type === "text.end") as {
+      providerMetadata?: { phase?: string };
+      citations?: { kind?: string; url?: string }[];
+    };
+    expect(end?.providerMetadata).toEqual({ phase: "commentary" });
+    expect(end?.citations?.[0]).toMatchObject({ kind: "url", url: "https://example.com" });
+  });
+
+  it("id-less late-message ext payload carries phase (no streamed text.end exists on that path)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_phase_2" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_phase_2", status: "completed" } }),
+      // Id-less synthesized final message arriving PAST the terminal close,
+      // now phase-tagged (0.14.0) — joins the documented late-message carry.
+      runItem("message_output_created", {
+        type: "message_output_item",
+        rawItem: {
+          type: "message",
+          role: "assistant",
+          status: "completed",
+          phase: "final_answer",
+          content: [{ type: "output_text", text: "synthesized final answer" }],
+        },
+      }),
+    ].flatMap((e) => n.push(e)).concat(n.flush());
+    const late = evs.find((e) => e.type === "ext.openai.late-message") as {
+      text?: unknown;
+      phase?: unknown;
+    };
+    expect(late).toBeDefined();
+    expect(late?.text).toBe("synthesized final answer");
+    expect(late?.phase).toBe("final_answer");
+  });
+
+  it("negative control (0.13.5-shaped message, no phase) ⇒ NO providerMetadata on text.end", () => {
+    const n = createOpenaiNormalizer();
+    const evs = phaseRound({
+      type: "message",
+      role: "assistant",
+      status: "completed",
+      id: "msg_phase_1",
+      content: [{ type: "output_text", text: "The answer is 42." }],
+    }).flatMap((e) => n.push(e)).concat(n.flush());
+    const end = evs.find((e) => e.type === "text.end") as { providerMetadata?: unknown };
+    expect(end).toBeDefined();
+    expect("providerMetadata" in (end as object)).toBe(false);
+  });
+
+  it("fold-identity: a phase-tagged text turn reduces cleanly (needsResync=false) with the metadata on the text block", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    const frames = phaseRound({
+      type: "message",
+      role: "assistant",
+      status: "completed",
+      phase: "final_answer",
+      id: "msg_phase_1",
+      content: [{ type: "output_text", text: "The answer is 42." }],
+    });
+    for (const e of frames) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const res: AgReduceResult = r.result();
+    const textBlock = res.messages.flatMap((m) => m.content).find((b) => b.type === "text") as {
+      providerMetadata?: { phase?: string };
+      text?: string;
+    };
+    expect(textBlock?.text).toBe("The answer is 42.");
+    expect(textBlock?.providerMetadata).toEqual({ phase: "final_answer" });
   });
 });

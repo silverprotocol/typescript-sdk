@@ -1,15 +1,4 @@
 {
-  "drops": [
-    {
-      "path": "[1].type",
-      "norm": "[*].type",
-      "value": "user"
-    },
-    {
-      "path": "[3].type",
-      "norm": "[*].type",
-      "value": "result"
-    }
-  ],
+  "drops": [],
   "newFields": []
 }

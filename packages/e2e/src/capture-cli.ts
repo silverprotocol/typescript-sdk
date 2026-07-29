@@ -94,10 +94,13 @@ const DEFAULT_MODEL: Record<Framework, string> = {
   // the committed corpus (see corpus/*/​*.provenance.json) — bump only after a
   // clean capture at the new model lands as a replay seed.
   claude: "claude-sonnet-5",
-  openai: "gpt-5.6",
+  // Explicit snapshot id, not the bare "gpt-5.6" alias: OpenAI routes the
+  // alias (currently → gpt-5.6-sol) and may re-route it later, which would
+  // silently change what a "refresh at the same model" capture exercises.
+  openai: "gpt-5.6-sol",
   adk: "gemini-3.6-flash",
   // Same model family as "openai" — the two facets share provider + corpus.
-  vercel: "gpt-5.6",
+  vercel: "gpt-5.6-sol",
 };
 
 /**

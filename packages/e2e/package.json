@@ -17,14 +17,14 @@
     "@silverprotocol/vercel-ai": "workspace:*"
   },
   "devDependencies": {
-    "@ai-sdk/mcp": "2.0.16",
+    "@ai-sdk/mcp": "2.0.18",
     "@ai-sdk/openai": "4.0.17",
-    "@anthropic-ai/claude-agent-sdk": "0.3.217",
+    "@anthropic-ai/claude-agent-sdk": "0.3.220",
     "@google/adk": "^1.4.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@openai/agents": "0.13.5",
+    "@openai/agents": "0.14.0",
     "@types/node": "^24.0.0",
-    "ai": "7.0.34",
+    "ai": "7.0.41",
     "typescript": "^5.3.0",
     "vitest": "^2.0.0",
     "zod": "^4.0.0"

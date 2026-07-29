@@ -1,20 +1,10 @@
 {
-  "drops": [
-    {
-      "path": "[0].type",
-      "norm": "[*].type",
-      "value": "system"
-    },
-    {
-      "path": "[2].type",
-      "norm": "[*].type",
-      "value": "user"
-    },
-    {
-      "path": "[4].type",
-      "norm": "[*].type",
-      "value": "result"
-    }
-  ],
-  "newFields": []
+  "drops": [],
+  "newFields": [
+    "[*].fast_mode_disabled_reason",
+    "[*].modelUsage.claude-sonnet-5.canonicalModel",
+    "[*].modelUsage.claude-sonnet-5.provider",
+    "[*].modelUsage.claude-haiku-4-5-20251001.canonicalModel",
+    "[*].modelUsage.claude-haiku-4-5-20251001.provider"
+  ]
 }

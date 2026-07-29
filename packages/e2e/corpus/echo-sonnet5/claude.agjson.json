@@ -2,38 +2,38 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_a3209d83-121a-4b37-bf2d-7142a7425b8a",
-    "threadId": "a3209d83-121a-4b37-bf2d-7142a7425b8a"
+    "turnId": "turn_eaf8ac0c-91cd-4d0e-8f70-f16369f1047d",
+    "threadId": "eaf8ac0c-91cd-4d0e-8f70-f16369f1047d"
   },
   {
     "type": "message.start",
     "seq": 1,
-    "id": "msg_011CdGtcGu853QMYpWYDXkVT",
-    "turnId": "turn_a3209d83-121a-4b37-bf2d-7142a7425b8a",
-    "threadId": "a3209d83-121a-4b37-bf2d-7142a7425b8a",
+    "id": "msg_011CdVh5fixtzWYFnmfiBJoS",
+    "turnId": "turn_eaf8ac0c-91cd-4d0e-8f70-f16369f1047d",
+    "threadId": "eaf8ac0c-91cd-4d0e-8f70-f16369f1047d",
     "role": "assistant",
     "model": "claude-sonnet-5"
   },
   {
     "type": "tool.start",
     "seq": 2,
-    "turnId": "turn_a3209d83-121a-4b37-bf2d-7142a7425b8a",
-    "toolCallId": "toolu_01RWRc8WF1DgLHKLRzhueubq",
+    "turnId": "turn_eaf8ac0c-91cd-4d0e-8f70-f16369f1047d",
+    "toolCallId": "toolu_01SvB5ZeDv5PUGCBQTAKsVmx",
     "name": "mcp__t__echo",
     "index": 0,
-    "messageId": "msg_011CdGtcGu853QMYpWYDXkVT",
+    "messageId": "msg_011CdVh5fixtzWYFnmfiBJoS",
     "providerExecuted": false
   },
   {
     "type": "tool.args.delta",
     "seq": 3,
-    "toolCallId": "toolu_01RWRc8WF1DgLHKLRzhueubq",
+    "toolCallId": "toolu_01SvB5ZeDv5PUGCBQTAKsVmx",
     "delta": "{\"message\":\"conformance-probe-sonnet5\"}"
   },
   {
     "type": "tool.args.assembled",
     "seq": 4,
-    "toolCallId": "toolu_01RWRc8WF1DgLHKLRzhueubq",
+    "toolCallId": "toolu_01SvB5ZeDv5PUGCBQTAKsVmx",
     "input": {
       "message": "conformance-probe-sonnet5"
     }
@@ -41,20 +41,20 @@
   {
     "type": "message.end",
     "seq": 5,
-    "id": "msg_011CdGtcGu853QMYpWYDXkVT",
+    "id": "msg_011CdVh5fixtzWYFnmfiBJoS",
     "usage": {
       "inputTokens": 2,
-      "outputTokens": 52,
+      "outputTokens": 63,
       "cacheReadTokens": 0,
-      "cacheWriteTokens": 1158,
+      "cacheWriteTokens": 1153,
       "cumulative": true
     }
   },
   {
     "type": "tool.done",
     "seq": 6,
-    "turnId": "turn_a3209d83-121a-4b37-bf2d-7142a7425b8a",
-    "toolCallId": "toolu_01RWRc8WF1DgLHKLRzhueubq",
+    "turnId": "turn_eaf8ac0c-91cd-4d0e-8f70-f16369f1047d",
+    "toolCallId": "toolu_01SvB5ZeDv5PUGCBQTAKsVmx",
     "content": [
       {
         "type": "text",
@@ -63,84 +63,99 @@
     ],
     "outcome": "ok",
     "isError": false,
-    "messageId": "toolu_01RWRc8WF1DgLHKLRzhueubq:result"
+    "messageId": "toolu_01SvB5ZeDv5PUGCBQTAKsVmx:result"
   },
   {
     "type": "message.start",
     "seq": 7,
-    "id": "msg_011CdGtcV4cMDZPcvmY6MJBq",
-    "turnId": "turn_a3209d83-121a-4b37-bf2d-7142a7425b8a",
-    "threadId": "a3209d83-121a-4b37-bf2d-7142a7425b8a",
+    "id": "msg_011CdVh5pWYzr47xiaJ1wcEU",
+    "turnId": "turn_eaf8ac0c-91cd-4d0e-8f70-f16369f1047d",
+    "threadId": "eaf8ac0c-91cd-4d0e-8f70-f16369f1047d",
     "role": "assistant",
     "model": "claude-sonnet-5"
   },
   {
     "type": "text.start",
     "seq": 8,
-    "id": "msg_011CdGtcV4cMDZPcvmY6MJBq:text:0",
-    "messageId": "msg_011CdGtcV4cMDZPcvmY6MJBq",
-    "turnId": "turn_a3209d83-121a-4b37-bf2d-7142a7425b8a"
+    "id": "msg_011CdVh5pWYzr47xiaJ1wcEU:text:0",
+    "messageId": "msg_011CdVh5pWYzr47xiaJ1wcEU",
+    "turnId": "turn_eaf8ac0c-91cd-4d0e-8f70-f16369f1047d"
   },
   {
     "type": "text.delta",
     "seq": 9,
-    "id": "msg_011CdGtcV4cMDZPcvmY6MJBq:text:0",
-    "messageId": "msg_011CdGtcV4cMDZPcvmY6MJBq",
-    "delta": "The tool returned: **conformance-probe-sonnet5**",
-    "turnId": "turn_a3209d83-121a-4b37-bf2d-7142a7425b8a"
+    "id": "msg_011CdVh5pWYzr47xiaJ1wcEU:text:0",
+    "messageId": "msg_011CdVh5pWYzr47xiaJ1wcEU",
+    "delta": "conformance-probe-sonnet5",
+    "turnId": "turn_eaf8ac0c-91cd-4d0e-8f70-f16369f1047d"
   },
   {
     "type": "text.end",
     "seq": 10,
-    "id": "msg_011CdGtcV4cMDZPcvmY6MJBq:text:0",
-    "messageId": "msg_011CdGtcV4cMDZPcvmY6MJBq",
-    "turnId": "turn_a3209d83-121a-4b37-bf2d-7142a7425b8a"
+    "id": "msg_011CdVh5pWYzr47xiaJ1wcEU:text:0",
+    "messageId": "msg_011CdVh5pWYzr47xiaJ1wcEU",
+    "turnId": "turn_eaf8ac0c-91cd-4d0e-8f70-f16369f1047d"
   },
   {
     "type": "message.end",
     "seq": 11,
-    "id": "msg_011CdGtcV4cMDZPcvmY6MJBq",
+    "id": "msg_011CdVh5pWYzr47xiaJ1wcEU",
     "usage": {
       "inputTokens": 2,
-      "outputTokens": 4,
-      "cacheReadTokens": 1158,
+      "outputTokens": 1,
+      "cacheReadTokens": 1153,
       "cacheWriteTokens": 80,
       "cumulative": true
     }
   },
   {
-    "type": "turn.done",
     "seq": 12,
-    "turnId": "turn_a3209d83-121a-4b37-bf2d-7142a7425b8a",
+    "type": "ext.anthropic.result-meta",
+    "fastModeDisabledReason": "sdk_opt_in_required",
+    "modelUsage": {
+      "claude-sonnet-5": {
+        "canonicalModel": "claude-sonnet-5",
+        "provider": "firstParty"
+      },
+      "claude-haiku-4-5-20251001": {
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty"
+      }
+    }
+  },
+  {
+    "type": "turn.done",
+    "seq": 13,
+    "turnId": "turn_eaf8ac0c-91cd-4d0e-8f70-f16369f1047d",
     "outcome": {
       "type": "success",
-      "result": "The tool returned: **conformance-probe-sonnet5**"
+      "result": "conformance-probe-sonnet5"
     },
     "finishReason": "stop",
     "usage": {
       "inputTokens": 4,
-      "outputTokens": 85,
-      "cacheReadTokens": 1158,
-      "cacheWriteTokens": 1238,
+      "outputTokens": 77,
+      "cacheReadTokens": 1153,
+      "cacheWriteTokens": 1233,
       "serverToolRequests": 0,
-      "costUsd": 0.006889899999999999,
+      "costUsd": 0.006749649999999999,
       "cumulative": true,
       "byModel": {
+        "claude-sonnet-5": {
+          "inputTokens": 4,
+          "outputTokens": 77,
+          "cacheReadTokens": 1153,
+          "cacheWriteTokens": 1233,
+          "costUsd": 0.00613665,
+          "serverToolRequests": 0,
+          "cumulative": true
+        },
         "claude-haiku-4-5-20251001": {
           "inputTokens": 538,
           "outputTokens": 15,
           "cacheReadTokens": 0,
           "cacheWriteTokens": 0,
           "costUsd": 0.0006129999999999999,
-          "serverToolRequests": 0,
-          "cumulative": true
-        },
-        "claude-sonnet-5": {
-          "inputTokens": 4,
-          "outputTokens": 85,
-          "cacheReadTokens": 1158,
-          "cacheWriteTokens": 1238,
-          "costUsd": 0.0062769,
           "serverToolRequests": 0,
           "cumulative": true
         }

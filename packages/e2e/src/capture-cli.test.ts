@@ -88,9 +88,9 @@ describe("resolveModel", () => {
   it("falls back to each framework's own DEFAULT_MODEL when CAPTURE_MODEL is unset", () => {
     withCaptureModel(undefined, () => {
       expect(resolveModel("claude")).toBe("claude-sonnet-5");
-      expect(resolveModel("openai")).toBe("gpt-5.6");
+      expect(resolveModel("openai")).toBe("gpt-5.6-sol");
       expect(resolveModel("adk")).toBe("gemini-3.6-flash");
-      expect(resolveModel("vercel")).toBe("gpt-5.6");
+      expect(resolveModel("vercel")).toBe("gpt-5.6-sol");
     });
   });
 

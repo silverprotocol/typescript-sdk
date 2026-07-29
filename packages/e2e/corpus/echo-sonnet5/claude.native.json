@@ -3,7 +3,7 @@
     "type": "system",
     "subtype": "init",
     "cwd": "/Users/gustavo/Projects/silverprotocol/sdks/typescript/packages/e2e",
-    "session_id": "a3209d83-121a-4b37-bf2d-7142a7425b8a",
+    "session_id": "eaf8ac0c-91cd-4d0e-8f70-f16369f1047d",
     "tools": [
       "mcp__t__echo"
     ],
@@ -59,7 +59,7 @@
       "team-onboarding"
     ],
     "apiKeySource": "ANTHROPIC_API_KEY",
-    "claude_code_version": "2.1.217",
+    "claude_code_version": "2.1.220",
     "output_style": "default",
     "agents": [
       "claude",
@@ -88,27 +88,29 @@
     "plugins": [],
     "capabilities": [
       "interrupt_receipt_v1",
+      "interrupt_cancel_queued_v1",
       "msg_lifecycle_v1"
     ],
     "analytics_disabled": false,
     "product_feedback_disabled": false,
-    "uuid": "65abb5d6-044c-4400-8c74-28c422d62be7",
+    "uuid": "e4493dfc-c2ab-4a19-b850-d232aad56fa8",
     "memory_paths": {
       "auto": "/Users/gustavo/.claude/projects/-Users-gustavo-Projects-silverprotocol/memory/"
     },
-    "fast_mode_state": "off"
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required"
   },
   {
     "type": "assistant",
     "message": {
       "model": "claude-sonnet-5",
-      "id": "msg_011CdGtcGu853QMYpWYDXkVT",
+      "id": "msg_011CdVh5fixtzWYFnmfiBJoS",
       "type": "message",
       "role": "assistant",
       "content": [
         {
           "type": "tool_use",
-          "id": "toolu_01RWRc8WF1DgLHKLRzhueubq",
+          "id": "toolu_01SvB5ZeDv5PUGCBQTAKsVmx",
           "name": "mcp__t__echo",
           "input": {
             "message": "conformance-probe-sonnet5"
@@ -123,13 +125,13 @@
       "stop_details": null,
       "usage": {
         "input_tokens": 2,
-        "cache_creation_input_tokens": 1158,
+        "cache_creation_input_tokens": 1153,
         "cache_read_input_tokens": 0,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 1158,
+          "ephemeral_5m_input_tokens": 1153,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 52,
+        "output_tokens": 63,
         "service_tier": "standard",
         "inference_geo": "global"
       },
@@ -137,13 +139,13 @@
       "context_management": null
     },
     "parent_tool_use_id": null,
-    "session_id": "a3209d83-121a-4b37-bf2d-7142a7425b8a",
-    "uuid": "4fa12a87-c7b4-4f57-b001-4acbf6671200",
-    "timestamp": "2026-07-22T09:52:13.617Z",
-    "request_id": "req_011CdGtcEzmcJxaRa93VSkb7",
+    "session_id": "eaf8ac0c-91cd-4d0e-8f70-f16369f1047d",
+    "uuid": "b3c14de7-3deb-43f7-998f-1e20ad890462",
+    "timestamp": "2026-07-29T04:08:45.727Z",
+    "request_id": "req_011CdVh5duppmcV2yhmR1eyU",
     "tool_use_meta": [
       {
-        "id": "toolu_01RWRc8WF1DgLHKLRzhueubq",
+        "id": "toolu_01SvB5ZeDv5PUGCBQTAKsVmx",
         "display_name": "Echo",
         "server_display_name": "mock-text"
       }
@@ -155,7 +157,7 @@
       "role": "user",
       "content": [
         {
-          "tool_use_id": "toolu_01RWRc8WF1DgLHKLRzhueubq",
+          "tool_use_id": "toolu_01SvB5ZeDv5PUGCBQTAKsVmx",
           "type": "tool_result",
           "content": [
             {
@@ -167,9 +169,9 @@
       ]
     },
     "parent_tool_use_id": null,
-    "session_id": "a3209d83-121a-4b37-bf2d-7142a7425b8a",
-    "uuid": "31c39e86-8a82-4f16-b138-183b420ea60b",
-    "timestamp": "2026-07-22T09:52:13.645Z",
+    "session_id": "eaf8ac0c-91cd-4d0e-8f70-f16369f1047d",
+    "uuid": "87b86544-df25-46ec-bed9-2c7fd5fd8347",
+    "timestamp": "2026-07-29T04:08:45.735Z",
     "tool_use_result": [
       {
         "type": "text",
@@ -181,13 +183,13 @@
     "type": "assistant",
     "message": {
       "model": "claude-sonnet-5",
-      "id": "msg_011CdGtcV4cMDZPcvmY6MJBq",
+      "id": "msg_011CdVh5pWYzr47xiaJ1wcEU",
       "type": "message",
       "role": "assistant",
       "content": [
         {
           "type": "text",
-          "text": "The tool returned: **conformance-probe-sonnet5**"
+          "text": "conformance-probe-sonnet5"
         }
       ],
       "stop_reason": null,
@@ -196,12 +198,12 @@
       "usage": {
         "input_tokens": 2,
         "cache_creation_input_tokens": 80,
-        "cache_read_input_tokens": 1158,
+        "cache_read_input_tokens": 1153,
         "cache_creation": {
           "ephemeral_5m_input_tokens": 80,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 4,
+        "output_tokens": 1,
         "service_tier": "standard",
         "inference_geo": "global"
       },
@@ -209,31 +211,23 @@
       "context_management": null
     },
     "parent_tool_use_id": null,
-    "session_id": "a3209d83-121a-4b37-bf2d-7142a7425b8a",
-    "uuid": "36ff1580-f398-4f7b-a0f1-577ad9245061",
-    "timestamp": "2026-07-22T09:52:15.930Z",
-    "request_id": "req_011CdGtcTuf1J3HhhvWNuS3n"
+    "session_id": "eaf8ac0c-91cd-4d0e-8f70-f16369f1047d",
+    "uuid": "51ef08b4-ffba-4067-b7f9-4225fe58c654",
+    "timestamp": "2026-07-29T04:08:47.155Z",
+    "request_id": "req_011CdVh5mnqhTF4u58urASb4"
   },
   {
-    "type": "result",
-    "subtype": "success",
     "is_error": false,
-    "api_error_status": null,
-    "duration_ms": 5460,
-    "duration_api_ms": 7825,
-    "ttft_ms": 3126,
-    "ttft_stream_ms": 2384,
-    "time_to_request_ms": 172,
+    "duration_api_ms": 5451,
     "num_turns": 2,
-    "result": "The tool returned: **conformance-probe-sonnet5**",
     "stop_reason": "end_turn",
-    "session_id": "a3209d83-121a-4b37-bf2d-7142a7425b8a",
-    "total_cost_usd": 0.006889899999999999,
+    "session_id": "eaf8ac0c-91cd-4d0e-8f70-f16369f1047d",
+    "total_cost_usd": 0.006749649999999999,
     "usage": {
       "input_tokens": 4,
-      "cache_creation_input_tokens": 1238,
-      "cache_read_input_tokens": 1158,
-      "output_tokens": 85,
+      "cache_creation_input_tokens": 1233,
+      "cache_read_input_tokens": 1153,
+      "output_tokens": 77,
       "server_tool_use": {
         "web_search_requests": 0,
         "web_fetch_requests": 0
@@ -241,14 +235,14 @@
       "service_tier": "standard",
       "cache_creation": {
         "ephemeral_1h_input_tokens": 0,
-        "ephemeral_5m_input_tokens": 1238
+        "ephemeral_5m_input_tokens": 1233
       },
       "inference_geo": "global",
       "iterations": [
         {
           "input_tokens": 2,
-          "output_tokens": 22,
-          "cache_read_input_tokens": 1158,
+          "output_tokens": 14,
+          "cache_read_input_tokens": 1153,
           "cache_creation_input_tokens": 80,
           "cache_creation": {
             "ephemeral_5m_input_tokens": 80,
@@ -260,6 +254,18 @@
       "speed": "standard"
     },
     "modelUsage": {
+      "claude-sonnet-5": {
+        "inputTokens": 4,
+        "outputTokens": 77,
+        "cacheReadInputTokens": 1153,
+        "cacheCreationInputTokens": 1233,
+        "webSearchRequests": 0,
+        "costUSD": 0.00613665,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000,
+        "canonicalModel": "claude-sonnet-5",
+        "provider": "firstParty"
+      },
       "claude-haiku-4-5-20251001": {
         "inputTokens": 538,
         "outputTokens": 15,
@@ -268,22 +274,23 @@
         "webSearchRequests": 0,
         "costUSD": 0.0006129999999999999,
         "contextWindow": 200000,
-        "maxOutputTokens": 32000
-      },
-      "claude-sonnet-5": {
-        "inputTokens": 4,
-        "outputTokens": 85,
-        "cacheReadInputTokens": 1158,
-        "cacheCreationInputTokens": 1238,
-        "webSearchRequests": 0,
-        "costUSD": 0.0062769,
-        "contextWindow": 1000000,
-        "maxOutputTokens": 64000
+        "maxOutputTokens": 32000,
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty"
       }
     },
     "permission_denials": [],
     "terminal_reason": "completed",
     "fast_mode_state": "off",
-    "uuid": "4f2b86f7-3b13-4014-8bc2-45d4cde3b314"
+    "fast_mode_disabled_reason": "sdk_opt_in_required",
+    "subtype": "success",
+    "api_error_status": null,
+    "result": "conformance-probe-sonnet5",
+    "ttft_ms": 2001,
+    "ttft_stream_ms": 1975,
+    "time_to_request_ms": 161,
+    "type": "result",
+    "duration_ms": 3440,
+    "uuid": "484ed0a7-ddb7-4478-857f-b727b8e3f903"
   }
 ]

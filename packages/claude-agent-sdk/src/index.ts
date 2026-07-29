@@ -534,6 +534,42 @@ function anthropicFrameKind(msg: SDKMessage): string | undefined {
   return CARRIED_STANDALONE_TYPES.has(msg.type) ? msg.type : undefined;
 }
 
+// ─── 0.3.220 result-frame enrichment: fast mode + per-model serving identity ──
+// `fast_mode_disabled_reason` (on BOTH result arms — why fast mode was blocked)
+// and `ModelUsage.canonicalModel`/`provider` (the pricing-lookup identity behind
+// each modelUsage key — added for billing rate-table selection) have NO core
+// home: turn.done/turn.error carry no providerMetadata slot, and AgUsage is a
+// closed schema (a byModel entry cannot carry identity fields). Carried
+// losslessly via ONE structured ext event — `ext.anthropic.result-meta` —
+// emitted immediately BEFORE the turn close so the carry lands inside the turn
+// it describes (the `ext.anthropic.informational` structured-carry precedent;
+// carried fields camelCased like the facet's other structured carries). A
+// first-class turn-close providerMetadata slot / AgUsage identity slot is a
+// spec-process decision, recorded in sdk-surface.json, not forced here.
+// Absent fields ⇒ undefined (never an empty bag; pre-0.3.220 wire is
+// byte-identical). Nested access is runtime-guarded like the error arm's
+// `errors` guard: `isSDKMessage` validates only `subtype` on a result frame,
+// and a malformed frame must not throw (Tenet 6).
+function resultMetaPayload(msg: SDKResultMsg): { [k: string]: JsonValue } | undefined {
+  const byModel: { [k: string]: JsonValue } = {};
+  const modelUsage = isJsonObject(msg.modelUsage) ? msg.modelUsage : {};
+  for (const [model, mu] of Object.entries(modelUsage)) {
+    if (!isJsonObject(mu)) continue;
+    const identity: { [k: string]: JsonValue } = {
+      ...(typeof mu["canonicalModel"] === "string" ? { canonicalModel: mu["canonicalModel"] } : {}),
+      ...(typeof mu["provider"] === "string" ? { provider: mu["provider"] } : {}),
+    };
+    if (Object.keys(identity).length > 0) byModel[model] = identity;
+  }
+  const payload: { [k: string]: JsonValue } = {
+    ...(typeof msg.fast_mode_disabled_reason === "string"
+      ? { fastModeDisabledReason: msg.fast_mode_disabled_reason }
+      : {}),
+    ...(Object.keys(byModel).length > 0 ? { modelUsage: byModel } : {}),
+  };
+  return Object.keys(payload).length > 0 ? payload : undefined;
+}
+
 // ─── the stateful normalizer ──────────────────────────────────────────────────
 /**
  * Build a stateful Claude-facet normalizer over a fresh {@link StreamAssembler}.
@@ -857,6 +893,13 @@ export function createClaudeNormalizer(): Normalizer {
         }
         a.closeMessage(denialMsgId);
       }
+      // 0.3.220: fast_mode_disabled_reason + per-model canonicalModel/provider
+      // ride `ext.anthropic.result-meta` before the close (no core home on
+      // turn.done — see resultMetaPayload's doc).
+      const resultMeta = resultMetaPayload(msg);
+      if (resultMeta !== undefined) {
+        a.emitExt("anthropic", "result-meta", resultMeta);
+      }
       a.closeTurnDone(turnId, {
         outcome: { type: "success", result: structuredOutput ?? msg.result },
         finishReason: mapStopReason(msg.stop_reason),
@@ -876,6 +919,13 @@ export function createClaudeNormalizer(): Normalizer {
       const errors = Array.isArray(msg.errors) ? msg.errors : [];
       const subtype = typeof msg.subtype === "string" ? msg.subtype : "error_unknown";
       const retriable = subtype !== "error_max_turns";
+      // 0.3.220: fast_mode_disabled_reason exists on BOTH result arms — the
+      // error variant gets the SAME `ext.anthropic.result-meta` carry as the
+      // success arm above (turn.error carries no metadata slot at all).
+      const resultMeta = resultMetaPayload(msg);
+      if (resultMeta !== undefined) {
+        a.emitExt("anthropic", "result-meta", resultMeta);
+      }
       a.closeTurnError(turnId, {
         message: errors.length > 0 ? errors.join("; ") : subtype,
         code: subtype,

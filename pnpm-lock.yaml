@@ -25,8 +25,8 @@ importers:
         version: link:../core
     devDependencies:
       '@anthropic-ai/claude-agent-sdk':
-        specifier: ^0.3.217
-        version: 0.3.217(@anthropic-ai/sdk@0.93.0(zod@4.4.3))(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(zod@4.4.3)
+        specifier: ^0.3.220
+        version: 0.3.220(@anthropic-ai/sdk@0.93.0(zod@4.4.3))(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(zod@4.4.3)
       '@anthropic-ai/sdk':
         specifier: ^0.93.0
         version: 0.93.0(zod@4.4.3)
@@ -56,14 +56,14 @@ importers:
         version: link:../vercel-ai
     devDependencies:
       '@ai-sdk/mcp':
-        specifier: 2.0.16
-        version: 2.0.16(zod@4.4.3)
+        specifier: 2.0.18
+        version: 2.0.18(zod@4.4.3)
       '@ai-sdk/openai':
         specifier: 4.0.17
         version: 4.0.17(zod@4.4.3)
       '@anthropic-ai/claude-agent-sdk':
-        specifier: 0.3.217
-        version: 0.3.217(@anthropic-ai/sdk@0.93.0(zod@4.4.3))(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(zod@4.4.3)
+        specifier: 0.3.220
+        version: 0.3.220(@anthropic-ai/sdk@0.93.0(zod@4.4.3))(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(zod@4.4.3)
       '@google/adk':
         specifier: ^1.4.0
         version: 1.4.0(@grpc/grpc-js@1.14.4)(@mikro-orm/mariadb@6.6.15(@mikro-orm/core@6.6.15)(pg@8.20.0))(@mikro-orm/mssql@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5)(pg@8.20.0))(@mikro-orm/mysql@6.6.15(@mikro-orm/core@6.6.15)(@types/node@24.13.2)(mariadb@3.4.5)(pg@8.20.0))(@mikro-orm/postgresql@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5))(@mikro-orm/sqlite@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5)(pg@8.20.0))(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)
@@ -71,14 +71,14 @@ importers:
         specifier: ^1.29.0
         version: 1.29.0(zod@4.4.3)
       '@openai/agents':
-        specifier: 0.13.5
-        version: 0.13.5(ws@8.21.0)(zod@4.4.3)
+        specifier: 0.14.0
+        version: 0.14.0(ws@8.21.0)(zod@4.4.3)
       '@types/node':
         specifier: ^24.0.0
         version: 24.13.2
       ai:
-        specifier: 7.0.34
-        version: 7.0.34(zod@4.4.3)
+        specifier: 7.0.41
+        version: 7.0.41(zod@4.4.3)
       typescript:
         specifier: ^5.3.0
         version: 5.9.3
@@ -93,7 +93,7 @@ importers:
     dependencies:
       '@google/adk':
         specifier: '>=1.0.0 <2'
-        version: 1.3.0(@grpc/grpc-js@1.14.4)(@mikro-orm/mariadb@6.6.15(@mikro-orm/core@6.6.15))(@mikro-orm/mssql@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5))(@mikro-orm/mysql@6.6.15(@mikro-orm/core@6.6.15)(@types/node@24.13.2)(mariadb@3.4.5))(@mikro-orm/postgresql@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5))(@mikro-orm/sqlite@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5))(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(encoding@0.1.13)
+        version: 1.4.0(@grpc/grpc-js@1.14.4)(@mikro-orm/mariadb@6.6.15(@mikro-orm/core@6.6.15))(@mikro-orm/mssql@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5))(@mikro-orm/mysql@6.6.15(@mikro-orm/core@6.6.15)(@types/node@24.13.2)(mariadb@3.4.5))(@mikro-orm/postgresql@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5))(@mikro-orm/sqlite@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5))(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(encoding@0.1.13)
       '@silverprotocol/core':
         specifier: workspace:*
         version: link:../core
@@ -101,8 +101,8 @@ importers:
   packages/openai-agents:
     dependencies:
       '@openai/agents':
-        specifier: '>=0.2.0 <0.14'
-        version: 0.12.0(ws@8.21.0)(zod@4.4.3)
+        specifier: '>=0.2.0 <0.15'
+        version: 0.14.0(ws@8.21.0)(zod@4.4.3)
       '@silverprotocol/core':
         specifier: workspace:*
         version: link:../core
@@ -114,7 +114,7 @@ importers:
         version: link:../core
       ai:
         specifier: '>=6.0.0 <8'
-        version: 7.0.22(zod@4.4.3)
+        version: 7.0.41(zod@4.4.3)
 
 packages:
 
@@ -133,20 +133,14 @@ packages:
       express:
         optional: true
 
-  '@ai-sdk/gateway@4.0.16':
-    resolution: {integrity: sha512-9iYxdOLquoOFk5e+02P9qfBIA+EJU0FNJvyjGxi4iXJabt2+GlbaCg7TX0sTtxOsBVkdabkatqWM6+kvp53tBg==}
+  '@ai-sdk/gateway@4.0.31':
+    resolution: {integrity: sha512-gEBBUP7nyfQY+K+xFllYJ374RbJoRUa5RN2NyLPu12OfMv5U09kNzZTvBDHnqx78P/7qEELyIg9C5k+RPiBkjg==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@ai-sdk/gateway@4.0.26':
-    resolution: {integrity: sha512-b/nc3COKtk8IxzgcCi418IoZFky/Bw+Jg8+J0/SBBnu/mOXA4bkIKCu81coEtJAWuH2g5Fvvsa0ar7EpmzNWTw==}
-    engines: {node: '>=22'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
-
-  '@ai-sdk/mcp@2.0.16':
-    resolution: {integrity: sha512-jC2r+StEuk8uIldfP4j8nBwOEBJ2TRwy/bz71SHMZ3NG6PSbvRPXGfyoHHR6JTm1O5GcIww0f6B8LznzkrseDA==}
+  '@ai-sdk/mcp@2.0.18':
+    resolution: {integrity: sha512-0NEiqoS3PzkITQFldRuuPyO+CckgUPb9wWkp2hQlcaGxKu9ebFJDyjxGYEySE7TQN7mYc8PUuaNEODvky51NaA==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -163,8 +157,8 @@ packages:
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@ai-sdk/provider-utils@5.0.7':
-    resolution: {integrity: sha512-OSm5/5kdrHa11WIOo5LYgDKnxYWp5aB/wx5EXRHi0jpUGduMDeB6oht9U6p+UNNWIP3F/EqPpV8d7vdP/iRnqg==}
+  '@ai-sdk/provider-utils@5.0.14':
+    resolution: {integrity: sha512-HW+Ys98cr2BRQzP6jTlp2bRKIqt+oAjYNLm9gqUUQkLz7QERtaPgDZOoXHz9IXSXoOtz175p4Q17qKQdEX0Hag==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -173,52 +167,56 @@ packages:
     resolution: {integrity: sha512-e0CpNWJUY7OxAFAnCZkw+ri9QOHWwTs1tXP42782KFGCU07qt8NiXCrCVowyCB5dP2r5/Uls+g2oPd8kOJn9dw==}
     engines: {node: '>=22'}
 
-  '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.217':
-    resolution: {integrity: sha512-dl119zmL1Ssyd8Fx0xfVMpss2scrGCZwf+rhZwl2lHa2dYuXVluLgqi4DUIWDj3rRYdrAvaMpjCAv6a5w07ddw==}
+  '@ai-sdk/provider@4.0.4':
+    resolution: {integrity: sha512-tbHKNLirllUNF3ZlkCsXnwab2ZV1Sl4b1H/Cp9ruCce15IBmskE8Gwkk0yo9xDWY+jho2of7lVXtwSsyrq7cwQ==}
+    engines: {node: '>=22'}
+
+  '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.220':
+    resolution: {integrity: sha512-7VxlbEosK7DODiOnsjoVd0DSJzbnaPrM2jelMHI0y8zx1UnLS3WC6EFUXbvy74F2sXqEznh2tzn7EKWInaRN6Q==}
     cpu: [arm64]
     os: [darwin]
 
-  '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.217':
-    resolution: {integrity: sha512-IeKL1HN8fEcRQ4uw5d02by1ThpjhRtOgfHcCTBQ2KS4JfEIHvc1VGWt6Exb2a7VHhT8uRcfjPk9urbmYayZmaw==}
+  '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.220':
+    resolution: {integrity: sha512-X9RwDsSmbF6ultKZroaip+DL8WRgC64gHbrAwrRlAFSPNZV7zmJyP2ur8rW7KrxqmtuehdMMkw8+SAC/6hD2PA==}
     cpu: [x64]
     os: [darwin]
 
-  '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.217':
-    resolution: {integrity: sha512-Bb4AJxqrVPouM4sYIdvX3/AO5womhe70u3Euv+6B5J2OoqcRaWarVvYevX3KRruC5TvlV2Josw14dsL5qVNL+A==}
+  '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.220':
+    resolution: {integrity: sha512-OHoZOZ8Cf2TBr6oXIXPwyvUxj9jrq2w8E4poA8dMpacXszcPSPiCQCMuuOh4aWJzfeJE1+TtWxhKMVb2csXyZQ==}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.217':
-    resolution: {integrity: sha512-KtrnfEwUSCdq2cc4Pgysl+U66vqw3h7u04N5/OLHmYZ4AZYy8JcqdOaSJZ27iL2bgbAxyKwu5/9YmEk9A4IswA==}
+  '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.220':
+    resolution: {integrity: sha512-WkROPwWskqhKR9XgnmseHQ6rLi9zM9qt57IWoToIjL/eXOqDWipp7JXZ1L5ud+LrA42dunHPZfBwD/vXZ+A7LA==}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.217':
-    resolution: {integrity: sha512-qhugNZd77vAoPMIGM8vFHlbwTltFyI1POmfyl0ZJSpc6v7RE9+5+nqL2aGbGSDsDQkEHrJasXURxIeTMn9ut2w==}
+  '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.220':
+    resolution: {integrity: sha512-K+FWj+LcGhC1Z7wqeWoLxm1iemcba5xKpLLFVwYm4V6HyMx3ruYd/2r2TiQtjT+JWeNFWIys0ScHiItR6vWAiA==}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.217':
-    resolution: {integrity: sha512-JsAQyfl4n0PR4LX0h1SxMo0raERGb8B8dvbaoNQRRSpb9A2vvcwPEjyKu0eRKHRhTvspvuD6TfNxzxrmnouX9A==}
+  '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.220':
+    resolution: {integrity: sha512-tkTJFnpR9VifvWX2fmkCAPkT6+8Wk/gVu8B5jsVekKZPiZoWRHmMXO30BnZn+f0TZhgYP+82PSX3S8crH1kn+w==}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.217':
-    resolution: {integrity: sha512-LuaQ+PXZvIToAR81JoiGa6Me9HDma2WH2oiYlAWh43IWaXHyOqgaI1aqSM0BjDhy2UiYWTvGzAopnqPnk+jSBw==}
+  '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.220':
+    resolution: {integrity: sha512-rIwgq0UwQExWl6KrHUyC4w5KwpL9l6nd95aUTx6RitexaAuEw//xtfTVLnuE4hDDQZFkzEwpdKc3nxDWoGcUbA==}
     cpu: [arm64]
     os: [win32]
 
-  '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.217':
-    resolution: {integrity: sha512-4r/T+ze/S/CLZ58tP4Mw52XPmsc/LOrCOd8jZOqM13FCPWdCMU2osWmszEIKGVMRG2cGsaLVDYcks5cWFqjCjw==}
+  '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.220':
+    resolution: {integrity: sha512-MuOuXhbr66HlGaWXD2f3w0k2PsvmnbkwcUZ0dAe2poFLdl72GC2dapwwOBefxm9QmoNqk9+jmv/dSKGOVWyvLw==}
     cpu: [x64]
     os: [win32]
 
-  '@anthropic-ai/claude-agent-sdk@0.3.217':
-    resolution: {integrity: sha512-juszT3itL8R6OQ6nb/8IZE34UjKps8Jf7N8vjCXLx+vbJc+k3EojZOs93tJwT5iTRvfV1a0N53zJbKn/iJpKrQ==}
+  '@anthropic-ai/claude-agent-sdk@0.3.220':
+    resolution: {integrity: sha512-glc7SdwPkOkLw8oxwLo9PKTdLJGqW/PIR4urWXFoRtX9YllwozsEVc5Tc1+EvLSkfrsxPJqQWqOgpjUOQXf1oA==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       '@anthropic-ai/sdk': '>=0.93.0'
@@ -499,15 +497,6 @@ packages:
     resolution: {integrity: sha512-XMJIk7GIeavFLP5A3YEUlowKa5Y5PZRrnnuTJcqR0k+lFKkv7+IWpdRp+Xbqb8xNDrvQaE2hP2RYPUylyD5EdA==}
     engines: {node: '>=18.0.0'}
 
-  '@google/adk@1.3.0':
-    resolution: {integrity: sha512-axo10BpBtB9utsxBL+C2NgTtEDHTQIrn9bYGtBVDmdlhEb3WPGGWmpkGRjHmFLld98u6IbsBjtOhkrTCV1/zfA==}
-    peerDependencies:
-      '@mikro-orm/mariadb': ^6.6.6
-      '@mikro-orm/mssql': ^6.6.6
-      '@mikro-orm/mysql': ^6.6.6
-      '@mikro-orm/postgresql': ^6.6.6
-      '@mikro-orm/sqlite': ^6.6.6
-
   '@google/adk@1.4.0':
     resolution: {integrity: sha512-Q4nFPWCtx12mXtFEBy6TnNsmsBLDZj62J9zoUEh7ZOtaSweXQKpUvoqexDtbp9ddyYowecNmJPHadCDDaoZlMg==}
     peerDependencies:
@@ -660,49 +649,26 @@ packages:
     engines: {node: '>=10'}
     deprecated: This functionality has been moved to @npmcli/fs
 
-  '@openai/agents-core@0.12.0':
-    resolution: {integrity: sha512-8SSbAW1cVCX9tOr+N5YMj7eJyRmTSMQ5lXGlwXa7j3QclzMqVNJ4bcqrvU6GqIbSOe2XpUc+cS/kg0It2+74Fg==}
+  '@openai/agents-core@0.14.0':
+    resolution: {integrity: sha512-jnxFllprHk6OI0l5vKssIrPYerng+DR3tM4HLT5/ze7c6juotf8T/dmhOhsqcqT5fE0B74j9CsiFZ4AGXEn7SA==}
     peerDependencies:
       zod: ^4.0.0
     peerDependenciesMeta:
       zod:
         optional: true
 
-  '@openai/agents-core@0.13.5':
-    resolution: {integrity: sha512-RI9OwHG94c6ZTLNeEB7mfIpHbncgVxu4YElAmCAhq04EqLPzsLyouWhDgli8wZL/IhN/cYTaBwHvxktFzEbeyQ==}
-    peerDependencies:
-      zod: ^4.0.0
-    peerDependenciesMeta:
-      zod:
-        optional: true
-
-  '@openai/agents-openai@0.12.0':
-    resolution: {integrity: sha512-GseH+cMrvzFxsv2ovQHWuP2ej9kUUgX5f/K49uPnq+cTixPZRpaxOTRZX62cJrHahpom/RuZnDlK4rf97xwJOA==}
+  '@openai/agents-openai@0.14.0':
+    resolution: {integrity: sha512-4L+A9FkpHYwNFwjG0VW28vM0T1VstyZ6tCxV4XNtHCrsEwoeGJlVGTVUKS/6sDQA8Kxk6dG50U3JubqvTaPGxg==}
     peerDependencies:
       zod: ^4.0.0
 
-  '@openai/agents-openai@0.13.5':
-    resolution: {integrity: sha512-DfItyOZxE7znrJMj8V8zV7qg9Ig1Q3u6/GfpkG0aTyj3NCAY8BbaxzLz0Qynlon9K4XBvo7LL8Nvxb5/FMeQcA==}
+  '@openai/agents-realtime@0.14.0':
+    resolution: {integrity: sha512-Bw4ROws43JFwdF1cKIt0anq63gp5aXvf6ZsqGnnjvHMp5nN1SThOeDPne5tITFagLSdWcqfC8Agf5Q6Kn5fmZA==}
     peerDependencies:
       zod: ^4.0.0
 
-  '@openai/agents-realtime@0.12.0':
-    resolution: {integrity: sha512-isTxWymL7G71n+as3PSty/vjaU5btJufYTACXcbJlgVf88JhP3YRfYXLfc5HX5NF8qgQorjyvTEliBNv3dFfWw==}
-    peerDependencies:
-      zod: ^4.0.0
-
-  '@openai/agents-realtime@0.13.5':
-    resolution: {integrity: sha512-8rCApGStttqZpPigEWQ1RaiqoKgoisqzQhp0pAnJvzCcZnYgTf/13AWa0wMcP9OQl/hfLcH4YQ+uipRYiVgMzg==}
-    peerDependencies:
-      zod: ^4.0.0
-
-  '@openai/agents@0.12.0':
-    resolution: {integrity: sha512-O+ML3tU7NhP5DXqzi/Q9WIht0lrb4ky0haal5Xp+uy+KaG+GxzxgZCbqD4b3nzWbzsq1dMt8Wq/iD7hG3LtsLA==}
-    peerDependencies:
-      zod: ^4.0.0
-
-  '@openai/agents@0.13.5':
-    resolution: {integrity: sha512-zmVEQrl2gIvD0Xq9ZcxPMXRkfafgaitESHU/CHA+ill10A8OQu4/pKgKW4oWb99KnJD/lP4Tnn9vX0LgCx9ouw==}
+  '@openai/agents@0.14.0':
+    resolution: {integrity: sha512-GM7Lw7ru0uWnjFiKJks7hJPJk3CQnHIr6lDhwJCMN545RLMDuMnZhmH2zFmQQWTayeTOCQVhlimEnDqXRhqNwg==}
     peerDependencies:
       zod: ^4.0.0
 
@@ -1123,14 +1089,8 @@ packages:
     resolution: {integrity: sha512-4I7Td01quW/RpocfNayFdFVk1qSuoh0E7JrbRJ16nH01HhKFQ88INq9Sd+nd72zqRySlr9BmDA8xlEJ6vJMrYA==}
     engines: {node: '>=8'}
 
-  ai@7.0.22:
-    resolution: {integrity: sha512-iAXYwQtR18qN7GXwNmGVAQM4uSJOh2+nZ5RP9NtDXfH5d4tlYyYzAM133O3U+eVcyWrvNRzecN9yW58xpCdfMg==}
-    engines: {node: '>=22'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
-
-  ai@7.0.34:
-    resolution: {integrity: sha512-jDqclWYqPGFKcUG4CQiKcBiwi5XqVMqvYy6eJdujVpvE1SDoB6j7RtjrGYz3Bn5B1dzTj1StAlrOebY//WK9/Q==}
+  ai@7.0.41:
+    resolution: {integrity: sha512-GvV7uet1dz3wZFAnLd8rS+rSwIh57b8YvbV/gPaSxKsJkj1wGVnlWbu9pqKG3Op68/mglkz0lIkpsJXy2rBX1A==}
     engines: {node: '>=22'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -2292,17 +2252,6 @@ packages:
     resolution: {integrity: sha512-YgBpdJHPyQ2UE5x+hlSXcnejzAvD0b22U2OuAP+8OnlJT+PjWPxtgmGqKKc+RgTM63U9gN0YzrYc71R2WT/hTA==}
     engines: {node: '>=18'}
 
-  openai@6.44.0:
-    resolution: {integrity: sha512-09/gH+8jH0RgUwsgWHAaxsKGRT5zVZ95IaJUnqAWj6XejIBmnFRwq2WUIF37VtDEsmGrtPmvCs5+yBSeZGWvkA==}
-    peerDependencies:
-      ws: ^8.18.0
-      zod: ^3.25 || ^4.0
-    peerDependenciesMeta:
-      ws:
-        optional: true
-      zod:
-        optional: true
-
   openai@6.46.0:
     resolution: {integrity: sha512-DFg6jEPT2RO+oAyXtddeUJU8zkGy1OQ1AjGzNIJUMQG03TTqvCpy9tBpQ+2VVVnvrl3E56F8GEin2JYtWpITtA==}
     peerDependencies:
@@ -3042,24 +2991,17 @@ snapshots:
       '@grpc/grpc-js': 1.14.4
       express: 4.22.2
 
-  '@ai-sdk/gateway@4.0.16(zod@4.4.3)':
+  '@ai-sdk/gateway@4.0.31(zod@4.4.3)':
     dependencies:
-      '@ai-sdk/provider': 4.0.3
-      '@ai-sdk/provider-utils': 5.0.7(zod@4.4.3)
+      '@ai-sdk/provider': 4.0.4
+      '@ai-sdk/provider-utils': 5.0.14(zod@4.4.3)
       '@vercel/oidc': 3.2.0
       zod: 4.4.3
 
-  '@ai-sdk/gateway@4.0.26(zod@4.4.3)':
+  '@ai-sdk/mcp@2.0.18(zod@4.4.3)':
     dependencies:
-      '@ai-sdk/provider': 4.0.3
-      '@ai-sdk/provider-utils': 5.0.12(zod@4.4.3)
-      '@vercel/oidc': 3.2.0
-      zod: 4.4.3
-
-  '@ai-sdk/mcp@2.0.16(zod@4.4.3)':
-    dependencies:
-      '@ai-sdk/provider': 4.0.3
-      '@ai-sdk/provider-utils': 5.0.12(zod@4.4.3)
+      '@ai-sdk/provider': 4.0.4
+      '@ai-sdk/provider-utils': 5.0.14(zod@4.4.3)
       pkce-challenge: 5.0.1
       zod: 4.4.3
 
@@ -3077,9 +3019,9 @@ snapshots:
       eventsource-parser: 3.1.0
       zod: 4.4.3
 
-  '@ai-sdk/provider-utils@5.0.7(zod@4.4.3)':
+  '@ai-sdk/provider-utils@5.0.14(zod@4.4.3)':
     dependencies:
-      '@ai-sdk/provider': 4.0.3
+      '@ai-sdk/provider': 4.0.4
       '@standard-schema/spec': 1.1.0
       '@workflow/serde': 4.1.0
       eventsource-parser: 3.1.0
@@ -3089,44 +3031,48 @@ snapshots:
     dependencies:
       json-schema: 0.4.0
 
-  '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.217':
+  '@ai-sdk/provider@4.0.4':
+    dependencies:
+      json-schema: 0.4.0
+
+  '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.220':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.217':
+  '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.220':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.217':
+  '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.220':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.217':
+  '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.220':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.217':
+  '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.220':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.217':
+  '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.220':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.217':
+  '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.220':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.217':
+  '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.220':
     optional: true
 
-  '@anthropic-ai/claude-agent-sdk@0.3.217(@anthropic-ai/sdk@0.93.0(zod@4.4.3))(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(zod@4.4.3)':
+  '@anthropic-ai/claude-agent-sdk@0.3.220(@anthropic-ai/sdk@0.93.0(zod@4.4.3))(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(zod@4.4.3)':
     dependencies:
       '@anthropic-ai/sdk': 0.93.0(zod@4.4.3)
       '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.3)
       zod: 4.4.3
     optionalDependencies:
-      '@anthropic-ai/claude-agent-sdk-darwin-arm64': 0.3.217
-      '@anthropic-ai/claude-agent-sdk-darwin-x64': 0.3.217
-      '@anthropic-ai/claude-agent-sdk-linux-arm64': 0.3.217
-      '@anthropic-ai/claude-agent-sdk-linux-arm64-musl': 0.3.217
-      '@anthropic-ai/claude-agent-sdk-linux-x64': 0.3.217
-      '@anthropic-ai/claude-agent-sdk-linux-x64-musl': 0.3.217
-      '@anthropic-ai/claude-agent-sdk-win32-arm64': 0.3.217
-      '@anthropic-ai/claude-agent-sdk-win32-x64': 0.3.217
+      '@anthropic-ai/claude-agent-sdk-darwin-arm64': 0.3.220
+      '@anthropic-ai/claude-agent-sdk-darwin-x64': 0.3.220
+      '@anthropic-ai/claude-agent-sdk-linux-arm64': 0.3.220
+      '@anthropic-ai/claude-agent-sdk-linux-arm64-musl': 0.3.220
+      '@anthropic-ai/claude-agent-sdk-linux-x64': 0.3.220
+      '@anthropic-ai/claude-agent-sdk-linux-x64-musl': 0.3.220
+      '@anthropic-ai/claude-agent-sdk-win32-arm64': 0.3.220
+      '@anthropic-ai/claude-agent-sdk-win32-x64': 0.3.220
 
   '@anthropic-ai/sdk@0.93.0(zod@4.4.3)':
     dependencies:
@@ -3365,13 +3311,13 @@ snapshots:
       - encoding
       - supports-color
 
-  '@google-cloud/opentelemetry-cloud-monitoring-exporter@0.21.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-metrics@2.9.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)':
+  '@google-cloud/opentelemetry-cloud-monitoring-exporter@0.21.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@2.9.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)':
     dependencies:
-      '@google-cloud/opentelemetry-resource-util': 3.0.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.1))(encoding@0.1.13)
+      '@google-cloud/opentelemetry-resource-util': 3.0.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)
       '@google-cloud/precise-date': 4.0.0
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/core': 2.9.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/resources': 2.9.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/resources': 2.9.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-metrics': 2.9.0(@opentelemetry/api@1.9.0)
       google-auth-library: 9.15.1(encoding@0.1.13)
       googleapis: 137.1.0(encoding@0.1.13)
@@ -3393,14 +3339,14 @@ snapshots:
       - encoding
       - supports-color
 
-  '@google-cloud/opentelemetry-cloud-trace-exporter@3.0.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)':
+  '@google-cloud/opentelemetry-cloud-trace-exporter@3.0.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)':
     dependencies:
-      '@google-cloud/opentelemetry-resource-util': 3.0.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.1))(encoding@0.1.13)
+      '@google-cloud/opentelemetry-resource-util': 3.0.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)
       '@grpc/grpc-js': 1.14.4
       '@grpc/proto-loader': 0.8.1
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/core': 2.9.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/resources': 2.9.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/resources': 2.9.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base': 2.8.0(@opentelemetry/api@1.9.0)
       google-auth-library: 9.15.1(encoding@0.1.13)
     transitivePeerDependencies:
@@ -3417,10 +3363,10 @@ snapshots:
       - encoding
       - supports-color
 
-  '@google-cloud/opentelemetry-resource-util@3.0.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.1))(encoding@0.1.13)':
+  '@google-cloud/opentelemetry-resource-util@3.0.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)':
     dependencies:
       '@opentelemetry/core': 2.9.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/resources': 2.9.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/resources': 2.9.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/semantic-conventions': 1.41.1
       gcp-metadata: 6.1.1(encoding@0.1.13)
     transitivePeerDependencies:
@@ -3469,14 +3415,14 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@google/adk@1.3.0(@grpc/grpc-js@1.14.4)(@mikro-orm/mariadb@6.6.15(@mikro-orm/core@6.6.15))(@mikro-orm/mssql@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5))(@mikro-orm/mysql@6.6.15(@mikro-orm/core@6.6.15)(@types/node@24.13.2)(mariadb@3.4.5))(@mikro-orm/postgresql@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5))(@mikro-orm/sqlite@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5))(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(encoding@0.1.13)':
+  '@google/adk@1.4.0(@grpc/grpc-js@1.14.4)(@mikro-orm/mariadb@6.6.15(@mikro-orm/core@6.6.15)(pg@8.20.0))(@mikro-orm/mssql@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5)(pg@8.20.0))(@mikro-orm/mysql@6.6.15(@mikro-orm/core@6.6.15)(@types/node@24.13.2)(mariadb@3.4.5)(pg@8.20.0))(@mikro-orm/postgresql@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5))(@mikro-orm/sqlite@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5)(pg@8.20.0))(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)':
     dependencies:
       '@a2a-js/sdk': 0.3.13(@grpc/grpc-js@1.14.4)(express@4.22.2)
-      '@google-cloud/opentelemetry-cloud-monitoring-exporter': 0.21.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-metrics@2.9.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)
-      '@google-cloud/opentelemetry-cloud-trace-exporter': 3.0.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)
+      '@google-cloud/opentelemetry-cloud-monitoring-exporter': 0.21.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.0))(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@2.9.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)
+      '@google-cloud/opentelemetry-cloud-trace-exporter': 3.0.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.0))(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)
       '@google-cloud/storage': 7.21.0(encoding@0.1.13)
       '@google-cloud/vertexai': 1.12.0(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(encoding@0.1.13)
-      '@google/genai': 1.52.0(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))
+      '@google/genai': 2.12.0(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))
       '@mikro-orm/core': 6.6.15
       '@mikro-orm/mariadb': 6.6.15(@mikro-orm/core@6.6.15)(pg@8.20.0)
       '@mikro-orm/mssql': 6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5)(pg@8.20.0)
@@ -3515,11 +3461,11 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@google/adk@1.4.0(@grpc/grpc-js@1.14.4)(@mikro-orm/mariadb@6.6.15(@mikro-orm/core@6.6.15)(pg@8.20.0))(@mikro-orm/mssql@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5)(pg@8.20.0))(@mikro-orm/mysql@6.6.15(@mikro-orm/core@6.6.15)(@types/node@24.13.2)(mariadb@3.4.5)(pg@8.20.0))(@mikro-orm/postgresql@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5))(@mikro-orm/sqlite@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5)(pg@8.20.0))(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)':
+  '@google/adk@1.4.0(@grpc/grpc-js@1.14.4)(@mikro-orm/mariadb@6.6.15(@mikro-orm/core@6.6.15))(@mikro-orm/mssql@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5))(@mikro-orm/mysql@6.6.15(@mikro-orm/core@6.6.15)(@types/node@24.13.2)(mariadb@3.4.5))(@mikro-orm/postgresql@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5))(@mikro-orm/sqlite@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5))(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(encoding@0.1.13)':
     dependencies:
       '@a2a-js/sdk': 0.3.13(@grpc/grpc-js@1.14.4)(express@4.22.2)
-      '@google-cloud/opentelemetry-cloud-monitoring-exporter': 0.21.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.0))(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@2.9.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)
-      '@google-cloud/opentelemetry-cloud-trace-exporter': 3.0.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.0))(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)
+      '@google-cloud/opentelemetry-cloud-monitoring-exporter': 0.21.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@2.9.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)
+      '@google-cloud/opentelemetry-cloud-trace-exporter': 3.0.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)
       '@google-cloud/storage': 7.21.0(encoding@0.1.13)
       '@google-cloud/vertexai': 1.12.0(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(encoding@0.1.13)
       '@google/genai': 2.12.0(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))
@@ -3684,7 +3630,7 @@ snapshots:
   '@mikro-orm/mariadb@6.6.15(@mikro-orm/core@6.6.15)(pg@8.20.0)':
     dependencies:
       '@mikro-orm/core': 6.6.15
-      '@mikro-orm/knex': 6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5)(mysql2@3.20.0(@types/node@24.13.2))(pg@8.20.0)
+      '@mikro-orm/knex': 6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5)(pg@8.20.0)(sqlite3@5.1.7)
       mariadb: 3.4.5
     transitivePeerDependencies:
       - better-sqlite3
@@ -3737,7 +3683,7 @@ snapshots:
   '@mikro-orm/postgresql@6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5)':
     dependencies:
       '@mikro-orm/core': 6.6.15
-      '@mikro-orm/knex': 6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5)(mysql2@3.20.0(@types/node@24.13.2))(pg@8.20.0)
+      '@mikro-orm/knex': 6.6.15(@mikro-orm/core@6.6.15)(mariadb@3.4.5)(pg@8.20.0)(sqlite3@5.1.7)
       pg: 8.20.0
       postgres-array: 3.0.4
       postgres-date: 2.1.0
@@ -3828,7 +3774,7 @@ snapshots:
       rimraf: 3.0.2
     optional: true
 
-  '@openai/agents-core@0.12.0(ws@8.21.0)(zod@4.4.3)':
+  '@openai/agents-core@0.14.0(ws@8.21.0)(zod@4.4.3)':
     dependencies:
       debug: 4.4.3
       openai: 6.46.0(ws@8.21.0)(zod@4.4.3)
@@ -3843,24 +3789,9 @@ snapshots:
       - supports-color
       - ws
 
-  '@openai/agents-core@0.13.5(ws@8.21.0)(zod@4.4.3)':
+  '@openai/agents-openai@0.14.0(ws@8.21.0)(zod@4.4.3)':
     dependencies:
-      debug: 4.4.3
-      openai: 6.46.0(ws@8.21.0)(zod@4.4.3)
-    optionalDependencies:
-      '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.3)
-      zod: 4.4.3
-    transitivePeerDependencies:
-      - '@aws-sdk/credential-provider-node'
-      - '@cfworker/json-schema'
-      - '@smithy/hash-node'
-      - '@smithy/signature-v4'
-      - supports-color
-      - ws
-
-  '@openai/agents-openai@0.12.0(ws@8.21.0)(zod@4.4.3)':
-    dependencies:
-      '@openai/agents-core': 0.12.0(ws@8.21.0)(zod@4.4.3)
+      '@openai/agents-core': 0.14.0(ws@8.21.0)(zod@4.4.3)
       debug: 4.4.3
       openai: 6.46.0(ws@8.21.0)(zod@4.4.3)
       zod: 4.4.3
@@ -3872,23 +3803,9 @@ snapshots:
       - supports-color
       - ws
 
-  '@openai/agents-openai@0.13.5(ws@8.21.0)(zod@4.4.3)':
+  '@openai/agents-realtime@0.14.0(zod@4.4.3)':
     dependencies:
-      '@openai/agents-core': 0.13.5(ws@8.21.0)(zod@4.4.3)
-      debug: 4.4.3
-      openai: 6.46.0(ws@8.21.0)(zod@4.4.3)
-      zod: 4.4.3
-    transitivePeerDependencies:
-      - '@aws-sdk/credential-provider-node'
-      - '@cfworker/json-schema'
-      - '@smithy/hash-node'
-      - '@smithy/signature-v4'
-      - supports-color
-      - ws
-
-  '@openai/agents-realtime@0.12.0(zod@4.4.3)':
-    dependencies:
-      '@openai/agents-core': 0.12.0(ws@8.21.0)(zod@4.4.3)
+      '@openai/agents-core': 0.14.0(ws@8.21.0)(zod@4.4.3)
       '@types/ws': 8.18.1
       debug: 4.4.3
       ws: 8.21.0
@@ -3902,45 +3819,11 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@openai/agents-realtime@0.13.5(zod@4.4.3)':
+  '@openai/agents@0.14.0(ws@8.21.0)(zod@4.4.3)':
     dependencies:
-      '@openai/agents-core': 0.13.5(ws@8.21.0)(zod@4.4.3)
-      '@types/ws': 8.18.1
-      debug: 4.4.3
-      ws: 8.21.0
-      zod: 4.4.3
-    transitivePeerDependencies:
-      - '@aws-sdk/credential-provider-node'
-      - '@cfworker/json-schema'
-      - '@smithy/hash-node'
-      - '@smithy/signature-v4'
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-
-  '@openai/agents@0.12.0(ws@8.21.0)(zod@4.4.3)':
-    dependencies:
-      '@openai/agents-core': 0.12.0(ws@8.21.0)(zod@4.4.3)
-      '@openai/agents-openai': 0.12.0(ws@8.21.0)(zod@4.4.3)
-      '@openai/agents-realtime': 0.12.0(zod@4.4.3)
-      debug: 4.4.3
-      openai: 6.44.0(ws@8.21.0)(zod@4.4.3)
-      zod: 4.4.3
-    transitivePeerDependencies:
-      - '@aws-sdk/credential-provider-node'
-      - '@cfworker/json-schema'
-      - '@smithy/hash-node'
-      - '@smithy/signature-v4'
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-      - ws
-
-  '@openai/agents@0.13.5(ws@8.21.0)(zod@4.4.3)':
-    dependencies:
-      '@openai/agents-core': 0.13.5(ws@8.21.0)(zod@4.4.3)
-      '@openai/agents-openai': 0.13.5(ws@8.21.0)(zod@4.4.3)
-      '@openai/agents-realtime': 0.13.5(zod@4.4.3)
+      '@openai/agents-core': 0.14.0(ws@8.21.0)(zod@4.4.3)
+      '@openai/agents-openai': 0.14.0(ws@8.21.0)(zod@4.4.3)
+      '@openai/agents-realtime': 0.14.0(zod@4.4.3)
       debug: 4.4.3
       openai: 6.46.0(ws@8.21.0)(zod@4.4.3)
       zod: 4.4.3
@@ -4056,12 +3939,6 @@ snapshots:
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/core': 2.9.0(@opentelemetry/api@1.9.0)
-      '@opentelemetry/semantic-conventions': 1.41.1
-
-  '@opentelemetry/resources@2.9.0(@opentelemetry/api@1.9.1)':
-    dependencies:
-      '@opentelemetry/api': 1.9.1
-      '@opentelemetry/core': 2.9.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/semantic-conventions': 1.41.1
 
   '@opentelemetry/sdk-logs@0.205.0(@opentelemetry/api@1.9.0)':
@@ -4340,18 +4217,11 @@ snapshots:
       indent-string: 4.0.0
     optional: true
 
-  ai@7.0.22(zod@4.4.3):
+  ai@7.0.41(zod@4.4.3):
     dependencies:
-      '@ai-sdk/gateway': 4.0.16(zod@4.4.3)
-      '@ai-sdk/provider': 4.0.3
-      '@ai-sdk/provider-utils': 5.0.7(zod@4.4.3)
-      zod: 4.4.3
-
-  ai@7.0.34(zod@4.4.3):
-    dependencies:
-      '@ai-sdk/gateway': 4.0.26(zod@4.4.3)
-      '@ai-sdk/provider': 4.0.3
-      '@ai-sdk/provider-utils': 5.0.12(zod@4.4.3)
+      '@ai-sdk/gateway': 4.0.31(zod@4.4.3)
+      '@ai-sdk/provider': 4.0.4
+      '@ai-sdk/provider-utils': 5.0.14(zod@4.4.3)
       zod: 4.4.3
 
   ajv-formats@3.0.1(ajv@8.20.0):
@@ -5680,11 +5550,6 @@ snapshots:
       define-lazy-prop: 3.0.0
       is-inside-container: 1.0.0
       wsl-utils: 0.1.0
-
-  openai@6.44.0(ws@8.21.0)(zod@4.4.3):
-    optionalDependencies:
-      ws: 8.21.0
-      zod: 4.4.3
 
   openai@6.46.0(ws@8.21.0)(zod@4.4.3):
     optionalDependencies:

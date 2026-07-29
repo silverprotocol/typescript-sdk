@@ -1965,6 +1965,107 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
   });
 });
 
+describe("createClaudeNormalizer — 0.3.220 result-meta carry (fast_mode_disabled_reason / ModelUsage serving identity)", () => {
+  type SDKResultSuccessT = Extract<SDKMessage, { type: "result"; subtype: "success" }>;
+  type SDKResultErrorT = Exclude<Extract<SDKMessage, { type: "result" }>, { subtype: "success" }>;
+
+  // The 0.3.220 additions layered onto the frozen result fixtures: NEW frames,
+  // the pre-0.3.220 fixtures above stay byte-identical (negative control below).
+  const SERVING_MODEL_USAGE: SDKResultSuccessT["modelUsage"] = {
+    "claude-opus": {
+      inputTokens: 100,
+      outputTokens: 50,
+      cacheReadInputTokens: 20,
+      cacheCreationInputTokens: 10,
+      webSearchRequests: 0,
+      costUSD: 0.05,
+      contextWindow: 200000,
+      maxOutputTokens: 8192,
+      canonicalModel: "claude-opus-4-7",
+      provider: "bedrock",
+    },
+  };
+
+  function resultSuccessWithMeta(
+    reason?: SDKResultSuccessT["fast_mode_disabled_reason"],
+  ): SDKMessage {
+    return {
+      ...(resultSuccess("end_turn") as SDKResultSuccessT),
+      ...(reason !== undefined ? { fast_mode_disabled_reason: reason } : {}),
+      modelUsage: SERVING_MODEL_USAGE,
+    };
+  }
+
+  it("carries fast_mode_disabled_reason + per-model canonicalModel/provider as ONE ext.anthropic.result-meta before turn.done", () => {
+    const evs = run(resultSuccessWithMeta("extra_usage_disabled"));
+    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
+    expect(evs[0]).toMatchObject({
+      type: "ext.anthropic.result-meta",
+      fastModeDisabledReason: "extra_usage_disabled",
+      modelUsage: { "claude-opus": { canonicalModel: "claude-opus-4-7", provider: "bedrock" } },
+    });
+    // turn.done itself is unchanged — usage.byModel still maps the token/cost fields.
+    expect(evs[1]).toMatchObject({
+      type: "turn.done",
+      finishReason: "stop",
+      usage: { byModel: { "claude-opus": { inputTokens: 100, costUsd: 0.05 } } },
+    });
+    assertAllValid(evs);
+  });
+
+  it("emits the carry with modelUsage identity alone (no fabricated fastModeDisabledReason key)", () => {
+    const evs = run(resultSuccessWithMeta());
+    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
+    expect(evs[0]).toMatchObject({
+      modelUsage: { "claude-opus": { canonicalModel: "claude-opus-4-7", provider: "bedrock" } },
+    });
+    expect((evs[0] as { fastModeDisabledReason?: unknown }).fastModeDisabledReason).toBeUndefined();
+  });
+
+  it("carries fast_mode_disabled_reason on the ERROR result arm too, before turn.error", () => {
+    const msg: SDKResultErrorT = {
+      ...(resultError("error_during_execution") as SDKResultErrorT),
+      fast_mode_disabled_reason: "network_error",
+    };
+    const evs = run(msg);
+    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.error"]);
+    expect(evs[0]).toMatchObject({
+      type: "ext.anthropic.result-meta",
+      fastModeDisabledReason: "network_error",
+    });
+    expect(evs[1]).toMatchObject({
+      type: "turn.error",
+      code: "error_during_execution",
+      retriable: true,
+    });
+    assertAllValid(evs);
+  });
+
+  it("emits NO result-meta when the fields are absent — pre-0.3.220 result frames stay byte-identical", () => {
+    // The frozen fixtures carry neither fast_mode_disabled_reason nor any
+    // modelUsage identity field — exactly the pre-0.3.220 wire.
+    const success = run(resultSuccess("end_turn"));
+    expect(success.map((e) => e.type)).toEqual(["turn.done"]);
+    const error = run(resultError("error_max_turns"));
+    expect(error.map((e) => e.type)).toEqual(["turn.error"]);
+  });
+
+  it("fold: a result-meta carry sandwiched inside a real turn folds clean through Reducer — needsResync===false", () => {
+    const n = createClaudeNormalizer();
+    const events = [
+      ...n.push(JsonValue.parse(assistantMsg([{ type: "text", text: "hello", citations: null }]))),
+      ...n.push(JsonValue.parse(resultSuccessWithMeta("extra_usage_disabled"))),
+      ...n.flush(),
+    ];
+    assertAllValid(events);
+    expect(events.some((e) => e.type === "ext.anthropic.result-meta")).toBe(true);
+
+    const r = new Reducer();
+    for (const e of events) r.push(e);
+    expect(r.needsResync).toBe(false);
+  });
+});
+
 describe("fixture-drift ratchet — packages/claude-agent-sdk/sdk-surface.json manifest", () => {
   function loadManifest(): SdkSurfaceManifest {
     const manifestPath = fileURLToPath(new URL("../sdk-surface.json", import.meta.url));

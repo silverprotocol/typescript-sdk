@@ -75,12 +75,16 @@
  *     never reaches the `model:response.completed` usage seam (turn.done
  *     undercounts). Consumers of AgJSON see a plausible single-agent turn —
  *     mapping this without live wire would fabricate correlation (Tenet 6).
- *   - openai ≥6.46 programmatic tool calling (`program`/`program_output` output
- *     items + `caller:{type,caller_id}` on tool items; reachable only via the
- *     `providerData` tool escape hatch — agents-openai 0.13.2's own converters
- *     add no arm, so nothing reaches the run-item seam either): raw
- *     `output_item.added/.done` carriers no-op here; `caller` attribution rides
- *     unread in providerData.
+ *   - openai ≥6.46 programmatic tool calling — RESOLVED at 0.14.0 (the
+ *     2026-07-29 carry): agents-core 0.14.0 promotes `program`/`program_output`
+ *     to first-class protocol items (`ToolCallItem` / `RunToolCallOutputItem.
+ *     rawItem` arms riding the already-handled `tool_called`/`tool_output`
+ *     run-items — `dist/runner/modelOutputs.mjs` pushes them as
+ *     `RunToolCallItem`/`RunToolCallOutputItem`), and `caller:{type,callerId}`
+ *     provenance is a typed optional on the function/hosted/shell/apply-patch
+ *     call+result items. The 0.13.2-era deferral premise (providerData-only
+ *     reachability, no converter arm) no longer holds — see
+ *     `OpenAIProgramCallItem`/`OpenAIProgramCallResultItem`/`OpenAIToolCaller`.
  *   - `response.inject.created`/`.failed` (hosted multi-agent lifecycle):
  *     verified immaterial — client-initiated echo, no content loss.
  */
@@ -88,6 +92,7 @@ import {
   type AgEvent,
   type AgBlock,
   type AgFinishReason,
+  AgProviderMeta,
   type AgUsage,
   type AgSafety,
   type AgCitation,
@@ -145,11 +150,30 @@ export type OpenAIContentPart = OpenAIOutputText | OpenAIRefusal;
 export interface OpenAIAssistantMessageItem {
   type?: "message";
   role: "assistant";
+  /** NEW at agents-core 0.14.0 (programmatic tool calling): a program-driven
+   *  turn can emit MULTIPLE assistant messages — running `commentary` vs the
+   *  `final_answer`. This facet folds a response into ONE message, so the
+   *  carry is PER-PART, on each matching `text.end`'s providerMetadata (a
+   *  message-level `message.metadata` merge would clobber across items with
+   *  DIFFERENT phases), plus the id-less `ext.openai.late-message` payload. */
+  phase?: "commentary" | "final_answer";
   status: "in_progress" | "completed" | "incomplete";
   content: OpenAIContentPart[];
   id?: string;
   providerData?: { [k: string]: JsonValue };
 }
+
+/** protocol `ToolCaller` (agents-core 0.14.0, openai ≥6.46 programmatic tool
+ *  calling) — the execution context that issued a tool call: `direct` = the
+ *  model itself; `program` = a running `program` item issued it, `callerId`
+ *  linking back to that program's own `callId` (the correlation is
+ *  REAL-wire, never fabricated here — both fields carried verbatim). An
+ *  optional `caller` rides the function/hosted/shell/apply-patch call+result
+ *  items (verified against 0.14.0's `dist/types/protocol.d.ts` — NOT the
+ *  computer_call/computer_call_result or tool_search items). Carried on
+ *  `tool.start`/`tool.done` `providerMetadata` (wire names verbatim, the
+ *  claude facet's wrapper-carry precedent); absent caller ⇒ no metadata key. */
+export type OpenAIToolCaller = { type: "direct" } | { type: "program"; callerId: string };
 
 /** protocol `FunctionCallItem` (the `rawItem` of a tool_call_item). `callId` is
  *  the model's call_id; `id` is the Responses `fc_…` item id (DISTINCT). */
@@ -160,6 +184,7 @@ export interface OpenAIFunctionCallItem {
   arguments: string; // a JSON STRING — MUST be JSON.parse'd for tool.args.assembled
   status?: "in_progress" | "completed" | "incomplete";
   id?: string; // fc_… Responses item id
+  caller?: OpenAIToolCaller;
   providerData?: { [k: string]: JsonValue };
 }
 
@@ -206,6 +231,7 @@ export interface OpenAIFunctionCallResultItem {
   callId: string;
   status: "in_progress" | "completed" | "incomplete";
   output: string | OpenAIToolOutputText | OpenAIToolOutputInputText[];
+  caller?: OpenAIToolCaller;
   providerData?: { [k: string]: JsonValue };
 }
 
@@ -237,6 +263,7 @@ export interface OpenAIShellCallItem {
   status?: "in_progress" | "completed" | "incomplete";
   action: OpenAIShellAction;
   id?: string;
+  caller?: OpenAIToolCaller;
   providerData?: { [k: string]: JsonValue };
 }
 
@@ -262,9 +289,16 @@ export interface OpenAIShellCallOutputContent {
 export interface OpenAIShellCallResultItem {
   type: "shell_call_output";
   callId: string;
+  /** NEW at agents-core 0.14.0 (previously absent on this result arm).
+   *  `incomplete` joins the outcome mapping ('error', same rule as
+   *  `function_call_result` — never success) EVEN when every per-command
+   *  exit was clean; the raw value is carried verbatim on tool.done
+   *  providerMetadata (the per-command outcomes alone cannot recover it). */
+  status?: "in_progress" | "completed" | "incomplete";
   maxOutputLength?: number;
   output: OpenAIShellCallOutputContent[];
   id?: string;
+  caller?: OpenAIToolCaller;
   providerData?: { [k: string]: JsonValue };
 }
 
@@ -286,6 +320,7 @@ export interface OpenAIApplyPatchCallItem {
   status: "in_progress" | "completed";
   operation: OpenAIApplyPatchOperation;
   id?: string;
+  caller?: OpenAIToolCaller;
   providerData?: { [k: string]: JsonValue };
 }
 
@@ -297,6 +332,7 @@ export interface OpenAIApplyPatchCallResultItem {
   status: "completed" | "failed";
   output?: string;
   id?: string;
+  caller?: OpenAIToolCaller;
   providerData?: { [k: string]: JsonValue };
 }
 
@@ -322,6 +358,55 @@ export interface OpenAIHostedToolCallItem {
   arguments?: string;
   status?: string;
   output?: string;
+  caller?: OpenAIToolCaller;
+  providerData?: { [k: string]: JsonValue };
+}
+
+// ── OpenAI programmatic-tool-calling shapes (agents-core 0.14.0 carry,
+// 2026-07-29 — supersedes the header's 0.13.2-era KNOWN-DEFERRED bullet.
+// Verified against 0.14.0's `dist/types/protocol.d.ts` (`ProgramCallItem` /
+// `ProgramCallResultItem` join the `ToolCallItem` / `RunToolCallOutputItem.
+// rawItem` unions) and `dist/runner/modelOutputs.mjs` (`output.type ===
+// 'program'` -> `RunToolCallItem`, `'program_output'` -> `RunToolCallOutputItem`
+// — a PAIRED call+output on the SAME reused `tool_called`/`tool_output` event
+// names, mirroring shell_call/apply_patch_call, not hosted_tool_call's
+// single-shot collapse).
+
+/** protocol `ProgramCallItem` (a `tool_called` rawItem — the model authored a
+ *  PROGRAM that calls tools programmatically; openai ≥6.46). Carries NO `name`
+ *  field — the facet synthesizes `name:"builtin:program"` (§8 quirk, the
+ *  rawItem-derived convention shared by shell_call/apply_patch_call/
+ *  computer_call — deliberately NOT the wrapper's `RunToolCallItem.toolName`
+ *  synthetic `'programmatic_tool_calling'`, a wrapper-layer convenience this
+ *  facet never consumes). `code` (the model-authored program source) +
+ *  `fingerprint` are the call's whole wire payload — carried verbatim as
+ *  `tool.args.assembled` input (the shell/apply-patch whole-payload
+ *  precedent). Same single-wrapper-is-authoritative rationale as
+ *  {@link OpenAIShellCallItem}: no per-fragment argument-delta stream exists
+ *  for this shape on this seam, and the raw `output_item.added` carrier
+ *  no-ops on the (function_call-only) raw path. */
+export interface OpenAIProgramCallItem {
+  type: "program";
+  callId: string;
+  code: string;
+  fingerprint: string;
+  id?: string;
+  providerData?: { [k: string]: JsonValue };
+}
+
+/** protocol `ProgramCallResultItem` (the `rawItem` of a `tool_output` run-item
+ *  for a completed program call, correlated by `callId`). `output` is a bare
+ *  string (mirrors apply_patch_call_output); `status` is a CLOSED
+ *  `'completed'|'incomplete'` enum — `incomplete` maps to `outcome:"error"`
+ *  (the same rule as `function_call_result`'s incomplete arm: a truncated
+ *  program run must never fold as success). Carries NO `caller` field
+ *  (the program is the caller, not the callee). */
+export interface OpenAIProgramCallResultItem {
+  type: "program_output";
+  callId: string;
+  output: string;
+  status: "completed" | "incomplete";
+  id?: string;
   providerData?: { [k: string]: JsonValue };
 }
 
@@ -475,9 +560,10 @@ interface OpenAIToolCalledEvent {
   type: "run_item_stream_event";
   name: "tool_called";
   // Widened (playbook 2026-07-03 SDK-bump adaptation, Finding #1 + the
-  // fixture-drift ratchet's computer_call finding): Shell / Apply-Patch /
-  // Computer-Use / Hosted-tool built-ins reuse this SAME event name with a
-  // DIFFERENT `rawItem` discriminant — see the four interfaces above.
+  // fixture-drift ratchet's computer_call finding + the 0.14.0 programmatic-
+  // tool-calling carry): Shell / Apply-Patch / Computer-Use / Hosted-tool /
+  // Program built-ins reuse this SAME event name with a DIFFERENT `rawItem`
+  // discriminant — see the interfaces above.
   item: {
     type: "tool_call_item";
     rawItem:
@@ -485,7 +571,8 @@ interface OpenAIToolCalledEvent {
       | OpenAIShellCallItem
       | OpenAIApplyPatchCallItem
       | OpenAIComputerCallItem
-      | OpenAIHostedToolCallItem;
+      | OpenAIHostedToolCallItem
+      | OpenAIProgramCallItem;
   };
 }
 interface OpenAIToolOutputEvent {
@@ -521,7 +608,8 @@ interface OpenAIToolOutputEvent {
       | OpenAIFunctionCallResultItem
       | OpenAIShellCallResultItem
       | OpenAIApplyPatchCallResultItem
-      | OpenAIComputerCallResultItem;
+      | OpenAIComputerCallResultItem
+      | OpenAIProgramCallResultItem;
     output?: JsonValue;
     customData?: JsonValue;
   };
@@ -744,6 +832,13 @@ interface OpenAIResponsesOutputItemAdded {
     name?: string; // tool name — only present when type==="function_call"
     status?: string;
     arguments?: string;
+    // The VERBATIM openai-node (≥6.46) form — snake_case `caller_id`, nullable
+    // (`ResponseFunctionToolCall.caller`); normalized to the protocol layer's
+    // camelCase `callerId` for the providerMetadata carry (mirrors
+    // agents-openai 0.14.0's own `fromOpenAIToolCaller`). This raw path is the
+    // AUTHORITATIVE tool.start source for function_call, so caller provenance
+    // must ride HERE — the run-item wrapper occurrence stays ignored.
+    caller?: { type: "direct" } | { type: "program"; caller_id: string } | null;
   };
 }
 
@@ -929,6 +1024,25 @@ function mapAnnotationsToCitations(
     // file_citation: no url-kind match; skip (deferred to a later slice — only remaining silent annotation drop)
   }
   return out.length > 0 ? out : undefined;
+}
+
+// ─── optional 0.14.0 wire fields → providerMetadata (spec §2) ─────────────────
+// Wire names ride verbatim at the top level (the claude facet's wrapper-carry
+// precedent — AgProviderMeta imposes no key namespacing). Drops undefined
+// values; an ALL-absent input yields undefined, never an empty metadata object.
+function openaiProviderMeta(fields: { [k: string]: JsonValue | undefined }): AgProviderMeta | undefined {
+  const raw: { [k: string]: JsonValue } = {};
+  for (const [k, v] of Object.entries(fields)) {
+    if (v !== undefined) raw[k] = v;
+  }
+  return Object.keys(raw).length > 0 ? AgProviderMeta.parse(raw) : undefined;
+}
+
+/** protocol camelCase `ToolCaller` → its verbatim JsonValue carry ({type} /
+ *  {type, callerId} — BOTH fields preserved; `callerId` links to the program
+ *  item's own `callId`). */
+function callerToJson(caller: OpenAIToolCaller | undefined): JsonValue | undefined {
+  return caller === undefined ? undefined : JsonValue.parse(caller);
 }
 
 // ─── structural guard: unknown → OpenAIStreamEvent ────────────────────────────
@@ -1317,10 +1431,23 @@ export function createOpenaiNormalizer(): Normalizer {
           // Record the fc_→call_id correlation (the raw argument events carry only
           // the fc_ item id, not the call_id; this mapping allows recovery).
           instanceCallIdByItemId.set(fcId, callId);
+          // Caller provenance (0.14.0 carry): the raw wire's snake_case
+          // `caller_id` is normalized to the protocol layer's camelCase form
+          // before the verbatim providerMetadata carry (see the item doc).
+          const rawCaller = ev.item.caller;
+          const startMeta = openaiProviderMeta({
+            caller:
+              rawCaller == null
+                ? undefined
+                : rawCaller.type === "program"
+                  ? { type: "program", callerId: rawCaller.caller_id }
+                  : { type: "direct" },
+          });
           a.toolStart({
             toolCallId: callId,
             name: ev.item.name,
             itemId: fcId,
+            ...(startMeta !== undefined ? { providerMetadata: startMeta } : {}),
             messageId: msgId,
           });
           // Task 4b: this call is now pending a tool.done under the current turn
@@ -1540,6 +1667,9 @@ export function createOpenaiNormalizer(): Normalizer {
             a.emitExt("openai", "late-message", {
               text: part.text,
               ...(anchor !== undefined ? { forTurnId: anchor } : {}),
+              // phase (0.14.0) has no streamed text.end to ride on this path —
+              // it joins the same lossless carry as the text itself.
+              ...(item.phase !== undefined ? { phase: item.phase } : {}),
             });
           }
           if (part.annotations !== undefined && part.annotations.length > 0) {
@@ -1557,13 +1687,38 @@ export function createOpenaiNormalizer(): Normalizer {
               annotations: JsonValue.parse(part.annotations),
             });
           }
+          // phase (0.14.0): the live wire delivers the FINAL round's
+          // message_output_created AFTER response_done has closed the message
+          // (census-caught on the first 0.14.0 gpt-5.6-sol capture), so the
+          // text.end carry below is unreachable for it — only tool-round
+          // (deferred-close) messages ever reach it. Same post-close degrade
+          // convention as late-citations: a dedicated itemId-keyed vendor
+          // carry, one per phase-bearing part.
+          if (item.phase !== undefined) {
+            a.emitExt("openai", "late-phase", { itemId: item.id, phase: item.phase });
+          }
           continue;
         }
         const streamId = openTextStreams.values().next().value;
         if (streamId === undefined) continue; // defensive: no matching open stream
         openTextStreams.delete(streamId);
         const citations = mapAnnotationsToCitations(part.annotations, part.text);
-        a.textEnd(streamId, msgId, citations !== undefined ? { citations } : undefined);
+        // phase (0.14.0) rides the matching text.end's providerMetadata —
+        // PER-PART, not message.metadata: this facet folds a response into ONE
+        // message, and a program-driven turn emits multiple message items with
+        // DIFFERENT phases (commentary vs final_answer) whose message-level
+        // merge would clobber (see OpenAIAssistantMessageItem.phase's doc).
+        const phaseMeta = openaiProviderMeta({ phase: item.phase });
+        a.textEnd(
+          streamId,
+          msgId,
+          citations !== undefined || phaseMeta !== undefined
+            ? {
+                ...(citations !== undefined ? { citations } : {}),
+                ...(phaseMeta !== undefined ? { providerMetadata: phaseMeta } : {}),
+              }
+            : undefined,
+        );
       }
     }
   }
@@ -1702,23 +1857,38 @@ export function createOpenaiNormalizer(): Normalizer {
    * `toolOutputToAgBlocks` checks for).
    */
   function driveBuiltinToolOutput(
-    rawItem: OpenAIShellCallResultItem | OpenAIApplyPatchCallResultItem | OpenAIComputerCallResultItem,
+    rawItem:
+      | OpenAIShellCallResultItem
+      | OpenAIApplyPatchCallResultItem
+      | OpenAIComputerCallResultItem
+      | OpenAIProgramCallResultItem,
   ): void {
     const toolCallId = rawItem.callId;
     let content: AgBlock[];
     let outcome: ToolOutcome;
     let structuredContent: JsonValue | undefined;
+    let providerMetadata: AgProviderMeta | undefined;
     if (rawItem.type === "shell_call_output") {
       content = [];
       for (const entry of rawItem.output) {
         const text = [entry.stdout, entry.stderr].filter((s) => s.length > 0).join("\n");
         if (text.length > 0) content.push({ type: "text", text });
       }
-      outcome = shellOutputHasError(rawItem.output) ? "error" : "ok";
+      // 0.14.0: the NEW item-level `status` joins the per-command outcome
+      // scan — `incomplete` (e.g. a truncated command list) must not fold as
+      // success even when every command that DID run exited clean.
+      outcome =
+        shellOutputHasError(rawItem.output) || rawItem.status === "incomplete" ? "error" : "ok";
       // The full per-command record (stdout/stderr/exit code) is lossy to
       // collapse into text-only content — carry it verbatim as structuredContent
       // too (mirrors the function_call path's ggui-cache-marker precedent).
       structuredContent = JsonValue.parse(rawItem.output);
+      // The outcome mapping alone cannot recover `status` ('in_progress' vs
+      // 'completed' vs absent all map ok) — carry it verbatim, with caller.
+      providerMetadata = openaiProviderMeta({
+        caller: callerToJson(rawItem.caller),
+        status: rawItem.status,
+      });
     } else if (rawItem.type === "computer_call_result") {
       // spec §8 item 20's extended discriminant: the screenshot is base64 image
       // data, not text — land it as an AgBlock `file` block (AgSource's
@@ -1732,9 +1902,16 @@ export function createOpenaiNormalizer(): Normalizer {
       ];
       // No status/error discriminant exists on this wire arm (unlike shell/apply-patch).
       outcome = "ok";
+    } else if (rawItem.type === "program_output") {
+      // 0.14.0 programmatic tool calling: bare-string output (mirrors the
+      // apply_patch arm); the CLOSED status enum's `incomplete` -> error
+      // (same rule as function_call_result — never success).
+      content = rawItem.output.length > 0 ? [{ type: "text", text: rawItem.output }] : [];
+      outcome = rawItem.status === "incomplete" ? "error" : "ok";
     } else {
       content = rawItem.output !== undefined && rawItem.output.length > 0 ? [{ type: "text", text: rawItem.output }] : [];
       outcome = rawItem.status === "failed" ? "error" : "ok";
+      providerMetadata = openaiProviderMeta({ caller: callerToJson(rawItem.caller) });
     }
     const doneTurnId = resolvePendingTurnId(toolCallId);
     a.toolDone({
@@ -1743,20 +1920,31 @@ export function createOpenaiNormalizer(): Normalizer {
       outcome,
       isError: outcome === "error",
       ...(structuredContent !== undefined ? { structuredContent } : {}),
+      ...(providerMetadata !== undefined ? { providerMetadata } : {}),
       ...(doneTurnId !== undefined ? { turnId: doneTurnId } : {}),
     });
     drainPendingTool(toolCallId, doneTurnId);
   }
 
   /** Synthesize `name` for the built-in discriminants that carry none on the
-   *  wire (§8 quirk) — `shell_call`/`apply_patch_call`/`computer_call` have no
-   *  `name` field at all; `hosted_tool_call` already carries a real one. */
+   *  wire (§8 quirk) — `shell_call`/`apply_patch_call`/`computer_call`/
+   *  `program` have no `name` field at all; `hosted_tool_call` already
+   *  carries a real one. (`program`'s wrapper-layer `RunToolCallItem.toolName`
+   *  synthetic `'programmatic_tool_calling'` is deliberately NOT adopted —
+   *  this facet derives names from the rawItem only; see
+   *  {@link OpenAIProgramCallItem}.) */
   function builtinToolName(
-    rawItem: OpenAIShellCallItem | OpenAIApplyPatchCallItem | OpenAIComputerCallItem | OpenAIHostedToolCallItem,
+    rawItem:
+      | OpenAIShellCallItem
+      | OpenAIApplyPatchCallItem
+      | OpenAIComputerCallItem
+      | OpenAIHostedToolCallItem
+      | OpenAIProgramCallItem,
   ): string {
     if (rawItem.type === "shell_call") return "builtin:shell";
     if (rawItem.type === "apply_patch_call") return "builtin:apply_patch";
     if (rawItem.type === "computer_call") return "builtin:computer";
+    if (rawItem.type === "program") return "builtin:program";
     return rawItem.name;
   }
 
@@ -1804,16 +1992,29 @@ export function createOpenaiNormalizer(): Normalizer {
    * doc) — no pending registration.
    */
   function driveBuiltinToolCalled(
-    rawItem: OpenAIShellCallItem | OpenAIApplyPatchCallItem | OpenAIComputerCallItem | OpenAIHostedToolCallItem,
+    rawItem:
+      | OpenAIShellCallItem
+      | OpenAIApplyPatchCallItem
+      | OpenAIComputerCallItem
+      | OpenAIHostedToolCallItem
+      | OpenAIProgramCallItem,
   ): void {
     ensureResponseOpen();
     if (msgId === undefined) return; // unreachable post-ensure; satisfies narrowing
     const toolCallId = rawItem.type === "hosted_tool_call" ? (rawItem.id ?? rawItem.name) : rawItem.callId;
     const name = builtinToolName(rawItem);
+    // Caller provenance (0.14.0): typed only on the shapes the wire declares
+    // it for — computer_call and program carry none (protocol.d.ts).
+    const caller =
+      rawItem.type === "shell_call" || rawItem.type === "apply_patch_call" || rawItem.type === "hosted_tool_call"
+        ? rawItem.caller
+        : undefined;
+    const startMeta = openaiProviderMeta({ caller: callerToJson(caller) });
     a.toolStart({
       toolCallId,
       name,
       ...(rawItem.id !== undefined ? { itemId: rawItem.id } : {}),
+      ...(startMeta !== undefined ? { providerMetadata: startMeta } : {}),
       messageId: msgId,
     });
     const input: JsonValue =
@@ -1823,7 +2024,11 @@ export function createOpenaiNormalizer(): Normalizer {
           ? JsonValue.parse(rawItem.operation)
           : rawItem.type === "computer_call"
             ? JsonValue.parse(rawItem.actions ?? rawItem.action ?? {})
-            : parseJsonArguments(rawItem.id, rawItem.arguments);
+            : rawItem.type === "program"
+              ? // The call's whole wire payload, verbatim (the shell/apply-patch
+                // precedent): `code` is the model-authored program source.
+                { code: rawItem.code, fingerprint: rawItem.fingerprint }
+              : parseJsonArguments(rawItem.id, rawItem.arguments);
     a.toolArgsDelta(toolCallId, JSON.stringify(input));
     a.toolArgsAssembled(toolCallId, input);
     if (rawItem.type === "hosted_tool_call") {
@@ -1970,14 +2175,16 @@ export function createOpenaiNormalizer(): Normalizer {
         case "tool_output": {
           const rawItem = event.item.rawItem;
           // Finding #1 (critical) + the fixture-drift ratchet's
-          // computer_call_result finding: Shell/Apply-Patch/Computer-Use
-          // results do NOT share `OpenAIFunctionCallResultItem.output`'s shape
-          // — see `driveBuiltinToolOutput`'s doc for why the generic path
-          // below is wrong for them (the orphan-hazard this adaptation fixes).
+          // computer_call_result finding + the 0.14.0 program_output carry:
+          // Shell/Apply-Patch/Computer-Use/Program results do NOT share
+          // `OpenAIFunctionCallResultItem.output`'s shape — see
+          // `driveBuiltinToolOutput`'s doc for why the generic path below is
+          // wrong for them (the orphan-hazard this adaptation fixes).
           if (
             rawItem.type === "shell_call_output" ||
             rawItem.type === "apply_patch_call_output" ||
-            rawItem.type === "computer_call_result"
+            rawItem.type === "computer_call_result" ||
+            rawItem.type === "program_output"
           ) {
             driveBuiltinToolOutput(rawItem);
             return;
@@ -1994,12 +2201,16 @@ export function createOpenaiNormalizer(): Normalizer {
           // could misattribute it) and pass it through so toolDone binds to the
           // correct — possibly already-closed-pending-this-result — turn.
           const doneTurnId = resolvePendingTurnId(rawItem.callId);
+          // Caller provenance (0.14.0) — the result item's own optional field,
+          // distinct from the call-side carry on tool.start.
+          const doneMeta = openaiProviderMeta({ caller: callerToJson(rawItem.caller) });
           a.toolDone({
             toolCallId: rawItem.callId,
             content,
             outcome,
             isError: rawItem.status === "incomplete",
             ...(structuredContent !== undefined ? { structuredContent } : {}),
+            ...(doneMeta !== undefined ? { providerMetadata: doneMeta } : {}),
             ...(doneTurnId !== undefined ? { turnId: doneTurnId } : {}),
           });
           drainPendingTool(rawItem.callId, doneTurnId);
@@ -2015,12 +2226,15 @@ export function createOpenaiNormalizer(): Normalizer {
           if (rawItem.type === "function_call") {
             // IGNORED — superseded by model:response.output_item.added, which is
             // the authoritative tool-start source (canonical model, A1
-            // §"Spike Findings").
+            // §"Spike Findings"). Caller provenance (0.14.0) rides that same
+            // authoritative raw item (verbatim openai-node ≥6.46 wire), so
+            // ignoring the wrapper copy here loses nothing.
             return;
           }
-          // Finding #1 (critical): Shell / Apply-Patch / Hosted-tool built-ins
-          // — this run-item wrapper (not the raw stream) is the SOLE tool-start
-          // source for these three (see `driveBuiltinToolCalled`'s doc).
+          // Finding #1 (critical): Shell / Apply-Patch / Hosted-tool /
+          // Program built-ins — this run-item wrapper (not the raw stream) is
+          // the SOLE tool-start source for these (see `driveBuiltinToolCalled`'s
+          // doc).
           driveBuiltinToolCalled(rawItem);
           return;
         }
