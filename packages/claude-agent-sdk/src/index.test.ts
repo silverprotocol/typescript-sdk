@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
-import { AgEvent, JsonValue, Reducer } from "@silverprotocol/core";
+import { type AgClosedEventType, AgEvent, JsonValue, Reducer } from "@silverprotocol/core";
 import createClaudeNormalizer, { mapStopReason } from "./index.js";
 
 // Types DERIVED from SDKMessage so the fixtures track the EXACT Anthropic SDK the
@@ -171,6 +171,14 @@ function toolResultMsg(): SDKMessage {
     uuid: "00000000-0000-0000-0000-000000000003",
     session_id: "sess_fixture",
   };
+}
+
+// Narrow `AgEvent` to `AgClosedEventType` by ruling out the open `AgExtEvent`
+// arm (whose `type` always matches `ext.<vendor>.<key>`): that arm's
+// `.catchall(JsonValue)` index signature widens every field access on the union.
+// Same guard `reduce()` uses internally — see `AgClosedEventType`'s doc in core.
+function isClosedEvent(ev: AgEvent): ev is AgClosedEventType {
+  return !ev.type.startsWith("ext.");
 }
 
 // Every produced event MUST round-trip through the AgEvent schema (spec §4).
@@ -415,6 +423,274 @@ describe("createClaudeNormalizer — tool.done.messageId adoption (audit B10 / g
     const assistantResultMsg = result.messages.find((m) => m.id === "msg_fixture_1");
     expect(assistantResultMsg?.content.every((b) => b.type !== "tool-result")).toBe(true);
   });
+});
+
+// ─── guuey#26 — ONE message id ⇒ ONE message lifecycle ────────────────────────
+// The Claude Agent SDK delivers ONE assistant message id across MULTIPLE
+// `assistant` frames whenever that API message has several content blocks: a
+// thinking block arrives as its own complete frame, then the tool_use block
+// arrives as a SECOND complete frame carrying the SAME `message.id`. Emitting
+// an open/seal pair per FRAME therefore re-opens an id the consumer has already
+// sealed — exactly what INV-MSG forbids: `reduce()` refuses a sealed message as
+// an attach target, sets `needsResync`, and the whole tail of the turn is
+// discarded (guuey#26: a production capture parks at the first tool.start,
+// seq 8 of 65 — the render tool result 40 events later never folds).
+//
+// The invariant these tests pin: within one normalizer lifetime, a message id
+// that has been sealed with `message.end` is NEVER re-opened.
+//
+// This is not synthetic-only: `corpus/app-update-sonnet5/claude.native.json`
+// (a live claude-sonnet-5 @0.3.217 capture) is a thinking-then-tool_use split
+// on `msg_011CdMAmb6dKtbrbtGX4QPnE`, and the corpus-wide fold gate in
+// `packages/e2e/src/replay.test.ts` pins the same invariant against it.
+describe("createClaudeNormalizer — split-frame id coalesce (guuey#26)", () => {
+  const SPLIT_ID = "msg_split_1";
+  const SPLIT_TOOL_ID = "toolu_split_1";
+
+  /** One frame of a MULTI-FRAME assistant message — every frame shares `SPLIT_ID`. */
+  function splitFrame(
+    content: BetaMessage["content"],
+    uuid: UUID,
+    usage?: BetaMessage["usage"],
+  ): SDKMessage {
+    return {
+      type: "assistant",
+      message: {
+        ...betaMessage(content, usage !== undefined ? { usage } : undefined),
+        id: SPLIT_ID,
+      },
+      parent_tool_use_id: null,
+      uuid,
+      session_id: "sess_fixture",
+    };
+  }
+
+  const THINKING_FRAME = (): SDKMessage =>
+    splitFrame(
+      [{ type: "thinking", thinking: "let me check the todos", signature: "sig-abc" }],
+      "00000000-0000-0000-0000-0000000000b1",
+    );
+  const TOOL_USE_FRAME = (): SDKMessage =>
+    splitFrame(
+      [{ type: "tool_use", id: SPLIT_TOOL_ID, name: "todo_list", input: { all: true } }],
+      "00000000-0000-0000-0000-0000000000b2",
+    );
+  const SPLIT_TOOL_RESULT = (): SDKMessage => {
+    const content: UserContent = [
+      {
+        type: "tool_result",
+        tool_use_id: SPLIT_TOOL_ID,
+        content: [{ type: "text", text: "buy milk" }],
+        is_error: false,
+      },
+    ];
+    return {
+      type: "user",
+      message: { role: "user", content },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000b3",
+      session_id: "sess_fixture",
+    };
+  };
+
+  /**
+   * Every message id that is re-opened AFTER having been sealed.
+   *
+   * Narrows off the open `ext.*` arm first — its `.catchall(JsonValue)` index
+   * signature widens every field on the `AgEvent` union (see
+   * `AgClosedEventType`'s doc in core).
+   */
+  function reopenedAfterSeal(evs: AgEvent[]): string[] {
+    const sealed = new Set<string>();
+    const reopened: string[] = [];
+    for (const ev of evs) {
+      if (!isClosedEvent(ev)) continue;
+      if (ev.type === "message.end") sealed.add(ev.id);
+      if (ev.type === "message.start" && sealed.has(ev.id)) reopened.push(ev.id);
+    }
+    return reopened;
+  }
+
+  it("never re-opens a sealed message id (the INV-MSG producer invariant)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(THINKING_FRAME())),
+      ...n.push(JsonValue.parse(TOOL_USE_FRAME())),
+      ...n.push(JsonValue.parse(SPLIT_TOOL_RESULT())),
+      ...n.push(JsonValue.parse(resultSuccess("end_turn"))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    expect(reopenedAfterSeal(evs)).toEqual([]);
+  });
+
+  it("emits exactly ONE message.start / ONE message.end for the split id", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(THINKING_FRAME())),
+      ...n.push(JsonValue.parse(TOOL_USE_FRAME())),
+      ...n.push(JsonValue.parse(SPLIT_TOOL_RESULT())),
+      ...n.push(JsonValue.parse(resultSuccess("end_turn"))),
+      ...n.flush(),
+    ];
+    expect(evs.filter((e) => e.type === "message.start" && e.id === SPLIT_ID)).toHaveLength(1);
+    expect(evs.filter((e) => e.type === "message.end" && e.id === SPLIT_ID)).toHaveLength(1);
+  });
+
+  it("seals the coalesced message BEFORE the tool_result it precedes (adoption ordering is unchanged)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(THINKING_FRAME())),
+      ...n.push(JsonValue.parse(TOOL_USE_FRAME())),
+      ...n.push(JsonValue.parse(SPLIT_TOOL_RESULT())),
+      ...n.flush(),
+    ];
+    const types = evs.map((e) => e.type);
+    expect(types.indexOf("message.end")).toBeLessThan(types.indexOf("tool.done"));
+  });
+
+  it("continues the content-block index across frames — two same-typed blocks never collide on one id", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(
+        JsonValue.parse(
+          splitFrame(
+            [{ type: "text", text: "first", citations: null }],
+            "00000000-0000-0000-0000-0000000000b4",
+          ),
+        ),
+      ),
+      ...n.push(
+        JsonValue.parse(
+          splitFrame(
+            [{ type: "text", text: "second", citations: null }],
+            "00000000-0000-0000-0000-0000000000b5",
+          ),
+        ),
+      ),
+      ...n.push(JsonValue.parse(resultSuccess("end_turn"))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const textStarts = evs.filter((e) => e.type === "text.start").map((e) => e.id);
+    expect(textStarts).toEqual([`${SPLIT_ID}:text:0`, `${SPLIT_ID}:text:1`]);
+
+    // …and the fold keeps BOTH texts on the one message (no clobber).
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const msg = r.result().messages.find((m) => m.id === SPLIT_ID);
+    expect(msg?.content.filter((b) => b.type === "text")).toHaveLength(2);
+  });
+
+  it("fold: the thinking→tool_use split turn does NOT park, and the turn's tail survives", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(THINKING_FRAME())),
+      ...n.push(JsonValue.parse(TOOL_USE_FRAME())),
+      ...n.push(JsonValue.parse(SPLIT_TOOL_RESULT())),
+      ...n.push(
+        JsonValue.parse(
+          splitFrameTail([{ type: "text", text: "you have 1 todo", citations: null }]),
+        ),
+      ),
+      ...n.push(JsonValue.parse(resultSuccess("end_turn"))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    // THE guuey#26 assertion: the fold never parks…
+    expect(r.needsResync).toBe(false);
+    const result = r.result();
+    // …the reasoning AND the tool call live on the ONE coalesced message…
+    const split = result.messages.find((m) => m.id === SPLIT_ID);
+    expect(split?.content.some((b) => b.type === "reasoning")).toBe(true);
+    expect(
+      split?.content.some((b) => b.type === "tool-call" && b.toolCallId === SPLIT_TOOL_ID),
+    ).toBe(true);
+    // …the tool result adopts its own message…
+    const toolMsg = result.messages.find((m) => m.id === `${SPLIT_TOOL_ID}:result`);
+    expect(toolMsg?.content.some((b) => b.type === "tool-result")).toBe(true);
+    // …and the TAIL of the turn (everything a parked fold would have thrown
+    // away) is still there.
+    const tail = result.messages.find((m) => m.id === "msg_split_tail");
+    expect(tail?.content.some((b) => b.type === "text")).toBe(true);
+  });
+
+  it("message.end.usage carries the LAST frame's usage (the SDK repeats it cumulatively per frame)", () => {
+    const lastUsage: BetaMessage["usage"] = {
+      input_tokens: 11,
+      output_tokens: 22,
+      cache_creation: null,
+      cache_creation_input_tokens: null,
+      cache_read_input_tokens: null,
+      inference_geo: null,
+      iterations: null,
+      server_tool_use: null,
+      service_tier: null,
+      speed: null,
+    };
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(THINKING_FRAME())),
+      ...n.push(
+        JsonValue.parse(
+          splitFrame(
+            [{ type: "tool_use", id: SPLIT_TOOL_ID, name: "todo_list", input: { all: true } }],
+            "00000000-0000-0000-0000-0000000000b6",
+            lastUsage,
+          ),
+        ),
+      ),
+      ...n.push(JsonValue.parse(SPLIT_TOOL_RESULT())),
+      ...n.flush(),
+    ];
+    const ends = evs.filter((e) => e.type === "message.end" && e.id === SPLIT_ID);
+    expect(ends).toHaveLength(1);
+    expect(ends[0]).toMatchObject({
+      usage: { inputTokens: 11, outputTokens: 22, cumulative: true },
+    });
+  });
+
+  it("a same-id frame arriving AFTER the lifecycle closed rides a derived carrier id — the sealed id is never re-opened", () => {
+    // Defensive path: a fold-binding frame (here a tool_result) lands BETWEEN
+    // two frames of one message id, so the id is already sealed when the
+    // continuation arrives. Re-opening it would park the fold; the blocks
+    // instead ride a derived `:cont:<n>` carrier (the facet's established
+    // derived-id convention — cf. `<turnId>:denials`, `<toolCallId>:result`).
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(THINKING_FRAME())),
+      ...n.push(JsonValue.parse(SPLIT_TOOL_RESULT())),
+      ...n.push(JsonValue.parse(TOOL_USE_FRAME())),
+      ...n.push(JsonValue.parse(resultSuccess("end_turn"))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    expect(reopenedAfterSeal(evs)).toEqual([]);
+    expect(evs.some((e) => e.type === "message.start" && e.id === `${SPLIT_ID}:cont:1`)).toBe(true);
+
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const carrier = r.result().messages.find((m) => m.id === `${SPLIT_ID}:cont:1`);
+    expect(
+      carrier?.content.some((b) => b.type === "tool-call" && b.toolCallId === SPLIT_TOOL_ID),
+    ).toBe(true);
+  });
+
+  /** A LATER message in the same turn — a different id, i.e. the turn's tail. */
+  function splitFrameTail(content: BetaMessage["content"]): SDKMessage {
+    return {
+      type: "assistant",
+      message: { ...betaMessage(content), id: "msg_split_tail" },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000b7",
+      session_id: "sess_fixture",
+    };
+  }
 });
 
 describe("createClaudeNormalizer — nested subagent turn (assembled golden)", () => {

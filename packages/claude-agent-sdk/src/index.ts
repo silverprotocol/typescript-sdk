@@ -8,6 +8,12 @@
  * `message.content[]` is the whole turn's content, not a stream of deltas — so the
  * per-block fan-out is a TS function (clearer than pure JSONata).
  *
+ * One API message id can nevertheless span SEVERAL `assistant` frames (thinking
+ * block, then tool_use block), so the message lifecycle is keyed on `message.id`
+ * and its seal is deferred across contiguous same-id frames: one
+ * `message.start`/`message.end` pair per id, never a re-open of a sealed id
+ * (INV-MSG — see `PendingMessage` in `createClaudeNormalizer`, guuey#26).
+ *
  * The engine owns sequencing and turn assembly: it synthesizes a `turn.start` at
  * the head of each unseen TOP-LEVEL turn (`openMessage` → `#ensureTurn`), backfills
  * `turnId` onto content/tool events from the owning message, and allocates a
@@ -614,6 +620,59 @@ export function createClaudeNormalizer(): Normalizer {
     { message: string; decisionReasonType?: string; decisionReason?: string; agentId?: string }
   >();
 
+  // guuey#26 — ONE message id ⇒ ONE message lifecycle.
+  //
+  // The Claude Agent SDK splits ONE API assistant message across MULTIPLE
+  // `assistant` frames whenever it has several content blocks: the thinking
+  // block arrives as its own complete frame, the tool_use block as a SECOND
+  // complete frame carrying the SAME `message.id`. Opening and sealing per
+  // FRAME therefore re-opened an id the consumer had already sealed — and
+  // INV-MSG forbids exactly that: `reduce()` refuses a sealed message as an
+  // attach target, sets `needsResync`, and DISCARDS the rest of the turn (a
+  // production capture parked at the turn's first tool.start, seq 8 of 65;
+  // this repo's own `corpus/app-update-sonnet5` cassette parks the same way).
+  //
+  // So the close is DEFERRED: the frame's blocks are emitted, and the message
+  // stays open until something that actually binds to the fold arrives — the
+  // next message, a tool_result, a turn close, or `flush()`. A following frame
+  // with the same id then simply continues the open message. Pure `ext.*`
+  // carries deliberately do NOT close it: a hook/task/telemetry frame can land
+  // between two frames of one message and must never split it.
+  //
+  // Emission order is otherwise unchanged from the per-frame shape: for every
+  // stream that was already correct (one frame per id), the events and their
+  // order are byte-identical.
+  type PendingMessage = {
+    /** The SDK's own `message.id` — the continuation key. */
+    readonly sdkId: string;
+    /** The id actually emitted (`sdkId`, or a derived carrier — see below). */
+    readonly emittedId: string;
+    readonly turnId: string;
+    /** Set iff this message opened a nested (subagent) turn, whose `subagent.done` is deferred with it. */
+    readonly parentTurnId: string | undefined;
+    /** Content-block index to resume at, so a second frame's block never collides with the first's. */
+    blockIndex: number;
+    /** Last frame's usage — the SDK repeats message-level usage per frame, so latest wins. */
+    usage: AgUsage | undefined;
+  };
+  let pending: PendingMessage | undefined;
+  // How many lifecycles each SDK message id has already opened. A same-id frame
+  // arriving after its lifecycle closed (a fold-binding frame landed between two
+  // frames of one message) can NEVER re-open the sealed id, so its blocks ride a
+  // derived carrier id instead — the facet's established derived-id convention
+  // (cf. `<turnId>:denials`, `<toolCallId>:result`). Nothing is fabricated: the
+  // blocks, their order and their content are the SDK's own.
+  const lifecyclesBySdkId = new Map<string, number>();
+
+  /** Seal the deferred message (and its subagent bracket), if one is open. */
+  function closePendingMessage(): void {
+    if (pending === undefined) return;
+    const p = pending;
+    pending = undefined;
+    a.closeMessage(p.emittedId, p.usage);
+    if (p.parentTurnId !== undefined) a.subagentDone(p.turnId, p.parentTurnId);
+  }
+
   function registerUuid(uuid: string | undefined, ids: readonly string[]): void {
     if (uuid === undefined || ids.length === 0) return;
     const existing = messageIdsByUuid.get(uuid);
@@ -646,6 +705,18 @@ export function createClaudeNormalizer(): Normalizer {
       const turnId = turnIdFor(msg.session_id, m.id);
       const parentTurnId =
         msg.parent_tool_use_id !== null ? `turn_${msg.parent_tool_use_id}` : undefined;
+
+      // guuey#26: does this frame CONTINUE the message left open by the previous
+      // frame? Same SDK message id, same turn, same nesting — anything else is a
+      // new message and seals the open one first (unchanged emission order).
+      const continued: PendingMessage | undefined =
+        pending !== undefined &&
+        pending.sdkId === m.id &&
+        pending.turnId === turnId &&
+        pending.parentTurnId === parentTurnId
+          ? pending
+          : undefined;
+      if (continued === undefined) closePendingMessage();
 
       // Finding #1 (critical): this frame supersedes prior delivered messages
       // (refusal-fallback retry) — evict them "on arrival", per the field's own
@@ -690,20 +761,44 @@ export function createClaudeNormalizer(): Normalizer {
       // A non-null parent_tool_use_id ⇒ this assistant message is a NESTED turn
       // (subagent). subagent.start is the SOLE nested-turn opener (spec §4/§5) and
       // seeds the turn so openMessage does NOT synthesize a duplicate turn.start.
-      if (parentTurnId !== undefined) {
-        if (msg.parent_tool_use_id !== null) {
-          subagentTurnByParentToolUseId.set(msg.parent_tool_use_id, turnId);
+      // guuey#26: a CONTINUATION frame joins the message (and, when nested, the
+      // subagent bracket) the previous frame opened — no second subagent.start,
+      // no second message.start.
+      let open: PendingMessage;
+      if (continued !== undefined) {
+        open = continued;
+      } else {
+        if (parentTurnId !== undefined) {
+          if (msg.parent_tool_use_id !== null) {
+            subagentTurnByParentToolUseId.set(msg.parent_tool_use_id, turnId);
+          }
+          a.subagentStart(turnId, parentTurnId);
         }
-        a.subagentStart(turnId, parentTurnId);
-      }
 
-      a.openMessage({
-        id: m.id,
-        role: "assistant",
-        turnId,
-        threadId: msg.session_id,
-        model: m.model,
-      });
+        const lifecycle = lifecyclesBySdkId.get(m.id) ?? 0;
+        lifecyclesBySdkId.set(m.id, lifecycle + 1);
+        open = {
+          sdkId: m.id,
+          // Lifecycle 0 is the SDK id itself. A later lifecycle for the same id
+          // means that id is already sealed downstream — this frame's blocks
+          // ride a derived carrier rather than re-opening it (see
+          // `lifecyclesBySdkId`).
+          emittedId: lifecycle === 0 ? m.id : `${m.id}:cont:${lifecycle}`,
+          turnId,
+          parentTurnId,
+          blockIndex: 0,
+          usage: undefined,
+        };
+        pending = open;
+        a.openMessage({
+          id: open.emittedId,
+          role: "assistant",
+          turnId,
+          threadId: msg.session_id,
+          model: m.model,
+        });
+      }
+      const messageId = open.emittedId;
       // A plain indexed loop, not `.forEach` — see `mcpToolResultContentToAgBlocks`'s
       // doc: `.forEach`'s callback parameter inference degrades to implicit `any`
       // on this content shape post-0.3.199.
@@ -713,18 +808,30 @@ export function createClaudeNormalizer(): Normalizer {
         // but the real 0.3.207 union (unlike 0.3.199's any-collapse) makes
         // the indexed access `| undefined` — guard, never assert.
         if (block === undefined) continue;
-        emitAssistantBlock(a, block, m.id, i, i === 0 ? wrapperMeta : undefined);
+        // The block index CONTINUES across frames of one message id, so a
+        // second frame's block can never collide with a first frame's
+        // (`<id>:text:0` twice would clobber in the fold). The wrapper carry
+        // stays anchored to this FRAME's first block: `aborted` /
+        // `resumed_from_incomplete_thinking` are per-frame facts.
+        emitAssistantBlock(a, block, messageId, open.blockIndex + i, i === 0 ? wrapperMeta : undefined);
       }
+      open.blockIndex += m.content.length;
       // Block-less frame (e.g. aborted before any content streamed): no first
       // block exists to anchor the wrapper carry — ride message.metadata.
       if (m.content.length === 0 && wrapperMeta !== undefined) {
-        a.emit({ type: "message.metadata", messageId: m.id, metadata: wrapperMetaRaw });
+        a.emit({ type: "message.metadata", messageId, metadata: wrapperMetaRaw });
       }
-      a.closeMessage(m.id, mapMessageUsage(m.usage));
+      // The seal is DEFERRED (guuey#26) — the next frame may continue this same
+      // message id. Usage is message-level and repeated per frame, so the newest
+      // frame's copy is the one that rides the eventual `message.end`.
+      open.usage = mapMessageUsage(m.usage);
 
       // If the assistant turn carries an error signal (rate_limit, billing_error, etc.),
       // emit a turn.error so consumers see the error rather than a silent empty turn.
       if (msg.error !== undefined) {
+        // The turn is over — nothing can continue this message. Seal it first,
+        // so `message.end` still precedes the close (unchanged order).
+        closePendingMessage();
         const errCode: NonNullable<SDKAssistantError> = msg.error;
         a.closeTurnError(turnId, {
           message: errCode,
@@ -739,17 +846,23 @@ export function createClaudeNormalizer(): Normalizer {
         });
       }
 
-      if (parentTurnId !== undefined) {
-        a.subagentDone(turnId, parentTurnId);
-      }
+      // `subagent.done` is NOT emitted here: it brackets the MESSAGE, and the
+      // message's seal is deferred (guuey#26) — `closePendingMessage` emits both,
+      // in the same order, once nothing can continue this message.
 
       // Record this frame's own uuid → the messageId it produced, so a LATER
-      // retraction naming this uuid can translate it (Finding #1).
-      registerUuid(msg.uuid, [m.id]);
+      // retraction naming this uuid can translate it (Finding #1). The EMITTED
+      // id, so a retraction still names the message that actually exists on the
+      // wire when this frame rode a derived carrier.
+      registerUuid(msg.uuid, [messageId]);
       return;
     }
 
     if (msg.type === "user") {
+      // guuey#26: a tool_result binds to the fold — seal the open assistant
+      // message first, exactly as the per-frame close used to (spec §5 tool.done
+      // adoption below depends on this ordering).
+      closePendingMessage();
       // A user message carrying tool_result blocks → tool.done per result.
       // parent_tool_use_id (when set) identifies a subagent tool call — the
       // tool.done's turnId should point at that parent call's turn so the
@@ -851,6 +964,9 @@ export function createClaudeNormalizer(): Normalizer {
     }
 
     if (msg.type === "result" && msg.subtype === "success") {
+      // guuey#26: the turn is closing — seal the open assistant message first
+      // (message.end has always preceded the turn close).
+      closePendingMessage();
       const turnId = turnIdFor(msg.session_id, msg.uuid);
       const safety: AgSafety[] | undefined =
         msg.stop_reason === "refusal" ? [{ category: "refusal", blocked: true }] : undefined;
@@ -911,6 +1027,8 @@ export function createClaudeNormalizer(): Normalizer {
 
     if (msg.type === "result") {
       // At this point msg.subtype can only be an error variant (success handled above).
+      // guuey#26: seal the open assistant message before the turn close.
+      closePendingMessage();
       const turnId = turnIdFor(msg.session_id, msg.uuid);
       // Guard `errors` and `subtype` defensively: `isSDKMessage` only checks
       // `typeof v.subtype === "string"` for the result arm — it does NOT validate
@@ -960,6 +1078,9 @@ export function createClaudeNormalizer(): Normalizer {
       // `retractUuids`'s doc); also the ONLY retraction path when a consumer
       // never observed (or a normalizer instance never processed) the
       // superseding assistant frame's own `supersedes` field directly.
+      // guuey#26: a retraction can name the still-open message — seal it first so
+      // `message.end` never trails its own `message.remove`.
+      closePendingMessage();
       const uuids = Array.isArray(msg.retracted_message_uuids) ? msg.retracted_message_uuids : [];
       retractUuids(uuids);
       return;
@@ -1010,6 +1131,10 @@ export function createClaudeNormalizer(): Normalizer {
       return a.drain();
     },
     flush(): AgEvent[] {
+      // guuey#26: nothing can continue the deferred message now — seal it with
+      // its real usage (and its subagent bracket) rather than leaving INV-FLUSH
+      // to synthesize a bare `message.end`.
+      closePendingMessage();
       return a.flush();
     },
   };

@@ -47,45 +47,24 @@
     "provider": "anthropic"
   },
   {
-    "type": "message.end",
-    "seq": 6,
-    "id": "msg_011CdMAmb6dKtbrbtGX4QPnE",
-    "usage": {
-      "inputTokens": 2,
-      "outputTokens": 2,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 1404,
-      "cumulative": true
-    }
-  },
-  {
-    "type": "message.start",
-    "seq": 7,
-    "id": "msg_011CdMAmb6dKtbrbtGX4QPnE",
-    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
-    "threadId": "8e998b00-d358-4e18-87c9-731180ee3603",
-    "role": "assistant",
-    "model": "claude-sonnet-5"
-  },
-  {
     "type": "tool.start",
-    "seq": 8,
+    "seq": 6,
     "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
     "toolCallId": "toolu_01BnYNQJEDJ9t18WafZ971Db",
     "name": "mcp__cards__render_card",
-    "index": 0,
+    "index": 1,
     "messageId": "msg_011CdMAmb6dKtbrbtGX4QPnE",
     "providerExecuted": false
   },
   {
     "type": "tool.args.delta",
-    "seq": 9,
+    "seq": 7,
     "toolCallId": "toolu_01BnYNQJEDJ9t18WafZ971Db",
     "delta": "{\"title\":\"Hello\",\"body\":\"World\"}"
   },
   {
     "type": "tool.args.assembled",
-    "seq": 10,
+    "seq": 8,
     "toolCallId": "toolu_01BnYNQJEDJ9t18WafZ971Db",
     "input": {
       "title": "Hello",
@@ -94,7 +73,7 @@
   },
   {
     "type": "message.end",
-    "seq": 11,
+    "seq": 9,
     "id": "msg_011CdMAmb6dKtbrbtGX4QPnE",
     "usage": {
       "inputTokens": 2,
@@ -106,7 +85,7 @@
   },
   {
     "type": "tool.done",
-    "seq": 12,
+    "seq": 10,
     "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
     "toolCallId": "toolu_01BnYNQJEDJ9t18WafZ971Db",
     "content": [
@@ -135,7 +114,7 @@
   },
   {
     "type": "message.start",
-    "seq": 13,
+    "seq": 11,
     "id": "msg_011CdMAmj8pfQzfemRZz2mRX",
     "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
     "threadId": "8e998b00-d358-4e18-87c9-731180ee3603",
@@ -144,7 +123,7 @@
   },
   {
     "type": "tool.start",
-    "seq": 14,
+    "seq": 12,
     "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
     "toolCallId": "toolu_01QJV5ErrKnEooBLM6P9C3FD",
     "name": "mcp__cards__update_card",
@@ -154,13 +133,13 @@
   },
   {
     "type": "tool.args.delta",
-    "seq": 15,
+    "seq": 13,
     "toolCallId": "toolu_01QJV5ErrKnEooBLM6P9C3FD",
     "delta": "{\"title\":\"Hello\",\"body\":\"Updated World\"}"
   },
   {
     "type": "tool.args.assembled",
-    "seq": 16,
+    "seq": 14,
     "toolCallId": "toolu_01QJV5ErrKnEooBLM6P9C3FD",
     "input": {
       "title": "Hello",
@@ -169,7 +148,7 @@
   },
   {
     "type": "message.end",
-    "seq": 17,
+    "seq": 15,
     "id": "msg_011CdMAmj8pfQzfemRZz2mRX",
     "usage": {
       "inputTokens": 2,
@@ -181,7 +160,7 @@
   },
   {
     "type": "tool.done",
-    "seq": 18,
+    "seq": 16,
     "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
     "toolCallId": "toolu_01QJV5ErrKnEooBLM6P9C3FD",
     "content": [
@@ -210,7 +189,7 @@
   },
   {
     "type": "message.start",
-    "seq": 19,
+    "seq": 17,
     "id": "msg_011CdMAmqQ7KNdQoeS9CqpZp",
     "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
     "threadId": "8e998b00-d358-4e18-87c9-731180ee3603",
@@ -219,14 +198,14 @@
   },
   {
     "type": "text.start",
-    "seq": 20,
+    "seq": 18,
     "id": "msg_011CdMAmqQ7KNdQoeS9CqpZp:text:0",
     "messageId": "msg_011CdMAmqQ7KNdQoeS9CqpZp",
     "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603"
   },
   {
     "type": "text.delta",
-    "seq": 21,
+    "seq": 19,
     "id": "msg_011CdMAmqQ7KNdQoeS9CqpZp:text:0",
     "messageId": "msg_011CdMAmqQ7KNdQoeS9CqpZp",
     "delta": "The card was rendered and then updated successfully. Final state returned by the update tool:\n\n- **Title:** Hello\n- **Body:** Updated World\n- **Revision:** 2",
@@ -234,14 +213,14 @@
   },
   {
     "type": "text.end",
-    "seq": 22,
+    "seq": 20,
     "id": "msg_011CdMAmqQ7KNdQoeS9CqpZp:text:0",
     "messageId": "msg_011CdMAmqQ7KNdQoeS9CqpZp",
     "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603"
   },
   {
     "type": "message.end",
-    "seq": 23,
+    "seq": 21,
     "id": "msg_011CdMAmqQ7KNdQoeS9CqpZp",
     "usage": {
       "inputTokens": 2,
@@ -253,7 +232,7 @@
   },
   {
     "type": "turn.done",
-    "seq": 24,
+    "seq": 22,
     "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
     "outcome": {
       "type": "success",

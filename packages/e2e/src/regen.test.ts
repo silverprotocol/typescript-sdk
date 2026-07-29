@@ -102,6 +102,17 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // census caught structuredContent/_meta.ui.resourceUri vanishing from
   // tool.done; the regen re-normalizes the SAME native.json through the
   // fixed facet).
+  // guuey#26 (2026-07-29) — SECOND regen of this pair. The claude facet now
+  // coalesces the per-id message lifecycle: this cassette's thinking block and
+  // tool_use block are two frames of ONE message id, and the old per-frame
+  // open/seal RE-OPENED an id `reduce()` had already sealed (INV-MSG), parking
+  // the fold at the turn's first tool.start. Verified drift — three deltas and
+  // nothing else: (1) the spurious `message.end`+`message.start` pair (old seq
+  // 6/7) is GONE, one pair per id now; (2) the surviving `message.end` keeps
+  // the message-level usage verbatim; (3) `tool.start.index` 0→1 — the
+  // tool_use block's TRUE index within the API message (frame-local indices
+  // used to restart at 0 per frame). Every later seq shifts by 2. No field
+  // additions/drops: coverage.json is byte-unchanged.
   { scenario: "app-update-sonnet5", framework: "claude" },
   { scenario: "app-spec-gemini36", framework: "adk" },
   { scenario: "echo-gemini36", framework: "adk" },

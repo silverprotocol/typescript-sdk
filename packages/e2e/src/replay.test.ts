@@ -51,6 +51,7 @@ import { readFile, access } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { JsonValue } from "@silverprotocol/core";
+import { type AgClosedEventType, AgEvent, Reducer } from "@silverprotocol/core";
 import { replayCassette } from "./replay.js";
 import { canonicalizeAgjson, assertConvergent } from "./convergence.js";
 
@@ -161,6 +162,16 @@ const VERCEL_SEEDS = [
   "echo-gpt56",
 ] as const;
 
+/**
+ * Narrow `AgEvent` to `AgClosedEventType` by ruling out the open `AgExtEvent`
+ * arm (whose `type` always matches `ext.<vendor>.<key>`): that arm's
+ * `.catchall(JsonValue)` index signature widens every field access on the
+ * union. Same guard `reduce()` uses internally — see `AgClosedEventType`'s doc.
+ */
+function isClosedEvent(ev: AgEvent): ev is AgClosedEventType {
+  return !ev.type.startsWith("ext.");
+}
+
 async function readSnapshotForFramework(scn: string, framework: string): Promise<JsonValue[]> {
   const raw = await readFile(join(CORPUS_ROOT, scn, `${framework}.agjson.json`), "utf8");
   return JSON.parse(raw) as JsonValue[];
@@ -179,6 +190,29 @@ describe("replay CI gate — Claude seed corpus (machinery/snapshot self-consist
         const { report } = await replayCassette(join(CORPUS_ROOT, scn, "claude.native.json"));
         expect(report.drops).toEqual([]);
         expect(report.newFields).toEqual([]);
+      });
+
+      // guuey#26. A cassette can be snapshot-stable AND census-clean and still
+      // be unusable by a real consumer: if the producer re-opens a message id
+      // it already sealed, INV-MSG makes `reduce()` park (`needsResync`) and
+      // every event after the park is discarded. `app-update-sonnet5` — a live
+      // claude-sonnet-5 capture whose thinking and tool_use blocks arrive as
+      // two frames of ONE message id — parked exactly this way, and no gate in
+      // this repo noticed, because none of them ever FOLDED a cassette.
+      it("folds through the normative Reducer WITHOUT parking, and never re-opens a sealed id (guuey#26 / INV-MSG)", async () => {
+        const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "claude.native.json"));
+        const sealed = new Set<string>();
+        const reopened: string[] = [];
+        const r = new Reducer();
+        for (const raw of agjson) {
+          const ev = AgEvent.parse(raw);
+          r.push(ev);
+          if (!isClosedEvent(ev)) continue;
+          if (ev.type === "message.end") sealed.add(ev.id);
+          if (ev.type === "message.start" && sealed.has(ev.id)) reopened.push(ev.id);
+        }
+        expect(reopened).toEqual([]);
+        expect(r.needsResync).toBe(false);
       });
     });
   }
