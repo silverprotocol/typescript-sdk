@@ -177,6 +177,32 @@ async function readSnapshotForFramework(scn: string, framework: string): Promise
   return JSON.parse(raw) as JsonValue[];
 }
 
+/**
+ * guuey#26 / INV-MSG — fold a cassette's `agjson` stream through the
+ * NORMATIVE `Reducer` and report both faces of the invariant: parking
+ * (`needsResync`) and any message id RE-OPENED after being sealed with
+ * `message.end`. A cassette can be snapshot-stable AND census-clean and
+ * still be UNUSABLE by a real consumer if its normalizer re-opens a sealed
+ * message id — that is exactly what INV-MSG forbids (`reduce()` refuses a
+ * sealed message as an attach target, sets `needsResync`, and discards
+ * everything after the park). Shared by every seed-corpus suite below so the
+ * Claude fix's regression class (see `app-update-sonnet5`, guuey#26) is
+ * checked identically for every facet, not just the one it was found in.
+ */
+function foldThroughReducer(agjson: JsonValue[]): { reducer: Reducer; reopened: string[] } {
+  const sealed = new Set<string>();
+  const reopened: string[] = [];
+  const r = new Reducer();
+  for (const raw of agjson) {
+    const ev = AgEvent.parse(raw);
+    r.push(ev);
+    if (!isClosedEvent(ev)) continue;
+    if (ev.type === "message.end") sealed.add(ev.id);
+    if (ev.type === "message.start" && sealed.has(ev.id)) reopened.push(ev.id);
+  }
+  return { reducer: r, reopened };
+}
+
 describe("replay CI gate — Claude seed corpus (machinery/snapshot self-consistency)", () => {
   for (const scn of CLAUDE_SEEDS) {
     describe(scn, () => {
@@ -201,18 +227,9 @@ describe("replay CI gate — Claude seed corpus (machinery/snapshot self-consist
       // this repo noticed, because none of them ever FOLDED a cassette.
       it("folds through the normative Reducer WITHOUT parking, and never re-opens a sealed id (guuey#26 / INV-MSG)", async () => {
         const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "claude.native.json"));
-        const sealed = new Set<string>();
-        const reopened: string[] = [];
-        const r = new Reducer();
-        for (const raw of agjson) {
-          const ev = AgEvent.parse(raw);
-          r.push(ev);
-          if (!isClosedEvent(ev)) continue;
-          if (ev.type === "message.end") sealed.add(ev.id);
-          if (ev.type === "message.start" && sealed.has(ev.id)) reopened.push(ev.id);
-        }
+        const { reducer, reopened } = foldThroughReducer(agjson);
         expect(reopened).toEqual([]);
-        expect(r.needsResync).toBe(false);
+        expect(reducer.needsResync).toBe(false);
       });
     });
   }
@@ -232,6 +249,22 @@ describe("replay CI gate — OpenAI seed corpus (machinery/snapshot self-consist
         expect(report.drops).toEqual([]);
         expect(report.newFields).toEqual([]);
       });
+
+      // guuey#26 ride-along. The Claude facet's per-frame open/seal parked the
+      // Reducer whenever one API message spanned multiple frames (a live
+      // production incident — see the Claude suite's comment above). This is
+      // the SAME class of check for the OpenAI facet's own cassettes: a
+      // snapshot-stable, census-clean stream is worthless to a real consumer
+      // if it re-opens a message id it already sealed. `echo-gpt55`/
+      // `echo-gpt56`/`app-spec-structured-result` are REAL `@openai/agents`
+      // captures (not hand-authored), so this pins the invariant against
+      // genuine wire behavior, not just the seed machinery.
+      it("folds through the normative Reducer WITHOUT parking, and never re-opens a sealed id (guuey#26 / INV-MSG ride-along)", async () => {
+        const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "openai.native.json"));
+        const { reducer, reopened } = foldThroughReducer(agjson);
+        expect(reopened).toEqual([]);
+        expect(reducer.needsResync).toBe(false);
+      });
     });
   }
 });
@@ -249,6 +282,18 @@ describe("replay CI gate — ADK seed corpus (machinery/snapshot self-consistenc
         const { report } = await replayCassette(join(CORPUS_ROOT, scn, "adk.native.json"));
         expect(report.drops).toEqual([]);
         expect(report.newFields).toEqual([]);
+      });
+
+      // guuey#26 ride-along (see the OpenAI suite's comment above for the full
+      // rationale). `echo-gemini35`/`echo-gemini36`/`multi-turn`/
+      // `single-tool-call`/`text-only`/`tool-error`/`app-spec-gemini36` are
+      // REAL `@google/adk` captures — this pins the same "sealed id never
+      // re-opens" invariant against genuine ADK wire behavior.
+      it("folds through the normative Reducer WITHOUT parking, and never re-opens a sealed id (guuey#26 / INV-MSG ride-along)", async () => {
+        const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "adk.native.json"));
+        const { reducer, reopened } = foldThroughReducer(agjson);
+        expect(reopened).toEqual([]);
+        expect(reducer.needsResync).toBe(false);
       });
     });
   }
