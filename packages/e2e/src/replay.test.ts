@@ -313,6 +313,16 @@ describe("replay CI gate — Vercel seed corpus (machinery/snapshot self-consist
         expect(report.drops).toEqual([]);
         expect(report.newFields).toEqual([]);
       });
+
+      // guuey#26 ride-along, fourth facet: same INV-MSG fold gate as the
+      // claude/openai/adk suites above, pinned before this facet's first
+      // live consumer too (see foldThroughReducer's doc).
+      it("folds through the normative Reducer WITHOUT parking, and never re-opens a sealed id (guuey#26 / INV-MSG)", async () => {
+        const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "vercel.native.json"));
+        const { reducer, reopened } = foldThroughReducer(agjson);
+        expect(reopened).toEqual([]);
+        expect(reducer.needsResync).toBe(false);
+      });
     });
   }
 });
