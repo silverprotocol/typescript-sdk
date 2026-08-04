@@ -33,6 +33,15 @@
  * (older versions) are closed as superseded. Retitling a filed issue by
  * hand breaks the dedup key and will cause a duplicate on the next run.
  *
+ * Resolved-path close: a peer that is BOTH in range and gate-green closes
+ * any still-open issues for it under BOTH labels. Supersession alone cannot
+ * reach these — a resolved condition never files the successor issue that
+ * would supersede its predecessor, so an adopted drift issue (range widened)
+ * or a fixed compat issue (pin repaired) would otherwise sit open forever.
+ * Only OPEN issues are touched (a wontfix stays closed), and only on a
+ * present, fully-green leg (a missing leg artifact is an infra problem and
+ * closes nothing).
+ *
  * Exit code: 0 even when issues were filed (red legs already mark the run);
  * 1 only when the report itself could not do its job (missing leg artifact,
  * gh failure) — infra problems must look different from upstream drift.
@@ -228,7 +237,29 @@ function main() {
     // recorded above, never filed as [peer-compat].
 
     if (!signal) {
-      summaryRows.push(`| \`${item.name}\` | \`${item.latest}\` | in range, gate green | — |`);
+      // Resolved-path close (see the dedup-contract doc above): green here
+      // means in range AND the leg passed — the missing-leg infra case also
+      // lands in this branch but must close nothing, hence the guard.
+      const closedRefs = [];
+      if (leg && !requiredFailed) {
+        for (const sig of Object.keys(LABELS)) {
+          const prefix = `[${sig}] ${item.name}@`;
+          const stillOpen = listIssues(sig, { repo: args.repo, dryRun: args.dryRun, existing: args.existing })
+            .filter((i) => i.state === "OPEN" && i.title.startsWith(prefix));
+          for (const old of stillOpen) {
+            gh(
+              ["issue", "close", String(old.number), "--repo", args.repo, "--comment",
+               `Resolved: \`${item.name}@${item.latest}\` is inside the declared peer range and the nightly gate suite passed (${REQUIRED_STAGES.join("/")} all green).`],
+              { dryRun: args.dryRun, capture: false },
+            );
+            console.log(`closed resolved #${old.number}: ${old.title}`);
+            closedRefs.push(`#${old.number}`);
+          }
+        }
+      }
+      summaryRows.push(
+        `| \`${item.name}\` | \`${item.latest}\` | in range, gate green | ${closedRefs.length > 0 ? `closed resolved ${closedRefs.join(", ")}` : "—"} |`,
+      );
       continue;
     }
 
