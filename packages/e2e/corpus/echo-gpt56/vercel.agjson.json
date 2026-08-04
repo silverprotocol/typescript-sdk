@@ -23,24 +23,24 @@
   {
     "type": "reasoning.start",
     "seq": 3,
-    "id": "rs_0222193f93eb199d006a697ce6b088819aac1451a3ba1a92ae:0",
+    "id": "rs_069792b223852f82006a71c33b978c819aac985a1ecd34a95c:0",
     "messageId": "msg_turn_vercel_1_s1",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "reasoning.end",
     "seq": 4,
-    "id": "rs_0222193f93eb199d006a697ce6b088819aac1451a3ba1a92ae:0",
+    "id": "rs_069792b223852f82006a71c33b978c819aac985a1ecd34a95c:0",
     "messageId": "msg_turn_vercel_1_s1",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "reasoning.opaque",
     "seq": 5,
-    "id": "rs_0222193f93eb199d006a697ce6b088819aac1451a3ba1a92ae:0",
+    "id": "rs_069792b223852f82006a71c33b978c819aac985a1ecd34a95c:0",
     "messageId": "msg_turn_vercel_1_s1",
     "kind": "encrypted",
-    "value": "gAAAAABqaXznLLHEvkaab43JaB5QDWa99xwRpfqNPbDE-FWUFCmXFGpO3oyrmsSZxykn6nVplgWych1p2MxsSyFzN0f5RU2Obfgb3vtE3jSO_kLsD2LRi7HistIBzNrMAZdTGUEiuNgvFK_Ot3mC4zUskBBS-ZZx3U8qEZSugdTZVod7SJR5ZDLDVJTw45vSifoVte3cBg-eutJaSfyorv0RyMitz3aVWmIoyGYjJcrK0I7NU5RctDaBhmTzzbCBAJYkqmvI9oFuPyJiR6NKlXe0lqw5X2I87M9YN20y0KXP_Nm06DDv4dXrmBCAB32NRBh9BRp2DuFoinSOUSSuTA7CMmn3VBulAabC9XusZ_Div3SKNxRnXTGRO_P6EZ5ZRPIW2qOEHmBTbs-83c2lMZlBliJWJMW5cCZ09f3wzZPX78_agytqsZwFEANt6oeSNomT6XOpnPi8Xr6avqnW7CNI0c1Y74LgbQwzZFIWE7AM7cCslP46MfHIf6zyz47h2v-qzTGDAUIZYD0IAUKpP7XZxth0xiwY569u5dQ2IHZ3WXKm_b9SQRGFSNYJo5Eg0usapeJsmKyGZS6rM4OfzRwljvE281nPSt5q1fE4w_6M8JqCkCPb6aIvNWVCDNEENGAFS-akI9BrONDKA8xuBUxOGOqLoP8jcMHWnB87ladrruhNexPVaP3xwDad57ANsdJ2c25isqo7dDrqpC5eWKGRzpvV344JcLKzOPGJFjTSM_ruxgcJybv-CbxEph9UxRwQXclvpOFKIyuf6V_o6ruWhXNQJNQlpkEPZsR3PFgewkS93bnae5NvJ7AWArL4idvDi8-lQAg_wAxcUzgufaFwkwZ0LqnOj6jvwByvTYY_hQWOYXm2kUR7BvknWRSzTRD1e0qGyXr9opIzhZ4KgOQVA_sMC1LDivFXp9OH0by3ylO758Dd9lYyWHEeFw3rHOTUj5jnoOC6JgDife7xeaGYFa5O4v1OFm542BnHk0LOZ_utZTQJAmyZJnoFybxfofnx541d03tN2g6zKproFw1rdTuIcBJFZ8xwG3B0gd2uLwkmp_C_VaMvWVink4mRNtsURuq6rL07",
+    "value": "gAAAAABqccM8lMUvJpLo-ED8aAzKB8Ed34pGVZPVDjdf8W34-T7N-Za_OiRXaPoltYoKP7-OzAmRjBL3UjAIz73efOWKwwqAxVQexc3xbYq_OymKM1hFOpZecJIGd6vvfsjAOujnd-MFuXBnhJPwky5FWy5dFRsGAHaB4OMww-Vyx6UccfMJA9K895AVgq4xcpjyQTohkzy0zcB0_By0f749HAPe1C1U4D3FFVrq_8CKeoD4J1BEX54vF_OwQF9h-uNuhmjyqBEsFaBsInnTxJf3U0qRC007UIzkxbMK36gEC5ntAUWEzD8tbPZevcW3rqt5D0CK78u8Ut_i8Pr0XekpqzNJt6BD9CgdSukiHdp3c-otoQIDBcrXN4Fe2LhCGnYjDrOoHs4pHHgkCXg0KNVmaQMdrjwlj2mOkO16H45M5sHI6HdcAnDVCbShWYLKfqWNLIGI__t4vilFqQh8D_BZ5zHrbI0ksJrCFIi1aVDaeUMHvx1dU0wkVZtwoe2ZGBpH_bZOfMS5rz9FCN6oVf5f4b5Xq0tRA03l4LNYyiccSBqWMiT8dkIJOCaqa5yLC_WnY4OYedWleuVVbu-6BlcEhdNSJPekx_OGXlgCDkrsIL5ihs8aO_DbXNNRxnki4afcjGzIdFTkTJp14H9FqMnHMDeNKUnBWLa1bBVOlXLpLdRm9CIsjQUvzuHeP3CL5d9FW3uvwSQCyRTFbNhp2L5gg4HfjJSfTzEIdT7Z2RPcRYLsHEpGhhZfYAacYmOozcB4os6iXaAr87mvn0F4FFW0tqWJWB2ZcCl_Nv19basmMykX32PWC3B8uq-FZODRRNucl7RJj6VxZJ09xvRIIo0BbuskRbtvZnI83HFleHmLR7IcMlmUO56d_qDgewiQqmJ5kEd6ZoThtdztZ3jOWWgC4vNMBwWSEftg-3Zs_7fsa0NbVwZS3cZwwseLtu6ljv-jLnYMbD7YifS3Z2LY3xunSsRWHJXR2oOmqmBQMpUGO_HQAIUwLqsXthtKMo5JRC2oF3Ge693miePY8jttEU7TQDGsZ0TmNCN1ZIQZhVUuA0uDuXbKebZ0poFN0dx4fdgCmqEhLHc4j44gShek8tnnHnf9eVzwKgPv8Petx8ALN_5U_2-2DTo=",
     "turnId": "turn_vercel_1",
     "provider": "openai"
   },
@@ -48,7 +48,7 @@
     "type": "tool.start",
     "seq": 6,
     "turnId": "turn_vercel_1",
-    "toolCallId": "call_3d1KVDbPxfHVP1FZZsDmOmjY",
+    "toolCallId": "call_aMrjv4GkPuRlhR0gcllcZmOe",
     "name": "echo",
     "messageId": "msg_turn_vercel_1_s1",
     "dynamic": true
@@ -56,73 +56,73 @@
   {
     "type": "tool.args.delta",
     "seq": 7,
-    "toolCallId": "call_3d1KVDbPxfHVP1FZZsDmOmjY",
+    "toolCallId": "call_aMrjv4GkPuRlhR0gcllcZmOe",
     "delta": "{\""
   },
   {
     "type": "tool.args.delta",
     "seq": 8,
-    "toolCallId": "call_3d1KVDbPxfHVP1FZZsDmOmjY",
+    "toolCallId": "call_aMrjv4GkPuRlhR0gcllcZmOe",
     "delta": "message"
   },
   {
     "type": "tool.args.delta",
     "seq": 9,
-    "toolCallId": "call_3d1KVDbPxfHVP1FZZsDmOmjY",
+    "toolCallId": "call_aMrjv4GkPuRlhR0gcllcZmOe",
     "delta": "\":\""
   },
   {
     "type": "tool.args.delta",
     "seq": 10,
-    "toolCallId": "call_3d1KVDbPxfHVP1FZZsDmOmjY",
+    "toolCallId": "call_aMrjv4GkPuRlhR0gcllcZmOe",
     "delta": "con"
   },
   {
     "type": "tool.args.delta",
     "seq": 11,
-    "toolCallId": "call_3d1KVDbPxfHVP1FZZsDmOmjY",
+    "toolCallId": "call_aMrjv4GkPuRlhR0gcllcZmOe",
     "delta": "formance"
   },
   {
     "type": "tool.args.delta",
     "seq": 12,
-    "toolCallId": "call_3d1KVDbPxfHVP1FZZsDmOmjY",
+    "toolCallId": "call_aMrjv4GkPuRlhR0gcllcZmOe",
     "delta": "-pro"
   },
   {
     "type": "tool.args.delta",
     "seq": 13,
-    "toolCallId": "call_3d1KVDbPxfHVP1FZZsDmOmjY",
+    "toolCallId": "call_aMrjv4GkPuRlhR0gcllcZmOe",
     "delta": "be"
   },
   {
     "type": "tool.args.delta",
     "seq": 14,
-    "toolCallId": "call_3d1KVDbPxfHVP1FZZsDmOmjY",
+    "toolCallId": "call_aMrjv4GkPuRlhR0gcllcZmOe",
     "delta": "-g"
   },
   {
     "type": "tool.args.delta",
     "seq": 15,
-    "toolCallId": "call_3d1KVDbPxfHVP1FZZsDmOmjY",
+    "toolCallId": "call_aMrjv4GkPuRlhR0gcllcZmOe",
     "delta": "pt"
   },
   {
     "type": "tool.args.delta",
     "seq": 16,
-    "toolCallId": "call_3d1KVDbPxfHVP1FZZsDmOmjY",
+    "toolCallId": "call_aMrjv4GkPuRlhR0gcllcZmOe",
     "delta": "56"
   },
   {
     "type": "tool.args.delta",
     "seq": 17,
-    "toolCallId": "call_3d1KVDbPxfHVP1FZZsDmOmjY",
+    "toolCallId": "call_aMrjv4GkPuRlhR0gcllcZmOe",
     "delta": "\"}"
   },
   {
     "type": "tool.args.assembled",
     "seq": 18,
-    "toolCallId": "call_3d1KVDbPxfHVP1FZZsDmOmjY",
+    "toolCallId": "call_aMrjv4GkPuRlhR0gcllcZmOe",
     "input": {
       "message": "conformance-probe-gpt56"
     }
@@ -131,7 +131,7 @@
     "type": "tool.done",
     "seq": 19,
     "turnId": "turn_vercel_1",
-    "toolCallId": "call_3d1KVDbPxfHVP1FZZsDmOmjY",
+    "toolCallId": "call_aMrjv4GkPuRlhR0gcllcZmOe",
     "outcome": "ok",
     "structuredContent": {
       "content": [
@@ -154,7 +154,7 @@
     "type": "message.metadata",
     "messageId": "msg_turn_vercel_1_s1",
     "metadata": {
-      "responseId": "resp_0222193f93eb199d006a697ce34b60819a892fecb9d812ab1e",
+      "responseId": "resp_069792b223852f82006a71c339f2f0819a87320de9b4479329",
       "model": "gpt-5.6-sol"
     },
     "turnId": "turn_vercel_1",
@@ -166,11 +166,11 @@
     "id": "msg_turn_vercel_1_s1",
     "usage": {
       "inputTokens": 102,
-      "outputTokens": 50,
-      "totalTokens": 152,
+      "outputTokens": 59,
+      "totalTokens": 161,
       "cacheReadTokens": 0,
       "cacheWriteTokens": 0,
-      "reasoningTokens": 25
+      "reasoningTokens": 34
     }
   },
   {
@@ -197,14 +197,14 @@
   {
     "type": "text.start",
     "seq": 25,
-    "id": "msg_0222193f93eb199d006a697ce85138819a95d5b7ec792b7f82",
+    "id": "msg_069792b223852f82006a71c347bb70819a8c144ac0e0cc5e5b",
     "messageId": "msg_turn_vercel_1_s2",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "text.delta",
     "seq": 26,
-    "id": "msg_0222193f93eb199d006a697ce85138819a95d5b7ec792b7f82",
+    "id": "msg_069792b223852f82006a71c347bb70819a8c144ac0e0cc5e5b",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "con",
     "turnId": "turn_vercel_1"
@@ -212,7 +212,7 @@
   {
     "type": "text.delta",
     "seq": 27,
-    "id": "msg_0222193f93eb199d006a697ce85138819a95d5b7ec792b7f82",
+    "id": "msg_069792b223852f82006a71c347bb70819a8c144ac0e0cc5e5b",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "formance",
     "turnId": "turn_vercel_1"
@@ -220,7 +220,7 @@
   {
     "type": "text.delta",
     "seq": 28,
-    "id": "msg_0222193f93eb199d006a697ce85138819a95d5b7ec792b7f82",
+    "id": "msg_069792b223852f82006a71c347bb70819a8c144ac0e0cc5e5b",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "-pro",
     "turnId": "turn_vercel_1"
@@ -228,7 +228,7 @@
   {
     "type": "text.delta",
     "seq": 29,
-    "id": "msg_0222193f93eb199d006a697ce85138819a95d5b7ec792b7f82",
+    "id": "msg_069792b223852f82006a71c347bb70819a8c144ac0e0cc5e5b",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "be",
     "turnId": "turn_vercel_1"
@@ -236,7 +236,7 @@
   {
     "type": "text.delta",
     "seq": 30,
-    "id": "msg_0222193f93eb199d006a697ce85138819a95d5b7ec792b7f82",
+    "id": "msg_069792b223852f82006a71c347bb70819a8c144ac0e0cc5e5b",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "-g",
     "turnId": "turn_vercel_1"
@@ -244,7 +244,7 @@
   {
     "type": "text.delta",
     "seq": 31,
-    "id": "msg_0222193f93eb199d006a697ce85138819a95d5b7ec792b7f82",
+    "id": "msg_069792b223852f82006a71c347bb70819a8c144ac0e0cc5e5b",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "pt",
     "turnId": "turn_vercel_1"
@@ -252,7 +252,7 @@
   {
     "type": "text.delta",
     "seq": 32,
-    "id": "msg_0222193f93eb199d006a697ce85138819a95d5b7ec792b7f82",
+    "id": "msg_069792b223852f82006a71c347bb70819a8c144ac0e0cc5e5b",
     "messageId": "msg_turn_vercel_1_s2",
     "delta": "56",
     "turnId": "turn_vercel_1"
@@ -260,7 +260,7 @@
   {
     "type": "text.end",
     "seq": 33,
-    "id": "msg_0222193f93eb199d006a697ce85138819a95d5b7ec792b7f82",
+    "id": "msg_069792b223852f82006a71c347bb70819a8c144ac0e0cc5e5b",
     "messageId": "msg_turn_vercel_1_s2",
     "turnId": "turn_vercel_1"
   },
@@ -268,7 +268,7 @@
     "type": "message.metadata",
     "messageId": "msg_turn_vercel_1_s2",
     "metadata": {
-      "responseId": "resp_0222193f93eb199d006a697ce7a264819a91d5ef7031baf3cc",
+      "responseId": "resp_069792b223852f82006a71c33d497c819ab876ea387cfc3ed2",
       "model": "gpt-5.6-sol"
     },
     "turnId": "turn_vercel_1",
@@ -279,9 +279,9 @@
     "seq": 35,
     "id": "msg_turn_vercel_1_s2",
     "usage": {
-      "inputTokens": 169,
+      "inputTokens": 178,
       "outputTokens": 11,
-      "totalTokens": 180,
+      "totalTokens": 189,
       "cacheReadTokens": 0,
       "cacheWriteTokens": 0,
       "reasoningTokens": 0
@@ -302,12 +302,12 @@
     },
     "finishReason": "stop",
     "usage": {
-      "inputTokens": 271,
-      "outputTokens": 61,
-      "totalTokens": 332,
+      "inputTokens": 280,
+      "outputTokens": 70,
+      "totalTokens": 350,
       "cacheReadTokens": 0,
       "cacheWriteTokens": 0,
-      "reasoningTokens": 25
+      "reasoningTokens": 34
     }
   }
 ]

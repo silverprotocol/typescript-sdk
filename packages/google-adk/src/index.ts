@@ -123,6 +123,18 @@ export interface AdkPart {
    *  multiplex hint for multiple Part streams (fixture-drift ratchet
    *  finding). Carried opaquely via provider-raw. */
   partMetadata?: JsonValue;
+  /** "Output only. The transcription of the audio part." (genai 2.15.0 — the
+   *  first NEW `Part` field since the 14-member partKind ratchet). The
+   *  `Transcription` shape is {text?, finished?, languageCode?, speakerLabel?,
+   *  words?: WordInfo[]} with WordInfo {word?, startOffset?, endOffset?}
+   *  (offsets are duration strings). Rides ALONGSIDE the audio `inlineData`
+   *  part it transcribes (same sibling situation as `videoMetadata`) —
+   *  carried opaquely via the same unconditional unmapped-part-fields
+   *  provider-raw block. First-class text treatment (the event-level
+   *  `outputTranscription` `_meta['agjson/transcription']` stamp precedent)
+   *  would orphan `speakerLabel`/`words` — a spec-process decision, not a
+   *  mechanical carry. */
+  audioTranscription?: JsonValue;
 }
 
 /** A Gemini `Content` — the role + the part list. ADK normalizes Gemini's
@@ -263,6 +275,30 @@ export interface AdkEvent {
    *  carried via the event-level unmapped-fields provider-raw block, same
    *  ratchet precedent as `modelVersion`. */
   interactionId?: string;
+  /** CompactedEvent subtype projection (`@google/adk`
+   *  dist/types/events/compacted_event.d.ts, `CompactedEvent extends Event` —
+   *  OUTSIDE the drift gate's flattened Event/LlmResponse eventField
+   *  inventory, which covers only the two base interfaces' own files): a
+   *  synthesized summary of past session events. The compactors run inside
+   *  `ContextCompactorRequestProcessor` and rewrite `session.events` IN PLACE
+   *  before the LLM request — a CompactedEvent is never yielded on the
+   *  `runner.runAsync` stream this facet's ingestion boundary normalizes, so
+   *  these fields are session-REPLAY ingestion tolerance, carried via the
+   *  event-level unmapped-fields provider-raw block per the `candidateIndex`
+   *  off-inventory-tolerance precedent (absent from all recorded fixtures —
+   *  no golden-snapshot impact). `isScratchpad` is NEW in 1.5.0 (the anchored
+   *  compactor's persistent context scratchpad, adk-js PR #470, with the new
+   *  `isScratchpadEvent` guard). */
+  isCompacted?: boolean;
+  /** Start of the compacted context range (epoch seconds — wire payload of
+   *  the compaction record, not a per-event envelope stamp). */
+  startTime?: number;
+  /** End of the compacted context range (epoch seconds). */
+  endTime?: number;
+  /** The summarized content of the compacted events. */
+  compactedContent?: string;
+  /** Marks the compacted event as the persistent context scratchpad (1.5.0). */
+  isScratchpad?: boolean;
 }
 
 // ─── finishReason → AgFinishReason (spec §4) ──────────────────────────────────
@@ -680,18 +716,21 @@ function driveAdkPart(
   citations?: AgCitation[]
 ): string {
   // ── UNMAPPED PART FIELDS (mediaResolution/videoMetadata/toolCall/toolResponse/
-  // partMetadata) → provider-raw content.block (fixture-drift ratchet finding,
-  // google-adk-ratchet task; Tenet-6; SPEC §8 item 23). These genai `Part`
-  // fields have NO route in the kind-specific if-chain below. Checked
-  // UNCONDITIONALLY, before that if-chain's early returns, because
+  // partMetadata/audioTranscription) → provider-raw content.block (fixture-drift
+  // ratchet finding, google-adk-ratchet task; Tenet-6; SPEC §8 item 23). These
+  // genai `Part` fields have NO route in the kind-specific if-chain below.
+  // Checked UNCONDITIONALLY, before that if-chain's early returns, because
   // `videoMetadata` normally rides ALONGSIDE an already-handled `inlineData`/
   // `fileData` part (genai's own doc: "should only be specified while the
   // video data is presented in inline_data or file_data") — a check placed
   // AFTER the if-chain would never see a sibling field on a part that already
-  // matched a primary kind and returned. Mirrors `driveAdkTopLevel`'s
-  // `unmappedActions`/`unmappedEvent` carry pattern (named-field ledger, not a
-  // generic reflection-over-keys catch-all — fixture discipline: type/carry
-  // only what is verified on the wire).
+  // matched a primary kind and returned. `audioTranscription` (genai 2.15.0)
+  // is the same sibling situation: "Output only. The transcription of the
+  // audio part" rides alongside the audio `inlineData` it transcribes.
+  // Mirrors `driveAdkTopLevel`'s `unmappedActions`/`unmappedEvent` carry
+  // pattern (named-field ledger, not a generic reflection-over-keys
+  // catch-all — fixture discipline: type/carry only what is verified on the
+  // wire).
   const unmappedPartFields: { [k: string]: JsonValue } = {};
   if (part.mediaResolution !== undefined)
     unmappedPartFields["mediaResolution"] = JsonValue.parse(part.mediaResolution);
@@ -702,6 +741,8 @@ function driveAdkPart(
     unmappedPartFields["toolResponse"] = JsonValue.parse(part.toolResponse);
   if (part.partMetadata !== undefined)
     unmappedPartFields["partMetadata"] = JsonValue.parse(part.partMetadata);
+  if (part.audioTranscription !== undefined)
+    unmappedPartFields["audioTranscription"] = JsonValue.parse(part.audioTranscription);
   if (Object.keys(unmappedPartFields).length > 0) {
     a.contentBlock(messageId, {
       type: "provider-raw",
@@ -1018,7 +1059,9 @@ function driveAdkTopLevel(
   }
 
   // ── event-level unmapped (citationMetadata / customMetadata / candidateIndex /
-  // branch / modelVersion / interactionId) → provider-raw ──
+  // branch / modelVersion / interactionId / the CompactedEvent subtype
+  // projection isCompacted+startTime+endTime+compactedContent+isScratchpad) →
+  // provider-raw ──
   // candidateIndex/branch are fixture-drift ratchet findings (google-adk-ratchet
   // task; SPEC §8 item 23): candidateIndex was entirely absent from the
   // AdkEvent contract; branch was ALREADY typed but never read anywhere in
@@ -1050,6 +1093,16 @@ function driveAdkTopLevel(
   if (event.branch !== undefined) unmappedEvent["branch"] = event.branch;
   if (event.modelVersion !== undefined) unmappedEvent["modelVersion"] = event.modelVersion;
   if (event.interactionId !== undefined) unmappedEvent["interactionId"] = event.interactionId;
+  // CompactedEvent subtype projection (1.5.0 peer bump; see the AdkEvent
+  // field docs): never on the runAsync boundary — session-replay tolerance
+  // only, so it can never fire on live-captured wire. `isScratchpad`
+  // present-checks (never truthiness) so an explicit `false` still rides.
+  if (event.isCompacted !== undefined) unmappedEvent["isCompacted"] = event.isCompacted;
+  if (event.startTime !== undefined) unmappedEvent["startTime"] = event.startTime;
+  if (event.endTime !== undefined) unmappedEvent["endTime"] = event.endTime;
+  if (event.compactedContent !== undefined)
+    unmappedEvent["compactedContent"] = event.compactedContent;
+  if (event.isScratchpad !== undefined) unmappedEvent["isScratchpad"] = event.isScratchpad;
   if (event.citationMetadata !== undefined)
     unmappedEvent["citationMetadata"] = JsonValue.parse(event.citationMetadata);
   if (event.customMetadata !== undefined)

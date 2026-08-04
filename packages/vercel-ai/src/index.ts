@@ -47,7 +47,7 @@
  */
 
 import type { AgEvent, AgFinishReason, AgUsage, JsonValue, Normalizer } from "@silverprotocol/core";
-import { StreamAssembler, toJsonValue } from "@silverprotocol/core";
+import { AgProviderMeta, StreamAssembler, toJsonValue } from "@silverprotocol/core";
 
 // ─── host-boundary sentinel (error arm C) ────────────────────────────────────
 
@@ -249,7 +249,33 @@ export function createVercelNormalizer(): Normalizer {
         const id = str(part["id"]);
         const text = str(part["text"]); // fullStream field is `text` (verified)
         if (id === undefined || text === undefined) break;
-        a.textDelta(id, ensureMessage(), text, { cumulative: false });
+        const msg = ensureMessage();
+        // ai>=7.0.42 (changeset 6de2ec1): the upstream empty-text guard became
+        // `text.length > 0 || providerMetadata != null`, so an empty delta now
+        // reaches consumers when a chunk-level providerMetadata bag is its
+        // WHOLE payload — dropping the bag would lose the entire chunk
+        // (Tenet 6). Carried on text.delta's first-class providerMetadata slot
+        // (the Reducer merges it onto the sealed block); the sugar has no
+        // metadata parameter, so raw-emit (claude reasoning.start precedent).
+        // Scoped to EMPTY deltas: non-empty deltas passed the old guard too,
+        // so pre-7.0.42-shaped streams must normalize byte-identically — their
+        // bag keeps the census's standing disclosed-drop disposition.
+        if (text.length === 0 && part["providerMetadata"] !== undefined) {
+          const meta = rec(safeJson(part["providerMetadata"]));
+          // a circular/unserializable bag degrades to a string in safeJson —
+          // only a materialized object parses as AgProviderMeta (never throw).
+          if (meta !== undefined) {
+            a.emit({
+              type: "text.delta",
+              id,
+              messageId: msg,
+              delta: text,
+              providerMetadata: AgProviderMeta.parse(meta),
+            });
+            return;
+          }
+        }
+        a.textDelta(id, msg, text, { cumulative: false });
         return;
       }
       case "text-end": {

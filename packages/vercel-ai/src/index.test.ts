@@ -289,6 +289,144 @@ describe("encrypted-reasoning carry (captured echo-gpt56 @ai 7.0.34 reasoning-en
   });
 });
 
+describe("empty text-delta metadata carry (synthetic ai>=7.0.42 wire — changeset 6de2ec1: the empty-text guard now passes chunks whose providerMetadata is their whole payload)", () => {
+  const META = { openai: { itemId: "msg_001", annotationBoundary: true } };
+
+  // 7.0.42+-shaped: the empty delta exists ONLY to convey its metadata bag.
+  const parts = [
+    { type: "start" },
+    { type: "start-step", request: {}, warnings: [] },
+    { type: "text-start", id: "t1" },
+    { type: "text-delta", id: "t1", text: "Hello " },
+    { type: "text-delta", id: "t1", text: "", providerMetadata: META },
+    { type: "text-delta", id: "t1", text: "world" },
+    { type: "text-end", id: "t1" },
+    { type: "finish-step", finishReason: "stop", usage: USAGE, response: RESPONSE_S1 },
+    { type: "finish", finishReason: "stop", totalUsage: USAGE },
+  ];
+
+  it("emits exactly one text.delta per wire chunk (no spurious events) and carries the bag on the empty one", () => {
+    const out = run(parts);
+    expect(types(out)).toEqual([
+      "turn.start",
+      "step.start",
+      "message.start",
+      "text.start",
+      "text.delta",
+      "text.delta",
+      "text.delta",
+      "text.end",
+      "message.metadata",
+      "message.end",
+      "step.done",
+      "turn.done",
+    ]);
+    const deltas = out.filter((e) => e.type === "text.delta") as {
+      delta: string;
+      providerMetadata?: unknown;
+    }[];
+    expect(deltas.map((d) => d.delta)).toEqual(["Hello ", "", "world"]);
+    expect(deltas[1]!.providerMetadata).toEqual(META);
+    // the carry is scoped to the empty chunk — its neighbors stay bare
+    expect("providerMetadata" in deltas[0]!).toBe(false);
+    expect("providerMetadata" in deltas[2]!).toBe(false);
+    expectAllParse(out);
+  });
+
+  it("folds clean through the Reducer: text uncorrupted, bag merged onto the sealed block, no park", () => {
+    const out = run(parts);
+    const r = new Reducer();
+    for (const e of out) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const { messages, turns } = r.result();
+    expect(turns).toHaveLength(1);
+    expect(messages).toHaveLength(1);
+    const text = messages[0]!.content.find((b) => b.type === "text") as {
+      text: string;
+      providerMetadata?: unknown;
+    };
+    expect(text.text).toBe("Hello world");
+    expect(text.providerMetadata).toEqual(META);
+  });
+
+  it("a plain empty delta WITHOUT metadata keeps the pre-7.0.42 mapping (bare text.delta, fold clean)", () => {
+    const out = run([
+      { type: "start" },
+      { type: "start-step", request: {}, warnings: [] },
+      { type: "text-start", id: "t1" },
+      { type: "text-delta", id: "t1", text: "" },
+      { type: "text-delta", id: "t1", text: "ok" },
+      { type: "text-end", id: "t1" },
+      { type: "finish-step", finishReason: "stop", usage: USAGE, response: RESPONSE_S1 },
+      { type: "finish", finishReason: "stop", totalUsage: USAGE },
+    ]);
+    const deltas = out.filter((e) => e.type === "text.delta");
+    expect(deltas).toHaveLength(2);
+    expect(deltas[0]).toEqual({
+      type: "text.delta",
+      seq: 4,
+      id: "t1",
+      messageId: "msg_turn_vercel_1_s1",
+      delta: "",
+      turnId: "turn_vercel_1",
+    });
+    const { messages } = reduce(out);
+    const text = messages[0]!.content.find((b) => b.type === "text") as { text: string };
+    expect(text.text).toBe("ok");
+    expectAllParse(out);
+  });
+
+  it("negative control: a 7.0.41-shaped stream (non-empty deltas only, bag on a NON-empty delta) normalizes byte-identically — no providerMetadata key anywhere", () => {
+    // Non-empty deltas passed the old guard too, so a bag on one is a
+    // pre-7.0.42-possible wire — its disposition (disclosed drop) must not move.
+    const out = run([
+      { type: "start" },
+      { type: "start-step", request: {}, warnings: [] },
+      { type: "text-start", id: "t1" },
+      { type: "text-delta", id: "t1", text: "Hello ", providerMetadata: META },
+      { type: "text-delta", id: "t1", text: "world" },
+      { type: "text-end", id: "t1" },
+      { type: "finish-step", finishReason: "stop", usage: USAGE, response: RESPONSE_S1 },
+      { type: "finish", finishReason: "stop", totalUsage: USAGE },
+    ]);
+    const deltas = out.filter((e) => e.type === "text.delta");
+    expect(deltas).toEqual([
+      {
+        type: "text.delta",
+        seq: 4,
+        id: "t1",
+        messageId: "msg_turn_vercel_1_s1",
+        delta: "Hello ",
+        turnId: "turn_vercel_1",
+      },
+      {
+        type: "text.delta",
+        seq: 5,
+        id: "t1",
+        messageId: "msg_turn_vercel_1_s1",
+        delta: "world",
+        turnId: "turn_vercel_1",
+      },
+    ]);
+    expectAllParse(out);
+  });
+
+  it("a hostile non-object bag on an empty delta degrades to the bare pre-7.0.42 mapping, never throws", () => {
+    const n = createVercelNormalizer();
+    const out = [
+      ...n.push({ type: "start" }),
+      ...n.push({ type: "start-step", request: {}, warnings: [] }),
+      ...n.push({ type: "text-start", id: "t1" }),
+      ...n.push({ type: "text-delta", id: "t1", text: "", providerMetadata: "not-a-bag" }),
+      ...n.flush(),
+    ];
+    const delta = out.find((e) => e.type === "text.delta");
+    expect(delta).toBeDefined();
+    expect("providerMetadata" in delta!).toBe(false);
+    expectAllParse(out);
+  });
+});
+
 describe("error arm A — in-band error, provider still finishes (captured error-midstream-finish)", () => {
   const parts = [
     { type: "start" },

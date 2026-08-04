@@ -1162,3 +1162,174 @@ describe("createAdkNormalizer — per-turn usage summation (echo-gemini35 live-c
     for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
   });
 });
+
+// ─── adk 1.5.0 + genai 2.15.0 peer-bump carries (2026-08-04) ─────────────────
+
+describe("createAdkNormalizer — genai 2.15.0 Part.audioTranscription → provider-raw carry", () => {
+  // The FIRST new genai `Part` field since the partKind ratchet was seeded at
+  // 14 members: "Output only. The transcription of the audio part." — a
+  // Transcription {text, finished, languageCode, speakerLabel, words[]} riding
+  // ALONGSIDE the audio inlineData part it transcribes (the same sibling
+  // situation as videoMetadata), so it joins the SAME unconditional
+  // unmapped-part-fields carry checked BEFORE the if-chain's early returns.
+  // Carried WHOLE, never split: first-class text treatment (the event-level
+  // outputTranscription _meta stamp precedent) would orphan speakerLabel/words.
+  const transcription = {
+    text: "hello there",
+    finished: true,
+    languageCode: "en-US",
+    speakerLabel: "spk_1",
+    words: [
+      { word: "hello", startOffset: "0s", endOffset: "0.4s" },
+      { word: "there", startOffset: "0.4s", endOffset: "0.8s" },
+    ],
+  };
+  const audioPartEvent = (withTranscription: boolean) =>
+    event(
+      [
+        {
+          inlineData: { mimeType: "audio/pcm", data: "AAAA" },
+          ...(withTranscription ? { audioTranscription: transcription } : {}),
+        },
+      ],
+      { partial: false, turnComplete: true, finishReason: "STOP" }
+    );
+
+  it("carries the WHOLE Transcription (speakerLabel + words included) ALONGSIDE the already-handled audio inlineData block on the SAME part", () => {
+    const out = run([audioPartEvent(true)]);
+    const audioBlock = out.find(
+      (e) =>
+        e.type === "content.block" &&
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "audio",
+    );
+    expect(audioBlock).toBeDefined();
+    const rawBlock = out.find(
+      (e) =>
+        e.type === "content.block" &&
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "provider-raw" &&
+        "audioTranscription" in ((e as { block: { raw: object } }).block.raw as object),
+    );
+    expect(rawBlock).toBeDefined();
+    // Lossless: the carry preserves the full 2.15.0 Transcription shape,
+    // including the new speakerLabel + WordInfo duration-string offsets.
+    expect(
+      ((rawBlock as { block: { raw: Record<string, unknown> } }).block.raw)["audioTranscription"],
+    ).toEqual(transcription);
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("the audioTranscription stream folds cleanly through the Reducer (INV-MSG fold gate: no parks)", () => {
+    const evs = run([audioPartEvent(true)]);
+    const r = new Reducer();
+    for (const ev of evs) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    expect(() => AgReduceResult.parse(r.result())).not.toThrow();
+  });
+
+  it("a 2.12.0-shaped audio part (no audioTranscription) stays byte-identical — NO provider-raw, no new key anywhere (negative control)", () => {
+    const out = run([audioPartEvent(false)]);
+    const raws = out.filter(
+      (e) =>
+        e.type === "content.block" &&
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "provider-raw",
+    );
+    expect(raws).toHaveLength(0);
+    expect(JSON.stringify(out)).not.toContain("audioTranscription");
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+});
+
+describe("createAdkNormalizer — adk 1.5.0 CompactedEvent projection → provider-raw carry", () => {
+  // CompactedEvent (isCompacted/startTime/endTime/compactedContent + the NEW
+  // 1.5.0 isScratchpad, the anchored compactor's persistent scratchpad) is a
+  // session-history-plane Event SUBTYPE: compactors rewrite session.events IN
+  // PLACE and never yield one on the runner.runAsync boundary — this carry is
+  // session-REPLAY ingestion tolerance (the candidateIndex off-inventory
+  // precedent), so it can never fire on live-captured wire.
+  const compacted = (extra: Partial<AdkEvent> = {}) =>
+    event([{ text: "User asked about X; agent answered Y." }], {
+      isCompacted: true,
+      startTime: 1754265600,
+      endTime: 1754269200,
+      compactedContent: "User asked about X; agent answered Y.",
+      author: "system",
+      partial: false,
+      turnComplete: true,
+      finishReason: "STOP",
+      ...extra,
+    });
+  const findCompactedRaw = (out: AgEvent[]) =>
+    out.find(
+      (e) =>
+        e.type === "content.block" &&
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "provider-raw" &&
+        "isCompacted" in ((e as { block: { raw: object } }).block.raw as object),
+    ) as { block: { raw: Record<string, unknown> } } | undefined;
+
+  it("carries the full projection with isScratchpad:true — and the ubiquitous author field still does NOT leak into the carry", () => {
+    const out = run([compacted({ isScratchpad: true })]);
+    const raw = findCompactedRaw(out);
+    expect(raw).toBeDefined();
+    expect(raw?.block.raw).toEqual({
+      isCompacted: true,
+      startTime: 1754265600,
+      endTime: 1754269200,
+      compactedContent: "User asked about X; agent answered Y.",
+      isScratchpad: true,
+    });
+    // author:"system" is set on every compactor-produced event — the
+    // silently-dropped disposition must hold for the subtype too.
+    expect("author" in (raw?.block.raw ?? {})).toBe(false);
+    // The summary content itself still streams as ordinary text.
+    expect(out.some((e) => e.type === "text.delta")).toBe(true);
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("carries an explicit isScratchpad:false losslessly (present-check, not truthiness)", () => {
+    const out = run([compacted({ isScratchpad: false })]);
+    const raw = findCompactedRaw(out);
+    expect(raw?.block.raw["isScratchpad"]).toBe(false);
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("a 1.4.0-shaped CompactedEvent (no isScratchpad) carries the package WITHOUT an isScratchpad key (negative control)", () => {
+    const out = run([compacted()]);
+    const raw = findCompactedRaw(out);
+    expect(raw).toBeDefined();
+    expect("isScratchpad" in (raw?.block.raw ?? {})).toBe(false);
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("a scratchpad-compacted turn plus a normal turn fold cleanly through the Reducer (no parks, no re-opened sealed ids)", () => {
+    const evs = run([
+      compacted({ isScratchpad: true }),
+      event([{ text: "fresh turn" }], {
+        invocationId: "inv_fixture_2",
+        partial: false,
+        turnComplete: true,
+        finishReason: "STOP",
+      }),
+    ]);
+    const r = new Reducer();
+    for (const ev of evs) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    expect(() => AgReduceResult.parse(r.result())).not.toThrow();
+  });
+
+  it("a 1.4.0-shaped plain event stream never mentions the compacted keys (byte-identical negative control)", () => {
+    const out = run([
+      event([{ text: "plain" }], { partial: false, turnComplete: true, finishReason: "STOP" }),
+    ]);
+    expect(JSON.stringify(out)).not.toContain("isScratchpad");
+    expect(JSON.stringify(out)).not.toContain("compactedContent");
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+});

@@ -1,7 +1,7 @@
 {
   "$comment": "Ratchet manifest for the fixture-drift gate (scripts/check-fixture-drift.mjs). Members are the `SDKMessage` union's arm TYPE NAMES, extracted mechanically from `export declare type SDKMessage = A | B | \u2026;` in @anthropic-ai/claude-agent-sdk/sdk.d.ts. Dispositions were seeded 2026-07-03 by reading src/index.ts (the facet's `drive()` switch) + every arm's own field declarations in sdk.d.ts + the two playbook reports (.superpowers/sdd/playbook-sdk-bumps-report.md, playbook-facet-adaptations-report.md). handled = the facet has a dedicated branch; carried = routed to ext.anthropic.* losslessly; router-plane = pure SDK/CLI/session control-plane telemetry with no conversational free-text payload, ignored by the facet's own documented design (index.ts's blanket 'carry no AgJSON-relevant content' comment, or a more specific documented rationale noted per-entry) \u2014 verified by reading the arm's actual fields, not assumed from its name; not-applicable = provably cannot occur on this SDK's wire (unused on this manifest \u2014 every named SDKMessage arm is structurally reachable); silently-dropped = reaches the facet, carries real informational payload, and has NO route (ext or otherwise) \u2014 a genuine pre-existing gap, documented honestly rather than papered over as not-applicable or router-plane. ZERO members remain `silently-dropped` as of the claude-arms-disposition task (2026-07-03 follow-up): SDKInformationalMessage was fixed first (flagship finding, carried); the remaining 16 were closed in one pass \u2014 15 via the uniform `ext.anthropic.frame{kind, frame}` lossless-carry convention (SPEC \u00a78 item 22 / \u00a712), and SDKPermissionDeniedMessage via existing-home enrichment of the already-handled W1 `<turnId>:denials` carrier (audit M19). See .superpowers/sdd/pb-task-6-report.md for the original seeding rationale and .superpowers/sdd/claude-arms-disposition-report.md for the full per-arm closure decisions + wire-shape citations.",
   "sdkPackage": "@anthropic-ai/claude-agent-sdk",
-  "verifiedAt": "0.3.220",
+  "verifiedAt": "0.3.221",
   "verified": [
     {
       "sdkVersion": "0.2.141",
@@ -60,6 +60,12 @@
       "date": "2026-07-29",
       "silverprotocol": "0.3.7",
       "evidence": "Live capture landed (echo-sonnet5 @ claude-sonnet-5, sdk 0.3.220): the result frame live-populates ALL THREE carried fields \u2014 fast_mode_disabled_reason='sdk_opt_in_required' plus canonicalModel/provider on BOTH modelUsage entries (claude-sonnet-5\u2192{claude-sonnet-5, firstParty}; claude-haiku-4-5-20251001\u2192{claude-haiku-4-5, firstParty}) \u2014 confirming the ext.anthropic.result-meta carry against real wire, not just synthetic frames. Census: 5 new norm-paths classified (1 value-verifying transform [*].fast_mode_disabled_reason\u2192[*].fastModeDisabledReason + registry entries using the {*} dynamic-key wildcard for the per-model paths \u2014 [*].modelUsage.{*}.canonicalModel/provider, the wildcard's first production use); replay + census gates green, zero drops."
+    },
+    {
+      "sdkVersion": "0.3.221",
+      "date": "2026-08-04",
+      "silverprotocol": "0.3.9",
+      "evidence": "0.3.220\u21920.3.221 verified a Node-stream wire no-op by full sdk.d.ts tarball diff (181 lines / 11 hunks, all accounted): SDKMessage union (38 arms), stream_event, and control types untouched; the deltas are sandbox credentials config-input widening (mode 'mask', extract/onExtractNoMatch/maskDuplicates/injectHosts), quote-style const rewrites, and two NEW browser-sdk.d.ts exports (G4_TEXT_ENVELOPE_ARM_PORTED, getSseDropCounts \u2014 flag-gated SSE frame-drop machinery, relevant only if a browser-SSE facet ever exists). Release notes (skills validation, external mcpServers pre-first-turn connect fix) alter no schema. Pin bumped; live re-capture in this cohort's capture step."
     }
   ],
   "members": {

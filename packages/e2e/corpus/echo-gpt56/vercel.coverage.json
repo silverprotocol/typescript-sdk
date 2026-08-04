@@ -1,4 +1,777 @@
 {
-  "drops": [],
-  "newFields": []
+  "drops": [
+    {
+      "path": "[0].type",
+      "norm": "[*].type",
+      "value": "start"
+    },
+    {
+      "path": "[1].type",
+      "norm": "[*].type",
+      "value": "start-step"
+    },
+    {
+      "path": "[2].type",
+      "norm": "[*].type",
+      "value": "reasoning-start"
+    },
+    {
+      "path": "[2].providerMetadata.openai.itemId",
+      "norm": "[*].providerMetadata.openai.itemId",
+      "value": "rs_069792b223852f82006a71c33b978c819aac985a1ecd34a95c"
+    },
+    {
+      "path": "[2].providerMetadata.openai.reasoningEncryptedContent",
+      "norm": "[*].providerMetadata.openai.reasoningEncryptedContent",
+      "value": "gAAAAABqccM79XVGgoOc9caKOvyEsGNcFVLKt4F8XajcPQm-4lmnvlwcmOXRAn7hpyhewYVt8Oskl7hJlSO_36TNIf1VwDvRUAvyxiRvf-ZI5086NH4CTOqdndT3wr5OG6GP4MRiqsLGiTiU_VTS89Pg5fJdPwRSkS2cu9w2OW9Q6Ne9q84PF9980T8rH-xufMIK85E72-fBGiT844hKrwb99bv8OKlr6rgHtBxhCOPxH094WvTzEfz6OmfUPDzLJNXkeMCsafMAVgzV6jeY1tbLCjANNmVAzcajfaSxWIKz1QnAjmapCy0sZ0IZb-lHqCAlOe8Gspa191DpNexLgqwGZVT0TS__aoGcamDJ6SLVFd05gqRghKxm8t5rwOXs2xwKyWKddtD4Wr2c49B4WgupHOGPzX8oZNnN-j3qjj-JgeoKiQ_4uK7l-EwJVVgI8VwhoiFtFbhZW3RL_rrq4mUbMzbH-EF1cScHCI3K46Y2aE7_fPoAfXA4gH5Vmqh3Z17qHoMtMznNRMTeNLyoYT26pC-HxA9ukarqtA_mE8_jQraGbpzfwdIZpEIzdbw2fEuJ2slZBNolkuB1jb_0-iEviGSWzQV0N1iyIJIp_nbXEXec-A04ED9aWB4Dnvql-AMSnrm2K206k6ftp9j0Wfba1l-CJowcRJsh1hKoTtAbNq7XpNN1E78DFJa5zC7qmk1wkNLFf1AOpjFyASgaH-HeGj_R9kszyls2MlJPr8BfJdG6m-_OlmzSJ4Bp8FJq2jQiBOIMpj7VXITm1f9aLVTaz1zbC0DAawM1oxuFGC3_HAIVDuVafNXWn1ny3eHG7voS4N84yjEhMSaZrABTVhVr8u8NFB0D2RgQW1QeFTY2QgAXQIm4D7f1bAjaanW2_bv64nc4O9aD3M8gzHt8JYyM0UP9NE9H6Q=="
+    },
+    {
+      "path": "[3].type",
+      "norm": "[*].type",
+      "value": "reasoning-end"
+    },
+    {
+      "path": "[3].providerMetadata.openai.itemId",
+      "norm": "[*].providerMetadata.openai.itemId",
+      "value": "rs_069792b223852f82006a71c33b978c819aac985a1ecd34a95c"
+    },
+    {
+      "path": "[4].type",
+      "norm": "[*].type",
+      "value": "tool-input-start"
+    },
+    {
+      "path": "[4].dynamic",
+      "norm": "[*].dynamic",
+      "value": true
+    },
+    {
+      "path": "[4].toolMetadata.clientName",
+      "norm": "[*].toolMetadata.clientName",
+      "value": "ai-sdk-mcp-client"
+    },
+    {
+      "path": "[5].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[6].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[7].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[8].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[9].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[10].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[11].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[12].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[13].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[14].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[15].type",
+      "norm": "[*].type",
+      "value": "tool-input-delta"
+    },
+    {
+      "path": "[16].type",
+      "norm": "[*].type",
+      "value": "tool-input-end"
+    },
+    {
+      "path": "[17].type",
+      "norm": "[*].type",
+      "value": "tool-call"
+    },
+    {
+      "path": "[17].providerMetadata.openai.itemId",
+      "norm": "[*].providerMetadata.openai.itemId",
+      "value": "fc_069792b223852f82006a71c33c808c819a8a8b18112d5f8629"
+    },
+    {
+      "path": "[17].toolMetadata.clientName",
+      "norm": "[*].toolMetadata.clientName",
+      "value": "ai-sdk-mcp-client"
+    },
+    {
+      "path": "[17].dynamic",
+      "norm": "[*].dynamic",
+      "value": true
+    },
+    {
+      "path": "[18].type",
+      "norm": "[*].type",
+      "value": "tool-result"
+    },
+    {
+      "path": "[18].output.isError",
+      "norm": "[*].output.isError",
+      "value": false
+    },
+    {
+      "path": "[18].dynamic",
+      "norm": "[*].dynamic",
+      "value": true
+    },
+    {
+      "path": "[18].providerMetadata.openai.itemId",
+      "norm": "[*].providerMetadata.openai.itemId",
+      "value": "fc_069792b223852f82006a71c33c808c819a8a8b18112d5f8629"
+    },
+    {
+      "path": "[18].toolMetadata.clientName",
+      "norm": "[*].toolMetadata.clientName",
+      "value": "ai-sdk-mcp-client"
+    },
+    {
+      "path": "[19].type",
+      "norm": "[*].type",
+      "value": "finish-step"
+    },
+    {
+      "path": "[19].finishReason",
+      "norm": "[*].finishReason",
+      "value": "tool-calls"
+    },
+    {
+      "path": "[19].usage.inputTokenDetails.cacheReadTokens",
+      "norm": "[*].usage.inputTokenDetails.cacheReadTokens",
+      "value": 0
+    },
+    {
+      "path": "[19].usage.inputTokenDetails.cacheWriteTokens",
+      "norm": "[*].usage.inputTokenDetails.cacheWriteTokens",
+      "value": 0
+    },
+    {
+      "path": "[19].usage.raw.input_tokens_details.cached_tokens",
+      "norm": "[*].usage.raw.input_tokens_details.cached_tokens",
+      "value": 0
+    },
+    {
+      "path": "[19].usage.raw.input_tokens_details.cache_write_tokens",
+      "norm": "[*].usage.raw.input_tokens_details.cache_write_tokens",
+      "value": 0
+    },
+    {
+      "path": "[19].performance.stepTimeMs",
+      "norm": "[*].performance.stepTimeMs",
+      "value": 3393.310125
+    },
+    {
+      "path": "[19].performance.toolExecutionMs.call_aMrjv4GkPuRlhR0gcllcZmOe",
+      "norm": "[*].performance.toolExecutionMs.call_aMrjv4GkPuRlhR0gcllcZmOe",
+      "value": 5.690874999999778
+    },
+    {
+      "path": "[19].performance.responseTimeMs",
+      "norm": "[*].performance.responseTimeMs",
+      "value": 3385.971417
+    },
+    {
+      "path": "[19].performance.effectiveOutputTokensPerSecond",
+      "norm": "[*].performance.effectiveOutputTokensPerSecond",
+      "value": 17.424836991764835
+    },
+    {
+      "path": "[19].performance.outputTokensPerSecond",
+      "norm": "[*].performance.outputTokensPerSecond",
+      "value": 108.19849642821356
+    },
+    {
+      "path": "[19].performance.inputTokensPerSecond",
+      "norm": "[*].performance.inputTokensPerSecond",
+      "value": 35.906929243624866
+    },
+    {
+      "path": "[19].performance.effectiveTotalTokensPerSecond",
+      "norm": "[*].performance.effectiveTotalTokensPerSecond",
+      "value": 47.54913145210404
+    },
+    {
+      "path": "[19].performance.timeToFirstOutputMs",
+      "norm": "[*].performance.timeToFirstOutputMs",
+      "value": 2840.677333
+    },
+    {
+      "path": "[19].performance.timeBetweenOutputChunksMs.min",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.min",
+      "value": 0.13987500000030195
+    },
+    {
+      "path": "[19].performance.timeBetweenOutputChunksMs.p10",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.p10",
+      "value": 0.14683299999978772
+    },
+    {
+      "path": "[19].performance.timeBetweenOutputChunksMs.median",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.median",
+      "value": 3.412583000000268
+    },
+    {
+      "path": "[19].performance.timeBetweenOutputChunksMs.avg",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.avg",
+      "value": 33.45332200000001
+    },
+    {
+      "path": "[19].performance.timeBetweenOutputChunksMs.p90",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.p90",
+      "value": 128.47149999999965
+    },
+    {
+      "path": "[19].performance.timeBetweenOutputChunksMs.max",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.max",
+      "value": 139.8561669999999
+    },
+    {
+      "path": "[19].providerMetadata.openai.serviceTier",
+      "norm": "[*].providerMetadata.openai.serviceTier",
+      "value": "default"
+    },
+    {
+      "path": "[19].providerMetadata.openai.reasoningContext",
+      "norm": "[*].providerMetadata.openai.reasoningContext",
+      "value": "all_turns"
+    },
+    {
+      "path": "[19].response.timestamp",
+      "norm": "[*].response.timestamp",
+      "value": "2026-08-04T10:47:21.000Z"
+    },
+    {
+      "path": "[19].response.headers.access-control-expose-headers",
+      "norm": "[*].response.headers.access-control-expose-headers",
+      "value": "X-Request-ID, CF-Ray, CF-Ray"
+    },
+    {
+      "path": "[19].response.headers.alt-svc",
+      "norm": "[*].response.headers.alt-svc",
+      "value": "h3=\":443\"; ma=86400"
+    },
+    {
+      "path": "[19].response.headers.cf-cache-status",
+      "norm": "[*].response.headers.cf-cache-status",
+      "value": "DYNAMIC"
+    },
+    {
+      "path": "[19].response.headers.cf-ray",
+      "norm": "[*].response.headers.cf-ray",
+      "value": "a25cfbc8f929327b-ICN"
+    },
+    {
+      "path": "[19].response.headers.connection",
+      "norm": "[*].response.headers.connection",
+      "value": "keep-alive"
+    },
+    {
+      "path": "[19].response.headers.content-type",
+      "norm": "[*].response.headers.content-type",
+      "value": "text/event-stream; charset=utf-8"
+    },
+    {
+      "path": "[19].response.headers.date",
+      "norm": "[*].response.headers.date",
+      "value": "Tue, 04 Aug 2026 10:47:22 GMT"
+    },
+    {
+      "path": "[19].response.headers.openai-organization",
+      "norm": "[*].response.headers.openai-organization",
+      "value": "alohomora-company"
+    },
+    {
+      "path": "[19].response.headers.openai-processing-ms",
+      "norm": "[*].response.headers.openai-processing-ms",
+      "value": "736"
+    },
+    {
+      "path": "[19].response.headers.openai-project",
+      "norm": "[*].response.headers.openai-project",
+      "value": "proj_ZN1JUSrsvFLEcIBrWjUCXGks"
+    },
+    {
+      "path": "[19].response.headers.openai-version",
+      "norm": "[*].response.headers.openai-version",
+      "value": "2020-10-01"
+    },
+    {
+      "path": "[19].response.headers.server",
+      "norm": "[*].response.headers.server",
+      "value": "cloudflare"
+    },
+    {
+      "path": "[19].response.headers.set-cookie",
+      "norm": "[*].response.headers.set-cookie",
+      "value": "__cf_bm=DkaGwj0vIFdVCjOQqGem3IhQLn8W39LFXyvSW40WXqw-1785840441.7539215-1.0.1.1-AV_WaAC93rblf9v16t9o4rWOD_qbima9ZcFqtrudQ20tol7q1EGvLW01XzflDr7t66JLYWdgz9kYbL99cRcdfonli9mcFEf6qbmAXepCNxchBkR98QL93dbBcguvoLpL; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.openai.com; Expires=Tue, 04 Aug 2026 11:17:22 GMT"
+    },
+    {
+      "path": "[19].response.headers.strict-transport-security",
+      "norm": "[*].response.headers.strict-transport-security",
+      "value": "max-age=31536000; includeSubDomains; preload"
+    },
+    {
+      "path": "[19].response.headers.transfer-encoding",
+      "norm": "[*].response.headers.transfer-encoding",
+      "value": "chunked"
+    },
+    {
+      "path": "[19].response.headers.x-content-type-options",
+      "norm": "[*].response.headers.x-content-type-options",
+      "value": "nosniff"
+    },
+    {
+      "path": "[19].response.headers.x-ratelimit-limit-requests",
+      "norm": "[*].response.headers.x-ratelimit-limit-requests",
+      "value": "10000"
+    },
+    {
+      "path": "[19].response.headers.x-ratelimit-limit-tokens",
+      "norm": "[*].response.headers.x-ratelimit-limit-tokens",
+      "value": "4000000"
+    },
+    {
+      "path": "[19].response.headers.x-ratelimit-remaining-requests",
+      "norm": "[*].response.headers.x-ratelimit-remaining-requests",
+      "value": "9999"
+    },
+    {
+      "path": "[19].response.headers.x-ratelimit-remaining-tokens",
+      "norm": "[*].response.headers.x-ratelimit-remaining-tokens",
+      "value": "3999463"
+    },
+    {
+      "path": "[19].response.headers.x-ratelimit-reset-requests",
+      "norm": "[*].response.headers.x-ratelimit-reset-requests",
+      "value": "6ms"
+    },
+    {
+      "path": "[19].response.headers.x-ratelimit-reset-tokens",
+      "norm": "[*].response.headers.x-ratelimit-reset-tokens",
+      "value": "8ms"
+    },
+    {
+      "path": "[19].response.headers.x-request-id",
+      "norm": "[*].response.headers.x-request-id",
+      "value": "req_2b7a8da4ebf54154ab50003223f661f5"
+    },
+    {
+      "path": "[20].type",
+      "norm": "[*].type",
+      "value": "start-step"
+    },
+    {
+      "path": "[21].type",
+      "norm": "[*].type",
+      "value": "text-start"
+    },
+    {
+      "path": "[21].providerMetadata.openai.phase",
+      "norm": "[*].providerMetadata.openai.phase",
+      "value": "final_answer"
+    },
+    {
+      "path": "[22].type",
+      "norm": "[*].type",
+      "value": "text-delta"
+    },
+    {
+      "path": "[23].type",
+      "norm": "[*].type",
+      "value": "text-delta"
+    },
+    {
+      "path": "[24].type",
+      "norm": "[*].type",
+      "value": "text-delta"
+    },
+    {
+      "path": "[25].type",
+      "norm": "[*].type",
+      "value": "text-delta"
+    },
+    {
+      "path": "[26].type",
+      "norm": "[*].type",
+      "value": "text-delta"
+    },
+    {
+      "path": "[27].type",
+      "norm": "[*].type",
+      "value": "text-delta"
+    },
+    {
+      "path": "[28].type",
+      "norm": "[*].type",
+      "value": "text-delta"
+    },
+    {
+      "path": "[29].type",
+      "norm": "[*].type",
+      "value": "text-end"
+    },
+    {
+      "path": "[29].providerMetadata.openai.phase",
+      "norm": "[*].providerMetadata.openai.phase",
+      "value": "final_answer"
+    },
+    {
+      "path": "[30].type",
+      "norm": "[*].type",
+      "value": "finish-step"
+    },
+    {
+      "path": "[30].usage.inputTokenDetails.cacheReadTokens",
+      "norm": "[*].usage.inputTokenDetails.cacheReadTokens",
+      "value": 0
+    },
+    {
+      "path": "[30].usage.inputTokenDetails.cacheWriteTokens",
+      "norm": "[*].usage.inputTokenDetails.cacheWriteTokens",
+      "value": 0
+    },
+    {
+      "path": "[30].usage.outputTokenDetails.reasoningTokens",
+      "norm": "[*].usage.outputTokenDetails.reasoningTokens",
+      "value": 0
+    },
+    {
+      "path": "[30].usage.raw.input_tokens_details.cached_tokens",
+      "norm": "[*].usage.raw.input_tokens_details.cached_tokens",
+      "value": 0
+    },
+    {
+      "path": "[30].usage.raw.input_tokens_details.cache_write_tokens",
+      "norm": "[*].usage.raw.input_tokens_details.cache_write_tokens",
+      "value": 0
+    },
+    {
+      "path": "[30].usage.raw.output_tokens_details.reasoning_tokens",
+      "norm": "[*].usage.raw.output_tokens_details.reasoning_tokens",
+      "value": 0
+    },
+    {
+      "path": "[30].performance.stepTimeMs",
+      "norm": "[*].performance.stepTimeMs",
+      "value": 11015.269709
+    },
+    {
+      "path": "[30].performance.responseTimeMs",
+      "norm": "[*].performance.responseTimeMs",
+      "value": 11013.662333
+    },
+    {
+      "path": "[30].performance.effectiveOutputTokensPerSecond",
+      "norm": "[*].performance.effectiveOutputTokensPerSecond",
+      "value": 0.9987595104528433
+    },
+    {
+      "path": "[30].performance.outputTokensPerSecond",
+      "norm": "[*].performance.outputTokensPerSecond",
+      "value": 33.13340336529944
+    },
+    {
+      "path": "[30].performance.inputTokensPerSecond",
+      "norm": "[*].performance.inputTokensPerSecond",
+      "value": 16.664059267214192
+    },
+    {
+      "path": "[30].performance.effectiveTotalTokensPerSecond",
+      "norm": "[*].performance.effectiveTotalTokensPerSecond",
+      "value": 17.160504315962488
+    },
+    {
+      "path": "[30].performance.timeToFirstOutputMs",
+      "norm": "[*].performance.timeToFirstOutputMs",
+      "value": 10681.671083
+    },
+    {
+      "path": "[30].performance.timeBetweenOutputChunksMs.min",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.min",
+      "value": 0.17433399999936228
+    },
+    {
+      "path": "[30].performance.timeBetweenOutputChunksMs.p10",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.p10",
+      "value": 0.17433399999936228
+    },
+    {
+      "path": "[30].performance.timeBetweenOutputChunksMs.median",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.median",
+      "value": 1.9295839999995223
+    },
+    {
+      "path": "[30].performance.timeBetweenOutputChunksMs.avg",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.avg",
+      "value": 25.346104166666617
+    },
+    {
+      "path": "[30].performance.timeBetweenOutputChunksMs.p90",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.p90",
+      "value": 79.83291599999939
+    },
+    {
+      "path": "[30].performance.timeBetweenOutputChunksMs.max",
+      "norm": "[*].performance.timeBetweenOutputChunksMs.max",
+      "value": 79.83291599999939
+    },
+    {
+      "path": "[30].providerMetadata.openai.serviceTier",
+      "norm": "[*].providerMetadata.openai.serviceTier",
+      "value": "default"
+    },
+    {
+      "path": "[30].providerMetadata.openai.reasoningContext",
+      "norm": "[*].providerMetadata.openai.reasoningContext",
+      "value": "all_turns"
+    },
+    {
+      "path": "[30].response.timestamp",
+      "norm": "[*].response.timestamp",
+      "value": "2026-08-04T10:47:25.000Z"
+    },
+    {
+      "path": "[30].response.headers.access-control-expose-headers",
+      "norm": "[*].response.headers.access-control-expose-headers",
+      "value": "X-Request-ID, CF-Ray, CF-Ray"
+    },
+    {
+      "path": "[30].response.headers.alt-svc",
+      "norm": "[*].response.headers.alt-svc",
+      "value": "h3=\":443\"; ma=86400"
+    },
+    {
+      "path": "[30].response.headers.cf-cache-status",
+      "norm": "[*].response.headers.cf-cache-status",
+      "value": "DYNAMIC"
+    },
+    {
+      "path": "[30].response.headers.cf-ray",
+      "norm": "[*].response.headers.cf-ray",
+      "value": "a25cfbde0930327b-ICN"
+    },
+    {
+      "path": "[30].response.headers.connection",
+      "norm": "[*].response.headers.connection",
+      "value": "keep-alive"
+    },
+    {
+      "path": "[30].response.headers.content-type",
+      "norm": "[*].response.headers.content-type",
+      "value": "text/event-stream; charset=utf-8"
+    },
+    {
+      "path": "[30].response.headers.date",
+      "norm": "[*].response.headers.date",
+      "value": "Tue, 04 Aug 2026 10:47:25 GMT"
+    },
+    {
+      "path": "[30].response.headers.openai-organization",
+      "norm": "[*].response.headers.openai-organization",
+      "value": "alohomora-company"
+    },
+    {
+      "path": "[30].response.headers.openai-processing-ms",
+      "norm": "[*].response.headers.openai-processing-ms",
+      "value": "403"
+    },
+    {
+      "path": "[30].response.headers.openai-project",
+      "norm": "[*].response.headers.openai-project",
+      "value": "proj_ZN1JUSrsvFLEcIBrWjUCXGks"
+    },
+    {
+      "path": "[30].response.headers.openai-version",
+      "norm": "[*].response.headers.openai-version",
+      "value": "2020-10-01"
+    },
+    {
+      "path": "[30].response.headers.server",
+      "norm": "[*].response.headers.server",
+      "value": "cloudflare"
+    },
+    {
+      "path": "[30].response.headers.set-cookie",
+      "norm": "[*].response.headers.set-cookie",
+      "value": "__cf_bm=VcQONbg7Zq5vceaYGjFvy2qgjxc6iKNr4BS5hJsFEC8-1785840445.1222103-1.0.1.1-8jGochAegKo450uESsXJ.AYT7SHDdOf5sExCOdwiDC7Nh3hpf6Z5bihvLwmkBVtl0_lwOBOM_EmuKXEgLVwycXiZ_LrIlwBaXjRmQMBvuPDrazQRveQ3sCZXaKE15.wR; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.openai.com; Expires=Tue, 04 Aug 2026 11:17:25 GMT"
+    },
+    {
+      "path": "[30].response.headers.strict-transport-security",
+      "norm": "[*].response.headers.strict-transport-security",
+      "value": "max-age=31536000; includeSubDomains; preload"
+    },
+    {
+      "path": "[30].response.headers.transfer-encoding",
+      "norm": "[*].response.headers.transfer-encoding",
+      "value": "chunked"
+    },
+    {
+      "path": "[30].response.headers.x-content-type-options",
+      "norm": "[*].response.headers.x-content-type-options",
+      "value": "nosniff"
+    },
+    {
+      "path": "[30].response.headers.x-ratelimit-limit-requests",
+      "norm": "[*].response.headers.x-ratelimit-limit-requests",
+      "value": "10000"
+    },
+    {
+      "path": "[30].response.headers.x-ratelimit-limit-tokens",
+      "norm": "[*].response.headers.x-ratelimit-limit-tokens",
+      "value": "4000000"
+    },
+    {
+      "path": "[30].response.headers.x-ratelimit-remaining-requests",
+      "norm": "[*].response.headers.x-ratelimit-remaining-requests",
+      "value": "9999"
+    },
+    {
+      "path": "[30].response.headers.x-ratelimit-remaining-tokens",
+      "norm": "[*].response.headers.x-ratelimit-remaining-tokens",
+      "value": "3999387"
+    },
+    {
+      "path": "[30].response.headers.x-ratelimit-reset-requests",
+      "norm": "[*].response.headers.x-ratelimit-reset-requests",
+      "value": "6ms"
+    },
+    {
+      "path": "[30].response.headers.x-ratelimit-reset-tokens",
+      "norm": "[*].response.headers.x-ratelimit-reset-tokens",
+      "value": "9ms"
+    },
+    {
+      "path": "[30].response.headers.x-request-id",
+      "norm": "[*].response.headers.x-request-id",
+      "value": "req_72d03fd3499e468784382bdcf2d78b09"
+    },
+    {
+      "path": "[31].type",
+      "norm": "[*].type",
+      "value": "finish"
+    },
+    {
+      "path": "[31].totalUsage.inputTokenDetails.cacheReadTokens",
+      "norm": "[*].totalUsage.inputTokenDetails.cacheReadTokens",
+      "value": 0
+    },
+    {
+      "path": "[31].totalUsage.inputTokenDetails.cacheWriteTokens",
+      "norm": "[*].totalUsage.inputTokenDetails.cacheWriteTokens",
+      "value": 0
+    }
+  ],
+  "newFields": [
+    "[*].type",
+    "[*].id",
+    "[*].providerMetadata.openai.itemId",
+    "[*].providerMetadata.openai.reasoningEncryptedContent",
+    "[*].toolName",
+    "[*].dynamic",
+    "[*].toolMetadata.clientName",
+    "[*].toolMetadata.toolName",
+    "[*].delta",
+    "[*].toolCallId",
+    "[*].input.message",
+    "[*].output.content[*].type",
+    "[*].output.content[*].text",
+    "[*].output.isError",
+    "[*].finishReason",
+    "[*].usage.inputTokens",
+    "[*].usage.inputTokenDetails.noCacheTokens",
+    "[*].usage.inputTokenDetails.cacheReadTokens",
+    "[*].usage.inputTokenDetails.cacheWriteTokens",
+    "[*].usage.outputTokens",
+    "[*].usage.outputTokenDetails.textTokens",
+    "[*].usage.outputTokenDetails.reasoningTokens",
+    "[*].usage.totalTokens",
+    "[*].usage.raw.input_tokens",
+    "[*].usage.raw.input_tokens_details.cached_tokens",
+    "[*].usage.raw.input_tokens_details.cache_write_tokens",
+    "[*].usage.raw.output_tokens",
+    "[*].usage.raw.output_tokens_details.reasoning_tokens",
+    "[*].performance.stepTimeMs",
+    "[*].performance.toolExecutionMs.call_aMrjv4GkPuRlhR0gcllcZmOe",
+    "[*].performance.responseTimeMs",
+    "[*].performance.effectiveOutputTokensPerSecond",
+    "[*].performance.outputTokensPerSecond",
+    "[*].performance.inputTokensPerSecond",
+    "[*].performance.effectiveTotalTokensPerSecond",
+    "[*].performance.timeToFirstOutputMs",
+    "[*].performance.timeBetweenOutputChunksMs.min",
+    "[*].performance.timeBetweenOutputChunksMs.p10",
+    "[*].performance.timeBetweenOutputChunksMs.median",
+    "[*].performance.timeBetweenOutputChunksMs.avg",
+    "[*].performance.timeBetweenOutputChunksMs.p90",
+    "[*].performance.timeBetweenOutputChunksMs.max",
+    "[*].providerMetadata.openai.responseId",
+    "[*].providerMetadata.openai.serviceTier",
+    "[*].providerMetadata.openai.reasoningContext",
+    "[*].response.id",
+    "[*].response.timestamp",
+    "[*].response.modelId",
+    "[*].response.headers.access-control-expose-headers",
+    "[*].response.headers.alt-svc",
+    "[*].response.headers.cf-cache-status",
+    "[*].response.headers.cf-ray",
+    "[*].response.headers.connection",
+    "[*].response.headers.content-type",
+    "[*].response.headers.date",
+    "[*].response.headers.openai-organization",
+    "[*].response.headers.openai-processing-ms",
+    "[*].response.headers.openai-project",
+    "[*].response.headers.openai-version",
+    "[*].response.headers.server",
+    "[*].response.headers.set-cookie",
+    "[*].response.headers.strict-transport-security",
+    "[*].response.headers.transfer-encoding",
+    "[*].response.headers.x-content-type-options",
+    "[*].response.headers.x-ratelimit-limit-requests",
+    "[*].response.headers.x-ratelimit-limit-tokens",
+    "[*].response.headers.x-ratelimit-remaining-requests",
+    "[*].response.headers.x-ratelimit-remaining-tokens",
+    "[*].response.headers.x-ratelimit-reset-requests",
+    "[*].response.headers.x-ratelimit-reset-tokens",
+    "[*].response.headers.x-request-id",
+    "[*].providerMetadata.openai.phase",
+    "[*].text",
+    "[*].totalUsage.inputTokens",
+    "[*].totalUsage.inputTokenDetails.noCacheTokens",
+    "[*].totalUsage.inputTokenDetails.cacheReadTokens",
+    "[*].totalUsage.inputTokenDetails.cacheWriteTokens",
+    "[*].totalUsage.outputTokens",
+    "[*].totalUsage.outputTokenDetails.textTokens",
+    "[*].totalUsage.outputTokenDetails.reasoningTokens",
+    "[*].totalUsage.totalTokens"
+  ]
 }
