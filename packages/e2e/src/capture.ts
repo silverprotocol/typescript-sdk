@@ -134,6 +134,7 @@ export async function runCapture(
       ...(systemPrompt !== undefined ? { systemPrompt } : {}),
       ...(opts.apiKey !== undefined ? { apiKey: opts.apiKey } : {}),
       ...(opts.model !== undefined ? { model: opts.model } : {}),
+      ...(scenario.includePartialMessages === true ? { includePartialMessages: true } : {}),
     };
 
     for await (const event of deps.runAgentCapture(agentInput)) {

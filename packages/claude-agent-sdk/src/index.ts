@@ -14,6 +14,14 @@
  * `message.start`/`message.end` pair per id, never a re-open of a sealed id
  * (INV-MSG — see `PendingMessage` in `createClaudeNormalizer`, guuey#26).
  *
+ * With `includePartialMessages: true` (workspace#7) the seam ALSO interleaves
+ * `stream_event` frames — the raw Anthropic streaming vocabulary — before each
+ * complete assistant frame. Partials map to the SAME lifecycles under the SAME
+ * ids (token-granular `text.delta`/`reasoning.delta`/`tool.args.delta`), and
+ * the complete frame that follows joins the streamed lifecycle content-
+ * suppressed, so nothing is emitted twice; a consumer without partials sees
+ * byte-identical output to before (see `driveStreamEvent`).
+ *
  * The engine owns sequencing and turn assembly: it synthesizes a `turn.start` at
  * the head of each unseen TOP-LEVEL turn (`openMessage` → `#ensureTurn`), backfills
  * `turnId` onto content/tool events from the owning message, and allocates a
@@ -72,6 +80,15 @@ type SDKAssistantError = SDKAssistant["error"];
 // For text block citations
 type BetaTextBlockT = Extract<BetaContentBlock, { type: "text" }>;
 type BetaTextCitationT = NonNullable<BetaTextBlockT["citations"]>[number];
+
+// ─── stream_event (partial-assistant) arm — workspace#7 ──────────────────────
+// With `includePartialMessages: true` the run-seam interleaves
+// `{type:"stream_event", event: BetaRawMessageStreamEvent}` frames (the raw
+// Anthropic streaming vocabulary) before each complete assistant frame. Same
+// no-subpath-import rule as above: every shape is projected out of the union.
+type SDKPartial = Extract<SDKMessage, { type: "stream_event" }>;
+type StreamEvent = SDKPartial["event"];
+type StreamContentBlock = Extract<StreamEvent, { type: "content_block_start" }>["content_block"];
 
 // ─── stop_reason → AgFinishReason (spec §4) ───────────────────────────────────
 // Anthropic BetaStopReason superset → the neutral finish-reason superset.
@@ -447,8 +464,14 @@ function isSDKMessage(v: unknown): v is SDKMessage {
   if (t === "result") {
     return typeof v.subtype === "string";
   }
-  // system / partial-assistant / status / … — structurally valid SDKMessage arms
-  // that carry no AgJSON-relevant content. Accept (the normalizer no-ops on them).
+  if (t === "stream_event") {
+    // workspace#7: the partial-assistant arm is now driven — the load-bearing
+    // nested shape is the event object with its own discriminant.
+    const ev = v.event;
+    return isJsonObject(ev) && typeof ev.type === "string";
+  }
+  // system / status / … — structurally valid SDKMessage arms that carry no
+  // AgJSON-relevant content. Accept (the normalizer no-ops on them).
   return typeof t === "string";
 }
 
@@ -516,6 +539,14 @@ const CARRIED_SYSTEM_SUBTYPES = new Set<string>([
   "files_persisted",
   "memory_recall",
   "mirror_error",
+  // workspace#7 census-caught (2026-08-07, corpus/partials-sonnet5): the
+  // system/status ping — status:'compacting'|'requesting'|null (+ optional
+  // compact_result/compact_error). GENUINE consumer-facing agent-state signal
+  // (exactly the ready/thinking/responding vocabulary chat surfaces render —
+  // loqu-co/guuey#91's status-states half) with no AgJSON home; previously
+  // router-plane'd. Carried whole-frame, which also closes the manifest's
+  // disclosed `compact_error` residual gap.
+  "status",
 ]);
 const CARRIED_STANDALONE_TYPES = new Set<string>([
   "auth_status",
@@ -654,7 +685,31 @@ export function createClaudeNormalizer(): Normalizer {
     blockIndex: number;
     /** Last frame's usage — the SDK repeats message-level usage per frame, so latest wins. */
     usage: AgUsage | undefined;
+    /**
+     * workspace#7 — true iff this lifecycle was opened by `stream_event`
+     * partials. With partials on, the SDK emits BOTH the stream_events AND the
+     * complete assistant frame(s); a streamed lifecycle already emitted every
+     * block incrementally, so each complete same-id frame that joins it is
+     * content-SUPPRESSED while still driving usage / uuid / error / retraction
+     * bookkeeping (the reducer state after partials + suppressed-complete
+     * equals the complete-only state).
+     */
+    streamed: boolean;
+    /** workspace#7 — open streaming block state by content `index` (streamed lifecycles only). */
+    readonly streamBlocks: Map<number, StreamBlockState>;
+    /** workspace#7 — `ttft_ms` carried at most once per message (message.metadata). */
+    ttftCarried: boolean;
   };
+  // workspace#7 — per-block accumulation between content_block_start and its
+  // content_block_stop. `emitted` marks blocks that arrive complete inside the
+  // start frame (server-tool results etc.) and were mapped there, so the stop
+  // is clean punctuation.
+  type StreamBlockState =
+    | { kind: "text"; id: string; citations: AgCitation[] }
+    | { kind: "reasoning"; id: string; signature: string; redacted: string | undefined }
+    | { kind: "tool"; toolCallId: string; json: string; startInput: JsonValue }
+    | { kind: "compaction"; content: string | null; encrypted: string | null }
+    | { kind: "emitted" };
   let pending: PendingMessage | undefined;
   // How many lifecycles each SDK message id has already opened. A same-id frame
   // arriving after its lifecycle closed (a fold-binding frame landed between two
@@ -669,8 +724,344 @@ export function createClaudeNormalizer(): Normalizer {
     if (pending === undefined) return;
     const p = pending;
     pending = undefined;
+    // workspace#7: a stream interrupted mid-block (abort / flush / a binding
+    // frame racing the stop) leaves open stream blocks — finalize each in
+    // index order (the same emission its content_block_stop would have
+    // produced) so no lifecycle dangles under the seal.
+    if (p.streamBlocks.size > 0) {
+      for (const idx of [...p.streamBlocks.keys()].sort((x, y) => x - y)) {
+        finalizeStreamBlock(p, idx);
+      }
+    }
     a.closeMessage(p.emittedId, p.usage);
     if (p.parentTurnId !== undefined) a.subagentDone(p.turnId, p.parentTurnId);
+  }
+
+  // ─── workspace#7: stream_event mapping helpers ──────────────────────────────
+
+  // Unmappable stream frames — an orphan delta after a fold-binding frame
+  // sealed its message, a future event/delta type, a kind-mismatched delta —
+  // ride the uniform lossless carry (`kind` is the frame's own discriminant,
+  // per the ext.anthropic.frame convention). Nothing is silently dropped.
+  function carryStreamFrame(msg: SDKPartial): void {
+    a.emitExt("anthropic", "frame", { kind: "stream_event", frame: JsonValue.parse(msg) });
+  }
+
+  // `ttft_ms` (time to first token, on the partial envelope) has no core home —
+  // it rides the message.metadata merge channel, wire name verbatim (the
+  // wrapper-carry precedent above), at most once per message.
+  function carryTtft(msg: SDKPartial, p: PendingMessage): void {
+    if (msg.ttft_ms === undefined || p.ttftCarried) return;
+    p.ttftCarried = true;
+    a.emit({ type: "message.metadata", messageId: p.emittedId, metadata: { ttft_ms: msg.ttft_ms } });
+  }
+
+  // Emit what the block's content_block_stop produces — text.end (with the M22
+  // streamed-citations carrier), reasoning.end + the replay-load-bearing opaque
+  // (same end-then-opaque order as the complete arm), the MANDATORY
+  // tool.args.assembled (spec §4/§8.1), or the buffered compaction block.
+  function finalizeStreamBlock(p: PendingMessage, index: number): void {
+    const b = p.streamBlocks.get(index);
+    if (b === undefined) return;
+    p.streamBlocks.delete(index);
+    const messageId = p.emittedId;
+    switch (b.kind) {
+      case "text":
+        a.textEnd(b.id, messageId, b.citations.length > 0 ? { citations: b.citations } : undefined);
+        return;
+      case "reasoning":
+        a.reasoningEnd(b.id, messageId);
+        if (b.redacted !== undefined) {
+          a.reasoningOpaque(b.id, messageId, { kind: "redacted", value: b.redacted, provider: "anthropic" });
+        } else if (b.signature.length > 0) {
+          a.reasoningOpaque(b.id, messageId, { kind: "signature", value: b.signature, provider: "anthropic" });
+        }
+        return;
+      case "tool": {
+        // The accumulated partial_json is authoritative; a truncated
+        // (unparseable) accumulation falls back to the start block's own input —
+        // the partial string itself already rode the args deltas losslessly.
+        let input: JsonValue = b.startInput;
+        if (b.json.length > 0) {
+          try {
+            input = JsonValue.parse(JSON.parse(b.json));
+          } catch {
+            input = b.startInput;
+          }
+        }
+        a.toolArgsAssembled(b.toolCallId, input);
+        return;
+      }
+      case "compaction":
+        // Same shape the complete arm's compaction case produces.
+        a.contentBlock(messageId, {
+          type: "compaction",
+          text: b.content ?? undefined,
+          opaque:
+            b.encrypted !== null
+              ? { kind: "ciphertext", value: b.encrypted, provider: "anthropic" }
+              : undefined,
+          provider: "anthropic",
+        });
+        return;
+      case "emitted":
+        return;
+    }
+  }
+
+  // The stream arm proper. Partials map onto the SAME lifecycles the complete
+  // arm produces: message_start opens the SAME PendingMessage the complete
+  // frame later joins (guuey#26 continuation test), and block ids reuse the
+  // stream's own content `index` — which equals the complete arm's cross-frame
+  // `blockIndex` arithmetic, so ids are identical either way.
+  function driveStreamEvent(msg: SDKPartial): void {
+    const ev = msg.event;
+
+    if (ev.type === "message_start") {
+      const m = ev.message;
+      const turnId = turnIdFor(msg.session_id, m.id);
+      const parentTurnId =
+        msg.parent_tool_use_id !== null ? `turn_${msg.parent_tool_use_id}` : undefined;
+      // Same continuation test as the complete arm: a message_start naming the
+      // message already open just joins it (and marks it streamed).
+      const continued: PendingMessage | undefined =
+        pending !== undefined &&
+        pending.sdkId === m.id &&
+        pending.turnId === turnId &&
+        pending.parentTurnId === parentTurnId
+          ? pending
+          : undefined;
+      if (continued !== undefined) {
+        continued.streamed = true;
+        carryTtft(msg, continued);
+        return;
+      }
+      closePendingMessage();
+      // Open exactly as the complete arm would — same subagent seeding, same
+      // lifecycle counter, same emittedId derivation — so the complete frame
+      // that follows JOINS this lifecycle and is content-suppressed.
+      if (parentTurnId !== undefined && msg.parent_tool_use_id !== null) {
+        subagentTurnByParentToolUseId.set(msg.parent_tool_use_id, turnId);
+        a.subagentStart(turnId, parentTurnId);
+      }
+      const lifecycle = lifecyclesBySdkId.get(m.id) ?? 0;
+      lifecyclesBySdkId.set(m.id, lifecycle + 1);
+      const open: PendingMessage = {
+        sdkId: m.id,
+        emittedId: lifecycle === 0 ? m.id : `${m.id}:cont:${lifecycle}`,
+        turnId,
+        parentTurnId,
+        blockIndex: 0,
+        usage: mapMessageUsage(m.usage),
+        streamed: true,
+        streamBlocks: new Map(),
+        ttftCarried: false,
+      };
+      pending = open;
+      a.openMessage({
+        id: open.emittedId,
+        role: "assistant",
+        turnId,
+        threadId: msg.session_id,
+        model: m.model,
+      });
+      // NOT registered in messageIdsByUuid: retractions name DELIVERED messages
+      // (assistant / adopted tool-result frames) — the complete frame that joins
+      // this lifecycle registers its own uuid as before.
+      carryTtft(msg, open);
+      return;
+    }
+
+    if (ev.type === "message_stop") {
+      // The seal stays DEFERRED (guuey#26 / INV-MSG) while the lifecycle is
+      // open: the complete assistant frame for this id follows and joins it,
+      // and tool_results may still bind. And when the lifecycle is ALREADY
+      // sealed — the live wire delivers the tool_result BEFORE the tool-round
+      // message's own message_stop (observed in corpus/partials-sonnet5), so
+      // the binding frame seals first on EVERY tool round — the frame is still
+      // pure punctuation ({type:"message_stop"} carries no content): a no-op
+      // either way, never an ext carry.
+      if (pending !== undefined && pending.streamed) carryTtft(msg, pending);
+      return;
+    }
+
+    // Every other stream event belongs to the open STREAMED lifecycle — stream
+    // frames carry no message id of their own. Without one (its message_start
+    // was never observed, or a binding frame already sealed it), the frame is
+    // unmappable → lossless carry.
+    const p = pending;
+    if (p === undefined || !p.streamed) {
+      carryStreamFrame(msg);
+      return;
+    }
+    carryTtft(msg, p);
+
+    if (ev.type === "content_block_start") {
+      const index = ev.index;
+      const block: StreamContentBlock = ev.content_block;
+      const messageId = p.emittedId;
+      // A start re-using an open index: finalize the stale block first (graceful).
+      if (p.streamBlocks.has(index)) finalizeStreamBlock(p, index);
+      p.blockIndex = Math.max(p.blockIndex, index + 1);
+      switch (block.type) {
+        case "text": {
+          const id = `${messageId}:text:${index}`;
+          a.textStart(id, messageId);
+          p.streamBlocks.set(index, { kind: "text", id, citations: [] });
+          return;
+        }
+        case "thinking": {
+          const id = `${messageId}:reasoning:${index}`;
+          a.reasoningStart(id, messageId);
+          p.streamBlocks.set(index, { kind: "reasoning", id, signature: block.signature, redacted: undefined });
+          return;
+        }
+        case "redacted_thinking": {
+          // Arrives complete (never delta'd); end + the redacted opaque land at stop.
+          const id = `${messageId}:reasoning:${index}`;
+          a.reasoningStart(id, messageId);
+          p.streamBlocks.set(index, { kind: "reasoning", id, signature: "", redacted: block.data });
+          return;
+        }
+        case "tool_use":
+        case "server_tool_use":
+        case "mcp_tool_use": {
+          // Same providerExecuted derivation as the complete arm. Args stream
+          // via input_json_delta; the start's own `input` (normally `{}`) is
+          // the assembled fallback for a delta-less stream.
+          const providerExecuted: boolean | undefined =
+            block.type === "server_tool_use"
+              ? true
+              : "caller" in block && block.caller !== undefined
+                ? block.caller.type !== "direct"
+                : undefined;
+          a.toolStart({
+            toolCallId: block.id,
+            name: block.name,
+            serverName: block.type === "mcp_tool_use" ? block.server_name : undefined,
+            index,
+            messageId,
+            providerExecuted,
+          });
+          p.streamBlocks.set(index, {
+            kind: "tool",
+            toolCallId: block.id,
+            json: "",
+            startInput: JsonValue.parse(block.input),
+          });
+          return;
+        }
+        case "compaction": {
+          // Buffered — content/encrypted_content accumulate via compaction_delta;
+          // ONE content.block at stop, matching the complete arm's shape.
+          p.streamBlocks.set(index, {
+            kind: "compaction",
+            content: block.content,
+            encrypted: block.encrypted_content,
+          });
+          return;
+        }
+        case "mcp_tool_result": {
+          // Arrives complete inside the start frame — same tool.done mapping as
+          // the complete arm's mcp_tool_result case.
+          const outcome: ToolOutcome = block.is_error ? "error" : "ok";
+          a.toolDone({
+            toolCallId: block.tool_use_id,
+            content: mcpToolResultContentToAgBlocks(block.content),
+            outcome,
+            isError: block.is_error,
+            messageId,
+          });
+          p.streamBlocks.set(index, { kind: "emitted" });
+          return;
+        }
+        default: {
+          // Rich server-tool-result / container blocks arrive complete — same
+          // provider-raw pass-through as the complete arm's default case.
+          a.contentBlock(messageId, {
+            type: "provider-raw",
+            vendor: "anthropic",
+            raw: JsonValue.parse(block),
+          });
+          p.streamBlocks.set(index, { kind: "emitted" });
+          return;
+        }
+      }
+    }
+
+    if (ev.type === "content_block_delta") {
+      const b = p.streamBlocks.get(ev.index);
+      if (b === undefined) {
+        carryStreamFrame(msg);
+        return;
+      }
+      const d = ev.delta;
+      const messageId = p.emittedId;
+      if (d.type === "text_delta" && b.kind === "text") {
+        a.textDelta(b.id, messageId, d.text);
+        return;
+      }
+      if (d.type === "thinking_delta" && b.kind === "reasoning") {
+        a.reasoningDelta(b.id, messageId, d.thinking);
+        return;
+      }
+      if (d.type === "input_json_delta" && b.kind === "tool") {
+        a.toolArgsDelta(b.toolCallId, d.partial_json);
+        b.json += d.partial_json;
+        return;
+      }
+      if (d.type === "signature_delta" && b.kind === "reasoning") {
+        // Buffered — the replay-load-bearing opaque rides reasoning.opaque at stop.
+        b.signature += d.signature;
+        return;
+      }
+      if (d.type === "citations_delta" && b.kind === "text") {
+        // Buffered — the M22 streamed-citations carrier is text.end, at stop.
+        b.citations.push(...mapCitations([d.citation]));
+        return;
+      }
+      if (d.type === "compaction_delta" && b.kind === "compaction") {
+        if (d.content !== null) b.content = (b.content ?? "") + d.content;
+        if (d.encrypted_content !== null) b.encrypted = (b.encrypted ?? "") + d.encrypted_content;
+        return;
+      }
+      // Unknown delta type / kind-mismatched delta — lossless carry.
+      carryStreamFrame(msg);
+      return;
+    }
+
+    if (ev.type === "content_block_stop") {
+      if (!p.streamBlocks.has(ev.index)) {
+        carryStreamFrame(msg);
+        return;
+      }
+      finalizeStreamBlock(p, ev.index);
+      return;
+    }
+
+    if (ev.type === "message_delta") {
+      // Cumulative usage refresh — kept live so an aborted stream still seals
+      // with real usage; the complete frame's copy (identical fields) overwrites
+      // it on join. stop_reason/stop_details fold nowhere here: the turn close
+      // comes from the result frame, exactly as in complete-only mode.
+      const u = ev.usage;
+      p.usage = {
+        ...(p.usage ?? {}),
+        ...(typeof u.input_tokens === "number" ? { inputTokens: u.input_tokens } : {}),
+        ...(typeof u.output_tokens === "number" ? { outputTokens: u.output_tokens } : {}),
+        ...(typeof u.cache_read_input_tokens === "number"
+          ? { cacheReadTokens: u.cache_read_input_tokens }
+          : {}),
+        ...(typeof u.cache_creation_input_tokens === "number"
+          ? { cacheWriteTokens: u.cache_creation_input_tokens }
+          : {}),
+        cumulative: true,
+      };
+      return;
+    }
+
+    // A future stream event type — lossless carry.
+    carryStreamFrame(msg);
   }
 
   function registerUuid(uuid: string | undefined, ids: readonly string[]): void {
@@ -788,6 +1179,9 @@ export function createClaudeNormalizer(): Normalizer {
           parentTurnId,
           blockIndex: 0,
           usage: undefined,
+          streamed: false,
+          streamBlocks: new Map(),
+          ttftCarried: false,
         };
         pending = open;
         a.openMessage({
@@ -799,26 +1193,35 @@ export function createClaudeNormalizer(): Normalizer {
         });
       }
       const messageId = open.emittedId;
-      // A plain indexed loop, not `.forEach` — see `mcpToolResultContentToAgBlocks`'s
-      // doc: `.forEach`'s callback parameter inference degrades to implicit `any`
-      // on this content shape post-0.3.199.
-      for (let i = 0; i < m.content.length; i++) {
-        const block = m.content[i];
-        // noUncheckedIndexedAccess: structurally unreachable for i < length,
-        // but the real 0.3.207 union (unlike 0.3.199's any-collapse) makes
-        // the indexed access `| undefined` — guard, never assert.
-        if (block === undefined) continue;
-        // The block index CONTINUES across frames of one message id, so a
-        // second frame's block can never collide with a first frame's
-        // (`<id>:text:0` twice would clobber in the fold). The wrapper carry
-        // stays anchored to this FRAME's first block: `aborted` /
-        // `resumed_from_incomplete_thinking` are per-frame facts.
-        emitAssistantBlock(a, block, messageId, open.blockIndex + i, i === 0 ? wrapperMeta : undefined);
+      // workspace#7 dedupe: a STREAMED lifecycle already emitted every block
+      // incrementally (stream ids reuse the content `index`, identical to the
+      // arithmetic below) — this complete frame must not re-synthesize them.
+      // Everything below the block loop (wrapper carry via message.metadata,
+      // usage, error close, uuid registration) still runs.
+      const suppressed = open.streamed;
+      if (!suppressed) {
+        // A plain indexed loop, not `.forEach` — see `mcpToolResultContentToAgBlocks`'s
+        // doc: `.forEach`'s callback parameter inference degrades to implicit `any`
+        // on this content shape post-0.3.199.
+        for (let i = 0; i < m.content.length; i++) {
+          const block = m.content[i];
+          // noUncheckedIndexedAccess: structurally unreachable for i < length,
+          // but the real 0.3.207 union (unlike 0.3.199's any-collapse) makes
+          // the indexed access `| undefined` — guard, never assert.
+          if (block === undefined) continue;
+          // The block index CONTINUES across frames of one message id, so a
+          // second frame's block can never collide with a first frame's
+          // (`<id>:text:0` twice would clobber in the fold). The wrapper carry
+          // stays anchored to this FRAME's first block: `aborted` /
+          // `resumed_from_incomplete_thinking` are per-frame facts.
+          emitAssistantBlock(a, block, messageId, open.blockIndex + i, i === 0 ? wrapperMeta : undefined);
+        }
+        open.blockIndex += m.content.length;
       }
-      open.blockIndex += m.content.length;
-      // Block-less frame (e.g. aborted before any content streamed): no first
-      // block exists to anchor the wrapper carry — ride message.metadata.
-      if (m.content.length === 0 && wrapperMeta !== undefined) {
+      // Block-less frame (e.g. aborted before any content streamed) — or a
+      // suppressed one, whose blocks were already sealed by the stream: no
+      // first block exists to anchor the wrapper carry — ride message.metadata.
+      if ((suppressed || m.content.length === 0) && wrapperMeta !== undefined) {
         a.emit({ type: "message.metadata", messageId, metadata: wrapperMetaRaw });
       }
       // The seal is DEFERRED (guuey#26) — the next frame may continue this same
@@ -1102,6 +1505,14 @@ export function createClaudeNormalizer(): Normalizer {
       return;
     }
 
+    if (msg.type === "stream_event") {
+      // workspace#7: partial-assistant frames (includePartialMessages: true) —
+      // token-granular deltas mapped onto the same lifecycles the complete arm
+      // produces; see `driveStreamEvent`.
+      driveStreamEvent(msg);
+      return;
+    }
+
     // Fixture-drift ratchet (2026-07-03 follow-up; +2 on the 0.3.207 bump):
     // 17 carried arms with genuine consumer-facing content and no existing
     // AgJSON home — uniform lossless carry (see `anthropicFrameKind` doc
@@ -1112,8 +1523,8 @@ export function createClaudeNormalizer(): Normalizer {
       return;
     }
 
-    // Other SDKMessage variants (system, partial-assistant, status, …) carry no
-    // AgJSON-relevant content on this seam → no events.
+    // Other SDKMessage variants (system, status, …) carry no AgJSON-relevant
+    // content on this seam → no events.
   }
 
   return {

@@ -117,6 +117,15 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "app-spec-gemini36", framework: "adk" },
   { scenario: "echo-gemini36", framework: "adk" },
   { scenario: "echo-gpt56", framework: "vercel" },
+  // workspace#7 (2026-08-07): FIRST-EVER regen of the stream_event partials
+  // seed. Same empty-guard-maps reason as echo-sonnet5 above. The agjson ALSO
+  // needs regenerating for a second reason: it was captured before the
+  // message_stop-after-seal no-op landed (the live wire delivers the tool
+  // round's tool_result BEFORE that message's own message_stop, so the
+  // capture-time normalizer carried the already-sealed stop as a spurious
+  // ext.anthropic.frame; the regen re-normalizes the SAME native.json through
+  // the fixed facet).
+  { scenario: "partials-sonnet5", framework: "claude" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

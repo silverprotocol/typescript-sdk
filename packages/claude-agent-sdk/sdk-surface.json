@@ -66,6 +66,12 @@
       "date": "2026-08-04",
       "silverprotocol": "0.3.9",
       "evidence": "0.3.220\u21920.3.221 verified a Node-stream wire no-op by full sdk.d.ts tarball diff (181 lines / 11 hunks, all accounted): SDKMessage union (38 arms), stream_event, and control types untouched; the deltas are sandbox credentials config-input widening (mode 'mask', extract/onExtractNoMatch/maskDuplicates/injectHosts), quote-style const rewrites, and two NEW browser-sdk.d.ts exports (G4_TEXT_ENVELOPE_ARM_PORTED, getSseDropCounts \u2014 flag-gated SSE frame-drop machinery, relevant only if a browser-SSE facet ever exists). Release notes (skills validation, external mcpServers pre-first-turn connect fix) alter no schema. Pin bumped; live re-capture in this cohort's capture step."
+    },
+    {
+      "sdkVersion": "0.3.221",
+      "date": "2026-08-07",
+      "silverprotocol": "0.3.10",
+      "evidence": "workspace#7 stream_event support: SDKPartialAssistantMessage router-plane->handled (token-granular partials mapped to first-class lifecycles under the complete arm's own ids; complete-frame dedupe via content suppression; INV-MSG preserved \u2014 live capture corpus/partials-sonnet5, claude-sonnet-5, 28 native frames incl. mid-stream complete frames and tool_result-before-message_stop ordering). SDKStatusMessage router-plane->carried (census-caught in the same capture: system/status{status:'requesting'} \u2014 agent-state signal, guuey#91's status vocabulary). Scenario enrolled in CLAUDE_SEEDS + regen targets; 109 facet tests incl. reducer-state equivalence + byte-parity; corpus-wide fold gates green."
     }
   ],
   "members": {
@@ -90,16 +96,16 @@
       "note": "subtype 'init' \u2014 session-initialization handshake (agents/tools/mcp_servers/model/permissionMode/slash_commands/skills/plugins/\u2026). Verified fields (re-checked at 0.3.207): all identifiers/labels/enums \u2014 incl. the NEW `capabilities?: string[]` (protocol feature-detection flags, e.g. 'interrupt_receipt_v1') \u2014 no conversational free text. Matches index.ts's documented blanket no-op for 'system, partial-assistant, status, \u2026'. 0.3.217 bump audit: init's plugins[] entries gain version?: string (verbatim from the plugin's own plugin.json \u2014 plugin-author-controlled, validate before trusting; still an identifier, not free text); router-plane disposition unchanged. 0.3.220 bump audit (2026-07-29): init gains the same optional fast_mode_disabled_reason?: FastModeDisabledReason enum the result arms gained \u2014 still an enum flag, no free text, and REDUNDANT with the terminal result-frame copy the facet now carries via ext.anthropic.result-meta (see SDKResultMessage), so the router-plane no-op stands (an init-time carry would only add earlier availability of the same fact \u2014 noted, not carried). VALUE-LEVEL: capabilities[] may now contain 'interrupt_cancel_queued_v1' \u2014 the field is an open-set string[] and the facet never enum-gates it (init is a blanket no-op), so new values flow through unaffected."
     },
     "SDKPartialAssistantMessage": {
-      "disposition": "router-plane",
-      "note": "type:'stream_event' \u2014 the raw incremental BetaRawMessageStreamEvent delta stream. NOT a content loss: the file's own header doc states the facet's architecture treats Claude's assistant turn as a COMPLETE-message structure (message.content[] is the whole turn, not a stream of deltas) and relies solely on the buffered SDKAssistantMessage. This is a deliberate, documented design choice \u2014 the SAME final content arrives complete afterward. Trade-off: no live token-by-token streaming granularity on this seam (a UX/latency difference, not a data-loss one)."
+      "disposition": "handled",
+      "note": "type:'stream_event' \u2014 the raw incremental BetaRawMessageStreamEvent stream (includePartialMessages: true). HANDLED as of 0.3.11 (workspace#7): driveStreamEvent maps partials onto the SAME lifecycles the complete arm produces (message_start joins/opens the PendingMessage; content_block_start/delta/stop \u2192 text/reasoning/tool lifecycles with token-granular deltas; block ids reuse the stream's own content index, identical to the complete arm's cross-frame blockIndex arithmetic), and the complete assistant frame that follows joins the streamed lifecycle content-SUPPRESSED \u2014 reducer state after partials+suppressed-complete equals the complete-only state (pinned by unit test). ttft_ms rides message.metadata once per message. Unmappable stream frames ride ext.anthropic.frame kind:'stream_event'; a message_stop after a binding frame sealed its message is a documented no-op (the live wire delivers the tool_result BEFORE the tool-round's message_stop \u2014 corpus/partials-sonnet5). The prior 'router-plane' note (complete-message architecture, no-streaming trade-off) is superseded by this entry."
     },
     "SDKCompactBoundaryMessage": {
       "disposition": "router-plane",
       "note": "subtype 'compact_boundary' \u2014 compaction BOOKKEEPING (trigger/pre_tokens/post_tokens/duration_ms/preserved_segment/preserved_messages uuids), all numeric/enum/uuid fields, no free text. The actual compacted SUMMARY CONTENT rides separately on the assistant message's own 'compaction' content block, already handled by emitAssistantBlock's `case \"compaction\"`."
     },
     "SDKStatusMessage": {
-      "disposition": "router-plane",
-      "note": "subtype 'status' \u2014 status:SDKStatus ('compacting'|'requesting'|null), permissionMode, compact_result enum. NOTE: optional `compact_error?: string` (a rare compaction-FAILURE diagnostic string) has no route \u2014 a narrow, disclosed residual gap, not elevated to silently-dropped since it is one optional field on an otherwise pure status ping."
+      "disposition": "carried",
+      "note": "subtype 'status' \u2014 status:SDKStatus ('compacting'|'requesting'|null), permissionMode, compact_result enum, optional compact_error. CARRIED as of 0.3.11 (workspace#7 census-caught, corpus/partials-sonnet5): the live partials capture surfaced system/status{status:'requesting'} frames \u2014 a genuine consumer-facing agent-state signal (the ready/thinking/responding vocabulary chat surfaces render; loqu-co/guuey#91's status-states half), not a pure router ping. Joins the uniform ext.anthropic.frame carry (kind:'status', whole frame verbatim), which ALSO closes this entry's previously-disclosed compact_error residual gap \u2014 the optional diagnostic now rides the carried frame."
     },
     "SDKAPIRetryMessage": {
       "disposition": "router-plane",

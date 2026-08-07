@@ -32,6 +32,7 @@ facet's per-field dispositions, including its disclosed `silently-dropped` gaps)
 
 | `@anthropic-ai/claude-agent-sdk` | verified | with | evidence |
 | --- | --- | --- | --- |
+| `0.3.221` | 2026-08-07 | 0.3.10 | workspace#7 stream_event support: SDKPartialAssistantMessage router-plane->handled (token-granular partials mapped to first-class lifecycles under the complete arm's own ids; complete-frame dedupe via content suppression; INV-MSG preserved — live capture corpus/partials-sonnet5, claude-sonnet-5, 28 native frames incl. mid-stream complete frames and tool_result-before-message_stop ordering). SDKStatusMessage router-plane->carried (census-caught in the same capture: system/status{status:'requesting'} — agent-state signal, guuey#91's status vocabulary). Scenario enrolled in CLAUDE_SEEDS + regen targets; 109 facet tests incl. reducer-state equivalence + byte-parity; corpus-wide fold gates green. |
 | `0.3.221` | 2026-08-04 | 0.3.9 | 0.3.220→0.3.221 verified a Node-stream wire no-op by full sdk.d.ts tarball diff (181 lines / 11 hunks, all accounted): SDKMessage union (38 arms), stream_event, and control types untouched; the deltas are sandbox credentials config-input widening (mode 'mask', extract/onExtractNoMatch/maskDuplicates/injectHosts), quote-style const rewrites, and two NEW browser-sdk.d.ts exports (G4_TEXT_ENVELOPE_ARM_PORTED, getSseDropCounts — flag-gated SSE frame-drop machinery, relevant only if a browser-SSE facet ever exists). Release notes (skills validation, external mcpServers pre-first-turn connect fix) alter no schema. Pin bumped; live re-capture in this cohort's capture step. |
 | `0.3.220` | 2026-07-29 | 0.3.7 | Live capture landed (echo-sonnet5 @ claude-sonnet-5, sdk 0.3.220): the result frame live-populates ALL THREE carried fields — fast_mode_disabled_reason='sdk_opt_in_required' plus canonicalModel/provider on BOTH modelUsage entries (claude-sonnet-5→{claude-sonnet-5, firstParty}; claude-haiku-4-5-20251001→{claude-haiku-4-5, firstParty}) — confirming the ext.anthropic.result-meta carry against real wire, not just synthetic frames. Census: 5 new norm-paths classified (1 value-verifying transform [*].fast_mode_disabled_reason→[*].fastModeDisabledReason + registry entries using the {*} dynamic-key wildcard for the per-model paths — [*].modelUsage.{*}.canonicalModel/provider, the wildcard's first production use); replay + census gates green, zero drops. |
 | `0.3.220` | 2026-07-29 |  | fixture suite + drift gate + full 0.3.217->0.3.220 sdk.d.ts diff audit (SDKMessage union membership unchanged, no removals): every wire delta is a field addition, triaged and CARRIED in the same slice — fast_mode_disabled_reason (FastModeDisabledReason enum, on BOTH result arms) + ModelUsage canonicalModel/provider (billing rate-table selection) now ride ONE structured ext event `ext.anthropic.result-meta` emitted before the turn close (turn.done/turn.error carry no providerMetadata slot and AgUsage is a closed schema — first-class core slots are a spec-process decision, disclosed in the member notes); init's own fast_mode_disabled_reason copy stays inside the router-plane init no-op (same enum, redundant with the terminal result-frame copy this slice carries); value-level notes: result api_error_status now populates 429/529 where it was null (unread telemetry, unchanged disposition), init capabilities[] may contain 'interrupt_cancel_queued_v1' (open-set string[]; the facet never enum-gates it — init is a blanket no-op); five fixture tests added (success carry, identity-only carry, error-arm carry, absent-fields negative control, Reducer fold) |
@@ -67,6 +68,25 @@ events.push(...n.flush());        // seal anything still open at end-of-stream
 `SDKMessage` works — a live `query()` run, or messages you captured earlier.
 Malformed input never throws — it routes through the lossless
 `ext.anthropic.unparsed` channel instead.
+
+### Token streaming
+
+Pass `includePartialMessages: true` to `query()` and the normalizer emits
+token-granular `text.delta` / `reasoning.delta` / `tool.args.delta` events as
+the SDK's `stream_event` partials arrive — instead of one burst at turn end:
+
+```ts
+const response = query({
+  prompt: "call the echo tool",
+  options: { includePartialMessages: true },
+});
+```
+
+No other change is needed. The complete assistant message the SDK still emits
+after the partials is deduplicated automatically (nothing is folded twice), the
+final reduced state is identical either way, and streams without partials
+produce byte-identical output to previous releases. Time-to-first-token rides
+`message.metadata` as `ttft_ms` when the SDK reports it.
 
 Then fold the resulting `AgEvent`s into messages and turns with
 `@silverprotocol/core`'s `reduce()` — the same client code regardless of which

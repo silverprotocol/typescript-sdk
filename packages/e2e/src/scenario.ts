@@ -26,6 +26,11 @@ export const Scenario = z.object({
     )
     .default([]),
   steer: z.string().optional(),
+  // workspace#7: run the capture with token-granular partials enabled.
+  // Claude-only today (`includePartialMessages: true` on the Agent SDK query);
+  // the other capture agents ignore it. Declared per-SCENARIO, not per-run, so
+  // a partials cassette is reproducibly a partials cassette.
+  includePartialMessages: z.boolean().optional(),
 });
 
 export type Scenario = z.infer<typeof Scenario>;

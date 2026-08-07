@@ -79,6 +79,12 @@ const CLAUDE_SEEDS = [
   // — render_card then update_card against ONE ui resourceUri (kind:"capture",
   // claude-sonnet-5 @0.3.217 — see corpus/app-update-sonnet5/claude.provenance.json).
   "app-update-sonnet5",
+  // 2026-08-07 (workspace#7): stream_event partials (includePartialMessages:
+  // true) — token-granular deltas interleaved with the complete frames they
+  // dedupe against, incl. the live wire's binding-before-message_stop ordering
+  // (kind:"capture", claude-sonnet-5 @0.3.221 — see
+  // corpus/partials-sonnet5/claude.provenance.json).
+  "partials-sonnet5",
 ] as const;
 
 /**

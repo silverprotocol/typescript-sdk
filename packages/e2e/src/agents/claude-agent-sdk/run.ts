@@ -48,6 +48,12 @@ export interface CaptureRunInput {
   apiKey?: string;
   /** Optional abort signal — bridged to the AbortController the SDK requires. */
   abortSignal?: AbortSignal;
+  /**
+   * workspace#7: when true the SDK interleaves `stream_event` partial frames
+   * (raw Anthropic streaming events) before each complete assistant message —
+   * the token-delta wire surface the claude facet normalizes.
+   */
+  includePartialMessages?: boolean;
 }
 
 // ─── Implementation ───────────────────────────────────────────────────────────
@@ -134,6 +140,7 @@ export async function* runClaudeCapture(input: CaptureRunInput): AsyncIterable<J
       maxTurns: input.maxTurns ?? 8,
       env: { ANTHROPIC_API_KEY: apiKey },
       ...(input.systemPrompt !== undefined ? { systemPrompt: input.systemPrompt } : {}),
+      ...(input.includePartialMessages === true ? { includePartialMessages: true } : {}),
       abortController,
     },
   });

@@ -1,0 +1,9 @@
+{
+  "name": "partials-sonnet5",
+  "prompt": "First explain in two short sentences what an echo tool does, then echo the message 'conformance-probe-partials' back to me using the available tool, then confirm what came back.",
+  "mcpServers": [
+    { "key": "t", "kind": "text" }
+  ],
+  "steer": "You MUST call the tool mcp__t__echo with message='conformance-probe-partials'. Do not answer from memory. Write prose before AND after the tool call.",
+  "includePartialMessages": true
+}

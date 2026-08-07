@@ -41,6 +41,12 @@ export interface CaptureRunInput {
   /** Optional abort signal — bridged into whatever cancellation primitive the
    *  underlying SDK requires. */
   abortSignal?: AbortSignal;
+  /**
+   * workspace#7: enable token-granular partial frames in the native stream.
+   * Claude-only today (`includePartialMessages: true` on the Agent SDK query);
+   * agents without a partials concept ignore it.
+   */
+  includePartialMessages?: boolean;
 }
 
 /** The LLM/process boundary contract every capture agent implements. */

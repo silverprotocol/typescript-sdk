@@ -2365,3 +2365,433 @@ describe("fixture-drift ratchet — packages/claude-agent-sdk/sdk-surface.json m
     expect(invalid).toEqual([]);
   });
 });
+
+// ─── workspace#7 — stream_event partials (includePartialMessages: true) ───────
+// The SDK interleaves `{type:"stream_event", event: BetaRawMessageStreamEvent}`
+// frames BEFORE each complete assistant frame. The facet maps partials to the
+// SAME lifecycles under the SAME ids and content-suppresses the complete frame
+// that joins the streamed lifecycle. The acceptance bar (the issue's own):
+// reducer state after partials + suppressed-complete ≡ today's complete-only
+// state, and INV-MSG holds throughout.
+describe("createClaudeNormalizer — stream_event partials (workspace#7)", () => {
+  type SDKPartial = Extract<SDKMessage, { type: "stream_event" }>;
+  type StreamEvent = SDKPartial["event"];
+
+  const STREAM_ID = "msg_stream_1";
+  const STREAM_TOOL_ID = "toolu_stream_1";
+
+  function streamFrame(
+    event: StreamEvent,
+    opts?: { parent?: string | null; ttft?: number },
+  ): SDKMessage {
+    return {
+      type: "stream_event",
+      event,
+      parent_tool_use_id: opts?.parent ?? null,
+      uuid: "00000000-0000-0000-0000-0000000000c1",
+      session_id: "sess_fixture",
+      ...(opts?.ttft !== undefined ? { ttft_ms: opts.ttft } : {}),
+    };
+  }
+
+  const messageStart = (id: string = STREAM_ID): StreamEvent => ({
+    type: "message_start",
+    message: { ...betaMessage([]), id },
+  });
+  const cbStartText = (index: number): StreamEvent => ({
+    type: "content_block_start",
+    index,
+    content_block: { type: "text", text: "", citations: null },
+  });
+  const cbDeltaText = (index: number, text: string): StreamEvent => ({
+    type: "content_block_delta",
+    index,
+    delta: { type: "text_delta", text },
+  });
+  const cbStartThinking = (index: number): StreamEvent => ({
+    type: "content_block_start",
+    index,
+    content_block: { type: "thinking", thinking: "", signature: "" },
+  });
+  const cbDeltaThinking = (index: number, thinking: string): StreamEvent => ({
+    type: "content_block_delta",
+    index,
+    delta: { type: "thinking_delta", thinking },
+  });
+  const cbDeltaSignature = (index: number, signature: string): StreamEvent => ({
+    type: "content_block_delta",
+    index,
+    delta: { type: "signature_delta", signature },
+  });
+  const cbStartTool = (index: number): StreamEvent => ({
+    type: "content_block_start",
+    index,
+    content_block: { type: "tool_use", id: STREAM_TOOL_ID, name: "get_weather", input: {} },
+  });
+  const cbDeltaJson = (index: number, partial_json: string): StreamEvent => ({
+    type: "content_block_delta",
+    index,
+    delta: { type: "input_json_delta", partial_json },
+  });
+  const cbStop = (index: number): StreamEvent => ({ type: "content_block_stop", index });
+  const msgDelta = (output_tokens: number): StreamEvent => ({
+    type: "message_delta",
+    context_management: null,
+    delta: { container: null, stop_details: null, stop_reason: "end_turn", stop_sequence: null },
+    usage: {
+      input_tokens: null,
+      output_tokens,
+      cache_creation_input_tokens: null,
+      cache_read_input_tokens: null,
+      iterations: null,
+      server_tool_use: null,
+    },
+  });
+  const msgStop = (): StreamEvent => ({ type: "message_stop" });
+
+  /** The complete assistant frame that FOLLOWS the stream for the same id. */
+  function completeFrame(
+    content: BetaMessage["content"],
+    overrides?: Partial<Pick<BetaMessage, "usage">>,
+  ): SDKMessage {
+    return {
+      type: "assistant",
+      message: { ...betaMessage(content, overrides), id: STREAM_ID },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000c9",
+      session_id: "sess_fixture",
+    };
+  }
+
+  function pushAll(n: ReturnType<typeof createClaudeNormalizer>, msgs: SDKMessage[]): AgEvent[] {
+    const out: AgEvent[] = [];
+    for (const m of msgs) out.push(...n.push(JsonValue.parse(m)));
+    return out;
+  }
+
+  const TEXT_STREAM = (): SDKMessage[] => [
+    streamFrame(messageStart()),
+    streamFrame(cbStartText(0)),
+    streamFrame(cbDeltaText(0, "hel")),
+    streamFrame(cbDeltaText(0, "lo")),
+    streamFrame(cbStop(0)),
+    streamFrame(msgDelta(5)),
+    streamFrame(msgStop()),
+  ];
+
+  it("maps partials to incremental deltas — each push drains its events immediately, and the complete frame re-emits NOTHING", () => {
+    const n = createClaudeNormalizer();
+    // The incremental guarantee itself: a text_delta frame yields its event in
+    // the SAME push (no end-of-turn burst).
+    const headBatch = pushAll(n, [streamFrame(messageStart()), streamFrame(cbStartText(0))]);
+    expect(headBatch.map((e) => e.type)).toEqual(["turn.start", "message.start", "text.start"]);
+    const deltaBatch = n.push(JsonValue.parse(streamFrame(cbDeltaText(0, "hel"))));
+    expect(deltaBatch.map((e) => e.type)).toEqual(["text.delta"]);
+    const evs = [
+      ...headBatch,
+      ...deltaBatch,
+      ...pushAll(n, [
+        streamFrame(cbDeltaText(0, "lo")),
+        streamFrame(cbStop(0)),
+        streamFrame(msgDelta(5)),
+        streamFrame(msgStop()),
+        completeFrame([{ type: "text", text: "hello", citations: null }]),
+        resultSuccess("end_turn"),
+      ]),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    // Dedupe: exactly the two streamed deltas — the complete frame added none.
+    const deltas = evs.filter((e) => isClosedEvent(e) && e.type === "text.delta");
+    expect(deltas.map((e) => (e.type === "text.delta" ? e.delta : ""))).toEqual(["hel", "lo"]);
+    expect(evs.filter((e) => e.type === "text.start")).toHaveLength(1);
+    expect(evs.filter((e) => e.type === "text.end")).toHaveLength(1);
+  });
+
+  it("INV-MSG: one message.start / one message.end across partials + complete, never a re-open", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...pushAll(n, [
+        ...TEXT_STREAM(),
+        completeFrame([{ type: "text", text: "hello", citations: null }]),
+        resultSuccess("end_turn"),
+      ]),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    expect(evs.filter((e) => e.type === "message.start" && e.id === STREAM_ID)).toHaveLength(1);
+    expect(evs.filter((e) => e.type === "message.end" && e.id === STREAM_ID)).toHaveLength(1);
+    const sealed = new Set<string>();
+    for (const ev of evs) {
+      if (!isClosedEvent(ev)) continue;
+      if (ev.type === "message.end") sealed.add(ev.id);
+      if (ev.type === "message.start") expect(sealed.has(ev.id)).toBe(false);
+    }
+  });
+
+  it("THE acceptance bar: reducer state after partials + suppressed-complete equals the complete-only state", () => {
+    const streamed = createClaudeNormalizer();
+    const streamedEvs = [
+      ...pushAll(streamed, [
+        ...TEXT_STREAM(),
+        completeFrame([{ type: "text", text: "hello", citations: null }]),
+        resultSuccess("end_turn"),
+      ]),
+      ...streamed.flush(),
+    ];
+    const completeOnly = createClaudeNormalizer();
+    const completeEvs = [
+      ...pushAll(completeOnly, [
+        completeFrame([{ type: "text", text: "hello", citations: null }]),
+        resultSuccess("end_turn"),
+      ]),
+      ...completeOnly.flush(),
+    ];
+    const rs = new Reducer();
+    for (const e of streamedEvs) rs.push(e);
+    const rc = new Reducer();
+    for (const e of completeEvs) rc.push(e);
+    expect(rs.needsResync).toBe(false);
+    expect(rc.needsResync).toBe(false);
+    expect(rs.result()).toEqual(rc.result());
+  });
+
+  it("streams thinking with a buffered signature — reasoning.opaque parity with the complete arm", () => {
+    const streamed = createClaudeNormalizer();
+    const streamedEvs = [
+      ...pushAll(streamed, [
+        streamFrame(messageStart()),
+        streamFrame(cbStartThinking(0)),
+        streamFrame(cbDeltaThinking(0, "let me ")),
+        streamFrame(cbDeltaThinking(0, "think")),
+        streamFrame(cbDeltaSignature(0, "sig-xyz")),
+        streamFrame(cbStop(0)),
+        streamFrame(msgStop()),
+        completeFrame([{ type: "thinking", thinking: "let me think", signature: "sig-xyz" }]),
+        resultSuccess("end_turn"),
+      ]),
+      ...streamed.flush(),
+    ];
+    assertAllValid(streamedEvs);
+    const opaques = streamedEvs.filter((e) => isClosedEvent(e) && e.type === "reasoning.opaque");
+    expect(opaques).toHaveLength(1);
+    expect(opaques[0]).toMatchObject({ kind: "signature", value: "sig-xyz", provider: "anthropic" });
+
+    const completeOnly = createClaudeNormalizer();
+    const completeEvs = [
+      ...pushAll(completeOnly, [
+        completeFrame([{ type: "thinking", thinking: "let me think", signature: "sig-xyz" }]),
+        resultSuccess("end_turn"),
+      ]),
+      ...completeOnly.flush(),
+    ];
+    const rs = new Reducer();
+    for (const e of streamedEvs) rs.push(e);
+    const rc = new Reducer();
+    for (const e of completeEvs) rc.push(e);
+    expect(rs.result()).toEqual(rc.result());
+  });
+
+  it("streams tool args via input_json_delta and emits the MANDATORY args.assembled at stop — tool_result adoption still binds", () => {
+    const n = createClaudeNormalizer();
+    const toolResult: UserContent = [
+      {
+        type: "tool_result",
+        tool_use_id: STREAM_TOOL_ID,
+        content: [{ type: "text", text: "sunny" }],
+        is_error: false,
+      },
+    ];
+    const evs = [
+      ...pushAll(n, [
+        streamFrame(messageStart()),
+        streamFrame(cbStartTool(0)),
+        streamFrame(cbDeltaJson(0, '{"ci')),
+        streamFrame(cbDeltaJson(0, 'ty":"SF"}')),
+        streamFrame(cbStop(0)),
+        streamFrame(msgStop()),
+        completeFrame([
+          { type: "tool_use", id: STREAM_TOOL_ID, name: "get_weather", input: { city: "SF" } },
+        ]),
+        {
+          type: "user",
+          message: { role: "user", content: toolResult },
+          parent_tool_use_id: null,
+          uuid: "00000000-0000-0000-0000-0000000000ca",
+          session_id: "sess_fixture",
+        },
+        resultSuccess("end_turn"),
+      ]),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const argDeltas = evs.filter((e) => isClosedEvent(e) && e.type === "tool.args.delta");
+    expect(argDeltas.map((e) => (e.type === "tool.args.delta" ? e.delta : ""))).toEqual([
+      '{"ci',
+      'ty":"SF"}',
+    ]);
+    const assembled = evs.filter((e) => isClosedEvent(e) && e.type === "tool.args.assembled");
+    expect(assembled).toHaveLength(1);
+    expect(assembled[0]).toMatchObject({ toolCallId: STREAM_TOOL_ID, input: { city: "SF" } });
+    // ONE tool.start (the complete frame re-emitted nothing) and the adopted result.
+    expect(evs.filter((e) => e.type === "tool.start")).toHaveLength(1);
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const toolMsg = r.result().messages.find((m) => m.id === `${STREAM_TOOL_ID}:result`);
+    expect(toolMsg?.content.some((b) => b.type === "tool-result")).toBe(true);
+  });
+
+  it("carries ttft_ms once via message.metadata (wire name verbatim), never twice", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...pushAll(n, [
+        streamFrame(messageStart(), { ttft: 923 }),
+        streamFrame(cbStartText(0), { ttft: 923 }),
+        streamFrame(cbDeltaText(0, "hi"), { ttft: 923 }),
+        streamFrame(cbStop(0)),
+        streamFrame(msgStop()),
+        completeFrame([{ type: "text", text: "hi", citations: null }]),
+        resultSuccess("end_turn"),
+      ]),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const metas = evs.filter(
+      (e) => isClosedEvent(e) && e.type === "message.metadata" && e.metadata["ttft_ms"] === 923,
+    );
+    expect(metas).toHaveLength(1);
+  });
+
+  it("an aborted stream (no stop, no complete frame) still seals cleanly on flush — no dangling lifecycles", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...pushAll(n, [
+        streamFrame(messageStart()),
+        streamFrame(cbStartText(0)),
+        streamFrame(cbDeltaText(0, "partial answ")),
+      ]),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const types = evs.filter(isClosedEvent).map((e) => e.type);
+    // finalize (text.end) precedes the seal (message.end): nothing dangles.
+    expect(types.indexOf("text.end")).toBeGreaterThan(-1);
+    expect(types.indexOf("text.end")).toBeLessThan(types.indexOf("message.end"));
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+  });
+
+  it("orphan stream frames (no message_start observed) ride the lossless ext.anthropic.frame carry", () => {
+    const n = createClaudeNormalizer();
+    const evs = n.push(JsonValue.parse(streamFrame(cbDeltaText(0, "orphan"))));
+    expect(evs).toHaveLength(1);
+    expect(evs[0]).toMatchObject({ type: "ext.anthropic.frame", kind: "stream_event" });
+  });
+
+  it("wrapper carry on a SUPPRESSED complete frame rides message.metadata (no first-block anchor exists)", () => {
+    const n = createClaudeNormalizer();
+    const abortedComplete: SDKMessage = {
+      ...completeFrame([{ type: "text", text: "hel", citations: null }]),
+      aborted: true,
+    } as SDKMessage;
+    const evs = [
+      ...pushAll(n, [
+        streamFrame(messageStart()),
+        streamFrame(cbStartText(0)),
+        streamFrame(cbDeltaText(0, "hel")),
+        streamFrame(cbStop(0)),
+        abortedComplete,
+      ]),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const metas = evs.filter(
+      (e) => isClosedEvent(e) && e.type === "message.metadata" && e.metadata["aborted"] === true,
+    );
+    expect(metas).toHaveLength(1);
+    // …and the complete frame's text was NOT re-emitted.
+    expect(evs.filter((e) => e.type === "text.start")).toHaveLength(1);
+  });
+
+  it("nested (subagent) partials: subagent.start seeds the streamed turn; the nested complete frame joins it", () => {
+    const n = createClaudeNormalizer();
+    const nestedComplete: SDKMessage = {
+      type: "assistant",
+      message: { ...betaMessage([{ type: "text", text: "sub", citations: null }]), id: STREAM_ID },
+      parent_tool_use_id: "toolu_parent_9",
+      uuid: "00000000-0000-0000-0000-0000000000cb",
+      session_id: "sess_fixture",
+    };
+    const evs = [
+      ...pushAll(n, [
+        streamFrame(messageStart(), { parent: "toolu_parent_9" }),
+        streamFrame(cbStartText(0), { parent: "toolu_parent_9" }),
+        streamFrame(cbDeltaText(0, "sub"), { parent: "toolu_parent_9" }),
+        streamFrame(cbStop(0), { parent: "toolu_parent_9" }),
+        streamFrame(msgStop(), { parent: "toolu_parent_9" }),
+        nestedComplete,
+      ]),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    expect(evs.filter((e) => e.type === "subagent.start")).toHaveLength(1);
+    expect(evs.filter((e) => e.type === "subagent.done")).toHaveLength(1);
+    expect(evs.filter((e) => e.type === "message.start")).toHaveLength(1);
+    expect(evs.filter((e) => e.type === "text.delta")).toHaveLength(1);
+  });
+
+  it("a carried ext frame BETWEEN stream events never splits the streamed message (guuey#26 parity)", () => {
+    const n = createClaudeNormalizer();
+    const hookFrame: SDKMessage = JSON.parse(
+      JSON.stringify({
+        type: "system",
+        subtype: "hook_progress",
+        hook_name: "PostToolUse",
+        output: "…",
+        uuid: "00000000-0000-0000-0000-0000000000cc",
+        session_id: "sess_fixture",
+      }),
+    ) as SDKMessage;
+    const evs = [
+      ...pushAll(n, [
+        streamFrame(messageStart()),
+        streamFrame(cbStartText(0)),
+        streamFrame(cbDeltaText(0, "hel")),
+        hookFrame,
+        streamFrame(cbDeltaText(0, "lo")),
+        streamFrame(cbStop(0)),
+        streamFrame(msgStop()),
+        completeFrame([{ type: "text", text: "hello", citations: null }]),
+        resultSuccess("end_turn"),
+      ]),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    expect(evs.filter((e) => e.type === "message.start")).toHaveLength(1);
+    expect(evs.filter((e) => e.type === "message.end")).toHaveLength(1);
+    const deltas = evs.filter((e) => isClosedEvent(e) && e.type === "text.delta");
+    expect(deltas.map((e) => (e.type === "text.delta" ? e.delta : ""))).toEqual(["hel", "lo"]);
+  });
+
+  it("byte-parity: a partials-free run is untouched by the arm (golden equality with a fresh normalizer)", () => {
+    const withArm = createClaudeNormalizer();
+    const evsA = [
+      ...pushAll(withArm, [
+        assistantMsg([{ type: "text", text: "hello", citations: null }]),
+        resultSuccess("end_turn"),
+      ]),
+      ...withArm.flush(),
+    ];
+    const again = createClaudeNormalizer();
+    const evsB = [
+      ...pushAll(again, [
+        assistantMsg([{ type: "text", text: "hello", citations: null }]),
+        resultSuccess("end_turn"),
+      ]),
+      ...again.flush(),
+    ];
+    expect(evsA).toEqual(evsB);
+  });
+});
