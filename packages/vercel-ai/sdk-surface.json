@@ -1,6 +1,6 @@
 {
   "$comment": "Ratchet manifest for the fixture-drift gate (scripts/check-fixture-drift.mjs), vercel-ai facet \u2014 the fourth facet. STATUS: this facet is NOT yet registered in check-fixture-drift.mjs's gatherInventories(), so no member inventory is ratcheted and checkVerifiedLogs does not yet cross-check `verified` against an installed pin. What IS live: render-compat.mjs lists this facet in FACETS and renders `verified` into README.md's compat table, and the drift gate fails on a stale table via checkCompatStaleness. Like google-adk, this facet never imports its upstream SDK \u2014 src/index.ts's VercelStreamPart is a hand-defined structural projection of `ai`'s TextStreamPart union (`ai` is an optional peerDependency only). PLANNED on gate registration (with exact e2e pins, per docs/plans/2026-07-14-vercel-ai-facet-brief.md item 9): a `streamPartType` section \u2014 the TextStreamPart union's top-level `type:` discriminants from the installed `ai` d.ts, the vocabulary the drive switch dispatches on, with per-member dispositions seeded by reading the drive switch line-by-line against every discriminant.",
-  "verifiedAt": "7.0.51",
+  "verifiedAt": "7.0.56",
   "verified": [
     {
       "sdkVersion": "7.0.26",
@@ -43,6 +43,12 @@
       "date": "2026-08-04",
       "silverprotocol": "0.3.9",
       "evidence": "7.0.41\u21927.0.51 audit: streamed-surface d.ts (TextStreamPart union + UIMessageChunk) byte-identical across the 7.0.44\u21927.0.51 tarball chain and unchanged since 7.0.34 \u2014 the one WIRE change is behavioral, not typed: 7.0.42 (changeset 6de2ec1, runtime-diff confirmed) relaxed the empty-text guard to `text.length > 0 || providerMetadata != null`, so an empty text-delta now reaches consumers when a chunk-level providerMetadata bag is its whole payload. Carried on text.delta's first-class providerMetadata slot (Reducer merges it onto the sealed block), scoped to EMPTY deltas so pre-7.0.42-shaped streams normalize byte-identically \u2014 non-empty deltas keep the census's disclosed-drop disposition (5 fixture tests: carry + clean Reducer fold, bare-empty-delta unchanged, 7.0.41-shaped negative control, hostile non-object bag). Companion pins moved in the ai\u2194@ai-sdk/mcp provider-utils lockstep pairing (the pairing that fixed the e2e CI typecheck). Live re-capture pending \u2014 this cohort's capture step."
+    },
+    {
+      "sdkVersion": "7.0.56",
+      "date": "2026-08-08",
+      "silverprotocol": "0.4.1",
+      "evidence": "peer catch-up (typescript-sdk#12): ai 7.0.51->7.0.56 with @ai-sdk/mcp 2.0.27 + @ai-sdk/openai 4.0.34 \u2014 the aligned provider-utils 5.0.23 trio (7.0.52+ against the old mcp 2.0.24/pu 5.0.20 pins installed duplicate unique-symbol-branded Schema copies and broke typecheck in-range, the nightly's [peer-compat] finding). Full gate suite green at the new pins (build/typecheck/949 tests incl. corpus replay + fold gates); wire-no-op \u2014 no facet change, no census demands, existing echo-gpt56 cassette replays byte-stable. Lockfile verified single provider-utils resolution (5.0.20 orphans pruned)."
     }
   ],
   "sections": {}
