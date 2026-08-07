@@ -2915,3 +2915,112 @@ describe("reducer scratch eviction at turn terminals (audit M51)", () => {
     expect(r.needsResync).toBe(false);
   });
 });
+
+// ─── workspace#9 — `_meta` carriage on tool-result blocks ─────────────────────
+// The §0.4 host side-channel (`_meta`) is exactly the generative-UI bootstrap
+// (MCP-Apps `_meta.ui`, A2UI render descriptors); text.start/reasoning.start
+// carried theirs from the start, and the tool.done arms silently dropped it —
+// every folded consumer lost card-capable results. Both arms now mirror the
+// text/reasoning precedent.
+describe("tool.done _meta carriage (workspace#9)", () => {
+  const META = { ui: { resourceUri: "ui://cards/1" } };
+
+  it("CREATE: a tool.done with _meta lands it on the tool-result block", () => {
+    const r = reduce([
+      TURN_START,
+      MSG_START,
+      { type: "tool.start", seq: 2, toolCallId: "tm1", name: "render", turnId: "t1", threadId: "th1" },
+      {
+        type: "tool.done",
+        seq: 3,
+        toolCallId: "tm1",
+        content: [],
+        outcome: "ok",
+        _meta: META,
+        turnId: "t1",
+        threadId: "th1",
+      },
+    ]).result;
+    const block = r.messages[0]?.content[1];
+    expect(block?.type).toBe("tool-result");
+    if (block?.type === "tool-result") expect(block._meta).toEqual(META);
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  it("MERGE: a preliminary's _meta SURVIVES a final REPLACE that omits its own", () => {
+    const acc = new Reducer();
+    acc.push(TURN_START);
+    acc.push(MSG_START);
+    acc.push({ type: "tool.start", seq: 2, toolCallId: "tm2", name: "render", turnId: "t1", threadId: "th1" });
+    acc.push({
+      type: "tool.done",
+      seq: 3,
+      toolCallId: "tm2",
+      content: [{ type: "text", text: "rendering..." }],
+      outcome: "ok",
+      more: true,
+      _meta: META,
+      turnId: "t1",
+      threadId: "th1",
+    });
+    acc.push({
+      type: "tool.done",
+      seq: 4,
+      toolCallId: "tm2",
+      content: [{ type: "text", text: "rendered" }],
+      outcome: "ok",
+      turnId: "t1",
+      threadId: "th1",
+    });
+    const r = acc.result();
+    const block = r.messages[0]?.content[1];
+    expect(block?.type).toBe("tool-result");
+    if (block?.type === "tool-result") {
+      expect(block._meta).toEqual(META);
+      expect(block.preliminary).toBeUndefined();
+      expect(block.content[0]).toMatchObject({ text: "rendered" });
+    }
+    expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+
+  it("MERGE: a final tool.done carrying its OWN _meta overwrites the preliminary's", () => {
+    const acc = new Reducer();
+    acc.push(TURN_START);
+    acc.push(MSG_START);
+    acc.push({ type: "tool.start", seq: 2, toolCallId: "tm3", name: "render", turnId: "t1", threadId: "th1" });
+    acc.push({
+      type: "tool.done",
+      seq: 3,
+      toolCallId: "tm3",
+      content: [],
+      outcome: "ok",
+      more: true,
+      _meta: { ui: { resourceUri: "ui://cards/preliminary" } },
+      turnId: "t1",
+      threadId: "th1",
+    });
+    acc.push({
+      type: "tool.done",
+      seq: 4,
+      toolCallId: "tm3",
+      content: [],
+      outcome: "ok",
+      _meta: META,
+      turnId: "t1",
+      threadId: "th1",
+    });
+    const block = acc.result().messages[0]?.content[1];
+    if (block?.type === "tool-result") expect(block._meta).toEqual(META);
+  });
+
+  it("a _meta-less tool.done still produces a _meta-less block (no empty bag fabricated)", () => {
+    const r = reduce([
+      TURN_START,
+      MSG_START,
+      { type: "tool.start", seq: 2, toolCallId: "tm4", name: "calc", turnId: "t1", threadId: "th1" },
+      { type: "tool.done", seq: 3, toolCallId: "tm4", content: [], outcome: "ok", turnId: "t1", threadId: "th1" },
+    ]).result;
+    const block = r.messages[0]?.content[1];
+    if (block?.type === "tool-result") expect("_meta" in block).toBe(false);
+  });
+});

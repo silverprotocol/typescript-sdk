@@ -480,6 +480,11 @@ export class Reducer {
           if (ev.errorText !== undefined) block.errorText = ev.errorText;
           if (ev.errorCode !== undefined) block.errorCode = ev.errorCode;
           if (ev.pendingInput !== undefined) block.pendingInput = ev.pendingInput;
+          // workspace#9: the §0.4 host side-channel joins the merge like every
+          // other result field — guarded, so a preliminary's `_meta` (the
+          // MCP-Apps/A2UI card bootstrap) survives a final REPLACE that omits
+          // its own. Mirrors the text.start/reasoning.start carriage.
+          if (ev._meta !== undefined) block._meta = ev._meta;
           block.providerMetadata = mergeProviderMeta(block.providerMetadata, ev.providerMetadata);
           // Typed preliminary flag mirrors the block's `more` state (audit M20):
           // more:true keeps it set (partial, kept open); the final more-less tool.done
@@ -555,6 +560,9 @@ export class Reducer {
             ...(ev.dynamic !== undefined ? { dynamic: ev.dynamic } : {}),
             ...(ev.pendingInput !== undefined ? { pendingInput: ev.pendingInput } : {}),
             ...(ev.providerMetadata !== undefined ? { providerMetadata: ev.providerMetadata } : {}),
+            // workspace#9: the §0.4 host side-channel (MCP-Apps `_meta.ui` /
+            // A2UI bootstraps) — mirrors the text.start/reasoning.start carriage.
+            ...(ev._meta !== undefined ? { _meta: ev._meta } : {}),
             ...(ev.more === true ? { preliminary: true } : {}),
           };
           const index = msg.content.length;
