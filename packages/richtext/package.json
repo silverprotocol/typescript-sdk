@@ -1,0 +1,51 @@
+{
+  "name": "@silverprotocol/richtext",
+  "version": "0.3.11",
+  "description": "Headless rich-text block model for AgJSON text content — a typed markdown-subset AST + the safety policy, no rendering.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/silverprotocol/typescript-sdk.git",
+    "directory": "packages/richtext"
+  },
+  "homepage": "https://silverprotocol.io/AgJSON",
+  "bugs": {
+    "url": "https://github.com/silverprotocol/typescript-sdk/issues"
+  },
+  "keywords": [
+    "agjson",
+    "agent",
+    "agents",
+    "ai",
+    "llm",
+    "markdown",
+    "ast",
+    "streaming",
+    "chat",
+    "headless"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts",
+    "!dist/**/*.test.*"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "prepack": "rm -rf dist && tsc -b --force",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}

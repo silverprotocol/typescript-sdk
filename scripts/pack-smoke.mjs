@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
-const pkgs = ["core", "claude-agent-sdk", "openai-agents", "google-adk", "vercel-ai"];
+const pkgs = ["core", "richtext", "claude-agent-sdk", "openai-agents", "google-adk", "vercel-ai"];
 const work = mkdtempSync(join(tmpdir(), "sp-pack-smoke-"));
 const run = (cmd, cwd) => execSync(cmd, { cwd, stdio: "pipe" }).toString();
 
@@ -52,6 +52,10 @@ const checks = [
     "m => { if (typeof m.AGJSON_VERSION !== 'string' || typeof m.Reducer !== 'function' || typeof m.ingestAgEvent !== 'function') throw new Error('core exports missing'); }",
   ],
   [
+    "@silverprotocol/richtext",
+    "m => { if (typeof m.parseRichText !== 'function' || typeof m.parseInlineRichText !== 'function') throw new Error('richtext exports missing'); }",
+  ],
+  [
     "@silverprotocol/claude-agent-sdk",
     "m => { if (typeof m.createClaudeNormalizer !== 'function') throw new Error('claude export missing'); }",
   ],
@@ -72,4 +76,4 @@ for (const [name, fn] of checks) {
   run(`node -e "import('${name}').then(${fn}).then(() => console.log('ok ${name}'))"`, app);
   console.log(`ok ${name}`);
 }
-console.log("pack-smoke: all five packages import clean");
+console.log("pack-smoke: all six packages import clean");

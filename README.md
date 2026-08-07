@@ -5,6 +5,7 @@
 [![openai-agents](https://img.shields.io/npm/v/%40silverprotocol%2Fopenai-agents?label=openai-agents&color=0a7)](https://www.npmjs.com/package/@silverprotocol/openai-agents)
 [![google-adk](https://img.shields.io/npm/v/%40silverprotocol%2Fgoogle-adk?label=google-adk&color=0a7)](https://www.npmjs.com/package/@silverprotocol/google-adk)
 [![vercel-ai](https://img.shields.io/npm/v/%40silverprotocol%2Fvercel-ai?label=vercel-ai&color=0a7)](https://www.npmjs.com/package/@silverprotocol/vercel-ai)
+[![richtext](https://img.shields.io/npm/v/%40silverprotocol%2Frichtext?label=richtext&color=0a7)](https://www.npmjs.com/package/@silverprotocol/richtext)
 [![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
 The TypeScript SDK for **AgJSON** — the open, neutral, typed transport for
@@ -28,6 +29,11 @@ npm install @silverprotocol/core @silverprotocol/claude-agent-sdk
   framework's native events ⇄ AgJSON. **Producers** ship a `createXNormalizer()`
   function; **consumers** use `ingestAgEvent()` or `AgEvent.parse()` to validate
   and load AgJSON from the wire.
+- **`@silverprotocol/richtext`** — the headless rich-text block model for
+  AgJSON `text` content: a typed markdown-subset AST (`parseRichText`) plus the
+  one shared safety policy (HTML always literal, link `href` scheme-allowlisted),
+  streaming-tolerant by design. No components, no styling, no dependencies —
+  hosts map the AST onto their own renderers.
 - **`AGJSON_VERSION`** — the wire schema version (`1.0.0-draft.1`).
 
 The **Normalizer contract**: stateful-per-invoke, lifetime-scoped normalizer

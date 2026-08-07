@@ -110,6 +110,8 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/richtext: {}
+
   packages/vercel-ai:
     dependencies:
       '@silverprotocol/core':
