@@ -64,3 +64,36 @@ A scenario joins the corpus only if it is both:
 
 Requests that pass the filter are welcome —
 [open an issue](https://github.com/silverprotocol/typescript-sdk/issues).
+
+## Layer B: authored transcripts (narrow exception)
+
+The filter above governs **framework cassettes** (Layer A) and its
+never-hand-authored clause stays intact for them. A second, deliberately
+narrow tier exists for scenarios that are **structurally uncapturable by any
+framework SDK** — flows that originate outside the agent stream (e.g. a
+client-iframe gesture re-entering through the MCP-Apps host plane), where the
+producing runtime is itself the only honest wire producer.
+
+A Layer-B transcript is **authored from real shapes**, never invented, and is
+admitted only under ALL of:
+
+1. **Uncapturable by construction** — the scenario provably cannot appear in
+   any framework SDK's server-side stream; if a capture path exists, Layer A
+   is the only route.
+2. **Per-frame source-map provenance** — the provenance sidecar uses
+   `kind: "authored"` and maps EVERY frame to the shipping code path that
+   emits that byte shape in production. No source map, no enrollment.
+3. **Producer-side refresh ritual** — the authoring project re-authors and
+   re-files when its runtime's shapes change; the transcript is read-only
+   here, exactly like a cassette. The stable/incidental contract above applies
+   unchanged.
+4. **Transcript-contract gate** — Layer-B transcripts do NOT ride the
+   replay/census/fold machinery (they are host-plane wire, not normalizer
+   input). Each enrolls with a dedicated CI gate asserting its declared
+   stable set: frame ordering, tool/method names, structural shape, and
+   cross-frame correlation *equalities* (the literal values stay incidental).
+
+Precedent: `corpus/text-tool-turn/adk.native.json` shipped hand-authored
+(`kind: "fixture"` provenance, openly documented) when no ADK runtime existed
+to capture from — this tier formalizes that practice instead of leaving it
+exceptional.
