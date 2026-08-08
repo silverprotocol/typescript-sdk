@@ -1,6 +1,6 @@
 {
   "$comment": "Ratchet manifest for the fixture-drift gate (scripts/check-fixture-drift.mjs), vercel-ai facet \u2014 the fourth facet. STATUS: this facet is NOT yet registered in check-fixture-drift.mjs's gatherInventories(), so no member inventory is ratcheted and checkVerifiedLogs does not yet cross-check `verified` against an installed pin. What IS live: render-compat.mjs lists this facet in FACETS and renders `verified` into README.md's compat table, and the drift gate fails on a stale table via checkCompatStaleness. Like google-adk, this facet never imports its upstream SDK \u2014 src/index.ts's VercelStreamPart is a hand-defined structural projection of `ai`'s TextStreamPart union (`ai` is an optional peerDependency only). PLANNED on gate registration (with exact e2e pins, per docs/plans/2026-07-14-vercel-ai-facet-brief.md item 9): a `streamPartType` section \u2014 the TextStreamPart union's top-level `type:` discriminants from the installed `ai` d.ts, the vocabulary the drive switch dispatches on, with per-member dispositions seeded by reading the drive switch line-by-line against every discriminant.",
-  "verifiedAt": "7.0.56",
+  "verifiedAt": "7.0.58",
   "verified": [
     {
       "sdkVersion": "7.0.26",
@@ -49,6 +49,12 @@
       "date": "2026-08-08",
       "silverprotocol": "0.4.1",
       "evidence": "peer catch-up (typescript-sdk#12): ai 7.0.51->7.0.56 with @ai-sdk/mcp 2.0.27 + @ai-sdk/openai 4.0.34 \u2014 the aligned provider-utils 5.0.23 trio (7.0.52+ against the old mcp 2.0.24/pu 5.0.20 pins installed duplicate unique-symbol-branded Schema copies and broke typecheck in-range, the nightly's [peer-compat] finding). Full gate suite green at the new pins (build/typecheck/949 tests incl. corpus replay + fold gates); wire-no-op \u2014 no facet change, no census demands, existing echo-gpt56 cassette replays byte-stable. Lockfile verified single provider-utils resolution (5.0.20 orphans pruned)."
+    },
+    {
+      "sdkVersion": "7.0.58",
+      "date": "2026-08-08",
+      "silverprotocol": "0.4.1",
+      "evidence": "peer catch-up #2 of the vercel rapid-patch streak (typescript-sdk#14): ai 7.0.56->7.0.58 with @ai-sdk/mcp 2.0.29 + @ai-sdk/openai 4.0.36 (aligned provider-utils 5.0.25 trio; gateway 4.0.46/provider 4.0.7 transitives). Mirror lockfile rebuilt from fresh resolution (pnpm clean --lockfile \u2014 the stale-young-entry policy deadlock: replaced exclusions un-exclude still-young lockfile entries and install rejects at READ; fresh rebuild is the sanctioned path). @google/adk caret pin tightened to exact 1.5.0 after the fresh resolution floated it to the unvetted 1.6.0 minor. Full gate suite green (949 tests incl. corpus replay + fold gates); wire-no-op, no census demands."
     }
   ],
   "sections": {}
