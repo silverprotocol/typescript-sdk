@@ -126,11 +126,28 @@ function factsTable(item) {
   ].join("\n");
 }
 
-function ritualChecklist(item) {
+// The forced-combination line above the stage table. The leg records its FULL
+// override map (peer + lockstep siblings) in result.json — a single-pin
+// description of a family-forced run would send the maintainer to reproduce a
+// DIFFERENT (skewed) combination than the one that actually ran.
+function forcedLine(item, leg) {
+  const o = leg?.overrides ?? {};
+  const names = Object.keys(o);
+  if (names.length > 1) {
+    return `Nightly CI, with the lockstep family forced workspace-wide via pnpm overrides (${names.map((n) => `\`${n}@${o[n]}\``).join(", ")}):`;
+  }
+  return `Nightly CI, with \`${item.latest}\` forced workspace-wide via pnpm override:`;
+}
+
+function ritualChecklist(item, leg) {
+  const familyNote =
+    Object.keys(leg?.overrides ?? {}).length > 1
+      ? ` NOTE: \`${item.name}\` is a lockstep family — force the sibling overrides the leg used (see the forced-combination line above), or a lone \`${item.name}\` override reproduces the provider-utils skew instead of this run.`
+      : "";
   return [
     `To adopt \`${item.latest}\` (the verification ritual — see the \`scripts/render-compat.mjs\` header):`,
     "",
-    `- [ ] override locally (temporary \`overrides:\` stanza in \`pnpm-workspace.yaml\`, or \`node scripts/nightly-peer-leg.mjs ${item.name} ${item.latest} --out /tmp/leg\` on a throwaway checkout) and triage \`pnpm fixture-drift\`'s surface diff into \`packages/${item.facet}/sdk-surface.json\`'s member dispositions (\`members\` / \`sections.*.members\`, whichever this facet uses)`,
+    `- [ ] override locally (temporary \`overrides:\` stanza in \`pnpm-workspace.yaml\`, or \`node scripts/nightly-peer-leg.mjs ${item.name} ${item.latest} --out /tmp/leg\` on a throwaway checkout) and triage \`pnpm fixture-drift\`'s surface diff into \`packages/${item.facet}/sdk-surface.json\`'s member dispositions (\`members\` / \`sections.*.members\`, whichever this facet uses)${familyNote}`,
     "- [ ] `pnpm typecheck && pnpm test && pnpm e2e:replay` green against it",
     "- [ ] (recommended) live `pnpm e2e:capture` with a real key",
     `- [ ] append the \`packages/${item.facet}/sdk-surface.json#verified\` entry (sdkVersion, date, silverprotocol, evidence) and bump its \`verifiedAt\` to match`,
@@ -181,11 +198,11 @@ function driftBody(item, leg, resultsDir) {
     "",
     legVerdict,
     "",
-    `Nightly CI, with \`${item.latest}\` forced workspace-wide via pnpm override:`,
+    forcedLine(item, leg),
     "",
     stageTable(leg),
     "",
-    ritualChecklist(item),
+    ritualChecklist(item, leg),
     driftLogSection(item, resultsDir),
     FOOTER,
   ].join("\n");
@@ -199,9 +216,11 @@ function compatBody(item, leg, resultsDir) {
     "",
     factsTable(item),
     "",
+    forcedLine(item, leg),
+    "",
     stageTable(leg),
     "",
-    ritualChecklist(item),
+    ritualChecklist(item, leg),
     driftLogSection(item, resultsDir),
     FOOTER,
   ].join("\n");
@@ -228,6 +247,19 @@ function main() {
     const legPath = join(resultsDir, `peer-result-${item.facet}`, "result.json");
     const leg = existsSync(legPath) ? JSON.parse(readFileSync(legPath, "utf8")) : null;
     if (!leg) infraProblems.push(`missing leg artifact for ${item.facet} (expected ${legPath})`);
+    // An ABORTED leg (infra failure before any stage, or a lockstep publish
+    // skew) is evidence in NEITHER direction: never file from it, never
+    // resolved-close from it — surface it and move on. leg-infra keeps the
+    // report red (same posture as a missing artifact); skew is benign.
+    if (leg?.aborted !== undefined) {
+      if (leg.aborted.kind !== "lockstep-skew") {
+        infraProblems.push(`aborted leg for ${item.facet}: ${leg.aborted.kind} — ${leg.aborted.detail}`);
+      }
+      summaryRows.push(
+        `| \`${item.name}\` | \`${item.latest}\` | leg aborted (${leg.aborted.kind}) | ${leg.aborted.detail} |`,
+      );
+      continue;
+    }
     const requiredFailed = !leg || !REQUIRED_STAGES.every((k) => leg.stages?.[k] === "success");
 
     let signal = null;
