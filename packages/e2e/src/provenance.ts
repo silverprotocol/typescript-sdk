@@ -10,7 +10,7 @@
  * distinguish real-provider evidence from hand-authored fixtures" blast).
  *
  * Shape LOCKED by the Task 6 brief:
- *   { kind: "capture"|"fixture", capturedAt: string|null,
+ *   { kind: "capture"|"fixture"|"authored", capturedAt: string|null,
  *     sdkVersion: string|null, model: string|null, note?: string }
  *
  * Unknown metadata is `null`, never invented — see the Task 6 report's
@@ -19,7 +19,7 @@
  * guesswork).
  */
 
-export type ProvenanceKind = "capture" | "fixture";
+export type ProvenanceKind = "capture" | "fixture" | "authored";
 
 export interface ProvenanceSidecar {
   kind: ProvenanceKind;
@@ -29,7 +29,11 @@ export interface ProvenanceSidecar {
   note?: string;
 }
 
-const PROVENANCE_KINDS: readonly string[] = ["capture", "fixture"] satisfies ProvenanceKind[];
+// "authored" — FIXTURES.md Layer B (workspace#10): an authored-from-real-shapes
+// transcript whose provenance is a per-frame sourceMap instead of a capture
+// date/model; admitted only under the Layer-B conditions and gated by
+// transcript-contract.test.ts, never by the replay machinery.
+const PROVENANCE_KINDS: readonly string[] = ["capture", "fixture", "authored"] satisfies ProvenanceKind[];
 
 /** Type-predicate guard — narrows a parsed JSON value to the literal
  *  `ProvenanceKind` union by membership (mirrors replay.ts's isFramework /
