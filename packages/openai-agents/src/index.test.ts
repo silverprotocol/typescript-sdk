@@ -1810,6 +1810,46 @@ describe("createOpenaiNormalizer — handoff_requested / handoff_occurred (Task 
   });
 });
 
+describe("createOpenaiNormalizer — compaction_item_created (0.14.3)", () => {
+  it("⇒ content.block{type:'compaction'} with the ciphertext opaque — converging with the claude facet's compaction vocabulary", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_compaction_1" } }),
+      runItem("compaction_item_created", {
+        type: "compaction_item",
+        rawItem: {
+          type: "compaction",
+          encrypted_content: "enc_openai_blob_1",
+          id: "cmp_1",
+          created_by: "context_manager",
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_compaction_1", status: "completed" } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+
+    const block = evs.find((e) => e.type === "content.block") as {
+      block?: { type?: string; opaque?: { kind?: string; value?: string; provider?: string }; provider?: string };
+      turnId?: string;
+    };
+    expect(block).toBeDefined();
+    expect(block?.block).toMatchObject({
+      type: "compaction",
+      provider: "openai",
+      opaque: { kind: "ciphertext", value: "enc_openai_blob_1", provider: "openai" },
+    });
+    // turn-scoped: the engine backfills the turnId; the marker attaches to no message.
+    expect(block?.turnId).toBeDefined();
+    // …and it is NOT double-carried through the unknown-name ext channel.
+    expect(evs.some((e) => e.type === "ext.openai.unparsed")).toBe(false);
+    // The reducer folds the stream without parking.
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+  });
+});
+
 describe("createOpenaiNormalizer — tool_approval_requested (Task 3, audit M48)", () => {
   it("⇒ hitl.ask{kind:'approval', toolCallId, askId} — the M26 paused-fold discipline is ADK-scoped this batch; openai just emits the ask", () => {
     const n = createOpenaiNormalizer();

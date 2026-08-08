@@ -646,6 +646,23 @@ interface OpenAIReasoningEvent {
   item: { type: "reasoning_item"; rawItem: OpenAIReasoningItem };
 }
 
+/** Minimal projection of `protocol.CompactionItem` (0.14.3, `dist/items.d.ts`
+ *  `RunCompactionItem.rawItem`) — "a compaction marker returned by a model".
+ *  `encrypted_content` is the replay-load-bearing opaque blob (the openai
+ *  analog of the claude facet's compaction `encrypted_content`). */
+interface OpenAICompactionItem {
+  type: "compaction";
+  encrypted_content: string;
+  id?: string;
+  created_by?: string;
+}
+
+interface OpenAICompactionItemCreatedEvent {
+  type: "run_item_stream_event";
+  name: "compaction_item_created";
+  item: { type: "compaction_item"; rawItem: OpenAICompactionItem };
+}
+
 /** Minimal projection of `@openai/agents`' `Agent` class — only `.name` is
  *  consumed anywhere on this seam (fixture discipline: type ONLY what you
  *  consume). Rides on `handoff_requested`'s wrapper (`agent`, the SOURCE
@@ -749,7 +766,8 @@ type OpenAIRunItemEvent =
   | OpenAIReasoningEvent
   | OpenAIHandoffRequestedEvent
   | OpenAIHandoffOccurredEvent
-  | OpenAIToolApprovalRequestedEvent;
+  | OpenAIToolApprovalRequestedEvent
+  | OpenAICompactionItemCreatedEvent;
 
 // ── raw_model_stream_event arm ───────────────────────────────────────────────
 // `RunRawModelStreamEvent.data` is the Agents SDK's own `ResponseStreamEvent`
@@ -930,6 +948,7 @@ export type OpenAIStreamEvent =
   | OpenAIHandoffRequestedEvent
   | OpenAIHandoffOccurredEvent
   | OpenAIToolApprovalRequestedEvent
+  | OpenAICompactionItemCreatedEvent
   | OpenAIRawModelStreamEvent
   | OpenAIHostError;
 
@@ -2305,6 +2324,29 @@ export function createOpenaiNormalizer(): Normalizer {
             type: "handoff",
             kind: "transfer",
             toAgentName: item.targetAgent.name,
+          });
+          return;
+        }
+        case "compaction_item_created": {
+          // 0.14.3: a compaction marker returned by the model — the openai
+          // analog of the claude facet's compaction content block, mapped to
+          // the SAME first-class §4 vocabulary (cross-framework convergence:
+          // one compaction shape for every folded consumer). The
+          // `encrypted_content` blob is replay-load-bearing (spec §2/§8) and
+          // rides the block's ciphertext opaque, exactly like claude's.
+          // `id`/`created_by` are narrow disclosed residuals (the compaction
+          // AgBlock arm carries no provider-metadata slot — a spec-process
+          // decision, recorded in sdk-surface.json). No messageId: the marker
+          // is turn-scoped, not message-scoped — the engine backfills turnId.
+          const item = event.item.rawItem;
+          a.contentBlock(undefined, {
+            type: "compaction",
+            opaque: {
+              kind: "ciphertext",
+              value: item.encrypted_content,
+              provider: "openai",
+            },
+            provider: "openai",
           });
           return;
         }
