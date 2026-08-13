@@ -22,7 +22,7 @@ feed it already-captured events it's just a type-level peer.)
      edit those, then re-run `node scripts/render-compat.mjs`. -->
 ## Upstream compatibility
 
-Supported peer range: `@openai/agents` `>=0.2.0 <0.15` (npm-enforced, optional — this package never imports the SDK).
+Supported peer range: `@openai/agents` `>=0.2.0 <0.16` (npm-enforced, optional — this package never imports the SDK).
 
 Wire shapes outside the verified set never crash the normalizer, and the
 fixture-drift gate (`scripts/check-fixture-drift.mjs`) turns every newly-appeared
@@ -32,6 +32,7 @@ facet's per-field dispositions, including its disclosed `silently-dropped` gaps)
 
 | `@openai/agents` | verified | with | evidence |
 | --- | --- | --- | --- |
+| `0.15.0` | 2026-08-13 | 0.4.2 | 0.15.0 MINOR study (typescript-sdk#15, filed as [peer-drift] — the nightly's forced-0.15.0 gate suite was already green): RunItemStreamEventName unchanged (10 members incl. compaction_item_created), protocolItem unchanged (17) — both drift-gate-verified; wire-no-op on every consumed surface. Peer range widened >=0.2.0 <0.15 -> <0.16 (ships as 0.4.3 so consumers installing latest stop getting npm peer warnings); e2e pin 0.15.0. |
 | `0.14.3` | 2026-08-09 | 0.4.1 | peer sweep: 0.14.2->0.14.3 d.ts diff — ONE new RunItemStreamEventName member (compaction_item_created, drift-gate-caught), protocolItem union unchanged (17). Disposition handled: mapped to the first-class compaction content.block converging with the claude facet (synthetic test pins the mapping + no-double-carry + clean fold). Full gate suite green at the new pin (110 facet tests, 949 workspace). |
 | `0.14.2` | 2026-08-04 | 0.3.9 | 0.14.0→0.14.2 verified a run-stream wire no-op: agents-core events.d.ts / types/protocol.d.ts / items.d.ts / result.d.ts byte-identical across 0.14.0/0.14.1/0.14.2 (both hops diffed); agents-openai 0.14.2 metadata-only. Non-wire: 0.14.1 = type re-exports + sandbox runtime; 0.14.2 = RunState CURRENT_SCHEMA_VERSION 1.15 (serialized state, not streamed), MCP credential redaction, realtime transport_event now preserving raw fields (realtime-only — this facet does not normalize realtime transports; noted for any future realtime facet). Pin bumped; live re-capture in this cohort's capture step. |
 | `0.14.0` | 2026-07-29 | 0.3.7 | Live capture landed (echo-gpt56 @ gpt-5.6-sol, agents-core 0.14.0): gpt-5.6-sol populates AssistantMessageItem.phase='final_answer' on the real wire, and the census caught that the synthetic-frame text.end carry never fires live — message_output_created for the final round arrives after response_done closes the message. Fixed with ext.openai.late-phase {itemId, phase} on the id'd post-close path (late-citations degrade convention); 2 unit tests added (carry + 0.13.5-shaped negative control); census transforms/registry updated ([*].data.response.output[*].phase, [*].item.rawItem.phase); replay + census gates green. program/program_output and caller remain synthetic-only (programmatic tool calling needs the hosted tool enabled in an e2e scenario — future capture). |

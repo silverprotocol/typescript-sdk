@@ -65,13 +65,19 @@
       "date": "2026-08-08",
       "silverprotocol": "0.4.1",
       "evidence": "wire-no-op minor (parked from the 2026-08-08 ai-trio slice, studied same day): full d.ts inventory diff 1.5.0->1.6.0 + genai 2.15.0->2.16.0 against the drift gate's own consumed surfaces \u2014 genai Part 15 fields unchanged (the surface that forced the 1.5.0 study via audioTranscription: zero delta this time), adk Event 7 own fields unchanged, LlmResponse 18 fields unchanged. 1.6.0's additions are all non-wire (a2a/auth, get_user_choice_tool + request_input_tool \u2014 registerable tools whose invocations ride the EXISTING functionCall/functionResponse envelope \u2014 crypto/error/output_schema utils). e2e pins bumped exact (adk 1.6.0, genai 2.16.0), single-copy lockfile resolution verified, 918 tests incl. corpus replay + fold gates green. Nightly's forced-latest adk leg has been green all week (no [peer-compat] ever filed). No new corpus scenario demanded \u2014 no wire surface changed to capture."
+    },
+    {
+      "sdkVersion": "1.6.0",
+      "date": "2026-08-13",
+      "silverprotocol": "0.4.2",
+      "evidence": "genai 2.16.0->2.17.0 MINOR study (adk itself unchanged at 1.6.0): Part interface zero-delta (15 fields, tarball d.ts diff + drift-gate-verified post-install) \u2014 wire-no-op; partKind section verifiedAt -> 2.17.0, e2e genai pin 2.17.0."
     }
   ],
   "sections": {
     "partKind": {
       "$comment": "The Gemini `Part` interface's own field names (`@google/genai`'s `dist/genai.d.ts`, `export declare interface Part { \u2026 }`) \u2014 the part-kind vocabulary `driveAdkPart` switches on. `thought`/`thoughtSignature` are MODIFIER fields (ride alongside `text`/`functionCall`/`functionResponse`, never a kind of their own), listed here as their own members because they are still distinct installed field names the gate must track. RE-VERIFIED 2026-07-22 (adk 1.4.0 peer bump): @google/adk 1.4.0 moves its @google/genai dependency across the 1.x->2.x MAJOR (declares ^2.9.0; installed resolution 2.12.0) \u2014 the extracted `Part` interface block is byte-identical across 1.52.0/2.12.0/2.13.0 (and Content/FunctionCall/FunctionResponse/GenerateContentResponseUsageMetadata carry doc-comment rewording only), so every disposition below transfers unchanged; verifiedAt advanced to the installed 2.12.0, with the newest published 2.13.0 diffed identical. RE-VERIFIED 2026-08-04 (adk 1.5.0 / genai 2.15.0 peer bump): the 2.12.0->2.15.0 diff adds exactly ONE `Part` field \u2014 `audioTranscription?: Transcription` \u2014 the FIRST new part kind since this section was ratcheted at 14 members (now 15; entry below). The `Transcription` interface itself gains `speakerLabel?: string` + `words?: WordInfo[]`, with NEW `WordInfo {word?, startOffset?, endOffset?}` (duration-string offsets) \u2014 sub-object shape, in-scope here only through the audioTranscription entry's note. All 14 prior dispositions transfer unchanged.",
       "sdkPackage": "@google/genai",
-      "verifiedAt": "2.16.0",
+      "verifiedAt": "2.17.0",
       "members": {
         "text": {
           "disposition": "handled",
