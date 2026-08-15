@@ -2239,6 +2239,45 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     expect(firstBlock.providerMetadata).toBeUndefined();
     expect(evs.some((e) => e.type === "message.metadata")).toBe(false);
   });
+
+  // ── 0.3.230 sibling: `context_usage`, the structured twin of the /context
+  // report riding the synthetic assistant message that delivers the markdown
+  // table. Joins the same first-block carrier, structure verbatim. ──
+  const CONTEXT_USAGE = {
+    model: "claude-opus",
+    total_tokens: 154000,
+    raw_max_tokens: 200000,
+    percentage: 77,
+    categories: [{ name: "messages", tokens: 120000 }],
+    mcp_tools: [{ name: "mcp__linear__create_issue", server_name: "linear", tokens: 800 }],
+    memory_files: [{ path: "MEMORY.md", type: "User", tokens: 400 }],
+    agents: [{ agent_type: "Explore", source: "built-in", tokens: 900 }],
+  };
+
+  it("carries context_usage verbatim as providerMetadata on the first block (0.3.230)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(wrapperAssistant({ context_usage: CONTEXT_USAGE }))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const firstBlock = evs.find(
+      (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
+    );
+    expect(firstBlock).toMatchObject({ providerMetadata: { context_usage: CONTEXT_USAGE } });
+  });
+
+  it("fold: a context_usage carrier folds clean through Reducer — needsResync===false", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(wrapperAssistant({ context_usage: CONTEXT_USAGE }))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+  });
 });
 
 describe("createClaudeNormalizer — 0.3.220 result-meta carry (fast_mode_disabled_reason / ModelUsage serving identity)", () => {

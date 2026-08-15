@@ -1133,6 +1133,11 @@ export function createClaudeNormalizer(): Normalizer {
       //  - `aborted`: the interrupt-truncation signal (stop_reason never
       //    received; content may end mid-word) — without it a truncated frame
       //    folds indistinguishably from a complete one.
+      //  - `context_usage` (0.3.230): the structured twin of the /context
+      //    report, riding the synthetic assistant message that delivers the
+      //    markdown table. Wrapper-level sibling per its own doc (never inside
+      //    `message.content`, not replayed to the model) — carried verbatim so
+      //    clients can render the context-usage card without parsing markdown.
       // An aborted frame can be truncated before ANY content block existed —
       // with no block to anchor, the carry rides a `message.metadata` event
       // (the merge-into-message channel) instead; see below the block loop.
@@ -1145,6 +1150,12 @@ export function createClaudeNormalizer(): Normalizer {
       }
       if (msg.aborted === true) {
         wrapperMetaRaw["aborted"] = true;
+      }
+      if (msg.context_usage !== undefined) {
+        // Structured plain-JSON shape per its own doc (evolves additively);
+        // JsonValue.parse both validates that invariant and satisfies the
+        // wrapper-meta channel's type without an unchecked cast.
+        wrapperMetaRaw["context_usage"] = JsonValue.parse(msg.context_usage);
       }
       const wrapperMeta: AgProviderMeta | undefined =
         Object.keys(wrapperMetaRaw).length > 0 ? AgProviderMeta.parse(wrapperMetaRaw) : undefined;
