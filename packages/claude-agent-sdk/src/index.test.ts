@@ -1448,20 +1448,22 @@ describe("createClaudeNormalizer — refusal-fallback retraction (playbook 2026-
   });
 });
 
-// ─── SDKInformationalMessage — fixture-drift ratchet FLAGSHIP finding ─────────
-// (2026-07-03). CONTRADICTS playbook-sdk-bumps-report.md's own prior
-// classification of this arm as a "control-plane/CLI-UX signal, no model
-// output" — direct field inspection (sdk.d.ts) shows `content`/`level`/
-// `prevent_continuation?` are genuinely conversation/UX-relevant (transcript
-// notices, an explanation for why a turn halted — e.g. a Stop hook denial),
-// not telemetry. LOCKED DISPOSITION (boundary-invariant respecting — no new
-// core event type, no SPEC §4/§5 change): live-only lossless carry via
-// `ext.anthropic.informational{content, level, preventContinuation}` (SPEC §8
-// item 21) rather than a silent drop.
-describe("createClaudeNormalizer — SDKInformationalMessage (fixture-drift ratchet, 2026-07-03)", () => {
+// ─── SDKInformationalMessage — first-class `notice` message (spec draft.2) ────
+// The fixture-drift ratchet's FLAGSHIP finding (2026-07-03) established this
+// frame is genuinely conversation/UX-relevant, and draft.1 parked it in the
+// `ext.anthropic.informational` lossless carry pending "a first-class notice
+// core event" (old SPEC §10 item 21). draft.2 resolved that deferral
+// (typescript-sdk#16): the frame now becomes a persisted `role:"notice"`
+// message (`noticeSource:"framework"`) with content on a text block and the
+// wrapper siblings (`level`/`preventContinuation`/`toolUseId`) riding that
+// block's providerMetadata. The ext carry is RETIRED (superseded, not layered
+// — one carrier per concept, §0.6); `tool_use_id`, which the old route
+// dropped, is now carried.
+describe("createClaudeNormalizer — SDKInformationalMessage → notice message (spec draft.2)", () => {
   function informationalMsg(overrides?: {
     level?: "info" | "notice" | "suggestion" | "warning";
     prevent_continuation?: boolean;
+    tool_use_id?: string;
   }): SDKMessage {
     return {
       type: "system",
@@ -1473,52 +1475,82 @@ describe("createClaudeNormalizer — SDKInformationalMessage (fixture-drift ratc
       ...(overrides?.prevent_continuation !== undefined
         ? { prevent_continuation: overrides.prevent_continuation }
         : {}),
+      ...(overrides?.tool_use_id !== undefined ? { tool_use_id: overrides.tool_use_id } : {}),
     };
   }
 
-  it("emits exactly one ext.anthropic.informational event, byte-preserving content/level", () => {
+  it("emits a full notice message: role notice, noticeSource framework, content verbatim on a text block, level on its providerMetadata", () => {
     const n = createClaudeNormalizer();
     const evs = [...n.push(JsonValue.parse(informationalMsg())), ...n.flush()];
     assertAllValid(evs);
-    expect(evs).toHaveLength(1);
-    expect(evs[0]).toMatchObject({
-      type: "ext.anthropic.informational",
-      content: "Context window is getting full — consider /compact.",
-      level: "notice",
+    const start = evs.find((e) => e.type === "message.start");
+    expect(start).toMatchObject({
+      id: "00000000-0000-0000-0000-0000000000f4",
+      role: "notice",
+      noticeSource: "framework",
     });
+    const block = evs.find((e) => e.type === "content.block");
+    expect(block).toMatchObject({
+      block: {
+        type: "text",
+        text: "Context window is getting full — consider /compact.",
+        providerMetadata: { level: "notice" },
+      },
+    });
+    expect(evs.some((e) => e.type === "message.end")).toBe(true);
   });
 
-  it("carries prevent_continuation as preventContinuation when present", () => {
+  it("carries prevent_continuation and tool_use_id (camelCased) when present — tool_use_id is NEW vs the retired ext route", () => {
     const n = createClaudeNormalizer();
     const evs = [
-      ...n.push(JsonValue.parse(informationalMsg({ level: "warning", prevent_continuation: true }))),
+      ...n.push(
+        JsonValue.parse(
+          informationalMsg({ level: "warning", prevent_continuation: true, tool_use_id: "toolu_notice_1" }),
+        ),
+      ),
       ...n.flush(),
     ];
     assertAllValid(evs);
-    expect(evs).toHaveLength(1);
-    expect(evs[0]).toMatchObject({
-      type: "ext.anthropic.informational",
-      level: "warning",
-      preventContinuation: true,
+    const block = evs.find((e) => e.type === "content.block");
+    expect(block).toMatchObject({
+      block: {
+        providerMetadata: { level: "warning", preventContinuation: true, toolUseId: "toolu_notice_1" },
+      },
     });
   });
 
-  it("omits preventContinuation when prevent_continuation is absent on the wire (no fabricated field)", () => {
+  it("omits absent wrapper siblings (no fabricated fields)", () => {
     const n = createClaudeNormalizer();
     const evs = [...n.push(JsonValue.parse(informationalMsg())), ...n.flush()];
-    expect((evs[0] as { preventContinuation?: unknown }).preventContinuation).toBeUndefined();
+    const block = evs.find((e) => e.type === "content.block") as {
+      block?: { providerMetadata?: { preventContinuation?: unknown; toolUseId?: unknown } };
+    };
+    expect(block.block?.providerMetadata?.preventContinuation).toBeUndefined();
+    expect(block.block?.providerMetadata?.toolUseId).toBeUndefined();
   });
 
-  it("does NOT silently drop the notice — no bare no-op (regression pin for the flagship finding)", () => {
+  it("the ext.anthropic.informational carry is RETIRED — never emitted alongside the notice (one carrier per concept)", () => {
     const n = createClaudeNormalizer();
     const evs = [...n.push(JsonValue.parse(informationalMsg())), ...n.flush()];
-    // Pre-fix this frame produced ZERO events (a silent drop). Post-fix it
-    // produces exactly the one ext carry above — never nothing.
-    expect(evs.length).toBeGreaterThan(0);
-    expect(evs.some((e) => e.type === "ext.anthropic.informational")).toBe(true);
+    expect(evs.length).toBeGreaterThan(0); // regression pin: never a silent drop either
+    expect(evs.some((e) => e.type === "ext.anthropic.informational")).toBe(false);
   });
 
-  it("fold: an informational notice sandwiched inside a real turn folds clean through Reducer — needsResync===false (T2b: ext events never false-park a fold)", () => {
+  it("fold: the notice persists as an AgMessage {role: notice, noticeSource: framework} in the reduce result", () => {
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(JsonValue.parse(informationalMsg())), ...n.flush()];
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const notice = r.result().messages.find((m) => m.role === "notice");
+    expect(notice).toMatchObject({
+      id: "00000000-0000-0000-0000-0000000000f4",
+      noticeSource: "framework",
+      content: [{ type: "text", text: "Context window is getting full — consider /compact." }],
+    });
+  });
+
+  it("fold: an informational notice sandwiched inside a real turn folds clean through Reducer — needsResync===false, notice row alongside the assistant row", () => {
     const n = createClaudeNormalizer();
     const events = [
       ...n.push(JsonValue.parse(assistantMsg([{ type: "text", text: "hello", citations: null }]))),
@@ -1527,11 +1559,12 @@ describe("createClaudeNormalizer — SDKInformationalMessage (fixture-drift ratc
       ...n.flush(),
     ];
     assertAllValid(events);
-    expect(events.some((e) => e.type === "ext.anthropic.informational")).toBe(true);
-
     const r = new Reducer();
     for (const e of events) r.push(e);
     expect(r.needsResync).toBe(false);
+    const roles = r.result().messages.map((m) => m.role);
+    expect(roles).toContain("assistant");
+    expect(roles).toContain("notice");
   });
 });
 

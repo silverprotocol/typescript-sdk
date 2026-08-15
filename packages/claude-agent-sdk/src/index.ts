@@ -1467,21 +1467,27 @@ export function createClaudeNormalizer(): Normalizer {
     }
 
     if (msg.type === "system" && msg.subtype === "informational") {
-      // Fixture-drift ratchet FLAGSHIP finding (2026-07-03): CONTRADICTS
-      // playbook-sdk-bumps-report.md's prior classification of this arm as a
-      // "control-plane/CLI-UX signal, no model output". Direct field
-      // inspection (sdk.d.ts) shows `content`/`level`/`prevent_continuation?`
-      // are genuinely conversation/UX-relevant (transcript notices, an
-      // explanation for why a turn halted, e.g. a Stop hook denial) — not
-      // telemetry. LOCKED DISPOSITION: no first-class AgJSON event exists for
-      // this today (a `notice` core event is a future spec-process decision,
-      // §8 item 21) — carry it losslessly via the facet's established
-      // `ext.anthropic.*` convention rather than drop it.
-      a.emitExt("anthropic", "informational", {
-        content: msg.content,
+      // spec draft.2 (§10 item 21, resolving the fixture-drift ratchet's
+      // FLAGSHIP finding): the first-class `notice` home this frame waited
+      // for since 2026-07-03. `content`/`level`/`prevent_continuation?` are
+      // genuinely conversation/UX-relevant (transcript notices, an
+      // explanation for why a turn halted, e.g. a Stop hook denial) — a
+      // persisted, user-facing, non-conversational row (the §3 admission
+      // test), never model input. The draft.1 `ext.anthropic.informational`
+      // carry is RETIRED (superseded, not layered — one carrier per concept,
+      // §0.6); note `tool_use_id` was NOT carried by that route, so this
+      // promotion is strictly more lossless. Wrapper siblings ride the text
+      // block's providerMetadata (camelCased per the facet's carry
+      // convention, mirroring the 0.3.217 first-block precedent).
+      const turnId = turnIdFor(msg.session_id, msg.uuid);
+      const noticeMeta = AgProviderMeta.parse({
         level: msg.level,
         ...(msg.prevent_continuation !== undefined ? { preventContinuation: msg.prevent_continuation } : {}),
+        ...(msg.tool_use_id !== undefined ? { toolUseId: msg.tool_use_id } : {}),
       });
+      a.openMessage({ id: msg.uuid, role: "notice", turnId, threadId: msg.session_id, noticeSource: "framework" });
+      a.contentBlock(msg.uuid, { type: "text", text: msg.content, providerMetadata: noticeMeta });
+      a.closeMessage(msg.uuid);
       return;
     }
 
