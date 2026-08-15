@@ -22,7 +22,7 @@ feed it already-captured events it's just a type-level peer.)
      edit those, then re-run `node scripts/render-compat.mjs`. -->
 ## Upstream compatibility
 
-Supported peer range: `@openai/agents` `>=0.2.0 <0.16` (npm-enforced, optional — this package never imports the SDK).
+Supported peer range: `@openai/agents` `>=0.2.0 <0.17` (npm-enforced, optional — this package never imports the SDK).
 
 Wire shapes outside the verified set never crash the normalizer, and the
 fixture-drift gate (`scripts/check-fixture-drift.mjs`) turns every newly-appeared
@@ -32,6 +32,7 @@ facet's per-field dispositions, including its disclosed `silently-dropped` gaps)
 
 | `@openai/agents` | verified | with | evidence |
 | --- | --- | --- | --- |
+| `0.16.0` | 2026-08-15 | 0.4.4 | 0.16.0 MINOR study: both consumed agents-core dist files BYTE-IDENTICAL to 0.15.0 (events.d.ts and types/protocol.d.ts; RunItemStreamEventName 10 members, protocolItem 17, full zod-literal inventory zero-delta) - the minor is agent/handoff/runner internals the facet does not ingest. Peer range widened >=0.2.0 <0.16 -> <0.17 (ships as 0.4.4 so consumers installing 0.16.x stop getting npm peer warnings); e2e pin 0.16.0, forced gate suite green. |
 | `0.15.0` | 2026-08-13 | 0.4.2 | 0.15.0 MINOR study (typescript-sdk#15, filed as [peer-drift] — the nightly's forced-0.15.0 gate suite was already green): RunItemStreamEventName unchanged (10 members incl. compaction_item_created), protocolItem unchanged (17) — both drift-gate-verified; wire-no-op on every consumed surface. Peer range widened >=0.2.0 <0.15 -> <0.16 (ships as 0.4.3 so consumers installing latest stop getting npm peer warnings); e2e pin 0.15.0. |
 | `0.14.3` | 2026-08-09 | 0.4.1 | peer sweep: 0.14.2->0.14.3 d.ts diff — ONE new RunItemStreamEventName member (compaction_item_created, drift-gate-caught), protocolItem union unchanged (17). Disposition handled: mapped to the first-class compaction content.block converging with the claude facet (synthetic test pins the mapping + no-double-carry + clean fold). Full gate suite green at the new pin (110 facet tests, 949 workspace). |
 | `0.14.2` | 2026-08-04 | 0.3.9 | 0.14.0→0.14.2 verified a run-stream wire no-op: agents-core events.d.ts / types/protocol.d.ts / items.d.ts / result.d.ts byte-identical across 0.14.0/0.14.1/0.14.2 (both hops diffed); agents-openai 0.14.2 metadata-only. Non-wire: 0.14.1 = type re-exports + sandbox runtime; 0.14.2 = RunState CURRENT_SCHEMA_VERSION 1.15 (serialized state, not streamed), MCP credential redaction, realtime transport_event now preserving raw fields (realtime-only — this facet does not normalize realtime transports; noted for any future realtime facet). Pin bumped; live re-capture in this cohort's capture step. |

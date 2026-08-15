@@ -71,13 +71,19 @@
       "date": "2026-08-13",
       "silverprotocol": "0.4.2",
       "evidence": "genai 2.16.0->2.17.0 MINOR study (adk itself unchanged at 1.6.0): Part interface zero-delta (15 fields, tarball d.ts diff + drift-gate-verified post-install) \u2014 wire-no-op; partKind section verifiedAt -> 2.17.0, e2e genai pin 2.17.0."
+    },
+    {
+      "sdkVersion": "1.6.0",
+      "date": "2026-08-15",
+      "silverprotocol": "0.4.4",
+      "evidence": "genai 2.17.0->2.17.1 PATCH study (adk itself unchanged at 1.6.0): Part interface byte-identical (tarball d.ts diff) - wire-no-op; partKind section verifiedAt -> 2.17.1, e2e genai pin 2.17.1."
     }
   ],
   "sections": {
     "partKind": {
       "$comment": "The Gemini `Part` interface's own field names (`@google/genai`'s `dist/genai.d.ts`, `export declare interface Part { \u2026 }`) \u2014 the part-kind vocabulary `driveAdkPart` switches on. `thought`/`thoughtSignature` are MODIFIER fields (ride alongside `text`/`functionCall`/`functionResponse`, never a kind of their own), listed here as their own members because they are still distinct installed field names the gate must track. RE-VERIFIED 2026-07-22 (adk 1.4.0 peer bump): @google/adk 1.4.0 moves its @google/genai dependency across the 1.x->2.x MAJOR (declares ^2.9.0; installed resolution 2.12.0) \u2014 the extracted `Part` interface block is byte-identical across 1.52.0/2.12.0/2.13.0 (and Content/FunctionCall/FunctionResponse/GenerateContentResponseUsageMetadata carry doc-comment rewording only), so every disposition below transfers unchanged; verifiedAt advanced to the installed 2.12.0, with the newest published 2.13.0 diffed identical. RE-VERIFIED 2026-08-04 (adk 1.5.0 / genai 2.15.0 peer bump): the 2.12.0->2.15.0 diff adds exactly ONE `Part` field \u2014 `audioTranscription?: Transcription` \u2014 the FIRST new part kind since this section was ratcheted at 14 members (now 15; entry below). The `Transcription` interface itself gains `speakerLabel?: string` + `words?: WordInfo[]`, with NEW `WordInfo {word?, startOffset?, endOffset?}` (duration-string offsets) \u2014 sub-object shape, in-scope here only through the audioTranscription entry's note. All 14 prior dispositions transfer unchanged.",
       "sdkPackage": "@google/genai",
-      "verifiedAt": "2.17.0",
+      "verifiedAt": "2.17.1",
       "members": {
         "text": {
           "disposition": "handled",

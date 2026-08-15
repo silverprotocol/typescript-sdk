@@ -1,6 +1,6 @@
 {
   "$comment": "Ratchet manifest for the fixture-drift gate (scripts/check-fixture-drift.mjs), vercel-ai facet \u2014 the fourth facet. STATUS: this facet is NOT yet registered in check-fixture-drift.mjs's gatherInventories(), so no member inventory is ratcheted and checkVerifiedLogs does not yet cross-check `verified` against an installed pin. What IS live: render-compat.mjs lists this facet in FACETS and renders `verified` into README.md's compat table, and the drift gate fails on a stale table via checkCompatStaleness. Like google-adk, this facet never imports its upstream SDK \u2014 src/index.ts's VercelStreamPart is a hand-defined structural projection of `ai`'s TextStreamPart union (`ai` is an optional peerDependency only). PLANNED on gate registration (with exact e2e pins, per docs/plans/2026-07-14-vercel-ai-facet-brief.md item 9): a `streamPartType` section \u2014 the TextStreamPart union's top-level `type:` discriminants from the installed `ai` d.ts, the vocabulary the drive switch dispatches on, with per-member dispositions seeded by reading the drive switch line-by-line against every discriminant.",
-  "verifiedAt": "7.0.64",
+  "verifiedAt": "7.0.66",
   "verified": [
     {
       "sdkVersion": "7.0.26",
@@ -61,6 +61,12 @@
       "date": "2026-08-13",
       "silverprotocol": "0.4.2",
       "evidence": "ai 7.0.58->7.0.64 (six patches) with the aligned pu 5.0.27 trio (mcp 2.0.31, @ai-sdk/openai 4.0.41; gateway 4.0.51/provider 4.0.7 transitives). The whole streak passed the nightly's family-forced leg silently \u2014 zero [peer-compat] filings, the lockstep group-force + skew guard working as designed. Wire-no-op; full gate suite green."
+    },
+    {
+      "sdkVersion": "7.0.66",
+      "date": "2026-08-15",
+      "silverprotocol": "0.4.4",
+      "evidence": "ai 7.0.64->7.0.66 with the aligned pu 5.0.27 trio (mcp 2.0.32, @ai-sdk/openai 4.0.42; gateway 4.0.52/provider 4.0.7 transitives - pu pin UNCHANGED across the bump, so no lockstep skew). 7.0.65+7.0.66 crossed the nightly's family-forced leg silently (zero [peer-compat] filings); wire-no-op, full gate suite green."
     }
   ],
   "sections": {}
