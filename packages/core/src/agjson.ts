@@ -215,6 +215,17 @@ export const AgChoice = z.object({
 });
 export type AgChoice = z.infer<typeof AgChoice>;
 
+// A declared accept variant on a HITL ask (spec §7 grant modes, draft.2). `id` is
+// ASKER-OPAQUE — the protocol carries the mode set, never mode semantics. NOT an
+// AgChoice: choices ARE the question (kind:"choice"); grant modes QUALIFY the yes
+// on any kind, with decline remaining the universal structural affordance.
+export const AgGrantMode = z.object({
+  id: z.string(),
+  label: z.string().optional(),
+  description: z.string().optional(),
+});
+export type AgGrantMode = z.infer<typeof AgGrantMode>;
+
 export const AgAuthConfig = z.object({
   scheme: z.string(),
   scopes: z.array(z.string()).optional(),
@@ -239,6 +250,7 @@ export const AgPausedAsk = z.object({
   toolCallId: z.string().optional(),
   schema: JsonValue.optional(),
   choices: z.array(AgChoice).optional(),
+  grantModes: z.array(AgGrantMode).optional(), // declared accept variants (spec §7, draft.2); absent/empty ⇒ plain accept/decline
   authConfig: AgAuthConfig.optional(),
   url: z.string().optional(),
   reason: z.string().optional(),
@@ -254,16 +266,68 @@ export type AgPausedAsk = z.infer<typeof AgPausedAsk>;
 
 // HITL answer resume payload (spec §7), carried in AgInput.kind:"resume"
 // answers[]. There is NO `hitl.answer` wire type — the answer flows INPUT-side.
-export const AgHitlAnswer = z.object({
-  askId: z.string(),
-  status: z.enum(["resolved", "declined", "cancelled"]),
-  reply: JsonValue.optional(),
-  reason: z.string().optional(),
-  ordinal: z.number().optional(),
-  token: z.string().optional(),
-  requestState: z.string().optional(),
-});
+// `grantModeId` (draft.2) is the grant-mode echo; the intra-object half of its
+// contract (never on a non-resolved answer) is enforced at parse below, the
+// cross-object half (required-iff-declared, echo ∈ declared) needs the
+// originating AgPausedAsk and lives in `validateHitlAnswer`.
+export const AgHitlAnswer = z
+  .object({
+    askId: z.string(),
+    status: z.enum(["resolved", "declined", "cancelled"]),
+    reply: JsonValue.optional(),
+    grantModeId: z.string().optional(),
+    reason: z.string().optional(),
+    ordinal: z.number().optional(),
+    token: z.string().optional(),
+    requestState: z.string().optional(),
+  })
+  .refine((a) => a.grantModeId === undefined || a.status === "resolved", {
+    message: "grantModeId is only valid on a resolved answer (declining is not a mode — spec §7)",
+  });
 export type AgHitlAnswer = z.infer<typeof AgHitlAnswer>;
+
+// The cross-object half of the grant-mode contract (spec §7, draft.2) — the
+// reference validator a host runs BEFORE dispatching an answer, against the
+// fold's own persisted AgPausedAsk record (turn.asks[]; hitl.ask is live-only).
+// Also enforces the pre-existing §7 MUST that `requestState` echo byte-identical.
+export type AgHitlAnswerValidation =
+  | { ok: true }
+  | {
+      ok: false;
+      code:
+        | "ask-id-mismatch"
+        | "grant-mode-missing"
+        | "grant-mode-undeclared"
+        | "grant-mode-without-declaration"
+        | "grant-mode-on-nonresolved"
+        | "request-state-mismatch";
+      message: string;
+    };
+
+export function validateHitlAnswer(ask: AgPausedAsk, answer: AgHitlAnswer): AgHitlAnswerValidation {
+  if (answer.askId !== ask.askId) {
+    return { ok: false, code: "ask-id-mismatch", message: `answer.askId ${JSON.stringify(answer.askId)} does not name ask ${JSON.stringify(ask.askId)}` };
+  }
+  if (ask.requestState !== undefined && answer.requestState !== ask.requestState) {
+    return { ok: false, code: "request-state-mismatch", message: "requestState MUST echo the originating ask byte-identical (spec §7)" };
+  }
+  const declared = ask.grantModes !== undefined && ask.grantModes.length > 0 ? ask.grantModes : undefined;
+  if (answer.grantModeId !== undefined) {
+    // Parse already rejects this arm; kept for unparsed/hand-built objects.
+    if (answer.status !== "resolved") {
+      return { ok: false, code: "grant-mode-on-nonresolved", message: "grantModeId is only valid on a resolved answer (spec §7)" };
+    }
+    if (declared === undefined) {
+      return { ok: false, code: "grant-mode-without-declaration", message: "the originating ask declared no grantModes (spec §7)" };
+    }
+    if (!declared.some((m) => m.id === answer.grantModeId)) {
+      return { ok: false, code: "grant-mode-undeclared", message: `grantModeId ${JSON.stringify(answer.grantModeId)} is not a declared mode id (spec §7)` };
+    }
+  } else if (answer.status === "resolved" && declared !== undefined) {
+    return { ok: false, code: "grant-mode-missing", message: "a resolved answer to a grantModes-declaring ask MUST echo a grantModeId (spec §7)" };
+  }
+  return { ok: true };
+}
 
 // MCP MRTR pending-input carrier (spec §2 / §7): rides `tool-result.pendingInput`
 // (and `tool.done.pendingInput`) when `outcome==="input_required"`. `inputKeys`
@@ -485,8 +549,17 @@ export const AgOutcome = z.discriminatedUnion("type", [
 ]);
 export type AgOutcome = z.infer<typeof AgOutcome>;
 
-export const AgRole = z.enum(["user", "assistant", "tool", "system"]);
+// "notice" (spec §3, draft.2): a PERSISTED, NON-CONVERSATIONAL transcript row — a
+// host/adapter/framework-injected annotation. NEVER replayed to the model, never
+// merged into assistant content, never `role:"system"` (that names instructions).
+export const AgRole = z.enum(["user", "assistant", "tool", "system", "notice"]);
 export type AgRole = z.infer<typeof AgRole>;
+
+// The architecture layer that injected a notice row (spec §3, draft.2; meaningful
+// only with role:"notice"): host = the application; adapter = the normalizer/
+// bridge layer synthesized it; framework = the normalized stream emitted it.
+export const AgNoticeSource = z.enum(["host", "adapter", "framework"]);
+export type AgNoticeSource = z.infer<typeof AgNoticeSource>;
 
 // Sentinel for removing all messages in a turn (spec §4 message.remove / §5).
 export const REMOVE_ALL = "*" as const;
@@ -511,6 +584,7 @@ export const AgMessage = z.object({
   agentId: z.string().optional(),   // agent that produced this message (A2-additive)
   agentName: z.string().optional(), // human-readable agent name (A2-additive)
   agentRole: z.string().optional(), // role of the agent in the pipeline (A2-additive)
+  noticeSource: AgNoticeSource.optional(), // role:"notice" only — injecting layer (spec §3, draft.2)
   model: z.string().optional(),     // model that produced this message (A2-additive)
   usage: AgUsage.optional(),        // per-message token usage (landed from message.end.usage; A2-additive)
 });
@@ -651,6 +725,7 @@ export const AgClientCapabilities = z.object({
       approveWithEdits: z.boolean().optional(),
       form: z.boolean().optional(),
       auth: z.boolean().optional(),
+      grantModes: z.boolean().optional(), // draft.2: client renders declared accept variants + echoes grantModeId (spec §7)
     })
     .optional(),
   streaming: z.object({ partialMessages: z.boolean().optional() }).optional(),
@@ -734,7 +809,7 @@ export type AgRunConfig = z.infer<typeof AgRunConfig>;
 
 // The spec version this SDK implements (SPEC.md status line + §12). Consumers
 // reject a MAJOR mismatch and accept any same-major version (§12 negotiation).
-export const AGJSON_VERSION = "1.0.0-draft.1";
+export const AGJSON_VERSION = "1.0.0-draft.2";
 
 const agjsonWireVersion = z
   .string()
@@ -1059,6 +1134,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     agentId: z.string().optional(),   // agent that produced this message (A2-additive)
     agentName: z.string().optional(), // human-readable agent name (A2-additive)
     agentRole: z.string().optional(), // role of the agent in the pipeline (A2-additive)
+    noticeSource: AgNoticeSource.optional(), // role:"notice" only — injecting layer (spec §3, draft.2)
     model: z.string().optional(),     // model that produced this message (A2-additive)
   }),
   z.object({ ...base, type: z.literal("message.end"), id: z.string(), usage: AgUsage.optional() }), // usage = per-message token carrier (review #4)
@@ -1275,6 +1351,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     message: z.string().optional(),
     schema: JsonValue.optional(),
     choices: z.array(AgChoice).optional(),
+    grantModes: z.array(AgGrantMode).optional(), // declared accept variants (spec §7, draft.2)
     authConfig: AgAuthConfig.optional(),
     url: z.string().optional(),
     toolCallId: z.string().optional(),

@@ -197,6 +197,7 @@ export class Reducer {
           ...(ev.agentId !== undefined ? { agentId: ev.agentId } : {}),
           ...(ev.agentName !== undefined ? { agentName: ev.agentName } : {}),
           ...(ev.agentRole !== undefined ? { agentRole: ev.agentRole } : {}),
+          ...(ev.noticeSource !== undefined ? { noticeSource: ev.noticeSource } : {}),
           ...(ev.model !== undefined ? { model: ev.model } : {}),
           ...(ev.extensions !== undefined ? { extensions: ev.extensions } : {}),
         };

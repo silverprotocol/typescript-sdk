@@ -17,7 +17,7 @@
  *  `openMessage` does NOT synthesize a spurious `turn.start` for an already-opened nested turn.
  */
 
-import type { AgEvent, AgClosedEventType, AgTrigger, AgUsage, AgRole, AgBlock, AgOpaqueKind, AgProviderMeta, AgCitation, JsonValue } from "./agjson.js";
+import type { AgEvent, AgClosedEventType, AgTrigger, AgUsage, AgRole, AgNoticeSource, AgBlock, AgOpaqueKind, AgProviderMeta, AgCitation, JsonValue } from "./agjson.js";
 
 // Extracted closed-event arm types (no `as` casts — Extract keeps types typed at source).
 type TurnStartEvent    = Extract<AgClosedEventType, { type: "turn.start" }>;
@@ -74,6 +74,7 @@ export interface OpenMessageFields {
   agentId?: string;
   agentName?: string;
   agentRole?: string;
+  noticeSource?: AgNoticeSource; // role:"notice" only (spec §3, draft.2)
   model?: string;
 }
 

@@ -25,6 +25,9 @@ import {
   AgMemoryRecord,
   AgUsage,
   AGJSON_VERSION,
+  AgHitlAnswer,
+  AgPausedAsk,
+  validateHitlAnswer,
 } from "./agjson.js";
 
 describe("AgEvent (CORE)", () => {
@@ -1322,7 +1325,7 @@ describe("AGJSON_VERSION + wire-version validation (audit B17)", () => {
   };
 
   it("exports the spec version literal", () => {
-    expect(AGJSON_VERSION).toBe("1.0.0-draft.1");
+    expect(AGJSON_VERSION).toBe("1.0.0-draft.2");
   });
 
   it("accepts the current version and any same-major version", () => {
@@ -1333,5 +1336,101 @@ describe("AGJSON_VERSION + wire-version validation (audit B17)", () => {
   it("rejects a major-version mismatch and a non-semver string", () => {
     expect(() => AgInput.parse({ ...envelope, version: "2.0.0" })).toThrow();
     expect(() => AgInput.parse({ ...envelope, version: "banana" })).toThrow();
+  });
+});
+
+// ─── draft.2: grant modes (spec §7) + the notice role (spec §3) ───────────────
+
+describe("grant modes (spec §7, draft.2)", () => {
+  const ASK: AgPausedAsk = {
+    askId: "ask1",
+    kind: "approval",
+    message: "Run `rm -rf build`?",
+    grantModes: [
+      { id: "always", label: "Always allow" },
+      { id: "session", label: "This chat only", description: "Cleared when the thread ends" },
+    ],
+  };
+  const PLAIN_ASK: AgPausedAsk = { askId: "ask1", kind: "approval" };
+
+  it("hitl.ask and AgPausedAsk both carry the declaration; ids are asker-opaque", () => {
+    const ev = AgEvent.parse({
+      type: "hitl.ask",
+      seq: 0,
+      askId: "ask1",
+      kind: "approval",
+      grantModes: ASK.grantModes,
+    });
+    expect(ev).toMatchObject({ grantModes: [{ id: "always" }, { id: "session" }] });
+    expect(AgPausedAsk.parse(ASK).grantModes).toHaveLength(2);
+  });
+
+  it("parse rejects grantModeId on a non-resolved answer (declining is not a mode)", () => {
+    expect(() =>
+      AgHitlAnswer.parse({ askId: "ask1", status: "declined", grantModeId: "always" }),
+    ).toThrow();
+    expect(() =>
+      AgHitlAnswer.parse({ askId: "ask1", status: "cancelled", grantModeId: "always" }),
+    ).toThrow();
+    expect(AgHitlAnswer.parse({ askId: "ask1", status: "resolved", grantModeId: "always" }).grantModeId).toBe("always");
+  });
+
+  it("validateHitlAnswer: a resolved answer to a declaring ask MUST echo a declared id", () => {
+    expect(validateHitlAnswer(ASK, { askId: "ask1", status: "resolved", grantModeId: "session" })).toEqual({ ok: true });
+    expect(validateHitlAnswer(ASK, { askId: "ask1", status: "resolved" })).toMatchObject({ ok: false, code: "grant-mode-missing" });
+    expect(validateHitlAnswer(ASK, { askId: "ask1", status: "resolved", grantModeId: "forever" })).toMatchObject({ ok: false, code: "grant-mode-undeclared" });
+  });
+
+  it("validateHitlAnswer: decline stays universal — no echo required or allowed", () => {
+    expect(validateHitlAnswer(ASK, { askId: "ask1", status: "declined" })).toEqual({ ok: true });
+    expect(validateHitlAnswer(ASK, { askId: "ask1", status: "cancelled" })).toEqual({ ok: true });
+    // Hand-built (unparsed) object: the validator's own arm catches it too.
+    expect(validateHitlAnswer(ASK, { askId: "ask1", status: "declined", grantModeId: "always" } as AgHitlAnswer)).toMatchObject({ ok: false, code: "grant-mode-on-nonresolved" });
+  });
+
+  it("validateHitlAnswer: absent declaration = draft.1 binary shape (and a stray echo is rejected)", () => {
+    expect(validateHitlAnswer(PLAIN_ASK, { askId: "ask1", status: "resolved" })).toEqual({ ok: true });
+    expect(validateHitlAnswer(PLAIN_ASK, { askId: "ask1", status: "resolved", grantModeId: "always" })).toMatchObject({ ok: false, code: "grant-mode-without-declaration" });
+    // Empty declaration ⇒ plain ask (spec §7).
+    expect(validateHitlAnswer({ ...PLAIN_ASK, grantModes: [] }, { askId: "ask1", status: "resolved" })).toEqual({ ok: true });
+  });
+
+  it("validateHitlAnswer: askId and requestState contracts", () => {
+    expect(validateHitlAnswer(ASK, { askId: "other", status: "resolved", grantModeId: "always" })).toMatchObject({ ok: false, code: "ask-id-mismatch" });
+    const mrtr: AgPausedAsk = { ...PLAIN_ASK, requestState: "blob==" };
+    expect(validateHitlAnswer(mrtr, { askId: "ask1", status: "resolved" })).toMatchObject({ ok: false, code: "request-state-mismatch" });
+    expect(validateHitlAnswer(mrtr, { askId: "ask1", status: "resolved", requestState: "blob==" })).toEqual({ ok: true });
+  });
+
+  it("client capability flag parses", () => {
+    expect(AgClientCapabilities.parse({ hitl: { ask: true, grantModes: true } }).hitl?.grantModes).toBe(true);
+  });
+});
+
+describe("the notice role (spec §3, draft.2)", () => {
+  it("message.start and AgMessage accept role notice + noticeSource", () => {
+    const ev = AgEvent.parse({
+      type: "message.start",
+      seq: 0,
+      id: "n1",
+      role: "notice",
+      turnId: "t1",
+      threadId: "th1",
+      noticeSource: "adapter",
+    });
+    expect(ev).toMatchObject({ role: "notice", noticeSource: "adapter" });
+    const msg = AgMessage.parse({
+      id: "n1",
+      role: "notice",
+      noticeSource: "host",
+      content: [{ type: "text", text: "Session resumed from a checkpoint." }],
+    });
+    expect(msg.noticeSource).toBe("host");
+  });
+
+  it("rejects an unknown noticeSource layer (closed provenance enum)", () => {
+    expect(() =>
+      AgMessage.parse({ id: "n1", role: "notice", noticeSource: "plugin", content: [] }),
+    ).toThrow();
   });
 });
