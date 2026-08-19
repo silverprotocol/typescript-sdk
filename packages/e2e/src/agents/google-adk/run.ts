@@ -41,9 +41,19 @@
  */
 
 import { InMemoryRunner, LlmAgent, MCPToolset } from "@google/adk";
+import { ThinkingLevel } from "@google/genai";
 import type { JsonValue } from "@silverprotocol/core";
 import { toJsonValue } from "@silverprotocol/core";
 import type { CaptureRunInput } from "../types.js";
+
+/** CaptureRunInput's lowercase levels → genai's enum. The 3.7-flash set only
+ *  (low/medium/high) — MINIMAL exists in the enum but is rejected server-side
+ *  by gemini-3.7-flash, so the scenario schema never offers it. */
+const THINKING_LEVELS: Record<NonNullable<CaptureRunInput["thinkingLevel"]>, ThinkingLevel> = {
+  low: ThinkingLevel.LOW,
+  medium: ThinkingLevel.MEDIUM,
+  high: ThinkingLevel.HIGH,
+};
 
 /**
  * Yields the RAW native `@google/adk` `Event` stream, unnormalized, each item
@@ -84,6 +94,20 @@ export async function* runAdkCapture(input: CaptureRunInput): AsyncIterable<Json
       model: input.model ?? "gemini-2.5-flash",
       instruction: input.systemPrompt ?? "You are a helpful assistant.",
       tools: toolsets,
+      // Thinking knob (scenario.thinkingLevel → CaptureRunInput): thought
+      // summaries are OFF by default on gemini-3.7-flash, so includeThoughts
+      // must ride alongside the level for `thought: true` parts to appear on
+      // the wire at all.
+      ...(input.thinkingLevel !== undefined
+        ? {
+            generateContentConfig: {
+              thinkingConfig: {
+                includeThoughts: true,
+                thinkingLevel: THINKING_LEVELS[input.thinkingLevel],
+              },
+            },
+          }
+        : {}),
     });
     const runner = new InMemoryRunner({ agent });
     const session = await runner.sessionService.createSession({

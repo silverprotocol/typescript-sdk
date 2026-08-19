@@ -47,6 +47,14 @@ export interface CaptureRunInput {
    * agents without a partials concept ignore it.
    */
   includePartialMessages?: boolean;
+  /**
+   * Gemini thinking knob (google-adk only today): maps to
+   * `generateContentConfig.thinkingConfig { includeThoughts: true,
+   * thinkingLevel }` on the LlmAgent; agents without a thinking-level concept
+   * ignore it. Thought summaries are OFF by default on gemini-3.7-flash, so a
+   * capture without this can never produce `thought: true` parts.
+   */
+  thinkingLevel?: "low" | "medium" | "high";
 }
 
 /** The LLM/process boundary contract every capture agent implements. */

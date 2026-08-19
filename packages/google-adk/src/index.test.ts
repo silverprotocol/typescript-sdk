@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { AgEvent, AgReduceResult, JsonValue, Reducer, toJsonValue } from "@silverprotocol/core";
-import { createAdkNormalizer, mapFinishReason, type AdkEvent, type AdkPart } from "./index.js";
+import {
+  createAdkNormalizer,
+  isLossyFinishReason,
+  mapFinishReason,
+  type AdkEvent,
+  type AdkPart,
+} from "./index.js";
 
 /** Build one ADK Event (a Gemini Content + event metadata). */
 function event(parts: AdkPart[], extra: Partial<AdkEvent> = {}): AdkEvent {
@@ -79,6 +85,78 @@ describe("createAdkNormalizer — text turn lifecycle", () => {
 
   it("maps STOP to the neutral 'stop' finishReason", () => {
     expect(mapFinishReason("STOP")).toBe("stop");
+  });
+
+  it("maps the genai ≥2.16 tool-call finish reasons", () => {
+    expect(mapFinishReason("UNEXPECTED_TOOL_CALL")).toBe("unexpected_tool_call");
+    // No first-class home yet — interim "other"; the wire string rides
+    // provider-raw via the isLossyFinishReason carry (asserted below).
+    expect(mapFinishReason("TOO_MANY_TOOL_CALLS")).toBe("other");
+    expect(isLossyFinishReason("TOO_MANY_TOOL_CALLS")).toBe(true);
+    expect(isLossyFinishReason("UNEXPECTED_TOOL_CALL")).toBe(false);
+    expect(isLossyFinishReason("STOP")).toBe(false);
+  });
+
+  it("carries a lossy finishReason as message.metadata before the close (TOO_MANY_TOOL_CALLS)", () => {
+    const out = run([
+      event([{ text: "done" }], {
+        partial: false,
+        turnComplete: true,
+        finishReason: "TOO_MANY_TOOL_CALLS",
+      }),
+    ]);
+    const carries = out.filter((e) => e.type === "message.metadata");
+    expect(carries).toHaveLength(1);
+    // Same channel + key as the vercel-ai facet's raw-finish carry.
+    expect(carries[0]).toMatchObject({
+      metadata: { rawFinishReason: "TOO_MANY_TOOL_CALLS" },
+    });
+    // The carry lands BEFORE the message seals.
+    expect(out.findIndex((e) => e.type === "message.metadata")).toBeLessThan(
+      out.findIndex((e) => e.type === "message.end")
+    );
+    expect(out.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "other" });
+  });
+
+  it("carries an UNRECOGNIZED finishReason as message.metadata and maps it to 'unknown'", () => {
+    const out = run([
+      event([{ text: "done" }], {
+        partial: false,
+        turnComplete: true,
+        finishReason: "SOME_FUTURE_REASON",
+      }),
+    ]);
+    expect(out.find((e) => e.type === "message.metadata")).toMatchObject({
+      metadata: { rawFinishReason: "SOME_FUTURE_REASON" },
+    });
+    expect(out.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "unknown" });
+  });
+
+  it("keys an errorCode-only soft close by its TRUE wire field (rawErrorCode, never finishReason)", () => {
+    // Gemini block reason with no errorMessage: a done-path close whose
+    // mapping input is the errorCode — the carry must not fabricate a
+    // Candidate.finishReason Google never sent.
+    const out = run([
+      event([{ text: "blocked" }], {
+        partial: false,
+        turnComplete: true,
+        errorCode: "RESOURCE_EXHAUSTED",
+      }),
+    ]);
+    const carry = out.find((e) => e.type === "message.metadata");
+    expect(carry).toMatchObject({ metadata: { rawErrorCode: "RESOURCE_EXHAUSTED" } });
+    expect((carry as { metadata: object }).metadata).not.toHaveProperty("rawFinishReason");
+    expect(out.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "unknown" });
+    // No errorMessage ⇒ still a turn.done close, not turn.error.
+    expect(out.some((e) => e.type === "turn.error")).toBe(false);
+  });
+
+  it("does NOT carry exactly-mapped finish reasons (STOP close stays noise-free)", () => {
+    const out = run([
+      event([{ text: "done" }], { partial: false, turnComplete: true, finishReason: "STOP" }),
+    ]);
+    expect(out.filter((e) => e.type === "message.metadata")).toHaveLength(0);
+    expect(out.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "stop" });
   });
 });
 

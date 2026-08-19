@@ -304,30 +304,65 @@ export interface AdkEvent {
 // ─── finishReason → AgFinishReason (spec §4) ──────────────────────────────────
 // Maps any Gemini/ADK Candidate.finishReason to the neutral AgFinishReason
 // superset. A bare turnComplete with no reason ⇒ stop.
-export function mapFinishReason(reason: string | undefined | null): AgFinishReason {
+//
+// The single mapping table both exported views read. `lossy` marks the arms
+// where the neutral value cannot round-trip back to the wire string — the
+// default→"unknown" arm (unrecognized value) plus recognized-but-inexact
+// mappings (TOO_MANY_TOOL_CALLS→"other") — so adding a new inexact case here
+// is FORCED to declare its lossiness in the same literal (nothing to drift).
+// `maybeCloseTurn` lands lossy wire strings as `message.metadata` before the
+// close; without that carry the raw value is unrecoverable downstream
+// (turn.done has no provider slot).
+function resolveFinishReason(reason: string | undefined | null): {
+  value: AgFinishReason;
+  lossy: boolean;
+} {
   switch (reason) {
     case undefined:
     case null:
     case "":
     case "STOP":
     case "FINISH_REASON_STOP":
-      return "stop";
+      return { value: "stop", lossy: false };
     case "MAX_TOKENS":
-      return "token_limit";
+      return { value: "token_limit", lossy: false };
     case "SAFETY":
     case "RECITATION":
     case "BLOCKLIST":
     case "PROHIBITED_CONTENT":
     case "SPII":
     case "IMAGE_SAFETY":
-      return "safety_blocked";
+      return { value: "safety_blocked", lossy: false };
     case "MALFORMED_FUNCTION_CALL":
-      return "malformed_tool_call";
+      return { value: "malformed_tool_call", lossy: false };
+    // genai ≥2.16.0 (2026-08-06, the gemini-3.7-flash SDK generation) tool-call
+    // reasons. CAVEAT (unproven wire shape, check at the first 3.7 capture):
+    // if the final event carries the offending functionCall part alongside the
+    // finishReason, maybeCloseTurn's hasFunctionCall gate defers the close and
+    // neither mapping nor carry ever fires for it.
+    case "UNEXPECTED_TOOL_CALL":
+      return { value: "unexpected_tool_call", lossy: false };
+    // No first-class AgFinishReason home yet — "other" is the interim mapping
+    // and the wire string rides the lossy carry, pending a spec-process
+    // decision on first-class standing.
+    case "TOO_MANY_TOOL_CALLS":
+      return { value: "other", lossy: true };
     case "OTHER":
-      return "other";
+      return { value: "other", lossy: false };
     default:
-      return "unknown";
+      return { value: "unknown", lossy: true };
   }
+}
+
+export function mapFinishReason(reason: string | undefined | null): AgFinishReason {
+  return resolveFinishReason(reason).value;
+}
+
+/** True when mapFinishReason loses the wire string (see resolveFinishReason's
+ *  table — the lossy arms). Exported for the same testability reason as
+ *  mapFinishReason. */
+export function isLossyFinishReason(reason: string): boolean {
+  return resolveFinishReason(reason).lossy;
 }
 
 // ─── stateful factory helpers ─────────────────────────────────────────────────
@@ -1184,9 +1219,38 @@ export function createAdkNormalizer(): Normalizer {
     // is_final_response: a non-partial event with no pending function call and not interrupted.
     if (hasFunctionCall || interrupted || !hasCompletion) return;
     closedTurns.add(turnId);
+    // The error-close predicate, spelled ONCE: both errorCode AND errorMessage
+    // present ⇒ turn.error (values captured here so the close below needs no
+    // re-narrowing).
+    const errorClose =
+      event.errorCode !== undefined && event.errorMessage !== undefined
+        ? { code: event.errorCode, message: event.errorMessage }
+        : undefined;
+    const rawFinish = event.finishReason ?? event.errorCode;
+    const finish = resolveFinishReason(rawFinish);
+    // Lossy finish mappings (resolveFinishReason's lossy arms) land the wire
+    // string as `message.metadata` before the message seals — the SAME
+    // channel + key the vercel-ai facet uses for this datum
+    // (`rawFinishReason`, finish-step metadata), so consumers probe one
+    // channel across facets. Keyed by the TRUE wire field: an errorCode-only
+    // soft close (Gemini block reason, no errorMessage) rides
+    // `rawErrorCode`, never fabricated as a finishReason. Lossy-only (unlike
+    // vercel-ai's unconditional carry) so no recorded cassette — all STOP
+    // closes — gains noise. Runs exactly once per turn (real-close path,
+    // closedTurns-guarded), never on partials; the error-close path skips it
+    // (closeTurnError carries the wire errorCode verbatim in `code`).
+    if (errorClose === undefined && rawFinish !== undefined && finish.lossy) {
+      a.emit({
+        type: "message.metadata",
+        messageId,
+        metadata: {
+          [event.finishReason !== undefined ? "rawFinishReason" : "rawErrorCode"]: rawFinish,
+        },
+      });
+    }
     a.closeMessage(messageId);
-    if (event.errorCode !== undefined && event.errorMessage !== undefined) {
-      a.closeTurnError(turnId, { message: event.errorMessage, code: event.errorCode });
+    if (errorClose !== undefined) {
+      a.closeTurnError(turnId, { message: errorClose.message, code: errorClose.code });
     } else {
       const usage = mapUsage(usageByTurn.get(turnId) ?? event.usageMetadata);
       const safety = mapBlockedSafety(event.safetyRatings);
@@ -1198,7 +1262,7 @@ export function createAdkNormalizer(): Normalizer {
       const asks = pendingAsks.get(turnId);
       a.closeTurnDone(turnId, {
         outcome: asks !== undefined && asks.length > 0 ? { type: "paused", asks } : { type: "success" },
-        finishReason: mapFinishReason(event.finishReason ?? event.errorCode),
+        finishReason: finish.value,
         ...(usage !== undefined ? { usage } : {}),
         ...(safety !== undefined ? { safety } : {}),
       });

@@ -326,4 +326,42 @@ describe("runCapture", () => {
     const input = capturedInput as { model?: string };
     expect(input.model).toBeUndefined();
   });
+
+  // Input-capturing deps for the thinkingLevel plumbing tests below: records
+  // the CaptureRunInput and streams the no-tools fake capture.
+  function makeInputCapturingDeps(): { deps: CaptureDeps; input: () => unknown } {
+    let captured: unknown;
+    const deps: CaptureDeps = {
+      async *runAgentCapture(input) {
+        captured = input;
+        yield* fakeNativeNoTools();
+      },
+      serveMock,
+      createNormalizer: createClaudeNormalizer,
+      census,
+    };
+    return { deps, input: () => captured };
+  }
+
+  it("forwards scenario.thinkingLevel to CaptureRunInput.thinkingLevel when set", async () => {
+    const scenario = Scenario.parse({
+      name: "thinking-gemini37",
+      prompt: "Say something.",
+      thinkingLevel: "high",
+    });
+    const { deps, input } = makeInputCapturingDeps();
+
+    await runCapture(scenario, deps, { ports: [], framework: "claude" });
+
+    expect((input() as { thinkingLevel?: string }).thinkingLevel).toBe("high");
+  });
+
+  it("omits thinkingLevel from CaptureRunInput when the scenario does not set it", async () => {
+    const scenario = Scenario.parse({ name: "text-only", prompt: "Say something." });
+    const { deps, input } = makeInputCapturingDeps();
+
+    await runCapture(scenario, deps, { ports: [], framework: "claude" });
+
+    expect((input() as { thinkingLevel?: string }).thinkingLevel).toBeUndefined();
+  });
 });

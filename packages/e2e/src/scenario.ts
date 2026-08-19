@@ -31,6 +31,23 @@ export const Scenario = z.object({
   // the other capture agents ignore it. Declared per-SCENARIO, not per-run, so
   // a partials cassette is reproducibly a partials cassette.
   includePartialMessages: z.boolean().optional(),
+  // Gemini thinking knob (google-adk only today; the other capture agents
+  // ignore it). Presence enables `thinkingConfig { includeThoughts: true,
+  // thinkingLevel }` on the LlmAgent's generateContentConfig. Declared
+  // per-SCENARIO (same rationale as includePartialMessages) so a thinking
+  // cassette is reproducibly a thinking cassette. gemini-3.7-flash returns NO
+  // thought summaries by default — without this knob a capture can never
+  // produce `thought: true` parts. Levels are 3.7's set (low/medium/high;
+  // "minimal" is rejected server-side even though genai's ThinkingLevel enum
+  // still declares MINIMAL).
+  //
+  // OPERATOR NOTE: scenario names pin no model (capture-cli DEFAULT_MODEL /
+  // CAPTURE_MODEL decide) — so until DEFAULT_MODEL.adk reaches a
+  // thinking_level-generation model, a scenario setting this knob MUST be
+  // captured with an explicit CAPTURE_MODEL (e.g. gemini-3.7-flash);
+  // thinkingLevel against a thinking_budget-generation default is a
+  // server-side 400 or a cassette recorded on the wrong model.
+  thinkingLevel: z.enum(["low", "medium", "high"]).optional(),
 });
 
 export type Scenario = z.infer<typeof Scenario>;

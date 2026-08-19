@@ -83,6 +83,26 @@ describe("Scenario.parse", () => {
     expect("allowedTools" in s).toBe(false);
     expect("expectTools" in s).toBe(false);
   });
+
+  it("parses the optional thinkingLevel knob", () => {
+    const s = Scenario.parse({
+      name: "thinking-gemini37",
+      prompt: "Think, then act.",
+      thinkingLevel: "high",
+    });
+    expect(s.thinkingLevel).toBe("high");
+    // Absent by default — a non-thinking cassette stays a non-thinking cassette.
+    expect(Scenario.parse({ name: "x", prompt: "y" }).thinkingLevel).toBeUndefined();
+  });
+
+  it("rejects thinking levels outside 3.7's low/medium/high set", () => {
+    // "minimal" exists in genai's ThinkingLevel enum but gemini-3.7-flash
+    // rejects it server-side — the schema refuses it up front.
+    expect(() =>
+      Scenario.parse({ name: "x", prompt: "y", thinkingLevel: "minimal" }),
+    ).toThrow();
+    expect(() => Scenario.parse({ name: "x", prompt: "y", thinkingLevel: "HIGH" })).toThrow();
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
