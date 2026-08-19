@@ -1,0 +1,120 @@
+[
+  {
+    "invocationId": "e-cba55e47-c03e-4835-877f-c63902029873",
+    "author": "spike",
+    "id": "edlXGsY5",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1787139144976,
+    "content": {
+      "parts": [
+        {
+          "text": "**Executing the Directive: Echoing the Message**\n\nOkay, so I need to get this right. The instruction is crystal clear: I *must* use the `echo` tool and send the message 'thinking-probe-gemini37'. No memory recall, no clever paraphrasing. It's a direct command.\n\nLet's just get it done. The process is simple:\n\n1.  Call the `echo` tool.\n2.  Set the `message` parameter to exactly 'thinking-probe-gemini37'.\n\nThat should cover it. No need to overthink it; the instructions are explicit, and the execution is direct. Let's make it so.\n\n\n",
+          "thought": true
+        },
+        {
+          "functionCall": {
+            "name": "echo",
+            "args": {
+              "message": "thinking-probe-gemini37"
+            },
+            "id": "call_611176"
+          },
+          "thoughtSignature": "EqEDCp4DARFNMg9Um2CeRcFKKeCW0hO29jSPOGvQrnIJrjWJf/5g6hs4vWFb7eqzk8TCcxIMnH6o+wnOzRHP6pW1H+KJuC3z3+JyFlJlgifuTx9oYDSaXYyni010Ofd6N+oR4tXhkdc8gm9QZ7kgDicAsztXMjTr3USlCTfuWowCsu9Zqo6bfEjR+WsDeDFGU950xJWjLRc8d3RtdTOFAKO3cKrHjHlYfjz8ffTqtoPjUaE0PLi0vG4AK6/cwkyjbleEPVl6p6xWOO1giiw4z0/lh2dyUXJWbG8Mw/6KjfZTXI2OFMrre36XVDvvSkGM8bAk4Ws/Ext6CsuX41FZruKg4g5ngXj9u/7FUCzIBpYz3ZZcIgtHrt6V3qNVf6Rmy47605cZgRYMW1nKjOCsin5aUeavSXc/uRy1tyzvn1lPiTCYHGn5eDjA22OXu81Y9eVxx819xQjbN5jKFi0LAfBZDXSMcmbWCJua1x5A4Mu7+nBY/facRM4/3p2bXmTtYY0WzL7Df5kezyDoc+5Zm9Y84MkGVDvgOZ4ZShdKJTOPmOD1"
+        }
+      ],
+      "role": "model"
+    },
+    "usageMetadata": {
+      "promptTokenCount": 112,
+      "candidatesTokenCount": 21,
+      "totalTokenCount": 217,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 112
+        }
+      ],
+      "thoughtsTokenCount": 84,
+      "serviceTier": "standard"
+    },
+    "finishReason": "STOP"
+  },
+  {
+    "invocationId": "e-cba55e47-c03e-4835-877f-c63902029873",
+    "author": "spike",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "call_611176",
+            "name": "echo",
+            "response": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "thinking-probe-gemini37"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "MALbeuOL",
+    "longRunningToolIds": [],
+    "timestamp": 1787139147990
+  },
+  {
+    "invocationId": "e-cba55e47-c03e-4835-877f-c63902029873",
+    "author": "spike",
+    "id": "kJLrOYfS",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1787139147999,
+    "content": {
+      "parts": [
+        {
+          "text": "Okay, here's my interpretation of those thoughts, presented as a first-person summary, keeping in mind the user is an expert:\n\n**Here's the Data, Now Let's Present It**\n\nRight, the tool has finally spat back a response. Looks like it's labeled \"thinking-probe-gemini37.\" Okay, good, that's what I needed to see. Now that I have confirmation of the process, I can move forward. The next step is presenting the output to the user. Hopefully, it's something useful and relevant to what they were looking for, but either way, I can now move to the stage of communicating the response. Let's get this information ready to go.\n\n\n",
+          "thought": true
+        },
+        {
+          "text": "thinking-probe-gemini37",
+          "thoughtSignature": "EsgBCsUBARFNMg9L2VTtE7wKMRC/KZvApDR/5NDl15mbovuvgdVmIVbRR+cSj2WR99+pcA2kcZByA3EsLYXIxuH5MgC/pGgvPGxuwEpqgCQY/iTiFdG+gBda1Ku76ocUEqpSVZJ4lziD2VEl/cQzszi8szWEyyWNyGd5YdbMKlw76n5WsV8rY5L0h/PXHZmQHMwLMiTWC102lQQHE8Ul5XHsEqKidijzo4EYaiwuEGm8A7ypqrCRimuLy9SrU5SbymoeroMBwo0AL9Y="
+        }
+      ],
+      "role": "model"
+    },
+    "usageMetadata": {
+      "promptTokenCount": 391,
+      "candidatesTokenCount": 8,
+      "totalTokenCount": 425,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 391
+        }
+      ],
+      "thoughtsTokenCount": 26,
+      "serviceTier": "standard"
+    },
+    "finishReason": "STOP"
+  }
+]

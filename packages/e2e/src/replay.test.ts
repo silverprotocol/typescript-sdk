@@ -155,6 +155,17 @@ const ADK_SEEDS = [
   // the official MCPToolset (kind:"capture", gemini-3.6-flash @1.4.0 — see
   // corpus/app-spec-gemini36/adk.provenance.json).
   "app-spec-gemini36",
+  // 2026-08-19 (workspace#14): day-6 gemini-3.7-flash validation trio
+  // (kind:"capture", @1.6.0 — see corpus/*-gemini37/adk.provenance.json).
+  // Enrolled in the SAME change as the capture, per the 2026-07-25
+  // enrollment-repair lesson. thinking-gemini37 is the corpus's FIRST real
+  // Gemini thought:true capture (thinkingLevel:"high" scenario knob →
+  // thinkingConfig.includeThoughts — summaries are OFF by default on 3.7,
+  // no other scenario can produce them): 2 thought parts + signatures →
+  // reasoning.start/delta/end + reasoning.opaque.
+  "echo-gemini37",
+  "app-spec-gemini37",
+  "thinking-gemini37",
 ] as const;
 
 /**

@@ -2929,5 +2929,13 @@
     "frameworks": [
       "claude"
     ]
+  },
+  {
+    "path": "[*].content.parts[*].thought",
+    "reason": "adk: the thought-part discriminant \u2014 consumed structurally to route the part into reasoning.start/delta/end (+ reasoning.opaque for its thoughtSignature) instead of text events; the boolean itself never surfaces as an AgJSON value. First live-observed at gemini-3.7-flash with the thinkingLevel scenario knob (thinkingConfig.includeThoughts \u2014 3.7 returns no summaries by default; corpus/thinking-gemini37, 2026-08-19).",
+    "reviewed": "any",
+    "frameworks": [
+      "adk"
+    ]
   }
 ]

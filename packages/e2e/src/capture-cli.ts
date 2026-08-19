@@ -84,11 +84,13 @@ const SDK_PACKAGE: Record<Framework, string> = {
 };
 
 /** The default model each capture agent uses when `CaptureRunOptions.model`
- *  is not set (mirrors each agent's own hardcoded default literal; see
- *  agents/claude-agent-sdk/run.ts, agents/openai-agents-sdk/run.ts,
- *  agents/google-adk/run.ts). Overridable per-run via the `CAPTURE_MODEL`
- *  env var (see `resolveModel` below) — e.g. for capturing a newly-released
- *  model before it becomes any agent's hardcoded default. */
+ *  is not set. This table is the SINGLE authority: the `?? "<model>"`
+ *  fallback literals inside each agents/<fw>/run.ts are CLI-unreachable
+ *  (capture-cli always resolves a model and capture.ts always forwards it)
+ *  and have drifted behind — do not read them as defaults. Overridable
+ *  per-run via the `CAPTURE_MODEL` env var (see `resolveModel` below) —
+ *  e.g. for capturing a newly-released model before it becomes the default
+ *  here. */
 const DEFAULT_MODEL: Record<Framework, string> = {
   // Policy: each default is the NEWEST model live-verified with that facet in
   // the committed corpus (see corpus/*/​*.provenance.json) — bump only after a
@@ -98,7 +100,9 @@ const DEFAULT_MODEL: Record<Framework, string> = {
   // alias (currently → gpt-5.6-sol) and may re-route it later, which would
   // silently change what a "refresh at the same model" capture exercises.
   openai: "gpt-5.6-sol",
-  adk: "gemini-3.6-flash",
+  // 2026-08-19: bumped from gemini-3.6-flash — the gemini-3.7-flash trio
+  // (echo/app-spec/thinking) landed as replay seeds, see workspace#14.
+  adk: "gemini-3.7-flash",
   // Same model family as "openai" — the two facets share provider + corpus.
   vercel: "gpt-5.6-sol",
 };

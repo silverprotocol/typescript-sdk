@@ -77,6 +77,12 @@
       "date": "2026-08-15",
       "silverprotocol": "0.4.4",
       "evidence": "genai 2.17.0->2.17.1 PATCH study (adk itself unchanged at 1.6.0): Part interface byte-identical (tarball d.ts diff) - wire-no-op; partKind section verifiedAt -> 2.17.1, e2e genai pin 2.17.1."
+    },
+    {
+      "sdkVersion": "1.6.0",
+      "date": "2026-08-19",
+      "silverprotocol": "0.5.1",
+      "evidence": "gemini-3.7-flash day-6 LIVE validation trio (GA 2026-08-13): echo + app-spec (MCP structuredContent/_meta.ui carry re-attested) + thinking (FIRST real Gemini thought:true capture \u2014 thinkingLevel scenario knob -> thinkingConfig.includeThoughts, 2 thought parts + signatures -> reasoning.start/delta/end + reasoning.opaque). All three enrolled as replay seeds at capture time; census clean after [*].content.parts[*].thought triage (structurally-consumed flag, [*].partial precedent). New finish-reason mappings (UNEXPECTED_TOOL_CALL, TOO_MANY_TOOL_CALLS + lossy message.metadata raw carry) ship in the same cohort."
     }
   ],
   "sections": {

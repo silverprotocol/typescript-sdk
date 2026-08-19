@@ -33,6 +33,7 @@ facet's per-field dispositions, including its disclosed `silently-dropped` gaps)
 
 | `@google/adk` | verified | with | evidence |
 | --- | --- | --- | --- |
+| `1.6.0` | 2026-08-19 | 0.5.1 | gemini-3.7-flash day-6 LIVE validation trio (GA 2026-08-13): echo + app-spec (MCP structuredContent/_meta.ui carry re-attested) + thinking (FIRST real Gemini thought:true capture — thinkingLevel scenario knob -> thinkingConfig.includeThoughts, 2 thought parts + signatures -> reasoning.start/delta/end + reasoning.opaque). All three enrolled as replay seeds at capture time; census clean after [*].content.parts[*].thought triage (structurally-consumed flag, [*].partial precedent). New finish-reason mappings (UNEXPECTED_TOOL_CALL, TOO_MANY_TOOL_CALLS + lossy message.metadata raw carry) ship in the same cohort. |
 | `1.6.0` | 2026-08-15 | 0.4.4 | genai 2.17.0->2.17.1 PATCH study (adk itself unchanged at 1.6.0): Part interface byte-identical (tarball d.ts diff) - wire-no-op; partKind section verifiedAt -> 2.17.1, e2e genai pin 2.17.1. |
 | `1.6.0` | 2026-08-13 | 0.4.2 | genai 2.16.0->2.17.0 MINOR study (adk itself unchanged at 1.6.0): Part interface zero-delta (15 fields, tarball d.ts diff + drift-gate-verified post-install) — wire-no-op; partKind section verifiedAt -> 2.17.0, e2e genai pin 2.17.0. |
 | `1.6.0` | 2026-08-08 | 0.4.1 | wire-no-op minor (parked from the 2026-08-08 ai-trio slice, studied same day): full d.ts inventory diff 1.5.0->1.6.0 + genai 2.15.0->2.16.0 against the drift gate's own consumed surfaces — genai Part 15 fields unchanged (the surface that forced the 1.5.0 study via audioTranscription: zero delta this time), adk Event 7 own fields unchanged, LlmResponse 18 fields unchanged. 1.6.0's additions are all non-wire (a2a/auth, get_user_choice_tool + request_input_tool — registerable tools whose invocations ride the EXISTING functionCall/functionResponse envelope — crypto/error/output_schema utils). e2e pins bumped exact (adk 1.6.0, genai 2.16.0), single-copy lockfile resolution verified, 918 tests incl. corpus replay + fold gates green. Nightly's forced-latest adk leg has been green all week (no [peer-compat] ever filed). No new corpus scenario demanded — no wire surface changed to capture. |
@@ -57,7 +58,7 @@ import { createAdkNormalizer } from "@silverprotocol/google-adk";
 // Build your ADK agent + runner as usual — this package normalizes what it emits.
 const agent = new LlmAgent({
   name: "assistant",
-  model: "gemini-3.6-flash",
+  model: "gemini-3.7-flash",
   instruction: "Use the echo tool.",
 });
 const runner = new InMemoryRunner({ agent });

@@ -1,0 +1,162 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_e-e1dae15d-b07d-4166-9f92-5d150058f672",
+    "threadId": "google"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_turn_e-e1dae15d-b07d-4166-9f92-5d150058f672",
+    "turnId": "turn_e-e1dae15d-b07d-4166-9f92-5d150058f672",
+    "threadId": "google",
+    "role": "assistant"
+  },
+  {
+    "type": "tool.start",
+    "seq": 2,
+    "turnId": "turn_e-e1dae15d-b07d-4166-9f92-5d150058f672",
+    "toolCallId": "call_406402",
+    "name": "echo",
+    "index": 0
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 3,
+    "toolCallId": "call_406402",
+    "delta": "{\"message\":\"conformance-probe-gemini37\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 4,
+    "toolCallId": "call_406402",
+    "input": {
+      "message": "conformance-probe-gemini37"
+    },
+    "signature": "EowCCokCARFNMg9MaGTtahxT5XMetpfa/XXnhZ7rm02TxKNiC4UMMqVgNwNHP9ryP9W/XhM1azt5jVn/OtVqbhlTMH28QLBSMIhnHZYfMX2f0TRn+PrMui96qQ916LIP3qYe32darWvA7XKYz8GDN0pwGLvUqLLgdqmoBR+DAf3lHMHJAFD5cZt3JeL1rIRUQFVWPchXNHfr3tawUPl/+PWJQt/lcUx2+iVtCRiXnvzwm50fq6OEuABJNGi3JumVdQ9zpr38m6uvPqhyAzO4S9wkVL2L+SgDVcsOp0jnpBd8PKioQeKbt6yEklf9/BIU7yQ5glXEYtXqYibWTP59AqzBzEpQ6ZvWpz1Zq5dGxw=="
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-e1dae15d-b07d-4166-9f92-5d150058f672",
+    "seq": 5
+  },
+  {
+    "type": "content.block",
+    "seq": 6,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-e1dae15d-b07d-4166-9f92-5d150058f672",
+    "turnId": "turn_e-e1dae15d-b07d-4166-9f92-5d150058f672"
+  },
+  {
+    "type": "tool.done",
+    "seq": 7,
+    "turnId": "turn_e-e1dae15d-b07d-4166-9f92-5d150058f672",
+    "toolCallId": "call_406402",
+    "content": [
+      {
+        "type": "text",
+        "text": "conformance-probe-gemini37"
+      }
+    ],
+    "outcome": "ok"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-e1dae15d-b07d-4166-9f92-5d150058f672",
+    "seq": 8
+  },
+  {
+    "type": "content.block",
+    "seq": 9,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-e1dae15d-b07d-4166-9f92-5d150058f672",
+    "turnId": "turn_e-e1dae15d-b07d-4166-9f92-5d150058f672"
+  },
+  {
+    "type": "text.start",
+    "seq": 10,
+    "id": "text:0",
+    "messageId": "msg_turn_e-e1dae15d-b07d-4166-9f92-5d150058f672",
+    "turnId": "turn_e-e1dae15d-b07d-4166-9f92-5d150058f672",
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "EpsBCpgBARFNMg8dFgY0NJ7cVZokT2GeZsSLIgCN5/xGcFtjCjCGVOml/72qUOC1zB23yYydkAPVpF5zl0+SkjoKQsR7//aaE9aGXUKgE7/LBLXdZFlYzSYD9UgrAPdr7Goo/zH22m0Z9j1seU5YCuTOdVmXTrnmEvmMFuv+vBsp4NQ+/y/pdShHyd53CoKXrj6bhwl8dPjJ3b2VcG8="
+      }
+    }
+  },
+  {
+    "type": "text.delta",
+    "seq": 11,
+    "id": "text:0",
+    "messageId": "msg_turn_e-e1dae15d-b07d-4166-9f92-5d150058f672",
+    "delta": "conformance-probe-gemini37",
+    "turnId": "turn_e-e1dae15d-b07d-4166-9f92-5d150058f672"
+  },
+  {
+    "type": "text.end",
+    "seq": 12,
+    "id": "text:0",
+    "messageId": "msg_turn_e-e1dae15d-b07d-4166-9f92-5d150058f672",
+    "turnId": "turn_e-e1dae15d-b07d-4166-9f92-5d150058f672",
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "EpsBCpgBARFNMg8dFgY0NJ7cVZokT2GeZsSLIgCN5/xGcFtjCjCGVOml/72qUOC1zB23yYydkAPVpF5zl0+SkjoKQsR7//aaE9aGXUKgE7/LBLXdZFlYzSYD9UgrAPdr7Goo/zH22m0Z9j1seU5YCuTOdVmXTrnmEvmMFuv+vBsp4NQ+/y/pdShHyd53CoKXrj6bhwl8dPjJ3b2VcG8="
+      }
+    }
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-e1dae15d-b07d-4166-9f92-5d150058f672",
+    "seq": 13
+  },
+  {
+    "type": "content.block",
+    "seq": 14,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-e1dae15d-b07d-4166-9f92-5d150058f672",
+    "turnId": "turn_e-e1dae15d-b07d-4166-9f92-5d150058f672"
+  },
+  {
+    "type": "message.end",
+    "seq": 15,
+    "id": "msg_turn_e-e1dae15d-b07d-4166-9f92-5d150058f672"
+  },
+  {
+    "type": "turn.done",
+    "seq": 16,
+    "turnId": "turn_e-e1dae15d-b07d-4166-9f92-5d150058f672",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 314,
+      "outputTokens": 31,
+      "totalTokens": 400,
+      "reasoningTokens": 55,
+      "cumulative": false
+    }
+  }
+]

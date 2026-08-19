@@ -116,6 +116,13 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "app-update-sonnet5", framework: "claude" },
   { scenario: "app-spec-gemini36", framework: "adk" },
   { scenario: "echo-gemini36", framework: "adk" },
+  // 2026-08-19 (workspace#14): the gemini-3.7-flash validation trio, enrolled
+  // at capture time so the recorded agjson stays pinned to the current facet
+  // (fresh captures — regen is a no-op today; the gate matters for the NEXT
+  // facet change).
+  { scenario: "echo-gemini37", framework: "adk" },
+  { scenario: "app-spec-gemini37", framework: "adk" },
+  { scenario: "thinking-gemini37", framework: "adk" },
   { scenario: "echo-gpt56", framework: "vercel" },
   // workspace#7 (2026-08-07): FIRST-EVER regen of the stream_event partials
   // seed. Same empty-guard-maps reason as echo-sonnet5 above. The agjson ALSO

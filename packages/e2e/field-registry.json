@@ -25,6 +25,7 @@
   "[*].content.parts[*].functionResponse.response.structuredContent.cache.llmCallsAvoided",
   "[*].content.parts[*].functionResponse.response.structuredContent.title",
   "[*].content.parts[*].text",
+  "[*].content.parts[*].thought",
   "[*].content.parts[*].thoughtSignature",
   "[*].content.role",
   "[*].cwd",

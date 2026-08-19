@@ -1,0 +1,130 @@
+[
+  {
+    "invocationId": "e-99c60edb-7413-422d-a959-df306b510a3a",
+    "author": "spike",
+    "id": "EL35sa0y",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1787139134764,
+    "content": {
+      "parts": [
+        {
+          "functionCall": {
+            "name": "render_card",
+            "args": {
+              "body": "World",
+              "title": "Hello"
+            },
+            "id": "call_565158"
+          },
+          "thoughtSignature": "ErwCCrkCARFNMg91zcIKDi9SkzqHcmJxWDwZg/TSKuBsyffWHQVCAhD1fDvkyd5ecogdovZXHvzrytleVnVGcy/MIUJCyrABvSE8A3jJDi84b3QSqbEJtMVBFzaRoLG/UFGAaAA3kYY4ewygRMxK2kOuxAuRpctURytcF0KfhjN+3tMw4BOTsoMfQpGoC5psDuiZmbg8A0J9gmeN68Z9tlPu/DlzpR6NJ76k26WQS7dSFIEGT1/9OdvO3H2xnj4EVWctjXTIJcyC4o7Bv4MHRh+b24lGXt0CnxHRK8e7n1FE1++WpkpRDf4NXdbFP0L8jzhUNawOoCJ22N1pKuALPxeezRqcXW+oID9ai1UqfiCuBibeRnguHTEVyfu0BpopfEMrBi9OhiDaA61hjcogRCM0ZQxzD8iVO9pgku3ZUw=="
+        }
+      ],
+      "role": "model"
+    },
+    "usageMetadata": {
+      "promptTokenCount": 139,
+      "candidatesTokenCount": 22,
+      "totalTokenCount": 218,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 139
+        }
+      ],
+      "thoughtsTokenCount": 57,
+      "serviceTier": "standard"
+    },
+    "finishReason": "STOP"
+  },
+  {
+    "invocationId": "e-99c60edb-7413-422d-a959-df306b510a3a",
+    "author": "spike",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "call_565158",
+            "name": "render_card",
+            "response": {
+              "_meta": {
+                "ui": {
+                  "resourceUri": "ui://mock/card",
+                  "visibility": [
+                    "model"
+                  ]
+                }
+              },
+              "content": [
+                {
+                  "type": "text",
+                  "text": "{\"title\":\"Hello\",\"body\":\"World\"}"
+                }
+              ],
+              "structuredContent": {
+                "title": "Hello",
+                "body": "World",
+                "cache": {
+                  "hit": false,
+                  "llmCallsAvoided": 0,
+                  "kind": "cold"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "TqeB3akj",
+    "longRunningToolIds": [],
+    "timestamp": 1787139136616
+  },
+  {
+    "invocationId": "e-99c60edb-7413-422d-a959-df306b510a3a",
+    "author": "spike",
+    "id": "EhNUaI59",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1787139136626,
+    "content": {
+      "parts": [
+        {
+          "text": "The card has been rendered. Here is the returned structured content payload:\n\n```json\n{\n  \"title\": \"Hello\",\n  \"body\": \"World\",\n  \"cache\": {\n    \"hit\": false,\n    \"kind\": \"cold\",\n    \"llmCallsAvoided\": 0\n  }\n}\n```",
+          "thoughtSignature": "EpIBCo8BARFNMg/Pb0AE4hZWcpW0EvL1Y5wQFc1YP3vsnMTQhpTer+J3tmZ1eJ8rXpZ5nMRuBN3ZqB5Whvj4pkYwh/rsTFNdFqxKrMK3NyLxK9bUmiMDIMFyFqYscTi/oq6BfnT1mbCYuTjiCdLnQ4mosA9oAQEfXPRlEaXfqefrM3EYhLmzE7z8/+k/CGAyCUiifS8="
+        }
+      ],
+      "role": "model"
+    },
+    "usageMetadata": {
+      "promptTokenCount": 307,
+      "candidatesTokenCount": 74,
+      "totalTokenCount": 390,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 307
+        }
+      ],
+      "thoughtsTokenCount": 9,
+      "serviceTier": "standard"
+    },
+    "finishReason": "STOP"
+  }
+]
