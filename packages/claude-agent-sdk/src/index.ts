@@ -608,13 +608,34 @@ function resultMetaPayload(msg: SDKResultMsg): { [k: string]: JsonValue } | unde
 }
 
 // ─── the stateful normalizer ──────────────────────────────────────────────────
+
+/** Options for {@link createClaudeNormalizer}. */
+export interface ClaudeNormalizerOptions {
+  /**
+   * The partition-root `threadId` stamped on every entity this normalizer
+   * emits (SPEC §3: the root each unit carries so a key-value persistence
+   * layer can write it knowing only its own id, its parent, and the
+   * partition root). The Claude Agent SDK wire has no thread concept — only
+   * `session_id` — so with this option ABSENT the adapter relabels
+   * `session_id` as the threadId, a placeholder in the same spirit as the
+   * openai/vercel facets' fixed labels. That placeholder is fine for
+   * self-contained streams but LEAKS into any consumer that persists
+   * events verbatim under its own thread identity (guuey#415: mid-stream
+   * events carried the session id while the runtime's session records
+   * carried the real thread id). A runtime that owns the real thread
+   * identity should always pass it here — one id everywhere, stamped at
+   * construction.
+   */
+  threadId?: string;
+}
+
 /**
  * Build a stateful Claude-facet normalizer over a fresh {@link StreamAssembler}.
  * Each `push(native)` validates `native` → `SDKMessage`, drives the engine via
  * primitive calls, and drains the buffered `AgEvent[]`. `flush()` closes any
  * dangling open message (none, in Claude's complete-message model) and drains.
  */
-export function createClaudeNormalizer(): Normalizer {
+export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): Normalizer {
   const a = new StreamAssembler();
 
   // Task 8c leg 4 (guuey capstone finding A): the wire-visible `parentTurnId`
@@ -862,7 +883,7 @@ export function createClaudeNormalizer(): Normalizer {
         id: open.emittedId,
         role: "assistant",
         turnId,
-        threadId: msg.session_id,
+        threadId: options.threadId ?? msg.session_id,
         model: m.model,
       });
       // NOT registered in messageIdsByUuid: retractions name DELIVERED messages
@@ -1199,7 +1220,7 @@ export function createClaudeNormalizer(): Normalizer {
           id: open.emittedId,
           role: "assistant",
           turnId,
-          threadId: msg.session_id,
+          threadId: options.threadId ?? msg.session_id,
           model: m.model,
         });
       }
@@ -1393,7 +1414,7 @@ export function createClaudeNormalizer(): Normalizer {
       // INV-MSG (audit M19) forbids attaching to sealed messages / closed turns.
       if (msg.permission_denials.length > 0) {
         const denialMsgId = `${turnId}:denials`;
-        a.openMessage({ id: denialMsgId, role: "assistant", turnId, threadId: msg.session_id });
+        a.openMessage({ id: denialMsgId, role: "assistant", turnId, threadId: options.threadId ?? msg.session_id });
         for (const denial of msg.permission_denials) {
           // Fixture-drift ratchet finding (SDKPermissionDeniedMessage,
           // "handled" via existing-home mapping): enrich with the live
@@ -1485,7 +1506,7 @@ export function createClaudeNormalizer(): Normalizer {
         ...(msg.prevent_continuation !== undefined ? { preventContinuation: msg.prevent_continuation } : {}),
         ...(msg.tool_use_id !== undefined ? { toolUseId: msg.tool_use_id } : {}),
       });
-      a.openMessage({ id: msg.uuid, role: "notice", turnId, threadId: msg.session_id, noticeSource: "framework" });
+      a.openMessage({ id: msg.uuid, role: "notice", turnId, threadId: options.threadId ?? msg.session_id, noticeSource: "framework" });
       a.contentBlock(msg.uuid, { type: "text", text: msg.content, providerMetadata: noticeMeta });
       a.closeMessage(msg.uuid);
       return;

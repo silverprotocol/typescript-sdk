@@ -2867,3 +2867,37 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
     expect(evsA).toEqual(evsB);
   });
 });
+
+// ─── ClaudeNormalizerOptions.threadId — caller-owned partition root ───────────
+// guuey#415: the four construction sites relabeled the SDK `session_id` as
+// `threadId`, and the placeholder leaked into consumers that persist events
+// verbatim under their own thread identity. The runtime that knows the real
+// thread id passes it at construction; absent, the legacy relabeling stands
+// (cassette-stable default).
+describe("createClaudeNormalizer — options.threadId (guuey#415)", () => {
+  const textContent: BetaMessage["content"] = [{ type: "text", text: "hello", citations: null }];
+
+  function threadIdsOf(evs: AgEvent[]): string[] {
+    return evs.flatMap((e) => {
+      const t = (e as { threadId?: unknown }).threadId;
+      return typeof t === "string" ? [t] : [];
+    });
+  }
+
+  it("stamps the caller's threadId everywhere instead of relabeling session_id", () => {
+    const n = createClaudeNormalizer({ threadId: "thread_runtime_1" });
+    const evs = [...n.push(JsonValue.parse(assistantMsg(textContent))), ...n.flush()];
+    const ids = threadIdsOf(evs);
+    expect(ids.length).toBeGreaterThan(0);
+    expect(new Set(ids)).toEqual(new Set(["thread_runtime_1"]));
+    // The wire session id must not survive as any threadId. (Synthesized
+    // turn ids still embed it as opaque identifiers — that is not a threadId.)
+    expect(ids).not.toContain("sess_fixture");
+  });
+
+  it("absent option preserves the legacy session_id relabeling (cassette-stable default)", () => {
+    const ids = threadIdsOf(run(assistantMsg(textContent)));
+    expect(ids.length).toBeGreaterThan(0);
+    expect(new Set(ids)).toEqual(new Set(["sess_fixture"]));
+  });
+});
