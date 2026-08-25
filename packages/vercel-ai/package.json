@@ -1,6 +1,6 @@
 {
   "name": "@silverprotocol/vercel-ai",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "AgJSON normalizer for the Vercel AI SDK (fullStream TextStreamPart \u2192 AgEvent[]).",
   "license": "MIT",
   "repository": {
