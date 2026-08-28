@@ -45,11 +45,34 @@ content** — render it as text content (React children / RN `<Text>` /
 
 Blocks: paragraphs (single newlines become explicit `break` nodes — chat prose
 is line-broken), headings (`#`–`######`), fenced code (with language tag),
-flat ordered/unordered lists. Inline: `**strong**`, `*em*` / `_em_`,
-`` `code` ``, `[links](https://…)`, backslash escapes.
+flat ordered/unordered lists, pipe tables (GFM subset). Inline: `**strong**`,
+`*em*` / `_em_`, `` `code` ``, `[links](https://…)`, backslash escapes.
 
-Deliberately out of v1 (parses as plain text): images, tables, blockquotes,
-strikethrough, autolinked bare URLs, nested lists, raw HTML (permanently).
+Deliberately out of v1 (parses as plain text): images, blockquotes,
+strikethrough, autolinked bare URLs, nested lists, table cell spans, raw HTML
+(permanently).
+
+### Tables
+
+The GFM pipe-table subset — a header row, a delimiter row, body rows:
+
+```ts
+parseRichText("| # | Task |\n|:-:|------|\n| 1 | **Ship** it |");
+// [{ type: "table",
+//    align: ["center", undefined],          // per column, from the delimiter row
+//    header: { cells: [{ children: [{ type: "text", text: "#" }] }, …] },
+//    rows: [{ cells: [{ children: [{ type: "text", text: "1" }] },
+//                     { children: [{ type: "strong", … }, { type: "text", text: " it" }] }] }] }]
+```
+
+The header fixes the column count: every row has exactly `align.length`
+cells (short rows are padded with empty cells, long rows drop the excess —
+GFM's rule). Outer pipes are optional, `\|` is the cell-pipe escape (it works
+inside code spans), and cells hold inline content only. A table ends at a
+blank line, another block, or any line without a pipe. While streaming, the
+delimiter row has to complete (a newline follows it) before the table forms —
+until then the header and the half-typed delimiter are an ordinary two-line
+paragraph, so a renderer never sees a table flap back into prose.
 
 ### Streaming
 

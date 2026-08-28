@@ -224,7 +224,8 @@ describe("streaming tolerance", () => {
   it("EVERY prefix of a marker-dense document parses without throwing, and visible text is monotone", () => {
     const doc =
       "# Plan\n\nIntro with **bold**, *em*, `code`, and [a link](https://x.io/a_b-c).\n\n" +
-      "```ts\nconst a = \"**not md**\";\n```\n\n1. first\n2. **second** — with dash\n\n- last _one_\n";
+      "```ts\nconst a = \"**not md**\";\n```\n\n1. first\n2. **second** — with dash\n\n- last _one_\n\n" +
+      "| # | Task |\n|:-:|---|\n| 1 | **ship** it |\n| 2 | `a\\|b` |\n";
     let prevVisible = "";
     for (let i = 0; i <= doc.length; i++) {
       const prefix = doc.slice(0, i);
@@ -235,7 +236,9 @@ describe("streaming tolerance", () => {
             ? b.code
             : b.type === "list"
               ? b.items.map((it) => visibleText(it.children)).join("\n")
-              : visibleText(b.children),
+              : b.type === "table"
+                ? [b.header, ...b.rows].map((r) => r.cells.map((c) => visibleText(c.children)).join(" ")).join("\n")
+                : visibleText(b.children),
         )
         .join("\n");
       // Soft-fail bound: the visible text never exceeds what has streamed in,
@@ -263,5 +266,134 @@ describe("streaming tolerance", () => {
       type: "paragraph",
       children: [{ type: "strong", children: [{ type: "text", text: "tail" }], closed: false }],
     });
+  });
+});
+
+// ─── tables (GFM pipe subset — typescript-sdk#23 / guuey#370) ─────────────────
+
+type Table = Extract<RichTextBlock, { type: "table" }>;
+
+/** Row → visible cell strings. */
+function rowText(row: { cells: { children: RichTextInline[] }[] }): string[] {
+  return row.cells.map((c) => visibleText(c.children));
+}
+
+describe("tables — GFM pipe subset", () => {
+  it("parses the guuey#370 shape (header, delimiter, body rows) with inline markdown inside cells", () => {
+    const blocks = parseRichText("| # | Task |\n|---|------|\n| 1 | Ship it |\n| 2 | **Bold** cell |\n");
+    expect(blocks).toHaveLength(1);
+    const t = blocks[0] as Table;
+    expect(t.type).toBe("table");
+    expect(t.align).toEqual([undefined, undefined]);
+    expect(rowText(t.header)).toEqual(["#", "Task"]);
+    expect(t.rows.map(rowText)).toEqual([
+      ["1", "Ship it"],
+      ["2", "Bold cell"],
+    ]);
+    expect(t.rows[1]?.cells[1]?.children[0]).toMatchObject({ type: "strong", closed: true });
+  });
+
+  it("reads column alignment from the delimiter row (left / center / right / none)", () => {
+    const t = parseRichText("| a | b | c | d |\n|:--|:-:|--:|---|\n| 1 | 2 | 3 | 4 |\n")[0] as Table;
+    expect(t.align).toEqual(["left", "center", "right", undefined]);
+  });
+
+  it("outer pipes are optional; whitespace around cells is trimmed", () => {
+    const t = parseRichText("a | b\n--|--\n 1 |2 \n")[0] as Table;
+    expect(rowText(t.header)).toEqual(["a", "b"]);
+    expect(t.rows.map(rowText)).toEqual([["1", "2"]]);
+  });
+
+  it("the header's column count rules: short rows are padded, long rows drop excess (GFM)", () => {
+    const t = parseRichText("| a | b | c |\n|---|---|---|\n| 1 |\n| 1 | 2 | 3 | 4 |\n")[0] as Table;
+    expect(t.rows.map(rowText)).toEqual([
+      ["1", "", ""],
+      ["1", "2", "3"],
+    ]);
+    // Empty cells are real cells with no children — renderers can still lay them out.
+    expect(t.rows[0]?.cells[1]).toEqual({ children: [] });
+  });
+
+  it("`\\|` is the cell-pipe escape — literal pipe in the cell, even inside a code span (GFM)", () => {
+    const t = parseRichText("| expr | note |\n|---|---|\n| `a \\| b` | x \\| y |\n")[0] as Table;
+    expect(t.rows.map(rowText)).toEqual([["a | b", "x | y"]]);
+    expect(t.rows[0]?.cells[0]?.children[0]).toMatchObject({ type: "code", code: "a | b", closed: true });
+  });
+
+  it("a header/delimiter cell-count mismatch is NOT a table — the lines stay literal paragraph text", () => {
+    const blocks = parseRichText("| a | b |\n|---|\n| 1 | 2 |\n");
+    expect(blocks.map((b) => b.type)).toEqual(["paragraph"]);
+    expect(visibleText((blocks[0] as Extract<RichTextBlock, { type: "paragraph" }>).children)).toBe(
+      "| a | b |\n|---|\n| 1 | 2 |",
+    );
+  });
+
+  it("both rows need a pipe — `Title` over `---` is a paragraph, never a one-column table", () => {
+    const blocks = parseRichText("Title\n---\nmore\n");
+    expect(blocks.map((b) => b.type)).toEqual(["paragraph"]);
+    const one = parseRichText("Title\n|---|\n");
+    expect(one.map((b) => b.type)).toEqual(["paragraph"]);
+  });
+
+  it("only the line directly above the delimiter becomes the header; earlier lines stay a paragraph", () => {
+    const blocks = parseRichText("Here is the plan:\n| # | Task |\n|---|---|\n| 1 | Go |\n");
+    expect(blocks.map((b) => b.type)).toEqual(["paragraph", "table"]);
+    expect(visibleText((blocks[0] as Extract<RichTextBlock, { type: "paragraph" }>).children)).toBe("Here is the plan:");
+    expect(rowText((blocks[1] as Table).header)).toEqual(["#", "Task"]);
+  });
+
+  it("a table ends at a blank line, a pipe-less prose line, a heading, a fence, or a list — what follows parses normally", () => {
+    const blocks = parseRichText(
+      "| a |\n|---|\n| 1 |\nplain prose\n\n| b |\n|---|\n| 2 |\n# Heading\n| c |\n|---|\n- item\n| d |\n|---|\n```\ncode\n```\n",
+    );
+    expect(blocks.map((b) => b.type)).toEqual([
+      "table",
+      "paragraph",
+      "table",
+      "heading",
+      "table",
+      "list",
+      "table",
+      "code-fence",
+    ]);
+    expect((blocks[0] as Table).rows).toHaveLength(1);
+    expect(visibleText((blocks[1] as Extract<RichTextBlock, { type: "paragraph" }>).children)).toBe("plain prose");
+    expect((blocks[4] as Table).rows).toHaveLength(0);
+  });
+
+  it("the safety policy is unchanged inside cells — raw HTML is text, unsafe link targets get no href", () => {
+    const t = parseRichText("| html | link |\n|---|---|\n| <script>x</script> | [go](javascript:evil) |\n")[0] as Table;
+    expect(rowText(t.rows[0] ?? { cells: [] })).toEqual(["<script>x</script>", "go"]);
+    expect(t.rows[0]?.cells[1]?.children[0]).toMatchObject({ type: "link", href: undefined, rawHref: "javascript:evil" });
+  });
+
+  it("streams: the delimiter row must complete (newline) before the table forms — then rows grow in place", () => {
+    const header = "| # | Task |\n";
+    // Header alone, then the delimiter still being typed: a two-line paragraph, never a flapping table.
+    for (const partial of ["|", "|:-", "|:-:|", "|:-:|---", "|:-:|---|"]) {
+      const blocks = parseRichText(header + partial);
+      expect(blocks.map((b) => b.type)).toEqual(["paragraph"]);
+    }
+    // The newline lands: one-way flip to a table with a stable header + alignment.
+    const formed = parseRichText(header + "|:-:|---|\n");
+    expect(formed).toEqual([
+      {
+        type: "table",
+        align: ["center", undefined],
+        header: { cells: [{ children: [{ type: "text", text: "#" }] }, { children: [{ type: "text", text: "Task" }] }] },
+        rows: [],
+      },
+    ]);
+    // Rows stream: a partial last row is a row-so-far with an OPEN inline construct; earlier rows are byte-identical.
+    const twoRows = parseRichText(header + "|:-:|---|\n| 1 | done |\n| 2 | **in pro");
+    const t = twoRows[0] as Table;
+    expect(t.rows).toHaveLength(2);
+    expect(t.rows[0]).toEqual((formed[0] as Table).rows[0] ?? parseRichText(header + "|:-:|---|\n| 1 | done |\n").map((b) => (b as Table).rows[0])[0]);
+    expect(t.rows[1]?.cells[1]?.children[0]).toMatchObject({ type: "strong", closed: false });
+    expect(rowText(t.rows[1] ?? { cells: [] })).toEqual(["2", "in pro"]);
+    const grown = parseRichText(header + "|:-:|---|\n| 1 | done |\n| 2 | **in progress** |\n| 3 |");
+    expect((grown[0] as Table).rows[0]).toEqual(t.rows[0]);
+    expect((grown[0] as Table).header).toEqual(t.header);
+    expect((grown[0] as Table).rows[1]?.cells[1]?.children[0]).toMatchObject({ type: "strong", closed: true });
   });
 });

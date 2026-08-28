@@ -22,7 +22,7 @@ feed it already-captured events it's just a type-level peer.)
      edit those, then re-run `node scripts/render-compat.mjs`. -->
 ## Upstream compatibility
 
-Supported peer range: `@openai/agents` `>=0.2.0 <0.17` (npm-enforced, optional — this package never imports the SDK).
+Supported peer range: `@openai/agents` `>=0.2.0 <0.18` (npm-enforced, optional — this package never imports the SDK).
 
 Wire shapes outside the verified set never crash the normalizer, and the
 fixture-drift gate (`scripts/check-fixture-drift.mjs`) turns every newly-appeared
@@ -32,6 +32,7 @@ facet's per-field dispositions, including its disclosed `silently-dropped` gaps)
 
 | `@openai/agents` | verified | with | evidence |
 | --- | --- | --- | --- |
+| `0.17.0` | 2026-08-28 | 0.5.3 | 0.17.0 MINOR study (typescript-sdk#20/#24, downstream guuey#338): all seven consumed agents-core dist files BYTE-IDENTICAL to 0.16.0 (events.d.ts, types/protocol.d.ts, items.d.ts, result.d.ts, usage.d.ts, runner/streaming.mjs, runner/modelOutputs.mjs; RunItemStreamEventName 10, protocolItem 17) and agents-openai's only change is websocket replay-safety bookkeeping in openaiResponsesModel.mjs (no event emission touched) -- wire-no-op on every consumed surface; drift gate zero member drift. LIVE capture: echo-gpt56 standing seed REFRESHED at 0.17.0 (gpt-5.6-sol), 46 native events, event-type census identical to the 0.14.2 capture. The census caught ONE wrapper-level field the d.ts-pair inventory cannot see: RunToolCallOutputItem.executionStatus ('executed', introduced in agents-core 0.15.0 -- present since the 0.15/0.16 studies, first observed live here). Disposition handled: carried verbatim on tool.done providerMetadata alongside caller (set only when the runner actually invoked the function tool; absent on guardrail/cancellation-synthesized results); 3 facet tests, transforms + registry entries, snapshot regenerated. Peer range widened >=0.2.0 <0.17 -> <0.18; e2e pin 0.17.0; full gate suite green. |
 | `0.16.0` | 2026-08-15 | 0.4.4 | 0.16.0 MINOR study: both consumed agents-core dist files BYTE-IDENTICAL to 0.15.0 (events.d.ts and types/protocol.d.ts; RunItemStreamEventName 10 members, protocolItem 17, full zod-literal inventory zero-delta) - the minor is agent/handoff/runner internals the facet does not ingest. Peer range widened >=0.2.0 <0.16 -> <0.17 (ships as 0.4.4 so consumers installing 0.16.x stop getting npm peer warnings); e2e pin 0.16.0, forced gate suite green. |
 | `0.15.0` | 2026-08-13 | 0.4.2 | 0.15.0 MINOR study (typescript-sdk#15, filed as [peer-drift] — the nightly's forced-0.15.0 gate suite was already green): RunItemStreamEventName unchanged (10 members incl. compaction_item_created), protocolItem unchanged (17) — both drift-gate-verified; wire-no-op on every consumed surface. Peer range widened >=0.2.0 <0.15 -> <0.16 (ships as 0.4.3 so consumers installing latest stop getting npm peer warnings); e2e pin 0.15.0. |
 | `0.14.3` | 2026-08-09 | 0.4.1 | peer sweep: 0.14.2->0.14.3 d.ts diff — ONE new RunItemStreamEventName member (compaction_item_created, drift-gate-caught), protocolItem union unchanged (17). Disposition handled: mapped to the first-class compaction content.block converging with the claude facet (synthetic test pins the mapping + no-double-carry + clean fold). Full gate suite green at the new pin (110 facet tests, 949 workspace). |

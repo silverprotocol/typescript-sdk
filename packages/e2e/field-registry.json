@@ -337,6 +337,7 @@
   "[*].item.customData.structuredContent.cache.kind",
   "[*].item.customData.structuredContent.cache.llmCallsAvoided",
   "[*].item.customData.structuredContent.title",
+  "[*].item.executionStatus",
   "[*].item.output",
   "[*].item.rawItem.arguments",
   "[*].item.rawItem.callId",

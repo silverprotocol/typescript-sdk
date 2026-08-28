@@ -29,6 +29,7 @@
   "[*].input.message": "[*].input.message",
   "[*].item.customData.structuredContent.cache.hit": "[*].structuredContent.cache.hit",
   "[*].item.customData.structuredContent.cache.llmCallsAvoided": "[*].structuredContent.cache.llmCallsAvoided",
+  "[*].item.executionStatus": "[*].providerMetadata.executionStatus",
   "[*].item.rawItem.phase": "[*].phase",
   "[*].message.content[*].is_error": "[*].isError",
   "[*].message.content[*].text": "[*].delta",

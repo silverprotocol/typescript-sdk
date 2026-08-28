@@ -8,8 +8,8 @@
  *
  *  - `parseRichText(text)` → a typed block/inline AST for the CONVERSATIONAL
  *    markdown subset: bold / italic / inline code / fenced code / lists /
- *    headings / links (plus explicit line breaks — chat prose is line-broken
- *    and a renderer that joins lines destroys it).
+ *    headings / links / pipe tables (plus explicit line breaks — chat prose
+ *    is line-broken and a renderer that joins lines destroys it).
  *  - The SAFETY POLICY lives here, once. Raw HTML is NEVER interpreted — no
  *    HTML node type exists in the AST, so `<script>` in model output can only
  *    ever be literal text. Link `href` is populated ONLY for http/https/mailto
@@ -30,10 +30,39 @@
  * this AST (`text`, `code`) is literal content — render it as text content
  * (React children / RN <Text> / textContent), NEVER as markup.
  *
+ * TABLES (typescript-sdk#23, downstream guuey#370) are the GFM pipe-table
+ * subset: a header row, a delimiter row (`|---|:---:|---:|` — the alignment
+ * source), then body rows; no cell spans, no block content inside cells.
+ * The rules follow GFM where GFM has one and stay predictable for chat where
+ * it doesn't:
+ *  - a table is recognized when a delimiter row whose cell count equals the
+ *    PRECEDING line's cell count arrives — that line becomes the header, any
+ *    earlier lines of the same paragraph stay a paragraph (GFM);
+ *  - both rows need at least one unescaped `|` — `Title\n---` never becomes
+ *    a one-column table (and setext headings stay out of the subset);
+ *  - outer pipes are optional; `\|` is the cell-pipe escape and becomes a
+ *    literal `|` BEFORE inline parsing, so it works inside code spans (GFM);
+ *  - the header's column count is the table's: a short body row is padded
+ *    with empty cells, a long one drops its excess cells (GFM's rule — it is
+ *    the one place this parser discards text, and it is what every GFM
+ *    renderer the model was trained against does too);
+ *  - the table ends at a blank line, a heading / fence / list line, or ANY
+ *    line without an unescaped pipe (GFM would swallow pipe-less prose as a
+ *    row; chat prose after a table is prose).
+ *  Streaming: the delimiter row must be a COMPLETE line (followed by a
+ *  newline) before the table forms — until then the header + partial
+ *  delimiter are a two-line paragraph. That is a one-way disambiguation of
+ *  the trailing open block, chosen over eager recognition so a half-typed
+ *  `:-:` cell never flaps paragraph→table→paragraph. Body rows stream
+ *  naturally: the last row is whatever has arrived, with its last cell's
+ *  inline constructs `closed: false` as usual. A table has no closing marker
+ *  (like a list), so it carries no `closed` flag.
+ *
  * Deliberately OUT of the v1 subset (parse as plain text; future spec-process
- * additions, not silent behavior): images, tables, blockquotes, strikethrough,
+ * additions, not silent behavior): images, blockquotes, strikethrough,
  * autolinked bare URLs, nested lists (indented bullets FLATTEN into the open
- * list), block content inside list items, and `setext` headings.
+ * list), block content inside list items, table cell spans, and `setext`
+ * headings.
  */
 
 // ─── AST types ────────────────────────────────────────────────────────────────
@@ -67,6 +96,13 @@ export type RichTextInline =
 
 export type RichTextListItem = { children: RichTextInline[] };
 
+/** Column alignment from a table's delimiter row (`:--` / `:-:` / `--:`). */
+export type RichTextTableAlign = "left" | "center" | "right";
+/** One table cell — inline content only (no block content inside cells). */
+export type RichTextTableCell = { children: RichTextInline[] };
+/** One table row. `cells.length` always equals the table's column count. */
+export type RichTextTableRow = { cells: RichTextTableCell[] };
+
 /** Block content. Order is the render order. */
 export type RichTextBlock =
   | { type: "paragraph"; children: RichTextInline[] }
@@ -84,6 +120,20 @@ export type RichTextBlock =
       /** First item's number for an ordered list (1. / 3. …), else undefined. */
       start: number | undefined;
       items: RichTextListItem[];
+    }
+  | {
+      type: "table";
+      /**
+       * Per-column alignment from the delimiter row, `undefined` where the
+       * column declared none (`---`) — hand it straight to `textAlign`. Its
+       * length is the table's column count; every row has exactly that many
+       * cells.
+       */
+      align: (RichTextTableAlign | undefined)[];
+      /** The header row (the line above the delimiter row). */
+      header: RichTextTableRow;
+      /** Body rows, in order. Mid-stream, the last row is the partial line so far. */
+      rows: RichTextTableRow[];
     };
 
 // ─── safety policy: link scheme allowlist ─────────────────────────────────────
@@ -372,6 +422,71 @@ const HEADING = /^(#{1,6})\s+(.*)$/;
 const BULLET = /^\s*[-*+]\s+(.*)$/;
 const ORDERED = /^\s*(\d{1,9})[.)]\s+(.*)$/;
 
+// ── tables (GFM pipe subset) ──
+// A delimiter cell: optional colon, one-or-more hyphens, optional colon.
+const DELIMITER_CELL = /^(:?)-+(:?)$/;
+
+/**
+ * Split a line into raw (trimmed) cell strings on its UNESCAPED pipes, or
+ * `undefined` when the line has none (then it is not a table row at all).
+ * Splitting happens BEFORE inline parsing (GFM): `\|` is the cell-pipe
+ * escape and is replaced by a literal `|` here so it survives even inside a
+ * code span; every other backslash pair passes through untouched for the
+ * inline parser to interpret. One outer leading/trailing pipe is structural
+ * and dropped; anything between is content (empty cells included).
+ */
+function splitTableRow(line: string): string[] | undefined {
+  const s = line.trim();
+  const cells: string[] = [];
+  let buf = "";
+  let sawPipe = false;
+  let endedWithPipe = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    endedWithPipe = false;
+    if (ch === "\\" && i + 1 < s.length) {
+      const next = s[i + 1];
+      buf += next === "|" ? "|" : ch + next;
+      i += 1;
+      continue;
+    }
+    if (ch === "|") {
+      sawPipe = true;
+      endedWithPipe = true;
+      cells.push(buf);
+      buf = "";
+      continue;
+    }
+    buf += ch;
+  }
+  if (!sawPipe) return undefined;
+  cells.push(buf);
+  if (s.startsWith("|")) cells.shift();
+  if (endedWithPipe) cells.pop();
+  return cells.map((c) => c.trim());
+}
+
+/** The delimiter row's alignment vector, or `undefined` if any cell is not a delimiter cell. */
+function delimiterAlignment(cells: string[]): (RichTextTableAlign | undefined)[] | undefined {
+  if (cells.length === 0) return undefined;
+  const out: (RichTextTableAlign | undefined)[] = [];
+  for (const c of cells) {
+    const m = c.match(DELIMITER_CELL);
+    if (m === null) return undefined;
+    const left = m[1] === ":";
+    const right = m[2] === ":";
+    out.push(left && right ? "center" : left ? "left" : right ? "right" : undefined);
+  }
+  return out;
+}
+
+/** Fit raw cells to the column count (GFM: pad short rows, drop excess) and inline-parse each. */
+function tableRow(cells: string[], columns: number): RichTextTableRow {
+  const fitted = cells.slice(0, columns);
+  while (fitted.length < columns) fitted.push("");
+  return { cells: fitted.map((c) => ({ children: parseInlineFrom(c, 0, []).children })) };
+}
+
 /**
  * Parse a chat text block into the rich-text AST. Pure and total: any string
  * (including any prefix of a longer one) parses without throwing.
@@ -383,6 +498,7 @@ export function parseRichText(text: string): RichTextBlock[] {
   // Accumulators for the (single) open block.
   let para: string[] = [];
   let list: { ordered: boolean; start: number | undefined; items: RichTextListItem[] } | undefined;
+  let table: Extract<RichTextBlock, { type: "table" }> | undefined;
 
   const flushPara = (): void => {
     if (para.length > 0) {
@@ -396,6 +512,12 @@ export function parseRichText(text: string): RichTextBlock[] {
       list = undefined;
     }
   };
+  const flushTable = (): void => {
+    if (table !== undefined) {
+      blocks.push(table);
+      table = undefined;
+    }
+  };
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -407,6 +529,7 @@ export function parseRichText(text: string): RichTextBlock[] {
     if (fence !== null) {
       flushPara();
       flushList();
+      flushTable();
       const lang = fence[1] !== undefined && fence[1].length > 0 ? fence[1] : undefined;
       const body: string[] = [];
       let closed = false;
@@ -427,6 +550,7 @@ export function parseRichText(text: string): RichTextBlock[] {
     if (line.trim().length === 0) {
       flushPara();
       flushList();
+      flushTable();
       continue;
     }
 
@@ -434,6 +558,7 @@ export function parseRichText(text: string): RichTextBlock[] {
     if (heading !== null && heading[1] !== undefined) {
       flushPara();
       flushList();
+      flushTable();
       const level = heading[1].length as 1 | 2 | 3 | 4 | 5 | 6;
       blocks.push({ type: "heading", level, children: parseInlineFrom(heading[2] ?? "", 0, []).children });
       continue;
@@ -443,6 +568,7 @@ export function parseRichText(text: string): RichTextBlock[] {
     const bullet = ordered === null ? line.match(BULLET) : null;
     if (ordered !== null || bullet !== null) {
       flushPara();
+      flushTable();
       const isOrdered = ordered !== null;
       const content = (isOrdered ? ordered[2] : bullet?.[1]) ?? "";
       // A same-orderedness item continues the open list; a switch (1. → -)
@@ -459,6 +585,32 @@ export function parseRichText(text: string): RichTextBlock[] {
       continue;
     }
 
+    // Table rows (GFM pipe subset — see the module doc). An open table takes
+    // every line with an unescaped pipe; a pipe-less line ends it and is
+    // prose. A table OPENS when a complete delimiter row (a newline follows
+    // it) matches the cell count of the line just above it: that line leaves
+    // the open paragraph to become the header; the paragraph's earlier lines
+    // flush as their own block.
+    const cells = splitTableRow(line);
+    if (table !== undefined) {
+      if (cells !== undefined) {
+        table.rows.push(tableRow(cells, table.align.length));
+        continue;
+      }
+      flushTable();
+    } else if (cells !== undefined && para.length > 0 && i < lines.length - 1) {
+      const align = delimiterAlignment(cells);
+      const headerLine = para[para.length - 1];
+      const headerCells = align !== undefined && headerLine !== undefined ? splitTableRow(headerLine) : undefined;
+      if (align !== undefined && headerCells !== undefined && headerCells.length === align.length) {
+        para.pop();
+        flushPara();
+        flushList();
+        table = { type: "table", align, header: tableRow(headerCells, align.length), rows: [] };
+        continue;
+      }
+    }
+
     // Plain prose. A non-bullet line after a list ENDS the list (predictable
     // for chat; lazy continuation is not part of the v1 subset).
     flushList();
@@ -467,6 +619,7 @@ export function parseRichText(text: string): RichTextBlock[] {
 
   flushPara();
   flushList();
+  flushTable();
   return blocks;
 }
 

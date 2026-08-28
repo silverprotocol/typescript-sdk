@@ -2942,6 +2942,66 @@ describe("createOpenaiNormalizer — programmatic tool calling: program/program_
   });
 });
 
+describe("createOpenaiNormalizer — RunToolCallOutputItem.executionStatus (agents-core 0.15.0)", () => {
+  // Wrapper-level marker, live-observed on echo-gpt56 @ agents-core 0.17.0:
+  // `executionStatus: "executed"` means the runner really invoked the tool;
+  // a synthesized result (guardrail rejection, cancellation, refused
+  // approval) carries nothing. Not a protocol-item field, so the fixture-
+  // drift inventory cannot catch it — the census did.
+  function outputRound(item: { [k: string]: JsonValue }): JsonValue[] {
+    return [
+      rawModel({ type: "response.created", response: { id: "resp_exec_1" } }),
+      rawModel({
+        type: "response.output_item.added",
+        item: { id: "fc_exec_1", type: "function_call", call_id: "call_exec_1", name: "echo" },
+      }),
+      rawModel({ type: "response.function_call_arguments.done", item_id: "fc_exec_1", arguments: "{}" }),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "function_call_result", name: "echo", callId: "call_exec_1", status: "completed", output: "ok" },
+        ...item,
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_exec_1", status: "completed" } }),
+    ];
+  }
+  function doneOf(evs: readonly { type: string }[]): { providerMetadata?: { [k: string]: unknown } } | undefined {
+    return evs.find((e) => e.type === "tool.done") as { providerMetadata?: { [k: string]: unknown } } | undefined;
+  }
+
+  it("tool.done carries providerMetadata.executionStatus verbatim when the SDK marks the result executed", () => {
+    const n = createOpenaiNormalizer();
+    const evs = outputRound({ executionStatus: "executed" }).flatMap((e) => n.push(e)).concat(n.flush());
+    expect(doneOf(evs)?.providerMetadata).toEqual({ executionStatus: "executed" });
+  });
+
+  it("an unmarked result (0.14.x-shaped wire, or a runner-synthesized output) carries no providerMetadata at all", () => {
+    const n = createOpenaiNormalizer();
+    const evs = outputRound({}).flatMap((e) => n.push(e)).concat(n.flush());
+    expect(doneOf(evs)?.providerMetadata).toBeUndefined();
+  });
+
+  it("executionStatus and caller ride the same providerMetadata object (neither carry clobbers the other)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = outputRound({
+      executionStatus: "executed",
+      rawItem: {
+        type: "function_call_result",
+        name: "echo",
+        callId: "call_exec_1",
+        status: "completed",
+        output: "ok",
+        caller: { type: "program", callerId: "call_prog_9" },
+      },
+    })
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    expect(doneOf(evs)?.providerMetadata).toEqual({
+      caller: { type: "program", callerId: "call_prog_9" },
+      executionStatus: "executed",
+    });
+  });
+});
+
 describe("createOpenaiNormalizer — ToolCaller provenance (agents-core 0.14.0)", () => {
   // A program-issued function call + its result: the caller rides the
   // AUTHORITATIVE raw output_item.added (verbatim openai-node snake_case

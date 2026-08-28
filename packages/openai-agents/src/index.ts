@@ -612,6 +612,20 @@ interface OpenAIToolOutputEvent {
       | OpenAIProgramCallResultItem;
     output?: JsonValue;
     customData?: JsonValue;
+    /**
+     * agents-core 0.15.0+ (`RunToolCallOutputItem.executionStatus`, a single
+     * literal): present ONLY when the runner actually invoked the function
+     * tool (`toolExecution.mjs` sets it right after `invokeFunctionTool`
+     * returns). Absent when the result item was synthesized instead — an
+     * input-guardrail rejection, a sibling cancellation, an approval refusal —
+     * so a consumer can tell a tool's own result from a runner-substituted
+     * one. Wrapper-level (not a protocol item field), so the fixture-drift
+     * inventory cannot see it; census-caught on the first live capture after
+     * 0.14.2 (echo-gpt56 @ 0.17.0). Carried verbatim on `tool.done`
+     * providerMetadata alongside `caller`. Built-in tool results (shell /
+     * apply_patch / computer / program) never carry it on the SDK side.
+     */
+    executionStatus?: "executed";
   };
 }
 
@@ -2221,8 +2235,13 @@ export function createOpenaiNormalizer(): Normalizer {
           // correct — possibly already-closed-pending-this-result — turn.
           const doneTurnId = resolvePendingTurnId(rawItem.callId);
           // Caller provenance (0.14.0) — the result item's own optional field,
-          // distinct from the call-side carry on tool.start.
-          const doneMeta = openaiProviderMeta({ caller: callerToJson(rawItem.caller) });
+          // distinct from the call-side carry on tool.start — and the 0.15.0
+          // wrapper-level `executionStatus` marker (see the projection's doc):
+          // both verbatim, both dropped when absent.
+          const doneMeta = openaiProviderMeta({
+            caller: callerToJson(rawItem.caller),
+            executionStatus: event.item.executionStatus,
+          });
           a.toolDone({
             toolCallId: rawItem.callId,
             content,
