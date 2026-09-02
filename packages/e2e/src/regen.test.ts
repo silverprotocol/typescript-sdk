@@ -139,6 +139,16 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "echo-fable51", framework: "claude" },
   { scenario: "partials-fable51", framework: "claude" },
   { scenario: "app-update-fable51", framework: "claude" },
+  // 2026-09-02 (cohort 0.6.0, spec draft.3): reasoning-inclusive outputTokens.
+  // The adk facet now folds Gemini's sibling thoughtsTokenCount into
+  // turn.done.usage.outputTokens; the ONLY delta on every adk golden with
+  // thoughts is that one number (+= reasoningTokens). The gemini36/37 pairs
+  // above already cover five of the ten affected seeds; these are the rest.
+  { scenario: "echo-gemini35", framework: "adk" },
+  { scenario: "multi-turn", framework: "adk" },
+  { scenario: "single-tool-call", framework: "adk" },
+  { scenario: "text-only", framework: "adk" },
+  { scenario: "tool-error", framework: "adk" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

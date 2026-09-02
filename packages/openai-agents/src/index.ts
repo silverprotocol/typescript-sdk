@@ -1007,6 +1007,10 @@ function toolOutputToAgBlocks(
 
 // ─── usage mapping: OpenAI response usage → AgUsage ──────────────────────────
 // cumulative:false — OpenAI usage is FINAL (not cumulative like Anthropic).
+// Spec §4 (draft.3): `output_tokens` is already reasoning-INCLUSIVE upstream
+// ("billed as output tokens"), so it is carried verbatim and
+// `output_tokens_details.reasoning_tokens` lands on `reasoningTokens` as the
+// breakdown — never added to outputTokens.
 function mapUsage(usage: OpenAIResponseUsage | undefined): AgUsage | undefined {
   if (usage === undefined) return undefined;
   const u: AgUsage = { cumulative: false };

@@ -69,7 +69,7 @@
     "finishReason": "stop",
     "usage": {
       "inputTokens": 40,
-      "outputTokens": 21,
+      "outputTokens": 63,
       "totalTokens": 103,
       "reasoningTokens": 42,
       "cumulative": false

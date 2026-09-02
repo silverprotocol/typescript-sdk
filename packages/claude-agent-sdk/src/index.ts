@@ -151,9 +151,12 @@ function imageSource(source: ImageBlockSource): AgSource {
  * (`ModelUsage.thinkingTokens`: "Thinking tokens, already counted inside
  * outputTokens"): the value lands on `AgUsage.reasoningTokens` as a BREAKDOWN
  * of `outputTokens`, not an additional bucket. Consumers must never sum
- * `reasoningTokens + outputTokens`. This is the same convention the openai
- * facet (`output_tokens_details.reasoning_tokens`) and the adk facet
- * (`usageMetadata.thoughtsTokenCount`) already follow for `reasoningTokens`.
+ * `reasoningTokens + outputTokens`. Spec §4 (draft.3) makes this the rule for
+ * every facet: the openai facet copies `output_tokens_details.reasoning_tokens`
+ * (already inclusive upstream), and the adk facet FOLDS Gemini's sibling
+ * `thoughtsTokenCount` into `outputTokens` (0.6.0; through 0.5.4 it carried
+ * Gemini's exclusive `candidatesTokenCount` verbatim — this JSDoc's own 0.5.4
+ * claim that adk already followed the subset convention was wrong).
  *
  * Absent ⇒ `undefined`, and every caller spreads the field conditionally, so a
  * frame without `output_tokens_details` normalizes byte-identically to before.
@@ -1661,7 +1664,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
     }
 
     if (msg.type === "system" && msg.subtype === "informational") {
-      // spec draft.2 (§10 item 21, resolving the fixture-drift ratchet's
+      // spec draft.2 (§8.0 item 21, resolving the fixture-drift ratchet's
       // FLAGSHIP finding): the first-class `notice` home this frame waited
       // for since 2026-07-03. `content`/`level`/`prevent_continuation?` are
       // genuinely conversation/UX-relevant (transcript notices, an

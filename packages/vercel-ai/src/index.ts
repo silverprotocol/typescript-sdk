@@ -157,7 +157,12 @@ function errFields(v: unknown): ErrorFields {
 
 /** fullStream `LanguageModelUsage` (flat tokens + detail bags — verified
  *  ai@7.0.26) → AgUsage. `cumulative` deliberately ABSENT (D1: totalUsage is
- *  carried verbatim on turn.done; per-step usage rides message.end). */
+ *  carried verbatim on turn.done; per-step usage rides message.end). Spec §4
+ *  (draft.3): `outputTokens` is reasoning-INCLUSIVE upstream (ai normalizes
+ *  every provider — Google included since v6 — to total + {text, reasoning}
+ *  details), so it is copied verbatim and `outputTokenDetails.reasoningTokens`
+ *  lands on `reasoningTokens` as the breakdown; `totalTokens` is copied from
+ *  the framework wire (ai synthesizes it), never computed here. */
 function mapUsage(v: unknown): AgUsage | undefined {
   const u = rec(v);
   if (u === undefined) return undefined;

@@ -69,7 +69,7 @@ console.log(AGJSON_VERSION, messages);
 `ingestAgEvents` validates raw wire objects against `AgEvent` and drops anything
 unparseable (the consumer posture); `Reducer` folds the validated stream into the
 normative snapshot; `AGJSON_VERSION` is the wire version this build implements
-(`1.0.0-draft.1`).
+(`1.0.0-draft.3`).
 
 ## Produce AgJSON
 

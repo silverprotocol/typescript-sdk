@@ -1468,7 +1468,7 @@ describe("createClaudeNormalizer — refusal-fallback retraction (playbook 2026-
 // The fixture-drift ratchet's FLAGSHIP finding (2026-07-03) established this
 // frame is genuinely conversation/UX-relevant, and draft.1 parked it in the
 // `ext.anthropic.informational` lossless carry pending "a first-class notice
-// core event" (old SPEC §10 item 21). draft.2 resolved that deferral
+// core event" (old SPEC §8.0 item 21). draft.2 resolved that deferral
 // (typescript-sdk#16): the frame now becomes a persisted `role:"notice"`
 // message (`noticeSource:"framework"`) with content on a text block and the
 // wrapper siblings (`level`/`preventContinuation`/`toolUseId`) riding that
@@ -2656,8 +2656,9 @@ describe("createClaudeNormalizer — 0.3.258 result-meta additions (ModelUsage.c
 // `ModelUsage.thinkingTokens` ("already counted inside outputTokens") and the
 // wire-level `usage.output_tokens_details.thinking_tokens` (undeclared on the
 // bundled BetaUsage/BetaMessageDeltaUsage 0.93.0 — read through the runtime
-// guard) both land on `reasoningTokens` as a SUBSET of outputTokens, the same
-// convention the openai/adk facets follow. Absent ⇒ no key (byte-identical).
+// guard) both land on `reasoningTokens` as a SUBSET of outputTokens — the spec
+// §4 rule since draft.3 (openai copies the inclusive upstream counter; adk folds
+// Gemini's sibling thoughts in since 0.6.0). Absent ⇒ no key (byte-identical).
 describe("createClaudeNormalizer — 0.3.257 thinking-token telemetry → reasoningTokens (subset of outputTokens)", () => {
   type UsageBag = {
     usage?: { reasoningTokens?: unknown; byModel?: { [model: string]: { reasoningTokens?: unknown } | undefined } };

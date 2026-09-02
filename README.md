@@ -34,14 +34,14 @@ npm install @silverprotocol/core @silverprotocol/claude-agent-sdk
   one shared safety policy (HTML always literal, link `href` scheme-allowlisted),
   streaming-tolerant by design. No components, no styling, no dependencies —
   hosts map the AST onto their own renderers.
-- **`AGJSON_VERSION`** — the wire schema version (`1.0.0-draft.1`).
+- **`AGJSON_VERSION`** — the wire schema version (`1.0.0-draft.3`).
 
 The **Normalizer contract**: stateful-per-invoke, lifetime-scoped normalizer
 that batches native events into normalized `AgEvent[]` via `push()`, then
 finalizes with `flush()` to seal pending turns and close the output stream.
 
 The **AgJSON spec** ships with the SilverProtocol workspace and publishes with
-the first release (wire version `1.0.0-draft.1`). This repository is
+every release (current wire version `1.0.0-draft.3`). This repository is
 subtree-vendored from the private SilverProtocol workspace — issues and PRs
 are welcome here.
 

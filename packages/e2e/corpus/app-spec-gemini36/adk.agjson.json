@@ -171,7 +171,7 @@
     "finishReason": "stop",
     "usage": {
       "inputTokens": 461,
-      "outputTokens": 84,
+      "outputTokens": 202,
       "totalTokens": 663,
       "reasoningTokens": 118,
       "cumulative": false

@@ -433,12 +433,48 @@ function isAdkEvent(v: unknown): v is AdkEvent {
   return isJsonObject(v["content"]) || typeof v["invocationId"] === "string";
 }
 
-/** ADK usageMetadata → neutral AgUsage (cumulative:false). Extracted from the legacy turn.done arm. */
+/**
+ * ADK usageMetadata → neutral AgUsage (cumulative:false). Extracted from the
+ * legacy turn.done arm.
+ *
+ * Spec §4 `outputTokens` inclusion (draft.3; §8.0 item 24): `outputTokens`
+ * counts every generated token INCLUDING reasoning. Gemini reports thoughts as a
+ * SIBLING of `candidatesTokenCount` (exclusive — `totalTokenCount = prompt +
+ * candidates + toolUsePrompt + thoughts`, verified on every live cassette), so
+ * the fold `candidates + thoughts` is the one sanctioned arithmetic on usage.
+ * GUARD (LiteLLM precedent): if the provider's own total already balances on
+ * candidates alone while thoughts are present, `candidatesTokenCount` is
+ * inclusive on that endpoint — carry it as-is, never add twice. A thoughts-free
+ * usageMetadata normalizes byte-identically to draft.2. `reasoningTokens` stays
+ * the breakdown (`thoughtsTokenCount` verbatim); `totalTokens` is copied, never
+ * computed. Known upstream gap: @google/adk's Interactions-API route synthesizes
+ * usageMetadata WITHOUT thoughts (candidates = total_output_tokens, total =
+ * in + out), so on that route outputTokens is exclusive and reasoningTokens
+ * absent — nothing the facet can recover (see README).
+ * The guard is applied to the per-turn SUM (accumulateUsage): sound as long as
+ * every summed event carried `totalTokenCount` (Gemini always does); a turn
+ * mixing total-bearing and total-less events could balance by accident.
+ */
 function mapUsage(um: AdkEvent["usageMetadata"]): AgUsage | undefined {
   if (um === undefined) return undefined;
+  const candidates = um.candidatesTokenCount;
+  const thoughts = um.thoughtsTokenCount;
+  const alreadyInclusive =
+    candidates !== undefined &&
+    thoughts !== undefined &&
+    thoughts > 0 &&
+    um.totalTokenCount !== undefined &&
+    um.promptTokenCount !== undefined &&
+    um.promptTokenCount + (candidates ?? 0) + (um.toolUsePromptTokenCount ?? 0) === um.totalTokenCount;
+  const outputTokens =
+    candidates === undefined && thoughts === undefined
+      ? undefined
+      : alreadyInclusive
+        ? candidates
+        : (candidates ?? 0) + (thoughts ?? 0);
   return {
     ...(um.promptTokenCount !== undefined ? { inputTokens: um.promptTokenCount } : {}),
-    ...(um.candidatesTokenCount !== undefined ? { outputTokens: um.candidatesTokenCount } : {}),
+    ...(outputTokens !== undefined ? { outputTokens } : {}),
     ...(um.totalTokenCount !== undefined ? { totalTokens: um.totalTokenCount } : {}),
     ...(um.cachedContentTokenCount !== undefined
       ? { cacheReadTokens: um.cachedContentTokenCount }

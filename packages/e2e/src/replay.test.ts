@@ -230,6 +230,48 @@ function foldThroughReducer(agjson: JsonValue[]): { reducer: Reducer; reopened: 
   return { reducer: r, reopened };
 }
 
+/**
+ * Spec §4 `outputTokens` inclusion + §10 conformance identity (draft.3): every
+ * usage bag on the stream (turn.done / turn.error / message.end, plus each
+ * `byModel` entry) must satisfy `inputTokens + outputTokens +
+ * (toolUseInputTokens ?? 0) == totalTokens` wherever the provider reported a
+ * total, and `reasoningTokens <= outputTokens` wherever both are present in the
+ * same snapshot. This is the replay-level assertion that would have caught the
+ * pre-draft.3 adk drift (Gemini's exclusive candidatesTokenCount copied
+ * verbatim: 394 + 31 != 550 on 10 of 12 adk goldens).
+ */
+function assertUsageIdentity(agjson: JsonValue[]): void {
+  const bags: Array<{ where: string; u: Record<string, JsonValue> }> = [];
+  for (const [i, raw] of agjson.entries()) {
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) continue;
+    const usage = (raw as Record<string, JsonValue>)["usage"];
+    if (usage === null || typeof usage !== "object" || Array.isArray(usage)) continue;
+    const u = usage as Record<string, JsonValue>;
+    bags.push({ where: `[${i}].usage`, u });
+    const byModel = u["byModel"];
+    if (byModel !== null && typeof byModel === "object" && !Array.isArray(byModel)) {
+      for (const [model, mu] of Object.entries(byModel as Record<string, JsonValue>)) {
+        if (mu !== null && typeof mu === "object" && !Array.isArray(mu)) {
+          bags.push({ where: `[${i}].usage.byModel.${model}`, u: mu as Record<string, JsonValue> });
+        }
+      }
+    }
+  }
+  for (const { where, u } of bags) {
+    const num = (k: string): number | undefined => (typeof u[k] === "number" ? (u[k] as number) : undefined);
+    const input = num("inputTokens");
+    const output = num("outputTokens");
+    const total = num("totalTokens");
+    const reasoning = num("reasoningTokens");
+    if (total !== undefined && input !== undefined && output !== undefined) {
+      expect({ where, identity: input + output + (num("toolUseInputTokens") ?? 0) }).toEqual({ where, identity: total });
+    }
+    if (reasoning !== undefined && output !== undefined) {
+      expect({ where, reasoningWithinOutput: reasoning <= output }).toEqual({ where, reasoningWithinOutput: true });
+    }
+  }
+}
+
 describe("replay CI gate — Claude seed corpus (machinery/snapshot self-consistency)", () => {
   for (const scn of CLAUDE_SEEDS) {
     describe(scn, () => {
@@ -243,6 +285,11 @@ describe("replay CI gate — Claude seed corpus (machinery/snapshot self-consist
         const { report } = await replayCassette(join(CORPUS_ROOT, scn, "claude.native.json"));
         expect(report.drops).toEqual([]);
         expect(report.newFields).toEqual([]);
+      });
+
+      it("usage obeys the draft.3 inclusion identity (input + output (+ toolUseInput) == total; reasoning <= output)", async () => {
+        const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "claude.native.json"));
+        assertUsageIdentity(agjson);
       });
 
       // guuey#26. A cassette can be snapshot-stable AND census-clean and still
@@ -275,6 +322,11 @@ describe("replay CI gate — OpenAI seed corpus (machinery/snapshot self-consist
         const { report } = await replayCassette(join(CORPUS_ROOT, scn, "openai.native.json"));
         expect(report.drops).toEqual([]);
         expect(report.newFields).toEqual([]);
+      });
+
+      it("usage obeys the draft.3 inclusion identity (input + output (+ toolUseInput) == total; reasoning <= output)", async () => {
+        const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "openai.native.json"));
+        assertUsageIdentity(agjson);
       });
 
       // guuey#26 ride-along. The Claude facet's per-frame open/seal parked the
@@ -311,6 +363,11 @@ describe("replay CI gate — ADK seed corpus (machinery/snapshot self-consistenc
         expect(report.newFields).toEqual([]);
       });
 
+      it("usage obeys the draft.3 inclusion identity (input + output (+ toolUseInput) == total; reasoning <= output)", async () => {
+        const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "adk.native.json"));
+        assertUsageIdentity(agjson);
+      });
+
       // guuey#26 ride-along (see the OpenAI suite's comment above for the full
       // rationale). `echo-gemini35`/`echo-gemini36`/`multi-turn`/
       // `single-tool-call`/`text-only`/`tool-error`/`app-spec-gemini36` are
@@ -339,6 +396,11 @@ describe("replay CI gate — Vercel seed corpus (machinery/snapshot self-consist
         const { report } = await replayCassette(join(CORPUS_ROOT, scn, "vercel.native.json"));
         expect(report.drops).toEqual([]);
         expect(report.newFields).toEqual([]);
+      });
+
+      it("usage obeys the draft.3 inclusion identity (input + output (+ toolUseInput) == total; reasoning <= output)", async () => {
+        const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "vercel.native.json"));
+        assertUsageIdentity(agjson);
       });
 
       // guuey#26 ride-along, fourth facet: same INV-MSG fold gate as the

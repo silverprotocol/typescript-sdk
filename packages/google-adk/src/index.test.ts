@@ -1214,14 +1214,70 @@ describe("createAdkNormalizer — per-turn usage summation (echo-gemini35 live-c
       }),
     ]);
     const done = out.find((e) => e.type === "turn.done") as { usage?: Record<string, unknown> };
+    // draft.3 §4: outputTokens INCLUDES reasoning — round 1's 22 candidates +
+    // 125 thoughts and round 2's 9 candidates fold to 156; the provider total
+    // identity now holds: 394 + 156 == 550.
     expect(done?.usage).toMatchObject({
       cumulative: false,
       inputTokens: 394,
-      outputTokens: 31,
+      outputTokens: 156,
       totalTokens: 550,
       reasoningTokens: 125,
     });
+    expect((done?.usage?.["inputTokens"] as number) + (done?.usage?.["outputTokens"] as number)).toBe(550);
     for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  // ─── draft.3 §4 / §8.0 item 24: reasoning-inclusive outputTokens ──────────
+  it("thoughts-free usageMetadata normalizes byte-identically to draft.2 (negative control: no reasoningTokens key, outputTokens = candidates)", () => {
+    const out = run([
+      event([{ text: "plain" }], {
+        finishReason: "STOP",
+        usageMetadata: { promptTokenCount: 181, candidatesTokenCount: 19, totalTokenCount: 200 },
+      }),
+    ]);
+    const done = out.find((e) => e.type === "turn.done") as { usage?: Record<string, unknown> };
+    expect(done?.usage).toEqual({ cumulative: false, inputTokens: 181, outputTokens: 19, totalTokens: 200 });
+    expect("reasoningTokens" in (done?.usage ?? {})).toBe(false);
+  });
+
+  it("an already-inclusive endpoint (prompt + candidates == total with thoughts present) is NOT double-added — the identity guard", () => {
+    const out = run([
+      event([{ text: "x" }], {
+        finishReason: "STOP",
+        usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 50, thoughtsTokenCount: 30, totalTokenCount: 150 },
+      }),
+    ]);
+    const done = out.find((e) => e.type === "turn.done") as { usage?: Record<string, unknown> };
+    expect(done?.usage).toMatchObject({ inputTokens: 100, outputTokens: 50, reasoningTokens: 30, totalTokens: 150 });
+  });
+
+  it("the spec's literal §10 item 21 example folds as written: {109, 22, 125, 256} → outputTokens 147", () => {
+    const out = run([
+      event([{ text: "x" }], {
+        finishReason: "STOP",
+        usageMetadata: { promptTokenCount: 109, candidatesTokenCount: 22, thoughtsTokenCount: 125, totalTokenCount: 256 },
+      }),
+    ]);
+    const done = out.find((e) => e.type === "turn.done") as { usage?: Record<string, unknown> };
+    expect(done?.usage).toEqual({ cumulative: false, inputTokens: 109, outputTokens: 147, reasoningTokens: 125, totalTokens: 256 });
+  });
+
+  it("contradictory data (thoughts present, candidates absent, total balancing on prompt alone) still folds — the guard needs a candidates count to mean anything", () => {
+    const out = run([
+      event([{ text: "x" }], { finishReason: "STOP", usageMetadata: { promptTokenCount: 10, thoughtsTokenCount: 7, totalTokenCount: 10 } }),
+    ]);
+    const done = out.find((e) => e.type === "turn.done") as { usage?: Record<string, unknown> };
+    expect(done?.usage).toMatchObject({ inputTokens: 10, outputTokens: 7, reasoningTokens: 7, totalTokens: 10 });
+  });
+
+  it("thoughts without a candidates count (never observed live) still fold: outputTokens = thoughts", () => {
+    const out = run([
+      event([{ text: "x" }], { finishReason: "STOP", usageMetadata: { promptTokenCount: 10, thoughtsTokenCount: 7 } }),
+    ]);
+    const done = out.find((e) => e.type === "turn.done") as { usage?: Record<string, unknown> };
+    expect(done?.usage).toMatchObject({ inputTokens: 10, outputTokens: 7, reasoningTokens: 7 });
+    expect("totalTokens" in (done?.usage ?? {})).toBe(false);
   });
 
   it("counts each round ONCE despite the partial:true stream + partial:false aggregate re-send carrying the same usage (§8.3)", () => {

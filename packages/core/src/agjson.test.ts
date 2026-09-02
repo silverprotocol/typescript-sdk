@@ -1325,11 +1325,14 @@ describe("AGJSON_VERSION + wire-version validation (audit B17)", () => {
   };
 
   it("exports the spec version literal", () => {
-    expect(AGJSON_VERSION).toBe("1.0.0-draft.2");
+    expect(AGJSON_VERSION).toBe("1.0.0-draft.3");
   });
 
   it("accepts the current version and any same-major version", () => {
     expect(AgInput.parse({ ...envelope, version: AGJSON_VERSION }).version).toBe(AGJSON_VERSION);
+    // draft.3 (§12): earlier drafts of the same major keep parsing — a draft.2
+    // producer is not rejected by a draft.3 consumer (prerelease = same-major).
+    expect(AgInput.parse({ ...envelope, version: "1.0.0-draft.2" }).version).toBe("1.0.0-draft.2");
     expect(AgInput.parse({ ...envelope, version: "1.2.3" }).version).toBe("1.2.3");
   });
 
