@@ -1,6 +1,6 @@
 {
   "name": "@silverprotocol/richtext",
-  "version": "0.5.4",
+  "version": "0.6.0",
   "description": "Headless rich-text block model for AgJSON text content \u2014 a typed markdown-subset AST + the safety policy, no rendering.",
   "license": "MIT",
   "repository": {
