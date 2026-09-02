@@ -31,12 +31,54 @@
  * no mock server booted.
  */
 
-import { stepCountIs, streamText, type ToolSet } from "ai";
+import { stepCountIs, streamText, type TextStreamPart, type ToolSet } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
 import type { JsonValue } from "@silverprotocol/core";
 import { toJsonValue } from "@silverprotocol/core";
 import type { CaptureRunInput } from "../types.js";
+
+/**
+ * Project the Error instances a fullStream part can carry at its top level
+ * (`error.error` — since ai@7.0.80 ALWAYS a `StreamProviderError` instance
+ * wrapping the provider frame; `tool-error.error`; `tool-call{invalid}.error`)
+ * to `{ name, message, ...ownEnumerableProps }` BEFORE the JsonValue
+ * round-trip. `JSON.stringify` emits only own ENUMERABLE string keys, and an
+ * Error's `message` is own but non-enumerable (`name` lives on the prototype
+ * for plain Errors), so the bare round-trip yields `{}` for a plain Error and
+ * `{name, cause, type, code, statusCode, isRetryable, data}` — no `message` —
+ * for a StreamProviderError: a live capture's error arm would then diverge
+ * from its replay (the normalizer's `errText` reads `.message`). A nested
+ * Error `cause` projects recursively. A part carrying no Error instance is
+ * returned BY REFERENCE, so every other part's serialization is byte-identical
+ * to the unprojected round-trip.
+ *
+ * LOCAL to this capture agent by design: core's `toJsonValue` is the shared
+ * wire projection and the same Error→`{}` gap latently exists for any facet
+ * whose native frames can carry Error instances — noted for the cohort,
+ * not fixed here.
+ */
+export function projectStreamPartErrors(part: TextStreamPart<ToolSet>): unknown {
+  let projected: { [k: string]: unknown } | undefined;
+  for (const [key, value] of Object.entries(part)) {
+    if (value instanceof Error) {
+      // fromEntries preserves the part's own-key insertion order exactly.
+      projected ??= Object.fromEntries(Object.entries(part));
+      projected[key] = projectError(value);
+    }
+  }
+  return projected ?? part;
+}
+
+/** `{ name, message }` first, then every own enumerable prop verbatim (an
+ *  AISDKError's own `name` re-lands on the same key; `cause` recurses). */
+function projectError(e: Error): { [k: string]: unknown } {
+  const out: { [k: string]: unknown } = { name: e.name, message: e.message };
+  for (const [key, value] of Object.entries(e)) {
+    out[key] = value instanceof Error ? projectError(value) : value;
+  }
+  return out;
+}
 
 /**
  * Yields the RAW native `TextStreamPart` stream from `streamText().fullStream`,
@@ -83,8 +125,10 @@ export async function* runVercelCapture(input: CaptureRunInput): AsyncIterable<J
 
     for await (const part of result.fullStream) {
       // Wire projection (audit D5-a) — toJsonValue materializes the WHOLE raw
-      // part into plain JsonValue with no per-field cast.
-      yield toJsonValue(part);
+      // part into plain JsonValue with no per-field cast. Error instances are
+      // projected first so their `message` survives the round-trip (see
+      // projectStreamPartErrors); Error-free parts pass through by reference.
+      yield toJsonValue(projectStreamPartErrors(part));
     }
   } finally {
     await Promise.all(clients.map((client) => client.close()));

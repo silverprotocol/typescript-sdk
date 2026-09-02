@@ -1,0 +1,365 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "threadId": "be7f41d0-aa69-43f0-8ba0-6234ae34808e"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_011CeeFs9a1JdPG3HQC3nZ1x",
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "threadId": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "role": "assistant",
+    "model": "claude-fable-5-1"
+  },
+  {
+    "type": "tool.start",
+    "seq": 2,
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "toolCallId": "toolu_01MLYeHngRmKfzqzdErDeB4F",
+    "name": "mcp__cards__render_card",
+    "index": 0,
+    "messageId": "msg_011CeeFs9a1JdPG3HQC3nZ1x",
+    "providerExecuted": false
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 3,
+    "toolCallId": "toolu_01MLYeHngRmKfzqzdErDeB4F",
+    "delta": "{\"title\":\"Hello\",\"body\":\"World\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 4,
+    "toolCallId": "toolu_01MLYeHngRmKfzqzdErDeB4F",
+    "input": {
+      "title": "Hello",
+      "body": "World"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 5,
+    "id": "msg_011CeeFs9a1JdPG3HQC3nZ1x",
+    "usage": {
+      "inputTokens": 2,
+      "outputTokens": 25,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 1652,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "tool.done",
+    "seq": 6,
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "toolCallId": "toolu_01MLYeHngRmKfzqzdErDeB4F",
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"title\":\"Hello\",\"body\":\"World\",\"revision\":1,\"kind\":\"render\"}"
+      }
+    ],
+    "outcome": "ok",
+    "isError": false,
+    "messageId": "toolu_01MLYeHngRmKfzqzdErDeB4F:result",
+    "uiData": {
+      "title": "Hello",
+      "body": "World",
+      "revision": 1,
+      "kind": "render"
+    },
+    "_meta": {
+      "ui": {
+        "resourceUri": "ui://mock/card",
+        "visibility": [
+          "model"
+        ]
+      }
+    }
+  },
+  {
+    "seq": 7,
+    "type": "ext.anthropic.frame",
+    "kind": "thinking_tokens",
+    "frame": {
+      "type": "system",
+      "subtype": "thinking_tokens",
+      "estimated_tokens": 50,
+      "estimated_tokens_delta": 50,
+      "session_id": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+      "uuid": "a1167ea7-cff6-4298-b1be-4d086d9b7ffe"
+    }
+  },
+  {
+    "seq": 8,
+    "type": "ext.anthropic.frame",
+    "kind": "thinking_tokens",
+    "frame": {
+      "type": "system",
+      "subtype": "thinking_tokens",
+      "estimated_tokens": 164,
+      "estimated_tokens_delta": 114,
+      "session_id": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+      "uuid": "28b9a19e-64ce-41b9-9c83-ebffce1eeadc"
+    }
+  },
+  {
+    "type": "message.start",
+    "seq": 9,
+    "id": "msg_011CeeFsWMATFN3cmZwbxYiS",
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "threadId": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "role": "assistant",
+    "model": "claude-fable-5-1"
+  },
+  {
+    "type": "reasoning.start",
+    "seq": 10,
+    "id": "msg_011CeeFsWMATFN3cmZwbxYiS:reasoning:0",
+    "messageId": "msg_011CeeFsWMATFN3cmZwbxYiS",
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e"
+  },
+  {
+    "type": "reasoning.delta",
+    "seq": 11,
+    "id": "msg_011CeeFsWMATFN3cmZwbxYiS:reasoning:0",
+    "messageId": "msg_011CeeFsWMATFN3cmZwbxYiS",
+    "delta": "",
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e"
+  },
+  {
+    "type": "reasoning.end",
+    "seq": 12,
+    "id": "msg_011CeeFsWMATFN3cmZwbxYiS:reasoning:0",
+    "messageId": "msg_011CeeFsWMATFN3cmZwbxYiS",
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e"
+  },
+  {
+    "type": "reasoning.opaque",
+    "seq": 13,
+    "id": "msg_011CeeFsWMATFN3cmZwbxYiS:reasoning:0",
+    "messageId": "msg_011CeeFsWMATFN3cmZwbxYiS",
+    "kind": "signature",
+    "value": "CAQShwUKEAgRGAI4AUIIdGhpbmtpbmcSDAO/w0vtYWfKbYvlaxoMZ8ybr5741eWv8KJkIjDDlkQquySVUD7OonaUj5I6zsPDsouosyEDfgyAiT8fl80yE3MxEmNue64kWnCxXZEqpAQr08oNv4DlRUO+WVPebBR4UebTgwnEcoOJgvHEmfYoAaHLyAchel6QsIGaafOzAHtXGIX/sho0ZYfSHTFBAEfsMyIzN9anLmiPFKRykGxTUfwkC6npmmLXyujaTKLMcPxdL7E7GCHN2kb51rKRksqk+VfogRiuG1JtvELYylVfuvLyhfTcOmqGbrCaxI4VITn1C9+k1W5m4wtFIiGwXczQ6N3VsDUtgn7mEVgDhwko0RbXfNGaez4PbpKzVhbDARMLQTtv3LE/7MuBf8DVDLUC1DjfsaPooOyWFiTQ6f805/feLVA/DFwbCIWQxHH6Cyn5EPhG1sMWeJJEI+2ojBGEn3dmyy2WdCiOIqUpRh5zOrcMgEFqtpo+G08rUa3S0/Ptpi+CXwuJI4swovoPnUDMsH8OxIR89A1yg5q0CpFj+2eZ/1/wbRJjJJlQ0m+0iaj2ArnKJFPeX1lPkG1cevNNgc1SaC08qCwAEVnDP9smk1fDT440QG11EXyMm79qtW33Ip/s+3bpy62yePzPR5+E45iNdUdkv1aQVzQyUdKg02qRbjkPx015aTDdkhDc4rAmSaY4fpQGPxGdj6X8/2dg4rbTJtxddUbeIVHrPpXpff0j41CDu1ZZIzaX4CRoK3EGXo0mfJLbXFeq1BOSBZ5Lw+ybiZ/SdNqTsnxCBc97TSKFbl1T4ljL1z6Z1n4wqO0pd79uTNTk8JDi5VZ4NJ2dnOyWtBgB",
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "provider": "anthropic"
+  },
+  {
+    "type": "text.start",
+    "seq": 14,
+    "id": "msg_011CeeFsWMATFN3cmZwbxYiS:text:1",
+    "messageId": "msg_011CeeFsWMATFN3cmZwbxYiS",
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e"
+  },
+  {
+    "type": "text.delta",
+    "seq": 15,
+    "id": "msg_011CeeFsWMATFN3cmZwbxYiS:text:1",
+    "messageId": "msg_011CeeFsWMATFN3cmZwbxYiS",
+    "delta": "The render returned revision 1. The only remaining step is the dependent update call.",
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e"
+  },
+  {
+    "type": "text.end",
+    "seq": 16,
+    "id": "msg_011CeeFsWMATFN3cmZwbxYiS:text:1",
+    "messageId": "msg_011CeeFsWMATFN3cmZwbxYiS",
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e"
+  },
+  {
+    "type": "tool.start",
+    "seq": 17,
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "toolCallId": "toolu_01Apf2tY5HZEWLY4chuWgSQk",
+    "name": "mcp__cards__update_card",
+    "index": 2,
+    "messageId": "msg_011CeeFsWMATFN3cmZwbxYiS",
+    "providerExecuted": false
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 18,
+    "toolCallId": "toolu_01Apf2tY5HZEWLY4chuWgSQk",
+    "delta": "{\"title\":\"Hello\",\"body\":\"Updated World\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 19,
+    "toolCallId": "toolu_01Apf2tY5HZEWLY4chuWgSQk",
+    "input": {
+      "title": "Hello",
+      "body": "Updated World"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 20,
+    "id": "msg_011CeeFsWMATFN3cmZwbxYiS",
+    "usage": {
+      "inputTokens": 56,
+      "outputTokens": 4,
+      "cacheReadTokens": 1652,
+      "cacheWriteTokens": 109,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "tool.done",
+    "seq": 21,
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "toolCallId": "toolu_01Apf2tY5HZEWLY4chuWgSQk",
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"title\":\"Hello\",\"body\":\"Updated World\",\"revision\":2,\"kind\":\"update\"}"
+      }
+    ],
+    "outcome": "ok",
+    "isError": false,
+    "messageId": "toolu_01Apf2tY5HZEWLY4chuWgSQk:result",
+    "uiData": {
+      "title": "Hello",
+      "body": "Updated World",
+      "revision": 2,
+      "kind": "update"
+    },
+    "_meta": {
+      "ui": {
+        "resourceUri": "ui://mock/card",
+        "visibility": [
+          "model"
+        ]
+      }
+    }
+  },
+  {
+    "type": "message.start",
+    "seq": 22,
+    "id": "msg_011CeeFstZe49AE8vaDPjYSD",
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "threadId": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "role": "assistant",
+    "model": "claude-fable-5-1"
+  },
+  {
+    "type": "text.start",
+    "seq": 23,
+    "id": "msg_011CeeFstZe49AE8vaDPjYSD:text:0",
+    "messageId": "msg_011CeeFstZe49AE8vaDPjYSD",
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e"
+  },
+  {
+    "type": "text.delta",
+    "seq": 24,
+    "id": "msg_011CeeFstZe49AE8vaDPjYSD:text:0",
+    "messageId": "msg_011CeeFstZe49AE8vaDPjYSD",
+    "delta": "Both steps completed, nothing further is needed:\n\n1. **render_card** → `{\"title\":\"Hello\",\"body\":\"World\",\"revision\":1,\"kind\":\"render\"}`\n2. **update_card** → `{\"title\":\"Hello\",\"body\":\"Updated World\",\"revision\":2,\"kind\":\"update\"}`\n\nThe card was rendered as revision 1 and then updated in place; the update tool reports the final state as **revision 2** with title \"Hello\" and body \"Updated World\".",
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e"
+  },
+  {
+    "type": "text.end",
+    "seq": 25,
+    "id": "msg_011CeeFstZe49AE8vaDPjYSD:text:0",
+    "messageId": "msg_011CeeFstZe49AE8vaDPjYSD",
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e"
+  },
+  {
+    "type": "message.end",
+    "seq": 26,
+    "id": "msg_011CeeFstZe49AE8vaDPjYSD",
+    "usage": {
+      "inputTokens": 56,
+      "outputTokens": 3,
+      "cacheReadTokens": 1761,
+      "cacheWriteTokens": 196,
+      "cumulative": true
+    }
+  },
+  {
+    "seq": 27,
+    "type": "ext.anthropic.result-meta",
+    "fastModeDisabledReason": "sdk_opt_in_required",
+    "queuedTurnCount": 0,
+    "subagentStats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "modelUsage": {
+      "claude-haiku-4-5-20251001": {
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-fable-5-1": {
+        "canonicalModel": "claude-fable-5-1",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    }
+  },
+  {
+    "type": "turn.done",
+    "seq": 28,
+    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "outcome": {
+      "type": "success",
+      "result": "Both steps completed, nothing further is needed:\n\n1. **render_card** → `{\"title\":\"Hello\",\"body\":\"World\",\"revision\":1,\"kind\":\"render\"}`\n2. **update_card** → `{\"title\":\"Hello\",\"body\":\"Updated World\",\"revision\":2,\"kind\":\"update\"}`\n\nThe card was rendered as revision 1 and then updated in place; the update tool reports the final state as **revision 2** with title \"Hello\" and body \"Updated World\"."
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 114,
+      "outputTokens": 361,
+      "cacheReadTokens": 3413,
+      "cacheWriteTokens": 1957,
+      "reasoningTokens": 33,
+      "serverToolRequests": 0,
+      "costUsd": 0.04549375,
+      "cumulative": true,
+      "byModel": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 923,
+          "outputTokens": 13,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "costUsd": 0.000988,
+          "serverToolRequests": 0,
+          "cumulative": true
+        },
+        "claude-fable-5-1": {
+          "inputTokens": 114,
+          "outputTokens": 361,
+          "cacheReadTokens": 3413,
+          "cacheWriteTokens": 1957,
+          "reasoningTokens": 33,
+          "costUsd": 0.04450575,
+          "serverToolRequests": 0,
+          "cumulative": true
+        }
+      }
+    }
+  }
+]

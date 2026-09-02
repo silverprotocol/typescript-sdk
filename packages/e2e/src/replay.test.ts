@@ -85,6 +85,16 @@ const CLAUDE_SEEDS = [
   // (kind:"capture", claude-sonnet-5 @0.3.221 — see
   // corpus/partials-sonnet5/claude.provenance.json).
   "partials-sonnet5",
+  // 2026-09-02 (cohort 0.5.4, model-release playbook): the FIRST live captures
+  // against `claude-fable-5-1` (GA 2026-09-01; Claude Code 2.1.257+ knows the
+  // id, so these ride the @anthropic-ai/claude-agent-sdk 0.3.258 bump).
+  // echo/partials/app-update mirror the sonnet5 trio so the two model families
+  // stay diffable (kind:"capture", @0.3.258 — see corpus/*-fable51/
+  // claude.provenance.json). partials-fable51 is the corpus's first chance at
+  // stream_event thinking under Fable's always-on adaptive thinking.
+  "echo-fable51",
+  "partials-fable51",
+  "app-update-fable51",
 ] as const;
 
 /**

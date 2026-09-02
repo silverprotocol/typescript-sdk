@@ -3,7 +3,7 @@
     "type": "system",
     "subtype": "init",
     "cwd": "/Users/gustavo/Projects/silverprotocol/sdks/typescript/packages/e2e",
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "tools": [
       "mcp__t__echo"
     ],
@@ -29,9 +29,11 @@
       "doctor",
       "loop",
       "claude-api",
+      "workflow-authoring",
       "run",
       "run-skill-generator",
       "agents",
+      "auto-mode-setup",
       "autocompact",
       "clear",
       "color",
@@ -49,7 +51,6 @@
       "workflow-launch-exec",
       "reload-skills",
       "rename",
-      "review",
       "security-review",
       "usage",
       "insights",
@@ -58,10 +59,15 @@
       "design",
       "design-consent",
       "design-revoke",
+      "list-agents",
       "team-onboarding"
     ],
+    "terminal_slash_commands": [
+      "doctor",
+      "color"
+    ],
     "apiKeySource": "ANTHROPIC_API_KEY",
-    "claude_code_version": "2.1.221",
+    "claude_code_version": "2.1.258",
     "output_style": "default",
     "agents": [
       "claude",
@@ -84,6 +90,7 @@
       "doctor",
       "loop",
       "claude-api",
+      "workflow-authoring",
       "run",
       "run-skill-generator"
     ],
@@ -95,10 +102,11 @@
     ],
     "analytics_disabled": false,
     "product_feedback_disabled": false,
-    "uuid": "a97a98f8-d58d-42e0-9ae5-f4ca2c38555b",
+    "uuid": "5320af99-7027-40a4-b34e-a295d4427556",
     "memory_paths": {
       "auto": "/Users/gustavo/.claude/projects/-Users-gustavo-Projects-silverprotocol/memory/"
     },
+    "messaging_socket_path": "/tmp/cc-socks/52527.sock",
     "fast_mode_state": "off",
     "fast_mode_disabled_reason": "sdk_opt_in_required"
   },
@@ -106,8 +114,8 @@
     "type": "system",
     "subtype": "status",
     "status": "requesting",
-    "uuid": "c8313455-9e85-41e4-b763-09f282807e48",
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d"
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
+    "uuid": "ed099a8b-55a0-4742-b5de-932c4115c950"
   },
   {
     "type": "stream_event",
@@ -115,7 +123,7 @@
       "type": "message_start",
       "message": {
         "model": "claude-sonnet-5",
-        "id": "msg_011CdnhvGxRxit2FRmMAEyQL",
+        "id": "msg_011CeeFoG3aFVD6qMfb5yL2G",
         "type": "message",
         "role": "assistant",
         "content": [],
@@ -124,10 +132,10 @@
         "stop_details": null,
         "usage": {
           "input_tokens": 2,
-          "cache_creation_input_tokens": 1293,
+          "cache_creation_input_tokens": 1516,
           "cache_read_input_tokens": 0,
           "cache_creation": {
-            "ephemeral_5m_input_tokens": 1293,
+            "ephemeral_5m_input_tokens": 1516,
             "ephemeral_1h_input_tokens": 0
           },
           "output_tokens": 1,
@@ -137,10 +145,10 @@
         "diagnostics": null
       }
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "ea2c5e1b-81c8-4b6e-9679-6727f3d464e6",
-    "ttft_ms": 1759
+    "uuid": "d12edfa8-271b-49ae-8182-e49d68899047",
+    "ttft_ms": 1432
   },
   {
     "type": "stream_event",
@@ -152,9 +160,9 @@
         "text": ""
       }
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "e80bd1e7-e972-4283-9aea-116fdca331d2"
+    "uuid": "77ddb4b8-6ac1-44a4-89e7-661a94b0e296"
   },
   {
     "type": "stream_event",
@@ -166,9 +174,9 @@
         "text": "An"
       }
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "6a197fb4-571e-4c80-902d-98a26e470555"
+    "uuid": "450290ad-02df-4296-b5cd-67b98739749b"
   },
   {
     "type": "stream_event",
@@ -177,12 +185,12 @@
       "index": 0,
       "delta": {
         "type": "text_delta",
-        "text": " echo tool is a simple utility that takes whatever input text you give it and returns that exact same text back to you, unchanged. It's often"
+        "text": " echo tool simply takes whatever input text you give it and returns that same text back unchanged. It's typically used to verify that a communication channel or tool-calling mechanism is working correctly"
       }
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "c03ff6d0-744d-40f6-b0f7-040134c4d4d6"
+    "uuid": "581a58ff-098b-44ba-a099-46b5952cc0cf"
   },
   {
     "type": "stream_event",
@@ -191,24 +199,24 @@
       "index": 0,
       "delta": {
         "type": "text_delta",
-        "text": " used to test that a communication channel or tool-calling mechanism is working correctly.\n\nNow I'll call the echo tool with the required message:"
+        "text": ", without any processing or transformation of the data.\n\nNow I'll call the echo tool with the specified message:"
       }
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "c4f867f5-cba6-4dd4-93ac-b98d4e04dde9"
+    "uuid": "14255c15-dcec-4415-a06c-911e4282c17c"
   },
   {
     "type": "assistant",
     "message": {
       "model": "claude-sonnet-5",
-      "id": "msg_011CdnhvGxRxit2FRmMAEyQL",
+      "id": "msg_011CeeFoG3aFVD6qMfb5yL2G",
       "type": "message",
       "role": "assistant",
       "content": [
         {
           "type": "text",
-          "text": "An echo tool is a simple utility that takes whatever input text you give it and returns that exact same text back to you, unchanged. It's often used to test that a communication channel or tool-calling mechanism is working correctly.\n\nNow I'll call the echo tool with the required message:"
+          "text": "An echo tool simply takes whatever input text you give it and returns that same text back unchanged. It's typically used to verify that a communication channel or tool-calling mechanism is working correctly, without any processing or transformation of the data.\n\nNow I'll call the echo tool with the specified message:"
         }
       ],
       "stop_reason": null,
@@ -216,10 +224,10 @@
       "stop_details": null,
       "usage": {
         "input_tokens": 2,
-        "cache_creation_input_tokens": 1293,
+        "cache_creation_input_tokens": 1516,
         "cache_read_input_tokens": 0,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 1293,
+          "ephemeral_5m_input_tokens": 1516,
           "ephemeral_1h_input_tokens": 0
         },
         "output_tokens": 1,
@@ -230,10 +238,10 @@
       "context_management": null
     },
     "parent_tool_use_id": null,
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
-    "uuid": "28736b9f-1365-42a8-8477-51b88ff4f82b",
-    "timestamp": "2026-08-07T03:49:53.308Z",
-    "request_id": "req_011CdnhvGWdytKCjdD58RMUB"
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
+    "uuid": "57f66fda-73e0-4940-af6d-787e12734d8e",
+    "timestamp": "2026-09-02T07:57:02.726Z",
+    "request_id": "req_011CeeFoFQP13djqYf8HYyGQ"
   },
   {
     "type": "stream_event",
@@ -241,9 +249,9 @@
       "type": "content_block_stop",
       "index": 0
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "6cf6d5ca-c109-49cb-85d1-86752e6c7cd9"
+    "uuid": "1de99344-c445-4fe3-83c6-65b23658b679"
   },
   {
     "type": "stream_event",
@@ -252,7 +260,7 @@
       "index": 1,
       "content_block": {
         "type": "tool_use",
-        "id": "toolu_0117wPrp721k1j2w5xZL5SjP",
+        "id": "toolu_013B4RTTyDNTVFhaXr4RWK8R",
         "name": "mcp__t__echo",
         "input": {},
         "caller": {
@@ -260,9 +268,9 @@
         }
       }
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "183a95a8-ef71-4ba7-8e1d-f35b1fa473f6"
+    "uuid": "7043c4a3-138c-4c2a-a85b-45dbe69f7b34"
   },
   {
     "type": "stream_event",
@@ -274,9 +282,9 @@
         "partial_json": ""
       }
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "9e1162f2-7ad7-4769-ad3f-96913fbbb082"
+    "uuid": "45e95151-5758-4751-84bf-05e3e6abab05"
   },
   {
     "type": "stream_event",
@@ -288,9 +296,9 @@
         "partial_json": "{\"message\": \"conformance-probe-partials"
       }
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "c3b110c6-a86b-4a92-86ce-bc019f362069"
+    "uuid": "93a6d42b-14cd-41fd-b408-653c7e567f6c"
   },
   {
     "type": "stream_event",
@@ -302,21 +310,21 @@
         "partial_json": "\"}"
       }
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "f974fae2-34f3-4fc8-a59a-dbf5c9013a16"
+    "uuid": "339a84d3-d726-4abd-8c79-9a31ea4bbbec"
   },
   {
     "type": "assistant",
     "message": {
       "model": "claude-sonnet-5",
-      "id": "msg_011CdnhvGxRxit2FRmMAEyQL",
+      "id": "msg_011CeeFoG3aFVD6qMfb5yL2G",
       "type": "message",
       "role": "assistant",
       "content": [
         {
           "type": "tool_use",
-          "id": "toolu_0117wPrp721k1j2w5xZL5SjP",
+          "id": "toolu_013B4RTTyDNTVFhaXr4RWK8R",
           "name": "mcp__t__echo",
           "input": {
             "message": "conformance-probe-partials"
@@ -331,10 +339,10 @@
       "stop_details": null,
       "usage": {
         "input_tokens": 2,
-        "cache_creation_input_tokens": 1293,
+        "cache_creation_input_tokens": 1516,
         "cache_read_input_tokens": 0,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 1293,
+          "ephemeral_5m_input_tokens": 1516,
           "ephemeral_1h_input_tokens": 0
         },
         "output_tokens": 1,
@@ -345,13 +353,13 @@
       "context_management": null
     },
     "parent_tool_use_id": null,
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
-    "uuid": "2b76bd87-dc9d-49b8-9e0e-fcbde75b7509",
-    "timestamp": "2026-08-07T03:49:53.329Z",
-    "request_id": "req_011CdnhvGWdytKCjdD58RMUB",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
+    "uuid": "46fb1482-36a3-4cfa-a719-ad3a47d64bc9",
+    "timestamp": "2026-09-02T07:57:02.733Z",
+    "request_id": "req_011CeeFoFQP13djqYf8HYyGQ",
     "tool_use_meta": [
       {
-        "id": "toolu_0117wPrp721k1j2w5xZL5SjP",
+        "id": "toolu_013B4RTTyDNTVFhaXr4RWK8R",
         "display_name": "Echo",
         "server_display_name": "mock-text"
       }
@@ -363,9 +371,37 @@
       "type": "content_block_stop",
       "index": 1
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "c5881c18-e3e5-4e12-bf47-0674bbab5de6"
+    "uuid": "12d48ad2-c0e8-4595-b9f8-f6a41f4699bd"
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "tool_use_id": "toolu_013B4RTTyDNTVFhaXr4RWK8R",
+          "type": "tool_result",
+          "content": [
+            {
+              "type": "text",
+              "text": "conformance-probe-partials"
+            }
+          ]
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
+    "uuid": "529ed4cc-ffff-496d-8af5-9cd8740277b7",
+    "timestamp": "2026-09-02T07:57:02.740Z",
+    "tool_use_result": [
+      {
+        "type": "text",
+        "text": "conformance-probe-partials"
+      }
+    ]
   },
   {
     "type": "stream_event",
@@ -378,20 +414,20 @@
       },
       "usage": {
         "input_tokens": 2,
-        "cache_creation_input_tokens": 1293,
+        "cache_creation_input_tokens": 1516,
         "cache_read_input_tokens": 0,
-        "output_tokens": 145,
+        "output_tokens": 150,
         "output_tokens_details": {
           "thinking_tokens": 0
         },
         "iterations": [
           {
             "input_tokens": 2,
-            "output_tokens": 145,
+            "output_tokens": 150,
             "cache_read_input_tokens": 0,
-            "cache_creation_input_tokens": 1293,
+            "cache_creation_input_tokens": 1516,
             "cache_creation": {
-              "ephemeral_5m_input_tokens": 1293,
+              "ephemeral_5m_input_tokens": 1516,
               "ephemeral_1h_input_tokens": 0
             },
             "type": "message"
@@ -402,53 +438,25 @@
         "applied_edits": []
       }
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "59db8d46-cdb4-4b6b-aa70-d8e4714c4376"
-  },
-  {
-    "type": "user",
-    "message": {
-      "role": "user",
-      "content": [
-        {
-          "tool_use_id": "toolu_0117wPrp721k1j2w5xZL5SjP",
-          "type": "tool_result",
-          "content": [
-            {
-              "type": "text",
-              "text": "conformance-probe-partials"
-            }
-          ]
-        }
-      ]
-    },
-    "parent_tool_use_id": null,
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
-    "uuid": "3ee07dab-4bdb-4493-aeea-b481bfd2c1a9",
-    "timestamp": "2026-08-07T03:49:53.338Z",
-    "tool_use_result": [
-      {
-        "type": "text",
-        "text": "conformance-probe-partials"
-      }
-    ]
+    "uuid": "b7221f34-dcdc-4793-897e-a271fc65ed88"
   },
   {
     "type": "stream_event",
     "event": {
       "type": "message_stop"
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "e4c46f17-d5f6-444c-ae98-6ad6fc304b7d"
+    "uuid": "050481bd-ea78-4974-bacc-feab5e0b0624"
   },
   {
     "type": "system",
     "subtype": "status",
     "status": "requesting",
-    "uuid": "6c3277b2-26d2-48ab-89dd-1fa1a8f7610c",
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d"
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
+    "uuid": "af788c9b-3585-4e12-ade4-649f7ac64556"
   },
   {
     "type": "stream_event",
@@ -456,7 +464,7 @@
       "type": "message_start",
       "message": {
         "model": "claude-sonnet-5",
-        "id": "msg_011CdnhvZ3JyCPBYnHgoUmBL",
+        "id": "msg_011CeeFoVu1qCsCTZFy85PnD",
         "type": "message",
         "role": "assistant",
         "content": [],
@@ -465,23 +473,23 @@
         "stop_details": null,
         "usage": {
           "input_tokens": 2,
-          "cache_creation_input_tokens": 159,
-          "cache_read_input_tokens": 1293,
+          "cache_creation_input_tokens": 204,
+          "cache_read_input_tokens": 1516,
           "cache_creation": {
-            "ephemeral_5m_input_tokens": 159,
+            "ephemeral_5m_input_tokens": 204,
             "ephemeral_1h_input_tokens": 0
           },
-          "output_tokens": 6,
+          "output_tokens": 2,
           "service_tier": "standard",
           "inference_geo": "global"
         },
         "diagnostics": null
       }
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "a461c917-5cb5-4d10-bd25-2ac7df96b3de",
-    "ttft_ms": 2100
+    "uuid": "ea1125a7-07a9-446a-bb18-0a8990c2d924",
+    "ttft_ms": 1472
   },
   {
     "type": "stream_event",
@@ -493,9 +501,9 @@
         "text": ""
       }
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "6eb1fd72-bd35-43aa-8ddc-7f0c72ffccf8"
+    "uuid": "f15acb5f-a0c2-43f4-ae37-0a2b3023dd0e"
   },
   {
     "type": "stream_event",
@@ -504,12 +512,12 @@
       "index": 0,
       "delta": {
         "type": "text_delta",
-        "text": "Confirmed:"
+        "text": "Conf"
       }
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "c2b4d101-1200-4f94-8abb-86ff860e4743"
+    "uuid": "0420e7cb-72f6-47ea-b2e2-9eb467093243"
   },
   {
     "type": "stream_event",
@@ -518,24 +526,38 @@
       "index": 0,
       "delta": {
         "type": "text_delta",
-        "text": " the tool echoed back exactly `conformance-probe-partials`, matching the input with no alterations — as expected for an echo tool."
+        "text": "irmed: the tool echoed back exactly **'conformance-probe-partials'**, matching the input message with no alterations — confirming the echo tool"
       }
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "59d4b403-e4b4-4c75-a868-6812667c8257"
+    "uuid": "e7da5637-01ad-49d3-8416-f3ec33dff917"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " is functioning as expected."
+      }
+    },
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
+    "parent_tool_use_id": null,
+    "uuid": "31e2e891-c2c5-4c1d-9222-c2b5449d1deb"
   },
   {
     "type": "assistant",
     "message": {
       "model": "claude-sonnet-5",
-      "id": "msg_011CdnhvZ3JyCPBYnHgoUmBL",
+      "id": "msg_011CeeFoVu1qCsCTZFy85PnD",
       "type": "message",
       "role": "assistant",
       "content": [
         {
           "type": "text",
-          "text": "Confirmed: the tool echoed back exactly `conformance-probe-partials`, matching the input with no alterations — as expected for an echo tool."
+          "text": "Confirmed: the tool echoed back exactly **'conformance-probe-partials'**, matching the input message with no alterations — confirming the echo tool is functioning as expected."
         }
       ],
       "stop_reason": null,
@@ -543,13 +565,13 @@
       "stop_details": null,
       "usage": {
         "input_tokens": 2,
-        "cache_creation_input_tokens": 159,
-        "cache_read_input_tokens": 1293,
+        "cache_creation_input_tokens": 204,
+        "cache_read_input_tokens": 1516,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 159,
+          "ephemeral_5m_input_tokens": 204,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 6,
+        "output_tokens": 2,
         "service_tier": "standard",
         "inference_geo": "global"
       },
@@ -557,10 +579,10 @@
       "context_management": null
     },
     "parent_tool_use_id": null,
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
-    "uuid": "4ae1162d-4c09-495b-8cab-a6aba4dfa06d",
-    "timestamp": "2026-08-07T03:49:55.971Z",
-    "request_id": "req_011CdnhvYCxXnF48e3sAsLCF"
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
+    "uuid": "d82ddd19-83a1-4881-9fd3-298569a17f52",
+    "timestamp": "2026-09-02T07:57:04.909Z",
+    "request_id": "req_011CeeFoVFKp8uNqjGti8zKr"
   },
   {
     "type": "stream_event",
@@ -568,9 +590,9 @@
       "type": "content_block_stop",
       "index": 0
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "bfb70779-b0ab-4e70-98c5-b44c6094ea15"
+    "uuid": "01a7a402-0241-4cb1-badb-7f29d2047008"
   },
   {
     "type": "stream_event",
@@ -583,20 +605,20 @@
       },
       "usage": {
         "input_tokens": 2,
-        "cache_creation_input_tokens": 159,
-        "cache_read_input_tokens": 1293,
-        "output_tokens": 50,
+        "cache_creation_input_tokens": 204,
+        "cache_read_input_tokens": 1516,
+        "output_tokens": 59,
         "output_tokens_details": {
           "thinking_tokens": 0
         },
         "iterations": [
           {
             "input_tokens": 2,
-            "output_tokens": 50,
-            "cache_read_input_tokens": 1293,
-            "cache_creation_input_tokens": 159,
+            "output_tokens": 59,
+            "cache_read_input_tokens": 1516,
+            "cache_creation_input_tokens": 204,
             "cache_creation": {
-              "ephemeral_5m_input_tokens": 159,
+              "ephemeral_5m_input_tokens": 204,
               "ephemeral_1h_input_tokens": 0
             },
             "type": "message"
@@ -607,31 +629,32 @@
         "applied_edits": []
       }
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "3f2ec498-b062-4654-9bc3-242f94822b64"
+    "uuid": "83b44b12-4147-45e5-9497-8c804e3418e3"
   },
   {
     "type": "stream_event",
     "event": {
       "type": "message_stop"
     },
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
     "parent_tool_use_id": null,
-    "uuid": "34c30f5b-1917-4efe-9339-a95a3dba6e17"
+    "uuid": "1e4bbcb0-18d4-4b2d-8860-8b2b0055f6cd"
   },
   {
-    "is_error": false,
-    "duration_api_ms": 8748,
-    "num_turns": 2,
+    "duration_api_ms": 6352,
     "stop_reason": "end_turn",
-    "session_id": "27db7370-c10b-4050-8226-b8ad5c2f884d",
-    "total_cost_usd": 0.0093959,
+    "session_id": "350da37c-852b-4da5-abf3-99f059a80f68",
+    "total_cost_usd": 0.0077132,
     "usage": {
       "input_tokens": 4,
-      "cache_creation_input_tokens": 1452,
-      "cache_read_input_tokens": 1293,
-      "output_tokens": 195,
+      "cache_creation_input_tokens": 1720,
+      "cache_read_input_tokens": 1516,
+      "output_tokens": 209,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
       "server_tool_use": {
         "web_search_requests": 0,
         "web_fetch_requests": 0
@@ -639,17 +662,17 @@
       "service_tier": "standard",
       "cache_creation": {
         "ephemeral_1h_input_tokens": 0,
-        "ephemeral_5m_input_tokens": 1452
+        "ephemeral_5m_input_tokens": 1720
       },
       "inference_geo": "global",
       "iterations": [
         {
           "input_tokens": 2,
-          "output_tokens": 50,
-          "cache_read_input_tokens": 1293,
-          "cache_creation_input_tokens": 159,
+          "output_tokens": 59,
+          "cache_read_input_tokens": 1516,
+          "cache_creation_input_tokens": 204,
           "cache_creation": {
-            "ephemeral_5m_input_tokens": 159,
+            "ephemeral_5m_input_tokens": 204,
             "ephemeral_1h_input_tokens": 0
           },
           "type": "message"
@@ -659,42 +682,73 @@
     },
     "modelUsage": {
       "claude-haiku-4-5-20251001": {
-        "inputTokens": 556,
-        "outputTokens": 14,
+        "inputTokens": 932,
+        "outputTokens": 16,
         "cacheReadInputTokens": 0,
         "cacheCreationInputTokens": 0,
         "webSearchRequests": 0,
-        "costUSD": 0.0006259999999999999,
+        "costUSD": 0.0010119999999999999,
         "contextWindow": 200000,
         "maxOutputTokens": 32000,
+        "thinkingTokens": 0,
         "canonicalModel": "claude-haiku-4-5",
-        "provider": "firstParty"
+        "provider": "firstParty",
+        "costBasis": "list"
       },
       "claude-sonnet-5": {
         "inputTokens": 4,
-        "outputTokens": 195,
-        "cacheReadInputTokens": 1293,
-        "cacheCreationInputTokens": 1452,
+        "outputTokens": 209,
+        "cacheReadInputTokens": 1516,
+        "cacheCreationInputTokens": 1720,
         "webSearchRequests": 0,
-        "costUSD": 0.0087699,
+        "costUSD": 0.0067012,
         "contextWindow": 1000000,
         "maxOutputTokens": 64000,
+        "thinkingTokens": 0,
         "canonicalModel": "claude-sonnet-5",
-        "provider": "firstParty"
+        "provider": "firstParty",
+        "costBasis": "list"
       }
     },
     "permission_denials": [],
     "terminal_reason": "completed",
     "fast_mode_state": "off",
     "fast_mode_disabled_reason": "sdk_opt_in_required",
+    "subagent_stats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "is_error": false,
+    "num_turns": 2,
     "subtype": "success",
     "api_error_status": null,
-    "result": "Confirmed: the tool echoed back exactly `conformance-probe-partials`, matching the input with no alterations — as expected for an echo tool.",
-    "ttft_ms": 3879,
-    "ttft_stream_ms": 1992,
-    "time_to_request_ms": 233,
+    "result": "Confirmed: the tool echoed back exactly **'conformance-probe-partials'**, matching the input message with no alterations — confirming the echo tool is functioning as expected.",
+    "ttft_ms": 3259,
     "type": "result",
-    "duration_ms": 6552,
-    "uuid": "5e592f08-3d4b-4209-b0c0-6f11263b6b34"
+    "duration_ms": 5460,
+    "uuid": "18f82c71-8f64-4364-ac8c-2a4eef9dda59",
+    "ttft_stream_ms": 1479,
+    "time_to_request_ms": 47,
+    "queued_turn_count": 0
   }
 ]

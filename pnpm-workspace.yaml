@@ -14,45 +14,46 @@ packages:
 # via `pnpm install` on a cold clone. The key pnpm 11 actually reads (and
 # auto-suggests via its own ERR_PNPM_IGNORED_BUILDS hint) is `allowBuilds`,
 # a per-package boolean map; every ignored-build package must be listed
-# explicitly (an empty/absent map still errors). None of these five need
-# their install scripts for this SDK: their build scripts are native/CLI
-# extras unused by the test suite (esbuild ships prebuilt platform
-# binaries as optionalDependencies, so its own postinstall isn't needed).
+# explicitly (an empty/absent map still errors). Neither entry needs its
+# install script for this SDK (native/CLI extras unused by the test suite).
 # Verified: `pnpm install && pnpm typecheck && pnpm test && pnpm e2e:replay`
-# all green on a fresh clone with every entry set to `false`.
+# all green on a fresh clone with every entry set to `false`. Pruned
+# 2026-09-02: esbuild (gone with vite 8 / vitest 4), sqlite3 + cpu-features +
+# ssh2 (gone with @google/adk 2.0.0's optional mikro-orm peers) — re-add an
+# entry only when `pnpm install` names the package in ERR_PNPM_IGNORED_BUILDS.
 allowBuilds:
   '@google/genai': false
-  cpu-features: false
-  esbuild: false
   protobufjs: false
-  sqlite3: false
-  ssh2: false
-# NOTE (pnpm 11.2.2 quirk, diagnosed 2026-07-22): keep AT MOST ONE entry per
-# package NAME here. The policy evaluator (createPackageVersionPolicy →
-# evaluateVersionPolicy) returns on the FIRST name match, so a stale
-# `pkg@old-version` entry listed above `pkg@new-version` silently makes the
-# newer exclusion unreachable (ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION on a
-# lockfile that looks correctly excluded). Prune superseded entries when
-# bumping; entries older than the 24h default window are dead weight anyway.
+# Security overrides for transitive deps our peers pin below the patched
+# release. Each line names the advisory and the pin that forces it; retire an
+# entry as soon as upstream moves (re-check every sweep). pnpm 11 reads
+# `overrides` ONLY from this file (the package.json `pnpm` field is ignored).
+# scripts/nightly-peer-leg.mjs MERGES its forced-peer entries into this stanza
+# on a throwaway CI checkout — keep the key name and the two-space indent.
+overrides:
+  'adm-zip@<0.6.0': '^0.6.0'          # GHSA-xcpc-8h2w-3j85; @google/adk pins ^0.5.17 (google/adk-js#601)
+  '@opentelemetry/core': '^2.8.0'     # GHSA-8988-4f7v-96qf; @opentelemetry/*-otlp-http@0.205.0 exact-pin core 2.1.0
+  'uuid@<11.1.1': '^11.1.1'           # GHSA-w5hq-g745-h8pq; vertexai -> google-auth-library@9 -> gaxios@6 -> uuid ^9
+# minimumReleaseAgeExclude ritual (pnpm >=11.9.0): the evaluator UNIONS every
+# rule for the same package name (pnpm/pnpm#12463 fixed the 11.2.2 first-
+# name-match quirk this comment used to describe), so during a day-one peer
+# bump either write ONE `pkg@old || new` entry or list both versions — both
+# forms work. Entries older than the 24h default window are dead weight:
+# prune them on the next bump. Every entry below is load-bearing as of
+# 2026-09-02 (the ai family and claude-agent-sdk 0.3.258 published <24h ago).
 minimumReleaseAgeExclude:
-  - '@ai-sdk/gateway@4.0.52'
-  - ai@7.0.66
-  - '@ai-sdk/mcp@2.0.32'
-  - '@ai-sdk/provider-utils@5.0.27'
-  - '@ai-sdk/provider@4.0.7'
-  - '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.233'
-  - '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.233'
-  - '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.233'
-  - '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.233'
-  - '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.233'
-  - '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.233'
-  - '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.233'
-  - '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.233'
-  - '@anthropic-ai/claude-agent-sdk@0.3.233'
-  - '@openai/agents@0.16.0'
-  - '@openai/agents-core@0.16.0'
-  - '@openai/agents-openai@0.16.0'
-  - '@ai-sdk/openai@4.0.42'
-  - '@google/adk@1.6.0'
-  - '@google/genai@2.17.1'
-  - '@openai/agents-realtime@0.16.0'
+  - '@ai-sdk/gateway@4.0.72'
+  - ai@7.0.90
+  - '@ai-sdk/mcp@2.0.43'
+  - '@ai-sdk/provider-utils@5.0.36'
+  - '@ai-sdk/provider@4.0.10'
+  - '@ai-sdk/openai@4.0.56'
+  - '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.258'
+  - '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.258'
+  - '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.258'
+  - '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.258'
+  - '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.258'
+  - '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.258'
+  - '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.258'
+  - '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.258'
+  - '@anthropic-ai/claude-agent-sdk@0.3.258'

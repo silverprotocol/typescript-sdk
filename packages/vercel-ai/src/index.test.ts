@@ -502,6 +502,260 @@ describe("error arm C — transport throw, host sentinel (captured transport-thr
   });
 });
 
+// ─── StreamProviderError carry (ai>=7.0.80 wraps provider error frames) ──────
+
+/**
+ * Shape-faithful stand-in for ai>=7.0.80's `StreamProviderError` — `ai` is an
+ * optional peer this package never imports (not even as a devDependency), so
+ * the fixture mirrors the real class's constructor field-for-field: `name`
+ * `AI_StreamProviderError` (AISDKError sets it as an OWN prop), `cause`, and
+ * own enumerable `type` / `code` / `statusCode` / `isRetryable` / `data` (the
+ * raw provider frame). The real class's symbol-keyed marker is JSON-invisible
+ * and irrelevant to the facet's structural read, so it is omitted.
+ */
+class FakeStreamProviderError extends Error {
+  readonly type?: string;
+  readonly code?: string | number;
+  readonly statusCode?: number;
+  readonly isRetryable: boolean;
+  readonly data?: unknown;
+  constructor(fields: {
+    message: string;
+    type?: string;
+    code?: string | number;
+    statusCode?: number;
+    isRetryable: boolean;
+    data?: unknown;
+    cause?: unknown;
+  }) {
+    super(fields.message);
+    this.name = "AI_StreamProviderError";
+    this.cause = fields.cause;
+    this.type = fields.type;
+    this.code = fields.code;
+    this.statusCode = fields.statusCode;
+    this.isRetryable = fields.isRetryable;
+    this.data = fields.data;
+  }
+}
+
+/** Raw OpenAI Responses `error` SSE frame as @ai-sdk/openai 4.0.56 hands it to
+ *  the SDK (rides `StreamProviderError.data` verbatim). */
+const OPENAI_ERROR_FRAME = {
+  type: "error",
+  code: "rate_limit_exceeded",
+  message: "Rate limit reached for gpt-4o-mini",
+  param: null,
+  sequence_number: 3,
+};
+
+const RATE_LIMIT = () =>
+  new FakeStreamProviderError({
+    message: "Rate limit reached for gpt-4o-mini",
+    type: "error", // the SSE envelope name is what @ai-sdk/openai puts here on the real wire
+    code: "rate_limit_exceeded",
+    statusCode: 429,
+    isRetryable: true, // SDK-inferred from 429 when the frame omits it
+    data: OPENAI_ERROR_FRAME,
+  });
+
+const STEP = [{ type: "start" }, { type: "start-step", request: {}, warnings: [] }];
+
+describe("StreamProviderError carry — arm A: error part, provider still finishes", () => {
+  it("error event carries code (provider code) + retriable; message = Error.message; turn.done unchanged", () => {
+    const out = run([
+      ...STEP,
+      { type: "text-start", id: "t1" },
+      { type: "text-delta", id: "t1", text: "partial" },
+      { type: "error", error: RATE_LIMIT() },
+      { type: "text-end", id: "t1" },
+      { type: "finish", finishReason: "stop", totalUsage: USAGE },
+    ]);
+    const err = out.find((e) => e.type === "error");
+    expect(err).toStrictEqual({
+      type: "error",
+      seq: 5,
+      message: "Rate limit reached for gpt-4o-mini",
+      code: "rate_limit_exceeded",
+      retriable: true,
+      turnId: "turn_vercel_1",
+    });
+    const done = out.find((e) => e.type === "turn.done");
+    expect(done).toBeDefined();
+    expect("code" in done!).toBe(false);
+    expect("retriable" in done!).toBe(false);
+    expect(types(out)).not.toContain("turn.error");
+    expectAllParse(out);
+  });
+
+  it("does NOT fall back to `type` when `code` is absent (the wire's `type` is the SSE envelope name); numeric codes stringify", () => {
+    const typeOnly = run([
+      ...STEP,
+      {
+        type: "error",
+        error: new FakeStreamProviderError({
+          message: "overloaded",
+          type: "error", // what @ai-sdk/openai stamps: the SSE event name, not a classification
+          statusCode: 503,
+          isRetryable: true,
+        }),
+      },
+      { type: "finish", finishReason: "stop", totalUsage: USAGE },
+    ]);
+    const a = typeOnly.find((e) => e.type === "error") as { code?: string; retriable?: boolean };
+    expect("code" in a).toBe(false);
+    expect(a.retriable).toBe(true);
+
+    const numeric = run([
+      ...STEP,
+      {
+        type: "error",
+        error: new FakeStreamProviderError({ message: "bad request", code: 400, isRetryable: false }),
+      },
+      { type: "finish", finishReason: "stop", totalUsage: USAGE },
+    ]);
+    const b = numeric.find((e) => e.type === "error") as { code?: string; retriable?: boolean };
+    expect(b.code).toBe("400");
+    expect(b.retriable).toBe(false); // an asserted `false` is carried, not dropped
+    expectAllParse([...typeOnly, ...numeric]);
+  });
+});
+
+describe("StreamProviderError carry — arm A2: SDK-synthesized finish{error}", () => {
+  it("turn.error carries the stashed message + code + retriable", () => {
+    const out = run([
+      ...STEP,
+      { type: "text-start", id: "t1" },
+      { type: "text-delta", id: "t1", text: "partial" },
+      { type: "error", error: RATE_LIMIT() },
+      { type: "finish-step", finishReason: "error", usage: {}, response: RESPONSE_S1 },
+      { type: "finish", finishReason: "error", totalUsage: {} },
+    ]);
+    const terminal = out.find((e) => e.type === "turn.error");
+    expect(terminal).toStrictEqual({
+      type: "turn.error",
+      seq: 10,
+      turnId: "turn_vercel_1",
+      message: "Rate limit reached for gpt-4o-mini",
+      code: "rate_limit_exceeded",
+      retriable: true,
+    });
+    expect(types(out)).not.toContain("turn.done");
+    expectAllParse(out);
+  });
+});
+
+describe("StreamProviderError carry — arm B: error then EOF (flush self-seal)", () => {
+  it("both the advisory and the self-sealed turn.error carry code + retriable", () => {
+    const out = run([{ type: "start" }, { type: "error", error: RATE_LIMIT() }]);
+    expect(out.slice(1)).toStrictEqual([
+      {
+        type: "error",
+        seq: 1,
+        message: "Rate limit reached for gpt-4o-mini",
+        code: "rate_limit_exceeded",
+        retriable: true,
+        turnId: "turn_vercel_1",
+      },
+      {
+        type: "turn.error",
+        seq: 2,
+        turnId: "turn_vercel_1",
+        message: "Rate limit reached for gpt-4o-mini",
+        code: "rate_limit_exceeded",
+        retriable: true,
+      },
+    ]);
+    expectAllParse(out);
+  });
+
+  it("a plain object exposing code/type (pre-7.0.80 raw frame, unwrapped) carries code; message text unchanged", () => {
+    const out = run([{ type: "start" }, { type: "error", error: OPENAI_ERROR_FRAME }]);
+    const terminal = out.find((e) => e.type === "turn.error");
+    expect(terminal).toStrictEqual({
+      type: "turn.error",
+      seq: 2,
+      turnId: "turn_vercel_1",
+      message: JSON.stringify(OPENAI_ERROR_FRAME), // errText for plain objects — unchanged
+      code: "rate_limit_exceeded",
+    });
+    expectAllParse(out);
+  });
+});
+
+describe("StreamProviderError carry — negative controls (absent fields ⇒ byte-identical output)", () => {
+  const ARM_B_STRING = [{ type: "start" }, { type: "error", error: "connect ECONNREFUSED" }];
+
+  it("plain string payload (arm B): error + turn.error carry message ONLY — no code/retriable keys", () => {
+    const out = run(ARM_B_STRING);
+    expect(out.slice(1)).toStrictEqual([
+      { type: "error", seq: 1, message: "connect ECONNREFUSED", turnId: "turn_vercel_1" },
+      { type: "turn.error", seq: 2, turnId: "turn_vercel_1", message: "connect ECONNREFUSED" },
+    ]);
+    expectAllParse(out);
+  });
+
+  it("plain Error payload (arm A + A2): message = .message, no code/retriable keys", () => {
+    const out = run([
+      ...STEP,
+      { type: "error", error: new Error("boom") },
+      { type: "finish-step", finishReason: "error", usage: {}, response: RESPONSE_S1 },
+      { type: "finish", finishReason: "error", totalUsage: {} },
+    ]);
+    const err = out.find((e) => e.type === "error");
+    expect(err).toStrictEqual({ type: "error", seq: 3, message: "boom", turnId: "turn_vercel_1" });
+    const terminal = out.find((e) => e.type === "turn.error");
+    expect(terminal).toStrictEqual({
+      type: "turn.error",
+      seq: 7,
+      turnId: "turn_vercel_1",
+      message: "boom",
+    });
+    expectAllParse(out);
+  });
+
+  it("plain object WITHOUT code/type/isRetryable: JSON message, no code/retriable keys", () => {
+    const out = run([{ type: "start" }, { type: "error", error: { foo: "bar" } }]);
+    expect(out.slice(1)).toStrictEqual([
+      { type: "error", seq: 1, message: '{"foo":"bar"}', turnId: "turn_vercel_1" },
+      { type: "turn.error", seq: 2, turnId: "turn_vercel_1", message: '{"foo":"bar"}' },
+    ]);
+    expectAllParse(out);
+  });
+
+  it("non-string/number code and non-boolean isRetryable are ignored (guarded, never coerced)", () => {
+    const out = run([
+      { type: "start" },
+      { type: "error", error: { code: { nested: true }, type: 7, isRetryable: "yes" } },
+    ]);
+    const err = out.find((e) => e.type === "error")!;
+    expect("code" in err).toBe(false);
+    expect("retriable" in err).toBe(false);
+    expectAllParse(out);
+  });
+
+  it("arm C host sentinel is message-only and unchanged", () => {
+    const out = run([{ type: "start" }, { type: VERCEL_HOST_ERROR, message: "Error: socket reset" }]);
+    expect(out.slice(1)).toStrictEqual([
+      { type: "error", seq: 1, message: "Error: socket reset", turnId: "turn_vercel_1" },
+      { type: "turn.error", seq: 2, turnId: "turn_vercel_1", message: "Error: socket reset" },
+    ]);
+    expectAllParse(out);
+  });
+
+  it("finish{error} with no prior error part keeps the 'provider error' fallback, message-only", () => {
+    const out = run([...STEP, { type: "finish", finishReason: "error", totalUsage: {} }]);
+    const terminal = out.find((e) => e.type === "turn.error");
+    expect(terminal).toStrictEqual({
+      type: "turn.error",
+      seq: 5,
+      turnId: "turn_vercel_1",
+      message: "provider error",
+    });
+    expectAllParse(out);
+  });
+});
+
 describe("abort (captured abort-midstream — text stream left open by the wire)", () => {
   const parts = [
     { type: "start" },

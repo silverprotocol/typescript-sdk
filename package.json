@@ -2,9 +2,9 @@
   "name": "@silverprotocol/typescript-sdk",
   "private": true,
   "version": "0.0.0",
-  "description": "TypeScript SDK for AgJSON — normalizers from agent frameworks to the typed agent<->client transport.",
+  "description": "TypeScript SDK for AgJSON \u2014 normalizers from agent frameworks to the typed agent<->client transport.",
   "license": "MIT",
-  "packageManager": "pnpm@11.2.2",
+  "packageManager": "pnpm@11.25.0",
   "type": "module",
   "scripts": {
     "build": "tsc -b",
@@ -19,7 +19,7 @@
   "devDependencies": {
     "@types/node": "^24.0.0",
     "typescript": "^5.3.0",
-    "vitest": "^2.0.0"
+    "vitest": "^4.1.11"
   },
   "engines": {
     "node": ">=24.0.0",

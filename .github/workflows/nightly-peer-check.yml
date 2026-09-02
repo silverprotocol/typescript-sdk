@@ -48,14 +48,15 @@ jobs:
     outputs:
       peers: ${{ steps.scan.outputs.peers }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
-          # These jobs are dependency-free (node scripts only, no pnpm install).
-          # setup-node@v5 defaults package-manager-cache:true, auto-detects pnpm
-          # from the lockfile, and hard-fails when the binary is absent — the
-          # bug that failed every nightly since this workflow shipped.
+          # These jobs are dependency-free (node scripts only, no pnpm install)
+          # and have no pnpm on PATH. Kept explicit: setup-node@v5 auto-detected
+          # pnpm from the lockfile and hard-failed on the missing binary (the
+          # bug that failed every nightly at first); v6+ only auto-caches for
+          # npm, so this is belt-and-braces rather than load-bearing now.
           package-manager-cache: false
       # the scan script is dependency-free (no pnpm install needed): assert
       # its range evaluator against the spec table, then hit the registry.
@@ -73,9 +74,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: pnpm
@@ -87,7 +88,7 @@ jobs:
           PEER_NAME: ${{ matrix.peer.name }}
           PEER_LATEST: ${{ matrix.peer.latest }}
         run: node scripts/nightly-peer-leg.mjs "$PEER_NAME" "$PEER_LATEST" --out leg-result
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: peer-result-${{ matrix.peer.facet }}
@@ -116,16 +117,17 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
-          # These jobs are dependency-free (node scripts only, no pnpm install).
-          # setup-node@v5 defaults package-manager-cache:true, auto-detects pnpm
-          # from the lockfile, and hard-fails when the binary is absent — the
-          # bug that failed every nightly since this workflow shipped.
+          # These jobs are dependency-free (node scripts only, no pnpm install)
+          # and have no pnpm on PATH. Kept explicit: setup-node@v5 auto-detected
+          # pnpm from the lockfile and hard-failed on the missing binary (the
+          # bug that failed every nightly at first); v6+ only auto-caches for
+          # npm, so this is belt-and-braces rather than load-bearing now.
           package-manager-cache: false
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           pattern: peer-result-*
           path: leg-results

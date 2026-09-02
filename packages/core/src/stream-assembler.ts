@@ -415,8 +415,20 @@ export class StreamAssembler {
     this.#emit(ev);
   }
 
-  /** Emit `reasoning.delta`. With `{cumulative:true}` de-cumulates against the prior buffer. */
-  reasoningDelta(id: string, messageId: string, delta: string, opts?: { cumulative?: boolean }): void {
+  /**
+   * Emit `reasoning.delta`. With `{cumulative:true}` de-cumulates against the
+   * prior buffer. `opts.providerMetadata` rides the delta verbatim — the home
+   * for a provider's per-chunk reasoning telemetry when the reasoning TEXT
+   * itself is withheld (e.g. Claude Fable 5.1's default `display: omitted`
+   * streams empty `thinking_delta`s whose only payload is the CLI's
+   * `estimated_tokens`); absent ⇒ no key.
+   */
+  reasoningDelta(
+    id: string,
+    messageId: string,
+    delta: string,
+    opts?: { cumulative?: boolean; providerMetadata?: AgProviderMeta },
+  ): void {
     const turnId = this.#resolveTurnId(undefined, messageId);
     const emitDelta = this.#deCumulate(id, delta, opts?.cumulative);
     const ev: ReasoningDeltaEvent = {
@@ -426,6 +438,7 @@ export class StreamAssembler {
       messageId,
       delta: emitDelta,
       ...(turnId !== undefined ? { turnId } : {}),
+      ...(opts?.providerMetadata !== undefined ? { providerMetadata: opts.providerMetadata } : {}),
     };
     this.#emit(ev);
   }

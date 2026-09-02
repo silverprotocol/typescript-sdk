@@ -2923,19 +2923,91 @@
     ]
   },
   {
-    "path": "[*].event.usage.output_tokens_details.thinking_tokens",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): thinking-token telemetry inside message_delta usage; AgUsage has no thinking-tokens slot (spec-process decision) \u2014 0 in the seed capture.",
+    "path": "[*].content.parts[*].thought",
+    "reason": "adk: the thought-part discriminant \u2014 consumed structurally to route the part into reasoning.start/delta/end (+ reasoning.opaque for its thoughtSignature) instead of text events; the boolean itself never surfaces as an AgJSON value. First live-observed at gemini-3.7-flash with the thinkingLevel scenario knob (thinkingConfig.includeThoughts \u2014 3.7 returns no summaries by default; corpus/thinking-gemini37, 2026-08-19).",
+    "reviewed": "any",
+    "frameworks": [
+      "adk"
+    ]
+  },
+  {
+    "path": "[*].effort",
+    "reason": "claude: field on the SDK's system/init bootstrap event (0.3.234 SDKSystemMessage.effort \u2014 the effort level the session will send on its next request after env/session-state/org-cap/model-support resolution; null when no effort parameter will be sent) \u2014 router-plane session configuration, not turn content; init falls through createClaudeNormalizer's final no-op like every other init field (mirrors the [*].apiKeySource entry). Pre-registered on the 0.3.258 bump (2026-09-02) ahead of the cohort's live capture.",
     "reviewed": "any",
     "frameworks": [
       "claude"
     ]
   },
   {
-    "path": "[*].content.parts[*].thought",
-    "reason": "adk: the thought-part discriminant \u2014 consumed structurally to route the part into reasoning.start/delta/end (+ reasoning.opaque for its thoughtSignature) instead of text events; the boolean itself never surfaces as an AgJSON value. First live-observed at gemini-3.7-flash with the thinkingLevel scenario knob (thinkingConfig.includeThoughts \u2014 3.7 returns no summaries by default; corpus/thinking-gemini37, 2026-08-19).",
+    "path": "[*].modelUsage.claude-fable-5-1.contextWindow",
+    "reason": "model capability constant (context window size) for claude-fable-5-1 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.contextWindow entry (mapModelUsage never reads it); not an actual usage measurement, no AgUsage home. Model literal pre-registered on the 0.3.258 bump (2026-09-02) ahead of the cohort's live capture.",
     "reviewed": "any",
     "frameworks": [
-      "adk"
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].modelUsage.claude-fable-5-1.maxOutputTokens",
+    "reason": "model capability constant (max output tokens) for claude-fable-5-1 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.maxOutputTokens entry (mapModelUsage never reads it); not an actual usage measurement, no AgUsage home. Model literal pre-registered on the 0.3.258 bump (2026-09-02) ahead of the cohort's live capture.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].modelUsage.claude-opus-5.contextWindow",
+    "reason": "model capability constant (context window size) for claude-opus-5 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.contextWindow entry (mapModelUsage never reads it); not an actual usage measurement, no AgUsage home. Model literal pre-registered on the 0.3.258 bump (2026-09-02) ahead of the cohort's live capture.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].modelUsage.claude-opus-5.maxOutputTokens",
+    "reason": "model capability constant (max output tokens) for claude-opus-5 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.maxOutputTokens entry (mapModelUsage never reads it); not an actual usage measurement, no AgUsage home. Model literal pre-registered on the 0.3.258 bump (2026-09-02) ahead of the cohort's live capture.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].terminal_slash_commands[*]",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 router-plane; first observed live at Claude Code 2.1.258 (cohort 0.5.4, 2026-09-02, every claude capture). Typed since <=0.3.233 (`terminal_slash_commands?: string[]`, the terminal-only slash commands like /doctor, /color) but never emitted before; identifiers, not turn content \u2014 sibling of the allowlisted [*].slash_commands[*].",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].messaging_socket_path",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 router-plane; first observed live at Claude Code 2.1.258 (cohort 0.5.4, 2026-09-02, every claude capture). RUNTIME-ONLY (undeclared in sdk.d.ts through 0.3.258): the CLI's local IPC socket path (/tmp/cc-socks/<pid>.sock) \u2014 host-private transport plumbing, never a consumer signal.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.content_block.thinking",
+    "reason": "claude stream_event (cohort 0.5.4, corpus/partials-fable51, 2026-09-02): always '' at content_block_start \u2014 the thinking text (when the model's display setting emits any) arrives via thinking_delta chunks, which ride reasoning.delta verbatim (see the [*].event.delta.thinking transform). Mirror of the [*].event.content_block.text entry.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.content_block.signature",
+    "reason": "claude stream_event (cohort 0.5.4, corpus/partials-fable51, 2026-09-02): always '' at content_block_start \u2014 the signature arrives via signature_delta chunks, buffered and emitted as reasoning.opaque{kind:'signature'} at content_block_stop (Rule-4 covered there).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.delta.estimated_tokens",
+    "reason": "claude stream_event (cohort 0.5.4, corpus/partials-fable51, 2026-09-02): Claude Code's RUNTIME-ONLY per-thinking_delta token estimate. Non-null values ride reasoning.delta providerMetadata.estimated_tokens verbatim (Rule 4); null means 'no estimate yet' and is carried as null too, but null is ambient so it needs this null-only entry.",
+    "reviewed": "null-only",
+    "frameworks": [
+      "claude"
     ]
   }
 ]

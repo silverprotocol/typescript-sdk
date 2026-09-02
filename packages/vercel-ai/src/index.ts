@@ -38,6 +38,18 @@
  *  C. a raw throw out of `for await (fullStream)` (transport failure) — the
  *     HOST wraps iteration and pushes a `{type: VERCEL_HOST_ERROR, message}`
  *     sentinel (OpenAIHostError pattern), which closes message + turn.
+ * Since ai@7.0.80 every provider mid-stream `error` payload reaches fullStream
+ * wrapped in a `StreamProviderError` (own enumerable `type`/`code`/
+ * `statusCode`/`isRetryable`/`data`; `data` = the raw provider frame). Arms A/B
+ * project its `code`/`type` and `isRetryable` onto the AgJSON `code` /
+ * `retriable` fields (see `errFields`); pre-7.0.80 string/plain-Error payloads
+ * normalize byte-identically. Two more 7.0.66→7.0.90 runtime changes are
+ * facet-NEUTRAL, recorded here only: 7.0.70 stops automatic tool execution
+ * after finishReason length/content-filter/error/other (the step still closes
+ * via finish-step/finish, so message + turn seal normally; a resultless tool
+ * call rides as tool.start/args with no tool.done — carried as-is), and 7.0.76
+ * remaps duplicate text/reasoning part ids across steps (open streams are
+ * keyed per message, so a remapped id is just a new stream).
  *
  * Lossless posture (Tenet 6): `push()` never throws. Unknown part types ride
  * `ext.vercel.frame{kind, frame}` (v7 adds `custom`, `reasoning-file`,
@@ -101,6 +113,44 @@ function errText(v: unknown): string {
   } catch {
     return String(v);
   }
+}
+
+/** The AgJSON `error` / `turn.error` payload fields this facet populates. */
+interface ErrorFields {
+  message: string;
+  code?: string;
+  retriable?: boolean;
+}
+
+/**
+ * Project an error-ish value to `ErrorFields`, never throwing. `message` is
+ * `errText(v)` — UNCHANGED for strings, Error instances and plain objects.
+ *
+ * `code` / `retriable` are populated only when `v` is an Error or plain object
+ * exposing the `StreamProviderError` fields ai>=7.0.80 wraps every provider
+ * mid-stream `error` payload in (own enumerable `type`, `code`, `statusCode`,
+ * `isRetryable`, `data`; @ai-sdk/openai emits them for Responses `error` SSE
+ * events and `response.failed`):
+ *  - `code` = `String(code)` — the provider-defined code (string or number,
+ *    stringified). `type` is deliberately NOT a fallback: on the real wire it
+ *    is the SSE envelope name (`'error'` for an OpenAI Responses error frame),
+ *    not an error classification, and would masquerade as a code;
+ *  - `retriable` = `isRetryable`. NOTE: the AI SDK INFERS `isRetryable` from
+ *    `statusCode` (408/409/429/>=500) — or from well-known message text — when
+ *    the provider frame omits it, so `retriable` is an SDK judgement, not
+ *    necessarily a provider assertion. Carried verbatim; consumers wanting the
+ *    provider's own word must read the raw frame.
+ * A value without those fields projects to `{message}` alone, so pre-7.0.80
+ * payloads (and plain Errors / strings) normalize byte-identically.
+ */
+function errFields(v: unknown): ErrorFields {
+  const out: ErrorFields = { message: errText(v) };
+  const bag = rec(v); // an Error instance is an object too — own props read as-is
+  if (bag === undefined) return out;
+  const code = bag["code"];
+  if (typeof code === "string" || typeof code === "number") out.code = String(code);
+  if (typeof bag["isRetryable"] === "boolean") out.retriable = bag["isRetryable"];
+  return out;
 }
 
 // ─── wire → AgJSON value mapping ─────────────────────────────────────────────
@@ -169,7 +219,7 @@ export function createVercelNormalizer(): Normalizer {
   const openTextIds = new Set<string>();
   const openReasoningIds = new Set<string>();
   const pendingToolIds = new Set<string>(); // tool-input-start seen, tool-call not yet
-  let stashedError: string | undefined; // last in-band error message (arms A/B)
+  let stashedError: ErrorFields | undefined; // last in-band error fields (arms A/B)
 
   /** Mint + open the run's turn if not already open (defensive: arms other
    *  than `start` can arrive first on a hostile/truncated wire). */
@@ -440,7 +490,9 @@ export function createVercelNormalizer(): Normalizer {
         const t = ensureTurn();
         closeOpenMessage(); // defensive; the real wire closes via finish-step first
         if (str(part["finishReason"]) === "error") {
-          a.closeTurnError(t, { message: stashedError ?? "provider error" });
+          // The stashed arm-A fields (message + optional code/retriable) close
+          // the turn; a bare finish{error} with no prior error part falls back.
+          a.closeTurnError(t, stashedError ?? { message: "provider error" });
         } else {
           const usage = mapUsage(part["totalUsage"]);
           a.closeTurnDone(t, {
@@ -455,19 +507,22 @@ export function createVercelNormalizer(): Normalizer {
       }
 
       case "error": {
-        // Non-terminal advisory (arm A); stashed for arm B's flush self-seal.
-        stashedError = errText(part["error"]);
-        a.emit({ type: "error", message: stashedError });
+        // Non-terminal advisory (arm A); stashed for arm B's flush self-seal
+        // and the finish{error} close. `code`/`retriable` present only when
+        // the payload exposes StreamProviderError fields (see errFields).
+        stashedError = errFields(part["error"]);
+        a.emit({ type: "error", ...stashedError });
         return;
       }
 
       case VERCEL_HOST_ERROR: {
-        // Arm C: transport failure thrown out of the iterator; host sentinel.
+        // Arm C: transport failure thrown out of the iterator; host sentinel
+        // (message-only — the host renders the throw to a string).
         const t = ensureTurn();
-        stashedError = str(part["message"]) ?? "host iteration error";
-        a.emit({ type: "error", message: stashedError });
+        stashedError = { message: str(part["message"]) ?? "host iteration error" };
+        a.emit({ type: "error", ...stashedError });
         closeOpenMessage();
-        a.closeTurnError(t, { message: stashedError });
+        a.closeTurnError(t, stashedError);
         turnClosed = true;
         stashedError = undefined;
         return;
@@ -503,9 +558,10 @@ export function createVercelNormalizer(): Normalizer {
       if (turnId !== undefined && !turnClosed) {
         if (stashedError !== undefined) {
           // Arm B: in-band error and the stream just ended (doStream
-          // rejection — verified: [start, error] then EOF). Self-seal.
+          // rejection — verified: [start, error] then EOF). Self-seal with the
+          // stashed fields (message + optional code/retriable).
           closeOpenMessage();
-          a.closeTurnError(turnId, { message: stashedError });
+          a.closeTurnError(turnId, stashedError);
           turnClosed = true;
           stashedError = undefined;
         } else {

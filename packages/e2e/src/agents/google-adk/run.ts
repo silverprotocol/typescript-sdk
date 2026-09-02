@@ -13,7 +13,15 @@
  * `@modelcontextprotocol/sdk` StreamableHTTP client under the hood, the
  * EXACT transport `serve.ts` implements), so the entire bridge is deleted
  * and every concern — tool discovery, transport, the LLM loop, the
- * turn/event stream — is 100% official SDK. The wire this yields is the
+ * turn/event stream — is 100% official SDK. NOTE (2.0.0 bump, 2026-09-02):
+ * `@google/adk` 2.0.0 makes `@modelcontextprotocol/sdk` an OPTIONAL
+ * peerDependency (`^1.26.0`, peerDependenciesMeta optional:true) where 1.x
+ * declared it as a regular dependency (npm-registry-verified) — satisfied
+ * here by packages/e2e's OWN `@modelcontextprotocol/sdk` devDependency, so
+ * `MCPToolset` keeps resolving a real client. The
+ * root `@google/adk` import below is deliberately kept (no subpath entry)
+ * so this file works unchanged across the facet's 1.x/2.x peer range.
+ * The wire this yields is the
  * official `Event extends LlmResponse` interface
  * (events/event.d.ts; `content.parts[]` uses the real `@google/genai`
  * `Content`/`Part` types — the SAME Gemini wire shape

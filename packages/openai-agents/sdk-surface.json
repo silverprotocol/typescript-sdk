@@ -74,6 +74,12 @@
       "date": "2026-08-28",
       "silverprotocol": "0.5.3",
       "evidence": "0.17.0 MINOR study (typescript-sdk#20/#24, downstream guuey#338): all seven consumed agents-core dist files BYTE-IDENTICAL to 0.16.0 (events.d.ts, types/protocol.d.ts, items.d.ts, result.d.ts, usage.d.ts, runner/streaming.mjs, runner/modelOutputs.mjs; RunItemStreamEventName 10, protocolItem 17) and agents-openai's only change is websocket replay-safety bookkeeping in openaiResponsesModel.mjs (no event emission touched) -- wire-no-op on every consumed surface; drift gate zero member drift. LIVE capture: echo-gpt56 standing seed REFRESHED at 0.17.0 (gpt-5.6-sol), 46 native events, event-type census identical to the 0.14.2 capture. The census caught ONE wrapper-level field the d.ts-pair inventory cannot see: RunToolCallOutputItem.executionStatus ('executed', introduced in agents-core 0.15.0 -- present since the 0.15/0.16 studies, first observed live here). Disposition handled: carried verbatim on tool.done providerMetadata alongside caller (set only when the runner actually invoked the function tool; absent on guardrail/cancellation-synthesized results); 3 facet tests, transforms + registry entries, snapshot regenerated. Peer range widened >=0.2.0 <0.17 -> <0.18; e2e pin 0.17.0; full gate suite green."
+    },
+    {
+      "sdkVersion": "0.17.0",
+      "date": "2026-09-02",
+      "silverprotocol": "0.5.4",
+      "evidence": "Re-attestation at the SAME peer (0.17.0 is still latest; published 2026-08-19) after the cohort's fresh lockfile resolution floated the transitive `openai` client 7.4.0->7.8.0 (agents-openai depends on openai ^7.2.0): openai-node 7.5.0+ adds five response.shell_call_command.*/shell_call_output_content.* stream events (hosted shell tool; ignored by the facet's default arm, cannot appear in MCP-only scenarios) and 7.8.0 adds ResponseUsage.compute_units?: number|null ('Currently null when available'; already gone again from 7.9.0's types) - census watch item. LIVE: echo-gpt56/openai RE-CAPTURED (gpt-5.6-sol) - census ZERO drops / ZERO new fields; the gpt-5.6 alias still routes to gpt-5.6-sol (OpenAI docs re-checked 2026-09-02; no newer public model family - new ids are the Daybreak-gated gpt-5.6-cyber / gpt-daybreak-*-latest)."
     }
   ],
   "sections": {

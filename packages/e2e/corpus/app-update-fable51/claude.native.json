@@ -1,0 +1,523 @@
+[
+  {
+    "type": "system",
+    "subtype": "init",
+    "cwd": "/Users/gustavo/Projects/silverprotocol/sdks/typescript/packages/e2e",
+    "session_id": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "tools": [
+      "mcp__cards__render_card",
+      "mcp__cards__update_card"
+    ],
+    "mcp_servers": [
+      {
+        "name": "cards",
+        "status": "connected"
+      }
+    ],
+    "model": "claude-fable-5-1",
+    "permissionMode": "default",
+    "slash_commands": [
+      "deep-research",
+      "design-sync",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator",
+      "agents",
+      "auto-mode-setup",
+      "autocompact",
+      "clear",
+      "color",
+      "compact",
+      "config",
+      "context",
+      "effort",
+      "fast",
+      "heapdump",
+      "init",
+      "mcp",
+      "import",
+      "model",
+      "__remote-workflow",
+      "workflow-launch-exec",
+      "reload-skills",
+      "rename",
+      "security-review",
+      "usage",
+      "insights",
+      "recap",
+      "goal",
+      "design",
+      "design-consent",
+      "design-revoke",
+      "list-agents",
+      "team-onboarding"
+    ],
+    "terminal_slash_commands": [
+      "doctor",
+      "color"
+    ],
+    "apiKeySource": "ANTHROPIC_API_KEY",
+    "claude_code_version": "2.1.258",
+    "output_style": "default",
+    "agents": [
+      "claude",
+      "Explore",
+      "general-purpose",
+      "Plan",
+      "statusline-setup"
+    ],
+    "skills": [
+      "deep-research",
+      "design-sync",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator"
+    ],
+    "plugins": [],
+    "capabilities": [
+      "interrupt_receipt_v1",
+      "interrupt_cancel_queued_v1",
+      "msg_lifecycle_v1"
+    ],
+    "analytics_disabled": false,
+    "product_feedback_disabled": false,
+    "uuid": "7e0e7096-a979-45ef-8372-37dc3b5a61a8",
+    "memory_paths": {
+      "auto": "/Users/gustavo/.claude/projects/-Users-gustavo-Projects-silverprotocol/memory/"
+    },
+    "messaging_socket_path": "/tmp/cc-socks/63947.sock",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CeeFs9a1JdPG3HQC3nZ1x",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_01MLYeHngRmKfzqzdErDeB4F",
+          "name": "mcp__cards__render_card",
+          "input": {
+            "title": "Hello",
+            "body": "World"
+          },
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ],
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 1652,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 1652,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 25,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "uuid": "a3185dad-6fca-4b64-937b-d6bf39d93570",
+    "timestamp": "2026-09-02T07:57:56.671Z",
+    "request_id": "req_011CeeFs53QQWTgHrmrjkY2C",
+    "tool_use_meta": [
+      {
+        "id": "toolu_01MLYeHngRmKfzqzdErDeB4F",
+        "display_name": "Render Card",
+        "server_display_name": "mock-app-update"
+      }
+    ]
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "tool_use_id": "toolu_01MLYeHngRmKfzqzdErDeB4F",
+          "type": "tool_result",
+          "content": "{\"title\":\"Hello\",\"body\":\"World\",\"revision\":1,\"kind\":\"render\"}"
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "session_id": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "uuid": "df26ce39-fe1f-4221-bdaa-092a57c7bbd9",
+    "timestamp": "2026-09-02T07:57:56.681Z",
+    "tool_use_result": {
+      "content": "{\"title\":\"Hello\",\"body\":\"World\",\"revision\":1,\"kind\":\"render\"}",
+      "_meta": {
+        "ui": {
+          "resourceUri": "ui://mock/card",
+          "visibility": [
+            "model"
+          ]
+        }
+      },
+      "structuredContent": {
+        "title": "Hello",
+        "body": "World",
+        "revision": 1,
+        "kind": "render"
+      }
+    }
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 50,
+    "estimated_tokens_delta": 50,
+    "session_id": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "uuid": "a1167ea7-cff6-4298-b1be-4d086d9b7ffe"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 164,
+    "estimated_tokens_delta": 114,
+    "session_id": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "uuid": "28b9a19e-64ce-41b9-9c83-ebffce1eeadc"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CeeFsWMATFN3cmZwbxYiS",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "",
+          "signature": "CAQShwUKEAgRGAI4AUIIdGhpbmtpbmcSDAO/w0vtYWfKbYvlaxoMZ8ybr5741eWv8KJkIjDDlkQquySVUD7OonaUj5I6zsPDsouosyEDfgyAiT8fl80yE3MxEmNue64kWnCxXZEqpAQr08oNv4DlRUO+WVPebBR4UebTgwnEcoOJgvHEmfYoAaHLyAchel6QsIGaafOzAHtXGIX/sho0ZYfSHTFBAEfsMyIzN9anLmiPFKRykGxTUfwkC6npmmLXyujaTKLMcPxdL7E7GCHN2kb51rKRksqk+VfogRiuG1JtvELYylVfuvLyhfTcOmqGbrCaxI4VITn1C9+k1W5m4wtFIiGwXczQ6N3VsDUtgn7mEVgDhwko0RbXfNGaez4PbpKzVhbDARMLQTtv3LE/7MuBf8DVDLUC1DjfsaPooOyWFiTQ6f805/feLVA/DFwbCIWQxHH6Cyn5EPhG1sMWeJJEI+2ojBGEn3dmyy2WdCiOIqUpRh5zOrcMgEFqtpo+G08rUa3S0/Ptpi+CXwuJI4swovoPnUDMsH8OxIR89A1yg5q0CpFj+2eZ/1/wbRJjJJlQ0m+0iaj2ArnKJFPeX1lPkG1cevNNgc1SaC08qCwAEVnDP9smk1fDT440QG11EXyMm79qtW33Ip/s+3bpy62yePzPR5+E45iNdUdkv1aQVzQyUdKg02qRbjkPx015aTDdkhDc4rAmSaY4fpQGPxGdj6X8/2dg4rbTJtxddUbeIVHrPpXpff0j41CDu1ZZIzaX4CRoK3EGXo0mfJLbXFeq1BOSBZ5Lw+ybiZ/SdNqTsnxCBc97TSKFbl1T4ljL1z6Z1n4wqO0pd79uTNTk8JDi5VZ4NJ2dnOyWtBgB"
+        }
+      ],
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 56,
+        "cache_creation_input_tokens": 109,
+        "cache_read_input_tokens": 1652,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 109,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 4,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "uuid": "23f787b2-5b30-4b4a-88cd-ef143fe771c2",
+    "timestamp": "2026-09-02T07:58:01.859Z",
+    "request_id": "req_011CeeFsTmt6cDbcqaScLewu"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CeeFsWMATFN3cmZwbxYiS",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "The render returned revision 1. The only remaining step is the dependent update call."
+        }
+      ],
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 56,
+        "cache_creation_input_tokens": 109,
+        "cache_read_input_tokens": 1652,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 109,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 4,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "uuid": "815c799d-a4aa-4f80-be29-47b7de710d63",
+    "timestamp": "2026-09-02T07:58:01.862Z",
+    "request_id": "req_011CeeFsTmt6cDbcqaScLewu"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CeeFsWMATFN3cmZwbxYiS",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_01Apf2tY5HZEWLY4chuWgSQk",
+          "name": "mcp__cards__update_card",
+          "input": {
+            "title": "Hello",
+            "body": "Updated World"
+          },
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ],
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 56,
+        "cache_creation_input_tokens": 109,
+        "cache_read_input_tokens": 1652,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 109,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 4,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "uuid": "da3ea924-6dae-4e96-879b-1c4249fc7658",
+    "timestamp": "2026-09-02T07:58:01.923Z",
+    "request_id": "req_011CeeFsTmt6cDbcqaScLewu",
+    "tool_use_meta": [
+      {
+        "id": "toolu_01Apf2tY5HZEWLY4chuWgSQk",
+        "display_name": "Update Card",
+        "server_display_name": "mock-app-update"
+      }
+    ]
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "tool_use_id": "toolu_01Apf2tY5HZEWLY4chuWgSQk",
+          "type": "tool_result",
+          "content": "{\"title\":\"Hello\",\"body\":\"Updated World\",\"revision\":2,\"kind\":\"update\"}"
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "session_id": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "uuid": "1182a0fe-1180-4118-81b9-cf7396b62fc3",
+    "timestamp": "2026-09-02T07:58:01.928Z",
+    "tool_use_result": {
+      "content": "{\"title\":\"Hello\",\"body\":\"Updated World\",\"revision\":2,\"kind\":\"update\"}",
+      "_meta": {
+        "ui": {
+          "resourceUri": "ui://mock/card",
+          "visibility": [
+            "model"
+          ]
+        }
+      },
+      "structuredContent": {
+        "title": "Hello",
+        "body": "Updated World",
+        "revision": 2,
+        "kind": "update"
+      }
+    }
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CeeFstZe49AE8vaDPjYSD",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Both steps completed, nothing further is needed:\n\n1. **render_card** → `{\"title\":\"Hello\",\"body\":\"World\",\"revision\":1,\"kind\":\"render\"}`\n2. **update_card** → `{\"title\":\"Hello\",\"body\":\"Updated World\",\"revision\":2,\"kind\":\"update\"}`\n\nThe card was rendered as revision 1 and then updated in place; the update tool reports the final state as **revision 2** with title \"Hello\" and body \"Updated World\"."
+        }
+      ],
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 56,
+        "cache_creation_input_tokens": 196,
+        "cache_read_input_tokens": 1761,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 196,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 3,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "uuid": "2210fb86-5446-4b57-8c3d-062e241e0d14",
+    "timestamp": "2026-09-02T07:58:07.183Z",
+    "request_id": "req_011CeeFsrEzL8n7Td7tCNgh4"
+  },
+  {
+    "duration_api_ms": 16617,
+    "stop_reason": "end_turn",
+    "session_id": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "total_cost_usd": 0.04549375,
+    "usage": {
+      "input_tokens": 114,
+      "cache_creation_input_tokens": 1957,
+      "cache_read_input_tokens": 3413,
+      "output_tokens": 361,
+      "output_tokens_details": {
+        "thinking_tokens": 33
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 1957
+      },
+      "inference_geo": "global",
+      "iterations": [
+        {
+          "input_tokens": 56,
+          "output_tokens": 147,
+          "cache_read_input_tokens": 1761,
+          "cache_creation_input_tokens": 196,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 196,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-haiku-4-5-20251001": {
+        "inputTokens": 923,
+        "outputTokens": 13,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0,
+        "webSearchRequests": 0,
+        "costUSD": 0.000988,
+        "contextWindow": 200000,
+        "maxOutputTokens": 32000,
+        "thinkingTokens": 0,
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-fable-5-1": {
+        "inputTokens": 114,
+        "outputTokens": 361,
+        "cacheReadInputTokens": 3413,
+        "cacheCreationInputTokens": 1957,
+        "webSearchRequests": 0,
+        "costUSD": 0.04450575,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000,
+        "thinkingTokens": 33,
+        "canonicalModel": "claude-fable-5-1",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required",
+    "subagent_stats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "is_error": false,
+    "num_turns": 3,
+    "subtype": "success",
+    "api_error_status": null,
+    "result": "Both steps completed, nothing further is needed:\n\n1. **render_card** → `{\"title\":\"Hello\",\"body\":\"World\",\"revision\":1,\"kind\":\"render\"}`\n2. **update_card** → `{\"title\":\"Hello\",\"body\":\"Updated World\",\"revision\":2,\"kind\":\"update\"}`\n\nThe card was rendered as revision 1 and then updated in place; the update tool reports the final state as **revision 2** with title \"Hello\" and body \"Updated World\".",
+    "ttft_ms": 5567,
+    "type": "result",
+    "duration_ms": 16090,
+    "uuid": "6e1712fa-4b59-4b36-932e-8d7e58873aa9",
+    "ttft_stream_ms": 4639,
+    "time_to_request_ms": 256,
+    "queued_turn_count": 0
+  }
+]

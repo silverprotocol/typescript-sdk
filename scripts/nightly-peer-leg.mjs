@@ -9,10 +9,12 @@
  *
  * What it does, in order (CI-only; it MUTATES pnpm-workspace.yaml and the
  * lockfile — run it on a throwaway checkout, never commit the result):
- *   1. append an `overrides:` stanza to pnpm-workspace.yaml pinning
- *      <peer> to <version> workspace-wide. pnpm 11 reads overrides from
- *      pnpm-workspace.yaml, NOT from a package.json `pnpm` field (that field
- *      is no longer read — verified empirically, see pnpm-workspace.yaml).
+ *   1. add the forced <peer>@<version> (plus lockstep siblings) to the
+ *      `overrides:` stanza of pnpm-workspace.yaml — MERGED into the committed
+ *      security-override stanza when one exists, appended as a new stanza
+ *      otherwise. pnpm 11 reads overrides from pnpm-workspace.yaml, NOT from a
+ *      package.json `pnpm` field (that field is no longer read — verified
+ *      empirically, see pnpm-workspace.yaml).
  *   2. `pnpm install --no-frozen-lockfile` with the release-age and
  *      strict-dep-builds gates neutralized via pnpm_config_* env (see the
  *      install stage below) — the whole point is to test a release that may
@@ -122,27 +124,56 @@ function resolveFamilyOverrides(peer, version) {
   return { overrides };
 }
 
-/** Append the override stanza for the resolved combination. A pre-existing
- *  top-level `overrides:` key is a hard error, not a merge — on a CI
- *  checkout it means a committed override leaked in, which must fail loudly
- *  rather than compound. */
+/** Add the forced combination to pnpm-workspace.yaml's `overrides:`.
+ *
+ *  The committed file MAY already carry a top-level `overrides:` stanza (the
+ *  security overrides for transitive deps our peers pin below the patched
+ *  release — see the comment above it). In that case the forced entries are
+ *  inserted directly under the key so pnpm sees ONE mapping; a forced peer
+ *  that is ALREADY overridden there is a hard error, because a committed pin
+ *  on a peer we are trying to force would silently win (or lose) and the leg
+ *  would report the wrong version. Without a stanza the old append path
+ *  applies. */
 function applyOverride(overrides) {
   const workspaceYaml = resolve(typescriptRoot, "pnpm-workspace.yaml");
   const text = readFileSync(workspaceYaml, "utf8");
-  if (/^overrides\s*:/m.test(text)) {
-    throw new Error("pnpm-workspace.yaml already has a top-level `overrides:` key — refusing to append a second one");
+  const lines = text.split("\n");
+  const keyIdx = lines.findIndex((l) => /^overrides\s*:/.test(l));
+  const entries = Object.entries(overrides).map(([name, ver]) => `  "${name}": "${ver}"`);
+  let next;
+  if (keyIdx === -1) {
+    const stanza = [
+      "",
+      "# nightly-peer-check override — appended by scripts/nightly-peer-leg.mjs on a",
+      "# throwaway CI checkout. If you are seeing this in a committed file, revert it.",
+      "overrides:",
+      ...entries,
+      "",
+    ].join("\n");
+    next = text.endsWith("\n") ? text + stanza.slice(1) : text + stanza;
+  } else {
+    // Existing mapping: its body is the run of indented lines after the key.
+    let bodyEnd = keyIdx + 1;
+    while (bodyEnd < lines.length && /^\s+\S/.test(lines[bodyEnd])) bodyEnd += 1;
+    const body = lines.slice(keyIdx + 1, bodyEnd).join("\n");
+    for (const name of Object.keys(overrides)) {
+      // A committed key is `name` or `name@<selector>`, quoted or bare.
+      const re = new RegExp(`^\\s+['"]?${name.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}(?:@[^'":]*)?['"]?\\s*:`, "m");
+      if (re.test(body)) {
+        throw new Error(`pnpm-workspace.yaml already overrides ${name} — refusing to force a peer that has a committed override`);
+      }
+    }
+    next = [
+      ...lines.slice(0, keyIdx + 1),
+      "  # nightly-peer-check forced entries — inserted by scripts/nightly-peer-leg.mjs on a",
+      "  # throwaway CI checkout. If you are seeing these in a committed file, revert them.",
+      ...entries,
+      ...lines.slice(keyIdx + 1),
+    ].join("\n");
   }
-  const stanza = [
-    "",
-    "# nightly-peer-check override — appended by scripts/nightly-peer-leg.mjs on a",
-    "# throwaway CI checkout. If you are seeing this in a committed file, revert it.",
-    "overrides:",
-    ...Object.entries(overrides).map(([name, ver]) => `  "${name}": "${ver}"`),
-    "",
-  ].join("\n");
-  writeFileSync(workspaceYaml, text.endsWith("\n") ? text + stanza.slice(1) : text + stanza, "utf8");
+  writeFileSync(workspaceYaml, next, "utf8");
   for (const [name, ver] of Object.entries(overrides)) {
-    console.log(`override applied: ${name} → ${ver} (pnpm-workspace.yaml)`);
+    console.log(`override applied: ${name} → ${ver} (pnpm-workspace.yaml${keyIdx === -1 ? "" : ", merged into the committed stanza"})`);
   }
 }
 

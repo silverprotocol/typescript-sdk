@@ -1,0 +1,863 @@
+[
+  {
+    "type": "system",
+    "subtype": "init",
+    "cwd": "/Users/gustavo/Projects/silverprotocol/sdks/typescript/packages/e2e",
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "tools": [
+      "mcp__t__echo"
+    ],
+    "mcp_servers": [
+      {
+        "name": "t",
+        "status": "connected"
+      }
+    ],
+    "model": "claude-fable-5-1",
+    "permissionMode": "default",
+    "slash_commands": [
+      "deep-research",
+      "design-sync",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator",
+      "agents",
+      "auto-mode-setup",
+      "autocompact",
+      "clear",
+      "color",
+      "compact",
+      "config",
+      "context",
+      "effort",
+      "fast",
+      "heapdump",
+      "init",
+      "mcp",
+      "import",
+      "model",
+      "__remote-workflow",
+      "workflow-launch-exec",
+      "reload-skills",
+      "rename",
+      "security-review",
+      "usage",
+      "insights",
+      "recap",
+      "goal",
+      "design",
+      "design-consent",
+      "design-revoke",
+      "list-agents",
+      "team-onboarding"
+    ],
+    "terminal_slash_commands": [
+      "doctor",
+      "color"
+    ],
+    "apiKeySource": "ANTHROPIC_API_KEY",
+    "claude_code_version": "2.1.258",
+    "output_style": "default",
+    "agents": [
+      "claude",
+      "Explore",
+      "general-purpose",
+      "Plan",
+      "statusline-setup"
+    ],
+    "skills": [
+      "deep-research",
+      "design-sync",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator"
+    ],
+    "plugins": [],
+    "capabilities": [
+      "interrupt_receipt_v1",
+      "interrupt_cancel_queued_v1",
+      "msg_lifecycle_v1"
+    ],
+    "analytics_disabled": false,
+    "product_feedback_disabled": false,
+    "uuid": "d9b35c73-e79d-47e1-859e-7af5d9b5b625",
+    "memory_paths": {
+      "auto": "/Users/gustavo/.claude/projects/-Users-gustavo-Projects-silverprotocol/memory/"
+    },
+    "messaging_socket_path": "/tmp/cc-socks/60457.sock",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required"
+  },
+  {
+    "type": "system",
+    "subtype": "status",
+    "status": "requesting",
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "uuid": "37ad7f86-b8a8-411e-84b1-40818c066809"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_start",
+      "message": {
+        "model": "claude-fable-5-1",
+        "id": "msg_011CeeFqqbVMQ5VcrWY3khcA",
+        "type": "message",
+        "role": "assistant",
+        "content": [],
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 1441,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 1441,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 1,
+          "service_tier": "standard",
+          "inference_geo": "global"
+        },
+        "diagnostics": null
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "e1495bc2-1c92-4c7b-81da-72316cf2694a",
+    "ttft_ms": 3856
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_start",
+      "index": 0,
+      "content_block": {
+        "type": "text",
+        "text": ""
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "b52dcb6b-fcc8-482d-869d-d632c666f45a"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "An"
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "b3090b87-437f-44b8-a2cb-dac6c024cd91"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " echo tool takes whatever text you hand it and returns that exact text unchanged. It's mostly useful as a connectivity check to confirm the tool-"
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "bc6f0b17-9b68-488d-9324-b6f8a9d1a5bd"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "calling round trip works end to end."
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "1a4b0243-49bd-470a-bea3-436ac64231f2"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CeeFqqbVMQ5VcrWY3khcA",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "An echo tool takes whatever text you hand it and returns that exact text unchanged. It's mostly useful as a connectivity check to confirm the tool-calling round trip works end to end."
+        }
+      ],
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 1441,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 1441,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 1,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "uuid": "f62053a2-628e-44b0-95db-496867dde505",
+    "timestamp": "2026-09-02T07:57:39.341Z",
+    "request_id": "req_011CeeFqnfdZgUzNELywZaqp"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_stop",
+      "index": 0
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "2d8c0399-cfa1-4f6d-b033-8345c3dd9d81"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_start",
+      "index": 1,
+      "content_block": {
+        "type": "tool_use",
+        "id": "toolu_01KmDSmjs8gueEJk7obM4pW9",
+        "name": "mcp__t__echo",
+        "input": {},
+        "caller": {
+          "type": "direct"
+        }
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "fa118c7c-14d9-46c2-b871-1c7050110de9"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": ""
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "e117dbd9-d6f4-4a6c-bfbb-5f28010fc132"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "{\"message\": \"conformance-probe-partials-fable51"
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "b9e6507f-be14-40c9-82e6-f96fe09a89ba"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "\"}"
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "453bb94e-8445-4b50-aab3-448701662630"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CeeFqqbVMQ5VcrWY3khcA",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_01KmDSmjs8gueEJk7obM4pW9",
+          "name": "mcp__t__echo",
+          "input": {
+            "message": "conformance-probe-partials-fable51"
+          },
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ],
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 1441,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 1441,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 1,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "uuid": "3c62fa93-2c19-40d1-8693-f32bbc04285d",
+    "timestamp": "2026-09-02T07:57:40.353Z",
+    "request_id": "req_011CeeFqnfdZgUzNELywZaqp",
+    "tool_use_meta": [
+      {
+        "id": "toolu_01KmDSmjs8gueEJk7obM4pW9",
+        "display_name": "Echo",
+        "server_display_name": "mock-text"
+      }
+    ]
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_stop",
+      "index": 1
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "0bf42045-c7f6-478a-ac2f-3ac071b40a1d"
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "tool_use_id": "toolu_01KmDSmjs8gueEJk7obM4pW9",
+          "type": "tool_result",
+          "content": [
+            {
+              "type": "text",
+              "text": "conformance-probe-partials-fable51"
+            }
+          ]
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "uuid": "bb553188-ff32-418e-9a08-50c7b4669d80",
+    "timestamp": "2026-09-02T07:57:40.361Z",
+    "tool_use_result": [
+      {
+        "type": "text",
+        "text": "conformance-probe-partials-fable51"
+      }
+    ]
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_delta",
+      "delta": {
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null
+      },
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 1441,
+        "cache_read_input_tokens": 0,
+        "output_tokens": 124,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "iterations": [
+          {
+            "input_tokens": 2,
+            "output_tokens": 124,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 1441,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 1441,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "type": "message"
+          }
+        ]
+      },
+      "context_management": {
+        "applied_edits": []
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "cb5519f5-1867-47e6-9837-43c923cc523b"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_stop"
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "30fa69b3-62e9-4a97-96d6-84529077e904"
+  },
+  {
+    "type": "system",
+    "subtype": "status",
+    "status": "requesting",
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "uuid": "f157c505-495a-405f-a31a-aada323642d9"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_start",
+      "message": {
+        "model": "claude-fable-5-1",
+        "id": "msg_011CeeFrJcCCXKTMqWEifnnP",
+        "type": "message",
+        "role": "assistant",
+        "content": [],
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 56,
+          "cache_creation_input_tokens": 142,
+          "cache_read_input_tokens": 1441,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 142,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 3,
+          "service_tier": "standard",
+          "inference_geo": "global"
+        },
+        "diagnostics": null
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "5dfe7407-a6c6-4c57-8432-02f7fec7212a",
+    "ttft_ms": 4930
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_start",
+      "index": 0,
+      "content_block": {
+        "type": "thinking",
+        "thinking": "",
+        "signature": ""
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "b3578e70-5ca5-4113-a589-db0b635f1a8a"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 50,
+    "estimated_tokens_delta": 50,
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "uuid": "a93e10cb-d921-421a-a258-21b421f83bd7"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "",
+        "estimated_tokens": 50
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "8287577a-0eb8-4408-aee4-b9effe262422"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "",
+        "estimated_tokens": null
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "54667921-12eb-4d7d-a05f-33139aff6409"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 197,
+    "estimated_tokens_delta": 147,
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "uuid": "260b9251-463f-487d-84fa-2da97d96b3ea"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "signature_delta",
+        "signature": "CAQSiQYKEAgRGAI4AUIIdGhpbmtpbmcSDKCXOPpe+qyN8P4FmRoMPEzVhMk9xKKuYu+UIjBEYMHuA1Gi4L0tM4Z0/A04C2o3jMDBApAZDZWkCmqBmk80nh/6EfjcxtrZ7TlLRqQqpgW2/KCrWVCiWlC05tZcCf6B6GG4oTNsdLqPH6OQ8n8gAKDck/8PtmXz4uCxJULbTQX/RS/yGqY6RPOTzBx+wZL9aB38cB5M4dY0Gm7Q1IItEka/wfWJoa5I4UKN0ZTlVUYwkYDha5LxYk4jyhVziaxsPbWdNosPrfp61hJ88RWxIGAT+VeehoC6Iyww2Hgn43s7R/1T5R+WKEHLnlubUF9nRmM+HeJ+DUMIyYNFXaMIEqcX2z06LQOvfTuNi2a3OKFhHX88ytZqRoQiqjp6FcJa8/2QRqCqJCekPvBgsPrCtqXNZnWIMYAvk4BrnnU35ppM44S/1AkUGYT40418oCRlBQtHE0MrmIMrPdw32BHzhu+UNh+NeGZTbB9u3utI/MZhn4NQbTJA5XeSjPpActchnCf5d3HswKmydXavFPxuKd8tilFlHZxeD3zIOkgsk08/HkRCF7yTif27Yeh7yHD/sNZjkOrrMC2xEFEGFVialUf1eueL+F1kPMJNliFCdu+SYWc39g71IMOskGraUc8qz0fGWSaqcFV3Jkyj5BGj9IVZc39lDt8fdKqU9qf0vfuMyKJQrXfylh1I/xiuKR+1UpdJ8Gj0ChPsP9YyAUx1ScGoYEoKOv+d4IpGikQRH4egyk2HojTR/qRQrkhPTiMdikyJmG6BXYKlt7RYVmvq+d8UqapFbdZvVf8q3dxTA0O3CKshkk6jIlY0A5deQLJVTuOX6WLQW3rkyCPg84GXYLTBmsKb1xhh2wm8eJ0RGD5TMjAPtRM+3LFSmnYL2rrGhm3U0YOGvREmGYdKmVk8ezX1O1TnJ33QxlDObZLCGYos/wzXpId/3F2qo/Zn7NJjYZYeOowH1jqw0tSBsfqw8T0XEAuFjD8XwB4NIrp3V9NjL03U6eQYAQ=="
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "6a15e635-a442-4817-b8e7-515b605bd0b1"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CeeFrJcCCXKTMqWEifnnP",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "",
+          "signature": "CAQSiQYKEAgRGAI4AUIIdGhpbmtpbmcSDKCXOPpe+qyN8P4FmRoMPEzVhMk9xKKuYu+UIjBEYMHuA1Gi4L0tM4Z0/A04C2o3jMDBApAZDZWkCmqBmk80nh/6EfjcxtrZ7TlLRqQqpgW2/KCrWVCiWlC05tZcCf6B6GG4oTNsdLqPH6OQ8n8gAKDck/8PtmXz4uCxJULbTQX/RS/yGqY6RPOTzBx+wZL9aB38cB5M4dY0Gm7Q1IItEka/wfWJoa5I4UKN0ZTlVUYwkYDha5LxYk4jyhVziaxsPbWdNosPrfp61hJ88RWxIGAT+VeehoC6Iyww2Hgn43s7R/1T5R+WKEHLnlubUF9nRmM+HeJ+DUMIyYNFXaMIEqcX2z06LQOvfTuNi2a3OKFhHX88ytZqRoQiqjp6FcJa8/2QRqCqJCekPvBgsPrCtqXNZnWIMYAvk4BrnnU35ppM44S/1AkUGYT40418oCRlBQtHE0MrmIMrPdw32BHzhu+UNh+NeGZTbB9u3utI/MZhn4NQbTJA5XeSjPpActchnCf5d3HswKmydXavFPxuKd8tilFlHZxeD3zIOkgsk08/HkRCF7yTif27Yeh7yHD/sNZjkOrrMC2xEFEGFVialUf1eueL+F1kPMJNliFCdu+SYWc39g71IMOskGraUc8qz0fGWSaqcFV3Jkyj5BGj9IVZc39lDt8fdKqU9qf0vfuMyKJQrXfylh1I/xiuKR+1UpdJ8Gj0ChPsP9YyAUx1ScGoYEoKOv+d4IpGikQRH4egyk2HojTR/qRQrkhPTiMdikyJmG6BXYKlt7RYVmvq+d8UqapFbdZvVf8q3dxTA0O3CKshkk6jIlY0A5deQLJVTuOX6WLQW3rkyCPg84GXYLTBmsKb1xhh2wm8eJ0RGD5TMjAPtRM+3LFSmnYL2rrGhm3U0YOGvREmGYdKmVk8ezX1O1TnJ33QxlDObZLCGYos/wzXpId/3F2qo/Zn7NJjYZYeOowH1jqw0tSBsfqw8T0XEAuFjD8XwB4NIrp3V9NjL03U6eQYAQ=="
+        }
+      ],
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 56,
+        "cache_creation_input_tokens": 142,
+        "cache_read_input_tokens": 1441,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 142,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 3,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "uuid": "75a142a9-9530-4592-818c-8dbdea02f019",
+    "timestamp": "2026-09-02T07:57:46.987Z",
+    "request_id": "req_011CeeFrFzgebLdLBPEA9oQU"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_stop",
+      "index": 0
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "9b97b04e-776c-4d45-9d01-661e26a9c8ad"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_start",
+      "index": 1,
+      "content_block": {
+        "type": "text",
+        "text": ""
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "b5a355f8-3484-4794-9866-97169d6dad0a"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "text_delta",
+        "text": "The tool returned exactly `conformance-probe-partials-fable51`, matching the input character for character. Nothing further is needed — the round trip completed success"
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "10321313-11dc-4583-8a77-51bdecf45a46"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "text_delta",
+        "text": "fully with no additional calls required."
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "a5382857-7a7a-4649-8958-a71720a39506"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-fable-5-1",
+      "id": "msg_011CeeFrJcCCXKTMqWEifnnP",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "The tool returned exactly `conformance-probe-partials-fable51`, matching the input character for character. Nothing further is needed — the round trip completed successfully with no additional calls required."
+        }
+      ],
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 56,
+        "cache_creation_input_tokens": 142,
+        "cache_read_input_tokens": 1441,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 142,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 3,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "uuid": "a5797e27-cd29-4033-b642-5b6007748bce",
+    "timestamp": "2026-09-02T07:57:46.994Z",
+    "request_id": "req_011CeeFrFzgebLdLBPEA9oQU"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_stop",
+      "index": 1
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "bc9cf1ba-4735-46a9-9d6c-cc5698a821a7"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_delta",
+      "delta": {
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "stop_details": null
+      },
+      "usage": {
+        "input_tokens": 56,
+        "cache_creation_input_tokens": 142,
+        "cache_read_input_tokens": 1441,
+        "output_tokens": 126,
+        "output_tokens_details": {
+          "thinking_tokens": 66
+        },
+        "iterations": [
+          {
+            "input_tokens": 56,
+            "output_tokens": 126,
+            "cache_read_input_tokens": 1441,
+            "cache_creation_input_tokens": 142,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 142,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "type": "message"
+          }
+        ]
+      },
+      "context_management": {
+        "applied_edits": []
+      }
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "30f10fb3-8a9d-4d36-b345-9d7417c7a672"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_stop"
+    },
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "parent_tool_use_id": null,
+    "uuid": "230f8367-6fd7-4a30-9892-6b03201936f8"
+  },
+  {
+    "duration_api_ms": 13878,
+    "stop_reason": "end_turn",
+    "session_id": "2a55f306-d30a-4e9e-b79f-e8ffe6fb33f7",
+    "total_cost_usd": 0.034263749999999996,
+    "usage": {
+      "input_tokens": 58,
+      "cache_creation_input_tokens": 1583,
+      "cache_read_input_tokens": 1441,
+      "output_tokens": 250,
+      "output_tokens_details": {
+        "thinking_tokens": 66
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 1583
+      },
+      "inference_geo": "global",
+      "iterations": [
+        {
+          "input_tokens": 56,
+          "output_tokens": 126,
+          "cache_read_input_tokens": 1441,
+          "cache_creation_input_tokens": 142,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 142,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-haiku-4-5-20251001": {
+        "inputTokens": 936,
+        "outputTokens": 20,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0,
+        "webSearchRequests": 0,
+        "costUSD": 0.001036,
+        "contextWindow": 200000,
+        "maxOutputTokens": 32000,
+        "thinkingTokens": 0,
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-fable-5-1": {
+        "inputTokens": 58,
+        "outputTokens": 250,
+        "cacheReadInputTokens": 1441,
+        "cacheCreationInputTokens": 1583,
+        "webSearchRequests": 0,
+        "costUSD": 0.03322775,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000,
+        "thinkingTokens": 66,
+        "canonicalModel": "claude-fable-5-1",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required",
+    "subagent_stats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "is_error": false,
+    "num_turns": 2,
+    "subtype": "success",
+    "api_error_status": null,
+    "result": "The tool returned exactly `conformance-probe-partials-fable51`, matching the input character for character. Nothing further is needed — the round trip completed successfully with no additional calls required.",
+    "ttft_ms": 5565,
+    "type": "result",
+    "duration_ms": 13237,
+    "uuid": "ee85b41b-ff7c-46e3-bf17-bec4e4009cc0",
+    "ttft_stream_ms": 4041,
+    "time_to_request_ms": 185,
+    "queued_turn_count": 0
+  }
+]

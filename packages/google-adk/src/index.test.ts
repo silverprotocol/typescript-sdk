@@ -1411,3 +1411,245 @@ describe("createAdkNormalizer — adk 1.5.0 CompactedEvent projection → provid
     for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
   });
 });
+
+// ─── adk 2.0.0 + genai 2.20.0 peer-bump carries (2026-09-02) ─────────────────
+
+/** The provider-raw content.block whose raw bag carries `key`, if any. */
+function findProviderRawWith(out: AgEvent[], key: string) {
+  return out.find(
+    (e) =>
+      e.type === "content.block" &&
+      typeof (e as { block?: unknown }).block === "object" &&
+      (e as { block: { type?: string } }).block !== null &&
+      (e as { block: { type: string } }).block.type === "provider-raw" &&
+      key in ((e as { block: { raw: object } }).block.raw as object),
+  ) as { block: { raw: Record<string, unknown> } } | undefined;
+}
+
+/** Every provider-raw content.block in the stream (negative controls assert none). */
+function providerRawBlocks(out: AgEvent[]): AgEvent[] {
+  return out.filter(
+    (e) =>
+      e.type === "content.block" &&
+      typeof (e as { block?: unknown }).block === "object" &&
+      (e as { block: { type?: string } }).block !== null &&
+      (e as { block: { type: string } }).block.type === "provider-raw",
+  );
+}
+
+describe("createAdkNormalizer — adk 2.0.0 workflow-plane Event fields → provider-raw carry", () => {
+  // output/route/nodeInfo/isolationScope are the four new optional `Event`
+  // own-fields in 2.0.0's event.d.ts. They are stamped ONLY by the new
+  // workflow plane (dist/esm/workflow/node_runner.js sets output/route on node
+  // results; run_llm_agent_as_node.js stamps nodeInfo.messageAsOutput +
+  // isolationScope) and round-tripped by vertex_ai_session_service.js — a
+  // plain LlmAgent runner.runAsync stream never carries them, so this carry
+  // is workflow-plane/session-replay ingestion tolerance (the CompactedEvent/
+  // isScratchpad + interactionId precedents) and cannot fire on the standing
+  // gemini37 trio. The fixtures below mirror the upstream d.ts shapes exactly:
+  // Route = RouteKey | RouteKey[] (RouteKey = string|number|boolean), NodeInfo
+  // = {path?, outputFor?: string[], messageAsOutput?}, output: unknown.
+  const workflowFields = {
+    output: { verdict: "approved", score: 0.92 },
+    route: ["approve", "notify"],
+    nodeInfo: { path: "wf.review.0", outputFor: ["wf.review.0", "wf.review"], messageAsOutput: true },
+    isolationScope: "wf.review.0@run_7",
+  };
+  const workflowEvent = (extra: Partial<AdkEvent> = {}) =>
+    event([{ text: "Approved." }], {
+      partial: false,
+      turnComplete: true,
+      finishReason: "STOP",
+      author: "reviewer",
+      ...extra,
+    });
+
+  it("carries all four workflow fields in ONE event-level provider-raw block (nodeInfo as a whole object) — and the ubiquitous author field still does NOT leak", () => {
+    const out = run([workflowEvent(workflowFields)]);
+    const raw = findProviderRawWith(out, "nodeInfo");
+    expect(raw).toBeDefined();
+    expect(raw?.block.raw).toEqual(workflowFields);
+    expect("author" in (raw?.block.raw ?? {})).toBe(false);
+    // Exactly one provider-raw block: the quartet joins the existing
+    // unmappedEvent ledger rather than fanning out per field.
+    expect(providerRawBlocks(out)).toHaveLength(1);
+    // The node's textual content itself still streams as ordinary text.
+    expect(out.some((e) => e.type === "text.delta")).toBe(true);
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("carries a scalar RouteKey route and a falsy one losslessly (present-check, not truthiness)", () => {
+    const single = run([workflowEvent({ route: "approve" })]);
+    expect(findProviderRawWith(single, "route")?.block.raw).toEqual({ route: "approve" });
+    const falsy = run([workflowEvent({ route: false })]);
+    expect(findProviderRawWith(falsy, "route")?.block.raw).toEqual({ route: false });
+    const zero = run([workflowEvent({ route: 0 })]);
+    expect(findProviderRawWith(zero, "route")?.block.raw).toEqual({ route: 0 });
+    for (const ev of [...single, ...falsy, ...zero]) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("carries each field independently (a node event may stamp only isolationScope, or only output)", () => {
+    const scoped = run([workflowEvent({ isolationScope: "wf.child.1@run_7" })]);
+    expect(findProviderRawWith(scoped, "isolationScope")?.block.raw).toEqual({
+      isolationScope: "wf.child.1@run_7",
+    });
+    const produced = run([workflowEvent({ output: "plain string output" })]);
+    expect(findProviderRawWith(produced, "output")?.block.raw).toEqual({
+      output: "plain string output",
+    });
+    for (const ev of [...scoped, ...produced]) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("joins the existing unmappedEvent ledger alongside interactionId/branch in the SAME block", () => {
+    const out = run([
+      workflowEvent({ ...workflowFields, interactionId: "int_wf_1", branch: "wf.review" }),
+    ]);
+    const raw = findProviderRawWith(out, "nodeInfo");
+    expect(raw?.block.raw).toEqual({ interactionId: "int_wf_1", branch: "wf.review", ...workflowFields });
+    expect(providerRawBlocks(out)).toHaveLength(1);
+  });
+
+  it("a workflow-node turn plus a plain turn fold cleanly through the Reducer (INV-MSG fold gate: no parks)", () => {
+    const evs = run([
+      workflowEvent(workflowFields),
+      event([{ text: "fresh turn" }], {
+        invocationId: "inv_fixture_2",
+        partial: false,
+        turnComplete: true,
+        finishReason: "STOP",
+      }),
+    ]);
+    const r = new Reducer();
+    for (const ev of evs) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    expect(() => AgReduceResult.parse(r.result())).not.toThrow();
+  });
+
+  it("a 1.6.0-shaped event (none of the four fields) stays byte-identical — NO provider-raw, no new key anywhere (negative control)", () => {
+    const out = run([workflowEvent()]);
+    expect(providerRawBlocks(out)).toHaveLength(0);
+    const json = JSON.stringify(out);
+    for (const key of ["output", "route", "nodeInfo", "isolationScope"]) {
+      expect(json).not.toContain(`"${key}"`);
+    }
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+});
+
+describe("createAdkNormalizer — adk 2.0.0 EventActions.agentState (object-valued) → unmappedActions carry", () => {
+  // 2.0.0 promotes agentState/endOfAgent to FIRST-CLASS EventActions members
+  // (event_actions.d.ts). Both were already on the hand-typed contract and
+  // ledger-carried — but agentState was typed `string`, while the official
+  // shape is `Record<string, unknown>` (node_runner.js writes `{ input }` /
+  // a resumable-checkpoint snapshot). The contract is widened to JsonValue
+  // and the value routed through JsonValue.parse at the boundary.
+  const snapshot = {
+    input: { query: "refund order 42" },
+    checkpoint: { step: 3, pending: ["notify"], done: true },
+  };
+  const actionsEvent = (actions: NonNullable<AdkEvent["actions"]>) =>
+    event([{ text: "done" }], { partial: false, turnComplete: true, finishReason: "STOP", actions });
+
+  it("carries an OBJECT-valued agentState losslessly (nested objects + arrays intact), alongside endOfAgent", () => {
+    const out = run([actionsEvent({ agentState: snapshot, endOfAgent: true })]);
+    const raw = findProviderRawWith(out, "agentState");
+    expect(raw).toBeDefined();
+    expect(raw?.block.raw).toEqual({ agentState: snapshot, endOfAgent: true });
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("still carries a legacy string-valued agentState (pre-2.0.0 hand-typed shape — older-wire tolerance)", () => {
+    const out = run([actionsEvent({ agentState: "opaque-legacy-state" })]);
+    expect(findProviderRawWith(out, "agentState")?.block.raw).toEqual({
+      agentState: "opaque-legacy-state",
+    });
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("an object-valued agentState folds cleanly through the Reducer (no parks)", () => {
+    const evs = run([actionsEvent({ agentState: snapshot, endOfAgent: true })]);
+    const r = new Reducer();
+    for (const ev of evs) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    expect(() => AgReduceResult.parse(r.result())).not.toThrow();
+  });
+
+  it("a 1.6.0-shaped actions bag (stateDelta only, no agentState/endOfAgent) stays byte-identical — state.delta emitted, NO provider-raw (negative control)", () => {
+    const out = run([actionsEvent({ stateDelta: { step: 1 } })]);
+    expect(out.some((e) => e.type === "state.delta")).toBe(true);
+    expect(providerRawBlocks(out)).toHaveLength(0);
+    expect(JSON.stringify(out)).not.toContain("agentState");
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+});
+
+describe("createAdkNormalizer — genai 2.20.0 Part.mediaProcessing → provider-raw carry", () => {
+  // The ONE new genai `Part` field 2.17.1 -> 2.20.0: "How the model processes
+  // this part's media for understanding." — the MediaProcessing enum
+  // (MEDIA_PROCESSING_UNSPECIFIED | STATIC | AGENTIC), a request-side hint
+  // riding ALONGSIDE the inlineData/fileData part it qualifies — the same
+  // sibling situation as mediaResolution/videoMetadata, so it joins the SAME
+  // unconditional unmapped-part-fields carry checked BEFORE the if-chain's
+  // early returns (an else-fallback would never see it on a part whose
+  // primary kind already matched).
+  const mediaPartEvent = (extra: Partial<AdkPart> = {}) =>
+    event([{ inlineData: { mimeType: "video/mp4", data: "AAAA" }, ...extra }], {
+      partial: false,
+      turnComplete: true,
+      finishReason: "STOP",
+    });
+
+  it("carries mediaProcessing ALONGSIDE the already-handled inlineData block on the SAME part (videoMetadata precedent)", () => {
+    const out = run([mediaPartEvent({ mediaProcessing: "AGENTIC" })]);
+    const fileBlock = out.find(
+      (e) =>
+        e.type === "content.block" &&
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type === "file",
+    );
+    expect(fileBlock).toBeDefined();
+    expect(findProviderRawWith(out, "mediaProcessing")?.block.raw).toEqual({
+      mediaProcessing: "AGENTIC",
+    });
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("rides in the SAME single provider-raw block as its videoMetadata sibling (one ledger, not two blocks)", () => {
+    const out = run([
+      mediaPartEvent({
+        mediaProcessing: "STATIC",
+        videoMetadata: { startOffset: "1.0s", endOffset: "3.0s", fps: 2 },
+      }),
+    ]);
+    expect(findProviderRawWith(out, "mediaProcessing")?.block.raw).toEqual({
+      videoMetadata: { startOffset: "1.0s", endOffset: "3.0s", fps: 2 },
+      mediaProcessing: "STATIC",
+    });
+    expect(providerRawBlocks(out)).toHaveLength(1);
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("also carries it beside a fileData part (the other media kind the hint qualifies)", () => {
+    const out = run([
+      event([
+        {
+          fileData: { mimeType: "video/mp4", fileUri: "gs://bucket/clip.mp4" },
+          mediaProcessing: "MEDIA_PROCESSING_UNSPECIFIED",
+        },
+      ]),
+    ]);
+    expect(out.some((e) => e.type === "content.block" && (e as { block: { type: string } }).block.type === "resource-link")).toBe(true);
+    expect(findProviderRawWith(out, "mediaProcessing")?.block.raw).toEqual({
+      mediaProcessing: "MEDIA_PROCESSING_UNSPECIFIED",
+    });
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("a 2.17.1-shaped media part (no mediaProcessing) stays byte-identical — NO provider-raw, no new key anywhere (negative control)", () => {
+    const out = run([mediaPartEvent()]);
+    expect(providerRawBlocks(out)).toHaveLength(0);
+    expect(JSON.stringify(out)).not.toContain("mediaProcessing");
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+});

@@ -131,6 +131,22 @@ describe("de-cumulation", () => {
     expect(deltas.map((e) => e.delta)).toEqual(["Think", "ing"]);
   });
 
+  it("reasoningDelta carries opts.providerMetadata verbatim and omits the key when absent", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.reasoningStart("r1", "m1");
+    a.reasoningDelta("r1", "m1", "", { providerMetadata: AgProviderMeta.parse({ estimated_tokens: 50 }) });
+    a.reasoningDelta("r1", "m1", "plain");
+    const deltas = a.drain().filter((e) => e.type === "reasoning.delta") as Array<{
+      delta: string;
+      providerMetadata?: unknown;
+    }>;
+    expect(deltas).toHaveLength(2);
+    expect(deltas[0]!.providerMetadata).toEqual({ estimated_tokens: 50 });
+    expect("providerMetadata" in deltas[1]!).toBe(false);
+  });
+
   it("de-cumulates toolArgsDelta: cumulative slice", () => {
     const a = new StreamAssembler();
     a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });

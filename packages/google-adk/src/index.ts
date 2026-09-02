@@ -135,6 +135,18 @@ export interface AdkPart {
    *  would orphan `speakerLabel`/`words` — a spec-process decision, not a
    *  mechanical carry. */
   audioTranscription?: JsonValue;
+  /** "How the model processes this part's media for understanding." (genai
+   *  2.20.0 — the ONE new `Part` field 2.17.1 -> 2.20.0.) The `MediaProcessing`
+   *  enum: MEDIA_PROCESSING_UNSPECIFIED (model-specific default) | STATIC
+   *  (fixed-rate frame extraction, all frames in context) | AGENTIC
+   *  (model-driven dynamic navigation). A REQUEST-side media-understanding
+   *  hint that rides ALONGSIDE the `inlineData`/`fileData` part it qualifies —
+   *  the identical sibling situation as `mediaResolution`/`videoMetadata`, so
+   *  it joins the SAME unconditional unmapped-part-fields provider-raw carry
+   *  at the top of `driveAdkPart` (never an else-fallback, which would miss it
+   *  on a part whose primary kind already matched and returned). Typed
+   *  JsonValue (opaque carry, never interpreted) per the sibling precedents. */
+  mediaProcessing?: JsonValue;
 }
 
 /** A Gemini `Content` — the role + the part list. ADK normalizes Gemini's
@@ -192,9 +204,18 @@ export interface AdkEvent {
     artifactDelta?: { [k: string]: JsonValue };
     /** UI widgets to render inline. */
     renderUiWidgets?: Array<{ name?: string; code?: string }>;
-    /** Opaque agent state string (runtime passthrough). */
-    agentState?: string;
-    /** Signals the end of the agent processing pipeline for this turn. */
+    /** Workflow: "a serialized node/agent state snapshot used for resumable
+     *  checkpointing" — FIRST-CLASS on the official `EventActions` since
+     *  `@google/adk` 2.0.0 (event_actions.d.ts, `agentState?: Record<string,
+     *  unknown>`; the workflow plane writes an OBJECT, e.g. `{ input }` from
+     *  dist/esm/workflow/node_runner.js). Was hand-typed `string` here before
+     *  the 2.0.0 bump — WRONG for the official shape; widened to JsonValue so
+     *  the object rides losslessly through the `unmappedActions` ledger (via
+     *  JsonValue.parse at the boundary) while a legacy string still passes. */
+    agentState?: JsonValue;
+    /** Workflow: "marks that the emitting agent/workflow has reached the end
+     *  of its execution for this invocation" — FIRST-CLASS on the official
+     *  `EventActions` since 2.0.0 (was already on this contract + ledger). */
     endOfAgent?: boolean;
   };
   /** Gemini token usage metadata (maps to AgUsage on turn.done). */
@@ -299,6 +320,40 @@ export interface AdkEvent {
   compactedContent?: string;
   /** Marks the compacted event as the persistent context scratchpad (1.5.0). */
   isScratchpad?: boolean;
+  /** WORKFLOW-PLANE Event fields (`@google/adk` 2.0.0,
+   *  dist/types/events/event.d.ts — the four new optional `Event` own-fields;
+   *  the fifth addition, a non-serializable unique-symbol brand set by
+   *  `createEvent`/checked by `isEvent`, is invisible to JSON and needs no
+   *  projection). All four are stamped ONLY by the new workflow plane
+   *  (dist/esm/workflow/node_runner.js sets `output`/`route` on node results;
+   *  run_llm_agent_as_node.js stamps `nodeInfo.messageAsOutput` +
+   *  `isolationScope`) and round-tripped by
+   *  sessions/vertex_ai_session_service.js's event metadata — a plain
+   *  `LlmAgent` `runner.runAsync` stream (this facet's ingestion boundary)
+   *  never carries them, so they are workflow-plane / session-replay ingestion
+   *  tolerance carried via the event-level unmapped-fields provider-raw ledger
+   *  per the CompactedEvent/`isScratchpad` + `interactionId` precedents
+   *  (absent from all recorded fixtures — no golden-snapshot impact).
+   *
+   *  "Workflow: the structured output produced by the emitting node, if any"
+   *  (`output?: unknown` upstream — JsonValue at this JSON boundary). */
+  output?: JsonValue;
+  /** "Workflow: the route key(s) emitted by a routing node, used by the graph
+   *  to select the matching outgoing edge(s)" — upstream `Route = RouteKey |
+   *  RouteKey[]`, `RouteKey = string | number | boolean` (a single key fires
+   *  one branch; an array fires every branch whose route matches). Carried
+   *  opaquely (present-check, never truthiness — `false`/`0` are valid keys). */
+  route?: JsonValue;
+  /** "Workflow: provenance of the emitting node" (`NodeInfo`): `path` = the
+   *  node path that produced the event (e.g. `wf.child.0`); `outputFor` = the
+   *  node paths this event's output serves as the output for (emitting node
+   *  first, then any ancestor that delegated via `useAsOutput`);
+   *  `messageAsOutput` = whether the textual content is promoted to the node's
+   *  structured output. Carried as a WHOLE object. */
+  nodeInfo?: { path?: string; outputFor?: string[]; messageAsOutput?: boolean };
+  /** "Workflow: scope tag used to isolate multi-agent conversations so peer
+   *  scopes don't see each other's events" (e.g. `<nodePath>@<runId>`). */
+  isolationScope?: string;
 }
 
 // ─── finishReason → AgFinishReason (spec §4) ──────────────────────────────────
@@ -751,8 +806,8 @@ function driveAdkPart(
   citations?: AgCitation[]
 ): string {
   // ── UNMAPPED PART FIELDS (mediaResolution/videoMetadata/toolCall/toolResponse/
-  // partMetadata/audioTranscription) → provider-raw content.block (fixture-drift
-  // ratchet finding, google-adk-ratchet task; Tenet-6; SPEC §8 item 23). These
+  // partMetadata/audioTranscription/mediaProcessing) → provider-raw content.block
+  // (fixture-drift ratchet finding, google-adk-ratchet task; Tenet-6; SPEC §8 item 23). These
   // genai `Part` fields have NO route in the kind-specific if-chain below.
   // Checked UNCONDITIONALLY, before that if-chain's early returns, because
   // `videoMetadata` normally rides ALONGSIDE an already-handled `inlineData`/
@@ -761,7 +816,9 @@ function driveAdkPart(
   // AFTER the if-chain would never see a sibling field on a part that already
   // matched a primary kind and returned. `audioTranscription` (genai 2.15.0)
   // is the same sibling situation: "Output only. The transcription of the
-  // audio part" rides alongside the audio `inlineData` it transcribes.
+  // audio part" rides alongside the audio `inlineData` it transcribes. So is
+  // `mediaProcessing` (genai 2.20.0): a request-side media-understanding hint
+  // qualifying the `inlineData`/`fileData` part it rides beside.
   // Mirrors `driveAdkTopLevel`'s `unmappedActions`/`unmappedEvent` carry
   // pattern (named-field ledger, not a generic reflection-over-keys
   // catch-all — fixture discipline: type/carry only what is verified on the
@@ -778,6 +835,8 @@ function driveAdkPart(
     unmappedPartFields["partMetadata"] = JsonValue.parse(part.partMetadata);
   if (part.audioTranscription !== undefined)
     unmappedPartFields["audioTranscription"] = JsonValue.parse(part.audioTranscription);
+  if (part.mediaProcessing !== undefined)
+    unmappedPartFields["mediaProcessing"] = JsonValue.parse(part.mediaProcessing);
   if (Object.keys(unmappedPartFields).length > 0) {
     a.contentBlock(messageId, {
       type: "provider-raw",
@@ -1082,7 +1141,11 @@ function driveAdkTopLevel(
       unmappedActions["artifactDelta"] = JsonValue.parse(actions.artifactDelta);
     if (actions.renderUiWidgets !== undefined)
       unmappedActions["renderUiWidgets"] = JsonValue.parse(actions.renderUiWidgets);
-    if (actions.agentState !== undefined) unmappedActions["agentState"] = actions.agentState;
+    // agentState is an OBJECT on the official 2.0.0 EventActions (a
+    // resumable-checkpoint snapshot, e.g. `{ input }`), a string on the older
+    // hand-typed contract — JsonValue.parse at the boundary carries either.
+    if (actions.agentState !== undefined)
+      unmappedActions["agentState"] = JsonValue.parse(actions.agentState);
     if (actions.endOfAgent !== undefined) unmappedActions["endOfAgent"] = actions.endOfAgent;
     if (Object.keys(unmappedActions).length > 0) {
       a.contentBlock(messageId, {
@@ -1095,7 +1158,8 @@ function driveAdkTopLevel(
 
   // ── event-level unmapped (citationMetadata / customMetadata / candidateIndex /
   // branch / modelVersion / interactionId / the CompactedEvent subtype
-  // projection isCompacted+startTime+endTime+compactedContent+isScratchpad) →
+  // projection isCompacted+startTime+endTime+compactedContent+isScratchpad /
+  // the 2.0.0 workflow-plane quartet output+route+nodeInfo+isolationScope) →
   // provider-raw ──
   // candidateIndex/branch are fixture-drift ratchet findings (google-adk-ratchet
   // task; SPEC §8 item 23): candidateIndex was entirely absent from the
@@ -1138,6 +1202,18 @@ function driveAdkTopLevel(
   if (event.compactedContent !== undefined)
     unmappedEvent["compactedContent"] = event.compactedContent;
   if (event.isScratchpad !== undefined) unmappedEvent["isScratchpad"] = event.isScratchpad;
+  // Workflow-plane quartet (2.0.0 peer bump; see the AdkEvent field docs):
+  // stamped only by dist/esm/workflow/* and round-tripped by the Vertex
+  // session service — never on a plain LlmAgent runAsync stream, so this is
+  // the same never-fires-on-captured-wire tolerance class as the
+  // CompactedEvent projection above. Present-checks throughout (`route` may
+  // legitimately be `false`/`0`; `output` may be any JSON value incl. null);
+  // `nodeInfo` rides as a WHOLE object.
+  if (event.output !== undefined) unmappedEvent["output"] = JsonValue.parse(event.output);
+  if (event.route !== undefined) unmappedEvent["route"] = JsonValue.parse(event.route);
+  if (event.nodeInfo !== undefined) unmappedEvent["nodeInfo"] = JsonValue.parse(event.nodeInfo);
+  if (event.isolationScope !== undefined)
+    unmappedEvent["isolationScope"] = JsonValue.parse(event.isolationScope);
   if (event.citationMetadata !== undefined)
     unmappedEvent["citationMetadata"] = JsonValue.parse(event.citationMetadata);
   if (event.customMetadata !== undefined)

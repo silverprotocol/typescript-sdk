@@ -1285,6 +1285,22 @@ describe("createClaudeNormalizer — deferral c: assistant error → turn.error"
     );
     assertAllValid(evs);
   });
+
+  // 0.3.258: `SDKAssistantMessageError` gained `account_on_hold` — a billing-
+  // class hold on the account (first cousin of `billing_error`): cleared by
+  // the account holder, never by re-sending the turn → deliberately NOT
+  // retriable (explicit false-by-omission, like model_not_found above).
+  it("emits turn.error with retriable:false for account_on_hold (billing-class hold, not transient)", () => {
+    const evs = run(assistantMsgWithError("account_on_hold"));
+    expect(evs).toContainEqual(
+      expect.objectContaining({
+        type: "turn.error",
+        code: "account_on_hold",
+        retriable: false,
+      }),
+    );
+    assertAllValid(evs);
+  });
 });
 
 // ─── Finding #1 (critical): refusal-fallback retraction protocol ─────────────
@@ -1797,6 +1813,54 @@ describe("tool_use_result sibling mapping (audit B7)", () => {
     expect(dones).toHaveLength(2);
     for (const d of dones) expect(d.type === "tool.done" && d.uiData).toBeUndefined();
   });
+
+  // ── 0.3.257 sibling: `resourceLinks` — the MCP result's resource_link blocks
+  // (files returned by reference), collected by the CLI beside
+  // structuredContent/_meta. Content stays model-faithful; the links ride the
+  // adopted tool.done's providerMetadata, key verbatim. ──
+  const RESOURCE_LINKS: JsonValue[] = [
+    {
+      uri: "file:///tmp/report.pdf",
+      name: "report.pdf",
+      title: "Quarterly report",
+      description: "Rendered from the spreadsheet",
+      mimeType: "application/pdf",
+      size: 48213,
+    },
+    { uri: "file:///tmp/notes.md", name: "notes.md" },
+  ];
+
+  it("carries the sibling's resourceLinks (0.3.257) verbatim as providerMetadata on the adopted tool.done — content stays model-faithful", () => {
+    const n = createClaudeNormalizer();
+    const evs = n.push(userMsgWith({ structuredContent: { answer: 42 }, resourceLinks: RESOURCE_LINKS }));
+    assertAllValid(evs);
+    const done = evs.find((e) => e.type === "tool.done");
+    expect(done?.type === "tool.done" && done.providerMetadata).toEqual({ resourceLinks: RESOURCE_LINKS });
+    // The block's own content (the text the model read) is untouched, and the
+    // sibling's other fields still route as before.
+    expect(done?.type === "tool.done" && done.content).toEqual([]);
+    expect(done?.type === "tool.done" && done.structuredContent).toEqual({ answer: 42 });
+  });
+
+  it("skips resourceLinks on a multi-result message (the sibling's single-result attribution rule)", () => {
+    const n = createClaudeNormalizer();
+    const dones = n
+      .push(userMsgWith({ resourceLinks: RESOURCE_LINKS }, twoToolResults))
+      .filter((e) => e.type === "tool.done");
+    expect(dones).toHaveLength(2);
+    for (const d of dones) expect(d.type === "tool.done" && d.providerMetadata).toBeUndefined();
+  });
+
+  it("emits NO providerMetadata when the sibling carries no resourceLinks (negative control — pre-0.3.257 output unchanged)", () => {
+    const n = createClaudeNormalizer();
+    const evs = n.push(userMsgWith({ structuredContent: { answer: 42 } }));
+    const done = evs.find((e) => e.type === "tool.done");
+    expect(done?.type === "tool.done" && done.providerMetadata).toBeUndefined();
+    // A non-array `resourceLinks` (malformed) is likewise ignored, never thrown on.
+    const malformed = createClaudeNormalizer().push(userMsgWith({ resourceLinks: "nope" }));
+    const doneM = malformed.find((e) => e.type === "tool.done");
+    expect(doneM?.type === "tool.done" && doneM.providerMetadata).toBeUndefined();
+  });
 });
 
 // ─── fixture-drift ratchet — the 16 remaining `silently-dropped` claude arms
@@ -1839,6 +1903,17 @@ function localCommandOutputMsg(): SDKMessage {
     subtype: "local_command_output",
     content: "Compacted 12 messages, saved 4200 tokens.",
     uuid: "00000000-0000-0000-0000-0000000000b1",
+    session_id: "sess_fixture",
+  };
+}
+
+function thinkingTokensMsg(): SDKMessage {
+  return {
+    type: "system",
+    subtype: "thinking_tokens",
+    estimated_tokens: 197,
+    estimated_tokens_delta: 147,
+    uuid: "00000000-0000-0000-0000-0000000000c9",
     session_id: "sess_fixture",
   };
 }
@@ -2031,6 +2106,9 @@ const CARRIED_ARMS: ReadonlyArray<{ armName: string; kind: string; msg: SDKMessa
   { armName: "SDKModelRefusalNoFallbackMessage", kind: "model_refusal_no_fallback", msg: modelRefusalNoFallbackMsg() },
   { armName: "SDKLocalCommandOutputMessage", kind: "local_command_output", msg: localCommandOutputMsg() },
   { armName: "SDKHookProgressMessage", kind: "hook_progress", msg: hookProgressMsg() },
+  // cohort 0.5.4 (corpus/partials-fable51): the thinking-progress ping — see
+  // CARRIED_SYSTEM_SUBTYPES for why it left router-plane.
+  { armName: "SDKThinkingTokensMessage", kind: "thinking_tokens", msg: thinkingTokensMsg() },
   { armName: "SDKHookResponseMessage", kind: "hook_response", msg: hookResponseMsg() },
   { armName: "SDKAuthStatusMessage", kind: "auth_status", msg: authStatusMsg() },
   { armName: "SDKTaskNotificationMessage", kind: "task_notification", msg: taskNotificationMsg() },
@@ -2311,6 +2389,52 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     for (const e of evs) r.push(e);
     expect(r.needsResync).toBe(false);
   });
+
+  // ── 0.3.258 sibling: `user_message_uuid` — the client uuid of the user
+  // message this turn answers, stamped on the turn's FIRST reply frame only.
+  // Joins the same first-block carrier, wire name verbatim. ──
+  const USER_MESSAGE_UUID = "018f0000-0000-7000-8000-00000000d002";
+
+  it("carries user_message_uuid verbatim as providerMetadata on the first block (0.3.258)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(wrapperAssistant({ user_message_uuid: USER_MESSAGE_UUID }))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const firstBlock = evs.find(
+      (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
+    );
+    expect(firstBlock).toMatchObject({ providerMetadata: { user_message_uuid: USER_MESSAGE_UUID } });
+    // Complete-only mode: the first-block carrier is the ONLY channel — no
+    // message.metadata twin.
+    expect(evs.some((e) => e.type === "message.metadata")).toBe(false);
+  });
+
+  it("user_message_uuid on a BLOCK-LESS frame rides message.metadata, merged with the other wrapper siblings", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(wrapperAssistant({ aborted: true, user_message_uuid: USER_MESSAGE_UUID }, []))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const meta = evs.find((e) => e.type === "message.metadata");
+    expect(meta).toMatchObject({
+      messageId: "msg_wrapper",
+      metadata: { aborted: true, user_message_uuid: USER_MESSAGE_UUID },
+    });
+  });
+
+  it("emits NO user_message_uuid key when the frame lacks it — the other wrapper siblings are unaffected (negative control)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(JsonValue.parse(wrapperAssistant({ aborted: true }))), ...n.flush()];
+    assertAllValid(evs);
+    const firstBlock = evs.find(
+      (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
+    ) as { providerMetadata?: { user_message_uuid?: unknown } };
+    expect(firstBlock).toMatchObject({ providerMetadata: { aborted: true } });
+    expect(firstBlock.providerMetadata?.user_message_uuid).toBeUndefined();
+  });
 });
 
 describe("createClaudeNormalizer — 0.3.220 result-meta carry (fast_mode_disabled_reason / ModelUsage serving identity)", () => {
@@ -2414,6 +2538,217 @@ describe("createClaudeNormalizer — 0.3.220 result-meta carry (fast_mode_disabl
   });
 });
 
+describe("createClaudeNormalizer — 0.3.258 result-meta additions (ModelUsage.costBasis / user_message_uuid / queued_turn_count)", () => {
+  type SDKResultErrorMsg = Exclude<Extract<SDKMessage, { type: "result" }>, { subtype: "success" }>;
+  const UMU = "018f0000-0000-7000-8000-00000000e001";
+
+  // The frozen per-model fixture + the 0.3.220 identity + the 0.3.246 costBasis.
+  const PRICED_MODEL_USAGE: SDKResultSuccessMsg["modelUsage"] = {
+    "claude-opus": {
+      inputTokens: 100,
+      outputTokens: 50,
+      cacheReadInputTokens: 20,
+      cacheCreationInputTokens: 10,
+      webSearchRequests: 0,
+      costUSD: 0.05,
+      contextWindow: 200000,
+      maxOutputTokens: 8192,
+      canonicalModel: "claude-opus-4-7",
+      provider: "bedrock",
+      costBasis: "managed",
+    },
+  };
+  // Same identity WITHOUT costBasis (the pre-0.3.246 identity shape).
+  const IDENTITY_ONLY_MODEL_USAGE: SDKResultSuccessMsg["modelUsage"] = {
+    "claude-opus": {
+      inputTokens: 100,
+      outputTokens: 50,
+      cacheReadInputTokens: 20,
+      cacheCreationInputTokens: 10,
+      webSearchRequests: 0,
+      costUSD: 0.05,
+      contextWindow: 200000,
+      maxOutputTokens: 8192,
+      canonicalModel: "claude-opus-4-7",
+      provider: "bedrock",
+    },
+  };
+
+  it("carries ModelUsage.costBasis inside the per-model identity beside canonicalModel/provider", () => {
+    const msg: SDKResultSuccessMsg = {
+      ...(resultSuccess("end_turn") as SDKResultSuccessMsg),
+      modelUsage: PRICED_MODEL_USAGE,
+    };
+    const evs = run(msg);
+    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
+    expect(evs[0]).toMatchObject({
+      type: "ext.anthropic.result-meta",
+      modelUsage: {
+        "claude-opus": { canonicalModel: "claude-opus-4-7", provider: "bedrock", costBasis: "managed" },
+      },
+    });
+    // turn.done's byModel still maps the token/cost fields, identity-free.
+    expect(evs[1]).toMatchObject({
+      type: "turn.done",
+      usage: { byModel: { "claude-opus": { inputTokens: 100, costUsd: 0.05 } } },
+    });
+    assertAllValid(evs);
+  });
+
+  it("carries userMessageUuid + queuedTurnCount top-level on the SUCCESS arm — queuedTurnCount 0 is a real value, kept", () => {
+    const msg: SDKResultSuccessMsg = {
+      ...(resultSuccess("end_turn") as SDKResultSuccessMsg),
+      user_message_uuid: UMU,
+      queued_turn_count: 0,
+    };
+    const evs = run(msg);
+    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
+    expect(evs[0]).toMatchObject({
+      type: "ext.anthropic.result-meta",
+      userMessageUuid: UMU,
+      queuedTurnCount: 0,
+    });
+    // Nothing fabricated beside them.
+    expect((evs[0] as { fastModeDisabledReason?: unknown }).fastModeDisabledReason).toBeUndefined();
+    expect((evs[0] as { modelUsage?: unknown }).modelUsage).toBeUndefined();
+    assertAllValid(evs);
+  });
+
+  it("carries userMessageUuid + queuedTurnCount on the ERROR arm too (SDKResultError gained user_message_uuid in 0.3.258), before turn.error", () => {
+    const msg: SDKResultErrorMsg = {
+      ...(resultError("error_during_execution") as SDKResultErrorMsg),
+      user_message_uuid: UMU,
+      queued_turn_count: 2,
+    };
+    const evs = run(msg);
+    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.error"]);
+    expect(evs[0]).toMatchObject({
+      type: "ext.anthropic.result-meta",
+      userMessageUuid: UMU,
+      queuedTurnCount: 2,
+    });
+    expect(evs[1]).toMatchObject({ type: "turn.error", code: "error_during_execution", retriable: true });
+    assertAllValid(evs);
+  });
+
+  it("negative control: an identity without costBasis and frames without the two siblings emit no such keys — pre-0.3.258 output byte-identical", () => {
+    const evs = run({
+      ...(resultSuccess("end_turn") as SDKResultSuccessMsg),
+      modelUsage: IDENTITY_ONLY_MODEL_USAGE,
+    });
+    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
+    const meta = evs[0] as {
+      modelUsage?: { [model: string]: { costBasis?: unknown } | undefined };
+      userMessageUuid?: unknown;
+      queuedTurnCount?: unknown;
+    };
+    expect(meta.modelUsage?.["claude-opus"]).toEqual({ canonicalModel: "claude-opus-4-7", provider: "bedrock" });
+    expect(meta.modelUsage?.["claude-opus"]?.costBasis).toBeUndefined();
+    expect(meta.userMessageUuid).toBeUndefined();
+    expect(meta.queuedTurnCount).toBeUndefined();
+    // The frozen fixtures (no identity, no siblings) still emit NO result-meta at all.
+    expect(run(resultSuccess("end_turn")).map((e) => e.type)).toEqual(["turn.done"]);
+    expect(run(resultError("error_max_turns")).map((e) => e.type)).toEqual(["turn.error"]);
+  });
+});
+
+// ─── 0.3.257 thinking-token telemetry → AgUsage.reasoningTokens ──────────────
+// `ModelUsage.thinkingTokens` ("already counted inside outputTokens") and the
+// wire-level `usage.output_tokens_details.thinking_tokens` (undeclared on the
+// bundled BetaUsage/BetaMessageDeltaUsage 0.93.0 — read through the runtime
+// guard) both land on `reasoningTokens` as a SUBSET of outputTokens, the same
+// convention the openai/adk facets follow. Absent ⇒ no key (byte-identical).
+describe("createClaudeNormalizer — 0.3.257 thinking-token telemetry → reasoningTokens (subset of outputTokens)", () => {
+  type UsageBag = {
+    usage?: { reasoningTokens?: unknown; byModel?: { [model: string]: { reasoningTokens?: unknown } | undefined } };
+  };
+  const base = (): SDKResultSuccessMsg => resultSuccess("end_turn") as SDKResultSuccessMsg;
+
+  it("modelUsage.<model>.thinkingTokens → turn.done usage.byModel.<model>.reasoningTokens", () => {
+    const msg: SDKResultSuccessMsg = {
+      ...base(),
+      modelUsage: {
+        "claude-opus": {
+          inputTokens: 100,
+          outputTokens: 50,
+          thinkingTokens: 12,
+          cacheReadInputTokens: 20,
+          cacheCreationInputTokens: 10,
+          webSearchRequests: 0,
+          costUSD: 0.05,
+          contextWindow: 200000,
+          maxOutputTokens: 8192,
+        },
+      },
+    };
+    const evs = run(msg);
+    const done = evs.find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({
+      type: "turn.done",
+      usage: { outputTokens: 50, byModel: { "claude-opus": { outputTokens: 50, reasoningTokens: 12 } } },
+    });
+    // The aggregate usage carried no output_tokens_details — no top-level key fabricated.
+    expect((done as UsageBag).usage?.reasoningTokens).toBeUndefined();
+    assertAllValid(evs);
+  });
+
+  it("result usage.output_tokens_details.thinking_tokens (runtime-guarded — undeclared on BetaUsage 0.93.0) → turn.done usage.reasoningTokens", () => {
+    const b = base();
+    // The wire carries the field the peer type does not declare — assembled at
+    // the JsonValue boundary, exactly as the run-seam delivers it.
+    const wire: unknown = { ...b, usage: { ...b.usage, output_tokens_details: { thinking_tokens: 7 } } };
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(JsonValue.parse(wire)), ...n.flush()];
+    const done = evs.find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({
+      type: "turn.done",
+      usage: { inputTokens: 100, outputTokens: 50, reasoningTokens: 7, cumulative: true },
+    });
+    assertAllValid(evs);
+  });
+
+  it("assistant message.usage.output_tokens_details.thinking_tokens → message.end usage.reasoningTokens", () => {
+    const b = assistantMsg([{ type: "text", text: "hi", citations: null }]) as SDKAssistant;
+    const wire: unknown = {
+      ...b,
+      message: { ...b.message, usage: { ...b.message.usage, output_tokens_details: { thinking_tokens: 3 } } },
+    };
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(JsonValue.parse(wire)), ...n.flush()];
+    const end = evs.find((e) => e.type === "message.end");
+    expect(end).toMatchObject({
+      type: "message.end",
+      usage: { inputTokens: 0, outputTokens: 0, reasoningTokens: 3, cumulative: true },
+    });
+    assertAllValid(evs);
+  });
+
+  it("a malformed output_tokens_details never throws and fabricates no key (Tenet 6)", () => {
+    const b = base();
+    const wire: unknown = { ...b, usage: { ...b.usage, output_tokens_details: "nope" } };
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(JsonValue.parse(wire)), ...n.flush()];
+    const done = evs.find((e) => e.type === "turn.done");
+    expect(done).toBeDefined();
+    expect((done as UsageBag).usage?.reasoningTokens).toBeUndefined();
+  });
+
+  it("negative control: the frozen fixtures (no thinking telemetry) emit no reasoningTokens anywhere — pre-0.3.257 output byte-identical", () => {
+    const evs = [
+      ...run(assistantMsg([{ type: "text", text: "hi", citations: null }])),
+      ...run(resultSuccess("end_turn")),
+    ];
+    const carriers = evs.filter((e) => e.type === "message.end" || e.type === "turn.done");
+    expect(carriers).toHaveLength(2);
+    for (const e of carriers) {
+      const bag = (e as UsageBag).usage;
+      expect(bag).toBeDefined();
+      expect(bag?.reasoningTokens).toBeUndefined();
+      for (const bm of Object.values(bag?.byModel ?? {})) expect(bm?.reasoningTokens).toBeUndefined();
+    }
+  });
+});
+
 describe("fixture-drift ratchet — packages/claude-agent-sdk/sdk-surface.json manifest", () => {
   function loadManifest(): SdkSurfaceManifest {
     const manifestPath = fileURLToPath(new URL("../sdk-surface.json", import.meta.url));
@@ -2454,7 +2789,7 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
 
   function streamFrame(
     event: StreamEvent,
-    opts?: { parent?: string | null; ttft?: number },
+    opts?: { parent?: string | null; ttft?: number; userMessageUuid?: string },
   ): SDKMessage {
     return {
       type: "stream_event",
@@ -2463,6 +2798,7 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
       uuid: "00000000-0000-0000-0000-0000000000c1",
       session_id: "sess_fixture",
       ...(opts?.ttft !== undefined ? { ttft_ms: opts.ttft } : {}),
+      ...(opts?.userMessageUuid !== undefined ? { user_message_uuid: opts.userMessageUuid } : {}),
     };
   }
 
@@ -2866,6 +3202,136 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
     ];
     expect(evsA).toEqual(evsB);
   });
+
+  // ── 0.3.258: `user_message_uuid` on the partial envelope — stamped on the
+  // turn's FIRST non-ping stream event; same channel + once-per-message rule
+  // as ttft_ms, with the flag shared with the complete arm's wrapper carry. ──
+  const STREAM_UMU = "018f0000-0000-7000-8000-00000000d001";
+
+  it("carries user_message_uuid once via message.metadata (wire name verbatim) from the first non-ping stream event — never twice, even when the complete frame is stamped too", () => {
+    const n = createClaudeNormalizer();
+    // Defensive double-stamp: the SDK normally stamps the stream OR the first
+    // complete frame, never both — the shared flag must hold either way.
+    const stampedComplete: SDKMessage = {
+      ...completeFrame([{ type: "text", text: "hi", citations: null }]),
+      user_message_uuid: STREAM_UMU,
+    } as SDKMessage;
+    const evs = [
+      ...pushAll(n, [
+        streamFrame(messageStart(), { userMessageUuid: STREAM_UMU }),
+        streamFrame(cbStartText(0)),
+        streamFrame(cbDeltaText(0, "hi")),
+        streamFrame(cbStop(0)),
+        streamFrame(msgStop()),
+        stampedComplete,
+        resultSuccess("end_turn"),
+      ]),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const metas = evs.filter(
+      (e) =>
+        isClosedEvent(e) && e.type === "message.metadata" && e.metadata["user_message_uuid"] === STREAM_UMU,
+    );
+    expect(metas).toHaveLength(1);
+    expect(metas[0]).toMatchObject({ messageId: STREAM_ID });
+    // Bound to the reply BEFORE any content streamed: the carry precedes the first block.
+    const types = evs.map((e) => e.type);
+    expect(types.indexOf("message.metadata")).toBeLessThan(types.indexOf("text.start"));
+    // …and no first-block providerMetadata twin (the complete frame was content-suppressed).
+    const textStart = evs.find((e) => e.type === "text.start") as { providerMetadata?: unknown };
+    expect(textStart.providerMetadata).toBeUndefined();
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+  });
+
+  it("emits NO user_message_uuid carry when the stream lacks it (negative control — the ttft-free wire is unchanged)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...pushAll(n, [
+        ...TEXT_STREAM(),
+        completeFrame([{ type: "text", text: "hello", citations: null }]),
+        resultSuccess("end_turn"),
+      ]),
+      ...n.flush(),
+    ];
+    expect(
+      evs.some(
+        (e) => isClosedEvent(e) && e.type === "message.metadata" && e.metadata["user_message_uuid"] !== undefined,
+      ),
+    ).toBe(false);
+  });
+
+  // ── 0.3.257: `thinking_tokens` inside message_delta usage — the ONLY frame
+  // that carries it in the observed wire (corpus/partials-sonnet5: the
+  // CLI-assembled complete frame's usage has no output_tokens_details), so the
+  // streamed count must survive the complete frame's join. ──
+  const msgDeltaWithThinking = (output_tokens: number, thinking_tokens: number): unknown => {
+    const base = msgDelta(output_tokens);
+    return base.type === "message_delta"
+      ? { ...base, usage: { ...base.usage, output_tokens_details: { thinking_tokens } } }
+      : base;
+  };
+  const rawStreamFrame = (event: unknown): JsonValue =>
+    JsonValue.parse({ ...streamFrame(msgStop()), event });
+
+  it("message_delta usage.output_tokens_details.thinking_tokens → message.end usage.reasoningTokens, surviving the complete frame's join", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...pushAll(n, [
+        streamFrame(messageStart()),
+        streamFrame(cbStartText(0)),
+        streamFrame(cbDeltaText(0, "hi")),
+        streamFrame(cbStop(0)),
+      ]),
+      ...n.push(rawStreamFrame(msgDeltaWithThinking(5, 3))),
+      ...pushAll(n, [
+        streamFrame(msgStop()),
+        completeFrame([{ type: "text", text: "hi", citations: null }]),
+        resultSuccess("end_turn"),
+      ]),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const end = evs.find((e) => e.type === "message.end" && e.id === STREAM_ID);
+    // outputTokens: the complete frame's copy (0, the frozen fixture) still
+    // overwrites the streamed 5 — every field the complete frame names wins as
+    // before; reasoningTokens, which only the stream delivered, survives.
+    expect(end).toMatchObject({
+      type: "message.end",
+      usage: { outputTokens: 0, reasoningTokens: 3, cumulative: true },
+    });
+  });
+
+  it("an aborted stream (no complete frame) seals with the streamed reasoningTokens on flush", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...pushAll(n, [streamFrame(messageStart()), streamFrame(cbStartText(0)), streamFrame(cbDeltaText(0, "part"))]),
+      ...n.push(rawStreamFrame(msgDeltaWithThinking(9, 4))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const end = evs.find((e) => e.type === "message.end" && e.id === STREAM_ID);
+    expect(end).toMatchObject({ type: "message.end", usage: { outputTokens: 9, reasoningTokens: 4 } });
+  });
+
+  it("negative control: a message_delta without output_tokens_details leaves message.end usage key-for-key as before", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...pushAll(n, [
+        ...TEXT_STREAM(),
+        completeFrame([{ type: "text", text: "hello", citations: null }]),
+        resultSuccess("end_turn"),
+      ]),
+      ...n.flush(),
+    ];
+    const end = evs.find((e) => e.type === "message.end" && e.id === STREAM_ID) as {
+      usage?: { reasoningTokens?: unknown };
+    };
+    expect(end.usage).toEqual({ inputTokens: 0, outputTokens: 0, cumulative: true });
+    expect(end.usage?.reasoningTokens).toBeUndefined();
+  });
 });
 
 // ─── ClaudeNormalizerOptions.threadId — caller-owned partition root ───────────
@@ -2899,5 +3365,90 @@ describe("createClaudeNormalizer — options.threadId (guuey#415)", () => {
     const ids = threadIdsOf(run(assistantMsg(textContent)));
     expect(ids.length).toBeGreaterThan(0);
     expect(new Set(ids)).toEqual(new Set(["sess_fixture"]));
+  });
+});
+
+// ─── cohort 0.5.4 census-caught carries (2026-09-02, the first 0.3.258 + Fable 5.1 captures) ──
+describe("createClaudeNormalizer — result-frame subagent_stats (runtime-only, 0.3.258 wire) → result-meta.subagentStats", () => {
+  const STATS = {
+    spawned: 0,
+    requested: { background: 0, foreground: 0, unset: 0 },
+    started_in_background: 0,
+    max_depth: 0,
+    spawned_by_subagents: 0,
+    completed: 0,
+    failed: 0,
+    killed: { parent: 0, user: 0, system: 0 },
+    refused: { depth_limit: 0, concurrency_limit: 0, budget: 0 },
+    by_type: {},
+  };
+
+  it("carries the whole subagent_stats object verbatim (ambient zeros included) beside the other result-meta siblings", () => {
+    // Undeclared on SDKResultSuccess through 0.3.258 — assemble at the JSON boundary, no cast.
+    const wire: unknown = { ...resultSuccess("end_turn"), subagent_stats: STATS };
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(JsonValue.parse(wire)), ...n.flush()];
+    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
+    expect((evs[0] as { subagentStats?: unknown }).subagentStats).toEqual(STATS);
+    assertAllValid(evs);
+  });
+
+  it("emits NO subagentStats key (and no result-meta at all) when the frame lacks it — byte-identical pre-0.3.258 output", () => {
+    const evs = run(resultSuccess("end_turn"));
+    expect(evs.map((e) => e.type)).toEqual(["turn.done"]);
+  });
+
+  it("a malformed (non-object) subagent_stats is ignored, never thrown (Tenet 6)", () => {
+    const wire: unknown = { ...resultSuccess("end_turn"), subagent_stats: "nope" };
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(JsonValue.parse(wire)), ...n.flush()];
+    expect(evs.map((e) => e.type)).toEqual(["turn.done"]);
+  });
+});
+
+describe("createClaudeNormalizer — thinking_delta.estimated_tokens (runtime-only; Fable 5.1 display:omitted) → reasoning.delta providerMetadata", () => {
+  type SDKPartial = Extract<SDKMessage, { type: "stream_event" }>;
+  type StreamEvent = SDKPartial["event"];
+  const frame = (event: StreamEvent): SDKMessage => ({
+    type: "stream_event",
+    event,
+    parent_tool_use_id: null,
+    uuid: "00000000-0000-0000-0000-0000000000d1",
+    session_id: "sess_fixture",
+  });
+  const start: StreamEvent = { type: "message_start", message: { ...betaMessage([]), id: "msg_fable_1" } };
+  const cbStartThinking: StreamEvent = {
+    type: "content_block_start",
+    index: 0,
+    content_block: { type: "thinking", thinking: "", signature: "" },
+  };
+  const thinkingDelta = (extra: Record<string, unknown>): unknown => ({
+    ...frame({ type: "content_block_delta", index: 0, delta: { type: "thinking_delta", thinking: "" } }),
+    event: { type: "content_block_delta", index: 0, delta: { type: "thinking_delta", thinking: "", ...extra } },
+  });
+
+  function reasoningDeltas(deltas: unknown[]): Array<{ delta: string; providerMetadata?: unknown }> {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(frame(start))),
+      ...n.push(JsonValue.parse(frame(cbStartThinking))),
+      ...deltas.flatMap((d) => n.push(JsonValue.parse(d))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    return evs.filter((e) => e.type === "reasoning.delta") as Array<{ delta: string; providerMetadata?: unknown }>;
+  }
+
+  it("carries a numeric estimate verbatim and a null estimate as null (both are real wire values)", () => {
+    const out = reasoningDeltas([thinkingDelta({ estimated_tokens: 50 }), thinkingDelta({ estimated_tokens: null })]);
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatchObject({ delta: "", providerMetadata: { estimated_tokens: 50 } });
+    expect(out[1]).toMatchObject({ delta: "", providerMetadata: { estimated_tokens: null } });
+  });
+
+  it("emits NO providerMetadata key when the delta carries no estimated_tokens (pre-Fable wire, byte-identical)", () => {
+    const out = reasoningDeltas([thinkingDelta({})]);
+    expect(out).toHaveLength(1);
+    expect("providerMetadata" in out[0]!).toBe(false);
   });
 });

@@ -133,6 +133,12 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // ext.anthropic.frame; the regen re-normalizes the SAME native.json through
   // the fixed facet).
   { scenario: "partials-sonnet5", framework: "claude" },
+  // 2026-09-02 (cohort 0.5.4): the claude-fable-5-1 seed trio, enrolled at
+  // capture time (same empty-guard-maps reason as echo-sonnet5 above — the
+  // capture-time coverage.json must be recomputed against the real guards).
+  { scenario: "echo-fable51", framework: "claude" },
+  { scenario: "partials-fable51", framework: "claude" },
+  { scenario: "app-update-fable51", framework: "claude" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

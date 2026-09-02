@@ -1,8 +1,8 @@
 [
   {
-    "invocationId": "e-99c60edb-7413-422d-a959-df306b510a3a",
+    "invocationId": "e-11d0e000-493d-4727-8398-ffd7d2378c06",
     "author": "spike",
-    "id": "EL35sa0y",
+    "id": "fHSa1WAH",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -10,19 +10,19 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1787139134764,
+    "timestamp": 1788335751629,
     "content": {
       "parts": [
         {
           "functionCall": {
             "name": "render_card",
             "args": {
-              "body": "World",
-              "title": "Hello"
+              "title": "Hello",
+              "body": "World"
             },
-            "id": "call_565158"
+            "id": "call_643265"
           },
-          "thoughtSignature": "ErwCCrkCARFNMg91zcIKDi9SkzqHcmJxWDwZg/TSKuBsyffWHQVCAhD1fDvkyd5ecogdovZXHvzrytleVnVGcy/MIUJCyrABvSE8A3jJDi84b3QSqbEJtMVBFzaRoLG/UFGAaAA3kYY4ewygRMxK2kOuxAuRpctURytcF0KfhjN+3tMw4BOTsoMfQpGoC5psDuiZmbg8A0J9gmeN68Z9tlPu/DlzpR6NJ76k26WQS7dSFIEGT1/9OdvO3H2xnj4EVWctjXTIJcyC4o7Bv4MHRh+b24lGXt0CnxHRK8e7n1FE1++WpkpRDf4NXdbFP0L8jzhUNawOoCJ22N1pKuALPxeezRqcXW+oID9ai1UqfiCuBibeRnguHTEVyfu0BpopfEMrBi9OhiDaA61hjcogRCM0ZQxzD8iVO9pgku3ZUw=="
+          "thoughtSignature": "EpcCCpQCARFNMg9YvvQBiCeqL7EftOCjHd/4UB/Qiba1AoN/9pskL5rzugjRVLirS91JdlEt5n5oGIi3nqMkNNZC4IbRFwg2J9er6gIvkgvTWwgwBQJ/SS01uZNv9SA9SgKbhp0s2EoOx3hR/x6Q1NIj5T+qZDQIMMtcHVIMSU1n/cPRH/AvP3lbBAMjCn0306AAtkCl/zA3x53ylQZSnwff3BAate/krlNL90PhIRaD5+dTmoBRZge0WtWYsTw+RxlUNSv9FnE0LzUskYV/I1vLWho1CYmKfRVp5Et1+BeivAjmF8F9jVJkv3ov19NUzc6W00gnZZCWo+LOexaPfSrmmTWRRlb1ZmONvJS0ImVipFG3jHDwxElU"
         }
       ],
       "role": "model"
@@ -30,27 +30,27 @@
     "usageMetadata": {
       "promptTokenCount": 139,
       "candidatesTokenCount": 22,
-      "totalTokenCount": 218,
+      "totalTokenCount": 207,
       "promptTokensDetails": [
         {
           "modality": "TEXT",
           "tokenCount": 139
         }
       ],
-      "thoughtsTokenCount": 57,
+      "thoughtsTokenCount": 46,
       "serviceTier": "standard"
     },
     "finishReason": "STOP"
   },
   {
-    "invocationId": "e-99c60edb-7413-422d-a959-df306b510a3a",
+    "invocationId": "e-11d0e000-493d-4727-8398-ffd7d2378c06",
     "author": "spike",
     "content": {
       "role": "user",
       "parts": [
         {
           "functionResponse": {
-            "id": "call_565158",
+            "id": "call_643265",
             "name": "render_card",
             "response": {
               "_meta": {
@@ -87,14 +87,14 @@
       "requestedAuthConfigs": {},
       "requestedToolConfirmations": {}
     },
-    "id": "TqeB3akj",
+    "id": "MwFondiw",
     "longRunningToolIds": [],
-    "timestamp": 1787139136616
+    "timestamp": 1788335754286
   },
   {
-    "invocationId": "e-99c60edb-7413-422d-a959-df306b510a3a",
+    "invocationId": "e-11d0e000-493d-4727-8398-ffd7d2378c06",
     "author": "spike",
-    "id": "EhNUaI59",
+    "id": "BkXrPMKE",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -102,27 +102,27 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1787139136626,
+    "timestamp": 1788335754291,
     "content": {
       "parts": [
         {
-          "text": "The card has been rendered. Here is the returned structured content payload:\n\n```json\n{\n  \"title\": \"Hello\",\n  \"body\": \"World\",\n  \"cache\": {\n    \"hit\": false,\n    \"kind\": \"cold\",\n    \"llmCallsAvoided\": 0\n  }\n}\n```",
-          "thoughtSignature": "EpIBCo8BARFNMg/Pb0AE4hZWcpW0EvL1Y5wQFc1YP3vsnMTQhpTer+J3tmZ1eJ8rXpZ5nMRuBN3ZqB5Whvj4pkYwh/rsTFNdFqxKrMK3NyLxK9bUmiMDIMFyFqYscTi/oq6BfnT1mbCYuTjiCdLnQ4mosA9oAQEfXPRlEaXfqefrM3EYhLmzE7z8/+k/CGAyCUiifS8="
+          "text": "The card has been rendered with the following details:\n\n**Title:** Hello  \n**Body:** World  \n\n**Structured Content Payload:**\n```json\n{\n  \"title\": \"Hello\",\n  \"body\": \"World\",\n  \"cache\": {\n    \"hit\": false,\n    \"kind\": \"cold\",\n    \"llmCallsAvoided\": 0\n  }\n}\n```",
+          "thoughtSignature": "Es0BCsoBARFNMg84gWeVVVkFewX3Hxn+TWpLBB33ELmQBJ73Nks9c+4Xhl0MH63gTUFrKuwF2dXo63GmSY5IOspJ7NQXZ/FiF1WZOpXmcQZHdbdxNwKEEPx+S4vgkB6zlyIpCoNQLPtqQN/zl4OUUyami5mIPqWGG2rxT99zd/YeV7Rg8f2zyvuLPE2BTYkpzJCQYbg2dVWclNfbDxdgbLyTzOhypneBk08afZjjI39x860iqbBiwYyA1V64YkIet9WFUR6Jwkthk3FqhSVueA=="
         }
       ],
       "role": "model"
     },
     "usageMetadata": {
-      "promptTokenCount": 307,
-      "candidatesTokenCount": 74,
-      "totalTokenCount": 390,
+      "promptTokenCount": 296,
+      "candidatesTokenCount": 88,
+      "totalTokenCount": 402,
       "promptTokensDetails": [
         {
           "modality": "TEXT",
-          "tokenCount": 307
+          "tokenCount": 296
         }
       ],
-      "thoughtsTokenCount": 9,
+      "thoughtsTokenCount": 18,
       "serviceTier": "standard"
     },
     "finishReason": "STOP"

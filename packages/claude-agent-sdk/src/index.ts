@@ -136,12 +136,46 @@ function imageSource(source: ImageBlockSource): AgSource {
 }
 
 // ─── usage mapping helpers ────────────────────────────────────────────────────
+
+/**
+ * Reads `usage.output_tokens_details.thinking_tokens` off an Anthropic usage
+ * object — the thinking-token telemetry that has ridden `message_delta` and
+ * result usage on the wire for a while (a constant 0 until the 0.3.257 fix made
+ * it real; corpus/partials-sonnet5 carries the 0). The bundled
+ * `@anthropic-ai/sdk` `BetaUsage` / `BetaMessageDeltaUsage` types (0.93.0) still
+ * do NOT declare `output_tokens_details`, so it is read through a runtime guard
+ * at the JsonValue boundary — the user branch's `structuredContent` precedent —
+ * never a cast that widens the peer type.
+ *
+ * SUBSET semantics — the SDK's own doc for the per-model twin
+ * (`ModelUsage.thinkingTokens`: "Thinking tokens, already counted inside
+ * outputTokens"): the value lands on `AgUsage.reasoningTokens` as a BREAKDOWN
+ * of `outputTokens`, not an additional bucket. Consumers must never sum
+ * `reasoningTokens + outputTokens`. This is the same convention the openai
+ * facet (`output_tokens_details.reasoning_tokens`) and the adk facet
+ * (`usageMetadata.thoughtsTokenCount`) already follow for `reasoningTokens`.
+ *
+ * Absent ⇒ `undefined`, and every caller spreads the field conditionally, so a
+ * frame without `output_tokens_details` normalizes byte-identically to before.
+ */
+function readThinkingTokens(usage: unknown): number | undefined {
+  if (!isJsonObject(usage)) return undefined;
+  const details = usage["output_tokens_details"];
+  if (!isJsonObject(details)) return undefined;
+  const thinking = details["thinking_tokens"];
+  return typeof thinking === "number" ? thinking : undefined;
+}
+
+// `thinkingTokens` (0.3.257) → `reasoningTokens`: the per-model twin of
+// `readThinkingTokens` above — same subset-of-outputTokens semantics (the SDK's
+// own doc: "already counted inside outputTokens"), same absent ⇒ no key rule.
 function mapModelUsage(mu: SDKModelUsage): AgUsage {
   return {
     inputTokens: mu.inputTokens,
     outputTokens: mu.outputTokens,
     cacheReadTokens: mu.cacheReadInputTokens,
     cacheWriteTokens: mu.cacheCreationInputTokens,
+    ...(mu.thinkingTokens !== undefined ? { reasoningTokens: mu.thinkingTokens } : {}),
     costUsd: mu.costUSD,
     serverToolRequests: mu.webSearchRequests,
     cumulative: true,
@@ -157,11 +191,13 @@ function mapTurnUsage(
   for (const [model, mu] of Object.entries(modelUsage)) {
     byModel[model] = mapModelUsage(mu);
   }
+  const reasoningTokens = readThinkingTokens(usage);
   return {
     inputTokens: usage.input_tokens,
     outputTokens: usage.output_tokens,
     cacheReadTokens: usage.cache_read_input_tokens,
     cacheWriteTokens: usage.cache_creation_input_tokens,
+    ...(reasoningTokens !== undefined ? { reasoningTokens } : {}),
     serverToolRequests:
       usage.server_tool_use !== null
         ? usage.server_tool_use.web_search_requests + usage.server_tool_use.web_fetch_requests
@@ -173,11 +209,13 @@ function mapTurnUsage(
 }
 
 function mapMessageUsage(usage: BetaMessageT["usage"]): AgUsage {
+  const reasoningTokens = readThinkingTokens(usage);
   return {
     inputTokens: usage.input_tokens,
     outputTokens: usage.output_tokens,
     cacheReadTokens: usage.cache_read_input_tokens ?? undefined,
     cacheWriteTokens: usage.cache_creation_input_tokens ?? undefined,
+    ...(reasoningTokens !== undefined ? { reasoningTokens } : {}),
     cumulative: true,
   };
 }
@@ -547,6 +585,16 @@ const CARRIED_SYSTEM_SUBTYPES = new Set<string>([
   // router-plane'd. Carried whole-frame, which also closes the manifest's
   // disclosed `compact_error` residual gap.
   "status",
+  // cohort 0.5.4 census-caught (2026-09-02, corpus/partials-fable51 — the
+  // FIRST live thinking turn in the corpus): system/thinking_tokens
+  // {estimated_tokens, estimated_tokens_delta} arrives once per thinking burst.
+  // Under Claude Fable 5.1's default `thinking.display: omitted` the model's
+  // thinking_delta text is '' — these frames are the ONLY live progress signal
+  // a host gets while the model thinks (what Claude Code's own UI renders as
+  // "thinking… N tokens"). Same status-ping reasoning as `status` above:
+  // consumer-facing agent-state, no AgJSON home yet (a first-class
+  // reasoning-progress event is a draft.3 spec candidate) → whole-frame carry.
+  "thinking_tokens",
 ]);
 const CARRIED_STANDALONE_TYPES = new Set<string>([
   "auth_status",
@@ -587,6 +635,30 @@ function anthropicFrameKind(msg: SDKMessage): string | undefined {
 // byte-identical). Nested access is runtime-guarded like the error arm's
 // `errors` guard: `isSDKMessage` validates only `subtype` on a result frame,
 // and a malformed frame must not throw (Tenet 6).
+//
+// 0.3.258 bump — three more result-frame siblings join the SAME carry (one
+// carrier per concept, §0.6; nothing new on the ext vocabulary):
+//  - `ModelUsage.costBasis` ('list'|'managed'|'unknown', 0.3.246): which price
+//    table the most recent request for this model was priced at — the third
+//    leg of the per-model pricing identity beside canonicalModel/provider,
+//    same overwritten-per-request lifecycle; lands inside the same identity
+//    object.
+//  - `user_message_uuid` (SDKResultError gained it in 0.3.258; success had it
+//    since 0.3.217): the client uuid of the user message this turn answers —
+//    the join key back to the send, carried top-level as `userMessageUuid`.
+//  - `queued_turn_count` (both arms, 0.3.258): user-initiated sends still
+//    waiting in the command queue when this result was produced — >0 means
+//    another turn follows without further input. 0 is a REAL value ("none
+//    pending"), so the guard is `typeof === "number"`, not truthiness.
+//  - `subagent_stats` (RUNTIME-ONLY — undeclared in sdk.d.ts through 0.3.258,
+//    census-caught on every 0.3.258 capture, 2026-09-02): the CLI's per-turn
+//    subagent lifecycle tally {spawned, requested{background,foreground,
+//    unset}, started_in_background, max_depth, spawned_by_subagents,
+//    completed, failed, killed{parent,user,system}, refused{depth_limit,
+//    concurrency_limit,budget}, by_type{…}}. Read through the JsonValue
+//    boundary (no typed access exists) and carried WHOLE as `subagentStats`
+//    — a lineage summary consumers correlating Task* frames can reconcile
+//    against; a first-class subagent summary is a spec-process question.
 function resultMetaPayload(msg: SDKResultMsg): { [k: string]: JsonValue } | undefined {
   const byModel: { [k: string]: JsonValue } = {};
   const modelUsage = isJsonObject(msg.modelUsage) ? msg.modelUsage : {};
@@ -595,13 +667,22 @@ function resultMetaPayload(msg: SDKResultMsg): { [k: string]: JsonValue } | unde
     const identity: { [k: string]: JsonValue } = {
       ...(typeof mu["canonicalModel"] === "string" ? { canonicalModel: mu["canonicalModel"] } : {}),
       ...(typeof mu["provider"] === "string" ? { provider: mu["provider"] } : {}),
+      ...(typeof mu["costBasis"] === "string" ? { costBasis: mu["costBasis"] } : {}),
     };
     if (Object.keys(identity).length > 0) byModel[model] = identity;
   }
+  // Undeclared siblings are only reachable through the JSON boundary: widen to
+  // `unknown` (no cast) and let the isJsonObject guard narrow.
+  const raw: unknown = msg;
+  const subagentStats =
+    isJsonObject(raw) && isJsonObject(raw["subagent_stats"]) ? JsonValue.parse(raw["subagent_stats"]) : undefined;
   const payload: { [k: string]: JsonValue } = {
     ...(typeof msg.fast_mode_disabled_reason === "string"
       ? { fastModeDisabledReason: msg.fast_mode_disabled_reason }
       : {}),
+    ...(typeof msg.user_message_uuid === "string" ? { userMessageUuid: msg.user_message_uuid } : {}),
+    ...(typeof msg.queued_turn_count === "number" ? { queuedTurnCount: msg.queued_turn_count } : {}),
+    ...(subagentStats !== undefined ? { subagentStats } : {}),
     ...(Object.keys(byModel).length > 0 ? { modelUsage: byModel } : {}),
   };
   return Object.keys(payload).length > 0 ? payload : undefined;
@@ -720,6 +801,14 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
     readonly streamBlocks: Map<number, StreamBlockState>;
     /** workspace#7 — `ttft_ms` carried at most once per message (message.metadata). */
     ttftCarried: boolean;
+    /**
+     * 0.3.258 — `user_message_uuid` carried at most once per message, whichever
+     * channel delivers it first: the stream arm's message.metadata carry
+     * (`carryUserMessageUuid`, the first non-ping stream event) or the complete
+     * arm's first-block wrapper carry (the SDK stamps the turn's FIRST reply
+     * frame only; with partials the stamp normally rides the stream instead).
+     */
+    userMessageUuidCarried: boolean;
   };
   // workspace#7 — per-block accumulation between content_block_start and its
   // content_block_stop. `emitted` marks blocks that arrive complete inside the
@@ -775,6 +864,23 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
     if (msg.ttft_ms === undefined || p.ttftCarried) return;
     p.ttftCarried = true;
     a.emit({ type: "message.metadata", messageId: p.emittedId, metadata: { ttft_ms: msg.ttft_ms } });
+  }
+
+  // 0.3.258: `user_message_uuid` on the partial envelope — the client uuid of
+  // the user message this turn answers, stamped on the turn's FIRST non-ping
+  // stream event so a consumer can bind the reply stream to the send before
+  // the result arrives. Same channel and same once-per-message rule as
+  // `ttft_ms` above (message.metadata, wire name verbatim); the flag is shared
+  // with the complete arm's wrapper carry so the two channels never double-
+  // carry one message.
+  function carryUserMessageUuid(msg: SDKPartial, p: PendingMessage): void {
+    if (typeof msg.user_message_uuid !== "string" || p.userMessageUuidCarried) return;
+    p.userMessageUuidCarried = true;
+    a.emit({
+      type: "message.metadata",
+      messageId: p.emittedId,
+      metadata: { user_message_uuid: msg.user_message_uuid },
+    });
   }
 
   // Emit what the block's content_block_stop produces — text.end (with the M22
@@ -855,6 +961,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       if (continued !== undefined) {
         continued.streamed = true;
         carryTtft(msg, continued);
+        carryUserMessageUuid(msg, continued);
         return;
       }
       closePendingMessage();
@@ -877,6 +984,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         streamed: true,
         streamBlocks: new Map(),
         ttftCarried: false,
+        userMessageUuidCarried: false,
       };
       pending = open;
       a.openMessage({
@@ -890,6 +998,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // (assistant / adopted tool-result frames) — the complete frame that joins
       // this lifecycle registers its own uuid as before.
       carryTtft(msg, open);
+      carryUserMessageUuid(msg, open);
       return;
     }
 
@@ -902,7 +1011,10 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // the binding frame seals first on EVERY tool round — the frame is still
       // pure punctuation ({type:"message_stop"} carries no content): a no-op
       // either way, never an ext carry.
-      if (pending !== undefined && pending.streamed) carryTtft(msg, pending);
+      if (pending !== undefined && pending.streamed) {
+        carryTtft(msg, pending);
+        carryUserMessageUuid(msg, pending);
+      }
       return;
     }
 
@@ -916,6 +1028,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       return;
     }
     carryTtft(msg, p);
+    carryUserMessageUuid(msg, p);
 
     if (ev.type === "content_block_start") {
       const index = ev.index;
@@ -1023,7 +1136,18 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         return;
       }
       if (d.type === "thinking_delta" && b.kind === "reasoning") {
-        a.reasoningDelta(b.id, messageId, d.thinking);
+        // Claude Code stamps a RUNTIME-ONLY `estimated_tokens` (number | null;
+        // undeclared on BetaThinkingDelta) on each thinking_delta. Under
+        // Fable 5.1's default `display: omitted` the `thinking` text is '' and
+        // that estimate is the delta's entire payload — carried verbatim as
+        // providerMetadata (wire name kept; null kept: "no estimate yet" is a
+        // real value). Absent key ⇒ no providerMetadata, byte-identical.
+        const rawDelta: unknown = d;
+        const estimate =
+          isJsonObject(rawDelta) && "estimated_tokens" in rawDelta
+            ? AgProviderMeta.parse({ estimated_tokens: rawDelta["estimated_tokens"] })
+            : undefined;
+        a.reasoningDelta(b.id, messageId, d.thinking, estimate !== undefined ? { providerMetadata: estimate } : undefined);
         return;
       }
       if (d.type === "input_json_delta" && b.kind === "tool") {
@@ -1062,10 +1186,16 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
 
     if (ev.type === "message_delta") {
       // Cumulative usage refresh — kept live so an aborted stream still seals
-      // with real usage; the complete frame's copy (identical fields) overwrites
-      // it on join. stop_reason/stop_details fold nowhere here: the turn close
-      // comes from the result frame, exactly as in complete-only mode.
+      // with real usage; the complete frame's copy overwrites every field it
+      // carries on join (see the assistant branch — fields ONLY the stream
+      // delivers, `thinking_tokens` in the observed wire, survive the join).
+      // stop_reason/stop_details fold nowhere here: the turn close comes from
+      // the result frame, exactly as in complete-only mode.
       const u = ev.usage;
+      // 0.3.257 thinking-token telemetry — runtime-guarded (`BetaMessageDeltaUsage`
+      // does not declare `output_tokens_details`), subset of outputTokens; see
+      // `readThinkingTokens`'s doc.
+      const reasoningTokens = readThinkingTokens(u);
       p.usage = {
         ...(p.usage ?? {}),
         ...(typeof u.input_tokens === "number" ? { inputTokens: u.input_tokens } : {}),
@@ -1076,6 +1206,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         ...(typeof u.cache_creation_input_tokens === "number"
           ? { cacheWriteTokens: u.cache_creation_input_tokens }
           : {}),
+        ...(reasoningTokens !== undefined ? { reasoningTokens } : {}),
         cumulative: true,
       };
       return;
@@ -1178,8 +1309,8 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         // wrapper-meta channel's type without an unchecked cast.
         wrapperMetaRaw["context_usage"] = JsonValue.parse(msg.context_usage);
       }
-      const wrapperMeta: AgProviderMeta | undefined =
-        Object.keys(wrapperMetaRaw).length > 0 ? AgProviderMeta.parse(wrapperMetaRaw) : undefined;
+      // `user_message_uuid` (0.3.258) joins the bag below, once `open` is known —
+      // its once-per-message flag is shared with the stream arm's carry.
 
       // A non-null parent_tool_use_id ⇒ this assistant message is a NESTED turn
       // (subagent). subagent.start is the SOLE nested-turn opener (spec §4/§5) and
@@ -1214,6 +1345,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
           streamed: false,
           streamBlocks: new Map(),
           ttftCarried: false,
+          userMessageUuidCarried: false,
         };
         pending = open;
         a.openMessage({
@@ -1225,6 +1357,20 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         });
       }
       const messageId = open.emittedId;
+      //  - `user_message_uuid` (0.3.258): the client uuid of the user message
+      //    this turn answers, stamped on the turn's FIRST reply frame only
+      //    (wrapper-level sibling per its own doc — never inside
+      //    `message.content`, not replayed to the model). The join key that
+      //    binds a reply to its send without waiting for the result frame;
+      //    carried verbatim. With partials on, the stamp normally rode the first
+      //    non-ping stream event instead (`carryUserMessageUuid`) — the shared
+      //    once-per-message flag keeps the two channels from double-carrying.
+      if (typeof msg.user_message_uuid === "string" && !open.userMessageUuidCarried) {
+        open.userMessageUuidCarried = true;
+        wrapperMetaRaw["user_message_uuid"] = msg.user_message_uuid;
+      }
+      const wrapperMeta: AgProviderMeta | undefined =
+        Object.keys(wrapperMetaRaw).length > 0 ? AgProviderMeta.parse(wrapperMetaRaw) : undefined;
       // workspace#7 dedupe: a STREAMED lifecycle already emitted every block
       // incrementally (stream ids reuse the content `index`, identical to the
       // arithmetic below) — this complete frame must not re-synthesize them.
@@ -1258,8 +1404,15 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       }
       // The seal is DEFERRED (guuey#26) — the next frame may continue this same
       // message id. Usage is message-level and repeated per frame, so the newest
-      // frame's copy is the one that rides the eventual `message.end`.
-      open.usage = mapMessageUsage(m.usage);
+      // frame's copy is the one that rides the eventual `message.end` — field by
+      // field: `mapMessageUsage` names every field it maps explicitly (absent ⇒
+      // an explicit `undefined`), so each overwrites the earlier value exactly
+      // as before, while a field ONLY an earlier frame delivered survives. That
+      // is the 0.3.257 `thinking_tokens` case in the observed wire
+      // (corpus/partials-sonnet5): the streamed `message_delta` usage carries
+      // `output_tokens_details`, the CLI-assembled complete frame's usage does
+      // not — without this merge the join would erase the streamed count.
+      open.usage = { ...(open.usage ?? {}), ...mapMessageUsage(m.usage) };
 
       // If the assistant turn carries an error signal (rate_limit, billing_error, etc.),
       // emit a turn.error so consumers see the error rather than a silent empty turn.
@@ -1276,7 +1429,10 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
           // `model_not_found` (a permanent misconfiguration — e.g. a stale/
           // decommissioned model id) is deliberately EXCLUDED: explicit
           // false-by-omission, not an oversight (playbook 2026-07-03 SDK-bump
-          // adaptation, Finding #2).
+          // adaptation, Finding #2). `account_on_hold` (0.3.258) is likewise a
+          // deliberate non-retriable: a billing-class code (the account is on
+          // hold — a first cousin of `billing_error`, cleared by the account
+          // holder, never by re-sending the turn).
           retriable: errCode === "rate_limit" || errCode === "server_error" || errCode === "overloaded",
         });
       }
@@ -1333,6 +1489,20 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
             ? AgMeta.parse(sibling["_meta"])
             : undefined;
         const siblingHasUi = siblingMeta !== undefined && siblingMeta["ui"] !== undefined;
+        // 0.3.257 sibling: `resourceLinks` — the MCP result's `resource_link`
+        // content blocks (files returned by reference: {uri, name, title?,
+        // description?, mimeType?, size?, annotations?}; at most 50 links /
+        // 64 KiB serialized), collected by the CLI from the raw result BEFORE it
+        // renders the text the model reads. `tool_use_result` is typed `unknown`
+        // (runtime-only shape, like structuredContent above), so the array is
+        // validated at the opaque boundary by JsonValue.parse — no cast. The
+        // tool.done `content` stays model-faithful (the rendered text); the links
+        // ride the adopted tool.done's providerMetadata, key verbatim, under the
+        // same single-result attribution rule as the sibling's other fields.
+        const siblingResourceLinks =
+          sibling !== undefined && Array.isArray(sibling["resourceLinks"])
+            ? JsonValue.parse(sibling["resourceLinks"])
+            : undefined;
         // A `for...of` count, not `.filter(...).length` — see
         // `mcpToolResultContentToAgBlocks`'s doc: array-method callback
         // parameter inference degrades to implicit `any` on this content shape
@@ -1388,6 +1558,9 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
                   : {}),
               ...(applySibling && siblingHasUi && sc !== undefined ? { structuredContent: sc } : {}),
               ...(applySibling && siblingMeta !== undefined ? { _meta: siblingMeta } : {}),
+              ...(applySibling && siblingResourceLinks !== undefined
+                ? { providerMetadata: AgProviderMeta.parse({ resourceLinks: siblingResourceLinks }) }
+                : {}),
             });
           }
         }

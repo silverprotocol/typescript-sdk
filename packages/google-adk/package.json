@@ -40,7 +40,7 @@
     "@silverprotocol/core": "workspace:*"
   },
   "peerDependencies": {
-    "@google/adk": ">=1.0.0 <2"
+    "@google/adk": ">=1.0.0 <3"
   },
   "peerDependenciesMeta": {
     "@google/adk": {
