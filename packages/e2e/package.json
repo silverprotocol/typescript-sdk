@@ -7,7 +7,7 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "e2e:capture": "vitest run src/capture-cli.test.ts"
+    "e2e:capture": "vitest run --config ../../vitest.config.ts src/capture-cli.test.ts"
   },
   "dependencies": {
     "@silverprotocol/core": "workspace:*",
@@ -17,17 +17,17 @@
     "@silverprotocol/vercel-ai": "workspace:*"
   },
   "devDependencies": {
-    "@ai-sdk/mcp": "2.0.43",
-    "@ai-sdk/openai": "4.0.56",
-    "@anthropic-ai/claude-agent-sdk": "0.3.258",
+    "@ai-sdk/mcp": "2.0.45",
+    "@ai-sdk/openai": "4.0.59",
+    "@anthropic-ai/claude-agent-sdk": "0.3.261",
     "@google/adk": "2.0.0",
-    "@google/genai": "2.20.0",
+    "@google/genai": "2.21.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@openai/agents": "0.17.0",
     "@types/node": "^24.0.0",
-    "ai": "7.0.90",
+    "ai": "7.0.93",
     "typescript": "^5.3.0",
-    "vitest": "^4.1.11",
+    "vitest": "^5.0.0",
     "zod": "^4.0.0"
   }
 }

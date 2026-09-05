@@ -1,0 +1,1904 @@
+[
+  {
+    "data": {
+      "type": "response_started",
+      "providerData": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_0edad0d509954ef2006a9bbf19654887d0b9e0760fa27f1291",
+          "object": "response",
+          "created_at": 1788591897,
+          "status": "in_progress",
+          "access_programs": {
+            "cyber": "standard"
+          },
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6astra'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-astra",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "medium"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_0edad0d509954ef2006a9bbf19654887d0b9e0760fa27f1291",
+          "object": "response",
+          "created_at": 1788591897,
+          "status": "in_progress",
+          "access_programs": {
+            "cyber": "standard"
+          },
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6astra'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-astra",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "medium"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.in_progress",
+        "response": {
+          "id": "resp_0edad0d509954ef2006a9bbf19654887d0b9e0760fa27f1291",
+          "object": "response",
+          "created_at": 1788591897,
+          "status": "in_progress",
+          "access_programs": {
+            "cyber": "standard"
+          },
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6astra'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-astra",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "medium"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 1
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+          "type": "function_call",
+          "status": "in_progress",
+          "arguments": "",
+          "call_id": "call_6L8agR2DTr5hROTg7Rtps5MC",
+          "name": "echo"
+        },
+        "output_index": 0,
+        "sequence_number": 2
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "{\"",
+        "item_id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+        "obfuscation": "7krkjh1LyLfTPk",
+        "output_index": 0,
+        "sequence_number": 3
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "message",
+        "item_id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+        "obfuscation": "WEO7DP2GH",
+        "output_index": 0,
+        "sequence_number": 4
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "\":\"",
+        "item_id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+        "obfuscation": "QVYT7Syf7tUJt",
+        "output_index": 0,
+        "sequence_number": 5
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "con",
+        "item_id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+        "obfuscation": "404CKzqUIROVw",
+        "output_index": 0,
+        "sequence_number": 6
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "formance",
+        "item_id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+        "obfuscation": "qHYmfSl3",
+        "output_index": 0,
+        "sequence_number": 7
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "-pro",
+        "item_id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+        "obfuscation": "P48aFV0R0HJB",
+        "output_index": 0,
+        "sequence_number": 8
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "be",
+        "item_id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+        "obfuscation": "GatVKfcAP3sLK9",
+        "output_index": 0,
+        "sequence_number": 9
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "-g",
+        "item_id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+        "obfuscation": "zxpwez2bAJgIEv",
+        "output_index": 0,
+        "sequence_number": 10
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "pt",
+        "item_id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+        "obfuscation": "hcXqPbsG4Up8kx",
+        "output_index": 0,
+        "sequence_number": 11
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "6",
+        "item_id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+        "obfuscation": "mh5LXCLgTXg9rSk",
+        "output_index": 0,
+        "sequence_number": 12
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "astra",
+        "item_id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+        "obfuscation": "65VMZ6mDgdC",
+        "output_index": 0,
+        "sequence_number": 13
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "\"}",
+        "item_id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+        "obfuscation": "xYU4nGrhy37ax7",
+        "output_index": 0,
+        "sequence_number": 14
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.done",
+        "arguments": "{\"message\":\"conformance-probe-gpt6astra\"}",
+        "item_id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+        "output_index": 0,
+        "sequence_number": 15
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+          "type": "function_call",
+          "status": "completed",
+          "arguments": "{\"message\":\"conformance-probe-gpt6astra\"}",
+          "call_id": "call_6L8agR2DTr5hROTg7Rtps5MC",
+          "name": "echo"
+        },
+        "output_index": 0,
+        "sequence_number": 16
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_done",
+      "response": {
+        "id": "resp_0edad0d509954ef2006a9bbf19654887d0b9e0760fa27f1291",
+        "requestId": "req_527fd2f41e2b4ab3858818eba4ff9cd9",
+        "output": [
+          {
+            "type": "function_call",
+            "id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+            "callId": "call_6L8agR2DTr5hROTg7Rtps5MC",
+            "name": "echo",
+            "status": "completed",
+            "arguments": "{\"message\":\"conformance-probe-gpt6astra\"}",
+            "providerData": {
+              "id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+              "type": "function_call"
+            }
+          }
+        ],
+        "usage": {
+          "inputTokens": 110,
+          "outputTokens": 24,
+          "totalTokens": 134,
+          "inputTokensDetails": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "outputTokensDetails": {
+            "reasoning_tokens": 0
+          },
+          "requestUsageEntries": [
+            {
+              "inputTokens": 110,
+              "outputTokens": 24,
+              "totalTokens": 134,
+              "inputTokensDetails": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0
+              },
+              "outputTokensDetails": {
+                "reasoning_tokens": 0
+              },
+              "endpoint": "responses.create"
+            }
+          ]
+        },
+        "providerData": {
+          "object": "response",
+          "created_at": 1788591897,
+          "status": "completed",
+          "access_programs": {
+            "cyber": "standard"
+          },
+          "background": false,
+          "completed_at": 1788591898,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6astra'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-astra",
+          "moderation": null,
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "medium"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "user": null,
+          "metadata": {}
+        }
+      },
+      "providerData": {
+        "type": "response.completed",
+        "sequence_number": 17
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_0edad0d509954ef2006a9bbf19654887d0b9e0760fa27f1291",
+          "object": "response",
+          "created_at": 1788591897,
+          "status": "completed",
+          "access_programs": {
+            "cyber": "standard"
+          },
+          "background": false,
+          "completed_at": 1788591898,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6astra'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-astra",
+          "moderation": null,
+          "output": [
+            {
+              "id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+              "type": "function_call",
+              "status": "completed",
+              "arguments": "{\"message\":\"conformance-probe-gpt6astra\"}",
+              "call_id": "call_6L8agR2DTr5hROTg7Rtps5MC",
+              "name": "echo"
+            }
+          ],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "medium"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": {
+            "input_tokens": 110,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 24,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "total_tokens": 134
+          },
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 17
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "name": "tool_called",
+    "item": {
+      "type": "tool_call_item",
+      "rawItem": {
+        "providerData": {
+          "id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+          "type": "function_call"
+        },
+        "id": "fc_0edad0d509954ef2006a9bbf1a797887d0b34a8ac2d8b21e50",
+        "type": "function_call",
+        "callId": "call_6L8agR2DTr5hROTg7Rtps5MC",
+        "name": "echo",
+        "status": "completed",
+        "arguments": "{\"message\":\"conformance-probe-gpt6astra\"}"
+      },
+      "agent": {
+        "name": "spike"
+      }
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "name": "tool_output",
+    "item": {
+      "type": "tool_call_output_item",
+      "rawItem": {
+        "type": "function_call_result",
+        "name": "echo",
+        "callId": "call_6L8agR2DTr5hROTg7Rtps5MC",
+        "status": "completed",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "conformance-probe-gpt6astra"
+          }
+        ]
+      },
+      "agent": {
+        "name": "spike"
+      },
+      "output": "{\"type\":\"text\",\"text\":\"conformance-probe-gpt6astra\"}",
+      "executionStatus": "executed"
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_started",
+      "providerData": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_0edad0d509954ef2006a9bbf1b184487d0a4638a72a277cc06",
+          "object": "response",
+          "created_at": 1788591899,
+          "status": "in_progress",
+          "access_programs": {
+            "cyber": "standard"
+          },
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6astra'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-astra",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "medium"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_0edad0d509954ef2006a9bbf1b184487d0a4638a72a277cc06",
+          "object": "response",
+          "created_at": 1788591899,
+          "status": "in_progress",
+          "access_programs": {
+            "cyber": "standard"
+          },
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6astra'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-astra",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "medium"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.in_progress",
+        "response": {
+          "id": "resp_0edad0d509954ef2006a9bbf1b184487d0a4638a72a277cc06",
+          "object": "response",
+          "created_at": 1788591899,
+          "status": "in_progress",
+          "access_programs": {
+            "cyber": "standard"
+          },
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6astra'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-astra",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "medium"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 1
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+          "type": "message",
+          "status": "in_progress",
+          "content": [],
+          "phase": "final_answer",
+          "role": "assistant"
+        },
+        "output_index": 0,
+        "sequence_number": 2
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.content_part.added",
+        "content_index": 0,
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "output_index": 0,
+        "part": {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": ""
+        },
+        "sequence_number": 3
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "con",
+      "itemId": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "logprobs": [],
+        "obfuscation": "lmhYitwAOrcfi",
+        "output_index": 0,
+        "sequence_number": 4
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "con",
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "logprobs": [],
+        "obfuscation": "lmhYitwAOrcfi",
+        "output_index": 0,
+        "sequence_number": 4
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "formance",
+      "itemId": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "logprobs": [],
+        "obfuscation": "qAlcKldR",
+        "output_index": 0,
+        "sequence_number": 5
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "formance",
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "logprobs": [],
+        "obfuscation": "qAlcKldR",
+        "output_index": 0,
+        "sequence_number": 5
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "-pro",
+      "itemId": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "logprobs": [],
+        "obfuscation": "etCTEsSs0VnF",
+        "output_index": 0,
+        "sequence_number": 6
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "-pro",
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "logprobs": [],
+        "obfuscation": "etCTEsSs0VnF",
+        "output_index": 0,
+        "sequence_number": 6
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "be",
+      "itemId": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "logprobs": [],
+        "obfuscation": "y8dUWAqtWvEExO",
+        "output_index": 0,
+        "sequence_number": 7
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "be",
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "logprobs": [],
+        "obfuscation": "y8dUWAqtWvEExO",
+        "output_index": 0,
+        "sequence_number": 7
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "-g",
+      "itemId": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "logprobs": [],
+        "obfuscation": "B6oDln5ME9t8bU",
+        "output_index": 0,
+        "sequence_number": 8
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "-g",
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "logprobs": [],
+        "obfuscation": "B6oDln5ME9t8bU",
+        "output_index": 0,
+        "sequence_number": 8
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "pt",
+      "itemId": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "logprobs": [],
+        "obfuscation": "OR8UR3spBN83Sq",
+        "output_index": 0,
+        "sequence_number": 9
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "pt",
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "logprobs": [],
+        "obfuscation": "OR8UR3spBN83Sq",
+        "output_index": 0,
+        "sequence_number": 9
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "6",
+      "itemId": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "logprobs": [],
+        "obfuscation": "CZ61sg6oR3VrK1B",
+        "output_index": 0,
+        "sequence_number": 10
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "6",
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "logprobs": [],
+        "obfuscation": "CZ61sg6oR3VrK1B",
+        "output_index": 0,
+        "sequence_number": 10
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "astra",
+      "itemId": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "logprobs": [],
+        "obfuscation": "g86Iduuo6fE",
+        "output_index": 0,
+        "sequence_number": 11
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "astra",
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "logprobs": [],
+        "obfuscation": "g86Iduuo6fE",
+        "output_index": 0,
+        "sequence_number": 11
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.done",
+        "content_index": 0,
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "logprobs": [],
+        "output_index": 0,
+        "sequence_number": 12,
+        "text": "conformance-probe-gpt6astra"
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.content_part.done",
+        "content_index": 0,
+        "item_id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "output_index": 0,
+        "part": {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "conformance-probe-gpt6astra"
+        },
+        "sequence_number": 13
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+          "type": "message",
+          "status": "completed",
+          "content": [
+            {
+              "type": "output_text",
+              "annotations": [],
+              "logprobs": [],
+              "text": "conformance-probe-gpt6astra"
+            }
+          ],
+          "phase": "final_answer",
+          "role": "assistant"
+        },
+        "output_index": 0,
+        "sequence_number": 14
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_done",
+      "response": {
+        "id": "resp_0edad0d509954ef2006a9bbf1b184487d0a4638a72a277cc06",
+        "requestId": "req_5b7c74524d1f41b3b0f22dc1957550b0",
+        "output": [
+          {
+            "id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "conformance-probe-gpt6astra",
+                "providerData": {
+                  "annotations": [],
+                  "logprobs": []
+                }
+              }
+            ],
+            "status": "completed",
+            "phase": "final_answer",
+            "providerData": {
+              "phase": "final_answer"
+            }
+          }
+        ],
+        "usage": {
+          "inputTokens": 152,
+          "outputTokens": 12,
+          "totalTokens": 164,
+          "inputTokensDetails": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "outputTokensDetails": {
+            "reasoning_tokens": 0
+          },
+          "requestUsageEntries": [
+            {
+              "inputTokens": 152,
+              "outputTokens": 12,
+              "totalTokens": 164,
+              "inputTokensDetails": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0
+              },
+              "outputTokensDetails": {
+                "reasoning_tokens": 0
+              },
+              "endpoint": "responses.create"
+            }
+          ]
+        },
+        "providerData": {
+          "object": "response",
+          "created_at": 1788591899,
+          "status": "completed",
+          "access_programs": {
+            "cyber": "standard"
+          },
+          "background": false,
+          "completed_at": 1788591900,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6astra'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-astra",
+          "moderation": null,
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "medium"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "user": null,
+          "metadata": {}
+        }
+      },
+      "providerData": {
+        "type": "response.completed",
+        "sequence_number": 15
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_0edad0d509954ef2006a9bbf1b184487d0a4638a72a277cc06",
+          "object": "response",
+          "created_at": 1788591899,
+          "status": "completed",
+          "access_programs": {
+            "cyber": "standard"
+          },
+          "background": false,
+          "completed_at": 1788591900,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6astra'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-astra",
+          "moderation": null,
+          "output": [
+            {
+              "id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+              "type": "message",
+              "status": "completed",
+              "content": [
+                {
+                  "type": "output_text",
+                  "annotations": [],
+                  "logprobs": [],
+                  "text": "conformance-probe-gpt6astra"
+                }
+              ],
+              "phase": "final_answer",
+              "role": "assistant"
+            }
+          ],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "medium"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": {
+            "input_tokens": 152,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 12,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "total_tokens": 164
+          },
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 15
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "name": "message_output_created",
+    "item": {
+      "type": "message_output_item",
+      "rawItem": {
+        "providerData": {
+          "phase": "final_answer"
+        },
+        "id": "msg_0edad0d509954ef2006a9bbf1c3dc887d0be607c15c3eace09",
+        "type": "message",
+        "role": "assistant",
+        "phase": "final_answer",
+        "status": "completed",
+        "content": [
+          {
+            "providerData": {
+              "annotations": [],
+              "logprobs": []
+            },
+            "type": "output_text",
+            "text": "conformance-probe-gpt6astra"
+          }
+        ]
+      },
+      "agent": {
+        "name": "spike"
+      }
+    },
+    "type": "run_item_stream_event"
+  }
+]

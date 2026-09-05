@@ -1,0 +1,327 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_vercel_1",
+    "threadId": "vercel"
+  },
+  {
+    "type": "step.start",
+    "id": "step_1",
+    "turnId": "turn_vercel_1",
+    "seq": 1
+  },
+  {
+    "type": "message.start",
+    "seq": 2,
+    "id": "msg_turn_vercel_1_s1",
+    "turnId": "turn_vercel_1",
+    "threadId": "vercel",
+    "role": "assistant",
+    "stepId": "step_1"
+  },
+  {
+    "type": "reasoning.start",
+    "seq": 3,
+    "id": "rs_0b02297f2bb20277006a9bbb99ca2087d09bdcbc0f9629515d:0",
+    "messageId": "msg_turn_vercel_1_s1",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "reasoning.end",
+    "seq": 4,
+    "id": "rs_0b02297f2bb20277006a9bbb99ca2087d09bdcbc0f9629515d:0",
+    "messageId": "msg_turn_vercel_1_s1",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "reasoning.opaque",
+    "seq": 5,
+    "id": "rs_0b02297f2bb20277006a9bbb99ca2087d09bdcbc0f9629515d:0",
+    "messageId": "msg_turn_vercel_1_s1",
+    "kind": "encrypted",
+    "value": "gAAAAABqm7ua7wKccW11g7cyet5wiuFd7AiqQqdZuUTgxOVKkqn0Vsk_Xl3_NctLPJXHrl3KPRfb8VNjwaqqFy0XXEPG7CeuK2oj2RKvOilMVa1zGDytndVWOXro2zCqOuzv37K3BzjwuBiV84wyv40oK-v-S-Hm5Mr7gGZAFHXK_vINfrA8L-xVCmvEox0ZnzaEjnuP4OnBLDHBukxNmK2-lDhi3Pa0J6fCtIVwO6FNT0qVVLucSIFIRG7PlDEeY6a7VS5P4nT_KNOJaEtoRMAlak8Epz43S0PRj9M2E1AIp04r2iMZdWWQhhNxbjVxQC7P6avRWvN3hXr3eOo6-ogqt8nmG5ElGZWxjuq0J0CuL-5bH6TslUn5jk7CD1KrDwUmAyPk5Xlt1NLw6NNKgO3IqDY4fitgd4ow6ajGl_cqUDVuxWYaqkxfhtdF8wa7Y_0E_eWEjGfawhlADtfrOryES8ZaFnfIH3MAkHk-JWIlfSUNE7eDvxuVI-1wR6Hgp7gDzGDa1Q04LfwNjW6T6645fKjdn7WX_JUdyFT8TUo5K6lpsNaQmwXxrAiQUJ6j1gPoyDPJEc0zOsJei_92mW9m_kPebNyZN5xbi1VXmtyoC89xcfTOR2Iw5F5Glizo1CKU5nO2aH4o31drjB1CucOUq5W39hLSG3CaFPB0k_BIvw-YmF7qhZZgCyPPdEQODnJKt6uT0z65pju6wdLKdAA4vTz-VKsDZuCZXcMKe_tinZSSfUXrld28l-Xi5b4T43UDCfdBqWx1Q-fBu9RcJttmiu39CiqhOLfKTfULE9-fmZbTBv77oyeY1xcLaUCssSRH7s4GmgsR7Zt7nTFiyHdrjxq0mGPschmyWQGuJ1dFkMZSMTGTHJ6VUhEZ2ih7vcUCpbg0tk4epKe1wb3pG86mKT_obBPI7IXvUa0LZ4iVFHxu1XkYN3KJtp2YJyfHpNvwgBWaewOWK3zjmRzP5e1qte9M9SypJ3OltepZ8Kjn_bqmBovGK3TTH8Oe2YuGTU4czMl0PEjENppJt6ehjaoDdUzl9KDEh8UvVcC6xD11sJ9we-SUM60eOjYvlwcmrEjn_5dTNR8uYGa50js0mJAJsi0ctGQzjyfC2Oayhsd9WNaqPWb9WBRYpkifHy7g4hFlxrO3naCXBE_e4yeq5Z5hOQb0eJ8biqLxGuZqTea8PzhbqpM5p0xXh5gqrqmIRVpZxT99vmZEoJ9BIr05pftKfuZhSzxCc6wQFeNpZ3UiZGiZw4IcnRU=",
+    "turnId": "turn_vercel_1",
+    "provider": "openai"
+  },
+  {
+    "type": "tool.start",
+    "seq": 6,
+    "turnId": "turn_vercel_1",
+    "toolCallId": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "name": "echo",
+    "messageId": "msg_turn_vercel_1_s1",
+    "dynamic": true
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 7,
+    "toolCallId": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "{\""
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 8,
+    "toolCallId": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "message"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 9,
+    "toolCallId": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "\":\""
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 10,
+    "toolCallId": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "con"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 11,
+    "toolCallId": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "formance"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 12,
+    "toolCallId": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "-pro"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 13,
+    "toolCallId": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "be"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 14,
+    "toolCallId": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "-g"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 15,
+    "toolCallId": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "pt"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 16,
+    "toolCallId": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "6"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 17,
+    "toolCallId": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "astra"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 18,
+    "toolCallId": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 19,
+    "toolCallId": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "input": {
+      "message": "conformance-probe-gpt6astra"
+    }
+  },
+  {
+    "type": "tool.done",
+    "seq": 20,
+    "turnId": "turn_vercel_1",
+    "toolCallId": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "outcome": "ok",
+    "structuredContent": {
+      "content": [
+        {
+          "type": "text",
+          "text": "conformance-probe-gpt6astra"
+        }
+      ],
+      "isError": false
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"content\":[{\"type\":\"text\",\"text\":\"conformance-probe-gpt6astra\"}],\"isError\":false}"
+      }
+    ],
+    "dynamic": true
+  },
+  {
+    "type": "message.metadata",
+    "messageId": "msg_turn_vercel_1_s1",
+    "metadata": {
+      "responseId": "resp_0b02297f2bb20277006a9bbb989e9487d099ddde2130a79f8a",
+      "model": "gpt-6-astra"
+    },
+    "turnId": "turn_vercel_1",
+    "seq": 21
+  },
+  {
+    "type": "message.end",
+    "seq": 22,
+    "id": "msg_turn_vercel_1_s1",
+    "usage": {
+      "inputTokens": 104,
+      "outputTokens": 39,
+      "totalTokens": 143,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 13
+    }
+  },
+  {
+    "type": "step.done",
+    "id": "step_1",
+    "turnId": "turn_vercel_1",
+    "seq": 23
+  },
+  {
+    "type": "step.start",
+    "id": "step_2",
+    "turnId": "turn_vercel_1",
+    "seq": 24
+  },
+  {
+    "type": "message.start",
+    "seq": 25,
+    "id": "msg_turn_vercel_1_s2",
+    "turnId": "turn_vercel_1",
+    "threadId": "vercel",
+    "role": "assistant",
+    "stepId": "step_2"
+  },
+  {
+    "type": "text.start",
+    "seq": 26,
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "messageId": "msg_turn_vercel_1_s2",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 27,
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "con",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 28,
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "formance",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 29,
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "-pro",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 30,
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "be",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 31,
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "-g",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 32,
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "pt",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 33,
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "6",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 34,
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "astra",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.end",
+    "seq": 35,
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "messageId": "msg_turn_vercel_1_s2",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "message.metadata",
+    "messageId": "msg_turn_vercel_1_s2",
+    "metadata": {
+      "responseId": "resp_0b02297f2bb20277006a9bbb9ab89087d084f93047b66b3593",
+      "model": "gpt-6-astra"
+    },
+    "turnId": "turn_vercel_1",
+    "seq": 36
+  },
+  {
+    "type": "message.end",
+    "seq": 37,
+    "id": "msg_turn_vercel_1_s2",
+    "usage": {
+      "inputTokens": 161,
+      "outputTokens": 12,
+      "totalTokens": 173,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 0
+    }
+  },
+  {
+    "type": "step.done",
+    "id": "step_2",
+    "turnId": "turn_vercel_1",
+    "seq": 38
+  },
+  {
+    "type": "turn.done",
+    "seq": 39,
+    "turnId": "turn_vercel_1",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 265,
+      "outputTokens": 51,
+      "totalTokens": 316,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 13
+    }
+  }
+]

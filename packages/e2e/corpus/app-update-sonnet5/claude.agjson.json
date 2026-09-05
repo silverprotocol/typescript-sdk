@@ -2,70 +2,38 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
-    "threadId": "8e998b00-d358-4e18-87c9-731180ee3603"
+    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732",
+    "threadId": "032c21dd-91ac-45ba-aa49-7378533f9732"
   },
   {
     "type": "message.start",
     "seq": 1,
-    "id": "msg_011CdMAmb6dKtbrbtGX4QPnE",
-    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
-    "threadId": "8e998b00-d358-4e18-87c9-731180ee3603",
+    "id": "msg_011CejsF6gLtS4CzAXaKvYer",
+    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732",
+    "threadId": "032c21dd-91ac-45ba-aa49-7378533f9732",
     "role": "assistant",
     "model": "claude-sonnet-5"
   },
   {
-    "type": "reasoning.start",
-    "seq": 2,
-    "id": "msg_011CdMAmb6dKtbrbtGX4QPnE:reasoning:0",
-    "messageId": "msg_011CdMAmb6dKtbrbtGX4QPnE",
-    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603"
-  },
-  {
-    "type": "reasoning.delta",
-    "seq": 3,
-    "id": "msg_011CdMAmb6dKtbrbtGX4QPnE:reasoning:0",
-    "messageId": "msg_011CdMAmb6dKtbrbtGX4QPnE",
-    "delta": "",
-    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603"
-  },
-  {
-    "type": "reasoning.end",
-    "seq": 4,
-    "id": "msg_011CdMAmb6dKtbrbtGX4QPnE:reasoning:0",
-    "messageId": "msg_011CdMAmb6dKtbrbtGX4QPnE",
-    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603"
-  },
-  {
-    "type": "reasoning.opaque",
-    "seq": 5,
-    "id": "msg_011CdMAmb6dKtbrbtGX4QPnE:reasoning:0",
-    "messageId": "msg_011CdMAmb6dKtbrbtGX4QPnE",
-    "kind": "signature",
-    "value": "EqsCCokBCBAYAipAiwUwpAVggx36GGLNWM3r/AAuSpPiO9KV/LArjFztg50nMlyHVGQuTRjPb0Bx2wYYBbrCZkMwYklANzsDiAN6NzIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiQ2NThiNDdmOS0wMWUyLTQ3OTgtYjViZS00NGUyYTM1ZDhjY2ESDAuumU1BcLsBFKtJlhoMLgn4zACitxgyyAOzIjA8ofB1hL4vYcLyoWskWYPfEvZCCRWmIBk4xnDzgnex9FCEapUVIt9Uv/YyF3T8dvgqTzwytIwdsZwdYHm7Ud5yYYGBRSy5r0SLpey7izCyq0CSEm+6LcYjgyC9sDsPYn6j6pEp9BoVwEzU/3M1P5hpworyv2yW/7s0huLOeSq9busYAQ==",
-    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
-    "provider": "anthropic"
-  },
-  {
     "type": "tool.start",
-    "seq": 6,
-    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
-    "toolCallId": "toolu_01BnYNQJEDJ9t18WafZ971Db",
+    "seq": 2,
+    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732",
+    "toolCallId": "toolu_01KK1FqDqQLMjwKg1mp7PuQd",
     "name": "mcp__cards__render_card",
-    "index": 1,
-    "messageId": "msg_011CdMAmb6dKtbrbtGX4QPnE",
+    "index": 0,
+    "messageId": "msg_011CejsF6gLtS4CzAXaKvYer",
     "providerExecuted": false
   },
   {
     "type": "tool.args.delta",
-    "seq": 7,
-    "toolCallId": "toolu_01BnYNQJEDJ9t18WafZ971Db",
+    "seq": 3,
+    "toolCallId": "toolu_01KK1FqDqQLMjwKg1mp7PuQd",
     "delta": "{\"title\":\"Hello\",\"body\":\"World\"}"
   },
   {
     "type": "tool.args.assembled",
-    "seq": 8,
-    "toolCallId": "toolu_01BnYNQJEDJ9t18WafZ971Db",
+    "seq": 4,
+    "toolCallId": "toolu_01KK1FqDqQLMjwKg1mp7PuQd",
     "input": {
       "title": "Hello",
       "body": "World"
@@ -73,21 +41,21 @@
   },
   {
     "type": "message.end",
-    "seq": 9,
-    "id": "msg_011CdMAmb6dKtbrbtGX4QPnE",
+    "seq": 5,
+    "id": "msg_011CejsF6gLtS4CzAXaKvYer",
     "usage": {
       "inputTokens": 2,
-      "outputTokens": 2,
+      "outputTokens": 23,
       "cacheReadTokens": 0,
-      "cacheWriteTokens": 1404,
+      "cacheWriteTokens": 2083,
       "cumulative": true
     }
   },
   {
     "type": "tool.done",
-    "seq": 10,
-    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
-    "toolCallId": "toolu_01BnYNQJEDJ9t18WafZ971Db",
+    "seq": 6,
+    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732",
+    "toolCallId": "toolu_01KK1FqDqQLMjwKg1mp7PuQd",
     "content": [
       {
         "type": "text",
@@ -96,7 +64,7 @@
     ],
     "outcome": "ok",
     "isError": false,
-    "messageId": "toolu_01BnYNQJEDJ9t18WafZ971Db:result",
+    "messageId": "toolu_01KK1FqDqQLMjwKg1mp7PuQd:result",
     "uiData": {
       "title": "Hello",
       "body": "World",
@@ -114,33 +82,33 @@
   },
   {
     "type": "message.start",
-    "seq": 11,
-    "id": "msg_011CdMAmj8pfQzfemRZz2mRX",
-    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
-    "threadId": "8e998b00-d358-4e18-87c9-731180ee3603",
+    "seq": 7,
+    "id": "msg_011CejsFDjjpKZiQWtJWqqNo",
+    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732",
+    "threadId": "032c21dd-91ac-45ba-aa49-7378533f9732",
     "role": "assistant",
     "model": "claude-sonnet-5"
   },
   {
     "type": "tool.start",
-    "seq": 12,
-    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
-    "toolCallId": "toolu_01QJV5ErrKnEooBLM6P9C3FD",
+    "seq": 8,
+    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732",
+    "toolCallId": "toolu_013jofQ2z7T7DnpRTJcdx8yR",
     "name": "mcp__cards__update_card",
     "index": 0,
-    "messageId": "msg_011CdMAmj8pfQzfemRZz2mRX",
+    "messageId": "msg_011CejsFDjjpKZiQWtJWqqNo",
     "providerExecuted": false
   },
   {
     "type": "tool.args.delta",
-    "seq": 13,
-    "toolCallId": "toolu_01QJV5ErrKnEooBLM6P9C3FD",
+    "seq": 9,
+    "toolCallId": "toolu_013jofQ2z7T7DnpRTJcdx8yR",
     "delta": "{\"title\":\"Hello\",\"body\":\"Updated World\"}"
   },
   {
     "type": "tool.args.assembled",
-    "seq": 14,
-    "toolCallId": "toolu_01QJV5ErrKnEooBLM6P9C3FD",
+    "seq": 10,
+    "toolCallId": "toolu_013jofQ2z7T7DnpRTJcdx8yR",
     "input": {
       "title": "Hello",
       "body": "Updated World"
@@ -148,21 +116,21 @@
   },
   {
     "type": "message.end",
-    "seq": 15,
-    "id": "msg_011CdMAmj8pfQzfemRZz2mRX",
+    "seq": 11,
+    "id": "msg_011CejsFDjjpKZiQWtJWqqNo",
     "usage": {
       "inputTokens": 2,
-      "outputTokens": 72,
-      "cacheReadTokens": 1404,
-      "cacheWriteTokens": 129,
+      "outputTokens": 24,
+      "cacheReadTokens": 2083,
+      "cacheWriteTokens": 149,
       "cumulative": true
     }
   },
   {
     "type": "tool.done",
-    "seq": 16,
-    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
-    "toolCallId": "toolu_01QJV5ErrKnEooBLM6P9C3FD",
+    "seq": 12,
+    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732",
+    "toolCallId": "toolu_013jofQ2z7T7DnpRTJcdx8yR",
     "content": [
       {
         "type": "text",
@@ -171,7 +139,7 @@
     ],
     "outcome": "ok",
     "isError": false,
-    "messageId": "toolu_01QJV5ErrKnEooBLM6P9C3FD:result",
+    "messageId": "toolu_013jofQ2z7T7DnpRTJcdx8yR:result",
     "uiData": {
       "title": "Hello",
       "body": "Updated World",
@@ -189,80 +157,125 @@
   },
   {
     "type": "message.start",
-    "seq": 17,
-    "id": "msg_011CdMAmqQ7KNdQoeS9CqpZp",
-    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
-    "threadId": "8e998b00-d358-4e18-87c9-731180ee3603",
+    "seq": 13,
+    "id": "msg_011CejsFJobMdsaHj2ChXASs",
+    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732",
+    "threadId": "032c21dd-91ac-45ba-aa49-7378533f9732",
     "role": "assistant",
     "model": "claude-sonnet-5"
   },
   {
     "type": "text.start",
-    "seq": 18,
-    "id": "msg_011CdMAmqQ7KNdQoeS9CqpZp:text:0",
-    "messageId": "msg_011CdMAmqQ7KNdQoeS9CqpZp",
-    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603"
+    "seq": 14,
+    "id": "msg_011CejsFJobMdsaHj2ChXASs:text:0",
+    "messageId": "msg_011CejsFJobMdsaHj2ChXASs",
+    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732"
   },
   {
     "type": "text.delta",
-    "seq": 19,
-    "id": "msg_011CdMAmqQ7KNdQoeS9CqpZp:text:0",
-    "messageId": "msg_011CdMAmqQ7KNdQoeS9CqpZp",
-    "delta": "The card was rendered and then updated successfully. Final state returned by the update tool:\n\n- **Title:** Hello\n- **Body:** Updated World\n- **Revision:** 2",
-    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603"
+    "seq": 15,
+    "id": "msg_011CejsFJobMdsaHj2ChXASs:text:0",
+    "messageId": "msg_011CejsFJobMdsaHj2ChXASs",
+    "delta": "The card was rendered and then updated successfully. Final state: **revision 2** — title \"Hello\", body \"Updated World\".",
+    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732"
   },
   {
     "type": "text.end",
-    "seq": 20,
-    "id": "msg_011CdMAmqQ7KNdQoeS9CqpZp:text:0",
-    "messageId": "msg_011CdMAmqQ7KNdQoeS9CqpZp",
-    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603"
+    "seq": 16,
+    "id": "msg_011CejsFJobMdsaHj2ChXASs:text:0",
+    "messageId": "msg_011CejsFJobMdsaHj2ChXASs",
+    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732"
   },
   {
     "type": "message.end",
-    "seq": 21,
-    "id": "msg_011CdMAmqQ7KNdQoeS9CqpZp",
+    "seq": 17,
+    "id": "msg_011CejsFJobMdsaHj2ChXASs",
     "usage": {
       "inputTokens": 2,
       "outputTokens": 1,
-      "cacheReadTokens": 1533,
-      "cacheWriteTokens": 115,
+      "cacheReadTokens": 2232,
+      "cacheWriteTokens": 155,
       "cumulative": true
     }
   },
   {
+    "seq": 18,
+    "type": "ext.anthropic.result-meta",
+    "fastModeDisabledReason": "sdk_opt_in_required",
+    "queuedTurnCount": 0,
+    "subagentStats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "modelUsage": {
+      "claude-haiku-4-5-20251001": {
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-sonnet-5": {
+        "canonicalModel": "claude-sonnet-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    }
+  },
+  {
     "type": "turn.done",
-    "seq": 22,
-    "turnId": "turn_8e998b00-d358-4e18-87c9-731180ee3603",
+    "seq": 19,
+    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732",
     "outcome": {
       "type": "success",
-      "result": "The card was rendered and then updated successfully. Final state returned by the update tool:\n\n- **Title:** Hello\n- **Body:** Updated World\n- **Revision:** 2"
+      "result": "The card was rendered and then updated successfully. Final state: **revision 2** — title \"Hello\", body \"Updated World\"."
     },
     "finishReason": "stop",
     "usage": {
       "inputTokens": 6,
-      "outputTokens": 236,
-      "cacheReadTokens": 2937,
-      "cacheWriteTokens": 1648,
+      "outputTokens": 197,
+      "cacheReadTokens": 4315,
+      "cacheWriteTokens": 2387,
+      "reasoningTokens": 0,
       "serverToolRequests": 0,
-      "costUsd": 0.0112461,
+      "costUsd": 0.0098005,
       "cumulative": true,
       "byModel": {
-        "claude-sonnet-5": {
-          "inputTokens": 6,
-          "outputTokens": 236,
-          "cacheReadTokens": 2937,
-          "cacheWriteTokens": 1648,
-          "costUsd": 0.010619100000000001,
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 923,
+          "outputTokens": 13,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "costUsd": 0.000988,
           "serverToolRequests": 0,
           "cumulative": true
         },
-        "claude-haiku-4-5-20251001": {
-          "inputTokens": 547,
-          "outputTokens": 16,
-          "cacheReadTokens": 0,
-          "cacheWriteTokens": 0,
-          "costUsd": 0.000627,
+        "claude-sonnet-5": {
+          "inputTokens": 6,
+          "outputTokens": 197,
+          "cacheReadTokens": 4315,
+          "cacheWriteTokens": 2387,
+          "reasoningTokens": 0,
+          "costUsd": 0.008812500000000001,
           "serverToolRequests": 0,
           "cumulative": true
         }

@@ -54,6 +54,8 @@
  *     `response.function_call_arguments.delta` (`item_id`/`delta`),
  *     `response.function_call_arguments.done` (`arguments`/`item_id`),
  *     `response.completed`/`response.incomplete` (`response.incomplete_details.reason`),
+ *     `response.failed` (`response.error.{message,code}` + openai-node ≥7.10.0's
+ *      `error.misalignment` block, carried verbatim as `ext.openai.misalignment`),
  *     and the reasoning item `rs_…` + `encrypted_content` stateless-replay payload
  *     (the `reasoning.encrypted_content` include; rides `ReasoningItem.providerData`).
  *
@@ -875,12 +877,32 @@ interface OpenAIResponsesOutputItemAdded {
 }
 
 /** openai-node `ResponseFailedEvent` — the response itself failed (e.g. rate limit).
- *  Carried via the `model` carrier. */
+ *  Carried via the `model` carrier.
+ *
+ *  `error.misalignment` is openai-node ≥7.10.0 wire (`ResponseError.Misalignment`,
+ *  paired with the new code `misalignment_policy_violation` — GPT-6 Astra's
+ *  misalignment monitoring): a safety classification (`error_type`, an OPEN
+ *  string — "clients must accept additional values"), a public explanation
+ *  (`detailed_explanation`) and an optional continuation instruction
+ *  (`steer.message`). Typed to the documented subset; the arm carries the WHOLE
+ *  object verbatim (JsonValue-validated), so any further server-added key
+ *  survives. Reachability: the documented auto-stop applies only to Responses
+ *  requests using persisted reasoning, WebSockets, or compaction — none of
+ *  which @openai/agents 0.17.0's default HTTP transport uses in the e2e probes
+ *  — so the carry is synthetic-tested only (defensive). */
 interface OpenAIResponsesFailed {
   type: "response.failed";
   response: {
     id: string;
-    error?: { message?: string; code?: string };
+    error?: {
+      message?: string;
+      code?: string;
+      misalignment?: {
+        detailed_explanation?: string;
+        error_type?: string;
+        steer?: { message: string };
+      };
+    };
   };
 }
 
@@ -1597,6 +1619,22 @@ export function createOpenaiNormalizer(): Normalizer {
         if (turnId === undefined) return; // unreachable post-ensure; satisfies narrowing
         endOpenStreamsAndCloseMessage();
         const err = ev.response.error;
+        // openai-node ≥7.10.0: `error.misalignment` (classification + public
+        // explanation + `steer.message` continuation instruction) would otherwise
+        // be silently dropped — `turn.error` carries only message/code/usage
+        // (spec §4 gives it no providerMetadata slot), so the block rides the
+        // lossless vendor channel, turn-scoped, immediately BEFORE the closing
+        // turn.error it annotates. Carried VERBATIM (wire names, whole object;
+        // no AgSafety mapping — carry only). Absent ⇒ no event (byte-identical
+        // to the pre-7.10.0 output). The isJsonObject guard keeps a malformed
+        // non-object wire value away from JsonValue.parse (push() never throws).
+        const misalignment = err?.misalignment;
+        if (isJsonObject(misalignment)) {
+          a.emitExt("openai", "misalignment", {
+            responseId: ev.response.id,
+            misalignment: JsonValue.parse(misalignment),
+          });
+        }
         a.closeTurnError(turnId, {
           message: err?.message ?? "response.failed",
           ...(err?.code !== undefined ? { code: err.code } : {}),

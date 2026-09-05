@@ -89,7 +89,7 @@ describe("resolveModel", () => {
     withCaptureModel(undefined, () => {
       expect(resolveModel("claude")).toBe("claude-sonnet-5");
       expect(resolveModel("openai")).toBe("gpt-5.6-sol");
-      expect(resolveModel("adk")).toBe("gemini-3.7-flash");
+      expect(resolveModel("adk")).toBe("gemini-3.8-flash");
       expect(resolveModel("vercel")).toBe("gpt-5.6-sol");
     });
   });
@@ -347,7 +347,7 @@ describe.runIf(process.env["CAPTURE"] === "1")("e2e:capture — LIVE (operator)"
     const frameworkRaw = process.env["CAPTURE_FRAMEWORK"];
     if (!scenarioName || !frameworkRaw) {
       throw new Error(
-        "e2e:capture: set CAPTURE_SCENARIO=<scenarios/ dir name> and CAPTURE_FRAMEWORK=<claude|openai|adk>",
+        "e2e:capture: set CAPTURE_SCENARIO=<scenarios/ dir name> and CAPTURE_FRAMEWORK=<claude|openai|adk|vercel>",
       );
     }
     if (!isFramework(frameworkRaw)) {

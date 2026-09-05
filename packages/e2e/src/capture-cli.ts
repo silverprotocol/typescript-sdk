@@ -43,11 +43,13 @@
  * `regen.test.ts` (`REGEN=1 npx vitest run ... regen.test.ts`).
  * `capture-cli.test.ts`'s gated suite mirrors it:
  *
- *   CAPTURE=1 CAPTURE_SCENARIO=<scenario> CAPTURE_FRAMEWORK=<claude|openai|adk> \
+ *   CAPTURE=1 CAPTURE_SCENARIO=<scenario> CAPTURE_FRAMEWORK=<claude|openai|adk|vercel> \
  *     ANTHROPIC_API_KEY=... pnpm e2e:capture
  *
- * (`pnpm e2e:capture` = `vitest run src/capture-cli.test.ts`, per
- * package.json.)
+ * (`pnpm e2e:capture` = `vitest run --config ../../vitest.config.ts
+ * src/capture-cli.test.ts`, per package.json — the explicit `--config` is
+ * required since vitest 5, which no longer resolves a parent config; the
+ * root config supplies the `@silverprotocol/*` src aliases.)
  */
 import { createRequire } from "node:module";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -100,9 +102,10 @@ const DEFAULT_MODEL: Record<Framework, string> = {
   // alias (currently → gpt-5.6-sol) and may re-route it later, which would
   // silently change what a "refresh at the same model" capture exercises.
   openai: "gpt-5.6-sol",
-  // 2026-08-19: bumped from gemini-3.6-flash — the gemini-3.7-flash trio
-  // (echo/app-spec/thinking) landed as replay seeds, see workspace#14.
-  adk: "gemini-3.7-flash",
+  // 2026-09-05: bumped from gemini-3.7-flash — the gemini-3.8-flash trio
+  // (echo/app-spec/thinking) landed as replay seeds (GA 2026-09-02; same
+  // thinking knob, same price). 2026-08-19: 3.6 → 3.7 (workspace#14).
+  adk: "gemini-3.8-flash",
   // Same model family as "openai" — the two facets share provider + corpus.
   vercel: "gpt-5.6-sol",
 };

@@ -1,0 +1,162 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "threadId": "google"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "turnId": "turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "threadId": "google",
+    "role": "assistant"
+  },
+  {
+    "type": "tool.start",
+    "seq": 2,
+    "turnId": "turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "toolCallId": "call_329320",
+    "name": "echo",
+    "index": 0
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 3,
+    "toolCallId": "call_329320",
+    "delta": "{\"message\":\"conformance-probe-gemini38\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 4,
+    "toolCallId": "call_329320",
+    "input": {
+      "message": "conformance-probe-gemini38"
+    },
+    "signature": "EooDCocDARFNMg8Ak4YIVf9yFyN2cyu7h45HZ0I3v+QwwSKV2/0bRxy1brH4uRyvsT1DCEjsp7P/A5cPlNLthkNksZyvqQ1+7cSvcIdzt2phsOWZI8Ayf7/bQPhpTvs0UJ8mCXHlQkpDkUANo9GvCNPmFJlP3O8RktZ521UtLSDlH0Ya/vlwzcu6P6MLigySaFk9ju8jpFSk//wgqtWwnBl4/pnuM/N/dH0v/lNSXa9ZChonTkjZCHYBp1enicU1rXuCo4gtT/ZH6ClmP2RwGI1DgSQdvBvKHct3ni89mf202SJ7tO5CyF8NhRlzxXvfgrqFEd0r90nJpaLvRDTEF3Fbd5WEDi9F3mugn4jCNSCioOfneE3AuqDsDC/6yEYaMOZfp2XgtFwCPZjJ6pPbrPYkLdXv1WIr6GHlNKbPTQOF+JPa62mG+kMP1jppL3UzOAv3E0pmEReUhJDWr0IWVzWprHW++CAJQZP4lq1g4Qw623iTFKDjKO8S/uJD4F9fZNKWAMUveHUY+0hgPw=="
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "seq": 5
+  },
+  {
+    "type": "content.block",
+    "seq": 6,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "turnId": "turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c"
+  },
+  {
+    "type": "tool.done",
+    "seq": 7,
+    "turnId": "turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "toolCallId": "call_329320",
+    "content": [
+      {
+        "type": "text",
+        "text": "conformance-probe-gemini38"
+      }
+    ],
+    "outcome": "ok"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "seq": 8
+  },
+  {
+    "type": "content.block",
+    "seq": 9,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "turnId": "turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c"
+  },
+  {
+    "type": "text.start",
+    "seq": 10,
+    "id": "text:0",
+    "messageId": "msg_turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "turnId": "turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "Er0BCroBARFNMg/XD8Wn22F/IV/537mHPDYGnHZ3udRsLQDcb/nQ5Vq9ed/s/MC9xXFIWtJ53xI1wtGwXxWzWNl5+elK5eyczsdPlT3X8GJRSxcZ5x1NBS4MssZAqXH250TIeexMeaZNn7NKBSZAIRNud4xPqd1ugNktUeF4eiLWMmhCoBE5jqJTnNGGeM7hriSlpMQnk5myCf/eDHrSe9rakuNOaGh2TAkufiongqX1dbOLaVzKurXJmRUGw5if"
+      }
+    }
+  },
+  {
+    "type": "text.delta",
+    "seq": 11,
+    "id": "text:0",
+    "messageId": "msg_turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "delta": "conformance-probe-gemini38",
+    "turnId": "turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c"
+  },
+  {
+    "type": "text.end",
+    "seq": 12,
+    "id": "text:0",
+    "messageId": "msg_turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "turnId": "turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "Er0BCroBARFNMg/XD8Wn22F/IV/537mHPDYGnHZ3udRsLQDcb/nQ5Vq9ed/s/MC9xXFIWtJ53xI1wtGwXxWzWNl5+elK5eyczsdPlT3X8GJRSxcZ5x1NBS4MssZAqXH250TIeexMeaZNn7NKBSZAIRNud4xPqd1ugNktUeF4eiLWMmhCoBE5jqJTnNGGeM7hriSlpMQnk5myCf/eDHrSe9rakuNOaGh2TAkufiongqX1dbOLaVzKurXJmRUGw5if"
+      }
+    }
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "seq": 13
+  },
+  {
+    "type": "content.block",
+    "seq": 14,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "turnId": "turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c"
+  },
+  {
+    "type": "message.end",
+    "seq": 15,
+    "id": "msg_turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c"
+  },
+  {
+    "type": "turn.done",
+    "seq": 16,
+    "turnId": "turn_e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 351,
+      "outputTokens": 135,
+      "totalTokens": 486,
+      "reasoningTokens": 104,
+      "cumulative": false
+    }
+  }
+]

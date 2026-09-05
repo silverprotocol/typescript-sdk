@@ -3,7 +3,7 @@
     "type": "system",
     "subtype": "init",
     "cwd": "/Users/gustavo/Projects/silverprotocol/sdks/typescript/packages/e2e",
-    "session_id": "8e998b00-d358-4e18-87c9-731180ee3603",
+    "session_id": "032c21dd-91ac-45ba-aa49-7378533f9732",
     "tools": [
       "mcp__cards__render_card",
       "mcp__cards__update_card"
@@ -30,9 +30,13 @@
       "doctor",
       "loop",
       "claude-api",
+      "workflow-authoring",
       "run",
       "run-skill-generator",
+      "advisor",
       "agents",
+      "auto-mode-setup",
+      "autocompact",
       "clear",
       "color",
       "compact",
@@ -43,24 +47,32 @@
       "heapdump",
       "init",
       "mcp",
+      "import",
       "model",
       "__remote-workflow",
       "workflow-launch-exec",
+      "reload-plugins",
       "reload-skills",
       "rename",
-      "review",
       "security-review",
       "usage",
       "insights",
       "recap",
+      "skill-doctor",
       "goal",
       "design",
       "design-consent",
       "design-revoke",
+      "list-agents",
       "team-onboarding"
     ],
+    "terminal_slash_commands": [
+      "doctor",
+      "color",
+      "reload-plugins"
+    ],
     "apiKeySource": "ANTHROPIC_API_KEY",
-    "claude_code_version": "2.1.217",
+    "claude_code_version": "2.1.261",
     "output_style": "default",
     "agents": [
       "claude",
@@ -83,71 +95,37 @@
       "doctor",
       "loop",
       "claude-api",
+      "workflow-authoring",
       "run",
       "run-skill-generator"
     ],
     "plugins": [],
     "capabilities": [
       "interrupt_receipt_v1",
+      "interrupt_cancel_queued_v1",
       "msg_lifecycle_v1"
     ],
     "analytics_disabled": false,
     "product_feedback_disabled": false,
-    "uuid": "d57f8dc0-b67a-4fa9-bdad-bf1856ef31ec",
+    "uuid": "bd1c3226-af3d-4856-ba81-a313c9828187",
     "memory_paths": {
       "auto": "/Users/gustavo/.claude/projects/-Users-gustavo-Projects-silverprotocol/memory/"
     },
-    "fast_mode_state": "off"
+    "messaging_socket_path": "/tmp/cc-socks/50724.sock",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required"
   },
   {
     "type": "assistant",
     "message": {
       "model": "claude-sonnet-5",
-      "id": "msg_011CdMAmb6dKtbrbtGX4QPnE",
-      "type": "message",
-      "role": "assistant",
-      "content": [
-        {
-          "type": "thinking",
-          "thinking": "",
-          "signature": "EqsCCokBCBAYAipAiwUwpAVggx36GGLNWM3r/AAuSpPiO9KV/LArjFztg50nMlyHVGQuTRjPb0Bx2wYYBbrCZkMwYklANzsDiAN6NzIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiQ2NThiNDdmOS0wMWUyLTQ3OTgtYjViZS00NGUyYTM1ZDhjY2ESDAuumU1BcLsBFKtJlhoMLgn4zACitxgyyAOzIjA8ofB1hL4vYcLyoWskWYPfEvZCCRWmIBk4xnDzgnex9FCEapUVIt9Uv/YyF3T8dvgqTzwytIwdsZwdYHm7Ud5yYYGBRSy5r0SLpey7izCyq0CSEm+6LcYjgyC9sDsPYn6j6pEp9BoVwEzU/3M1P5hpworyv2yW/7s0huLOeSq9busYAQ=="
-        }
-      ],
-      "stop_reason": null,
-      "stop_sequence": null,
-      "stop_details": null,
-      "usage": {
-        "input_tokens": 2,
-        "cache_creation_input_tokens": 1404,
-        "cache_read_input_tokens": 0,
-        "cache_creation": {
-          "ephemeral_5m_input_tokens": 1404,
-          "ephemeral_1h_input_tokens": 0
-        },
-        "output_tokens": 2,
-        "service_tier": "standard",
-        "inference_geo": "global"
-      },
-      "diagnostics": null,
-      "context_management": null
-    },
-    "parent_tool_use_id": null,
-    "session_id": "8e998b00-d358-4e18-87c9-731180ee3603",
-    "uuid": "229a7c1e-fcf9-49be-bbf4-dddfc478ad64",
-    "timestamp": "2026-07-24T16:06:30.345Z",
-    "request_id": "req_011CdMAmaFXnivHxJUicXDzm"
-  },
-  {
-    "type": "assistant",
-    "message": {
-      "model": "claude-sonnet-5",
-      "id": "msg_011CdMAmb6dKtbrbtGX4QPnE",
+      "id": "msg_011CejsF6gLtS4CzAXaKvYer",
       "type": "message",
       "role": "assistant",
       "content": [
         {
           "type": "tool_use",
-          "id": "toolu_01BnYNQJEDJ9t18WafZ971Db",
+          "id": "toolu_01KK1FqDqQLMjwKg1mp7PuQd",
           "name": "mcp__cards__render_card",
           "input": {
             "title": "Hello",
@@ -163,13 +141,13 @@
       "stop_details": null,
       "usage": {
         "input_tokens": 2,
-        "cache_creation_input_tokens": 1404,
+        "cache_creation_input_tokens": 2083,
         "cache_read_input_tokens": 0,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 1404,
+          "ephemeral_5m_input_tokens": 2083,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 2,
+        "output_tokens": 23,
         "service_tier": "standard",
         "inference_geo": "global"
       },
@@ -177,13 +155,13 @@
       "context_management": null
     },
     "parent_tool_use_id": null,
-    "session_id": "8e998b00-d358-4e18-87c9-731180ee3603",
-    "uuid": "a74263ab-7586-4ae9-8b2c-9340767b0bb3",
-    "timestamp": "2026-07-24T16:06:30.851Z",
-    "request_id": "req_011CdMAmaFXnivHxJUicXDzm",
+    "session_id": "032c21dd-91ac-45ba-aa49-7378533f9732",
+    "uuid": "58eef1b6-49da-4b64-9888-6bacc6069db0",
+    "timestamp": "2026-09-05T07:04:48.641Z",
+    "request_id": "req_011CejsF6AaRYK25GfrJZPsH",
     "tool_use_meta": [
       {
-        "id": "toolu_01BnYNQJEDJ9t18WafZ971Db",
+        "id": "toolu_01KK1FqDqQLMjwKg1mp7PuQd",
         "display_name": "Render Card",
         "server_display_name": "mock-app-update"
       }
@@ -195,16 +173,16 @@
       "role": "user",
       "content": [
         {
-          "tool_use_id": "toolu_01BnYNQJEDJ9t18WafZ971Db",
+          "tool_use_id": "toolu_01KK1FqDqQLMjwKg1mp7PuQd",
           "type": "tool_result",
           "content": "{\"title\":\"Hello\",\"body\":\"World\",\"revision\":1,\"kind\":\"render\"}"
         }
       ]
     },
     "parent_tool_use_id": null,
-    "session_id": "8e998b00-d358-4e18-87c9-731180ee3603",
-    "uuid": "244e7263-444a-41d9-8e47-5cd4ba69e836",
-    "timestamp": "2026-07-24T16:06:30.866Z",
+    "session_id": "032c21dd-91ac-45ba-aa49-7378533f9732",
+    "uuid": "299de8f6-e594-4899-883e-0c8ff7d3e9be",
+    "timestamp": "2026-09-05T07:04:48.652Z",
     "tool_use_result": {
       "content": "{\"title\":\"Hello\",\"body\":\"World\",\"revision\":1,\"kind\":\"render\"}",
       "_meta": {
@@ -227,13 +205,13 @@
     "type": "assistant",
     "message": {
       "model": "claude-sonnet-5",
-      "id": "msg_011CdMAmj8pfQzfemRZz2mRX",
+      "id": "msg_011CejsFDjjpKZiQWtJWqqNo",
       "type": "message",
       "role": "assistant",
       "content": [
         {
           "type": "tool_use",
-          "id": "toolu_01QJV5ErrKnEooBLM6P9C3FD",
+          "id": "toolu_013jofQ2z7T7DnpRTJcdx8yR",
           "name": "mcp__cards__update_card",
           "input": {
             "title": "Hello",
@@ -249,13 +227,13 @@
       "stop_details": null,
       "usage": {
         "input_tokens": 2,
-        "cache_creation_input_tokens": 129,
-        "cache_read_input_tokens": 1404,
+        "cache_creation_input_tokens": 149,
+        "cache_read_input_tokens": 2083,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 129,
+          "ephemeral_5m_input_tokens": 149,
           "ephemeral_1h_input_tokens": 0
         },
-        "output_tokens": 72,
+        "output_tokens": 24,
         "service_tier": "standard",
         "inference_geo": "global"
       },
@@ -263,13 +241,13 @@
       "context_management": null
     },
     "parent_tool_use_id": null,
-    "session_id": "8e998b00-d358-4e18-87c9-731180ee3603",
-    "uuid": "5de8d754-a88d-4d6b-a137-63e23d6e0f5a",
-    "timestamp": "2026-07-24T16:06:32.195Z",
-    "request_id": "req_011CdMAmi55G8AVGfALnpCo9",
+    "session_id": "032c21dd-91ac-45ba-aa49-7378533f9732",
+    "uuid": "69c45462-e249-4a99-ac2a-13661f8c338b",
+    "timestamp": "2026-09-05T07:04:49.898Z",
+    "request_id": "req_011CejsFD1qRRKC1ink9GVp7",
     "tool_use_meta": [
       {
-        "id": "toolu_01QJV5ErrKnEooBLM6P9C3FD",
+        "id": "toolu_013jofQ2z7T7DnpRTJcdx8yR",
         "display_name": "Update Card",
         "server_display_name": "mock-app-update"
       }
@@ -281,16 +259,16 @@
       "role": "user",
       "content": [
         {
-          "tool_use_id": "toolu_01QJV5ErrKnEooBLM6P9C3FD",
+          "tool_use_id": "toolu_013jofQ2z7T7DnpRTJcdx8yR",
           "type": "tool_result",
           "content": "{\"title\":\"Hello\",\"body\":\"Updated World\",\"revision\":2,\"kind\":\"update\"}"
         }
       ]
     },
     "parent_tool_use_id": null,
-    "session_id": "8e998b00-d358-4e18-87c9-731180ee3603",
-    "uuid": "5cfe2548-b609-4525-992d-b4dc7f42909c",
-    "timestamp": "2026-07-24T16:06:32.213Z",
+    "session_id": "032c21dd-91ac-45ba-aa49-7378533f9732",
+    "uuid": "82d17278-6273-47ad-9c08-2e3b49b39ef9",
+    "timestamp": "2026-09-05T07:04:49.905Z",
     "tool_use_result": {
       "content": "{\"title\":\"Hello\",\"body\":\"Updated World\",\"revision\":2,\"kind\":\"update\"}",
       "_meta": {
@@ -313,13 +291,13 @@
     "type": "assistant",
     "message": {
       "model": "claude-sonnet-5",
-      "id": "msg_011CdMAmqQ7KNdQoeS9CqpZp",
+      "id": "msg_011CejsFJobMdsaHj2ChXASs",
       "type": "message",
       "role": "assistant",
       "content": [
         {
           "type": "text",
-          "text": "The card was rendered and then updated successfully. Final state returned by the update tool:\n\n- **Title:** Hello\n- **Body:** Updated World\n- **Revision:** 2"
+          "text": "The card was rendered and then updated successfully. Final state: **revision 2** — title \"Hello\", body \"Updated World\"."
         }
       ],
       "stop_reason": null,
@@ -327,10 +305,10 @@
       "stop_details": null,
       "usage": {
         "input_tokens": 2,
-        "cache_creation_input_tokens": 115,
-        "cache_read_input_tokens": 1533,
+        "cache_creation_input_tokens": 155,
+        "cache_read_input_tokens": 2232,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 115,
+          "ephemeral_5m_input_tokens": 155,
           "ephemeral_1h_input_tokens": 0
         },
         "output_tokens": 1,
@@ -341,31 +319,24 @@
       "context_management": null
     },
     "parent_tool_use_id": null,
-    "session_id": "8e998b00-d358-4e18-87c9-731180ee3603",
-    "uuid": "8f46f6da-1773-4006-ae27-1cd2ce4bd5b5",
-    "timestamp": "2026-07-24T16:06:34.520Z",
-    "request_id": "req_011CdMAmooN4X7KzfVj5LmCT"
+    "session_id": "032c21dd-91ac-45ba-aa49-7378533f9732",
+    "uuid": "444198f7-ede5-4eb9-848c-3a9ab6679507",
+    "timestamp": "2026-09-05T07:04:51.103Z",
+    "request_id": "req_011CejsFJD7pPdbUij3Z9LCJ"
   },
   {
-    "type": "result",
-    "subtype": "success",
-    "is_error": false,
-    "api_error_status": null,
-    "duration_ms": 5727,
-    "duration_api_ms": 8120,
-    "ttft_ms": 1451,
-    "ttft_stream_ms": 1055,
-    "time_to_request_ms": 132,
-    "num_turns": 3,
-    "result": "The card was rendered and then updated successfully. Final state returned by the update tool:\n\n- **Title:** Hello\n- **Body:** Updated World\n- **Revision:** 2",
+    "duration_api_ms": 5793,
     "stop_reason": "end_turn",
-    "session_id": "8e998b00-d358-4e18-87c9-731180ee3603",
-    "total_cost_usd": 0.0112461,
+    "session_id": "032c21dd-91ac-45ba-aa49-7378533f9732",
+    "total_cost_usd": 0.0098005,
     "usage": {
       "input_tokens": 6,
-      "cache_creation_input_tokens": 1648,
-      "cache_read_input_tokens": 2937,
-      "output_tokens": 236,
+      "cache_creation_input_tokens": 2387,
+      "cache_read_input_tokens": 4315,
+      "output_tokens": 197,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
       "server_tool_use": {
         "web_search_requests": 0,
         "web_fetch_requests": 0
@@ -373,17 +344,17 @@
       "service_tier": "standard",
       "cache_creation": {
         "ephemeral_1h_input_tokens": 0,
-        "ephemeral_5m_input_tokens": 1648
+        "ephemeral_5m_input_tokens": 2387
       },
       "inference_geo": "global",
       "iterations": [
         {
           "input_tokens": 2,
-          "output_tokens": 58,
-          "cache_read_input_tokens": 1533,
-          "cache_creation_input_tokens": 115,
+          "output_tokens": 40,
+          "cache_read_input_tokens": 2232,
+          "cache_creation_input_tokens": 155,
           "cache_creation": {
-            "ephemeral_5m_input_tokens": 115,
+            "ephemeral_5m_input_tokens": 155,
             "ephemeral_1h_input_tokens": 0
           },
           "type": "message"
@@ -392,30 +363,75 @@
       "speed": "standard"
     },
     "modelUsage": {
-      "claude-sonnet-5": {
-        "inputTokens": 6,
-        "outputTokens": 236,
-        "cacheReadInputTokens": 2937,
-        "cacheCreationInputTokens": 1648,
-        "webSearchRequests": 0,
-        "costUSD": 0.010619100000000001,
-        "contextWindow": 1000000,
-        "maxOutputTokens": 64000
-      },
       "claude-haiku-4-5-20251001": {
-        "inputTokens": 547,
-        "outputTokens": 16,
+        "inputTokens": 923,
+        "outputTokens": 13,
         "cacheReadInputTokens": 0,
         "cacheCreationInputTokens": 0,
         "webSearchRequests": 0,
-        "costUSD": 0.000627,
+        "costUSD": 0.000988,
         "contextWindow": 200000,
-        "maxOutputTokens": 32000
+        "maxOutputTokens": 32000,
+        "thinkingTokens": 0,
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-sonnet-5": {
+        "inputTokens": 6,
+        "outputTokens": 197,
+        "cacheReadInputTokens": 4315,
+        "cacheCreationInputTokens": 2387,
+        "webSearchRequests": 0,
+        "costUSD": 0.008812500000000001,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000,
+        "thinkingTokens": 0,
+        "canonicalModel": "claude-sonnet-5",
+        "provider": "firstParty",
+        "costBasis": "list"
       }
     },
     "permission_denials": [],
     "terminal_reason": "completed",
     "fast_mode_state": "off",
-    "uuid": "96f65baa-7f97-46c4-8bc3-d298f76424d5"
+    "fast_mode_disabled_reason": "sdk_opt_in_required",
+    "subagent_stats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "is_error": false,
+    "num_turns": 3,
+    "subtype": "success",
+    "api_error_status": null,
+    "result": "The card was rendered and then updated successfully. Final state: **revision 2** — title \"Hello\", body \"Updated World\".",
+    "ttft_ms": 1736,
+    "type": "result",
+    "duration_ms": 4239,
+    "uuid": "795c694a-9d70-4174-bfe9-b83e0e6dceb0",
+    "ttft_stream_ms": 1117,
+    "time_to_request_ms": 152,
+    "first_content_frame_ms": 1117,
+    "queued_turn_count": 0
   }
 ]

@@ -1,0 +1,404 @@
+[
+  {
+    "type": "start"
+  },
+  {
+    "type": "start-step",
+    "request": {},
+    "warnings": []
+  },
+  {
+    "type": "reasoning-start",
+    "id": "rs_0b02297f2bb20277006a9bbb99ca2087d09bdcbc0f9629515d:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0b02297f2bb20277006a9bbb99ca2087d09bdcbc0f9629515d",
+        "reasoningEncryptedContent": "gAAAAABqm7uZycyl_SS4ljAZuMugMazopizbpd6G1FzvcxwscUQpSD1YzE_QOi_LVD15KFqHqcfg-dKZ41PmSQel8nSRJbxJ4ndkydcIDL0jBUNG_D8_iNKUme-FOYmlyRrJoGgy0U14TAPiW_s1ZblKYeXTs9GboI1w3F-IGgGwzPIZE8gzcrxxQfv1WrHgYfXYqiow1cBms1-GrTbH94PyfzcQwoQuLi_laUNrU9wExheoQlD5tHp_eKId2kgeslqaq_JGZwOsAjI_LllPbKJK8DNYJ-7iWlT82qS0G4rHAqGi6B9s4o8cHDZcwWtY0qI0CURdt7HaMUK_--j4JfN2LCEmxXYWPp0Y9qDMmTLK2V5bTOQKEJX5NcHdX78VyrVYIN7XTi4oRJlFRf9AltDgAot8CkB32pdrmHd1hmDbHUxWkmKVCsIQDaxRDJfvbduLrDTIqjyOt_Fl5ovrePm3jJ8zW7oyLL25g4QRXXeHGcOqQe1-MGEkWvOjXm2oEwzIBJjRZQh4hEZIW7qvVyB4C-VUBh3qZnmdu4nDhdvd_xAj3Entr8Eszw2cMRS6sbHW80dWblWeVE1oGozbMN9la11P2okWZc9m9ikV83ZqMN6d4vTxhnlGus_-gQPcwqKXUJ2XIUrEEwyqWtWjXf5ngdKqnfix5SL2Z0jfP9b8y6Mzn3qkFgMGn43JP5AdnFXnSyDLKgVsGLEqa9M_al3H1lQVapZSlD1XgH4qAE7cPRp5J96o6BJEm4kc062GwQPjUWBozkmez82bD2LcC_aJ6oQlq5A6WY0LZGxQEbQQMrrujsdWExPTlcCMIBo56zIOrTIDKl8Uz_jkJbicZQSZ568eee3zRZVdl1KLfeLqG6GSDTtwP0gFx-uXo4F8Uq_OImysUV2Lf2b4DIpcymL9FTDFnFfVeIY_TBMAImX9C0QhH2h5r4GN_bQhLtSBh98EfgbpSaJWiQnnhG2PuLGk6vVh8scid6WU-xGGUESQwzyiwebuFa49Jxr9ESwHs-u794GNzrIIOhRoEM8fAJpRjhX2oTKdShQj_A-KHN0RLD4pJFH6sPU6UynF9Lv93678EMvhDBtgp4B_tqX7wtKHKkKCB5T07oOFYNhK2NO8yW_aK06aOUKjUbtVlpnlnRS6eVQbXU0zPfuHf5nEEsCiejRJohsbiA=="
+      }
+    }
+  },
+  {
+    "type": "reasoning-end",
+    "id": "rs_0b02297f2bb20277006a9bbb99ca2087d09bdcbc0f9629515d:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0b02297f2bb20277006a9bbb99ca2087d09bdcbc0f9629515d",
+        "reasoningEncryptedContent": "gAAAAABqm7ua7wKccW11g7cyet5wiuFd7AiqQqdZuUTgxOVKkqn0Vsk_Xl3_NctLPJXHrl3KPRfb8VNjwaqqFy0XXEPG7CeuK2oj2RKvOilMVa1zGDytndVWOXro2zCqOuzv37K3BzjwuBiV84wyv40oK-v-S-Hm5Mr7gGZAFHXK_vINfrA8L-xVCmvEox0ZnzaEjnuP4OnBLDHBukxNmK2-lDhi3Pa0J6fCtIVwO6FNT0qVVLucSIFIRG7PlDEeY6a7VS5P4nT_KNOJaEtoRMAlak8Epz43S0PRj9M2E1AIp04r2iMZdWWQhhNxbjVxQC7P6avRWvN3hXr3eOo6-ogqt8nmG5ElGZWxjuq0J0CuL-5bH6TslUn5jk7CD1KrDwUmAyPk5Xlt1NLw6NNKgO3IqDY4fitgd4ow6ajGl_cqUDVuxWYaqkxfhtdF8wa7Y_0E_eWEjGfawhlADtfrOryES8ZaFnfIH3MAkHk-JWIlfSUNE7eDvxuVI-1wR6Hgp7gDzGDa1Q04LfwNjW6T6645fKjdn7WX_JUdyFT8TUo5K6lpsNaQmwXxrAiQUJ6j1gPoyDPJEc0zOsJei_92mW9m_kPebNyZN5xbi1VXmtyoC89xcfTOR2Iw5F5Glizo1CKU5nO2aH4o31drjB1CucOUq5W39hLSG3CaFPB0k_BIvw-YmF7qhZZgCyPPdEQODnJKt6uT0z65pju6wdLKdAA4vTz-VKsDZuCZXcMKe_tinZSSfUXrld28l-Xi5b4T43UDCfdBqWx1Q-fBu9RcJttmiu39CiqhOLfKTfULE9-fmZbTBv77oyeY1xcLaUCssSRH7s4GmgsR7Zt7nTFiyHdrjxq0mGPschmyWQGuJ1dFkMZSMTGTHJ6VUhEZ2ih7vcUCpbg0tk4epKe1wb3pG86mKT_obBPI7IXvUa0LZ4iVFHxu1XkYN3KJtp2YJyfHpNvwgBWaewOWK3zjmRzP5e1qte9M9SypJ3OltepZ8Kjn_bqmBovGK3TTH8Oe2YuGTU4czMl0PEjENppJt6ehjaoDdUzl9KDEh8UvVcC6xD11sJ9we-SUM60eOjYvlwcmrEjn_5dTNR8uYGa50js0mJAJsi0ctGQzjyfC2Oayhsd9WNaqPWb9WBRYpkifHy7g4hFlxrO3naCXBE_e4yeq5Z5hOQb0eJ8biqLxGuZqTea8PzhbqpM5p0xXh5gqrqmIRVpZxT99vmZEoJ9BIr05pftKfuZhSzxCc6wQFeNpZ3UiZGiZw4IcnRU="
+      }
+    }
+  },
+  {
+    "type": "tool-input-start",
+    "id": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "toolName": "echo",
+    "dynamic": true,
+    "toolMetadata": {
+      "clientName": "ai-sdk-mcp-client",
+      "toolName": "echo"
+    }
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "{\""
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "message"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "\":\""
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "con"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "formance"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "-pro"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "be"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "-g"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "pt"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "6"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "astra"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "delta": "\"}"
+  },
+  {
+    "type": "tool-input-end",
+    "id": "call_BTaBdmxwqma2Sch0njmIeasb"
+  },
+  {
+    "type": "tool-call",
+    "toolCallId": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "toolName": "echo",
+    "input": {
+      "message": "conformance-probe-gpt6astra"
+    },
+    "providerMetadata": {
+      "openai": {
+        "itemId": "fc_0b02297f2bb20277006a9bbb9a085487d0b11af21d10071dc6"
+      }
+    },
+    "toolMetadata": {
+      "clientName": "ai-sdk-mcp-client",
+      "toolName": "echo"
+    },
+    "dynamic": true
+  },
+  {
+    "type": "tool-result",
+    "toolCallId": "call_BTaBdmxwqma2Sch0njmIeasb",
+    "toolName": "echo",
+    "input": {
+      "message": "conformance-probe-gpt6astra"
+    },
+    "output": {
+      "content": [
+        {
+          "type": "text",
+          "text": "conformance-probe-gpt6astra"
+        }
+      ],
+      "isError": false
+    },
+    "dynamic": true,
+    "providerMetadata": {
+      "openai": {
+        "itemId": "fc_0b02297f2bb20277006a9bbb9a085487d0b11af21d10071dc6"
+      }
+    },
+    "toolMetadata": {
+      "clientName": "ai-sdk-mcp-client",
+      "toolName": "echo"
+    }
+  },
+  {
+    "type": "finish-step",
+    "finishReason": "tool-calls",
+    "usage": {
+      "inputTokens": 104,
+      "inputTokenDetails": {
+        "noCacheTokens": 104,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 39,
+      "outputTokenDetails": {
+        "textTokens": 26,
+        "reasoningTokens": 13
+      },
+      "totalTokens": 143,
+      "raw": {
+        "input_tokens": 104,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 39,
+        "output_tokens_details": {
+          "reasoning_tokens": 13
+        },
+        "total_tokens": 143
+      }
+    },
+    "performance": {
+      "stepTimeMs": 2127.439667,
+      "toolExecutionMs": {
+        "call_BTaBdmxwqma2Sch0njmIeasb": 3.5777499999999236
+      },
+      "responseTimeMs": 2122.3105,
+      "effectiveOutputTokensPerSecond": 18.37619895863494,
+      "outputTokensPerSecond": 95.60369098983824,
+      "inputTokensPerSecond": 60.66345548203774,
+      "effectiveTotalTokensPerSecond": 67.37939618166145,
+      "timeToFirstOutputMs": 1714.376459,
+      "timeBetweenOutputChunksMs": {
+        "min": 0.14299999999957436,
+        "p10": 0.5016660000001139,
+        "median": 4.893832999999631,
+        "avg": 14.69939924999998,
+        "p90": 37.0849589999998,
+        "max": 73.1409590000003
+      }
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0b02297f2bb20277006a9bbb989e9487d099ddde2130a79f8a",
+        "serviceTier": "default",
+        "reasoningContext": "all_turns"
+      }
+    },
+    "response": {
+      "id": "resp_0b02297f2bb20277006a9bbb989e9487d099ddde2130a79f8a",
+      "timestamp": "2026-09-05T06:50:00.000Z",
+      "modelId": "gpt-6-astra",
+      "headers": {
+        "access-control-expose-headers": "X-Request-ID, CF-Ray, CF-Ray",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3634c18df3f8b5f-ICN",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream; charset=utf-8",
+        "date": "Sat, 05 Sep 2026 06:50:01 GMT",
+        "openai-organization": "alohomora-company",
+        "openai-processing-ms": "567",
+        "openai-project": "proj_ZN1JUSrsvFLEcIBrWjUCXGks",
+        "openai-version": "2020-10-01",
+        "server": "cloudflare",
+        "set-cookie": "__cf_bm=9KcGVsgB5CbOTSYknWcYfp5RPbaAmXbDNeZ13y.W5Xs-1788591000.4589732-1.0.1.1-J31V4Elx6z4dOmnnnbTfYNQP2wG_aEbFiQfG5QQ8DR_ba48jLo042YdUXuuthu2JACltjAeTAFvfXOVUU7C3DvDdFD8CIUpEG.EXpMMU9sUL3XtSjoQCHYgYlyvcmZ4b; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.openai.com; Expires=Sat, 05 Sep 2026 07:20:01 GMT",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "x-content-type-options": "nosniff",
+        "x-ratelimit-limit-requests": "10000",
+        "x-ratelimit-limit-tokens": "4000000",
+        "x-ratelimit-remaining-requests": "9999",
+        "x-ratelimit-remaining-tokens": "3999461",
+        "x-ratelimit-reset-requests": "6ms",
+        "x-ratelimit-reset-tokens": "8ms",
+        "x-request-id": "req_5cdca62b59d340cb81db16800ce8e460"
+      }
+    }
+  },
+  {
+    "type": "start-step",
+    "request": {},
+    "warnings": []
+  },
+  {
+    "type": "text-start",
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+        "phase": "final_answer"
+      }
+    }
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "text": "con"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "text": "formance"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "text": "-pro"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "text": "be"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "text": "-g"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "text": "pt"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "text": "6"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "text": "astra"
+  },
+  {
+    "type": "text-end",
+    "id": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0b02297f2bb20277006a9bbb9b9d6087d0a5ad7c27994ba81a",
+        "phase": "final_answer"
+      }
+    }
+  },
+  {
+    "type": "finish-step",
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 161,
+      "inputTokenDetails": {
+        "noCacheTokens": 161,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 12,
+      "outputTokenDetails": {
+        "textTokens": 12,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 173,
+      "raw": {
+        "input_tokens": 161,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 12,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 173
+      }
+    },
+    "performance": {
+      "stepTimeMs": 1495.2468339999996,
+      "toolExecutionMs": {},
+      "responseTimeMs": 1494.125834,
+      "effectiveOutputTokensPerSecond": 8.03145205506165,
+      "outputTokensPerSecond": 39.41777204583518,
+      "inputTokensPerSecond": 135.3288454169489,
+      "effectiveTotalTokensPerSecond": 115.78676712713877,
+      "timeToFirstOutputMs": 1189.694625,
+      "timeBetweenOutputChunksMs": {
+        "min": 0.08995899999990797,
+        "p10": 0.08995899999990797,
+        "median": 0.4548749999999018,
+        "avg": 6.448976285714252,
+        "p90": 36.33441600000015,
+        "max": 36.33441600000015
+      }
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0b02297f2bb20277006a9bbb9ab89087d084f93047b66b3593",
+        "serviceTier": "default",
+        "reasoningContext": "all_turns"
+      }
+    },
+    "response": {
+      "id": "resp_0b02297f2bb20277006a9bbb9ab89087d084f93047b66b3593",
+      "timestamp": "2026-09-05T06:50:02.000Z",
+      "modelId": "gpt-6-astra",
+      "headers": {
+        "access-control-expose-headers": "X-Request-ID, CF-Ray, CF-Ray",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3634c25f8ee8b5f-ICN",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream; charset=utf-8",
+        "date": "Sat, 05 Sep 2026 06:50:03 GMT",
+        "openai-organization": "alohomora-company",
+        "openai-processing-ms": "473",
+        "openai-project": "proj_ZN1JUSrsvFLEcIBrWjUCXGks",
+        "openai-version": "2020-10-01",
+        "server": "cloudflare",
+        "set-cookie": "__cf_bm=hHzqdinknMq5Zio7urUVjZI31jpycUhUEOWD43Nwv6I-1788591002.5571454-1.0.1.1-mUski7mluJgZi4qp5UTDjErv_gZ43DdzGhXkL1X8oCyswsROtnQalk3jOiuxgdfdVGtlr.MjjeHGY76cO8UFkabf7CBbxCSZwbp.3jQZ7bT77Gg2SpaZ4Gth.wMgnVeI; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.openai.com; Expires=Sat, 05 Sep 2026 07:20:03 GMT",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "x-content-type-options": "nosniff",
+        "x-ratelimit-limit-requests": "10000",
+        "x-ratelimit-limit-tokens": "4000000",
+        "x-ratelimit-remaining-requests": "9999",
+        "x-ratelimit-remaining-tokens": "3999404",
+        "x-ratelimit-reset-requests": "6ms",
+        "x-ratelimit-reset-tokens": "8ms",
+        "x-request-id": "req_61f174b2200f477fa373f1773f5cb0c1"
+      }
+    }
+  },
+  {
+    "type": "finish",
+    "finishReason": "stop",
+    "totalUsage": {
+      "inputTokens": 265,
+      "inputTokenDetails": {
+        "noCacheTokens": 265,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 51,
+      "outputTokenDetails": {
+        "textTokens": 38,
+        "reasoningTokens": 13
+      },
+      "totalTokens": 316
+    }
+  }
+]

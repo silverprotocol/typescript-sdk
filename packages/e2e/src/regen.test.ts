@@ -149,6 +149,13 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "single-tool-call", framework: "adk" },
   { scenario: "text-only", framework: "adk" },
   { scenario: "tool-error", framework: "adk" },
+  // 2026-09-05 (cohort 0.6.1): new seeds enrolled at capture time (same
+  // empty-guard-maps reason as echo-sonnet5 above).
+  { scenario: "echo-gemini38", framework: "adk" },
+  { scenario: "app-spec-gemini38", framework: "adk" },
+  { scenario: "thinking-gemini38", framework: "adk" },
+  { scenario: "echo-gpt6astra", framework: "vercel" },
+  { scenario: "echo-gpt6astra", framework: "openai" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

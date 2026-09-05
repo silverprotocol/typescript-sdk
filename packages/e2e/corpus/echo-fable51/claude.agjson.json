@@ -2,38 +2,38 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_b53c8d9e-7540-4847-8958-1b9ab67a1e82",
-    "threadId": "b53c8d9e-7540-4847-8958-1b9ab67a1e82"
+    "turnId": "turn_9636a0fe-aae6-4eab-9593-998f54214df8",
+    "threadId": "9636a0fe-aae6-4eab-9593-998f54214df8"
   },
   {
     "type": "message.start",
     "seq": 1,
-    "id": "msg_011CeeFozp5712yzLW19sE5v",
-    "turnId": "turn_b53c8d9e-7540-4847-8958-1b9ab67a1e82",
-    "threadId": "b53c8d9e-7540-4847-8958-1b9ab67a1e82",
+    "id": "msg_011CejsCFfzP9TgEGvoQpmpZ",
+    "turnId": "turn_9636a0fe-aae6-4eab-9593-998f54214df8",
+    "threadId": "9636a0fe-aae6-4eab-9593-998f54214df8",
     "role": "assistant",
     "model": "claude-fable-5-1"
   },
   {
     "type": "tool.start",
     "seq": 2,
-    "turnId": "turn_b53c8d9e-7540-4847-8958-1b9ab67a1e82",
-    "toolCallId": "toolu_01Lvj3KroYvQV1gnD5VsRXkY",
+    "turnId": "turn_9636a0fe-aae6-4eab-9593-998f54214df8",
+    "toolCallId": "toolu_01C78uREgWcKm1kfv9x4iZVZ",
     "name": "mcp__t__echo",
     "index": 0,
-    "messageId": "msg_011CeeFozp5712yzLW19sE5v",
+    "messageId": "msg_011CejsCFfzP9TgEGvoQpmpZ",
     "providerExecuted": false
   },
   {
     "type": "tool.args.delta",
     "seq": 3,
-    "toolCallId": "toolu_01Lvj3KroYvQV1gnD5VsRXkY",
+    "toolCallId": "toolu_01C78uREgWcKm1kfv9x4iZVZ",
     "delta": "{\"message\":\"conformance-probe-fable51\"}"
   },
   {
     "type": "tool.args.assembled",
     "seq": 4,
-    "toolCallId": "toolu_01Lvj3KroYvQV1gnD5VsRXkY",
+    "toolCallId": "toolu_01C78uREgWcKm1kfv9x4iZVZ",
     "input": {
       "message": "conformance-probe-fable51"
     }
@@ -41,20 +41,20 @@
   {
     "type": "message.end",
     "seq": 5,
-    "id": "msg_011CeeFozp5712yzLW19sE5v",
+    "id": "msg_011CejsCFfzP9TgEGvoQpmpZ",
     "usage": {
       "inputTokens": 2,
-      "outputTokens": 24,
+      "outputTokens": 26,
       "cacheReadTokens": 0,
-      "cacheWriteTokens": 1397,
+      "cacheWriteTokens": 1745,
       "cumulative": true
     }
   },
   {
     "type": "tool.done",
     "seq": 6,
-    "turnId": "turn_b53c8d9e-7540-4847-8958-1b9ab67a1e82",
-    "toolCallId": "toolu_01Lvj3KroYvQV1gnD5VsRXkY",
+    "turnId": "turn_9636a0fe-aae6-4eab-9593-998f54214df8",
+    "toolCallId": "toolu_01C78uREgWcKm1kfv9x4iZVZ",
     "content": [
       {
         "type": "text",
@@ -63,48 +63,48 @@
     ],
     "outcome": "ok",
     "isError": false,
-    "messageId": "toolu_01Lvj3KroYvQV1gnD5VsRXkY:result"
+    "messageId": "toolu_01C78uREgWcKm1kfv9x4iZVZ:result"
   },
   {
     "type": "message.start",
     "seq": 7,
-    "id": "msg_011CeeFpKt3AUG1W81Ve6D4u",
-    "turnId": "turn_b53c8d9e-7540-4847-8958-1b9ab67a1e82",
-    "threadId": "b53c8d9e-7540-4847-8958-1b9ab67a1e82",
+    "id": "msg_011CejsCbEUgMcZJWeZaqBhK",
+    "turnId": "turn_9636a0fe-aae6-4eab-9593-998f54214df8",
+    "threadId": "9636a0fe-aae6-4eab-9593-998f54214df8",
     "role": "assistant",
     "model": "claude-fable-5-1"
   },
   {
     "type": "text.start",
     "seq": 8,
-    "id": "msg_011CeeFpKt3AUG1W81Ve6D4u:text:0",
-    "messageId": "msg_011CeeFpKt3AUG1W81Ve6D4u",
-    "turnId": "turn_b53c8d9e-7540-4847-8958-1b9ab67a1e82"
+    "id": "msg_011CejsCbEUgMcZJWeZaqBhK:text:0",
+    "messageId": "msg_011CejsCbEUgMcZJWeZaqBhK",
+    "turnId": "turn_9636a0fe-aae6-4eab-9593-998f54214df8"
   },
   {
     "type": "text.delta",
     "seq": 9,
-    "id": "msg_011CeeFpKt3AUG1W81Ve6D4u:text:0",
-    "messageId": "msg_011CeeFpKt3AUG1W81Ve6D4u",
-    "delta": "The tool echoed back: `conformance-probe-fable51`",
-    "turnId": "turn_b53c8d9e-7540-4847-8958-1b9ab67a1e82"
+    "id": "msg_011CejsCbEUgMcZJWeZaqBhK:text:0",
+    "messageId": "msg_011CejsCbEUgMcZJWeZaqBhK",
+    "delta": "The echo tool returned: **conformance-probe-fable51**",
+    "turnId": "turn_9636a0fe-aae6-4eab-9593-998f54214df8"
   },
   {
     "type": "text.end",
     "seq": 10,
-    "id": "msg_011CeeFpKt3AUG1W81Ve6D4u:text:0",
-    "messageId": "msg_011CeeFpKt3AUG1W81Ve6D4u",
-    "turnId": "turn_b53c8d9e-7540-4847-8958-1b9ab67a1e82"
+    "id": "msg_011CejsCbEUgMcZJWeZaqBhK:text:0",
+    "messageId": "msg_011CejsCbEUgMcZJWeZaqBhK",
+    "turnId": "turn_9636a0fe-aae6-4eab-9593-998f54214df8"
   },
   {
     "type": "message.end",
     "seq": 11,
-    "id": "msg_011CeeFpKt3AUG1W81Ve6D4u",
+    "id": "msg_011CejsCbEUgMcZJWeZaqBhK",
     "usage": {
-      "inputTokens": 56,
+      "inputTokens": 32,
       "outputTokens": 1,
-      "cacheReadTokens": 1397,
-      "cacheWriteTokens": 76,
+      "cacheReadTokens": 1745,
+      "cacheWriteTokens": 100,
       "cumulative": true
     }
   },
@@ -153,39 +153,39 @@
   {
     "type": "turn.done",
     "seq": 13,
-    "turnId": "turn_b53c8d9e-7540-4847-8958-1b9ab67a1e82",
+    "turnId": "turn_9636a0fe-aae6-4eab-9593-998f54214df8",
     "outcome": {
       "type": "success",
-      "result": "The tool echoed back: `conformance-probe-fable51`"
+      "result": "The echo tool returned: **conformance-probe-fable51**"
     },
     "finishReason": "stop",
     "usage": {
-      "inputTokens": 58,
+      "inputTokens": 34,
       "outputTokens": 83,
-      "cacheReadTokens": 1397,
-      "cacheWriteTokens": 1473,
+      "cacheReadTokens": 1745,
+      "cacheWriteTokens": 1845,
       "reasoningTokens": 0,
       "serverToolRequests": 0,
-      "costUsd": 0.02449075,
+      "costUsd": 0.028982749999999998,
       "cumulative": true,
       "byModel": {
         "claude-haiku-4-5-20251001": {
           "inputTokens": 914,
-          "outputTokens": 17,
+          "outputTokens": 16,
           "cacheReadTokens": 0,
           "cacheWriteTokens": 0,
           "reasoningTokens": 0,
-          "costUsd": 0.0009989999999999999,
+          "costUsd": 0.000994,
           "serverToolRequests": 0,
           "cumulative": true
         },
         "claude-fable-5-1": {
-          "inputTokens": 58,
+          "inputTokens": 34,
           "outputTokens": 83,
-          "cacheReadTokens": 1397,
-          "cacheWriteTokens": 1473,
+          "cacheReadTokens": 1745,
+          "cacheWriteTokens": 1845,
           "reasoningTokens": 0,
-          "costUsd": 0.02349175,
+          "costUsd": 0.02798875,
           "serverToolRequests": 0,
           "cumulative": true
         }

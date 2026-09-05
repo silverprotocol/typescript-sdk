@@ -2435,6 +2435,89 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     expect(firstBlock).toMatchObject({ providerMetadata: { aborted: true } });
     expect(firstBlock.providerMetadata?.user_message_uuid).toBeUndefined();
   });
+
+  // ── 0.3.259 plural companion: `user_message_uuids` — every client uuid whose
+  // prompt this turn consumed so far, in consumption order (a prompt batch the
+  // host merged into one turn; the singular is the LAST member). Present
+  // exactly when the singular is, on the same first reply frame; joins the
+  // SAME bag under the SAME once-per-message flag, wire name verbatim. ──
+  const USER_MESSAGE_UUID_FIRST = "018f0000-0000-7000-8000-00000000d001";
+  const USER_MESSAGE_UUIDS = [USER_MESSAGE_UUID_FIRST, USER_MESSAGE_UUID];
+
+  it("carries user_message_uuids verbatim beside user_message_uuid in the first-block providerMetadata (0.3.259)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(
+        JsonValue.parse(
+          wrapperAssistant({ user_message_uuid: USER_MESSAGE_UUID, user_message_uuids: USER_MESSAGE_UUIDS }),
+        ),
+      ),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const firstBlock = evs.find(
+      (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
+    ) as { providerMetadata?: unknown };
+    // Exact bag: both members, order preserved, nothing else fabricated.
+    expect(firstBlock.providerMetadata).toEqual({
+      user_message_uuid: USER_MESSAGE_UUID,
+      user_message_uuids: USER_MESSAGE_UUIDS,
+    });
+    // Complete-only mode: the first-block carrier is the ONLY channel.
+    expect(evs.some((e) => e.type === "message.metadata")).toBe(false);
+  });
+
+  it("user_message_uuids on a BLOCK-LESS frame rides message.metadata with the other wrapper siblings (fallback channel)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(
+        JsonValue.parse(
+          wrapperAssistant(
+            { aborted: true, user_message_uuid: USER_MESSAGE_UUID, user_message_uuids: USER_MESSAGE_UUIDS },
+            [],
+          ),
+        ),
+      ),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const metas = evs.filter((e) => e.type === "message.metadata");
+    expect(metas).toHaveLength(1);
+    expect(metas[0]).toMatchObject({
+      messageId: "msg_wrapper",
+      metadata: { aborted: true, user_message_uuid: USER_MESSAGE_UUID, user_message_uuids: USER_MESSAGE_UUIDS },
+    });
+  });
+
+  it("emits NO user_message_uuids key when the frame carries only the singular (negative control — the 0.3.258 bag is byte-identical), and a malformed list is ignored, never thrown", () => {
+    // Singular only — the pre-0.3.259 producer shape.
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(wrapperAssistant({ user_message_uuid: USER_MESSAGE_UUID }))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const firstBlock = evs.find(
+      (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
+    ) as { providerMetadata?: unknown };
+    expect(firstBlock.providerMetadata).toEqual({ user_message_uuid: USER_MESSAGE_UUID });
+
+    // Malformed list (a non-string member) — shape-guarded out; the singular still rides.
+    const m = createClaudeNormalizer();
+    const evsM = [
+      ...m.push(
+        JsonValue.parse(
+          wrapperAssistant({ user_message_uuid: USER_MESSAGE_UUID, user_message_uuids: [USER_MESSAGE_UUID, 7] }),
+        ),
+      ),
+      ...m.flush(),
+    ];
+    assertAllValid(evsM);
+    const firstBlockM = evsM.find(
+      (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
+    ) as { providerMetadata?: unknown };
+    expect(firstBlockM.providerMetadata).toEqual({ user_message_uuid: USER_MESSAGE_UUID });
+  });
 });
 
 describe("createClaudeNormalizer — 0.3.220 result-meta carry (fast_mode_disabled_reason / ModelUsage serving identity)", () => {
@@ -2650,6 +2733,73 @@ describe("createClaudeNormalizer — 0.3.258 result-meta additions (ModelUsage.c
     expect(run(resultSuccess("end_turn")).map((e) => e.type)).toEqual(["turn.done"]);
     expect(run(resultError("error_max_turns")).map((e) => e.type)).toEqual(["turn.error"]);
   });
+
+  // ── 0.3.259 (0.3.261 bump): `user_message_uuids` on BOTH result arms — the
+  // first-frame list PLUS any queued user message folded into the running turn
+  // between tool rounds, so the result copy can be LONGER than the reply frame's.
+  // Carried verbatim as `userMessageUuids` beside `userMessageUuid`. ──
+  const UMU_FIRST = "018f0000-0000-7000-8000-00000000e000";
+  const UMU_QUEUED = "018f0000-0000-7000-8000-00000000e002";
+  const UMUS = [UMU_FIRST, UMU, UMU_QUEUED];
+
+  it("carries userMessageUuids (order preserved) beside userMessageUuid on the SUCCESS arm (0.3.259)", () => {
+    const msg: SDKResultSuccessMsg = {
+      ...(resultSuccess("end_turn") as SDKResultSuccessMsg),
+      user_message_uuid: UMU,
+      user_message_uuids: UMUS,
+    };
+    const evs = run(msg);
+    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
+    expect(evs[0]).toMatchObject({
+      type: "ext.anthropic.result-meta",
+      userMessageUuid: UMU,
+      userMessageUuids: UMUS,
+    });
+    expect((evs[0] as { userMessageUuids?: unknown }).userMessageUuids).toEqual(UMUS);
+    assertAllValid(evs);
+  });
+
+  it("carries userMessageUuids on the ERROR arm too, before turn.error (0.3.259)", () => {
+    const msg: SDKResultErrorMsg = {
+      ...(resultError("error_during_execution") as SDKResultErrorMsg),
+      user_message_uuid: UMU,
+      user_message_uuids: UMUS,
+    };
+    const evs = run(msg);
+    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.error"]);
+    expect(evs[0]).toMatchObject({
+      type: "ext.anthropic.result-meta",
+      userMessageUuid: UMU,
+      userMessageUuids: UMUS,
+    });
+    expect(evs[1]).toMatchObject({ type: "turn.error", code: "error_during_execution", retriable: true });
+    assertAllValid(evs);
+  });
+
+  it("negative control: a singular-only result emits NO userMessageUuids key (0.3.258 output byte-identical); a malformed list is ignored, never thrown", () => {
+    const singularOnly = run({ ...(resultSuccess("end_turn") as SDKResultSuccessMsg), user_message_uuid: UMU });
+    expect(singularOnly.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
+    expect(singularOnly[0]).toEqual({
+      type: "ext.anthropic.result-meta",
+      userMessageUuid: UMU,
+      turnId: (singularOnly[0] as { turnId: string }).turnId,
+      seq: (singularOnly[0] as { seq: number }).seq,
+    });
+    expect((singularOnly[0] as { userMessageUuids?: unknown }).userMessageUuids).toBeUndefined();
+
+    // Malformed (a non-string member) — assembled at the JSON boundary, no cast.
+    const wire: unknown = { ...resultSuccess("end_turn"), user_message_uuid: UMU, user_message_uuids: [UMU, 7] };
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(JsonValue.parse(wire)), ...n.flush()];
+    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
+    expect((evs[0] as { userMessageUuid?: unknown }).userMessageUuid).toBe(UMU);
+    expect((evs[0] as { userMessageUuids?: unknown }).userMessageUuids).toBeUndefined();
+    // Not-an-array — same outcome.
+    const wire2: unknown = { ...resultSuccess("end_turn"), user_message_uuids: "nope" };
+    const m = createClaudeNormalizer();
+    const evs2 = [...m.push(JsonValue.parse(wire2)), ...m.flush()];
+    expect(evs2.map((e) => e.type)).toEqual(["turn.done"]);
+  });
 });
 
 // ─── 0.3.257 thinking-token telemetry → AgUsage.reasoningTokens ──────────────
@@ -2790,7 +2940,7 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
 
   function streamFrame(
     event: StreamEvent,
-    opts?: { parent?: string | null; ttft?: number; userMessageUuid?: string },
+    opts?: { parent?: string | null; ttft?: number; userMessageUuid?: string; userMessageUuids?: string[] },
   ): SDKMessage {
     return {
       type: "stream_event",
@@ -2800,6 +2950,7 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
       session_id: "sess_fixture",
       ...(opts?.ttft !== undefined ? { ttft_ms: opts.ttft } : {}),
       ...(opts?.userMessageUuid !== undefined ? { user_message_uuid: opts.userMessageUuid } : {}),
+      ...(opts?.userMessageUuids !== undefined ? { user_message_uuids: opts.userMessageUuids } : {}),
     };
   }
 
@@ -3260,6 +3411,89 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
     expect(
       evs.some(
         (e) => isClosedEvent(e) && e.type === "message.metadata" && e.metadata["user_message_uuid"] !== undefined,
+      ),
+    ).toBe(false);
+  });
+
+  // ── 0.3.259 (0.3.261 bump): `user_message_uuids` on the partial envelope —
+  // the plural companion, present exactly when the singular is, on the same
+  // first non-ping stream event. Rides the SAME single message.metadata
+  // emission (wire names verbatim), never a second one. ──
+  const STREAM_UMU_FIRST = "018f0000-0000-7000-8000-00000000d000";
+  const STREAM_UMUS = [STREAM_UMU_FIRST, STREAM_UMU];
+
+  it("carries user_message_uuids in the SAME single message.metadata emission as user_message_uuid — once, even when the complete frame is stamped too (0.3.259)", () => {
+    const n = createClaudeNormalizer();
+    const stampedComplete: SDKMessage = {
+      ...completeFrame([{ type: "text", text: "hi", citations: null }]),
+      user_message_uuid: STREAM_UMU,
+      user_message_uuids: STREAM_UMUS,
+    } as SDKMessage;
+    const evs = [
+      ...pushAll(n, [
+        streamFrame(messageStart(), { userMessageUuid: STREAM_UMU, userMessageUuids: STREAM_UMUS }),
+        streamFrame(cbStartText(0)),
+        streamFrame(cbDeltaText(0, "hi")),
+        streamFrame(cbStop(0)),
+        streamFrame(msgStop()),
+        stampedComplete,
+        resultSuccess("end_turn"),
+      ]),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    // Exactly ONE metadata event carries the family, and it carries BOTH members.
+    const metas = evs.filter(
+      (e) =>
+        isClosedEvent(e) &&
+        e.type === "message.metadata" &&
+        (e.metadata["user_message_uuid"] !== undefined || e.metadata["user_message_uuids"] !== undefined),
+    );
+    expect(metas).toHaveLength(1);
+    expect(metas[0]).toMatchObject({
+      messageId: STREAM_ID,
+      metadata: { user_message_uuid: STREAM_UMU, user_message_uuids: STREAM_UMUS },
+    });
+    // Bound to the reply BEFORE any content streamed.
+    const types = evs.map((e) => e.type);
+    expect(types.indexOf("message.metadata")).toBeLessThan(types.indexOf("text.start"));
+    // …and no first-block providerMetadata twin (the complete frame was content-suppressed).
+    const textStart = evs.find((e) => e.type === "text.start") as { providerMetadata?: unknown };
+    expect(textStart.providerMetadata).toBeUndefined();
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+  });
+
+  it("emits NO user_message_uuids key when the stream carries only the singular (negative control — the 0.3.258 emission is byte-identical)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...pushAll(n, [
+        streamFrame(messageStart(), { userMessageUuid: STREAM_UMU }),
+        streamFrame(cbStartText(0)),
+        streamFrame(cbDeltaText(0, "hi")),
+        streamFrame(cbStop(0)),
+        streamFrame(msgStop()),
+        completeFrame([{ type: "text", text: "hi", citations: null }]),
+        resultSuccess("end_turn"),
+      ]),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const metas = evs.filter((e) => isClosedEvent(e) && e.type === "message.metadata");
+    expect(metas).toHaveLength(1);
+    expect((metas[0] as { metadata: unknown }).metadata).toEqual({ user_message_uuid: STREAM_UMU });
+    // …and the unstamped wire carries neither key at all.
+    const evsBare = [
+      ...pushAll(createClaudeNormalizer(), [
+        ...TEXT_STREAM(),
+        completeFrame([{ type: "text", text: "hello", citations: null }]),
+        resultSuccess("end_turn"),
+      ]),
+    ];
+    expect(
+      evsBare.some(
+        (e) => isClosedEvent(e) && e.type === "message.metadata" && e.metadata["user_message_uuids"] !== undefined,
       ),
     ).toBe(false);
   });

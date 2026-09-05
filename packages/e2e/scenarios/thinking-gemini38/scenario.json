@@ -1,0 +1,9 @@
+{
+  "name": "thinking-gemini38",
+  "prompt": "Echo the message 'thinking-probe-gemini38' back to me using the available tool.",
+  "mcpServers": [
+    { "key": "t", "kind": "text" }
+  ],
+  "steer": "Think carefully before acting. You MUST call the echo tool with message='thinking-probe-gemini38'. Do not answer from memory.",
+  "thinkingLevel": "high"
+}

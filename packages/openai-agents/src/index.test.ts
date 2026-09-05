@@ -865,6 +865,85 @@ describe("createOpenaiNormalizer — response.failed error arm (T5c)", () => {
     expect(err?.turnId).toBe("turn_resp_fail_2");
     expect(err?.message).toBe("Rate limit exceeded");
     expect(err?.code).toBe("rate_limit_exceeded");
+    // Negative control for the 0.6.1 misalignment carry: a plain failure
+    // (no `error.misalignment`) emits NO ext.openai.misalignment event —
+    // the pre-7.10.0 output is byte-identical.
+    expect(evs.some((e) => e.type === "ext.openai.misalignment")).toBe(false);
+  });
+
+  // openai-node >=7.10.0 (GPT-6 Astra misalignment monitoring): response.failed
+  // may carry `error.misalignment {detailed_explanation, error_type, steer{message}}`
+  // beside code `misalignment_policy_violation`. Documented auto-stop applies
+  // only to persisted-reasoning / WebSocket / compaction requests, which the
+  // e2e capture path (HTTP, no reasoning config) never uses — so this arm is
+  // synthetic-tested only. The facet carries the block VERBATIM on a
+  // turn-scoped ext.openai.misalignment event immediately before turn.error.
+  it("response.failed with error.misalignment → ext.openai.misalignment (verbatim, incl. unknown keys) right before turn.error", () => {
+    const n = createOpenaiNormalizer();
+    const misalignment = {
+      error_type: "potentially_unintended_destructive_activity",
+      detailed_explanation: "The model attempted to delete files outside the workspace.",
+      steer: { message: "Confirm the deletion scope with the user before continuing." },
+      future_key: { nested: true },
+    };
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_mis_1" } }),
+      rawModel({
+        type: "response.failed",
+        response: {
+          id: "resp_mis_1",
+          error: { message: "Misalignment policy violation", code: "misalignment_policy_violation", misalignment },
+        },
+      }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    const types = evs.map((e) => e.type);
+    const extIdx = types.indexOf("ext.openai.misalignment");
+    const errIdx = types.indexOf("turn.error");
+    expect(extIdx).toBeGreaterThanOrEqual(0);
+    expect(errIdx).toBe(extIdx + 1);
+    const ext = evs[extIdx] as { responseId?: string; misalignment?: unknown };
+    expect(ext.responseId).toBe("resp_mis_1"); // the payload carries the response id; ext events are turn-scoped by position, not by envelope
+    expect(ext.misalignment).toEqual(misalignment);
+    const err = evs[errIdx] as { message?: string; code?: string };
+    expect(err.message).toBe("Misalignment policy violation");
+    expect(err.code).toBe("misalignment_policy_violation");
+    for (const e of evs) expect(() => AgEvent.parse(e)).not.toThrow();
+  });
+
+  it("a malformed (non-object) error.misalignment is ignored, never thrown (Tenet 6)", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_mis_2" } }),
+      rawModel({
+        type: "response.failed",
+        response: { id: "resp_mis_2", error: { message: "boom", code: "server_error", misalignment: "nope" } },
+      }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    expect(evs.some((e) => e.type === "ext.openai.misalignment")).toBe(false);
+    expect(evs.some((e) => e.type === "turn.error")).toBe(true);
+  });
+
+  // openai-node 7.9.0/7.10.0 widened `incomplete_details.reason` with
+  // 'max_messages' and 'steered'. The response.incomplete arm never computes a
+  // finishReason — it closes with turn.error{code: reason, message: reason} —
+  // so a new reason survives verbatim with zero facet change. Regression pin.
+  it("response.incomplete with a new reason ('steered') keeps the raw reason as turn.error code", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_steer_1" } }),
+      rawModel({
+        type: "response.incomplete",
+        response: { id: "resp_steer_1", status: "incomplete", incomplete_details: { reason: "steered" } },
+      }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    const err = evs.find((e) => e.type === "turn.error") as { code?: string } | undefined;
+    expect(err?.code).toBe("steered");
   });
 });
 

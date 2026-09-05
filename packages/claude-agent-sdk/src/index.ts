@@ -622,6 +622,16 @@ function anthropicFrameKind(msg: SDKMessage): string | undefined {
   return CARRIED_STANDALONE_TYPES.has(msg.type) ? msg.type : undefined;
 }
 
+// `user_message_uuids` (0.3.259) is a string list on the wire; the frame
+// arrived through `JsonValue.parse` and `isSDKMessage` validates only the
+// discriminants, so the typed `string[]` is nominal — guard the shape at
+// runtime (Array.isArray + every-string, the `resourceLinks` precedent) and
+// carry it verbatim. A malformed list is ignored, never thrown on (Tenet 6);
+// `string[]` is itself a JsonValue, so no cast is needed downstream.
+function readUserMessageUuids(v: unknown): string[] | undefined {
+  return Array.isArray(v) && v.every((s): s is string => typeof s === "string") ? v : undefined;
+}
+
 // ─── 0.3.220 result-frame enrichment: fast mode + per-model serving identity ──
 // `fast_mode_disabled_reason` (on BOTH result arms — why fast mode was blocked)
 // and `ModelUsage.canonicalModel`/`provider` (the pricing-lookup identity behind
@@ -662,6 +672,19 @@ function anthropicFrameKind(msg: SDKMessage): string | undefined {
 //    boundary (no typed access exists) and carried WHOLE as `subagentStats`
 //    — a lineage summary consumers correlating Task* frames can reconcile
 //    against; a first-class subagent summary is a spec-process question.
+//
+// 0.3.261 bump — one more sibling on the SAME carry:
+//  - `user_message_uuids` (both arms, 0.3.259): every client uuid whose prompt
+//    this turn consumed, in consumption order — the members of a prompt batch
+//    the host merged into one turn PLUS any queued user message folded into
+//    the running turn between tool rounds, so the result copy can be LONGER
+//    than the first reply frame's copy (carry both; neither is redundant).
+//    Present exactly when the singular is (older producers: fall back to
+//    `userMessageUuid`). Carried verbatim as `userMessageUuids` — the doc
+//    invariants ("always contains user_message_uuid", "at most 64") are the
+//    producer's to keep, not the facet's to validate. CONSISTENCY carry: the
+//    string-prompt capture path supplies no client uuid, so no cassette has
+//    ever exercised either the singular or the plural.
 function resultMetaPayload(msg: SDKResultMsg): { [k: string]: JsonValue } | undefined {
   const byModel: { [k: string]: JsonValue } = {};
   const modelUsage = isJsonObject(msg.modelUsage) ? msg.modelUsage : {};
@@ -679,11 +702,13 @@ function resultMetaPayload(msg: SDKResultMsg): { [k: string]: JsonValue } | unde
   const raw: unknown = msg;
   const subagentStats =
     isJsonObject(raw) && isJsonObject(raw["subagent_stats"]) ? JsonValue.parse(raw["subagent_stats"]) : undefined;
+  const userMessageUuids = readUserMessageUuids(msg.user_message_uuids);
   const payload: { [k: string]: JsonValue } = {
     ...(typeof msg.fast_mode_disabled_reason === "string"
       ? { fastModeDisabledReason: msg.fast_mode_disabled_reason }
       : {}),
     ...(typeof msg.user_message_uuid === "string" ? { userMessageUuid: msg.user_message_uuid } : {}),
+    ...(userMessageUuids !== undefined ? { userMessageUuids } : {}),
     ...(typeof msg.queued_turn_count === "number" ? { queuedTurnCount: msg.queued_turn_count } : {}),
     ...(subagentStats !== undefined ? { subagentStats } : {}),
     ...(Object.keys(byModel).length > 0 ? { modelUsage: byModel } : {}),
@@ -810,6 +835,8 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
      * (`carryUserMessageUuid`, the first non-ping stream event) or the complete
      * arm's first-block wrapper carry (the SDK stamps the turn's FIRST reply
      * frame only; with partials the stamp normally rides the stream instead).
+     * 0.3.261 — the plural `user_message_uuids` (0.3.259) rides the SAME single
+     * emission under the SAME flag: one carry per message for the whole family.
      */
     userMessageUuidCarried: boolean;
   };
@@ -876,13 +903,24 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
   // `ttft_ms` above (message.metadata, wire name verbatim); the flag is shared
   // with the complete arm's wrapper carry so the two channels never double-
   // carry one message.
+  // 0.3.261: the plural `user_message_uuids` (0.3.259 — every client uuid of
+  // the prompt batch this turn answers, "present exactly when the singular
+  // is") joins the SAME single emission, wire name verbatim, shape-guarded
+  // (`readUserMessageUuids`). Either member alone still triggers the carry —
+  // the "exactly when" invariant is the producer's, not a precondition here.
   function carryUserMessageUuid(msg: SDKPartial, p: PendingMessage): void {
-    if (typeof msg.user_message_uuid !== "string" || p.userMessageUuidCarried) return;
+    if (p.userMessageUuidCarried) return;
+    const uuid = typeof msg.user_message_uuid === "string" ? msg.user_message_uuid : undefined;
+    const uuids = readUserMessageUuids(msg.user_message_uuids);
+    if (uuid === undefined && uuids === undefined) return;
     p.userMessageUuidCarried = true;
     a.emit({
       type: "message.metadata",
       messageId: p.emittedId,
-      metadata: { user_message_uuid: msg.user_message_uuid },
+      metadata: {
+        ...(uuid !== undefined ? { user_message_uuid: uuid } : {}),
+        ...(uuids !== undefined ? { user_message_uuids: uuids } : {}),
+      },
     });
   }
 
@@ -1312,8 +1350,9 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         // wrapper-meta channel's type without an unchecked cast.
         wrapperMetaRaw["context_usage"] = JsonValue.parse(msg.context_usage);
       }
-      // `user_message_uuid` (0.3.258) joins the bag below, once `open` is known —
-      // its once-per-message flag is shared with the stream arm's carry.
+      // `user_message_uuid` (0.3.258) and `user_message_uuids` (0.3.259) join
+      // the bag below, once `open` is known — their once-per-message flag is
+      // shared with the stream arm's carry.
 
       // A non-null parent_tool_use_id ⇒ this assistant message is a NESTED turn
       // (subagent). subagent.start is the SOLE nested-turn opener (spec §4/§5) and
@@ -1368,9 +1407,20 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       //    carried verbatim. With partials on, the stamp normally rode the first
       //    non-ping stream event instead (`carryUserMessageUuid`) — the shared
       //    once-per-message flag keeps the two channels from double-carrying.
-      if (typeof msg.user_message_uuid === "string" && !open.userMessageUuidCarried) {
-        open.userMessageUuidCarried = true;
-        wrapperMetaRaw["user_message_uuid"] = msg.user_message_uuid;
+      //  - `user_message_uuids` (0.3.259): the plural companion — every client
+      //    uuid whose prompt this turn consumed so far, in consumption order
+      //    (a prompt batch the host merged into one turn; the singular is the
+      //    LAST member). Same frame, same bag, same flag, wire name verbatim;
+      //    shape-guarded through `readUserMessageUuids`, invariants not
+      //    validated. Either member alone still triggers the (single) carry.
+      if (!open.userMessageUuidCarried) {
+        const uuid = typeof msg.user_message_uuid === "string" ? msg.user_message_uuid : undefined;
+        const uuids = readUserMessageUuids(msg.user_message_uuids);
+        if (uuid !== undefined || uuids !== undefined) {
+          open.userMessageUuidCarried = true;
+          if (uuid !== undefined) wrapperMetaRaw["user_message_uuid"] = uuid;
+          if (uuids !== undefined) wrapperMetaRaw["user_message_uuids"] = uuids;
+        }
       }
       const wrapperMeta: AgProviderMeta | undefined =
         Object.keys(wrapperMetaRaw).length > 0 ? AgProviderMeta.parse(wrapperMetaRaw) : undefined;

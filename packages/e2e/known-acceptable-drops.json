@@ -1680,6 +1680,38 @@
     ]
   },
   {
+    "path": "[*].first_content_frame_ms",
+    "reason": "claude: result-frame wall-clock telemetry \u2014 SDKResultSuccess gained first_content_frame_ms / first_stream_post_ms / first_stream_post_ack_ms / first_stream_post_wall_ms at 0.3.260 (bare fields, remote-session latency breakdown; NOT on SDKResultError). Router-plane sibling of the allowlisted ttft_ms/ttft_stream_ms/time_to_request_ms family: no AgJSON home, non-replayable, never read by createClaudeNormalizer. Remote-session only \u2014 the local-CLI capture path is not expected to emit it; registered proactively at the 0.3.261 bump (2026-09-05), no live observation yet.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].first_stream_post_ack_ms",
+    "reason": "claude: result-frame wall-clock telemetry \u2014 SDKResultSuccess gained first_content_frame_ms / first_stream_post_ms / first_stream_post_ack_ms / first_stream_post_wall_ms at 0.3.260 (bare fields, remote-session latency breakdown; NOT on SDKResultError). Router-plane sibling of the allowlisted ttft_ms/ttft_stream_ms/time_to_request_ms family: no AgJSON home, non-replayable, never read by createClaudeNormalizer. Remote-session only \u2014 the local-CLI capture path is not expected to emit it; registered proactively at the 0.3.261 bump (2026-09-05), no live observation yet.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].first_stream_post_ms",
+    "reason": "claude: result-frame wall-clock telemetry \u2014 SDKResultSuccess gained first_content_frame_ms / first_stream_post_ms / first_stream_post_ack_ms / first_stream_post_wall_ms at 0.3.260 (bare fields, remote-session latency breakdown; NOT on SDKResultError). Router-plane sibling of the allowlisted ttft_ms/ttft_stream_ms/time_to_request_ms family: no AgJSON home, non-replayable, never read by createClaudeNormalizer. Remote-session only \u2014 the local-CLI capture path is not expected to emit it; registered proactively at the 0.3.261 bump (2026-09-05), no live observation yet.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].first_stream_post_wall_ms",
+    "reason": "claude: result-frame wall-clock telemetry \u2014 SDKResultSuccess gained first_content_frame_ms / first_stream_post_ms / first_stream_post_ack_ms / first_stream_post_wall_ms at 0.3.260 (bare fields, remote-session latency breakdown; NOT on SDKResultError). Router-plane sibling of the allowlisted ttft_ms/ttft_stream_ms/time_to_request_ms family: no AgJSON home, non-replayable, never read by createClaudeNormalizer. Remote-session only \u2014 the local-CLI capture path is not expected to emit it; registered proactively at the 0.3.261 bump (2026-09-05), no live observation yet.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
     "path": "[*].id",
     "reason": "adk: the per-event id \u2014 consumed ONLY as turnKey()'s fallback when invocationId is absent/empty (index.ts:350); every event in this cassette carries a non-empty invocationId, so id is never actually read here. No verbatim AgJSON home either way \u2014 the same pattern as claude's uuid precedent (\"derives turnId only when session_id is absent, otherwise no AgJSON home\").",
     "reviewed": "any",
@@ -2024,6 +2056,22 @@
     ]
   },
   {
+    "path": "[*].no_response.retry_wait_ms",
+    "reason": "claude: api_retry wall-clock telemetry \u2014 SDKAPIRetryMessage gained no_response?: {waited_ms, retry_wait_ms} at 0.3.261 (undocumented in the SDK release notes; CC 2.1.261 'Improved handling when the API sends no response headers'), present only when the API sent no response headers within the first-byte window (CLAUDE_STREAM_FIRST_BYTE_TIMEOUT_MS). Router-plane like the rest of the arm (attempt/max_retries/retry_delay_ms/error_status): pure numeric retry mechanics, no AgJSON home, never read by createClaudeNormalizer. No api_retry frame has ever appeared in a cassette; registered proactively at the 0.3.261 bump (2026-09-05).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].no_response.waited_ms",
+    "reason": "claude: api_retry wall-clock telemetry \u2014 SDKAPIRetryMessage gained no_response?: {waited_ms, retry_wait_ms} at 0.3.261 (undocumented in the SDK release notes; CC 2.1.261 'Improved handling when the API sends no response headers'), present only when the API sent no response headers within the first-byte window (CLAUDE_STREAM_FIRST_BYTE_TIMEOUT_MS). Router-plane like the rest of the arm (attempt/max_retries/retry_delay_ms/error_status): pure numeric retry mechanics, no AgJSON home, never read by createClaudeNormalizer. No api_retry frame has ever appeared in a cassette; registered proactively at the 0.3.261 bump (2026-09-05).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
     "path": "[*].num_turns",
     "reason": "result agent-loop turn count; run-level telemetry with no AgJSON turn-record home.",
     "reviewed": "any",
@@ -2145,7 +2193,7 @@
   },
   {
     "path": "[*].ttft_ms",
-    "reason": "claude: result wall-clock/diagnostic telemetry (0.3.199 addition, sibling of the already-allowlisted duration_ms/duration_api_ms/num_turns) \u2014 not part of the AgJSON turn record (no semantic home, non-replayable, never read by createClaudeNormalizer). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reason": "claude: wall-clock/diagnostic telemetry (0.3.199 addition, sibling of the already-allowlisted duration_ms/duration_api_ms/num_turns/ttft_stream_ms/time_to_request_ms) \u2014 a norm-path SHARED by two arms: on the result frame it is unread by createClaudeNormalizer and has no AgJSON home (non-replayable); on the stream_event partial envelope the facet DOES read msg.ttft_ms (workspace#7, index.ts carryTtft) and emits it once per message via message.metadata {ttft_ms} under the wire name (corpus/partials-sonnet5 and partials-fable51 agjson carry it). message.metadata is a merge channel, not a fixed turn-record path, so no Rule-1 transform target exists \u2014 reviewed \"any\" stands for both arms. First observed live (playbook 2026-07-03, echo-sonnet5); reason corrected 2026-09-05 (0.3.261 sweep: the prior text predated the partial carry).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -3008,6 +3056,38 @@
     "reviewed": "null-only",
     "frameworks": [
       "claude"
+    ]
+  },
+  {
+    "path": "[*].usage.raw.total_tokens",
+    "reason": "vercel (cohort 0.6.1, corpus/echo-gpt56 + echo-gpt6astra, 2026-09-05): @ai-sdk/openai 4.0.57+ preserves the provider's Responses usage object verbatim on finish-step usage.raw, adding total_tokens beside the already-registered input/output leaves. AgUsage.totalTokens is ai's own input+output sum (mapUsage copies it), so the raw provider total is a near-duplicate that would still count as a Rule-3/4 drop when it differs or is 0 \u2014 load-bearing allowlist, not a mirror. The raw object itself rides usage verbatim nowhere else by design (spec section 4: totalTokens copied from the framework wire).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].data.providerData.response.access_programs.cyber",
+    "reason": "openai (cohort 0.6.1, corpus/echo-gpt6astra, 2026-09-05 \u2014 the FIRST gpt-6-astra capture): Responses `response.access_programs.cyber` (observed value 'standard') is an account/program-tier attribute the API stamps on every response object for GPT-6 Astra; router-plane like service_tier \u2014 not turn content, no AgJSON home. Rides the response object wherever the Agents SDK echoes it (raw event, item providerData, response providerData).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].data.event.response.access_programs.cyber",
+    "reason": "openai (cohort 0.6.1, corpus/echo-gpt6astra, 2026-09-05 \u2014 the FIRST gpt-6-astra capture): Responses `response.access_programs.cyber` (observed value 'standard') is an account/program-tier attribute the API stamps on every response object for GPT-6 Astra; router-plane like service_tier \u2014 not turn content, no AgJSON home. Rides the response object wherever the Agents SDK echoes it (raw event, item providerData, response providerData).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].data.response.providerData.access_programs.cyber",
+    "reason": "openai (cohort 0.6.1, corpus/echo-gpt6astra, 2026-09-05 \u2014 the FIRST gpt-6-astra capture): Responses `response.access_programs.cyber` (observed value 'standard') is an account/program-tier attribute the API stamps on every response object for GPT-6 Astra; router-plane like service_tier \u2014 not turn content, no AgJSON home. Rides the response object wherever the Agents SDK echoes it (raw event, item providerData, response providerData).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
     ]
   }
 ]

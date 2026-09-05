@@ -2,38 +2,60 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
-    "threadId": "be7f41d0-aa69-43f0-8ba0-6234ae34808e"
+    "turnId": "turn_b16d9ec3-3277-491e-9c6b-f094bf7b3fdd",
+    "threadId": "b16d9ec3-3277-491e-9c6b-f094bf7b3fdd"
   },
   {
     "type": "message.start",
     "seq": 1,
-    "id": "msg_011CeeFs9a1JdPG3HQC3nZ1x",
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
-    "threadId": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "id": "msg_011CejsDgnsTWzy78E9kYhpb",
+    "turnId": "turn_b16d9ec3-3277-491e-9c6b-f094bf7b3fdd",
+    "threadId": "b16d9ec3-3277-491e-9c6b-f094bf7b3fdd",
     "role": "assistant",
     "model": "claude-fable-5-1"
   },
   {
-    "type": "tool.start",
+    "type": "text.start",
     "seq": 2,
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
-    "toolCallId": "toolu_01MLYeHngRmKfzqzdErDeB4F",
+    "id": "msg_011CejsDgnsTWzy78E9kYhpb:text:0",
+    "messageId": "msg_011CejsDgnsTWzy78E9kYhpb",
+    "turnId": "turn_b16d9ec3-3277-491e-9c6b-f094bf7b3fdd"
+  },
+  {
+    "type": "text.delta",
+    "seq": 3,
+    "id": "msg_011CejsDgnsTWzy78E9kYhpb:text:0",
+    "messageId": "msg_011CejsDgnsTWzy78E9kYhpb",
+    "delta": "I'll render the card first, then update it once the render result is back (the update depends on the card existing).",
+    "turnId": "turn_b16d9ec3-3277-491e-9c6b-f094bf7b3fdd"
+  },
+  {
+    "type": "text.end",
+    "seq": 4,
+    "id": "msg_011CejsDgnsTWzy78E9kYhpb:text:0",
+    "messageId": "msg_011CejsDgnsTWzy78E9kYhpb",
+    "turnId": "turn_b16d9ec3-3277-491e-9c6b-f094bf7b3fdd"
+  },
+  {
+    "type": "tool.start",
+    "seq": 5,
+    "turnId": "turn_b16d9ec3-3277-491e-9c6b-f094bf7b3fdd",
+    "toolCallId": "toolu_01CBkehV6Qy2nNo7nZj5GvLC",
     "name": "mcp__cards__render_card",
-    "index": 0,
-    "messageId": "msg_011CeeFs9a1JdPG3HQC3nZ1x",
+    "index": 1,
+    "messageId": "msg_011CejsDgnsTWzy78E9kYhpb",
     "providerExecuted": false
   },
   {
     "type": "tool.args.delta",
-    "seq": 3,
-    "toolCallId": "toolu_01MLYeHngRmKfzqzdErDeB4F",
+    "seq": 6,
+    "toolCallId": "toolu_01CBkehV6Qy2nNo7nZj5GvLC",
     "delta": "{\"title\":\"Hello\",\"body\":\"World\"}"
   },
   {
     "type": "tool.args.assembled",
-    "seq": 4,
-    "toolCallId": "toolu_01MLYeHngRmKfzqzdErDeB4F",
+    "seq": 7,
+    "toolCallId": "toolu_01CBkehV6Qy2nNo7nZj5GvLC",
     "input": {
       "title": "Hello",
       "body": "World"
@@ -41,21 +63,21 @@
   },
   {
     "type": "message.end",
-    "seq": 5,
-    "id": "msg_011CeeFs9a1JdPG3HQC3nZ1x",
+    "seq": 8,
+    "id": "msg_011CejsDgnsTWzy78E9kYhpb",
     "usage": {
       "inputTokens": 2,
-      "outputTokens": 25,
+      "outputTokens": 1,
       "cacheReadTokens": 0,
-      "cacheWriteTokens": 1652,
+      "cacheWriteTokens": 2000,
       "cumulative": true
     }
   },
   {
     "type": "tool.done",
-    "seq": 6,
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
-    "toolCallId": "toolu_01MLYeHngRmKfzqzdErDeB4F",
+    "seq": 9,
+    "turnId": "turn_b16d9ec3-3277-491e-9c6b-f094bf7b3fdd",
+    "toolCallId": "toolu_01CBkehV6Qy2nNo7nZj5GvLC",
     "content": [
       {
         "type": "text",
@@ -64,7 +86,7 @@
     ],
     "outcome": "ok",
     "isError": false,
-    "messageId": "toolu_01MLYeHngRmKfzqzdErDeB4F:result",
+    "messageId": "toolu_01CBkehV6Qy2nNo7nZj5GvLC:result",
     "uiData": {
       "title": "Hello",
       "body": "World",
@@ -81,114 +103,56 @@
     }
   },
   {
-    "seq": 7,
-    "type": "ext.anthropic.frame",
-    "kind": "thinking_tokens",
-    "frame": {
-      "type": "system",
-      "subtype": "thinking_tokens",
-      "estimated_tokens": 50,
-      "estimated_tokens_delta": 50,
-      "session_id": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
-      "uuid": "a1167ea7-cff6-4298-b1be-4d086d9b7ffe"
-    }
-  },
-  {
-    "seq": 8,
-    "type": "ext.anthropic.frame",
-    "kind": "thinking_tokens",
-    "frame": {
-      "type": "system",
-      "subtype": "thinking_tokens",
-      "estimated_tokens": 164,
-      "estimated_tokens_delta": 114,
-      "session_id": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
-      "uuid": "28b9a19e-64ce-41b9-9c83-ebffce1eeadc"
-    }
-  },
-  {
     "type": "message.start",
-    "seq": 9,
-    "id": "msg_011CeeFsWMATFN3cmZwbxYiS",
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
-    "threadId": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "seq": 10,
+    "id": "msg_011CejsE5VrvNc5iiB6GjnWE",
+    "turnId": "turn_b16d9ec3-3277-491e-9c6b-f094bf7b3fdd",
+    "threadId": "b16d9ec3-3277-491e-9c6b-f094bf7b3fdd",
     "role": "assistant",
     "model": "claude-fable-5-1"
   },
   {
-    "type": "reasoning.start",
-    "seq": 10,
-    "id": "msg_011CeeFsWMATFN3cmZwbxYiS:reasoning:0",
-    "messageId": "msg_011CeeFsWMATFN3cmZwbxYiS",
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e"
-  },
-  {
-    "type": "reasoning.delta",
-    "seq": 11,
-    "id": "msg_011CeeFsWMATFN3cmZwbxYiS:reasoning:0",
-    "messageId": "msg_011CeeFsWMATFN3cmZwbxYiS",
-    "delta": "",
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e"
-  },
-  {
-    "type": "reasoning.end",
-    "seq": 12,
-    "id": "msg_011CeeFsWMATFN3cmZwbxYiS:reasoning:0",
-    "messageId": "msg_011CeeFsWMATFN3cmZwbxYiS",
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e"
-  },
-  {
-    "type": "reasoning.opaque",
-    "seq": 13,
-    "id": "msg_011CeeFsWMATFN3cmZwbxYiS:reasoning:0",
-    "messageId": "msg_011CeeFsWMATFN3cmZwbxYiS",
-    "kind": "signature",
-    "value": "CAQShwUKEAgRGAI4AUIIdGhpbmtpbmcSDAO/w0vtYWfKbYvlaxoMZ8ybr5741eWv8KJkIjDDlkQquySVUD7OonaUj5I6zsPDsouosyEDfgyAiT8fl80yE3MxEmNue64kWnCxXZEqpAQr08oNv4DlRUO+WVPebBR4UebTgwnEcoOJgvHEmfYoAaHLyAchel6QsIGaafOzAHtXGIX/sho0ZYfSHTFBAEfsMyIzN9anLmiPFKRykGxTUfwkC6npmmLXyujaTKLMcPxdL7E7GCHN2kb51rKRksqk+VfogRiuG1JtvELYylVfuvLyhfTcOmqGbrCaxI4VITn1C9+k1W5m4wtFIiGwXczQ6N3VsDUtgn7mEVgDhwko0RbXfNGaez4PbpKzVhbDARMLQTtv3LE/7MuBf8DVDLUC1DjfsaPooOyWFiTQ6f805/feLVA/DFwbCIWQxHH6Cyn5EPhG1sMWeJJEI+2ojBGEn3dmyy2WdCiOIqUpRh5zOrcMgEFqtpo+G08rUa3S0/Ptpi+CXwuJI4swovoPnUDMsH8OxIR89A1yg5q0CpFj+2eZ/1/wbRJjJJlQ0m+0iaj2ArnKJFPeX1lPkG1cevNNgc1SaC08qCwAEVnDP9smk1fDT440QG11EXyMm79qtW33Ip/s+3bpy62yePzPR5+E45iNdUdkv1aQVzQyUdKg02qRbjkPx015aTDdkhDc4rAmSaY4fpQGPxGdj6X8/2dg4rbTJtxddUbeIVHrPpXpff0j41CDu1ZZIzaX4CRoK3EGXo0mfJLbXFeq1BOSBZ5Lw+ybiZ/SdNqTsnxCBc97TSKFbl1T4ljL1z6Z1n4wqO0pd79uTNTk8JDi5VZ4NJ2dnOyWtBgB",
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
-    "provider": "anthropic"
-  },
-  {
     "type": "text.start",
-    "seq": 14,
-    "id": "msg_011CeeFsWMATFN3cmZwbxYiS:text:1",
-    "messageId": "msg_011CeeFsWMATFN3cmZwbxYiS",
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e"
+    "seq": 11,
+    "id": "msg_011CejsE5VrvNc5iiB6GjnWE:text:0",
+    "messageId": "msg_011CejsE5VrvNc5iiB6GjnWE",
+    "turnId": "turn_b16d9ec3-3277-491e-9c6b-f094bf7b3fdd"
   },
   {
     "type": "text.delta",
-    "seq": 15,
-    "id": "msg_011CeeFsWMATFN3cmZwbxYiS:text:1",
-    "messageId": "msg_011CeeFsWMATFN3cmZwbxYiS",
-    "delta": "The render returned revision 1. The only remaining step is the dependent update call.",
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e"
+    "seq": 12,
+    "id": "msg_011CejsE5VrvNc5iiB6GjnWE:text:0",
+    "messageId": "msg_011CejsE5VrvNc5iiB6GjnWE",
+    "delta": "Card rendered at revision 1. Now updating it in place.",
+    "turnId": "turn_b16d9ec3-3277-491e-9c6b-f094bf7b3fdd"
   },
   {
     "type": "text.end",
-    "seq": 16,
-    "id": "msg_011CeeFsWMATFN3cmZwbxYiS:text:1",
-    "messageId": "msg_011CeeFsWMATFN3cmZwbxYiS",
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e"
+    "seq": 13,
+    "id": "msg_011CejsE5VrvNc5iiB6GjnWE:text:0",
+    "messageId": "msg_011CejsE5VrvNc5iiB6GjnWE",
+    "turnId": "turn_b16d9ec3-3277-491e-9c6b-f094bf7b3fdd"
   },
   {
     "type": "tool.start",
-    "seq": 17,
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
-    "toolCallId": "toolu_01Apf2tY5HZEWLY4chuWgSQk",
+    "seq": 14,
+    "turnId": "turn_b16d9ec3-3277-491e-9c6b-f094bf7b3fdd",
+    "toolCallId": "toolu_01L88JRQKP1iTrWxb7szuNLi",
     "name": "mcp__cards__update_card",
-    "index": 2,
-    "messageId": "msg_011CeeFsWMATFN3cmZwbxYiS",
+    "index": 1,
+    "messageId": "msg_011CejsE5VrvNc5iiB6GjnWE",
     "providerExecuted": false
   },
   {
     "type": "tool.args.delta",
-    "seq": 18,
-    "toolCallId": "toolu_01Apf2tY5HZEWLY4chuWgSQk",
+    "seq": 15,
+    "toolCallId": "toolu_01L88JRQKP1iTrWxb7szuNLi",
     "delta": "{\"title\":\"Hello\",\"body\":\"Updated World\"}"
   },
   {
     "type": "tool.args.assembled",
-    "seq": 19,
-    "toolCallId": "toolu_01Apf2tY5HZEWLY4chuWgSQk",
+    "seq": 16,
+    "toolCallId": "toolu_01L88JRQKP1iTrWxb7szuNLi",
     "input": {
       "title": "Hello",
       "body": "Updated World"
@@ -196,21 +160,21 @@
   },
   {
     "type": "message.end",
-    "seq": 20,
-    "id": "msg_011CeeFsWMATFN3cmZwbxYiS",
+    "seq": 17,
+    "id": "msg_011CejsE5VrvNc5iiB6GjnWE",
     "usage": {
-      "inputTokens": 56,
-      "outputTokens": 4,
-      "cacheReadTokens": 1652,
-      "cacheWriteTokens": 109,
+      "inputTokens": 32,
+      "outputTokens": 2,
+      "cacheReadTokens": 2000,
+      "cacheWriteTokens": 162,
       "cumulative": true
     }
   },
   {
     "type": "tool.done",
-    "seq": 21,
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
-    "toolCallId": "toolu_01Apf2tY5HZEWLY4chuWgSQk",
+    "seq": 18,
+    "turnId": "turn_b16d9ec3-3277-491e-9c6b-f094bf7b3fdd",
+    "toolCallId": "toolu_01L88JRQKP1iTrWxb7szuNLi",
     "content": [
       {
         "type": "text",
@@ -219,7 +183,7 @@
     ],
     "outcome": "ok",
     "isError": false,
-    "messageId": "toolu_01Apf2tY5HZEWLY4chuWgSQk:result",
+    "messageId": "toolu_01L88JRQKP1iTrWxb7szuNLi:result",
     "uiData": {
       "title": "Hello",
       "body": "Updated World",
@@ -237,49 +201,49 @@
   },
   {
     "type": "message.start",
-    "seq": 22,
-    "id": "msg_011CeeFstZe49AE8vaDPjYSD",
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
-    "threadId": "be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "seq": 19,
+    "id": "msg_011CejsEQ6ZAkKFXMoAbZw5D",
+    "turnId": "turn_b16d9ec3-3277-491e-9c6b-f094bf7b3fdd",
+    "threadId": "b16d9ec3-3277-491e-9c6b-f094bf7b3fdd",
     "role": "assistant",
     "model": "claude-fable-5-1"
   },
   {
     "type": "text.start",
-    "seq": 23,
-    "id": "msg_011CeeFstZe49AE8vaDPjYSD:text:0",
-    "messageId": "msg_011CeeFstZe49AE8vaDPjYSD",
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e"
+    "seq": 20,
+    "id": "msg_011CejsEQ6ZAkKFXMoAbZw5D:text:0",
+    "messageId": "msg_011CejsEQ6ZAkKFXMoAbZw5D",
+    "turnId": "turn_b16d9ec3-3277-491e-9c6b-f094bf7b3fdd"
   },
   {
     "type": "text.delta",
-    "seq": 24,
-    "id": "msg_011CeeFstZe49AE8vaDPjYSD:text:0",
-    "messageId": "msg_011CeeFstZe49AE8vaDPjYSD",
-    "delta": "Both steps completed, nothing further is needed:\n\n1. **render_card** → `{\"title\":\"Hello\",\"body\":\"World\",\"revision\":1,\"kind\":\"render\"}`\n2. **update_card** → `{\"title\":\"Hello\",\"body\":\"Updated World\",\"revision\":2,\"kind\":\"update\"}`\n\nThe card was rendered as revision 1 and then updated in place; the update tool reports the final state as **revision 2** with title \"Hello\" and body \"Updated World\".",
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e"
+    "seq": 21,
+    "id": "msg_011CejsEQ6ZAkKFXMoAbZw5D:text:0",
+    "messageId": "msg_011CejsEQ6ZAkKFXMoAbZw5D",
+    "delta": "Done. Both steps completed in order:\n\n1. **Render** — `render_card(title='Hello', body='World')` → revision 1 (`kind: render`)\n2. **Update** — `update_card(title='Hello', body='Updated World')` → **revision 2** (`kind: update`)\n\nThe update tool's final returned state is: title `Hello`, body `Updated World`, **revision 2**.",
+    "turnId": "turn_b16d9ec3-3277-491e-9c6b-f094bf7b3fdd"
   },
   {
     "type": "text.end",
-    "seq": 25,
-    "id": "msg_011CeeFstZe49AE8vaDPjYSD:text:0",
-    "messageId": "msg_011CeeFstZe49AE8vaDPjYSD",
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e"
+    "seq": 22,
+    "id": "msg_011CejsEQ6ZAkKFXMoAbZw5D:text:0",
+    "messageId": "msg_011CejsEQ6ZAkKFXMoAbZw5D",
+    "turnId": "turn_b16d9ec3-3277-491e-9c6b-f094bf7b3fdd"
   },
   {
     "type": "message.end",
-    "seq": 26,
-    "id": "msg_011CeeFstZe49AE8vaDPjYSD",
+    "seq": 23,
+    "id": "msg_011CejsEQ6ZAkKFXMoAbZw5D",
     "usage": {
-      "inputTokens": 56,
-      "outputTokens": 3,
-      "cacheReadTokens": 1761,
-      "cacheWriteTokens": 196,
+      "inputTokens": 32,
+      "outputTokens": 2,
+      "cacheReadTokens": 2162,
+      "cacheWriteTokens": 159,
       "cumulative": true
     }
   },
   {
-    "seq": 27,
+    "seq": 24,
     "type": "ext.anthropic.result-meta",
     "fastModeDisabledReason": "sdk_opt_in_required",
     "queuedTurnCount": 0,
@@ -322,21 +286,21 @@
   },
   {
     "type": "turn.done",
-    "seq": 28,
-    "turnId": "turn_be7f41d0-aa69-43f0-8ba0-6234ae34808e",
+    "seq": 25,
+    "turnId": "turn_b16d9ec3-3277-491e-9c6b-f094bf7b3fdd",
     "outcome": {
       "type": "success",
-      "result": "Both steps completed, nothing further is needed:\n\n1. **render_card** → `{\"title\":\"Hello\",\"body\":\"World\",\"revision\":1,\"kind\":\"render\"}`\n2. **update_card** → `{\"title\":\"Hello\",\"body\":\"Updated World\",\"revision\":2,\"kind\":\"update\"}`\n\nThe card was rendered as revision 1 and then updated in place; the update tool reports the final state as **revision 2** with title \"Hello\" and body \"Updated World\"."
+      "result": "Done. Both steps completed in order:\n\n1. **Render** — `render_card(title='Hello', body='World')` → revision 1 (`kind: render`)\n2. **Update** — `update_card(title='Hello', body='Updated World')` → **revision 2** (`kind: update`)\n\nThe update tool's final returned state is: title `Hello`, body `Updated World`, **revision 2**."
     },
     "finishReason": "stop",
     "usage": {
-      "inputTokens": 114,
-      "outputTokens": 361,
-      "cacheReadTokens": 3413,
-      "cacheWriteTokens": 1957,
-      "reasoningTokens": 33,
+      "inputTokens": 66,
+      "outputTokens": 334,
+      "cacheReadTokens": 4162,
+      "cacheWriteTokens": 2321,
+      "reasoningTokens": 0,
       "serverToolRequests": 0,
-      "costUsd": 0.04549375,
+      "costUsd": 0.048401000000000007,
       "cumulative": true,
       "byModel": {
         "claude-haiku-4-5-20251001": {
@@ -350,12 +314,12 @@
           "cumulative": true
         },
         "claude-fable-5-1": {
-          "inputTokens": 114,
-          "outputTokens": 361,
-          "cacheReadTokens": 3413,
-          "cacheWriteTokens": 1957,
-          "reasoningTokens": 33,
-          "costUsd": 0.04450575,
+          "inputTokens": 66,
+          "outputTokens": 334,
+          "cacheReadTokens": 4162,
+          "cacheWriteTokens": 2321,
+          "reasoningTokens": 0,
+          "costUsd": 0.047413000000000004,
           "serverToolRequests": 0,
           "cumulative": true
         }

@@ -11,9 +11,10 @@ export default defineConfig({
     // package's tsc build emits its *.test.ts alongside src (package.json
     // `files` strips them from the tarball). Re-add the exclusion so a local
     // `tsc -b` cannot double-run the compiled copies under the alias. Kept as
-    // an EXCLUDE (not a root-relative include) because the capture ritual runs
-    // `npx vitest run src/capture-cli.test.ts` from packages/e2e and vitest
-    // resolves this parent config there too.
+    // an EXCLUDE (not a root-relative include) so the file works whether vitest
+    // is rooted here or pointed at from packages/e2e via
+    // `--config ../../vitest.config.ts` (vitest 5 stopped resolving a parent
+    // config, so the capture ritual passes the flag explicitly).
     exclude: [...configDefaults.exclude, "**/dist/**"],
   },
   resolve: {

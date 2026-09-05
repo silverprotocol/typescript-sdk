@@ -127,6 +127,11 @@ const OPENAI_SEEDS = [
   // new model's wire shape as a standing measurement rather than a one-off
   // probe (kind:"capture" — see corpus/echo-gpt56/openai.provenance.json).
   "echo-gpt56",
+  // 2026-09-05 (cohort 0.6.1): FIRST live capture against gpt-6-astra (GA
+  // 2026-09-03; no dated snapshot, reasoning cannot be disabled) through
+  // @openai/agents 0.17.0 + openai-node 7.10.0 (kind:"capture" — see
+  // corpus/echo-gpt6astra/openai.provenance.json).
+  "echo-gpt6astra",
 ] as const;
 
 /**
@@ -176,6 +181,12 @@ const ADK_SEEDS = [
   "echo-gemini37",
   "app-spec-gemini37",
   "thinking-gemini37",
+  // 2026-09-05 (cohort 0.6.1, model-release playbook): the gemini-3.8-flash
+  // trio (GA 2026-09-02; same thinking knob and price as 3.7), captured at
+  // @google/adk 2.0.0 / genai 2.21.0 and enrolled at capture time.
+  "echo-gemini38",
+  "app-spec-gemini38",
+  "thinking-gemini38",
 ] as const;
 
 /**
@@ -187,6 +198,12 @@ const ADK_SEEDS = [
  */
 const VERCEL_SEEDS = [
   "echo-gpt56",
+  // 2026-09-05 (cohort 0.6.1): FIRST live capture against gpt-6-astra (GA
+  // 2026-09-03; reasoning cannot be disabled, temperature/top_p rejected) on
+  // the vercel facet at ai 7.0.93 / @ai-sdk/openai 4.0.59 — the model's wire
+  // shape as a standing measurement (kind:"capture", see
+  // corpus/echo-gpt6astra/vercel.provenance.json).
+  "echo-gpt6astra",
 ] as const;
 
 /**

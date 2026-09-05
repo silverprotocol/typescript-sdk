@@ -1,0 +1,208 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "threadId": "google"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "threadId": "google",
+    "role": "assistant"
+  },
+  {
+    "type": "reasoning.start",
+    "seq": 2,
+    "id": "reasoning:0",
+    "messageId": "msg_turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b"
+  },
+  {
+    "type": "reasoning.delta",
+    "seq": 3,
+    "id": "reasoning:0",
+    "messageId": "msg_turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "delta": "**My Immediate Action**\n\nAlright, let's get this done. The instructions are clear: \"spike\" needs to use the `echo` tool. The *system instructions* are very specific: \"You MUST call the echo tool with message='thinking-probe-gemini38'. Do not answer from memory.\" The message is right there, and the tool is `echo`. No need to overthink it. The *developer instructions* mention security guidelines but that's a moot point in this situation, as I am not being asked to produce a chain of thought, but rather to merely use the `echo` tool. My goal is simple: I need to call `echo(message='thinking-probe-gemini38')`. That is exactly what I will do.\n\n\n",
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b"
+  },
+  {
+    "type": "reasoning.end",
+    "seq": 4,
+    "id": "reasoning:0",
+    "messageId": "msg_turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "provider": "google"
+  },
+  {
+    "type": "tool.start",
+    "seq": 5,
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "toolCallId": "call_479912",
+    "name": "echo",
+    "index": 1
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 6,
+    "toolCallId": "call_479912",
+    "delta": "{\"message\":\"thinking-probe-gemini38\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 7,
+    "toolCallId": "call_479912",
+    "input": {
+      "message": "thinking-probe-gemini38"
+    },
+    "signature": "Eu0FCuoFARFNMg/YlFgQaQmihpsE52MV2kthx22vjD1RXO3SiRIpU/9KZ56rbB7+6PNyovPW5SXkEPLO5CP339hIqbTxh+XBUbu8ULa/a+E1NFKUBkGF99qtH6WVvYU1cRuMhCTUayg3cagl1mP8ufZ7sxONH8ZgW4pJsrqHtMyiNb4V6mcONNw9f/G7bVpUR3/kgztcSCUSnh3DQ0npjAu4B/uZwkn0YwVzeJTlohuxfFwrLITJBfmCLyvJXlhcAD++4PqrCeVhXXgRH1ZZC1w0cqbf3Op5MTQY4Nozx8sCZ0wTqiypIF5GoN8edbVGMcb1t+r/ooHRFBuWZoZmHowncy9xTmS/oUu5ECXle4aAZ+AKbFntZWc0mdrdWU7iCrzuu/2Lsw9navvL/XJTjMJWoLKqhvd3Z/mDnTZCYEdwrxmsPjHLzqIMTRKnHfEhYH++arV7X0sZ6Y/cI6S7uAhoLlr5dKwUA2JG16L1LD52ncL7QUAkZstiwx35McIiZ2f9gfRvWr5KUdvKTevOJ6urqE0vaMNp2fuBvU1z6VjOOffUvavCKuHyQ/R/uGRvcs68OthY3kFP4U7Km2cZcUX+r3PqnN/t6erQhi1552L+wGokbYBhxP6YH3/QsHuI/MmPJbSakWre4ZRjwnm0Z5PD8s/95YiMRdkTeuOE3UI495+aTtLcbmQFrMxCP4/a1FYBr3+Yn4x4D/xasVgGynE0i+BPweFw3lGzHd0Srv2H02NFZhnX6W6NU1o3GPW970ulJC9psx3kNv5xXccFMXhZN8tW6DXlzO6JygQyYK2zkwQuKVSrXJAgHpEiJSirKEaLQky2yy8Bobc7UdwIRW+vLc5jSX9Vwsoy/uHvAbqijzzkaEyCZNndZzBF61wEeMb0kThsUvrStsn7JDBtdVdgaJH1ejoCrlcAYZDpQaFNCFfNZnKbKIOigesHIE0+lMFX20/KgFaM5MIwGkniw08Q//hWdRtNOhwMvIOpsoU="
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "seq": 8
+  },
+  {
+    "type": "content.block",
+    "seq": 9,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b"
+  },
+  {
+    "type": "tool.done",
+    "seq": 10,
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "toolCallId": "call_479912",
+    "content": [
+      {
+        "type": "text",
+        "text": "thinking-probe-gemini38"
+      }
+    ],
+    "outcome": "ok"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "seq": 11
+  },
+  {
+    "type": "content.block",
+    "seq": 12,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b"
+  },
+  {
+    "type": "reasoning.start",
+    "seq": 13,
+    "id": "reasoning:0",
+    "messageId": "msg_turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b"
+  },
+  {
+    "type": "reasoning.delta",
+    "seq": 14,
+    "id": "reasoning:0",
+    "messageId": "msg_turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "delta": "Okay, here's my interpretation of that process, delivered as a first-person expert summary:\n\n**The Presentation is Ready**\n\nAlright, I've got it. The tool's output, `thinking-probe-gemini38`, is in hand. My next step is clear: I need to package this information and present it to the user. Given their expertise, I won't need to over-explain anything. I'll focus on delivering the core finding concisely and efficiently. The real value is in *how* I present it. Should I use a direct response, or should I craft a more analytical framing that leads them to the conclusion? Perhaps contextualizing the probe's purpose would be best. I'll need to assess the best way to leverage this input to answer the question at hand. I'll prioritize accuracy and impact in my delivery, ensuring that the user can immediately integrate this information into their understanding. It's time to refine the delivery!\n\n\n",
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b"
+  },
+  {
+    "type": "reasoning.end",
+    "seq": 15,
+    "id": "reasoning:0",
+    "messageId": "msg_turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "provider": "google"
+  },
+  {
+    "type": "text.start",
+    "seq": 16,
+    "id": "text:1",
+    "messageId": "msg_turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "Er4BCrsBARFNMg+ZHmAYXfPDEjhZ+OIJyi7OjHMI2Wcds5cbEBjzpzdfrKE9q/4zqEzahMYiBBglLspHhV+FoTIN9QRFCloUsPk+n4G/1IjdqaN6lypTkxepyN9UOxyiXLQRtQA+dChFi/w4iFSKMnmvWvobT+xi4YNjZc2rfCLYPr3LNERiYsXk2Bp9ygzP6kfeg5dI4ISlkafQJk+106VxgO8LrHqLVpIhI9JiiNXoPTY2igcx2SGdwlupDDygTQ=="
+      }
+    }
+  },
+  {
+    "type": "text.delta",
+    "seq": 17,
+    "id": "text:1",
+    "messageId": "msg_turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "delta": "thinking-probe-gemini38",
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b"
+  },
+  {
+    "type": "text.end",
+    "seq": 18,
+    "id": "text:1",
+    "messageId": "msg_turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "Er4BCrsBARFNMg+ZHmAYXfPDEjhZ+OIJyi7OjHMI2Wcds5cbEBjzpzdfrKE9q/4zqEzahMYiBBglLspHhV+FoTIN9QRFCloUsPk+n4G/1IjdqaN6lypTkxepyN9UOxyiXLQRtQA+dChFi/w4iFSKMnmvWvobT+xi4YNjZc2rfCLYPr3LNERiYsXk2Bp9ygzP6kfeg5dI4ISlkafQJk+106VxgO8LrHqLVpIhI9JiiNXoPTY2igcx2SGdwlupDDygTQ=="
+      }
+    }
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "seq": 19
+  },
+  {
+    "type": "content.block",
+    "seq": 20,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b"
+  },
+  {
+    "type": "message.end",
+    "seq": 21,
+    "id": "msg_turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b"
+  },
+  {
+    "type": "turn.done",
+    "seq": 22,
+    "turnId": "turn_e-ebc8bb3d-ae96-484e-8107-57abb80c627b",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 591,
+      "outputTokens": 209,
+      "totalTokens": 800,
+      "reasoningTokens": 180,
+      "cumulative": false
+    }
+  }
+]

@@ -110,5 +110,6 @@
   "[*].usageMetadata.promptTokenCount": "[*].usage.inputTokens",
   "[*].usageMetadata.thoughtsTokenCount": "[*].usage.reasoningTokens",
   "[*].usageMetadata.totalTokenCount": "[*].usage.totalTokens",
-  "[*].user_message_uuid": "[*].userMessageUuid"
+  "[*].user_message_uuid": "[*].userMessageUuid",
+  "[*].user_message_uuids[*]": "[*].userMessageUuids[*]"
 }
