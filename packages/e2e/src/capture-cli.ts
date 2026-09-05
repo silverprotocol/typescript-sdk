@@ -94,8 +94,13 @@ const SDK_PACKAGE: Record<Framework, string> = {
  *  e.g. for capturing a newly-released model before it becomes the default
  *  here. */
 const DEFAULT_MODEL: Record<Framework, string> = {
-  // Policy: each default is the NEWEST model live-verified with that facet in
-  // the committed corpus (see corpus/*/​*.provenance.json) — bump only after a
+  // Policy (two clauses, founder-ruled 2026-09-02 for Claude and 2026-09-05
+  // for OpenAI): each default is the newest model live-verified with that facet
+  // in the committed corpus (see corpus/*/​*.provenance.json) AND
+  // cost-appropriate as the WORKING default — the model every refresh capture
+  // and regen pays for. A frontier model at a multiple of the working model's
+  // price, or one that cannot switch reasoning off, stays a SEEDED PROBE
+  // (echo-fable51, echo-gpt6astra) rather than the default. Bump only after a
   // clean capture at the new model lands as a replay seed.
   claude: "claude-sonnet-5",
   // Explicit snapshot id, not the bare "gpt-5.6" alias: OpenAI routes the
