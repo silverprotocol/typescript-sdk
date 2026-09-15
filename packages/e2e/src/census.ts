@@ -124,11 +124,38 @@ export function compileWildcardPath(pattern: string): (norm: string) => boolean 
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Collapses every concrete numeric index `[n]` to `[*]` so that structurally
- * equivalent paths across different array positions compare equal.
+ * Containers whose OBJECT KEYS are opaque, per-capture provider ids rather than
+ * stable field names. Their keys are volatile in exactly the way array indices
+ * are, so the key immediately under them is collapsed to `{id}` for the same
+ * reason `[n]` becomes `[*]`: otherwise every capture mints a brand-new
+ * norm-path and the `newFields` gate can never be satisfied.
+ *
+ * This list is deliberately EXPLICIT rather than a heuristic on key shape. A
+ * pattern like /^[a-z]+_[A-Za-z0-9]{20,}$/ would also swallow keys that carry
+ * real meaning and must stay distinct — `modelUsage.claude-sonnet-5`,
+ * `modelUsage.claude-fable-5-1` and friends are registered per model ON PURPOSE
+ * (a new serving model is a finding, not noise). Add an entry here only when the
+ * key is provably an opaque id minted per run.
+ *
+ * - `wire_tool_inputs` (claude-agent-sdk 0.3.272, undeclared in sdk.d.ts): the
+ *   verbatim wire copy of each tool call's input, keyed by `tool_use_id`.
+ */
+const ID_KEYED_CONTAINERS = ["wire_tool_inputs"] as const;
+
+/**
+ * Collapses every concrete numeric index `[n]` to `[*]`, and the opaque id key
+ * directly under each {@link ID_KEYED_CONTAINERS} entry to `{id}`, so that
+ * structurally equivalent paths across different array positions and different
+ * captures compare equal.
  */
 export function normalizePath(path: string): string {
-  return path.replace(/\[\d+\]/g, "[*]");
+  let out = path.replace(/\[\d+\]/g, "[*]");
+  for (const container of ID_KEYED_CONTAINERS) {
+    // Only the ONE segment directly under the container is an id; anything
+    // deeper is a real field name and must survive.
+    out = out.replace(new RegExp(`(\\.${container}\\.)[^.\\[]+`, "g"), "$1{id}");
+  }
+  return out;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

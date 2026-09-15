@@ -632,6 +632,21 @@ function readUserMessageUuids(v: unknown): string[] | undefined {
   return Array.isArray(v) && v.every((s): s is string => typeof s === "string") ? v : undefined;
 }
 
+// `narration_block_indexes` (0.3.272) — which of THIS frame's content blocks are
+// user-facing NARRATION rather than private reasoning. Undeclared in sdk.d.ts at
+// 0.3.272 (a pass-through of the Messages API field that rides the assistant
+// wrapper), so it is read through the JSON boundary and shape-guarded here, never
+// cast. Integer indexes into `message.content`; an out-of-range or non-integer
+// member means the producer changed shape, so the whole array is refused rather
+// than half-carried.
+function readNarrationBlockIndexes(v: unknown): number[] | undefined {
+  return Array.isArray(v) &&
+    v.length > 0 &&
+    v.every((n): n is number => typeof n === "number" && Number.isInteger(n) && n >= 0)
+    ? v
+    : undefined;
+}
+
 // ─── 0.3.220 result-frame enrichment: fast mode + per-model serving identity ──
 // `fast_mode_disabled_reason` (on BOTH result arms — why fast mode was blocked)
 // and `ModelUsage.canonicalModel`/`provider` (the pricing-lookup identity behind
@@ -685,6 +700,46 @@ function readUserMessageUuids(v: unknown): string[] | undefined {
 //    producer's to keep, not the facet's to validate. CONSISTENCY carry: the
 //    string-prompt capture path supplies no client uuid, so no cassette has
 //    ever exercised either the singular or the plural.
+//
+// 0.3.272 bump — three more result-frame siblings on the SAME carry:
+//  - `resume_reason` (BOTH arms, 0.3.268): the result-frame leg of the
+//    turn-binding family the assistant/stream arms now carry (see
+//    `carryTurnBinding`) — why this turn was the AUTOMATIC re-run of a turn a
+//    worker restart interrupted (the host's CLAUDE_CODE_RESUME_REASON:
+//    host_draining, checkpoint_restore, container_recreated, …; else
+//    'interrupted_turn'). Its sibling `user_message_uuid` names the INTERRUPTED
+//    turn's own last prompt on such a re-run, so a consumer reconciling results
+//    by uuid sees the SAME uuid twice; this is the field that says the second
+//    one is a re-run and not a duplicate. Normalized `resumeReason`.
+//  - `result_index` (BOTH arms, 0.3.268): delivery sequence of this result
+//    within the run, from 0, in the order the process writes them. A
+//    DELIVERY-INTEGRITY signal, not a counter: "a result whose write fails
+//    still consumes its number, so a gap in a stream-json sequence means a
+//    result was LOST" — a consumer can detect a dropped result it would
+//    otherwise never know about. Direct sibling of `queued_turn_count` (the
+//    same "what else is coming" axis), so it lands in the same carrier as
+//    `resultIndex`. 0 is a REAL value (every run's first result), so the guard
+//    is `typeof === "number"`, never truthiness.
+//  - `local_command` (SUCCESS arm only, 0.3.268 — NO upstream doc comment;
+//    disposition from a 0.3.272 CLI-bundle read, 2026-09-15): present exactly
+//    on the result of a turn that ran a slash command and NEVER entered the
+//    model loop. In the bundle it is written only on the `shouldQuery === false`
+//    early-return branch of the result builder, from the input processor's
+//    `localCommand`, and not at all when the slash command was deferred to the
+//    engine (`engineDeferredSlash`). CARRIED, because its PRESENCE is the
+//    consumer signal: it is what distinguishes "this turn was a local command,
+//    zero model round-trips" from "this turn produced nothing" — a
+//    success result with `num_turns: 0` and no assistant frames is otherwise
+//    indistinguishable from an empty turn. Its VALUE, however, is deliberately
+//    coarse: the CLI passes the command name through the same sanitizer its
+//    analytics use (`isMcp ? "mcp" : (isBuiltIn || isBundled || isOfficial ?
+//    rawName : "custom")`) and then slugifies it (lowercase, `[^a-z]+`→`_`,
+//    trimmed, ≤64 chars, empty ⇒ "custom"), so a user/project/third-party
+//    command reports "custom" and any MCP command reports "mcp". Carried
+//    verbatim as the producer emits it — the facet never re-derives a name it
+//    was not given — under the normalized name `localCommand`. Read through the
+//    `unknown` boundary because it is declared on the SUCCESS arm ONLY, so the
+//    union has no such property to access.
 function resultMetaPayload(msg: SDKResultMsg): { [k: string]: JsonValue } | undefined {
   const byModel: { [k: string]: JsonValue } = {};
   const modelUsage = isJsonObject(msg.modelUsage) ? msg.modelUsage : {};
@@ -703,13 +758,21 @@ function resultMetaPayload(msg: SDKResultMsg): { [k: string]: JsonValue } | unde
   const subagentStats =
     isJsonObject(raw) && isJsonObject(raw["subagent_stats"]) ? JsonValue.parse(raw["subagent_stats"]) : undefined;
   const userMessageUuids = readUserMessageUuids(msg.user_message_uuids);
+  // SUCCESS-arm-only field (0.3.268) — the union carries no such property, so
+  // it is read through the same JSON boundary as `subagent_stats`, never cast.
+  const localCommand =
+    isJsonObject(raw) && typeof raw["local_command"] === "string" ? raw["local_command"] : undefined;
   const payload: { [k: string]: JsonValue } = {
     ...(typeof msg.fast_mode_disabled_reason === "string"
       ? { fastModeDisabledReason: msg.fast_mode_disabled_reason }
       : {}),
     ...(typeof msg.user_message_uuid === "string" ? { userMessageUuid: msg.user_message_uuid } : {}),
     ...(userMessageUuids !== undefined ? { userMessageUuids } : {}),
+    ...(typeof msg.resume_reason === "string" ? { resumeReason: msg.resume_reason } : {}),
     ...(typeof msg.queued_turn_count === "number" ? { queuedTurnCount: msg.queued_turn_count } : {}),
+    // 0 is the first result of EVERY run — `typeof === "number"`, not truthiness.
+    ...(typeof msg.result_index === "number" ? { resultIndex: msg.result_index } : {}),
+    ...(localCommand !== undefined ? { localCommand } : {}),
     ...(subagentStats !== undefined ? { subagentStats } : {}),
     ...(Object.keys(byModel).length > 0 ? { modelUsage: byModel } : {}),
   };
@@ -830,15 +893,24 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
     /** workspace#7 — `ttft_ms` carried at most once per message (message.metadata). */
     ttftCarried: boolean;
     /**
-     * 0.3.258 — `user_message_uuid` carried at most once per message, whichever
+     * The TURN-BINDING FAMILY, carried at most once per message, whichever
      * channel delivers it first: the stream arm's message.metadata carry
-     * (`carryUserMessageUuid`, the first non-ping stream event) or the complete
+     * (`carryTurnBinding`, the first non-ping stream event) or the complete
      * arm's first-block wrapper carry (the SDK stamps the turn's FIRST reply
      * frame only; with partials the stamp normally rides the stream instead).
-     * 0.3.261 — the plural `user_message_uuids` (0.3.259) rides the SAME single
-     * emission under the SAME flag: one carry per message for the whole family.
+     *
+     * 0.3.258 — `user_message_uuid` opened the family.
+     * 0.3.261 — the plural `user_message_uuids` (0.3.259) joined the SAME single
+     * emission under the SAME flag.
+     * 0.3.272 — `resume_reason` (0.3.268) joins it too. The upstream 0.3.269
+     * entry changes all THREE under ONE rule ("stamped on a turn's first
+     * complete assistant message as well as its first stream event when partial
+     * messages are on"), so they are one family with one flag — a field written
+     * outside this guard would double-emit `message.metadata` on a streamed
+     * lifecycle (the stream arm carries, then the content-suppressed complete
+     * frame carries again).
      */
-    userMessageUuidCarried: boolean;
+    turnBindingCarried: boolean;
   };
   // workspace#7 — per-block accumulation between content_block_start and its
   // content_block_stop. `emitted` marks blocks that arrive complete inside the
@@ -896,30 +968,41 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
     a.emit({ type: "message.metadata", messageId: p.emittedId, metadata: { ttft_ms: msg.ttft_ms } });
   }
 
-  // 0.3.258: `user_message_uuid` on the partial envelope — the client uuid of
-  // the user message this turn answers, stamped on the turn's FIRST non-ping
-  // stream event so a consumer can bind the reply stream to the send before
-  // the result arrives. Same channel and same once-per-message rule as
-  // `ttft_ms` above (message.metadata, wire name verbatim); the flag is shared
-  // with the complete arm's wrapper carry so the two channels never double-
-  // carry one message.
-  // 0.3.261: the plural `user_message_uuids` (0.3.259 — every client uuid of
-  // the prompt batch this turn answers, "present exactly when the singular
-  // is") joins the SAME single emission, wire name verbatim, shape-guarded
-  // (`readUserMessageUuids`). Either member alone still triggers the carry —
-  // the "exactly when" invariant is the producer's, not a precondition here.
-  function carryUserMessageUuid(msg: SDKPartial, p: PendingMessage): void {
-    if (p.userMessageUuidCarried) return;
+  // The TURN-BINDING FAMILY on the partial envelope — what binds this reply
+  // stream to the send it answers, before the result arrives. Same channel and
+  // same once-per-message rule as `ttft_ms` above (message.metadata, wire names
+  // verbatim); the flag is shared with the complete arm's wrapper carry so the
+  // two channels never double-carry one message.
+  //  - `user_message_uuid` (0.3.258): the client uuid of the user message this
+  //    turn answers, stamped on the turn's FIRST non-ping stream event.
+  //  - `user_message_uuids` (0.3.259): every client uuid of the prompt batch
+  //    this turn answers, "present exactly when the singular is" — shape-guarded
+  //    (`readUserMessageUuids`).
+  //  - `resume_reason` (0.3.268): why this frame's turn is the AUTOMATIC re-run
+  //    of a turn a worker restart interrupted — the host's
+  //    CLAUDE_CODE_RESUME_REASON (host_draining, checkpoint_restore,
+  //    container_recreated, …) or else 'interrupted_turn'. Not a separate
+  //    concept from the uuids but the third leg of the same binding: on such a
+  //    re-run `user_message_uuid` names the INTERRUPTED turn's own last prompt,
+  //    and `resume_reason` is what tells the re-run's first reply apart from the
+  //    interrupted attempt's. 0.3.269 stamps all three on the SAME frames under
+  //    ONE rule, so they share ONE guard and ONE emission.
+  // Either member alone still triggers the carry — the "exactly when" /
+  // "same frames as" invariants are the producer's, not preconditions here.
+  function carryTurnBinding(msg: SDKPartial, p: PendingMessage): void {
+    if (p.turnBindingCarried) return;
     const uuid = typeof msg.user_message_uuid === "string" ? msg.user_message_uuid : undefined;
     const uuids = readUserMessageUuids(msg.user_message_uuids);
-    if (uuid === undefined && uuids === undefined) return;
-    p.userMessageUuidCarried = true;
+    const resumeReason = typeof msg.resume_reason === "string" ? msg.resume_reason : undefined;
+    if (uuid === undefined && uuids === undefined && resumeReason === undefined) return;
+    p.turnBindingCarried = true;
     a.emit({
       type: "message.metadata",
       messageId: p.emittedId,
       metadata: {
         ...(uuid !== undefined ? { user_message_uuid: uuid } : {}),
         ...(uuids !== undefined ? { user_message_uuids: uuids } : {}),
+        ...(resumeReason !== undefined ? { resume_reason: resumeReason } : {}),
       },
     });
   }
@@ -1002,7 +1085,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       if (continued !== undefined) {
         continued.streamed = true;
         carryTtft(msg, continued);
-        carryUserMessageUuid(msg, continued);
+        carryTurnBinding(msg, continued);
         return;
       }
       closePendingMessage();
@@ -1025,7 +1108,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         streamed: true,
         streamBlocks: new Map(),
         ttftCarried: false,
-        userMessageUuidCarried: false,
+        turnBindingCarried: false,
       };
       pending = open;
       a.openMessage({
@@ -1039,7 +1122,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // (assistant / adopted tool-result frames) — the complete frame that joins
       // this lifecycle registers its own uuid as before.
       carryTtft(msg, open);
-      carryUserMessageUuid(msg, open);
+      carryTurnBinding(msg, open);
       return;
     }
 
@@ -1054,7 +1137,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // either way, never an ext carry.
       if (pending !== undefined && pending.streamed) {
         carryTtft(msg, pending);
-        carryUserMessageUuid(msg, pending);
+        carryTurnBinding(msg, pending);
       }
       return;
     }
@@ -1069,7 +1152,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       return;
     }
     carryTtft(msg, p);
-    carryUserMessageUuid(msg, p);
+    carryTurnBinding(msg, p);
 
     if (ev.type === "content_block_start") {
       const index = ev.index;
@@ -1350,6 +1433,24 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         // wrapper-meta channel's type without an unchecked cast.
         wrapperMetaRaw["context_usage"] = JsonValue.parse(msg.context_usage);
       }
+      // `narration_block_indexes` (0.3.272, first seen live on app-update-fable51):
+      // the indexes of THIS frame's content blocks that are user-facing narration
+      // — Anthropic's `thinking.display: "updates"` mode returns progress updates
+      // between tool calls as thinking blocks, and without this list a consumer
+      // cannot tell a narration block (meant to be shown) from private reasoning
+      // (usually hidden). A rendering decision, so it is carried losslessly rather
+      // than allowlisted. Deliberately OUTSIDE the turn-binding guard: this is a
+      // per-frame content fact like `aborted`, not a member of the
+      // user_message_uuid family, and it appears on the complete assistant frame
+      // only (no stream-event twin), so it cannot double-carry. Wire name verbatim.
+      // Undeclared at 0.3.272 — same JSON boundary as `local_command`, never a cast.
+      const rawAssistant: unknown = msg;
+      const narrationBlockIndexes = readNarrationBlockIndexes(
+        isJsonObject(rawAssistant) ? rawAssistant["narration_block_indexes"] : undefined,
+      );
+      if (narrationBlockIndexes !== undefined) {
+        wrapperMetaRaw["narration_block_indexes"] = narrationBlockIndexes;
+      }
       // `user_message_uuid` (0.3.258) and `user_message_uuids` (0.3.259) join
       // the bag below, once `open` is known — their once-per-message flag is
       // shared with the stream arm's carry.
@@ -1387,7 +1488,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
           streamed: false,
           streamBlocks: new Map(),
           ttftCarried: false,
-          userMessageUuidCarried: false,
+          turnBindingCarried: false,
         };
         pending = open;
         a.openMessage({
@@ -1405,7 +1506,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       //    `message.content`, not replayed to the model). The join key that
       //    binds a reply to its send without waiting for the result frame;
       //    carried verbatim. With partials on, the stamp normally rode the first
-      //    non-ping stream event instead (`carryUserMessageUuid`) — the shared
+      //    non-ping stream event instead (`carryTurnBinding`) — the shared
       //    once-per-message flag keeps the two channels from double-carrying.
       //  - `user_message_uuids` (0.3.259): the plural companion — every client
       //    uuid whose prompt this turn consumed so far, in consumption order
@@ -1413,13 +1514,28 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       //    LAST member). Same frame, same bag, same flag, wire name verbatim;
       //    shape-guarded through `readUserMessageUuids`, invariants not
       //    validated. Either member alone still triggers the (single) carry.
-      if (!open.userMessageUuidCarried) {
+      //  - `resume_reason` (0.3.268): the third leg of the SAME turn-binding
+      //    family — why this frame's turn is the AUTOMATIC re-run of a turn a
+      //    worker restart interrupted (the host's CLAUDE_CODE_RESUME_REASON:
+      //    host_draining, checkpoint_restore, container_recreated, …; else
+      //    'interrupted_turn'). On such a re-run `user_message_uuid` names the
+      //    INTERRUPTED turn's last prompt, so without this field a consumer
+      //    cannot tell the re-run's first reply from the interrupted attempt's.
+      //    0.3.269 stamps all THREE under ONE rule ("first complete assistant
+      //    message as well as first stream event when partial messages are
+      //    on"), so it MUST ride the same flag: written outside this guard it
+      //    would double-emit message.metadata on every streamed lifecycle (the
+      //    stream arm carries, then this suppressed complete frame carries
+      //    again). Wire name verbatim.
+      if (!open.turnBindingCarried) {
         const uuid = typeof msg.user_message_uuid === "string" ? msg.user_message_uuid : undefined;
         const uuids = readUserMessageUuids(msg.user_message_uuids);
-        if (uuid !== undefined || uuids !== undefined) {
-          open.userMessageUuidCarried = true;
+        const resumeReason = typeof msg.resume_reason === "string" ? msg.resume_reason : undefined;
+        if (uuid !== undefined || uuids !== undefined || resumeReason !== undefined) {
+          open.turnBindingCarried = true;
           if (uuid !== undefined) wrapperMetaRaw["user_message_uuid"] = uuid;
           if (uuids !== undefined) wrapperMetaRaw["user_message_uuids"] = uuids;
+          if (resumeReason !== undefined) wrapperMetaRaw["resume_reason"] = resumeReason;
         }
       }
       const wrapperMeta: AgProviderMeta | undefined =
@@ -1486,6 +1602,18 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
           // deliberate non-retriable: a billing-class code (the account is on
           // hold — a first cousin of `billing_error`, cleared by the account
           // holder, never by re-sending the turn).
+          //
+          // 0.3.272 widened `SDKAssistantMessageError` by two more values, both
+          // deliberate non-retriables recorded here for the same reason — an
+          // omission must never read as an oversight:
+          //  - `verification_required`: the request is gated on an out-of-band
+          //    human step (identity/org verification). Nothing about the turn
+          //    changes by re-sending it; the block clears only when a person
+          //    completes the verification.
+          //  - `cloud_credential_error`: a credential/billing-class failure on
+          //    the cloud-provider leg (a first cousin of `billing_error` and
+          //    `account_on_hold`, not of `overloaded`) — a bad, expired or
+          //    unauthorized credential is exactly as bad on the next attempt.
           retriable: errCode === "rate_limit" || errCode === "server_error" || errCode === "overloaded",
         });
       }

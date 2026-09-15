@@ -841,6 +841,141 @@ describe("createOpenaiNormalizer — response.incomplete error arm (T5c)", () =>
   });
 });
 
+describe("createOpenaiNormalizer — response.completed carrying a NON-completed status (openai 7.15.0 ResponseStatus)", () => {
+  // Wire truth (openai 7.15.0 `resources/responses/responses.d.ts`): a
+  // `response.completed` event carries a FULL `Response` (:1652-1656), whose
+  // OPTIONAL `status` (:997) ranges over the whole `ResponseStatus` union
+  // (:6186) — `failed`/`cancelled`/`incomplete` included. Closing such a round
+  // as a SUCCESS is a wrong MAPPING (not a drop). @openai/agents-openai 0.17.1+
+  // rejects these terminal states upstream, but yields the raw `model` carrier
+  // this facet closes on BEFORE throwing, so the correct decision has to be made
+  // here.
+  function completedRound(response: JsonValue): JsonValue[] {
+    return [
+      rawModel({ type: "response.created", response: { id: "resp_status_1" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_status_1", delta: "partial" }),
+      rawModel({ type: "response.completed", response }),
+    ];
+  }
+  function runRound(response: JsonValue): AgEvent[] {
+    const n = createOpenaiNormalizer();
+    return completedRound(response)
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+  }
+  const USAGE: JsonValue = { input_tokens: 9, output_tokens: 3, total_tokens: 12 };
+
+  it('MIRROR: status "failed" → turn.error carrying the status as code (never a successful close)', () => {
+    const evs = runRound({ id: "resp_status_1", status: "failed", usage: USAGE });
+    const err = evs.find((e) => e.type === "turn.error") as {
+      turnId?: string;
+      code?: string;
+      message?: string;
+      usage?: { inputTokens?: number };
+    };
+    expect(err).toBeDefined();
+    expect(err?.turnId).toBe("turn_resp_status_1");
+    expect(err?.code).toBe("failed");
+    expect(err?.message).toBe("failed");
+    expect(err?.usage?.inputTokens).toBe(9);
+    // The wrong mapping this fixes: no turn.done is emitted for this round.
+    expect(evs.find((e) => e.type === "turn.done")).toBeUndefined();
+    // The open text stream and the message still close (same shape as the
+    // `response.incomplete` branch) — no dangling stream, no INV-FLUSH abort.
+    expect(evs.filter((e) => e.type === "text.end")).toHaveLength(1);
+    expect(evs.filter((e) => e.type === "message.end")).toHaveLength(1);
+    expect(evs.find((e) => e.type === "turn.abort")).toBeUndefined();
+  });
+
+  it('MIRROR: status "cancelled" → turn.error{code:"cancelled"}, and the fold records an error outcome', () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    const round = completedRound({ id: "resp_status_1", status: "cancelled" });
+    for (const e of round) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    const res: AgReduceResult = r.result();
+    expect(r.needsResync).toBe(false);
+    expect(res.turns).toHaveLength(1);
+    expect(res.turns[0]).toMatchObject({ outcome: { type: "error", code: "cancelled", message: "cancelled" } });
+  });
+
+  it(`MIRROR: status "incomplete" on a response.completed event also errors (upstream's own unsuccessful set)`, () => {
+    const evs = runRound({ id: "resp_status_1", status: "incomplete" });
+    expect(evs.find((e) => e.type === "turn.error")).toMatchObject({ code: "incomplete" });
+    expect(evs.find((e) => e.type === "turn.done")).toBeUndefined();
+  });
+
+  it('MIRROR: a self-contradictory response.completed{status:"incomplete"} that ALSO carries incomplete_details.reason prefers the sharper reason as the code', () => {
+    // Code fidelity: the `response.incomplete` branch emits `code: reason`. A
+    // producer that mislabels the same payload as `response.completed` must not
+    // cost the consumer that specificity, so this branch reaches for the reason
+    // first and falls back to the bare status only when there is none.
+    const evs = runRound({
+      id: "resp_status_1",
+      status: "incomplete",
+      incomplete_details: { reason: "max_output_tokens" },
+    });
+    expect(evs.find((e) => e.type === "turn.error")).toMatchObject({
+      code: "max_output_tokens",
+      message: "max_output_tokens",
+    });
+    expect(evs.find((e) => e.type === "turn.done")).toBeUndefined();
+  });
+
+  it('a "failed" status carrying an incomplete_details.reason still reports "failed" — the reason preference is scoped to the incomplete status alone', () => {
+    const evs = runRound({
+      id: "resp_status_1",
+      status: "failed",
+      incomplete_details: { reason: "max_output_tokens" },
+    });
+    expect(evs.find((e) => e.type === "turn.error")).toMatchObject({ code: "failed" });
+  });
+
+  it('NEGATIVE CONTROL: status "completed" closes the turn as a success, exactly as before', () => {
+    const evs = runRound({ id: "resp_status_1", status: "completed", usage: USAGE });
+    expect(evs.find((e) => e.type === "turn.error")).toBeUndefined();
+    expect(evs.find((e) => e.type === "turn.done")).toMatchObject({
+      turnId: "turn_resp_status_1",
+      outcome: { type: "success" },
+      finishReason: "stop",
+    });
+  });
+
+  it('NEGATIVE CONTROL: an ABSENT status emits a byte-identical stream to status:"completed" (nothing new is carried)', () => {
+    const withStatus = runRound({ id: "resp_status_1", status: "completed", usage: USAGE });
+    const withoutStatus = runRound({ id: "resp_status_1", usage: USAGE });
+    expect(JSON.stringify(withoutStatus)).toBe(JSON.stringify(withStatus));
+    expect(withoutStatus.find((e) => e.type === "turn.done")).toMatchObject({ outcome: { type: "success" } });
+    expect(withoutStatus.find((e) => e.type === "turn.error")).toBeUndefined();
+  });
+
+  it("NEGATIVE CONTROL: a NON-terminal (`in_progress`) or unrecognized server-added status stays on the success path — the facet never invents an outcome from an open enum", () => {
+    const baseline = runRound({ id: "resp_status_1", usage: USAGE });
+    for (const status of ["in_progress", "queued", "some_future_status"]) {
+      const evs = runRound({ id: "resp_status_1", status, usage: USAGE });
+      expect(JSON.stringify(evs)).toBe(JSON.stringify(baseline));
+    }
+  });
+
+  it("the close-once guard still suppresses the DUPLICATE response.completed (exactly one close, still the error one)", () => {
+    const n = createOpenaiNormalizer();
+    const terminal = rawModel({
+      type: "response.completed",
+      response: { id: "resp_status_dup", status: "failed", usage: USAGE },
+    });
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_status_dup" } }),
+      terminal,
+      terminal, // the SDK emits response.completed TWICE
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    const closes = evs.filter((e) => e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort");
+    expect(closes).toHaveLength(1);
+    expect(closes[0]).toMatchObject({ type: "turn.error", turnId: "turn_resp_status_dup", code: "failed" });
+  });
+});
+
 describe("createOpenaiNormalizer — response.failed error arm (T5c)", () => {
   it("response.failed → turn.error with message + code", () => {
     const n = createOpenaiNormalizer();
@@ -3017,6 +3152,88 @@ describe("createOpenaiNormalizer — programmatic tool calling: program/program_
     const res = r.result();
     const allBlocks = res.messages.flatMap((m) => m.content);
     expect(allBlocks.filter((b) => b.type === "tool-call")).toHaveLength(1);
+    expect(allBlocks.filter((b) => b.type === "tool-result")).toHaveLength(1);
+  });
+});
+
+describe("createOpenaiNormalizer — ToolSearchOutputItem.toolSearchAgentName (agents-core 0.18.0)", () => {
+  // The ONLY protocol-schema delta across the whole 0.17.0→0.18.0 span
+  // (`dist/types/protocol.mjs`:426-432 — on the OUTPUT item only, never on
+  // `ToolSearchCallItem`): "SDK-only discovery attribution" naming the logical
+  // Agent that owns this search's results. An SDK-side field, so the name is
+  // already camelCase on the wire we consume and is carried VERBATIM on the
+  // tool.done providerMetadata (the `executionStatus` precedent). No corpus
+  // scenario configures tool_search, so this carry is fixture-testable only.
+  function searchRound(outputExtra: { [k: string]: JsonValue }): JsonValue[] {
+    return [
+      rawModel({ type: "response.created", response: { id: "resp_tsan_1" } }),
+      runItem("tool_search_called", {
+        type: "tool_search_call_item",
+        rawItem: {
+          type: "tool_search_call",
+          callId: "call_tsan_1",
+          execution: "server",
+          arguments: { query: "weather tools" },
+        },
+      }),
+      runItem("tool_search_output_created", {
+        type: "tool_search_output_item",
+        rawItem: {
+          type: "tool_search_output",
+          callId: "call_tsan_1",
+          tools: [{ type: "tool_reference", functionName: "get_weather" }],
+          ...outputExtra,
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_tsan_1", status: "completed" } }),
+    ];
+  }
+  function runRound(outputExtra: { [k: string]: JsonValue }): AgEvent[] {
+    const n = createOpenaiNormalizer();
+    return searchRound(outputExtra)
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+  }
+  function doneOf(evs: readonly AgEvent[]): { [k: string]: unknown } | undefined {
+    return evs.find((e) => e.type === "tool.done") as { [k: string]: unknown } | undefined;
+  }
+
+  it("MIRROR: tool.done carries providerMetadata.toolSearchAgentName verbatim", () => {
+    const evs = runRound({ toolSearchAgentName: "WeatherAgent" });
+    expect(doneOf(evs)?.providerMetadata).toEqual({ toolSearchAgentName: "WeatherAgent" });
+    // The results block is untouched by the carry.
+    expect(doneOf(evs)?.content).toEqual([
+      { type: "data", name: "tool_search_results", data: [{ type: "tool_reference", functionName: "get_weather" }] },
+    ]);
+  });
+
+  it("NEGATIVE CONTROL: a 0.17.x-shaped output (no toolSearchAgentName) emits NO providerMetadata — byte-identical to the pre-0.18.0 stream", () => {
+    const withField = runRound({ toolSearchAgentName: "WeatherAgent" });
+    const without = runRound({});
+    const doneWithout = doneOf(without);
+    expect(doneWithout?.providerMetadata).toBeUndefined();
+    // The absent case differs from the present case ONLY by that one key: the
+    // rest of tool.done, and every other event in the stream, is unchanged.
+    const { providerMetadata: _pm, ...restWith } = doneOf(withField) as { [k: string]: unknown };
+    expect(doneWithout).toEqual(restWith);
+    expect(JSON.stringify(without.filter((e) => e.type !== "tool.done"))).toBe(
+      JSON.stringify(withField.filter((e) => e.type !== "tool.done")),
+    );
+  });
+
+  it("a non-string toolSearchAgentName (deserialization boundary) degrades to no carry instead of reaching AgProviderMeta.parse", () => {
+    const evs = runRound({ toolSearchAgentName: 42 });
+    expect(doneOf(evs)?.providerMetadata).toBeUndefined();
+    expect(evs.find((e) => e.type === "tool.done")).toBeDefined();
+  });
+
+  it("fold: the carry rides a well-formed tool-result pair (no resync)", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    for (const e of searchRound({ toolSearchAgentName: "WeatherAgent" })) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const allBlocks = r.result().messages.flatMap((m) => m.content);
     expect(allBlocks.filter((b) => b.type === "tool-result")).toHaveLength(1);
   });
 });

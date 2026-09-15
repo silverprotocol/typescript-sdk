@@ -40,11 +40,35 @@
     ]
   },
   {
+    "path": "[*].capabilities[*]",
+    "reason": "claude: NEW system/init bootstrap field at @anthropic-ai/claude-agent-sdk 0.3.207 \u2014 protocol feature-detection flags (live values: interrupt_receipt_v1, msg_lifecycle_v1). Same class as the sibling init fields ([*].agents[*] et al.): session capability-catalog metadata, not turn content; disposed router-plane in claude-agent-sdk/sdk-surface.json's SDKSystemMessage entry (re-verified at 0.3.207, the d.ts-diff audit predicted this field before the wire carried it). First observed live: echo-sonnet5 refresh at 0.3.207 (playbook 2026-07-13).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
     "path": "[*].claude_code_version",
     "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
     "reviewed": "any",
     "frameworks": [
       "claude"
+    ]
+  },
+  {
+    "path": "[*].content.parts[*].functionResponse.response.isError",
+    "reason": "adk: the boolean error flag inside a Gemini functionResponse.response - IS read by driveAdkPart (index.ts:748: fr.response?.[\"isError\"] === true ? \"error\" : \"ok\") to drive tool.done.outcome, but the ambient boolean value itself has no verbatim AgJSON home (the outcome enum string 'error'/'ok' is a derived rename, and true is ambient so cannot be trusted as coverage). Mirrors the claude [*].is_error precedent (ambient boolean restating a subtype, carried as done-vs-error) and the openai [*].data.event.arguments precedent (consumed but the raw value has no verbatim home).",
+    "reviewed": "any",
+    "frameworks": [
+      "adk"
+    ]
+  },
+  {
+    "path": "[*].content.parts[*].thought",
+    "reason": "adk: the thought-part discriminant \u2014 consumed structurally to route the part into reasoning.start/delta/end (+ reasoning.opaque for its thoughtSignature) instead of text events; the boolean itself never surfaces as an AgJSON value. First live-observed at gemini-3.7-flash with the thinkingLevel scenario knob (thinkingConfig.includeThoughts \u2014 3.7 returns no summaries by default; corpus/thinking-gemini37, 2026-08-19).",
+    "reviewed": "any",
+    "frameworks": [
+      "adk"
     ]
   },
   {
@@ -154,6 +178,14 @@
   {
     "path": "[*].data.event.part.type",
     "reason": "openai: content part data in response.content_part.added/done events; IGNORED (not authoritative \u2014 text content handled by response.output_text.delta/done).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].data.event.response.access_programs.cyber",
+    "reason": "openai (cohort 0.6.1, corpus/echo-gpt6astra, 2026-09-05 \u2014 the FIRST gpt-6-astra capture): Responses `response.access_programs.cyber` (observed value 'standard') is an account/program-tier attribute the API stamps on every response object for GPT-6 Astra; router-plane like service_tier \u2014 not turn content, no AgJSON home. Rides the response object wherever the Agents SDK echoes it (raw event, item providerData, response providerData).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -504,6 +536,14 @@
     ]
   },
   {
+    "path": "[*].data.event.response.tools[*].output_schema",
+    "reason": "openai: NEW tool-definition field on the 0.13.2/openai-6.46 wire (custom-tool output schema; null for plain function tools) riding the response's REQUEST-CONFIG ECHO \u2014 the tools[] array is the request's own tool list echoed back, same class as the already-allowlisted tools[*].strict/description/parameters.* siblings. First observed live: echo-gpt56 (gpt-5.6, playbook 2026-07-13).",
+    "reviewed": "null-only",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
     "path": "[*].data.event.response.tools[*].parameters.$schema",
     "reason": "openai: agent config tools list in event payload; tool parameter schema metadata, no AgJSON home.",
     "reviewed": "any",
@@ -664,6 +704,14 @@
     ]
   },
   {
+    "path": "[*].data.itemId",
+    "reason": "openai: NEW optional correlation id on the SDK-flattened output_text_delta arm (@openai/agents-core 0.13.5, protocol.d.ts StreamEventTextStream.itemId \u2014 'the ID of the output item this delta belongs to'); the flattened arm is IGNORED as the documented duplicate of the authoritative model:response.output_text.delta path, whose snake_case item_id is unchanged and already drives text correlation. First observed live 2026-07-22 (echo-gpt56 @0.13.5 peer-bump re-capture).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
     "path": "[*].data.providerData.content_index",
     "reason": "openai: opaque providerData sidecar on SDK-flattened response_started/output_text_delta/response_done event; these SDK-flattened events are IGNORED (duplicates of model:response.created/output_text.delta/completed).",
     "reviewed": "any",
@@ -690,6 +738,14 @@
   {
     "path": "[*].data.providerData.rawModelEventSource",
     "reason": "openai: new provenance tag on the SDK-flattened opaque providerData sidecar identifying which underlying model-API family produced the event (gpt-5.5 SDK addition) \u2014 never read by createOpenaiNormalizer; these SDK-flattened events are themselves IGNORED (duplicates of the model:* raw events). First observed live (playbook 2026-07-03, echo-gpt55).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].data.providerData.response.access_programs.cyber",
+    "reason": "openai (cohort 0.6.1, corpus/echo-gpt6astra, 2026-09-05 \u2014 the FIRST gpt-6-astra capture): Responses `response.access_programs.cyber` (observed value 'standard') is an account/program-tier attribute the API stamps on every response object for GPT-6 Astra; router-plane like service_tier \u2014 not turn content, no AgJSON home. Rides the response object wherever the Agents SDK echoes it (raw event, item providerData, response providerData).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -992,6 +1048,14 @@
     ]
   },
   {
+    "path": "[*].data.providerData.response.tools[*].output_schema",
+    "reason": "openai: providerData duplicate carrier of the request-config-echo field above (same event, redundant representation) \u2014 see [*].data.event.response.tools[*].output_schema.",
+    "reviewed": "null-only",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
     "path": "[*].data.providerData.response.tools[*].parameters.$schema",
     "reason": "openai: opaque providerData sidecar on SDK-flattened response_started/output_text_delta/response_done event; these SDK-flattened events are IGNORED (duplicates of model:response.created/output_text.delta/completed).",
     "reviewed": "any",
@@ -1202,6 +1266,14 @@
   {
     "path": "[*].data.response.output[*].type",
     "reason": "openai: SDK-assembled response object on response_done event; IGNORED (response_done is the SDK-flattened duplicate of model:response.completed, which is the authoritative turn-close source).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].data.response.providerData.access_programs.cyber",
+    "reason": "openai (cohort 0.6.1, corpus/echo-gpt6astra, 2026-09-05 \u2014 the FIRST gpt-6-astra capture): Responses `response.access_programs.cyber` (observed value 'standard') is an account/program-tier attribute the API stamps on every response object for GPT-6 Astra; router-plane like service_tier \u2014 not turn content, no AgJSON home. Rides the response object wherever the Agents SDK echoes it (raw event, item providerData, response providerData).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1496,6 +1568,14 @@
     ]
   },
   {
+    "path": "[*].data.response.providerData.tools[*].output_schema",
+    "reason": "openai: response_done-literal duplicate carrier of the request-config-echo field above \u2014 see [*].data.event.response.tools[*].output_schema.",
+    "reviewed": "null-only",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
     "path": "[*].data.response.providerData.tools[*].parameters.$schema",
     "reason": "openai: SDK-assembled response object on response_done event; IGNORED (response_done is the SDK-flattened duplicate of model:response.completed, which is the authoritative turn-close source).",
     "reviewed": "any",
@@ -1648,14 +1728,6 @@
     ]
   },
   {
-    "path": "[*].data.itemId",
-    "reason": "openai: NEW optional correlation id on the SDK-flattened output_text_delta arm (@openai/agents-core 0.13.5, protocol.d.ts StreamEventTextStream.itemId \u2014 'the ID of the output item this delta belongs to'); the flattened arm is IGNORED as the documented duplicate of the authoritative model:response.output_text.delta path, whose snake_case item_id is unchanged and already drives text correlation. First observed live 2026-07-22 (echo-gpt56 @0.13.5 peer-bump re-capture).",
-    "reviewed": "any",
-    "frameworks": [
-      "openai"
-    ]
-  },
-  {
     "path": "[*].duration_api_ms",
     "reason": "result wall-clock telemetry; not part of the AgJSON turn record (no semantic home, non-replayable).",
     "reviewed": "any",
@@ -1666,6 +1738,222 @@
   {
     "path": "[*].duration_ms",
     "reason": "result wall-clock telemetry; not part of the AgJSON turn record (no semantic home, non-replayable).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].effort",
+    "reason": "claude: field on the SDK's system/init bootstrap event (0.3.234 SDKSystemMessage.effort \u2014 the effort level the session will send on its next request after env/session-state/org-cap/model-support resolution; null when no effort parameter will be sent) \u2014 router-plane session configuration, not turn content; init falls through createClaudeNormalizer's final no-op like every other init field (mirrors the [*].apiKeySource entry). Pre-registered on the 0.3.258 bump (2026-09-02) ahead of the cohort's live capture.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.content_block.caller.type",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): derives tool.start.providerExecuted (same derivation as the complete arm) \u2014 mirror of the [*].message.content[*].caller.type entry.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.content_block.signature",
+    "reason": "claude stream_event (cohort 0.5.4, corpus/partials-fable51, 2026-09-02): always '' at content_block_start \u2014 the signature arrives via signature_delta chunks, buffered and emitted as reasoning.opaque{kind:'signature'} at content_block_stop (Rule-4 covered there).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.content_block.text",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): always '' at content_block_start \u2014 the text arrives via text_delta chunks, which ride text.delta verbatim (see the [*].event.delta.text transform).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.content_block.thinking",
+    "reason": "claude stream_event (cohort 0.5.4, corpus/partials-fable51, 2026-09-02): always '' at content_block_start \u2014 the thinking text (when the model's display setting emits any) arrives via thinking_delta chunks, which ride reasoning.delta verbatim (see the [*].event.delta.thinking transform). Mirror of the [*].event.content_block.text entry.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.content_block.type",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): structural block discriminant at content_block_start \u2014 drives the text/reasoning/tool lifecycle choice; mirror of the [*].message.content[*].type entry.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.delta.container",
+    "reason": "claude: container handle echoed on the message_delta envelope (null here), the delta-side sibling of [*].event.message.container; provider session plumbing with no AgJSON home. First observed live 2026-09-15 (cohort 0.6.2, claude-agent-sdk 0.3.272).",
+    "reviewed": "null-only",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.delta.estimated_tokens",
+    "reason": "claude stream_event (cohort 0.5.4, corpus/partials-fable51, 2026-09-02): Claude Code's RUNTIME-ONLY per-thinking_delta token estimate. Non-null values ride reasoning.delta providerMetadata.estimated_tokens verbatim (Rule 4); null means 'no estimate yet' and is carried as null too, but null is ambient so it needs this null-only entry.",
+    "reviewed": "null-only",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.delta.stop_details",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): mirror of the [*].message.stop_details null-only entry (message_delta copy).",
+    "reviewed": "null-only",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.delta.stop_reason",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): the mid-stream copy of the stop fact on message_delta; the authoritative mapping is the result frame's stop_reason -> turn.done.finishReason (mapStopReason). Mirror of the [*].message.stop_reason reviewed-any entry.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.delta.stop_sequence",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): mirror of the [*].message.stop_sequence null-only entry (message_delta copy).",
+    "reviewed": "null-only",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.delta.type",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): structural delta discriminant (text_delta/input_json_delta/...) \u2014 consumed by the content_block_delta dispatch, never content.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.message.container",
+    "reason": "claude: the STREAM-EVENT twin of the already-allowlisted [*].message.container \u2014 message_start's `event.message` is the same Anthropic assistant-message envelope, so it carries the same container handle (null here; non-null only under the code-execution container tool). Never read by createClaudeNormalizer. First observed live 2026-09-15 (cohort 0.6.2, claude-agent-sdk 0.3.272): the 0.3.261 partials captures did not carry it.",
+    "reviewed": "null-only",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.message.context_management",
+    "reason": "claude: the STREAM-EVENT twin of the already-allowlisted [*].message.context_management \u2014 same per-assistant-message diagnostics field on message_start's `event.message`, null in every capture so far, never read by createClaudeNormalizer. First observed live 2026-09-15 (cohort 0.6.2, claude-agent-sdk 0.3.272).",
+    "reviewed": "null-only",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.message.diagnostics",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): mirror of the [*].message.diagnostics null-only entry.",
+    "reviewed": "null-only",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.message.stop_details",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): always null at message_start \u2014 mirror of the [*].message.stop_details null-only entry.",
+    "reviewed": "null-only",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.message.stop_reason",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): always null at message_start (the stream's stop fact arrives via event.delta.stop_reason and, authoritatively, the result frame).",
+    "reviewed": "null-only",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.message.stop_sequence",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): always null at message_start \u2014 mirror of the [*].message.stop_sequence null-only entry.",
+    "reviewed": "null-only",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.message.type",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): constant 'message' shell discriminant on the message_start envelope \u2014 mirror of the [*].message.type entry.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.message.usage.cache_creation.ephemeral_1h_input_tokens",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): cache-bucket breakdown with no AgUsage slot \u2014 mirror of the [*].message.usage.cache_creation.* entries.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.message.usage.inference_geo",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): serving-region telemetry with no AgUsage slot \u2014 mirror of the [*].message.usage.inference_geo entry.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.message.usage.service_tier",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): billing/serving telemetry with no AgUsage slot \u2014 mirror of the [*].message.usage.service_tier entry (spec-process decision recorded in sdk-surface.json).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.type",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): structural discriminant of the raw Anthropic streaming vocabulary (message_start/content_block_delta/...) \u2014 consumed by driveStreamEvent's dispatch, never content.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.usage.iterations[*].cache_creation.ephemeral_1h_input_tokens",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): per-iteration sampling telemetry \u2014 mirror of the [*].message.usage.iterations whole-array entry.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.usage.iterations[*].cache_read_input_tokens",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): per-iteration sampling telemetry \u2014 mirror of the [*].message.usage.iterations whole-array entry.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.usage.iterations[*].model",
+    "reason": "claude: the STREAM-EVENT twin of [*].usage.iterations[*].model \u2014 same per-iteration breakdown array echoed on the message_delta usage envelope, null here, same non-consumption. First observed live 2026-09-15 (cohort 0.6.2, claude-agent-sdk 0.3.272).",
+    "reviewed": "null-only",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.usage.iterations[*].type",
+    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): per-iteration sampling telemetry inside message_delta usage \u2014 mirror of the [*].message.usage.iterations whole-array entry.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2000,6 +2288,30 @@
     ]
   },
   {
+    "path": "[*].messaging_socket_path",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 router-plane; first observed live at Claude Code 2.1.258 (cohort 0.5.4, 2026-09-02, every claude capture). RUNTIME-ONLY (undeclared in sdk.d.ts through 0.3.258): the CLI's local IPC socket path (/tmp/cc-socks/<pid>.sock) \u2014 host-private transport plumbing, never a consumer signal.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].modelUsage.claude-fable-5-1.contextWindow",
+    "reason": "model capability constant (context window size) for claude-fable-5-1 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.contextWindow entry (mapModelUsage never reads it); not an actual usage measurement, no AgUsage home. Model literal pre-registered on the 0.3.258 bump (2026-09-02) ahead of the cohort's live capture.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].modelUsage.claude-fable-5-1.maxOutputTokens",
+    "reason": "model capability constant (max output tokens) for claude-fable-5-1 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.maxOutputTokens entry (mapModelUsage never reads it); not an actual usage measurement, no AgUsage home. Model literal pre-registered on the 0.3.258 bump (2026-09-02) ahead of the cohort's live capture.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
     "path": "[*].modelUsage.claude-haiku-4-5-20251001.contextWindow",
     "reason": "model capability constant (context window size) for claude-haiku-4-5-20251001 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.contextWindow entry (mapModelUsage, index.ts:116-126, never reads it); not an actual usage measurement, no AgUsage home. New model literal observed live (playbook 2026-07-03).",
     "reviewed": "any",
@@ -2010,6 +2322,22 @@
   {
     "path": "[*].modelUsage.claude-haiku-4-5-20251001.maxOutputTokens",
     "reason": "model capability constant (max output tokens) for claude-haiku-4-5-20251001 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.maxOutputTokens entry (mapModelUsage, index.ts:116-126, never reads it); not an actual usage measurement, no AgUsage home. New model literal observed live (playbook 2026-07-03).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].modelUsage.claude-opus-5.contextWindow",
+    "reason": "model capability constant (context window size) for claude-opus-5 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.contextWindow entry (mapModelUsage never reads it); not an actual usage measurement, no AgUsage home. Model literal pre-registered on the 0.3.258 bump (2026-09-02) ahead of the cohort's live capture.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].modelUsage.claude-opus-5.maxOutputTokens",
+    "reason": "model capability constant (max output tokens) for claude-opus-5 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.maxOutputTokens entry (mapModelUsage never reads it); not an actual usage measurement, no AgUsage home. Model literal pre-registered on the 0.3.258 bump (2026-09-02) ahead of the cohort's live capture.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2096,434 +2424,7 @@
     ]
   },
   {
-    "path": "[*].permissionMode",
-    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].product_feedback_disabled",
-    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].request_id",
-    "reason": "claude: per-message Anthropic API request-correlation id (0.3.199 addition) \u2014 operational metadata with no AgJSON home, never read by createClaudeNormalizer. Mirrors the existing [*].uuid / [*].session_id precedents (\"SDK per-message id ... no AgJSON home\"). First observed live (playbook 2026-07-03, echo-sonnet5).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].session_id",
-    "reason": "SDK session id; derives turnId (turn_<session_id>) and assistant turn.start.threadId. The result-message session_id has no verbatim home (turnId is a derived rename).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].skills[*]",
-    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event. Session capability-catalog listing (available slash-commands/agents/skills), not turn content.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].slash_commands[*]",
-    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event. Session capability-catalog listing (available slash-commands/agents/skills), not turn content.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].source",
-    "reason": "openai: new top-level provenance tag on raw_model_stream_event identifying which underlying model-API family produced the event (gpt-5.5 SDK addition) \u2014 never read by createOpenaiNormalizer (the event is routed by data.type, not this tag). First observed live (playbook 2026-07-03, echo-gpt55).",
-    "reviewed": "any",
-    "frameworks": [
-      "openai"
-    ]
-  },
-  {
-    "path": "[*].subtype",
-    "reason": "claude: heterogeneous discriminant \u2014 \"init\" on a system/init event (no AgJSON home, see the system/init reason above) vs \"success\"/an error code on a result event (result.subtype: the error-variant value IS copied verbatim to turn.error.code at index.ts:724, so Rule 4 catches that occurrence via the copy; \"success\" needs no distinct marker of its own). Reviewed \"any\" to match the identical precedent already set for [*].type (also a heterogeneous top-level discriminant, \"consumed structurally to route normalization, never a value-bearing payload\"). First observed live via the system/init \"init\" value (playbook 2026-07-03, echo-sonnet5) \u2014 no prior cassette exercised it.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].terminal_reason",
-    "reason": "claude: result wall-clock/diagnostic telemetry (0.3.199 addition, sibling of the already-allowlisted duration_ms/duration_api_ms/num_turns) \u2014 not part of the AgJSON turn record (no semantic home, non-replayable, never read by createClaudeNormalizer). First observed live (playbook 2026-07-03, echo-sonnet5).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].time_to_request_ms",
-    "reason": "claude: result wall-clock/diagnostic telemetry (0.3.199 addition, sibling of the already-allowlisted duration_ms/duration_api_ms/num_turns) \u2014 not part of the AgJSON turn record (no semantic home, non-replayable, never read by createClaudeNormalizer). First observed live (playbook 2026-07-03, echo-sonnet5).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].tool_use_meta[*].display_name",
-    "reason": "claude: SDK-injected display sidecar on a tool_use content block (0.3.199 addition) \u2014 a human-readable tool label for host UI rendering; never read by createClaudeNormalizer (the facet reads block.name for tool.start.name, not this sidecar). First observed live (playbook 2026-07-03, echo-sonnet5).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].tool_use_meta[*].server_display_name",
-    "reason": "claude: SDK-injected display sidecar on a tool_use content block (0.3.199 addition) \u2014 a human-readable MCP-server label for host UI rendering; never read by createClaudeNormalizer (the facet reads block.server_name for tool.start.serverName, not this sidecar). First observed live (playbook 2026-07-03, echo-sonnet5).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].ttft_ms",
-    "reason": "claude: wall-clock/diagnostic telemetry (0.3.199 addition, sibling of the already-allowlisted duration_ms/duration_api_ms/num_turns/ttft_stream_ms/time_to_request_ms) \u2014 a norm-path SHARED by two arms: on the result frame it is unread by createClaudeNormalizer and has no AgJSON home (non-replayable); on the stream_event partial envelope the facet DOES read msg.ttft_ms (workspace#7, index.ts carryTtft) and emits it once per message via message.metadata {ttft_ms} under the wire name (corpus/partials-sonnet5 and partials-fable51 agjson carry it). message.metadata is a merge channel, not a fixed turn-record path, so no Rule-1 transform target exists \u2014 reviewed \"any\" stands for both arms. First observed live (playbook 2026-07-03, echo-sonnet5); reason corrected 2026-09-05 (0.3.261 sweep: the prior text predated the partial carry).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].ttft_stream_ms",
-    "reason": "claude: result wall-clock/diagnostic telemetry (0.3.199 addition, sibling of the already-allowlisted duration_ms/duration_api_ms/num_turns) \u2014 not part of the AgJSON turn record (no semantic home, non-replayable, never read by createClaudeNormalizer). First observed live (playbook 2026-07-03, echo-sonnet5).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].type",
-    "reason": "top-level stream-event/message discriminant, consumed structurally to route normalization, never a value-bearing payload: the Claude SDKMessage discriminant (assistant/user/result) and the @openai/agents top-level stream-event discriminant (raw_model_stream_event/run_item_stream_event) share this norm-path but are unrelated fields per framework (audit M57 cross-framework collision \u2014 the same norm-path, different semantic field, both structural). EXTENDED to vercel (first vercel triage 2026-07-25, echo-gpt56 @ai 7.0.34): the TextStreamPart discriminant, consumed structurally by createVercelNormalizer's drive() switch \u2014 same shared-norm-path treatment (M57 cross-framework collision: same norm-path, unrelated field per framework). NOTE: allowlist paths must be UNIQUE \u2014 census builds a Map keyed by path, so a second entry for the same path CLOBBERS the first (this merge repairs exactly that regression).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude",
-      "openai",
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].usage.cache_creation.ephemeral_1h_input_tokens",
-    "reason": "per-TTL cache-creation breakdown on the result usage; the aggregate cache_creation_input_tokens IS mapped to turn.done.usage.cacheWriteTokens.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].usage.cache_creation.ephemeral_5m_input_tokens",
-    "reason": "per-TTL cache-creation breakdown on the result usage; the aggregate cache_creation_input_tokens IS mapped to turn.done.usage.cacheWriteTokens.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].usage.inference_geo",
-    "reason": "inference-region telemetry on the result usage; operational metadata with no AgUsage home.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].usage.iterations[*].cache_creation.ephemeral_1h_input_tokens",
-    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (playbook 2026-07-03, echo-sonnet5).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].usage.iterations[*].cache_creation.ephemeral_5m_input_tokens",
-    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (playbook 2026-07-03, echo-sonnet5).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].usage.iterations[*].cache_creation_input_tokens",
-    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (playbook 2026-07-03, echo-sonnet5).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].usage.iterations[*].cache_read_input_tokens",
-    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (playbook 2026-07-03, echo-sonnet5).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].usage.iterations[*].output_tokens",
-    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (playbook 2026-07-03, echo-sonnet5).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].usage.iterations[*].type",
-    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (playbook 2026-07-03, echo-sonnet5).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].usage.service_tier",
-    "reason": "billing service-tier on the result usage; commercial metadata with no AgUsage home.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].usage.speed",
-    "reason": "latency-tier hint on the result usage; operational metadata with no AgUsage home.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].uuid",
-    "reason": "SDK per-message uuid; the result-message uuid derives turnId only when session_id is absent, otherwise it has no AgJSON home.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].data.event.response.tools[*].output_schema",
-    "reason": "openai: NEW tool-definition field on the 0.13.2/openai-6.46 wire (custom-tool output schema; null for plain function tools) riding the response's REQUEST-CONFIG ECHO \u2014 the tools[] array is the request's own tool list echoed back, same class as the already-allowlisted tools[*].strict/description/parameters.* siblings. First observed live: echo-gpt56 (gpt-5.6, playbook 2026-07-13).",
-    "reviewed": "null-only",
-    "frameworks": [
-      "openai"
-    ]
-  },
-  {
-    "path": "[*].data.providerData.response.tools[*].output_schema",
-    "reason": "openai: providerData duplicate carrier of the request-config-echo field above (same event, redundant representation) \u2014 see [*].data.event.response.tools[*].output_schema.",
-    "reviewed": "null-only",
-    "frameworks": [
-      "openai"
-    ]
-  },
-  {
-    "path": "[*].data.response.providerData.tools[*].output_schema",
-    "reason": "openai: response_done-literal duplicate carrier of the request-config-echo field above \u2014 see [*].data.event.response.tools[*].output_schema.",
-    "reviewed": "null-only",
-    "frameworks": [
-      "openai"
-    ]
-  },
-  {
-    "path": "[*].usageMetadata.promptTokensDetails[*].modality",
-    "reason": "adk: Gemini per-modality prompt-token breakdown (TEXT/IMAGE/\u2026 buckets) \u2014 the TOTALS are mapped (promptTokenCount -> usage.inputTokens, transforms.json); AgUsage has no per-modality vocabulary. First observed live: echo-gemini35 (gemini-3.5-flash, playbook 2026-07-13).",
-    "reviewed": "any",
-    "frameworks": [
-      "adk"
-    ]
-  },
-  {
-    "path": "[*].usageMetadata.promptTokensDetails[*].tokenCount",
-    "reason": "adk: the count half of the per-modality breakdown above \u2014 same disposition, see [*].usageMetadata.promptTokensDetails[*].modality.",
-    "reviewed": "any",
-    "frameworks": [
-      "adk"
-    ]
-  },
-  {
-    "path": "[*].usageMetadata.serviceTier",
-    "reason": "adk: Gemini billing/capacity tier label \u2014 pure billing telemetry, same class as the openai facet's router-plane rate-limit/service-tier signals. First observed live: echo-gemini35 (playbook 2026-07-13).",
-    "reviewed": "any",
-    "frameworks": [
-      "adk"
-    ]
-  },
-  {
-    "path": "[*].timestamp",
-    "reason": "claude: wall-clock ISO timestamp on the user tool-result message (0.3.199 addition) \u2014 never read by createClaudeNormalizer. First observed live (playbook 2026-07-03, echo-sonnet5). || adk: per-event wall-clock stamp, disclosed `silently-dropped` in google-adk/sdk-surface.json (REQUIRED on the official @google/adk 1.3.0 Event interface; wall-clock per-event timestamps are the nondeterminism class the AgJSON envelope deliberately omits \u2014 audit M52/INV-FOLD; a precise _meta.timestamp home is a documented future spec decision). First LIVE adk cassette to carry it: echo-gemini35 (official-SDK capture, playbook 2026-07-13) \u2014 the two hand-authored adk fixtures never included it (fixture discipline: type only what is consumed).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude",
-      "adk"
-    ]
-  },
-  {
-    "path": "[*].capabilities[*]",
-    "reason": "claude: NEW system/init bootstrap field at @anthropic-ai/claude-agent-sdk 0.3.207 \u2014 protocol feature-detection flags (live values: interrupt_receipt_v1, msg_lifecycle_v1). Same class as the sibling init fields ([*].agents[*] et al.): session capability-catalog metadata, not turn content; disposed router-plane in claude-agent-sdk/sdk-surface.json's SDKSystemMessage entry (re-verified at 0.3.207, the d.ts-diff audit predicted this field before the wire carried it). First observed live: echo-sonnet5 refresh at 0.3.207 (playbook 2026-07-13).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].content.parts[*].functionResponse.response.isError",
-    "reason": "adk: the boolean error flag inside a Gemini functionResponse.response - IS read by driveAdkPart (index.ts:748: fr.response?.[\"isError\"] === true ? \"error\" : \"ok\") to drive tool.done.outcome, but the ambient boolean value itself has no verbatim AgJSON home (the outcome enum string 'error'/'ok' is a derived rename, and true is ambient so cannot be trusted as coverage). Mirrors the claude [*].is_error precedent (ambient boolean restating a subtype, carried as done-vs-error) and the openai [*].data.event.arguments precedent (consumed but the raw value has no verbatim home).",
-    "reviewed": "any",
-    "frameworks": [
-      "adk"
-    ]
-  },
-  {
-    "path": "[*].providerMetadata.openai.itemId",
-    "reason": "vercel: OpenAI Responses item-id echo the AI SDK attaches to reasoning-start/end (rs_\u2026), tool-call/tool-result (fc_\u2026) and text-start/end (msg_\u2026) parts \u2014 never read by createVercelNormalizer (zero providerMetadata call sites in index.ts). The load-bearing correlations ARE carried elsewhere: the reasoning part id `<itemId>:<idx>` is carried verbatim as reasoning.start/end id (rs_ itemId recoverable as its prefix), the text-start id equals the msg_ itemId (carried as text.start id), and tool correlation rides toolCallId (call_\u2026, carried); the fc_ item id is a provider-side echo with no replay-load-bearing role (Responses replay pairs function items on call_id). If the reasoningEncryptedContent facet gap is fixed via reasoning.opaque, the rs_ itemId should ride along. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].toolMetadata.clientName",
-    "reason": "vercel: MCP-tool sidecar metadata the AI SDK attaches to tool-input-start/tool-call/tool-result parts \u2014 the MCP client instance name ('ai-sdk-mcp-client'), agent config/environment metadata; never read by createVercelNormalizer (zero toolMetadata call sites), no AgJSON home (mirrors the openai agent-config-echo precedent). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].toolMetadata.toolName",
-    "reason": "vercel: MCP-tool sidecar metadata on tool-input-start/tool-call/tool-result parts \u2014 value-identical duplicate of the top-level toolName the facet DOES consume (index.ts:289/318 \u2192 tool.start.name, see transforms); never read by createVercelNormalizer. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].usage.inputTokenDetails.noCacheTokens",
-    "reason": "vercel: LanguageModelUsage detail counter with no AgUsage shape \u2014 derivable from the mapped counters (noCacheTokens = inputTokens \u2212 cacheReadTokens \u2212 cacheWriteTokens; all three carried via mapUsage, index.ts:111-131, which deliberately reads only the AgUsage-shaped fields). Verified derivable in both finish-steps (102=102\u22120\u22120, 188=188\u22120\u22120). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].usage.outputTokenDetails.textTokens",
-    "reason": "vercel: LanguageModelUsage detail counter with no AgUsage shape \u2014 derivable from the mapped counters (textTokens = outputTokens \u2212 reasoningTokens; both carried via mapUsage, index.ts:111-131). Verified derivable in both finish-steps (25=69\u221244, 11=11\u22120). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].totalUsage.inputTokenDetails.noCacheTokens",
-    "reason": "vercel: finish.totalUsage detail counter with no AgUsage shape \u2014 derivable from the mapped turn.done.usage counters (noCacheTokens = inputTokens \u2212 cacheReadTokens \u2212 cacheWriteTokens; all carried via mapUsage, index.ts:111-131/399). Verified derivable (290=290\u22120\u22120). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].totalUsage.outputTokenDetails.textTokens",
-    "reason": "vercel: finish.totalUsage detail counter with no AgUsage shape \u2014 derivable from the mapped turn.done.usage counters (textTokens = outputTokens \u2212 reasoningTokens; both carried via mapUsage, index.ts:111-131/399). Verified derivable (36=80\u221244). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].usage.raw.input_tokens",
-    "reason": "vercel: finish-step.usage.raw \u2014 the provider's untyped snake_case usage echo the AI SDK attaches beside the typed LanguageModelUsage bag; value-identical duplicate of the typed counters mapUsage consumes (index.ts:111-131 reads only the typed inputTokens/\u2026Details fields, never raw). Verified value-identical in both finish-steps (raw.input_tokens \u2261 usage.inputTokens: 102/188). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].usage.raw.input_tokens_details.cached_tokens",
-    "reason": "vercel: finish-step.usage.raw untyped provider usage echo \u2014 value-identical duplicate of the typed usage.inputTokenDetails.cacheReadTokens that mapUsage consumes (index.ts:120-122; see transforms). Verified value-identical in both finish-steps (0\u22610). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].usage.raw.input_tokens_details.cache_write_tokens",
-    "reason": "vercel: finish-step.usage.raw untyped provider usage echo \u2014 value-identical duplicate of the typed usage.inputTokenDetails.cacheWriteTokens that mapUsage consumes (index.ts:123-125; see transforms). Verified value-identical in both finish-steps (0\u22610). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].usage.raw.output_tokens",
-    "reason": "vercel: finish-step.usage.raw untyped provider usage echo \u2014 value-identical duplicate of the typed usage.outputTokens that mapUsage consumes (index.ts:118). Verified value-identical in both finish-steps (69/11). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].usage.raw.output_tokens_details.reasoning_tokens",
-    "reason": "vercel: finish-step.usage.raw untyped provider usage echo \u2014 value-identical duplicate of the typed usage.outputTokenDetails.reasoningTokens that mapUsage consumes (index.ts:126-128; see transforms). Verified value-identical in both finish-steps (44/0). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].performance.stepTimeMs",
-    "reason": "vercel: SDK-computed wall-clock/throughput telemetry block on finish-step (ai@7 `performance` addition) \u2014 never read by createVercelNormalizer (zero performance call sites), nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms/duration_api_ms/api_error_status precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].performance.toolExecutionMs.{*}",
-    "reason": "vercel: SDK-computed per-tool-call wall-clock telemetry on finish-step.performance, keyed by the RUN-GENERATED toolCallId \u2014 a literal-key entry would go stale on every re-capture, so this is a {*} dynamic-key wildcard entry (census.ts compileWildcardPath; exact entries always win over wildcards). Never read by createVercelNormalizer. First vercel triage 2026-07-25, echo-gpt56 @ai 7.0.34.",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].performance.responseTimeMs",
-    "reason": "vercel: SDK-computed wall-clock/throughput telemetry block on finish-step (ai@7 `performance` addition) \u2014 never read by createVercelNormalizer (zero performance call sites), nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms/duration_api_ms/api_error_status precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
     "path": "[*].performance.effectiveOutputTokensPerSecond",
-    "reason": "vercel: SDK-computed wall-clock/throughput telemetry block on finish-step (ai@7 `performance` addition) \u2014 never read by createVercelNormalizer (zero performance call sites), nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms/duration_api_ms/api_error_status precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].performance.outputTokensPerSecond",
-    "reason": "vercel: SDK-computed wall-clock/throughput telemetry block on finish-step (ai@7 `performance` addition) \u2014 never read by createVercelNormalizer (zero performance call sites), nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms/duration_api_ms/api_error_status precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].performance.inputTokensPerSecond",
     "reason": "vercel: SDK-computed wall-clock/throughput telemetry block on finish-step (ai@7 `performance` addition) \u2014 never read by createVercelNormalizer (zero performance call sites), nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms/duration_api_ms/api_error_status precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
     "reviewed": "any",
     "frameworks": [
@@ -2539,8 +2440,56 @@
     ]
   },
   {
-    "path": "[*].performance.timeToFirstOutputMs",
+    "path": "[*].performance.inputTokensPerSecond",
     "reason": "vercel: SDK-computed wall-clock/throughput telemetry block on finish-step (ai@7 `performance` addition) \u2014 never read by createVercelNormalizer (zero performance call sites), nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms/duration_api_ms/api_error_status precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.outputTokensPerSecond",
+    "reason": "vercel: SDK-computed wall-clock/throughput telemetry block on finish-step (ai@7 `performance` addition) \u2014 never read by createVercelNormalizer (zero performance call sites), nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms/duration_api_ms/api_error_status precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.responseTimeMs",
+    "reason": "vercel: SDK-computed wall-clock/throughput telemetry block on finish-step (ai@7 `performance` addition) \u2014 never read by createVercelNormalizer (zero performance call sites), nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms/duration_api_ms/api_error_status precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.stepTimeMs",
+    "reason": "vercel: SDK-computed wall-clock/throughput telemetry block on finish-step (ai@7 `performance` addition) \u2014 never read by createVercelNormalizer (zero performance call sites), nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms/duration_api_ms/api_error_status precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.timeBetweenOutputChunksMs.avg",
+    "reason": "vercel: SDK-computed inter-chunk latency percentile in the finish-step performance telemetry block (ai@7 addition) \u2014 never read by createVercelNormalizer, nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.timeBetweenOutputChunksMs.max",
+    "reason": "vercel: SDK-computed inter-chunk latency percentile in the finish-step performance telemetry block (ai@7 addition) \u2014 never read by createVercelNormalizer, nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.timeBetweenOutputChunksMs.median",
+    "reason": "vercel: SDK-computed inter-chunk latency percentile in the finish-step performance telemetry block (ai@7 addition) \u2014 never read by createVercelNormalizer, nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
     "reviewed": "any",
     "frameworks": [
       "vercel"
@@ -2563,22 +2512,6 @@
     ]
   },
   {
-    "path": "[*].performance.timeBetweenOutputChunksMs.median",
-    "reason": "vercel: SDK-computed inter-chunk latency percentile in the finish-step performance telemetry block (ai@7 addition) \u2014 never read by createVercelNormalizer, nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].performance.timeBetweenOutputChunksMs.avg",
-    "reason": "vercel: SDK-computed inter-chunk latency percentile in the finish-step performance telemetry block (ai@7 addition) \u2014 never read by createVercelNormalizer, nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
     "path": "[*].performance.timeBetweenOutputChunksMs.p90",
     "reason": "vercel: SDK-computed inter-chunk latency percentile in the finish-step performance telemetry block (ai@7 addition) \u2014 never read by createVercelNormalizer, nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
     "reviewed": "any",
@@ -2587,8 +2520,56 @@
     ]
   },
   {
-    "path": "[*].performance.timeBetweenOutputChunksMs.max",
-    "reason": "vercel: SDK-computed inter-chunk latency percentile in the finish-step performance telemetry block (ai@7 addition) \u2014 never read by createVercelNormalizer, nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "path": "[*].performance.timeToFirstOutputMs",
+    "reason": "vercel: SDK-computed wall-clock/throughput telemetry block on finish-step (ai@7 `performance` addition) \u2014 never read by createVercelNormalizer (zero performance call sites), nondeterministic timing, non-replayable; same telemetry class as claude's duration_ms/duration_api_ms/api_error_status precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].performance.toolExecutionMs.{*}",
+    "reason": "vercel: SDK-computed per-tool-call wall-clock telemetry on finish-step.performance, keyed by the RUN-GENERATED toolCallId \u2014 a literal-key entry would go stale on every re-capture, so this is a {*} dynamic-key wildcard entry (census.ts compileWildcardPath; exact entries always win over wildcards). Never read by createVercelNormalizer. First vercel triage 2026-07-25, echo-gpt56 @ai 7.0.34.",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].permissionMode",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].product_feedback_disabled",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].providerMetadata.openai.itemId",
+    "reason": "vercel: OpenAI Responses item-id echo the AI SDK attaches to reasoning-start/end (rs_\u2026), tool-call/tool-result (fc_\u2026) and text-start/end (msg_\u2026) parts \u2014 never read by createVercelNormalizer (zero providerMetadata call sites in index.ts). The load-bearing correlations ARE carried elsewhere: the reasoning part id `<itemId>:<idx>` is carried verbatim as reasoning.start/end id (rs_ itemId recoverable as its prefix), the text-start id equals the msg_ itemId (carried as text.start id), and tool correlation rides toolCallId (call_\u2026, carried); the fc_ item id is a provider-side echo with no replay-load-bearing role (Responses replay pairs function items on call_id). If the reasoningEncryptedContent facet gap is fixed via reasoning.opaque, the rs_ itemId should ride along. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].providerMetadata.openai.phase",
+    "reason": "vercel: the gpt-5.5+ 'phase' discriminant surfacing through the AI SDK as providerMetadata.openai.phase on text-start/text-end \u2014 the SAME wire family as the openai framework's FLAGGED FOR FOLLOW-UP [*].data.event.item.phase entries (playbook 2026-07-03): every occurrence in this echo scenario is the single constant 'final_answer'; this triage does NOT establish that other phase values (e.g. an intermediate/draft phase) would be equally safe to ignore \u2014 the openai follow-up investigation covers this field family and should include this vercel carrier. Never read by createVercelNormalizer. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].providerMetadata.openai.reasoningContext",
+    "reason": "vercel: reasoning-config echo on finish-step providerMetadata ('all_turns') \u2014 sibling of the openai [*].data.event.response.reasoning.context/effort config-echo precedent; never read by createVercelNormalizer, no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
     "reviewed": "any",
     "frameworks": [
       "vercel"
@@ -2611,27 +2592,11 @@
     ]
   },
   {
-    "path": "[*].providerMetadata.openai.reasoningContext",
-    "reason": "vercel: reasoning-config echo on finish-step providerMetadata ('all_turns') \u2014 sibling of the openai [*].data.event.response.reasoning.context/effort config-echo precedent; never read by createVercelNormalizer, no AgJSON home. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "path": "[*].request_id",
+    "reason": "claude: per-message Anthropic API request-correlation id (0.3.199 addition) \u2014 operational metadata with no AgJSON home, never read by createClaudeNormalizer. Mirrors the existing [*].uuid / [*].session_id precedents (\"SDK per-message id ... no AgJSON home\"). First observed live (playbook 2026-07-03, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].providerMetadata.openai.phase",
-    "reason": "vercel: the gpt-5.5+ 'phase' discriminant surfacing through the AI SDK as providerMetadata.openai.phase on text-start/text-end \u2014 the SAME wire family as the openai framework's FLAGGED FOR FOLLOW-UP [*].data.event.item.phase entries (playbook 2026-07-03): every occurrence in this echo scenario is the single constant 'final_answer'; this triage does NOT establish that other phase values (e.g. an intermediate/draft phase) would be equally safe to ignore \u2014 the openai follow-up investigation covers this field family and should include this vercel carrier. Never read by createVercelNormalizer. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].response.timestamp",
-    "reason": "vercel: wall-clock response timestamp on finish-step.response \u2014 the facet reads only response.id/modelId from this object (index.ts:379-380); nondeterministic timing telemetry, same class as the claude/adk [*].timestamp precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
+      "claude"
     ]
   },
   {
@@ -2819,200 +2784,56 @@
     ]
   },
   {
-    "path": "[*].event.type",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): structural discriminant of the raw Anthropic streaming vocabulary (message_start/content_block_delta/...) \u2014 consumed by driveStreamEvent's dispatch, never content.",
+    "path": "[*].response.timestamp",
+    "reason": "vercel: wall-clock response timestamp on finish-step.response \u2014 the facet reads only response.id/modelId from this object (index.ts:379-380); nondeterministic timing telemetry, same class as the claude/adk [*].timestamp precedent. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].session_id",
+    "reason": "SDK session id; derives turnId (turn_<session_id>) and assistant turn.start.threadId. The result-message session_id has no verbatim home (turnId is a derived rename).",
     "reviewed": "any",
     "frameworks": [
       "claude"
     ]
   },
   {
-    "path": "[*].event.message.type",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): constant 'message' shell discriminant on the message_start envelope \u2014 mirror of the [*].message.type entry.",
+    "path": "[*].skills[*]",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event. Session capability-catalog listing (available slash-commands/agents/skills), not turn content.",
     "reviewed": "any",
     "frameworks": [
       "claude"
     ]
   },
   {
-    "path": "[*].event.message.stop_reason",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): always null at message_start (the stream's stop fact arrives via event.delta.stop_reason and, authoritatively, the result frame).",
-    "reviewed": "null-only",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].event.message.stop_sequence",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): always null at message_start \u2014 mirror of the [*].message.stop_sequence null-only entry.",
-    "reviewed": "null-only",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].event.message.stop_details",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): always null at message_start \u2014 mirror of the [*].message.stop_details null-only entry.",
-    "reviewed": "null-only",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].event.message.diagnostics",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): mirror of the [*].message.diagnostics null-only entry.",
-    "reviewed": "null-only",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].event.message.usage.service_tier",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): billing/serving telemetry with no AgUsage slot \u2014 mirror of the [*].message.usage.service_tier entry (spec-process decision recorded in sdk-surface.json).",
+    "path": "[*].slash_commands[*]",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event. Session capability-catalog listing (available slash-commands/agents/skills), not turn content.",
     "reviewed": "any",
     "frameworks": [
       "claude"
     ]
   },
   {
-    "path": "[*].event.message.usage.inference_geo",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): serving-region telemetry with no AgUsage slot \u2014 mirror of the [*].message.usage.inference_geo entry.",
+    "path": "[*].source",
+    "reason": "openai: new top-level provenance tag on raw_model_stream_event identifying which underlying model-API family produced the event (gpt-5.5 SDK addition) \u2014 never read by createOpenaiNormalizer (the event is routed by data.type, not this tag). First observed live (playbook 2026-07-03, echo-gpt55).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].subtype",
+    "reason": "claude: heterogeneous discriminant \u2014 \"init\" on a system/init event (no AgJSON home, see the system/init reason above) vs \"success\"/an error code on a result event (result.subtype: the error-variant value IS copied verbatim to turn.error.code at index.ts:724, so Rule 4 catches that occurrence via the copy; \"success\" needs no distinct marker of its own). Reviewed \"any\" to match the identical precedent already set for [*].type (also a heterogeneous top-level discriminant, \"consumed structurally to route normalization, never a value-bearing payload\"). First observed live via the system/init \"init\" value (playbook 2026-07-03, echo-sonnet5) \u2014 no prior cassette exercised it.",
     "reviewed": "any",
     "frameworks": [
       "claude"
     ]
   },
   {
-    "path": "[*].event.message.usage.cache_creation.ephemeral_1h_input_tokens",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): cache-bucket breakdown with no AgUsage slot \u2014 mirror of the [*].message.usage.cache_creation.* entries.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].event.delta.type",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): structural delta discriminant (text_delta/input_json_delta/...) \u2014 consumed by the content_block_delta dispatch, never content.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].event.delta.stop_reason",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): the mid-stream copy of the stop fact on message_delta; the authoritative mapping is the result frame's stop_reason -> turn.done.finishReason (mapStopReason). Mirror of the [*].message.stop_reason reviewed-any entry.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].event.delta.stop_sequence",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): mirror of the [*].message.stop_sequence null-only entry (message_delta copy).",
-    "reviewed": "null-only",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].event.delta.stop_details",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): mirror of the [*].message.stop_details null-only entry (message_delta copy).",
-    "reviewed": "null-only",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].event.content_block.type",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): structural block discriminant at content_block_start \u2014 drives the text/reasoning/tool lifecycle choice; mirror of the [*].message.content[*].type entry.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].event.content_block.text",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): always '' at content_block_start \u2014 the text arrives via text_delta chunks, which ride text.delta verbatim (see the [*].event.delta.text transform).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].event.content_block.caller.type",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): derives tool.start.providerExecuted (same derivation as the complete arm) \u2014 mirror of the [*].message.content[*].caller.type entry.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].event.usage.iterations[*].type",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): per-iteration sampling telemetry inside message_delta usage \u2014 mirror of the [*].message.usage.iterations whole-array entry.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].event.usage.iterations[*].cache_read_input_tokens",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): per-iteration sampling telemetry \u2014 mirror of the [*].message.usage.iterations whole-array entry.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].event.usage.iterations[*].cache_creation.ephemeral_1h_input_tokens",
-    "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): per-iteration sampling telemetry \u2014 mirror of the [*].message.usage.iterations whole-array entry.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].content.parts[*].thought",
-    "reason": "adk: the thought-part discriminant \u2014 consumed structurally to route the part into reasoning.start/delta/end (+ reasoning.opaque for its thoughtSignature) instead of text events; the boolean itself never surfaces as an AgJSON value. First live-observed at gemini-3.7-flash with the thinkingLevel scenario knob (thinkingConfig.includeThoughts \u2014 3.7 returns no summaries by default; corpus/thinking-gemini37, 2026-08-19).",
-    "reviewed": "any",
-    "frameworks": [
-      "adk"
-    ]
-  },
-  {
-    "path": "[*].effort",
-    "reason": "claude: field on the SDK's system/init bootstrap event (0.3.234 SDKSystemMessage.effort \u2014 the effort level the session will send on its next request after env/session-state/org-cap/model-support resolution; null when no effort parameter will be sent) \u2014 router-plane session configuration, not turn content; init falls through createClaudeNormalizer's final no-op like every other init field (mirrors the [*].apiKeySource entry). Pre-registered on the 0.3.258 bump (2026-09-02) ahead of the cohort's live capture.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].modelUsage.claude-fable-5-1.contextWindow",
-    "reason": "model capability constant (context window size) for claude-fable-5-1 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.contextWindow entry (mapModelUsage never reads it); not an actual usage measurement, no AgUsage home. Model literal pre-registered on the 0.3.258 bump (2026-09-02) ahead of the cohort's live capture.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].modelUsage.claude-fable-5-1.maxOutputTokens",
-    "reason": "model capability constant (max output tokens) for claude-fable-5-1 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.maxOutputTokens entry (mapModelUsage never reads it); not an actual usage measurement, no AgUsage home. Model literal pre-registered on the 0.3.258 bump (2026-09-02) ahead of the cohort's live capture.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].modelUsage.claude-opus-5.contextWindow",
-    "reason": "model capability constant (context window size) for claude-opus-5 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.contextWindow entry (mapModelUsage never reads it); not an actual usage measurement, no AgUsage home. Model literal pre-registered on the 0.3.258 bump (2026-09-02) ahead of the cohort's live capture.",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].modelUsage.claude-opus-5.maxOutputTokens",
-    "reason": "model capability constant (max output tokens) for claude-opus-5 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.maxOutputTokens entry (mapModelUsage never reads it); not an actual usage measurement, no AgUsage home. Model literal pre-registered on the 0.3.258 bump (2026-09-02) ahead of the cohort's live capture.",
+    "path": "[*].terminal_reason",
+    "reason": "claude: result wall-clock/diagnostic telemetry (0.3.199 addition, sibling of the already-allowlisted duration_ms/duration_api_ms/num_turns) \u2014 not part of the AgJSON turn record (no semantic home, non-replayable, never read by createClaudeNormalizer). First observed live (playbook 2026-07-03, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -3027,35 +2848,230 @@
     ]
   },
   {
-    "path": "[*].messaging_socket_path",
-    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 router-plane; first observed live at Claude Code 2.1.258 (cohort 0.5.4, 2026-09-02, every claude capture). RUNTIME-ONLY (undeclared in sdk.d.ts through 0.3.258): the CLI's local IPC socket path (/tmp/cc-socks/<pid>.sock) \u2014 host-private transport plumbing, never a consumer signal.",
+    "path": "[*].time_to_request_ms",
+    "reason": "claude: result wall-clock/diagnostic telemetry (0.3.199 addition, sibling of the already-allowlisted duration_ms/duration_api_ms/num_turns) \u2014 not part of the AgJSON turn record (no semantic home, non-replayable, never read by createClaudeNormalizer). First observed live (playbook 2026-07-03, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
     ]
   },
   {
-    "path": "[*].event.content_block.thinking",
-    "reason": "claude stream_event (cohort 0.5.4, corpus/partials-fable51, 2026-09-02): always '' at content_block_start \u2014 the thinking text (when the model's display setting emits any) arrives via thinking_delta chunks, which ride reasoning.delta verbatim (see the [*].event.delta.thinking transform). Mirror of the [*].event.content_block.text entry.",
+    "path": "[*].timestamp",
+    "reason": "claude: wall-clock ISO timestamp on the user tool-result message (0.3.199 addition) \u2014 never read by createClaudeNormalizer. First observed live (playbook 2026-07-03, echo-sonnet5). || adk: per-event wall-clock stamp, disclosed `silently-dropped` in google-adk/sdk-surface.json (REQUIRED on the official @google/adk 1.3.0 Event interface; wall-clock per-event timestamps are the nondeterminism class the AgJSON envelope deliberately omits \u2014 audit M52/INV-FOLD; a precise _meta.timestamp home is a documented future spec decision). First LIVE adk cassette to carry it: echo-gemini35 (official-SDK capture, playbook 2026-07-13) \u2014 the two hand-authored adk fixtures never included it (fixture discipline: type only what is consumed).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude",
+      "adk"
+    ]
+  },
+  {
+    "path": "[*].toolMetadata.clientName",
+    "reason": "vercel: MCP-tool sidecar metadata the AI SDK attaches to tool-input-start/tool-call/tool-result parts \u2014 the MCP client instance name ('ai-sdk-mcp-client'), agent config/environment metadata; never read by createVercelNormalizer (zero toolMetadata call sites), no AgJSON home (mirrors the openai agent-config-echo precedent). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].toolMetadata.toolName",
+    "reason": "vercel: MCP-tool sidecar metadata on tool-input-start/tool-call/tool-result parts \u2014 value-identical duplicate of the top-level toolName the facet DOES consume (index.ts:289/318 \u2192 tool.start.name, see transforms); never read by createVercelNormalizer. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].tool_use_meta[*].display_name",
+    "reason": "claude: SDK-injected display sidecar on a tool_use content block (0.3.199 addition) \u2014 a human-readable tool label for host UI rendering; never read by createClaudeNormalizer (the facet reads block.name for tool.start.name, not this sidecar). First observed live (playbook 2026-07-03, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
     ]
   },
   {
-    "path": "[*].event.content_block.signature",
-    "reason": "claude stream_event (cohort 0.5.4, corpus/partials-fable51, 2026-09-02): always '' at content_block_start \u2014 the signature arrives via signature_delta chunks, buffered and emitted as reasoning.opaque{kind:'signature'} at content_block_stop (Rule-4 covered there).",
+    "path": "[*].tool_use_meta[*].server_display_name",
+    "reason": "claude: SDK-injected display sidecar on a tool_use content block (0.3.199 addition) \u2014 a human-readable MCP-server label for host UI rendering; never read by createClaudeNormalizer (the facet reads block.server_name for tool.start.serverName, not this sidecar). First observed live (playbook 2026-07-03, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
     ]
   },
   {
-    "path": "[*].event.delta.estimated_tokens",
-    "reason": "claude stream_event (cohort 0.5.4, corpus/partials-fable51, 2026-09-02): Claude Code's RUNTIME-ONLY per-thinking_delta token estimate. Non-null values ride reasoning.delta providerMetadata.estimated_tokens verbatim (Rule 4); null means 'no estimate yet' and is carried as null too, but null is ambient so it needs this null-only entry.",
+    "path": "[*].totalUsage.inputTokenDetails.noCacheTokens",
+    "reason": "vercel: finish.totalUsage detail counter with no AgUsage shape \u2014 derivable from the mapped turn.done.usage counters (noCacheTokens = inputTokens \u2212 cacheReadTokens \u2212 cacheWriteTokens; all carried via mapUsage, index.ts:111-131/399). Verified derivable (290=290\u22120\u22120). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].totalUsage.outputTokenDetails.textTokens",
+    "reason": "vercel: finish.totalUsage detail counter with no AgUsage shape \u2014 derivable from the mapped turn.done.usage counters (textTokens = outputTokens \u2212 reasoningTokens; both carried via mapUsage, index.ts:111-131/399). Verified derivable (36=80\u221244). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].ttft_ms",
+    "reason": "claude: wall-clock/diagnostic telemetry (0.3.199 addition, sibling of the already-allowlisted duration_ms/duration_api_ms/num_turns/ttft_stream_ms/time_to_request_ms) \u2014 a norm-path SHARED by two arms: on the result frame it is unread by createClaudeNormalizer and has no AgJSON home (non-replayable); on the stream_event partial envelope the facet DOES read msg.ttft_ms (workspace#7, index.ts carryTtft) and emits it once per message via message.metadata {ttft_ms} under the wire name (corpus/partials-sonnet5 and partials-fable51 agjson carry it). message.metadata is a merge channel, not a fixed turn-record path, so no Rule-1 transform target exists \u2014 reviewed \"any\" stands for both arms. First observed live (playbook 2026-07-03, echo-sonnet5); reason corrected 2026-09-05 (0.3.261 sweep: the prior text predated the partial carry).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].ttft_stream_ms",
+    "reason": "claude: result wall-clock/diagnostic telemetry (0.3.199 addition, sibling of the already-allowlisted duration_ms/duration_api_ms/num_turns) \u2014 not part of the AgJSON turn record (no semantic home, non-replayable, never read by createClaudeNormalizer). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].type",
+    "reason": "top-level stream-event/message discriminant, consumed structurally to route normalization, never a value-bearing payload: the Claude SDKMessage discriminant (assistant/user/result) and the @openai/agents top-level stream-event discriminant (raw_model_stream_event/run_item_stream_event) share this norm-path but are unrelated fields per framework (audit M57 cross-framework collision \u2014 the same norm-path, different semantic field, both structural). EXTENDED to vercel (first vercel triage 2026-07-25, echo-gpt56 @ai 7.0.34): the TextStreamPart discriminant, consumed structurally by createVercelNormalizer's drive() switch \u2014 same shared-norm-path treatment (M57 cross-framework collision: same norm-path, unrelated field per framework). NOTE: allowlist paths must be UNIQUE \u2014 census builds a Map keyed by path, so a second entry for the same path CLOBBERS the first (this merge repairs exactly that regression).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude",
+      "openai",
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].usage.cache_creation.ephemeral_1h_input_tokens",
+    "reason": "per-TTL cache-creation breakdown on the result usage; the aggregate cache_creation_input_tokens IS mapped to turn.done.usage.cacheWriteTokens.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].usage.cache_creation.ephemeral_5m_input_tokens",
+    "reason": "per-TTL cache-creation breakdown on the result usage; the aggregate cache_creation_input_tokens IS mapped to turn.done.usage.cacheWriteTokens.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].usage.inference_geo",
+    "reason": "inference-region telemetry on the result usage; operational metadata with no AgUsage home.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].usage.inputTokenDetails.noCacheTokens",
+    "reason": "vercel: LanguageModelUsage detail counter with no AgUsage shape \u2014 derivable from the mapped counters (noCacheTokens = inputTokens \u2212 cacheReadTokens \u2212 cacheWriteTokens; all three carried via mapUsage, index.ts:111-131, which deliberately reads only the AgUsage-shaped fields). Verified derivable in both finish-steps (102=102\u22120\u22120, 188=188\u22120\u22120). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].usage.iterations[*].cache_creation.ephemeral_1h_input_tokens",
+    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].usage.iterations[*].cache_creation.ephemeral_5m_input_tokens",
+    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].usage.iterations[*].cache_creation_input_tokens",
+    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].usage.iterations[*].cache_read_input_tokens",
+    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].usage.iterations[*].model",
+    "reason": "claude: new MEMBER of the result-level per-agent-loop-iteration usage breakdown array (the sibling [*].usage.iterations[*].cache_creation.* entries cover the same array) \u2014 names the model that served each iteration, null here. mapTurnUsage reads only the top-level usage aggregate and modelUsage, never this array; the per-model serving identity that DOES have a home is carried via modelUsage. Operational telemetry with no AgUsage home. First observed live 2026-09-15 (cohort 0.6.2, claude-agent-sdk 0.3.272).",
     "reviewed": "null-only",
     "frameworks": [
       "claude"
+    ]
+  },
+  {
+    "path": "[*].usage.iterations[*].output_tokens",
+    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].usage.iterations[*].type",
+    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].usage.outputTokenDetails.textTokens",
+    "reason": "vercel: LanguageModelUsage detail counter with no AgUsage shape \u2014 derivable from the mapped counters (textTokens = outputTokens \u2212 reasoningTokens; both carried via mapUsage, index.ts:111-131). Verified derivable in both finish-steps (25=69\u221244, 11=11\u22120). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].usage.raw.input_tokens",
+    "reason": "vercel: finish-step.usage.raw \u2014 the provider's untyped snake_case usage echo the AI SDK attaches beside the typed LanguageModelUsage bag; value-identical duplicate of the typed counters mapUsage consumes (index.ts:111-131 reads only the typed inputTokens/\u2026Details fields, never raw). Verified value-identical in both finish-steps (raw.input_tokens \u2261 usage.inputTokens: 102/188). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].usage.raw.input_tokens_details.cache_write_tokens",
+    "reason": "vercel: finish-step.usage.raw untyped provider usage echo \u2014 value-identical duplicate of the typed usage.inputTokenDetails.cacheWriteTokens that mapUsage consumes (index.ts:123-125; see transforms). Verified value-identical in both finish-steps (0\u22610). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].usage.raw.input_tokens_details.cached_tokens",
+    "reason": "vercel: finish-step.usage.raw untyped provider usage echo \u2014 value-identical duplicate of the typed usage.inputTokenDetails.cacheReadTokens that mapUsage consumes (index.ts:120-122; see transforms). Verified value-identical in both finish-steps (0\u22610). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].usage.raw.output_tokens",
+    "reason": "vercel: finish-step.usage.raw untyped provider usage echo \u2014 value-identical duplicate of the typed usage.outputTokens that mapUsage consumes (index.ts:118). Verified value-identical in both finish-steps (69/11). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].usage.raw.output_tokens_details.reasoning_tokens",
+    "reason": "vercel: finish-step.usage.raw untyped provider usage echo \u2014 value-identical duplicate of the typed usage.outputTokenDetails.reasoningTokens that mapUsage consumes (index.ts:126-128; see transforms). Verified value-identical in both finish-steps (44/0). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
     ]
   },
   {
@@ -3067,27 +3083,51 @@
     ]
   },
   {
-    "path": "[*].data.providerData.response.access_programs.cyber",
-    "reason": "openai (cohort 0.6.1, corpus/echo-gpt6astra, 2026-09-05 \u2014 the FIRST gpt-6-astra capture): Responses `response.access_programs.cyber` (observed value 'standard') is an account/program-tier attribute the API stamps on every response object for GPT-6 Astra; router-plane like service_tier \u2014 not turn content, no AgJSON home. Rides the response object wherever the Agents SDK echoes it (raw event, item providerData, response providerData).",
+    "path": "[*].usage.service_tier",
+    "reason": "billing service-tier on the result usage; commercial metadata with no AgUsage home.",
     "reviewed": "any",
     "frameworks": [
-      "openai"
+      "claude"
     ]
   },
   {
-    "path": "[*].data.event.response.access_programs.cyber",
-    "reason": "openai (cohort 0.6.1, corpus/echo-gpt6astra, 2026-09-05 \u2014 the FIRST gpt-6-astra capture): Responses `response.access_programs.cyber` (observed value 'standard') is an account/program-tier attribute the API stamps on every response object for GPT-6 Astra; router-plane like service_tier \u2014 not turn content, no AgJSON home. Rides the response object wherever the Agents SDK echoes it (raw event, item providerData, response providerData).",
+    "path": "[*].usage.speed",
+    "reason": "latency-tier hint on the result usage; operational metadata with no AgUsage home.",
     "reviewed": "any",
     "frameworks": [
-      "openai"
+      "claude"
     ]
   },
   {
-    "path": "[*].data.response.providerData.access_programs.cyber",
-    "reason": "openai (cohort 0.6.1, corpus/echo-gpt6astra, 2026-09-05 \u2014 the FIRST gpt-6-astra capture): Responses `response.access_programs.cyber` (observed value 'standard') is an account/program-tier attribute the API stamps on every response object for GPT-6 Astra; router-plane like service_tier \u2014 not turn content, no AgJSON home. Rides the response object wherever the Agents SDK echoes it (raw event, item providerData, response providerData).",
+    "path": "[*].usageMetadata.promptTokensDetails[*].modality",
+    "reason": "adk: Gemini per-modality prompt-token breakdown (TEXT/IMAGE/\u2026 buckets) \u2014 the TOTALS are mapped (promptTokenCount -> usage.inputTokens, transforms.json); AgUsage has no per-modality vocabulary. First observed live: echo-gemini35 (gemini-3.5-flash, playbook 2026-07-13).",
     "reviewed": "any",
     "frameworks": [
-      "openai"
+      "adk"
+    ]
+  },
+  {
+    "path": "[*].usageMetadata.promptTokensDetails[*].tokenCount",
+    "reason": "adk: the count half of the per-modality breakdown above \u2014 same disposition, see [*].usageMetadata.promptTokensDetails[*].modality.",
+    "reviewed": "any",
+    "frameworks": [
+      "adk"
+    ]
+  },
+  {
+    "path": "[*].usageMetadata.serviceTier",
+    "reason": "adk: Gemini billing/capacity tier label \u2014 pure billing telemetry, same class as the openai facet's router-plane rate-limit/service-tier signals. First observed live: echo-gemini35 (playbook 2026-07-13).",
+    "reviewed": "any",
+    "frameworks": [
+      "adk"
+    ]
+  },
+  {
+    "path": "[*].uuid",
+    "reason": "SDK per-message uuid; the result-message uuid derives turnId only when session_id is absent, otherwise it has no AgJSON home.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
     ]
   }
 ]

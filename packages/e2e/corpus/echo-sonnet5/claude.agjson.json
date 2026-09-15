@@ -2,38 +2,38 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_8f7d471a-95a1-42dd-b99f-81413c1d1948",
-    "threadId": "8f7d471a-95a1-42dd-b99f-81413c1d1948"
+    "turnId": "turn_34911a91-98c6-4c1e-a965-db7984fa636c",
+    "threadId": "34911a91-98c6-4c1e-a965-db7984fa636c"
   },
   {
     "type": "message.start",
     "seq": 1,
-    "id": "msg_011CejsDCF93aPNXvwKFLPmz",
-    "turnId": "turn_8f7d471a-95a1-42dd-b99f-81413c1d1948",
-    "threadId": "8f7d471a-95a1-42dd-b99f-81413c1d1948",
+    "id": "msg_011Cf4PhdrrEJPF2mTiDEoe1",
+    "turnId": "turn_34911a91-98c6-4c1e-a965-db7984fa636c",
+    "threadId": "34911a91-98c6-4c1e-a965-db7984fa636c",
     "role": "assistant",
     "model": "claude-sonnet-5"
   },
   {
     "type": "tool.start",
     "seq": 2,
-    "turnId": "turn_8f7d471a-95a1-42dd-b99f-81413c1d1948",
-    "toolCallId": "toolu_01AQfa4oDCLvxAZTF4tVJvJo",
+    "turnId": "turn_34911a91-98c6-4c1e-a965-db7984fa636c",
+    "toolCallId": "toolu_01MkwX6Aaik1aSLPQ7adkBJ5",
     "name": "mcp__t__echo",
     "index": 0,
-    "messageId": "msg_011CejsDCF93aPNXvwKFLPmz",
+    "messageId": "msg_011Cf4PhdrrEJPF2mTiDEoe1",
     "providerExecuted": false
   },
   {
     "type": "tool.args.delta",
     "seq": 3,
-    "toolCallId": "toolu_01AQfa4oDCLvxAZTF4tVJvJo",
+    "toolCallId": "toolu_01MkwX6Aaik1aSLPQ7adkBJ5",
     "delta": "{\"message\":\"conformance-probe-sonnet5\"}"
   },
   {
     "type": "tool.args.assembled",
     "seq": 4,
-    "toolCallId": "toolu_01AQfa4oDCLvxAZTF4tVJvJo",
+    "toolCallId": "toolu_01MkwX6Aaik1aSLPQ7adkBJ5",
     "input": {
       "message": "conformance-probe-sonnet5"
     }
@@ -41,20 +41,20 @@
   {
     "type": "message.end",
     "seq": 5,
-    "id": "msg_011CejsDCF93aPNXvwKFLPmz",
+    "id": "msg_011Cf4PhdrrEJPF2mTiDEoe1",
     "usage": {
       "inputTokens": 2,
-      "outputTokens": 25,
+      "outputTokens": 20,
       "cacheReadTokens": 0,
-      "cacheWriteTokens": 1832,
+      "cacheWriteTokens": 1966,
       "cumulative": true
     }
   },
   {
     "type": "tool.done",
     "seq": 6,
-    "turnId": "turn_8f7d471a-95a1-42dd-b99f-81413c1d1948",
-    "toolCallId": "toolu_01AQfa4oDCLvxAZTF4tVJvJo",
+    "turnId": "turn_34911a91-98c6-4c1e-a965-db7984fa636c",
+    "toolCallId": "toolu_01MkwX6Aaik1aSLPQ7adkBJ5",
     "content": [
       {
         "type": "text",
@@ -63,47 +63,47 @@
     ],
     "outcome": "ok",
     "isError": false,
-    "messageId": "toolu_01AQfa4oDCLvxAZTF4tVJvJo:result"
+    "messageId": "toolu_01MkwX6Aaik1aSLPQ7adkBJ5:result"
   },
   {
     "type": "message.start",
     "seq": 7,
-    "id": "msg_011CejsDJrWPCnGJSHTYWSoE",
-    "turnId": "turn_8f7d471a-95a1-42dd-b99f-81413c1d1948",
-    "threadId": "8f7d471a-95a1-42dd-b99f-81413c1d1948",
+    "id": "msg_011Cf4PhnuKjk7bHZi8m6rvz",
+    "turnId": "turn_34911a91-98c6-4c1e-a965-db7984fa636c",
+    "threadId": "34911a91-98c6-4c1e-a965-db7984fa636c",
     "role": "assistant",
     "model": "claude-sonnet-5"
   },
   {
     "type": "text.start",
     "seq": 8,
-    "id": "msg_011CejsDJrWPCnGJSHTYWSoE:text:0",
-    "messageId": "msg_011CejsDJrWPCnGJSHTYWSoE",
-    "turnId": "turn_8f7d471a-95a1-42dd-b99f-81413c1d1948"
+    "id": "msg_011Cf4PhnuKjk7bHZi8m6rvz:text:0",
+    "messageId": "msg_011Cf4PhnuKjk7bHZi8m6rvz",
+    "turnId": "turn_34911a91-98c6-4c1e-a965-db7984fa636c"
   },
   {
     "type": "text.delta",
     "seq": 9,
-    "id": "msg_011CejsDJrWPCnGJSHTYWSoE:text:0",
-    "messageId": "msg_011CejsDJrWPCnGJSHTYWSoE",
-    "delta": "conformance-probe-sonnet5",
-    "turnId": "turn_8f7d471a-95a1-42dd-b99f-81413c1d1948"
+    "id": "msg_011Cf4PhnuKjk7bHZi8m6rvz:text:0",
+    "messageId": "msg_011Cf4PhnuKjk7bHZi8m6rvz",
+    "delta": "Echoed: conformance-probe-sonnet5",
+    "turnId": "turn_34911a91-98c6-4c1e-a965-db7984fa636c"
   },
   {
     "type": "text.end",
     "seq": 10,
-    "id": "msg_011CejsDJrWPCnGJSHTYWSoE:text:0",
-    "messageId": "msg_011CejsDJrWPCnGJSHTYWSoE",
-    "turnId": "turn_8f7d471a-95a1-42dd-b99f-81413c1d1948"
+    "id": "msg_011Cf4PhnuKjk7bHZi8m6rvz:text:0",
+    "messageId": "msg_011Cf4PhnuKjk7bHZi8m6rvz",
+    "turnId": "turn_34911a91-98c6-4c1e-a965-db7984fa636c"
   },
   {
     "type": "message.end",
     "seq": 11,
-    "id": "msg_011CejsDJrWPCnGJSHTYWSoE",
+    "id": "msg_011Cf4PhnuKjk7bHZi8m6rvz",
     "usage": {
       "inputTokens": 2,
-      "outputTokens": 1,
-      "cacheReadTokens": 1832,
+      "outputTokens": 2,
+      "cacheReadTokens": 1966,
       "cacheWriteTokens": 120,
       "cumulative": true
     }
@@ -113,6 +113,7 @@
     "type": "ext.anthropic.result-meta",
     "fastModeDisabledReason": "sdk_opt_in_required",
     "queuedTurnCount": 0,
+    "resultIndex": 0,
     "subagentStats": {
       "spawned": 0,
       "requested": {
@@ -153,39 +154,39 @@
   {
     "type": "turn.done",
     "seq": 13,
-    "turnId": "turn_8f7d471a-95a1-42dd-b99f-81413c1d1948",
+    "turnId": "turn_34911a91-98c6-4c1e-a965-db7984fa636c",
     "outcome": {
       "type": "success",
-      "result": "conformance-probe-sonnet5"
+      "result": "Echoed: conformance-probe-sonnet5"
     },
     "finishReason": "stop",
     "usage": {
       "inputTokens": 4,
-      "outputTokens": 77,
-      "cacheReadTokens": 1832,
-      "cacheWriteTokens": 1952,
+      "outputTokens": 82,
+      "cacheReadTokens": 1966,
+      "cacheWriteTokens": 2086,
       "reasoningTokens": 0,
       "serverToolRequests": 0,
-      "costUsd": 0.0070234,
+      "costUsd": 0.0074302,
       "cumulative": true,
       "byModel": {
         "claude-haiku-4-5-20251001": {
           "inputTokens": 914,
-          "outputTokens": 17,
+          "outputTokens": 16,
           "cacheReadTokens": 0,
           "cacheWriteTokens": 0,
           "reasoningTokens": 0,
-          "costUsd": 0.0009989999999999999,
+          "costUsd": 0.000994,
           "serverToolRequests": 0,
           "cumulative": true
         },
         "claude-sonnet-5": {
           "inputTokens": 4,
-          "outputTokens": 77,
-          "cacheReadTokens": 1832,
-          "cacheWriteTokens": 1952,
+          "outputTokens": 82,
+          "cacheReadTokens": 1966,
+          "cacheWriteTokens": 2086,
           "reasoningTokens": 0,
-          "costUsd": 0.0060244,
+          "costUsd": 0.0064361999999999996,
           "serverToolRequests": 0,
           "cumulative": true
         }

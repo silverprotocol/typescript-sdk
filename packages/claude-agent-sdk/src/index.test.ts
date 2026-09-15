@@ -1301,6 +1301,66 @@ describe("createClaudeNormalizer — deferral c: assistant error → turn.error"
     );
     assertAllValid(evs);
   });
+
+  // 0.3.272: `SDKAssistantMessageError` gained TWO more members —
+  // `verification_required` (gated on an out-of-band human verification step)
+  // and `cloud_credential_error` (a credential/billing-class failure on the
+  // cloud-provider leg). Neither clears by re-sending the turn, so both are
+  // deliberate non-retriables — recorded explicitly here, exactly like
+  // model_not_found / account_on_hold, so the omission can never be read back
+  // as an oversight. The code itself is carried VERBATIM either way.
+  it("emits turn.error with retriable:false for verification_required (needs an out-of-band human step)", () => {
+    const evs = run(assistantMsgWithError("verification_required"));
+    expect(evs).toContainEqual(
+      expect.objectContaining({
+        type: "turn.error",
+        code: "verification_required",
+        message: "verification_required",
+        retriable: false,
+      }),
+    );
+    assertAllValid(evs);
+  });
+
+  it("emits turn.error with retriable:false for cloud_credential_error (credential/billing class, not transient capacity)", () => {
+    const evs = run(assistantMsgWithError("cloud_credential_error"));
+    expect(evs).toContainEqual(
+      expect.objectContaining({
+        type: "turn.error",
+        code: "cloud_credential_error",
+        message: "cloud_credential_error",
+        retriable: false,
+      }),
+    );
+    assertAllValid(evs);
+  });
+
+  // Negative control for the widening: the retriable SET is unchanged by
+  // 0.3.272 — exactly the three transient codes stay true, every other member
+  // of the (now 13-wide) union stays false.
+  it("the retriable set is unchanged by the 0.3.272 widening (three transient codes, ten non-retriable)", () => {
+    const RETRIABLE: NonNullable<SDKAssistantError>[] = ["rate_limit", "server_error", "overloaded"];
+    const NON_RETRIABLE: NonNullable<SDKAssistantError>[] = [
+      "authentication_failed",
+      "oauth_org_not_allowed",
+      "account_on_hold",
+      "verification_required",
+      "billing_error",
+      "invalid_request",
+      "model_not_found",
+      "unknown",
+      "max_output_tokens",
+      "cloud_credential_error",
+    ];
+    for (const code of RETRIABLE) {
+      const err = run(assistantMsgWithError(code)).find((e) => e.type === "turn.error");
+      expect(err).toMatchObject({ code, retriable: true });
+    }
+    for (const code of NON_RETRIABLE) {
+      const err = run(assistantMsgWithError(code)).find((e) => e.type === "turn.error");
+      expect(err).toMatchObject({ code, retriable: false });
+    }
+  });
 });
 
 // ─── Finding #1 (critical): refusal-fallback retraction protocol ─────────────
@@ -2518,6 +2578,169 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     ) as { providerMetadata?: unknown };
     expect(firstBlockM.providerMetadata).toEqual({ user_message_uuid: USER_MESSAGE_UUID });
   });
+
+  // ── 0.3.268 (0.3.272 bump): `resume_reason` — the THIRD leg of the turn-
+  // binding family. Why this frame's turn is the automatic re-run of a turn a
+  // worker restart interrupted; 0.3.269 stamps it on the SAME frames as
+  // user_message_uuid / user_message_uuids, so it rides the SAME bag under the
+  // SAME once-per-message flag, wire name verbatim. ──
+  const RESUME_REASON = "host_draining";
+
+  it("carries resume_reason verbatim beside the uuid family in the first-block providerMetadata (0.3.268)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(
+        JsonValue.parse(
+          wrapperAssistant({
+            user_message_uuid: USER_MESSAGE_UUID,
+            user_message_uuids: USER_MESSAGE_UUIDS,
+            resume_reason: RESUME_REASON,
+          }),
+        ),
+      ),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const firstBlock = evs.find(
+      (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
+    ) as { providerMetadata?: unknown };
+    expect(firstBlock.providerMetadata).toEqual({
+      user_message_uuid: USER_MESSAGE_UUID,
+      user_message_uuids: USER_MESSAGE_UUIDS,
+      resume_reason: RESUME_REASON,
+    });
+  });
+
+  it("resume_reason ALONE still triggers the family carry (a re-run whose opener could not be vouched carries the reason with no echo)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(wrapperAssistant({ resume_reason: "interrupted_turn" }))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const firstBlock = evs.find(
+      (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
+    ) as { providerMetadata?: unknown };
+    expect(firstBlock.providerMetadata).toEqual({ resume_reason: "interrupted_turn" });
+  });
+
+  // -- 0.3.272: `narration_block_indexes` -- which of THIS frame's content blocks
+  // are user-facing NARRATION (Anthropic's thinking.display:"updates" progress
+  // updates) rather than private reasoning. Undeclared in sdk.d.ts, read through
+  // the JSON boundary. A per-frame CONTENT fact like `aborted`, so deliberately
+  // NOT under the turn-binding flag. First observed live on app-update-fable51
+  // (cohort 0.6.2). --
+
+  it("carries narration_block_indexes verbatim on the first block (0.3.272)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(wrapperAssistant({ narration_block_indexes: [0] }))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const firstBlock = evs.find(
+      (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
+    ) as { providerMetadata?: unknown };
+    expect(firstBlock.providerMetadata).toEqual({ narration_block_indexes: [0] });
+  });
+
+  it("narration_block_indexes rides the bag ALONGSIDE the turn-binding family without consuming its once-per-message flag", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(
+        JsonValue.parse(
+          wrapperAssistant({ user_message_uuid: USER_MESSAGE_UUID, narration_block_indexes: [0, 2] }),
+        ),
+      ),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const firstBlock = evs.find(
+      (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
+    ) as { providerMetadata?: unknown };
+    expect(firstBlock.providerMetadata).toEqual({
+      user_message_uuid: USER_MESSAGE_UUID,
+      narration_block_indexes: [0, 2],
+    });
+  });
+
+  it("NEGATIVE CONTROL: absent or malformed narration_block_indexes leaves the stream byte-identical (nothing new is carried)", () => {
+    const bare = (() => {
+      const n = createClaudeNormalizer();
+      return [...n.push(JsonValue.parse(wrapperAssistant({}))), ...n.flush()];
+    })();
+    for (const bad of [[], "0", [0, "1"], [1.5], [-1], null, 0]) {
+      const n = createClaudeNormalizer();
+      const evs = [
+        ...n.push(JsonValue.parse(wrapperAssistant({ narration_block_indexes: bad }))),
+        ...n.flush(),
+      ];
+      assertAllValid(evs);
+      expect(JSON.stringify(evs)).toBe(JSON.stringify(bare));
+    }
+    const firstBlock = bare.find(
+      (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
+    ) as { providerMetadata?: unknown };
+    expect(firstBlock.providerMetadata).toBeUndefined();
+  });
+
+  it("resume_reason on a BLOCK-LESS frame rides message.metadata with the other wrapper siblings (fallback channel)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(
+        JsonValue.parse(
+          wrapperAssistant({ aborted: true, user_message_uuid: USER_MESSAGE_UUID, resume_reason: RESUME_REASON }, []),
+        ),
+      ),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const metas = evs.filter((e) => e.type === "message.metadata");
+    expect(metas).toHaveLength(1);
+    expect(metas[0]).toMatchObject({
+      messageId: "msg_wrapper",
+      metadata: { aborted: true, user_message_uuid: USER_MESSAGE_UUID, resume_reason: RESUME_REASON },
+    });
+  });
+
+  it("emits NO resume_reason key when the frame lacks it (negative control — the 0.3.261 bag is byte-identical), and a non-string is ignored, never thrown", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(
+        JsonValue.parse(
+          wrapperAssistant({ user_message_uuid: USER_MESSAGE_UUID, user_message_uuids: USER_MESSAGE_UUIDS }),
+        ),
+      ),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const firstBlock = evs.find(
+      (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
+    ) as { providerMetadata?: unknown };
+    expect(firstBlock.providerMetadata).toEqual({
+      user_message_uuid: USER_MESSAGE_UUID,
+      user_message_uuids: USER_MESSAGE_UUIDS,
+    });
+
+    // A frame with NO turn-binding member at all carries no bag whatsoever.
+    const bare = [...createClaudeNormalizer().push(JsonValue.parse(wrapperAssistant({})))];
+    const bareBlock = bare.find(
+      (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
+    ) as { providerMetadata?: unknown };
+    expect(bareBlock.providerMetadata).toBeUndefined();
+
+    // Non-string resume_reason — guarded out; the uuid still rides, nothing throws.
+    const m = createClaudeNormalizer();
+    const evsM = [
+      ...m.push(JsonValue.parse(wrapperAssistant({ user_message_uuid: USER_MESSAGE_UUID, resume_reason: 7 }))),
+      ...m.flush(),
+    ];
+    assertAllValid(evsM);
+    const firstBlockM = evsM.find(
+      (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
+    ) as { providerMetadata?: unknown };
+    expect(firstBlockM.providerMetadata).toEqual({ user_message_uuid: USER_MESSAGE_UUID });
+  });
 });
 
 describe("createClaudeNormalizer — 0.3.220 result-meta carry (fast_mode_disabled_reason / ModelUsage serving identity)", () => {
@@ -2800,6 +3023,132 @@ describe("createClaudeNormalizer — 0.3.258 result-meta additions (ModelUsage.c
     const evs2 = [...m.push(JsonValue.parse(wire2)), ...m.flush()];
     expect(evs2.map((e) => e.type)).toEqual(["turn.done"]);
   });
+
+  // ── 0.3.268 (0.3.272 bump): three more result-frame siblings on the SAME
+  // ext.anthropic.result-meta carrier — `resume_reason` (both arms, the
+  // result-frame leg of the turn-binding family), `result_index` (both arms,
+  // the delivery-integrity sequence) and `local_command` (SUCCESS arm only,
+  // read through the JSON boundary since the union declares no such field). ──
+  const RESUME_REASON = "checkpoint_restore";
+
+  it("carries resumeReason on the SUCCESS arm beside the uuid family it disambiguates (0.3.268)", () => {
+    const msg: SDKResultSuccessMsg = {
+      ...(resultSuccess("end_turn") as SDKResultSuccessMsg),
+      user_message_uuid: UMU,
+      resume_reason: RESUME_REASON,
+    };
+    const evs = run(msg);
+    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
+    expect(evs[0]).toMatchObject({
+      type: "ext.anthropic.result-meta",
+      userMessageUuid: UMU,
+      resumeReason: RESUME_REASON,
+    });
+    assertAllValid(evs);
+  });
+
+  it("carries resumeReason on the ERROR arm too, before turn.error (0.3.268)", () => {
+    const msg: SDKResultErrorMsg = {
+      ...(resultError("error_during_execution") as SDKResultErrorMsg),
+      resume_reason: "interrupted_turn",
+    };
+    const evs = run(msg);
+    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.error"]);
+    expect(evs[0]).toMatchObject({ type: "ext.anthropic.result-meta", resumeReason: "interrupted_turn" });
+    expect(evs[1]).toMatchObject({ type: "turn.error", code: "error_during_execution", retriable: true });
+    assertAllValid(evs);
+  });
+
+  it("carries resultIndex on BOTH arms — 0 is a REAL value (the first result of every run), never dropped by truthiness", () => {
+    const first = run({ ...(resultSuccess("end_turn") as SDKResultSuccessMsg), result_index: 0 });
+    expect(first.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
+    expect(first[0]).toMatchObject({ type: "ext.anthropic.result-meta", resultIndex: 0 });
+    // Explicitly: the key EXISTS and is the number 0, not absent.
+    expect((first[0] as { resultIndex?: unknown }).resultIndex).toBe(0);
+    assertAllValid(first);
+
+    const later = run({ ...(resultSuccess("end_turn") as SDKResultSuccessMsg), result_index: 7 });
+    expect(later[0]).toMatchObject({ resultIndex: 7 });
+
+    const errored = run({
+      ...(resultError("error_during_execution") as SDKResultErrorMsg),
+      result_index: 3,
+    });
+    expect(errored.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.error"]);
+    expect(errored[0]).toMatchObject({ type: "ext.anthropic.result-meta", resultIndex: 3 });
+    assertAllValid(errored);
+  });
+
+  it("carries localCommand on the SUCCESS arm (read through the JSON boundary — declared on that arm only)", () => {
+    // The wire shape of a turn that ran a slash command without entering the
+    // model loop: the CLI writes the sanitized, slugified command name.
+    const wire: unknown = { ...resultSuccess("end_turn"), local_command: "context", result_index: 0 };
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(JsonValue.parse(wire)), ...n.flush()];
+    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
+    expect(evs[0]).toMatchObject({
+      type: "ext.anthropic.result-meta",
+      localCommand: "context",
+      resultIndex: 0,
+    });
+    assertAllValid(evs);
+
+    // The producer's own collapsed values ("custom" for a non-first-party
+    // command, "mcp" for an MCP one) are carried verbatim — never re-derived.
+    const custom: unknown = { ...resultSuccess("end_turn"), local_command: "custom" };
+    const m = createClaudeNormalizer();
+    const evsC = [...m.push(JsonValue.parse(custom)), ...m.flush()];
+    expect(evsC[0]).toMatchObject({ localCommand: "custom" });
+
+    // A non-string is guarded out, never thrown on (Tenet 6).
+    const bad: unknown = { ...resultSuccess("end_turn"), local_command: 7 };
+    const k = createClaudeNormalizer();
+    const evsB = [...k.push(JsonValue.parse(bad)), ...k.flush()];
+    expect(evsB.map((e) => e.type)).toEqual(["turn.done"]);
+  });
+
+  it("negative control: frames without the three 0.3.268 siblings emit no such keys — pre-0.3.268 output byte-identical", () => {
+    const withOld = run({ ...(resultSuccess("end_turn") as SDKResultSuccessMsg), user_message_uuid: UMU });
+    expect(withOld.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
+    // The whole carrier, exhaustively: exactly the 0.3.258 bag, nothing added.
+    expect(withOld[0]).toEqual({
+      type: "ext.anthropic.result-meta",
+      userMessageUuid: UMU,
+      turnId: (withOld[0] as { turnId: string }).turnId,
+      seq: (withOld[0] as { seq: number }).seq,
+    });
+
+    // And the frozen fixtures (no siblings at all) still emit NO result-meta.
+    expect(run(resultSuccess("end_turn")).map((e) => e.type)).toEqual(["turn.done"]);
+    expect(run(resultError("error_max_turns")).map((e) => e.type)).toEqual(["turn.error"]);
+  });
+
+  it("fold: the 0.3.268 siblings inside a real turn fold clean through Reducer — needsResync===false", () => {
+    const n = createClaudeNormalizer();
+    const wire: unknown = {
+      ...resultSuccess("end_turn"),
+      user_message_uuid: UMU,
+      resume_reason: RESUME_REASON,
+      result_index: 0,
+      local_command: "usage",
+    };
+    const events = [
+      ...n.push(JsonValue.parse(assistantMsg([{ type: "text", text: "hello", citations: null }]))),
+      ...n.push(JsonValue.parse(wire)),
+      ...n.flush(),
+    ];
+    assertAllValid(events);
+    const meta = events.find((e) => e.type === "ext.anthropic.result-meta");
+    expect(meta).toMatchObject({
+      userMessageUuid: UMU,
+      resumeReason: RESUME_REASON,
+      resultIndex: 0,
+      localCommand: "usage",
+    });
+    const r = new Reducer();
+    for (const e of events) r.push(e);
+    expect(r.needsResync).toBe(false);
+  });
 });
 
 // ─── 0.3.257 thinking-token telemetry → AgUsage.reasoningTokens ──────────────
@@ -2940,7 +3289,13 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
 
   function streamFrame(
     event: StreamEvent,
-    opts?: { parent?: string | null; ttft?: number; userMessageUuid?: string; userMessageUuids?: string[] },
+    opts?: {
+      parent?: string | null;
+      ttft?: number;
+      userMessageUuid?: string;
+      userMessageUuids?: string[];
+      resumeReason?: string;
+    },
   ): SDKMessage {
     return {
       type: "stream_event",
@@ -2951,6 +3306,7 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
       ...(opts?.ttft !== undefined ? { ttft_ms: opts.ttft } : {}),
       ...(opts?.userMessageUuid !== undefined ? { user_message_uuid: opts.userMessageUuid } : {}),
       ...(opts?.userMessageUuids !== undefined ? { user_message_uuids: opts.userMessageUuids } : {}),
+      ...(opts?.resumeReason !== undefined ? { resume_reason: opts.resumeReason } : {}),
     };
   }
 
@@ -3496,6 +3852,119 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
         (e) => isClosedEvent(e) && e.type === "message.metadata" && e.metadata["user_message_uuids"] !== undefined,
       ),
     ).toBe(false);
+  });
+
+  // ── 0.3.268 (0.3.272 bump): `resume_reason` on the partial envelope — the
+  // THIRD leg of the turn-binding family. The upstream 0.3.269 entry changes
+  // user_message_uuid, user_message_uuids AND resume_reason under ONE rule
+  // ("stamped on a turn's first complete assistant message as well as its first
+  // stream event when partial messages are on"), so it MUST share the family's
+  // once-per-message flag: the streamed lifecycle carries once, and the
+  // content-suppressed complete frame that joins it must NOT carry again. ──
+  const STREAM_RESUME_REASON = "container_recreated";
+
+  it("carries resume_reason in the SAME single message.metadata emission as the uuid family — never twice, even when the complete frame is stamped too (0.3.268)", () => {
+    const n = createClaudeNormalizer();
+    // The 0.3.269 shape exactly: the stream event AND the first complete
+    // assistant message both stamped with all three family members.
+    const stampedComplete: SDKMessage = {
+      ...completeFrame([{ type: "text", text: "hi", citations: null }]),
+      user_message_uuid: STREAM_UMU,
+      user_message_uuids: STREAM_UMUS,
+      resume_reason: STREAM_RESUME_REASON,
+    } as SDKMessage;
+    const evs = [
+      ...pushAll(n, [
+        streamFrame(messageStart(), {
+          userMessageUuid: STREAM_UMU,
+          userMessageUuids: STREAM_UMUS,
+          resumeReason: STREAM_RESUME_REASON,
+        }),
+        streamFrame(cbStartText(0)),
+        streamFrame(cbDeltaText(0, "hi")),
+        streamFrame(cbStop(0)),
+        streamFrame(msgStop()),
+        stampedComplete,
+        resultSuccess("end_turn"),
+      ]),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    // THE regression bar: exactly ONE message.metadata event on the whole
+    // streamed lifecycle (an unguarded resume_reason write would make two).
+    const metas = evs.filter((e) => isClosedEvent(e) && e.type === "message.metadata");
+    expect(metas).toHaveLength(1);
+    expect(metas[0]).toMatchObject({
+      messageId: STREAM_ID,
+      metadata: {
+        user_message_uuid: STREAM_UMU,
+        user_message_uuids: STREAM_UMUS,
+        resume_reason: STREAM_RESUME_REASON,
+      },
+    });
+    // Bound to the reply BEFORE any content streamed.
+    const types = evs.map((e) => e.type);
+    expect(types.indexOf("message.metadata")).toBeLessThan(types.indexOf("text.start"));
+    // …and no first-block providerMetadata twin (the complete frame was suppressed).
+    const textStart = evs.find((e) => e.type === "text.start") as { providerMetadata?: unknown };
+    expect(textStart.providerMetadata).toBeUndefined();
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+  });
+
+  it("resume_reason ALONE on the stream still triggers the family carry, and still only once", () => {
+    const n = createClaudeNormalizer();
+    const stampedComplete: SDKMessage = {
+      ...completeFrame([{ type: "text", text: "hi", citations: null }]),
+      resume_reason: STREAM_RESUME_REASON,
+    } as SDKMessage;
+    const evs = [
+      ...pushAll(n, [
+        streamFrame(messageStart(), { resumeReason: STREAM_RESUME_REASON }),
+        streamFrame(cbStartText(0)),
+        streamFrame(cbDeltaText(0, "hi")),
+        streamFrame(cbStop(0)),
+        streamFrame(msgStop()),
+        stampedComplete,
+        resultSuccess("end_turn"),
+      ]),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const metas = evs.filter((e) => isClosedEvent(e) && e.type === "message.metadata");
+    expect(metas).toHaveLength(1);
+    expect((metas[0] as { metadata: unknown }).metadata).toEqual({ resume_reason: STREAM_RESUME_REASON });
+  });
+
+  it("emits NO resume_reason key when the stream lacks it (negative control — the 0.3.261 emission is byte-identical)", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...pushAll(n, [
+        streamFrame(messageStart(), { userMessageUuid: STREAM_UMU, userMessageUuids: STREAM_UMUS }),
+        streamFrame(cbStartText(0)),
+        streamFrame(cbDeltaText(0, "hi")),
+        streamFrame(cbStop(0)),
+        streamFrame(msgStop()),
+        completeFrame([{ type: "text", text: "hi", citations: null }]),
+        resultSuccess("end_turn"),
+      ]),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const metas = evs.filter((e) => isClosedEvent(e) && e.type === "message.metadata");
+    expect(metas).toHaveLength(1);
+    expect((metas[0] as { metadata: unknown }).metadata).toEqual({
+      user_message_uuid: STREAM_UMU,
+      user_message_uuids: STREAM_UMUS,
+    });
+    // …and a wholly unstamped stream carries no metadata event at all.
+    const evsBare = pushAll(createClaudeNormalizer(), [
+      ...TEXT_STREAM(),
+      completeFrame([{ type: "text", text: "hello", citations: null }]),
+      resultSuccess("end_turn"),
+    ]);
+    expect(evsBare.some((e) => e.type === "message.metadata")).toBe(false);
   });
 
   // ── 0.3.257: `thinking_tokens` inside message_delta usage — the ONLY frame

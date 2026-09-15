@@ -50,6 +50,20 @@
  * call rides as tool.start/args with no tool.done — carried as-is), and 7.0.76
  * remaps duplicate text/reasoning part ids across steps (open streams are
  * keyed per message, so a remapped id is just a new stream).
+ * ai@7.0.94 (changeset 36b3364) added streamText-side enforcement of
+ * `toolChoice` `required`/`tool`: when a step does not satisfy it, the SDK
+ * enqueues an IN-BAND `error` part carrying a `ToolChoiceViolationError` right
+ * after the model's terminal chunk. No new part type — the enforcement is only
+ * a new PRODUCER of the existing `error` part — but it yields TWO wire shapes:
+ *  - zero qualifying tool calls ⇒ `error`, `finish-step{finishReason:'error'}`,
+ *    `finish{finishReason:'error', totalUsage}`: the arm-A2 close, which now
+ *    forwards `totalUsage` onto `turn.error.usage` (the step really did burn
+ *    tokens before violating);
+ *  - a call to a DIFFERENT tool ⇒ the tool still executes and the loop runs
+ *    another step, so the run closes `turn.done{stop}`. `stashedError` is
+ *    cleared at every `finish`, so the advisory does NOT leak into that close;
+ *    this is the first shape on this facet where a standalone `error` event
+ *    precedes `message.end` on a turn that then ends successfully.
  *
  * Lossless posture (Tenet 6): `push()` never throws. Unknown part types ride
  * `ext.vercel.frame{kind, frame}` (v7 adds `custom`, `reasoning-file`,
@@ -157,7 +171,8 @@ function errFields(v: unknown): ErrorFields {
 
 /** fullStream `LanguageModelUsage` (flat tokens + detail bags — verified
  *  ai@7.0.26) → AgUsage. `cumulative` deliberately ABSENT (D1: totalUsage is
- *  carried verbatim on turn.done; per-step usage rides message.end). Spec §4
+ *  carried verbatim on the turn-terminal — `turn.done` or `turn.error`; per-step
+ *  usage rides message.end). Spec §4
  *  (draft.3): `outputTokens` is reasoning-INCLUSIVE upstream (ai normalizes
  *  every provider — Google included since v6 — to total + {text, reasoning}
  *  details), so it is copied verbatim and `outputTokenDetails.reasoningTokens`
@@ -494,12 +509,25 @@ export function createVercelNormalizer(): Normalizer {
       case "finish": {
         const t = ensureTurn();
         closeOpenMessage(); // defensive; the real wire closes via finish-step first
+        // `finish.totalUsage` is populated on BOTH branches — ai builds the part
+        // as `{finishReason: stepFinishReason, totalUsage: combinedUsage}`, and
+        // `combinedUsage` accrues every step's usage regardless of how the run
+        // ended. An errored turn therefore still reports the tokens it burned
+        // (the ai>=7.0.94 toolChoice-enforcement close is exactly this shape:
+        // finish{finishReason:'error'} with a full totalUsage). Mapped ONCE and
+        // forwarded to whichever close runs — `turn.error` carries usage on the
+        // same optional slot `turn.done` does (spec §4; openai-agents facet
+        // precedent, which fills it on its own error closes). Absent/empty
+        // totalUsage ⇒ `mapUsage` returns undefined ⇒ no `usage` key at all.
+        const usage = mapUsage(part["totalUsage"]);
         if (str(part["finishReason"]) === "error") {
           // The stashed arm-A fields (message + optional code/retriable) close
           // the turn; a bare finish{error} with no prior error part falls back.
-          a.closeTurnError(t, stashedError ?? { message: "provider error" });
+          a.closeTurnError(t, {
+            ...(stashedError ?? { message: "provider error" }),
+            ...(usage !== undefined ? { usage } : {}),
+          });
         } else {
-          const usage = mapUsage(part["totalUsage"]);
           a.closeTurnDone(t, {
             outcome: { type: "success" },
             finishReason: mapFinishReason(part["finishReason"]),

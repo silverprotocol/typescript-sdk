@@ -466,6 +466,27 @@ async function resolveOpenaiSdk() {
  * `SdkNotInstalled` for the whole facet (both sections skip together).
  * (Pre-retarget both hops went through `@iqai/adk`.)
  */
+/**
+ * vercel-ai: version-only. Unlike the other three facets this manifest declares
+ * no member inventory to diff (the TextStreamPart union is guarded by the
+ * facet's own type tests, not by a name ratchet), so the facet participates in
+ * the VERIFIED-LOG staleness check alone. Before this existed the vercel facet
+ * was absent from this gate entirely: `ai` could move 7.0.93 -> 7.0.100 with the
+ * manifest still recording 7.0.93 and nothing would say so, even though
+ * render-compat.mjs and the site's compat.json both publish that number.
+ * Adding a member inventory here is a separate design question, deliberately
+ * not bundled with closing the staleness hole.
+ */
+async function resolveVercelSdk() {
+  try {
+    const requireFromE2e = createRequire(e2ePackageJson);
+    const pkg = resolvePackageRoot(requireFromE2e, "ai");
+    return { version: pkg.version };
+  } catch (err) {
+    throw new SdkNotInstalled(String(err instanceof Error ? err.message : err));
+  }
+}
+
 async function resolveGoogleAdkSdks() {
   let adkPkg;
   try {
@@ -632,6 +653,24 @@ async function gatherInventories() {
     }
   }
 
+  const vercelManifestPath = resolve(typescriptRoot, "packages", "vercel-ai", "sdk-surface.json");
+  try {
+    const [manifest, sdk] = await Promise.all([loadManifest(vercelManifestPath), resolveVercelSdk()]);
+    verifiedChecks.push({
+      facet: "vercel-ai",
+      sdkName: "ai",
+      installedVersion: sdk.version,
+      manifestVerifiedAt: manifest.verifiedAt,
+      verifiedLog: manifest.verified,
+    });
+  } catch (err) {
+    if (err instanceof SdkNotInstalled) {
+      skips.push(`vercel-ai: SKIPPED (SDK not resolvable) — ${err.message}`);
+    } else {
+      throw err;
+    }
+  }
+
   const googleAdkManifestPath = resolve(typescriptRoot, "packages", "google-adk", "sdk-surface.json");
   try {
     const [manifest, sdk] = await Promise.all([loadManifest(googleAdkManifestPath), resolveGoogleAdkSdks()]);
@@ -790,18 +829,40 @@ async function main() {
   // stale" claim is enforced here, not merely asserted).
   findings.push(...(await checkCompatStaleness()));
 
-  // The site's frameworks page + llms.txt render from a committed
-  // site/src/data/compat.json generated off these same verified logs
-  // (site/scripts/sync-compat.mjs). Workspace-only surface: the public
-  // typescript-sdk mirror has no site/, so this check self-skips there.
+  // The site's frameworks page renders from a committed site/src/data/compat.json,
+  // and its spec badges from site/src/data/spec-version.json — BOTH generated off
+  // these same verified logs (plus core's AGJSON_VERSION) by site/scripts/sync-compat.mjs.
+  // Workspace-only surface: the public typescript-sdk mirror has no site/, so this
+  // check self-skips there.
   const siteSync = resolve(typescriptRoot, "..", "..", "site", "scripts", "sync-compat.mjs");
   if (existsSync(siteSync)) {
     try {
       execFileSync(process.execPath, [siteSync, "--check"], { stdio: "pipe" });
     } catch {
       findings.push(
-        "  site: src/data/compat.json is STALE vs the verified logs — run `node site/scripts/sync-compat.mjs` (workspace root) and commit the result",
+        "  site: src/data/compat.json or src/data/spec-version.json is STALE vs the verified logs — run `node site/scripts/sync-compat.mjs` (workspace root) and commit the result",
       );
+    }
+  }
+
+  // site/public/llms.txt is NOT generated — it is hand-maintained prose, and the
+  // comment above USED to claim this gate covered it. It did not. llms.txt names
+  // each facet's verified peer in a fixed `<peer> <version>` form, exactly the kind
+  // of hand-typed version string that goes stale silently (the hero's spec badge sat
+  // two draft revisions behind from 0.5.0 through 0.6.1 for precisely this reason).
+  // So assert the substrings directly: cheap, exact, and a deliberate reword fails
+  // loudly rather than rotting. Workspace-only, same self-skip as above.
+  const llmsTxt = resolve(typescriptRoot, "..", "..", "site", "public", "llms.txt");
+  if (existsSync(llmsTxt)) {
+    const llms = readFileSync(llmsTxt, "utf8");
+    for (const { facet, sdkName, manifestVerifiedAt } of verifiedChecks) {
+      if (typeof manifestVerifiedAt !== "string") continue;
+      const needle = `${sdkName} ${manifestVerifiedAt}`;
+      if (!llms.includes(needle)) {
+        findings.push(
+          `  site: public/llms.txt does not name "${needle}" (${facet}'s verified peer) — hand-edit the peer sentence to match`,
+        );
+      }
     }
   }
 

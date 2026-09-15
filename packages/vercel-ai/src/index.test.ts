@@ -645,6 +645,347 @@ describe("StreamProviderError carry — arm A2: SDK-synthesized finish{error}", 
   });
 });
 
+// ─── toolChoice enforcement (ai>=7.0.94, changeset 36b3364) ──────────────────
+
+/**
+ * Shape-faithful stand-in for ai>=7.0.94's `ToolChoiceViolationError` — `ai` is
+ * an optional peer this package never imports (not even as a devDependency), so
+ * the fixture mirrors the real class field-for-field: it extends `AISDKError`,
+ * which sets ONLY `name` (`AI_ToolChoiceViolationError`) and `cause` as own
+ * props, plus the subclass's own `toolChoice` / `finishReason` / `provider` /
+ * `modelId` / `content`. Note what is NOT there: no `code`, no `isRetryable` —
+ * this is an SDK-side enforcement error, not a wrapped provider frame — so
+ * `errFields` projects it to `{message}` alone (asserted below). The real
+ * class's symbol-keyed marker is JSON-invisible and irrelevant to the facet's
+ * structural read, so it is omitted. Default messages are copied verbatim from
+ * the ai@7.0.100 constructor.
+ */
+class FakeToolChoiceViolationError extends Error {
+  readonly toolChoice: { type: "required" } | { type: "tool"; toolName: string };
+  readonly finishReason: string;
+  readonly provider: string;
+  readonly modelId: string;
+  readonly content: unknown[];
+  constructor(fields: {
+    toolChoice: { type: "required" } | { type: "tool"; toolName: string };
+    finishReason: string;
+    provider: string;
+    modelId: string;
+    content: unknown[];
+  }) {
+    super(
+      fields.toolChoice.type === "required"
+        ? "Model response did not contain a tool call even though tool choice was required."
+        : `Model response did not contain a call to the required tool '${fields.toolChoice.toolName}'.`,
+    );
+    this.name = "AI_ToolChoiceViolationError";
+    this.toolChoice = fields.toolChoice;
+    this.finishReason = fields.finishReason;
+    this.provider = fields.provider;
+    this.modelId = fields.modelId;
+    this.content = fields.content;
+  }
+}
+
+const VIOLATION_REQUIRED_MESSAGE =
+  "Model response did not contain a tool call even though tool choice was required.";
+const VIOLATION_TOOL_MESSAGE =
+  "Model response did not contain a call to the required tool 'lookup'.";
+
+/**
+ * FIXTURE-ONLY, BY CONSTRUCTION — do not hunt for a live cassette. Our e2e
+ * capture config never sets `toolChoice`: the agent leaves `prepareToolChoice`
+ * at its `'auto'` default, and ai only enforces `required` / `{type:'tool'}`,
+ * so this producer of the `error` part cannot fire on any captured run. The
+ * wire below is transcribed from the ai@7.0.100 runtime rather than a capture:
+ *  - the violation check runs immediately after the model's terminal chunk
+ *    (`model-call-end`) and enqueues `{type:'error', error: ToolChoiceViolationError}`;
+ *  - the step transform turns that `error` into `stepFinishReason = 'error'`
+ *    while KEEPING the model's own `rawFinishReason` — hence the
+ *    `finishReason:'error'` + `rawFinishReason:'stop'|'tool-calls'` pairing;
+ *  - `finish` is built as `{finishReason: stepFinishReason, rawFinishReason,
+ *    totalUsage: combinedUsage}`, and `combinedUsage` accrues the step's real
+ *    usage regardless of the violation — the tokens were burned.
+ */
+describe("toolChoice enforcement shape A — required/tool with NO qualifying tool call (ai>=7.0.94)", () => {
+  const VIOLATION = () =>
+    new FakeToolChoiceViolationError({
+      toolChoice: { type: "required" },
+      finishReason: "stop",
+      provider: "openai.responses",
+      modelId: "gpt-5-mini",
+      content: [{ type: "text", text: "I'll just answer directly." }],
+    });
+
+  // Everything up to (but excluding) the terminal `finish` part.
+  const HEAD = [
+    { type: "start" },
+    { type: "start-step", request: {}, warnings: [] },
+    { type: "text-start", id: "t1" },
+    { type: "text-delta", id: "t1", text: "I'll just answer directly." },
+    { type: "text-end", id: "t1" },
+    { type: "error", error: VIOLATION() },
+    {
+      type: "finish-step",
+      finishReason: "error", // overwritten by the error chunk…
+      rawFinishReason: "stop", // …while the model's own raw reason survives
+      usage: USAGE,
+      response: RESPONSE_S1,
+    },
+  ];
+  const parts = [
+    ...HEAD,
+    { type: "finish", finishReason: "error", rawFinishReason: "stop", totalUsage: USAGE },
+  ];
+
+  it("routes to the finish{error} branch: full ordered event list, advisory error before message.end", () => {
+    const out = run(parts);
+    expect(types(out)).toEqual([
+      "turn.start",
+      "step.start",
+      "message.start",
+      "text.start",
+      "text.delta",
+      "text.end",
+      "error",
+      "message.metadata",
+      "message.end",
+      "step.done",
+      "turn.error",
+    ]);
+    expectAllParse(out);
+  });
+
+  it("the advisory is message-ONLY — ToolChoiceViolationError exposes no code/isRetryable", () => {
+    const out = run(parts);
+    expect(out.find((e) => e.type === "error")).toStrictEqual({
+      type: "error",
+      seq: 6,
+      message: VIOLATION_REQUIRED_MESSAGE,
+      turnId: "turn_vercel_1",
+    });
+  });
+
+  it("MIRROR — turn.error forwards finish.totalUsage, mapped exactly as turn.done maps it", () => {
+    const out = run(parts);
+    expect(out.find((e) => e.type === "turn.error")).toStrictEqual({
+      type: "turn.error",
+      seq: 10,
+      turnId: "turn_vercel_1",
+      message: VIOLATION_REQUIRED_MESSAGE,
+      usage: {
+        inputTokens: 5,
+        outputTokens: 7,
+        totalTokens: 12,
+        cacheReadTokens: 2,
+        cacheWriteTokens: 0,
+        reasoningTokens: 3,
+      },
+    });
+    // same mapper as the success close — identical bag off the identical bag
+    const done = run([
+      ...HEAD.slice(0, -1),
+      { type: "finish-step", finishReason: "stop", usage: USAGE, response: RESPONSE_S1 },
+      { type: "finish", finishReason: "stop", totalUsage: USAGE },
+    ]).find((e) => e.type === "turn.done") as { usage?: unknown };
+    expect(done.usage).toStrictEqual(
+      (out.find((e) => e.type === "turn.error") as { usage?: unknown }).usage,
+    );
+    // the per-step message.end bag is untouched by the carry
+    const msgEnd = out.find((e) => e.type === "message.end") as { usage?: unknown };
+    expect(msgEnd.usage).toStrictEqual(done.usage);
+  });
+
+  it("NEGATIVE CONTROL — totalUsage absent ⇒ NO usage key; output byte-identical to the pre-carry shape", () => {
+    const bare = run([...HEAD, { type: "finish", finishReason: "error", rawFinishReason: "stop" }]);
+    // every event before the terminal is untouched by the carry
+    expect(bare.slice(0, -1)).toStrictEqual(run(parts).slice(0, -1));
+    const terminal = bare.at(-1)!;
+    expect(terminal).toStrictEqual({
+      type: "turn.error",
+      seq: 10,
+      turnId: "turn_vercel_1",
+      message: VIOLATION_REQUIRED_MESSAGE,
+    });
+    expect("usage" in terminal).toBe(false);
+    expectAllParse(bare);
+  });
+
+  it("NEGATIVE CONTROL — an all-null totalUsage bag stays absent, never an empty object", () => {
+    const nulled = run([
+      ...HEAD,
+      {
+        type: "finish",
+        finishReason: "error",
+        rawFinishReason: "stop",
+        // ai's createNullLanguageModelUsage(): every slot present-but-undefined
+        totalUsage: {
+          inputTokens: undefined,
+          outputTokens: undefined,
+          totalTokens: undefined,
+          inputTokenDetails: {},
+          outputTokenDetails: {},
+        },
+      },
+    ]);
+    const terminal = nulled.at(-1)!;
+    expect("usage" in terminal).toBe(false);
+    expect(terminal).toStrictEqual({
+      type: "turn.error",
+      seq: 10,
+      turnId: "turn_vercel_1",
+      message: VIOLATION_REQUIRED_MESSAGE,
+    });
+  });
+});
+
+describe("toolChoice enforcement shape B — {type:'tool'} satisfied by the WRONG tool (ai>=7.0.94)", () => {
+  const VIOLATION = () =>
+    new FakeToolChoiceViolationError({
+      toolChoice: { type: "tool", toolName: "lookup" },
+      finishReason: "tool-calls",
+      provider: "openai.responses",
+      modelId: "gpt-5-mini",
+      content: [{ type: "tool-call", toolCallId: "call_1", toolName: "echo" }],
+    });
+
+  /**
+   * FIXTURE-ONLY (same reason as shape A — capture config never sets
+   * toolChoice). Ordering transcribed from the ai@7.0.100 runtime:
+   * `executeToolsFromStream` runs the step's tools inside its own
+   * `model-call-end` transform and AWAITS them, so `tool-result` is enqueued
+   * BEFORE the violation `error` reaches the step transform; `finish-step` is
+   * only produced in that transform's flush, so it always trails both. The
+   * wrong-tool call still executes and still counts as a client tool output, so
+   * the loop is not finished and a SECOND step runs — here with `prepareStep`
+   * having relaxed toolChoice back to `'auto'` (toolChoice is re-read per step),
+   * which is why the run ends `finish{finishReason:'stop'}` and the facet takes
+   * the finish arm's SUCCESS branch.
+   */
+  const parts = [
+    { type: "start" },
+    { type: "start-step", request: {}, warnings: [] },
+    { type: "tool-input-start", id: "call_1", toolName: "echo", dynamic: true },
+    { type: "tool-input-delta", id: "call_1", delta: '{"text":"hi"}' },
+    { type: "tool-input-end", id: "call_1" },
+    { type: "tool-call", toolCallId: "call_1", toolName: "echo", input: { text: "hi" }, dynamic: true },
+    {
+      type: "tool-result",
+      toolCallId: "call_1",
+      toolName: "echo",
+      input: { text: "hi" },
+      output: { result: "echo: hi" },
+      dynamic: true,
+    },
+    { type: "error", error: VIOLATION() },
+    {
+      type: "finish-step",
+      finishReason: "error",
+      rawFinishReason: "tool_calls",
+      usage: USAGE,
+      response: RESPONSE_S1,
+    },
+    { type: "start-step", request: {}, warnings: [] },
+    { type: "text-start", id: "t1" },
+    { type: "text-delta", id: "t1", text: "echo: hi" },
+    { type: "text-end", id: "t1" },
+    {
+      type: "finish-step",
+      finishReason: "stop",
+      rawFinishReason: "stop",
+      usage: { inputTokens: 9, outputTokens: 4, totalTokens: 13 },
+      response: { id: "resp-s2", timestamp: "1970-01-01T00:00:00.000Z", modelId: "mock-model" },
+    },
+    {
+      type: "finish",
+      finishReason: "stop",
+      rawFinishReason: "stop",
+      totalUsage: { inputTokens: 14, outputTokens: 11, totalTokens: 25 },
+    },
+  ];
+
+  it("FULL ORDERED event list — a standalone `error` precedes message.end on a turn that then closes turn.done", () => {
+    const out = run(parts);
+    // The ordering IS the claim: this is the first shape on this facet where an
+    // advisory `error` rides inside a step that is followed by another step and
+    // a SUCCESSFUL turn close.
+    expect(types(out)).toEqual([
+      "turn.start",
+      "step.start",
+      "message.start",
+      "tool.start",
+      "tool.args.delta",
+      "tool.args.assembled",
+      "tool.done",
+      "error",
+      "message.metadata",
+      "message.end",
+      "step.done",
+      "step.start",
+      "message.start",
+      "text.start",
+      "text.delta",
+      "text.end",
+      "message.metadata",
+      "message.end",
+      "step.done",
+      "turn.done",
+    ]);
+    expectAllParse(out);
+  });
+
+  it("the stashed error does NOT leak into the successful close (finish clears it)", () => {
+    const out = run(parts);
+    expect(types(out)).not.toContain("turn.error");
+    const done = out.find((e) => e.type === "turn.done")!;
+    expect(done).toStrictEqual({
+      type: "turn.done",
+      seq: 19,
+      turnId: "turn_vercel_1",
+      outcome: { type: "success" },
+      finishReason: "stop",
+      usage: { inputTokens: 14, outputTokens: 11, totalTokens: 25 },
+    });
+    expect("message" in done).toBe(false);
+    expect("code" in done).toBe(false);
+    expect("retriable" in done).toBe(false);
+  });
+
+  it("the violating step still seals normally: the wrong tool's result rides, step 1 keeps its own usage + raw reason", () => {
+    const out = run(parts);
+    const err = out.find((e) => e.type === "error") as { message: string };
+    expect(err.message).toBe(VIOLATION_TOOL_MESSAGE);
+    const toolDone = out.find((e) => e.type === "tool.done") as {
+      outcome: string;
+      structuredContent?: unknown;
+    };
+    expect(toolDone.outcome).toBe("ok");
+    expect(toolDone.structuredContent).toStrictEqual({ result: "echo: hi" });
+    const meta = out.find((e) => e.type === "message.metadata") as {
+      metadata: Record<string, unknown>;
+    };
+    expect(meta.metadata["rawFinishReason"]).toBe("tool_calls"); // model's own reason survives
+    const msgEnds = out.filter((e) => e.type === "message.end") as { usage?: unknown }[];
+    expect(msgEnds[0]!.usage).toStrictEqual({
+      inputTokens: 5,
+      outputTokens: 7,
+      totalTokens: 12,
+      cacheReadTokens: 2,
+      cacheWriteTokens: 0,
+      reasoningTokens: 3,
+    });
+  });
+
+  it("reduces to ONE successful turn with two messages (tool-call + tool-result blocks intact)", () => {
+    const { messages, turns } = reduce(run(parts));
+    expect(turns).toHaveLength(1);
+    expect(messages).toHaveLength(2);
+    const blocks = messages.flatMap((m) => m.content);
+    expect(blocks.some((b) => b.type === "tool-call")).toBe(true);
+    expect(blocks.some((b) => b.type === "tool-result")).toBe(true);
+  });
+});
+
 describe("StreamProviderError carry — arm B: error then EOF (flush self-seal)", () => {
   it("both the advisory and the self-sealed turn.error carry code + retriable", () => {
     const out = run([{ type: "start" }, { type: "error", error: RATE_LIMIT() }]);

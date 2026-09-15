@@ -2,38 +2,38 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732",
-    "threadId": "032c21dd-91ac-45ba-aa49-7378533f9732"
+    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
+    "threadId": "7d57bfa0-74ab-4dc1-88de-50f813a99fcb"
   },
   {
     "type": "message.start",
     "seq": 1,
-    "id": "msg_011CejsF6gLtS4CzAXaKvYer",
-    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732",
-    "threadId": "032c21dd-91ac-45ba-aa49-7378533f9732",
+    "id": "msg_011Cf4Pip5Y4PX5CR77yMRUf",
+    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
+    "threadId": "7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
     "role": "assistant",
     "model": "claude-sonnet-5"
   },
   {
     "type": "tool.start",
     "seq": 2,
-    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732",
-    "toolCallId": "toolu_01KK1FqDqQLMjwKg1mp7PuQd",
+    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
+    "toolCallId": "toolu_01U7ucEAeX4QcdcQKw9rTioh",
     "name": "mcp__cards__render_card",
     "index": 0,
-    "messageId": "msg_011CejsF6gLtS4CzAXaKvYer",
+    "messageId": "msg_011Cf4Pip5Y4PX5CR77yMRUf",
     "providerExecuted": false
   },
   {
     "type": "tool.args.delta",
     "seq": 3,
-    "toolCallId": "toolu_01KK1FqDqQLMjwKg1mp7PuQd",
+    "toolCallId": "toolu_01U7ucEAeX4QcdcQKw9rTioh",
     "delta": "{\"title\":\"Hello\",\"body\":\"World\"}"
   },
   {
     "type": "tool.args.assembled",
     "seq": 4,
-    "toolCallId": "toolu_01KK1FqDqQLMjwKg1mp7PuQd",
+    "toolCallId": "toolu_01U7ucEAeX4QcdcQKw9rTioh",
     "input": {
       "title": "Hello",
       "body": "World"
@@ -42,20 +42,20 @@
   {
     "type": "message.end",
     "seq": 5,
-    "id": "msg_011CejsF6gLtS4CzAXaKvYer",
+    "id": "msg_011Cf4Pip5Y4PX5CR77yMRUf",
     "usage": {
       "inputTokens": 2,
       "outputTokens": 23,
       "cacheReadTokens": 0,
-      "cacheWriteTokens": 2083,
+      "cacheWriteTokens": 2217,
       "cumulative": true
     }
   },
   {
     "type": "tool.done",
     "seq": 6,
-    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732",
-    "toolCallId": "toolu_01KK1FqDqQLMjwKg1mp7PuQd",
+    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
+    "toolCallId": "toolu_01U7ucEAeX4QcdcQKw9rTioh",
     "content": [
       {
         "type": "text",
@@ -64,7 +64,7 @@
     ],
     "outcome": "ok",
     "isError": false,
-    "messageId": "toolu_01KK1FqDqQLMjwKg1mp7PuQd:result",
+    "messageId": "toolu_01U7ucEAeX4QcdcQKw9rTioh:result",
     "uiData": {
       "title": "Hello",
       "body": "World",
@@ -83,32 +83,32 @@
   {
     "type": "message.start",
     "seq": 7,
-    "id": "msg_011CejsFDjjpKZiQWtJWqqNo",
-    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732",
-    "threadId": "032c21dd-91ac-45ba-aa49-7378533f9732",
+    "id": "msg_011Cf4PivS2ZCgEUGSqY8VZa",
+    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
+    "threadId": "7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
     "role": "assistant",
     "model": "claude-sonnet-5"
   },
   {
     "type": "tool.start",
     "seq": 8,
-    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732",
-    "toolCallId": "toolu_013jofQ2z7T7DnpRTJcdx8yR",
+    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
+    "toolCallId": "toolu_01BHR58mzABAm1coAL152gDk",
     "name": "mcp__cards__update_card",
     "index": 0,
-    "messageId": "msg_011CejsFDjjpKZiQWtJWqqNo",
+    "messageId": "msg_011Cf4PivS2ZCgEUGSqY8VZa",
     "providerExecuted": false
   },
   {
     "type": "tool.args.delta",
     "seq": 9,
-    "toolCallId": "toolu_013jofQ2z7T7DnpRTJcdx8yR",
+    "toolCallId": "toolu_01BHR58mzABAm1coAL152gDk",
     "delta": "{\"title\":\"Hello\",\"body\":\"Updated World\"}"
   },
   {
     "type": "tool.args.assembled",
     "seq": 10,
-    "toolCallId": "toolu_013jofQ2z7T7DnpRTJcdx8yR",
+    "toolCallId": "toolu_01BHR58mzABAm1coAL152gDk",
     "input": {
       "title": "Hello",
       "body": "Updated World"
@@ -117,11 +117,11 @@
   {
     "type": "message.end",
     "seq": 11,
-    "id": "msg_011CejsFDjjpKZiQWtJWqqNo",
+    "id": "msg_011Cf4PivS2ZCgEUGSqY8VZa",
     "usage": {
       "inputTokens": 2,
       "outputTokens": 24,
-      "cacheReadTokens": 2083,
+      "cacheReadTokens": 2217,
       "cacheWriteTokens": 149,
       "cumulative": true
     }
@@ -129,8 +129,8 @@
   {
     "type": "tool.done",
     "seq": 12,
-    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732",
-    "toolCallId": "toolu_013jofQ2z7T7DnpRTJcdx8yR",
+    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
+    "toolCallId": "toolu_01BHR58mzABAm1coAL152gDk",
     "content": [
       {
         "type": "text",
@@ -139,7 +139,7 @@
     ],
     "outcome": "ok",
     "isError": false,
-    "messageId": "toolu_013jofQ2z7T7DnpRTJcdx8yR:result",
+    "messageId": "toolu_01BHR58mzABAm1coAL152gDk:result",
     "uiData": {
       "title": "Hello",
       "body": "Updated World",
@@ -158,42 +158,42 @@
   {
     "type": "message.start",
     "seq": 13,
-    "id": "msg_011CejsFJobMdsaHj2ChXASs",
-    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732",
-    "threadId": "032c21dd-91ac-45ba-aa49-7378533f9732",
+    "id": "msg_011Cf4Pj12N2wJv4uRAhwHGh",
+    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
+    "threadId": "7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
     "role": "assistant",
     "model": "claude-sonnet-5"
   },
   {
     "type": "text.start",
     "seq": 14,
-    "id": "msg_011CejsFJobMdsaHj2ChXASs:text:0",
-    "messageId": "msg_011CejsFJobMdsaHj2ChXASs",
-    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732"
+    "id": "msg_011Cf4Pj12N2wJv4uRAhwHGh:text:0",
+    "messageId": "msg_011Cf4Pj12N2wJv4uRAhwHGh",
+    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb"
   },
   {
     "type": "text.delta",
     "seq": 15,
-    "id": "msg_011CejsFJobMdsaHj2ChXASs:text:0",
-    "messageId": "msg_011CejsFJobMdsaHj2ChXASs",
+    "id": "msg_011Cf4Pj12N2wJv4uRAhwHGh:text:0",
+    "messageId": "msg_011Cf4Pj12N2wJv4uRAhwHGh",
     "delta": "The card was rendered and then updated successfully. Final state: **revision 2** — title \"Hello\", body \"Updated World\".",
-    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732"
+    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb"
   },
   {
     "type": "text.end",
     "seq": 16,
-    "id": "msg_011CejsFJobMdsaHj2ChXASs:text:0",
-    "messageId": "msg_011CejsFJobMdsaHj2ChXASs",
-    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732"
+    "id": "msg_011Cf4Pj12N2wJv4uRAhwHGh:text:0",
+    "messageId": "msg_011Cf4Pj12N2wJv4uRAhwHGh",
+    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb"
   },
   {
     "type": "message.end",
     "seq": 17,
-    "id": "msg_011CejsFJobMdsaHj2ChXASs",
+    "id": "msg_011Cf4Pj12N2wJv4uRAhwHGh",
     "usage": {
       "inputTokens": 2,
       "outputTokens": 1,
-      "cacheReadTokens": 2232,
+      "cacheReadTokens": 2366,
       "cacheWriteTokens": 155,
       "cumulative": true
     }
@@ -203,6 +203,7 @@
     "type": "ext.anthropic.result-meta",
     "fastModeDisabledReason": "sdk_opt_in_required",
     "queuedTurnCount": 0,
+    "resultIndex": 0,
     "subagentStats": {
       "spawned": 0,
       "requested": {
@@ -243,7 +244,7 @@
   {
     "type": "turn.done",
     "seq": 19,
-    "turnId": "turn_032c21dd-91ac-45ba-aa49-7378533f9732",
+    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
     "outcome": {
       "type": "success",
       "result": "The card was rendered and then updated successfully. Final state: **revision 2** — title \"Hello\", body \"Updated World\"."
@@ -252,11 +253,11 @@
     "usage": {
       "inputTokens": 6,
       "outputTokens": 197,
-      "cacheReadTokens": 4315,
-      "cacheWriteTokens": 2387,
+      "cacheReadTokens": 4583,
+      "cacheWriteTokens": 2521,
       "reasoningTokens": 0,
       "serverToolRequests": 0,
-      "costUsd": 0.0098005,
+      "costUsd": 0.010189100000000001,
       "cumulative": true,
       "byModel": {
         "claude-haiku-4-5-20251001": {
@@ -272,10 +273,10 @@
         "claude-sonnet-5": {
           "inputTokens": 6,
           "outputTokens": 197,
-          "cacheReadTokens": 4315,
-          "cacheWriteTokens": 2387,
+          "cacheReadTokens": 4583,
+          "cacheWriteTokens": 2521,
           "reasoningTokens": 0,
-          "costUsd": 0.008812500000000001,
+          "costUsd": 0.0092011,
           "serverToolRequests": 0,
           "cumulative": true
         }

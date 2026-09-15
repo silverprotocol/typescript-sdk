@@ -528,6 +528,21 @@ export interface OpenAIToolSearchCallItem {
 export interface OpenAIToolSearchOutputItem {
   type: "tool_search_output";
   id?: string;
+  /**
+   * agents-core 0.18.0 (`ToolSearchOutputItem.toolSearchAgentName`,
+   * `dist/types/protocol.mjs`:426-432 / `dist/types/protocol.d.ts`:531-534 —
+   * the ONLY protocol-schema addition across the whole 0.17.0→0.18.0 span, and
+   * present on the OUTPUT item only, never on `ToolSearchCallItem`). Upstream
+   * doc: "SDK-only discovery attribution, excluded from provider requests.
+   * Names must identify the same logical Agent across reused history. Missing
+   * or ambiguous ownership requires a new search; this field does not grant
+   * tool execution permissions." An SDK-side field, so its name is already
+   * camelCase on the wire we consume (like `executionStatus`/`callerId`) —
+   * carried VERBATIM on `tool.done` providerMetadata, never re-cased. Not
+   * reachable from any corpus scenario (no scenario configures tool_search), so
+   * it is fixture-tested only.
+   */
+  toolSearchAgentName?: string;
   call_id?: string | null;
   callId?: string | null;
   execution?: "client" | "server";
@@ -842,16 +857,39 @@ interface OpenAIResponseUsage {
 }
 
 /** openai-node `ResponseCompletedEvent`/incomplete — `response.incomplete_details`
- *  is snake_case. Carried via the `model` carrier. */
+ *  is snake_case. Carried via the `model` carrier.
+ *
+ *  `status` is the FULL openai-node `ResponseStatus` union and OPTIONAL, exactly
+ *  as upstream declares it (openai 7.15.0 `resources/responses/responses.d.ts`:
+ *  6186 `ResponseStatus = 'completed'|'failed'|'in_progress'|'cancelled'|
+ *  'queued'|'incomplete'`; :997 `status?: ResponseStatus` on `Response`; :1652-
+ *  1656 `ResponseCompletedEvent.response: Response` — a `response.completed`
+ *  event carries a FULL `Response`, not a pre-filtered success). The previous
+ *  `status: "completed" | "incomplete"` narrowing was wire-untrue, and it HID a
+ *  wrong mapping: a `response.completed` whose response failed or was cancelled
+ *  used to close the turn as a SUCCESS. See the `response.completed` arm. */
 interface OpenAIResponsesCompleted {
   type: "response.completed" | "response.incomplete";
   response: {
     id: string;
-    status: "completed" | "incomplete";
+    status?: "completed" | "failed" | "in_progress" | "cancelled" | "queued" | "incomplete";
     incomplete_details?: { reason?: string };
     usage?: OpenAIResponseUsage;
   };
 }
+
+/** The `ResponseStatus` members that ASSERT the response did not succeed
+ *  (openai 7.15.0 `responses.d.ts`:6186). `in_progress`/`queued` are
+ *  non-terminal — a `response.completed` carrying one is contradictory wire that
+ *  asserts no failure — and an unrecognized string is a server-added member of
+ *  an open enum; both keep the pre-existing success path rather than have the
+ *  facet invent an outcome (Tenet 6). Mirrors — and deliberately outgrows by one
+ *  member — @openai/agents-openai 0.18.0's own
+ *  `getUnsuccessfulResponseTerminalType` (`dist/openaiResponsesModel.mjs`:851-
+ *  863: `status === 'failed' || status === 'incomplete'`): a `cancelled`
+ *  response is equally not a successful assistant turn, and AgJSON has no other
+ *  channel that would record it. */
+const UNSUCCESSFUL_RESPONSE_STATUSES: ReadonlySet<string> = new Set(["failed", "cancelled", "incomplete"]);
 
 /** openai-node `ResponseOutputItemAddedEvent` — fired when a new output item starts.
  *  When `item.type === "function_call"`, this is the AUTHORITATIVE tool-start source
@@ -906,7 +944,9 @@ interface OpenAIResponsesFailed {
   };
 }
 
-/** A top-level streaming error event (non-terminal advisory, spec §4). */
+/** A top-level streaming error event (spec §4 bare `error`). Non-terminal on
+ *  OUR side; TERMINAL upstream from @openai/agents-openai 0.17.1 — see the
+ *  `case "error"` arm for what that changes about the surrounding stream. */
 interface OpenAIResponsesError {
   type: "error";
   message: string;
@@ -1572,10 +1612,22 @@ export function createOpenaiNormalizer(): Normalizer {
         const textStreamIds = Array.from(openTextStreams);
         const reason = ev.response.incomplete_details?.reason;
         const usage = mapUsage(ev.response.usage);
+        // `status` is OPTIONAL upstream and its enum is OPEN ("clients must
+        // accept additional values"), so it is read through `unknown` + a typeof
+        // guard rather than trusted through the declared union — this is the
+        // deserialization boundary (`push` takes `JsonValue`; the structural
+        // guard narrows only the OUTER discriminant). Absent, "completed", a
+        // non-terminal member, or an unrecognized server-added string all yield
+        // `undefined` here and leave the pre-existing branches byte-identical.
+        const rawStatus: unknown = ev.response.status;
+        const unsuccessfulStatus =
+          typeof rawStatus === "string" && UNSUCCESSFUL_RESPONSE_STATUSES.has(rawStatus) ? rawStatus : undefined;
         // Decision tree (mirrors the canonical model, A1):
         //   refusal recorded         → closeTurnDone success, finishReason:"refusal"
         //   content_filter           → closeTurnDone error-outcome + safety signal
         //   any other incomplete     → closeTurnError{code:reason, usage}
+        //   completed, status failed/
+        //     cancelled/incomplete   → closeTurnError{code:status, usage}
         //   plain completed          → closeTurnDone success
         // Task 4b: every closeTurnDone arm below routes through
         // `finishOrDeferRound` — a round with pending tool results stashes its
@@ -1601,6 +1653,38 @@ export function createOpenaiNormalizer(): Normalizer {
           a.closeTurnError(currentTurnId, {
             message: reason ?? "incomplete",
             ...(reason !== undefined ? { code: reason } : {}),
+            ...(usage !== undefined ? { usage } : {}),
+          });
+        } else if (unsuccessfulStatus !== undefined) {
+          // A `response.completed` event whose response did NOT complete
+          // (`status` failed / cancelled / incomplete — openai 7.15.0
+          // responses.d.ts:1652-1656 + :997 + :6186). Closing that round as a
+          // success is a WRONG MAPPING, not a drop: the status is the
+          // authoritative outcome and nothing else on this event contradicts it.
+          // @openai/agents-openai 0.17.1+ now agrees — it rejects unsuccessful
+          // terminal states (0.18.0 `dist/openaiResponsesModel.mjs`:851-876) —
+          // but it yields the raw `model` carrier for this event BEFORE throwing
+          // (:1338+), so by the time the run aborts this facet has already
+          // decided the close; it must therefore decide it correctly HERE.
+          // Carries the status as the error `code`, the same shape the
+          // `response.incomplete` branch above uses for
+          // `incomplete_details.reason`; `message` mirrors it because this arm
+          // has no free-text message on the wire (unlike `response.failed`'s
+          // `error.message`). ONE exception, for code fidelity: a
+          // self-contradictory `response.completed` that reports
+          // `status:"incomplete"` AND carries `incomplete_details.reason`
+          // prefers the reason, so the code matches byte-for-byte what the
+          // `response.incomplete` branch above would have emitted for the same
+          // payload — a consumer switching on `code` must not see a coarser
+          // value merely because the producer mislabelled the event type.
+          // Placed LAST among the error branches so refusal, content_filter and
+          // `response.incomplete` keep their exact prior precedence and output.
+          const unsuccessfulCode =
+            unsuccessfulStatus === "incomplete" ? (reason ?? unsuccessfulStatus) : unsuccessfulStatus;
+          endOpenStreamsAndCloseMessage();
+          a.closeTurnError(currentTurnId, {
+            message: unsuccessfulCode,
+            code: unsuccessfulCode,
             ...(usage !== undefined ? { usage } : {}),
           });
         } else {
@@ -1643,9 +1727,30 @@ export function createOpenaiNormalizer(): Normalizer {
         return;
       }
       case "error": {
-        // Top-level NON-terminal advisory (spec §4 bare `error`). It does NOT close
-        // the turn — surface it on the lossless vendor channel without disturbing the
-        // open response lifecycle.
+        // Top-level bare `error` (spec §4). Mapping (UNCHANGED): surface it on the
+        // lossless vendor channel and do NOT close the turn — this event carries no
+        // response id, no usage and no outcome, so synthesizing a terminal close
+        // here would fabricate one (Tenet 6).
+        //
+        // What DID change is the stream around it. Through @openai/agents-openai
+        // 0.17.0 a bare `error` was a genuinely non-terminal advisory: the stream
+        // continued and the response still closed on its own terminal event. From
+        // 0.17.1 it is TERMINAL upstream — `error` is a member of
+        // `TERMINAL_RESPONSES_STREAM_EVENT_TYPES` and
+        // `getUnsuccessfulResponseTerminalType` returns it unconditionally (0.18.0
+        // `dist/openaiResponsesModel.mjs`:840-863), so the run ABORTS: the loop
+        // stashes a `ModelBehaviorError` and throws it once the stream ends
+        // (:1276-1294, :1344-1345). The raw `model` carrier for this very event is
+        // still yielded first (:1338+, unconditional), so this arm still runs.
+        //
+        // Consequence on 0.17.1+: no `response.completed`/`.failed`/`.incomplete`
+        // ever follows, so the round degrades to `ext.openai.error` PLUS the
+        // engine's INV-FLUSH close of the dangling turn —
+        // `turn.abort{reason:"stream-truncated"}` (audit M21) — and a `turn.error`
+        // materializes only once the host feeds the `__host_error__` sentinel for
+        // the thrown `ModelBehaviorError` (see `driveHostError`). NOTE: the
+        // `response.failed` arm below is UNAFFECTED by 0.17.1 — it was already a
+        // terminal event at 0.17.0 and still closes the turn itself.
         a.emitExt("openai", "error", {
           message: ev.message,
           ...(ev.code !== undefined ? { code: ev.code } : {}),
@@ -2203,10 +2308,24 @@ export function createOpenaiNormalizer(): Normalizer {
     }
     const content: AgBlock[] = [{ type: "data", name: "tool_search_results", data: JsonValue.parse(rawItem.tools) }];
     const doneTurnId = resolvePendingTurnId(toolCallId);
+    // agents-core 0.18.0 discovery attribution (`toolSearchAgentName`) — the
+    // ONE protocol delta in the 0.17.0→0.18.0 span. Carried verbatim on the
+    // tool lifecycle that already surfaces this search's attribution, following
+    // the `executionStatus` precedent (`tool.done` providerMetadata, dropped
+    // entirely when absent — `openaiProviderMeta` returns `undefined` for an
+    // all-undefined bag, so an output without it is byte-identical to the
+    // pre-0.18.0 emission). Read through `unknown` + a typeof guard: this is
+    // the deserialization boundary, where a non-string would otherwise reach
+    // `AgProviderMeta.parse`.
+    const rawAgentName: unknown = rawItem.toolSearchAgentName;
+    const searchMeta = openaiProviderMeta({
+      toolSearchAgentName: typeof rawAgentName === "string" ? rawAgentName : undefined,
+    });
     a.toolDone({
       toolCallId,
       content,
       outcome: "ok",
+      ...(searchMeta !== undefined ? { providerMetadata: searchMeta } : {}),
       ...(doneTurnId !== undefined ? { turnId: doneTurnId } : {}),
     });
     drainPendingTool(toolCallId, doneTurnId);
