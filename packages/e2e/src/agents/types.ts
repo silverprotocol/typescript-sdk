@@ -55,6 +55,12 @@ export interface CaptureRunInput {
    * capture without this can never produce `thought: true` parts.
    */
   thinkingLevel?: "low" | "medium" | "high";
+  /**
+   * Claude thinking display (claude-agent-sdk only): sets the Agent SDK's
+   * `thinking: { type: "adaptive", display }`. Agents without the concept ignore
+   * it. See scenario.ts for why "summarized" is required for streamed thinking.
+   */
+  thinkingDisplay?: "summarized" | "omitted";
 }
 
 /** The LLM/process boundary contract every capture agent implements. */

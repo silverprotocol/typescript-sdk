@@ -647,6 +647,69 @@ function readNarrationBlockIndexes(v: unknown): number[] | undefined {
     : undefined;
 }
 
+// `api_error_code` (CLI 2.1.280, @internal) — UNDECLARED in sdk.d.ts at 0.3.280
+// on both frames that carry it (the API-error assistant frame and the
+// `is_error: true` success result), so it is read through the JSON boundary.
+// The CLI copies the server's error.details.error_code through only when it is
+// an identifier (^[a-z][a-z0-9_]{0,63}$); the facet does not re-validate the
+// producer's invariant, it only refuses a non-string.
+function readApiErrorCode(v: unknown): string | undefined {
+  return isJsonObject(v) && typeof v["api_error_code"] === "string" ? v["api_error_code"] : undefined;
+}
+
+// `startup_failure_reason` (0.3.274) — declared on SDKResultError ONLY, so on
+// the result union it is reachable only through the JSON boundary.
+function readStartupFailureReason(v: unknown): string | undefined {
+  return isJsonObject(v) && typeof v["startup_failure_reason"] === "string"
+    ? v["startup_failure_reason"]
+    : undefined;
+}
+
+// `turn.error.retriable` for a result that carries `startup_failure_reason`.
+// The type's own lead sentence frames the whole enum as a refusal to start:
+// "Why Claude Code refused to start, so a host can offer the fix instead of a
+// retry." So a PRESENT reason means NOT retriable, except for the values
+// upstream itself EXPLICITLY describes as retriable. At 0.3.280 that set is
+// exactly one value:
+//  - `worktree_unverified`: "the session's worktree could not be verified
+//    right now; retrying may succeed."
+// Three more values read as if they might clear on their own, but upstream
+// never says a retry helps, so each is a deliberate non-retriable — explicit
+// false-by-omission (the model_not_found / account_on_hold voice in the
+// assistant-error branch), never an oversight:
+//  - `org_verify_failed`: "the sign-in's organization could not be verified
+//    against the pin (network, or a revoked token)." A revoked token is not
+//    transient, and the doc does not tell the two causes apart.
+//  - `remote_settings_required_unavailable`: "managed settings the
+//    organization requires could not be loaded." No retry guidance; whether
+//    the load failure is transient is not stated.
+//  - `session_held_by_background`: "the conversation to resume or continue is
+//    running as a background session." Nothing says the hold clears, or when.
+// Every other documented value (org_pin_api_key_conflict, org_pin_mismatch,
+// managed_settings_invalid, gateway_signin_required, gateway_access_denied,
+// proxy_invalid, temp_dir_unusable, cwd_unavailable, shell_tool_missing,
+// worktree_resume_refused, cli_version_too_old, bypass_root) names a
+// configuration, policy or environment fix, and an unknown future value
+// inherits the enum's "offer the fix instead of a retry" framing. An ABSENT
+// reason never reaches this function: the error arm keeps its old rule, so
+// older producers are byte-identical.
+const RETRIABLE_STARTUP_FAILURE_REASONS = new Set<string>(["worktree_unverified"]);
+function startupFailureRetriable(reason: string): boolean {
+  return RETRIABLE_STARTUP_FAILURE_REASONS.has(reason);
+}
+
+// `turn.error.retriable` for an API-error turn closed by its result frame:
+// retriable exactly when the HTTP status is a rate limit (429) or a server-
+// side failure (>= 500, which includes 529 overloaded) — the result-frame
+// twin of the assistant-error branch's rate_limit / server_error / overloaded
+// set. A null or absent status is not retriable: it carries no evidence that a
+// re-send would behave differently. Typed `number | null` on the
+// success arm, but the frame is only discriminant-validated, so it is guarded
+// with typeof.
+function apiErrorStatusRetriable(status: unknown): boolean {
+  return typeof status === "number" && (status === 429 || status >= 500);
+}
+
 // ─── 0.3.220 result-frame enrichment: fast mode + per-model serving identity ──
 // `fast_mode_disabled_reason` (on BOTH result arms — why fast mode was blocked)
 // and `ModelUsage.canonicalModel`/`provider` (the pricing-lookup identity behind
@@ -740,6 +803,25 @@ function readNarrationBlockIndexes(v: unknown): number[] | undefined {
 //    was not given — under the normalized name `localCommand`. Read through the
 //    `unknown` boundary because it is declared on the SUCCESS arm ONLY, so the
 //    union has no such property to access.
+//
+// 0.3.280 bump — two more result-frame siblings on the SAME carry:
+//  - `api_error_code` (SUCCESS arm, CLI 2.1.280, @internal — UNDECLARED in
+//    sdk.d.ts, so no typed access exists): "the api_error_code of the API error
+//    that ended the turn (see SDKAssistantMessage.api_error_code): the server's
+//    error.details.error_code when it is an identifier". It rides the
+//    `is_error: true` success result an API-error turn ends with, and it names
+//    server gate codes `SDKAssistantMessageError` flattens to 'unknown', so a
+//    host can key on a new gate without a Claude Code release. Normalized
+//    `apiErrorCode`; the same value is `turn.error.code` when no assistant
+//    error frame preceded this result, so the result alone builds the close
+//    (see the success branch in `drive()`).
+//  - `startup_failure_reason` (ERROR arm only, 0.3.274): set on the zeroed
+//    error_during_execution result a stream-json run writes before exiting on
+//    a known startup failure — "Why Claude Code refused to start, so a host
+//    can offer the fix instead of a retry". Normalized `startupFailureReason`,
+//    value verbatim; it also drives `turn.error.retriable` (see
+//    `startupFailureRetriable`). Read through the JSON boundary because it is
+//    declared on that one arm only.
 function resultMetaPayload(msg: SDKResultMsg): { [k: string]: JsonValue } | undefined {
   const byModel: { [k: string]: JsonValue } = {};
   const modelUsage = isJsonObject(msg.modelUsage) ? msg.modelUsage : {};
@@ -762,6 +844,10 @@ function resultMetaPayload(msg: SDKResultMsg): { [k: string]: JsonValue } | unde
   // it is read through the same JSON boundary as `subagent_stats`, never cast.
   const localCommand =
     isJsonObject(raw) && typeof raw["local_command"] === "string" ? raw["local_command"] : undefined;
+  // 0.3.280 — undeclared on both arms (`api_error_code`) / declared on the
+  // ERROR arm only (`startup_failure_reason`): same JSON boundary, never cast.
+  const apiErrorCode = readApiErrorCode(msg);
+  const startupFailureReason = readStartupFailureReason(msg);
   const payload: { [k: string]: JsonValue } = {
     ...(typeof msg.fast_mode_disabled_reason === "string"
       ? { fastModeDisabledReason: msg.fast_mode_disabled_reason }
@@ -773,6 +859,8 @@ function resultMetaPayload(msg: SDKResultMsg): { [k: string]: JsonValue } | unde
     // 0 is the first result of EVERY run — `typeof === "number"`, not truthiness.
     ...(typeof msg.result_index === "number" ? { resultIndex: msg.result_index } : {}),
     ...(localCommand !== undefined ? { localCommand } : {}),
+    ...(apiErrorCode !== undefined ? { apiErrorCode } : {}),
+    ...(startupFailureReason !== undefined ? { startupFailureReason } : {}),
     ...(subagentStats !== undefined ? { subagentStats } : {}),
     ...(Object.keys(byModel).length > 0 ? { modelUsage: byModel } : {}),
   };
@@ -839,10 +927,68 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
   // can enrich its tool.done with the actual rejection text + decision-reason
   // context, instead of emitting a SECOND tool.start/tool.done pair for the
   // same denial (the M22 double-fold hazard).
-  const deniedLiveByToolUseId = new Map<
-    string,
-    { message: string; decisionReasonType?: string; decisionReason?: string; agentId?: string }
-  >();
+  type LiveDenial = {
+    message: string;
+    decisionReasonType?: string;
+    decisionReasonCode?: string;
+    decisionReason?: string;
+    agentId?: string;
+  };
+  const deniedLiveByToolUseId = new Map<string, LiveDenial>();
+
+  // The live denial's diagnostic fields, camelCased — the providerMetadata bag
+  // on the enriched `<turnId>:denials` tool.done. undefined when the live
+  // frame carried none of them (no empty bag).
+  function liveDenialMeta(live: LiveDenial | undefined): { [k: string]: JsonValue } | undefined {
+    if (
+      live === undefined ||
+      (live.decisionReasonType === undefined &&
+        live.decisionReasonCode === undefined &&
+        live.decisionReason === undefined &&
+        live.agentId === undefined)
+    ) {
+      return undefined;
+    }
+    return {
+      ...(live.decisionReasonType !== undefined ? { decisionReasonType: live.decisionReasonType } : {}),
+      ...(live.decisionReasonCode !== undefined ? { decisionReasonCode: live.decisionReasonCode } : {}),
+      ...(live.decisionReason !== undefined ? { decisionReason: live.decisionReason } : {}),
+      ...(live.agentId !== undefined ? { agentId: live.agentId } : {}),
+    };
+  }
+
+  // CL-09 (0.3.280 sweep): the turn.error close an API-error assistant frame
+  // (`error` set) decided for its turn, STASHED until the turn's result frame
+  // (the vercel facet's `stashedError` pattern). An API-error turn reaches this
+  // facet as TWO frames: the synthetic assistant message carrying `error`, and
+  // then the turn's result, `subtype: "success"` with `is_error: true` ("with
+  // is_error true, the error text when the turn ended on an API error").
+  // Closing at the assistant frame lost the turn's usage: only the result
+  // carries `usage` / `total_cost_usd` / `modelUsage`, so a long agentic turn
+  // failing on its Nth round dropped the cost of every earlier round from the
+  // fold. So the assistant branch stashes {message, code, retriable} here, and
+  // the turn is closed exactly ONCE (INV-TURN):
+  //  - by its result frame, EITHER arm, as turn.error with the stashed fields
+  //    plus the usage mapped from that result (`mapTurnUsage`, the success
+  //    close's mapping) — never as a turn.done (reduce() keeps the LAST
+  //    outcome, so the old turn.error → turn.done pair folded an API-error turn
+  //    as a success), never as a second turn.error;
+  //  - or, if the stream ends before any result frame, by `flush()`, with the
+  //    stashed fields and no usage — never degraded to INV-FLUSH's
+  //    engine-synthesized turn.abort.
+  // The FIRST error frame's fields win: a later error frame on the same turn
+  // leaves the stash alone. EVERY result frame consumes the entry, whichever
+  // arm it is, because every turn of a session shares one turnId (`turnIdFor`)
+  // and a stale entry must never leak into the next turn's result.
+  type StashedTurnError = { readonly message: string; readonly code: string; readonly retriable: boolean };
+  const stashedTurnErrors = new Map<string, StashedTurnError>();
+
+  /** Remove and return the stashed error close for `turnId`, if any (CL-09). */
+  function takeStashedTurnError(turnId: string): StashedTurnError | undefined {
+    const stashed = stashedTurnErrors.get(turnId);
+    stashedTurnErrors.delete(turnId);
+    return stashed;
+  }
 
   // guuey#26 — ONE message id ⇒ ONE message lifecycle.
   //
@@ -1433,6 +1579,20 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         // wrapper-meta channel's type without an unchecked cast.
         wrapperMetaRaw["context_usage"] = JsonValue.parse(msg.context_usage);
       }
+      // `usage_report` (0.3.273): the structured twin of the /usage report,
+      // riding the synthetic assistant message that delivers its text (session
+      // totals, the plan's usage rows, extra-usage spend) — context_usage's
+      // sibling, same wrapper-level placement per its own doc (never inside
+      // `message.content`, not replayed to the model), so it gets the same carry:
+      // whole and verbatim, wire name kept. Carried whole rather than field by
+      // field because upstream marks SDKUsageReport "Experimental — the shape may
+      // change". A per-frame fact like context_usage, so it sits OUTSIDE the
+      // turn-binding guard. FIXTURE-ONLY: upstream attaches it only "from
+      // claude.ai-subscriber sessions", and the capture harness authenticates
+      // with ANTHROPIC_API_KEY, so no live cassette can carry it.
+      if (msg.usage_report !== undefined) {
+        wrapperMetaRaw["usage_report"] = JsonValue.parse(msg.usage_report);
+      }
       // `narration_block_indexes` (0.3.272, first seen live on app-update-fable51):
       // the indexes of THIS frame's content blocks that are user-facing narration
       // — Anthropic's `thinking.display: "updates"` mode returns progress updates
@@ -1450,6 +1610,36 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       );
       if (narrationBlockIndexes !== undefined) {
         wrapperMetaRaw["narration_block_indexes"] = narrationBlockIndexes;
+      }
+      // The API-error TRIAD (CLI 2.1.280, all @internal and UNDECLARED in
+      // sdk.d.ts at 0.3.280 — read through the same JSON boundary, never cast).
+      // The CLI stamps them on the synthetic API-error assistant frame, the one
+      // that also carries `error`, which SDKAssistantMessageError flattens to a
+      // 13-value set (a new server gate reads as 'unknown'):
+      //  - `api_error`: the typed kind of the error ("for consumers that key on
+      //    the cause instead of the message text"), a closed CLI enum of 25
+      //    values at CLI 2.1.280 (dlp_request_denied, claude_code_version_too_old,
+      //    effort_requires_thinking, provider_credentials, …; "new values are
+      //    added over time"). Carried as a string, not enum-gated.
+      //  - `api_error_params`: `{effort?, provider?, remedy?}`, "present only
+      //    for the kinds that have any" — `remedy` is the fix a host should
+      //    offer (refresh_command, refresh_credentials, adc, …). Carried whole.
+      //  - `api_error_code`: the server's error.details.error_code, so "a host
+      //    can key on a new gate without a Claude Code release".
+      // Per-frame facts of the error frame, like `aborted` / `context_usage`, so
+      // they sit OUTSIDE the turn-binding guard. Wire names verbatim. The frame's
+      // `is_api_error_message: true` flag is deliberately NOT carried: it
+      // restates `error` being set, which already decides the turn's turn.error
+      // close (stashed until the result frame — see `stashedTurnErrors`).
+      if (isJsonObject(rawAssistant)) {
+        const apiError = rawAssistant["api_error"];
+        if (typeof apiError === "string") wrapperMetaRaw["api_error"] = apiError;
+        const apiErrorParams = rawAssistant["api_error_params"];
+        if (isJsonObject(apiErrorParams)) wrapperMetaRaw["api_error_params"] = JsonValue.parse(apiErrorParams);
+      }
+      const assistantApiErrorCode = readApiErrorCode(rawAssistant);
+      if (assistantApiErrorCode !== undefined) {
+        wrapperMetaRaw["api_error_code"] = assistantApiErrorCode;
       }
       // `user_message_uuid` (0.3.258) and `user_message_uuids` (0.3.259) join
       // the bag below, once `open` is known — their once-per-message flag is
@@ -1584,38 +1774,46 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       open.usage = { ...(open.usage ?? {}), ...mapMessageUsage(m.usage) };
 
       // If the assistant turn carries an error signal (rate_limit, billing_error, etc.),
-      // emit a turn.error so consumers see the error rather than a silent empty turn.
+      // the turn ends as a turn.error so consumers see the error rather than a
+      // silent empty turn. CL-09: the close is STASHED, not emitted here — the
+      // turn's result frame (which carries the turn's usage) emits it, or
+      // `flush()` does if no result ever arrives (see `stashedTurnErrors`).
       if (msg.error !== undefined) {
-        // The turn is over — nothing can continue this message. Seal it first,
-        // so `message.end` still precedes the close (unchanged order).
+        // The API error ended the model's output — nothing can continue this
+        // message. Seal it now, so `message.end` still precedes the (deferred)
+        // close.
         closePendingMessage();
         const errCode: NonNullable<SDKAssistantError> = msg.error;
-        a.closeTurnError(turnId, {
-          message: errCode,
-          code: errCode,
-          // Finding #2 (minor): `overloaded` (transient capacity error, a first
-          // cousin of rate_limit/server_error) joins the retriable set.
-          // `model_not_found` (a permanent misconfiguration — e.g. a stale/
-          // decommissioned model id) is deliberately EXCLUDED: explicit
-          // false-by-omission, not an oversight (playbook 2026-07-03 SDK-bump
-          // adaptation, Finding #2). `account_on_hold` (0.3.258) is likewise a
-          // deliberate non-retriable: a billing-class code (the account is on
-          // hold — a first cousin of `billing_error`, cleared by the account
-          // holder, never by re-sending the turn).
-          //
-          // 0.3.272 widened `SDKAssistantMessageError` by two more values, both
-          // deliberate non-retriables recorded here for the same reason — an
-          // omission must never read as an oversight:
-          //  - `verification_required`: the request is gated on an out-of-band
-          //    human step (identity/org verification). Nothing about the turn
-          //    changes by re-sending it; the block clears only when a person
-          //    completes the verification.
-          //  - `cloud_credential_error`: a credential/billing-class failure on
-          //    the cloud-provider leg (a first cousin of `billing_error` and
-          //    `account_on_hold`, not of `overloaded`) — a bad, expired or
-          //    unauthorized credential is exactly as bad on the next attempt.
-          retriable: errCode === "rate_limit" || errCode === "server_error" || errCode === "overloaded",
-        });
+        // First error frame wins: a turn already carrying a stashed close keeps
+        // it (before CL-09's stash, the first error frame closed the turn).
+        if (!stashedTurnErrors.has(turnId)) {
+          stashedTurnErrors.set(turnId, {
+            message: errCode,
+            code: errCode,
+            // Finding #2 (minor): `overloaded` (transient capacity error, a first
+            // cousin of rate_limit/server_error) joins the retriable set.
+            // `model_not_found` (a permanent misconfiguration — e.g. a stale/
+            // decommissioned model id) is deliberately EXCLUDED: explicit
+            // false-by-omission, not an oversight (playbook 2026-07-03 SDK-bump
+            // adaptation, Finding #2). `account_on_hold` (0.3.258) is likewise a
+            // deliberate non-retriable: a billing-class code (the account is on
+            // hold — a first cousin of `billing_error`, cleared by the account
+            // holder, never by re-sending the turn).
+            //
+            // 0.3.272 widened `SDKAssistantMessageError` by two more values, both
+            // deliberate non-retriables recorded here for the same reason — an
+            // omission must never read as an oversight:
+            //  - `verification_required`: the request is gated on an out-of-band
+            //    human step (identity/org verification). Nothing about the turn
+            //    changes by re-sending it; the block clears only when a person
+            //    completes the verification.
+            //  - `cloud_credential_error`: a credential/billing-class failure on
+            //    the cloud-provider leg (a first cousin of `billing_error` and
+            //    `account_on_hold`, not of `overloaded`) — a bad, expired or
+            //    unauthorized credential is exactly as bad on the next attempt.
+            retriable: errCode === "rate_limit" || errCode === "server_error" || errCode === "overloaded",
+          });
+        }
       }
 
       // `subagent.done` is NOT emitted here: it brackets the MESSAGE, and the
@@ -1757,6 +1955,26 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // (message.end has always preceded the turn close).
       closePendingMessage();
       const turnId = turnIdFor(msg.session_id, msg.uuid);
+      // CL-09 (0.3.280 sweep): `subtype: "success"` does NOT mean the turn
+      // succeeded. Upstream's SDKResultMessage doc: "subtype "success" carries
+      // the final assistant text in result — or, with is_error true, the error
+      // text when the turn ended on an API error". The CLI sets is_error from
+      // the turn's last assistant frame being its synthetic API-error message
+      // (rate_limit / overloaded after retries ran out, billing_error,
+      // authentication_failed, …). Such a turn closes as an ERROR, never as a
+      // success, and exactly once:
+      //  - if that assistant frame reached this facet, it stashed the turn's
+      //    error close (`stashedTurnErrors`); this frame emits it, with this
+      //    frame's usage — whatever is_error says, since that frame already
+      //    decided the turn's outcome;
+      //  - otherwise, with is_error true, this frame is the only evidence of
+      //    the error, and the close is a turn.error built from the result
+      //    itself (see below).
+      // Strict `=== true`: is_error is typed boolean, but the frame is only
+      // discriminant-validated, and false/absent must stay on the success path
+      // byte-for-byte. The stash entry is consumed either way.
+      const stashedError = takeStashedTurnError(turnId);
+      const apiErrorTurn = msg.is_error === true;
       const safety: AgSafety[] | undefined =
         msg.stop_reason === "refusal" ? [{ category: "refusal", blocked: true }] : undefined;
       // structured_output (when a response schema is in effect) overrides the plain
@@ -1766,6 +1984,9 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // Emit permission_denials as tool.start + tool.done denied pairs, inside a
       // dedicated carrier message: the assistant message is already sealed, and
       // INV-MSG (audit M19) forbids attaching to sealed messages / closed turns.
+      // CL-09: an API-error turn's denials take this same carrier, at the same
+      // point — its close is deferred to this frame (below), so the turn is
+      // still open here, like every other turn.
       if (msg.permission_denials.length > 0) {
         const denialMsgId = `${turnId}:denials`;
         a.openMessage({ id: denialMsgId, role: "assistant", turnId, threadId: options.threadId ?? msg.session_id });
@@ -1779,15 +2000,9 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
           // tool.start/tool.done pair is ever emitted for the live frame
           // itself (see the dedicated `permission_denied` branch below).
           const live = deniedLiveByToolUseId.get(denial.tool_use_id);
+          const liveFields = liveDenialMeta(live);
           const liveMeta: AgProviderMeta | undefined =
-            live !== undefined &&
-            (live.decisionReasonType !== undefined || live.decisionReason !== undefined || live.agentId !== undefined)
-              ? AgProviderMeta.parse({
-                  ...(live.decisionReasonType !== undefined ? { decisionReasonType: live.decisionReasonType } : {}),
-                  ...(live.decisionReason !== undefined ? { decisionReason: live.decisionReason } : {}),
-                  ...(live.agentId !== undefined ? { agentId: live.agentId } : {}),
-                })
-              : undefined;
+            liveFields !== undefined ? AgProviderMeta.parse(liveFields) : undefined;
           a.toolStart({ toolCallId: denial.tool_use_id, name: denial.tool_name });
           a.toolDone({
             toolCallId: denial.tool_use_id,
@@ -1800,10 +2015,40 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       }
       // 0.3.220: fast_mode_disabled_reason + per-model canonicalModel/provider
       // ride `ext.anthropic.result-meta` before the close (no core home on
-      // turn.done — see resultMetaPayload's doc).
+      // turn.done — see resultMetaPayload's doc). CL-09: it is emitted on an
+      // API-error turn too, before its close like on every other turn.
       const resultMeta = resultMetaPayload(msg);
       if (resultMeta !== undefined) {
         a.emitExt("anthropic", "result-meta", resultMeta);
+      }
+      if (stashedError !== undefined) {
+        // The assistant error frame decided this close; this frame adds the
+        // turn's usage, the same mapping turn.done would have carried (SPEC §4:
+        // turn.error `usage` is "accrued billing on the interrupted turn"), so
+        // the fold keeps the cost of every round the turn ran before failing.
+        a.closeTurnError(turnId, {
+          ...stashedError,
+          usage: mapTurnUsage(msg.usage, msg.total_cost_usd, msg.modelUsage),
+        });
+        return;
+      }
+      if (apiErrorTurn) {
+        // No assistant error frame preceded this result (a producer that did
+        // not yield it, or a normalizer that never saw it), so this result is
+        // the turn's only close. message = the result text, which on this frame
+        // is the API error text; code = the server's api_error_code when the
+        // CLI copied one through, else the generic "api_error"; retriable = the
+        // HTTP status says rate limit or server failure (see
+        // `apiErrorStatusRetriable`); usage = the turn's accrued usage, as
+        // above.
+        const code = readApiErrorCode(msg) ?? "api_error";
+        a.closeTurnError(turnId, {
+          message: typeof msg.result === "string" ? msg.result : code,
+          code,
+          retriable: apiErrorStatusRetriable(msg.api_error_status),
+          usage: mapTurnUsage(msg.usage, msg.total_cost_usd, msg.modelUsage),
+        });
+        return;
       }
       a.closeTurnDone(turnId, {
         outcome: { type: "success", result: structuredOutput ?? msg.result },
@@ -1819,19 +2064,58 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // guuey#26: seal the open assistant message before the turn close.
       closePendingMessage();
       const turnId = turnIdFor(msg.session_id, msg.uuid);
+      // CL-09: consume any stashed assistant-error close for this turnId — this
+      // frame emits it (below), and it cannot leak into a later turn's result
+      // (every turn of a session shares the turnId).
+      const stashedError = takeStashedTurnError(turnId);
       // Guard `errors` and `subtype` defensively: `isSDKMessage` only checks
       // `typeof v.subtype === "string"` for the result arm — it does NOT validate
       // the `errors` array. A malformed message (missing errors, wrong subtype) must
       // not throw (Tenet 6: graceful, never throws).
       const errors = Array.isArray(msg.errors) ? msg.errors : [];
       const subtype = typeof msg.subtype === "string" ? msg.subtype : "error_unknown";
-      const retriable = subtype !== "error_max_turns";
+      // CL-04 (0.3.274): a known startup failure says why the CLI refused to
+      // start, and upstream frames it as "offer the fix instead of a retry" —
+      // so a PRESENT reason decides retriable (false, except the values upstream
+      // itself calls retriable; see `startupFailureRetriable`). An ABSENT reason
+      // keeps the old rule, byte-identical for every older producer.
+      const startupFailureReason = readStartupFailureReason(msg);
+      const retriable =
+        startupFailureReason !== undefined
+          ? startupFailureRetriable(startupFailureReason)
+          : subtype !== "error_max_turns";
       // 0.3.220: fast_mode_disabled_reason exists on BOTH result arms — the
       // error variant gets the SAME `ext.anthropic.result-meta` carry as the
       // success arm above (turn.error carries no metadata slot at all).
       const resultMeta = resultMetaPayload(msg);
       if (resultMeta !== undefined) {
         a.emitExt("anthropic", "result-meta", resultMeta);
+      }
+      if (stashedError !== undefined) {
+        // CL-09: an assistant error frame already decided this turn's close —
+        // emit THAT one (the first error that ended the turn), once, never a
+        // second turn.error for the same turnId (INV-TURN), with this frame's
+        // usage (the success arm's mapping). This arm is only
+        // discriminant-validated, so the usage trio is shape-guarded first
+        // (Tenet 6: a malformed frame must not throw); absent ⇒ no usage key.
+        // The guard covers every property `mapTurnUsage` dereferences: the
+        // `server_tool_use` object (null allowed, as typed) and each
+        // `modelUsage` entry — `usage: {}` or a null entry would otherwise
+        // throw here, after the stash was already consumed.
+        const raw: unknown = msg;
+        const rawUsage = isJsonObject(raw) ? raw["usage"] : undefined;
+        const rawModelUsage = isJsonObject(raw) ? raw["modelUsage"] : undefined;
+        const usage =
+          isJsonObject(raw) &&
+          isJsonObject(rawUsage) &&
+          (rawUsage["server_tool_use"] === null || isJsonObject(rawUsage["server_tool_use"])) &&
+          isJsonObject(rawModelUsage) &&
+          Object.values(rawModelUsage).every(isJsonObject) &&
+          typeof raw["total_cost_usd"] === "number"
+            ? mapTurnUsage(msg.usage, msg.total_cost_usd, msg.modelUsage)
+            : undefined;
+        a.closeTurnError(turnId, { ...stashedError, ...(usage !== undefined ? { usage } : {}) });
+        return;
       }
       a.closeTurnError(turnId, {
         message: errors.length > 0 ? errors.join("; ") : subtype,
@@ -1888,9 +2172,27 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // W1 `<turnId>:denials` carrier (audit M19, above) — do NOT emit a
       // second pair here (the M22 double-fold hazard). Record this frame's
       // richer diagnostic fields only; the aggregate handler consumes them.
+      //
+      // `decision_reason_code` (CLI 2.1.280, @internal — UNDECLARED in sdk.d.ts
+      // at 0.3.280, so read through the JSON boundary, never cast): "A
+      // closed-set code for a reason a host can act on, beside
+      // decision_reason_type (whose values are unchanged)":
+      // 'outside_reads_blocked' (permissions.blockReadsOutsideWorkingDirectories
+      // refused the path), 'memory_paused' (/pause-memory has memory paused),
+      // 'classifier_transcript_too_long' (the auto-mode classifier's transcript
+      // exceeded its context window). "Absent for every other reason; new values
+      // are additive" — carried as a string, not enum-gated, camelCased beside
+      // its `decisionReasonType` sibling. Fixture-only: the capture harness
+      // produces no denials.
+      const rawDenied: unknown = msg;
+      const decisionReasonCode =
+        isJsonObject(rawDenied) && typeof rawDenied["decision_reason_code"] === "string"
+          ? rawDenied["decision_reason_code"]
+          : undefined;
       deniedLiveByToolUseId.set(msg.tool_use_id, {
         message: msg.message,
         ...(msg.decision_reason_type !== undefined ? { decisionReasonType: msg.decision_reason_type } : {}),
+        ...(decisionReasonCode !== undefined ? { decisionReasonCode } : {}),
         ...(msg.decision_reason !== undefined ? { decisionReason: msg.decision_reason } : {}),
         ...(msg.agent_id !== undefined ? { agentId: msg.agent_id } : {}),
       });
@@ -1938,6 +2240,14 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // its real usage (and its subagent bracket) rather than leaving INV-FLUSH
       // to synthesize a bare `message.end`.
       closePendingMessage();
+      // CL-09: a turn whose assistant error frame stashed its close but whose
+      // result frame never arrived still closes as that turn.error (no usage:
+      // only a result carries the turn's), never as INV-FLUSH's synthesized
+      // turn.abort — the outcome the frame's own close used to produce.
+      for (const [turnId, stashed] of stashedTurnErrors) {
+        a.closeTurnError(turnId, { ...stashed });
+      }
+      stashedTurnErrors.clear();
       return a.flush();
     },
   };

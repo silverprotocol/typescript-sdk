@@ -1,8 +1,8 @@
 [
   {
-    "invocationId": "e-6df6b8b4-54ac-4929-b6b4-3be41fff9887",
+    "invocationId": "e-528c1844-ba4e-40e2-a97e-3128e434648f",
     "author": "spike",
-    "id": "BRkOvx1X",
+    "id": "CNCiNJC4",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -10,7 +10,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1788590959771,
+    "timestamp": 1790107658329,
     "content": {
       "parts": [
         {
@@ -20,9 +20,9 @@
               "body": "World",
               "title": "Hello"
             },
-            "id": "call_363488"
+            "id": "call_59343"
           },
-          "thoughtSignature": "EsMCCsACARFNMg9ei9PnxSv+g/FPrjT3Wf9AaSkD1pDaYZ4zOEfcsmoxTsZXnXWobNs9zYI22QMwO+PR7DbBqFAh+6CJbOGdXlFjFv7GwMWUd11m2I1B9fyYIJtlxUDcCwNcq7Av+Od8suKzpIMUGIDy0V86TLwjtsMTNT8XTvPOWmgi3QPAFoEX1wd9xFxVDPDSOe5GD6BpqV2gTtB7arFw498gbpKqT7UG4K24zWBoHG0ro77Fu2+hPanS4Mvh6RN85koasap2QhSaSCsMz2XBVe4sXKkNIuxVWXs0hklbrXVuRBekTMmI6EpR1BXc2p3reYJoxRkxKn85W2jFODENDt6Hx80FxNhlS61P+2zUvesa58n47cZWKWH8viy29x12nzZDYotRIpU/WVRzCyy7SGwTQhGoCAKMiE7GrzEiKWBU/mA="
+          "thoughtSignature": "Eo0CCooCAWkUfRNxdzIBQwJh5R3/MXoW2ny+4J1+6Tpp4qHGUWVnRZVjtAYkPqm6+I+88qCMMwMQ1MNokR8XNA011Q68eMWvKBCTKE2XpCzf44N6qbTPYlKIg9pM04clVjHI5GqPmXc0FbNWwg1tMTGkEi23Hhh9+ZnlByOrj3SpYieAXvzYZRdInmbEh759SgxUEng7BMYys9xuP7ZV271kHwnHFsWYNmDXXzVz9J3cyx8hwTzbdEGORRsltbsFrJhRf4M06dPmon77+LBA4XCqGpO738UGN1P1WfO4wUU0g/59PfcHX/VW5FSpI5IGtVQVnqf2576vD4wOwXBQ3FIzM3psTdQyJ+rdLFj7Dd4="
         }
       ],
       "role": "model"
@@ -30,27 +30,27 @@
     "usageMetadata": {
       "promptTokenCount": 139,
       "candidatesTokenCount": 22,
-      "totalTokenCount": 223,
+      "totalTokenCount": 206,
       "promptTokensDetails": [
         {
           "modality": "TEXT",
           "tokenCount": 139
         }
       ],
-      "thoughtsTokenCount": 62,
+      "thoughtsTokenCount": 45,
       "serviceTier": "standard"
     },
     "finishReason": "STOP"
   },
   {
-    "invocationId": "e-6df6b8b4-54ac-4929-b6b4-3be41fff9887",
+    "invocationId": "e-528c1844-ba4e-40e2-a97e-3128e434648f",
     "author": "spike",
     "content": {
       "role": "user",
       "parts": [
         {
           "functionResponse": {
-            "id": "call_363488",
+            "id": "call_59343",
             "name": "render_card",
             "response": {
               "_meta": {
@@ -87,14 +87,14 @@
       "requestedAuthConfigs": {},
       "requestedToolConfirmations": {}
     },
-    "id": "BciePy7J",
+    "id": "ze3DPaTY",
     "longRunningToolIds": [],
-    "timestamp": 1788590963820
+    "timestamp": 1790107660501
   },
   {
-    "invocationId": "e-6df6b8b4-54ac-4929-b6b4-3be41fff9887",
+    "invocationId": "e-528c1844-ba4e-40e2-a97e-3128e434648f",
     "author": "spike",
-    "id": "uP6pa5UN",
+    "id": "6eijmFBU",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -102,27 +102,27 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1788590963825,
+    "timestamp": 1790107660586,
     "content": {
       "parts": [
         {
-          "text": "The UI card has been rendered. Here is the returned `structuredContent` payload:\n\n```json\n{\n  \"title\": \"Hello\",\n  \"body\": \"World\",\n  \"cache\": {\n    \"hit\": false,\n    \"kind\": \"cold\",\n    \"llmCallsAvoided\": 0\n  }\n}\n```",
-          "thoughtSignature": "EsEDCr4DARFNMg+w5xO6qjh3o4yameCLL3f5ISdS+R0xyi95FJMF2vhgluCUYuVQ2tJq/3vHvzIqehN4PpTtW4rF395V/w1fFEoRegIGJ3HO8F7zzHfxNqSpYB6a8CGU49/ZEQlyIUUKkM1IS3r+xYzfPMLHySRgvF8v2etyeHZdMnQ3sxP6Rvzrxcgs5I0xRl5mR5eyoRDBXMb5zQH+x7X63y3ZCSvu1YEv/wEH8rGoDLw/ANIByI6CC7gV3VYjyd0n6as8YVAz5zKL3J32vsrUvKDq3ngquvUGUo6HnRF9fCi2xavS/mO/G3U6IBi4waPb3y37PZ9SZWiR4sh+RtqYzZTh03IF3TWU3QZo3bP1wow9LZEG3eXO63YAGdRj9PQQtFCtvrrG880HHXM6KqjEaGmirl7BfOagOtc/+hLhA/Q+QpzucUE5t1Qu052Qb3fAj/FtHBH7eL9VVhb1BMOE2arbA/3jiofkl+af4VfgT6CYpzspHpM+vgVbFEjvEFWLG1MDtjLTv80KSM1iIe9pmNIB3Ixoc/PdV0EmKdX5aqr+egMUVCB+lZAOdcwrVetZnYbjQOOZJvAWc3jUd33CVwk="
+          "text": "The UI card has been rendered. Here is the structured content payload returned by the tool:\n\n```json\n{\n  \"title\": \"Hello\",\n  \"body\": \"World\",\n  \"cache\": {\n    \"hit\": false,\n    \"kind\": \"cold\",\n    \"llmCallsAvoided\": 0\n  }\n}\n```",
+          "thoughtSignature": "EogECoUEAWkUfRNEzP7MM3ZBCVOJfuH0NihfDlLRuuHJmio7UzV+9Oe5tg3M4fxeVdSm+pFRIsbFPiic1DN1ikX5hja0aP9CilusASCk5ku7d/R4OmcQWXavUbbb67L5HywYi4I9WV0uQVa+3Rb4duDcXVnNIYTeU1pPQzoaVBSlSZKu96XynShppEbhxD9oNmRgK0z/CSw/nh7hDBpWvHV0gbgGroGFbz9GuU2bzAV5M+0njZ5vd3X58pky/M1ZEywuDZMigp0hP+GHzDxPZI4IrcAIlKfY2DuXAQ2kzw+kXQuAl+iQxJdEaolPwOMSgJgHzgbWR1pkOrV6rNUHfDfNcrfF8HffLGr5u3Uprw/0JEniq+GYZTmhAzw0Mi0gq3Q2viZ7O0OCj93WHaQsUvMrDB8ad/yftrkO3Vubsic/azuKNXDqC4CrHvKfdFo0UlKuq4PrVyHGnxu7jb7Ced9F9oaGRTn6xGFYzW7WhU0q9UO1LPNPtYG+t+3ARKFgMQ/1eLOjnmUkkKH3M1qdpEAdffp4odZy0tie8bKr2kLZY63tKNqQlAb0GT+TnbFDbhdWAM4MBUD+L723f+nmE6Wo9akkzMXMazVeamJGTRuuogonnI0ZjBI8a93aDFRHFoVPnLajtfrlkppbdPlJB+PqvY+C/uFcZ9QVBdOo76cBQh8iWDWQZ6rOHQ=="
         }
       ],
       "role": "model"
     },
     "usageMetadata": {
-      "promptTokenCount": 312,
-      "candidatesTokenCount": 77,
-      "totalTokenCount": 490,
+      "promptTokenCount": 295,
+      "candidatesTokenCount": 78,
+      "totalTokenCount": 498,
       "promptTokensDetails": [
         {
           "modality": "TEXT",
-          "tokenCount": 312
+          "tokenCount": 295
         }
       ],
-      "thoughtsTokenCount": 101,
+      "thoughtsTokenCount": 125,
       "serviceTier": "standard"
     },
     "finishReason": "STOP"

@@ -1,0 +1,408 @@
+[
+  {
+    "type": "system",
+    "subtype": "init",
+    "cwd": "/Users/gustavo/Projects/silverprotocol/sdks/typescript/packages/e2e",
+    "session_id": "873a8ff6-401e-4117-8b5e-4a3a03ddf17f",
+    "tools": [
+      "mcp__t__echo"
+    ],
+    "mcp_servers": [
+      {
+        "name": "t",
+        "status": "connected",
+        "source": "dynamic"
+      }
+    ],
+    "model": "claude-opus-5",
+    "permissionMode": "default",
+    "slash_commands": [
+      "deep-research",
+      "design",
+      "design-sync",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator",
+      "advisor",
+      "agents",
+      "auto-mode-setup",
+      "autocompact",
+      "clear",
+      "color",
+      "compact",
+      "config",
+      "output-style",
+      "context",
+      "effort",
+      "fast",
+      "heapdump",
+      "init",
+      "mcp",
+      "import",
+      "model",
+      "__remote-workflow",
+      "workflow-launch-exec",
+      "reload-plugins",
+      "reload-skills",
+      "rename",
+      "security-review",
+      "usage",
+      "insights",
+      "recap",
+      "skill-doctor",
+      "goal",
+      "design-consent",
+      "design-revoke",
+      "list-agents",
+      "team-onboarding"
+    ],
+    "terminal_slash_commands": [
+      "doctor",
+      "color",
+      "reload-plugins"
+    ],
+    "apiKeySource": "ANTHROPIC_API_KEY",
+    "claude_code_version": "2.1.280",
+    "output_style": "default",
+    "agents": [
+      "claude",
+      "Explore",
+      "general-purpose",
+      "Plan",
+      "statusline-setup"
+    ],
+    "skills": [
+      "deep-research",
+      "design",
+      "design-sync",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator"
+    ],
+    "plugins": [
+      {
+        "name": "agents-md",
+        "path": "builtin",
+        "source": "agents-md@builtin"
+      },
+      {
+        "name": "telemetry",
+        "path": "builtin",
+        "source": "telemetry@builtin"
+      }
+    ],
+    "capabilities": [
+      "interrupt_receipt_v1",
+      "interrupt_cancel_queued_v1",
+      "msg_lifecycle_v1",
+      "mcp_read_resource_v1",
+      "mcp_tool_ui_meta_v1"
+    ],
+    "analytics_disabled": false,
+    "product_feedback_disabled": false,
+    "uuid": "012facd8-4714-4ef6-af7a-4b2bb7eaf4af",
+    "memory_paths": {
+      "auto": "/Users/gustavo/.claude/projects/-Users-gustavo-Projects-silverprotocol/memory/"
+    },
+    "messaging_socket_path": "/tmp/cc-socks/17391.sock",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-opus-5",
+      "id": "msg_011CfK6FGAz4QxCBCC6s8t5Y",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "I'll echo that message for you."
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 1919,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 1919,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 1,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "873a8ff6-401e-4117-8b5e-4a3a03ddf17f",
+    "uuid": "389cd60b-7994-42df-b8d8-b48fe812417d",
+    "timestamp": "2026-09-22T20:14:55.919Z",
+    "request_id": "req_011CfK6FFp9LNBD2MkHF87ex"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-opus-5",
+      "id": "msg_011CfK6FGAz4QxCBCC6s8t5Y",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_01Ay3GFqtaha5WDCs9Hwsyut",
+          "name": "mcp__t__echo",
+          "input": {
+            "message": "conformance-probe-opus5"
+          },
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 1919,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 1919,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 1,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "873a8ff6-401e-4117-8b5e-4a3a03ddf17f",
+    "uuid": "6855066a-c67f-4521-bf69-97a66bdec5a9",
+    "timestamp": "2026-09-22T20:14:56.747Z",
+    "request_id": "req_011CfK6FFp9LNBD2MkHF87ex",
+    "wire_tool_inputs": {
+      "toolu_01Ay3GFqtaha5WDCs9Hwsyut": {
+        "message": "conformance-probe-opus5"
+      }
+    },
+    "tool_use_meta": [
+      {
+        "id": "toolu_01Ay3GFqtaha5WDCs9Hwsyut",
+        "display_name": "Echo",
+        "server_display_name": "mock-text"
+      }
+    ]
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "tool_use_id": "toolu_01Ay3GFqtaha5WDCs9Hwsyut",
+          "type": "tool_result",
+          "content": [
+            {
+              "type": "text",
+              "text": "conformance-probe-opus5"
+            }
+          ]
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "session_id": "873a8ff6-401e-4117-8b5e-4a3a03ddf17f",
+    "uuid": "2296aba7-549e-4e13-a97f-7ab073ec8bb8",
+    "timestamp": "2026-09-22T20:14:56.759Z",
+    "tool_use_result": [
+      {
+        "type": "text",
+        "text": "conformance-probe-opus5"
+      }
+    ]
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-opus-5",
+      "id": "msg_011CfK6FSCEEqXLN5QbyHhXe",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Echoed: `conformance-probe-opus5`"
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 111,
+        "cache_read_input_tokens": 1919,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 111,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 5,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "873a8ff6-401e-4117-8b5e-4a3a03ddf17f",
+    "uuid": "8ffb8427-f5aa-42f0-99f7-ca7136cf656f",
+    "timestamp": "2026-09-22T20:14:57.869Z",
+    "request_id": "req_011CfK6FRofNoFX8xPVkfJbn"
+  },
+  {
+    "duration_api_ms": 4544,
+    "stop_reason": "end_turn",
+    "session_id": "873a8ff6-401e-4117-8b5e-4a3a03ddf17f",
+    "total_cost_usd": 0.01693,
+    "usage": {
+      "input_tokens": 4,
+      "cache_creation_input_tokens": 2030,
+      "cache_read_input_tokens": 1919,
+      "output_tokens": 91,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 2030
+      },
+      "inference_geo": "global",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 19,
+          "cache_read_input_tokens": 1919,
+          "cache_creation_input_tokens": 111,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 111,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-haiku-4-5-20251001": {
+        "inputTokens": 913,
+        "outputTokens": 15,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0,
+        "webSearchRequests": 0,
+        "costUSD": 0.000988,
+        "contextWindow": 200000,
+        "maxOutputTokens": 32000,
+        "thinkingTokens": 0,
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-opus-5": {
+        "inputTokens": 4,
+        "outputTokens": 91,
+        "cacheReadInputTokens": 1919,
+        "cacheCreationInputTokens": 2030,
+        "webSearchRequests": 0,
+        "costUSD": 0.015942,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000,
+        "thinkingTokens": 0,
+        "canonicalModel": "claude-opus-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required",
+    "subagent_stats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "is_error": false,
+    "num_turns": 2,
+    "subtype": "success",
+    "api_error_status": null,
+    "result": "Echoed: `conformance-probe-opus5`",
+    "ttft_ms": 1650,
+    "type": "result",
+    "duration_ms": 3617,
+    "uuid": "ea326aef-1132-481b-b940-77dbbf6d9247",
+    "ttft_stream_ms": 1162,
+    "time_to_request_ms": 137,
+    "first_content_frame_ms": 1162,
+    "queued_turn_count": 0,
+    "result_index": 0
+  }
+]

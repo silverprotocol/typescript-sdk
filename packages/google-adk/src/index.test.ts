@@ -1709,3 +1709,323 @@ describe("createAdkNormalizer — genai 2.20.0 Part.mediaProcessing → provider
     for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
   });
 });
+
+// ─── adk 2.1.0 + genai 2.24.0 peer-bump carries (cohort 0.6.3, 2026-09-23) ───
+
+/** Drop `seq` so two streams can be compared structurally across an inserted event. */
+function withoutSeq(out: AgEvent[]): unknown[] {
+  return out.map((e) => {
+    const { seq: _seq, ...rest } = e as AgEvent & { seq?: number };
+    return rest;
+  });
+}
+
+/** Every non-provider-raw content.block's `block` (the typed arms). */
+function typedBlocks(out: AgEvent[]): Array<Record<string, unknown>> {
+  return out
+    .filter(
+      (e) =>
+        e.type === "content.block" &&
+        typeof (e as { block?: unknown }).block === "object" &&
+        (e as { block: { type?: string } }).block !== null &&
+        (e as { block: { type: string } }).block.type !== "provider-raw",
+    )
+    .map((e) => (e as { block: Record<string, unknown> }).block);
+}
+
+describe("createAdkNormalizer — genai 2.24.0 Part.speechMetadata → provider-raw carry (adk-01)", () => {
+  // The ONE new genai `Part` field 2.22.0 -> 2.24.0 (Part 16 -> 17 members):
+  // "Extra metadata associated with the part for speech synthesis, such as
+  // speaker and style. Only valid when `Part.data` is set to `text`." —
+  // SpeechMetadata {speaker?, style?}, a request-side TTS hint riding
+  // ALONGSIDE a text part. The text arm returns early, so the carry MUST sit
+  // in the unconditional unmapped-part-fields block (mediaProcessing
+  // precedent), never an else-fallback.
+  const speech = { speaker: "Joe", style: "excited, fast-paced" };
+  const textPartEvent = (extra: Partial<AdkPart> = {}) =>
+    event([{ text: "Hello there", ...extra }], {
+      partial: false,
+      turnComplete: true,
+      finishReason: "STOP",
+    });
+
+  it("carries speechMetadata ALONGSIDE the already-handled text block on the SAME part (mirror)", () => {
+    const out = run([textPartEvent({ speechMetadata: speech })]);
+    // The text arm still maps (the carry never displaces the primary kind).
+    expect(out.filter((e) => e.type === "text.delta").map((e) => (e as { delta: string }).delta)).toEqual([
+      "Hello there",
+    ]);
+    // Lossless, verbatim wire key (camelCase on the genai JS wire).
+    expect(findProviderRawWith(out, "speechMetadata")?.block.raw).toEqual({ speechMetadata: speech });
+    expect(providerRawBlocks(out)).toHaveLength(1);
+    // Ledger position: the unconditional block runs BEFORE the text arm.
+    expect(out.findIndex((e) => e.type === "content.block")).toBeLessThan(
+      out.findIndex((e) => e.type === "text.start"),
+    );
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("is purely ADDITIVE: minus the one provider-raw event, the stream equals the field-absent stream", () => {
+    const withField = withoutSeq(run([textPartEvent({ speechMetadata: speech })])).filter(
+      (e) =>
+        !(
+          (e as { type?: string }).type === "content.block" &&
+          (e as { block: { type: string } }).block.type === "provider-raw"
+        ),
+    );
+    expect(withField).toEqual(withoutSeq(run([textPartEvent()])));
+  });
+
+  it("present-checks, never truthiness: an EMPTY SpeechMetadata {} and a (falsy) JSON null both ride", () => {
+    const out = run([textPartEvent({ speechMetadata: {} })]);
+    expect(findProviderRawWith(out, "speechMetadata")?.block.raw).toEqual({ speechMetadata: {} });
+    // `{}` is truthy in JS, so only the falsy null actually discriminates a
+    // `!== undefined` present-check from a truthiness check (reviewer mutation
+    // `if (part.speechMetadata)` survived the `{}` case alone).
+    const nulled = run([textPartEvent({ speechMetadata: null })]);
+    expect(findProviderRawWith(nulled, "speechMetadata")?.block.raw).toEqual({ speechMetadata: null });
+    for (const ev of [...out, ...nulled]) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("rides in the SAME single provider-raw block as a mediaProcessing sibling (one ledger, not two blocks)", () => {
+    const out = run([textPartEvent({ mediaProcessing: "STATIC", speechMetadata: speech })]);
+    expect(providerRawBlocks(out)).toHaveLength(1);
+    const raw = findProviderRawWith(out, "speechMetadata")?.block.raw;
+    expect(raw).toEqual({ mediaProcessing: "STATIC", speechMetadata: speech });
+    // Ledger insertion order is the named-field order in driveAdkPart.
+    expect(Object.keys(raw ?? {})).toEqual(["mediaProcessing", "speechMetadata"]);
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("the partial:false aggregate re-send does NOT double-carry it (the suppressed aggregate text part never re-enters driveAdkPart)", () => {
+    const out = run([
+      event([{ text: "Hello there", speechMetadata: speech }], { partial: true }),
+      event([{ text: "Hello there", speechMetadata: speech }], {
+        partial: false,
+        turnComplete: true,
+        finishReason: "STOP",
+      }),
+    ]);
+    expect(providerRawBlocks(out)).toHaveLength(1);
+    const r = new Reducer();
+    for (const ev of out) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    expect(() => AgReduceResult.parse(r.result())).not.toThrow();
+  });
+
+  it("a 2.22.0-shaped text part (no speechMetadata) stays byte-identical — NO provider-raw, no new key anywhere (negative control)", () => {
+    const out = run([textPartEvent()]);
+    expect(providerRawBlocks(out)).toHaveLength(0);
+    expect(JSON.stringify(out)).not.toContain("speechMetadata");
+    expect(out.map((e) => e.type)).toEqual([
+      "turn.start",
+      "message.start",
+      "text.start",
+      "text.delta",
+      "text.end",
+      "message.end",
+      "turn.done",
+    ]);
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+});
+
+describe("createAdkNormalizer — genai-optional arm members ride provider-raw, never crash or emit a schema-invalid block (adk-13)", () => {
+  // genai types Blob `mimeType?`/`data?`, ExecutableCode `code?` and FileData
+  // `fileUri?` as OPTIONAL (doc-"Required" only; upstream adk #868 fixed the
+  // same assumption for code). A missing member the AgBlock arm REQUIRES
+  // routes the WHOLE arm, verbatim and keyed by its wire field name, to one
+  // provider-raw block. No live capture has shown any of these shapes.
+  const mediaEvent = (part: AdkPart) =>
+    event([part], { partial: false, turnComplete: true, finishReason: "STOP" });
+
+  /** Push raw JSON (shapes the AdkPart projection does not admit, e.g. a null arm). */
+  function runRaw(native: JsonValue): AgEvent[] {
+    const n = createAdkNormalizer();
+    return [...n.push(native), ...n.flush()];
+  }
+
+  describe("inlineData", () => {
+    it("PRESENT mimeType + data maps exactly as before (image / audio / file arms)", () => {
+      const out = run([
+        mediaEvent({ inlineData: { mimeType: "image/png", data: "AAAA" } }),
+        mediaEvent({ inlineData: { mimeType: "audio/wav", data: "BBBB" } }),
+        mediaEvent({ inlineData: { mimeType: "video/mp4", data: "CCCC" } }),
+      ]);
+      expect(typedBlocks(out)).toEqual([
+        { type: "image", source: { type: "base64", mediaType: "image/png", data: "AAAA" } },
+        { type: "audio", source: { type: "base64", mediaType: "audio/wav", data: "BBBB" } },
+        { type: "file", source: { type: "base64", mediaType: "video/mp4", data: "CCCC" } },
+      ]);
+      expect(providerRawBlocks(out)).toHaveLength(0);
+      for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+    });
+
+    it("typeof, never truthiness: empty-string mimeType/data still map to a media block", () => {
+      const out = run([mediaEvent({ inlineData: { mimeType: "", data: "" } })]);
+      expect(typedBlocks(out)).toEqual([
+        { type: "file", source: { type: "base64", mediaType: "", data: "" } },
+      ]);
+      expect(providerRawBlocks(out)).toHaveLength(0);
+      for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+    });
+
+    it("ABSENT mimeType does not throw (was `mimeType.startsWith` TypeError) — the Blob rides provider-raw", () => {
+      let out: AgEvent[] = [];
+      expect(() => {
+        out = run([mediaEvent({ inlineData: { data: "AAAA" } })]);
+      }).not.toThrow();
+      expect(typedBlocks(out)).toHaveLength(0);
+      expect(findProviderRawWith(out, "inlineData")?.block.raw).toEqual({ inlineData: { data: "AAAA" } });
+      expect(out.some((e) => e.type === "turn.done")).toBe(true);
+      for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+    });
+
+    it("ABSENT data never emits a data-less base64 source — the Blob rides provider-raw", () => {
+      const out = run([mediaEvent({ inlineData: { mimeType: "image/png" } })]);
+      expect(typedBlocks(out)).toHaveLength(0);
+      expect(findProviderRawWith(out, "inlineData")?.block.raw).toEqual({
+        inlineData: { mimeType: "image/png" },
+      });
+      for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+    });
+
+    it("an EMPTY Blob {} and a JSON-null arm both ride provider-raw verbatim", () => {
+      const empty = run([mediaEvent({ inlineData: {} })]);
+      expect(findProviderRawWith(empty, "inlineData")?.block.raw).toEqual({ inlineData: {} });
+      const nulled = runRaw({
+        content: { role: "model", parts: [{ inlineData: null }] },
+        invocationId: "inv_fixture_1",
+      });
+      expect(findProviderRawWith(nulled, "inlineData")?.block.raw).toEqual({ inlineData: null });
+      for (const ev of [...empty, ...nulled]) expect(() => AgEvent.parse(ev)).not.toThrow();
+    });
+
+    it("the arm carry is its OWN block after the sibling-field ledger block (both lossless)", () => {
+      const out = run([
+        mediaEvent({ inlineData: { data: "AAAA" }, videoMetadata: { startOffset: "1.0s" } }),
+      ]);
+      expect(providerRawBlocks(out).map((e) => (e as { block: { raw: unknown } }).block.raw)).toEqual([
+        { videoMetadata: { startOffset: "1.0s" } },
+        { inlineData: { data: "AAAA" } },
+      ]);
+      for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+    });
+
+    it("branch order is unchanged: a text part carrying a malformed inlineData still takes the text arm, no carry (the media arm is never reached)", () => {
+      const out = run([mediaEvent({ text: "hi", inlineData: { data: "AAAA" } })]);
+      expect(out.some((e) => e.type === "text.delta")).toBe(true);
+      expect(providerRawBlocks(out)).toHaveLength(0);
+      expect(typedBlocks(out)).toHaveLength(0);
+    });
+
+    it("a malformed-arm stream folds cleanly through the Reducer", () => {
+      const r = new Reducer();
+      for (const ev of run([mediaEvent({ inlineData: { mimeType: "image/png" } })])) r.push(ev);
+      expect(r.needsResync).toBe(false);
+      expect(() => AgReduceResult.parse(r.result())).not.toThrow();
+    });
+  });
+
+  describe("executableCode", () => {
+    it("PRESENT code maps to the code block exactly as before", () => {
+      const out = run([mediaEvent({ executableCode: { language: "PYTHON", code: "print(1)" } })]);
+      expect(typedBlocks(out)).toEqual([{ type: "code", language: "python", code: "print(1)" }]);
+      expect(providerRawBlocks(out)).toHaveLength(0);
+      for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+    });
+
+    it("typeof, never truthiness: an empty-string code still maps to a code block", () => {
+      const out = run([mediaEvent({ executableCode: { code: "" } })]);
+      expect(typedBlocks(out)).toEqual([{ type: "code", language: "python", code: "" }]);
+      for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+    });
+
+    it("ABSENT code never emits a code-less (schema-invalid) code block — the arm rides provider-raw, id included", () => {
+      const out = runRaw({
+        content: { role: "model", parts: [{ executableCode: { language: "PYTHON", id: "exec_1" } }] },
+        invocationId: "inv_fixture_1",
+        turnComplete: true,
+      });
+      expect(typedBlocks(out)).toHaveLength(0);
+      expect(findProviderRawWith(out, "executableCode")?.block.raw).toEqual({
+        executableCode: { language: "PYTHON", id: "exec_1" },
+      });
+      for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+    });
+  });
+
+  describe("fileData", () => {
+    it("PRESENT fileUri maps to the resource-link block exactly as before (mimeType optional)", () => {
+      const out = run([
+        mediaEvent({ fileData: { mimeType: "video/mp4", fileUri: "gs://bucket/clip.mp4" } }),
+        mediaEvent({ fileData: { fileUri: "gs://bucket/any" } }),
+      ]);
+      expect(typedBlocks(out)).toEqual([
+        { type: "resource-link", uri: "gs://bucket/clip.mp4", mimeType: "video/mp4" },
+        { type: "resource-link", uri: "gs://bucket/any", mimeType: undefined },
+      ]);
+      // The absent mimeType serializes away (no key on the wire), as before.
+      expect(JSON.stringify(typedBlocks(out)[1])).toBe('{"type":"resource-link","uri":"gs://bucket/any"}');
+      expect(providerRawBlocks(out)).toHaveLength(0);
+      for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+    });
+
+    it("typeof, never truthiness: an empty-string fileUri still maps to a resource-link", () => {
+      const out = run([mediaEvent({ fileData: { fileUri: "" } })]);
+      expect(typedBlocks(out)).toEqual([{ type: "resource-link", uri: "", mimeType: undefined }]);
+      expect(providerRawBlocks(out)).toHaveLength(0);
+      for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+    });
+
+    it("ABSENT fileUri never emits a uri-less (schema-invalid) resource-link — the arm rides provider-raw", () => {
+      const out = run([mediaEvent({ fileData: { mimeType: "video/mp4" } })]);
+      expect(typedBlocks(out)).toHaveLength(0);
+      expect(findProviderRawWith(out, "fileData")?.block.raw).toEqual({
+        fileData: { mimeType: "video/mp4" },
+      });
+      for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+    });
+  });
+});
+
+describe("createAdkNormalizer — adk 2.1.0 unresolvable-tool `{error}` envelope (adk-10, OPEN FOUNDER DECISION)", () => {
+  // OPEN FOUNDER DECISION (adk-10, cohort 0.6.3): should ADK's own tool-failure
+  // envelope `{ error: "<message>" }` classify as tool.done outcome "error"?
+  // This test PINS THE CURRENT BEHAVIOUR (outcome "ok", the whole response
+  // carried losslessly as a `data` block) and is the SINGLE place to flip if
+  // the answer is yes. Pre-existing gap: the facet reads only MCP's
+  // `isError` flag, so ADK's envelope has classified "ok" since at least 2.0.0
+  // (MCPTool rejections, throwing FunctionTools — functions.js 2.0.0:316).
+  // 2.1.0 adds a third trigger: an unregistered / hallucinated tool name no
+  // longer throws out of runAsync but is answered by `answerUnresolvableCall`
+  // (functions.js 2.1.0:251-289) with EXACTLY this envelope, built by
+  // `buildResponseEvent` as a user-role functionResponse event.
+  it("classifies `Function X is not found in the toolsDict.` as outcome ok and carries it verbatim (current mapping)", () => {
+    const callId = "adk-5b0e7c1a-9f7d-4c2e-8a51-3d2f6e0b9c47";
+    const envelope = { error: "Function lookup_weather is not found in the toolsDict." };
+    const out = run([
+      event([{ functionCall: { name: "lookup_weather", args: { city: "Seoul" }, id: callId } }], {
+        partial: false,
+        finishReason: "STOP",
+      }),
+      {
+        invocationId: "inv_fixture_1",
+        author: "spike",
+        content: {
+          role: "user",
+          parts: [{ functionResponse: { name: "lookup_weather", response: envelope, id: callId } }],
+        },
+      },
+    ]);
+    const dones = out.filter((e) => e.type === "tool.done");
+    expect(dones).toHaveLength(1);
+    expect(dones[0]).toMatchObject({
+      toolCallId: callId,
+      // adk-10: flip to "error" here if the founder picks reclassification.
+      outcome: "ok",
+      content: [{ type: "data", name: "lookup_weather", data: envelope }],
+    });
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+});

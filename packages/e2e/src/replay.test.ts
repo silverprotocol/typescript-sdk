@@ -90,16 +90,55 @@ const CLAUDE_SEEDS = [
   // id, so these ride the @anthropic-ai/claude-agent-sdk 0.3.258 bump).
   // echo/partials/app-update mirror the sonnet5 trio so the two model families
   // stay diffable (kind:"capture", @0.3.258 — see corpus/*-fable51/
-  // claude.provenance.json). partials-fable51 is the corpus's first chance at
-  // stream_event thinking under Fable's always-on adaptive thinking.
+  // claude.provenance.json).
+  //
+  // 2026-09-23 (cohort 0.6.3) status of the trio: echo- and partials-fable51 are
+  // refreshed at 0.3.280. partials-fable51 is now a PARTIALS-GRAMMAR seed only:
+  // with thinking.display unset, CLI 2.1.280 runs in connector_text mode and the
+  // API returns no thinking summary, so this scenario streams no thinking at all
+  // (three 0.6.3 re-captures confirmed it; the 0.6.2 refresh had already lost it).
+  // Streamed thinking moved to the dedicated thinking-fable51 seed below.
+  // app-update-fable51 is DELIBERATELY HELD at its 0.3.272 capture: it is the
+  // corpus's only live evidence for narration_block_indexes (the 0.6.2 carry),
+  // and three 0.3.280 re-captures produced no narration. Refresh it only with a
+  // run that narrates (the guard below fails otherwise).
   "echo-fable51",
   "partials-fable51",
   "app-update-fable51",
+  // 2026-09-23 (cohort 0.6.3): the corpus's live STREAMED-THINKING seed. The
+  // scenario's thinkingDisplay:"summarized" knob sets the Agent SDK's
+  // thinking {type:"adaptive", display:"summarized"}, so thinking blocks and
+  // their summary text reach the stream deterministically instead of by chance.
+  // First capture: 1 thinking block, 13 thinking_delta (all with summary text),
+  // 1 signature_delta, 14 system/thinking_tokens frames.
+  "thinking-fable51",
+  // 2026-09-23 (cohort 0.6.3, model-release playbook): FIRST live captures on
+  // claude-opus-5-5 (GA 2026-09-22; needs Claude Code 2.1.280 / sdk 0.3.280 -
+  // older CLIs still send the id but canonicalise it to claude-opus-5, so they
+  // price it, default its effort and report canonicalModel as Opus 5). A seeded probe, not the working
+  // default: Opus pricing, and thinking cannot be switched off. With display
+  // unset none of the three streamed thinking (see the partials-fable51 note).
+  "echo-opus55",
+  "partials-opus55",
+  "app-update-opus55",
+  // 2026-09-23 (cohort 0.6.3): claude-opus-5 (GA 2026-07-24) had no corpus seed.
+  // Founder-approved 2026-09-15. It is also a Claude Code 2.1.280 refusal-
+  // fallback target (bio and frontier_llm refusals; cyber refusals go to
+  // claude-opus-4-8), so Opus 5 frames can appear mid-session for consumers who
+  // never chose it.
+  "echo-opus5",
 ] as const;
 
 /**
  * Every OpenAI seed scenario under corpus/ that ships a committed native cassette.
  * `convergence-echo` joins this list per audit M58 (see the CLAUDE_SEEDS comment).
+ *
+ * HISTORICAL SEED (stated 2026-09-23 so it stops reading as silent staleness):
+ * `echo-gpt55` is deliberately kept at its 2026-07-03 @openai/agents 0.12.0
+ * capture as a frozen record of the gpt-5.5 wire; it is not refreshed. Its
+ * sibling `app-spec-structured-result` IS refreshed (0.6.3: gpt-5.6-sol at
+ * 0.18.0), because it is the only live proof of the structuredContent ->
+ * item.customData channel and its name pins no model.
  *
  * `echo-gpt55` joins this list per the 2026-07-03 model-release playbook: the
  * FIRST live capture against the new `gpt-5.5` model (kind:"capture", real
@@ -132,6 +171,16 @@ const OPENAI_SEEDS = [
   // @openai/agents 0.17.0 + openai-node 7.10.0 (kind:"capture" — see
   // corpus/echo-gpt6astra/openai.provenance.json).
   "echo-gpt6astra",
+  // 2026-09-23 (cohort 0.6.3): FIRST live captures on gpt-6-sol and gpt-6-luna
+  // (GA 2026-09-22) at @openai/agents 0.18.0 + openai-node 7.22.0. The SDK has no
+  // model-specific settings for either, so both run at the API-default effort
+  // medium. echo-gpt6sol is the FIRST openai seed that actually reasons (30
+  // reasoning tokens): its reasoning item arrives as response.output_item.done
+  // BEFORE response.completed, while the SDK's reasoning_item_created comes
+  // AFTER it, so the facet surfaces it only as ext.openai.late-reasoning.
+  // gpt-6-luna chose not to reason on the echo.
+  "echo-gpt6sol",
+  "echo-gpt6luna",
 ] as const;
 
 /**
@@ -156,6 +205,14 @@ const ADK_SEEDS = [
   // subtree-pulled back. Adopted here (native + provenance verbatim; agjson/
   // coverage REGENERATED through the current facet — per-turn usage summation
   // + current guard files postdate the mirror's derived copies).
+  // 2026-09-23 (cohort 0.6.3): multi-turn, single-tool-call and text-only are
+  // grammar seeds whose names pin no model; they had sat at adk 1.3.0 since
+  // July and proved nothing about the current peer. MIGRATED to gemini-3.8-flash
+  // at adk 2.1.0 (provenance.model changes, agjson changes by design: the
+  // draft.3 thought-token fold, thought signatures). tool-error is kept as the
+  // HISTORICAL gemini-2.5-flash record; see tool-error-gemini38 below.
+  // echo-gemini35/36 and the gemini36/37 app-spec/thinking seeds are likewise
+  // historical and model-named - replay-only, not refreshed.
   "multi-turn",
   "single-tool-call",
   "text-only",
@@ -187,6 +244,14 @@ const ADK_SEEDS = [
   "echo-gemini38",
   "app-spec-gemini38",
   "thinking-gemini38",
+  // 2026-09-23 (cohort 0.6.3): the error path at @google/adk 2.1.0 on
+  // gemini-3.8-flash. A NEW scenario rather than a refresh of tool-error: ADK
+  // registers MCP tools WITHOUT the mcp__<server>__ prefix, so tool-error's steer
+  // ("mcp__errsrv__fail") names a tool that is not in the toolsDict - on 2.1.0
+  // that reaches the new hallucinated-tool envelope (#790), an OPEN founder
+  // decision. This scenario steers the bare name and records the clean MCP
+  // isError path. tool-error itself stays as the historical 2.5-flash record.
+  "tool-error-gemini38",
 ] as const;
 
 /**
@@ -204,6 +269,12 @@ const VERCEL_SEEDS = [
   // shape as a standing measurement (kind:"capture", see
   // corpus/echo-gpt6astra/vercel.provenance.json).
   "echo-gpt6astra",
+  // 2026-09-23 (cohort 0.6.3): gpt-6-sol and gpt-6-luna on the vercel facet at
+  // ai 7.0.111 / @ai-sdk/openai 4.0.72. Neither id is in the provider's model
+  // unions; both classify like gpt-6-astra, so the provider cannot send them a
+  // reasoning effort outside low..max.
+  "echo-gpt6sol",
+  "echo-gpt6luna",
 ] as const;
 
 /**
@@ -598,4 +669,97 @@ it("text-tool-turn: claude vs openai — pre-existing task mismatch (BLOCKED, no
   expect(() =>
     assertConvergent(c, k, { scenario: "text-tool-turn", fw1: "claude", fw2: "adk" }),
   ).toThrow(/toolCalls\.length mismatch|textContent mismatch/);
+});
+
+/**
+ * SURFACE GUARD (2026-09-23, cohort 0.6.3). A seed that exists for ONE wire
+ * surface must still carry that surface after a refresh. Replay alone cannot see
+ * this: a refreshed cassette is always self-consistent, so a refresh that happens
+ * to land a run without the surface stays green while the coverage silently
+ * disappears. That happened: the 0.6.2 refresh of partials-fable51 landed a
+ * thinking-free run and deleted the corpus's only live streamed-thinking evidence,
+ * and a 0.6.3 refresh of app-update-fable51 would have deleted the only live
+ * narration evidence the same way. Each entry names the seed, the surface, and a
+ * predicate over the NATIVE cassette.
+ */
+const SURFACE_GUARDS: ReadonlyArray<{
+  scenario: string;
+  framework: string;
+  surface: string;
+  count: (native: JsonValue[]) => number;
+}> = [
+  {
+    scenario: "thinking-fable51",
+    framework: "claude",
+    surface: "stream_event thinking_delta WITH summary text",
+    count: (n) =>
+      n.filter((f) => {
+        if (f === null || typeof f !== "object" || Array.isArray(f) || f["type"] !== "stream_event") return false;
+        const ev = f["event"];
+        if (ev === null || typeof ev !== "object" || Array.isArray(ev)) return false;
+        const d = ev["delta"];
+        if (d === null || typeof d !== "object" || Array.isArray(d)) return false;
+        return d["type"] === "thinking_delta" && typeof d["thinking"] === "string" && d["thinking"].length > 0;
+      }).length,
+  },
+  {
+    scenario: "thinking-fable51",
+    framework: "claude",
+    surface: "stream_event signature_delta",
+    count: (n) =>
+      n.filter((f) => {
+        if (f === null || typeof f !== "object" || Array.isArray(f) || f["type"] !== "stream_event") return false;
+        const ev = f["event"];
+        if (ev === null || typeof ev !== "object" || Array.isArray(ev)) return false;
+        const d = ev["delta"];
+        return d !== null && typeof d === "object" && !Array.isArray(d) && d["type"] === "signature_delta";
+      }).length,
+  },
+  {
+    scenario: "app-update-fable51",
+    framework: "claude",
+    surface: "assistant narration_block_indexes",
+    // Non-empty: a refresh landing narration_block_indexes: [] or null must fail.
+    count: (n) =>
+      n.filter((f) => {
+        if (f === null || typeof f !== "object" || Array.isArray(f)) return false;
+        const v = f["narration_block_indexes"];
+        return Array.isArray(v) && v.length > 0;
+      }).length,
+  },
+  {
+    scenario: "thinking-gemini38",
+    framework: "adk",
+    surface: "Gemini thought:true parts",
+    count: (n) => JSON.stringify(n).split('"thought":true').length - 1,
+  },
+  {
+    scenario: "tool-error-gemini38",
+    framework: "adk",
+    surface: "an MCP isError:true function response (the clean error path)",
+    count: (n) => JSON.stringify(n).split('\\"isError\\":true').length - 1 + (JSON.stringify(n).split('"isError":true').length - 1),
+  },
+  {
+    scenario: "echo-gpt6sol",
+    framework: "openai",
+    surface: "a reasoning item (the only openai seed that reasons; late-reasoning evidence)",
+    count: (n) => JSON.stringify(n).split('"type":"reasoning"').length - 1,
+  },
+  {
+    scenario: "app-spec-structured-result",
+    framework: "openai",
+    surface: "item.customData.structuredContent (the only live proof of that channel)",
+    count: (n) => JSON.stringify(n).split('"customData":{"structuredContent"').length - 1,
+  },
+];
+
+describe("surface guard — a seed keeps the surface it exists for", () => {
+  for (const g of SURFACE_GUARDS) {
+    it(`${g.scenario}/${g.framework} still carries ${g.surface}`, async () => {
+      const raw: unknown = JSON.parse(await readFile(join(CORPUS_ROOT, g.scenario, `${g.framework}.native.json`), "utf8"));
+      expect(Array.isArray(raw)).toBe(true);
+      const native = raw as JsonValue[];
+      expect(g.count(native), `${g.scenario} lost its reason to exist: no ${g.surface}. Re-capture until a run carries it, or hold the previous cassette.`).toBeGreaterThan(0);
+    });
+  }
 });

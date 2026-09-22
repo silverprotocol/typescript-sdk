@@ -2,38 +2,70 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
-    "threadId": "7d57bfa0-74ab-4dc1-88de-50f813a99fcb"
+    "turnId": "turn_6fc9ed9a-d80e-47dc-8702-5312ae80ea45",
+    "threadId": "6fc9ed9a-d80e-47dc-8702-5312ae80ea45"
   },
   {
     "type": "message.start",
     "seq": 1,
-    "id": "msg_011Cf4Pip5Y4PX5CR77yMRUf",
-    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
-    "threadId": "7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
+    "id": "msg_011CfK5w7AzJx9gJvY5buSNS",
+    "turnId": "turn_6fc9ed9a-d80e-47dc-8702-5312ae80ea45",
+    "threadId": "6fc9ed9a-d80e-47dc-8702-5312ae80ea45",
     "role": "assistant",
     "model": "claude-sonnet-5"
   },
   {
-    "type": "tool.start",
+    "type": "reasoning.start",
     "seq": 2,
-    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
-    "toolCallId": "toolu_01U7ucEAeX4QcdcQKw9rTioh",
+    "id": "msg_011CfK5w7AzJx9gJvY5buSNS:reasoning:0",
+    "messageId": "msg_011CfK5w7AzJx9gJvY5buSNS",
+    "turnId": "turn_6fc9ed9a-d80e-47dc-8702-5312ae80ea45"
+  },
+  {
+    "type": "reasoning.delta",
+    "seq": 3,
+    "id": "msg_011CfK5w7AzJx9gJvY5buSNS:reasoning:0",
+    "messageId": "msg_011CfK5w7AzJx9gJvY5buSNS",
+    "delta": "",
+    "turnId": "turn_6fc9ed9a-d80e-47dc-8702-5312ae80ea45"
+  },
+  {
+    "type": "reasoning.end",
+    "seq": 4,
+    "id": "msg_011CfK5w7AzJx9gJvY5buSNS:reasoning:0",
+    "messageId": "msg_011CfK5w7AzJx9gJvY5buSNS",
+    "turnId": "turn_6fc9ed9a-d80e-47dc-8702-5312ae80ea45"
+  },
+  {
+    "type": "reasoning.opaque",
+    "seq": 5,
+    "id": "msg_011CfK5w7AzJx9gJvY5buSNS:reasoning:0",
+    "messageId": "msg_011CfK5w7AzJx9gJvY5buSNS",
+    "kind": "signature",
+    "value": "Es8CCqgBCBIYAipAaicMbM1qL68JOvG9np1Eru7R0p6VAllljoSbSkbBCnKxinPQUh3Ppigaf0ocCLggBtSW7957pALYuxidHld8CzIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiQ2NThiNDdmOS0wMWUyLTQ3OTgtYjViZS00NGUyYTM1ZDhjY2FyELKOZMSwnhnZyM97wUmgANmIAQGoAcnBy9UGsAECEgz+hNvT+NUddCsYXnIaDB2p+n7XqkXpiSbFqCIwO1QfQlRa8Fo1TaTxIIAfXFQcsMp7thtAVRDuLPYxLYC7piu5DSDPYSEWqU0U0Iq8KlT2o/aetw+feOj3TaUuQNePuV5fEzR8XFEb8M9OZRFlpgGV2v2e1gOc0ojubcOByE4GlPyz+7sffM+5NkyvQXo1fzPYA/9r9OL9ufIsECPHM1wZQNIYAQ==",
+    "turnId": "turn_6fc9ed9a-d80e-47dc-8702-5312ae80ea45",
+    "provider": "anthropic"
+  },
+  {
+    "type": "tool.start",
+    "seq": 6,
+    "turnId": "turn_6fc9ed9a-d80e-47dc-8702-5312ae80ea45",
+    "toolCallId": "toolu_01F5H4bjsYn45jdC793LHqfp",
     "name": "mcp__cards__render_card",
-    "index": 0,
-    "messageId": "msg_011Cf4Pip5Y4PX5CR77yMRUf",
+    "index": 1,
+    "messageId": "msg_011CfK5w7AzJx9gJvY5buSNS",
     "providerExecuted": false
   },
   {
     "type": "tool.args.delta",
-    "seq": 3,
-    "toolCallId": "toolu_01U7ucEAeX4QcdcQKw9rTioh",
+    "seq": 7,
+    "toolCallId": "toolu_01F5H4bjsYn45jdC793LHqfp",
     "delta": "{\"title\":\"Hello\",\"body\":\"World\"}"
   },
   {
     "type": "tool.args.assembled",
-    "seq": 4,
-    "toolCallId": "toolu_01U7ucEAeX4QcdcQKw9rTioh",
+    "seq": 8,
+    "toolCallId": "toolu_01F5H4bjsYn45jdC793LHqfp",
     "input": {
       "title": "Hello",
       "body": "World"
@@ -41,11 +73,11 @@
   },
   {
     "type": "message.end",
-    "seq": 5,
-    "id": "msg_011Cf4Pip5Y4PX5CR77yMRUf",
+    "seq": 9,
+    "id": "msg_011CfK5w7AzJx9gJvY5buSNS",
     "usage": {
       "inputTokens": 2,
-      "outputTokens": 23,
+      "outputTokens": 2,
       "cacheReadTokens": 0,
       "cacheWriteTokens": 2217,
       "cumulative": true
@@ -53,9 +85,9 @@
   },
   {
     "type": "tool.done",
-    "seq": 6,
-    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
-    "toolCallId": "toolu_01U7ucEAeX4QcdcQKw9rTioh",
+    "seq": 10,
+    "turnId": "turn_6fc9ed9a-d80e-47dc-8702-5312ae80ea45",
+    "toolCallId": "toolu_01F5H4bjsYn45jdC793LHqfp",
     "content": [
       {
         "type": "text",
@@ -64,7 +96,7 @@
     ],
     "outcome": "ok",
     "isError": false,
-    "messageId": "toolu_01U7ucEAeX4QcdcQKw9rTioh:result",
+    "messageId": "toolu_01F5H4bjsYn45jdC793LHqfp:result",
     "uiData": {
       "title": "Hello",
       "body": "World",
@@ -82,33 +114,33 @@
   },
   {
     "type": "message.start",
-    "seq": 7,
-    "id": "msg_011Cf4PivS2ZCgEUGSqY8VZa",
-    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
-    "threadId": "7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
+    "seq": 11,
+    "id": "msg_011CfK5wFkgNCngsteDGj7TP",
+    "turnId": "turn_6fc9ed9a-d80e-47dc-8702-5312ae80ea45",
+    "threadId": "6fc9ed9a-d80e-47dc-8702-5312ae80ea45",
     "role": "assistant",
     "model": "claude-sonnet-5"
   },
   {
     "type": "tool.start",
-    "seq": 8,
-    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
-    "toolCallId": "toolu_01BHR58mzABAm1coAL152gDk",
+    "seq": 12,
+    "turnId": "turn_6fc9ed9a-d80e-47dc-8702-5312ae80ea45",
+    "toolCallId": "toolu_01Ep6T1KuJ2xnciKTVmBv25D",
     "name": "mcp__cards__update_card",
     "index": 0,
-    "messageId": "msg_011Cf4PivS2ZCgEUGSqY8VZa",
+    "messageId": "msg_011CfK5wFkgNCngsteDGj7TP",
     "providerExecuted": false
   },
   {
     "type": "tool.args.delta",
-    "seq": 9,
-    "toolCallId": "toolu_01BHR58mzABAm1coAL152gDk",
+    "seq": 13,
+    "toolCallId": "toolu_01Ep6T1KuJ2xnciKTVmBv25D",
     "delta": "{\"title\":\"Hello\",\"body\":\"Updated World\"}"
   },
   {
     "type": "tool.args.assembled",
-    "seq": 10,
-    "toolCallId": "toolu_01BHR58mzABAm1coAL152gDk",
+    "seq": 14,
+    "toolCallId": "toolu_01Ep6T1KuJ2xnciKTVmBv25D",
     "input": {
       "title": "Hello",
       "body": "Updated World"
@@ -116,21 +148,21 @@
   },
   {
     "type": "message.end",
-    "seq": 11,
-    "id": "msg_011Cf4PivS2ZCgEUGSqY8VZa",
+    "seq": 15,
+    "id": "msg_011CfK5wFkgNCngsteDGj7TP",
     "usage": {
       "inputTokens": 2,
-      "outputTokens": 24,
+      "outputTokens": 25,
       "cacheReadTokens": 2217,
-      "cacheWriteTokens": 149,
+      "cacheWriteTokens": 171,
       "cumulative": true
     }
   },
   {
     "type": "tool.done",
-    "seq": 12,
-    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
-    "toolCallId": "toolu_01BHR58mzABAm1coAL152gDk",
+    "seq": 16,
+    "turnId": "turn_6fc9ed9a-d80e-47dc-8702-5312ae80ea45",
+    "toolCallId": "toolu_01Ep6T1KuJ2xnciKTVmBv25D",
     "content": [
       {
         "type": "text",
@@ -139,7 +171,7 @@
     ],
     "outcome": "ok",
     "isError": false,
-    "messageId": "toolu_01BHR58mzABAm1coAL152gDk:result",
+    "messageId": "toolu_01Ep6T1KuJ2xnciKTVmBv25D:result",
     "uiData": {
       "title": "Hello",
       "body": "Updated World",
@@ -157,49 +189,49 @@
   },
   {
     "type": "message.start",
-    "seq": 13,
-    "id": "msg_011Cf4Pj12N2wJv4uRAhwHGh",
-    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
-    "threadId": "7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
+    "seq": 17,
+    "id": "msg_011CfK5wRkSvzzK8hxj8V94L",
+    "turnId": "turn_6fc9ed9a-d80e-47dc-8702-5312ae80ea45",
+    "threadId": "6fc9ed9a-d80e-47dc-8702-5312ae80ea45",
     "role": "assistant",
     "model": "claude-sonnet-5"
   },
   {
     "type": "text.start",
-    "seq": 14,
-    "id": "msg_011Cf4Pj12N2wJv4uRAhwHGh:text:0",
-    "messageId": "msg_011Cf4Pj12N2wJv4uRAhwHGh",
-    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb"
+    "seq": 18,
+    "id": "msg_011CfK5wRkSvzzK8hxj8V94L:text:0",
+    "messageId": "msg_011CfK5wRkSvzzK8hxj8V94L",
+    "turnId": "turn_6fc9ed9a-d80e-47dc-8702-5312ae80ea45"
   },
   {
     "type": "text.delta",
-    "seq": 15,
-    "id": "msg_011Cf4Pj12N2wJv4uRAhwHGh:text:0",
-    "messageId": "msg_011Cf4Pj12N2wJv4uRAhwHGh",
-    "delta": "The card was rendered and then updated successfully. Final state: **revision 2** — title \"Hello\", body \"Updated World\".",
-    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb"
+    "seq": 19,
+    "id": "msg_011CfK5wRkSvzzK8hxj8V94L:text:0",
+    "messageId": "msg_011CfK5wRkSvzzK8hxj8V94L",
+    "delta": "The card was rendered and then updated successfully. Final state: **revision 2** — title=\"Hello\", body=\"Updated World\".",
+    "turnId": "turn_6fc9ed9a-d80e-47dc-8702-5312ae80ea45"
   },
   {
     "type": "text.end",
-    "seq": 16,
-    "id": "msg_011Cf4Pj12N2wJv4uRAhwHGh:text:0",
-    "messageId": "msg_011Cf4Pj12N2wJv4uRAhwHGh",
-    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb"
+    "seq": 20,
+    "id": "msg_011CfK5wRkSvzzK8hxj8V94L:text:0",
+    "messageId": "msg_011CfK5wRkSvzzK8hxj8V94L",
+    "turnId": "turn_6fc9ed9a-d80e-47dc-8702-5312ae80ea45"
   },
   {
     "type": "message.end",
-    "seq": 17,
-    "id": "msg_011Cf4Pj12N2wJv4uRAhwHGh",
+    "seq": 21,
+    "id": "msg_011CfK5wRkSvzzK8hxj8V94L",
     "usage": {
       "inputTokens": 2,
       "outputTokens": 1,
-      "cacheReadTokens": 2366,
+      "cacheReadTokens": 2388,
       "cacheWriteTokens": 155,
       "cumulative": true
     }
   },
   {
-    "seq": 18,
+    "seq": 22,
     "type": "ext.anthropic.result-meta",
     "fastModeDisabledReason": "sdk_opt_in_required",
     "queuedTurnCount": 0,
@@ -243,40 +275,40 @@
   },
   {
     "type": "turn.done",
-    "seq": 19,
-    "turnId": "turn_7d57bfa0-74ab-4dc1-88de-50f813a99fcb",
+    "seq": 23,
+    "turnId": "turn_6fc9ed9a-d80e-47dc-8702-5312ae80ea45",
     "outcome": {
       "type": "success",
-      "result": "The card was rendered and then updated successfully. Final state: **revision 2** — title \"Hello\", body \"Updated World\"."
+      "result": "The card was rendered and then updated successfully. Final state: **revision 2** — title=\"Hello\", body=\"Updated World\"."
     },
     "finishReason": "stop",
     "usage": {
       "inputTokens": 6,
-      "outputTokens": 197,
-      "cacheReadTokens": 4583,
-      "cacheWriteTokens": 2521,
-      "reasoningTokens": 0,
+      "outputTokens": 219,
+      "cacheReadTokens": 4605,
+      "cacheWriteTokens": 2543,
+      "reasoningTokens": 21,
       "serverToolRequests": 0,
-      "costUsd": 0.010189100000000001,
+      "costUsd": 0.0104635,
       "cumulative": true,
       "byModel": {
         "claude-haiku-4-5-20251001": {
           "inputTokens": 923,
-          "outputTokens": 13,
+          "outputTokens": 12,
           "cacheReadTokens": 0,
           "cacheWriteTokens": 0,
           "reasoningTokens": 0,
-          "costUsd": 0.000988,
+          "costUsd": 0.000983,
           "serverToolRequests": 0,
           "cumulative": true
         },
         "claude-sonnet-5": {
           "inputTokens": 6,
-          "outputTokens": 197,
-          "cacheReadTokens": 4583,
-          "cacheWriteTokens": 2521,
-          "reasoningTokens": 0,
-          "costUsd": 0.0092011,
+          "outputTokens": 219,
+          "cacheReadTokens": 4605,
+          "cacheWriteTokens": 2543,
+          "reasoningTokens": 21,
+          "costUsd": 0.009480500000000001,
           "serverToolRequests": 0,
           "cumulative": true
         }

@@ -1,0 +1,111 @@
+[
+  {
+    "invocationId": "e-212b1162-77c3-4d68-a3a1-e364619a2c96",
+    "author": "spike",
+    "id": "8EgNhOG1",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790107606775,
+    "content": {
+      "parts": [
+        {
+          "functionCall": {
+            "name": "fail",
+            "args": {},
+            "id": "call_58272"
+          },
+          "thoughtSignature": "EvkBCvYBAWkUfRO8k+B9aDjT+2anOZOqzn+DToejSI+tMS2zJuLeVsKt2ZeSkrzbF0vbwQIaVMoiXGqnMRGJTBf0SxKFhYb8wNc2ysnalUoNPwxK3yWBC3r2Sp0hbIPtjBIO2GYqwBLN5Fg/dwDtluF5QWHgnKsid0ofDsDASMbVeJXMvRvJlqjtqPo4ki9etgykzQA+my46hwZUSTTzylgVQDiM9mspKK0ysdGFmG+brStKWZvoQnOaWoyQuCBzUT5i7QaEYQ2PP2ATQBCpKTE1e5AHoyuvvbwJ8SeMR0HAVKf0mqybUqOSflW33VzqRCjj17qnJTFQkdf9"
+        }
+      ],
+      "role": "model"
+    },
+    "usageMetadata": {
+      "promptTokenCount": 89,
+      "candidatesTokenCount": 8,
+      "totalTokenCount": 137,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 89
+        }
+      ],
+      "thoughtsTokenCount": 40,
+      "serviceTier": "standard"
+    },
+    "finishReason": "STOP"
+  },
+  {
+    "invocationId": "e-212b1162-77c3-4d68-a3a1-e364619a2c96",
+    "author": "spike",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "call_58272",
+            "name": "fail",
+            "response": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "{\"error\":{\"code\":\"E_MOCK\",\"message\":\"boom\"}}"
+                }
+              ],
+              "isError": true
+            }
+          }
+        }
+      ]
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "msl3vV75",
+    "longRunningToolIds": [],
+    "timestamp": 1790107608814
+  },
+  {
+    "invocationId": "e-212b1162-77c3-4d68-a3a1-e364619a2c96",
+    "author": "spike",
+    "id": "Je7lrca9",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790107608818,
+    "content": {
+      "parts": [
+        {
+          "text": "The `fail` tool returned the following error:\n\n- **Code:** `E_MOCK`\n- **Message:** `boom`\n\nExact JSON returned:\n```json\n{\"error\":{\"code\":\"E_MOCK\",\"message\":\"boom\"}}\n```",
+          "thoughtSignature": "ErkCCrYCAWkUfRN1zqecKcWjGfXm6LM+gb3rUgPORJf/MFz6waZmhukBE0M9759Iu5xi9v2+nDQc6sJx9yCAeONGzsHB63e9fvAZtlHOBXOrbNGW4XMLfXfBMrpXayl0NEAqx0q6mlcKprJrAx+NmMNpaKOA/TwEz6NCQaJA0+Yd3D0yuZG9eNmGWNCNax2TMJaoM5KVwYH3U4kTum4lQulrvi7dWS5RbJiQWaYznt6E41IqXWuopub+WouXdSWSGYhKsCufv3o92QvQeKLejrYm4Ebw+8T/iQbUOVV7GucB0X81IyF19qI6Pf9N2l9i0WDEi3jFvUvC2hTH3pn3bPm1XeVNuzJj/vPmw0zW1HP+UnDev/jQQRUhulcPRksbNPWlopqCD0ioOVqRiK1UTeg/eZYC7rEB15q6Ng=="
+        }
+      ],
+      "role": "model"
+    },
+    "usageMetadata": {
+      "promptTokenCount": 176,
+      "candidatesTokenCount": 54,
+      "totalTokenCount": 289,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 176
+        }
+      ],
+      "thoughtsTokenCount": 59,
+      "serviceTier": "standard"
+    },
+    "finishReason": "STOP"
+  }
+]

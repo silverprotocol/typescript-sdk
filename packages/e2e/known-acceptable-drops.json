@@ -25,8 +25,8 @@
   },
   {
     "path": "[*].api_error_status",
-    "reason": "claude: result wall-clock/diagnostic telemetry (0.3.199 addition, sibling of the already-allowlisted duration_ms/duration_api_ms/num_turns) \u2014 not part of the AgJSON turn record (no semantic home, non-replayable, never read by createClaudeNormalizer). First observed live (playbook 2026-07-03, echo-sonnet5).",
-    "reviewed": "any",
+    "reason": "claude: the HTTP status of the API error that ended a turn, on the result frame (0.3.199 addition). Null on every successful turn in the corpus, so it is allowlisted NULL-ONLY: a populated status is a consumer signal (why the turn failed) and must surface as a drop. The facet reads it only to derive turn.error.retriable (429 or >= 500), and only when no assistant `error` frame preceded the is_error:true result; in the live invalid-key run (401) an authentication_failed assistant frame did precede it, so the status was not read. The status itself is not carried - a carry candidate the first time an error seed surfaces it. (Corrected 2026-09-23 (cohort 0.6.3): the earlier reason said it was never read by the normalizer.)",
+    "reviewed": "null-only",
     "frameworks": [
       "claude"
     ]
@@ -128,6 +128,14 @@
     ]
   },
   {
+    "path": "[*].data.event.item.encrypted_content",
+    "reason": "openai: INTERMEDIATE ciphertexts of a reasoning item on response.output_item.added (partial) and response.output_item.done. OpenAI re-encrypts at each stage, so on echo-gpt6sol these are two distinct blobs that differ from the FINAL one; the final blob (response.completed output / response_done) is the one stateless replay sends back, and it IS carried verbatim as ext.openai.late-reasoning.encryptedContent. Observed live 2026-09-23 (cohort 0.6.3) on echo-gpt6sol, the first openai seed that reasons. Note for any first-class reasoning-block fix: source the opaque blob from response_done, not output_item.done.",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
     "path": "[*].data.event.item.phase",
     "reason": "openai: GENUINE NEW WIRE FAMILY, FLAGGED FOR FOLLOW-UP (gpt-5.5 addition, playbook 2026-07-03) \u2014 a \"phase\" discriminant appearing on 4 different carrier shapes, never read by createOpenaiNormalizer. Every occurrence in this simple echo scenario is the single constant \"final_answer\"; this triage does NOT establish that other phase values (e.g. a hypothetical intermediate/draft phase preceding the final one) would be equally safe to ignore \u2014 see the playbook capture report's dedicated call-out recommending a follow-up investigation with a scenario that actually exercises multi-phase output before treating this field as permanently homeless.",
     "reviewed": "any",
@@ -179,6 +187,14 @@
     "path": "[*].data.event.part.type",
     "reason": "openai: content part data in response.content_part.added/done events; IGNORED (not authoritative \u2014 text content handled by response.output_text.delta/done).",
     "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].data.event.response.access_programs",
+    "reason": "openai: the Responses access_programs object itself arriving as null. The API (not the SDK, which only passes it through) has stamped it three ways on echo-gpt6astra: {cyber:'standard'} (2026-09-05), absent (2026-09-15), and null on every openai seed captured 2026-09-22 (gpt-5.6-sol, gpt-6-astra, gpt-6-sol, gpt-6-luna). null-only guards against a non-null scalar at this path; a populated object's .cyber child is covered by the reviewed:any .cyber entry, and a new child key surfaces as a new field. First observed live 2026-09-23 (cohort 0.6.3).",
+    "reviewed": "null-only",
     "frameworks": [
       "openai"
     ]
@@ -744,6 +760,14 @@
     ]
   },
   {
+    "path": "[*].data.providerData.response.access_programs",
+    "reason": "openai: the Responses access_programs object itself arriving as null. The API (not the SDK, which only passes it through) has stamped it three ways on echo-gpt6astra: {cyber:'standard'} (2026-09-05), absent (2026-09-15), and null on every openai seed captured 2026-09-22 (gpt-5.6-sol, gpt-6-astra, gpt-6-sol, gpt-6-luna). null-only guards against a non-null scalar at this path; a populated object's .cyber child is covered by the reviewed:any .cyber entry, and a new child key surfaces as a new field. First observed live 2026-09-23 (cohort 0.6.3).",
+    "reviewed": "null-only",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
     "path": "[*].data.providerData.response.access_programs.cyber",
     "reason": "openai (cohort 0.6.1, corpus/echo-gpt6astra, 2026-09-05 \u2014 the FIRST gpt-6-astra capture): Responses `response.access_programs.cyber` (observed value 'standard') is an account/program-tier attribute the API stamps on every response object for GPT-6 Astra; router-plane like service_tier \u2014 not turn content, no AgJSON home. Rides the response object wherever the Agents SDK echoes it (raw event, item providerData, response providerData).",
     "reviewed": "any",
@@ -1267,6 +1291,14 @@
     "path": "[*].data.response.output[*].type",
     "reason": "openai: SDK-assembled response object on response_done event; IGNORED (response_done is the SDK-flattened duplicate of model:response.completed, which is the authoritative turn-close source).",
     "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].data.response.providerData.access_programs",
+    "reason": "openai: the Responses access_programs object itself arriving as null. The API (not the SDK, which only passes it through) has stamped it three ways on echo-gpt6astra: {cyber:'standard'} (2026-09-05), absent (2026-09-15), and null on every openai seed captured 2026-09-22 (gpt-5.6-sol, gpt-6-astra, gpt-6-sol, gpt-6-luna). null-only guards against a non-null scalar at this path; a populated object's .cyber child is covered by the reviewed:any .cyber entry, and a new child key surfaces as a new field. First observed live 2026-09-23 (cohort 0.6.3).",
+    "reviewed": "null-only",
     "frameworks": [
       "openai"
     ]
@@ -1904,6 +1936,14 @@
     ]
   },
   {
+    "path": "[*].event.message.usage.cache_creation.ephemeral_5m_input_tokens",
+    "reason": "claude: stream-event (message_start) twin of the allowlisted [*].message.usage.cache_creation.ephemeral_5m_input_tokens \u2014 the per-TTL split of cache writes, which AgUsage folds into cacheWriteTokens. Surfaced as an ambient-0 drop on partials-fable51 2026-09-23 (cohort 0.6.3).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
     "path": "[*].event.message.usage.inference_geo",
     "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): serving-region telemetry with no AgUsage slot \u2014 mirror of the [*].message.usage.inference_geo entry.",
     "reviewed": "any",
@@ -1930,6 +1970,22 @@
   {
     "path": "[*].event.usage.iterations[*].cache_creation.ephemeral_1h_input_tokens",
     "reason": "claude stream_event (workspace#7, corpus/partials-sonnet5, 2026-08-07): per-iteration sampling telemetry \u2014 mirror of the [*].message.usage.iterations whole-array entry.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.usage.iterations[*].cache_creation.ephemeral_5m_input_tokens",
+    "reason": "claude: stream-event twin of the allowlisted [*].usage.iterations[*].cache_creation.ephemeral_5m_input_tokens (per-iteration usage breakdown with no AgUsage home). Surfaced as an ambient-0 drop on partials-fable51 2026-09-23 (cohort 0.6.3).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].event.usage.iterations[*].cache_creation_input_tokens",
+    "reason": "claude: stream-event twin of the allowlisted [*].usage.iterations[*].cache_creation_input_tokens. Surfaced as an ambient-0 drop on partials-fable51 2026-09-23 (cohort 0.6.3).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -1969,7 +2025,7 @@
   },
   {
     "path": "[*].first_content_frame_ms",
-    "reason": "claude: result-frame wall-clock telemetry \u2014 SDKResultSuccess gained first_content_frame_ms / first_stream_post_ms / first_stream_post_ack_ms / first_stream_post_wall_ms at 0.3.260 (bare fields, remote-session latency breakdown; NOT on SDKResultError). Router-plane sibling of the allowlisted ttft_ms/ttft_stream_ms/time_to_request_ms family: no AgJSON home, non-replayable, never read by createClaudeNormalizer. Remote-session only \u2014 the local-CLI capture path is not expected to emit it; registered proactively at the 0.3.261 bump (2026-09-05), no live observation yet.",
+    "reason": "claude: result-frame wall-clock telemetry \u2014 SDKResultSuccess gained first_content_frame_ms / first_stream_post_ms / first_stream_post_ack_ms / first_stream_post_wall_ms at 0.3.260 (bare fields, remote-session latency breakdown; NOT on SDKResultError). Router-plane sibling of the allowlisted ttft_ms/ttft_stream_ms/time_to_request_ms family: no AgJSON home, non-replayable, never read by createClaudeNormalizer. CORRECTION 2026-09-23: this field IS emitted on local API-key captures \u2014 it has been observed on every claude seed refreshed since 2026-09-15 \u2014 so the earlier 'remote-session only, not expected locally' note was wrong. Its first_stream_post_* siblings (three allowlisted: _ms, _ack_ms, _wall_ms; two more, _queue_wait_ms and _queued_behind, declared at 0.3.280 and not yet registered) have not been observed locally.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2017,7 +2073,7 @@
   },
   {
     "path": "[*].is_error",
-    "reason": "result-level boolean restating subtype (success\u21d2false); carried as turn.done vs turn.error, so the ambient false has no separate home.",
+    "reason": "claude: result-level boolean. On an error subtype it restates the subtype (typed boolean; expected true, but no error-subtype capture is in the corpus). On subtype 'success' it is false for a normal turn and TRUE for a turn that ended on an API error (sdk.d.ts SDKResultMessage: 'with is_error true, the error text when the turn ended on an API error'; live-confirmed 2026-09-23 with an invalid key: an assistant frame with error:authentication_failed, then a success result with is_error:true and api_error_status:401). Its home is the close itself: since cohort 0.6.3 createClaudeNormalizer closes such a turn as turn.error, never turn.done (the earlier reason here, 'success\u21d2false', was wrong, and masked a wrong mapping that folded failed turns as successes). Stays reviewed:any because the boolean is ambient: null-only would make every seed's ordinary false a drop. NOTE: no committed cassette carries is_error:true, so this census entry cannot catch a regression of the turn.error close; that coverage lives in the claude-agent-sdk unit tests (including the live invalid-key frames) until an error seed exists.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2114,6 +2170,14 @@
   {
     "path": "[*].mcp_servers[*].name",
     "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event. Session-scoped MCP-connection bookkeeping.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].mcp_servers[*].source",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata); createClaudeNormalizer never maps system/init, so it has no AgJSON home \u2014 the same router-plane class as the allowlisted [*].mcp_servers[*].name/status and [*].agents[*] siblings. Declared on SDKSystemMessage since sdk 0.3.278 (absent at 0.3.272), first captured at 0.3.280 / CLI 2.1.280: where each MCP server definition came from (sdk | plugin | a config scope). Observed value 'dynamic' on every seed, because the capture agent passes its mock servers through options.mcpServers. First observed live 2026-09-23 (cohort 0.6.3).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2322,6 +2386,22 @@
   {
     "path": "[*].modelUsage.claude-haiku-4-5-20251001.maxOutputTokens",
     "reason": "model capability constant (max output tokens) for claude-haiku-4-5-20251001 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.maxOutputTokens entry (mapModelUsage, index.ts:116-126, never reads it); not an actual usage measurement, no AgUsage home. New model literal observed live (playbook 2026-07-03).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].modelUsage.claude-opus-5-5.contextWindow",
+    "reason": "claude: static model-capability metadata on the per-model modelUsage entry (mirrors the claude-opus-5 / claude-sonnet-5 entries for the same key): limits, not usage, with no AgUsage home. First observed live 2026-09-23 (cohort 0.6.3) on the claude-opus-5-5 seeds (1000000 / 128000).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].modelUsage.claude-opus-5-5.maxOutputTokens",
+    "reason": "claude: static model-capability metadata on the per-model modelUsage entry (mirrors the claude-opus-5 / claude-sonnet-5 entries for the same key): limits, not usage, with no AgUsage home. First observed live 2026-09-23 (cohort 0.6.3) on the claude-opus-5-5 seeds (1000000 / 128000).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2538,6 +2618,30 @@
   {
     "path": "[*].permissionMode",
     "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].plugins[*].name",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata); createClaudeNormalizer never maps system/init, so it has no AgJSON home \u2014 the same router-plane class as the allowlisted [*].mcp_servers[*].name/status and [*].agents[*] siblings. The init plugins[] list became non-empty at CLI 2.1.280: the two builtin plugins agents-md and telemetry (path 'builtin', source '<name>@builtin'). Session capability listing, not turn content. First observed live 2026-09-23 (cohort 0.6.3).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].plugins[*].path",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata); createClaudeNormalizer never maps system/init, so it has no AgJSON home \u2014 the same router-plane class as the allowlisted [*].mcp_servers[*].name/status and [*].agents[*] siblings. The init plugins[] list became non-empty at CLI 2.1.280: the two builtin plugins agents-md and telemetry (path 'builtin', source '<name>@builtin'). Session capability listing, not turn content. First observed live 2026-09-23 (cohort 0.6.3).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].plugins[*].source",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata); createClaudeNormalizer never maps system/init, so it has no AgJSON home \u2014 the same router-plane class as the allowlisted [*].mcp_servers[*].name/status and [*].agents[*] siblings. The init plugins[] list became non-empty at CLI 2.1.280: the two builtin plugins agents-md and telemetry (path 'builtin', source '<name>@builtin'). Session capability listing, not turn content. First observed live 2026-09-23 (cohort 0.6.3). source is UNDECLARED in sdk.d.ts at 0.3.280 (SDKSystemMessage.plugins declares only name, path, version?), so it can change without notice.",
     "reviewed": "any",
     "frameworks": [
       "claude"

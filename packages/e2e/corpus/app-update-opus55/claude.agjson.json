@@ -1,0 +1,286 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "threadId": "b17fe68b-a8ad-495b-bfd4-4fd28c5cb302"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_011CfK6EWpGPUDxs8HAYHYN8",
+    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "threadId": "b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "role": "assistant",
+    "model": "claude-opus-5-5"
+  },
+  {
+    "type": "tool.start",
+    "seq": 2,
+    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "toolCallId": "toolu_01RDpUbaJt8tPa6R8hG9rVWa",
+    "name": "mcp__cards__render_card",
+    "index": 0,
+    "messageId": "msg_011CfK6EWpGPUDxs8HAYHYN8",
+    "providerExecuted": false
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 3,
+    "toolCallId": "toolu_01RDpUbaJt8tPa6R8hG9rVWa",
+    "delta": "{\"title\":\"Hello\",\"body\":\"World\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 4,
+    "toolCallId": "toolu_01RDpUbaJt8tPa6R8hG9rVWa",
+    "input": {
+      "title": "Hello",
+      "body": "World"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 5,
+    "id": "msg_011CfK6EWpGPUDxs8HAYHYN8",
+    "usage": {
+      "inputTokens": 2,
+      "outputTokens": 24,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 2179,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "tool.done",
+    "seq": 6,
+    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "toolCallId": "toolu_01RDpUbaJt8tPa6R8hG9rVWa",
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"title\":\"Hello\",\"body\":\"World\",\"revision\":1,\"kind\":\"render\"}"
+      }
+    ],
+    "outcome": "ok",
+    "isError": false,
+    "messageId": "toolu_01RDpUbaJt8tPa6R8hG9rVWa:result",
+    "uiData": {
+      "title": "Hello",
+      "body": "World",
+      "revision": 1,
+      "kind": "render"
+    },
+    "_meta": {
+      "ui": {
+        "resourceUri": "ui://mock/card",
+        "visibility": [
+          "model"
+        ]
+      }
+    }
+  },
+  {
+    "type": "message.start",
+    "seq": 7,
+    "id": "msg_011CfK6Edf22nUmi2QEFkrvW",
+    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "threadId": "b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "role": "assistant",
+    "model": "claude-opus-5-5"
+  },
+  {
+    "type": "tool.start",
+    "seq": 8,
+    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "toolCallId": "toolu_016hrSJ5ARfqdoSX3ZaKwfGt",
+    "name": "mcp__cards__update_card",
+    "index": 0,
+    "messageId": "msg_011CfK6Edf22nUmi2QEFkrvW",
+    "providerExecuted": false
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 9,
+    "toolCallId": "toolu_016hrSJ5ARfqdoSX3ZaKwfGt",
+    "delta": "{\"title\":\"Hello\",\"body\":\"Updated World\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 10,
+    "toolCallId": "toolu_016hrSJ5ARfqdoSX3ZaKwfGt",
+    "input": {
+      "title": "Hello",
+      "body": "Updated World"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 11,
+    "id": "msg_011CfK6Edf22nUmi2QEFkrvW",
+    "usage": {
+      "inputTokens": 2,
+      "outputTokens": 24,
+      "cacheReadTokens": 2179,
+      "cacheWriteTokens": 133,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "tool.done",
+    "seq": 12,
+    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "toolCallId": "toolu_016hrSJ5ARfqdoSX3ZaKwfGt",
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"title\":\"Hello\",\"body\":\"Updated World\",\"revision\":2,\"kind\":\"update\"}"
+      }
+    ],
+    "outcome": "ok",
+    "isError": false,
+    "messageId": "toolu_016hrSJ5ARfqdoSX3ZaKwfGt:result",
+    "uiData": {
+      "title": "Hello",
+      "body": "Updated World",
+      "revision": 2,
+      "kind": "update"
+    },
+    "_meta": {
+      "ui": {
+        "resourceUri": "ui://mock/card",
+        "visibility": [
+          "model"
+        ]
+      }
+    }
+  },
+  {
+    "type": "message.start",
+    "seq": 13,
+    "id": "msg_011CfK6Ekx4m8ZMe9KvSzjYu",
+    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "threadId": "b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "role": "assistant",
+    "model": "claude-opus-5-5"
+  },
+  {
+    "type": "text.start",
+    "seq": 14,
+    "id": "msg_011CfK6Ekx4m8ZMe9KvSzjYu:text:0",
+    "messageId": "msg_011CfK6Ekx4m8ZMe9KvSzjYu",
+    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302"
+  },
+  {
+    "type": "text.delta",
+    "seq": 15,
+    "id": "msg_011CfK6Ekx4m8ZMe9KvSzjYu:text:0",
+    "messageId": "msg_011CfK6Ekx4m8ZMe9KvSzjYu",
+    "delta": "I rendered the card, then updated it in place. The update tool's final state is **revision 2**:\n\n- **Title:** Hello\n- **Body:** Updated World\n\nThe first call created the card as revision 1 with the body \"World\". The second call changed that same card to revision 2.",
+    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302"
+  },
+  {
+    "type": "text.end",
+    "seq": 16,
+    "id": "msg_011CfK6Ekx4m8ZMe9KvSzjYu:text:0",
+    "messageId": "msg_011CfK6Ekx4m8ZMe9KvSzjYu",
+    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302"
+  },
+  {
+    "type": "message.end",
+    "seq": 17,
+    "id": "msg_011CfK6Ekx4m8ZMe9KvSzjYu",
+    "usage": {
+      "inputTokens": 2,
+      "outputTokens": 85,
+      "cacheReadTokens": 2312,
+      "cacheWriteTokens": 139,
+      "cumulative": true
+    }
+  },
+  {
+    "seq": 18,
+    "type": "ext.anthropic.result-meta",
+    "fastModeDisabledReason": "sdk_opt_in_required",
+    "queuedTurnCount": 0,
+    "resultIndex": 0,
+    "subagentStats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "modelUsage": {
+      "claude-haiku-4-5-20251001": {
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-opus-5-5": {
+        "canonicalModel": "claude-opus-5-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    }
+  },
+  {
+    "type": "turn.done",
+    "seq": 19,
+    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "outcome": {
+      "type": "success",
+      "result": "I rendered the card, then updated it in place. The update tool's final state is **revision 2**:\n\n- **Title:** Hello\n- **Body:** Updated World\n\nThe first call created the card as revision 1 with the body \"World\". The second call changed that same card to revision 2."
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 6,
+      "outputTokens": 242,
+      "cacheReadTokens": 4491,
+      "cacheWriteTokens": 2451,
+      "reasoningTokens": 0,
+      "serverToolRequests": 0,
+      "costUsd": 0.0190052,
+      "cumulative": true,
+      "byModel": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 923,
+          "outputTokens": 13,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "costUsd": 0.000988,
+          "serverToolRequests": 0,
+          "cumulative": true
+        },
+        "claude-opus-5-5": {
+          "inputTokens": 6,
+          "outputTokens": 242,
+          "cacheReadTokens": 4491,
+          "cacheWriteTokens": 2451,
+          "reasoningTokens": 0,
+          "costUsd": 0.0180172,
+          "serverToolRequests": 0,
+          "cumulative": true
+        }
+      }
+    }
+  }
+]

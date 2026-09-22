@@ -156,6 +156,17 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "thinking-gemini38", framework: "adk" },
   { scenario: "echo-gpt6astra", framework: "vercel" },
   { scenario: "echo-gpt6astra", framework: "openai" },
+  // 2026-09-23 (cohort 0.6.3): new seeds enrolled at capture time.
+  { scenario: "thinking-fable51", framework: "claude" },
+  { scenario: "echo-opus55", framework: "claude" },
+  { scenario: "partials-opus55", framework: "claude" },
+  { scenario: "app-update-opus55", framework: "claude" },
+  { scenario: "echo-opus5", framework: "claude" },
+  { scenario: "tool-error-gemini38", framework: "adk" },
+  { scenario: "echo-gpt6sol", framework: "openai" },
+  { scenario: "echo-gpt6luna", framework: "openai" },
+  { scenario: "echo-gpt6sol", framework: "vercel" },
+  { scenario: "echo-gpt6luna", framework: "vercel" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

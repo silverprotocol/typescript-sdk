@@ -1,0 +1,196 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_dbde30c2-2b05-44bd-9454-b2971deeef97",
+    "threadId": "dbde30c2-2b05-44bd-9454-b2971deeef97"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_011CfK6CgB2TRArGMZB8FKjp",
+    "turnId": "turn_dbde30c2-2b05-44bd-9454-b2971deeef97",
+    "threadId": "dbde30c2-2b05-44bd-9454-b2971deeef97",
+    "role": "assistant",
+    "model": "claude-opus-5-5"
+  },
+  {
+    "type": "tool.start",
+    "seq": 2,
+    "turnId": "turn_dbde30c2-2b05-44bd-9454-b2971deeef97",
+    "toolCallId": "toolu_01MBrN8cZ6uBvsWWG8XJ16Yt",
+    "name": "mcp__t__echo",
+    "index": 0,
+    "messageId": "msg_011CfK6CgB2TRArGMZB8FKjp",
+    "providerExecuted": false
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 3,
+    "toolCallId": "toolu_01MBrN8cZ6uBvsWWG8XJ16Yt",
+    "delta": "{\"message\":\"conformance-probe-opus55\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 4,
+    "toolCallId": "toolu_01MBrN8cZ6uBvsWWG8XJ16Yt",
+    "input": {
+      "message": "conformance-probe-opus55"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 5,
+    "id": "msg_011CfK6CgB2TRArGMZB8FKjp",
+    "usage": {
+      "inputTokens": 2,
+      "outputTokens": 24,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 1924,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "tool.done",
+    "seq": 6,
+    "turnId": "turn_dbde30c2-2b05-44bd-9454-b2971deeef97",
+    "toolCallId": "toolu_01MBrN8cZ6uBvsWWG8XJ16Yt",
+    "content": [
+      {
+        "type": "text",
+        "text": "conformance-probe-opus55"
+      }
+    ],
+    "outcome": "ok",
+    "isError": false,
+    "messageId": "toolu_01MBrN8cZ6uBvsWWG8XJ16Yt:result"
+  },
+  {
+    "type": "message.start",
+    "seq": 7,
+    "id": "msg_011CfK6Cte88E2FX5E5LC2Tg",
+    "turnId": "turn_dbde30c2-2b05-44bd-9454-b2971deeef97",
+    "threadId": "dbde30c2-2b05-44bd-9454-b2971deeef97",
+    "role": "assistant",
+    "model": "claude-opus-5-5"
+  },
+  {
+    "type": "text.start",
+    "seq": 8,
+    "id": "msg_011CfK6Cte88E2FX5E5LC2Tg:text:0",
+    "messageId": "msg_011CfK6Cte88E2FX5E5LC2Tg",
+    "turnId": "turn_dbde30c2-2b05-44bd-9454-b2971deeef97"
+  },
+  {
+    "type": "text.delta",
+    "seq": 9,
+    "id": "msg_011CfK6Cte88E2FX5E5LC2Tg:text:0",
+    "messageId": "msg_011CfK6Cte88E2FX5E5LC2Tg",
+    "delta": "The echo tool sent back the message unchanged: `conformance-probe-opus55`",
+    "turnId": "turn_dbde30c2-2b05-44bd-9454-b2971deeef97"
+  },
+  {
+    "type": "text.end",
+    "seq": 10,
+    "id": "msg_011CfK6Cte88E2FX5E5LC2Tg:text:0",
+    "messageId": "msg_011CfK6Cte88E2FX5E5LC2Tg",
+    "turnId": "turn_dbde30c2-2b05-44bd-9454-b2971deeef97"
+  },
+  {
+    "type": "message.end",
+    "seq": 11,
+    "id": "msg_011CfK6Cte88E2FX5E5LC2Tg",
+    "usage": {
+      "inputTokens": 2,
+      "outputTokens": 29,
+      "cacheReadTokens": 1924,
+      "cacheWriteTokens": 100,
+      "cumulative": true
+    }
+  },
+  {
+    "seq": 12,
+    "type": "ext.anthropic.result-meta",
+    "fastModeDisabledReason": "sdk_opt_in_required",
+    "queuedTurnCount": 0,
+    "resultIndex": 0,
+    "subagentStats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "modelUsage": {
+      "claude-haiku-4-5-20251001": {
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-opus-5-5": {
+        "canonicalModel": "claude-opus-5-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    }
+  },
+  {
+    "type": "turn.done",
+    "seq": 13,
+    "turnId": "turn_dbde30c2-2b05-44bd-9454-b2971deeef97",
+    "outcome": {
+      "type": "success",
+      "result": "The echo tool sent back the message unchanged: `conformance-probe-opus55`"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 4,
+      "outputTokens": 90,
+      "cacheReadTokens": 1924,
+      "cacheWriteTokens": 2024,
+      "reasoningTokens": 0,
+      "serverToolRequests": 0,
+      "costUsd": 0.0133138,
+      "cumulative": true,
+      "byModel": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 913,
+          "outputTokens": 16,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "costUsd": 0.000993,
+          "serverToolRequests": 0,
+          "cumulative": true
+        },
+        "claude-opus-5-5": {
+          "inputTokens": 4,
+          "outputTokens": 90,
+          "cacheReadTokens": 1924,
+          "cacheWriteTokens": 2024,
+          "reasoningTokens": 0,
+          "costUsd": 0.0123208,
+          "serverToolRequests": 0,
+          "cumulative": true
+        }
+      }
+    }
+  }
+]

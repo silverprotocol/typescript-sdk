@@ -92,14 +92,22 @@ export interface AdkPart {
     id?: string | null;
     thoughtSignature?: string;
   };
-  /** Embedded media bytes (base64). */
-  inlineData?: { mimeType: string; data: string };
-  /** Model-generated code (the Code Execution tool). */
-  executableCode?: { language?: string; code: string };
+  /** Embedded media bytes (base64). Both members are OPTIONAL on the genai
+   *  `Blob` type (`data?`/`mimeType?`, doc-"Required" only) — `driveAdkPart`
+   *  typeof-guards them and carries a Blob missing either via provider-raw
+   *  rather than crash on `mimeType.startsWith` or emit a `data`-less source. */
+  inlineData?: { mimeType?: string; data?: string };
+  /** Model-generated code (the Code Execution tool). `code` is OPTIONAL on
+   *  the genai `ExecutableCode` type (upstream adk #868 fixed the same
+   *  assumption) — a code-less part rides provider-raw, never a `code` block
+   *  with a fabricated value. */
+  executableCode?: { language?: string; code?: string };
   /** Code-execution result (the Code Execution tool). */
   codeExecutionResult?: { outcome?: string; output?: string };
-  /** A reference to an uploaded file (passed through opaquely). */
-  fileData?: { mimeType?: string; fileUri: string };
+  /** A reference to an uploaded file (passed through opaquely). `fileUri` is
+   *  OPTIONAL on the genai `FileData` type — a uri-less part rides
+   *  provider-raw, never a schema-invalid `resource-link`. */
+  fileData?: { mimeType?: string; fileUri?: string };
   /** Media resolution hint for the input media (fixture-drift ratchet finding,
    *  google-adk-ratchet task) — carried opaquely via `driveAdkPart`'s
    *  unmapped-part-fields provider-raw block; never interpreted. */
@@ -147,6 +155,17 @@ export interface AdkPart {
    *  on a part whose primary kind already matched and returned). Typed
    *  JsonValue (opaque carry, never interpreted) per the sibling precedents. */
   mediaProcessing?: JsonValue;
+  /** "Extra metadata associated with the part for speech synthesis, such as
+   *  speaker and style. Only valid when `Part.data` is set to `text`." (genai
+   *  2.24.0 — the ONE new `Part` field 2.22.0 -> 2.24.0.) The `SpeechMetadata`
+   *  shape is {speaker?, style?}: `speaker` must match a `speaker` name in
+   *  `MultiSpeakerVoiceConfig.speaker_voice_configs`; `style` is a free-form
+   *  voice-style instruction (e.g. "excited, fast-paced"). A REQUEST-side TTS
+   *  hint that rides ALONGSIDE a `text` part — and the text arm returns early,
+   *  so it joins the SAME unconditional unmapped-part-fields provider-raw
+   *  carry at the top of `driveAdkPart` (never an else-fallback). Typed
+   *  JsonValue (opaque carry, never interpreted) per the sibling precedents. */
+  speechMetadata?: JsonValue;
 }
 
 /** A Gemini `Content` — the role + the part list. ADK normalizes Gemini's
@@ -557,6 +576,32 @@ function inlineDataBlock(d: { mimeType: string; data: string }): AgBlock {
   return { type: "file", source };
 }
 
+// ─── genai-optional arm members (adk-13 hardening) ───────────────────────────
+// A Part arm's member when it is a string, else undefined. Read through
+// `unknown` + `isJsonObject` so a JSON-null arm (a snake_case serializer that
+// keeps None) is guarded too, never dereferenced.
+function stringMember(arm: unknown, key: string): string | undefined {
+  if (!isJsonObject(arm)) return undefined;
+  const v = arm[key];
+  return typeof v === "string" ? v : undefined;
+}
+
+// A media/code arm missing a member its AgBlock arm REQUIRES rides verbatim in
+// one provider-raw block keyed by its wire Part field name — the same
+// `{ <field>: <value> }` shape as `driveAdkPart`'s unmapped-part-fields ledger.
+function carryUnmappableArm(
+  a: StreamAssembler,
+  messageId: string,
+  field: "inlineData" | "executableCode" | "fileData",
+  arm: unknown,
+): void {
+  a.contentBlock(messageId, {
+    type: "provider-raw",
+    vendor: "google",
+    raw: JsonValue.parse({ [field]: arm }),
+  });
+}
+
 // ─── executableCode.language → AgBlock.code.language (spec §2) ────────────────
 // Gemini ExecutableCode.language is a closed enum (LANGUAGE_UNSPECIFIED|PYTHON);
 // AgJSON code.language is a free string. Map defensively (spec §2 round-trip note).
@@ -842,7 +887,7 @@ function driveAdkPart(
   citations?: AgCitation[]
 ): string {
   // ── UNMAPPED PART FIELDS (mediaResolution/videoMetadata/toolCall/toolResponse/
-  // partMetadata/audioTranscription/mediaProcessing) → provider-raw content.block
+  // partMetadata/audioTranscription/mediaProcessing/speechMetadata) → provider-raw content.block
   // (fixture-drift ratchet finding, google-adk-ratchet task; Tenet-6; SPEC §8 item 23). These
   // genai `Part` fields have NO route in the kind-specific if-chain below.
   // Checked UNCONDITIONALLY, before that if-chain's early returns, because
@@ -854,7 +899,10 @@ function driveAdkPart(
   // is the same sibling situation: "Output only. The transcription of the
   // audio part" rides alongside the audio `inlineData` it transcribes. So is
   // `mediaProcessing` (genai 2.20.0): a request-side media-understanding hint
-  // qualifying the `inlineData`/`fileData` part it rides beside.
+  // qualifying the `inlineData`/`fileData` part it rides beside. And
+  // `speechMetadata` (genai 2.24.0): a request-side TTS {speaker?, style?}
+  // hint that is "only valid when `Part.data` is set to `text`" — it rides
+  // beside a text part, and the TEXT arm below returns early.
   // Mirrors `driveAdkTopLevel`'s `unmappedActions`/`unmappedEvent` carry
   // pattern (named-field ledger, not a generic reflection-over-keys
   // catch-all — fixture discipline: type/carry only what is verified on the
@@ -873,6 +921,8 @@ function driveAdkPart(
     unmappedPartFields["audioTranscription"] = JsonValue.parse(part.audioTranscription);
   if (part.mediaProcessing !== undefined)
     unmappedPartFields["mediaProcessing"] = JsonValue.parse(part.mediaProcessing);
+  if (part.speechMetadata !== undefined)
+    unmappedPartFields["speechMetadata"] = JsonValue.parse(part.speechMetadata);
   if (Object.keys(unmappedPartFields).length > 0) {
     a.contentBlock(messageId, {
       type: "provider-raw",
@@ -999,16 +1049,38 @@ function driveAdkPart(
   }
 
   // ── inlineData / executableCode / codeExecutionResult / fileData → content.block ──
+  // The members these arms map to REQUIRED block fields are all OPTIONAL on
+  // the genai types (Blob `mimeType?`/`data?`, ExecutableCode `code?`,
+  // FileData `fileUri?` — doc-"Required" only; upstream adk #868 fixed the
+  // same assumption for `code`). Each is typeof-guarded (never truthiness —
+  // "" is a real value and maps exactly as before). When one is missing the
+  // arm cannot become a schema-valid block (and inlineData used to THROW on
+  // `mimeType.startsWith`), so the arm rides VERBATIM via
+  // `carryUnmappableArm`'s provider-raw block instead — lossless, never a
+  // fabricated value. Branch order is unchanged: the carry fires exactly
+  // where the arm would otherwise have mapped. codeExecutionResult already
+  // defaults both of its optional members, so it needs no guard.
   if (part.inlineData !== undefined) {
-    a.contentBlock(messageId, inlineDataBlock(part.inlineData));
+    const mimeType = stringMember(part.inlineData, "mimeType");
+    const data = stringMember(part.inlineData, "data");
+    if (mimeType !== undefined && data !== undefined) {
+      a.contentBlock(messageId, inlineDataBlock({ mimeType, data }));
+    } else {
+      carryUnmappableArm(a, messageId, "inlineData", part.inlineData);
+    }
     return "";
   }
   if (part.executableCode !== undefined) {
-    a.contentBlock(messageId, {
-      type: "code",
-      language: codeLanguage(part.executableCode.language),
-      code: part.executableCode.code,
-    });
+    const code = stringMember(part.executableCode, "code");
+    if (code !== undefined) {
+      a.contentBlock(messageId, {
+        type: "code",
+        language: codeLanguage(part.executableCode.language),
+        code,
+      });
+    } else {
+      carryUnmappableArm(a, messageId, "executableCode", part.executableCode);
+    }
     return "";
   }
   if (part.codeExecutionResult !== undefined) {
@@ -1020,11 +1092,16 @@ function driveAdkPart(
     return "";
   }
   if (part.fileData !== undefined) {
-    a.contentBlock(messageId, {
-      type: "resource-link",
-      uri: part.fileData.fileUri,
-      mimeType: part.fileData.mimeType,
-    });
+    const fileUri = stringMember(part.fileData, "fileUri");
+    if (fileUri !== undefined) {
+      a.contentBlock(messageId, {
+        type: "resource-link",
+        uri: fileUri,
+        mimeType: part.fileData.mimeType,
+      });
+    } else {
+      carryUnmappableArm(a, messageId, "fileData", part.fileData);
+    }
     return "";
   }
 

@@ -54,6 +54,11 @@ export interface CaptureRunInput {
    * the token-delta wire surface the claude facet normalizes.
    */
   includePartialMessages?: boolean;
+  /**
+   * Sets `thinking: { type: "adaptive", display }` on the query. Unset keeps the
+   * CLI's own selector (connector_text: narration only, no thinking summaries).
+   */
+  thinkingDisplay?: "summarized" | "omitted";
 }
 
 // ─── Implementation ───────────────────────────────────────────────────────────
@@ -141,6 +146,9 @@ export async function* runClaudeCapture(input: CaptureRunInput): AsyncIterable<J
       env: { ANTHROPIC_API_KEY: apiKey },
       ...(input.systemPrompt !== undefined ? { systemPrompt: input.systemPrompt } : {}),
       ...(input.includePartialMessages === true ? { includePartialMessages: true } : {}),
+      ...(input.thinkingDisplay !== undefined
+        ? { thinking: { type: "adaptive" as const, display: input.thinkingDisplay } }
+        : {}),
       abortController,
     },
   });

@@ -1,0 +1,11 @@
+{
+  "name": "echo-gpt6sol",
+  "prompt": "Echo the message 'conformance-probe-gpt6sol' back to me using the available tool.",
+  "mcpServers": [
+    {
+      "key": "t",
+      "kind": "text"
+    }
+  ],
+  "steer": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6sol'. Do not answer from memory."
+}

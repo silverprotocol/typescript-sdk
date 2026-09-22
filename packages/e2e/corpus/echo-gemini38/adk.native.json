@@ -1,8 +1,8 @@
 [
   {
-    "invocationId": "e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "invocationId": "e-bc020f26-bda3-4853-9fe4-f208027fb065",
     "author": "spike",
-    "id": "1Njukdjw",
+    "id": "8p1VN447",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -10,7 +10,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1788590970418,
+    "timestamp": 1790107642342,
     "content": {
       "parts": [
         {
@@ -19,9 +19,9 @@
             "args": {
               "message": "conformance-probe-gemini38"
             },
-            "id": "call_329320"
+            "id": "call_50371"
           },
-          "thoughtSignature": "EooDCocDARFNMg8Ak4YIVf9yFyN2cyu7h45HZ0I3v+QwwSKV2/0bRxy1brH4uRyvsT1DCEjsp7P/A5cPlNLthkNksZyvqQ1+7cSvcIdzt2phsOWZI8Ayf7/bQPhpTvs0UJ8mCXHlQkpDkUANo9GvCNPmFJlP3O8RktZ521UtLSDlH0Ya/vlwzcu6P6MLigySaFk9ju8jpFSk//wgqtWwnBl4/pnuM/N/dH0v/lNSXa9ZChonTkjZCHYBp1enicU1rXuCo4gtT/ZH6ClmP2RwGI1DgSQdvBvKHct3ni89mf202SJ7tO5CyF8NhRlzxXvfgrqFEd0r90nJpaLvRDTEF3Fbd5WEDi9F3mugn4jCNSCioOfneE3AuqDsDC/6yEYaMOZfp2XgtFwCPZjJ6pPbrPYkLdXv1WIr6GHlNKbPTQOF+JPa62mG+kMP1jppL3UzOAv3E0pmEReUhJDWr0IWVzWprHW++CAJQZP4lq1g4Qw623iTFKDjKO8S/uJD4F9fZNKWAMUveHUY+0hgPw=="
+          "thoughtSignature": "EtMCCtACAWkUfRNm/nXcHf5X1St6IRcYZP69gWOZSEdLewM6znhlRV2om4C8VTYeDmNIrHhAgXuQ0nTopRbTraRY9HzB/DVKb43SMilRX6Hyn3W5YqlUeky+7S92NHbzp0R7Wul/0XrQbmzn4BPue2vDyo1r+o/mea+B63zqRfSB0OYMbD4Vhlw/+WmzKJ1++w8MZ50KOG7QX8Li+5j3Vy/13OQU8JIm2tV+fb2E0ROWiRRcl5MSUf/L1Bv+UNlHEb/xBxPc1j+LLQJwFP+BdsPwncY06kvtNPubtbwykwQf7PcZ+OnkR59Q7DEaHpZ5PFcu+ccDTxVqtQgEeCUbeP6msTAMLTzA2jjw+XB3Hx8sLm93AHISgFJjJQ+HOrA7Yxu2G+cdB66Wi5KerR46RvU+ob/DlP/6j53ES/6uuIYkdF7FL/3fKBjgs9+tavgwG+IDnCbT"
         }
       ],
       "role": "model"
@@ -29,27 +29,27 @@
     "usageMetadata": {
       "promptTokenCount": 109,
       "candidatesTokenCount": 22,
-      "totalTokenCount": 213,
+      "totalTokenCount": 192,
       "promptTokensDetails": [
         {
           "modality": "TEXT",
           "tokenCount": 109
         }
       ],
-      "thoughtsTokenCount": 82,
+      "thoughtsTokenCount": 61,
       "serviceTier": "standard"
     },
     "finishReason": "STOP"
   },
   {
-    "invocationId": "e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "invocationId": "e-bc020f26-bda3-4853-9fe4-f208027fb065",
     "author": "spike",
     "content": {
       "role": "user",
       "parts": [
         {
           "functionResponse": {
-            "id": "call_329320",
+            "id": "call_50371",
             "name": "echo",
             "response": {
               "content": [
@@ -69,14 +69,14 @@
       "requestedAuthConfigs": {},
       "requestedToolConfirmations": {}
     },
-    "id": "CnDL6mOq",
+    "id": "KUoaVoEV",
     "longRunningToolIds": [],
-    "timestamp": 1788590972107
+    "timestamp": 1790107644630
   },
   {
-    "invocationId": "e-1d4f1d14-df2f-4e9d-a29f-7b755392954c",
+    "invocationId": "e-bc020f26-bda3-4853-9fe4-f208027fb065",
     "author": "spike",
-    "id": "gyPeq9CG",
+    "id": "3PhIShL2",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -84,27 +84,27 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1788590972111,
+    "timestamp": 1790107644636,
     "content": {
       "parts": [
         {
           "text": "conformance-probe-gemini38",
-          "thoughtSignature": "Er0BCroBARFNMg/XD8Wn22F/IV/537mHPDYGnHZ3udRsLQDcb/nQ5Vq9ed/s/MC9xXFIWtJ53xI1wtGwXxWzWNl5+elK5eyczsdPlT3X8GJRSxcZ5x1NBS4MssZAqXH250TIeexMeaZNn7NKBSZAIRNud4xPqd1ugNktUeF4eiLWMmhCoBE5jqJTnNGGeM7hriSlpMQnk5myCf/eDHrSe9rakuNOaGh2TAkufiongqX1dbOLaVzKurXJmRUGw5if"
+          "thoughtSignature": "ErEBCq4BAWkUfRM0KKWcDrNZRmqTA6M5MH+ZWPSvbqTHyM9aT9QOQZ6RAQeyji/Co//U0xOQnEzF/2r238EvwAxdbbdwP3TU1ExeOdStoiCnsQMyKltplnDiuaZuwnb4I+25o2akITV6zjDTfS/HqnkMUaHx9MVUlMRQwJt90I056JSiGRkova/craLNVeu4BbD2W5UYp6b1jQKSgKJ/JgEcgvpcrlG5S/pFJJmVt1+sxIHV"
         }
       ],
       "role": "model"
     },
     "usageMetadata": {
-      "promptTokenCount": 242,
+      "promptTokenCount": 221,
       "candidatesTokenCount": 9,
-      "totalTokenCount": 273,
+      "totalTokenCount": 246,
       "promptTokensDetails": [
         {
           "modality": "TEXT",
-          "tokenCount": 242
+          "tokenCount": 221
         }
       ],
-      "thoughtsTokenCount": 22,
+      "thoughtsTokenCount": 16,
       "serviceTier": "standard"
     },
     "finishReason": "STOP"

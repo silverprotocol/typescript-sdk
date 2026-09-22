@@ -54,21 +54,48 @@
  * `toolChoice` `required`/`tool`: when a step does not satisfy it, the SDK
  * enqueues an IN-BAND `error` part carrying a `ToolChoiceViolationError` right
  * after the model's terminal chunk. No new part type — the enforcement is only
- * a new PRODUCER of the existing `error` part — but it yields TWO wire shapes:
- *  - zero qualifying tool calls ⇒ `error`, `finish-step{finishReason:'error'}`,
- *    `finish{finishReason:'error', totalUsage}`: the arm-A2 close, which now
- *    forwards `totalUsage` onto `turn.error.usage` (the step really did burn
- *    tokens before violating);
- *  - a call to a DIFFERENT tool ⇒ the tool still executes and the loop runs
- *    another step, so the run closes `turn.done{stop}`. `stashedError` is
- *    cleared at every `finish`, so the advisory does NOT leak into that close;
- *    this is the first shape on this facet where a standalone `error` event
- *    precedes `message.end` on a turn that then ends successfully.
+ * a new PRODUCER of the existing `error` part. Both shapes are FIXTURE-ONLY:
+ * the e2e capture agent never sets `toolChoice`, so neither can fire live.
+ *  - shape A, zero qualifying tool calls ⇒ `error`,
+ *    `finish-step{finishReason:'error'}`, `finish{finishReason:'error',
+ *    totalUsage}`: the arm-A2 close, which forwards `totalUsage` onto
+ *    `turn.error.usage` (the step really did burn tokens before violating).
+ *    Unchanged on fullStream by ai@7.0.108;
+ *  - shape B, a call to a DIFFERENT tool ⇒ since ai@7.0.108 (changeset
+ *    ccf98e7) the violating step's internal `model-call-end` carries
+ *    finishReason `'error'`, which the tool executor treats as
+ *    execution-not-allowed: the wrong tool is NOT executed, the loop does not
+ *    continue, and the run converges on the shape-A close — `tool-call`,
+ *    `error`, `finish-step{error}`, `finish{error, totalUsage}` ⇒
+ *    tool.start/args/assembled with NO tool.done (the 7.0.70 resultless-call
+ *    shape above), the advisory `error`, then `turn.error` with usage. The
+ *    existing arms already produce that; no facet code is specific to it.
+ *    HISTORICAL (ai 7.0.94–7.0.107 only): the wrong tool still executed and a
+ *    second step ran, so the run closed `turn.done{stop}`; `stashedError` is
+ *    cleared at every `finish`, so the advisory did not leak into that close.
+ *
+ * Tool approval (ai>=7.0.102, changeset 8b92ba9): an automatically DENIED call
+ * (`toolApproval` resolving `'denied'`) now also enqueues `tool-output-denied`
+ * inside the step, after the `tool-approval-request{isAutomatic}` /
+ * `tool-approval-response{approved:false, reason}` pair. That part HAS an
+ * AgJSON home (SPEC §8 item 22 routes such frames to it): `tool.done
+ * {outcome:"denied"}` (ToolOutcome; SPEC Pattern 4), content = the denial
+ * `reason` the model receives, when the preceding approval response carried
+ * one. streamText's initial pass also emits `tool-output-denied` for approvals
+ * denied in a PREVIOUS call; that id has no tool.start in this turn, and it
+ * settles as a bare tool.done exactly like the initial pass's prior-call
+ * `tool-result` / `tool-error`. KNOWN GAP shared by all three: that bare
+ * tool.done arrives before the first start-step, with no open message, so the
+ * Reducer parks it (needsResync). Any fix belongs on all three arms together.
+ * Fixture-only: the capture agent sets no `toolApproval`.
  *
  * Lossless posture (Tenet 6): `push()` never throws. Unknown part types ride
  * `ext.vercel.frame{kind, frame}` (v7 adds `custom`, `reasoning-file`,
- * `tool-approval-*`; also v0-DEFERRED: `source`, `file`, `raw` — carried, not
- * yet mapped to first-class blocks). Guard failures ride
+ * `tool-approval-request` / `tool-approval-response` — the paused-turn HITL
+ * mapping to `hitl.ask` is still deferred; a denying response's `reason` is
+ * only READ, for the `tool-output-denied` close above, and the part itself
+ * still rides the frame carry; also v0-DEFERRED: `source`, `file`, `raw` —
+ * carried, not yet mapped to first-class blocks). Guard failures ride
  * `ext.vercel.unparsed{native}`. `ai` is an OPTIONAL peer, never imported.
  */
 
@@ -239,6 +266,9 @@ export function createVercelNormalizer(): Normalizer {
   const openTextIds = new Set<string>();
   const openReasoningIds = new Set<string>();
   const pendingToolIds = new Set<string>(); // tool-input-start seen, tool-call not yet
+  // toolCallId → `reason` of a DENYING tool-approval-response, read by the
+  // following tool-output-denied (ai>=7.0.102). Empty unless approvals run.
+  const deniedReasons = new Map<string, string>();
   let stashedError: ErrorFields | undefined; // last in-band error fields (arms A/B)
 
   /** Mint + open the run's turn if not already open (defensive: arms other
@@ -485,6 +515,44 @@ export function createVercelNormalizer(): Normalizer {
         });
         return;
       }
+      case "tool-approval-response": {
+        // NOT mapped (the paused-turn HITL design is still deferred), and the
+        // part still rides the frame carry below byte-identically. A DENYING
+        // response's `reason` is only read here so the tool-output-denied that
+        // follows it can carry the text the model receives. `approved` is
+        // compared strictly (`false`, not falsy); `reason` is typeof-guarded,
+        // so an empty string is kept.
+        if (part["approved"] === false) {
+          const toolCallId = str(rec(part["toolCall"])?.["toolCallId"]);
+          const reason = str(part["reason"]);
+          if (toolCallId !== undefined) {
+            if (reason !== undefined) deniedReasons.set(toolCallId, reason);
+            else deniedReasons.delete(toolCallId);
+          }
+        }
+        break; // → frame carry
+      }
+      case "tool-output-denied": {
+        // ai>=7.0.102 (8b92ba9) in-step auto-denial, plus the initial-pass
+        // producer for approvals denied in a PREVIOUS call. The home is
+        // tool.done{outcome:"denied"}: a recorded outcome of its own, NOT an
+        // isError alias (SPEC Pattern 4, claude permission_denials
+        // precedent). One arm serves both producers. The in-step id already
+        // has its tool.start (tool-input-start or the synthesized tool-call
+        // path). The prior-call id gets a bare tool.done, the same as the
+        // initial pass's `tool-result` / `tool-error` for prior-call ids, so
+        // every prior-call id is handled one way.
+        const toolCallId = str(part["toolCallId"]);
+        if (toolCallId === undefined) break;
+        const reason = deniedReasons.get(toolCallId);
+        deniedReasons.delete(toolCallId);
+        a.toolDone({
+          toolCallId,
+          outcome: "denied",
+          content: reason !== undefined ? [{ type: "text", text: reason }] : [],
+        });
+        return;
+      }
 
       case "finish-step": {
         const response = rec(part["response"]);
@@ -514,7 +582,8 @@ export function createVercelNormalizer(): Normalizer {
         // `combinedUsage` accrues every step's usage regardless of how the run
         // ended. An errored turn therefore still reports the tokens it burned
         // (the ai>=7.0.94 toolChoice-enforcement close is exactly this shape:
-        // finish{finishReason:'error'} with a full totalUsage). Mapped ONCE and
+        // finish{finishReason:'error'} with a full totalUsage — shape A always,
+        // and shape B too from ai@7.0.108). Mapped ONCE and
         // forwarded to whichever close runs — `turn.error` carries usage on the
         // same optional slot `turn.done` does (spec §4; openai-agents facet
         // precedent, which fills it on its own error closes). Absent/empty

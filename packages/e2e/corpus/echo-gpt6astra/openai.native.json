@@ -5,10 +5,11 @@
       "providerData": {
         "type": "response.created",
         "response": {
-          "id": "resp_018365a075b48f05006aa8a51de51087d08c167c41fde1c4bd",
+          "id": "resp_049872164be6d604006ab2e2a5784c87d09eaa8c90f94cc6e5",
           "object": "response",
-          "created_at": 1789437213,
+          "created_at": 1790108325,
           "status": "in_progress",
+          "access_programs": null,
           "background": false,
           "completed_at": null,
           "error": null,
@@ -99,10 +100,11 @@
       "event": {
         "type": "response.created",
         "response": {
-          "id": "resp_018365a075b48f05006aa8a51de51087d08c167c41fde1c4bd",
+          "id": "resp_049872164be6d604006ab2e2a5784c87d09eaa8c90f94cc6e5",
           "object": "response",
-          "created_at": 1789437213,
+          "created_at": 1790108325,
           "status": "in_progress",
+          "access_programs": null,
           "background": false,
           "completed_at": null,
           "error": null,
@@ -197,10 +199,11 @@
       "event": {
         "type": "response.in_progress",
         "response": {
-          "id": "resp_018365a075b48f05006aa8a51de51087d08c167c41fde1c4bd",
+          "id": "resp_049872164be6d604006ab2e2a5784c87d09eaa8c90f94cc6e5",
           "object": "response",
-          "created_at": 1789437213,
+          "created_at": 1790108325,
           "status": "in_progress",
+          "access_programs": null,
           "background": false,
           "completed_at": null,
           "error": null,
@@ -295,11 +298,11 @@
       "event": {
         "type": "response.output_item.added",
         "item": {
-          "id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
+          "id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
           "type": "function_call",
           "status": "in_progress",
           "arguments": "",
-          "call_id": "call_18LGogMIQwxFaKHWhsP9YJRt",
+          "call_id": "call_WXDsGQGTOM9q6Q4fFQKd78No",
           "name": "echo"
         },
         "output_index": 0,
@@ -318,8 +321,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "{\"",
-        "item_id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
-        "obfuscation": "welCMhk7EfiZFl",
+        "item_id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
+        "obfuscation": "Bb8kl4GjTRemcn",
         "output_index": 0,
         "sequence_number": 3
       },
@@ -336,8 +339,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "message",
-        "item_id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
-        "obfuscation": "vn8L588QV",
+        "item_id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
+        "obfuscation": "vDFclmtdn",
         "output_index": 0,
         "sequence_number": 4
       },
@@ -354,8 +357,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "\":\"",
-        "item_id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
-        "obfuscation": "fvuG4cArNPQzy",
+        "item_id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
+        "obfuscation": "sPw4WRi3Pp1mq",
         "output_index": 0,
         "sequence_number": 5
       },
@@ -372,8 +375,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "con",
-        "item_id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
-        "obfuscation": "qIcqP1PnLHhxp",
+        "item_id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
+        "obfuscation": "BBd3u3sEZkyYW",
         "output_index": 0,
         "sequence_number": 6
       },
@@ -390,8 +393,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "formance",
-        "item_id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
-        "obfuscation": "TBdoYQhD",
+        "item_id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
+        "obfuscation": "eauFWfeJ",
         "output_index": 0,
         "sequence_number": 7
       },
@@ -408,8 +411,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "-pro",
-        "item_id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
-        "obfuscation": "5MzMHjBmLtaz",
+        "item_id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
+        "obfuscation": "jjcU6YDX8p2F",
         "output_index": 0,
         "sequence_number": 8
       },
@@ -426,8 +429,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "be",
-        "item_id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
-        "obfuscation": "nAQf4k0Ln6JJ3t",
+        "item_id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
+        "obfuscation": "qbA43yVYChqcPx",
         "output_index": 0,
         "sequence_number": 9
       },
@@ -444,8 +447,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "-g",
-        "item_id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
-        "obfuscation": "LDliYVmOqsbPsQ",
+        "item_id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
+        "obfuscation": "EvQtAekySASytp",
         "output_index": 0,
         "sequence_number": 10
       },
@@ -462,8 +465,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "pt",
-        "item_id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
-        "obfuscation": "SsXF7WlYVdKYQ6",
+        "item_id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
+        "obfuscation": "RrwJoDvNW3pshl",
         "output_index": 0,
         "sequence_number": 11
       },
@@ -480,8 +483,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "6",
-        "item_id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
-        "obfuscation": "84OjkrgmPq0pDe3",
+        "item_id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
+        "obfuscation": "Oli2wXyz3Xbzh8q",
         "output_index": 0,
         "sequence_number": 12
       },
@@ -498,8 +501,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "astra",
-        "item_id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
-        "obfuscation": "6izcEGCOXWb",
+        "item_id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
+        "obfuscation": "LPrXzBdANiY",
         "output_index": 0,
         "sequence_number": 13
       },
@@ -516,8 +519,8 @@
       "event": {
         "type": "response.function_call_arguments.delta",
         "delta": "\"}",
-        "item_id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
-        "obfuscation": "q9Mq4IVrKnSiIu",
+        "item_id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
+        "obfuscation": "ui1FQUmLxYJYjF",
         "output_index": 0,
         "sequence_number": 14
       },
@@ -534,7 +537,7 @@
       "event": {
         "type": "response.function_call_arguments.done",
         "arguments": "{\"message\":\"conformance-probe-gpt6astra\"}",
-        "item_id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
+        "item_id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
         "output_index": 0,
         "sequence_number": 15
       },
@@ -551,11 +554,11 @@
       "event": {
         "type": "response.output_item.done",
         "item": {
-          "id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
+          "id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
           "type": "function_call",
           "status": "completed",
           "arguments": "{\"message\":\"conformance-probe-gpt6astra\"}",
-          "call_id": "call_18LGogMIQwxFaKHWhsP9YJRt",
+          "call_id": "call_WXDsGQGTOM9q6Q4fFQKd78No",
           "name": "echo"
         },
         "output_index": 0,
@@ -572,18 +575,18 @@
     "data": {
       "type": "response_done",
       "response": {
-        "id": "resp_018365a075b48f05006aa8a51de51087d08c167c41fde1c4bd",
-        "requestId": "req_9eb3e14715904d139fc09cab010f70b1",
+        "id": "resp_049872164be6d604006ab2e2a5784c87d09eaa8c90f94cc6e5",
+        "requestId": "req_dfab93ffce544efc94f7d6b13fa3b0a7",
         "output": [
           {
             "type": "function_call",
-            "id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
-            "callId": "call_18LGogMIQwxFaKHWhsP9YJRt",
+            "id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
+            "callId": "call_WXDsGQGTOM9q6Q4fFQKd78No",
             "name": "echo",
             "status": "completed",
             "arguments": "{\"message\":\"conformance-probe-gpt6astra\"}",
             "providerData": {
-              "id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
+              "id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
               "type": "function_call"
             }
           }
@@ -617,10 +620,11 @@
         },
         "providerData": {
           "object": "response",
-          "created_at": 1789437213,
+          "created_at": 1790108325,
           "status": "completed",
+          "access_programs": null,
           "background": false,
-          "completed_at": 1789437215,
+          "completed_at": 1790108327,
           "error": null,
           "frequency_penalty": 0,
           "incomplete_details": null,
@@ -710,12 +714,13 @@
       "event": {
         "type": "response.completed",
         "response": {
-          "id": "resp_018365a075b48f05006aa8a51de51087d08c167c41fde1c4bd",
+          "id": "resp_049872164be6d604006ab2e2a5784c87d09eaa8c90f94cc6e5",
           "object": "response",
-          "created_at": 1789437213,
+          "created_at": 1790108325,
           "status": "completed",
+          "access_programs": null,
           "background": false,
-          "completed_at": 1789437215,
+          "completed_at": 1790108327,
           "error": null,
           "frequency_penalty": 0,
           "incomplete_details": null,
@@ -726,11 +731,11 @@
           "moderation": null,
           "output": [
             {
-              "id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
+              "id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
               "type": "function_call",
               "status": "completed",
               "arguments": "{\"message\":\"conformance-probe-gpt6astra\"}",
-              "call_id": "call_18LGogMIQwxFaKHWhsP9YJRt",
+              "call_id": "call_WXDsGQGTOM9q6Q4fFQKd78No",
               "name": "echo"
             }
           ],
@@ -828,12 +833,12 @@
       "type": "tool_call_item",
       "rawItem": {
         "providerData": {
-          "id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
+          "id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
           "type": "function_call"
         },
-        "id": "fc_018365a075b48f05006aa8a51ee5ac87d0bbd74c4211290945",
+        "id": "fc_049872164be6d604006ab2e2a7112087d09df205e2057b9e78",
         "type": "function_call",
-        "callId": "call_18LGogMIQwxFaKHWhsP9YJRt",
+        "callId": "call_WXDsGQGTOM9q6Q4fFQKd78No",
         "name": "echo",
         "status": "completed",
         "arguments": "{\"message\":\"conformance-probe-gpt6astra\"}"
@@ -851,7 +856,7 @@
       "rawItem": {
         "type": "function_call_result",
         "name": "echo",
-        "callId": "call_18LGogMIQwxFaKHWhsP9YJRt",
+        "callId": "call_WXDsGQGTOM9q6Q4fFQKd78No",
         "status": "completed",
         "output": [
           {
@@ -874,10 +879,11 @@
       "providerData": {
         "type": "response.created",
         "response": {
-          "id": "resp_018365a075b48f05006aa8a52035ac87d0bb13869e763bcaff",
+          "id": "resp_049872164be6d604006ab2e2a7d6fc87d082d96e51ec7de19c",
           "object": "response",
-          "created_at": 1789437216,
+          "created_at": 1790108327,
           "status": "in_progress",
+          "access_programs": null,
           "background": false,
           "completed_at": null,
           "error": null,
@@ -968,10 +974,11 @@
       "event": {
         "type": "response.created",
         "response": {
-          "id": "resp_018365a075b48f05006aa8a52035ac87d0bb13869e763bcaff",
+          "id": "resp_049872164be6d604006ab2e2a7d6fc87d082d96e51ec7de19c",
           "object": "response",
-          "created_at": 1789437216,
+          "created_at": 1790108327,
           "status": "in_progress",
+          "access_programs": null,
           "background": false,
           "completed_at": null,
           "error": null,
@@ -1066,10 +1073,11 @@
       "event": {
         "type": "response.in_progress",
         "response": {
-          "id": "resp_018365a075b48f05006aa8a52035ac87d0bb13869e763bcaff",
+          "id": "resp_049872164be6d604006ab2e2a7d6fc87d082d96e51ec7de19c",
           "object": "response",
-          "created_at": 1789437216,
+          "created_at": 1790108327,
           "status": "in_progress",
+          "access_programs": null,
           "background": false,
           "completed_at": null,
           "error": null,
@@ -1164,7 +1172,7 @@
       "event": {
         "type": "response.output_item.added",
         "item": {
-          "id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+          "id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
           "type": "message",
           "status": "in_progress",
           "content": [],
@@ -1187,7 +1195,7 @@
       "event": {
         "type": "response.content_part.added",
         "content_index": 0,
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "output_index": 0,
         "part": {
           "type": "output_text",
@@ -1208,13 +1216,13 @@
     "data": {
       "type": "output_text_delta",
       "delta": "con",
-      "itemId": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+      "itemId": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
       "providerData": {
         "type": "response.output_text.delta",
         "content_index": 0,
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "logprobs": [],
-        "obfuscation": "ndVyhuOH0Iya0",
+        "obfuscation": "YXU0SZk10NxTH",
         "output_index": 0,
         "sequence_number": 4
       }
@@ -1228,9 +1236,9 @@
         "type": "response.output_text.delta",
         "content_index": 0,
         "delta": "con",
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "logprobs": [],
-        "obfuscation": "ndVyhuOH0Iya0",
+        "obfuscation": "YXU0SZk10NxTH",
         "output_index": 0,
         "sequence_number": 4
       },
@@ -1245,13 +1253,13 @@
     "data": {
       "type": "output_text_delta",
       "delta": "formance",
-      "itemId": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+      "itemId": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
       "providerData": {
         "type": "response.output_text.delta",
         "content_index": 0,
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "logprobs": [],
-        "obfuscation": "dd9GQ8MU",
+        "obfuscation": "qekEOjCJ",
         "output_index": 0,
         "sequence_number": 5
       }
@@ -1265,9 +1273,9 @@
         "type": "response.output_text.delta",
         "content_index": 0,
         "delta": "formance",
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "logprobs": [],
-        "obfuscation": "dd9GQ8MU",
+        "obfuscation": "qekEOjCJ",
         "output_index": 0,
         "sequence_number": 5
       },
@@ -1282,13 +1290,13 @@
     "data": {
       "type": "output_text_delta",
       "delta": "-pro",
-      "itemId": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+      "itemId": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
       "providerData": {
         "type": "response.output_text.delta",
         "content_index": 0,
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "logprobs": [],
-        "obfuscation": "1bBKMErCxCrj",
+        "obfuscation": "wzSyEdlIt5ML",
         "output_index": 0,
         "sequence_number": 6
       }
@@ -1302,9 +1310,9 @@
         "type": "response.output_text.delta",
         "content_index": 0,
         "delta": "-pro",
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "logprobs": [],
-        "obfuscation": "1bBKMErCxCrj",
+        "obfuscation": "wzSyEdlIt5ML",
         "output_index": 0,
         "sequence_number": 6
       },
@@ -1319,13 +1327,13 @@
     "data": {
       "type": "output_text_delta",
       "delta": "be",
-      "itemId": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+      "itemId": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
       "providerData": {
         "type": "response.output_text.delta",
         "content_index": 0,
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "logprobs": [],
-        "obfuscation": "ktCLLXD9oenJFr",
+        "obfuscation": "l6erpnWbe3RAhD",
         "output_index": 0,
         "sequence_number": 7
       }
@@ -1339,9 +1347,9 @@
         "type": "response.output_text.delta",
         "content_index": 0,
         "delta": "be",
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "logprobs": [],
-        "obfuscation": "ktCLLXD9oenJFr",
+        "obfuscation": "l6erpnWbe3RAhD",
         "output_index": 0,
         "sequence_number": 7
       },
@@ -1356,13 +1364,13 @@
     "data": {
       "type": "output_text_delta",
       "delta": "-g",
-      "itemId": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+      "itemId": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
       "providerData": {
         "type": "response.output_text.delta",
         "content_index": 0,
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "logprobs": [],
-        "obfuscation": "idLqSsUTkhBQVy",
+        "obfuscation": "J2AKuSmt0YKEuW",
         "output_index": 0,
         "sequence_number": 8
       }
@@ -1376,9 +1384,9 @@
         "type": "response.output_text.delta",
         "content_index": 0,
         "delta": "-g",
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "logprobs": [],
-        "obfuscation": "idLqSsUTkhBQVy",
+        "obfuscation": "J2AKuSmt0YKEuW",
         "output_index": 0,
         "sequence_number": 8
       },
@@ -1393,13 +1401,13 @@
     "data": {
       "type": "output_text_delta",
       "delta": "pt",
-      "itemId": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+      "itemId": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
       "providerData": {
         "type": "response.output_text.delta",
         "content_index": 0,
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "logprobs": [],
-        "obfuscation": "KUbjLTnpsiGImy",
+        "obfuscation": "c0BNcKXCB74dT7",
         "output_index": 0,
         "sequence_number": 9
       }
@@ -1413,9 +1421,9 @@
         "type": "response.output_text.delta",
         "content_index": 0,
         "delta": "pt",
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "logprobs": [],
-        "obfuscation": "KUbjLTnpsiGImy",
+        "obfuscation": "c0BNcKXCB74dT7",
         "output_index": 0,
         "sequence_number": 9
       },
@@ -1430,13 +1438,13 @@
     "data": {
       "type": "output_text_delta",
       "delta": "6",
-      "itemId": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+      "itemId": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
       "providerData": {
         "type": "response.output_text.delta",
         "content_index": 0,
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "logprobs": [],
-        "obfuscation": "KBv9Y7n5tFBlDq1",
+        "obfuscation": "e11dy6ICrMgjwQx",
         "output_index": 0,
         "sequence_number": 10
       }
@@ -1450,9 +1458,9 @@
         "type": "response.output_text.delta",
         "content_index": 0,
         "delta": "6",
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "logprobs": [],
-        "obfuscation": "KBv9Y7n5tFBlDq1",
+        "obfuscation": "e11dy6ICrMgjwQx",
         "output_index": 0,
         "sequence_number": 10
       },
@@ -1467,13 +1475,13 @@
     "data": {
       "type": "output_text_delta",
       "delta": "astra",
-      "itemId": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+      "itemId": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
       "providerData": {
         "type": "response.output_text.delta",
         "content_index": 0,
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "logprobs": [],
-        "obfuscation": "GDbg9ofG0eQ",
+        "obfuscation": "IvdaEGujv8v",
         "output_index": 0,
         "sequence_number": 11
       }
@@ -1487,9 +1495,9 @@
         "type": "response.output_text.delta",
         "content_index": 0,
         "delta": "astra",
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "logprobs": [],
-        "obfuscation": "GDbg9ofG0eQ",
+        "obfuscation": "IvdaEGujv8v",
         "output_index": 0,
         "sequence_number": 11
       },
@@ -1506,7 +1514,7 @@
       "event": {
         "type": "response.output_text.done",
         "content_index": 0,
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "logprobs": [],
         "output_index": 0,
         "sequence_number": 12,
@@ -1525,7 +1533,7 @@
       "event": {
         "type": "response.content_part.done",
         "content_index": 0,
-        "item_id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "item_id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "output_index": 0,
         "part": {
           "type": "output_text",
@@ -1548,7 +1556,7 @@
       "event": {
         "type": "response.output_item.done",
         "item": {
-          "id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+          "id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
           "type": "message",
           "status": "completed",
           "content": [
@@ -1576,11 +1584,11 @@
     "data": {
       "type": "response_done",
       "response": {
-        "id": "resp_018365a075b48f05006aa8a52035ac87d0bb13869e763bcaff",
-        "requestId": "req_42e155210dce4c5dbbad1dcc7d3b71f9",
+        "id": "resp_049872164be6d604006ab2e2a7d6fc87d082d96e51ec7de19c",
+        "requestId": "req_0645cfb053d64cf2900d19fabdfb3cdd",
         "output": [
           {
-            "id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+            "id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
             "type": "message",
             "role": "assistant",
             "content": [
@@ -1629,10 +1637,11 @@
         },
         "providerData": {
           "object": "response",
-          "created_at": 1789437216,
+          "created_at": 1790108327,
           "status": "completed",
+          "access_programs": null,
           "background": false,
-          "completed_at": 1789437217,
+          "completed_at": 1790108329,
           "error": null,
           "frequency_penalty": 0,
           "incomplete_details": null,
@@ -1722,12 +1731,13 @@
       "event": {
         "type": "response.completed",
         "response": {
-          "id": "resp_018365a075b48f05006aa8a52035ac87d0bb13869e763bcaff",
+          "id": "resp_049872164be6d604006ab2e2a7d6fc87d082d96e51ec7de19c",
           "object": "response",
-          "created_at": 1789437216,
+          "created_at": 1790108327,
           "status": "completed",
+          "access_programs": null,
           "background": false,
-          "completed_at": 1789437217,
+          "completed_at": 1790108329,
           "error": null,
           "frequency_penalty": 0,
           "incomplete_details": null,
@@ -1738,7 +1748,7 @@
           "moderation": null,
           "output": [
             {
-              "id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+              "id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
               "type": "message",
               "status": "completed",
               "content": [
@@ -1849,7 +1859,7 @@
         "providerData": {
           "phase": "final_answer"
         },
-        "id": "msg_018365a075b48f05006aa8a521258887d0987f8e153fbfd2ec",
+        "id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
         "type": "message",
         "role": "assistant",
         "phase": "final_answer",

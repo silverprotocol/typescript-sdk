@@ -4156,3 +4156,1022 @@ describe("createClaudeNormalizer — thinking_delta.estimated_tokens (runtime-on
     expect("providerMetadata" in out[0]!).toBe(false);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// cohort 0.6.3 sweep (claude-agent-sdk 0.3.272 → 0.3.280, CLI 2.1.280).
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Shared fixtures for the API-error turn. The CLI delivers it as TWO frames:
+// the synthetic assistant message carrying `error` (plus the undeclared
+// is_api_error_message / api_error / api_error_params / api_error_code
+// siblings), then the turn's result, `subtype: "success"` with
+// `is_error: true`, the error text in `result`, the HTTP status in
+// `api_error_status` and the undeclared `api_error_code`. Both are assembled at
+// the JSON boundary (`unknown`): the undeclared fields have no typed home.
+const API_ERROR_TEXT = 'API Error: 429 {"type":"error","error":{"type":"rate_limit_error"}}';
+
+function apiErrorAssistantFrame(extra: { [k: string]: unknown } = {}, content?: unknown[]): unknown {
+  return {
+    type: "assistant",
+    message: {
+      ...betaMessage([], { stop_reason: "stop_sequence" }),
+      id: "msg_api_error_1",
+      model: "<synthetic>",
+      content: content ?? [{ type: "text", text: API_ERROR_TEXT, citations: null }],
+    },
+    parent_tool_use_id: null,
+    uuid: "00000000-0000-0000-0000-0000000000e1",
+    session_id: "sess_fixture",
+    error: "rate_limit",
+    is_api_error_message: true,
+    ...extra,
+  };
+}
+
+function apiErrorResultFrame(extra: { [k: string]: unknown } = {}): unknown {
+  return {
+    ...resultSuccess("stop_sequence"),
+    is_error: true,
+    result: API_ERROR_TEXT,
+    api_error_status: 429,
+    ...extra,
+  };
+}
+
+// The same frame with one wire key removed (an older producer's shape).
+function withoutKey(frame: unknown, key: string): unknown {
+  if (typeof frame !== "object" || frame === null) return frame;
+  return Object.fromEntries(Object.entries(frame).filter(([k]) => k !== key));
+}
+
+function drive(frames: unknown[]): AgEvent[] {
+  const n = createClaudeNormalizer();
+  const evs = [...frames.flatMap((f) => n.push(JsonValue.parse(f))), ...n.flush()];
+  assertAllValid(evs);
+  return evs;
+}
+
+function turnCloses(evs: AgEvent[]): AgEvent[] {
+  return evs.filter((e) => e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort");
+}
+
+// The `<turnId>:denials` carrier's events, its message.start through its
+// message.end, each without `seq` (which counts the turn's earlier events) —
+// so an API-error turn's carrier compares event-for-event with a normal one.
+function denialCarrier(evs: AgEvent[]): unknown[] {
+  const isCarrier = (e: AgEvent, type: "message.start" | "message.end"): boolean =>
+    e.type === type && "id" in e && typeof e.id === "string" && e.id.endsWith(":denials");
+  const start = evs.findIndex((e) => isCarrier(e, "message.start"));
+  const end = evs.findIndex((e) => isCarrier(e, "message.end"));
+  if (start < 0 || end < start) return [];
+  return evs.slice(start, end + 1).map((e) => withoutKey(e, "seq"));
+}
+
+function fold(evs: AgEvent[]): Reducer {
+  const r = new Reducer();
+  for (const e of evs) r.push(e);
+  return r;
+}
+
+// The usage `mapTurnUsage` builds from `resultSuccess` (and so from
+// `apiErrorResultFrame`): the mapping turn.done has always carried.
+const RESULT_USAGE = {
+  inputTokens: 100,
+  outputTokens: 50,
+  cacheReadTokens: 20,
+  cacheWriteTokens: 10,
+  serverToolRequests: 0,
+  costUsd: 0.05,
+  cumulative: true,
+  byModel: {
+    "claude-opus": {
+      inputTokens: 100,
+      outputTokens: 50,
+      cacheReadTokens: 20,
+      cacheWriteTokens: 10,
+      costUsd: 0.05,
+      serverToolRequests: 0,
+      cumulative: true,
+    },
+  },
+};
+
+// An ERROR-subtype result carrying `resultSuccess`'s usage trio (the error
+// fixture's own usage is all zeros, which would not show whose usage landed).
+function errorResultWithUsage(): unknown {
+  const ok = resultSuccess("end_turn");
+  const err = resultError("error_during_execution");
+  if (ok.type !== "result" || err.type !== "result") throw new Error("fixture shape");
+  return { ...err, total_cost_usd: ok.total_cost_usd, usage: ok.usage, modelUsage: ok.modelUsage };
+}
+
+// A second API-error assistant frame (its own message id and uuid), to show
+// which error frame's fields a turn keeps.
+function secondApiErrorAssistantFrame(error: NonNullable<SDKAssistantError>): unknown {
+  return apiErrorAssistantFrame({
+    error,
+    uuid: "00000000-0000-0000-0000-0000000000e2",
+    message: {
+      ...betaMessage([{ type: "text", text: "second API error", citations: null }], { stop_reason: "stop_sequence" }),
+      id: "msg_api_error_2",
+      model: "<synthetic>",
+    },
+  });
+}
+
+describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.error, never as success", () => {
+  it("the two-frame sequence (assistant `error` frame, then success result with is_error:true) closes the turn exactly ONCE, as turn.error carrying the result's usage", () => {
+    const evs = drive([apiErrorAssistantFrame(), apiErrorResultFrame()]);
+    expect(evs.map((e) => e.type)).toEqual([
+      "turn.start",
+      "message.start",
+      "text.start",
+      "text.delta",
+      "text.end",
+      "message.end",
+      "turn.error",
+    ]);
+    const closes = turnCloses(evs);
+    expect(closes).toHaveLength(1);
+    // The assistant frame's error fields; the result frame's usage.
+    expect(closes[0]).toEqual({
+      type: "turn.error",
+      seq: expect.any(Number),
+      turnId: TOP_TURN,
+      message: "rate_limit",
+      code: "rate_limit",
+      retriable: true,
+      usage: RESULT_USAGE,
+    });
+    expect(evs.some((e) => e.type === "turn.done")).toBe(false);
+  });
+
+  it("the RESULT frame emits the close: the assistant error frame seals its message and stops there", () => {
+    const n = createClaudeNormalizer();
+    const atAssistant = n.push(JsonValue.parse(apiErrorAssistantFrame()));
+    expect(atAssistant.map((e) => e.type)).toEqual([
+      "turn.start",
+      "message.start",
+      "text.start",
+      "text.delta",
+      "text.end",
+      "message.end",
+    ]);
+    const atResult = n.push(JsonValue.parse(apiErrorResultFrame()));
+    expect(atResult.map((e) => e.type)).toEqual(["turn.error"]);
+    // Nothing is left for the flush to close.
+    expect(n.flush()).toEqual([]);
+  });
+
+  it("fold: reduce() records the API-error turn as an error, with the result's usage, not as a success whose result is the error text", () => {
+    const r = fold(drive([apiErrorAssistantFrame(), apiErrorResultFrame()]));
+    expect(r.needsResync).toBe(false);
+    const turn = r.result().turns.find((t) => t.turnId === TOP_TURN);
+    expect(turn?.outcome).toEqual({ type: "error", message: "rate_limit", code: "rate_limit" });
+    expect(turn?.usage).toEqual(RESULT_USAGE);
+  });
+
+  it("result-meta rides BEFORE the close, as on every other turn, and opens no message on the turn", () => {
+    const evs = drive([
+      apiErrorAssistantFrame(),
+      apiErrorResultFrame({ api_error_code: "rate_limit_exceeded", result_index: 0 }),
+    ]);
+    const sealAt = evs.findIndex((e) => e.type === "message.end");
+    expect(evs.slice(sealAt + 1).map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.error"]);
+    expect(evs[sealAt + 1]).toMatchObject({ apiErrorCode: "rate_limit_exceeded", resultIndex: 0 });
+    // The assistant frame decided the close: its code, not the result's api_error_code.
+    expect(evs[sealAt + 2]).toMatchObject({ code: "rate_limit", usage: RESULT_USAGE });
+    expect(turnCloses(evs)).toHaveLength(1);
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.find((t) => t.turnId === TOP_TURN)?.outcome).toMatchObject({ type: "error" });
+  });
+
+  it("denials on an API-error turn (stashed close) open the SAME `<turnId>:denials` carrier as a normal turn, in the same place — carrier, result-meta, then ONE turn.error with usage", () => {
+    const live: unknown = {
+      ...permissionDeniedMsg({ decision_reason_type: "rule", decision_reason: "matches deny-rule 'no rm -rf'" }),
+      decision_reason_code: "outside_reads_blocked",
+    };
+    const denials = [
+      { tool_name: "bash", tool_use_id: "toolu_denied_1", tool_input: { command: "rm -rf" } },
+      { tool_name: "Read", tool_use_id: "toolu_denied_2", tool_input: { file_path: "/etc/passwd" } },
+    ];
+    // result_index forces a result-meta, so its position is pinned too.
+    const evs = drive([
+      live,
+      apiErrorAssistantFrame(),
+      apiErrorResultFrame({ permission_denials: denials, result_index: 0 }),
+    ]);
+    const sealAt = evs.findIndex((e) => e.type === "message.end");
+    // After the error message's seal: the carrier, the ext carry, the close.
+    expect(evs.slice(sealAt + 1).map((e) => e.type)).toEqual([
+      "message.start",
+      "tool.start",
+      "tool.done",
+      "tool.start",
+      "tool.done",
+      "message.end",
+      "ext.anthropic.result-meta",
+      "turn.error",
+    ]);
+    // The same live frame and denials on an ordinary (is_error:false) turn:
+    // the carrier is event-for-event identical (seq aside — it counts the
+    // error turn's earlier events), and it sits in the same place, between
+    // the sealed content and result-meta → close.
+    const normal = drive([live, { ...resultSuccess("end_turn"), permission_denials: denials, result_index: 0 }]);
+    expect(normal.map((e) => e.type)).toEqual([
+      "turn.start",
+      ...evs.slice(sealAt + 1, -1).map((e) => e.type),
+      "turn.done",
+    ]);
+    expect(denialCarrier(evs)).toEqual(denialCarrier(normal));
+    expect(denialCarrier(evs)[0]).toMatchObject({ type: "message.start", id: `${TOP_TURN}:denials`, turnId: TOP_TURN });
+    // The live enrichment (with the decisionReasonCode carry) rides the
+    // carrier's tool.done, as on every turn; the bare denial fabricates nothing.
+    const dones = evs.filter((e): e is Extract<AgEvent, { type: "tool.done" }> => e.type === "tool.done");
+    expect(dones[0]).toMatchObject({
+      toolCallId: "toolu_denied_1",
+      outcome: "denied",
+      content: [{ type: "text", text: "This command was blocked by a deny rule (no destructive filesystem operations)." }],
+      providerMetadata: {
+        decisionReasonType: "rule",
+        decisionReasonCode: "outside_reads_blocked",
+        decisionReason: "matches deny-rule 'no rm -rf'",
+      },
+    });
+    expect(dones[1]).toMatchObject({ toolCallId: "toolu_denied_2", outcome: "denied", content: [] });
+    expect(dones[1]).not.toHaveProperty("providerMetadata");
+    // result-meta carries only resultMetaPayload's keys — never the denials.
+    const meta = evs.find((e) => e.type === "ext.anthropic.result-meta");
+    expect(meta).toMatchObject({ resultIndex: 0 });
+    expect(meta).not.toHaveProperty("permissionDenials");
+    // One close, the stashed turn.error, with the result's usage.
+    expect(turnCloses(evs)).toEqual([
+      {
+        type: "turn.error",
+        seq: expect.any(Number),
+        turnId: TOP_TURN,
+        message: "rate_limit",
+        code: "rate_limit",
+        retriable: true,
+        usage: RESULT_USAGE,
+      },
+    ]);
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    const carrier = r.result().messages.find((m) => m.id === `${TOP_TURN}:denials`);
+    expect(carrier?.content.filter((b) => b.type === "tool-result" && b.outcome === "denied")).toHaveLength(2);
+    const turn = r.result().turns.find((t) => t.turnId === TOP_TURN);
+    expect(turn?.outcome).toEqual({ type: "error", message: "rate_limit", code: "rate_limit" });
+    expect(turn?.usage).toEqual(RESULT_USAGE);
+  });
+
+  it("a stashed error closes the turn on ANY success result of it: an is_error:false result emits the stashed turn.error (with usage), never turn.done", () => {
+    const evs = drive([apiErrorAssistantFrame(), resultSuccess("end_turn")]);
+    const closes = turnCloses(evs);
+    expect(closes).toHaveLength(1);
+    expect(closes[0]).toMatchObject({ type: "turn.error", code: "rate_limit", retriable: true, usage: RESULT_USAGE });
+    // Its denials take the ordinary carrier too: the turn is still open when
+    // the result frame arrives.
+    const withDenial = drive([apiErrorAssistantFrame(), resultWithDenial()]);
+    const sealAt = withDenial.findIndex((e) => e.type === "message.end");
+    expect(withDenial.slice(sealAt + 1).map((e) => e.type)).toEqual([
+      "message.start",
+      "tool.start",
+      "tool.done",
+      "message.end",
+      "turn.error",
+    ]);
+    const normal = run(resultWithDenial());
+    expect(denialCarrier(withDenial)).toHaveLength(4);
+    expect(denialCarrier(withDenial)).toEqual(denialCarrier(normal));
+    // The one close carries the usage the ordinary turn.done carries.
+    const normalDone = normal.find((e): e is Extract<AgEvent, { type: "turn.done" }> => e.type === "turn.done");
+    expect(normalDone?.usage).toBeDefined();
+    expect(turnCloses(withDenial)).toEqual([
+      {
+        type: "turn.error",
+        seq: expect.any(Number),
+        turnId: TOP_TURN,
+        message: "rate_limit",
+        code: "rate_limit",
+        retriable: true,
+        usage: normalDone?.usage,
+      },
+    ]);
+    expect(fold(withDenial).needsResync).toBe(false);
+  });
+
+  it("NEGATIVE CONTROL: result-meta never carries a `permissionDenials` key, on any path that has denials", () => {
+    const live = permissionDeniedMsg({ decision_reason_type: "rule" });
+    const denials = [{ tool_name: "bash", tool_use_id: "toolu_denied_1", tool_input: { command: "rm -rf" } }];
+    // result_index forces a result-meta on every path, so none passes vacuously.
+    const extra = { permission_denials: denials, result_index: 0 };
+    const errorArm = { ...resultError("error_during_execution"), ...extra };
+    // [path, frames, result-meta events expected]
+    const paths: Array<[string, unknown[], number]> = [
+      ["ordinary success", [live, { ...resultSuccess("end_turn"), ...extra }], 1],
+      ["result-only API error", [live, apiErrorResultFrame(extra)], 1],
+      ["stashed + is_error:true success", [live, apiErrorAssistantFrame(), apiErrorResultFrame(extra)], 1],
+      ["stashed + is_error:false success", [live, apiErrorAssistantFrame(), { ...resultSuccess("end_turn"), ...extra }], 1],
+      ["stashed + error-arm result", [live, apiErrorAssistantFrame(), errorArm], 1],
+      ["error-arm result alone", [live, errorArm], 1],
+      ["stashed, no result (flush)", [live, apiErrorAssistantFrame()], 0],
+      ["LIVE 401 pair", [LIVE_ASSISTANT_ERROR_FRAME, LIVE_RESULT_FRAME], 1],
+    ];
+    for (const [name, frames, metaCount] of paths) {
+      const evs = drive(frames);
+      const metas = evs.filter((e) => e.type === "ext.anthropic.result-meta");
+      expect(metas, name).toHaveLength(metaCount);
+      for (const meta of metas) expect(meta, name).not.toHaveProperty("permissionDenials");
+      expect(turnCloses(evs), name).toHaveLength(1);
+    }
+  });
+
+  it("assistant error frame + ERROR-subtype result → ONE turn.error (the stashed one, no longer two), carrying that result's usage", () => {
+    const evs = drive([apiErrorAssistantFrame(), errorResultWithUsage()]);
+    const closes = turnCloses(evs);
+    expect(closes).toHaveLength(1);
+    expect(closes[0]).toEqual({
+      type: "turn.error",
+      seq: expect.any(Number),
+      turnId: TOP_TURN,
+      message: "rate_limit",
+      code: "rate_limit",
+      retriable: true,
+      usage: RESULT_USAGE,
+    });
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    const turn = r.result().turns.find((t) => t.turnId === TOP_TURN);
+    expect(turn?.outcome).toEqual({ type: "error", message: "rate_limit", code: "rate_limit" });
+    expect(turn?.usage).toEqual(RESULT_USAGE);
+
+    // Without a stash the error arm is unchanged: its own fields, no usage key.
+    const alone = turnCloses(drive([errorResultWithUsage()]));
+    expect(alone).toEqual([
+      {
+        type: "turn.error",
+        seq: expect.any(Number),
+        turnId: TOP_TURN,
+        message: "max turns reached",
+        code: "error_during_execution",
+        retriable: true,
+      },
+    ]);
+    expect(alone[0]).not.toHaveProperty("usage");
+  });
+
+  it("Tenet 6: a malformed error-subtype result (no usage trio) after an assistant error frame still closes once, with no usage key, and never throws", () => {
+    const n = createClaudeNormalizer();
+    n.push(JsonValue.parse(apiErrorAssistantFrame()));
+    const out = n.push({ type: "result", subtype: "error_during_execution", session_id: "sess_fixture", uuid: "u1" });
+    const closes = turnCloses(out);
+    expect(closes).toHaveLength(1);
+    expect(closes[0]).toMatchObject({ type: "turn.error", code: "rate_limit", retriable: true });
+    expect(closes[0]).not.toHaveProperty("usage");
+    expect(n.flush()).toEqual([]);
+    // A PARTIAL usage trio (objects present, but a member mapTurnUsage
+    // dereferences is missing or null) is malformed too: still one close, no usage.
+    const partials: unknown[] = [
+      { usage: {}, modelUsage: {}, total_cost_usd: 0 },
+      { usage: { input_tokens: 1, server_tool_use: null }, modelUsage: { m: null }, total_cost_usd: 0 },
+    ];
+    for (const partial of partials) {
+      const p = createClaudeNormalizer();
+      p.push(JsonValue.parse(apiErrorAssistantFrame()));
+      const frame: unknown = {
+        type: "result",
+        subtype: "error_during_execution",
+        session_id: "sess_fixture",
+        uuid: "u1",
+        ...(typeof partial === "object" && partial !== null ? partial : {}),
+      };
+      const pOut = p.push(JsonValue.parse(frame));
+      expect(turnCloses(pOut)).toHaveLength(1);
+      expect(turnCloses(pOut)[0]).toMatchObject({ type: "turn.error", code: "rate_limit" });
+      expect(turnCloses(pOut)[0]).not.toHaveProperty("usage");
+      expect(p.flush()).toEqual([]);
+    }
+  });
+
+  it("FLUSH FALLBACK: an assistant error frame, then end of stream → ONE turn.error at flush (stashed fields, no usage), never turn.abort", () => {
+    const n = createClaudeNormalizer();
+    const pushed = n.push(JsonValue.parse(apiErrorAssistantFrame()));
+    expect(turnCloses(pushed)).toEqual([]);
+    const flushed = n.flush();
+    expect(flushed).toEqual([
+      {
+        type: "turn.error",
+        seq: expect.any(Number),
+        turnId: TOP_TURN,
+        message: "rate_limit",
+        code: "rate_limit",
+        retriable: true,
+      },
+    ]);
+    expect(flushed[0]).not.toHaveProperty("usage");
+    const evs = [...pushed, ...flushed];
+    assertAllValid(evs);
+    expect(evs.some((e) => e.type === "turn.abort")).toBe(false);
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.find((t) => t.turnId === TOP_TURN)?.outcome).toEqual({
+      type: "error",
+      message: "rate_limit",
+      code: "rate_limit",
+    });
+  });
+
+  it("FIRST error wins: two assistant error frames before the close keep the first frame's fields — at the result and at flush", () => {
+    const frames = [
+      apiErrorAssistantFrame({ error: "authentication_failed" }),
+      secondApiErrorAssistantFrame("rate_limit"),
+    ];
+    const evs = drive([...frames, apiErrorResultFrame()]);
+    const closes = turnCloses(evs);
+    expect(closes).toHaveLength(1);
+    expect(closes[0]).toMatchObject({
+      turnId: TOP_TURN,
+      message: "authentication_failed",
+      code: "authentication_failed",
+      retriable: false,
+      usage: RESULT_USAGE,
+    });
+    // Both messages are sealed before the one close.
+    const types = evs.map((e) => e.type);
+    expect(types.filter((t) => t === "message.end")).toHaveLength(2);
+    expect(types.lastIndexOf("message.end")).toBeLessThan(types.indexOf("turn.error"));
+
+    const atFlush = turnCloses(drive(frames));
+    expect(atFlush).toHaveLength(1);
+    expect(atFlush[0]).toMatchObject({ code: "authentication_failed", retriable: false });
+    expect(atFlush[0]).not.toHaveProperty("usage");
+  });
+
+  it("a NESTED (subagent) error frame stashes like a top-level one: message.end and subagent.done at the frame, one turn.error on the same turnId at the result (or at flush)", () => {
+    const nested = apiErrorAssistantFrame({ parent_tool_use_id: "toolu_parent_1" });
+    const bracket = [
+      "subagent.start",
+      "message.start",
+      "text.start",
+      "text.delta",
+      "text.end",
+      "message.end",
+      "subagent.done",
+    ];
+    const evs = drive([nested, apiErrorResultFrame()]);
+    expect(evs.map((e) => e.type)).toEqual([...bracket, "turn.error"]);
+    expect(turnCloses(evs)[0]).toMatchObject({ turnId: TOP_TURN, code: "rate_limit", usage: RESULT_USAGE });
+    // No result frame: the flush emits the same single close, never turn.abort.
+    const alone = drive([nested]);
+    expect(alone.map((e) => e.type)).toEqual([...bracket, "turn.error"]);
+    expect(turnCloses(alone)[0]).toMatchObject({ turnId: TOP_TURN, code: "rate_limit", retriable: true });
+  });
+
+  it("result-only path (no assistant error frame was seen): the result closes the turn with turn.error — message = result text, code = api_error_code, retriable from the HTTP status, usage kept", () => {
+    const evs = drive([apiErrorResultFrame({ api_error_code: "rate_limit_exceeded" })]);
+    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.error"]);
+    expect(evs[0]).toMatchObject({ apiErrorCode: "rate_limit_exceeded" });
+    expect(evs[1]).toMatchObject({
+      type: "turn.error",
+      turnId: TOP_TURN,
+      message: API_ERROR_TEXT,
+      code: "rate_limit_exceeded",
+      retriable: true,
+      // The same usage mapping turn.done carried before the fix.
+      usage: { inputTokens: 100, outputTokens: 50, costUsd: 0.05, cumulative: true },
+    });
+    expect(turnCloses(evs)).toHaveLength(1);
+  });
+
+  it("result-only path: code falls back to 'api_error'; retriable only for status 429 or >= 500", () => {
+    const table: Array<[unknown, boolean]> = [
+      [429, true],
+      [500, true],
+      [503, true],
+      [529, true],
+      [400, false],
+      [401, false],
+      [403, false],
+      [404, false],
+      [413, false],
+      [null, false],
+    ];
+    for (const [status, retriable] of table) {
+      const evs = drive([apiErrorResultFrame({ api_error_status: status })]);
+      const err = evs.find((e) => e.type === "turn.error");
+      expect(err, `status ${String(status)}`).toMatchObject({ code: "api_error", message: API_ERROR_TEXT, retriable });
+    }
+    // Absent status (an older producer): not retriable, still an error close.
+    const evs = drive([withoutKey(apiErrorResultFrame(), "api_error_status")]);
+    expect(evs.map((e) => e.type)).toEqual(["turn.error"]);
+    expect(evs[0]).toMatchObject({ code: "api_error", retriable: false });
+  });
+
+  it("result-only path with denials: the `<turnId>:denials` carrier opens as on every turn — then turn.error", () => {
+    const evs = drive([
+      apiErrorResultFrame({
+        permission_denials: [{ tool_name: "bash", tool_use_id: "toolu_denied_1", tool_input: { command: "rm -rf" } }],
+      }),
+    ]);
+    expect(evs.map((e) => e.type)).toEqual([
+      "turn.start",
+      "message.start",
+      "tool.start",
+      "tool.done",
+      "message.end",
+      "turn.error",
+    ]);
+    expect(evs.some((e) => e.type === "ext.anthropic.result-meta")).toBe(false);
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.find((t) => t.turnId === TOP_TURN)?.outcome).toMatchObject({ type: "error", code: "api_error" });
+  });
+
+  it("NEGATIVE CONTROL: with no assistant error frame, is_error false or absent keeps the success path byte-for-byte", () => {
+    // The frozen success fixture's exact wire bytes, pinned from the facet
+    // before CL-09 (identical at HEAD and before the stash).
+    const GOLDEN =
+      '[{"type":"turn.done","seq":0,"turnId":"turn_sess_fixture","outcome":{"type":"success","result":"all done"},' +
+      '"finishReason":"stop","usage":{"inputTokens":100,"outputTokens":50,"cacheReadTokens":20,"cacheWriteTokens":10,' +
+      '"serverToolRequests":0,"costUsd":0.05,"cumulative":true,"byModel":{"claude-opus":{"inputTokens":100,' +
+      '"outputTokens":50,"cacheReadTokens":20,"cacheWriteTokens":10,"costUsd":0.05,"serverToolRequests":0,' +
+      '"cumulative":true}}}}]';
+    expect(JSON.stringify(run(resultSuccess("end_turn")))).toBe(GOLDEN);
+    // is_error absent: identical to is_error false, byte for byte.
+    expect(JSON.stringify(drive([withoutKey(resultSuccess("end_turn"), "is_error")]))).toBe(GOLDEN);
+    // A non-boolean truthy is_error is NOT an API-error turn (strict === true).
+    expect(JSON.stringify(drive([{ ...resultSuccess("end_turn"), is_error: "true" }]))).toBe(GOLDEN);
+    // Denials on an is_error:false result still use the carrier (golden shape).
+    expect(run(resultWithDenial()).map((e) => e.type)).toEqual([
+      "turn.start",
+      "message.start",
+      "tool.start",
+      "tool.done",
+      "message.end",
+      "turn.done",
+    ]);
+  });
+
+  it("the stash never leaks into a later turn of the same session (every result consumes it)", () => {
+    // Turn 1 errors (two-frame pair). Turn 2 is result-only with is_error:true:
+    // it gets its own close, built from its own frame.
+    const evs = drive([apiErrorAssistantFrame(), apiErrorResultFrame(), apiErrorResultFrame({ api_error_status: 500 })]);
+    const closes = turnCloses(evs);
+    expect(closes.map((e) => e.type)).toEqual(["turn.error", "turn.error"]);
+    expect(closes[0]).toMatchObject({ code: "rate_limit" });
+    expect(closes[1]).toMatchObject({ code: "api_error", message: API_ERROR_TEXT, retriable: true });
+
+    // Turn 2 a plain success: turn.done, not turn 1's stale error.
+    const thenSuccess = drive([apiErrorAssistantFrame(), apiErrorResultFrame(), resultSuccess("end_turn")]);
+    expect(turnCloses(thenSuccess).map((e) => e.type)).toEqual(["turn.error", "turn.done"]);
+
+    // An ERROR-arm result consumes the stash too (emitting it), so the next
+    // result-only API-error turn still gets its own close.
+    const viaErrorArm = drive([
+      apiErrorAssistantFrame(),
+      resultError("error_during_execution"),
+      apiErrorResultFrame(),
+    ]);
+    expect(turnCloses(viaErrorArm).map((e) => e.type)).toEqual(["turn.error", "turn.error"]);
+    expect(turnCloses(viaErrorArm)[0]).toMatchObject({ code: "rate_limit" });
+    expect(turnCloses(viaErrorArm)[1]).toMatchObject({ code: "api_error", message: API_ERROR_TEXT });
+
+    // And so does an is_error:FALSE success result.
+    const viaPlainSuccess = drive([apiErrorAssistantFrame(), resultSuccess("end_turn"), apiErrorResultFrame()]);
+    expect(turnCloses(viaPlainSuccess).map((e) => e.type)).toEqual(["turn.error", "turn.error"]);
+    expect(turnCloses(viaPlainSuccess)[0]).toMatchObject({ code: "rate_limit" });
+    expect(turnCloses(viaPlainSuccess)[1]).toMatchObject({ code: "api_error", message: API_ERROR_TEXT });
+  });
+});
+
+// LIVE EVIDENCE (cohort 0.6.3: claude-agent-sdk 0.3.280, CLI 2.1.280, captured
+// 2026-09-22): the frames `query()` yielded for an invalid ANTHROPIC_API_KEY.
+// Ten `system`/`api_retry` frames (trimmed here) preceded these two, which are
+// verbatim except for scrubbed ids. The CLI gave up after its retries and
+// delivered the API error as the synthetic assistant frame (`error:
+// "authentication_failed"`) followed by a `subtype: "success"` result with
+// `is_error: true` and `api_error_status: 401`.
+const LIVE_SESSION = "00000000-0000-4000-8000-00000000c109";
+const LIVE_API_ERROR_TEXT = "Failed to authenticate. API Error: 401 API key is invalid.";
+const LIVE_ASSISTANT_ERROR_FRAME = {
+  type: "assistant",
+  message: {
+    diagnostics: null,
+    id: "00000000-0000-4000-8000-0000000c1091",
+    container: null,
+    model: "<synthetic>",
+    role: "assistant",
+    stop_details: null,
+    stop_reason: "stop_sequence",
+    stop_sequence: "",
+    type: "message",
+    usage: {
+      output_tokens_details: null,
+      input_tokens: 0,
+      output_tokens: 0,
+      cache_creation_input_tokens: 0,
+      cache_read_input_tokens: 0,
+      server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 },
+      service_tier: null,
+      cache_creation: { ephemeral_1h_input_tokens: 0, ephemeral_5m_input_tokens: 0 },
+      inference_geo: null,
+      iterations: null,
+      speed: null,
+    },
+    content: [{ type: "text", text: LIVE_API_ERROR_TEXT }],
+    context_management: null,
+  },
+  parent_tool_use_id: null,
+  session_id: LIVE_SESSION,
+  uuid: "00000000-0000-4000-8000-0000000c1092",
+  timestamp: "2026-09-22T20:05:16.188Z",
+  error: "authentication_failed",
+  is_api_error_message: true,
+};
+const LIVE_RESULT_FRAME = {
+  duration_api_ms: 0,
+  stop_reason: "stop_sequence",
+  session_id: LIVE_SESSION,
+  total_cost_usd: 0,
+  usage: {
+    output_tokens_details: { thinking_tokens: 0 },
+    input_tokens: 0,
+    cache_creation_input_tokens: 0,
+    cache_read_input_tokens: 0,
+    output_tokens: 0,
+    server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 },
+    service_tier: "standard",
+    cache_creation: { ephemeral_1h_input_tokens: 0, ephemeral_5m_input_tokens: 0 },
+    inference_geo: "",
+    iterations: [],
+    speed: "standard",
+  },
+  modelUsage: {},
+  permission_denials: [],
+  terminal_reason: "api_error",
+  fast_mode_state: "off",
+  fast_mode_disabled_reason: "sdk_opt_in_required",
+  subagent_stats: {
+    spawned: 0,
+    requested: { background: 0, foreground: 0, unset: 0 },
+    started_in_background: 0,
+    max_depth: 0,
+    spawned_by_subagents: 0,
+    completed: 0,
+    failed: 0,
+    killed: { parent: 0, user: 0, system: 0 },
+    refused: { depth_limit: 0, concurrency_limit: 0, budget: 0 },
+    by_type: {},
+  },
+  is_error: true,
+  num_turns: 1,
+  subtype: "success",
+  api_error_status: 401,
+  result: LIVE_API_ERROR_TEXT,
+  type: "result",
+  duration_ms: 174756,
+  uuid: "00000000-0000-4000-8000-0000000c1093",
+  queued_turn_count: 0,
+  result_index: 0,
+};
+
+describe("createClaudeNormalizer — CL-09 LIVE: the captured invalid-API-key frames (401)", () => {
+  const LIVE_TURN = `turn_${LIVE_SESSION}`;
+
+  it("close the turn exactly ONCE, as turn.error authentication_failed (retriable false) carrying the result's usage", () => {
+    const evs = drive([LIVE_ASSISTANT_ERROR_FRAME, LIVE_RESULT_FRAME]);
+    expect(evs.map((e) => e.type)).toEqual([
+      "turn.start",
+      "message.start",
+      "text.start",
+      "text.delta",
+      "text.end",
+      "message.end",
+      "ext.anthropic.result-meta",
+      "turn.error",
+    ]);
+    expect(evs[6]).toMatchObject({
+      fastModeDisabledReason: "sdk_opt_in_required",
+      queuedTurnCount: 0,
+      resultIndex: 0,
+    });
+    const closes = turnCloses(evs);
+    expect(closes).toEqual([
+      {
+        type: "turn.error",
+        seq: expect.any(Number),
+        turnId: LIVE_TURN,
+        message: "authentication_failed",
+        code: "authentication_failed",
+        retriable: false,
+        // The live result's usage: zero tokens and zero cost (the request never
+        // authenticated), present all the same. No byModel: modelUsage is {}.
+        usage: {
+          inputTokens: 0,
+          outputTokens: 0,
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          reasoningTokens: 0,
+          serverToolRequests: 0,
+          costUsd: 0,
+          cumulative: true,
+        },
+      },
+    ]);
+    expect(evs.some((e) => e.type === "turn.done" || e.type === "turn.abort")).toBe(false);
+  });
+
+  it("reduce() folds the live turn as an error, with its usage, and does not park", () => {
+    const r = fold(drive([LIVE_ASSISTANT_ERROR_FRAME, LIVE_RESULT_FRAME]));
+    expect(r.needsResync).toBe(false);
+    const turn = r.result().turns.find((t) => t.turnId === LIVE_TURN);
+    expect(turn?.outcome).toEqual({
+      type: "error",
+      message: "authentication_failed",
+      code: "authentication_failed",
+    });
+    expect(turn?.usage).toMatchObject({ inputTokens: 0, outputTokens: 0, costUsd: 0, cumulative: true });
+  });
+});
+
+describe("createClaudeNormalizer — the API-error triad (api_error / api_error_params / api_error_code, CLI 2.1.280, undeclared) on the assistant error frame", () => {
+  const TRIAD = {
+    api_error: "provider_credentials",
+    api_error_params: { provider: "bedrock", remedy: "refresh_command" },
+    api_error_code: "credentials_expired",
+  };
+
+  it("carries all three verbatim on the first block's providerMetadata; is_api_error_message is NOT carried", () => {
+    const evs = drive([apiErrorAssistantFrame(TRIAD)]);
+    const first = evs.find((e) => e.type === "text.start");
+    expect(first).toMatchObject({ providerMetadata: TRIAD });
+    expect((first as { providerMetadata: { [k: string]: unknown } }).providerMetadata).toEqual(TRIAD);
+    // The carry lands on the message BEFORE its seal and the turn close.
+    const types = evs.map((e) => e.type);
+    expect(types.indexOf("text.start")).toBeLessThan(types.indexOf("message.end"));
+    expect(types.indexOf("message.end")).toBeLessThan(types.indexOf("turn.error"));
+  });
+
+  it("each member carries alone (per-frame facts, no member gates another)", () => {
+    for (const [k, v] of Object.entries(TRIAD)) {
+      const first = drive([apiErrorAssistantFrame({ [k]: v })]).find((e) => e.type === "text.start");
+      expect((first as { providerMetadata?: unknown }).providerMetadata).toEqual({ [k]: v });
+    }
+  });
+
+  it("BLOCK-LESS error frame: the triad rides message.metadata, before message.end and turn.error", () => {
+    const evs = drive([apiErrorAssistantFrame(TRIAD, [])]);
+    expect(evs.map((e) => e.type)).toEqual([
+      "turn.start",
+      "message.start",
+      "message.metadata",
+      "message.end",
+      "turn.error",
+    ]);
+    expect(evs[2]).toMatchObject({ messageId: "msg_api_error_1", metadata: TRIAD });
+  });
+
+  it("sits OUTSIDE the turn-binding guard: rides the bag beside user_message_uuid without consuming the once-per-message flag", () => {
+    const uuid = "018f0000-0000-7000-8000-00000000e0e0";
+    const evs = drive([apiErrorAssistantFrame({ ...TRIAD, user_message_uuid: uuid })]);
+    const first = evs.find((e) => e.type === "text.start");
+    expect((first as { providerMetadata?: unknown }).providerMetadata).toEqual({ ...TRIAD, user_message_uuid: uuid });
+
+    // The discriminating case: a CONTINUATION frame of the same message, after
+    // an earlier frame already consumed the turn-binding flag. The triad must
+    // still ride this frame's first block (only the turn-binding family is
+    // once-per-message); a carry moved inside the guard would drop it here.
+    const earlier = withoutKey(
+      withoutKey(apiErrorAssistantFrame({ user_message_uuid: uuid }), "error"),
+      "is_api_error_message",
+    );
+    const cont = drive([earlier, apiErrorAssistantFrame({ ...TRIAD, user_message_uuid: uuid })]);
+    const starts = cont.filter((e) => e.type === "text.start");
+    expect(starts).toHaveLength(2);
+    expect((starts[0] as { providerMetadata?: unknown }).providerMetadata).toEqual({ user_message_uuid: uuid });
+    expect((starts[1] as { providerMetadata?: unknown }).providerMetadata).toEqual(TRIAD);
+    expect(cont.filter((e) => e.type === "message.start")).toHaveLength(1);
+  });
+
+  it("NEGATIVE CONTROL: absent or malformed triad members leave the stream byte-identical", () => {
+    const bare = drive([apiErrorAssistantFrame()]);
+    const first = bare.find((e) => e.type === "text.start");
+    expect((first as { providerMetadata?: unknown }).providerMetadata).toBeUndefined();
+    expect(bare.some((e) => e.type === "message.metadata")).toBe(false);
+    const malformed = drive([
+      apiErrorAssistantFrame({ api_error: 7, api_error_params: "remedy", api_error_code: null }),
+    ]);
+    expect(malformed).toEqual(bare);
+    // And an ordinary (non-error) assistant frame is untouched.
+    expect(run(assistantMsg([{ type: "text", text: "hello", citations: null }]))).toEqual(
+      drive([assistantMsg([{ type: "text", text: "hello", citations: null }])]),
+    );
+  });
+
+  it("result-meta.apiErrorCode on the SUCCESS result; absent ⇒ no key, and a non-string is ignored", () => {
+    const withCode = drive([apiErrorAssistantFrame(), apiErrorResultFrame({ api_error_code: "overloaded_error" })]);
+    expect(withCode.find((e) => e.type === "ext.anthropic.result-meta")).toMatchObject({
+      apiErrorCode: "overloaded_error",
+    });
+    const without = drive([apiErrorAssistantFrame(), apiErrorResultFrame()]);
+    expect(without.some((e) => e.type === "ext.anthropic.result-meta")).toBe(false);
+    const bad = drive([apiErrorAssistantFrame(), apiErrorResultFrame({ api_error_code: 42 })]);
+    expect(bad).toEqual(without);
+  });
+});
+
+describe("createClaudeNormalizer — usage_report (0.3.273, fixture-only: claude.ai-subscriber sessions) → wrapper carry", () => {
+  const USAGE_REPORT = {
+    session: {
+      total_cost_usd: 1.25,
+      total_api_duration_ms: 42000,
+      total_duration_ms: 90000,
+      total_lines_added: 12,
+      total_lines_removed: 0,
+      model_usage: {},
+    },
+    rate_limits: {
+      limits: [
+        {
+          kind: "weekly_all",
+          group: "weekly",
+          percent: 0,
+          resets_at: null,
+          scope: null,
+          severity: "normal",
+          is_active: false,
+        },
+      ],
+      extra_usage: { is_enabled: false, monthly_limit: null, used_credits: null, utilization: null },
+    },
+  };
+
+  function usageFrame(extra: { [k: string]: unknown }, content?: unknown[]): unknown {
+    return {
+      type: "assistant",
+      message: {
+        ...betaMessage([]),
+        id: "msg_usage_1",
+        content: content ?? [{ type: "text", text: "Session usage: $1.25", citations: null }],
+      },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000u1",
+      session_id: "sess_fixture",
+      ...extra,
+    };
+  }
+
+  it("carries usage_report whole and verbatim (ambient zeros / nulls / false included) on the first block", () => {
+    const evs = drive([usageFrame({ usage_report: USAGE_REPORT })]);
+    const first = evs.find((e) => e.type === "text.start");
+    expect((first as { providerMetadata?: unknown }).providerMetadata).toEqual({ usage_report: USAGE_REPORT });
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("merges with the other wrapper siblings (context_usage, aborted) in the one bag", () => {
+    const ctx = { model: "claude-opus", total_tokens: 1, raw_max_tokens: 2, percentage: 50, categories: [] };
+    const evs = drive([usageFrame({ usage_report: USAGE_REPORT, context_usage: ctx, aborted: true })]);
+    const first = evs.find((e) => e.type === "text.start");
+    expect((first as { providerMetadata?: unknown }).providerMetadata).toEqual({
+      aborted: true,
+      context_usage: ctx,
+      usage_report: USAGE_REPORT,
+    });
+  });
+
+  it("sits OUTSIDE the turn-binding guard: a continuation frame after the flag was consumed still carries it", () => {
+    const uuid = "018f0000-0000-7000-8000-00000000u0u0";
+    const evs = drive([usageFrame({ user_message_uuid: uuid }), usageFrame({ usage_report: USAGE_REPORT })]);
+    const starts = evs.filter((e) => e.type === "text.start");
+    expect(starts).toHaveLength(2);
+    expect((starts[0] as { providerMetadata?: unknown }).providerMetadata).toEqual({ user_message_uuid: uuid });
+    expect((starts[1] as { providerMetadata?: unknown }).providerMetadata).toEqual({ usage_report: USAGE_REPORT });
+  });
+
+  it("BLOCK-LESS frame: usage_report rides message.metadata", () => {
+    const evs = drive([usageFrame({ usage_report: USAGE_REPORT }, [])]);
+    expect(evs.find((e) => e.type === "message.metadata")).toMatchObject({
+      messageId: "msg_usage_1",
+      metadata: { usage_report: USAGE_REPORT },
+    });
+  });
+
+  it("NEGATIVE CONTROL: no usage_report ⇒ no providerMetadata, no message.metadata", () => {
+    const evs = drive([usageFrame({})]);
+    const first = evs.find((e) => e.type === "text.start");
+    expect((first as { providerMetadata?: unknown }).providerMetadata).toBeUndefined();
+    expect(evs.some((e) => e.type === "message.metadata")).toBe(false);
+  });
+});
+
+describe("createClaudeNormalizer — startup_failure_reason (0.3.274, SDKResultError) → result-meta + turn.error.retriable", () => {
+  type SDKResultErrorT = Exclude<Extract<SDKMessage, { type: "result" }>, { subtype: "success" }>;
+  type StartupFailureReason = NonNullable<SDKResultErrorT["startup_failure_reason"]>;
+
+  // EVERY documented value, exhaustively (a Record forces a compile error when
+  // upstream adds one, so a new value is a decision, never a silent default).
+  // true ⇔ upstream itself says a retry may help — only worktree_unverified
+  // ("retrying may succeed"). org_verify_failed, remote_settings_required_unavailable
+  // and session_held_by_background are deliberate false: upstream never calls
+  // them retriable (see `startupFailureRetriable` in src).
+  const EXPECTED_RETRIABLE: Record<StartupFailureReason, boolean> = {
+    org_pin_api_key_conflict: false,
+    org_verify_failed: false,
+    org_pin_mismatch: false,
+    managed_settings_invalid: false,
+    remote_settings_required_unavailable: false,
+    gateway_signin_required: false,
+    gateway_access_denied: false,
+    proxy_invalid: false,
+    temp_dir_unusable: false,
+    cwd_unavailable: false,
+    shell_tool_missing: false,
+    session_held_by_background: false,
+    worktree_resume_refused: false,
+    worktree_unverified: true,
+    cli_version_too_old: false,
+    bypass_root: false,
+  };
+
+  // The zeroed error_during_execution result a stream-json run writes before
+  // exiting on a known startup failure ("errors carries the same text as stderr").
+  function startupFailure(reason: string): unknown {
+    return {
+      ...resultError("error_during_execution"),
+      errors: ["Claude Code could not start: see stderr"],
+      startup_failure_reason: reason,
+    };
+  }
+
+  it("table: every documented value is carried verbatim as startupFailureReason and decides retriable", () => {
+    const table = Object.entries(EXPECTED_RETRIABLE);
+    expect(table).toHaveLength(16);
+    for (const [reason, retriable] of table) {
+      const evs = drive([startupFailure(reason)]);
+      expect(evs.map((e) => e.type), reason).toEqual(["ext.anthropic.result-meta", "turn.error"]);
+      expect(evs[0], reason).toMatchObject({ startupFailureReason: reason });
+      expect(evs[1], reason).toMatchObject({
+        type: "turn.error",
+        code: "error_during_execution",
+        message: "Claude Code could not start: see stderr",
+        retriable,
+      });
+    }
+  });
+
+  it("an unknown future value is carried and is NOT retriable (the enum's 'offer the fix instead of a retry' framing)", () => {
+    const evs = drive([startupFailure("some_new_reason")]);
+    expect(evs[0]).toMatchObject({ startupFailureReason: "some_new_reason" });
+    expect(evs[1]).toMatchObject({ type: "turn.error", retriable: false });
+  });
+
+  it("NEGATIVE CONTROL: absent (or non-string) reason keeps the old rule and emits no result-meta — byte-identical", () => {
+    const during = run(resultError("error_during_execution"));
+    expect(during.map((e) => e.type)).toEqual(["turn.error"]);
+    expect(during[0]).toMatchObject({ code: "error_during_execution", retriable: true });
+    const maxTurns = run(resultError("error_max_turns"));
+    expect(maxTurns[0]).toMatchObject({ code: "error_max_turns", retriable: false });
+    const malformed = drive([{ ...resultError("error_during_execution"), startup_failure_reason: 3 }]);
+    expect(malformed).toEqual(during);
+  });
+});
+
+describe("createClaudeNormalizer — decision_reason_code (CLI 2.1.280, undeclared) on the live permission_denied frame", () => {
+  it("enriches the denial carrier's providerMetadata with decisionReasonCode beside decisionReasonType", () => {
+    const live: unknown = {
+      ...permissionDeniedMsg({ decision_reason_type: "rule", decision_reason: "outside the working directory" }),
+      decision_reason_code: "outside_reads_blocked",
+    };
+    const evs = drive([live, resultWithDenial()]);
+    const done = evs.find((e) => e.type === "tool.done");
+    expect((done as { providerMetadata?: unknown }).providerMetadata).toEqual({
+      decisionReasonType: "rule",
+      decisionReasonCode: "outside_reads_blocked",
+      decisionReason: "outside the working directory",
+    });
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("the code alone still produces the bag (it is a real reason a host can act on)", () => {
+    const live: unknown = { ...permissionDeniedMsg(), decision_reason_code: "memory_paused" };
+    const done = drive([live, resultWithDenial()]).find((e) => e.type === "tool.done");
+    expect((done as { providerMetadata?: unknown }).providerMetadata).toEqual({ decisionReasonCode: "memory_paused" });
+  });
+
+  it("NEGATIVE CONTROL: absent or non-string code leaves the enriched pair byte-identical", () => {
+    const base = permissionDeniedMsg({ agent_id: "agent_1", decision_reason_type: "classifier" });
+    const without = drive([base, resultWithDenial()]);
+    const done = without.find((e) => e.type === "tool.done");
+    expect((done as { providerMetadata?: unknown }).providerMetadata).toEqual({
+      decisionReasonType: "classifier",
+      agentId: "agent_1",
+    });
+    const malformed = drive([{ ...base, decision_reason_code: ["memory_paused"] }, resultWithDenial()]);
+    expect(malformed).toEqual(without);
+    // No live code, no live fields: still no bag at all (pre-existing behavior).
+    const bare = drive([permissionDeniedMsg(), resultWithDenial()]).find((e) => e.type === "tool.done");
+    expect((bare as { providerMetadata?: unknown }).providerMetadata).toBeUndefined();
+  });
+});

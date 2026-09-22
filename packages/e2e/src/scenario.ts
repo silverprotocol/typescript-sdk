@@ -48,6 +48,19 @@ export const Scenario = z.object({
   // thinkingLevel against a thinking_budget-generation default is a
   // server-side 400 or a cassette recorded on the wrong model.
   thinkingLevel: z.enum(["low", "medium", "high"]).optional(),
+  // Claude thinking-display knob (claude-agent-sdk only; the other capture
+  // agents ignore it). Presence sets the Agent SDK's
+  // `thinking: { type: "adaptive", display }`. Added 2026-09-23 (cohort 0.6.3)
+  // because with display UNSET, CLI 2.1.280 selects its `connector_text` mode:
+  // the API returns only the between-tool narration, never a thinking summary,
+  // so a partials capture of Fable 5.1 or Opus 5.5 streams NO thinking_delta /
+  // signature_delta at all. That is how the 0.6.2 refresh of partials-fable51
+  // silently lost the corpus's only live streamed-thinking coverage, and three
+  // re-captures in 0.6.3 confirmed it is not luck. Declared per-SCENARIO, like
+  // includePartialMessages and thinkingLevel, so a thinking cassette is
+  // reproducibly a thinking cassette. "summarized" is the value that makes
+  // thinking blocks (and their summary text) reach the stream.
+  thinkingDisplay: z.enum(["summarized", "omitted"]).optional(),
 });
 
 export type Scenario = z.infer<typeof Scenario>;

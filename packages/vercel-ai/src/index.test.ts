@@ -658,7 +658,7 @@ describe("StreamProviderError carry — arm A2: SDK-synthesized finish{error}", 
  * `errFields` projects it to `{message}` alone (asserted below). The real
  * class's symbol-keyed marker is JSON-invisible and irrelevant to the facet's
  * structural read, so it is omitted. Default messages are copied verbatim from
- * the ai@7.0.100 constructor.
+ * the ai@7.0.100 constructor (unchanged at ai@7.0.111).
  */
 class FakeToolChoiceViolationError extends Error {
   readonly toolChoice: { type: "required" } | { type: "tool"; toolName: string };
@@ -696,8 +696,10 @@ const VIOLATION_TOOL_MESSAGE =
  * FIXTURE-ONLY, BY CONSTRUCTION — do not hunt for a live cassette. Our e2e
  * capture config never sets `toolChoice`: the agent leaves `prepareToolChoice`
  * at its `'auto'` default, and ai only enforces `required` / `{type:'tool'}`,
- * so this producer of the `error` part cannot fire on any captured run. The
- * wire below is transcribed from the ai@7.0.100 runtime rather than a capture:
+ * so this producer of the `error` part cannot fire on any captured run. That
+ * holds for BOTH shapes below (A, and B in its historical and current forms).
+ * The wire below is transcribed from the ai@7.0.100 runtime rather than a
+ * capture, and re-read against ai@7.0.111:
  *  - the violation check runs immediately after the model's terminal chunk
  *    (`model-call-end`) and enqueues `{type:'error', error: ToolChoiceViolationError}`;
  *  - the step transform turns that `error` into `stepFinishReason = 'error'`
@@ -706,8 +708,13 @@ const VIOLATION_TOOL_MESSAGE =
  *  - `finish` is built as `{finishReason: stepFinishReason, rawFinishReason,
  *    totalUsage: combinedUsage}`, and `combinedUsage` accrues the step's real
  *    usage regardless of the violation — the tokens were burned.
+ * ai@7.0.108 (ccf98e7) now runs the violation check BEFORE it enqueues the
+ * internal `model-call-end`, and stamps that chunk's finishReason `'error'`.
+ * The `error` part still follows it. Shape A's fullStream bytes do not move:
+ * the step transform already ended on `'error'`, and there is no tool to hold
+ * back. Shape B's bytes do: see the two shape-B blocks.
  */
-describe("toolChoice enforcement shape A — required/tool with NO qualifying tool call (ai>=7.0.94)", () => {
+describe("toolChoice enforcement shape A — required/tool with NO qualifying tool call (ai>=7.0.94; fullStream unchanged by ai@7.0.108)", () => {
   const VIOLATION = () =>
     new FakeToolChoiceViolationError({
       toolChoice: { type: "required" },
@@ -839,7 +846,7 @@ describe("toolChoice enforcement shape A — required/tool with NO qualifying to
   });
 });
 
-describe("toolChoice enforcement shape B — {type:'tool'} satisfied by the WRONG tool (ai>=7.0.94)", () => {
+describe("toolChoice enforcement shape B, HISTORICAL — {type:'tool'} satisfied by the WRONG tool (ai 7.0.94–7.0.107 only)", () => {
   const VIOLATION = () =>
     new FakeToolChoiceViolationError({
       toolChoice: { type: "tool", toolName: "lookup" },
@@ -851,7 +858,12 @@ describe("toolChoice enforcement shape B — {type:'tool'} satisfied by the WRON
 
   /**
    * FIXTURE-ONLY (same reason as shape A — capture config never sets
-   * toolChoice). Ordering transcribed from the ai@7.0.100 runtime:
+   * toolChoice). HISTORICAL: this wire exists only on ai 7.0.94–7.0.107.
+   * ai@7.0.108 (ccf98e7) stopped executing a violating tool call, so the
+   * current runtime yields shape B' below instead. It is kept as a
+   * regression fixture: a synthetic wire that still pins how the facet
+   * handles a standalone advisory `error` on a turn that then succeeds.
+   * Ordering transcribed from the ai@7.0.100 runtime:
    * `executeToolsFromStream` runs the step's tools inside its own
    * `model-call-end` transform and AWAITS them, so `tool-result` is enqueued
    * BEFORE the violation `error` reaches the step transform; `finish-step` is
@@ -906,9 +918,9 @@ describe("toolChoice enforcement shape B — {type:'tool'} satisfied by the WRON
 
   it("FULL ORDERED event list — a standalone `error` precedes message.end on a turn that then closes turn.done", () => {
     const out = run(parts);
-    // The ordering IS the claim: this is the first shape on this facet where an
-    // advisory `error` rides inside a step that is followed by another step and
-    // a SUCCESSFUL turn close.
+    // The ordering IS the claim: on the 7.0.94–7.0.107 runtime this was the
+    // first shape on this facet where an advisory `error` rides inside a step
+    // that is followed by another step and a SUCCESSFUL turn close.
     expect(types(out)).toEqual([
       "turn.start",
       "step.start",
@@ -983,6 +995,521 @@ describe("toolChoice enforcement shape B — {type:'tool'} satisfied by the WRON
     const blocks = messages.flatMap((m) => m.content);
     expect(blocks.some((b) => b.type === "tool-call")).toBe(true);
     expect(blocks.some((b) => b.type === "tool-result")).toBe(true);
+  });
+});
+
+describe("toolChoice enforcement shape B' — {type:'tool'} answered with the WRONG tool (ai>=7.0.108, changeset ccf98e7)", () => {
+  const VIOLATION = () =>
+    new FakeToolChoiceViolationError({
+      toolChoice: { type: "tool", toolName: "lookup" },
+      // the constructor still receives the model's UNIFIED reason; only the
+      // internal model-call-end chunk is stamped 'error'
+      finishReason: "tool-calls",
+      provider: "openai.responses",
+      modelId: "gpt-5-mini",
+      content: [{ type: "tool-call", toolCallId: "call_1", toolName: "echo" }],
+    });
+
+  /**
+   * FIXTURE-ONLY (same reason as shape A — capture config never sets
+   * toolChoice). This is the CURRENT runtime for shape B. Transcribed from
+   * ai@7.0.111:
+   *  - stream-language-model-call.ts computes the violation BEFORE enqueuing
+   *    the internal `model-call-end`, stamps that chunk finishReason 'error',
+   *    then enqueues the `error` part;
+   *  - execute-tools-from-stream.ts returns early on a `model-call-end` whose
+   *    finishReason fails isToolExecutionAllowedFinishReason (only 'stop' and
+   *    'tool-calls' pass), so the `echo` call is NEVER executed: no
+   *    tool-result, no tool-error;
+   *  - stream-text.ts sees 1 client tool call against 0 outputs + 0 denials,
+   *    so the loop does not continue and it enqueues `finish{finishReason:
+   *    'error', rawFinishReason, totalUsage: combinedUsage}`.
+   * The streamed tool-input parts and the `tool-call` are forwarded as they
+   * arrive, before the model's terminal chunk, so they precede the `error`.
+   */
+  const parts = [
+    { type: "start" },
+    { type: "start-step", request: {}, warnings: [] },
+    { type: "tool-input-start", id: "call_1", toolName: "echo", dynamic: true },
+    { type: "tool-input-delta", id: "call_1", delta: '{"text":"hi"}' },
+    { type: "tool-input-end", id: "call_1" },
+    { type: "tool-call", toolCallId: "call_1", toolName: "echo", input: { text: "hi" }, dynamic: true },
+    { type: "error", error: VIOLATION() },
+    {
+      type: "finish-step",
+      finishReason: "error",
+      rawFinishReason: "tool_calls",
+      usage: USAGE,
+      response: RESPONSE_S1,
+    },
+    { type: "finish", finishReason: "error", rawFinishReason: "tool_calls", totalUsage: USAGE },
+  ];
+
+  it("FULL ORDERED event list — the wrong tool is never settled and the run closes turn.error", () => {
+    const out = run(parts);
+    expect(types(out)).toEqual([
+      "turn.start",
+      "step.start",
+      "message.start",
+      "tool.start",
+      "tool.args.delta",
+      "tool.args.assembled",
+      "error",
+      "message.metadata",
+      "message.end",
+      "step.done",
+      "turn.error",
+    ]);
+    expect(types(out)).not.toContain("tool.done");
+    expect(types(out)).not.toContain("turn.done");
+    expectAllParse(out);
+  });
+
+  it("turn.error carries the violation message and usage == the mapped finish.totalUsage; the advisory is message-only", () => {
+    const out = run(parts);
+    expect(out.find((e) => e.type === "error")).toStrictEqual({
+      type: "error",
+      seq: 6,
+      message: VIOLATION_TOOL_MESSAGE,
+      turnId: "turn_vercel_1",
+    });
+    expect(out.at(-1)).toStrictEqual({
+      type: "turn.error",
+      seq: 10,
+      turnId: "turn_vercel_1",
+      message: VIOLATION_TOOL_MESSAGE,
+      usage: {
+        inputTokens: 5,
+        outputTokens: 7,
+        totalTokens: 12,
+        cacheReadTokens: 2,
+        cacheWriteTokens: 0,
+        reasoningTokens: 3,
+      },
+    });
+  });
+
+  it("the violating step seals normally: the model's raw reason survives in metadata, message.end keeps the step usage", () => {
+    const out = run(parts);
+    const meta = out.find((e) => e.type === "message.metadata") as {
+      metadata: Record<string, unknown>;
+    };
+    expect(meta.metadata).toStrictEqual({
+      responseId: "resp-s1",
+      model: "mock-model",
+      rawFinishReason: "tool_calls",
+    });
+    const msgEnd = out.find((e) => e.type === "message.end") as { usage?: unknown };
+    expect(msgEnd.usage).toStrictEqual(
+      (out.find((e) => e.type === "turn.error") as { usage?: unknown }).usage,
+    );
+  });
+
+  it("folds as the 7.0.70 resultless-call shape: one errored turn, a tool-call block with NO tool-result, no resync", () => {
+    const r = new Reducer();
+    for (const e of run(parts)) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const { messages, turns } = r.result();
+    expect(turns).toHaveLength(1);
+    expect(messages).toHaveLength(1);
+    const blocks = messages[0]!.content;
+    const call = blocks.find((b) => b.type === "tool-call") as
+      | { toolCallId: string; name: string }
+      | undefined;
+    expect(call).toMatchObject({ toolCallId: "call_1", name: "echo" });
+    expect(blocks.some((b) => b.type === "tool-result")).toBe(false);
+  });
+});
+
+// ─── tool approval auto-denial (ai>=7.0.102, changeset 8b92ba9) ──────────────
+
+/**
+ * FIXTURE-ONLY, BY CONSTRUCTION — the e2e capture agent passes no
+ * `toolApproval`, and a tool's own `needsApproval` can only resolve to
+ * 'user-approval', never 'denied', so no captured run reaches the auto-denial.
+ * Wire transcribed from the ai@7.0.111 runtime:
+ *  - execute-tools-from-stream.ts `case 'denied'`: the `tool-call` is
+ *    forwarded first, then tool-approval-request{isAutomatic:true},
+ *    tool-approval-response{approved:false, reason} and — NEW in 7.0.102 —
+ *    tool-output-denied{toolCallId, toolName}; the tool is not executed;
+ *  - stream-text.ts forwards tool-output-denied as a step part. 1 client call
+ *    settled by 1 denial lets the loop continue, so a second step has the
+ *    model answer with the denial in its prompt;
+ *  - streamText's INITIAL pass (stream-text.ts, before the first start-step)
+ *    also enqueues a bare tool-output-denied{toolCallId, toolName} for every
+ *    approval denied in a PREVIOUS call, next to tool-result / tool-error for
+ *    prior-call approvals it executes or rejects — ids with no tool.start in
+ *    this turn.
+ */
+const DENY_CALL = { type: "tool-call", toolCallId: "call_1", toolName: "echo", input: { text: "hi" } };
+const DENY_REQUEST = {
+  type: "tool-approval-request",
+  approvalId: "approval-1",
+  toolCall: DENY_CALL,
+  isAutomatic: true,
+};
+const DENY_RESPONSE = {
+  type: "tool-approval-response",
+  approvalId: "approval-1",
+  approved: false,
+  toolCall: DENY_CALL,
+  reason: "echo is disabled by policy",
+};
+const DENIED = { type: "tool-output-denied", toolCallId: "call_1", toolName: "echo" };
+
+/** Step 2 + close: the model answers after seeing the denial. */
+const DENY_TAIL = [
+  {
+    type: "finish-step",
+    finishReason: "tool-calls",
+    rawFinishReason: "tool_calls",
+    usage: USAGE,
+    response: RESPONSE_S1,
+  },
+  { type: "start-step", request: {}, warnings: [] },
+  { type: "text-start", id: "t1" },
+  { type: "text-delta", id: "t1", text: "I could not run echo." },
+  { type: "text-end", id: "t1" },
+  {
+    type: "finish-step",
+    finishReason: "stop",
+    rawFinishReason: "stop",
+    usage: USAGE,
+    response: { id: "resp-s2", timestamp: "1970-01-01T00:00:00.000Z", modelId: "mock-model" },
+  },
+  { type: "finish", finishReason: "stop", rawFinishReason: "stop", totalUsage: USAGE },
+];
+
+/** 7.0.102+ in-step auto-denial on a STREAMED tool call. */
+const DENY_PARTS = [
+  { type: "start" },
+  { type: "start-step", request: {}, warnings: [] },
+  { type: "tool-input-start", id: "call_1", toolName: "echo" },
+  { type: "tool-input-delta", id: "call_1", delta: '{"text":"hi"}' },
+  { type: "tool-input-end", id: "call_1" },
+  DENY_CALL,
+  DENY_REQUEST,
+  DENY_RESPONSE,
+  DENIED,
+  ...DENY_TAIL,
+];
+
+describe("tool-output-denied — in-step auto-denial (ai>=7.0.102, changeset 8b92ba9)", () => {
+  it("MIRROR — FULL ORDERED event list: tool-output-denied settles the call as tool.done; request/response still ride the frame carry", () => {
+    const out = run(DENY_PARTS);
+    expect(types(out)).toEqual([
+      "turn.start",
+      "step.start",
+      "message.start",
+      "tool.start",
+      "tool.args.delta",
+      "tool.args.assembled",
+      "ext.vercel.frame", // tool-approval-request (HITL mapping still deferred)
+      "ext.vercel.frame", // tool-approval-response
+      "tool.done", // tool-output-denied — formerly a third ext.vercel.frame
+      "message.metadata",
+      "message.end",
+      "step.done",
+      "step.start",
+      "message.start",
+      "text.start",
+      "text.delta",
+      "text.end",
+      "message.metadata",
+      "message.end",
+      "step.done",
+      "turn.done",
+    ]);
+    const frames = out.filter((e) => e.type === "ext.vercel.frame");
+    expect(frames).toHaveLength(2);
+    expect(frames[0]).toMatchObject({ kind: "tool-approval-request", frame: DENY_REQUEST });
+    expect(frames[1]).toMatchObject({ kind: "tool-approval-response", frame: DENY_RESPONSE });
+    expectAllParse(out);
+  });
+
+  it("MIRROR — tool.done{outcome:'denied'} carries the approval response's reason as its text; NOT an isError alias", () => {
+    const out = run(DENY_PARTS);
+    const done = out.find((e) => e.type === "tool.done")!;
+    expect(done).toStrictEqual({
+      type: "tool.done",
+      seq: 8,
+      turnId: "turn_vercel_1",
+      toolCallId: "call_1",
+      outcome: "denied",
+      content: [{ type: "text", text: "echo is disabled by policy" }],
+    });
+    expect("isError" in done).toBe(false);
+    expect("errorText" in done).toBe(false);
+  });
+
+  it("folds clean: one turn, the tool-call block and a tool-result{outcome:'denied'} block, no resync", () => {
+    const r = new Reducer();
+    for (const e of run(DENY_PARTS)) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const { messages, turns } = r.result();
+    expect(turns).toHaveLength(1);
+    const blocks = messages.flatMap((m) => m.content);
+    expect(blocks.find((b) => b.type === "tool-call")).toMatchObject({ toolCallId: "call_1", name: "echo" });
+    expect(blocks.find((b) => b.type === "tool-result")).toMatchObject({
+      toolCallId: "call_1",
+      outcome: "denied",
+      content: [{ type: "text", text: "echo is disabled by policy" }],
+    });
+  });
+
+  it("a NON-streamed denied call (synthesized tool.start path) closes the same way", () => {
+    const out = run([
+      { type: "start" },
+      { type: "start-step", request: {}, warnings: [] },
+      DENY_CALL,
+      DENY_REQUEST,
+      DENY_RESPONSE,
+      DENIED,
+      ...DENY_TAIL,
+    ]);
+    expect(types(out).slice(0, 9)).toEqual([
+      "turn.start",
+      "step.start",
+      "message.start",
+      "tool.start",
+      "tool.args.delta",
+      "tool.args.assembled",
+      "ext.vercel.frame",
+      "ext.vercel.frame",
+      "tool.done",
+    ]);
+    expect(out[8]).toStrictEqual({
+      type: "tool.done",
+      seq: 8,
+      turnId: "turn_vercel_1",
+      toolCallId: "call_1",
+      outcome: "denied",
+      content: [{ type: "text", text: "echo is disabled by policy" }],
+    });
+    expectAllParse(out);
+  });
+
+  it("reason handling: absent ⇒ content [] (no text block); empty string kept (typeof guard); keyed by toolCallId (approving-response strictness pinned separately below)", () => {
+    const call2 = { type: "tool-call", toolCallId: "call_2", toolName: "echo", input: { text: "b" } };
+    const out = run([
+      { type: "start" },
+      { type: "start-step", request: {}, warnings: [] },
+      DENY_CALL,
+      // call_1: denied with NO reason (ToolApprovalStatus 'denied' as a bare string)
+      { type: "tool-approval-request", approvalId: "a1", toolCall: DENY_CALL, isAutomatic: true },
+      { type: "tool-approval-response", approvalId: "a1", approved: false, toolCall: DENY_CALL },
+      { type: "tool-output-denied", toolCallId: "call_1", toolName: "echo" },
+      call2,
+      // call_2: approved WITH a reason, then denied on a later response with ""
+      { type: "tool-approval-response", approvalId: "a2", approved: true, toolCall: call2, reason: "ok" },
+      { type: "tool-approval-response", approvalId: "a3", approved: false, toolCall: call2, reason: "" },
+      { type: "tool-output-denied", toolCallId: "call_2", toolName: "echo" },
+      // call_3: denied with no approval response at all ⇒ nothing stashed
+      { type: "tool-output-denied", toolCallId: "call_3", toolName: "echo" },
+      ...DENY_TAIL,
+    ]);
+    const dones = out.filter((e) => e.type === "tool.done") as {
+      toolCallId: string;
+      outcome: string;
+      content: unknown[];
+    }[];
+    expect(dones.map((d) => [d.toolCallId, d.outcome, d.content])).toStrictEqual([
+      ["call_1", "denied", []],
+      ["call_2", "denied", [{ type: "text", text: "" }]],
+      ["call_3", "denied", []],
+    ]);
+    expectAllParse(out);
+  });
+
+  it("a malformed tool-output-denied (no string toolCallId) degrades to the frame carry", () => {
+    const n = createVercelNormalizer();
+    n.push({ type: "start" });
+    const out = n.push({ type: "tool-output-denied", toolCallId: 7, toolName: "echo" });
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({
+      type: "ext.vercel.frame",
+      kind: "tool-output-denied",
+      frame: { type: "tool-output-denied", toolCallId: 7, toolName: "echo" },
+    });
+  });
+
+  it("only a STRICT approved:false stashes a reason: an approving (or non-boolean) response's reason never reaches a tool.done", () => {
+    const call2 = { type: "tool-call", toolCallId: "call_2", toolName: "echo", input: { text: "b" } };
+    const call3 = { type: "tool-call", toolCallId: "call_3", toolName: "echo", input: { text: "c" } };
+    const out = run([
+      { type: "start" },
+      { type: "start-step", request: {}, warnings: [] },
+      DENY_CALL,
+      call2,
+      call3,
+      { type: "tool-approval-response", approvalId: "a1", approved: true, toolCall: DENY_CALL, reason: "ok" },
+      { type: "tool-approval-response", approvalId: "a2", approved: "false", toolCall: call2, reason: "str" },
+      // `approved` absent — falsy but not `false`
+      { type: "tool-approval-response", approvalId: "a3", toolCall: call3, reason: "absent" },
+      { type: "tool-output-denied", toolCallId: "call_1", toolName: "echo" },
+      { type: "tool-output-denied", toolCallId: "call_2", toolName: "echo" },
+      { type: "tool-output-denied", toolCallId: "call_3", toolName: "echo" },
+      ...DENY_TAIL,
+    ]);
+    const dones = out.filter((e) => e.type === "tool.done") as { toolCallId: string; content: unknown[] }[];
+    expect(dones.map((d) => [d.toolCallId, d.content])).toStrictEqual([
+      ["call_1", []],
+      ["call_2", []],
+      ["call_3", []],
+    ]);
+  });
+
+  it("a later reasonless denial for the same id clears an earlier stashed reason (no stale text)", () => {
+    const out = run([
+      { type: "start" },
+      { type: "start-step", request: {}, warnings: [] },
+      DENY_CALL,
+      { type: "tool-approval-response", approvalId: "a1", approved: false, toolCall: DENY_CALL, reason: "stale" },
+      { type: "tool-approval-response", approvalId: "a2", approved: false, toolCall: DENY_CALL },
+      DENIED,
+      ...DENY_TAIL,
+    ]);
+    const done = out.find((e) => e.type === "tool.done") as { content: unknown[] };
+    expect(done.content).toStrictEqual([]);
+  });
+
+  it("NEGATIVE CONTROL — a 7.0.101-shaped auto-denial (no tool-output-denied) is byte-identical to before: frames only, no tool.done", () => {
+    const before = run(DENY_PARTS.filter((p) => p !== DENIED));
+    expect(types(before)).toEqual([
+      "turn.start",
+      "step.start",
+      "message.start",
+      "tool.start",
+      "tool.args.delta",
+      "tool.args.assembled",
+      "ext.vercel.frame", // tool-approval-request
+      "ext.vercel.frame", // tool-approval-response
+      "message.metadata",
+      "message.end",
+      "step.done",
+      "step.start",
+      "message.start",
+      "text.start",
+      "text.delta",
+      "text.end",
+      "message.metadata",
+      "message.end",
+      "step.done",
+      "turn.done",
+    ]);
+    const frames = before.filter((e) => e.type === "ext.vercel.frame");
+    expect(frames).toStrictEqual([
+      {
+        type: "ext.vercel.frame",
+        seq: 6,
+        kind: "tool-approval-request",
+        frame: DENY_REQUEST,
+      },
+      {
+        type: "ext.vercel.frame",
+        seq: 7,
+        kind: "tool-approval-response",
+        frame: DENY_RESPONSE,
+      },
+    ]);
+    expectAllParse(before);
+  });
+
+  it("MIRROR — the lone delta between the 7.0.101 and 7.0.102 wires is the tool.done (a third frame on the pre-arm facet)", () => {
+    const before = run(DENY_PARTS.filter((p) => p !== DENIED));
+    // strip the new tool.done and every seq: the 7.0.102 run equals the
+    // 7.0.101 run event for event.
+    const strip = (evs: AgEvent[]) =>
+      evs
+        .filter((e) => e.type !== "tool.done")
+        .map((e) => {
+          const { seq: _seq, ...rest } = e as { seq: number };
+          return rest;
+        });
+    expect(strip(run(DENY_PARTS))).toStrictEqual(strip(before));
+  });
+});
+
+describe("tool-output-denied — PRIOR-CALL id from streamText's initial pass (no tool.start this turn)", () => {
+  // Initial-pass order (stream-text.ts): denials first, then the prior-call
+  // approvals it executed (tool-result) — all before the first start-step.
+  const parts = [
+    { type: "start" },
+    { type: "tool-output-denied", toolCallId: "old1", toolName: "echo" },
+    {
+      type: "tool-result",
+      toolCallId: "old2",
+      toolName: "lookup",
+      input: { q: "x" },
+      output: { ok: true },
+    },
+    { type: "start-step", request: {}, warnings: [] },
+    { type: "text-start", id: "t1" },
+    { type: "text-delta", id: "t1", text: "done" },
+    { type: "text-end", id: "t1" },
+    {
+      type: "finish-step",
+      finishReason: "stop",
+      rawFinishReason: "stop",
+      usage: USAGE,
+      response: RESPONSE_S1,
+    },
+    { type: "finish", finishReason: "stop", rawFinishReason: "stop", totalUsage: USAGE },
+  ];
+
+  it("emits a BARE tool.done right after turn.start — settled one way with the initial pass's prior-call tool-result", () => {
+    const out = run(parts);
+    expect(types(out)).toEqual([
+      "turn.start",
+      "tool.done", // old1 — denied
+      "tool.done", // old2 — ok (the pre-existing initial-pass handling)
+      "step.start",
+      "message.start",
+      "text.start",
+      "text.delta",
+      "text.end",
+      "message.metadata",
+      "message.end",
+      "step.done",
+      "turn.done",
+    ]);
+    expect(types(out)).not.toContain("tool.start"); // no synthesized start for a prior-call id
+    expect(out[1]).toStrictEqual({
+      type: "tool.done",
+      seq: 1,
+      turnId: "turn_vercel_1",
+      toolCallId: "old1",
+      outcome: "denied",
+      content: [], // the initial pass's denial carries no reason on the wire
+    });
+    // same envelope as the prior-call tool-result: no messageId, turnId from the open turn
+    expect("messageId" in out[1]!).toBe(false);
+    expect("messageId" in out[2]!).toBe(false);
+    expect(out[2]).toMatchObject({ seq: 2, turnId: "turn_vercel_1", toolCallId: "old2", outcome: "ok" });
+    expectAllParse(out);
+  });
+
+  it("KNOWN GAP, pinned: both prior-call results park the Reducer the SAME way (bare tool.done with no open message)", () => {
+    // Pre-existing for the initial pass's tool-result / tool-error: a bare
+    // tool.done that arrives before the first start-step has no message to
+    // land in, so the Reducer parks (needsResync). The prior-call denial now
+    // shares that path by design. A fix (e.g. the claude facet's dedicated
+    // carrier message) must cover all three initial-pass arms together. This
+    // pin stops the denial arm from drifting apart from the tool-result arm
+    // until then.
+    const parkedAt = (ps: unknown[]) => {
+      const r = new Reducer();
+      const flags: boolean[] = [];
+      for (const e of run(ps)) {
+        r.push(e);
+        flags.push(r.needsResync);
+      }
+      return flags;
+    };
+    const deniedOnly = parkedAt(parts.filter((p) => p.type !== "tool-result"));
+    const resultOnly = parkedAt(parts.filter((p) => p.type !== "tool-output-denied"));
+    expect(deniedOnly).toStrictEqual(resultOnly); // identical fold behaviour
+    expect(deniedOnly.indexOf(true)).toBe(1); // parks at the orphan tool.done itself
   });
 });
 

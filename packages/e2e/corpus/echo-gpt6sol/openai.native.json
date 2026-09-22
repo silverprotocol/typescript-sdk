@@ -1,0 +1,1967 @@
+[
+  {
+    "data": {
+      "type": "response_started",
+      "providerData": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_043142cb1e518a21006ab2e2b3b6a887d0a9e015391f6f6138",
+          "object": "response",
+          "created_at": 1790108339,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6sol'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_043142cb1e518a21006ab2e2b3b6a887d0a9e015391f6f6138",
+          "object": "response",
+          "created_at": 1790108339,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6sol'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.in_progress",
+        "response": {
+          "id": "resp_043142cb1e518a21006ab2e2b3b6a887d0a9e015391f6f6138",
+          "object": "response",
+          "created_at": 1790108339,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6sol'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 1
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "rs_043142cb1e518a21006ab2e2b42b0487d0bb52639ea593e771",
+          "type": "reasoning",
+          "content": [],
+          "encrypted_content": "gAAAAABqsuK0b9Nzk-ZO6gXmCjEw-VLWSZAbUExy4EwGDS5uP7XsqLn-xOzddZjGGpcZ_d7LwXBEVFLtD2NNgMvp5PKBaqLFC0lrLGNCdZSeIj5QBW93R7du65k4hS-A3MU1ZdV6_ELpQP0BLqkMprYgh-nkrTB4rveukqRNZB0fFlDxiHTzdAAU8u-uh9lXXLQq8asId5Chywugs-hg7OHWIqryra0Jfg4t2y8CQdMyUpEaCUAQPYlVjNa9bnuzCpkJDI0naY6p1hnNlyqSG1Pqm2R7MRDA_o8Ff7D_7wgE7_hPMzYlwPwJkfWUOQiHko4gTJyAJCcVKMmSUTHpexK9mYXL8wCVp-rEeRKdHY_iUysQO3qMqRBrGg7-RsBP2lY4duxZcudjCRpmVtswCbq7k8DvbZuBcQPTFiH19oRllMe5rj5K4UBMY_3DFab9ijJihoT43G2fLgWJFlcJqI1ll-Dic9_hYLAOA6WquUSYDsaRtWfQ1VmPFk6lKvaQMpjnWMLym0kL0117OKNZIQQlw6FT7Um3umsNI5PKKFWwB_d6dj4Rj_GLZqOhYZvdpZNpohAcuKVCfgSRa6nVjCJMapUK0EIx7384lFiC_Gnld29dZgUJDPpvH46z0jtc5JXKpVgIfjtkT_jHYYBypv1UfQJmm7x1dqzJCmoFp6vnK0ZSHCk5MQfNOz1TTl2nPToam8O4KNsNdpNqLAtZaJaOFoS2lE_ESr53zmSAcS99mOpypqSg5Gle-af5A4NgCjDYiOqrzxP5Bzt2IQxdWR4jp6lhBq6WbkZtE5ahgA5PZuWmdAqbai92VW7M8fqhw7WpUl4WmXk7Z2M_ZSHJ72r33tu5zwwDBz9iRTFJ9PqMV3eOb8T9Ot05_MzBlGB2QYuhVafI2eKBTz--NynwpJSWSqv5_05U2nf-jG2RP2-JjGrp-JeqqdQOxv9WdgYs02t61deqrft_h3kllLgVOH7eTWVtye6CT2ixq0-ShxUbCusifKTNXYAr4i1M7IgJL2HRcwF17gEIssVtlQCmQgYTYFFNIwuZBtBiDeJYjzM3jHeglYkieiXgdWAOx0ZyM_FjkcBrDjmPhSjVO9eWmyvsMMdltZRQ8ti4q2HhcDDPW0VEt0DiP8a0YcTObRKNYxSKe3yVNzkmIUfilqqm1lTEwpNe6pFbHQ==",
+          "summary": []
+        },
+        "output_index": 0,
+        "sequence_number": 2
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "rs_043142cb1e518a21006ab2e2b42b0487d0bb52639ea593e771",
+          "type": "reasoning",
+          "content": [],
+          "encrypted_content": "gAAAAABqsuK0QCXu-fOTXg3wUWnYd7fViycOjUTofUBsvUhPP-2Xn0cfmSfuBrlajBEVDOT7m9rdk8OpzKoRCNccCHb9bjveNh1eEDws8xGBjA4FBIkGNbMUn4ztqmHnxg05VB19PXXXlFFLUCvcw-IaaFkk7nS5McR2vAmS3UGoLVyEld6_ZAm5iC3kY8nq2Y77ODKyeEkmMivAPXtsX9lPZ1aoCxQLMhFBkG82mGYtVGagzhwJlqdY_JKKzWB8a9VoaPeDz0mbd93rqDzTOR38dBjnJWrM-Btxfk7NSEebhhqon9Sf0niUfhxCdcXCwlYQNbtC_2E9_n3AfwDPa-a1aJpQ7hIDd_h_E29BS2mjCv-Nx3jdtA1Qpa4T9yJjINfDLxGfRq7GfYE6FjvSRSpKwDLaiq4uKMYPPjrzrVxTeM02Osoeq6eNMXN0Znf7SaZ9ac1MobyC7DnmUy2S4Ova9MKPqIsK4ZC3-zKYJc_9tZkmL6Dnwmqgzt2tz1byoTffWL7yACFIF1F1WPFaXDDH9YUk1wrs7_G8vCjmxjRV82Mfdfz1cQLkLg8BoxCkRA6UCjz3pwrS0qvr1SV8oICVKswju5Qzbm8UeCCGSOMGnZxkWAwSbHsfif0M32UyiVid5sANZ-96mfQhu-tfQykUrph8ycJBiRu-6NRFZFpmT0mh0qAGZqLlMCq4_OmBwulaUO3Wu99lpKQSszBGT7fgZ9CDqfgz3cLYpwdEteOmYhEqkz0j9vgecKhVdldL0c17z516zeJsmO_06JAtzEPhEX651F7YGredhSbaoTDsWvQsJ9OwPuCaJDtSwDuZPtz8R8oAJVzw9L36fEkK8MQ9rfWvnL3kUaTH7TolIJgnFGpbFpgpqoU62eMxqz2ImbqS09owRSzKL-YSF7MkUlX_88Jf2SU5n7Z41IjcTjDsq9h5TwsiJM1X02VBMZOnlnSp4h8XqjgdKNYJXpmBBhcmC3J_XjxqtCyjocxXULDEjS07HzqPV_2bSIDJSHTpNyzGp2Pav_o9bUwich8convmzZN6ItRlq3sBcHyq7hQ0jgzj32Z9rkBlm-9apf_0nXpknCGAi-eVttDQkxNjUReI7pJAdnZqDaJgfJ17bJRR99NIwYlfAUeM6ShPord5m7FWtkj4y-gJgvPdcJyCXHHgp0-QilkgR5yEEPiaKJFOwAUfdBR6qsTX33JPiJ70gM8TQk8_tn7bAOZAqawl-edyireJhA9x8WFlFQmiKijhVUbPl3FFCQm5QFAQmEXA0TOsMte17K993JkRgLi0A-ax-tdnYPQBWX_hJ1iwwxd42zGROY-WYDVsoK1305jbiis70L-5HMrg",
+          "summary": []
+        },
+        "output_index": 0,
+        "sequence_number": 3
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+          "type": "function_call",
+          "status": "in_progress",
+          "arguments": "",
+          "call_id": "call_3h9fD2NXLKRMN06D7o0l0zb7",
+          "name": "echo"
+        },
+        "output_index": 1,
+        "sequence_number": 4
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "{\"",
+        "item_id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+        "obfuscation": "NqrxE2ngAgaEyr",
+        "output_index": 1,
+        "sequence_number": 5
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "message",
+        "item_id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+        "obfuscation": "OTeG3o6su",
+        "output_index": 1,
+        "sequence_number": 6
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "\":\"",
+        "item_id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+        "obfuscation": "nJ8mPOlTwrGbn",
+        "output_index": 1,
+        "sequence_number": 7
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "con",
+        "item_id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+        "obfuscation": "tp6GaEjNDUMwi",
+        "output_index": 1,
+        "sequence_number": 8
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "formance",
+        "item_id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+        "obfuscation": "NqNk7twn",
+        "output_index": 1,
+        "sequence_number": 9
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "-pro",
+        "item_id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+        "obfuscation": "07Vypc1vT2Q2",
+        "output_index": 1,
+        "sequence_number": 10
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "be",
+        "item_id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+        "obfuscation": "Ref7SYG9pPa4pJ",
+        "output_index": 1,
+        "sequence_number": 11
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "-g",
+        "item_id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+        "obfuscation": "gPyTxssg4wuqP4",
+        "output_index": 1,
+        "sequence_number": 12
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "pt",
+        "item_id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+        "obfuscation": "leejQwonPs4dqi",
+        "output_index": 1,
+        "sequence_number": 13
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "6",
+        "item_id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+        "obfuscation": "WPa69MhrTFFOR0H",
+        "output_index": 1,
+        "sequence_number": 14
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "sol",
+        "item_id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+        "obfuscation": "kFl7foW2tPeYR",
+        "output_index": 1,
+        "sequence_number": 15
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "\"}",
+        "item_id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+        "obfuscation": "JDLYV8yYSGUNzB",
+        "output_index": 1,
+        "sequence_number": 16
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.done",
+        "arguments": "{\"message\":\"conformance-probe-gpt6sol\"}",
+        "item_id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+        "output_index": 1,
+        "sequence_number": 17
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+          "type": "function_call",
+          "status": "completed",
+          "arguments": "{\"message\":\"conformance-probe-gpt6sol\"}",
+          "call_id": "call_3h9fD2NXLKRMN06D7o0l0zb7",
+          "name": "echo"
+        },
+        "output_index": 1,
+        "sequence_number": 18
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_done",
+      "response": {
+        "id": "resp_043142cb1e518a21006ab2e2b3b6a887d0a9e015391f6f6138",
+        "requestId": "req_85c0f5d0b0534ec0bd953355ca99f991",
+        "output": [
+          {
+            "type": "reasoning",
+            "id": "rs_043142cb1e518a21006ab2e2b42b0487d0bb52639ea593e771",
+            "content": [],
+            "providerData": {
+              "id": "rs_043142cb1e518a21006ab2e2b42b0487d0bb52639ea593e771",
+              "type": "reasoning",
+              "content": [],
+              "encrypted_content": "gAAAAABqsuK04zIEXAhLrcSbTkJulQ9_fupgiEKi7xY2DXVJihZUxbqNNuvWA-p6UL6GQuTUNdLi71h5Ldi1VZcaUFLwAUAb9xwdBpnp1eJkq-pgswwODZ0hAPXLmnpSNryxF7pRDwusICHz6UDl8MLHLo2fT_UR0mBGDmhO7LsiiRjQspyy_PiZLcAsxO78deXP68rEixR-I5-daLznHWfBdrh0Mz1g_pnFcm13rLkW1mA6OMx9Mu2C8fyI9egEstR3RlbpTjtz_EipHxRKbXf767MTlwKZky-QUw5yHaLg1148h_Qpyqn8s7vGa82nUBwLjyCx-0-i9w_0AcPoB1mnED2LNSyLCqT0HoQHPJmrb9SVVMYB1LYD1yuYIzNKUM_xnY0h5XHVauN3OZkFYbz5q1ytXfaCWvsmpnpXyyFSfgLeR756t0emOfkeXGjpmf7pGgTeuRk4WyjhR7MZAsoQlOatpGaHApenaK3kefzCbnhw9U4TIpntp79ckNCKoEe5VrLCK11umLtYwA9ABbJYHIj-7dUl-SB5LVqYwasiSUMWdDOzNclCqpIwYhIazHBU3nGmh2Fl86E1O_vqaT3LwsXn9k58V5Lq8pURzFCXynJ7Z1Z56BrlxPcFzDumpFoWR_yEulRE463B82DzRbKm2vXKF0RLhw55EcXWy188DM-OdaNcpHLkcL3nrvzlp1rBLWVFqrPHGS53yZHirsFg19GuldRUpOeXnJenxl19Co8fYs6qkb2s7RNwBYwhl-BfvWPAaXt5n6m1Gu31EjnkvxZfJAjRnH8BzpI98VGPI2RSTaSD-vLUc3hqWYANcn-8RJsTxGF4nVi26g0r4WiTrEoQeIiaZN2GLNrdqXqvHx_Hd-OLznwgwL2LhBz1sA9XCIMG9_8LERboGhXW-qOtKXabOJQ_1gkK_oXNJHlPaRYQm8H70i4zQ6YBjXyAaYyjSc53SZoTjVwmCxoIoUhczis-2T5-hU2DDYwPPhMI5P_-u-Teq-Y0xpP82jajq9W3UgcOIcrTub2Zr0MyAsnZT0FJIotHkAeh5pIAumeFiav58jFiygSfB8H_6RaPA9Q3e6fpzHMCC0X9EfbpFf8F1gSciZrziIdeom7uDxDgXuQbA7jWFg1acDFEyLQC8ZzHJ6mbPVTSj0J3kFQ8VKZBgw_stkUPdLfZ6fOmF3UbpSPlEiyOBgv84opBPsIGXZp3lSgB8wsopQfD_IVHnlE2yckT2vslcjc1gDPcE_0M5w1Lke-VgYL00txKFPCFz5928gfphLx3JsohnCWi3vADeryfUnHte77RYKgmnioI4zTEGw6AYsEfQULF-1AbZ7hnENQKa1om"
+            }
+          },
+          {
+            "type": "function_call",
+            "id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+            "callId": "call_3h9fD2NXLKRMN06D7o0l0zb7",
+            "name": "echo",
+            "status": "completed",
+            "arguments": "{\"message\":\"conformance-probe-gpt6sol\"}",
+            "providerData": {
+              "id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+              "type": "function_call"
+            }
+          }
+        ],
+        "usage": {
+          "inputTokens": 110,
+          "outputTokens": 56,
+          "totalTokens": 166,
+          "inputTokensDetails": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "outputTokensDetails": {
+            "reasoning_tokens": 30
+          },
+          "requestUsageEntries": [
+            {
+              "inputTokens": 110,
+              "outputTokens": 56,
+              "totalTokens": 166,
+              "inputTokensDetails": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0
+              },
+              "outputTokensDetails": {
+                "reasoning_tokens": 30
+              },
+              "endpoint": "responses.create"
+            }
+          ]
+        },
+        "providerData": {
+          "object": "response",
+          "created_at": 1790108339,
+          "status": "completed",
+          "access_programs": null,
+          "background": false,
+          "completed_at": 1790108340,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6sol'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "user": null,
+          "metadata": {}
+        }
+      },
+      "providerData": {
+        "type": "response.completed",
+        "sequence_number": 19
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_043142cb1e518a21006ab2e2b3b6a887d0a9e015391f6f6138",
+          "object": "response",
+          "created_at": 1790108339,
+          "status": "completed",
+          "access_programs": null,
+          "background": false,
+          "completed_at": 1790108340,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6sol'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [
+            {
+              "id": "rs_043142cb1e518a21006ab2e2b42b0487d0bb52639ea593e771",
+              "type": "reasoning",
+              "content": [],
+              "encrypted_content": "gAAAAABqsuK04zIEXAhLrcSbTkJulQ9_fupgiEKi7xY2DXVJihZUxbqNNuvWA-p6UL6GQuTUNdLi71h5Ldi1VZcaUFLwAUAb9xwdBpnp1eJkq-pgswwODZ0hAPXLmnpSNryxF7pRDwusICHz6UDl8MLHLo2fT_UR0mBGDmhO7LsiiRjQspyy_PiZLcAsxO78deXP68rEixR-I5-daLznHWfBdrh0Mz1g_pnFcm13rLkW1mA6OMx9Mu2C8fyI9egEstR3RlbpTjtz_EipHxRKbXf767MTlwKZky-QUw5yHaLg1148h_Qpyqn8s7vGa82nUBwLjyCx-0-i9w_0AcPoB1mnED2LNSyLCqT0HoQHPJmrb9SVVMYB1LYD1yuYIzNKUM_xnY0h5XHVauN3OZkFYbz5q1ytXfaCWvsmpnpXyyFSfgLeR756t0emOfkeXGjpmf7pGgTeuRk4WyjhR7MZAsoQlOatpGaHApenaK3kefzCbnhw9U4TIpntp79ckNCKoEe5VrLCK11umLtYwA9ABbJYHIj-7dUl-SB5LVqYwasiSUMWdDOzNclCqpIwYhIazHBU3nGmh2Fl86E1O_vqaT3LwsXn9k58V5Lq8pURzFCXynJ7Z1Z56BrlxPcFzDumpFoWR_yEulRE463B82DzRbKm2vXKF0RLhw55EcXWy188DM-OdaNcpHLkcL3nrvzlp1rBLWVFqrPHGS53yZHirsFg19GuldRUpOeXnJenxl19Co8fYs6qkb2s7RNwBYwhl-BfvWPAaXt5n6m1Gu31EjnkvxZfJAjRnH8BzpI98VGPI2RSTaSD-vLUc3hqWYANcn-8RJsTxGF4nVi26g0r4WiTrEoQeIiaZN2GLNrdqXqvHx_Hd-OLznwgwL2LhBz1sA9XCIMG9_8LERboGhXW-qOtKXabOJQ_1gkK_oXNJHlPaRYQm8H70i4zQ6YBjXyAaYyjSc53SZoTjVwmCxoIoUhczis-2T5-hU2DDYwPPhMI5P_-u-Teq-Y0xpP82jajq9W3UgcOIcrTub2Zr0MyAsnZT0FJIotHkAeh5pIAumeFiav58jFiygSfB8H_6RaPA9Q3e6fpzHMCC0X9EfbpFf8F1gSciZrziIdeom7uDxDgXuQbA7jWFg1acDFEyLQC8ZzHJ6mbPVTSj0J3kFQ8VKZBgw_stkUPdLfZ6fOmF3UbpSPlEiyOBgv84opBPsIGXZp3lSgB8wsopQfD_IVHnlE2yckT2vslcjc1gDPcE_0M5w1Lke-VgYL00txKFPCFz5928gfphLx3JsohnCWi3vADeryfUnHte77RYKgmnioI4zTEGw6AYsEfQULF-1AbZ7hnENQKa1om",
+              "summary": []
+            },
+            {
+              "id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+              "type": "function_call",
+              "status": "completed",
+              "arguments": "{\"message\":\"conformance-probe-gpt6sol\"}",
+              "call_id": "call_3h9fD2NXLKRMN06D7o0l0zb7",
+              "name": "echo"
+            }
+          ],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": {
+            "input_tokens": 110,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 56,
+            "output_tokens_details": {
+              "reasoning_tokens": 30
+            },
+            "total_tokens": 166
+          },
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 19
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "name": "reasoning_item_created",
+    "item": {
+      "type": "reasoning_item",
+      "rawItem": {
+        "providerData": {
+          "id": "rs_043142cb1e518a21006ab2e2b42b0487d0bb52639ea593e771",
+          "type": "reasoning",
+          "content": [],
+          "encrypted_content": "gAAAAABqsuK04zIEXAhLrcSbTkJulQ9_fupgiEKi7xY2DXVJihZUxbqNNuvWA-p6UL6GQuTUNdLi71h5Ldi1VZcaUFLwAUAb9xwdBpnp1eJkq-pgswwODZ0hAPXLmnpSNryxF7pRDwusICHz6UDl8MLHLo2fT_UR0mBGDmhO7LsiiRjQspyy_PiZLcAsxO78deXP68rEixR-I5-daLznHWfBdrh0Mz1g_pnFcm13rLkW1mA6OMx9Mu2C8fyI9egEstR3RlbpTjtz_EipHxRKbXf767MTlwKZky-QUw5yHaLg1148h_Qpyqn8s7vGa82nUBwLjyCx-0-i9w_0AcPoB1mnED2LNSyLCqT0HoQHPJmrb9SVVMYB1LYD1yuYIzNKUM_xnY0h5XHVauN3OZkFYbz5q1ytXfaCWvsmpnpXyyFSfgLeR756t0emOfkeXGjpmf7pGgTeuRk4WyjhR7MZAsoQlOatpGaHApenaK3kefzCbnhw9U4TIpntp79ckNCKoEe5VrLCK11umLtYwA9ABbJYHIj-7dUl-SB5LVqYwasiSUMWdDOzNclCqpIwYhIazHBU3nGmh2Fl86E1O_vqaT3LwsXn9k58V5Lq8pURzFCXynJ7Z1Z56BrlxPcFzDumpFoWR_yEulRE463B82DzRbKm2vXKF0RLhw55EcXWy188DM-OdaNcpHLkcL3nrvzlp1rBLWVFqrPHGS53yZHirsFg19GuldRUpOeXnJenxl19Co8fYs6qkb2s7RNwBYwhl-BfvWPAaXt5n6m1Gu31EjnkvxZfJAjRnH8BzpI98VGPI2RSTaSD-vLUc3hqWYANcn-8RJsTxGF4nVi26g0r4WiTrEoQeIiaZN2GLNrdqXqvHx_Hd-OLznwgwL2LhBz1sA9XCIMG9_8LERboGhXW-qOtKXabOJQ_1gkK_oXNJHlPaRYQm8H70i4zQ6YBjXyAaYyjSc53SZoTjVwmCxoIoUhczis-2T5-hU2DDYwPPhMI5P_-u-Teq-Y0xpP82jajq9W3UgcOIcrTub2Zr0MyAsnZT0FJIotHkAeh5pIAumeFiav58jFiygSfB8H_6RaPA9Q3e6fpzHMCC0X9EfbpFf8F1gSciZrziIdeom7uDxDgXuQbA7jWFg1acDFEyLQC8ZzHJ6mbPVTSj0J3kFQ8VKZBgw_stkUPdLfZ6fOmF3UbpSPlEiyOBgv84opBPsIGXZp3lSgB8wsopQfD_IVHnlE2yckT2vslcjc1gDPcE_0M5w1Lke-VgYL00txKFPCFz5928gfphLx3JsohnCWi3vADeryfUnHte77RYKgmnioI4zTEGw6AYsEfQULF-1AbZ7hnENQKa1om"
+        },
+        "id": "rs_043142cb1e518a21006ab2e2b42b0487d0bb52639ea593e771",
+        "type": "reasoning",
+        "content": []
+      },
+      "agent": {
+        "name": "spike"
+      }
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "name": "tool_called",
+    "item": {
+      "type": "tool_call_item",
+      "rawItem": {
+        "providerData": {
+          "id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+          "type": "function_call"
+        },
+        "id": "fc_043142cb1e518a21006ab2e2b47ddc87d0b2c6b58a239eb4aa",
+        "type": "function_call",
+        "callId": "call_3h9fD2NXLKRMN06D7o0l0zb7",
+        "name": "echo",
+        "status": "completed",
+        "arguments": "{\"message\":\"conformance-probe-gpt6sol\"}"
+      },
+      "agent": {
+        "name": "spike"
+      }
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "name": "tool_output",
+    "item": {
+      "type": "tool_call_output_item",
+      "rawItem": {
+        "type": "function_call_result",
+        "name": "echo",
+        "callId": "call_3h9fD2NXLKRMN06D7o0l0zb7",
+        "status": "completed",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "conformance-probe-gpt6sol"
+          }
+        ]
+      },
+      "agent": {
+        "name": "spike"
+      },
+      "output": "{\"type\":\"text\",\"text\":\"conformance-probe-gpt6sol\"}",
+      "executionStatus": "executed"
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_started",
+      "providerData": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_043142cb1e518a21006ab2e2b4fdd487d0b41712ed651dd834",
+          "object": "response",
+          "created_at": 1790108341,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6sol'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_043142cb1e518a21006ab2e2b4fdd487d0b41712ed651dd834",
+          "object": "response",
+          "created_at": 1790108341,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6sol'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.in_progress",
+        "response": {
+          "id": "resp_043142cb1e518a21006ab2e2b4fdd487d0b41712ed651dd834",
+          "object": "response",
+          "created_at": 1790108341,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6sol'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 1
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+          "type": "message",
+          "status": "in_progress",
+          "content": [],
+          "phase": "final_answer",
+          "role": "assistant"
+        },
+        "output_index": 0,
+        "sequence_number": 2
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.content_part.added",
+        "content_index": 0,
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "output_index": 0,
+        "part": {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": ""
+        },
+        "sequence_number": 3
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "con",
+      "itemId": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "logprobs": [],
+        "obfuscation": "OOGi3eOMQHWek",
+        "output_index": 0,
+        "sequence_number": 4
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "con",
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "logprobs": [],
+        "obfuscation": "OOGi3eOMQHWek",
+        "output_index": 0,
+        "sequence_number": 4
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "formance",
+      "itemId": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "logprobs": [],
+        "obfuscation": "fMMghxLW",
+        "output_index": 0,
+        "sequence_number": 5
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "formance",
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "logprobs": [],
+        "obfuscation": "fMMghxLW",
+        "output_index": 0,
+        "sequence_number": 5
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "-pro",
+      "itemId": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "logprobs": [],
+        "obfuscation": "QGHqah6zSk6q",
+        "output_index": 0,
+        "sequence_number": 6
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "-pro",
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "logprobs": [],
+        "obfuscation": "QGHqah6zSk6q",
+        "output_index": 0,
+        "sequence_number": 6
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "be",
+      "itemId": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "logprobs": [],
+        "obfuscation": "5TFCsJduf1kvWC",
+        "output_index": 0,
+        "sequence_number": 7
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "be",
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "logprobs": [],
+        "obfuscation": "5TFCsJduf1kvWC",
+        "output_index": 0,
+        "sequence_number": 7
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "-g",
+      "itemId": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "logprobs": [],
+        "obfuscation": "PA1Xo85sL97Ul6",
+        "output_index": 0,
+        "sequence_number": 8
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "-g",
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "logprobs": [],
+        "obfuscation": "PA1Xo85sL97Ul6",
+        "output_index": 0,
+        "sequence_number": 8
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "pt",
+      "itemId": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "logprobs": [],
+        "obfuscation": "T1P15x5Elj3UKH",
+        "output_index": 0,
+        "sequence_number": 9
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "pt",
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "logprobs": [],
+        "obfuscation": "T1P15x5Elj3UKH",
+        "output_index": 0,
+        "sequence_number": 9
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "6",
+      "itemId": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "logprobs": [],
+        "obfuscation": "n1PQg5KJR0Kg7ey",
+        "output_index": 0,
+        "sequence_number": 10
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "6",
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "logprobs": [],
+        "obfuscation": "n1PQg5KJR0Kg7ey",
+        "output_index": 0,
+        "sequence_number": 10
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "sol",
+      "itemId": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "logprobs": [],
+        "obfuscation": "8QXKWyy8SWSjC",
+        "output_index": 0,
+        "sequence_number": 11
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "sol",
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "logprobs": [],
+        "obfuscation": "8QXKWyy8SWSjC",
+        "output_index": 0,
+        "sequence_number": 11
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.done",
+        "content_index": 0,
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "logprobs": [],
+        "output_index": 0,
+        "sequence_number": 12,
+        "text": "conformance-probe-gpt6sol"
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.content_part.done",
+        "content_index": 0,
+        "item_id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "output_index": 0,
+        "part": {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "conformance-probe-gpt6sol"
+        },
+        "sequence_number": 13
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+          "type": "message",
+          "status": "completed",
+          "content": [
+            {
+              "type": "output_text",
+              "annotations": [],
+              "logprobs": [],
+              "text": "conformance-probe-gpt6sol"
+            }
+          ],
+          "phase": "final_answer",
+          "role": "assistant"
+        },
+        "output_index": 0,
+        "sequence_number": 14
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_done",
+      "response": {
+        "id": "resp_043142cb1e518a21006ab2e2b4fdd487d0b41712ed651dd834",
+        "requestId": "req_ad6363c5e3374d0190b4a7ba72444f56",
+        "output": [
+          {
+            "id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "conformance-probe-gpt6sol",
+                "providerData": {
+                  "annotations": [],
+                  "logprobs": []
+                }
+              }
+            ],
+            "status": "completed",
+            "phase": "final_answer",
+            "providerData": {
+              "phase": "final_answer"
+            }
+          }
+        ],
+        "usage": {
+          "inputTokens": 184,
+          "outputTokens": 12,
+          "totalTokens": 196,
+          "inputTokensDetails": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "outputTokensDetails": {
+            "reasoning_tokens": 0
+          },
+          "requestUsageEntries": [
+            {
+              "inputTokens": 184,
+              "outputTokens": 12,
+              "totalTokens": 196,
+              "inputTokensDetails": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0
+              },
+              "outputTokensDetails": {
+                "reasoning_tokens": 0
+              },
+              "endpoint": "responses.create"
+            }
+          ]
+        },
+        "providerData": {
+          "object": "response",
+          "created_at": 1790108341,
+          "status": "completed",
+          "access_programs": null,
+          "background": false,
+          "completed_at": 1790108341,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6sol'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "user": null,
+          "metadata": {}
+        }
+      },
+      "providerData": {
+        "type": "response.completed",
+        "sequence_number": 15
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_043142cb1e518a21006ab2e2b4fdd487d0b41712ed651dd834",
+          "object": "response",
+          "created_at": 1790108341,
+          "status": "completed",
+          "access_programs": null,
+          "background": false,
+          "completed_at": 1790108341,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-gpt6sol'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [
+            {
+              "id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+              "type": "message",
+              "status": "completed",
+              "content": [
+                {
+                  "type": "output_text",
+                  "annotations": [],
+                  "logprobs": [],
+                  "text": "conformance-probe-gpt6sol"
+                }
+              ],
+              "phase": "final_answer",
+              "role": "assistant"
+            }
+          ],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": {
+            "input_tokens": 184,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 12,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "total_tokens": 196
+          },
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 15
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "name": "message_output_created",
+    "item": {
+      "type": "message_output_item",
+      "rawItem": {
+        "providerData": {
+          "phase": "final_answer"
+        },
+        "id": "msg_043142cb1e518a21006ab2e2b5907087d0bc740a9ddb1b8e89",
+        "type": "message",
+        "role": "assistant",
+        "phase": "final_answer",
+        "status": "completed",
+        "content": [
+          {
+            "providerData": {
+              "annotations": [],
+              "logprobs": []
+            },
+            "type": "output_text",
+            "text": "conformance-probe-gpt6sol"
+          }
+        ]
+      },
+      "agent": {
+        "name": "spike"
+      }
+    },
+    "type": "run_item_stream_event"
+  }
+]

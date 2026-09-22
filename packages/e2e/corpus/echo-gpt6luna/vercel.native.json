@@ -1,0 +1,394 @@
+[
+  {
+    "type": "start"
+  },
+  {
+    "type": "start-step",
+    "request": {},
+    "warnings": []
+  },
+  {
+    "type": "tool-input-start",
+    "id": "call_ssu46oLRkkZ0VaNFnhXvFWQX",
+    "toolName": "echo",
+    "dynamic": true,
+    "toolMetadata": {
+      "clientName": "ai-sdk-mcp-client",
+      "toolName": "echo"
+    }
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_ssu46oLRkkZ0VaNFnhXvFWQX",
+    "delta": "{\""
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_ssu46oLRkkZ0VaNFnhXvFWQX",
+    "delta": "message"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_ssu46oLRkkZ0VaNFnhXvFWQX",
+    "delta": "\":\""
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_ssu46oLRkkZ0VaNFnhXvFWQX",
+    "delta": "con"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_ssu46oLRkkZ0VaNFnhXvFWQX",
+    "delta": "formance"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_ssu46oLRkkZ0VaNFnhXvFWQX",
+    "delta": "-pro"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_ssu46oLRkkZ0VaNFnhXvFWQX",
+    "delta": "be"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_ssu46oLRkkZ0VaNFnhXvFWQX",
+    "delta": "-g"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_ssu46oLRkkZ0VaNFnhXvFWQX",
+    "delta": "pt"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_ssu46oLRkkZ0VaNFnhXvFWQX",
+    "delta": "6"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_ssu46oLRkkZ0VaNFnhXvFWQX",
+    "delta": "l"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_ssu46oLRkkZ0VaNFnhXvFWQX",
+    "delta": "una"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_ssu46oLRkkZ0VaNFnhXvFWQX",
+    "delta": "\"}"
+  },
+  {
+    "type": "tool-input-end",
+    "id": "call_ssu46oLRkkZ0VaNFnhXvFWQX"
+  },
+  {
+    "type": "tool-call",
+    "toolCallId": "call_ssu46oLRkkZ0VaNFnhXvFWQX",
+    "toolName": "echo",
+    "input": {
+      "message": "conformance-probe-gpt6luna"
+    },
+    "providerMetadata": {
+      "openai": {
+        "itemId": "fc_0318a54a427e6c73006ab2e2ebda4887d0856e34b0dcd792aa"
+      }
+    },
+    "toolMetadata": {
+      "clientName": "ai-sdk-mcp-client",
+      "toolName": "echo"
+    },
+    "dynamic": true
+  },
+  {
+    "type": "tool-result",
+    "toolCallId": "call_ssu46oLRkkZ0VaNFnhXvFWQX",
+    "toolName": "echo",
+    "input": {
+      "message": "conformance-probe-gpt6luna"
+    },
+    "output": {
+      "content": [
+        {
+          "type": "text",
+          "text": "conformance-probe-gpt6luna"
+        }
+      ],
+      "isError": false
+    },
+    "dynamic": true,
+    "providerMetadata": {
+      "openai": {
+        "itemId": "fc_0318a54a427e6c73006ab2e2ebda4887d0856e34b0dcd792aa"
+      }
+    },
+    "toolMetadata": {
+      "clientName": "ai-sdk-mcp-client",
+      "toolName": "echo"
+    }
+  },
+  {
+    "type": "finish-step",
+    "finishReason": "tool-calls",
+    "usage": {
+      "inputTokens": 106,
+      "inputTokenDetails": {
+        "noCacheTokens": 106,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 25,
+      "outputTokenDetails": {
+        "textTokens": 25,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 131,
+      "raw": {
+        "input_tokens": 106,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 25,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 131
+      }
+    },
+    "performance": {
+      "stepTimeMs": 1747.1831669999992,
+      "toolExecutionMs": {
+        "call_ssu46oLRkkZ0VaNFnhXvFWQX": 3.489292000000205
+      },
+      "responseTimeMs": 1741.9175000000005,
+      "effectiveOutputTokensPerSecond": 14.352000022963196,
+      "outputTokensPerSecond": 68.2097840692688,
+      "inputTokensPerSecond": 77.06842383177096,
+      "effectiveTotalTokensPerSecond": 75.20448012032715,
+      "timeToFirstOutputMs": 1375.4011660000006,
+      "timeBetweenOutputChunksMs": {
+        "min": 0.27416700000048877,
+        "p10": 0.4604169999993246,
+        "median": 6.4143340000000535,
+        "avg": 15.385240384615336,
+        "p90": 16.119791000000077,
+        "max": 116.77470799999992
+      }
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0318a54a427e6c73006ab2e2eb043087d097c4ec2ca9ec1e02",
+        "serviceTier": "default",
+        "reasoningContext": "all_turns"
+      }
+    },
+    "response": {
+      "id": "resp_0318a54a427e6c73006ab2e2eb043087d097c4ec2ca9ec1e02",
+      "timestamp": "2026-09-22T20:19:55.000Z",
+      "modelId": "gpt-6-luna",
+      "headers": {
+        "access-control-expose-headers": "X-Request-ID, CF-Ray, CF-Ray",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3f401dbf9fc0bbb-ICN",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream; charset=utf-8",
+        "date": "Tue, 22 Sep 2026 20:19:55 GMT",
+        "openai-organization": "alohomora-company",
+        "openai-processing-ms": "583",
+        "openai-project": "proj_ZN1JUSrsvFLEcIBrWjUCXGks",
+        "openai-version": "2020-10-01",
+        "server": "cloudflare",
+        "set-cookie": "__cf_bm=DmrZDRoj1z3ByrD._UvRGgZHgAYn2fkPIo1xLPhTHE0-1790108394.8751073-1.0.1.1-8OOjkQHSPAA4oo0RVYvPJPysXyjRDOZG1M.9layq_GrV4aUFJjjkum1PAVgeq9zWxJNFi2ph7pldkwAHXrvClYZV__UcB8yWvkCTUvJPBsmj0fi8XlqkQ0OzY1pYFe8T; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.openai.com; Expires=Tue, 22 Sep 2026 20:49:55 GMT",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "x-content-type-options": "nosniff",
+        "x-ratelimit-limit-requests": "10000",
+        "x-ratelimit-limit-tokens": "10000000",
+        "x-ratelimit-remaining-requests": "9999",
+        "x-ratelimit-remaining-tokens": "9999458",
+        "x-ratelimit-reset-requests": "6ms",
+        "x-ratelimit-reset-tokens": "3ms",
+        "x-request-id": "req_1d0b41be21684a7c8fb12b4eb62e8fac"
+      }
+    }
+  },
+  {
+    "type": "start-step",
+    "request": {},
+    "warnings": []
+  },
+  {
+    "type": "text-start",
+    "id": "msg_036e4c0dc4a8ad1f006ab2e2ecddf487d0a010c1f72d8d5f5a",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_036e4c0dc4a8ad1f006ab2e2ecddf487d0a010c1f72d8d5f5a",
+        "phase": "final_answer"
+      }
+    }
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_036e4c0dc4a8ad1f006ab2e2ecddf487d0a010c1f72d8d5f5a",
+    "text": "con"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_036e4c0dc4a8ad1f006ab2e2ecddf487d0a010c1f72d8d5f5a",
+    "text": "formance"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_036e4c0dc4a8ad1f006ab2e2ecddf487d0a010c1f72d8d5f5a",
+    "text": "-pro"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_036e4c0dc4a8ad1f006ab2e2ecddf487d0a010c1f72d8d5f5a",
+    "text": "be"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_036e4c0dc4a8ad1f006ab2e2ecddf487d0a010c1f72d8d5f5a",
+    "text": "-g"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_036e4c0dc4a8ad1f006ab2e2ecddf487d0a010c1f72d8d5f5a",
+    "text": "pt"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_036e4c0dc4a8ad1f006ab2e2ecddf487d0a010c1f72d8d5f5a",
+    "text": "6"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_036e4c0dc4a8ad1f006ab2e2ecddf487d0a010c1f72d8d5f5a",
+    "text": "l"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_036e4c0dc4a8ad1f006ab2e2ecddf487d0a010c1f72d8d5f5a",
+    "text": "una"
+  },
+  {
+    "type": "text-end",
+    "id": "msg_036e4c0dc4a8ad1f006ab2e2ecddf487d0a010c1f72d8d5f5a",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_036e4c0dc4a8ad1f006ab2e2ecddf487d0a010c1f72d8d5f5a",
+        "phase": "final_answer"
+      }
+    }
+  },
+  {
+    "type": "finish-step",
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 150,
+      "inputTokenDetails": {
+        "noCacheTokens": 150,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 13,
+      "outputTokenDetails": {
+        "textTokens": 13,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 163,
+      "raw": {
+        "input_tokens": 150,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 13,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 163
+      }
+    },
+    "performance": {
+      "stepTimeMs": 899.7134580000002,
+      "toolExecutionMs": {},
+      "responseTimeMs": 898.2991249999995,
+      "effectiveOutputTokensPerSecond": 14.471794125369994,
+      "outputTokensPerSecond": 51.29518709925407,
+      "inputTokensPerSecond": 232.6071702413207,
+      "effectiveTotalTokensPerSecond": 181.45403403348533,
+      "timeToFirstOutputMs": 644.8640419999992,
+      "timeBetweenOutputChunksMs": {
+        "min": 0.1319579999999405,
+        "p10": 0.1319579999999405,
+        "median": 0.2390000000004875,
+        "avg": 5.0265000000000555,
+        "p90": 18.486667000000125,
+        "max": 18.486667000000125
+      }
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_036e4c0dc4a8ad1f006ab2e2ec6d6087d091b25bb9d4dbb1f7",
+        "serviceTier": "default",
+        "reasoningContext": "all_turns"
+      }
+    },
+    "response": {
+      "id": "resp_036e4c0dc4a8ad1f006ab2e2ec6d6087d091b25bb9d4dbb1f7",
+      "timestamp": "2026-09-22T20:19:56.000Z",
+      "modelId": "gpt-6-luna",
+      "headers": {
+        "access-control-expose-headers": "X-Request-ID, CF-Ray, CF-Ray",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3f401e50c9b0bbb-ICN",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream; charset=utf-8",
+        "date": "Tue, 22 Sep 2026 20:19:56 GMT",
+        "openai-organization": "alohomora-company",
+        "openai-processing-ms": "198",
+        "openai-project": "proj_ZN1JUSrsvFLEcIBrWjUCXGks",
+        "openai-version": "2020-10-01",
+        "server": "cloudflare",
+        "set-cookie": "__cf_bm=elvvIMZNI8THDFBA66CB_k71.m_q_wk0j5PxYFM1Qk8-1790108396.3269787-1.0.1.1-cyhrNGaVOn9ka19C8tD6SxF5ahAmzp9IiU.eT3ipTKML7122qH90I8ziLSimE9YN94Yboy_HGjS3N4drytP1IKPrJYpRV3l83rdYiXq6QixJ8A_4DlelfWWxZCBhMn8X; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.openai.com; Expires=Tue, 22 Sep 2026 20:49:56 GMT",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "x-content-type-options": "nosniff",
+        "x-ratelimit-limit-requests": "10000",
+        "x-ratelimit-limit-tokens": "10000000",
+        "x-ratelimit-remaining-requests": "9999",
+        "x-ratelimit-remaining-tokens": "9999415",
+        "x-ratelimit-reset-requests": "6ms",
+        "x-ratelimit-reset-tokens": "3ms",
+        "x-request-id": "req_970ae38479f147dc89b29a1d26f2b305"
+      }
+    }
+  },
+  {
+    "type": "finish",
+    "finishReason": "stop",
+    "totalUsage": {
+      "inputTokens": 256,
+      "inputTokenDetails": {
+        "noCacheTokens": 256,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 38,
+      "outputTokenDetails": {
+        "textTokens": 38,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 294
+    }
+  }
+]
