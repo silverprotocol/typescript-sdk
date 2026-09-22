@@ -103,16 +103,21 @@ const DEFAULT_MODEL: Record<Framework, string> = {
   // (echo-fable51, echo-gpt6astra) rather than the default. Bump only after a
   // clean capture at the new model lands as a replay seed.
   claude: "claude-sonnet-5",
-  // Explicit snapshot id, not the bare "gpt-5.6" alias: OpenAI routes the
-  // alias (currently → gpt-5.6-sol) and may re-route it later, which would
-  // silently change what a "refresh at the same model" capture exercises.
-  openai: "gpt-5.6-sol",
+  // 2026-09-23 (cohort 0.6.3, founder-ruled): bumped from gpt-5.6-sol. The
+  // echo-gpt6sol seeds landed clean on both the openai and vercel facets;
+  // gpt-6-sol costs HALF of gpt-5.6-sol ($2/$10 vs $4/$20 per MTok) and the API
+  // can switch its reasoning off, so it meets both policy clauses. It has no
+  // dated snapshot: the id IS the model. Consequence to know: @openai/agents
+  // 0.18.0 has no gpt-6-sol setting, so every openai capture now runs at the
+  // API-default effort medium (gpt-5.6-sol ran at none) and produces reasoning
+  // items; on the Vercel stack gpt-5.6-sol already reasoned, so little changes.
+  openai: "gpt-6-sol",
   // 2026-09-05: bumped from gemini-3.7-flash — the gemini-3.8-flash trio
   // (echo/app-spec/thinking) landed as replay seeds (GA 2026-09-02; same
   // thinking knob, same price). 2026-08-19: 3.6 → 3.7 (workspace#14).
   adk: "gemini-3.8-flash",
   // Same model family as "openai" — the two facets share provider + corpus.
-  vercel: "gpt-5.6-sol",
+  vercel: "gpt-6-sol",
 };
 
 /**
