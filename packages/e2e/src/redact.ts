@@ -30,13 +30,24 @@ export const REDACTED_KEYS: ReadonlySet<string> = new Set([
   "x-goog-api-key",
 ]);
 
-/** Returns a copy of `value` with every REDACTED_KEYS value replaced by REDACTED. */
+/**
+ * Returns a copy of `value` with every REDACTED_KEYS value replaced by REDACTED.
+ * Every key is DEFINED, never assigned, so a key named `__proto__` (JSON.parse
+ * keeps it as an own property) stays an own data key in the recording: assigning
+ * it would silently drop a string value, or set the copy's prototype to an
+ * object value.
+ */
 export function redactNative(value: JsonValue): JsonValue {
   if (Array.isArray(value)) return value.map(redactNative);
   if (value === null || typeof value !== "object") return value;
   const out: { [k: string]: JsonValue } = {};
   for (const [k, v] of Object.entries(value)) {
-    out[k] = REDACTED_KEYS.has(k.toLowerCase()) ? REDACTED : redactNative(v);
+    Object.defineProperty(out, k, {
+      value: REDACTED_KEYS.has(k.toLowerCase()) ? REDACTED : redactNative(v),
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
   }
   return out;
 }
