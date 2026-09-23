@@ -147,6 +147,16 @@ const CLAUDE_SEEDS = [
   // carries apiErrorStatus 401 + stopReason (sp-claude c54eb7f). Enrolled
   // once sp-claude's six dispositions landed.
   "api-error-auth",
+  // 2026-09-23 (R&D candidate 20, leg 1 of 3): the first DEFERRED tool call.
+  // The scenario knob preToolUseDecision "defer" installs a PreToolUse hook
+  // (sp-claude a22d669), claude-sonnet-5 @0.3.280. The model calls
+  // mcp__t__echo, the hook defers it, and the run ends with no throw: result
+  // stop_reason and terminal_reason "tool_deferred", deferred_tool_use
+  // {id, name, input}. It folds to turn.done{success, finishReason
+  // "unknown", finishReasonRaw "tool_deferred"} with the tool block left open
+  // (no tool.done). result-meta carries deferredToolUse. The resume legs
+  // (resumeFrom this seed; allow / deny) are separate cassettes.
+  "defer-tool-sonnet5",
 ] as const;
 
 /**

@@ -22,6 +22,8 @@
   "[*].data.response.usage.requestUsageEntries[*].inputTokensDetails.cache_write_tokens": "[*].usage.cacheWriteTokens",
   "[*].data.response.usage.requestUsageEntries[*].inputTokensDetails.cached_tokens": "[*].usage.cacheReadTokens",
   "[*].data.response.usage.requestUsageEntries[*].outputTokensDetails.reasoning_tokens": "[*].usage.reasoningTokens",
+  "[*].deferred_tool_use.id": "[*].deferredToolUse.id",
+  "[*].deferred_tool_use.name": "[*].deferredToolUse.name",
   "[*].delta": "[*].delta",
   "[*].dynamic": "[*].dynamic",
   "[*].event.delta.partial_json": "[*].delta",
@@ -86,6 +88,10 @@
   "[*].queued_turn_count": "[*].queuedTurnCount",
   "[*].response.id": "[*].metadata.responseId",
   "[*].response.modelId": "[*].metadata.model",
+  "[*].result": [
+    "[*].outcome.result",
+    "[*].delta"
+  ],
   "[*].result_index": "[*].resultIndex",
   "[*].route": "[*].block.raw.route",
   "[*].stop_reason": [

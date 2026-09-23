@@ -482,4 +482,8 @@ describe("resumeSessionFrom", () => {
   it("is claude-only", async () => {
     await expect(resumeSessionFrom("defer-tool-sonnet5", "openai")).rejects.toThrow(/claude-only/);
   });
+
+  it("resolves the committed defer-tool-sonnet5 leg to its live session", async () => {
+    expect(await resumeSessionFrom("defer-tool-sonnet5", "claude")).toMatch(/^[0-9a-f-]{36}$/);
+  });
 });

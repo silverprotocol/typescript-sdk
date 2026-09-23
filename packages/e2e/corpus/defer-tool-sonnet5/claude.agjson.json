@@ -1,0 +1,146 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_msg_011CfLK5dwfLmigbYLwRsgAG",
+    "threadId": "a53c2850-e2e4-4814-b337-0918cf0e991a"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_011CfLK5dwfLmigbYLwRsgAG",
+    "turnId": "turn_msg_011CfLK5dwfLmigbYLwRsgAG",
+    "threadId": "a53c2850-e2e4-4814-b337-0918cf0e991a",
+    "role": "assistant",
+    "model": "claude-sonnet-5"
+  },
+  {
+    "type": "tool.start",
+    "seq": 2,
+    "turnId": "turn_msg_011CfLK5dwfLmigbYLwRsgAG",
+    "toolCallId": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK",
+    "name": "mcp__t__echo",
+    "index": 0,
+    "messageId": "msg_011CfLK5dwfLmigbYLwRsgAG",
+    "providerExecuted": false
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 3,
+    "toolCallId": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK",
+    "delta": "{\"message\":\"conformance-probe-defer\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 4,
+    "toolCallId": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK",
+    "input": {
+      "message": "conformance-probe-defer"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 5,
+    "id": "msg_011CfLK5dwfLmigbYLwRsgAG",
+    "usage": {
+      "inputTokens": 2,
+      "outputTokens": 24,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 3874,
+      "cumulative": true
+    }
+  },
+  {
+    "seq": 6,
+    "type": "ext.anthropic.result-meta",
+    "fastModeDisabledReason": "sdk_opt_in_required",
+    "queuedTurnCount": 0,
+    "resultIndex": 0,
+    "subagentStats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "deferredToolUse": {
+      "id": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK",
+      "name": "mcp__t__echo",
+      "input": {
+        "message": "conformance-probe-defer"
+      }
+    },
+    "modelUsage": {
+      "claude-haiku-4-5-20251001": {
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-sonnet-5": {
+        "canonicalModel": "claude-sonnet-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    }
+  },
+  {
+    "type": "turn.done",
+    "seq": 7,
+    "turnId": "turn_msg_011CfLK5dwfLmigbYLwRsgAG",
+    "outcome": {
+      "type": "success",
+      "result": ""
+    },
+    "finishReason": "unknown",
+    "finishReasonRaw": "tool_deferred",
+    "usage": {
+      "inputTokens": 2,
+      "outputTokens": 60,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 3874,
+      "reasoningTokens": 0,
+      "serverToolRequests": 0,
+      "costUsd": 0.011266,
+      "cumulative": true,
+      "byModel": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 912,
+          "outputTokens": 13,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "costUsd": 0.000977,
+          "serverToolRequests": 0,
+          "cumulative": true
+        },
+        "claude-sonnet-5": {
+          "inputTokens": 2,
+          "outputTokens": 60,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 3874,
+          "reasoningTokens": 0,
+          "costUsd": 0.010289,
+          "serverToolRequests": 0,
+          "cumulative": true
+        }
+      }
+    }
+  }
+]
