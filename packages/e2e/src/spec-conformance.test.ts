@@ -80,7 +80,7 @@ interface Section10Item {
 }
 
 const SPEC_10_MANIFEST: Section10Item[] = [
-  { n: 1, title: "reduce() invariant (full fold table + block insertion order)", disposition: "COVERED-BY", citation: "reduce.test.ts:2301-2333 \"R10 capstone\"" },
+  { n: 1, title: "reduce() invariant (full fold table + block insertion order)", disposition: "COVERED-BY", citation: "reduce.test.ts:2496-2599 \"R10 capstone\"" },
   { n: 2, title: "Reconnect (forward-gap park + snapshot-resync; backward jump folds normally)", disposition: "COVERED-BY", citation: "reduce.test.ts:1828-1953 (R9 e1-e6) + :1635-1828 (d1-d4)" },
   { n: 3, title: "Tool-result routing matrix (content/structuredContent/uiData/sideData): channel separation only — structuredContent is model-facing, delivery host-determined, model receipt not asserted (draft.4 E6)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.3" },
   { n: 4, leg: "a", title: "Gemini signature loop — tool-call signature (ingest leg)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.4(a), facet-driven via createAdkNormalizer" },
@@ -151,6 +151,11 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 36, leg: "openai", title: "Nested-turn closure (draft.4)", disposition: "N/A", citation: "§8.0 applicability: this facet emits no subagent.* (no nested turns)" },
   { n: 36, leg: "adk", title: "Nested-turn closure (draft.4)", disposition: "N/A", citation: "§8.0 applicability: this facet emits no subagent.* (no nested turns)" },
   { n: 36, leg: "vercel", title: "Nested-turn closure (draft.4)", disposition: "N/A", citation: "§8.0 applicability: this facet emits no subagent.* (no nested turns)" },
+  { n: 37, title: "Shared-state fold (draft.4): an object patch replaces each top-level key whole ({cfg:{a:1,b:2}} then {cfg:{a:5}} → {cfg:{a:5}}); a null member is stored present; a scalar patch is a no-op without a resync; a JSON Patch array against no working copy sets needsResync", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.37, reference reduce() + Reducer (probe pkg-21 6e69589)" },
+  { n: 38, leg: "adk", title: "ADK shared-state fixture (draft.4): the golden whose native stream rewrites part of an object-valued key folds to ADK's own session state, without a resync", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.38(adk): state-fold-gemini38, the committed golden and a fresh createAdkNormalizer replay of its native, vs adk.session-state.json (probe 7f3bce9; every sidecar also gated by replay.test.ts 'session-state sidecars')" },
+  { n: 38, leg: "claude", title: "ADK shared-state fixture (draft.4)", disposition: "N/A", citation: "§10 item 38: the Claude Agent SDK has no key-addressed shared state" },
+  { n: 38, leg: "openai", title: "ADK shared-state fixture (draft.4)", disposition: "N/A", citation: "§10 item 38: the OpenAI Agents SDK has no key-addressed shared state" },
+  { n: 38, leg: "vercel", title: "ADK shared-state fixture (draft.4)", disposition: "N/A", citation: "§10 item 38: the Vercel AI SDK has no key-addressed shared state" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -203,7 +208,7 @@ const MSG_START = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("§10.1 — reduce() invariant: stream → reduce == AgReduceResult (full §5 fold table incl. block insertion order)", () => {
-  it("COVERED-BY reduce.test.ts:2301-2333 \"reduce — R10 capstone\" (byte-identity against a hand-spelled EXPECTED_RESULT + interleaved-block-kind ordering over the FULL folding table); thin confirming re-assertion below", () => {
+  it("COVERED-BY reduce.test.ts:2496-2599 \"reduce — R10 capstone\" (byte-identity against a hand-spelled EXPECTED_RESULT + interleaved-block-kind ordering over the FULL folding table); thin confirming re-assertion below", () => {
     const r = reduce([
       TURN_START,
       MSG_START,
@@ -1995,5 +2000,73 @@ describe("§10.23(vercel) — a vercel finish with no AgJSON target → fallback
   });
   it("an unrecognized unified value with a raw → \"unknown\" + finishReasonRaw equal to the raw", () => {
     expect(drive(stream({ finishReason: "zz-future", rawFinishReason: "provider_zz" })).find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "unknown", finishReasonRaw: "provider_zz" });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.37 — Shared-state fold (draft.4; §5 `state.delta`, pkg-21)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.37 — shared-state fold (draft.4; §5 state.delta)", () => {
+  const TS = { type: "turn.start" as const, seq: 0, threadId: "th1", turnId: "t1" };
+  const delta = (seq: number, patch: JsonValue): AgEvent => ({ type: "state.delta", seq, patch }) as AgEvent;
+  // reduce() and the incremental Reducer must agree on every leg (INV-FOLD).
+  const fold = (evs: AgEvent[]) => {
+    const batch = reduce(evs);
+    const acc = new Reducer();
+    for (const e of evs) acc.push(e);
+    expect({ state: acc.result().state, needsResync: acc.needsResync }).toEqual({ state: batch.result.state, needsResync: batch.needsResync });
+    return batch;
+  };
+
+  it("an object patch replaces each top-level key whole: {cfg:{a:1,b:2}} then {cfg:{a:5}} fold to {cfg:{a:5}}, from no working copy", () => {
+    const r = fold([TS, delta(1, { cfg: { a: 1, b: 2 } }), delta(2, { cfg: { a: 5 } })]);
+    expect(r.needsResync).toBe(false);
+    expect(r.result.state).toEqual({ cfg: { a: 5 } });
+  });
+
+  it("a null member is stored as a present value, never treated as a deletion", () => {
+    const r = fold([TS, delta(1, { k: 1, j: 2 }), delta(2, { k: null })]);
+    expect(r.needsResync).toBe(false);
+    const state = r.result.state as Record<string, JsonValue>;
+    expect("k" in state).toBe(true);
+    expect(state).toEqual({ k: null, j: 2 });
+  });
+
+  it("a scalar patch (string, number, boolean or null) leaves the working copy unchanged without a resync", () => {
+    for (const scalar of ["s", 7, true, null] as JsonValue[]) {
+      const r = fold([TS, delta(1, { a: 1 }), delta(2, scalar)]);
+      expect({ scalar, needsResync: r.needsResync, state: r.result.state }).toEqual({ scalar, needsResync: false, state: { a: 1 } });
+    }
+  });
+
+  it("a JSON Patch array against no working copy sets needsResync (never silently based on {})", () => {
+    const r = fold([TS, delta(1, [{ op: "add", path: "/a", value: 1 }])]);
+    expect(r.needsResync).toBe(true);
+    expect(r.result.state).toBeUndefined();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.38 — ADK shared-state fixture (draft.4; §8.0 item 30)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.38 — ADK shared-state fixture (draft.4; §8.0 item 30)", () => {
+  it("(adk) state-fold-gemini38: the committed golden and a fresh normalizer replay of its native both fold to ADK's own session state, without a resync", async () => {
+    const dir = new URL("../corpus/state-fold-gemini38/", import.meta.url);
+    const truth = JSON.parse(readFileSync(new URL("adk.session-state.json", dir), "utf8")) as JsonValue;
+    const native = JSON.parse(readFileSync(new URL("adk.native.json", dir), "utf8")) as JsonValue[];
+    // The native stream rewrites part of an object-valued key: cfg={a:1,b:2}, then cfg={a:5}.
+    const deltas = native.flatMap((e) => {
+      const sd = (e as { actions?: { stateDelta?: Record<string, JsonValue> } }).actions?.stateDelta;
+      return sd && "cfg" in sd ? [sd["cfg"]] : [];
+    });
+    expect(deltas).toEqual([{ a: 1, b: 2 }, { a: 5 }]);
+    const golden = JSON.parse(readFileSync(new URL("adk.agjson.json", dir), "utf8")) as AgEvent[];
+    const replayed = (await replayNatives(native, "adk")).agjson as unknown as AgEvent[];
+    for (const [which, evs] of [["golden", golden], ["replay", replayed]] as const) {
+      const r = reduce(evs);
+      expect({ which, needsResync: r.needsResync, state: r.result.state }).toEqual({ which, needsResync: false, state: truth });
+    }
   });
 });
