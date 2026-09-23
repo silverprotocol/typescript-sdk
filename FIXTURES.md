@@ -5,7 +5,11 @@ each `<scenario>/<framework>` pair, a cassette of native events
 (`<framework>.native.json`), the golden normalized AgJSON stream produced from it
 (`<framework>.agjson.json`), a coverage sidecar (`<framework>.coverage.json`,
 harness-internal), and a provenance sidecar (`<framework>.provenance.json` —
-which SDK version, model, and date produced the capture).
+which SDK version, model, and date produced the capture). A scenario that
+scripts framework shared state also carries a session-state sidecar
+(`<framework>.session-state.json`): the framework's own state, read back after
+the run. It is ground truth for the `reduce()` state fold and is never
+replayed; the replay gate checks that the fold of the golden equals it.
 
 Downstream projects may consume these cassettes for testing. This document is
 the contract for doing that.

@@ -47,7 +47,7 @@
  *   See `replay.ts`'s header for the full framing.
  */
 import { describe, it, expect } from "vitest";
-import { readFile, access } from "node:fs/promises";
+import { readFile, readdir, access } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { JsonValue } from "@silverprotocol/core";
@@ -344,9 +344,10 @@ const ADK_SEEDS = [
   // plus temp:scratch, step 2 writes cfg={a:5}. ADK's Runner trims temp: before
   // yielding, so the native deltas are {cfg:{a:1,b:2}} then {cfg:{a:5}}, carried
   // verbatim as state.delta patches. ADK's own session.state, read back into
-  // adk.session-state.json, is {cfg:{a:5}}; the reference Reducer folds the two
-  // patches to {cfg:{a:5,b:2}} (one-level merge vs ADK's per-key replace), and
-  // that divergence is sp-rnd's finding.
+  // adk.session-state.json, is {cfg:{a:5}}. draft.3's one-level merge folded
+  // the two patches to {cfg:{a:5,b:2}} (sp-rnd's finding); draft.4's per-key
+  // replace (pkg-21) folds them to {cfg:{a:5}}, as ADK holds, and the
+  // session-state suite below pins that fold == sidecar.
   "state-fold-gemini38",
   // 2026-09-23 (rd-06 A.9 step 5): the FIRST live ADK 2.x WORKFLOW-plane
   // captures (@google/adk 2.1.0, gemini-3.8-flash), rooted at google's
@@ -586,6 +587,32 @@ describe("replay CI gate — ADK seed corpus (machinery/snapshot self-consistenc
       });
     });
   }
+});
+
+/**
+ * pkg-21 (draft.4 §5 per-key replace): a `<framework>.session-state.json`
+ * sidecar is the framework's OWN shared state, read back after the run (ADK's
+ * session.state); it is ground truth, never replayed (FIXTURES.md). The
+ * reference fold of the committed golden must hold exactly that state. The
+ * suite walks the corpus, so a new sidecar is gated the day it is committed.
+ */
+describe("shared state — the reference fold equals the framework's own session state (session-state sidecars)", () => {
+  it("every <framework>.session-state.json equals reduce(golden).state, and the fold does not park", async () => {
+    const checked: string[] = [];
+    for (const scn of (await readdir(CORPUS_ROOT)).sort()) {
+      const sidecars = (await readdir(join(CORPUS_ROOT, scn)).catch(() => [] as string[])).filter((f) => f.endsWith(".session-state.json"));
+      for (const f of sidecars) {
+        const framework = f.slice(0, -".session-state.json".length);
+        const truth = JSON.parse(await readFile(join(CORPUS_ROOT, scn, f), "utf8")) as JsonValue;
+        const { reducer } = foldThroughReducer(await readSnapshotForFramework(scn, framework));
+        expect({ where: `${scn}/${framework}`, needsResync: reducer.needsResync }).toEqual({ where: `${scn}/${framework}`, needsResync: false });
+        expect({ where: `${scn}/${framework}`, state: reducer.result().state }).toEqual({ where: `${scn}/${framework}`, state: truth });
+        checked.push(`${scn}/${framework}`);
+      }
+    }
+    // Non-vacuity: the corpus's first sidecar (state-fold-gemini38, ADK) is checked.
+    expect(checked).toContain("state-fold-gemini38/adk");
+  });
 });
 
 describe("replay CI gate — Vercel seed corpus (machinery/snapshot self-consistency)", () => {
