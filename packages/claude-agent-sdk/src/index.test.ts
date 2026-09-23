@@ -7905,3 +7905,65 @@ describe("createClaudeNormalizer — ids across invokes: no-open-turn results", 
     expect(e2.find((e) => e.type === "tool.done")).toMatchObject({ turnId: `turn_${U(3)}` });
   });
 });
+
+// ─── C1: an honest flush (INV-FLUSH (3), draft.4; the fold/flush ruling) ──────
+// The founder's ruling: "snapshot fold + honest flush; opaque at flush
+// FORBIDDEN". A flush lands no new content: only lifecycle closes (text.end with
+// already-received citations, reasoning.end, message.end, the turn/nested
+// closes). The open blocks' scratch is DROPPED: no tool.args.assembled minted
+// from a truncated partial_json (CB-12), no reasoning.opaque, no compaction
+// content.block. §10 item 26 leg (a), claude's share.
+describe("createClaudeNormalizer — C1: flush never mints content", () => {
+  const se = (event: unknown, uuid = "00000000-0000-0000-0000-0000000000f0"): unknown => ({
+    type: "stream_event", event, parent_tool_use_id: null, uuid, session_id: "sess_fixture",
+  });
+  const SIG = "SIGNATURE_RECEIVED_IN_FULL";
+  // A stream cut off with an open text block, an open reasoning block (its
+  // signature fully received), a partial tool call and an open compaction block.
+  const truncated = (): unknown[] => [
+    se({ type: "message_start", message: { ...betaMessage([]), id: "msg_cut" } }),
+    se({ type: "content_block_start", index: 0, content_block: { type: "text", text: "", citations: null } }),
+    se({ type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "partial answer" } }),
+    se({ type: "content_block_start", index: 1, content_block: { type: "thinking", thinking: "", signature: "" } }),
+    se({ type: "content_block_delta", index: 1, delta: { type: "thinking_delta", thinking: "hmm" } }),
+    se({ type: "content_block_delta", index: 1, delta: { type: "signature_delta", signature: SIG } }),
+    se({ type: "content_block_start", index: 2, content_block: { type: "tool_use", id: "toolu_cut", name: "get_weather", input: {} } }),
+    se({ type: "content_block_delta", index: 2, delta: { type: "input_json_delta", partial_json: '{"city": "S' } }),
+    se({ type: "content_block_start", index: 3, content_block: { type: "compaction", content: "summary so far", encrypted_content: "ENC" } }),
+  ];
+  const ALLOWED_AT_FLUSH = new Set(["text.end", "reasoning.end", "step.done", "subagent.done", "message.end", "turn.abort", "turn.error"]);
+
+  it("leg (a): every flush() event is a content-free lifecycle close; nothing is minted; no success; every turn folds to a defined outcome", () => {
+    const n = createClaudeNormalizer();
+    const before = truncated().flatMap((f) => n.push(JsonValue.parse(f)));
+    const atFlush = n.flush();
+    const all = [...before, ...atFlush];
+    assertAllValid(all);
+    expect(atFlush.map((e) => e.type).filter((t) => !ALLOWED_AT_FLUSH.has(t))).toEqual([]);
+    for (const t of ["tool.args.assembled", "reasoning.opaque", "content.block"]) expect(all.filter((e) => e.type === t), t).toEqual([]);
+    expect(JSON.stringify(all)).not.toContain(SIG);
+    // The partial args still rode the deltas losslessly; only the authoritative
+    // assembled input is not minted.
+    expect(all.filter((e) => e.type === "tool.args.delta").map((e) => ("delta" in e ? e.delta : undefined))).toEqual(['{"city": "S']);
+    expect(atFlush.some((e) => isClosedEvent(e) && e.type === "turn.done" && e.outcome.type === "success")).toBe(false);
+    // The text block still closes (text.end at flush stays), and so does the reasoning block, with no phase.
+    expect(atFlush.filter((e) => e.type === "text.end" || e.type === "reasoning.end").map((e) => e.type)).toEqual(["text.end", "reasoning.end"]);
+    expect(atFlush.find((e) => e.type === "reasoning.end")).not.toHaveProperty("phase");
+    const r = fold(all);
+    expect(r.needsResync).toBe(false);
+    for (const t of r.result().turns) expect(t.outcome, t.turnId).toBeDefined();
+  });
+
+  it("negative control: a binding frame that seals the message MID-stream (not a flush) still finalizes the open tool call as its content_block_stop would", () => {
+    const sealing = { type: "user", message: { role: "user", content: [{ type: "text", text: "interrupt" }] }, parent_tool_use_id: null, uuid: "00000000-0000-0000-0000-0000000000f9", session_id: "sess_fixture" };
+    const frames = [
+      se({ type: "message_start", message: { ...betaMessage([]), id: "msg_mid" } }),
+      se({ type: "content_block_start", index: 0, content_block: { type: "tool_use", id: "toolu_mid", name: "get_weather", input: {} } }),
+      se({ type: "content_block_delta", index: 0, delta: { type: "input_json_delta", partial_json: '{"city": "SF"}' } }),
+      sealing,
+    ];
+    const n = createClaudeNormalizer();
+    const evs = frames.flatMap((f) => n.push(JsonValue.parse(f)));
+    expect(evs.find((e) => e.type === "tool.args.assembled")).toMatchObject({ toolCallId: "toolu_mid", input: { city: "SF" } });
+  });
+});

@@ -1588,8 +1588,10 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // blocks, their order and their content are the SDK's own.
   const lifecyclesBySdkId = new Map<string, number>();
 
-  /** Seal the deferred message, if one is open (a run's bracket closes separately; see `openRun`). */
-  function closePendingMessage(): void {
+  /** Seal the deferred message, if one is open (a run's bracket closes separately; see `openRun`).
+   *  `atFlush`: the stream ENDED here, so open stream blocks close without minting content
+   *  (INV-FLUSH (3), draft.4; see `finalizeStreamBlock`). */
+  function closePendingMessage(atFlush = false): void {
     if (pending === undefined) return;
     const p = pending;
     pending = undefined;
@@ -1599,7 +1601,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
     // produced) so no lifecycle dangles under the seal.
     if (p.streamBlocks.size > 0) {
       for (const idx of [...p.streamBlocks.keys()].sort((x, y) => x - y)) {
-        finalizeStreamBlock(p, idx);
+        finalizeStreamBlock(p, idx, atFlush);
       }
     }
     a.closeMessage(p.emittedId, p.usage);
@@ -1669,11 +1671,26 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // streamed-citations carrier), reasoning.end + the replay-load-bearing opaque
   // (same end-then-opaque order as the complete arm), the MANDATORY
   // tool.args.assembled (spec §4/§8.1), or the buffered compaction block.
-  function finalizeStreamBlock(p: PendingMessage, index: number): void {
+  // `atFlush` (INV-FLUSH (3), draft.4; the founder's fold/flush ruling, "snapshot
+  // fold + honest flush; opaque at flush forbidden"; sp-claude's leg C1): the
+  // stream ENDED with this block open, so the close lands NO new content. The
+  // lifecycle closes stay (text.end with its already-received citations,
+  // reasoning.end), and the block's scratch is DROPPED: no tool.args.assembled
+  // (it is authoritative, and a truncated partial_json would mint an input the
+  // model never finished), no reasoning.opaque (a signature is replay-load-
+  // bearing, and the turn is aborted anyway), no compaction content.block, and
+  // no `phase` on reasoning.end. A binding frame that seals the message
+  // mid-stream (not a flush) still finalizes as its content_block_stop would.
+  function finalizeStreamBlock(p: PendingMessage, index: number, atFlush = false): void {
     const b = p.streamBlocks.get(index);
     if (b === undefined) return;
     p.streamBlocks.delete(index);
     const messageId = p.emittedId;
+    if (atFlush) {
+      if (b.kind === "text") a.textEnd(b.id, messageId, b.citations.length > 0 ? { citations: b.citations } : undefined);
+      else if (b.kind === "reasoning") a.reasoningEnd(b.id, messageId, undefined);
+      return;
+    }
     switch (b.kind) {
       case "text":
         a.textEnd(b.id, messageId, b.citations.length > 0 ? { citations: b.citations } : undefined);
@@ -3157,8 +3174,8 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
     flush(): AgEvent[] {
       // guuey#26: nothing can continue the deferred message now — seal it with
       // its real usage rather than leaving INV-FLUSH to synthesize a bare
-      // `message.end`.
-      closePendingMessage();
+      // `message.end`. At flush: no content is minted (INV-FLUSH (3), C1).
+      closePendingMessage(true);
       // B-strict: every subagent run still open closes here with its nested
       // terminal (turn.abort{stream-truncated}, or its stashed API error) and
       // its subagent.done, innermost first.
