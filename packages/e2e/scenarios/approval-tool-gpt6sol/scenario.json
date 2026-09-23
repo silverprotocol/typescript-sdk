@@ -1,0 +1,12 @@
+{
+  "name": "approval-tool-gpt6sol",
+  "prompt": "Echo the message 'conformance-probe-approval' back to me using the available tool.",
+  "mcpServers": [
+    {
+      "key": "t",
+      "kind": "text"
+    }
+  ],
+  "steer": "You MUST call the tool mcp__t__echo with message='conformance-probe-approval'. Do not answer from memory.",
+  "toolApproval": "interrupt"
+}

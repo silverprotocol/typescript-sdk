@@ -1,0 +1,923 @@
+[
+  {
+    "data": {
+      "type": "response_started",
+      "providerData": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_0d049a1c53912f99006ab409cc8db087d0ae1e2029c755f9ef",
+          "object": "response",
+          "created_at": 1790183884,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-approval'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_0d049a1c53912f99006ab409cc8db087d0ae1e2029c755f9ef",
+          "object": "response",
+          "created_at": 1790183884,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-approval'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.in_progress",
+        "response": {
+          "id": "resp_0d049a1c53912f99006ab409cc8db087d0ae1e2029c755f9ef",
+          "object": "response",
+          "created_at": 1790183884,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-approval'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 1
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "rs_0d049a1c53912f99006ab409cdfc2087d09c68dc0997aa83b7",
+          "type": "reasoning",
+          "content": [],
+          "encrypted_content": "gAAAAABqtAnN_rsQcwFzJ8vJmBQhMs5SOJnf5qzIs4w9XjYWLdaVg_dRWwJcP0RY8nj7Qs3EQ9L3gzvvSA6w_VDm7pbs-zuxdqAPjk2C9wGJt3UDHLegkPBa8pfhoxOHyGVU7ff42xTXHkw-l0qrihu53zKA38u1QPmpVddcIEjrMmooY4M17qQOeTsHsCpHh4o-dUaXQvQgmvMwYuCPnMCiRDPZlZzGCmC_hjCF5JABHyjAF2jtC-I6RKTvMXQPGh1ILKAAVQtIU9NutDVrPl-Arfl18bo2rEVcAr1qtEBbCYD-7yEyeJLKScal6Y86cRQCq5NTevcv31LZ2vlJ6dC5Ex185tZhZLy7lvYgYaSQi6RkkbQhvdmFciqiU7-f3sjUDo1bJvfioGIw33hL7cIkFFR14cSMiqEijqUrU24zLGFLzm4T2IWysUvLMmiqxiWyxwk5SHLWA6Mq9mqxIsSy-XaTTo5XSEgVSpJbO5l7noUA4b_ab0GtRD9Q6Kxc5xrJsGs4O38iJbcESzQiAigloIgPiahYFWWNRoV6NhOIlT4_VNkCZQYL2NYHNecGEI1iVLF0RaoEmYsAdPVShWt9uNpYwsBWrx-Kpb8byE1C_Bq3jnsVFdseWCUJ97yRJMRyMtiww0PRNm4eCx5w1KeZxDUcEjU87oDEjx1bNnlYVrKK45zWWMafQSeTUrVl1csY2bRwLRKo67iUW9tlgFIcSdeVrBlKyYpCdukf5WFlDx2LdoGgYIjJchaIITif4kDFAMISI9984c30W_SsYT9RnRmq053VlY8eu5NwQMZUw3XoQZ2yVQzMJj3DlcgkETs6BVuU020riHz53RhmINUmCRVm9aFV2ACf9zX_z4wh8EoLTZrZHGjOX_jHZBg2YD4vclAd5FQdGsZ6DkR1_MEOH6eivbxXITnAONWlQIY14iLYyQ2NStt0VZshWWuIgJKZlPPJAfuAYmFIQCUzmfR1kTjw4i0ZeOFIHVKVY6ivt5gKAdvfe5YVguyBfJPQoSLoLECW_ama-bq4z-cvoq0ax0PvgHzKDSBL1XgWhoHIiZY4EuKbNUAJD8uJOcy_y495uoX8ssZZtSxvd9Y0HNSkjnGCZiHIu02S_mShVqTJw7bDI1kATf1uixLnWKAEhazNDLjvjlRj7hBztywE0QggxtaxsooKKw==",
+          "summary": []
+        },
+        "output_index": 0,
+        "sequence_number": 2
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "rs_0d049a1c53912f99006ab409cdfc2087d09c68dc0997aa83b7",
+          "type": "reasoning",
+          "content": [],
+          "encrypted_content": "gAAAAABqtAnOKtHNj0NS2TbA5CEzoO3bTqAT1N_mzeaVzycyNwvdt2q7B1jhSnXTyQokYL5KbQBRaZl6OP4YBvbtm_GIFUS1R267-kXT9S41jd3P-XX1TnPNkXZc7qwjx1d9vX_OIDQ_Gv6GURFIzVMCtt-z-VW_OBIrE9gdeSRgbK82YY9chYsZ_KMPPJJl1_ezewhpF2XFvymLqH4C7MuC7vXAWTFPQQk884LpbqyJJR4iiYZFWNYxc0SfEjoUGihJQvX22l2PbWAhAvw_FIe_UzmUFqNsIlBKacWyp6fGFUlcMnT2geBav_UXGOEbV40F3JWsCuN7IkuZcFqOeZqUvLV5dVmElLjlJta7ph4EuDoxLtbP4UUaF1wUjIzuxEJwcS3rjbx7-LcviFOwbg1DFvxmuHkvY-hKD8GffWfJuzyLZeoA2H5vHOfRDilXIJx4Cpbnh1Eicb93ZRDH1LY8zzxiZvHtl79jBMLfvzI6SOxIQfjoF2zzopuFtS9_m3_IDvMpPZnQg-2-2NyuObzUMUmNb88pCioinRiyvLjlibennWjFuq7IVyF7ZdtxxkHGVLHevLCGxoNQwd4Yz3xwgdHYH01BqwuxXqtH8A0InZKxj_lE5xwvk3kWAjPeijma2oJae3AH1uA3calHXxp6Wq-U8nvMCGVIXFBHEUH-hK5YE62qRNoNpwVvl3bTA7KqS3Xbt_6EmfSHy0qmqtHTEKPXlnLpKUiKt450eGEhAw6qptNcm25LQbe3ot7QPixiT9eACzMAQpUKUpajFSUiDbmtCmGWCP3NCHLVNcymNhoG-wRogr_zCwc8cfiFP-fc7rDfl1UW7M7xnkPdTiB1-CTAxOET94RXEYx4WIRw_-z67bTduvymhRAHdLt8TWY4vzRiG4V6g1kvzFf1CgAxRMMVhbaiq3SmB8YveaSzTod1KfMJKPgXxqJ4ItQb7YW2r8w_6OUafsRwAMCgyRfumFShyBIBopJRc_JoS83FdMsEovRQQnwvTu63IGmp1q6YJarx-xxXJhmT26-ksEKz4dt7inhR_CFRmjkOZ889w63s7uDpwaqSEjnldxnAGQqlkbwy1u9bAM9bEUfX3rRjiNcv5QnMv6GuAgZpYHhslXLaLiEuGZf_u3pxbtG76GZQkrkvsMyaOMO4xgwTxCDXeMl92sypmpWHSqVYPVMwkexl2Lc8DeFQclWYZyT6a1x8Lg4O6fTmmFIi7ih1COiLReb7sqgMCltqQ5STZAgxAYABxkUF62L_6b7uzEOXWUqrwq5LtFxudXB24pUUte5lShRO4tv8xVxSffSrM7nIYJSh4XifgUs-ZCAXfbCejeFfhj7CCAq9",
+          "summary": []
+        },
+        "output_index": 0,
+        "sequence_number": 3
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+          "type": "function_call",
+          "status": "in_progress",
+          "arguments": "",
+          "call_id": "call_xqZZcXHOAmS73QrOGrXeJfON",
+          "name": "echo"
+        },
+        "output_index": 1,
+        "sequence_number": 4
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "{\"",
+        "item_id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+        "obfuscation": "PnJoGfnASiONon",
+        "output_index": 1,
+        "sequence_number": 5
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "message",
+        "item_id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+        "obfuscation": "ujWnOPx1B",
+        "output_index": 1,
+        "sequence_number": 6
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "\":\"",
+        "item_id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+        "obfuscation": "Hamqi4KmwaxN6",
+        "output_index": 1,
+        "sequence_number": 7
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "con",
+        "item_id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+        "obfuscation": "EOHu7QpqO2Jit",
+        "output_index": 1,
+        "sequence_number": 8
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "formance",
+        "item_id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+        "obfuscation": "8JrIhsW3",
+        "output_index": 1,
+        "sequence_number": 9
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "-pro",
+        "item_id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+        "obfuscation": "ZolYbBn5dNtK",
+        "output_index": 1,
+        "sequence_number": 10
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "be",
+        "item_id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+        "obfuscation": "b2ahWreP9Jv0rF",
+        "output_index": 1,
+        "sequence_number": 11
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "-",
+        "item_id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+        "obfuscation": "LUiIR6JobcLpnU4",
+        "output_index": 1,
+        "sequence_number": 12
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "approval",
+        "item_id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+        "obfuscation": "ZwC7NsMz",
+        "output_index": 1,
+        "sequence_number": 13
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "\"}",
+        "item_id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+        "obfuscation": "5Ys47Sffcfw5BX",
+        "output_index": 1,
+        "sequence_number": 14
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.done",
+        "arguments": "{\"message\":\"conformance-probe-approval\"}",
+        "item_id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+        "output_index": 1,
+        "sequence_number": 15
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+          "type": "function_call",
+          "status": "completed",
+          "arguments": "{\"message\":\"conformance-probe-approval\"}",
+          "call_id": "call_xqZZcXHOAmS73QrOGrXeJfON",
+          "name": "echo"
+        },
+        "output_index": 1,
+        "sequence_number": 16
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_done",
+      "response": {
+        "id": "resp_0d049a1c53912f99006ab409cc8db087d0ae1e2029c755f9ef",
+        "requestId": "req_d1bb79f3027c43e68b9fc5eccd4b62b9",
+        "output": [
+          {
+            "type": "reasoning",
+            "id": "rs_0d049a1c53912f99006ab409cdfc2087d09c68dc0997aa83b7",
+            "content": [],
+            "providerData": {
+              "id": "rs_0d049a1c53912f99006ab409cdfc2087d09c68dc0997aa83b7",
+              "type": "reasoning",
+              "content": [],
+              "encrypted_content": "gAAAAABqtAnOF9q-hLmmOjBooXMjb2jKC0HY7znUuxNpe2ovxHYqnAQqwNzC3bCaOiUNg0A-u-PbFGOOZSTInsaegMNqJuoLVnWHh1JIU70iDgAgJZqQPYrHlTwG4KS2lJ1q4RUmTnIxAH6NEAmFRqyqP9qP74UDAA5q8zLw3guNswEwkT5IzLc23uRvGw_UVVHxbDxXZCJvwowWm5kx0ZEvpgyUr794C-u8UvbF-65WFAxTzQLiw9hti3VScYOjBM0GGuiSkL-QPqWbe6dmwrXm6L2-MRS-y8joZKnATidpWIYU-to-W1HhMirHm3b_mm2Az3lmQbw_Gq5AAkK3c1D8qIya_GBlwZCxVOiWwqUOgKcxcHrxzy4U0WLzcAZ2JSAxpPIIXlNCXtkzjWr80-50Bcd-DE56tK_jB057DCgP55MaD2hJVODEiVpusx5P9YmdeNEFl-doQH8U-wpsU8bJu5-aCEKBTZyvCtoNtRsP--UpgCmvRf7wm4wzrJ8qu7gLV3wTUWDTpgsajTEfCHTSnmRqSyeO9q5hel6hC8bhrWsnUnhkpkxjhrDD8MVgKc5mQVfiJ957XASnDpxbuaIjalOI1bSwb6kntrnSq8WnRHvA6H0fWYH0WsSSIsX3Dtu3wNaQoMbH-3vAGk--YHJeSjUyXNIr4GWaTpXtYx6_gCvF-4SK4Aog9LNQXZWnBmp7knID2Oo8lmwcBv01_6wLummBk_KSmpxnRR4KtLwn5vNv9FPJ7Zlznj--2K_VgAko7PzAvSi_AC7Mwa379vqIpsd4uFLkm_ADf_E-wf-KAozotz4RTFMk8jWQq41RaYN-y-Pdhy96mIA2d2z7Vuomj2jWYVV3rCB7AB5zR19lsQzia4g0kA6n9Ixo3oNPBo2GrPjJs3dWiZ4BMH-IMW9Uq3kTIiD-ZGTgWDY-891R6ctlvvOSqZqqA54MFIa-YgA5H4qHLh8Dd9SWFuklmzaoZx5oDDY6hVbO1cNYmo0rfNTR6FSxEMnVA8I1_-03jwgsUmVXdFzgEYdWHyfM5F0KRAjuJvLkiqNfiGt45fylIDNozR-REVhYrrPX8vHWr7OELRxpIwQsaTxykZDqNdA7y9phwDUpAE05HHI9fElW9Szz8Hwhzp5OV4JE5nLJODaJsHxoHqjB2djB1Hl5WYgNREDsiB4XJiYEchp2JUek5PVwZB5uCY_4jS_7bkQvgwPCQs2SmKCpJctZYSnGUspRJeh2TOEkWGeMCULn_qNjveZu9GgLOJMs_oJOeXhubK8GbDVCgqrckoE-Se02Dyo1pqGNblLnyn7jicShLqOOwts5UmmIEWJGrrSXbET8jM0IXhd077qc"
+            }
+          },
+          {
+            "type": "function_call",
+            "id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+            "callId": "call_xqZZcXHOAmS73QrOGrXeJfON",
+            "name": "echo",
+            "status": "completed",
+            "arguments": "{\"message\":\"conformance-probe-approval\"}",
+            "providerData": {
+              "id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+              "type": "function_call"
+            }
+          }
+        ],
+        "usage": {
+          "inputTokens": 106,
+          "outputTokens": 54,
+          "totalTokens": 160,
+          "inputTokensDetails": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "outputTokensDetails": {
+            "reasoning_tokens": 30
+          },
+          "requestUsageEntries": [
+            {
+              "inputTokens": 106,
+              "outputTokens": 54,
+              "totalTokens": 160,
+              "inputTokensDetails": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0
+              },
+              "outputTokensDetails": {
+                "reasoning_tokens": 30
+              },
+              "endpoint": "responses.create"
+            }
+          ]
+        },
+        "providerData": {
+          "object": "response",
+          "created_at": 1790183884,
+          "status": "completed",
+          "access_programs": null,
+          "background": false,
+          "completed_at": 1790183886,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-approval'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "user": null,
+          "metadata": {}
+        }
+      },
+      "providerData": {
+        "type": "response.completed",
+        "sequence_number": 17
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_0d049a1c53912f99006ab409cc8db087d0ae1e2029c755f9ef",
+          "object": "response",
+          "created_at": 1790183884,
+          "status": "completed",
+          "access_programs": null,
+          "background": false,
+          "completed_at": 1790183886,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the tool mcp__t__echo with message='conformance-probe-approval'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [
+            {
+              "id": "rs_0d049a1c53912f99006ab409cdfc2087d09c68dc0997aa83b7",
+              "type": "reasoning",
+              "content": [],
+              "encrypted_content": "gAAAAABqtAnOF9q-hLmmOjBooXMjb2jKC0HY7znUuxNpe2ovxHYqnAQqwNzC3bCaOiUNg0A-u-PbFGOOZSTInsaegMNqJuoLVnWHh1JIU70iDgAgJZqQPYrHlTwG4KS2lJ1q4RUmTnIxAH6NEAmFRqyqP9qP74UDAA5q8zLw3guNswEwkT5IzLc23uRvGw_UVVHxbDxXZCJvwowWm5kx0ZEvpgyUr794C-u8UvbF-65WFAxTzQLiw9hti3VScYOjBM0GGuiSkL-QPqWbe6dmwrXm6L2-MRS-y8joZKnATidpWIYU-to-W1HhMirHm3b_mm2Az3lmQbw_Gq5AAkK3c1D8qIya_GBlwZCxVOiWwqUOgKcxcHrxzy4U0WLzcAZ2JSAxpPIIXlNCXtkzjWr80-50Bcd-DE56tK_jB057DCgP55MaD2hJVODEiVpusx5P9YmdeNEFl-doQH8U-wpsU8bJu5-aCEKBTZyvCtoNtRsP--UpgCmvRf7wm4wzrJ8qu7gLV3wTUWDTpgsajTEfCHTSnmRqSyeO9q5hel6hC8bhrWsnUnhkpkxjhrDD8MVgKc5mQVfiJ957XASnDpxbuaIjalOI1bSwb6kntrnSq8WnRHvA6H0fWYH0WsSSIsX3Dtu3wNaQoMbH-3vAGk--YHJeSjUyXNIr4GWaTpXtYx6_gCvF-4SK4Aog9LNQXZWnBmp7knID2Oo8lmwcBv01_6wLummBk_KSmpxnRR4KtLwn5vNv9FPJ7Zlznj--2K_VgAko7PzAvSi_AC7Mwa379vqIpsd4uFLkm_ADf_E-wf-KAozotz4RTFMk8jWQq41RaYN-y-Pdhy96mIA2d2z7Vuomj2jWYVV3rCB7AB5zR19lsQzia4g0kA6n9Ixo3oNPBo2GrPjJs3dWiZ4BMH-IMW9Uq3kTIiD-ZGTgWDY-891R6ctlvvOSqZqqA54MFIa-YgA5H4qHLh8Dd9SWFuklmzaoZx5oDDY6hVbO1cNYmo0rfNTR6FSxEMnVA8I1_-03jwgsUmVXdFzgEYdWHyfM5F0KRAjuJvLkiqNfiGt45fylIDNozR-REVhYrrPX8vHWr7OELRxpIwQsaTxykZDqNdA7y9phwDUpAE05HHI9fElW9Szz8Hwhzp5OV4JE5nLJODaJsHxoHqjB2djB1Hl5WYgNREDsiB4XJiYEchp2JUek5PVwZB5uCY_4jS_7bkQvgwPCQs2SmKCpJctZYSnGUspRJeh2TOEkWGeMCULn_qNjveZu9GgLOJMs_oJOeXhubK8GbDVCgqrckoE-Se02Dyo1pqGNblLnyn7jicShLqOOwts5UmmIEWJGrrSXbET8jM0IXhd077qc",
+              "summary": []
+            },
+            {
+              "id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+              "type": "function_call",
+              "status": "completed",
+              "arguments": "{\"message\":\"conformance-probe-approval\"}",
+              "call_id": "call_xqZZcXHOAmS73QrOGrXeJfON",
+              "name": "echo"
+            }
+          ],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": {
+            "input_tokens": 106,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 54,
+            "output_tokens_details": {
+              "reasoning_tokens": 30
+            },
+            "total_tokens": 160
+          },
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 17
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "name": "reasoning_item_created",
+    "item": {
+      "type": "reasoning_item",
+      "rawItem": {
+        "providerData": {
+          "id": "rs_0d049a1c53912f99006ab409cdfc2087d09c68dc0997aa83b7",
+          "type": "reasoning",
+          "content": [],
+          "encrypted_content": "gAAAAABqtAnOF9q-hLmmOjBooXMjb2jKC0HY7znUuxNpe2ovxHYqnAQqwNzC3bCaOiUNg0A-u-PbFGOOZSTInsaegMNqJuoLVnWHh1JIU70iDgAgJZqQPYrHlTwG4KS2lJ1q4RUmTnIxAH6NEAmFRqyqP9qP74UDAA5q8zLw3guNswEwkT5IzLc23uRvGw_UVVHxbDxXZCJvwowWm5kx0ZEvpgyUr794C-u8UvbF-65WFAxTzQLiw9hti3VScYOjBM0GGuiSkL-QPqWbe6dmwrXm6L2-MRS-y8joZKnATidpWIYU-to-W1HhMirHm3b_mm2Az3lmQbw_Gq5AAkK3c1D8qIya_GBlwZCxVOiWwqUOgKcxcHrxzy4U0WLzcAZ2JSAxpPIIXlNCXtkzjWr80-50Bcd-DE56tK_jB057DCgP55MaD2hJVODEiVpusx5P9YmdeNEFl-doQH8U-wpsU8bJu5-aCEKBTZyvCtoNtRsP--UpgCmvRf7wm4wzrJ8qu7gLV3wTUWDTpgsajTEfCHTSnmRqSyeO9q5hel6hC8bhrWsnUnhkpkxjhrDD8MVgKc5mQVfiJ957XASnDpxbuaIjalOI1bSwb6kntrnSq8WnRHvA6H0fWYH0WsSSIsX3Dtu3wNaQoMbH-3vAGk--YHJeSjUyXNIr4GWaTpXtYx6_gCvF-4SK4Aog9LNQXZWnBmp7knID2Oo8lmwcBv01_6wLummBk_KSmpxnRR4KtLwn5vNv9FPJ7Zlznj--2K_VgAko7PzAvSi_AC7Mwa379vqIpsd4uFLkm_ADf_E-wf-KAozotz4RTFMk8jWQq41RaYN-y-Pdhy96mIA2d2z7Vuomj2jWYVV3rCB7AB5zR19lsQzia4g0kA6n9Ixo3oNPBo2GrPjJs3dWiZ4BMH-IMW9Uq3kTIiD-ZGTgWDY-891R6ctlvvOSqZqqA54MFIa-YgA5H4qHLh8Dd9SWFuklmzaoZx5oDDY6hVbO1cNYmo0rfNTR6FSxEMnVA8I1_-03jwgsUmVXdFzgEYdWHyfM5F0KRAjuJvLkiqNfiGt45fylIDNozR-REVhYrrPX8vHWr7OELRxpIwQsaTxykZDqNdA7y9phwDUpAE05HHI9fElW9Szz8Hwhzp5OV4JE5nLJODaJsHxoHqjB2djB1Hl5WYgNREDsiB4XJiYEchp2JUek5PVwZB5uCY_4jS_7bkQvgwPCQs2SmKCpJctZYSnGUspRJeh2TOEkWGeMCULn_qNjveZu9GgLOJMs_oJOeXhubK8GbDVCgqrckoE-Se02Dyo1pqGNblLnyn7jicShLqOOwts5UmmIEWJGrrSXbET8jM0IXhd077qc"
+        },
+        "id": "rs_0d049a1c53912f99006ab409cdfc2087d09c68dc0997aa83b7",
+        "type": "reasoning",
+        "content": []
+      },
+      "agent": {
+        "name": "spike"
+      }
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "name": "tool_called",
+    "item": {
+      "type": "tool_call_item",
+      "rawItem": {
+        "providerData": {
+          "id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+          "type": "function_call"
+        },
+        "id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+        "type": "function_call",
+        "callId": "call_xqZZcXHOAmS73QrOGrXeJfON",
+        "name": "echo",
+        "status": "completed",
+        "arguments": "{\"message\":\"conformance-probe-approval\"}"
+      },
+      "agent": {
+        "name": "spike"
+      }
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "name": "tool_approval_requested",
+    "item": {
+      "type": "tool_approval_item",
+      "rawItem": {
+        "providerData": {
+          "id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+          "type": "function_call"
+        },
+        "id": "fc_0d049a1c53912f99006ab409ce80ac87d0a9d8567b6c81e659",
+        "type": "function_call",
+        "callId": "call_xqZZcXHOAmS73QrOGrXeJfON",
+        "name": "echo",
+        "status": "completed",
+        "arguments": "{\"message\":\"conformance-probe-approval\"}"
+      },
+      "agent": {
+        "name": "spike"
+      },
+      "toolName": "echo",
+      "functionToolStateKey": "[\"bare\",\"echo\"]"
+    },
+    "type": "run_item_stream_event"
+  }
+]
