@@ -796,6 +796,7 @@ function readUserMessageUuids(v: unknown): string[] | undefined {
 // drive()'s assistant branch.
 const HOST_ONLY_WRAPPER_KEYS: ReadonlySet<string> = new Set([
   "narration_block_indexes",
+  "diagnostics",
   "api_error",
   "api_error_params",
   "api_error_code",
@@ -1282,6 +1283,9 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
   // tool.done{denied} for a call already closed is a duplicate start and a second
   // final tool.done (INV-BLOCK; rd-14 P14 parks it; the M22 double-fold hazard).
   const closedToolCallIds = new Set<string>();
+  // SDK message id → the `diagnostics` value already carried for it (see the
+  // assistant branch): one carry per response, not one per frame.
+  const diagnosticsCarried = new Map<string, string>();
 
   // The live denial's diagnostic fields, camelCased — the providerMetadata bag
   // on the enriched `<turnId>:denials` tool.done. undefined when the live
@@ -2065,6 +2069,29 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       if (narrationBlockIndexes !== undefined) {
         wrapperMetaRaw["narration_block_indexes"] = narrationBlockIndexes;
       }
+      // `message.diagnostics` (a Messages API response field, first seen live on
+      // sp-probe's defer-tool-sonnet5-resume-unavailable, 7c6880f): per-response
+      // diagnostics, there `{cache_miss_reason: {type: "tools_changed",
+      // cache_missed_input_tokens: 3258}}`, i.e. why the prompt cache missed.
+      // Response-only (never sent back on replay), so it rides host-only `_meta`
+      // (SPEC §12, the X5 split), verbatim with its wire name. Undeclared on
+      // @anthropic-ai/sdk 0.93.0's BetaMessage, so read through the JSON
+      // boundary; null (its usual value) carries nothing. It is per RESPONSE,
+      // and the CLI repeats the same message object on every frame of a
+      // multi-frame message, so it is carried once per SDK message id (again
+      // only if the value changes).
+      const rawMessage: unknown = m;
+      const diagnostics =
+        isJsonObject(rawMessage) && isJsonObject(rawMessage["diagnostics"])
+          ? JsonValue.parse(rawMessage["diagnostics"])
+          : undefined;
+      if (diagnostics !== undefined) {
+        const diagnosticsKey = JSON.stringify(diagnostics);
+        if (diagnosticsCarried.get(m.id) !== diagnosticsKey) {
+          wrapperMetaRaw["diagnostics"] = diagnostics;
+          diagnosticsCarried.set(m.id, diagnosticsKey);
+        }
+      }
       // The API-error TRIAD (CLI 2.1.280, all @internal and UNDECLARED in
       // sdk.d.ts at 0.3.280 — read through the same JSON boundary, never cast).
       // The CLI stamps them on the synthetic API-error assistant frame, the one
@@ -2378,6 +2405,25 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // `openRun`). A result for any other tool closes nothing.
       if (typeof msg.message.content !== "string") {
         for (const b of msg.message.content) if (b.type === "tool_result") closeRun(b.tool_use_id);
+      }
+      // A LIVE user frame with no tool_result block is content the CLI added to
+      // the conversation itself (the SDKUserMessage doc; the host's own prompts
+      // come back only as isReplay acks, returned above). The live case: the
+      // CLI's `isSynthetic: true` nudge "[Your previous response had no visible
+      // output. …]" after an empty reply (sp-probe's
+      // defer-tool-sonnet5-resume-unavailable, 7c6880f, the corpus's only such
+      // frame). This branch maps only tool_result blocks, so it had no event at
+      // all, and the census could not see the text go (its path normalizes to
+      // the assistant's). It rides the item-22 bulk carry verbatim, kind "user",
+      // the carry the replay gap above names. DISCLOSED: a frame MIXING
+      // tool_results with other blocks still maps only its tool_results (none
+      // in the corpus).
+      let carriesToolResult = false;
+      if (typeof msg.message.content !== "string") {
+        for (const b of msg.message.content) if (b.type === "tool_result") carriesToolResult = true;
+      }
+      if (!carriesToolResult) {
+        a.emitExt("anthropic", "frame", { kind: "user", frame: JsonValue.parse(msg) });
       }
       // A user message carrying tool_result blocks → tool.done per result.
       // parent_tool_use_id (when set) identifies a subagent tool call — the

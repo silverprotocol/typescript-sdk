@@ -7037,3 +7037,114 @@ describe("createClaudeNormalizer — non_execution_kind denials (C) and the clos
     expect(dones(late).map((d) => d["outcome"])).toEqual(["error"]);
   });
 });
+
+// ─── sp-probe's resume-unavailable leg (7c6880f): two census new-fields ───────
+// `message.diagnostics` rides the first block's host-only `_meta` (once per SDK
+// message id); a live user frame with no tool_result (the CLI's isSynthetic
+// nudge) rides `ext.anthropic.frame{kind:"user"}` verbatim.
+describe("createClaudeNormalizer — message.diagnostics and CLI-added user frames (resume-unavailable leg)", () => {
+  const DIAG = { cache_miss_reason: { type: "tools_changed", cache_missed_input_tokens: 3258 } };
+
+  function frameWith(msgId: string, uuid: string, block: unknown, diagnostics: unknown): unknown {
+    return {
+      type: "assistant",
+      message: { ...betaMessage([]), id: msgId, content: [block], ...(diagnostics !== undefined ? { diagnostics } : {}) },
+      parent_tool_use_id: null,
+      uuid,
+      session_id: "sess_fixture",
+    };
+  }
+  const thinking = { type: "thinking", thinking: "", signature: "sig" };
+  const text = (t: string): unknown => ({ type: "text", text: t, citations: null });
+
+  function blockStarts(evs: AgEvent[]): Array<{ [k: string]: unknown }> {
+    const out: Array<{ [k: string]: unknown }> = [];
+    for (const e of evs) if (e.type === "text.start" || e.type === "reasoning.start") out.push(Object.fromEntries(Object.entries(e)));
+    return out;
+  }
+
+  function nudge(content: unknown = [{ type: "text", text: "[Your previous response had no visible output. Please continue and produce a user-visible response.]" }]): unknown {
+    return {
+      type: "user",
+      message: { role: "user", content },
+      parent_tool_use_id: null,
+      session_id: "sess_fixture",
+      uuid: "00000000-0000-0000-0000-0000000000n5",
+      isSynthetic: true,
+    };
+  }
+
+  it("diagnostics rides the first block's HOST-ONLY _meta verbatim (never providerMetadata) and folds onto the block", () => {
+    const evs = drive([frameWith("msg_diag", "00000000-0000-0000-0000-0000000000d1", thinking, DIAG)]);
+    const [start] = blockStarts(evs);
+    expect(start).toMatchObject({ type: "reasoning.start", _meta: { diagnostics: DIAG } });
+    expect(start?.["providerMetadata"]).toBeUndefined();
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.find((m) => m.id === "msg_diag")?.content[0]).toMatchObject({ _meta: { diagnostics: DIAG } });
+  });
+
+  it("once per SDK message id: the same value on a later frame of the message is not repeated; a changed value or a new message carries again", () => {
+    const evs = drive([
+      frameWith("msg_diag", "00000000-0000-0000-0000-0000000000d1", thinking, DIAG),
+      frameWith("msg_diag", "00000000-0000-0000-0000-0000000000d2", text("a"), DIAG),
+      frameWith("msg_diag", "00000000-0000-0000-0000-0000000000d3", text("b"), { cache_miss_reason: { type: "model_changed" } }),
+      frameWith("msg_diag2", "00000000-0000-0000-0000-0000000000d4", text("c"), DIAG),
+    ]);
+    expect(blockStarts(evs).map((e) => e["_meta"])).toEqual([
+      { diagnostics: DIAG },
+      undefined,
+      { diagnostics: { cache_miss_reason: { type: "model_changed" } } },
+      { diagnostics: DIAG },
+    ]);
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("negative control: diagnostics null, absent or not an object adds no _meta (output unchanged)", () => {
+    for (const d of [null, undefined, "x", [1]]) {
+      const [start] = blockStarts(drive([frameWith("msg_diag", "00000000-0000-0000-0000-0000000000d1", text("a"), d)]));
+      expect(start !== undefined && "_meta" in start, JSON.stringify(d)).toBe(false);
+    }
+  });
+
+  it("the CLI's isSynthetic nudge rides ext.anthropic.frame{kind:'user'} verbatim, after the open message is sealed", () => {
+    const frame = nudge();
+    const evs = drive([frameWith("msg_empty", "00000000-0000-0000-0000-0000000000d1", thinking, null), frame, resultSuccess("end_turn")]);
+    const carried = evs.filter((e) => e.type === "ext.anthropic.frame");
+    expect(carried).toHaveLength(1);
+    expect(carried[0]).toMatchObject({ kind: "user", frame: JsonValue.parse(frame) });
+    const types = evs.map((e) => e.type);
+    expect(types.indexOf("message.end")).toBeLessThan(types.indexOf("ext.anthropic.frame"));
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("a string-content live user frame is carried too; a tool_result frame and a replay are not (negative controls)", () => {
+    expect(drive([nudge("plain string content")]).filter((e) => e.type === "ext.anthropic.frame")).toHaveLength(1);
+    const toolResult = drive([assistantMsg([{ type: "tool_use", id: "toolu_fixture_1", name: "t", input: {} }]), toolResultMsg()]);
+    expect(toolResult.filter((e) => e.type === "ext.anthropic.frame")).toHaveLength(0);
+    const replay = { ...(typeof nudge() === "object" ? Object.fromEntries(Object.entries(nudge() ?? {})) : {}), isReplay: true };
+    expect(drive([replay])).toEqual([]);
+  });
+
+  it("the live leg shape: an unavailable close, then an empty-thinking reply with diagnostics, the nudge, and the success close: no park, both carried", () => {
+    const evs = drive([
+      { type: "command_lifecycle", command_uuid: "c1", state: "started", uuid: "00000000-0000-0000-0000-0000000000e0", session_id: "sess_fixture" },
+      {
+        ...(typeof resultSuccess("end_turn") === "object" ? Object.fromEntries(Object.entries(resultSuccess("end_turn"))) : {}),
+        is_error: true,
+        result: "",
+        stop_reason: "tool_deferred_unavailable",
+        terminal_reason: "tool_deferred_unavailable",
+        deferred_tool_use: { id: "toolu_deferred", name: "mcp__t__echo", input: { message: "x" } },
+        uuid: "00000000-0000-0000-0000-0000000000e1",
+      },
+      frameWith("msg_after", "00000000-0000-0000-0000-0000000000e2", thinking, DIAG),
+      nudge(),
+      resultSuccess("end_turn"),
+    ]);
+    expect(turnCloses(evs).map((e) => e.type)).toEqual(["turn.error", "turn.done"]);
+    expect(blockStarts(evs)[0]).toMatchObject({ _meta: { diagnostics: DIAG } });
+    expect(evs.filter((e) => e.type === "ext.anthropic.frame").map((e) => ("kind" in e ? e.kind : undefined))).toEqual(["command_lifecycle", "user"]);
+    expect(fold(evs).needsResync).toBe(false);
+  });
+});
