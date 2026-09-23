@@ -76,6 +76,7 @@ import {
   scrubbedResponse,
   carryNodeValue,
   changedOutputRendering,
+  reduceCarried,
   scrubCredentialCallArgs,
   adkAuthConfigView,
 } from "./auth-objects.js";
@@ -622,7 +623,7 @@ function carryUnmappableArm(
   a.contentBlock(messageId, {
     type: "provider-raw",
     vendor: "google",
-    raw: JsonValue.parse({ [field]: arm }),
+    raw: reduceCarried(JsonValue.parse({ [field]: arm })),
   });
 }
 
@@ -884,7 +885,7 @@ function functionResponseToToolDoneFields(
         }
       }
       // Preserve any non-text MCP content part losslessly as a provider-raw block.
-      out.push({ type: "provider-raw", vendor: "google", raw: part });
+      out.push({ type: "provider-raw", vendor: "google", raw: reduceCarried(part) });
     }
     const meta = response["_meta"];
     return {
@@ -1162,7 +1163,7 @@ function driveAdkPart(
     a.contentBlock(messageId, {
       type: "provider-raw",
       vendor: "google",
-      raw: JsonValue.parse(unmappedPartFields),
+      raw: reduceCarried(JsonValue.parse(unmappedPartFields)),
     });
   }
 
@@ -1386,7 +1387,7 @@ function driveAdkPart(
         a.contentBlock(messageId, {
           type: "provider-raw",
           vendor: "google",
-          raw: { fileData: { displayName } },
+          raw: reduceCarried({ fileData: { displayName } }),
         });
       }
     } else {
@@ -1603,7 +1604,7 @@ function driveAdkTopLevel(
       a.contentBlock(messageId, {
         type: "provider-raw",
         vendor: "google",
-        raw: JsonValue.parse(unmappedActions),
+        raw: reduceCarried(JsonValue.parse(unmappedActions)),
       });
     }
   }
@@ -1678,7 +1679,7 @@ function driveAdkTopLevel(
     a.contentBlock(messageId, {
       type: "provider-raw",
       vendor: "google",
-      raw: JsonValue.parse(unmappedEvent),
+      raw: reduceCarried(JsonValue.parse(unmappedEvent)),
     });
   }
 }

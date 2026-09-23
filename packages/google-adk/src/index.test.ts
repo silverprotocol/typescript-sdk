@@ -1434,8 +1434,13 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
     credentialKey: "fetch-key",
   };
   const untypedReply: { [k: string]: JsonValue } = { token: "SECRET_untyped_reply" };
+  /** Producer-strict: every event the facet emitted parses as an AgEvent. */
+  const parsesStrict = (out: AgEvent[]): AgEvent[] => {
+    for (const e of out) expect(() => AgEvent.parse(e), JSON.stringify(e).slice(0, 120)).not.toThrow();
+    return out;
+  };
   const rawCarries = (out: AgEvent[]): { [k: string]: JsonValue }[] =>
-    out
+    parsesStrict(out)
       .filter((e) => e.type === "content.block")
       .map((e) => (e as { block: { type: string; raw?: JsonValue } }).block)
       .filter((b) => b.type === "provider-raw" && isRecord(b.raw))
@@ -1526,7 +1531,7 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
 
   // ── the same event's text rendering of a reduced output ──
   const textDeltas = (out: AgEvent[]): string[] =>
-    out.filter((e) => e.type === "text.delta").map((e) => (e as { delta: string }).delta);
+    parsesStrict(out).filter((e) => e.type === "text.delta").map((e) => (e as { delta: string }).delta);
 
   it("rendering: the same event's text part byte-equal to JSON.stringify(output) is omitted when the node-data reduction changed output (typed output, output.result, a named response)", () => {
     const outputs: JsonValue[] = [
@@ -1576,6 +1581,78 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
       const out = run([event([{ text }], { output, turnComplete: true, finishReason: "STOP" })]);
       expect(textDeltas(out), text).toEqual([text]);
     }
+  });
+
+  // ── every other provider-raw carry ──
+  const credObj = { authType: "apiKey", apiKey: "SECRET_widen_key", resourceRef: "r" };
+  const credReduced = { authType: "apiKey", resourceRef: "r" };
+  const namedReply = { name: "adk_request_credential", id: "k", response: { token: "SECRET_widen_reply" } };
+  /** Raw natives, off the hand-typed contract on purpose (a host may push any shape). */
+  const runRaw = (natives: unknown[]): AgEvent[] => {
+    const n = createAdkNormalizer();
+    const out: AgEvent[] = [];
+    for (const x of natives) out.push(...n.push(x as JsonValue));
+    out.push(...n.flush());
+    return out;
+  };
+  const rawEvent = (extra: { [k: string]: unknown }, parts: unknown[] = [{ text: "done" }]) => ({
+    invocationId: "inv_fixture_1",
+    content: { role: "model", parts },
+    turnComplete: true,
+    finishReason: "STOP",
+    ...extra,
+  });
+
+  it("every provider-raw carry reduces a credential object the same way: customMetadata, route, nodeInfo, isolationScope, citationMetadata, artifactDelta, renderUiWidgets", () => {
+    const cases: [{ [k: string]: unknown }, string, JsonValue][] = [
+      [{ customMetadata: { keep: 1, cred: credObj } }, "customMetadata", { keep: 1, cred: credReduced }],
+      [{ route: { cred: credObj } }, "route", { cred: credReduced }],
+      [{ nodeInfo: { path: "wf.n", extra: [credObj] } }, "nodeInfo", { path: "wf.n", extra: [credReduced] }],
+      [{ isolationScope: { cred: credObj } }, "isolationScope", { cred: credReduced }],
+      [{ citationMetadata: { citations: [{ uri: "u", cred: credObj }] } }, "citationMetadata", { citations: [{ uri: "u", cred: credReduced }] }],
+      [{ actions: { artifactDelta: { f: 1, cred: credObj } } }, "artifactDelta", { f: 1, cred: credReduced }],
+      [{ actions: { renderUiWidgets: [{ w: namedReply }] } }, "renderUiWidgets", [{ w: { name: "adk_request_credential", id: "k", response: {} } }]],
+    ];
+    for (const [extra, member, want] of cases) {
+      const out = runRaw([rawEvent(extra)]);
+      expect(carryOf(out, member), member).toEqual(want);
+      expectNoSecretAnywhere(out);
+    }
+  });
+
+  it("a compacted event's content, a Part-level unmapped field, an unmappable arm and an MCP non-text part reduce too", () => {
+    const compacted = runRaw([
+      { invocationId: "inv_fixture_1", isCompacted: true, compactedContent: { role: "user", parts: [{ functionResponse: namedReply }] } },
+    ]);
+    expect(JSON.stringify(parsesStrict(compacted))).not.toContain("SECRET_");
+    expect(JSON.stringify(compacted)).toContain('"name":"adk_request_credential"');
+
+    const partField = runRaw([rawEvent({}, [{ text: "t", partMetadata: { cred: credObj } }])]);
+    expect(carryOf(partField, "partMetadata")).toEqual({ cred: credReduced });
+
+    const arm = runRaw([rawEvent({}, [{ functionResponse: [credObj] }])]);
+    expect(carryOf(arm, "functionResponse")).toEqual([credReduced]);
+
+    const mcp = runRaw([
+      rawEvent({ turnComplete: undefined, finishReason: undefined }, [{ functionCall: { name: "fetch", args: {}, id: "c1" } }]),
+      { invocationId: "inv_fixture_1", content: { role: "user", parts: [{ functionResponse: { name: "fetch", id: "c1", response: { content: [{ type: "resource", resource: { cred: credObj } }] } } }] } },
+    ]);
+    const done = parsesStrict(mcp).find((e) => e.type === "tool.done") as { content?: JsonValue } | undefined;
+    expect(done?.content).toEqual([{ type: "provider-raw", vendor: "google", raw: { type: "resource", resource: { cred: credReduced } } }]);
+    for (const out of [partField, arm, mcp]) expect(JSON.stringify(out)).not.toContain("SECRET_");
+  });
+
+  it("negative control: provider-raw carries with no credential object and no credential-request response are byte-identical", () => {
+    const extra = {
+      customMetadata: { authType: "oauth2", note: "x" },
+      route: "r",
+      nodeInfo: { path: "wf.n" },
+      actions: { artifactDelta: { f: 2 }, renderUiWidgets: [{ w: { name: "other", response: { token: "app-owned" } } }] },
+    };
+    const out = runRaw([rawEvent(extra, [{ text: "done", partMetadata: { k: [1, { authType: "bearer", http: {} }] } }])]);
+    expect(JSON.stringify(carryOf(out, "customMetadata"))).toBe(JSON.stringify(extra.customMetadata));
+    expect(JSON.stringify(carryOf(out, "renderUiWidgets"))).toBe(JSON.stringify(extra.actions.renderUiWidgets));
+    expect(JSON.stringify(carryOf(out, "partMetadata"))).toBe(JSON.stringify({ k: [1, { authType: "bearer", http: {} }] }));
   });
 
   it("negative control: an ordinary ORPHAN response still rides ext.google.unparsed whole", () => {

@@ -297,6 +297,19 @@ function reduceCredentialCarry(v: JsonValue): JsonValue {
   );
 }
 
+/** Any value the facet carries in a provider-raw block, with every ADK
+ *  AuthCredential and every response named adk_request_credential reduced as
+ *  for node data (see above). A value holding neither is returned unchanged;
+ *  one that cannot be reduced is carried as {}. Never throws. */
+export function reduceCarried(v: JsonValue): JsonValue {
+  if (!holdsAuthCredential(v) && !holdsObject(v, isCredentialRequestResponse)) return v;
+  try {
+    return reduceCredentialCarry(v);
+  } catch {
+    return {};
+  }
+}
+
 /** JSON with object keys in sorted order: "did the reduction change it"
  *  compares members, not the order an allowlist writes them in. */
 function canonicalJson(v: JsonValue): string {
