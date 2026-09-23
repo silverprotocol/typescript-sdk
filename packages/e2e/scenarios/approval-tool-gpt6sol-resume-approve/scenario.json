@@ -1,0 +1,13 @@
+{
+  "name": "approval-tool-gpt6sol-resume-approve",
+  "prompt": "Continue.",
+  "mcpServers": [
+    {
+      "key": "t",
+      "kind": "text"
+    }
+  ],
+  "steer": "You MUST call the tool mcp__t__echo with message='conformance-probe-approval'. Do not answer from memory.",
+  "toolApproval": "approve",
+  "resumeFrom": "approval-tool-gpt6sol"
+}

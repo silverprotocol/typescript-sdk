@@ -1,0 +1,35 @@
+{
+  "drops": [
+    {
+      "path": "[0].item.rawItem.name",
+      "norm": "[*].item.rawItem.name",
+      "value": "echo"
+    },
+    {
+      "path": "[1].data.providerData.response.tools[0].name",
+      "norm": "[*].data.providerData.response.tools[*].name",
+      "value": "echo"
+    },
+    {
+      "path": "[2].data.event.response.tools[0].name",
+      "norm": "[*].data.event.response.tools[*].name",
+      "value": "echo"
+    },
+    {
+      "path": "[3].data.event.response.tools[0].name",
+      "norm": "[*].data.event.response.tools[*].name",
+      "value": "echo"
+    },
+    {
+      "path": "[61].data.response.providerData.tools[0].name",
+      "norm": "[*].data.response.providerData.tools[*].name",
+      "value": "echo"
+    },
+    {
+      "path": "[62].data.event.response.tools[0].name",
+      "norm": "[*].data.event.response.tools[*].name",
+      "value": "echo"
+    }
+  ],
+  "newFields": []
+}
