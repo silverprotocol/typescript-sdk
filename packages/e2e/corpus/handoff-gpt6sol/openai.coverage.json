@@ -1,0 +1,14 @@
+{
+  "drops": [
+    {
+      "path": "[10].item.sourceAgent.name",
+      "norm": "[*].item.sourceAgent.name",
+      "value": "spike"
+    }
+  ],
+  "newFields": [
+    "[*].item.sourceAgent.name",
+    "[*].item.targetAgent.name",
+    "[*].agent.name"
+  ]
+}

@@ -272,6 +272,15 @@ const OPENAI_SEEDS = [
   "approval-tool-gpt6sol",
   "approval-tool-gpt6sol-resume-approve",
   "approval-tool-gpt6sol-resume-reject",
+  // 2026-09-24 (nested-turn capture ask; the 0.7.0 handoff regression's live
+  // leg): the first live OpenAI handoff (gpt-6-sol @ @openai/agents 0.18.0).
+  // The main agent transfers to "Echoer" (handoff_requested, handoff_occurred,
+  // agent_updated_stream_event), which calls the mcp echo tool and answers. On
+  // sp-openai's handoff close (b5d8a98) the transfer call gets its tool.done,
+  // the nested handoff turn closes success before subagent.done, and the
+  // source turn closes success; Echoer's rounds are top-level turns (a
+  // transfer, not a sub-run).
+  "handoff-gpt6sol",
 ] as const;
 
 /**

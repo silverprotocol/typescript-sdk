@@ -3441,5 +3441,13 @@
     "frameworks": [
       "openai"
     ]
+  },
+  {
+    "path": "[*].item.sourceAgent.name",
+    "reason": "openai: the SDK agent label of a handoff's source agent on the handoff_occurred run item; no AgJSON home. The handoff event names its target (handoff.toAgentName) and carries no source-side name, and the facet never mints an id from a name. Same class as [*].item.agent.name, which already carries the same value on handoff_requested (sp-openai triage 2026-09-24, applied at enrolment of handoff-gpt6sol).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
   }
 ]

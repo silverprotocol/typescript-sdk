@@ -206,6 +206,10 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "approval-tool-gpt6sol", framework: "openai" },
   { scenario: "approval-tool-gpt6sol-resume-approve", framework: "openai" },
   { scenario: "approval-tool-gpt6sol-resume-reject", framework: "openai" },
+  // 2026-09-24 (nested-turn capture ask): the first live OpenAI handoff,
+  // enrolled on sp-openai's handoff close (b5d8a98). The capture ran through
+  // the held openaiHandoff knob; replay needs only the committed native.
+  { scenario: "handoff-gpt6sol", framework: "openai" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {
