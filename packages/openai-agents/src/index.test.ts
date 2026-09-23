@@ -4486,6 +4486,156 @@ describe("createOpenaiNormalizer — PH-2 first-class phase:\"interim\" (draft.4
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// LV — LIVE natives never throw out of push() (SPEC.md:933, §8.0 graceful
+// degradation). The corpus is `toJsonValue(event)` — JSON round-tripped — so it
+// never showed that a host pushing the SDK's LIVE stream objects (class
+// instances with toJSON, `undefined` members, Dates, cycles) hit
+// `JsonValue.parse` at carried-member sites and THREW a ZodError (sp-main's
+// no-throw check, 2026-09-24: 6 of 9 live shapes threw at d8d04ca). Fix:
+// normalize ONCE at push() entry with core `toJsonValueSafe` (total, JSON
+// semantics per node), so live input is exactly the corpus shape.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("createOpenaiNormalizer — LV live (non-JSON-round-tripped) natives never throw", () => {
+  // The cast IS the scenario: a host pushes a live SDK object through
+  // `push(native: JsonValue)`. Test-only; the facet itself stays cast-free.
+  function liveNative(v: unknown): JsonValue {
+    return v as JsonValue;
+  }
+  const rm = (event: unknown): JsonValue => liveNative({ type: "raw_model_stream_event", data: { type: "model", event } });
+  const ri = (name: string, item: unknown): JsonValue => liveNative({ type: "run_item_stream_event", name, item });
+  const created = rm({ type: "response.created", response: { id: "resp_lv" } });
+  const WHEN = new Date("2026-09-24T01:02:03.000Z");
+  function cyclicAgent(): unknown {
+    const a: { name: string; self?: unknown } = { name: "spike" };
+    a.self = a;
+    return a;
+  }
+  function run(stream: JsonValue[]): AgEvent[] {
+    const n = createOpenaiNormalizer();
+    let evs: AgEvent[] = [];
+    expect(() => {
+      evs = stream.flatMap((e) => n.push(e)).concat(n.flush());
+    }).not.toThrow();
+    for (const e of evs) expect(AgEvent.safeParse(e).success).toBe(true);
+    return evs;
+  }
+
+  it("A: an unknown future run-item name with a live item (undefined member + cyclic agent) ⇒ ext.openai.unparsed, no throw", () => {
+    const evs = run([created, ri("future_item_created", { type: "future_item", rawItem: { id: undefined, x: 1 }, agent: cyclicAgent() })]);
+    const unparsed = evs.find((e) => e.type === "ext.openai.unparsed");
+    expect(unparsed).toBeDefined();
+    // JSON semantics: the undefined member is dropped, the value kept.
+    expect(JSON.stringify(unparsed)).toContain('"x":1');
+    expect(JSON.stringify(unparsed)).not.toContain('"id":');
+  });
+
+  it("B: tool_search_called with no resolvable id and a live Date ⇒ ext.openai.unparsed carrying the ISO string, no throw", () => {
+    const evs = run([
+      created,
+      ri("tool_search_called", {
+        type: "tool_search_call_item",
+        rawItem: { type: "tool_search_call", id: undefined, callId: undefined, when: WHEN, arguments: {} },
+      }),
+    ]);
+    expect(JSON.stringify(evs.find((e) => e.type === "ext.openai.unparsed"))).toContain("2026-09-24T01:02:03.000Z");
+  });
+
+  it("D: a local tool's live wrapper output {structuredContent:{a:undefined, d:Date}} ⇒ tool.done.structuredContent {d: ISO}, no throw", () => {
+    const evs = run([
+      created,
+      rm({ type: "response.output_item.added", item: { id: "fc_lv", type: "function_call", call_id: "call_lv", name: "t" } }),
+      ri("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "function_call_result", name: "t", callId: "call_lv", status: "completed", output: "x" },
+        output: { structuredContent: { a: undefined, d: WHEN } },
+      }),
+    ]);
+    expect(evs.find((e) => e.type === "tool.done")).toMatchObject({ structuredContent: { d: "2026-09-24T01:02:03.000Z" } });
+  });
+
+  it("I: tool_search arguments with an undefined member and a Date ⇒ assembled input {at: ISO}, no throw", () => {
+    const evs = run([
+      created,
+      ri("tool_search_called", {
+        type: "tool_search_call_item",
+        rawItem: { type: "tool_search_call", callId: "call_ts_lv", arguments: { q: undefined, at: WHEN }, id: "ts_lv" },
+      }),
+    ]);
+    expect(evs.find((e) => e.type === "tool.args.assembled")).toMatchObject({ input: { at: "2026-09-24T01:02:03.000Z" } });
+  });
+
+  it("J: a computer_call live action with an undefined member ⇒ assembled input without it, no throw", () => {
+    const evs = run([
+      created,
+      ri("tool_called", {
+        type: "tool_call_item",
+        rawItem: { type: "computer_call", callId: "call_cu_lv", status: "completed", action: { type: "click", x: 1, y: undefined }, id: "cu_lv" },
+      }),
+    ]);
+    const assembled = evs.find((e) => e.type === "tool.args.assembled");
+    expect(assembled).toMatchObject({ input: { type: "click", x: 1 } });
+    expect(JSON.stringify(assembled)).not.toContain('"y"');
+  });
+
+  it("a live SDK object with toJSON (agents-core RunItem/Agent shape) is read through its toJSON, as the capture agent's toJsonValue does", () => {
+    // The name is reachable ONLY through toJSON (no plain `name` member), so a
+    // correct toAgentName proves the entry normalization honoured toJSON.
+    class LiveAgent {
+      readonly #label: string;
+      constructor(label: string) {
+        this.#label = label;
+      }
+      toJSON(): { name: string } {
+        return { name: this.#label };
+      }
+    }
+    const evs = run([
+      created,
+      rm({ type: "response.output_text.delta", item_id: "msg_lv", delta: "hi" }),
+      rm({ type: "response.completed", response: { id: "resp_lv", status: "completed" } }),
+      ri("handoff_occurred", {
+        type: "handoff_output_item",
+        rawItem: { type: "function_call_result", name: "transfer", callId: "call_h", status: "completed", output: "{}" },
+        sourceAgent: new LiveAgent("spike"),
+        targetAgent: new LiveAgent("helper"),
+      }),
+    ]);
+    expect(evs.find((e) => e.type === "handoff")).toMatchObject({ kind: "transfer", toAgentName: "helper" });
+  });
+
+  // The last-resort guard: an envelope-VALID but malformed event used to throw
+  // a TypeError out of push() from an unguarded read deep in drive() (each of
+  // these threw before the guard; 2026-09-24 probe). Now: no throw, and the
+  // degradation is visible as ext.openai.unparsed{reason:"normalizer-error"}
+  // (no payload), never silent.
+  it.each([
+    ["tool_called with item {}", { type: "run_item_stream_event", name: "tool_called", item: {} }],
+    ["tool_output with rawItem {}", { type: "run_item_stream_event", name: "tool_output", item: { rawItem: {} } }],
+    ["message_output_created with no content", { type: "run_item_stream_event", name: "message_output_created", item: { rawItem: { type: "message" } } }],
+    ["response.completed with no response", { type: "raw_model_stream_event", data: { type: "model", event: { type: "response.completed" } } }],
+    ["output_item.added with no item", { type: "raw_model_stream_event", data: { type: "model", event: { type: "response.output_item.added" } } }],
+  ])("last-resort guard: %s ⇒ no throw, ext.openai.unparsed{reason:normalizer-error}", (_label, malformed) => {
+    const evs = run([liveNative(malformed)]);
+    const guard = evs.find((e) => e.type === "ext.openai.unparsed");
+    expect(guard).toMatchObject({ reason: "normalizer-error" });
+    expect(guard).not.toHaveProperty("native");
+  });
+
+  it("identity: an already-JSON native produces byte-identical output to before (the corpus shape)", () => {
+    const plain: JsonValue[] = [
+      rawModel({ type: "response.created", response: { id: "resp_id" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_id", delta: "hello" }),
+      rawModel({ type: "response.completed", response: { id: "resp_id", status: "completed" } }),
+    ];
+    const cloned: JsonValue[] = JSON.parse(JSON.stringify(plain));
+    const n1 = createOpenaiNormalizer();
+    const n2 = createOpenaiNormalizer();
+    expect(plain.flatMap((e) => n1.push(e)).concat(n1.flush())).toEqual(cloned.flatMap((e) => n2.push(e)).concat(n2.flush()));
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // OA-13 — `tool.start.providerExecuted` (SPEC:632; tool-call block
 // `providerExecuted`, SPEC:210; SPEC:496 "server already ran it; client MUST
 // NOT execute"). An existing optional slot (sp-rnd item 10 re-verify,

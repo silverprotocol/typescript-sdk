@@ -102,6 +102,7 @@ import {
   JsonValue,
   type Normalizer,
   StreamAssembler,
+  toJsonValueSafe,
   type ToolOutcome,
   type TurnDoneFields,
 } from "@silverprotocol/core";
@@ -2966,14 +2967,36 @@ export function createOpenaiNormalizer(): Normalizer {
 
   return {
     push(native: JsonValue): AgEvent[] {
-      if (!isOpenAIStreamEvent(native)) {
+      // LV (SPEC.md:933 — a Normalizer MUST NOT throw out of push()): a host may
+      // push the SDK's LIVE stream objects, not the JSON round-tripped shape the
+      // corpus records (the capture agent yields `toJsonValue(event)`). Live
+      // values carry `undefined` members, Dates, class instances and cycles,
+      // and the carried-member `JsonValue.parse` sites threw a ZodError on them
+      // (sp-main's no-throw check, 2026-09-24: 6 of 9 live shapes). Normalize
+      // ONCE, here, with core's TOTAL `toJsonValueSafe` — JSON.stringify's
+      // rules per node (toJSON honoured, undefined dropped, Date → ISO string);
+      // a BigInt / cycle / throwing getter degrades that one node, never the
+      // whole event. Already-JSON input comes back by identity, so every replay
+      // is unchanged: the whole corpus proves the live path.
+      const wire = toJsonValueSafe(native);
+      if (!isOpenAIStreamEvent(wire)) {
         // Graceful guard (Tenet 6): route a genuinely unrecognisable payload through
         // the lossless vendor channel rather than throwing. Nest under `native` so a
         // payload carrying its own `type` key does NOT clobber the event type.
-        a.emitExt("openai", "unparsed", { native });
+        a.emitExt("openai", "unparsed", { native: wire });
         return a.drain();
       }
-      drive(native);
+      try {
+        drive(wire);
+      } catch (err) {
+        // Last-resort guard (sp-main, 2026-09-24): a facet bug on some
+        // envelope-valid but malformed event must still not throw out of
+        // push(). Visible on the wire, without the payload.
+        a.emitExt("openai", "unparsed", {
+          reason: "normalizer-error",
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
       return a.drain();
     },
     flush(): AgEvent[] {
