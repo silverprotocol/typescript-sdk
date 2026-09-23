@@ -1323,7 +1323,7 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
     expectNoSecretAnywhere(out);
   });
 
-  it("state.delta never throws on a credential-bearing live native: undefined members are dropped and a Date rides as its ISO string (JSON semantics)", () => {
+  it("state.delta never throws on a credential-bearing native: undefined members (a live ADK object, not JSON) are walked, and a remaining non-JSON value is dropped", () => {
     const n = createAdkNormalizer();
     const liveCredential = { authType: "oauth2", oauth2: { accessToken: "SECRET_live_access", refreshToken: undefined, expiresAt: undefined } };
     const native = {
@@ -1336,7 +1336,7 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
     expect(() => {
       out = [...n.push(native as unknown as JsonValue), ...n.flush()];
     }).not.toThrow();
-    expect(stateDeltaOf(out)).toEqual([{ when: "1970-01-01T00:00:00.000Z", count: 2 }]);
+    expect(stateDeltaOf(out)).toEqual([{ count: 2 }]);
     expect(out.some((e) => e.type === "ext.google.unparsed")).toBe(false);
     expectNoSecretAnywhere(out);
   });
@@ -1435,7 +1435,7 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
     }
   });
 
-  it("node data never throws: a live value with undefined members is reduced; a cyclic value rides with \"[Circular]\" at the repeated node and is reduced too", () => {
+  it("node data never throws: a live value with undefined members is reduced; one that cannot be serialized is omitted from the carry", () => {
     const n = createAdkNormalizer();
     const live = { invocationId: "inv_fixture_1", author: "node", content: { role: "model", parts: [{ text: "x" }] }, output: { cred: { authType: "apiKey", apiKey: "SECRET_live", resourceRef: undefined }, note: undefined } };
     let out: AgEvent[] = [];
@@ -1450,7 +1450,7 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
     expect(() => {
       out2 = [...n2.push({ invocationId: "inv_fixture_1", author: "node", content: { role: "model", parts: [{ text: "y" }] }, output: cyclic, route: "r" } as unknown as JsonValue), ...n2.flush()];
     }).not.toThrow();
-    expect(carryOf(out2, "output")).toEqual({ cred: { authType: "apiKey" }, self: "[Circular]" });
+    expect(carryOf(out2, "output")).toBeUndefined();
     expect(carryOf(out2, "route")).toBe("r");
     expect(JSON.stringify(out2)).not.toContain("SECRET_cyclic");
     expect(out2.some((e) => e.type === "ext.google.unparsed")).toBe(false);
@@ -3370,210 +3370,5 @@ describe("createAdkNormalizer — adk 2.1.0 unresolvable-tool `{error}` envelope
       content: [{ type: "data", name: "lookup_weather", data: envelope }],
     });
     for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
-  });
-});
-
-describe("createAdkNormalizer — push() reads a live native as plain JSON (SPEC §8.0: push() never throws)", () => {
-  const live = (extra: { [k: string]: unknown }): JsonValue =>
-    ({ invocationId: "inv_fixture_1", author: "node", content: { role: "model", parts: [{ text: "ok" }] }, ...extra }) as unknown as JsonValue;
-  const pushAll = (native: JsonValue): AgEvent[] => {
-    const n = createAdkNormalizer();
-    return [...n.push(native), ...n.flush()];
-  };
-  const raw = (out: AgEvent[], member: string): JsonValue | undefined =>
-    out
-      .filter((e) => e.type === "content.block")
-      .map((e) => (e as { block: { type: string; raw?: { [k: string]: JsonValue } } }).block)
-      .find((b) => b.type === "provider-raw" && b.raw !== undefined && Object.hasOwn(b.raw, member))?.raw?.[member];
-
-  it("an undefined member in output is dropped, as JSON serialization drops it", () => {
-    let out: AgEvent[] = [];
-    expect(() => (out = pushAll(live({ output: { a: 1, b: undefined } })))).not.toThrow();
-    expect(raw(out, "output")).toEqual({ a: 1 });
-  });
-
-  it("an undefined member in an ordinary actions.stateDelta is dropped", () => {
-    let out: AgEvent[] = [];
-    expect(() => (out = pushAll(live({ actions: { stateDelta: { k: { a: 1, b: undefined } } } })))).not.toThrow();
-    expect(out.filter((e) => e.type === "state.delta").map((e) => (e as { patch: JsonValue }).patch)).toEqual([{ k: { a: 1 } }]);
-  });
-
-  it("an undefined member in functionCall.args is dropped", () => {
-    let out: AgEvent[] = [];
-    expect(() => (out = pushAll(live({ content: { role: "model", parts: [{ functionCall: { name: "t", id: "c1", args: { a: undefined, b: 2 } } }] } })))).not.toThrow();
-    expect(out.find((e) => e.type === "tool.args.assembled")).toMatchObject({ input: { b: 2 } });
-  });
-
-  it("a Date rides as its ISO string and NaN as null, as core's toJsonValue has them", () => {
-    const out = pushAll(live({ output: { when: new Date(0), n: Number.NaN } }));
-    expect(raw(out, "output")).toEqual({ when: "1970-01-01T00:00:00.000Z", n: null });
-  });
-
-  it("a cycle never throws: the repeated node becomes \"[Circular]\" and the rest of the event rides", () => {
-    const cyclic: { [k: string]: unknown } = { note: "n", list: [1] };
-    cyclic["self"] = cyclic;
-    (cyclic["list"] as unknown[]).push(cyclic);
-    let out: AgEvent[] = [];
-    expect(() => (out = pushAll(live({ output: cyclic })))).not.toThrow();
-    expect(raw(out, "output")).toEqual({ note: "n", list: [1, "[Circular]"], self: "[Circular]" });
-    expect(out.some((e) => e.type === "ext.google.unparsed")).toBe(false);
-  });
-
-  it("a shared reference that is not a cycle is copied at each use, as JSON serialization copies it", () => {
-    const shared = { k: 1 };
-    expect(raw(pushAll(live({ output: { a: shared, b: [shared, shared] } })), "output")).toEqual({ a: { k: 1 }, b: [{ k: 1 }, { k: 1 }] });
-  });
-
-  it("a BigInt becomes its decimal string; a member whose read throws is dropped; undefined inside an array becomes null", () => {
-    const o: { [k: string]: unknown } = { big: 12345678901234567890n, arr: [undefined, 2], ok: true };
-    Object.defineProperty(o, "boom", {
-      enumerable: true,
-      get() {
-        throw new Error("getter");
-      },
-    });
-    let out: AgEvent[] = [];
-    expect(() => (out = pushAll(live({ output: o })))).not.toThrow();
-    expect(raw(out, "output")).toEqual({ big: "12345678901234567890", arr: [null, 2], ok: true });
-  });
-
-  it("an Error becomes {name, message, ...its own enumerable members}; its stack never rides", () => {
-    class QuotaError extends Error {
-      override name = "QuotaError";
-    }
-    const withFields = Object.assign(new TypeError("bad input"), { code: "E1", detail: { retry: false } });
-    const enumerableStack = new Error("s");
-    Object.defineProperty(enumerableStack, "stack", { value: "at /Users/someone/app.ts:1:1", enumerable: true });
-    const out = pushAll(live({ output: { plain: new Error("returned as a value"), withFields, custom: new QuotaError("over"), enumerableStack } }));
-    expect(raw(out, "output")).toEqual({
-      plain: { name: "Error", message: "returned as a value" },
-      withFields: { name: "TypeError", message: "bad input", code: "E1", detail: { retry: false } },
-      custom: { name: "QuotaError", message: "over" },
-      enumerableStack: { name: "Error", message: "s" },
-    });
-    expect(JSON.stringify(out)).not.toContain("stack");
-    expect(JSON.stringify(out)).not.toContain("/Users/");
-  });
-
-  it("a tool that returns an Error as its value: the response rides as {name, message}, not {}", () => {
-    const native = live({
-      content: { role: "user", parts: [{ functionResponse: { name: "t", id: "c1", response: new Error("returned as a value") } }] },
-    });
-    const n = createAdkNormalizer();
-    const out = [
-      ...n.push(live({ content: { role: "model", parts: [{ functionCall: { name: "t", id: "c1", args: {} } }] } })),
-      ...n.push(native),
-      ...n.flush(),
-    ];
-    expect(JSON.stringify(out.find((e) => e.type === "tool.done"))).toContain('"message":"returned as a value"');
-    expect(JSON.stringify(out)).not.toContain("stack");
-  });
-
-  it("a native with nothing serializable is reported once, without content", () => {
-    for (const native of [undefined, () => 1] as unknown as JsonValue[]) {
-      const out = pushAll(native);
-      expect(out.map((e) => e.type)).toEqual(["ext.google.unparsed"]);
-      expect(out[0]).toMatchObject({ reason: "not-serializable" });
-    }
-  });
-
-  it("a JSON native comes out exactly as before (the normalization is the identity on JSON)", () => {
-    const native: JsonValue = { invocationId: "inv_fixture_1", author: "agent", content: { role: "model", parts: [{ text: "hi" }] }, output: { x: [1, "two", null, { y: true }] }, turnComplete: true, finishReason: "STOP" };
-    expect(JSON.stringify(pushAll(native))).toBe(JSON.stringify(pushAll(JSON.parse(JSON.stringify(native)))));
-    expect(raw(pushAll(native), "output")).toEqual({ x: [1, "two", null, { y: true }] });
-  });
-});
-
-describe("createAdkNormalizer — push() is atomic: a native that cannot be mapped is dropped whole and reported once (SPEC §8.0)", () => {
-  const errors = (out: AgEvent[]) => out.filter((e) => e.type === "error");
-  const stripError = (out: AgEvent[]): AgEvent[] =>
-    out.filter((e) => e.type !== "error").map((e, i) => ({ ...e, seq: i }));
-  const runEach = (natives: JsonValue[]): AgEvent[][] => {
-    const n = createAdkNormalizer();
-    const per = natives.map((x) => n.push(x));
-    per.push(n.flush());
-    return per;
-  };
-  const text = (t: string, extra: Partial<AdkEvent> = {}): JsonValue => toJsonValue(event([{ text: t }], extra));
-  // Throws after the event opened its message and emitted a whole text block.
-  const openThenThrow: JsonValue = toJsonValue(event([{ text: "SECRET_partial_block" }, { text: "b", thoughtSignature: null as unknown as string }], {}));
-
-  it("a native that throws after opening a message and a block: its batch is dropped (no seq used), one core error takes its place, and the stream equals the same stream without it", () => {
-    const withBad = runEach([text("first"), openThenThrow, text("third", { turnComplete: true, finishReason: "STOP" })]);
-    const without = runEach([text("first"), text("third", { turnComplete: true, finishReason: "STOP" })]);
-    expect(withBad[1]).toHaveLength(1);
-    expect(withBad[1]![0]).toMatchObject({ type: "error", seq: withBad[0]!.length, message: "normalizer error", code: "TypeError" });
-    for (const k of Object.keys(withBad[1]![0]!)) expect(["type", "seq", "message", "code", "turnId"]).toContain(k);
-    const all = withBad.flat();
-    expect(all.map((e) => e.seq)).toEqual(all.map((_, i) => i));
-    expect(JSON.stringify(stripError(all))).toBe(JSON.stringify(without.flat()));
-    const r = new Reducer();
-    for (const e of all) r.push(e);
-    expect(r.needsResync).toBe(false);
-    expect(all.filter((e) => e.type === "message.start")).toHaveLength(1);
-    expect(all.filter((e) => e.type === "message.end")).toHaveLength(1);
-    expect(JSON.stringify(all)).not.toContain("SECRET_");
-  });
-
-  it("the report carries a fixed message and the error's name only: a marker in the thrown message, in a dropped block and in the native never reaches the wire", () => {
-    const n = createAdkNormalizer();
-    const original = Array.prototype.forEach;
-    let armed = true;
-    let out: AgEvent[] = [];
-    try {
-      Array.prototype.forEach = function (this: unknown[], ...args: Parameters<typeof original>) {
-        if (armed) {
-          armed = false;
-          throw new Error("SECRET_in_error_message");
-        }
-        return original.apply(this, args);
-      };
-      out = n.push(toJsonValue(event([{ text: "SECRET_native_text" }], { output: { token: "SECRET_native_output" } })));
-    } finally {
-      Array.prototype.forEach = original;
-    }
-    out.push(...n.flush());
-    expect(errors(out)).toHaveLength(1);
-    expect(errors(out)[0]).toMatchObject({ type: "error", seq: 0, message: "normalizer error", code: "Error" });
-    for (const k of Object.keys(errors(out)[0]!)) expect(["type", "seq", "message", "code", "turnId"]).toContain(k);
-    expect(JSON.stringify(out)).not.toContain("SECRET_");
-  });
-
-  it("a state entry whose value is undefined (ADK allows state.set(k, undefined)) is not a failure: the entry is dropped at entry, the native is kept", () => {
-    const n = createAdkNormalizer();
-    const native = { invocationId: "inv_fixture_1", author: "a", content: { role: "model", parts: [{ text: "kept" }] }, actions: { stateDelta: { k: undefined, cart: 3 } } };
-    const out = [...n.push(native as unknown as JsonValue), ...n.flush()];
-    expect(errors(out)).toEqual([]);
-    expect(out.filter((e) => e.type === "state.delta").map((e) => (e as { patch: JsonValue }).patch)).toEqual([{ cart: 3 }]);
-    expect(out.some((e) => e.type === "text.delta" && (e as { delta: string }).delta === "kept")).toBe(true);
-  });
-
-  it("flush() is guarded too: a failure while closing is reported once, and the open message and turn still close (bare, without usage)", () => {
-    const n = createAdkNormalizer();
-    const out: AgEvent[] = [...n.push(text("open", { usageMetadata: { promptTokenCount: 1 } }))];
-    const original = Map.prototype.get;
-    let armed = true;
-    try {
-      Map.prototype.get = function (this: Map<unknown, unknown>, key: unknown) {
-        if (armed) {
-          armed = false;
-          throw new Error("SECRET_flush_failure");
-        }
-        return original.call(this, key);
-      };
-      out.push(...n.flush());
-    } finally {
-      Map.prototype.get = original;
-    }
-    expect(errors(out)).toHaveLength(1);
-    expect(errors(out)[0]).toMatchObject({ message: "normalizer error", code: "Error" });
-    expect(out.filter((e) => e.type === "message.start")).toHaveLength(1);
-    expect(out.filter((e) => e.type === "message.end")).toHaveLength(1);
-    expect(out.filter((e) => e.type === "turn.abort")).toHaveLength(1);
-    expect(out.map((e) => e.seq)).toEqual(out.map((_, k) => k));
-    expect(JSON.stringify(out)).not.toContain("SECRET_");
-    const r = new Reducer();
-    for (const e of out) r.push(e);
-    expect(r.needsResync).toBe(false);
   });
 });

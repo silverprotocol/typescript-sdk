@@ -1471,11 +1471,6 @@ function holdsObject(v: unknown, match: (o: { readonly [k: string]: unknown }) =
  *  entry that is not JSON is dropped rather than thrown on, since a throw would
  *  hand the raw native event to the host's error path. A value that is not a
  *  map is carried as before, or as {} if it holds a credential. */
-// From push(), an entry whose value is not JSON (ADK allows state.set(k,
-// undefined)) never reaches here: the entry conversion drops it, as JSON
-// serialization does. Under a per-key fold the fold then keeps its prior value
-// for that key while ADK holds undefined (read as absent), which is accepted
-// residue.
 function scrubStateMap(raw: unknown): JsonValue {
   if (!isObjectRecord(raw)) return holdsAuthCredential(raw) ? {} : JsonValue.parse(raw);
   const keys = Object.keys(raw);
@@ -1512,90 +1507,6 @@ function scrubbedResponse(response: unknown): { readonly [k: string]: JsonValue 
 // allowlisted response, so an untyped reply becomes {}. Every other member
 // rides unchanged. A value with neither is parsed exactly as before; a value
 // that cannot be walked or reduced is omitted, never thrown on.
-
-/** The native as plain JSON, converted node by node with JSON semantics: an
- *  Error becomes {name, message, ...its own enumerable members} without its
- *  stack, an undefined, function or symbol member is dropped (null inside an array), a
- *  non-finite number becomes null, a value with toJSON (a Date) is read
- *  through it, a BigInt becomes its decimal string, a node that repeats one of
- *  its own ancestors becomes "[Circular]", and a member whose read throws is
- *  dropped. Shared references that are not cycles are copied, as
- *  JSON.stringify copies them. A JSON native comes back structurally identical,
- *  own keys and their order included. `undefined` when nothing serializable
- *  remains, or the value is too deep to walk. Never throws. */
-function asWireJson(native: unknown): JsonValue | undefined {
-  const ancestors = new Set<object>();
-  const convert = (v: unknown, key: string): JsonValue | undefined => {
-    if (v === null || typeof v === "string" || typeof v === "boolean") return v;
-    if (typeof v === "number") return Number.isFinite(v) ? v : null;
-    if (typeof v === "bigint") return v.toString();
-    if (typeof v !== "object") return undefined;
-    if (ancestors.has(v)) return "[Circular]";
-    let toJSON: unknown;
-    try {
-      toJSON = Reflect.get(v, "toJSON");
-    } catch {
-      return undefined;
-    }
-    if (typeof toJSON === "function") {
-      let replaced: unknown;
-      try {
-        replaced = Reflect.apply(toJSON, v, [key]);
-      } catch {
-        return undefined;
-      }
-      if (replaced !== v) {
-        ancestors.add(v);
-        try {
-          return convert(replaced, key);
-        } finally {
-          ancestors.delete(v);
-        }
-      }
-    }
-    ancestors.add(v);
-    try {
-      if (Array.isArray(v)) return v.map((x, i) => convert(x, String(i)) ?? null);
-      const out: { [k: string]: JsonValue } = {};
-      if (v instanceof Error) {
-        // An Error's name and message are not own enumerable members, so JSON
-        // would drop them; they are read explicitly. Its stack never rides.
-        for (const k of ["name", "message"]) {
-          let member: unknown;
-          try {
-            member = Reflect.get(v, k);
-          } catch {
-            continue;
-          }
-          const converted = convert(member, k);
-          if (converted !== undefined)
-            Object.defineProperty(out, k, { value: converted, enumerable: true, writable: true, configurable: true });
-        }
-      }
-      for (const k of Object.keys(v)) {
-        if (k === "stack" && v instanceof Error) continue;
-        let member: unknown;
-        try {
-          member = Reflect.get(v, k);
-        } catch {
-          continue;
-        }
-        const converted = convert(member, k);
-        // defineProperty keeps an own key exactly as JSON.parse would create it.
-        if (converted !== undefined)
-          Object.defineProperty(out, k, { value: converted, enumerable: true, writable: true, configurable: true });
-      }
-      return out;
-    } finally {
-      ancestors.delete(v);
-    }
-  };
-  try {
-    return convert(native, "");
-  } catch {
-    return undefined;
-  }
-}
 
 /** A response named adk_request_credential (a functionResponse object). */
 function isCredentialRequestResponse(v: { readonly [k: string]: unknown }): boolean {
@@ -1993,7 +1904,7 @@ function driveAdkTopLevel(
 }
 
 // ─── stateful factory: createAdkNormalizer ────────────────────────────────────
-function createAdkInner(): AdkInner {
+export function createAdkNormalizer(): Normalizer {
   const a = new StreamAssembler();
   const threadId = "google";
   // §8.3 per-instance accumulator (replaces the module-level streamedText Map):
@@ -2281,27 +2192,15 @@ function createAdkInner(): AdkInner {
   }
 
   return {
-    accept(json: JsonValue | undefined): AgEvent[] {
-      if (json === undefined) {
-        a.emitExt("google", "unparsed", { reason: "not-serializable" });
+    push(native: JsonValue): AgEvent[] {
+      if (!isAdkEvent(native)) {
+        a.emitExt("google", "unparsed", { native });
         return a.drain();
       }
-      if (!isAdkEvent(json)) {
-        a.emitExt("google", "unparsed", { native: json });
-        return a.drain();
-      }
-      drive(json);
+      drive(native);
       return a.drain();
     },
-    reportError(e: unknown): AgEvent[] {
-      // A non-terminal core `error` whose code is only the thrown value's
-      // constructor name (e.g. "TypeError"), with a fixed message and no
-      // payload, so nothing from the native reaches it.
-      const code = e instanceof Error ? e.constructor.name : typeof e;
-      a.emit({ type: "error", message: "normalizer error", code });
-      return a.drain();
-    },
-    flush(bare: boolean): AgEvent[] {
+    flush(): AgEvent[] {
       // Dangling open turns (interrupted stream before a final aggregate):
       // close their message; the ENGINE flush closes the turn itself with
       // turn.abort{stream-truncated} per INV-FLUSH — never success (audit M21).
@@ -2314,87 +2213,14 @@ function createAdkInner(): AdkInner {
       // (SPEC.md:779; R&D item 6 step 1), so a flushed turn, e.g. a completed
       // Workflow invoke until the host completion signal exists, still reports
       // the tokens it spent. There is never a turn.done here, so the usage
-      // appears only once. `bare` closes without the usage (the last-resort
-      // path, when reading it failed).
+      // appears only once.
       for (const turnId of openTurns) {
         if (!closedTurns.has(turnId)) {
           closedTurns.add(turnId);
-          a.closeMessage(`msg_${turnId}`, bare ? undefined : mapUsage(usageByTurn.get(turnId)));
+          a.closeMessage(`msg_${turnId}`, mapUsage(usageByTurn.get(turnId)));
         }
       }
       return a.flush();
     },
   };
-}
-
-/** One invoke's facet state and assembler; driven only through
- *  createAdkNormalizer, which keeps push() atomic. */
-interface AdkInner {
-  /** Map one entry-converted native (`undefined`: nothing serializable).
-   *  May throw on an event whose inner members have unexpected types. */
-  accept(json: JsonValue | undefined): AgEvent[];
-  /** The last-resort report, at the next seq. */
-  reportError(e: unknown): AgEvent[];
-  /** End of stream; `bare` closes open messages without their usage. */
-  flush(bare: boolean): AgEvent[];
-}
-
-/**
- * The google-adk Normalizer. push() is atomic and never throws (SPEC §8.0):
- * the native is read once as plain JSON (asWireJson), then mapped. If mapping
- * throws (an event whose envelope is valid but whose inner members have
- * unexpected types), the partial batch is discarded, consuming no seq; the
- * facet is rebuilt by re-driving, silently, every native accepted so far (it
- * is deterministic: no clock, no randomness, ids from invocationId and
- * per-invoke ordinals); and one core `error` event is emitted at the next seq.
- * flush() is guarded the same way and then closes what is open without usage.
- * Costs: the journal holds a copy of every accepted native for the invoke's
- * life, and each failure re-drives the accepted prefix.
- */
-export function createAdkNormalizer(): Normalizer {
-  let inner = createAdkInner();
-  const journal: (JsonValue | undefined)[] = [];
-  const rebuild = (): void => {
-    inner = createAdkInner();
-    try {
-      for (const entry of journal) inner.accept(entry);
-    } catch {
-      // Unreachable: each entry was accepted before by an identical facet.
-    }
-  };
-  return {
-    push(native: JsonValue): AgEvent[] {
-      // A host may push the live object ADK yields (the README's usage), and
-      // that can hold undefined members, a Date or another non-JSON value. The
-      // native is read once as plain JSON (see asWireJson), so nothing below
-      // parses a non-JSON value. A native that cannot be serialized at all is
-      // reported without its content.
-      const json = asWireJson(native);
-      // The journal keeps its own copy, taken before mapping, so nothing the
-      // mapping or the host does to the value can change a later re-drive.
-      const entry = json === undefined ? undefined : copyJson(json);
-      try {
-        const out = inner.accept(json);
-        journal.push(entry);
-        return out;
-      } catch (e) {
-        rebuild();
-        return inner.reportError(e);
-      }
-    },
-    flush(): AgEvent[] {
-      try {
-        return inner.flush(false);
-      } catch (e) {
-        rebuild();
-        return [...inner.reportError(e), ...inner.flush(true)];
-      }
-    },
-  };
-}
-
-/** A deep copy of a plain JSON value. */
-function copyJson(v: JsonValue): JsonValue {
-  const copy: JsonValue = JSON.parse(JSON.stringify(v));
-  return copy;
 }
