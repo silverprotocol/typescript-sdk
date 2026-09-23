@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import {
   reduce,
   Reducer,
@@ -97,6 +97,10 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 20, title: "Malformed input at a trust boundary", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.20" },
   { n: 21, leg: "fold", title: "Reasoning-inclusive usage identity — the Gemini fold (thoughts added; absent ⇒ draft.2 bytes; already-inclusive not double-added)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.21(fold), facet-driven via createAdkNormalizer" },
   { n: 21, leg: "replay", title: "Reasoning-inclusive usage identity — input + output (+ toolUseInput) == total on every replay golden with a provider total", disposition: "COVERED-BY", citation: "replay.test.ts:331 assertUsageIdentity, run by all four replay suites (:380 claude, :417 openai, :456 adk, :491 vercel)" },
+  { n: 22, title: "Forward-compatible ingest (draft.4): an ignored well-formed event occupies its seq slot, is reported in place, and the fold is unchanged", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.22, reference ingest (ingestAgEvents) → reduce" },
+  { n: 23, title: "Unmapped native value (draft.4): fallback finishReason + verbatim finishReasonRaw", disposition: "N/A", citation: "pending: the facets' raw-reason carry (claude/openai/google/vercel, §8.0 graceful degradation) lands AFTER this SPEC pair; this row flips to RUNNABLE, facet-driven, in sp-protocol's follow-up sha" },
+  { n: 24, leg: "scan", title: "Tool-result errorText scoping (draft.4): no replay golden carries errorText on a non-error result", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.24(scan), a scan of every corpus/*/*.agjson.json" },
+  { n: 24, leg: "adk", title: "ADK failure envelope (draft.4, §8.0 item 25): the error/denied/placeholder/negative vectors", disposition: "N/A", citation: "pending: the google-adk item-25 flip (sp-google 1904293) lands AFTER this SPEC pair; this row flips to RUNNABLE, facet-driven via createAdkNormalizer, in sp-protocol's follow-up sha" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -709,30 +713,44 @@ describe("§10.19 — A2UI component streaming: createSurface + updateComponents
 // §10.20 — Malformed input at a trust boundary (RUNNABLE)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("§10.20 — malformed input at a trust boundary: a schema-invalid event is rejected before folding; the reducer's fold state and resync condition are unaffected by the rejected event", () => {
-  it("a schema-invalid event fails AgEvent.safeParse (typed error, never reaches push()); a validated stream around it folds cleanly with needsResync unaffected", () => {
-    // Malformed per the AgEvent superRefine cross-field invariant (message.remove
-    // REMOVE_ALL id="*" requires turnId). Schema-shape rejection itself is
-    // already COVERED-BY agjson.test.ts:1266 "rejects message.remove
-    // REMOVE_ALL ('*') without a turnId" + :1262 "rejects memory.write
-    // carrying BOTH value and patch, or NEITHER". This fixture adds the
-    // REDUCER-INTEGRATION half: the trust boundary sits IN FRONT of push(),
-    // so a rejected event never reaches — and cannot corrupt — fold state.
-    const malformed = { type: "message.remove", seq: 5, id: "*" }; // missing turnId
-    const parsed = AgEvent.safeParse(malformed);
-    expect(parsed.success).toBe(false); // typed error to the caller, before folding
+// The baseline stream S of §10 items 20 and 22: turn.start(0), message.start(1),
+// text.start/delta/end, message.end, turn.done. S_TAIL(n) starts the tail at seq n,
+// so a frame inserted at seq 2 shifts the tail by one.
+const S_HEAD: Array<Record<string, unknown>> = [
+  { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+  { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+];
+const S_TAIL = (n: number): Array<Record<string, unknown>> => [
+  { type: "text.start", seq: n, id: "b1", turnId: "t1" },
+  { type: "text.delta", seq: n + 1, id: "b1", delta: "hello" },
+  { type: "text.end", seq: n + 2, id: "b1" },
+  { type: "message.end", seq: n + 3, id: "m1" },
+  { type: "turn.done", seq: n + 4, turnId: "t1", outcome: { type: "success" }, finishReason: "stop" },
+];
 
-    const r = new Reducer();
-    r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
-    r.push({ type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
-    // A validating caller (ingest boundary) never pushes the rejected event —
-    // only well-formed events downstream of the schema gate reach the reducer.
-    r.push({ type: "text.start", seq: 2, id: "b1", turnId: "t1" });
-    r.push({ type: "text.delta", seq: 3, id: "b1", delta: "unaffected" });
-    r.push({ type: "text.end", seq: 4, id: "b1" });
-    const result = r.result();
-    expect(result.messages[0]?.content[0]).toMatchObject({ type: "text", text: "unaffected" });
-    expect(r.needsResync).toBe(false); // fold state / resync condition unaffected by the rejected event
+describe("§10.20 — malformed input at a trust boundary (draft.4): a non-envelope input is a typed error and occupies no seq slot; a well-formed envelope that fails validation is reported and not folded, and the stream folds as if it were absent", () => {
+  it("(draft.4 amended item 20) a well-formed envelope that fails validation, mid-stream at seq 2, is reported in place and not folded, and the stream folds — resync false — to the same result as the stream with it removed and later seqs renumbered; a non-envelope input is a typed error (onReject) and advances nothing", () => {
+    // Malformed per the AgEvent superRefine invariant (message.remove REMOVE_ALL
+    // id="*" requires turnId). Schema-shape rejection itself stays COVERED-BY
+    // agjson.test.ts ("rejects message.remove REMOVE_ALL ('*') without a turnId").
+    const malformed = { type: "message.remove", seq: 2, id: "*" }; // missing turnId
+    expect(AgEvent.safeParse(malformed).success).toBe(false);
+
+    const withIt = ingestAgEvents([...S_HEAD, malformed, ...S_TAIL(3)] as unknown as JsonValue[]);
+    const without = ingestAgEvents([...S_HEAD, ...S_TAIL(2)] as unknown as JsonValue[]);
+    const ignored = withIt.filter((e) => e.type === "ext.agjson.ignored") as unknown as Array<Record<string, unknown>>;
+    expect(ignored).toHaveLength(1);
+    expect(ignored[0]).toMatchObject({ seq: 2, ignoredType: "message.remove", raw: malformed });
+
+    const a = reduce(withIt);
+    const b = reduce(without);
+    expect(a.needsResync).toBe(false);
+    expect(a.result).toEqual(b.result);
+
+    const rejects: Array<{ reason: string }> = [];
+    const out = ingestAgEvents([[1, 2] as unknown as JsonValue], { onReject: (r) => rejects.push({ reason: r.reason }) });
+    expect(out).toHaveLength(0);
+    expect(rejects).toEqual([{ reason: "not-object" }]);
   });
 
   it("a VALID event carrying an own `__proto__` key is not silently skipped: the consumer ingest (ingestAgEvents) returns a plain event whose prototype the wire cannot choose, so no unvalidated field is inherited and the block folds (SPEC.md:759 'never a silent skip', :27 pass-through; core fix 7ede731)", () => {
@@ -857,4 +875,81 @@ describe("§5.0 INV-MSG — a delta event into a sealed message is a reduce()-er
       expect(reduce(openFirst).needsResync).toBe(false);
     });
   }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.22 — Forward-compatible ingest (draft.4) (RUNNABLE, reference ingest → reduce)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.22 — forward-compatible ingest (draft.4): an ignored well-formed event occupies its seq slot, is reported in place as ext.agjson.ignored, and the fold equals the fold of S", () => {
+  const cases: Array<{ name: string; x: Record<string, unknown> }> = [
+    { name: "(a) an undefined event type named per §0.3 (zz.start)", x: { type: "zz.start", seq: 2 } },
+    { name: "(a') an event whose final segment is outside §0.3's closed set (zz.probe)", x: { type: "zz.probe", seq: 2 } },
+    { name: "(b) reasoning.start with an unknown mode", x: { type: "reasoning.start", seq: 2, id: "r1", turnId: "t1", mode: "zz" } },
+    { name: "(c) content.block whose block type is unknown", x: { type: "content.block", seq: 2, turnId: "t1", block: { type: "zz" } } },
+    { name: "(d) tool.done with an unknown outcome", x: { type: "tool.done", seq: 2, toolCallId: "c1", content: [], outcome: "zz" } },
+    { name: "(e) message.remove with id '*' and no turnId", x: { type: "message.remove", seq: 2, id: "*" } },
+  ];
+  const foldS = reduce(ingestAgEvents([...S_HEAD, ...S_TAIL(2)] as unknown as JsonValue[]));
+
+  for (const c of cases) {
+    it(`${c.name}: resync false, fold equals S, exactly one ignored report at seq 2 carrying the frame verbatim`, () => {
+      const out = ingestAgEvents([...S_HEAD, c.x, ...S_TAIL(3)] as unknown as JsonValue[]);
+      const ignored = out.filter((e) => e.type === "ext.agjson.ignored") as unknown as Array<Record<string, unknown>>;
+      expect(ignored).toHaveLength(1);
+      expect(ignored[0]).toMatchObject({ seq: 2, ignoredType: c.x["type"] });
+      expect(ignored[0]?.["raw"]).toEqual(c.x);
+      const r = reduce(out);
+      expect(r.needsResync).toBe(false);
+      expect(r.result).toEqual(foldS.result);
+    });
+  }
+
+  it("nested pass-through: an unknown key inside turn.done.usage survives into the fold", () => {
+    const tail = S_TAIL(2);
+    (tail[4] as Record<string, unknown>)["usage"] = { inputTokens: 1, outputTokens: 2, zzCounter: 7 };
+    const r = reduce(ingestAgEvents([...S_HEAD, ...tail] as unknown as JsonValue[]));
+    expect((r.result.turns[0]?.usage as unknown as Record<string, unknown>)["zzCounter"]).toBe(7);
+  });
+
+  it("controls: a seq jump of 5 still parks; non-envelope inputs go to onReject and advance nothing; an own __proto__ key does not select the prototype (§13.7)", () => {
+    const jumped = [...S_HEAD, ...S_TAIL(7)];
+    expect(reduce(ingestAgEvents(jumped as unknown as JsonValue[])).needsResync).toBe(true);
+
+    const reasons: string[] = [];
+    const out = ingestAgEvents(["x", { type: 5, seq: 2 }, { type: "zz.start" }] as unknown as JsonValue[], { onReject: (r) => reasons.push(r.reason) });
+    expect(out).toHaveLength(0);
+    expect(reasons).toEqual(["not-object", "type-not-string", "seq-not-number"]);
+
+    const proto = JSON.parse('{"type":"zz.start","seq":2,"__proto__":{"transient":true}}') as JsonValue;
+    const ignored = ingestAgEvents([proto])[0] as unknown as Record<string, unknown>;
+    expect(Object.getPrototypeOf(ignored)).toBe(Object.prototype);
+    expect(Object.prototype.hasOwnProperty.call(ignored["raw"] as object, "__proto__")).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.24 — Tool-result error scoping (draft.4)
+// (scan leg RUNNABLE; ADK leg N/A-pending the google-adk item-25 flip)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.24 — tool-result errorText scoping (draft.4): on every replay golden, no tool.done carries errorText unless its outcome is error", () => {
+  it("(scan) every corpus/*/*.agjson.json: count of tool.done events with errorText and outcome !== 'error' is 0", () => {
+    const corpus = new URL("../corpus/", import.meta.url);
+    let files = 0;
+    const violations: string[] = [];
+    for (const dir of readdirSync(corpus)) {
+      for (const fw of ["claude", "openai", "adk", "vercel"]) {
+        const f = new URL(`${dir}/${fw}.agjson.json`, corpus);
+        if (!existsSync(f)) continue;
+        files++;
+        const events = JSON.parse(readFileSync(f, "utf8")) as Array<Record<string, unknown>>;
+        events.forEach((e, i) => {
+          if (e["type"] === "tool.done" && "errorText" in e && e["outcome"] !== "error") violations.push(`${dir}/${fw}[${i}]`);
+        });
+      }
+    }
+    expect(files).toBeGreaterThan(0);
+    expect(violations).toEqual([]);
+  });
 });
