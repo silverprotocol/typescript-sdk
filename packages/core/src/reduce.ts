@@ -284,6 +284,7 @@ export class Reducer {
         const block: AgBlock = {
           type: "text",
           text: "", // REQUIRED field — mid-stream result() before any delta must parse
+          ...(ev.phase !== undefined ? { phase: ev.phase } : {}), // draft.4 open-string label
           ...(ev.providerMetadata !== undefined ? { providerMetadata: ev.providerMetadata } : {}),
           ...(ev._meta !== undefined ? { _meta: ev._meta } : {}),
         };
@@ -314,6 +315,9 @@ export class Reducer {
         if (msg === undefined) break;
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "text") break;
+        // draft.4 phase: a value on the end REPLACES the start one; absent keeps
+        // it; never filled once the owning message is sealed.
+        if (ev.phase !== undefined && !this.#sealed.has(msg.id)) block.phase = ev.phase;
         block.providerMetadata = mergeProviderMeta(block.providerMetadata, ev.providerMetadata);
         // STREAMED-text citations carrier (audit M22): attach citations to the
         // sealed block named by `ev.id` — never re-emitted as a duplicate
@@ -329,6 +333,7 @@ export class Reducer {
         const block: AgBlock = {
           type: "reasoning",
           text: "", // seeded — mid-stream result() before any delta must parse
+          ...(ev.phase !== undefined ? { phase: ev.phase } : {}), // draft.4 open-string label
           ...(ev.providerMetadata !== undefined ? { providerMetadata: ev.providerMetadata } : {}),
           ...(ev._meta !== undefined ? { _meta: ev._meta } : {}),
           ...(ev.itemId !== undefined ? { itemId: ev.itemId } : {}),
@@ -361,6 +366,8 @@ export class Reducer {
         if (msg === undefined) break;
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "reasoning") break;
+        // draft.4 phase: same rule as text.end (end REPLACES, absent keeps, no post-seal fill).
+        if (ev.phase !== undefined && !this.#sealed.has(msg.id)) block.phase = ev.phase;
         block.providerMetadata = mergeProviderMeta(block.providerMetadata, ev.providerMetadata);
         if (ev.provider !== undefined) {
           block.provider = ev.provider;

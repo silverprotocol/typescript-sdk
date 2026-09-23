@@ -354,7 +354,7 @@ type BlockMeta = {
   _meta?: AgMeta;
 };
 export type AgBlock =
-  | ({ type: "text"; text: string; citations?: AgCitation[] } & BlockMeta)
+  | ({ type: "text"; text: string; citations?: AgCitation[]; phase?: string } & BlockMeta)
   | ({ type: "image"; source: AgSource } & BlockMeta)
   | ({ type: "audio"; source: AgSource } & BlockMeta)
   | ({ type: "file"; source: AgSource; filename?: string } & BlockMeta)
@@ -374,6 +374,7 @@ export type AgBlock =
   | ({
       type: "reasoning";
       text?: string;
+      phase?: string; // draft.4 open-string label (§2), folded from reasoning.start/end
       opaque?: AgOpaque;
       provider?: string;
       providerDetails?: JsonValue;
@@ -449,6 +450,7 @@ export const AgBlock: z.ZodType<AgBlock> = z.lazy(() =>
       type: z.literal("text"),
       text: z.string(),
       citations: z.array(AgCitation).optional(),
+      phase: z.string().optional(), // draft.4: OPEN string, never z.enum (a closed value would drop the event)
     }),
     z.object({ ...blockMeta, type: z.literal("image"), source: AgSource }),
     z.object({ ...blockMeta, type: z.literal("audio"), source: AgSource }),
@@ -467,6 +469,7 @@ export const AgBlock: z.ZodType<AgBlock> = z.lazy(() =>
       ...blockMeta,
       type: z.literal("reasoning"),
       text: z.string().optional(),
+      phase: z.string().optional(), // draft.4: OPEN string, never z.enum
       opaque: AgOpaque.optional(),
       provider: z.string().optional(),
       providerDetails: JsonValue.optional(),
@@ -1145,6 +1148,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     type: z.literal("text.start"),
     id: z.string(),
     role: z.literal("assistant").optional(),
+    phase: z.string().optional(), // draft.4 open-string label, folds onto the block
     index: z.number().optional(),
     previousPartKind: z.string().optional(),
     providerMetadata: AgProviderMeta.optional(),
@@ -1161,6 +1165,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     ...base,
     type: z.literal("text.end"),
     id: z.string(),
+    phase: z.string().optional(), // draft.4: REPLACES the start value when present
     providerMetadata: AgProviderMeta.optional(),
     // STREAMED-text citations carrier (audit M22): citations for a streamed text
     // block arrive here (not as a duplicate id-less supplement block) and attach
@@ -1239,6 +1244,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     type: z.literal("reasoning.start"),
     id: z.string(),
     mode: z.enum(["summarized", "full"]).optional(),
+    phase: z.string().optional(), // draft.4 open-string label, folds onto the block
     partIndex: z.number().optional(),
     previousPartKind: z.string().optional(),
     providerMetadata: AgProviderMeta.optional(),
@@ -1258,6 +1264,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     type: z.literal("reasoning.end"),
     id: z.string(),
     provider: z.string().optional(),
+    phase: z.string().optional(), // draft.4: REPLACES the start value when present
     providerMetadata: AgProviderMeta.optional(),
   }),
   // REPLACE — sets `opaque` on the reasoning block named by `id` (replay-load-bearing).

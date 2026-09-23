@@ -345,7 +345,7 @@ export class StreamAssembler {
   textStart(
     id: string,
     messageId: string,
-    fields?: { role?: "assistant"; providerMetadata?: AgProviderMeta },
+    fields?: { role?: "assistant"; providerMetadata?: AgProviderMeta; phase?: string },
   ): void {
     const turnId = this.#resolveTurnId(undefined, messageId);
     const ev: TextStartEvent = {
@@ -355,6 +355,7 @@ export class StreamAssembler {
       messageId,
       ...(turnId !== undefined ? { turnId } : {}),
       ...(fields?.role !== undefined ? { role: fields.role } : {}),
+      ...(fields?.phase !== undefined ? { phase: fields.phase } : {}), // draft.4 open-string label
       ...(fields?.providerMetadata !== undefined ? { providerMetadata: fields.providerMetadata } : {}),
     };
     this.#emit(ev);
@@ -384,7 +385,7 @@ export class StreamAssembler {
   textEnd(
     id: string,
     messageId: string,
-    fields?: { providerMetadata?: AgProviderMeta; citations?: AgCitation[] },
+    fields?: { providerMetadata?: AgProviderMeta; citations?: AgCitation[]; phase?: string },
   ): void {
     const turnId = this.#resolveTurnId(undefined, messageId);
     const ev: TextEndEvent = {
@@ -393,6 +394,7 @@ export class StreamAssembler {
       id,
       messageId,
       ...(turnId !== undefined ? { turnId } : {}),
+      ...(fields?.phase !== undefined ? { phase: fields.phase } : {}), // draft.4: replaces the start value
       ...(fields?.providerMetadata !== undefined ? { providerMetadata: fields.providerMetadata } : {}),
       ...(fields?.citations !== undefined ? { citations: fields.citations } : {}),
     };
@@ -402,7 +404,7 @@ export class StreamAssembler {
   // ── REASONING primitives ────────────────────────────────────────────────────
 
   /** Emit `reasoning.start` for a new reasoning stream. */
-  reasoningStart(id: string, messageId: string, opts?: { mode?: "summarized" | "full" }): void {
+  reasoningStart(id: string, messageId: string, opts?: { mode?: "summarized" | "full"; phase?: string }): void {
     const turnId = this.#resolveTurnId(undefined, messageId);
     const ev: ReasoningStartEvent = {
       type: "reasoning.start",
@@ -411,6 +413,7 @@ export class StreamAssembler {
       messageId,
       ...(turnId !== undefined ? { turnId } : {}),
       ...(opts?.mode !== undefined ? { mode: opts.mode } : {}),
+      ...(opts?.phase !== undefined ? { phase: opts.phase } : {}), // draft.4 open-string label
     };
     this.#emit(ev);
   }
@@ -444,7 +447,7 @@ export class StreamAssembler {
   }
 
   /** Emit `reasoning.end` for a finished reasoning stream. */
-  reasoningEnd(id: string, messageId: string, opts?: { provider?: string }): void {
+  reasoningEnd(id: string, messageId: string, opts?: { provider?: string; phase?: string }): void {
     const turnId = this.#resolveTurnId(undefined, messageId);
     const ev: ReasoningEndEvent = {
       type: "reasoning.end",
@@ -453,6 +456,7 @@ export class StreamAssembler {
       messageId,
       ...(turnId !== undefined ? { turnId } : {}),
       ...(opts?.provider !== undefined ? { provider: opts.provider } : {}),
+      ...(opts?.phase !== undefined ? { phase: opts.phase } : {}), // draft.4: replaces the start value
     };
     this.#emit(ev);
   }

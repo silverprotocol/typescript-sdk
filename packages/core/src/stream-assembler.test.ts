@@ -546,3 +546,31 @@ describe("StreamAssembler.emit — base primitive for standalone events", () => 
     expect(textStart?.turnId).toBe("t1");
   });
 });
+
+describe("draft.4 phase option on the text/reasoning start and end sugar", () => {
+  it("emits phase only when given, on all four primitives", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.drain();
+    a.textStart("x1", "m1", { phase: "interim" });
+    a.textEnd("x1", "m1", { phase: "x-other" });
+    a.reasoningStart("r1", "m1", { phase: "interim" });
+    a.reasoningEnd("r1", "m1", { phase: "x-other" });
+    a.textStart("x2", "m1");
+    a.textEnd("x2", "m1");
+    a.reasoningStart("r2", "m1");
+    a.reasoningEnd("r2", "m1");
+    const out = a.drain() as Array<{ type: string; id: string; phase?: string }>;
+    expect(out.map((e) => [e.type, e.id, e.phase])).toEqual([
+      ["text.start", "x1", "interim"],
+      ["text.end", "x1", "x-other"],
+      ["reasoning.start", "r1", "interim"],
+      ["reasoning.end", "r1", "x-other"],
+      ["text.start", "x2", undefined],
+      ["text.end", "x2", undefined],
+      ["reasoning.start", "r2", undefined],
+      ["reasoning.end", "r2", undefined],
+    ]);
+    for (const e of out.slice(4)) expect("phase" in e).toBe(false); // absent ⇒ no key (draft.3 byte-identity)
+  });
+});

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { reduce, Reducer } from "./reduce.js";
-import type { AgEvent } from "./agjson.js";
+import { AgEvent } from "./agjson.js";
 import { AgReduceResult } from "./agjson.js";
 
 // Shared event helpers for R2 tests
@@ -3150,5 +3150,93 @@ describe("tool.done _meta carriage (workspace#9)", () => {
     ]).result;
     const block = r.messages[0]?.content[1];
     if (block?.type === "tool-result") expect("_meta" in block).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// draft.4 `phase` (rnd 13+17 stage 2, P-phase): an open-string label on
+// text.start/text.end/reasoning.start/reasoning.end that folds onto the block.
+// Set-if-present; a value on *.end REPLACES the prior one, an absent one keeps
+// it; no fill once the owning message is sealed.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("draft.4 phase on text and reasoning blocks (rnd 13+17 stage 2)", () => {
+  const head: AgEvent[] = [
+    { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+    { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+  ];
+  const textStream = (start: object, end: object): AgEvent[] =>
+    [
+      ...head,
+      { type: "text.start", seq: 2, id: "x1", turnId: "t1", ...start },
+      { type: "text.delta", seq: 3, id: "x1", delta: "hi" },
+      { type: "text.end", seq: 4, id: "x1", ...end },
+      { type: "message.end", seq: 5, id: "m1" },
+    ] as AgEvent[];
+  const reasoningStream = (start: object, end: object): AgEvent[] =>
+    [
+      ...head,
+      { type: "reasoning.start", seq: 2, id: "r1", turnId: "t1", ...start },
+      { type: "reasoning.delta", seq: 3, id: "r1", delta: "think" },
+      { type: "reasoning.end", seq: 4, id: "r1", ...end },
+      { type: "message.end", seq: 5, id: "m1" },
+    ] as AgEvent[];
+  const block = (evs: AgEvent[]) => reduce(evs).result.messages[0]!.content[0] as { phase?: string };
+
+  it("the schema accepts phase on the four events and on text/reasoning blocks, as an OPEN string", () => {
+    for (const ev of [...textStream({ phase: "interim" }, { phase: "x-future" }), ...reasoningStream({ phase: "interim" }, { phase: "x-future" })]) {
+      expect(() => AgEvent.parse(ev)).not.toThrow();
+    }
+    expect(() => AgReduceResult.parse(reduce(textStream({ phase: "x-future" }, {})).result)).not.toThrow();
+  });
+
+  it("(a) text.start{phase:'interim'} → delta → text.end{} folds to 'interim'", () => {
+    expect(block(textStream({ phase: "interim" }, {})).phase).toBe("interim");
+  });
+
+  it("(b) reasoning.end{phase:'interim'} sets it", () => {
+    expect(block(reasoningStream({}, { phase: "interim" })).phase).toBe("interim");
+  });
+
+  it("(c) a start value survives a phase-less end (text and reasoning)", () => {
+    expect(block(textStream({ phase: "interim" }, {})).phase).toBe("interim");
+    expect(block(reasoningStream({ phase: "interim" }, {})).phase).toBe("interim");
+  });
+
+  it("a value on *.end REPLACES the start's", () => {
+    expect(block(textStream({ phase: "interim" }, { phase: "x-other" })).phase).toBe("x-other");
+    expect(block(reasoningStream({ phase: "interim" }, { phase: "x-other" })).phase).toBe("x-other");
+  });
+
+  it("(d) an unknown value ('x-future') folds verbatim", () => {
+    expect(block(textStream({ phase: "x-future" }, {})).phase).toBe("x-future");
+  });
+
+  it("(e) the same streams with every phase removed fold exactly as draft.3 did: no phase key", () => {
+    for (const evs of [textStream({}, {}), reasoningStream({}, {})]) {
+      const b = block(evs);
+      expect("phase" in b).toBe(false);
+    }
+  });
+
+  it("(f) INV-FOLD: an incremental fold equals the batch fold", () => {
+    const evs = [...textStream({ phase: "interim" }, { phase: "x-other" })];
+    const r = new Reducer();
+    const snapshots = evs.map((e) => {
+      r.push(e);
+      return r.result();
+    });
+    expect(snapshots[snapshots.length - 1]).toEqual(reduce(evs).result);
+  });
+
+  it("no post-seal fill: a phase on a text.end after message.end is not applied", () => {
+    const evs = [
+      ...head,
+      { type: "text.start", seq: 2, id: "x1", turnId: "t1", phase: "interim" },
+      { type: "text.delta", seq: 3, id: "x1", delta: "hi" },
+      { type: "message.end", seq: 4, id: "m1" },
+      { type: "text.end", seq: 5, id: "x1", phase: "x-late" },
+    ] as AgEvent[];
+    expect(block(evs).phase).toBe("interim");
   });
 });

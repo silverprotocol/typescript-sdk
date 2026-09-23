@@ -1805,3 +1805,36 @@ describe("forward-compat + Tenet 6 (scaffold contract, kept)", () => {
     expectAllParse(out);
   });
 });
+
+describe("draft.4 phase: an OpenAI commentary text part opens as phase 'interim' (rnd 13+17 stage 2)", () => {
+  const COMMENTARY = { openai: { itemId: "msg_c", phase: "commentary" } };
+  const FINAL = { openai: { itemId: "msg_f", phase: "final_answer" } };
+  const stream = (bag?: object) => [
+    { type: "start" },
+    { type: "start-step", request: {}, warnings: [] },
+    { type: "text-start", id: "t1", ...(bag ? { providerMetadata: bag } : {}) },
+    { type: "text-delta", id: "t1", text: "Checking." },
+    { type: "text-end", id: "t1", ...(bag ? { providerMetadata: bag } : {}) },
+    { type: "finish-step", finishReason: "stop", usage: USAGE, response: RESPONSE_S1 },
+    { type: "finish", finishReason: "stop", totalUsage: USAGE },
+  ];
+
+  it("commentary → text.start{phase:'interim'}, providerMetadata kept verbatim; the block folds 'interim'", () => {
+    const out = run(stream(COMMENTARY));
+    const start = out.find((e) => e.type === "text.start") as { phase?: string; providerMetadata?: unknown };
+    expect(start.phase).toBe("interim");
+    expect(start.providerMetadata).toEqual(COMMENTARY);
+    const end = out.find((e) => e.type === "text.end") as object;
+    expect("phase" in end).toBe(false); // the start value stands
+    expectAllParse(out);
+    const text = reduce(out).messages[0]!.content.find((b) => b.type === "text") as { phase?: string };
+    expect(text.phase).toBe("interim");
+  });
+
+  it("final_answer, an unknown phase, or no bag → no phase key at all", () => {
+    for (const bag of [FINAL, { openai: { phase: "x-future" } }, undefined]) {
+      const out = run(stream(bag));
+      for (const e of out.filter((x) => x.type === "text.start" || x.type === "text.end")) expect("phase" in e).toBe(false);
+    }
+  });
+});
