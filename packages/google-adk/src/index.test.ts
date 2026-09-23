@@ -1235,6 +1235,21 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
     expect(stateDeltaOf(out)).toEqual([{ n: 2 }]);
   });
 
+  it("state.delta: a credential that only names a stored credential (resourceRef, either spelling) is omitted; a bare resourceRef with no authType is carried", () => {
+    const out = run([
+      event([], {
+        actions: {
+          stateDelta: {
+            k: { authType: "apiKey", resourceRef: "projects/1/locations/x/resources/r" },
+            s: { auth_type: "oauth2", resource_ref: "projects/1/locations/x/resources/s" },
+            plain: { resourceRef: "x" },
+          },
+        },
+      }),
+    ]);
+    expect(stateDeltaOf(out)).toEqual([{ plain: { resourceRef: "x" } }]);
+  });
+
   it("state.delta: exactly one event per native state change, {} when every entry is omitted, partial events included", () => {
     const out = run([
       event([{ text: "Hel" }], { partial: true, actions: { stateDelta: { "temp:adk_x": oauth2Exchanged } } }),

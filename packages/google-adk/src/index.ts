@@ -1397,7 +1397,18 @@ const AUTH_CONFIG_ALLOW: AllowSpec = {
 // (invocation-scoped by ADK's contract). Every other entry rides unchanged.
 const ADK_TEMP_STATE_PREFIX = "temp:";
 const AUTH_CREDENTIAL_TYPES: ReadonlySet<string> = new Set(["apiKey", "http", "oauth2", "openIdConnect", "serviceAccount"]);
-const AUTH_CREDENTIAL_MEMBERS = ["apiKey", "api_key", "http", "oauth2", "serviceAccount", "service_account"] as const;
+// resourceRef (auth_credential.d.ts:244) names a stored credential: ADK's
+// presence readers treat an object holding it as a held credential.
+const AUTH_CREDENTIAL_MEMBERS = [
+  "apiKey",
+  "api_key",
+  "http",
+  "oauth2",
+  "serviceAccount",
+  "service_account",
+  "resourceRef",
+  "resource_ref",
+] as const;
 
 function isObjectRecord(v: unknown): v is { readonly [k: string]: unknown } {
   return v !== null && typeof v === "object" && !Array.isArray(v);
