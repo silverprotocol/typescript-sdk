@@ -3483,3 +3483,97 @@ describe("createAdkNormalizer — push() reads a live native as plain JSON (SPEC
     expect(raw(pushAll(native), "output")).toEqual({ x: [1, "two", null, { y: true }] });
   });
 });
+
+describe("createAdkNormalizer — push() is atomic: a native that cannot be mapped is dropped whole and reported once (SPEC §8.0)", () => {
+  const errors = (out: AgEvent[]) => out.filter((e) => e.type === "error");
+  const stripError = (out: AgEvent[]): AgEvent[] =>
+    out.filter((e) => e.type !== "error").map((e, i) => ({ ...e, seq: i }));
+  const runEach = (natives: JsonValue[]): AgEvent[][] => {
+    const n = createAdkNormalizer();
+    const per = natives.map((x) => n.push(x));
+    per.push(n.flush());
+    return per;
+  };
+  const text = (t: string, extra: Partial<AdkEvent> = {}): JsonValue => toJsonValue(event([{ text: t }], extra));
+  // Throws after the event opened its message and emitted a whole text block.
+  const openThenThrow: JsonValue = toJsonValue(event([{ text: "SECRET_partial_block" }, { text: "b", thoughtSignature: null as unknown as string }], {}));
+
+  it("a native that throws after opening a message and a block: its batch is dropped (no seq used), one core error takes its place, and the stream equals the same stream without it", () => {
+    const withBad = runEach([text("first"), openThenThrow, text("third", { turnComplete: true, finishReason: "STOP" })]);
+    const without = runEach([text("first"), text("third", { turnComplete: true, finishReason: "STOP" })]);
+    expect(withBad[1]).toHaveLength(1);
+    expect(withBad[1]![0]).toMatchObject({ type: "error", seq: withBad[0]!.length, message: "normalizer error", code: "TypeError" });
+    for (const k of Object.keys(withBad[1]![0]!)) expect(["type", "seq", "message", "code", "turnId"]).toContain(k);
+    const all = withBad.flat();
+    expect(all.map((e) => e.seq)).toEqual(all.map((_, i) => i));
+    expect(JSON.stringify(stripError(all))).toBe(JSON.stringify(without.flat()));
+    const r = new Reducer();
+    for (const e of all) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(all.filter((e) => e.type === "message.start")).toHaveLength(1);
+    expect(all.filter((e) => e.type === "message.end")).toHaveLength(1);
+    expect(JSON.stringify(all)).not.toContain("SECRET_");
+  });
+
+  it("the report carries a fixed message and the error's name only: a marker in the thrown message, in a dropped block and in the native never reaches the wire", () => {
+    const n = createAdkNormalizer();
+    const original = Array.prototype.forEach;
+    let armed = true;
+    let out: AgEvent[] = [];
+    try {
+      Array.prototype.forEach = function (this: unknown[], ...args: Parameters<typeof original>) {
+        if (armed) {
+          armed = false;
+          throw new Error("SECRET_in_error_message");
+        }
+        return original.apply(this, args);
+      };
+      out = n.push(toJsonValue(event([{ text: "SECRET_native_text" }], { output: { token: "SECRET_native_output" } })));
+    } finally {
+      Array.prototype.forEach = original;
+    }
+    out.push(...n.flush());
+    expect(errors(out)).toHaveLength(1);
+    expect(errors(out)[0]).toMatchObject({ type: "error", seq: 0, message: "normalizer error", code: "Error" });
+    for (const k of Object.keys(errors(out)[0]!)) expect(["type", "seq", "message", "code", "turnId"]).toContain(k);
+    expect(JSON.stringify(out)).not.toContain("SECRET_");
+  });
+
+  it("a state entry whose value is undefined (ADK allows state.set(k, undefined)) is not a failure: the entry is dropped at entry, the native is kept", () => {
+    const n = createAdkNormalizer();
+    const native = { invocationId: "inv_fixture_1", author: "a", content: { role: "model", parts: [{ text: "kept" }] }, actions: { stateDelta: { k: undefined, cart: 3 } } };
+    const out = [...n.push(native as unknown as JsonValue), ...n.flush()];
+    expect(errors(out)).toEqual([]);
+    expect(out.filter((e) => e.type === "state.delta").map((e) => (e as { patch: JsonValue }).patch)).toEqual([{ cart: 3 }]);
+    expect(out.some((e) => e.type === "text.delta" && (e as { delta: string }).delta === "kept")).toBe(true);
+  });
+
+  it("flush() is guarded too: a failure while closing is reported once, and the open message and turn still close (bare, without usage)", () => {
+    const n = createAdkNormalizer();
+    const out: AgEvent[] = [...n.push(text("open", { usageMetadata: { promptTokenCount: 1 } }))];
+    const original = Map.prototype.get;
+    let armed = true;
+    try {
+      Map.prototype.get = function (this: Map<unknown, unknown>, key: unknown) {
+        if (armed) {
+          armed = false;
+          throw new Error("SECRET_flush_failure");
+        }
+        return original.call(this, key);
+      };
+      out.push(...n.flush());
+    } finally {
+      Map.prototype.get = original;
+    }
+    expect(errors(out)).toHaveLength(1);
+    expect(errors(out)[0]).toMatchObject({ message: "normalizer error", code: "Error" });
+    expect(out.filter((e) => e.type === "message.start")).toHaveLength(1);
+    expect(out.filter((e) => e.type === "message.end")).toHaveLength(1);
+    expect(out.filter((e) => e.type === "turn.abort")).toHaveLength(1);
+    expect(out.map((e) => e.seq)).toEqual(out.map((_, k) => k));
+    expect(JSON.stringify(out)).not.toContain("SECRET_");
+    const r = new Reducer();
+    for (const e of out) r.push(e);
+    expect(r.needsResync).toBe(false);
+  });
+});
