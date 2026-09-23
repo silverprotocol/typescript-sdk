@@ -118,6 +118,13 @@ export class Reducer {
   #lastSeq: number = -1;
   #resync: boolean = false;
 
+  // ── rd-14 INV-BLOCK (invoke-scoped) ─────────────────────────────────────────
+  // Block ids created in the current invoke, and toolCallIds whose FINAL
+  // (more-less) tool.done already landed. Both reset at the seq-0 restart, so a
+  // new invoke may reuse per-invoke ids.
+  #invokeBlockIds: Set<string> = new Set();
+  #finalToolDone: Set<string> = new Set();
+
   /**
    * Feed a single normalized AgEvent into the fold.
    * R1: lifecycle handlers (turn/message/subagent/step).
@@ -139,6 +146,12 @@ export class Reducer {
     if (this.#lastSeq >= 0 && ev.seq > this.#lastSeq + 1) {
       this.#resync = true;
     }
+    // rd-14 (founder: "Stall it, like a gap"): a repeated or backward seq ABOVE 0
+    // parks exactly like a forward gap. Only seq 0 (a new invoke's restart) may go
+    // backward (SPEC INV-SEQ), so a re-delivery can never fold twice.
+    if (this.#lastSeq >= 0 && ev.seq > 0 && ev.seq <= this.#lastSeq) {
+      this.#resync = true;
+    }
 
     // ── Park-gate (R9) ───────────────────────────────────────────────────────
     // While parked, process ONLY the two snapshot kinds; all else is ignored.
@@ -155,6 +168,11 @@ export class Reducer {
     // Update #lastSeq for every processed event (including snapshots and
     // non-folding ext/live-only events — seq accounting is universal, see above).
     this.#lastSeq = ev.seq;
+    // A seq-0 restart opens a new invoke: the invoke-scoped INV-BLOCK sets reset.
+    if (ev.seq === 0) {
+      this.#invokeBlockIds.clear();
+      this.#finalToolDone.clear();
+    }
 
     // Ext events (`ext.<vendor>.<key>`) are live-only / non-folding (§4/§12).
     // Rule them out HERE — after seq accounting above, so an ext event still
@@ -187,6 +205,8 @@ export class Reducer {
 
       // ── MESSAGE lifecycle ──────────────────────────────────────────────────
       case "message.start": {
+        // rd-14 INV-MSG: a message.start for a turn that already closed parks.
+        if (this.#closedTurns.has(this.#resolveTurnId(ev.turnId) ?? ev.turnId)) { this.#resync = true; break; }
         const msg: AgMessage = {
           id: ev.id,
           role: ev.role,
@@ -279,6 +299,7 @@ export class Reducer {
 
       // ── TEXT blocks ───────────────────────────────────────────────────────────
       case "text.start": {
+        if (this.#dupBlock(ev.id)) break; // rd-14 INV-BLOCK
         const msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
         if (msg === undefined) { this.#resync = true; break; }
         const block: AgBlock = {
@@ -299,8 +320,9 @@ export class Reducer {
         if (pos === undefined) break;
         const msg = this.#messages.get(pos.messageId);
         if (msg === undefined) break;
-        // INV-MSG (SPEC.md:745): a straggler delta into a sealed message parks.
-        if (this.#sealed.has(msg.id)) { this.#resync = true; break; }
+        // INV-MSG (SPEC.md:745): a straggler delta into a sealed message, or into
+        // any message of a closed turn (rd-14), parks.
+        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; }
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "text") break;
         block.text += ev.delta;
@@ -328,6 +350,7 @@ export class Reducer {
 
       // ── REASONING blocks ──────────────────────────────────────────────────────
       case "reasoning.start": {
+        if (this.#dupBlock(ev.id)) break; // rd-14 INV-BLOCK
         const msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
         if (msg === undefined) { this.#resync = true; break; }
         const block: AgBlock = {
@@ -349,8 +372,9 @@ export class Reducer {
         if (pos === undefined) break;
         const msg = this.#messages.get(pos.messageId);
         if (msg === undefined) break;
-        // INV-MSG (SPEC.md:745): a straggler delta into a sealed message parks.
-        if (this.#sealed.has(msg.id)) { this.#resync = true; break; }
+        // INV-MSG (SPEC.md:745): a straggler delta into a sealed message, or into
+        // any message of a closed turn (rd-14), parks.
+        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; }
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "reasoning") break;
         // APPEND delta to text (in-order concat of parts)
@@ -381,7 +405,7 @@ export class Reducer {
         // parks. The block is resolved by id; with no known block the delta
         // stays scratch-only, as before.
         const opaquePos = this.#blockPos.get(ev.id);
-        if (opaquePos !== undefined && this.#sealed.has(opaquePos.messageId)) { this.#resync = true; break; }
+        if (opaquePos !== undefined && this.#isClosedTarget(opaquePos.messageId)) { this.#resync = true; break; }
         const existing = this.#opaque.get(ev.id) ?? "";
         this.#opaque.set(ev.id, existing + ev.delta);
         break;
@@ -412,6 +436,7 @@ export class Reducer {
 
       // ── TOOL-CALL blocks ──────────────────────────────────────────────────────
       case "tool.start": {
+        if (this.#dupBlock(ev.toolCallId)) break; // rd-14 INV-BLOCK
         const msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
         if (msg === undefined) { this.#resync = true; break; }
         const block: AgBlock = {
@@ -438,7 +463,7 @@ export class Reducer {
         // APPEND raw partial-JSON delta to scratch (NEVER authoritative input).
         // INV-MSG (SPEC.md:745): a straggler into a sealed message's tool call parks.
         const argsPos = this.#blockPos.get(ev.toolCallId);
-        if (argsPos !== undefined && this.#sealed.has(argsPos.messageId)) { this.#resync = true; break; }
+        if (argsPos !== undefined && this.#isClosedTarget(argsPos.messageId)) { this.#resync = true; break; }
         const existing = this.#toolArgs.get(ev.toolCallId) ?? "";
         this.#toolArgs.set(ev.toolCallId, existing + ev.delta);
         break;
@@ -470,6 +495,11 @@ export class Reducer {
 
       // ── TOOL-RESULT blocks ────────────────────────────────────────────────────
       case "tool.done": {
+        // rd-14 INV-BLOCK: a second FINAL (more-less) tool.done for one call parks.
+        if (ev.more !== true) {
+          if (this.#finalToolDone.has(ev.toolCallId)) { this.#resync = true; break; }
+          this.#finalToolDone.add(ev.toolCallId);
+        }
         const resultKey = `result:${ev.toolCallId}`;
         const existingPos = this.#blockPos.get(resultKey);
 
@@ -1076,6 +1106,9 @@ export class Reducer {
         // because it corrupts batch AND incremental identically). (final-review M1)
         this.#toolArgs.delete(blockId);
         this.#opaque.delete(blockId);
+        // INV-BLOCK is about ids PRESENT in the fold (SPEC INV-BLOCK): a removed
+        // block's id is no longer present, so a later *.start may reuse it.
+        this.#invokeBlockIds.delete(blockId);
       }
     }
 
@@ -1173,6 +1206,23 @@ export class Reducer {
    * If omitted and exactly one turn is open, return that turn's id.
    * Otherwise return `undefined` (ambiguous / no turns open).
    */
+  /** INV-MSG: true when the message is sealed or its turn has closed (rd-14 closed-turn half). */
+  #isClosedTarget(messageId: string): boolean {
+    if (this.#sealed.has(messageId)) return true;
+    const turnId = this.#messages.get(messageId)?.turnId;
+    return turnId !== undefined && this.#closedTurns.has(turnId);
+  }
+
+  /** rd-14 INV-BLOCK: a block-creating id seen twice in one invoke parks; else records it. */
+  #dupBlock(id: string): boolean {
+    if (this.#invokeBlockIds.has(id)) {
+      this.#resync = true;
+      return true;
+    }
+    this.#invokeBlockIds.add(id);
+    return false;
+  }
+
   #resolveTurnId(turnId: string | undefined): string | undefined {
     if (turnId !== undefined) return turnId;
     // Single-turn default: if exactly one turn exists, use it.

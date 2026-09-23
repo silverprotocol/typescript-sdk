@@ -1078,7 +1078,7 @@ export const AgSurfaceError = z.object({
 });
 export type AgSurfaceError = z.infer<typeof AgSurfaceError>;
 
-// Event base (spec §4): `seq` = global monotonic ordinal; `turnId` names the owning turn;
+// Event base (spec §4): `seq` = per-invoke gap-free ordinal from 0 (INV-SEQ: backward only as a new invoke's 0-restart); `turnId` names the owning turn;
 // `messageId` (when present) names the open message the event attaches to.
 // Spread FIRST in each arm so an arm's required field overrides the optional base field.
 const base = {

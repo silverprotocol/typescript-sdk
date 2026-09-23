@@ -3240,3 +3240,125 @@ describe("draft.4 phase on text and reasoning blocks (rnd 13+17 stage 2)", () =>
     expect(block(evs).phase).toBe("interim");
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// rd-14 P14 (founder: "1 + 1a: Stall it, like a gap"): INV-SEQ narrows backward
+// tolerance to the 0-restart; INV-BLOCK is enforced per invoke; INV-MSG's
+// closed-turn half joins the sealed half (31f7bab).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("rd-14 P14: delivery integrity in the reference reducer", () => {
+  const fold = (evs: AgEvent[]): Reducer => {
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    return r;
+  };
+  const head = (turnId = "t1", msg = "m1", from = 0): AgEvent[] => [
+    { type: "turn.start", seq: from, threadId: "th1", turnId },
+    { type: "message.start", seq: from + 1, id: msg, role: "assistant", turnId, threadId: "th1" },
+  ];
+  const done = (turnId: string, seq: number): AgEvent =>
+    ({ type: "turn.done", seq, turnId, outcome: { type: "success" }, finishReason: "stop" }) as AgEvent;
+
+  describe("INV-SEQ: a repeated or backward seq above 0 parks like a forward gap; only seq 0 restarts", () => {
+    it("a repeated seq above 0 parks", () => {
+      const r = fold([...head(), { type: "text.start", seq: 2, id: "x1", turnId: "t1" }, { type: "text.delta", seq: 2, id: "x1", delta: "dup" }]);
+      expect(r.needsResync).toBe(true);
+    });
+    it("a backward seq above 0 parks", () => {
+      const r = fold([
+        ...head(),
+        { type: "text.start", seq: 2, id: "x1", turnId: "t1" },
+        { type: "text.delta", seq: 3, id: "x1", delta: "a" },
+        { type: "text.delta", seq: 2, id: "x1", delta: "b" },
+      ]);
+      expect(r.needsResync).toBe(true);
+    });
+    it("control: a seq-0 restart (a new invoke) folds normally", () => {
+      const r = fold([...head(), { type: "message.end", seq: 2, id: "m1" }, done("t1", 3), ...head("t2", "m2")]);
+      expect(r.needsResync).toBe(false);
+      expect(r.result().turns.map((t) => t.turnId)).toEqual(["t1", "t2"]);
+    });
+    it("snapshot-seq-ahead: a parked fold recovers on a snapshot whose seq is ahead, and continues from it", () => {
+      const r = fold([...head(), { type: "text.start", seq: 5, id: "x1", turnId: "t1" }]); // forward gap → park
+      expect(r.needsResync).toBe(true);
+      r.push({ type: "messages.snapshot", seq: 9, messages: [] } as unknown as AgEvent);
+      expect(r.needsResync).toBe(false);
+      r.push({ type: "turn.start", seq: 10, threadId: "th1", turnId: "t9" });
+      expect(r.needsResync).toBe(false);
+    });
+    it("replay-from-0: a whole completed invoke replayed from seq 0 parks (never folds twice)", () => {
+      const invoke: AgEvent[] = [
+        ...head(),
+        { type: "text.start", seq: 2, id: "x1", turnId: "t1" },
+        { type: "text.delta", seq: 3, id: "x1", delta: "once" },
+        { type: "message.end", seq: 4, id: "m1" },
+        done("t1", 5),
+      ];
+      const r = fold([...invoke, ...invoke]);
+      expect(r.needsResync).toBe(true);
+      const texts = r.result().messages.flatMap((m) => m.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text));
+      expect(texts).toEqual(["once"]);
+    });
+  });
+
+  describe("INV-BLOCK (invoke-scoped): a block id is created once per invoke", () => {
+    it("a duplicate text.start id parks", () => {
+      const r = fold([...head(), { type: "text.start", seq: 2, id: "x1", turnId: "t1" }, { type: "text.start", seq: 3, id: "x1", turnId: "t1" }]);
+      expect(r.needsResync).toBe(true);
+    });
+    it("a duplicate reasoning.start id parks", () => {
+      const r = fold([...head(), { type: "reasoning.start", seq: 2, id: "r1", turnId: "t1" }, { type: "reasoning.start", seq: 3, id: "r1", turnId: "t1" }]);
+      expect(r.needsResync).toBe(true);
+    });
+    it("a duplicate tool.start toolCallId parks", () => {
+      const r = fold([
+        ...head(),
+        { type: "tool.start", seq: 2, toolCallId: "c1", name: "echo", turnId: "t1" },
+        { type: "tool.start", seq: 3, toolCallId: "c1", name: "echo", turnId: "t1" },
+      ]);
+      expect(r.needsResync).toBe(true);
+    });
+    it("a second final (more-less) tool.done for the same toolCallId parks; a preliminary then a final does not", () => {
+      const base: AgEvent[] = [...head(), { type: "tool.start", seq: 2, toolCallId: "c1", name: "echo", turnId: "t1" }];
+      const ok = fold([
+        ...base,
+        { type: "tool.done", seq: 3, toolCallId: "c1", content: [], outcome: "ok", more: true, turnId: "t1" },
+        { type: "tool.done", seq: 4, toolCallId: "c1", content: [{ type: "text", text: "final" }], outcome: "ok", turnId: "t1" },
+      ]);
+      expect(ok.needsResync).toBe(false);
+      const twice = fold([
+        ...base,
+        { type: "tool.done", seq: 3, toolCallId: "c1", content: [{ type: "text", text: "final" }], outcome: "ok", turnId: "t1" },
+        { type: "tool.done", seq: 4, toolCallId: "c1", content: [{ type: "text", text: "again" }], outcome: "ok", turnId: "t1" },
+      ]);
+      expect(twice.needsResync).toBe(true);
+    });
+    it("control: the scope resets at the 0-restart, so a new invoke may reuse block ids", () => {
+      const r = fold([
+        ...head(),
+        { type: "text.start", seq: 2, id: "x1", turnId: "t1" },
+        { type: "message.end", seq: 3, id: "m1" },
+        done("t1", 4),
+        ...head("t2", "m2"),
+        { type: "text.start", seq: 2, id: "x1", turnId: "t2" },
+      ]);
+      expect(r.needsResync).toBe(false);
+    });
+  });
+
+  describe("INV-MSG closed turn: nothing attaches to a message of a closed turn", () => {
+    it("a message.start after its turn's terminal parks", () => {
+      const r = fold([...head(), { type: "message.end", seq: 2, id: "m1" }, done("t1", 3), { type: "message.start", seq: 4, id: "m2", role: "assistant", turnId: "t1", threadId: "th1" }]);
+      expect(r.needsResync).toBe(true);
+    });
+    it("a delta into an UNSEALED message of a closed turn parks", () => {
+      const r = fold([...head(), { type: "text.start", seq: 2, id: "x1", turnId: "t1" }, done("t1", 3), { type: "text.delta", seq: 4, id: "x1", delta: "late" }]);
+      expect(r.needsResync).toBe(true);
+    });
+    it("control: a block-create after the turn closes already parks (the pointer is gone)", () => {
+      const r = fold([...head(), done("t1", 2), { type: "text.start", seq: 3, id: "x2", turnId: "t1" }]);
+      expect(r.needsResync).toBe(true);
+    });
+  });
+});
