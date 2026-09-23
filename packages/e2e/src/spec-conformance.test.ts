@@ -100,7 +100,8 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 21, leg: "replay", title: "Reasoning-inclusive usage identity — input + output (+ toolUseInput) == total on every replay golden with a provider total", disposition: "COVERED-BY", citation: "replay.test.ts:331 assertUsageIdentity, run by all four replay suites (:380 claude, :417 openai, :456 adk, :491 vercel)" },
   { n: 22, title: "Forward-compatible ingest (draft.4): an ignored well-formed event occupies its seq slot, is reported in place, and the fold is unchanged", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.22, reference ingest (ingestAgEvents) → reduce" },
   { n: 23, leg: "adk", title: "Unmapped native value (draft.4): an ADK finish reason with no AgJSON target → finishReason other|unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(adk) via createAdkNormalizer (sp-google a0c5dcf)" },
-  { n: 23, leg: "claude|openai|vercel", title: "Unmapped native value (draft.4): the other facets' raw-reason carry", disposition: "N/A", citation: "pending: the claude, openai and vercel finishReasonRaw carries land AFTER this SPEC pair; each leg flips to RUNNABLE on its facet sha" },
+  { n: 23, leg: "openai", title: "Unmapped native value (draft.4): an OpenAI incomplete_details.reason with no AgJSON target → finishReason unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(openai) via createOpenaiNormalizer (sp-openai OA-15 abd73cf)" },
+  { n: 23, leg: "claude|vercel", title: "Unmapped native value (draft.4): the claude and vercel raw-reason carries", disposition: "N/A", citation: "pending: the claude and vercel finishReasonRaw carries land AFTER this SPEC pair; each leg flips to RUNNABLE on its facet sha" },
   { n: 24, leg: "scan", title: "Tool-result errorText scoping (draft.4): no replay golden carries errorText on a non-error result", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.24(scan), a scan of every corpus/*/*.agjson.json" },
   { n: 24, leg: "adk", title: "ADK failure envelope (draft.4, §8.0 item 25): the error/denied/placeholder/negative vectors", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.24(adk) via createAdkNormalizer (sp-google 877f37f, on the E8 scrub 81dc906)" },
   { n: 25, leg: "fold", title: "Framework pause and completion closure (draft.4): pauses close paused from push(), completed-without-signal and cut-short invokes close turn.abort from flush(), never success, no park", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(fold) over the engine-built fixtures/adk-pause natives (probe P-RED 3c82c3a); step-1 scope mirrored by adk-pause.test.ts" },
@@ -1305,4 +1306,20 @@ describe("§10.26(openai) — commentary → phase 'interim' on text.start only;
     expect(startA && "phase" in startA).toBe(false);
     expect(pm(startA)["phase"]).toBe("foo");
   });
+});
+
+describe("§10.23(openai) — an unmapped OpenAI finish reason → fallback + finishReasonRaw byte for byte (sp-openai OA-15)", () => {
+  const rawModel = (event: Record<string, unknown>) => ({ type: "raw_model_stream_event", data: { type: "model", event } }) as unknown as JsonValue;
+  for (const raw of ["zz", "Max_Messages—v2 ✓"]) {
+    it(`incomplete_details.reason ${JSON.stringify(raw)} → turn.done finishReason "unknown" + finishReasonRaw ${JSON.stringify(raw)}`, () => {
+      const n = createOpenaiNormalizer();
+      const out = [
+        rawModel({ type: "response.created", response: { id: "resp_u" } }),
+        rawModel({ type: "response.output_text.delta", item_id: "msg_u", delta: "hi" }),
+        rawModel({ type: "response.completed", response: { id: "resp_u", status: "completed", incomplete_details: { reason: raw } } }),
+      ].flatMap((f) => n.push(f)).concat(n.flush());
+      for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+      expect(out.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "unknown", finishReasonRaw: raw });
+    });
+  }
 });
