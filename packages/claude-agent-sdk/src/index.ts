@@ -938,6 +938,16 @@ function resultMetaPayload(msg: SDKResultMsg): { [k: string]: JsonValue } | unde
   // ERROR arm only (`startup_failure_reason`): same JSON boundary, never cast.
   const apiErrorCode = readApiErrorCode(msg);
   const startupFailureReason = readStartupFailureReason(msg);
+  // `deferred_tool_use` (SUCCESS arm, declared `SDKDeferredToolUse {id, name,
+  // input}`): the tool call a host's PreToolUse `defer` decision parked, which
+  // the CLI resumes later ("Deferred tool resume"). CONTENT, not telemetry:
+  // the host needs it to act on the parked call. Through 0.6.4 the facet never
+  // read it (a silent drop). Carried WHOLE and verbatim (the `subagent_stats`
+  // precedent); whether it should instead map onto `turn.done.outcome.paused`
+  // (asks) is a question routed to sp-protocol / sp-rnd. Fixture-only: no
+  // capture sets a defer hook.
+  const deferredToolUse =
+    isJsonObject(raw) && isJsonObject(raw["deferred_tool_use"]) ? JsonValue.parse(raw["deferred_tool_use"]) : undefined;
   const payload: { [k: string]: JsonValue } = {
     ...(typeof msg.fast_mode_disabled_reason === "string"
       ? { fastModeDisabledReason: msg.fast_mode_disabled_reason }
@@ -952,6 +962,7 @@ function resultMetaPayload(msg: SDKResultMsg): { [k: string]: JsonValue } | unde
     ...(apiErrorCode !== undefined ? { apiErrorCode } : {}),
     ...(startupFailureReason !== undefined ? { startupFailureReason } : {}),
     ...(subagentStats !== undefined ? { subagentStats } : {}),
+    ...(deferredToolUse !== undefined ? { deferredToolUse } : {}),
     ...(Object.keys(byModel).length > 0 ? { modelUsage: byModel } : {}),
   };
   return Object.keys(payload).length > 0 ? payload : undefined;

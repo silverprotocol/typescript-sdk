@@ -3649,6 +3649,34 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
   });
 });
 
+// ─── SDKResultSuccess.deferred_tool_use → result-meta.deferredToolUse ────────
+// The tool call a host's PreToolUse `defer` decision parked (CLI "Deferred tool
+// resume"): content the host must act on, previously dropped (seat queue item
+// 3's triage). Carried whole and verbatim on the existing result-meta bag.
+describe("createClaudeNormalizer — deferred_tool_use rides ext.anthropic.result-meta", () => {
+  const DEFERRED = { id: "toolu_deferred_1", name: "Bash", input: { command: "deploy --prod" } };
+
+  it("carries deferred_tool_use verbatim as result-meta.deferredToolUse, before the close, without touching the fold", () => {
+    const evs = run({ ...(resultSuccess("tool_use") as object), deferred_tool_use: DEFERRED } as unknown as SDKMessage);
+    assertAllValid(evs);
+    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
+    expect(evs[0]).toMatchObject({ deferredToolUse: DEFERRED });
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns[0]?.outcome).toMatchObject({ type: "success" });
+  });
+
+  it("NEGATIVE CONTROL: absent or non-object deferred_tool_use emits nothing new (byte-identical)", () => {
+    const bare = run(resultSuccess("end_turn"));
+    expect(bare.map((e) => e.type)).toEqual(["turn.done"]);
+    for (const bad of [null, "Bash", 7, ["x"]]) {
+      const evs = run({ ...(resultSuccess("end_turn") as object), deferred_tool_use: bad } as unknown as SDKMessage);
+      expect(JSON.stringify(evs)).toBe(JSON.stringify(bare));
+    }
+  });
+});
+
 describe("createClaudeNormalizer — 0.3.220 result-meta carry (fast_mode_disabled_reason / ModelUsage serving identity)", () => {
   type SDKResultSuccessT = Extract<SDKMessage, { type: "result"; subtype: "success" }>;
   type SDKResultErrorT = Exclude<Extract<SDKMessage, { type: "result" }>, { subtype: "success" }>;
