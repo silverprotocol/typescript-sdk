@@ -1016,12 +1016,55 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
   // parent's session_id, collided with the top-level turn itself). It must
   // never equal the synthetic `parentTurnId` label `turn_${parent_tool_use_id}`
   // (guuey capstone finding A), and a message id never does.
-  function nestedTurnId(parentToolUseId: string, firstMessageId: unknown): string {
+  function nestedTurnId(parentToolUseId: string, firstMessageId: unknown, frameUuid: unknown): string {
     const known = subagentTurnByParentToolUseId.get(parentToolUseId);
-    if (known !== undefined) return known;
-    const minted = mintId(firstMessageId) ?? `turn_frame_${framesSeen}`;
+    if (known !== undefined && !closedRuns.has(parentToolUseId)) return known;
+    // A new run, or a frame arriving for a run that already CLOSED: mint a fresh
+    // id (a closed nested id is never reopened, as for top-level turns).
+    const byId = mintId(firstMessageId);
+    const byUuid = mintId(frameUuid);
+    const minted =
+      byId !== undefined && !closedNestedTurnIds.has(byId)
+        ? byId
+        : byUuid !== undefined && !closedNestedTurnIds.has(byUuid)
+          ? byUuid
+          : `turn_frame_${framesSeen}`;
+    closedRuns.delete(parentToolUseId);
     subagentTurnByParentToolUseId.set(parentToolUseId, minted);
     return minted;
+  }
+
+  // ONE subagent bracket per RUN (sp-protocol ruling, 2026-09-23; INV-TURN,
+  // SPEC:743; SPEC:807 "subagent.done: Close the nested turn"). Through 0.7.0's
+  // B commit the bracket was per MESSAGE: a run of N nested messages emitted N
+  // subagent.start/subagent.done pairs on its one id, closing it N times with
+  // content after the first close. The run now opens once, at its first nested
+  // frame, and closes exactly once, at whichever comes first: the spawning
+  // Task's tool_result (any user frame, so a subagent's own sub-run closes
+  // too), the turn's result frame, or flush. Parallel Task calls give
+  // OVERLAPPING runs, so every event this facet emits carries an explicit
+  // turnId or a known messageId: nothing leans on the assembler's LIFO
+  // last-turn backfill, which out-of-order closes would skew.
+  type OpenRun = { readonly turnId: string; readonly parentTurnId: string };
+  const openRuns = new Map<string, OpenRun>();
+  const closedRuns = new Set<string>();
+  const closedNestedTurnIds = new Set<string>();
+  function openRun(parentToolUseId: string, turnId: string, parentTurnId: string): void {
+    if (openRuns.has(parentToolUseId)) return;
+    openRuns.set(parentToolUseId, { turnId, parentTurnId });
+    a.subagentStart(turnId, parentTurnId);
+  }
+  function closeRun(parentToolUseId: string): void {
+    const run = openRuns.get(parentToolUseId);
+    if (run === undefined) return;
+    openRuns.delete(parentToolUseId);
+    closedRuns.add(parentToolUseId);
+    closedNestedTurnIds.add(run.turnId);
+    a.subagentDone(run.turnId, run.parentTurnId);
+  }
+  // Innermost (latest-opened) first, as INV-FLUSH orders its own closes.
+  function closeAllRuns(): void {
+    for (const parentToolUseId of [...openRuns.keys()].reverse()) closeRun(parentToolUseId);
   }
 
   // Playbook 2026-07-03 SDK-bump adaptation, Finding #1 (critical) — refusal-
@@ -1208,7 +1251,8 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       }
     }
     a.closeMessage(p.emittedId, p.usage);
-    if (p.parentTurnId !== undefined) a.subagentDone(p.turnId, p.parentTurnId);
+    // The subagent bracket is per RUN now (see `openRun`), so sealing a nested
+    // message no longer closes its nested turn.
   }
 
   // ─── workspace#7: stream_event mapping helpers ──────────────────────────────
@@ -1333,7 +1377,9 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
     if (ev.type === "message_start") {
       const m = ev.message;
       const turnId =
-        msg.parent_tool_use_id !== null ? nestedTurnId(msg.parent_tool_use_id, m.id) : topTurnId(m.id, msg.uuid);
+        msg.parent_tool_use_id !== null
+          ? nestedTurnId(msg.parent_tool_use_id, m.id, msg.uuid)
+          : topTurnId(m.id, msg.uuid);
       const parentTurnId =
         msg.parent_tool_use_id !== null ? `turn_${msg.parent_tool_use_id}` : undefined;
       // Same continuation test as the complete arm: a message_start naming the
@@ -1356,8 +1402,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // lifecycle counter, same emittedId derivation — so the complete frame
       // that follows JOINS this lifecycle and is content-suppressed.
       if (parentTurnId !== undefined && msg.parent_tool_use_id !== null) {
-        subagentTurnByParentToolUseId.set(msg.parent_tool_use_id, turnId);
-        a.subagentStart(turnId, parentTurnId);
+        openRun(msg.parent_tool_use_id, turnId, parentTurnId);
       }
       const lifecycle = lifecyclesBySdkId.get(m.id) ?? 0;
       lifecyclesBySdkId.set(m.id, lifecycle + 1);
@@ -1647,7 +1692,9 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
     if (msg.type === "assistant") {
       const m = msg.message;
       const turnId =
-        msg.parent_tool_use_id !== null ? nestedTurnId(msg.parent_tool_use_id, m.id) : topTurnId(m.id, msg.uuid);
+        msg.parent_tool_use_id !== null
+          ? nestedTurnId(msg.parent_tool_use_id, m.id, msg.uuid)
+          : topTurnId(m.id, msg.uuid);
       // The turn a CL-09 error close belongs to: only a top-level result closes a
       // turn, so for a NESTED frame it is the OPEN top-level turn. With none open
       // (a stream that starts inside a subagent, or background subagent frames
@@ -1796,11 +1843,8 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       if (continued !== undefined) {
         open = continued;
       } else {
-        if (parentTurnId !== undefined) {
-          if (msg.parent_tool_use_id !== null) {
-            subagentTurnByParentToolUseId.set(msg.parent_tool_use_id, turnId);
-          }
-          a.subagentStart(turnId, parentTurnId);
+        if (parentTurnId !== undefined && msg.parent_tool_use_id !== null) {
+          openRun(msg.parent_tool_use_id, turnId, parentTurnId);
         }
 
         const lifecycle = lifecyclesBySdkId.get(m.id) ?? 0;
@@ -2033,6 +2077,12 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // message first, exactly as the per-frame close used to (spec §5 tool.done
       // adoption below depends on this ordering).
       closePendingMessage();
+      // A tool_result answering a Task call ENDS that subagent run: close its
+      // bracket before the result's own tool.done (per-run bracket, see
+      // `openRun`). A result for any other tool closes nothing.
+      if (typeof msg.message.content !== "string") {
+        for (const b of msg.message.content) if (b.type === "tool_result") closeRun(b.tool_use_id);
+      }
       // A user message carrying tool_result blocks → tool.done per result.
       // parent_tool_use_id (when set) identifies a subagent tool call — the
       // tool.done's turnId should point at that parent call's turn so the
@@ -2044,11 +2094,14 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         // it is unknown (e.g. a result delivered before its subagent.start
         // was ever observed) — defensive; leg 3's never-opened-turn guard now
         // parks loudly on that label instead of fabricating a phantom turn.
+        // Top-level: the OPEN top-level turn, explicitly (overlapping subagent
+        // runs make the assembler's last-turn backfill unreliable); undefined
+        // only with no turn open, which backfills as before.
         const toolTurnId =
           msg.parent_tool_use_id !== null
             ? (subagentTurnByParentToolUseId.get(msg.parent_tool_use_id) ??
               `turn_${msg.parent_tool_use_id}`)
-            : undefined;
+            : openTopTurnId;
         // tool_use_result sibling (SDK-injected rich MCP result; audit B7): carries
         // structuredContent (incl. render-cache markers) + _meta.ui the block-level
         // arm never sees. Applies only when the message has exactly ONE tool_result
@@ -2154,6 +2207,8 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // guuey#26: the turn is closing — seal the open assistant message first
       // (message.end has always preceded the turn close).
       closePendingMessage();
+      // Every subagent run still open ends with the turn (per-run bracket).
+      closeAllRuns();
       const turnId = closingTopTurnId(msg.uuid);
       // CL-09 (0.3.280 sweep): `subtype: "success"` does NOT mean the turn
       // succeeded. Upstream's SDKResultMessage doc: "subtype "success" carries
@@ -2263,6 +2318,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // At this point msg.subtype can only be an error variant (success handled above).
       // guuey#26: seal the open assistant message before the turn close.
       closePendingMessage();
+      closeAllRuns();
       const turnId = closingTopTurnId(msg.uuid);
       // CL-09: consume any stashed assistant-error close for this turnId — this
       // frame emits it (below). Each turn has its own id now, so an entry can
@@ -2464,6 +2520,9 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // its real usage (and its subagent bracket) rather than leaving INV-FLUSH
       // to synthesize a bare `message.end`.
       closePendingMessage();
+      // Close any subagent run still open, so INV-FLUSH never aborts a nested
+      // turn the stream simply ended inside (per-run bracket).
+      closeAllRuns();
       // CL-09: a turn whose assistant error frame stashed its close but whose
       // result frame never arrived still closes as that turn.error (no usage:
       // only a result carries the turn's), never as INV-FLUSH's synthesized

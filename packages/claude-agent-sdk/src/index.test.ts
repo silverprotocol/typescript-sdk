@@ -1516,7 +1516,38 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
     expect(turnIds(evs, "turn.done")).toEqual(["turn_msg_streamed"]);
   });
 
-  it("nested turns: one per subagent RUN (keyed by parent_tool_use_id), shared by that run's messages, never the parentTurnId label", () => {
+  // Nested INV-TURN (per-run bracket, sp-protocol ruling 2026-09-23): each
+  // nested turn opens once (subagent.start) and closes once (subagent.done),
+  // with none of its events after that close.
+  function assertOneBracketPerRun(evs: AgEvent[]): void {
+    const starts = new Map<string, number>();
+    const dones = new Map<string, number>();
+    evs.forEach((e, i) => {
+      const t = "turnId" in e && typeof e.turnId === "string" ? e.turnId : undefined;
+      if (t === undefined) return;
+      if (e.type === "subagent.start") {
+        expect(starts.has(t), `second subagent.start on ${t}`).toBe(false);
+        starts.set(t, i);
+      }
+      expect(dones.has(t), `${e.type} on ${t} after its subagent.done`).toBe(false);
+      if (e.type === "subagent.done") {
+        expect(starts.has(t), `subagent.done on ${t}, never opened`).toBe(true);
+        dones.set(t, i);
+      }
+    });
+    expect([...dones.keys()].sort()).toEqual([...starts.keys()].sort());
+  }
+  function taskResult(toolUseId: string, uuid: UUID): SDKMessage {
+    return {
+      type: "user",
+      message: { role: "user", content: [{ type: "tool_result", tool_use_id: toolUseId, content: [{ type: "text", text: "done" }], is_error: false }] },
+      parent_tool_use_id: null,
+      uuid,
+      session_id: "sess_fixture",
+    };
+  }
+
+  it("nested turns: one per subagent RUN (keyed by parent_tool_use_id), ONE bracket each, never the parentTurnId label", () => {
     const evs = events([
       asst("msg_top", "delegating", "00000000-0000-0000-0000-0000000000e2"),
       asst("msg_run_a1", "a1", "00000000-0000-0000-0000-0000000000e3", "toolu_task_a"),
@@ -1524,17 +1555,79 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
       asst("msg_run_b1", "b1", "00000000-0000-0000-0000-0000000000e5", "toolu_task_b"),
       result("00000000-0000-0000-0000-0000000000e6"),
     ]);
-    const starts = evs.filter((e) => e.type === "subagent.start");
-    expect(starts.map((e) => [("turnId" in e ? e.turnId : undefined), ("parentTurnId" in e ? e.parentTurnId : undefined)])).toEqual([
-      ["turn_msg_run_a1", "turn_toolu_task_a"],
-      ["turn_msg_run_a1", "turn_toolu_task_a"],
-      ["turn_msg_run_b1", "turn_toolu_task_b"],
+    const brackets = evs
+      .filter((e) => e.type === "subagent.start" || e.type === "subagent.done")
+      .map((e) => [e.type, "turnId" in e ? e.turnId : undefined, "parentTurnId" in e ? e.parentTurnId : undefined]);
+    // Neither run got its Task tool_result, so both close at the turn's result,
+    // innermost (latest-opened) first — and before the turn's own close.
+    expect(brackets).toEqual([
+      ["subagent.start", "turn_msg_run_a1", "turn_toolu_task_a"],
+      ["subagent.start", "turn_msg_run_b1", "turn_toolu_task_b"],
+      ["subagent.done", "turn_msg_run_b1", "turn_toolu_task_b"],
+      ["subagent.done", "turn_msg_run_a1", "turn_toolu_task_a"],
     ]);
-    expect(turnIds(evs, "turn.done")).toEqual(["turn_msg_top"]);
+    expect(evs.findIndex((e) => e.type === "turn.done")).toBeGreaterThan(evs.map((e) => e.type).lastIndexOf("subagent.done"));
+    assertOneBracketPerRun(evs);
+    // Run a's two messages both belong to its one nested turn.
     const r = new Reducer();
     for (const e of evs) r.push(e);
     expect(r.needsResync).toBe(false);
     expect(r.result().turns.map((t) => t.turnId).sort()).toEqual(["turn_msg_run_a1", "turn_msg_run_b1", "turn_msg_top"]);
+    expect(r.result().messages.filter((m) => m.turnId === "turn_msg_run_a1").map((m) => m.id)).toEqual(["msg_run_a1", "msg_run_a2"]);
+  });
+
+  it("the spawning Task's tool_result closes its run BEFORE that result's tool.done; parallel runs overlap cleanly", () => {
+    const evs = events([
+      asst("msg_top", "two tasks in parallel", "00000000-0000-0000-0000-0000000000e2"),
+      asst("msg_a1", "a1", "00000000-0000-0000-0000-0000000000e3", "toolu_task_a"),
+      asst("msg_b1", "b1", "00000000-0000-0000-0000-0000000000e4", "toolu_task_b"),
+      asst("msg_a2", "a2", "00000000-0000-0000-0000-0000000000e5", "toolu_task_a"),
+      taskResult("toolu_task_a", "00000000-0000-0000-0000-0000000000e6"),
+      asst("msg_b2", "b2", "00000000-0000-0000-0000-0000000000e7", "toolu_task_b"),
+      taskResult("toolu_task_b", "00000000-0000-0000-0000-0000000000e8"),
+      result("00000000-0000-0000-0000-0000000000e9"),
+    ]);
+    assertOneBracketPerRun(evs);
+    const at = (pred: (e: AgEvent) => boolean): number => evs.findIndex(pred);
+    const doneA = at((e) => e.type === "subagent.done" && "turnId" in e && e.turnId === "turn_msg_a1");
+    const toolDoneA = at((e) => e.type === "tool.done" && "toolCallId" in e && e.toolCallId === "toolu_task_a");
+    expect(doneA).toBeGreaterThan(-1);
+    expect(doneA).toBeLessThan(toolDoneA);
+    // Run b is still open across run a's close, and b2 folds into it.
+    const doneB = at((e) => e.type === "subagent.done" && "turnId" in e && e.turnId === "turn_msg_b1");
+    expect(doneB).toBeGreaterThan(at((e) => e.type === "message.start" && "id" in e && e.id === "msg_b2"));
+    // The Task results are TOP-LEVEL tool.done events, owned by the top turn
+    // even while a run is open (explicit turnId, not the LIFO backfill).
+    for (const id of ["toolu_task_a", "toolu_task_b"]) {
+      expect(evs.find((e) => e.type === "tool.done" && "toolCallId" in e && e.toolCallId === id)).toMatchObject({ turnId: "turn_msg_top" });
+    }
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const byTurn = (t: string): unknown[] => r.result().messages.filter((m) => m.turnId === t).map((m) => m.id);
+    expect(byTurn("turn_msg_a1")).toEqual(["msg_a1", "msg_a2"]);
+    expect(byTurn("turn_msg_b1")).toEqual(["msg_b1", "msg_b2"]);
+  });
+
+  it("flush closes a run the stream ended inside with ONE subagent.done — never a turn.abort on the nested turn", () => {
+    const evs = events([
+      asst("msg_top", "delegating", "00000000-0000-0000-0000-0000000000e2"),
+      asst("msg_a1", "a1", "00000000-0000-0000-0000-0000000000e3", "toolu_task_a"),
+    ]);
+    assertOneBracketPerRun(evs);
+    expect(turnCloses(evs).map((e) => [e.type, "turnId" in e ? e.turnId : undefined])).toEqual([["turn.abort", "turn_msg_top"]]);
+  });
+
+  it("a frame for a run that already CLOSED opens a NEW nested turn: a closed nested id is never reopened", () => {
+    const evs = events([
+      asst("msg_top", "delegating", "00000000-0000-0000-0000-0000000000e2"),
+      asst("msg_a1", "a1", "00000000-0000-0000-0000-0000000000e3", "toolu_task_a"),
+      taskResult("toolu_task_a", "00000000-0000-0000-0000-0000000000e6"),
+      asst("msg_a1", "late frame, same message id", "00000000-0000-0000-0000-0000000000ea", "toolu_task_a"),
+      result("00000000-0000-0000-0000-0000000000e9"),
+    ]);
+    assertOneBracketPerRun(evs);
+    expect(turnIds(evs, "subagent.start")).toEqual(["turn_msg_a1", "turn_00000000-0000-0000-0000-0000000000ea"]);
   });
 
   it("a notice between turns opens the next turn (named by its uuid), and that turn's assistant frame and result join it", () => {
