@@ -48,6 +48,12 @@
  * surface. The Python ADK uses the snake_case aliases (`turn_complete`,
  * `function_call`); a runtime adapter would map those before this seam. This
  * fixture contract is the camelCase wire projection.
+ *
+ * NOTE on turn ids across invokes: google-adk derives turn ids from ADK's
+ * `invocationId`, which ADK-JS mints fresh on every `runAsync` (including a
+ * resume), so they don't repeat across the invokes of a fold. ADK-Python's
+ * resumable resume reuses `invocation_id`; a facet over ADK-Python would need
+ * a per-invoke stem.
  */
 import {
   type AgEvent,
