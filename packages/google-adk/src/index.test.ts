@@ -856,7 +856,7 @@ describe("createAdkNormalizer — hitl.ask auth: flat `authConfig` view + native
     credentialKey: "adk_mail_cred",
   };
 
-  it("oauth2 authorizationCode → full view; the native config rides whole and verbatim in metadata", () => {
+  it("oauth2 authorizationCode → full view; metadata carries the native config reduced to its non-secret members", () => {
     const ask = askFor(oauth2Native);
     expect(viewOf(ask)).toEqual({
       scheme: "oauth2",
@@ -866,7 +866,12 @@ describe("createAdkNormalizer — hitl.ask auth: flat `authConfig` view + native
       clientId: "cid-123",
       audience: "aud-1",
     });
-    expect(metaOf(ask)).toEqual(oauth2Native);
+    expect(metaOf(ask)).toEqual({
+      authScheme: oauth2Native.authScheme,
+      rawAuthCredential: { authType: "oauth2", oauth2: { clientId: "cid-123", audience: "aud-1" } },
+      exchangedAuthCredential: { authType: "oauth2", oauth2: { clientId: "cid-123" } },
+      credentialKey: "adk_mail_cred",
+    });
   });
 
   it("no secret-bearing field ever reaches the view (clientSecret, tokens, state, exchangedAuthCredential, credentialKey)", () => {
@@ -916,17 +921,17 @@ describe("createAdkNormalizer — hitl.ask auth: flat `authConfig` view + native
     expect(metaOf(ask)).toEqual(native);
   });
 
-  it("no string scheme → NO authConfig key (never invented); metadata unchanged", () => {
-    const natives: JsonValue[] = [
-      { credentialKey: "k" },
-      { authScheme: { flows: {} }, credentialKey: "k" },
-      { authScheme: { type: 7 }, credentialKey: "k" },
-      { scope: "x" },
+  it("no string scheme → NO authConfig key (never invented); metadata keeps only allowlisted members", () => {
+    const cases: Array<[JsonValue, JsonValue]> = [
+      [{ credentialKey: "k" }, { credentialKey: "k" }],
+      [{ authScheme: { flows: {} }, credentialKey: "k" }, { authScheme: { flows: {} }, credentialKey: "k" }],
+      [{ authScheme: { type: 7 }, credentialKey: "k" }, { authScheme: { type: 7 }, credentialKey: "k" }],
+      [{ scope: "x" }, {}],
     ];
-    for (const native of natives) {
+    for (const [native, carried] of cases) {
       const ask = askFor(native);
       expect(Object.keys(ask)).not.toContain("authConfig");
-      expect(metaOf(ask)).toEqual(native);
+      expect(metaOf(ask)).toEqual(carried);
     }
   });
 
@@ -953,6 +958,191 @@ describe("createAdkNormalizer — hitl.ask auth: flat `authConfig` view + native
     for (const ev of out) r.push(ev);
     expect(r.needsResync).toBe(false);
     expect(() => AgReduceResult.parse(r.result())).not.toThrow();
+  });
+});
+
+describe("createAdkNormalizer — ADK auth objects are carried through an allowlist on every carrier", () => {
+  // Every credential member @google/adk 2.1.0 declares (auth_credential.d.ts),
+  // filled with a unique SECRET_* marker, in camelCase and snake_case. The scan
+  // covers every key AND every value, at any depth, of every emitted event and
+  // of the folded result.
+  const oauth2Secret = {
+    clientId: "cid-ok",
+    clientSecret: "SECRET_client_secret",
+    authUri: "https://idp.example/auth?client_id=cid-ok",
+    nonce: "SECRET_nonce",
+    state: "SECRET_state",
+    codeVerifier: "SECRET_code_verifier",
+    codeChallengeMethod: "S256",
+    redirectUri: "https://app.example/cb",
+    authResponseUri: "https://app.example/cb?code=SECRET_code_in_uri",
+    authCode: "SECRET_auth_code",
+    accessToken: "SECRET_access_token",
+    refreshToken: "SECRET_refresh_token",
+    idToken: "SECRET_id_token",
+    expiresAt: 1790000000,
+    expiresIn: 3600,
+    audience: "aud-ok",
+    tokenEndpointAuthMethod: "client_secret_post",
+  };
+  const credential = {
+    authType: "oauth2",
+    resourceRef: "res-ok",
+    apiKey: "SECRET_api_key",
+    http: {
+      scheme: "bearer",
+      credentials: { username: "SECRET_user", password: "SECRET_password", token: "SECRET_http_token" },
+      additionalHeaders: { Authorization: "SECRET_header_value" },
+    },
+    oauth2: oauth2Secret,
+    serviceAccount: {
+      serviceAccountCredential: {
+        type: "service_account",
+        projectId: "proj-ok",
+        privateKeyId: "SECRET_private_key_id",
+        privateKey: "SECRET_private_key",
+        clientEmail: "sa@proj-ok.example",
+        clientId: "SECRET_sa_client_id_not_allowlisted",
+        authUri: "SECRET_sa_auth_uri_not_allowlisted",
+        tokenUri: "https://oauth2.example/token",
+        authProviderX509CertUrl: "SECRET_x509_provider",
+        clientX509CertUrl: "SECRET_x509_client",
+        universeDomain: "example.com",
+      },
+      scopes: ["scope-ok"],
+      useDefaultCredential: false,
+      useIdToken: true,
+      audience: "sa-aud-ok",
+    },
+  };
+  const authConfig = {
+    // authScheme.flows.password is the OAuth2 password-GRANT flow object (a
+    // tokenUrl + scopes), not a credential: the allowlist is path-aware, and it
+    // must survive.
+    authScheme: {
+      type: "oauth2",
+      flows: {
+        authorizationCode: { authorizationUrl: "https://idp.example/auth", tokenUrl: "https://idp.example/token", scopes: { "mail.read": "" } },
+        password: { tokenUrl: "https://idp.example/password-grant-token", scopes: { "mail.read": "" } },
+      },
+    },
+    rawAuthCredential: credential,
+    exchangedAuthCredential: credential,
+    credentialKey: "cred-key-ok",
+  };
+  const snakeCase = (v: unknown): unknown =>
+    Array.isArray(v)
+      ? v.map(snakeCase)
+      : v !== null && typeof v === "object"
+        ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`), snakeCase(x)]))
+        : v;
+
+  /** Every key and every string value, at any depth. Keys under an
+   *  authScheme subtree are NOT collected: that subtree is a security-scheme
+   *  description (e.g. flows.password is the password-grant flow), never a
+   *  credential, so the denied-name check is path-aware. Values are always
+   *  collected. */
+  function walk(v: unknown, keys: Set<string>, values: Set<string>, inScheme = false): void {
+    if (Array.isArray(v)) v.forEach((x) => walk(x, keys, values, inScheme));
+    else if (v !== null && typeof v === "object")
+      for (const [k, x] of Object.entries(v)) {
+        if (!inScheme) keys.add(k);
+        walk(x, keys, values, inScheme || k === "authScheme" || k === "auth_scheme");
+      }
+    else if (typeof v === "string") values.add(v);
+  }
+  function expectNoSecretAnywhere(out: AgEvent[]): { keys: Set<string>; values: Set<string> } {
+    const keys = new Set<string>();
+    const values = new Set<string>();
+    walk(out, keys, values);
+    const r = new Reducer();
+    for (const e of out) r.push(e);
+    expect(r.needsResync).toBe(false);
+    walk(r.result(), keys, values);
+    for (const v of values) expect(v).not.toContain("SECRET_");
+    for (const denied of [
+      "clientSecret", "client_secret", "accessToken", "access_token", "refreshToken", "refresh_token",
+      "idToken", "id_token", "apiKey", "api_key", "password", "privateKey", "private_key",
+      "codeVerifier", "code_verifier", "authCode", "auth_code", "authResponseUri", "auth_response_uri",
+      "state", "nonce", "additionalHeaders", "additional_headers", "credentials", "token",
+    ]) {
+      expect(keys.has(denied), `denied key "${denied}" reached the wire`).toBe(false);
+    }
+    return { keys, values };
+  }
+
+  it("the hitl.ask metadata (item 12 ask) and the paused asks[] carry only allowlisted members", () => {
+    const out = run([
+      event([], { actions: { requestedAuthConfigs: { fc_1: authConfig } }, turnComplete: true, finishReason: "STOP" }),
+    ]);
+    const { values } = expectNoSecretAnywhere(out);
+    for (const kept of ["cid-ok", "https://idp.example/auth?client_id=cid-ok", "https://app.example/cb", "cred-key-ok", "proj-ok", "sa@proj-ok.example", "https://oauth2.example/token", "example.com", "res-ok", "aud-ok", "S256", "https://idp.example/password-grant-token"]) {
+      expect(values.has(kept), `allowlisted value ${kept} must survive`).toBe(true);
+    }
+  });
+
+  it("path-aware: authScheme.flows.password (the password-grant flow) survives whole, while the credential subtrees keep only allowlisted members", () => {
+    const out = run([event([], { actions: { requestedAuthConfigs: { fc_1: authConfig } } })]);
+    const ask = out.find((e) => e.type === "hitl.ask") as { metadata?: { authConfig?: { [k: string]: unknown } } } | undefined;
+    const carried = ask?.metadata?.authConfig;
+    expect(carried?.["authScheme"]).toEqual(authConfig.authScheme);
+    expect(carried?.["rawAuthCredential"]).toEqual({
+      authType: "oauth2",
+      resourceRef: "res-ok",
+      oauth2: {
+        clientId: "cid-ok",
+        authUri: "https://idp.example/auth?client_id=cid-ok",
+        redirectUri: "https://app.example/cb",
+        codeChallengeMethod: "S256",
+        tokenEndpointAuthMethod: "client_secret_post",
+        expiresAt: 1790000000,
+        expiresIn: 3600,
+        audience: "aud-ok",
+      },
+      serviceAccount: {
+        serviceAccountCredential: { projectId: "proj-ok", clientEmail: "sa@proj-ok.example", tokenUri: "https://oauth2.example/token", universeDomain: "example.com" },
+        scopes: ["scope-ok"],
+        useDefaultCredential: false,
+        useIdToken: true,
+        audience: "sa-aud-ok",
+      },
+    });
+  });
+
+  it("the reserved credential call's args (tool.args.* and the folded tool-call block) are scrubbed, snake_case wire included", () => {
+    for (const args of [
+      { functionCallId: "orig-1", authConfig, message: "Sign in" },
+      snakeCase({ functionCallId: "orig-1", authConfig, message: "Sign in" }) as { [k: string]: JsonValue },
+    ]) {
+      const out = run([
+        event([{ functionCall: { name: "adk_request_credential", args, id: "adk-cred-1" } }], { longRunningToolIds: ["adk-cred-1"] }),
+      ]);
+      const { values } = expectNoSecretAnywhere(out);
+      expect(values.has("orig-1")).toBe(true);
+      expect(values.has("Sign in")).toBe(true);
+      expect(values.has("cid-ok")).toBe(true);
+    }
+  });
+
+  it("a reserved-credential answer (the client's credential, e.g. on session replay) is scrubbed the same way", () => {
+    const out = run([
+      event([{ functionCall: { name: "adk_request_credential", args: { functionCallId: "o", authConfig }, id: "adk-cred-1" } }], { longRunningToolIds: ["adk-cred-1"] }),
+      {
+        invocationId: "inv_fixture_1",
+        content: { role: "user", parts: [{ functionResponse: { name: "adk_request_credential", response: { ...authConfig }, id: "adk-cred-1" } }] },
+      },
+    ]);
+    expectNoSecretAnywhere(out);
+  });
+
+  it("negative control: an ordinary tool's args and response are forwarded unchanged", () => {
+    const args = { query: "state of the union", token: "not-a-credential-here" };
+    const out = run([
+      event([{ functionCall: { name: "search", args, id: "c1" } }]),
+      { invocationId: "inv_fixture_1", content: { role: "user", parts: [{ functionResponse: { name: "search", response: { state: "ok" }, id: "c1" } }] } },
+    ]);
+    expect(out.find((e) => e.type === "tool.args.assembled")).toMatchObject({ input: args });
+    expect(out.find((e) => e.type === "tool.done")).toMatchObject({ content: [{ type: "data", data: { state: "ok" } }] });
   });
 });
 

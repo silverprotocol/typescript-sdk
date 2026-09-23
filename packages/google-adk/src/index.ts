@@ -1076,7 +1076,11 @@ function driveAdkPart(
       toolCallId = minted.toolCallId;
     }
     const providerCallIndex = realId !== null ? undefined : index;
-    const input: JsonValue = JsonValue.parse(fc.args ?? {});
+    // The reserved credential call's args carry the whole ADK AuthConfig: scrub
+    // them to the allowlist (see scrubAdkAuthConfig) before they reach
+    // tool.args.* and the folded tool-call block.
+    const rawInput: JsonValue = JsonValue.parse(fc.args ?? {});
+    const input: JsonValue = fc.name === ADK_REQUEST_CREDENTIAL ? scrubCredentialCallArgs(rawInput) : rawInput;
     const longRunning =
       event.longRunningToolIds !== undefined && event.longRunningToolIds.includes(toolCallId)
         ? true
@@ -1126,7 +1130,12 @@ function driveAdkPart(
     a.toolDone({
       toolCallId,
       // A JSON-null response is absent (null guard): it was dereferenced below.
-      ...functionResponseToToolDoneFields(fr.name, isJsonObject(fr.response) ? fr.response : undefined),
+      // A reserved-credential answer carries the client's credential: scrub it
+      // to the allowlist like the request.
+      ...functionResponseToToolDoneFields(
+        fr.name,
+        fr.name === ADK_REQUEST_CREDENTIAL ? scrubbedResponse(fr.response) : isJsonObject(fr.response) ? fr.response : undefined,
+      ),
       outcome,
       turnId,
       providerMetadata:
@@ -1237,6 +1246,106 @@ function driveAdkPart(
 //   password, with scopes = the keys of its OpenAPI scopes map;
 // - clientId / audience ← rawAuthCredential.oauth2 (auth_credential.d.ts:35-62).
 // credentialKey, secrets and exchange state never enter the view.
+// ─── ADK auth objects: carry only members known to be non-secret ─────────────
+// An ADK AuthConfig, and the credential objects inside it, can hold credential
+// material. Anything the facet forwards is persisted by hosts (hitl.ask →
+// turn.done paused asks[]; tool-call blocks). So every carrier of an ADK auth
+// object is an ALLOWLIST: a member is forwarded only when it is known to be
+// non-secret, and every other member, at any depth, is omitted. The list is
+// checked against @google/adk 2.1.0 dist/types/auth/auth_tool.d.ts and
+// auth_credential.d.ts. Keys match in camelCase or snake_case (the reserved
+// call's args arrive snake_case at the top level); a kept key keeps its wire
+// spelling.
+//
+// Resume safety (ADK 2.1.0): the credential resume rebuilds the request
+// server-side from the session's own reserved call (auth_preprocessor.js
+// requestedAuthConfigs) and takes only the auth code / response URI from the
+// client's answer (credential_response_binding.js bindCredential; the raw
+// credential is restored from the request). An oauth2/OIDC request always
+// carries a generated authUri (auth_handler.js generateAuthRequest). So what
+// the allowlist omits is never needed to answer the ask.
+const ADK_REQUEST_CREDENTIAL = "adk_request_credential";
+
+type AllowSpec = { [key: string]: true | ((v: JsonValue) => JsonValue | undefined) };
+
+function snakeKey(k: string): string {
+  return k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+}
+
+/** Copy only the allowlisted members of `v` (camel or snake spelling), each
+ *  either verbatim (`true`) or through its nested allowlist. */
+function pickAllowed(v: JsonValue | undefined, spec: AllowSpec): JsonValue | undefined {
+  if (!isJsonObject(v)) return undefined;
+  const out: { [k: string]: JsonValue } = {};
+  for (const [name, rule] of Object.entries(spec)) {
+    for (const key of name === snakeKey(name) ? [name] : [name, snakeKey(name)]) {
+      if (!Object.hasOwn(v, key)) continue;
+      const member = v[key];
+      if (member === undefined) continue;
+      const kept = rule === true ? member : rule(member);
+      if (kept !== undefined) out[key] = kept;
+    }
+  }
+  return out;
+}
+
+const OAUTH2_ALLOW: AllowSpec = {
+  clientId: true,
+  authUri: true,
+  redirectUri: true,
+  scopes: true,
+  codeChallengeMethod: true,
+  tokenEndpointAuthMethod: true,
+  expiresAt: true,
+  expiresIn: true,
+  audience: true,
+};
+const SERVICE_ACCOUNT_ALLOW: AllowSpec = {
+  scopes: true,
+  useDefaultCredential: true,
+  useIdToken: true,
+  audience: true,
+  serviceAccountCredential: (v) =>
+    pickAllowed(v, { projectId: true, clientEmail: true, tokenUri: true, universeDomain: true }),
+};
+const AUTH_CREDENTIAL_ALLOW: AllowSpec = {
+  authType: true,
+  resourceRef: true,
+  oauth2: (v) => pickAllowed(v, OAUTH2_ALLOW),
+  serviceAccount: (v) => pickAllowed(v, SERVICE_ACCOUNT_ALLOW),
+};
+const AUTH_CONFIG_ALLOW: AllowSpec = {
+  authScheme: true, // an OpenAPI/OIDC security scheme: endpoints, scopes, names; no secret members
+  credentialKey: true,
+  rawAuthCredential: (v) => pickAllowed(v, AUTH_CREDENTIAL_ALLOW),
+  exchangedAuthCredential: (v) => pickAllowed(v, AUTH_CREDENTIAL_ALLOW),
+};
+
+/** The ADK AuthConfig reduced to its non-secret members ({} for a non-object). */
+function scrubAdkAuthConfig(native: JsonValue): JsonValue {
+  return pickAllowed(native, AUTH_CONFIG_ALLOW) ?? {};
+}
+
+/** A reserved-credential functionResponse (the client's answer) scrubbed the
+ *  same way; undefined when the response is not an object. */
+function scrubbedResponse(response: unknown): { readonly [k: string]: JsonValue } | undefined {
+  if (!isJsonObject(response)) return undefined;
+  const scrubbed = scrubAdkAuthConfig(response);
+  return isJsonObject(scrubbed) ? scrubbed : undefined;
+}
+
+/** The reserved credential call's args: its id, its message and the scrubbed
+ *  AuthConfig. Nothing else is forwarded. */
+function scrubCredentialCallArgs(args: JsonValue): JsonValue {
+  return (
+    pickAllowed(args, {
+      functionCallId: true,
+      message: true,
+      authConfig: (v) => scrubAdkAuthConfig(v),
+    }) ?? {}
+  );
+}
+
 function adkAuthConfigView(native: JsonValue): AgAuthConfig | undefined {
   if (!isJsonObject(native)) return undefined;
   const authScheme = native["authScheme"];
@@ -1431,7 +1540,7 @@ function driveAdkTopLevel(
           kind: "auth",
           toolCallId: callId,
           ...(view !== undefined ? { authConfig: view } : {}),
-          metadata: { authConfig: JsonValue.parse(authConfig) },
+          metadata: { authConfig: scrubAdkAuthConfig(JsonValue.parse(authConfig)) },
         };
         a.emit({ type: "hitl.ask", ...ask });
         trackPendingAsk(pendingAsks, turnId, ask);
