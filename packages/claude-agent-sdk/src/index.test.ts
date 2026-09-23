@@ -3636,6 +3636,74 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     expect((meta[0] as { metadata?: unknown }).metadata).toEqual({ narration_block_indexes: [0] });
   });
 
+  // First blocks with NO providerMetadata slot (compaction, a content.block)
+  // or whose event belongs to ANOTHER message (mcp_tool_result → the adopted
+  // `<id>:result` tool.done) used to drop the replay half of the wrapper bag
+  // silently. Both halves now ride the assistant message's message.metadata.
+  function frameWithFirst(first: unknown, wrapper: { [k: string]: unknown }): unknown {
+    return {
+      type: "assistant",
+      message: {
+        ...betaMessage([]),
+        id: "msg_nonanchor",
+        content: [first, { type: "text", text: "after", citations: null }],
+      },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000c9",
+      session_id: "sess_fixture",
+      ...wrapper,
+    };
+  }
+
+  it("a COMPACTION-first frame keeps BOTH wrapper halves on message.metadata, in wire order, folded onto the message", () => {
+    const wrapper = { supersedes: ["00000000-0000-0000-0000-0000000000c8"], aborted: true, narration_block_indexes: [1] };
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(frameWithFirst({ type: "compaction", content: "summary", encrypted_content: null }, wrapper))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const meta = evs.filter((e) => e.type === "message.metadata");
+    expect(meta).toHaveLength(1);
+    expect(JSON.stringify((meta[0] as { metadata?: unknown }).metadata)).toBe(JSON.stringify(wrapper));
+    for (const e of evs) {
+      if (e.type === "message.metadata") continue;
+      expect(JSON.stringify(e)).not.toContain("supersedes");
+    }
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.find((m) => m.id === "msg_nonanchor")?.metadata).toEqual(wrapper);
+  });
+
+  it("an MCP_TOOL_RESULT-first frame keeps its wrapper facts on the ASSISTANT message, never on the adopted tool-result message", () => {
+    const wrapper = { resumed_from_incomplete_thinking: true };
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(
+        JsonValue.parse(
+          frameWithFirst({ type: "mcp_tool_result", tool_use_id: "toolu_mcp_1", is_error: false, content: [{ type: "text", text: "ok" }] }, wrapper),
+        ),
+      ),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    expect(evs.find((e) => e.type === "message.metadata")).toMatchObject({ messageId: "msg_nonanchor", metadata: wrapper });
+    const toolDone = evs.find((e) => e.type === "tool.done");
+    expect(toolDone !== undefined && "providerMetadata" in toolDone).toBe(false);
+  });
+
+  it("NEGATIVE CONTROL: a text-first frame still anchors both halves on text.start and emits no message.metadata", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(wrapperAssistant({ aborted: true, narration_block_indexes: [0] }))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    expect(evs.some((e) => e.type === "message.metadata")).toBe(false);
+    expect(evs.find((e) => e.type === "text.start")).toMatchObject({ providerMetadata: { aborted: true }, _meta: { narration_block_indexes: [0] } });
+  });
+
   it("NEGATIVE CONTROL: absent or malformed narration_block_indexes leaves the stream byte-identical (nothing new is carried)", () => {
     const bare = (() => {
       const n = createClaudeNormalizer();

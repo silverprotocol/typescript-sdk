@@ -387,13 +387,22 @@ function assistantErrorRetriable(errCode: NonNullable<SDKAssistantError>): boole
 //  - `blockMeta` (X5): the HOST-only wrapper facts (HOST_ONLY_WRAPPER_KEYS).
 //    Only text.start / reasoning.start get it, because `reduce()` folds their
 //    `_meta` onto the block.
-// Returns true when `blockMeta` landed. Every other block type returns false,
-// and the caller routes the host-only bag through `message.metadata` instead
-// (tool.start does not fold `_meta`). That fallback is message-level and
+// Returns which halves ANCHORED on a folded start event: `replay` when the
+// block type has a providerMetadata slot the caller's bag landed on (text,
+// thinking, redacted_thinking, the tool_use family), `host` when `blockMeta`
+// landed (text / thinking / redacted_thinking only; tool.start folds no
+// `_meta`). The caller routes every UNANCHORED half through the assistant
+// message's `message.metadata`, so no wrapper fact is dropped. (Before this,
+// a frame whose first block was a compaction, an mcp_tool_result or a
+// content.block lost its replay half silently: those have no providerMetadata
+// slot, and an mcp_tool_result's tool.done belongs to another message.) That fallback is message-level and
 // merges REPLACE-by-key, so it does not say which frame the frame-relative
 // `narration_block_indexes` belong to. In practice it is not reached: the CLI
 // sends one content block per frame, narration marks thinking/text blocks, and
 // an API-error frame starts with text.
+type BlockAnchor = { readonly replay: boolean; readonly host: boolean };
+const NOTHING_ANCHORED: BlockAnchor = { replay: false, host: false };
+
 function emitAssistantBlock(
   a: StreamAssembler,
   block: BetaContentBlock,
@@ -401,7 +410,7 @@ function emitAssistantBlock(
   blockIndex: number,
   blockProviderMetadata?: AgProviderMeta,
   blockMeta?: AgMeta,
-): boolean {
+): BlockAnchor {
   switch (block.type) {
     case "text": {
       // Claude's assistant message is a COMPLETE structure (not a live stream), so
@@ -425,7 +434,7 @@ function emitAssistantBlock(
       }
       a.textDelta(id, messageId, block.text);
       a.textEnd(id, messageId, citations !== undefined ? { citations } : undefined);
-      return blockMeta !== undefined;
+      return { replay: true, host: blockMeta !== undefined };
     }
     case "thinking": {
       const id = `${messageId}:reasoning:${blockIndex}`;
@@ -457,7 +466,7 @@ function emitAssistantBlock(
           provider: "anthropic",
         });
       }
-      return blockMeta !== undefined;
+      return { replay: true, host: blockMeta !== undefined };
     }
     case "redacted_thinking": {
       // No visible text; the redacted blob is the replay-load-bearing opaque part.
@@ -479,7 +488,7 @@ function emitAssistantBlock(
         value: block.data,
         provider: "anthropic",
       });
-      return blockMeta !== undefined;
+      return { replay: true, host: blockMeta !== undefined };
     }
     case "tool_use":
     case "server_tool_use":
@@ -512,7 +521,7 @@ function emitAssistantBlock(
       });
       a.toolArgsDelta(toolCallId, JSON.stringify(input));
       a.toolArgsAssembled(toolCallId, input);
-      return false;
+      return { replay: true, host: false };
     }
     case "mcp_tool_result": {
       // MCP tool results from the assistant side: map to tool.done with content + outcome.
@@ -525,7 +534,7 @@ function emitAssistantBlock(
         isError: block.is_error,
         messageId,
       });
-      return false;
+      return NOTHING_ANCHORED;
     }
     case "compaction": {
       // Compaction blocks carry a provider-produced context summary (spec §4).
@@ -539,12 +548,12 @@ function emitAssistantBlock(
             : undefined,
         provider: "anthropic",
       });
-      return false;
+      return NOTHING_ANCHORED;
     }
     default: {
       // image / resource / other rich content blocks ride content.block (spec §4).
       a.contentBlock(messageId, assistantContentBlockToAgBlock(block));
-      return false;
+      return NOTHING_ANCHORED;
     }
   }
 }
@@ -2052,7 +2061,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       const wrapperMeta: AgProviderMeta | undefined =
         Object.keys(replayRaw).length > 0 ? AgProviderMeta.parse(replayRaw) : undefined;
       const hostMeta: AgMeta | undefined = Object.keys(hostRaw).length > 0 ? AgMeta.parse(hostRaw) : undefined;
-      let hostMetaAnchored = false;
+      let anchored: BlockAnchor = NOTHING_ANCHORED;
       // workspace#7 dedupe: a STREAMED lifecycle already emitted every block
       // incrementally (stream ids reuse the content `index`, identical to the
       // arithmetic below) — this complete frame must not re-synthesize them.
@@ -2074,7 +2083,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
           // (`<id>:text:0` twice would clobber in the fold). The wrapper carry
           // stays anchored to this FRAME's first block: `aborted` /
           // `resumed_from_incomplete_thinking` are per-frame facts.
-          const anchored = emitAssistantBlock(
+          const landed = emitAssistantBlock(
             a,
             block,
             messageId,
@@ -2082,7 +2091,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
             i === 0 ? wrapperMeta : undefined,
             i === 0 ? hostMeta : undefined,
           );
-          if (i === 0) hostMetaAnchored = anchored;
+          if (i === 0) anchored = landed;
         }
         open.blockIndex += m.content.length;
       }
@@ -2092,11 +2101,19 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // (the whole combined bag, unchanged).
       if ((suppressed || m.content.length === 0) && (wrapperMeta !== undefined || hostMeta !== undefined)) {
         a.emit({ type: "message.metadata", messageId, metadata: wrapperMetaRaw });
-      } else if (hostMeta !== undefined && !hostMetaAnchored) {
-        // The first block is one whose start event does not fold `_meta` (a tool
-        // call, a compaction, an image, …): the host-only half rides the
-        // message instead, so it still folds.
-        a.emit({ type: "message.metadata", messageId, metadata: hostMeta });
+      } else {
+        // Whatever the first block could not anchor rides the message instead,
+        // in wire order, so it still folds: the host half after a tool call (no
+        // `_meta` on tool.start), and BOTH halves after a compaction, an
+        // mcp_tool_result or a content.block (no providerMetadata slot).
+        const unanchored: { [k: string]: JsonValue } = {};
+        for (const [k, v] of Object.entries(wrapperMetaRaw)) {
+          const isHost = HOST_ONLY_WRAPPER_KEYS.has(k);
+          if ((isHost && !anchored.host) || (!isHost && !anchored.replay)) unanchored[k] = v;
+        }
+        if (Object.keys(unanchored).length > 0) {
+          a.emit({ type: "message.metadata", messageId, metadata: unanchored });
+        }
       }
       // The seal is DEFERRED (guuey#26) — the next frame may continue this same
       // message id. Usage is message-level and repeated per frame, so the newest
