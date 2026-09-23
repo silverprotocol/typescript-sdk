@@ -65,6 +65,7 @@ import {
   StreamAssembler,
   type ToolOutcome,
   toJsonValueSafe,
+  withAtomicPush,
 } from "@silverprotocol/core";
 import {
   ADK_REQUEST_CREDENTIAL,
@@ -1741,7 +1742,29 @@ function isHostCompleteNative(v: JsonValue): boolean {
   return isJsonObject(v) && v["type"] === ADK_HOST_COMPLETE_TYPE && Object.keys(v).length === 1;
 }
 
+/**
+ * The google-adk Normalizer: the inner, deterministic normalizer below wrapped
+ * in core's withAtomicPush (the fleet guard ruling). Every push() is atomic:
+ * - The native is read once as plain JSON through core's toJsonValueSafe, so a
+ *   host may push the live Event objects ADK yields (undefined members, a
+ *   Date, an Error, a cycle) and they map exactly like the recorded corpus.
+ * - If mapping one native throws (an event whose envelope is valid but whose
+ *   inner members have unexpected types), its partial batch is discarded
+ *   without consuming seq, the inner is rebuilt by re-driving every native
+ *   accepted so far (the facet never reads the clock or randomness; ids come
+ *   from invocationId and per-invoke ordinals), and ONE core `error {message:
+ *   "normalizer error", code: <constructor name>}` takes the next seq, with no
+ *   payload and no message text.
+ * - flush() is guarded the same way; the wrapper closes what the consumer saw
+ *   open itself, without calling the inner again.
+ * So push() never throws (SPEC §8.0), and no facet state believes a turn,
+ * message or block is open that never reached the wire.
+ */
 export function createAdkNormalizer(options: AdkNormalizerOptions = {}): Normalizer {
+  return withAtomicPush(() => createInnerAdkNormalizer(options));
+}
+
+function createInnerAdkNormalizer(options: AdkNormalizerOptions): Normalizer {
   const hostCompletion = options.hostCompletion === true;
   const a = new StreamAssembler();
   const threadId = "google";
@@ -2147,25 +2170,18 @@ export function createAdkNormalizer(options: AdkNormalizerOptions = {}): Normali
 
   return {
     push(native: JsonValue): AgEvent[] {
-      // A host may push the live object ADK yields (the README's usage), and
-      // that can hold undefined members, a Date or another non-JSON value. The
-      // native is read once as plain JSON through core's toJsonValueSafe (the
-      // same reference when it already is), so nothing below parses a non-JSON
-      // value and push() never throws (SPEC §8.0). A native with nothing
-      // serializable is reported without its content.
-      const raw: unknown = native;
-      if (raw === undefined || typeof raw === "function" || typeof raw === "symbol") {
-        a.emitExt("google", "unparsed", { reason: "not-serializable" });
-        return a.drain();
-      }
-      const hostErr = hostErrorOf(raw);
+      // withAtomicPush has already read the native as plain JSON (see
+      // createAdkNormalizer). The host-error sentinel is checked first: an
+      // Error-built one keeps its message, because core maps an Error to
+      // {name, message, ...own enumerable}.
+      const json = native;
+      const hostErr = hostErrorOf(json);
       if (hostErr !== undefined) {
         // Like the completion sentinel below, a host<->facet contract input
         // (SPEC §8.0 host obligation 1), not a framework native.
         hostError(hostErr);
         return a.drain();
       }
-      const json = toJsonValueSafe(raw);
       if (isHostCompleteNative(json)) {
         // The host-completion sentinel is a host<->facet contract input (SPEC
         // §8.0 host obligation 4), like obligation 1's `__host_error__`: NOT a
