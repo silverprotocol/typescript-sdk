@@ -2148,3 +2148,56 @@ describe("per-native guard: a throw mid-part discards that part's batch, emits o
     expect(guarded).toEqual(plain);
   });
 });
+
+describe("preliminary tool-result, then tool-error (CB-7; draft.4 §5 snapshot fold)", () => {
+  const parts = [
+    { type: "start" },
+    { type: "start-step", request: {}, warnings: [] },
+    { type: "tool-call", toolCallId: "call_1", toolName: "fetch", input: { url: "u" } },
+    {
+      type: "tool-result",
+      toolCallId: "call_1",
+      toolName: "fetch",
+      input: { url: "u" },
+      output: { progress: 0.5 },
+      preliminary: true,
+      dynamic: false,
+    },
+    { type: "tool-error", toolCallId: "call_1", toolName: "fetch", input: { url: "u" }, error: "boom" },
+    {
+      type: "finish-step",
+      finishReason: "tool-calls",
+      rawFinishReason: "tool-calls",
+      usage: USAGE,
+      response: RESPONSE_S1,
+    },
+    { type: "finish", finishReason: "tool-calls", rawFinishReason: "tool-calls", totalUsage: USAGE },
+  ];
+
+  it("the facet sends a kept-open ok snapshot with structuredContent, then an error final without it", () => {
+    const done = run(parts).filter((e) => (e as { type: string }).type === "tool.done") as Record<string, unknown>[];
+    expect(done).toHaveLength(2);
+    expect(done[0]).toMatchObject({ more: true, outcome: "ok", structuredContent: { progress: 0.5 } });
+    expect(done[1]).toMatchObject({ outcome: "error", isError: true, errorText: "boom" });
+    expect("structuredContent" in done[1]!).toBe(false);
+  });
+
+  it("the fold holds exactly the error result: no stale structuredContent, no preliminary", () => {
+    const out = run(parts);
+    expectAllParse(out);
+    const r = new Reducer();
+    for (const ev of out) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const results = r.result().messages.flatMap((m) => m.content).filter((b) => b.type === "tool-result");
+    expect(results).toHaveLength(1);
+    const block = results[0] as Record<string, unknown>;
+    expect(block).toMatchObject({
+      toolCallId: "call_1",
+      outcome: "error",
+      isError: true,
+      errorText: "boom",
+      content: [{ type: "text", text: "boom" }],
+    });
+    for (const k of ["structuredContent", "preliminary"]) expect(k in block, k).toBe(false);
+  });
+});
