@@ -38,6 +38,7 @@
  * ingestAgEvent/ingestAgEvents never throw, even if `onReject` does.
  */
 import { AgEvent, type JsonValue } from "./agjson.js";
+import { copyJson } from "./copy-json.js";
 
 /** Why an input is not a well-formed envelope (draft.4 §0.2). */
 export type AgIngestRejectReason = "not-object" | "type-not-string" | "seq-not-number";
@@ -67,24 +68,6 @@ function envelopeProblem(v: JsonValue): AgIngestRejectReason | undefined {
   const seq = v["seq"];
   if (typeof seq !== "number" || !Number.isFinite(seq)) return "seq-not-number";
   return undefined;
-}
-
-/** Own-property deep copy of a JSON value, dropping `__proto__` at every depth. */
-function copyJson(v: JsonValue): JsonValue {
-  if (Array.isArray(v)) return v.map(copyJson);
-  if (v === null || typeof v !== "object") return v;
-  const out: { [k: string]: JsonValue } = {};
-  for (const k of Object.keys(v)) {
-    if (k === "__proto__") continue;
-    // DEFINED, never assigned (belt and braces with the skip above).
-    Object.defineProperty(out, k, {
-      value: copyJson((v as { [k: string]: JsonValue })[k]!),
-      enumerable: true,
-      writable: true,
-      configurable: true,
-    });
-  }
-  return out;
 }
 
 export function ingestAgEvent(v: JsonValue, opts?: IngestOptions): AgEvent | undefined {
