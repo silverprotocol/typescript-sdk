@@ -1112,6 +1112,24 @@ export function mapFinishReason(reason: string | undefined | null): AgFinishReas
   }
 }
 
+/**
+ * OA-15 (draft.4 — SPEC.md §8.0 graceful degradation, §10 item 23; sp-protocol
+ * 89c57db): the `turn.done` finish fields for a native reason. `finishReason`
+ * is `mapFinishReason(reason)`; `finishReasonRaw` — the native value byte for
+ * byte — rides along ONLY when that mapping fell back ("other"/"unknown") AND a
+ * native string exists. A real mapping (max_output_tokens → token_limit, a bare
+ * completion → stop, content_filter → safety_blocked) sets nothing: the companion
+ * is for a value with no AgJSON target, not a second copy of a mapped one
+ * (sp-protocol's scope ruling; widening it would be a new normative sentence).
+ */
+function finishReasonFields(
+  reason: string | undefined | null,
+): { finishReason: AgFinishReason; finishReasonRaw?: string } {
+  const finishReason = mapFinishReason(reason);
+  const isFallback = finishReason === "other" || finishReason === "unknown";
+  return isFallback && typeof reason === "string" ? { finishReason, finishReasonRaw: reason } : { finishReason };
+}
+
 // ─── tool-output content → AgBlock[] (spec §2) ────────────────────────────────
 function toolOutputToAgBlocks(
   output: OpenAIFunctionCallResultItem["output"],
@@ -1797,7 +1815,7 @@ export function createOpenaiNormalizer(): Normalizer {
           const safety: AgSafety[] = [{ category: "content_filter", blocked: true }];
           finishOrDeferRound(currentTurnId, currentMsgId, textStreamIds, {
             outcome: { type: "error", message: "content_filter" },
-            finishReason: mapFinishReason(reason),
+            ...finishReasonFields(reason),
             safety,
             ...(usage !== undefined ? { usage } : {}),
           });
@@ -1843,7 +1861,8 @@ export function createOpenaiNormalizer(): Normalizer {
         } else {
           finishOrDeferRound(currentTurnId, currentMsgId, textStreamIds, {
             outcome: { type: "success" },
-            finishReason: mapFinishReason(reason),
+            // OA-15: an unmapped native reason also carries finishReasonRaw.
+            ...finishReasonFields(reason),
             ...(usage !== undefined ? { usage } : {}),
           });
         }

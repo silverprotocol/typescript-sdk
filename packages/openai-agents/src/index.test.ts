@@ -12,6 +12,64 @@ describe("mapFinishReason", () => {
   });
 });
 
+// OA-15 — `turn.done.finishReasonRaw` (draft.4: SPEC.md §8.0 graceful
+// degradation + §10 item 23, sp-protocol 89c57db). Set ONLY when the mapped
+// finishReason is a fallback ("other"/"unknown"), carrying the native value byte
+// for byte; a real mapping (max_output_tokens → token_limit, …) sets nothing.
+describe("createOpenaiNormalizer — OA-15 turn.done.finishReasonRaw", () => {
+  function closeWith(response: { [k: string]: JsonValue }): AgEvent[] {
+    const n = createOpenaiNormalizer();
+    return [
+      rawModel({ type: "response.created", response: { id: "resp_oa15" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_oa15", delta: "hi" }),
+      rawModel({ type: "response.completed", response: { id: "resp_oa15", status: "completed", ...response } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+  }
+  function turnDone(evs: AgEvent[]): AgEvent | undefined {
+    return evs.find((e) => e.type === "turn.done");
+  }
+
+  it("§10 item 23: an unmapped native reason ⇒ finishReason fallback + finishReasonRaw verbatim; every event passes AgEvent.parse", () => {
+    const evs = closeWith({ incomplete_details: { reason: "zz" } });
+    expect(turnDone(evs)).toMatchObject({ finishReason: "unknown", finishReasonRaw: "zz" });
+    for (const e of evs) expect(() => AgEvent.parse(e)).not.toThrow();
+  });
+
+  it("byte for byte: the native value is carried untouched (case, punctuation, unicode)", () => {
+    expect(turnDone(closeWith({ incomplete_details: { reason: "Max_Messages—v2 ✓" } }))).toMatchObject({
+      finishReason: "unknown",
+      finishReasonRaw: "Max_Messages—v2 ✓",
+    });
+  });
+
+  it.each([
+    ["no reason (plain completed)", {}, "stop"],
+    ["max_output_tokens", { incomplete_details: { reason: "max_output_tokens" } }, "token_limit"],
+    ["max_tokens", { incomplete_details: { reason: "max_tokens" } }, "token_limit"],
+    ["stop", { incomplete_details: { reason: "stop" } }, "stop"],
+  ])("a MAPPED reason sets no finishReasonRaw — %s", (_label, response, mapped) => {
+    const done = turnDone(closeWith(response));
+    expect(done).toMatchObject({ finishReason: mapped });
+    expect(done).not.toHaveProperty("finishReasonRaw");
+  });
+
+  it("content_filter (mapped safety path) sets no finishReasonRaw", () => {
+    const done = turnDone(closeWith({ incomplete_details: { reason: "content_filter" } }));
+    expect(done).toMatchObject({ finishReason: "safety_blocked" });
+    expect(done).not.toHaveProperty("finishReasonRaw");
+  });
+
+  it("fold: the turn record carries finishReasonRaw", () => {
+    const r = new Reducer();
+    for (const e of closeWith({ incomplete_details: { reason: "zz" } })) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns[0]).toMatchObject({ finishReason: "unknown", finishReasonRaw: "zz" });
+    expect(() => AgReduceResult.parse(r.result())).not.toThrow();
+  });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Stateful createOpenaiNormalizer — A1 §5-6 (turn anchoring + text path).
 //
