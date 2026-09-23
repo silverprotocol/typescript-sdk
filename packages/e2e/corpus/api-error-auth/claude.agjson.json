@@ -1,0 +1,100 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_eb7d54d3-933b-4ab0-9387-a7b7e9a40be8",
+    "threadId": "a93e6dd6-5e1e-4ed7-823d-d164b4a7ea0c"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "eb7d54d3-933b-4ab0-9387-a7b7e9a40be8",
+    "turnId": "turn_eb7d54d3-933b-4ab0-9387-a7b7e9a40be8",
+    "threadId": "a93e6dd6-5e1e-4ed7-823d-d164b4a7ea0c",
+    "role": "assistant",
+    "model": "<synthetic>"
+  },
+  {
+    "type": "text.start",
+    "seq": 2,
+    "id": "eb7d54d3-933b-4ab0-9387-a7b7e9a40be8:text:0",
+    "messageId": "eb7d54d3-933b-4ab0-9387-a7b7e9a40be8",
+    "turnId": "turn_eb7d54d3-933b-4ab0-9387-a7b7e9a40be8"
+  },
+  {
+    "type": "text.delta",
+    "seq": 3,
+    "id": "eb7d54d3-933b-4ab0-9387-a7b7e9a40be8:text:0",
+    "messageId": "eb7d54d3-933b-4ab0-9387-a7b7e9a40be8",
+    "delta": "Failed to authenticate. API Error: 401 API key is invalid.",
+    "turnId": "turn_eb7d54d3-933b-4ab0-9387-a7b7e9a40be8"
+  },
+  {
+    "type": "text.end",
+    "seq": 4,
+    "id": "eb7d54d3-933b-4ab0-9387-a7b7e9a40be8:text:0",
+    "messageId": "eb7d54d3-933b-4ab0-9387-a7b7e9a40be8",
+    "turnId": "turn_eb7d54d3-933b-4ab0-9387-a7b7e9a40be8"
+  },
+  {
+    "type": "message.end",
+    "seq": 5,
+    "id": "eb7d54d3-933b-4ab0-9387-a7b7e9a40be8",
+    "usage": {
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "cumulative": true
+    }
+  },
+  {
+    "seq": 6,
+    "type": "ext.anthropic.result-meta",
+    "fastModeDisabledReason": "sdk_opt_in_required",
+    "queuedTurnCount": 0,
+    "resultIndex": 0,
+    "subagentStats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    }
+  },
+  {
+    "type": "turn.error",
+    "seq": 7,
+    "turnId": "turn_eb7d54d3-933b-4ab0-9387-a7b7e9a40be8",
+    "message": "authentication_failed",
+    "code": "authentication_failed",
+    "retriable": false,
+    "usage": {
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 0,
+      "serverToolRequests": 0,
+      "costUsd": 0,
+      "cumulative": true
+    }
+  }
+]

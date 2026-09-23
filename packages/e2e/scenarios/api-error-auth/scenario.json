@@ -1,0 +1,6 @@
+{
+  "name": "api-error-auth",
+  "prompt": "Say hello in one short sentence.",
+  "mcpServers": [],
+  "expectError": true
+}

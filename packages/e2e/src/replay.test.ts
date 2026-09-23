@@ -136,6 +136,17 @@ const CLAUDE_SEEDS = [
   // user_message_uuid(s) (harness-minted prompt uuids). Folds to 2 turns with
   // distinct per-result turnIds, needsResync false.
   "multi-result-sonnet5",
+  // NOT YET ENROLLED: api-error-auth (2026-09-23, probe queue item 1), the
+  // first cassette with is_error:true. It was captured with the scenario flag
+  // expectError and a deliberately invalid key (sdk 0.3.280,
+  // claude-sonnet-5): 10 system api_retry frames, a synthetic assistant frame
+  // with error:authentication_failed, then a success result with
+  // is_error:true, api_error_status 401. It folds to
+  // turn.error{authentication_failed}. It enrolls here once sp-claude
+  // settles the six facet drops its committed claude.coverage.json lists:
+  // init model, the synthetic frame's stop_sequence "" and message-level
+  // server_tool_use zeros, and the result's stop_reason and api_error_status
+  // on an error close.
 ] as const;
 
 /**
