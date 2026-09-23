@@ -123,3 +123,21 @@ one reducer:
 By default the stem is a random `openai_<16 hex>` drawn once per normalizer.
 Pass `createOpenaiNormalizer({ invokeId })` to make the output deterministic
 (replay, tests). An `invokeId` you pass must be unique per invoke within a fold.
+
+## Handoffs
+
+An Agents SDK handoff is a transfer: the source agent does not resume, and the
+target agent's model rounds are ordinary top-level turns. The facet brackets
+the transfer itself, from `handoff_requested` to `handoff_occurred`, as a nested
+turn under the source round. At `handoff_occurred` it emits:
+- the nested turn's `turn.done` (`success`, `finishReason: "unknown"`, no
+  usage), then its `subagent.done`;
+- `handoff` (`kind: "transfer"`, `toAgentName`);
+- `tool.done` for the transfer call (`transfer_to_<agent>`), whose result the
+  SDK delivers only on `handoff_occurred`. This closes the source round with
+  its own `turn.done`.
+
+Known limitation: when the model requests several handoffs in one response,
+the SDK runs the first and sends the ignored calls' results to the model only,
+never to the stream. Those calls get no `tool.done`, so the source round is
+closed at `flush()` with `turn.abort` (`stream-truncated`), not `success`.

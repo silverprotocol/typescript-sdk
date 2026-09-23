@@ -123,11 +123,11 @@
         },
         "handoff_requested": {
           "disposition": "handled",
-          "note": "Opens a subagentStart bracket keyed by a synthetic turn_handoff_<n> id (audit M48 Finding 1)."
+          "note": "Opens a subagentStart bracket for the transfer, keyed by a minted turn_<invokeStem>_handoff_<n> id (unique across invokes, DC-10), parented to the source round (audit M48 Finding 1)."
         },
         "handoff_occurred": {
           "disposition": "handled",
-          "note": "Closes the matching subagentStart bracket (FIFO) + emits the identity-carrying `handoff` event once both agent identities are known (audit M48 Finding 1)."
+          "note": "Closes the matching bracket (FIFO) with its draft.4 terminal, turn.done{success, finishReason unknown, no usage} (\u00a78.0 item 29), then subagent.done; emits the identity-carrying `handoff` event (toAgentName; sourceAgent.name has no home and is allowlisted with item.agent.name); then lands rawItem (the transfer function_call_result, which never arrives as tool_output) as that call's tool.done, draining its pending round so the source turn closes success (HO, b5d8a98; before it, O1's flush aborted every handoff run's source turn). A resumed invoke leading with this item opens turn_resume_<callId> first. Known limitation: with parallel handoff calls agents-core sends the ignored calls' results to the model only (turnPreparation.mjs:99), so those calls stay pending and the source round flush-aborts."
         },
         "tool_approval_requested": {
           "disposition": "handled",
