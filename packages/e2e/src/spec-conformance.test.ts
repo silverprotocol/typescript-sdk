@@ -164,6 +164,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 41, title: "MCP Apps view locator carry (draft.4): every native tool result's MCP Apps _meta.ui reaches its tool.done's _meta.ui deep-equal", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.41: every corpus native carrying _meta.ui, replayed through its reference normalizer (claude, openai, adk)" },
   { n: 42, leg: "vercel", title: "Kept-open results are snapshots (draft.4): yield/yield/return and yield/throw emit full snapshots; the error final carries E's message and no structuredContent", disposition: "COVERED-BY", citation: "vercel-ai/src/index.test.ts \"§10 item 42 — kept-open results are snapshots (yield/yield/return, yield/throw)\" (probe a84fd65)" },
   { n: 42, leg: "single-delivery", title: "Kept-open results are snapshots (draft.4): claude, openai and adk never emit more than one tool.done per call, so they satisfy the item trivially", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.42(single-delivery), a scan of every corpus/*/{claude,openai,adk}.agjson.json" },
+  { n: 43, title: "Never-opened terminals (draft.4): a terminal for a turn not seen opened folds to no record without a resync; a snapshot carrying turns replaces what is seen, one omitting turns keeps it; a seen turn with no record takes its snapshot message's threadId or gets no record; no created record carries a threadId no event carried; on every replay golden each terminal follows its turn's opener in the invoke", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.43, reference reduce() + Reducer (probe D9 f3d5256 + the snapshot rework) and a scan of every corpus/*/*.agjson.json" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -2391,6 +2392,162 @@ describe("§10.42 — kept-open results are snapshots (draft.4)", () => {
     }
     expect(bad).toEqual([]);
     expect(calls).toBeGreaterThan(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.43 — Never-opened terminals (draft.4; §5.0 INV-OWNER, INV-TURN)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.43 — never-opened terminals (draft.4; §5.0 INV-OWNER)", () => {
+  const P = (evs: Array<Record<string, unknown>>) => evs.map((e) => AgEvent.parse(e));
+  const fold = (evs: AgEvent[]) => {
+    const batch = reduce(evs);
+    const acc = new Reducer();
+    for (const e of evs) acc.push(e);
+    expect(acc.result()).toEqual(batch.result);
+    expect(acc.needsResync).toBe(batch.needsResync);
+    return batch;
+  };
+  // Every threadId some event carries (top-level, or on a snapshot's messages and turns).
+  const carried = (evs: AgEvent[]) => {
+    const out = new Set<unknown>();
+    for (const e of evs as unknown as Array<Record<string, unknown>>) {
+      if (e["threadId"] !== undefined) out.add(e["threadId"]);
+      for (const m of (e["messages"] as Array<Record<string, unknown>> | undefined) ?? []) if (m["threadId"] !== undefined) out.add(m["threadId"]);
+      for (const t of (e["turns"] as Array<Record<string, unknown>> | undefined) ?? []) if (t["threadId"] !== undefined) out.add(t["threadId"]);
+    }
+    return out;
+  };
+  const recs = (r: ReturnType<typeof reduce>, id: string) => r.result.turns.filter((t) => t.turnId === id);
+  const U = { inputTokens: 3, outputTokens: 4, totalTokens: 7 };
+  const ask = { askId: "a1", kind: "approval" };
+  const msg = (turnId: string, threadId?: string) => ({ id: `m_${turnId}`, role: "assistant", turnId, ...(threadId !== undefined ? { threadId } : {}), content: [{ type: "text", text: "hi" }] });
+  // The vectors whose terminals may create records; (h) folds each of them.
+  const B = () => P([
+    { type: "messages.snapshot", seq: 0, messages: [msg("X", "thX")] },
+    { type: "turn.done", seq: 1, turnId: "X", outcome: { type: "paused", asks: [ask] }, finishReason: "paused" },
+  ]);
+  const E = () => P([
+    { type: "messages.snapshot", seq: 0, messages: [msg("tM", "thM")], turns: [] },
+    { type: "turn.abort", seq: 1, turnId: "tM", reason: "stream-truncated" },
+  ]);
+  const F = () => P([
+    { type: "turn.start", seq: 0, threadId: "T", turnId: "X" },
+    { type: "messages.snapshot", seq: 1, messages: [] },
+    { type: "turn.done", seq: 2, turnId: "X", outcome: { type: "success" }, finishReason: "stop" },
+  ]);
+  const C = () => P([
+    { type: "turn.start", seq: 0, threadId: "th1", turnId: "X" },
+    { type: "turn.done", seq: 1, turnId: "X", outcome: { type: "success" }, finishReason: "stop", usage: U },
+  ]);
+
+  it("(a) a turn.error for a turnId no event opened: no record for it, no resync", () => {
+    const r = fold(P([{ type: "turn.error", seq: 0, turnId: "X", message: "boom" }]));
+    expect(r.needsResync).toBe(false);
+    expect(recs(r, "X")).toHaveLength(0);
+  });
+
+  it("(b) a turn seen only in a turns-less snapshot's message takes its paused terminal on a record carrying that message's threadId", () => {
+    const r = fold(B());
+    expect(r.needsResync).toBe(false);
+    expect(recs(r, "X")).toHaveLength(1);
+    expect(recs(r, "X")[0]?.threadId).toBe("thX");
+    expect((recs(r, "X")[0]?.outcome as { asks?: unknown } | undefined)?.asks).toEqual([ask]);
+  });
+
+  it("(b-nothread) when that message carries no threadId, the terminal folds onto no record, with no resync", () => {
+    const r = fold(P([
+      { type: "messages.snapshot", seq: 0, messages: [msg("X")] },
+      { type: "turn.done", seq: 1, turnId: "X", outcome: { type: "paused", asks: [ask] }, finishReason: "paused" },
+    ]));
+    expect(r.needsResync).toBe(false);
+    expect(recs(r, "X")).toHaveLength(0);
+    // No other turn's thread is borrowed, even when the fold holds a real turn.
+    const withReal = fold(P([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      { type: "messages.snapshot", seq: 1, messages: [msg("X")] },
+      { type: "turn.done", seq: 2, turnId: "X", outcome: { type: "paused", asks: [ask] }, finishReason: "paused" },
+    ]));
+    expect(withReal.needsResync).toBe(false);
+    expect(recs(withReal, "X")).toHaveLength(0);
+  });
+
+  it("(d) path 1: a turn dropped by a snapshot carrying turns takes no terminal, and the fold equals a joiner's that never saw its turn.start", () => {
+    const tail = [
+      { type: "messages.snapshot", seq: 1, messages: [], turns: [] },
+      { type: "turn.done", seq: 2, turnId: "X", outcome: { type: "success" }, finishReason: "stop" },
+    ];
+    const r = fold(P([{ type: "turn.start", seq: 0, threadId: "T", turnId: "X" }, ...tail]));
+    expect(r.needsResync).toBe(false);
+    expect(recs(r, "X")).toHaveLength(0);
+    const joiner = fold(P(tail.map((e) => ({ ...e, seq: (e.seq as number) - 1 }))));
+    expect(r.result).toEqual(joiner.result);
+  });
+
+  it("(e) path 2: a turn seen only as a message of a snapshot carrying turns folds its terminal onto a record with that message's threadId", () => {
+    const r = fold(E());
+    expect(r.needsResync).toBe(false);
+    expect(recs(r, "tM")).toHaveLength(1);
+    expect(recs(r, "tM")[0]?.threadId).toBe("thM");
+  });
+
+  it("(f) a snapshot that omits turns keeps them: a turn opened before it takes its terminal on its own record", () => {
+    const r = fold(F());
+    expect(r.needsResync).toBe(false);
+    expect(recs(r, "X")).toHaveLength(1);
+    expect(recs(r, "X")[0]?.threadId).toBe("T");
+  });
+
+  it("(c) turn.start X then turn.done X with usage U: exactly one record for X, carrying U", () => {
+    const r = fold(C());
+    expect(r.needsResync).toBe(false);
+    expect(recs(r, "X")).toHaveLength(1);
+    expect(recs(r, "X")[0]?.usage).toEqual(U);
+  });
+
+  it("(g) a record a non-terminal event minted is not 'seen opened': a turns-less snapshot keeps it, and a terminal does not fold onto it", () => {
+    const r = fold(P([
+      { type: "handoff", seq: 0, turnId: "tq", kind: "transfer" },
+      { type: "messages.snapshot", seq: 1, messages: [] },
+      { type: "turn.done", seq: 2, turnId: "tq", outcome: { type: "success" }, finishReason: "stop" },
+    ]));
+    expect(r.needsResync).toBe(false);
+    for (const rec of recs(r, "tq")) expect(rec.outcome).toBeUndefined();
+  });
+
+  it("(h) no record a terminal created carries a threadId that no event carried", () => {
+    for (const evs of [B(), E(), F(), C()]) {
+      const ids = carried(evs);
+      for (const t of reduce(evs).result.turns) expect({ turnId: t.turnId, threadId: t.threadId, carried: ids.has(t.threadId) }).toEqual({ turnId: t.turnId, threadId: t.threadId, carried: true });
+    }
+  });
+
+  it("(producers) on every replay golden, each terminal follows a turn.start or subagent.start with its turnId in the same invoke", () => {
+    const corpus = new URL("../corpus/", import.meta.url);
+    const TERMINALS = new Set(["turn.done", "turn.error", "turn.abort"]);
+    const bad: string[] = [];
+    let terminals = 0;
+    for (const dir of readdirSync(corpus).sort()) {
+      for (const fw of ["claude", "openai", "adk", "vercel"]) {
+        const f = new URL(`${dir}/${fw}.agjson.json`, corpus);
+        if (!existsSync(f)) continue;
+        let opened = new Set<unknown>();
+        let lastSeq = -1;
+        for (const e of JSON.parse(readFileSync(f, "utf8")) as Array<Record<string, unknown>>) {
+          const seq = e["seq"] as number;
+          if (seq === 0 && lastSeq >= 0) opened = new Set(); // a 0-restart opens a new invoke
+          lastSeq = seq;
+          if (e["type"] === "turn.start" || e["type"] === "subagent.start") opened.add(e["turnId"]);
+          if (TERMINALS.has(e["type"] as string)) {
+            terminals++;
+            if (!opened.has(e["turnId"])) bad.push(`${dir}/${fw}: ${String(e["type"])} for ${String(e["turnId"])} with no opener in its invoke`);
+          }
+        }
+      }
+    }
+    expect(bad).toEqual([]);
+    expect(terminals).toBeGreaterThan(0);
   });
 });
 
