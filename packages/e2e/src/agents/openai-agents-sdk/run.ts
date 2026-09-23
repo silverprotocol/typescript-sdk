@@ -73,8 +73,22 @@ export async function* runOpenaiCapture(input: CaptureRunInput): AsyncIterable<J
         // JSON-round-trips and validates the return value itself). A no-op
         // for tools that return no structuredContent (returns `undefined`,
         // which the SDK drops — no new field appears on the wire for them).
+        //
+        // workspace#21 (2026-09-23): the MCP result `_meta` rides along as
+        // `_meta` — agents-core 0.18.0 `MCPToolCustomDataContext.resultMeta`
+        // (`dist/mcpUtil.d.ts`:41, sourced `result._meta ?? content._meta` at
+        // `dist/mcp.mjs`:700) — the same `{ structuredContent, _meta }` shape
+        // guuey's worker ships (guuey#981), so a re-capture of
+        // `app-spec-structured-result` (its mock emits `_meta.ui`,
+        // `mcp-mocks/app-spec.ts`) proves the facet's `_meta` / `uiData`
+        // routing live. Still `undefined` when the tool returned neither.
         customDataExtractor: (context) =>
-          context.structuredContent !== undefined ? { structuredContent: context.structuredContent } : undefined,
+          context.structuredContent !== undefined || context.resultMeta !== undefined
+            ? {
+                ...(context.structuredContent !== undefined ? { structuredContent: context.structuredContent } : {}),
+                ...(context.resultMeta !== undefined ? { _meta: context.resultMeta } : {}),
+              }
+            : undefined,
       }),
   );
 

@@ -80,3 +80,32 @@ framework produced the stream.
 Spec: [silverprotocol.io/AgJSON](https://silverprotocol.io/AgJSON) — canonical
 in [silverprotocol/AgJSON](https://github.com/silverprotocol/AgJSON); wire
 version `1.0.0-draft.3`.
+
+## MCP tool results: `structuredContent`, `_meta`, `uiData`
+
+The OpenAI Agents SDK does not put an MCP result's `structuredContent` or
+`_meta` in the tool output (by default the model sees only the `content`
+text). To keep them, opt in on each `MCPServer` with `customDataExtractor`
+(`@openai/agents` ≥ 0.12). The SDK delivers its return value on the tool
+output item as `customData`, and the normalizer reads it there:
+
+```ts
+new MCPServerStreamableHttp({
+  url,
+  customDataExtractor: (ctx) =>
+    ctx.structuredContent !== undefined || ctx.resultMeta !== undefined
+      ? {
+          ...(ctx.structuredContent !== undefined ? { structuredContent: ctx.structuredContent } : {}),
+          ...(ctx.resultMeta !== undefined ? { _meta: ctx.resultMeta } : {}),
+        }
+      : undefined,
+});
+```
+
+- `customData.structuredContent` becomes `tool.done.structuredContent`.
+- `customData._meta` becomes the tool-result block's `_meta`, verbatim.
+- When `_meta.ui` is present (MCP Apps), the same payload also lands on
+  `uiData`, the model-hidden surface channel. `structuredContent` is left as
+  it is.
+
+Without `_meta` the output is unchanged.

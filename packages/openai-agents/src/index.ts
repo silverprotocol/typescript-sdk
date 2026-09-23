@@ -94,6 +94,7 @@ import {
   type AgEvent,
   type AgBlock,
   type AgFinishReason,
+  AgMeta,
   AgProviderMeta,
   type AgUsage,
   type AgSafety,
@@ -1232,6 +1233,24 @@ function extractStructuredContent(
     }
   }
   return undefined;
+}
+
+/**
+ * workspace#21 (guuey#981): the MCP tool result's `_meta`, riding the same
+ * host-convention `customData` channel as `structuredContent` (SPEC.md:340) —
+ * agents-core 0.18.0 hands it to `MCPServer.customDataExtractor` as
+ * `context.resultMeta` (`dist/mcpUtil.d.ts`:41, `result._meta ?? content._meta`
+ * at `dist/mcp.mjs`:700); guuey's worker and this repo's capture agent return it
+ * as `customData._meta`. It is a host/protocol annotation (MCP-Apps `ui.*`), so
+ * it rides the tool-result block's own `_meta` VERBATIM (SPEC.md:338; §8.0
+ * no-drop). sp-protocol ruled this option A on 2026-09-23. A non-object `_meta`
+ * (null, string, array) is not a `_meta` → `undefined`, and the block is
+ * byte-identical to the pre-#21 output. Mirrors the claude facet's sibling
+ * `_meta` parse (claude-agent-sdk/src/index.ts:1872-1876).
+ */
+function extractResultMeta(customData: JsonValue | undefined): AgMeta | undefined {
+  if (!isJsonObject(customData) || !isJsonObject(customData._meta)) return undefined;
+  return AgMeta.parse(customData._meta);
 }
 
 // Only the OUTER envelope is validated here (the RunStreamEvent families: a
@@ -2390,6 +2409,18 @@ export function createOpenaiNormalizer(): Normalizer {
           const outcome: ToolOutcome = rawItem.status === "incomplete" ? "error" : "ok";
           const content = toolOutputToAgBlocks(rawItem.output);
           const structuredContent = extractStructuredContent(event.item.output, event.item.customData);
+          // workspace#21: `customData._meta` → block `_meta`; with `_meta.ui` the
+          // payload is MCP-Apps view data → ALSO `uiData` (SPEC.md:332), leaving
+          // `structuredContent` as it was (the :340 mapping; ggui's cache marker
+          // rides it). §2.1's "exactly one consumer" is per channel (sp-protocol,
+          // option A). Mirrors claude-agent-sdk/src/index.ts:1926-1946.
+          const resultMeta = extractResultMeta(event.item.customData);
+          // A CLONE, not an alias: the two channels reach different consumers, and
+          // one mutating its copy must not reach the other.
+          const uiData =
+            resultMeta !== undefined && resultMeta["ui"] !== undefined && structuredContent !== undefined
+              ? JsonValue.parse(structuredContent)
+              : undefined;
           // Task 4b: resolve the OWNING turn explicitly (this result may land
           // after a later round has opened, so the engine's #lastTurn backfill
           // could misattribute it) and pass it through so toolDone binds to the
@@ -2409,6 +2440,8 @@ export function createOpenaiNormalizer(): Normalizer {
             outcome,
             isError: rawItem.status === "incomplete",
             ...(structuredContent !== undefined ? { structuredContent } : {}),
+            ...(uiData !== undefined ? { uiData } : {}),
+            ...(resultMeta !== undefined ? { _meta: resultMeta } : {}),
             ...(doneMeta !== undefined ? { providerMetadata: doneMeta } : {}),
             ...(doneTurnId !== undefined ? { turnId: doneTurnId } : {}),
           });

@@ -3037,6 +3037,107 @@ describe("createOpenaiNormalizer — tool_output structuredContent under 0.12.0 
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// workspace#21 (guuey#981's ask) — `customData._meta` → tool-result `_meta`, and
+// the §2.1 MCP-Apps routing: `_meta.ui` present ⇒ ADD `uiData` = the
+// structuredContent (SPEC.md:332), `structuredContent` itself unchanged (the
+// :340 host-convention mapping; ggui's cache marker keeps riding it).
+// sp-protocol ruled option A 2026-09-23: facet mapping under SPEC.md:332/:338/
+// :340 — `customData._meta` is the host's MCP result `_meta` (agents-core 0.18.0
+// `MCPToolCustomDataContext.resultMeta`), a protocol annotation → carried
+// VERBATIM (§8.0 no-drop); §2.1's "exactly one consumer" is per channel.
+// Mirrors claude-agent-sdk/src/index.ts:1926-1946. Absent `_meta` ⇒ byte-identical.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("createOpenaiNormalizer — tool_output customData._meta + §2.1 MCP-Apps uiData routing (workspace#21)", () => {
+  const PAYLOAD = { title: "Hello", body: "World", cache: { hit: false, llmCallsAvoided: 0, kind: "cold" } };
+  // The live mock's `_meta` (e2e/src/mcp-mocks/app-spec.ts) + a non-ui key.
+  const META_UI = { ui: { resourceUri: "ui://mock/card", visibility: ["model"] }, "trace/id": "t-1" };
+
+  function stream(customData: JsonValue | undefined): JsonValue[] {
+    const item: { [k: string]: JsonValue } = {
+      type: "tool_call_output_item",
+      rawItem: {
+        type: "function_call_result",
+        name: "render_card",
+        callId: "call_ws21",
+        status: "completed",
+        output: [{ type: "input_text", text: '{"title":"Hello","body":"World"}' }],
+      },
+      output: JSON.stringify({ type: "text", text: '{"title":"Hello","body":"World"}' }),
+    };
+    if (customData !== undefined) item.customData = customData;
+    return [
+      rawModel({ type: "response.created", response: { id: "resp_ws21" } }),
+      rawModel({
+        type: "response.output_item.added",
+        item: { id: "fc_ws21", type: "function_call", call_id: "call_ws21", name: "render_card" },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_ws21", status: "completed" } }),
+      runItem("tool_output", item),
+    ];
+  }
+  function run(s: JsonValue[]): AgEvent[] {
+    const n = createOpenaiNormalizer();
+    return s.flatMap((e) => n.push(e)).concat(n.flush());
+  }
+  function toolDone(evs: AgEvent[]): AgEvent | undefined {
+    return evs.find((e) => e.type === "tool.done");
+  }
+
+  it("_meta.ui present ⇒ tool.done carries structuredContent (unchanged) + uiData (= structuredContent) + _meta (verbatim)", () => {
+    const done = toolDone(run(stream({ structuredContent: PAYLOAD, _meta: META_UI })));
+    expect(done).toMatchObject({ type: "tool.done", toolCallId: "call_ws21" });
+    if (done === undefined || done.type !== "tool.done") throw new Error("no tool.done");
+    expect(done.structuredContent).toEqual(PAYLOAD);
+    expect(done.uiData).toEqual(PAYLOAD);
+    // Equal, but a clone — the surface channel never aliases the model channel.
+    expect(done.uiData).not.toBe(done.structuredContent);
+    expect(done._meta).toEqual(META_UI);
+  });
+
+  it("fold: the tool-result block carries all three channels and the result parses", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    for (const e of stream({ structuredContent: PAYLOAD, _meta: META_UI })) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    const block = res.messages.flatMap((m) => m.content).find((b) => b.type === "tool-result");
+    expect(block).toMatchObject({ structuredContent: PAYLOAD, uiData: PAYLOAD, _meta: META_UI });
+    expect(() => AgReduceResult.parse(res)).not.toThrow();
+  });
+
+  it("_meta WITHOUT .ui ⇒ _meta only — no uiData; structuredContent unchanged", () => {
+    const meta = { "trace/id": "t-2", timestamp: "2026-09-23T00:00:00Z" };
+    const done = toolDone(run(stream({ structuredContent: PAYLOAD, _meta: meta })));
+    if (done === undefined || done.type !== "tool.done") throw new Error("no tool.done");
+    expect(done._meta).toEqual(meta);
+    expect(done).not.toHaveProperty("uiData");
+    expect(done.structuredContent).toEqual(PAYLOAD);
+  });
+
+  it("_meta.ui with NO structuredContent anywhere ⇒ _meta only — no uiData invented", () => {
+    const done = toolDone(run(stream({ _meta: META_UI })));
+    if (done === undefined || done.type !== "tool.done") throw new Error("no tool.done");
+    expect(done._meta).toEqual(META_UI);
+    expect(done).not.toHaveProperty("uiData");
+    expect(done).not.toHaveProperty("structuredContent");
+  });
+
+  it("negative control: absent / non-object _meta ⇒ byte-identical to customData with no _meta key", () => {
+    const bare = run(stream({ structuredContent: PAYLOAD }));
+    const bareDone = toolDone(bare);
+    expect(bareDone).not.toHaveProperty("_meta");
+    expect(bareDone).not.toHaveProperty("uiData");
+    expect(run(stream({ structuredContent: PAYLOAD, _meta: null }))).toEqual(bare);
+    expect(run(stream({ structuredContent: PAYLOAD, _meta: "ui" }))).toEqual(bare);
+    expect(run(stream({ structuredContent: PAYLOAD, _meta: [{ ui: {} }] }))).toEqual(bare);
+    // No customData at all is likewise untouched by the new arm.
+    expect(toolDone(run(stream(undefined)))).not.toHaveProperty("_meta");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // agents-core 0.13.5 → 0.14.0 carry (2026-07-29): programmatic tool calling
 // (`program`/`program_output` protocol items + `caller` provenance),
 // AssistantMessageItem.phase, ShellCallResultItem.status. Synthetic frames
