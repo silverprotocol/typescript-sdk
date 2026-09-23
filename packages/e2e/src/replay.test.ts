@@ -127,6 +127,15 @@ const CLAUDE_SEEDS = [
   // claude-opus-4-8), so Opus 5 frames can appear mid-session for consumers who
   // never chose it.
   "echo-opus5",
+  // 2026-09-23: the corpus's first MULTI-RESULT invoke (sp-claude B's live
+  // receipt, per sp-protocol: ≥2 results in ONE streaming-input invoke → ≥2
+  // AgTurnRecords, each closed once). claude-sonnet-5 @0.3.280; the scenario's
+  // `followUps` streams a second prompt into the same query() after the first
+  // result. Live: 2 result frames with result_index 0 and 1 (the first live
+  // NON-zero result_index; queued_turn_count 0), and the first live
+  // user_message_uuid(s) (harness-minted prompt uuids). Folds to 2 turns with
+  // distinct per-result turnIds, needsResync false.
+  "multi-result-sonnet5",
 ] as const;
 
 /**
@@ -696,6 +705,13 @@ const SURFACE_GUARDS: ReadonlyArray<{
   surface: string;
   count: (native: JsonValue[]) => number;
 }> = [
+  {
+    scenario: "multi-result-sonnet5",
+    framework: "claude",
+    surface: "a SECOND result frame in the same invoke (the multi-result evidence)",
+    count: (n) =>
+      n.filter((f) => f !== null && typeof f === "object" && !Array.isArray(f) && f["type"] === "result").length - 1,
+  },
   {
     scenario: "thinking-fable51",
     framework: "claude",
