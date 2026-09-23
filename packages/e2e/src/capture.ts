@@ -28,6 +28,7 @@ import type { MockHandle } from "./mcp-mocks/serve.js";
 import type { CaptureRunInput, CaptureRunFn } from "./agents/types.js";
 import { Scenario, derivedTools } from "./scenario.js";
 import { extractToolCalls } from "./extract-tools.js";
+import { HOST_COMPLETE_MARKER, splitHostCompleteMarker } from "./replay.js";
 
 export type { CaptureRunInput };
 
@@ -57,6 +58,17 @@ export interface CaptureDeps {
   createNormalizer(): Normalizer;
   /** Runs the census lossiness analysis. REAL in tests. */
   census(input: CensusInput): CensusReport;
+  /**
+   * SPEC §8.0 host obligation 4 (draft.4): the framework's stream carries no
+   * in-band run terminal (adk-js), so the capture, acting as the host, records
+   * the host-completion marker `{type: HOST_COMPLETE_MARKER}` as the LAST
+   * native line after the run returned normally, never after a throw. It
+   * reaches the normalizer in native order, just as replay.ts feeds a
+   * recorded marker, so `createNormalizer` must return a facet opted into it
+   * (google-adk `{ hostCompletion: true }`). The census reads the natives
+   * without it, as replay's does.
+   */
+  hostCompletion?: boolean;
 }
 
 /**
@@ -144,6 +156,8 @@ export async function runCapture(
     for await (const event of deps.runAgentCapture(agentInput)) {
       native.push(event);
     }
+    // Reached only when the run returned normally (a throw skips it).
+    if (deps.hostCompletion === true) native.push({ type: HOST_COMPLETE_MARKER });
 
     // ── Step 3: Verify expectTools ⊇ extractToolCalls(native) ────────────────
     const calledTools = extractToolCalls(native, opts.framework);
@@ -176,7 +190,8 @@ export async function runCapture(
     }
 
     const agjsonValue: JsonValue = agEvents;
-    const nativeValue: JsonValue = native;
+    // The marker is harness data, not framework wire: census the natives without it.
+    const nativeValue: JsonValue = splitHostCompleteMarker(native).native;
 
     const coverage = deps.census({
       native: nativeValue,

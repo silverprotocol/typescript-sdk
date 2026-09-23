@@ -17,6 +17,11 @@ import { extractToolCalls } from "./extract-tools.js";
 import { serveMock } from "./mcp-mocks/serve.js";
 import { Scenario } from "./scenario.js";
 import { runCapture, type CaptureDeps, type Cassette } from "./capture.js";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { Reducer } from "@silverprotocol/core";
+import { createAdkNormalizer } from "@silverprotocol/google-adk";
+import { HOST_COMPLETE_MARKER, replayNatives } from "./replay.js";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -400,5 +405,68 @@ describe("runCapture", () => {
       framework: "claude",
     });
     expect("reasoningSummary" in (without.input() as object)).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// host-completion marker (SPEC §8.0 host obligation 4; rd-06 A.9 step 5)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("runCapture — hostCompletion records the host-completion marker (adk)", () => {
+  // google's engine-built Workflow run (P-RED): it ends on finalize's output
+  // event with no in-band run terminal, the shape obligation 4 exists for.
+  const WF_COMPLETE = JSON.parse(
+    readFileSync(join(import.meta.dirname, "..", "fixtures", "adk-pause", "wf-complete.native.json"), "utf8"),
+  ) as JsonValue[];
+  const adkDeps = (hostCompletion: boolean): CaptureDeps => ({
+    async *runAgentCapture() {
+      yield* WF_COMPLETE;
+    },
+    serveMock,
+    createNormalizer: () => createAdkNormalizer(hostCompletion ? { hostCompletion: true } : {}),
+    census,
+    ...(hostCompletion ? { hostCompletion: true } : {}),
+  });
+  const scenario = Scenario.parse({ name: "text-only", prompt: "Echo wf-probe" });
+
+  it("appends the marker as the LAST native line, and the capture's agjson equals replay's", async () => {
+    const cassette = await runCapture(scenario, adkDeps(true), { ports: [], framework: "adk" });
+    expect(cassette.native).toHaveLength(WF_COMPLETE.length + 1);
+    expect(cassette.native.at(-1)).toEqual({ type: HOST_COMPLETE_MARKER });
+    const replayed = await replayNatives(cassette.native, "adk");
+    expect(replayed.hostCompleted).toBe(true);
+    expect(cassette.agjson).toEqual(replayed.agjson);
+  });
+
+  it("the completed workflow closes success from push() and folds without parking", async () => {
+    const { agjson } = await runCapture(scenario, adkDeps(true), { ports: [], framework: "adk" });
+    const done = agjson.filter((e) => (e as { type: string }).type === "turn.done");
+    expect(done.map((e) => (e as { outcome: { type: string } }).outcome.type)).toEqual(["success"]);
+    expect(agjson.some((e) => (e as { type: string }).type === "turn.abort")).toBe(false);
+    const r = new Reducer();
+    for (const ev of agjson) r.push(ev as never);
+    expect(r.needsResync).toBe(false);
+  });
+
+  it("the census reads the natives WITHOUT the marker", async () => {
+    const cassette = await runCapture(scenario, adkDeps(true), { ports: [], framework: "adk" });
+    const bare = await runCapture(scenario, adkDeps(false), { ports: [], framework: "adk" });
+    expect(cassette.coverage).toEqual(
+      census({
+        native: WF_COMPLETE,
+        agjson: cassette.agjson,
+        transforms: new Map(),
+        allowlist: new Map(),
+        registry: new Set(),
+        framework: "adk",
+      }),
+    );
+    expect(bare.native).toEqual(WF_COMPLETE);
+  });
+
+  it("without hostCompletion nothing is appended (negative control: the run ends in the INV-FLUSH abort)", async () => {
+    const { native, agjson } = await runCapture(scenario, adkDeps(false), { ports: [], framework: "adk" });
+    expect(native).toEqual(WF_COMPLETE);
+    expect(agjson.some((e) => (e as { type: string }).type === "turn.abort")).toBe(true);
   });
 });

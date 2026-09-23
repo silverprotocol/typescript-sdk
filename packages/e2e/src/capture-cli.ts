@@ -255,7 +255,12 @@ async function freePort(): Promise<number> {
  *  SDKs to be resolvable, only the one actually invoked. */
 async function loadFrameworkDeps(
   framework: Framework,
-): Promise<{ runAgentCapture: CaptureDeps["runAgentCapture"]; createNormalizer: () => Normalizer }> {
+  scenario: Scenario,
+): Promise<{
+  runAgentCapture: CaptureDeps["runAgentCapture"];
+  createNormalizer: () => Normalizer;
+  hostCompletion?: boolean;
+}> {
   if (framework === "claude") {
     const [{ runClaudeCapture }, { createClaudeNormalizer }] = await Promise.all([
       import("./agents/claude-agent-sdk/run.js"),
@@ -279,11 +284,22 @@ async function loadFrameworkDeps(
     // agjson equals its replay; the facet's default stem is random.
     return { runAgentCapture: runVercelCapture, createNormalizer: () => createVercelNormalizer({ invokeId: "vercel" }) };
   }
-  const [{ runAdkCapture }, { createAdkNormalizer }] = await Promise.all([
+  const [{ runAdkCapture }, { runAdkWorkflowCapture }, { createAdkNormalizer }] = await Promise.all([
     import("./agents/google-adk/run.js"),
+    import("./agents/google-adk/workflow.js"),
     import("@silverprotocol/google-adk"),
   ]);
-  return { runAgentCapture: runAdkCapture, createNormalizer: createAdkNormalizer };
+  const shape = scenario.adkWorkflow;
+  return {
+    runAgentCapture: shape !== undefined ? (input) => runAdkWorkflowCapture(input, shape) : runAdkCapture,
+    // SPEC §8.0 host obligation 4: adk-js has no in-band run terminal, so the
+    // capture (the host) records the completion marker after a normal return
+    // and feeds it to the facet through its opt-in, as replay.ts does with a
+    // recorded marker. Every committed ADK golden replays byte-identically
+    // with or without it (sp-google 613fd7f), so plain re-captures are safe.
+    createNormalizer: () => createAdkNormalizer({ hostCompletion: true }),
+    hostCompletion: true,
+  };
 }
 
 /**
@@ -315,8 +331,14 @@ export async function runCaptureCli(scenarioName: string, framework: Framework):
   const scenario = Scenario.parse(JSON.parse(raw));
 
   const ports = await Promise.all(scenario.mcpServers.map(() => freePort()));
-  const { runAgentCapture, createNormalizer } = await loadFrameworkDeps(framework);
-  const deps: CaptureDeps = { runAgentCapture, serveMock, createNormalizer, census };
+  const { runAgentCapture, createNormalizer, hostCompletion } = await loadFrameworkDeps(framework, scenario);
+  const deps: CaptureDeps = {
+    runAgentCapture,
+    serveMock,
+    createNormalizer,
+    census,
+    ...(hostCompletion === true ? { hostCompletion } : {}),
+  };
 
   const sdkVersion = await resolveSdkVersion(framework);
   const model = resolveModel(framework);

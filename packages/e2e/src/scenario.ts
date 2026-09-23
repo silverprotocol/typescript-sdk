@@ -76,6 +76,14 @@ export const Scenario = z.object({
   // capture cannot ask for summary text at all. Model-named seeds using it
   // MUST be captured with an explicit CAPTURE_MODEL, like thinkingLevel.
   reasoningSummary: z.enum(["auto", "concise", "detailed"]).optional(),
+  // Google ADK 2.x workflow-plane knob (google-adk only; the other capture
+  // agents ignore it). Presence roots the capture at a Workflow instead of a
+  // plain LlmAgent (agents/google-adk/workflow.ts): "pause" ends the invoke at
+  // a HITL RequestInput node, "complete" runs the graph to its end. Added
+  // 2026-09-23 for rd-06 A.9 step 5, the live workflow cassettes recorded with
+  // the host-completion marker. Model-named seeds using it MUST be captured
+  // with an explicit CAPTURE_MODEL, like thinkingLevel.
+  adkWorkflow: z.enum(["pause", "complete"]).optional(),
 });
 
 export type Scenario = z.infer<typeof Scenario>;
