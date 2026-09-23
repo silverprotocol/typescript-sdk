@@ -105,6 +105,10 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 25, leg: "answer-id", title: "Framework pause and completion closure (draft.4): each ask's toolCallId is the adk_request_* call id (the answering id), one ask per pending request (§8.0 item 26)", disposition: "N/A", citation: "pending: the google-adk item-26 step 2 (sp-google) lands AFTER this SPEC sha; this row flips to RUNNABLE on the same fixtures" },
   { n: 25, leg: "host-completion", title: "Framework pause and completion closure (draft.4): with the §8.0 obligation-4 host-completion event fed, a completed invoke closes turn.done success from push()", disposition: "N/A", citation: "pending: the google-adk host-completion opt-in (sp-google step 2) lands AFTER this SPEC sha; the fixture marker plumbing is probe's replay.ts HOST_COMPLETE_MARKER (3c82c3a)" },
   { n: 25, leg: "replay", title: "Framework pause and completion closure (draft.4): every replay golden folds unchanged with and without the host-completion event", disposition: "N/A", citation: "pending: needs the facet to consume the event (sp-google step 2); adk-pause.test.ts's marker test covers only the harness half (the marker is stripped before the facet)" },
+  { n: 26, leg: "fold", title: "Interim-narration marker (draft.4): phase folds set-if-present on text/reasoning start and end (end REPLACES, absent keeps), undocumented values verbatim, no-phase streams byte-identical to draft.3, INV-FOLD", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.26(fold), reference reduce() + Reducer (probe P-phase b52b8eb)" },
+  { n: 26, leg: "vercel", title: "Interim-narration marker (draft.4): an OpenAI commentary text part opens phase 'interim'; final_answer / unknown / no bag → no phase; providerMetadata.phase kept verbatim", disposition: "COVERED-BY", citation: "vercel-ai/src/index.test.ts:1809-1840 'draft.4 phase' (commentary → text.start{phase:'interim'}; final_answer/unknown/no bag → no phase key) + :430-515 (commentary and final answer stay separate blocks, each bag verbatim) (probe b52b8eb)" },
+  { n: 26, leg: "openai", title: "Interim-narration marker (draft.4): a commentary + final_answer response yields phase 'interim' on the first item's text.start only; null/\"\" yield neither phase nor providerMetadata.phase", disposition: "N/A", citation: "pending: the openai-agents stage-2 leg (sp-openai) lands AFTER this SPEC sha; this row flips to RUNNABLE via createOpenaiNormalizer" },
+  { n: 26, leg: "emit", title: "Interim-narration marker (draft.4): no phase in a native re-input payload", disposition: "N/A", citation: "§10 preamble emit/re-input carve-out: no facet in this repo ships an AgJSON→native emit surface" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -1037,5 +1041,62 @@ describe("§10.25 — framework pause and completion closure (draft.4): a pause 
     const terms = assertClosure(tagged);
     expect(terms.map((t) => [t.ev.type, t.from])).toEqual([["turn.done", "push"], ["turn.abort", "flush"]]);
     expect(new Set(terms.map((t) => turnOf(t.ev))).size).toBe(2);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.26 — Interim-narration marker `phase` (draft.4; §8.0 item 27). Fold leg
+// RUNNABLE against the reference reduce(); producer legs per the manifest.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.26 — interim-narration marker (draft.4): phase folds set-if-present, *.end replaces, absent keeps, unknown values verbatim, no-phase streams unchanged", () => {
+  const head = [
+    { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+    { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+  ];
+  const tail = (seq: number) => [
+    { type: "message.end", seq, id: "m1" },
+    { type: "turn.done", seq: seq + 1, turnId: "t1", outcome: { type: "success" }, finishReason: "stop" },
+  ];
+  const text = (start: Record<string, unknown>, end: Record<string, unknown>) => [
+    ...head,
+    { type: "text.start", seq: 2, id: "b1", turnId: "t1", ...start },
+    { type: "text.delta", seq: 3, id: "b1", delta: "checking the docs" },
+    { type: "text.end", seq: 4, id: "b1", ...end },
+    ...tail(5),
+  ];
+  const reasoning = (start: Record<string, unknown>, end: Record<string, unknown>) => [
+    ...head,
+    { type: "reasoning.start", seq: 2, id: "r1", turnId: "t1", ...start },
+    { type: "reasoning.delta", seq: 3, id: "r1", delta: "narration" },
+    { type: "reasoning.end", seq: 4, id: "r1", ...end },
+    ...tail(5),
+  ];
+  const fold = (evs: Array<Record<string, unknown>>) => {
+    const parsed = evs.map((e) => AgEvent.parse(e));
+    const batch = reduce(parsed);
+    const live = new Reducer();
+    for (const e of parsed) live.push(e);
+    expect(batch.needsResync).toBe(false);
+    expect(live.result()).toEqual(batch.result); // (f) INV-FOLD: incremental == batch
+    return batch.result.messages[0]!.content[0] as Record<string, unknown>;
+  };
+
+  it("(a) text.start{phase:'interim'} → text.delta → text.end{} folds phase 'interim'", () => {
+    expect(fold(text({ phase: "interim" }, {}))["phase"]).toBe("interim");
+  });
+  it("(b) reasoning.start{} → reasoning.delta → reasoning.end{phase:'interim'} folds phase 'interim'", () => {
+    expect(fold(reasoning({}, { phase: "interim" }))["phase"]).toBe("interim");
+  });
+  it("(c) a start value survives a phase-less end; a present end value REPLACES it", () => {
+    expect(fold(reasoning({ phase: "interim" }, {}))["phase"]).toBe("interim");
+    expect(fold(text({ phase: "interim" }, { phase: "x-later" }))["phase"]).toBe("x-later");
+  });
+  it("(d) a phase value this version does not document folds verbatim", () => {
+    expect(fold(text({ phase: "x-future" }, {}))["phase"]).toBe("x-future");
+  });
+  it("(e) the same streams with no phase fold with no phase key (byte-identical to draft.3)", () => {
+    expect("phase" in fold(text({}, {}))).toBe(false);
+    expect("phase" in fold(reasoning({}, {}))).toBe(false);
   });
 });
