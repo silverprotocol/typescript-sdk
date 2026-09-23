@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { expectTypeOf, describe, it, expect } from "vitest";
 import { z } from "zod";
 import {
   AgEvent,
@@ -814,6 +814,21 @@ describe("ADVANCED helper types", () => {
       state: { jsonPatch: true },
     });
     expect(c.frontendTools?.length).toBe(1);
+  });
+
+  it("uiResources.viewMessageTurns (draft.4) is a boolean: parsed as given, and a non-boolean fails at its path", () => {
+    for (const v of [true, false]) {
+      const c = AgClientCapabilities.parse({ uiResources: { htmlResources: true, viewMessageTurns: v } });
+      expectTypeOf(c.uiResources?.viewMessageTurns).toEqualTypeOf<boolean | undefined>();
+      expect(c.uiResources?.viewMessageTurns).toBe(v);
+      expect(c.uiResources?.htmlResources).toBe(true);
+    }
+    expect(AgClientCapabilities.parse({ uiResources: {} }).uiResources).toEqual({});
+    for (const bad of [{ text: {} }, "true", 1, null]) {
+      const r = AgClientCapabilities.safeParse({ uiResources: { viewMessageTurns: bad } });
+      expect(r.success, JSON.stringify(bad)).toBe(false);
+      if (!r.success) expect(r.error.issues[0]?.path).toEqual(["uiResources", "viewMessageTurns"]);
+    }
   });
 });
 

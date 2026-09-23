@@ -745,6 +745,7 @@ export const AgClientCapabilities = z.object({
     .object({
       catalogs: z.array(z.string()).optional(),
       htmlResources: z.boolean().optional(),
+      viewMessageTurns: z.boolean().optional(), // draft.4: view ui/message + sendFollowUpMessage delivered as a later kind:"start" turn (spec §6)
     })
     .optional(),
   state: z.object({ jsonPatch: z.boolean().optional() }).optional(),

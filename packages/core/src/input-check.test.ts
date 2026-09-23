@@ -118,6 +118,29 @@ describe("checkAgInput — draft.4 §0.2, workspace#20 decision 6 (§10 item N, 
     expect(reject({ ...ENV, kind: "resume", answers: [{ askId: 1, status: "resolved" }, { askId: "a", status: "zz" }] })).toEqual({ code: "malformed", path: ["answers", 0, "askId"] });
   });
 
+  describe("capabilities.uiResources.viewMessageTurns (draft.4, founder ruling on view-message turns)", () => {
+    it("an MCP-shaped object where the boolean belongs → malformed at its path", () => {
+      expect(reject(start({ capabilities: { uiResources: { viewMessageTurns: { text: {} } } } }))).toEqual({
+        code: "malformed",
+        path: ["capabilities", "uiResources", "viewMessageTurns"],
+      });
+      expect(reject(start({ capabilities: { uiResources: { viewMessageTurns: "true" } } }))).toEqual({
+        code: "malformed",
+        path: ["capabilities", "uiResources", "viewMessageTurns"],
+      });
+    });
+
+    it("round-trips beside htmlResources and an unknown sibling, all intact", () => {
+      const raw = start({ capabilities: { uiResources: { htmlResources: true, viewMessageTurns: true, zzFuture: 1 } } });
+      const r = checkAgInput(structuredClone(raw));
+      expect(r.ok).toBe(true);
+      if (r.ok) expect(isDeepStrictEqual(r.input, raw)).toBe(true);
+      const off = start({ capabilities: { uiResources: { viewMessageTurns: false } } });
+      const r2 = checkAgInput(structuredClone(off));
+      expect(r2.ok && isDeepStrictEqual(r2.input, off)).toBe(true);
+    });
+  });
+
   describe("ALT-1 input classes (founder ruling on decision 6, bar wf_a8a31902-fb5; §10 item 29 inputs b11-b17)", () => {
     it("protocol is judged FIRST: a protocol other than agjson is malformed at [protocol], before version and before kind (b11)", () => {
       expect(reject({ ...ENV, protocol: "foo", kind: "start", messages: [] })).toEqual({ code: "malformed", path: ["protocol"] });
