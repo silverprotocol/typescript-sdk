@@ -825,3 +825,36 @@ describe("§10.21 — reasoning-inclusive usage identity (draft.3)", () => {
     expect(num("inputTokens") + num("outputTokens") + toolUse).toBe(num("totalTokens"));
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §5.0 INV-MSG — a straggler delta into a sealed message parks (SPEC.md:745)
+// Contract case for core 7853259 (conformance, no bar). Scope is the literal
+// text: "a block-creating or delta event targeting a sealed message ... is a
+// reduce()-error → snapshot-resync, never a silent attach". The non-delta
+// mutators (text.end, reasoning.end, reasoning.opaque, tool.args.assembled) are
+// NOT named by :745 and are not asserted here; the closed-turn half waits for
+// the claude facet's one-turnId-per-turn fix (INV-TURN, :743).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§5.0 INV-MSG — a delta event into a sealed message is a reduce()-error → resync, never a silent attach (SPEC.md:745)", () => {
+  const open = [
+    { type: "turn.start" as const, seq: 0, threadId: "th1", turnId: "t1" },
+    { type: "message.start" as const, seq: 1, id: "m1", role: "assistant" as const, turnId: "t1", threadId: "th1" },
+  ];
+  const cases: Array<{ name: string; opener: Record<string, unknown>; delta: Record<string, unknown> }> = [
+    { name: "text.delta", opener: { type: "text.start", id: "b1", turnId: "t1" }, delta: { type: "text.delta", id: "b1", delta: "late" } },
+    { name: "reasoning.delta", opener: { type: "reasoning.start", id: "r1", turnId: "t1" }, delta: { type: "reasoning.delta", id: "r1", delta: "late" } },
+    { name: "reasoning.opaque.delta", opener: { type: "reasoning.start", id: "r1", turnId: "t1" }, delta: { type: "reasoning.opaque.delta", id: "r1", delta: "late" } },
+    { name: "tool.args.delta", opener: { type: "tool.start", toolCallId: "c1", name: "echo", turnId: "t1" }, delta: { type: "tool.args.delta", toolCallId: "c1", delta: "{}" } },
+  ];
+
+  for (const c of cases) {
+    it(`${c.name} after message.end parks (needsResync true); the same delta before message.end folds cleanly`, () => {
+      const sealedFirst = [...open, { ...c.opener, seq: 2 }, { type: "message.end", seq: 3, id: "m1" }, { ...c.delta, seq: 4 }].map((e) => AgEvent.parse(e));
+      expect(reduce(sealedFirst).needsResync).toBe(true);
+
+      const openFirst = [...open, { ...c.opener, seq: 2 }, { ...c.delta, seq: 3 }, { type: "message.end", seq: 4, id: "m1" }].map((e) => AgEvent.parse(e));
+      expect(reduce(openFirst).needsResync).toBe(false);
+    });
+  }
+});
