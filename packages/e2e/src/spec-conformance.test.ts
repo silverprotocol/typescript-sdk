@@ -121,7 +121,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 26, leg: "vercel", title: "Interim-narration marker (draft.4): an OpenAI commentary text part opens phase 'interim'; final_answer / unknown / no bag → no phase; providerMetadata.phase kept verbatim", disposition: "COVERED-BY", citation: "vercel-ai/src/index.test.ts:1809-1840 'draft.4 phase' (commentary → text.start{phase:'interim'}; final_answer/unknown/no bag → no phase key) + :430-515 (commentary and final answer stay separate blocks, each bag verbatim) (probe b52b8eb)" },
   { n: 26, leg: "openai", title: "Interim-narration marker (draft.4): a commentary + final_answer response yields phase 'interim' on the first item's text.start only; null/\"\" yield neither phase nor providerMetadata.phase", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.26(openai) via createOpenaiNormalizer (sp-openai PH-2 d8d04ca)" },
   { n: 26, leg: "emit", title: "Interim-narration marker (draft.4): no phase in a native re-input payload", disposition: "N/A", citation: "§10 preamble emit/re-input carve-out: no facet in this repo ships an AgJSON→native emit surface" },
-  { n: 27, leg: "fold", title: "Re-delivery never folds twice (draft.4): re-delivered seq, duplicate *.start id, delta/start into a sealed message or a closed turn, message.start into a closed turn (also across invokes; closure survives a 0-restart, a messages.snapshot clears it), second final tool.done → resync with the fold unchanged; a later invoke's 0-restart reusing a block id folds; a forward gap still parks", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.27(fold) (i)-(viii), (v-a)-(v-f), reference Reducer + reduce() (probe P14; the message.start guard reduce.ts 'a message.start for a turn that already closed parks')" },
+  { n: 27, leg: "fold", title: "Re-delivery never folds twice (draft.4): re-delivered seq, duplicate *.start id, delta/start into a sealed message or a closed turn, message.start into a closed turn (also across invokes; closure survives a 0-restart, a messages.snapshot clears it), second final tool.done → resync with the fold unchanged; a later invoke's 0-restart reusing a block id folds; a same-type paused re-close with refreshed asks folds onto the one record (v-g); a forward gap still parks", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.27(fold) (i)-(viii), (v-a)-(v-f), reference Reducer + reduce() (probe P14; the message.start guard reduce.ts 'a message.start for a turn that already closed parks')" },
   { n: 27, leg: "goldens", title: "Re-delivery never folds twice (draft.4): on every replay golden, block-creating *.start ids are unique within each invoke", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.27(goldens), a scan of every corpus/*/*.agjson.json" },
   { n: 27, leg: "producers", title: "Re-delivery never folds twice (draft.4): on every replay golden no message.start follows its turn's terminal; on every committed resume pair no turn or message id recurs across the two invokes, and the pair folds without a resync", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.27(producers), a scan of every corpus golden and every <scenario>-resume-<leg> pair" },
   { n: 28, title: "Host-appended events (draft.4): every replay golden plus a host-appended paused hitl.ask turn from lastSeq+1 folds with needsResync false and the turn in turns (§8.0 host obligation 5)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.28 over every corpus/*/*.agjson.json via ingestAgEvents → reduce" },
@@ -1579,6 +1579,23 @@ describe("§10.27 — re-delivery never folds twice (draft.4)", () => {
     ]);
     expect(f.needsResync).toBe(false);
     expect(f.result.messages.find((m) => m.id === "m2")?.turnId).toBe("t1");
+  });
+  it("(v-g) a re-sent turn.start plus a second turn.done{paused} for a turn already closed paused, with refreshed asks, does not park; one record, carrying the later asks", () => {
+    // A refreshed ask, as a host re-mints an authorization URL (a fresh state) on each unanswered invoke.
+    const ask = (state: string) => ({ askId: "a1", kind: "url", toolCallId: "c1", url: `https://idp.example/authorize?state=${state}` });
+    const invoke = (state: string) => P([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "X" },
+      { type: "hitl.ask", seq: 1, turnId: "X", ...ask(state) },
+      { type: "turn.done", seq: 2, turnId: "X", outcome: { type: "paused", asks: [ask(state)] }, finishReason: "paused" },
+    ]);
+    const second = invoke("s2");
+    const f = both([...invoke("s1"), ...second]);
+    expect(f.needsResync).toBe(false);
+    const recs = f.result.turns.filter((t) => t.turnId === "X");
+    expect(recs).toHaveLength(1);
+    const later = (second[2] as unknown as { outcome: { asks: unknown[] } }).outcome.asks;
+    expect((recs[0]?.outcome as { asks?: unknown } | undefined)?.asks).toEqual(later);
+    expect(JSON.stringify(later)).toContain("state=s2");
   });
   it("(producers) on every replay golden no message.start follows the terminal of the turn it names; on every committed resume pair no turn or message id of one invoke recurs in the other, and the pair folds without a resync", () => {
     const corpus = new URL("../corpus/", import.meta.url);
