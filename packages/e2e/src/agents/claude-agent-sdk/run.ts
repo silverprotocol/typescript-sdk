@@ -81,7 +81,13 @@ export interface CaptureRunInput {
    * Absent ⇒ no hooks option, byte-identical to before.
    */
   preToolUseDecision?: "defer" | "allow" | "deny";
-  /** Resume an earlier session (the SDK's `resume`). Absent ⇒ a new session. */
+  /**
+   * Resume an earlier session (the SDK's `resume`), always FORKED
+   * (`forkSession: true`): each resume branches from the saved session under a
+   * new session id and leaves the original untouched, so two resume legs from
+   * one session (allow, deny) each start from exactly that session's state,
+   * never from each other's (sdk.d.ts `forkSession`). Absent ⇒ a new session.
+   */
   resumeSessionId?: string;
 }
 
@@ -93,6 +99,7 @@ export interface CaptureRunInput {
 export function captureQueryExtras(input: Pick<CaptureRunInput, "preToolUseDecision" | "resumeSessionId">): {
   hooks?: Partial<Record<HookEvent, HookCallbackMatcher[]>>;
   resume?: string;
+  forkSession?: boolean;
 } {
   const decision = input.preToolUseDecision;
   return {
@@ -111,7 +118,7 @@ export function captureQueryExtras(input: Pick<CaptureRunInput, "preToolUseDecis
           },
         }
       : {}),
-    ...(input.resumeSessionId !== undefined ? { resume: input.resumeSessionId } : {}),
+    ...(input.resumeSessionId !== undefined ? { resume: input.resumeSessionId, forkSession: true } : {}),
   };
 }
 

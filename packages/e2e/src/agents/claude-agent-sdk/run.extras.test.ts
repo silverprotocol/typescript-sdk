@@ -25,9 +25,14 @@ describe("captureQueryExtras — PreToolUse decision hook + resume", () => {
     expect(out).toEqual({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: decision } });
   });
 
-  it("resumeSessionId → `resume`, alone or beside the hook", () => {
-    expect(captureQueryExtras({ resumeSessionId: "sess_leg1" })).toEqual({ resume: "sess_leg1" });
+  it("resumeSessionId → `resume` + `forkSession: true` together (each resume leg branches from the saved session, never from another leg)", () => {
+    expect(captureQueryExtras({ resumeSessionId: "sess_leg1" })).toEqual({ resume: "sess_leg1", forkSession: true });
     const both = captureQueryExtras({ preToolUseDecision: "allow", resumeSessionId: "sess_leg1" });
-    expect(Object.keys(both).sort()).toEqual(["hooks", "resume"]);
+    expect(Object.keys(both).sort()).toEqual(["forkSession", "hooks", "resume"]);
+    expect(both.forkSession).toBe(true);
+  });
+
+  it("NEGATIVE CONTROL: no resumeSessionId ⇒ no forkSession key (a decision alone adds only `hooks`)", () => {
+    expect(captureQueryExtras({ preToolUseDecision: "defer" })).not.toHaveProperty("forkSession");
   });
 });
