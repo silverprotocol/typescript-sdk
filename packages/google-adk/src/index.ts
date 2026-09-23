@@ -1123,7 +1123,14 @@ function driveAdkPart(
       // tool.done with no matching tool.start — exactly the M47-review bug.
       // Carry the whole functionResponse losslessly instead (mirrors the
       // openai `late-*` ext precedents).
-      a.emitExt("google", "unparsed", { functionResponse: JsonValue.parse(fr), turnId });
+      // A reserved-credential answer takes the same allowlist here as on the
+      // resolved arm below (see scrubAdkAuthConfig): the carry must not
+      // bypass it. Only the id, the name and the scrubbed response ride.
+      const carriedResponse: JsonValue =
+        fr.name === ADK_REQUEST_CREDENTIAL
+          ? (pickAllowed(JsonValue.parse(fr), { id: true, name: true, response: (v) => scrubbedResponse(v) }) ?? {})
+          : JsonValue.parse(fr);
+      a.emitExt("google", "unparsed", { functionResponse: carriedResponse, turnId });
       return "";
     }
     const outcome: ToolOutcome = fr.response?.["isError"] === true ? "error" : "ok";
@@ -1314,8 +1321,59 @@ const AUTH_CREDENTIAL_ALLOW: AllowSpec = {
   oauth2: (v) => pickAllowed(v, OAUTH2_ALLOW),
   serviceAccount: (v) => pickAllowed(v, SERVICE_ACCOUNT_ALLOW),
 };
+// The security scheme, member by member: an OpenAPI 3.0 SecuritySchemeObject
+// (openapi-types 12.1.3 OpenAPIV3: http, apiKey, oauth2 and openIdConnect,
+// the type @google/adk 2.1.0's auth_schemes.d.ts names) or ADK's
+// OpenIdConnectWithConfig. Every leaf is a string, a string list or a map of
+// strings, and only those survive. A scheme member no type declares (a vendor
+// extension, a stray field) never rides.
+const schemeString = (v: JsonValue): JsonValue | undefined => (typeof v === "string" ? v : undefined);
+const schemeStringList = (v: JsonValue): JsonValue | undefined =>
+  Array.isArray(v) ? v.filter((x) => typeof x === "string") : undefined;
+/** OAuth2 flow scopes are a map of scope name -> description; OIDC config
+ *  scopes are a list. Either keeps only its string entries. */
+const schemeScopes = (v: JsonValue): JsonValue | undefined =>
+  Array.isArray(v)
+    ? schemeStringList(v)
+    : isJsonObject(v)
+      ? Object.fromEntries(Object.entries(v).filter((e): e is [string, string] => typeof e[1] === "string"))
+      : undefined;
+const OAUTH2_FLOW_ALLOW: AllowSpec = {
+  authorizationUrl: schemeString,
+  tokenUrl: schemeString,
+  refreshUrl: schemeString,
+  scopes: schemeScopes,
+};
+const AUTH_SCHEME_ALLOW: AllowSpec = {
+  type: schemeString,
+  description: schemeString,
+  // http
+  scheme: schemeString,
+  bearerFormat: schemeString,
+  // apiKey (the header/query parameter's name and location, never its value)
+  name: schemeString,
+  in: schemeString,
+  // oauth2 (flows.password is the password-GRANT flow: a tokenUrl and scopes)
+  flows: (v) =>
+    pickAllowed(v, {
+      implicit: (f) => pickAllowed(f, OAUTH2_FLOW_ALLOW),
+      password: (f) => pickAllowed(f, OAUTH2_FLOW_ALLOW),
+      clientCredentials: (f) => pickAllowed(f, OAUTH2_FLOW_ALLOW),
+      authorizationCode: (f) => pickAllowed(f, OAUTH2_FLOW_ALLOW),
+    }),
+  // openIdConnect
+  openIdConnectUrl: schemeString,
+  // OpenIdConnectWithConfig
+  authorizationEndpoint: schemeString,
+  tokenEndpoint: schemeString,
+  userinfoEndpoint: schemeString,
+  revocationEndpoint: schemeString,
+  tokenEndpointAuthMethodsSupported: schemeStringList,
+  grantTypesSupported: schemeStringList,
+  scopes: schemeScopes,
+};
 const AUTH_CONFIG_ALLOW: AllowSpec = {
-  authScheme: true, // an OpenAPI/OIDC security scheme: endpoints, scopes, names; no secret members
+  authScheme: (v) => pickAllowed(v, AUTH_SCHEME_ALLOW),
   credentialKey: true,
   rawAuthCredential: (v) => pickAllowed(v, AUTH_CREDENTIAL_ALLOW),
   exchangedAuthCredential: (v) => pickAllowed(v, AUTH_CREDENTIAL_ALLOW),

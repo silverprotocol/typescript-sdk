@@ -925,7 +925,8 @@ describe("createAdkNormalizer — hitl.ask auth: flat `authConfig` view + native
     const cases: Array<[JsonValue, JsonValue]> = [
       [{ credentialKey: "k" }, { credentialKey: "k" }],
       [{ authScheme: { flows: {} }, credentialKey: "k" }, { authScheme: { flows: {} }, credentialKey: "k" }],
-      [{ authScheme: { type: 7 }, credentialKey: "k" }, { authScheme: { type: 7 }, credentialKey: "k" }],
+      // A scheme leaf is a string or it is dropped: a numeric type does not ride.
+      [{ authScheme: { type: 7 }, credentialKey: "k" }, { authScheme: {}, credentialKey: "k" }],
       [{ scope: "x" }, {}],
     ];
     for (const [native, carried] of cases) {
@@ -1015,15 +1016,26 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
       audience: "sa-aud-ok",
     },
   };
+  // The scheme as its declared members only (what must survive, whole).
+  const cleanScheme = {
+    type: "oauth2",
+    flows: {
+      authorizationCode: { authorizationUrl: "https://idp.example/auth", tokenUrl: "https://idp.example/token", scopes: { "mail.read": "" } },
+      password: { tokenUrl: "https://idp.example/password-grant-token", scopes: { "mail.read": "" } },
+    },
+  };
   const authConfig = {
     // authScheme.flows.password is the OAuth2 password-GRANT flow object (a
     // tokenUrl + scopes), not a credential: the allowlist is path-aware, and it
-    // must survive.
+    // must survive. Members no scheme type declares, at every scheme depth,
+    // carry SECRET_ markers and must not.
     authScheme: {
-      type: "oauth2",
+      ...cleanScheme,
+      "x-client-secret": "SECRET_scheme_extension",
       flows: {
-        authorizationCode: { authorizationUrl: "https://idp.example/auth", tokenUrl: "https://idp.example/token", scopes: { "mail.read": "" } },
-        password: { tokenUrl: "https://idp.example/password-grant-token", scopes: { "mail.read": "" } },
+        authorizationCode: { ...cleanScheme.flows.authorizationCode, clientSecret: "SECRET_flow_member" },
+        password: { ...cleanScheme.flows.password, scopes: { "mail.read": "", "x-leak": { token: "SECRET_scope_value" } } },
+        "x-flow": { tokenUrl: "SECRET_undeclared_flow" },
       },
     },
     rawAuthCredential: credential,
@@ -1085,7 +1097,7 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
     const out = run([event([], { actions: { requestedAuthConfigs: { fc_1: authConfig } } })]);
     const ask = out.find((e) => e.type === "hitl.ask") as { metadata?: { authConfig?: { [k: string]: unknown } } } | undefined;
     const carried = ask?.metadata?.authConfig;
-    expect(carried?.["authScheme"]).toEqual(authConfig.authScheme);
+    expect(carried?.["authScheme"]).toEqual(cleanScheme);
     expect(carried?.["rawAuthCredential"]).toEqual({
       authType: "oauth2",
       resourceRef: "res-ok",
@@ -1133,6 +1145,77 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
       },
     ]);
     expectNoSecretAnywhere(out);
+  });
+
+  it("an ORPHAN reserved-credential answer (null id, no pending call, e.g. a fresh Normalizer) rides ext.google.unparsed scrubbed, snake_case wire included", () => {
+    for (const response of [{ ...authConfig }, snakeCase(authConfig) as { [k: string]: JsonValue }]) {
+      // willContinue is a genai FunctionResponse member the hand-typed AdkPart
+      // does not declare: it proves the orphan carry is allowlisted too.
+      const fr = { name: "adk_request_credential", response, willContinue: false };
+      const out = run([{ invocationId: "inv_fixture_1", content: { role: "user", parts: [{ functionResponse: fr }] } }]);
+      expect(out.some((e) => e.type === "tool.done")).toBe(false);
+      const ext = out.find((e) => e.type === "ext.google.unparsed") as { functionResponse?: { [k: string]: unknown } } | undefined;
+      expect(Object.keys(ext?.functionResponse ?? {}).sort()).toEqual(["name", "response"]);
+      expect(ext?.functionResponse?.["name"]).toBe("adk_request_credential");
+      const { values } = expectNoSecretAnywhere(out);
+      for (const kept of ["cid-ok", "cred-key-ok", "https://idp.example/password-grant-token"]) expect(values.has(kept)).toBe(true);
+    }
+  });
+
+  it("negative control: an ordinary ORPHAN response still rides ext.google.unparsed whole", () => {
+    const fr = { name: "ghost", response: { token: "not-a-credential-here", state: "ok" }, willContinue: false };
+    const out = run([{ invocationId: "inv_fixture_1", content: { role: "user", parts: [{ functionResponse: fr }] } }]);
+    expect(out.find((e) => e.type === "ext.google.unparsed")).toMatchObject({ functionResponse: fr });
+  });
+
+  it("the security scheme rides member by member: each type's declared members survive whole, anything undeclared or non-string is dropped", () => {
+    const schemes: { [k: string]: JsonValue }[] = [
+      { type: "http", description: "Bearer auth", scheme: "bearer", bearerFormat: "JWT" },
+      { type: "apiKey", description: "Key header", name: "X-API-Key", in: "header" },
+      { type: "openIdConnect", description: "OIDC", openIdConnectUrl: "https://idp.example/.well-known/openid-configuration" },
+      {
+        type: "oauth2",
+        description: "All four flows",
+        flows: {
+          implicit: { authorizationUrl: "https://idp.example/i", refreshUrl: "https://idp.example/r", scopes: { a: "A" } },
+          password: { tokenUrl: "https://idp.example/p", refreshUrl: "https://idp.example/r", scopes: { b: "B" } },
+          clientCredentials: { tokenUrl: "https://idp.example/c", refreshUrl: "https://idp.example/r", scopes: { c: "C" } },
+          authorizationCode: { authorizationUrl: "https://idp.example/a", tokenUrl: "https://idp.example/t", refreshUrl: "https://idp.example/r", scopes: { d: "D" } },
+        },
+      },
+      {
+        type: "openIdConnect",
+        authorizationEndpoint: "https://idp.example/authorize",
+        tokenEndpoint: "https://idp.example/token",
+        userinfoEndpoint: "https://idp.example/userinfo",
+        revocationEndpoint: "https://idp.example/revoke",
+        tokenEndpointAuthMethodsSupported: ["client_secret_basic"],
+        grantTypesSupported: ["authorization_code"],
+        scopes: ["openid", "email"],
+      },
+    ];
+    for (const scheme of schemes) {
+      const planted: { [k: string]: JsonValue } = {
+        ...scheme,
+        "x-api-key-value": "SECRET_scheme_extension",
+        credentials: { token: "SECRET_scheme_credentials" },
+        ...(scheme["description"] !== undefined ? { description: { token: "SECRET_non_string_leaf" } } : {}),
+      };
+      const expected = { ...scheme };
+      if (scheme["description"] !== undefined) delete expected["description"];
+      for (const [cfg, want] of [
+        [{ authScheme: planted }, { authScheme: expected }],
+        [snakeCase({ authScheme: planted }), snakeCase({ authScheme: expected })],
+      ] as const) {
+        const out = run([event([], { actions: { requestedAuthConfigs: { fc_1: cfg as { [k: string]: JsonValue } } } })]);
+        const ask = out.find((e) => e.type === "hitl.ask") as { metadata?: { authConfig?: unknown } } | undefined;
+        expect(ask?.metadata?.authConfig).toEqual(want);
+        expectNoSecretAnywhere(out);
+      }
+      const clean = run([event([], { actions: { requestedAuthConfigs: { fc_1: { authScheme: scheme } } } })]);
+      const cleanAsk = clean.find((e) => e.type === "hitl.ask") as { metadata?: { authConfig?: { [k: string]: unknown } } } | undefined;
+      expect(cleanAsk?.metadata?.authConfig?.["authScheme"], `${String(scheme["type"])} scheme survives whole`).toEqual(scheme);
+    }
   });
 
   it("negative control: an ordinary tool's args and response are forwarded unchanged", () => {
