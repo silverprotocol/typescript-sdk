@@ -691,6 +691,31 @@ const CARRIED_STANDALONE_TYPES = new Set<string>([
   "conversation_reset",
 ]);
 
+// The top-level `type` literals the SDKMessage union declares (0.3.280: 39
+// members over these 11 types). A frame whose `type` is NOT among them is
+// RUNTIME-ONLY: no d.ts diff shows it (the 0.3.272 lesson, now for a whole
+// frame type). The first one observed: `command_lifecycle`
+// ({command_uuid, state: "queued"|"started"|"completed"}, three per prompt,
+// streaming-input mode; live on corpus/multi-result-sonnet5), the host
+// prompt's queue lifecycle keyed by the caller's message uuid. Through the
+// 0.7.0 stack it fell through `drive()` to the no-op, a silent drop against
+// SPEC §8.0 graceful degradation. An unknown top-level type now rides the
+// uniform carry, `ext.anthropic.frame{kind: <type>, frame}`, verbatim (§8 item
+// 22), so the next runtime-only frame type is carried the day it ships.
+const KNOWN_TOP_LEVEL_TYPES: ReadonlySet<string> = new Set([
+  "assistant",
+  "user",
+  "result",
+  "system",
+  "stream_event",
+  "tool_progress",
+  "auth_status",
+  "tool_use_summary",
+  "rate_limit_event",
+  "prompt_suggestion",
+  "conversation_reset",
+]);
+
 // Returns the uniform-carry `kind` string for `msg` if it is one of the arms
 // disposed `carried` in sdk-surface.json, else undefined (leaves router-plane
 // / dedicated-branch arms — including SDKPermissionDeniedMessage — untouched).
@@ -2577,6 +2602,15 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
     const carriedKind = anthropicFrameKind(msg);
     if (carriedKind !== undefined) {
       a.emitExt("anthropic", "frame", { kind: carriedKind, frame: JsonValue.parse(msg) });
+      return;
+    }
+
+    // A top-level type the union does not declare (see KNOWN_TOP_LEVEL_TYPES):
+    // carried whole, never silently dropped. `msg.type` is typed as the union's
+    // literals, but the frame is only discriminant-validated at runtime.
+    const topLevelType: string = msg.type;
+    if (!KNOWN_TOP_LEVEL_TYPES.has(topLevelType)) {
+      a.emitExt("anthropic", "frame", { kind: topLevelType, frame: JsonValue.parse(msg) });
       return;
     }
 

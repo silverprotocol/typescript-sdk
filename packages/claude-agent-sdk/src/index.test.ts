@@ -3067,6 +3067,73 @@ describe("createClaudeNormalizer — uniform vendor-frame carry (ext.anthropic.f
   });
 });
 
+// ─── runtime-only top-level frame types ride the uniform carry ───────────────
+// The frames below are VERBATIM from corpus/multi-result-sonnet5 (sp-probe's
+// live streaming-input capture, claude-sonnet-5 @0.3.280): `command_lifecycle`
+// is not a member of the 0.3.280 SDKMessage union, so no d.ts diff saw it, and
+// the facet dropped it silently until the unknown-type net.
+describe("createClaudeNormalizer — runtime-only top-level types (command_lifecycle) ride ext.anthropic.frame", () => {
+  const SESSION = "17edf6d0-c55c-47c1-a79c-a2941b3b8432";
+  const lifecycle = (state: string, uuid: string): unknown => ({
+    type: "command_lifecycle",
+    command_uuid: "39a0ff85-af78-4b53-add6-a2a9cbd21c57",
+    state,
+    uuid,
+    session_id: SESSION,
+  });
+  const QUEUED = lifecycle("queued", "600f9197-3843-4bee-8ae1-303a2d58e3c3");
+  const STARTED = lifecycle("started", "c3d06780-d739-49c4-9020-a5cb8ac46b8b");
+  const COMPLETED = lifecycle("completed", "9294d414-e5aa-42ea-a69e-41f3e6e1750c");
+
+  it("each live frame → exactly one ext.anthropic.frame{kind:'command_lifecycle'}, verbatim, no park", () => {
+    for (const f of [QUEUED, STARTED, COMPLETED]) {
+      const n = createClaudeNormalizer();
+      const evs = [...n.push(JsonValue.parse(f)), ...n.flush()];
+      assertAllValid(evs);
+      expect(evs).toHaveLength(1);
+      expect(evs[0]).toMatchObject({ type: "ext.anthropic.frame", kind: "command_lifecycle" });
+      expect((evs[0] as { frame?: unknown }).frame).toEqual(f);
+      const r = new Reducer();
+      for (const e of evs) r.push(e);
+      expect(r.needsResync).toBe(false);
+    }
+  });
+
+  it("the live ordering (queued, started, the turn, result, completed) folds one turn, closed once, no resync", () => {
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(QUEUED)),
+      ...n.push(JsonValue.parse(STARTED)),
+      ...n.push(JsonValue.parse(assistantMsg([{ type: "text", text: "done", citations: null }]))),
+      ...n.push(JsonValue.parse(resultSuccess("end_turn"))),
+      ...n.push(JsonValue.parse(COMPLETED)),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    expect(evs.filter((e) => e.type === "ext.anthropic.frame").map((e) => (e as { frame?: { state?: string } }).frame?.state)).toEqual([
+      "queued",
+      "started",
+      "completed",
+    ]);
+    expect(evs.filter((e) => e.type === "turn.done")).toHaveLength(1);
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.map((t) => t.outcome?.type)).toEqual(["success"]);
+  });
+
+  it("NEGATIVE CONTROL: a KNOWN router-plane type still emits nothing (the net covers only undeclared types)", () => {
+    for (const f of [
+      { type: "rate_limit_event", rate_limit_info: { status: "allowed" }, uuid: "00000000-0000-0000-0000-0000000000b1", session_id: SESSION },
+      { type: "tool_progress", tool_use_id: "toolu_x", tool_name: "Bash", parent_tool_use_id: null, elapsed_time_seconds: 1, uuid: "00000000-0000-0000-0000-0000000000b2", session_id: SESSION },
+      { type: "system", subtype: "init", uuid: "00000000-0000-0000-0000-0000000000b3", session_id: SESSION },
+    ]) {
+      const n = createClaudeNormalizer();
+      expect([...n.push(JsonValue.parse(f)), ...n.flush()], f.type).toEqual([]);
+    }
+  });
+});
+
 // ─── SDKPermissionDeniedMessage — the "real judgment case" existing-home fix ──
 // (audit M19's W1 `<turnId>:denials` carrier). The standalone live denial
 // notice is the SAME fact the terminal `permission_denials[]` aggregate
