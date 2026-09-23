@@ -64,6 +64,7 @@ import {
   type Normalizer,
   StreamAssembler,
   type ToolOutcome,
+  toJsonValueSafe,
 } from "@silverprotocol/core";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1665,73 +1666,6 @@ function scrubbedResponse(response: unknown): { readonly [k: string]: JsonValue 
 // rides unchanged. A value with neither is parsed exactly as before; a value
 // that cannot be walked or reduced is omitted, never thrown on.
 
-/** The native as plain JSON, converted node by node with JSON semantics: an
- *  undefined, function or symbol member is dropped (null inside an array), a
- *  non-finite number becomes null, a value with toJSON (a Date) is read
- *  through it, a BigInt becomes its decimal string, a node that repeats one of
- *  its own ancestors becomes "[Circular]", and a member whose read throws is
- *  dropped. Shared references that are not cycles are copied, as
- *  JSON.stringify copies them. A JSON native comes back structurally identical,
- *  own keys and their order included. `undefined` when nothing serializable
- *  remains, or the value is too deep to walk. Never throws. */
-function asWireJson(native: unknown): JsonValue | undefined {
-  const ancestors = new Set<object>();
-  const convert = (v: unknown, key: string): JsonValue | undefined => {
-    if (v === null || typeof v === "string" || typeof v === "boolean") return v;
-    if (typeof v === "number") return Number.isFinite(v) ? v : null;
-    if (typeof v === "bigint") return v.toString();
-    if (typeof v !== "object") return undefined;
-    if (ancestors.has(v)) return "[Circular]";
-    let toJSON: unknown;
-    try {
-      toJSON = Reflect.get(v, "toJSON");
-    } catch {
-      return undefined;
-    }
-    if (typeof toJSON === "function") {
-      let replaced: unknown;
-      try {
-        replaced = Reflect.apply(toJSON, v, [key]);
-      } catch {
-        return undefined;
-      }
-      if (replaced !== v) {
-        ancestors.add(v);
-        try {
-          return convert(replaced, key);
-        } finally {
-          ancestors.delete(v);
-        }
-      }
-    }
-    ancestors.add(v);
-    try {
-      if (Array.isArray(v)) return v.map((x, i) => convert(x, String(i)) ?? null);
-      const out: { [k: string]: JsonValue } = {};
-      for (const k of Object.keys(v)) {
-        let member: unknown;
-        try {
-          member = Reflect.get(v, k);
-        } catch {
-          continue;
-        }
-        const converted = convert(member, k);
-        // defineProperty keeps an own key exactly as JSON.parse would create it.
-        if (converted !== undefined)
-          Object.defineProperty(out, k, { value: converted, enumerable: true, writable: true, configurable: true });
-      }
-      return out;
-    } finally {
-      ancestors.delete(v);
-    }
-  };
-  try {
-    return convert(native, "");
-  } catch {
-    return undefined;
-  }
-}
-
 /** A response named adk_request_credential (a functionResponse object). */
 function isCredentialRequestResponse(v: { readonly [k: string]: unknown }): boolean {
   return v["name"] === ADK_REQUEST_CREDENTIAL && Object.hasOwn(v, "name") && Object.hasOwn(v, "response");
@@ -2534,14 +2468,16 @@ export function createAdkNormalizer(options: AdkNormalizerOptions = {}): Normali
     push(native: JsonValue): AgEvent[] {
       // A host may push the live object ADK yields (the README's usage), and
       // that can hold undefined members, a Date or another non-JSON value. The
-      // native is read once as plain JSON (see asWireJson), so nothing below
-      // parses a non-JSON value and push() never throws (SPEC §8.0). A native
-      // that cannot be serialized at all is reported without its content.
-      const json = asWireJson(native);
-      if (json === undefined) {
+      // native is read once as plain JSON through core's toJsonValueSafe (the
+      // same reference when it already is), so nothing below parses a non-JSON
+      // value and push() never throws (SPEC §8.0). A native with nothing
+      // serializable is reported without its content.
+      const raw: unknown = native;
+      if (raw === undefined || typeof raw === "function" || typeof raw === "symbol") {
         a.emitExt("google", "unparsed", { reason: "not-serializable" });
         return a.drain();
       }
+      const json = toJsonValueSafe(raw);
       if (isHostCompleteNative(json)) {
         // The host-completion sentinel is a host<->facet contract input (SPEC
         // §8.0 host obligation 4), like obligation 1's `__host_error__`: NOT a

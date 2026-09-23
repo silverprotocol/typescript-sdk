@@ -3807,6 +3807,15 @@ describe("createAdkNormalizer — push() reads a live native as plain JSON (SPEC
     expect(raw(out, "output")).toEqual({ big: "12345678901234567890", arr: [null, 2], ok: true });
   });
 
+  it("an output nested past core's depth cap rides with the max-depth mark and never throws", () => {
+    let deep: { [k: string]: unknown } = { leaf: new Date(0) };
+    for (let i = 0; i < 1100; i++) deep = { d: deep };
+    let out: AgEvent[] = [];
+    expect(() => (out = pushAll(live({ output: deep, route: "r" })))).not.toThrow();
+    expect(JSON.stringify(raw(out, "output"))).toContain("[MaxDepth]");
+    expect(raw(out, "route")).toBe("r");
+  });
+
   it("a native with nothing serializable is reported once, without content", () => {
     for (const native of [undefined, () => 1] as unknown as JsonValue[]) {
       const out = pushAll(native);
