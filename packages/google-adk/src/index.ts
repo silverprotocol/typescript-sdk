@@ -931,6 +931,23 @@ function consumeMintedCallId(
 }
 
 // ─── stateful factory: driveAdkPart ──────────────────────────────────────────
+// ─── block ids: a per-turn ordinal per kind (SPEC.md:747, INV-BLOCK) ─────────
+// Streaming block ids MUST be unique within a fold, and identity MUST never
+// derive solely from a per-event positional index. ADK/Gemini parts carry no
+// block id, so the facet mints `${kind}:${n}`, where n counts that kind's
+// blocks in the turn. The old `${kind}:${partIndex}` repeated across events:
+// two thought events in one invoke both opened reasoning:0 (thinking-gemini37/38,
+// R&D item 14 prerequisite). The first block of each kind keeps its old id, so
+// only streams that repeated an id, or put text after a thought, change.
+type BlockIdMint = Map<string, number>;
+
+function mintBlockId(m: BlockIdMint, turnId: string, kind: "text" | "reasoning"): string {
+  const key = `${turnId} ${kind}`;
+  const n = m.get(key) ?? 0;
+  m.set(key, n + 1);
+  return `${kind}:${n}`;
+}
+
 function driveAdkPart(
   a: StreamAssembler,
   part: AdkPart,
@@ -942,6 +959,7 @@ function driveAdkPart(
   _assembledToolCalls: Set<string>,
   mint: ToolCallMintState,
   nullIdResponseIds: Map<number, string | undefined>,
+  blockIds: BlockIdMint,
   citations?: AgCitation[]
 ): string {
   // ── UNMAPPED PART FIELDS (mediaResolution/videoMetadata/toolCall/toolResponse/
@@ -991,7 +1009,7 @@ function driveAdkPart(
 
   // ── REASONING (thought:true) → reasoning.start/delta/end + opaque signature ──
   if (part.thought === true) {
-    const id = `reasoning:${index}`;
+    const id = mintBlockId(blockIds, turnId, "reasoning");
     a.reasoningStart(id, messageId);
     // typeof, not `!== undefined`: a JSON-null text is absent (null guard).
     if (typeof part.text === "string" && part.text.length > 0) a.reasoningDelta(id, messageId, part.text);
@@ -1011,7 +1029,7 @@ function driveAdkPart(
   // falls through to the arms below (a functionCall beside it still maps), and
   // `null` never reaches textDelta or the streamed-text accumulator.
   if (typeof part.text === "string") {
-    const id = `text:${index}`;
+    const id = mintBlockId(blockIds, turnId, "text");
     const signed = part.thoughtSignature !== undefined && part.thoughtSignature.length > 0;
     // STREAMED-text citations carrier (audit M22): `citations` collects ALL of this
     // event's groundingSupports segments (each already carries its own offsets +
@@ -1565,6 +1583,8 @@ export function createAdkNormalizer(): Normalizer {
   // Null-id call mint state (audit M47) — per-invoke ordinal counter + the
   // content/name correlation maps; lives exactly as long as this Normalizer
   // instance (one invoke, per §8.0's lifetime rule).
+  // Per-turn, per-kind block ordinals (INV-BLOCK); lives as long as the invoke.
+  const blockIds: BlockIdMint = new Map();
   const toolCallMint: ToolCallMintState = {
     nextOrdinal: 0,
     openWindowCounts: new Map<string, Map<string, number>>(),
@@ -1755,7 +1775,7 @@ export function createAdkNormalizer(): Normalizer {
           return;
         }
         if (residualTail.length > 0) {
-          const id = `text:${index}`;
+          const id = mintBlockId(blockIds, turnId, "text");
           a.textStart(id, messageId);
           a.textDelta(id, messageId, residualTail);
           a.textEnd(id, messageId, index === citedPartIndex && citations !== undefined ? { citations } : undefined);
@@ -1775,6 +1795,7 @@ export function createAdkNormalizer(): Normalizer {
         assembledToolCalls,
         toolCallMint,
         nullIdResponseIds,
+        blockIds,
         index === citedPartIndex ? citations : undefined
       );
       if (isPartial) accumulated += contributed;

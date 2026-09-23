@@ -203,6 +203,68 @@ describe("createAdkNormalizer — reasoning + content blocks", () => {
   });
 });
 
+describe("createAdkNormalizer — block ids are a per-turn ordinal per kind, never the part index (SPEC.md:747 INV-BLOCK; R&D item 14 prerequisite)", () => {
+  const starts = (out: AgEvent[]) =>
+    out
+      .filter((e) => e.type === "text.start" || e.type === "reasoning.start")
+      .map((e) => (e as { id: string }).id);
+  const expectUniqueAndFolds = (out: AgEvent[]) => {
+    const ids = starts(out);
+    expect(new Set(ids).size).toBe(ids.length);
+    const r = new Reducer();
+    for (const e of out) r.push(e);
+    expect(r.needsResync).toBe(false);
+  };
+
+  it("two thought events in one turn open reasoning:0 then reasoning:1 (was reasoning:0 twice — thinking-gemini37/38)", () => {
+    const out = run([
+      event([{ thought: true, text: "plan", thoughtSignature: "S1" }, { functionCall: { name: "echo", args: {}, id: "c1" } }], {
+        partial: false,
+        turnComplete: true,
+      }),
+      { invocationId: "inv_fixture_1", content: { role: "user", parts: [{ functionResponse: { name: "echo", response: { ok: true }, id: "c1" } }] } },
+      event([{ thought: true, text: "check", thoughtSignature: "S2" }, { text: "Done." }], {
+        partial: false,
+        turnComplete: true,
+        finishReason: "STOP",
+      }),
+    ]);
+    expect(starts(out)).toEqual(["reasoning:0", "reasoning:1", "text:0"]);
+    expectUniqueAndFolds(out);
+  });
+
+  it("text after a thought in the same event is text:0 (a per-KIND ordinal, not the part index 1)", () => {
+    const out = run([
+      event([{ thought: true, text: "t" }, { text: "answer" }], { partial: false, turnComplete: true, finishReason: "STOP" }),
+    ]);
+    expect(starts(out)).toEqual(["reasoning:0", "text:0"]);
+  });
+
+  it("streamed partial chunks each open a distinct id (no repeated text:0 within the fold)", () => {
+    const out = run([
+      event([{ text: "Hel" }], { partial: true }),
+      event([{ text: "lo" }], { partial: true }),
+      event([{ text: "Hello" }], { partial: false, turnComplete: true, finishReason: "STOP" }),
+    ]);
+    expectUniqueAndFolds(out);
+  });
+
+  it("ordinals are per TURN: a second invocation starts at text:0 again", () => {
+    const n = createAdkNormalizer();
+    const a = n.push(toJsonValue(event([{ text: "one" }], { partial: false, turnComplete: true, finishReason: "STOP" })));
+    const b = n.push(
+      toJsonValue(event([{ text: "two" }], { invocationId: "inv_fixture_2", partial: false, turnComplete: true, finishReason: "STOP" })),
+    );
+    expect(starts(a)).toEqual(["text:0"]);
+    expect(starts(b)).toEqual(["text:0"]);
+  });
+
+  it("negative control: a single text part keeps text:0, byte-identical to the positional scheme", () => {
+    const out = run([event([{ text: "hi" }], { partial: false, turnComplete: true, finishReason: "STOP" })]);
+    expect(starts(out)).toEqual(["text:0"]);
+  });
+});
+
 describe("createAdkNormalizer — standalone arms via emit()", () => {
   it("maps interrupted to turn.abort", () => {
     const out = run([event([], { interrupted: true })]);
