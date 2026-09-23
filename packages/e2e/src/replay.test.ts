@@ -356,6 +356,16 @@ const VERCEL_SEEDS = [
   // reasoning effort outside low..max.
   "echo-gpt6sol",
   "echo-gpt6luna",
+  // 2026-09-23 (capture backlog "Vercel parallel tool calls"): two MCP tools
+  // called in ONE step (echo + find_doc), gpt-6-sol @ ai 7.0.111 /
+  // @ai-sdk/openai 4.0.72. The wire is two back-to-back tool-input lifecycles
+  // and both tool-calls, then both tool-results, in one step. There is NO
+  // `parallel` wrapper (the 4.0.45 expansion hazard did not materialize), and
+  // no orphan lifecycle at flush. It folds to one message of [tool-call,
+  // tool-call, tool-result, tool-result]. It also carries the vercel
+  // resource_link shape: the whole MCP result lands on tool.done
+  // structuredContent (transforms pin the eight resource_link leaves).
+  "parallel-tools-gpt6sol",
 ] as const;
 
 /**

@@ -1,0 +1,9 @@
+{
+  "name": "parallel-tools-gpt6sol",
+  "prompt": "Do two things at once: echo the message 'parallel-probe-echo' and find the document about 'parallel probes'. Then tell me both results.",
+  "mcpServers": [
+    { "key": "t", "kind": "text" },
+    { "key": "d", "kind": "resource-link" }
+  ],
+  "steer": "You MUST call BOTH tools in the SAME step, in parallel: echo with message='parallel-probe-echo' and find_doc with topic='parallel probes'. Do not answer from memory."
+}

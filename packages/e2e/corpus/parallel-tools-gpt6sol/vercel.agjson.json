@@ -1,0 +1,503 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_vercel_1",
+    "threadId": "vercel"
+  },
+  {
+    "type": "step.start",
+    "id": "step_1",
+    "turnId": "turn_vercel_1",
+    "seq": 1
+  },
+  {
+    "type": "message.start",
+    "seq": 2,
+    "id": "msg_turn_vercel_1_s1",
+    "turnId": "turn_vercel_1",
+    "threadId": "vercel",
+    "role": "assistant",
+    "stepId": "step_1"
+  },
+  {
+    "type": "tool.start",
+    "seq": 3,
+    "turnId": "turn_vercel_1",
+    "toolCallId": "call_qArt84IooJcgikWLOu4PirsH",
+    "name": "echo",
+    "messageId": "msg_turn_vercel_1_s1",
+    "dynamic": true
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 4,
+    "toolCallId": "call_qArt84IooJcgikWLOu4PirsH",
+    "delta": "{\"message\":\"parallel-probe-echo\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 5,
+    "toolCallId": "call_qArt84IooJcgikWLOu4PirsH",
+    "input": {
+      "message": "parallel-probe-echo"
+    }
+  },
+  {
+    "type": "tool.start",
+    "seq": 6,
+    "turnId": "turn_vercel_1",
+    "toolCallId": "call_QmpYdIoXRZeBbsclQBRDrpzb",
+    "name": "find_doc",
+    "messageId": "msg_turn_vercel_1_s1",
+    "dynamic": true
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 7,
+    "toolCallId": "call_QmpYdIoXRZeBbsclQBRDrpzb",
+    "delta": "{\"topic\":\"parallel probes\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 8,
+    "toolCallId": "call_QmpYdIoXRZeBbsclQBRDrpzb",
+    "input": {
+      "topic": "parallel probes"
+    }
+  },
+  {
+    "type": "tool.done",
+    "seq": 9,
+    "turnId": "turn_vercel_1",
+    "toolCallId": "call_qArt84IooJcgikWLOu4PirsH",
+    "outcome": "ok",
+    "structuredContent": {
+      "content": [
+        {
+          "type": "text",
+          "text": "parallel-probe-echo"
+        }
+      ],
+      "isError": false
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"content\":[{\"type\":\"text\",\"text\":\"parallel-probe-echo\"}],\"isError\":false}"
+      }
+    ],
+    "dynamic": true
+  },
+  {
+    "type": "tool.done",
+    "seq": 10,
+    "turnId": "turn_vercel_1",
+    "toolCallId": "call_QmpYdIoXRZeBbsclQBRDrpzb",
+    "outcome": "ok",
+    "structuredContent": {
+      "content": [
+        {
+          "type": "text",
+          "text": "Found one document for \"parallel probes\"."
+        },
+        {
+          "type": "resource_link",
+          "uri": "file:///docs/conformance-probe-resource-link.md",
+          "name": "conformance-probe-resource-link.md",
+          "description": "A document the find_doc tool links to instead of inlining.",
+          "mimeType": "text/markdown",
+          "title": "Conformance probe: resource link",
+          "size": 2048,
+          "annotations": {
+            "audience": [
+              "user",
+              "assistant"
+            ],
+            "priority": 0.7
+          }
+        }
+      ],
+      "isError": false
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"content\":[{\"type\":\"text\",\"text\":\"Found one document for \\\"parallel probes\\\".\"},{\"type\":\"resource_link\",\"uri\":\"file:///docs/conformance-probe-resource-link.md\",\"name\":\"conformance-probe-resource-link.md\",\"description\":\"A document the find_doc tool links to instead of inlining.\",\"mimeType\":\"text/markdown\",\"title\":\"Conformance probe: resource link\",\"size\":2048,\"annotations\":{\"audience\":[\"user\",\"assistant\"],\"priority\":0.7}}],\"isError\":false}"
+      }
+    ],
+    "dynamic": true
+  },
+  {
+    "type": "message.metadata",
+    "messageId": "msg_turn_vercel_1_s1",
+    "metadata": {
+      "responseId": "resp_06e0030c47ae3965006ab3bf2aaa1087d09d7905521cbc2953",
+      "model": "gpt-6-sol"
+    },
+    "turnId": "turn_vercel_1",
+    "seq": 11
+  },
+  {
+    "type": "message.end",
+    "seq": 12,
+    "id": "msg_turn_vercel_1_s1",
+    "usage": {
+      "inputTokens": 160,
+      "outputTokens": 52,
+      "totalTokens": 212,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 0
+    }
+  },
+  {
+    "type": "step.done",
+    "id": "step_1",
+    "turnId": "turn_vercel_1",
+    "seq": 13
+  },
+  {
+    "type": "step.start",
+    "id": "step_2",
+    "turnId": "turn_vercel_1",
+    "seq": 14
+  },
+  {
+    "type": "message.start",
+    "seq": 15,
+    "id": "msg_turn_vercel_1_s2",
+    "turnId": "turn_vercel_1",
+    "threadId": "vercel",
+    "role": "assistant",
+    "stepId": "step_2"
+  },
+  {
+    "type": "text.start",
+    "seq": 16,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "turnId": "turn_vercel_1",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+        "phase": "final_answer"
+      }
+    }
+  },
+  {
+    "type": "text.delta",
+    "seq": 17,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "-",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 18,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": " Echo",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 19,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": ":",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 20,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": " `",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 21,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "parallel",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 22,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "-pro",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 23,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "be",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 24,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "-",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 25,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "echo",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 26,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "`\n",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 27,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "-",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 28,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": " Document",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 29,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": ":",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 30,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": " [",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 31,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "Con",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 32,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "formance",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 33,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": " probe",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 34,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": ":",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 35,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": " resource",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 36,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": " link",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 37,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "](",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 38,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "file",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 39,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": ":///",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 40,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "docs",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 41,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "/con",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 42,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "formance",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 43,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "-pro",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 44,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "be",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 45,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "-resource",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 46,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "-link",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 47,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": ".md",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 48,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": ")",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.end",
+    "seq": 49,
+    "id": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+    "messageId": "msg_turn_vercel_1_s2",
+    "turnId": "turn_vercel_1",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_052805cc4b41b37e006ab3bf2d332c87d0b0d30b23dd7b0e60",
+        "phase": "final_answer"
+      }
+    }
+  },
+  {
+    "type": "message.metadata",
+    "messageId": "msg_turn_vercel_1_s2",
+    "metadata": {
+      "responseId": "resp_052805cc4b41b37e006ab3bf2c4d3487d0bf903429e3110185",
+      "model": "gpt-6-sol"
+    },
+    "turnId": "turn_vercel_1",
+    "seq": 50
+  },
+  {
+    "type": "message.end",
+    "seq": 51,
+    "id": "msg_turn_vercel_1_s2",
+    "usage": {
+      "inputTokens": 325,
+      "outputTokens": 36,
+      "totalTokens": 361,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 0
+    }
+  },
+  {
+    "type": "step.done",
+    "id": "step_2",
+    "turnId": "turn_vercel_1",
+    "seq": 52
+  },
+  {
+    "type": "turn.done",
+    "seq": 53,
+    "turnId": "turn_vercel_1",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 485,
+      "outputTokens": 88,
+      "totalTokens": 573,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 0
+    }
+  }
+]
