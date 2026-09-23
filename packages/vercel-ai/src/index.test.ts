@@ -12,7 +12,7 @@ import { AgEvent, Reducer } from "@silverprotocol/core";
 import { VERCEL_HOST_ERROR, createVercelNormalizer } from "./index.js";
 
 function run(parts: unknown[]): AgEvent[] {
-  const n = createVercelNormalizer();
+  const n = createVercelNormalizer({ invokeId: "vercel" });
   const out: AgEvent[] = [];
   for (const p of parts) out.push(...n.push(p));
   out.push(...n.flush());
@@ -1836,5 +1836,60 @@ describe("draft.4 phase: an OpenAI commentary text part opens as phase 'interim'
       const out = run(stream(bag));
       for (const e of out.filter((x) => x.type === "text.start" || x.type === "text.end")) expect("phase" in e).toBe(false);
     }
+  });
+});
+
+describe("invoke-scoped ids: turn and message ids unique across the invokes of one fold", () => {
+  // The fullStream has no id before finish-step, so each normalizer draws a
+  // random id stem unless the host passes `invokeId` (sp-protocol's ruling on
+  // rd-14 P14: a per-normalizer counter restarting at 1 collided across invokes).
+  const PARTS = [
+    { type: "start" },
+    { type: "start-step", request: {}, warnings: [] },
+    { type: "text-start", id: "t1" },
+    { type: "text-delta", id: "t1", text: "hi" },
+    { type: "text-end", id: "t1" },
+    { type: "finish-step", finishReason: "stop", rawFinishReason: "stop", usage: USAGE, response: RESPONSE_S1 },
+    { type: "finish", finishReason: "stop", rawFinishReason: "stop", totalUsage: USAGE },
+  ];
+  function drive(options?: { invokeId?: string }): AgEvent[] {
+    const n = createVercelNormalizer(options);
+    const out: AgEvent[] = [];
+    for (const p of PARTS) out.push(...n.push(p));
+    out.push(...n.flush());
+    return out;
+  }
+  const turnIds = (evs: AgEvent[]) =>
+    evs.filter((e) => e.type === "turn.start").map((e) => (e as { turnId: string }).turnId);
+  const messageIds = (evs: AgEvent[]) =>
+    evs.filter((e) => e.type === "message.start").map((e) => (e as { id: string }).id);
+
+  it("two default normalizers mint disjoint turn and message ids from a fresh random stem", () => {
+    const a = drive();
+    const b = drive();
+    expect(turnIds(a)).toHaveLength(1);
+    expect(turnIds(a)[0]).toMatch(/^turn_vercel_[0-9a-f]{16}_1$/);
+    expect(messageIds(a)).toEqual([`msg_${turnIds(a)[0]}_s1`]);
+    expect(turnIds(b)).not.toEqual(turnIds(a));
+    expect(messageIds(b)).not.toEqual(messageIds(a));
+    expectAllParse([...a, ...b]);
+  });
+
+  it("the same native with the same invokeId produces identical output", () => {
+    expect(drive({ invokeId: "inv-7" })).toEqual(drive({ invokeId: "inv-7" }));
+    expect(turnIds(drive({ invokeId: "inv-7" }))).toEqual(["turn_inv-7_1"]);
+    // replay.ts pins "vercel", which reproduces the committed goldens' ids.
+    expect(turnIds(drive({ invokeId: "vercel" }))).toEqual(["turn_vercel_1"]);
+  });
+
+  it("two default invokes fold into one Reducer as two turns and two messages, no park", () => {
+    const a = drive();
+    const b = drive();
+    const r = new Reducer();
+    for (const ev of [...a, ...b]) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    expect(res.turns.map((t) => t.turnId)).toEqual([...turnIds(a), ...turnIds(b)]);
+    expect(res.messages.map((m) => m.id)).toEqual([...messageIds(a), ...messageIds(b)]);
   });
 });

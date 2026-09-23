@@ -273,13 +273,41 @@ const THREAD_ID = "vercel";
  */
 const EXT_VENDOR = "vercel";
 
+/** Options for {@link createVercelNormalizer}. */
+export interface VercelNormalizerOptions {
+  /**
+   * The stem this invoke's ids are minted from: turn ids are
+   * `turn_<invokeId>_<n>` and message ids `msg_turn_<invokeId>_<n>_s<step>`.
+   *
+   * Turn and message ids must be unique across every invoke folded into one
+   * reducer (SPEC INV-BLOCK "collision-free derived ids"; a repeated turn id
+   * re-opens a closed turn, which INV-MSG parks). The fullStream carries no
+   * id before `finish-step`, so by default each normalizer draws a fresh
+   * `vercel_<16 hex>` stem from `crypto.getRandomValues`.
+   *
+   * Pass one to make the output deterministic (replay, tests). A host that
+   * passes it MUST keep it unique per invoke within a fold.
+   */
+  invokeId?: string;
+}
+
+/** 64 random bits as 16 hex chars: the default per-invoke id stem. */
+function mintInvokeNonce(): string {
+  const bytes = new Uint8Array(8);
+  globalThis.crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 /**
  * Stateful-per-invoke normalizer for one `streamText` run's fullStream.
- * `push(part)` → 0+ AgEvents; `flush()` seals anything still open.
+ * `push(part)` → 0+ AgEvents; `flush()` seals anything still open. One
+ * normalizer per invoke; see {@link VercelNormalizerOptions.invokeId} for
+ * how its ids stay unique across invokes.
  */
-export function createVercelNormalizer(): Normalizer {
+export function createVercelNormalizer(options: VercelNormalizerOptions = {}): Normalizer {
   const a = new StreamAssembler();
 
+  const turnStem = `turn_${options.invokeId ?? `vercel_${mintInvokeNonce()}`}`;
   let turnCounter = 0;
   let turnId: string | undefined; // current open turn
   let turnClosed = false;
@@ -298,7 +326,7 @@ export function createVercelNormalizer(): Normalizer {
    *  than `start` can arrive first on a hostile/truncated wire). */
   function ensureTurn(): string {
     if (turnId === undefined || turnClosed) {
-      turnId = `turn_vercel_${++turnCounter}`;
+      turnId = `${turnStem}_${++turnCounter}`;
       turnClosed = false;
       a.openTurn(turnId, THREAD_ID);
     }

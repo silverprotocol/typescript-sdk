@@ -78,6 +78,13 @@ agEvents.push(...n.flush());        // seal anything still open
 async/sync iterable of `TextStreamPart`s works — a live `streamText` run, or
 parts you captured earlier.
 
+Use one normalizer per `streamText` run. Turn and message ids must stay unique
+across every run you fold into one reducer, and the fullStream carries no id
+until the step finishes, so each normalizer draws a random id stem by default.
+For deterministic ids (tests, replaying captured parts), pass
+`createVercelNormalizer({ invokeId })`; keep the value unique per run within a
+fold, or the reducer parks on the repeated turn.
+
 Then fold the resulting `AgEvent`s into messages and turns with
 `@silverprotocol/core`'s `reduce()` — the same client code regardless of which
 framework produced the stream.

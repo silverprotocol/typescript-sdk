@@ -275,7 +275,9 @@ async function loadFrameworkDeps(
       import("./agents/vercel-ai/run.js"),
       import("@silverprotocol/vercel-ai"),
     ]);
-    return { runAgentCapture: runVercelCapture, createNormalizer: createVercelNormalizer };
+    // The same fixed id stem replay uses (replay.ts), so a fresh capture's
+    // agjson equals its replay; the facet's default stem is random.
+    return { runAgentCapture: runVercelCapture, createNormalizer: () => createVercelNormalizer({ invokeId: "vercel" }) };
   }
   const [{ runAdkCapture }, { createAdkNormalizer }] = await Promise.all([
     import("./agents/google-adk/run.js"),

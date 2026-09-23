@@ -256,6 +256,10 @@ export async function replayNatives(recorded: JsonValue[], fw: Framework): Promi
   const { native, hostCompleted } = splitHostCompleteMarker(recorded);
 
   // ── Drive the real facet normalizer: push each event, then flush. ──────────
+  // vercel mints a random id stem per normalizer (its wire has no early id);
+  // replay pins it to "vercel", which reproduces the committed goldens'
+  // `turn_vercel_<n>` ids byte-for-byte. Each cassette is its own fold, so
+  // the fixed stem cannot collide.
   const normalizer =
     fw === "openai"
       ? createOpenaiNormalizer()
@@ -265,7 +269,7 @@ export async function replayNatives(recorded: JsonValue[], fw: Framework): Promi
           // (below): its own opt-in, as HOST_COMPLETE_MARKER's doc promises.
           createAdkNormalizer(hostCompleted ? { hostCompletion: true } : {})
         : fw === "vercel"
-          ? createVercelNormalizer()
+          ? createVercelNormalizer({ invokeId: "vercel" })
           : createClaudeNormalizer();
   const agjson: JsonValue[] = [];
   for (const event of native) {
