@@ -60,8 +60,8 @@
     "type": "turn.error",
     "seq": 3,
     "turnId": "turn_303f4dbd-ff65-4c21-af57-3d0e6c4bd441",
-    "message": "",
-    "code": "api_error",
+    "message": "tool_deferred_unavailable",
+    "code": "tool_deferred_unavailable",
     "retriable": false,
     "usage": {
       "inputTokens": 0,
