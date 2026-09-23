@@ -196,7 +196,12 @@ function assertAllValid(evs: AgEvent[]): void {
 // monotonic. The nested-subagent turn is seeded by `subagent.start`, so it has
 // NO synthesized `turn.start`.
 
-const TOP_TURN = "turn_sess_fixture";
+// INV-TURN (per-turn ids, sp-protocol ruling B, 2026-09-23): a top-level turn
+// is named by the frame that OPENS it, never by the session. Most fixtures
+// open on `assistantMsg` (message id "msg_fixture_1"); a turn a result frame
+// opens by itself (no assistant frame first) is named by that result's uuid.
+const TOP_TURN = "turn_msg_fixture_1";
+const RESULT_ONLY_TURN = "turn_00000000-0000-0000-0000-000000000002";
 
 describe("createClaudeNormalizer — assistant text (assembled golden)", () => {
   // `run()` = push the ONE assistant message + flush, with no terminal `result`
@@ -280,7 +285,7 @@ describe("createClaudeNormalizer — result success", () => {
     expect(evs.map((e) => e.type)).toEqual(["turn.done"]);
     expect(evs[0]).toMatchObject({
       type: "turn.done",
-      turnId: TOP_TURN,
+      turnId: RESULT_ONLY_TURN,
       finishReason: "stop",
       outcome: { type: "success", result: "all done" },
     });
@@ -795,9 +800,12 @@ describe("createClaudeNormalizer — inner tool-result routes to the subagent tu
     const innerDone = events.find(
       (e) => e.type === "tool.done" && (e as { toolCallId: string }).toolCallId === INNER_TOOL_ID,
     );
+    // INV-TURN (B): the nested turn is named by its subagent run's first
+    // message id (one nested turn per spawning Task call), the top-level turn by
+    // its first message id — never by either session.
     expect(innerDone).toMatchObject({
       type: "tool.done",
-      turnId: `turn_${SUB_SESSION}`, // NOT "turn_toolu_task"
+      turnId: "turn_msg_sub_1", // NOT "turn_toolu_task"
       messageId: `${INNER_TOOL_ID}:result`,
     });
 
@@ -805,10 +813,8 @@ describe("createClaudeNormalizer — inner tool-result routes to the subagent tu
     for (const e of events) r.push(e);
     expect(r.needsResync).toBe(false);
     const result = r.result();
-    expect(result.turns.map((t) => t.turnId).sort()).toEqual(
-      [`turn_${SUB_SESSION}`, `turn_${TOP_SESSION}`].sort(),
-    );
-    const subTurn = result.turns.find((t) => t.turnId === `turn_${SUB_SESSION}`);
+    expect(result.turns.map((t) => t.turnId).sort()).toEqual(["turn_msg_sub_1", "turn_msg_top_1"].sort());
+    const subTurn = result.turns.find((t) => t.turnId === "turn_msg_sub_1");
     expect(subTurn?.threadId).toBe(TOP_SESSION); // root threadId, not the synthetic label
   });
 });
@@ -1024,9 +1030,9 @@ describe("createClaudeNormalizer — permission_denials", () => {
       "turn.done",
     ]);
     const msgStart = evs.find((e) => e.type === "message.start");
-    expect(msgStart).toMatchObject({ type: "message.start", id: "turn_sess_fixture:denials" });
+    expect(msgStart).toMatchObject({ type: "message.start", id: `${RESULT_ONLY_TURN}:denials` });
     const msgEnd = evs.find((e) => e.type === "message.end");
-    expect(msgEnd).toMatchObject({ type: "message.end", id: "turn_sess_fixture:denials" });
+    expect(msgEnd).toMatchObject({ type: "message.end", id: `${RESULT_ONLY_TURN}:denials` });
     const toolStart = evs.find((e) => e.type === "tool.start");
     expect(toolStart).toMatchObject({ type: "tool.start", name: "bash" });
     const toolDone = evs.find((e) => e.type === "tool.done");
@@ -1363,6 +1369,236 @@ describe("createClaudeNormalizer — deferral c: assistant error → turn.error"
   });
 });
 
+// ─── INV-TURN: one turnId names exactly one turn (sp-protocol ruling B) ──────
+// Through 0.6.4 every top-level turn was `turn_${session_id}`, so in a
+// multi-turn invoke the second turn's message.start and content landed on T
+// AFTER turn.done(T) (no second turn.start: the assembler's seen-turn set
+// suppressed it), breaking INV-TURN (SPEC:743); reduce() merged the session's
+// turns into one AgTurnRecord, and a resume (same session_id unless
+// forkSession) collided across invokes too. A turn is now named by the frame
+// that opens it.
+describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-23)", () => {
+  function asst(id: string, text: string, uuid: UUID, parent: string | null = null): SDKMessage {
+    return {
+      type: "assistant",
+      message: { ...betaMessage([{ type: "text", text, citations: null }]), id },
+      parent_tool_use_id: parent,
+      uuid,
+      session_id: "sess_fixture",
+    };
+  }
+  function result(uuid: UUID, isError = false): unknown {
+    return { ...resultSuccess("end_turn"), uuid, is_error: isError };
+  }
+  function events(frames: unknown[]): AgEvent[] {
+    const n = createClaudeNormalizer();
+    const evs = [...frames.flatMap((f) => n.push(JsonValue.parse(f))), ...n.flush()];
+    assertAllValid(evs);
+    return evs;
+  }
+  // INV-TURN as a property of the stream, for TOP-LEVEL turns: each turnId is
+  // opened (turn.start) before it closes, gets exactly one terminal, and
+  // nothing carries it after that terminal. (Nested turns are bracketed per
+  // MESSAGE by subagent.start/done, a disclosed pre-existing shape, so they are
+  // out of this helper's scope.)
+  function assertOneTerminalPerTurn(evs: AgEvent[]): void {
+    const opened = new Set<string>();
+    const closedAt = new Map<string, number>();
+    evs.forEach((e, i) => {
+      const t = "turnId" in e && typeof e.turnId === "string" ? e.turnId : undefined;
+      if (t === undefined) return;
+      if (e.type === "turn.start" || e.type === "subagent.start") opened.add(t);
+      const closed = closedAt.get(t);
+      expect(closed, `${e.type} on ${t} after its terminal`).toBeUndefined();
+      if (e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort") {
+        expect(opened.has(t), `${e.type} on ${t}, which was never opened`).toBe(true);
+        closedAt.set(t, i);
+      }
+    });
+  }
+  const turnIds = (evs: AgEvent[], type: string): unknown[] =>
+    evs.filter((e) => e.type === type).map((e) => ("turnId" in e ? e.turnId : undefined));
+
+  it("fold: two turns in one invoke are two turns — each opened, closed once (turn.done) and folded as its own record", () => {
+    const evs = events([
+      asst("msg_t1", "first", "00000000-0000-0000-0000-0000000000b1"),
+      result("00000000-0000-0000-0000-0000000000b2"),
+      asst("msg_t2", "second", "00000000-0000-0000-0000-0000000000b3"),
+      result("00000000-0000-0000-0000-0000000000b4"),
+    ]);
+    expect(turnIds(evs, "turn.start")).toEqual(["turn_msg_t1", "turn_msg_t2"]);
+    expect(turnIds(evs, "turn.done")).toEqual(["turn_msg_t1", "turn_msg_t2"]);
+    assertOneTerminalPerTurn(evs);
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    expect(res.turns.map((t) => [t.turnId, t.outcome?.type])).toEqual([
+      ["turn_msg_t1", "success"],
+      ["turn_msg_t2", "success"],
+    ]);
+    expect(res.turns.every((t) => t.usage !== undefined)).toBe(true);
+    expect(res.messages.map((m) => [m.id, m.turnId])).toEqual([
+      ["msg_t1", "turn_msg_t1"],
+      ["msg_t2", "turn_msg_t2"],
+    ]);
+  });
+
+  it("fold, every close path in one invoke: success, error-subtype result, API-error stash, then a truncated last turn — each turn keeps its own outcome", () => {
+    const apiErrTurn = {
+      ...(apiErrorAssistantFrame() as object),
+      message: { ...betaMessage([{ type: "text", text: "API Error", citations: null }]), id: "msg_t3", model: "<synthetic>" },
+      uuid: "00000000-0000-0000-0000-0000000000b7",
+    };
+    const evs = events([
+      asst("msg_t1", "ok", "00000000-0000-0000-0000-0000000000b1"),
+      result("00000000-0000-0000-0000-0000000000b2"),
+      asst("msg_t2", "then it failed", "00000000-0000-0000-0000-0000000000b3"),
+      { ...resultError("error_during_execution"), uuid: "00000000-0000-0000-0000-0000000000b4" },
+      apiErrTurn,
+      result("00000000-0000-0000-0000-0000000000b8", true),
+      asst("msg_t4", "cut off", "00000000-0000-0000-0000-0000000000b9"),
+    ]);
+    const closes = turnCloses(evs).map((e) => [e.type, "turnId" in e ? e.turnId : undefined]);
+    expect(closes).toEqual([
+      ["turn.done", "turn_msg_t1"],
+      ["turn.error", "turn_msg_t2"],
+      ["turn.error", "turn_msg_t3"],
+      ["turn.abort", "turn_msg_t4"],
+    ]);
+    assertOneTerminalPerTurn(evs);
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.map((t) => [t.turnId, t.outcome?.type])).toEqual([
+      ["turn_msg_t1", "success"],
+      ["turn_msg_t2", "error"],
+      ["turn_msg_t3", "error"],
+      ["turn_msg_t4", "aborted"],
+    ]);
+  });
+
+  it("the API-error stash of one turn never closes the next turn (the stash is keyed by its own turn)", () => {
+    const apiErr = apiErrorAssistantFrame();
+    const evs = events([apiErr, asst("msg_next", "next turn, no result yet", "00000000-0000-0000-0000-0000000000c1")]);
+    // No result for the error turn: it is still open when msg_next arrives, so
+    // msg_next JOINS it (a turn ends only at its result) and the flush closes
+    // that ONE turn with the stashed error.
+    expect(turnCloses(evs).map((e) => [e.type, "turnId" in e ? e.turnId : undefined])).toEqual([
+      ["turn.error", API_ERROR_TURN],
+    ]);
+    // With the result in between, the next turn is its own and aborts alone.
+    const evs2 = events([apiErr, apiErrorResultFrame(), asst("msg_next", "next", "00000000-0000-0000-0000-0000000000c1")]);
+    expect(turnCloses(evs2).map((e) => [e.type, "turnId" in e ? e.turnId : undefined])).toEqual([
+      ["turn.error", API_ERROR_TURN],
+      ["turn.abort", "turn_msg_next"],
+    ]);
+    assertOneTerminalPerTurn(evs2);
+  });
+
+  it("a streamed turn is named at message_start by the same id the complete frame would give it", () => {
+    const n = createClaudeNormalizer();
+    const frame = (event: Extract<SDKMessage, { type: "stream_event" }>["event"]): unknown => ({
+      type: "stream_event",
+      event,
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000d2",
+      session_id: "sess_fixture",
+    });
+    const evs = [
+      ...n.push(JsonValue.parse(frame({ type: "message_start", message: { ...betaMessage([]), id: "msg_streamed" } }))),
+      ...n.push(JsonValue.parse({ ...asst("msg_streamed", "hi", "00000000-0000-0000-0000-0000000000d3") })),
+      ...n.push(JsonValue.parse(result("00000000-0000-0000-0000-0000000000d4"))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    expect(turnIds(evs, "turn.start")).toEqual(["turn_msg_streamed"]);
+    expect(turnIds(evs, "turn.done")).toEqual(["turn_msg_streamed"]);
+  });
+
+  it("nested turns: one per subagent RUN (keyed by parent_tool_use_id), shared by that run's messages, never the parentTurnId label", () => {
+    const evs = events([
+      asst("msg_top", "delegating", "00000000-0000-0000-0000-0000000000e2"),
+      asst("msg_run_a1", "a1", "00000000-0000-0000-0000-0000000000e3", "toolu_task_a"),
+      asst("msg_run_a2", "a2", "00000000-0000-0000-0000-0000000000e4", "toolu_task_a"),
+      asst("msg_run_b1", "b1", "00000000-0000-0000-0000-0000000000e5", "toolu_task_b"),
+      result("00000000-0000-0000-0000-0000000000e6"),
+    ]);
+    const starts = evs.filter((e) => e.type === "subagent.start");
+    expect(starts.map((e) => [("turnId" in e ? e.turnId : undefined), ("parentTurnId" in e ? e.parentTurnId : undefined)])).toEqual([
+      ["turn_msg_run_a1", "turn_toolu_task_a"],
+      ["turn_msg_run_a1", "turn_toolu_task_a"],
+      ["turn_msg_run_b1", "turn_toolu_task_b"],
+    ]);
+    expect(turnIds(evs, "turn.done")).toEqual(["turn_msg_top"]);
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.map((t) => t.turnId).sort()).toEqual(["turn_msg_run_a1", "turn_msg_run_b1", "turn_msg_top"]);
+  });
+
+  it("a notice between turns opens the next turn (named by its uuid), and that turn's assistant frame and result join it", () => {
+    const notice: SDKMessage = {
+      type: "system",
+      subtype: "informational",
+      level: "info",
+      content: "Resuming after a hook.",
+      uuid: "00000000-0000-0000-0000-0000000000f9",
+      session_id: "sess_fixture",
+    };
+    const evs = events([
+      asst("msg_t1", "first", "00000000-0000-0000-0000-0000000000b1"),
+      result("00000000-0000-0000-0000-0000000000b2"),
+      notice,
+      asst("msg_t2", "second", "00000000-0000-0000-0000-0000000000b3"),
+      result("00000000-0000-0000-0000-0000000000b4"),
+    ]);
+    const second = "turn_00000000-0000-0000-0000-0000000000f9";
+    expect(turnIds(evs, "turn.start")).toEqual(["turn_msg_t1", second]);
+    expect(turnIds(evs, "turn.done")).toEqual(["turn_msg_t1", second]);
+    assertOneTerminalPerTurn(evs);
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.map((m) => [m.id, m.turnId])).toEqual([
+      ["msg_t1", "turn_msg_t1"],
+      ["00000000-0000-0000-0000-0000000000f9", second],
+      ["msg_t2", second],
+    ]);
+  });
+
+  it("a CLOSED id is never reopened: a late frame reusing a closed turn's message id opens a new turn under its own uuid", () => {
+    const evs = events([
+      asst("msg_t1", "first", "00000000-0000-0000-0000-0000000000b1"),
+      result("00000000-0000-0000-0000-0000000000b2"),
+      asst("msg_t1", "late same-id frame", "00000000-0000-0000-0000-0000000000b5"),
+      result("00000000-0000-0000-0000-0000000000b6"),
+    ]);
+    expect(turnIds(evs, "turn.done")).toEqual(["turn_msg_t1", "turn_00000000-0000-0000-0000-0000000000b5"]);
+    assertOneTerminalPerTurn(evs);
+  });
+
+  it("a result with no uuid (the runtime guard checks only discriminants) gets a positional id, never a shared `turn_undefined`", () => {
+    const noUuid = (): unknown => withoutKey(resultSuccess("end_turn"), "uuid");
+    const evs = events([noUuid(), noUuid()]);
+    const ids = turnIds(evs, "turn.done");
+    expect(ids).toEqual(["turn_frame_1", "turn_frame_2"]);
+    expect(ids.some((id) => typeof id === "string" && id.includes("undefined"))).toBe(false);
+  });
+
+  it("deterministic from the wire, and distinct across two invokes of one resumed session (same session_id)", () => {
+    // The ids come only from the wire (no clock, no randomness), so a replay of
+    // the same native gives the same stream; across invokes the ids differ
+    // because message ids never repeat, while BOTH invokes carry the same
+    // session_id, which is what collided before.
+    const invoke1 = [asst("msg_i1", "one", "00000000-0000-0000-0000-0000000000a6"), result("00000000-0000-0000-0000-0000000000a7")];
+    const invoke2 = [asst("msg_i2", "two", "00000000-0000-0000-0000-0000000000a8"), result("00000000-0000-0000-0000-0000000000a9")];
+    expect(events(invoke1)).toStrictEqual(events(invoke1));
+    expect(turnIds(events(invoke1), "turn.done")).toEqual(["turn_msg_i1"]);
+    expect(turnIds(events(invoke2), "turn.done")).toEqual(["turn_msg_i2"]);
+  });
+});
+
 // ─── SDKUserMessageReplay (`isReplay: true`) emits no core event ─────────────
 // sp-rnd lead (2026-09-23). Two hazards, both confirmed on fixtures before the fix:
 //  - the realistic one: a replay ack landing MID-STREAM ran closePendingMessage()
@@ -1435,10 +1671,13 @@ describe("createClaudeNormalizer — replayed user frames (isReplay) re-emit not
     const r = fold(evs);
     expect(r.needsResync).toBe(false);
     const result = r.result();
-    // Both turns share `turn_sess_fixture` (turnIdFor keys on session_id), so the
-    // outcome check cannot tell them apart; `msg_next` folding is the proof.
     expect(result.messages.map((m) => m.id)).toEqual(["msg_tool", "toolu_fixture_1:result", "msg_answer", "msg_next"]);
-    expect(result.turns.find((t) => t.turnId === TOP_TURN)?.outcome).toMatchObject({ type: "success" });
+    // INV-TURN (B): the two turns are two records, each named by its first
+    // message and closed once, so the second turn no longer folds into the first.
+    expect(result.turns.map((t) => [t.turnId, t.outcome?.type])).toEqual([
+      ["turn_msg_tool", "success"],
+      ["turn_msg_next", "success"],
+    ]);
   });
 
   it("fold: a fresh (resumed) normalizer whose first frame is a replay emits nothing and folds the turn that follows", () => {
@@ -1780,7 +2019,8 @@ describe("createClaudeNormalizer — refusal-fallback retraction (playbook 2026-
     const result = r.result();
     // The ext frame adds no row (no notice message, no ghost of the refused leg).
     expect(result.messages.map((m) => m.id)).toEqual(["msg_fallback"]);
-    expect(result.turns.find((t) => t.turnId === TOP_TURN)?.outcome).toMatchObject({ type: "success" });
+    // The turn is named by its first (refused) message, which the retraction removed.
+    expect(result.turns.find((t) => t.turnId === "turn_msg_refused")?.outcome).toMatchObject({ type: "success" });
   });
 });
 
@@ -4642,6 +4882,11 @@ function apiErrorResultFrame(extra: { [k: string]: unknown } = {}): unknown {
   };
 }
 
+// INV-TURN (per-turn ids, B): a turn that opens on `apiErrorAssistantFrame` is
+// named by its message id; as a NESTED frame it names its nested turn the same
+// way, and never a top-level one.
+const API_ERROR_TURN = "turn_msg_api_error_1";
+
 // The same frame with one wire key removed (an older producer's shape).
 function withoutKey(frame: unknown, key: string): unknown {
   if (typeof frame !== "object" || frame === null) return frame;
@@ -4662,13 +4907,30 @@ function turnCloses(evs: AgEvent[]): AgEvent[] {
 // The `<turnId>:denials` carrier's events, its message.start through its
 // message.end, each without `seq` (which counts the turn's earlier events) —
 // so an API-error turn's carrier compares event-for-event with a normal one.
-function denialCarrier(evs: AgEvent[]): unknown[] {
+// `abstractTurn`: the carrier is named after its turn (`<turnId>:denials`), and
+// since the per-turn ids (INV-TURN, B) two turns that open on different frames
+// are named differently, so a cross-turn comparison replaces the turn id with a
+// placeholder. Everything else must still match event for event.
+function denialCarrier(evs: AgEvent[], abstractTurn = false): unknown[] {
   const isCarrier = (e: AgEvent, type: "message.start" | "message.end"): boolean =>
     e.type === type && "id" in e && typeof e.id === "string" && e.id.endsWith(":denials");
   const start = evs.findIndex((e) => isCarrier(e, "message.start"));
   const end = evs.findIndex((e) => isCarrier(e, "message.end"));
   if (start < 0 || end < start) return [];
-  return evs.slice(start, end + 1).map((e) => withoutKey(e, "seq"));
+  const carrier = evs.slice(start, end + 1).map((e) => withoutKey(e, "seq"));
+  const first = evs[start];
+  const turnId = first !== undefined && "turnId" in first && typeof first.turnId === "string" ? first.turnId : undefined;
+  if (!abstractTurn || turnId === undefined) return carrier;
+  // Structured: only `turnId` itself and the `<turnId>:denials` message ids.
+  const abstractKey = (v: unknown): unknown =>
+    v === turnId ? "<turn>" : typeof v === "string" && v.startsWith(`${turnId}:`) ? `<turn>${v.slice(turnId.length)}` : v;
+  return carrier.map((e) =>
+    typeof e === "object" && e !== null
+      ? Object.fromEntries(
+          Object.entries(e).map(([k, v]) => [k, k === "turnId" || k === "id" || k === "messageId" ? abstractKey(v) : v]),
+        )
+      : e,
+  );
 }
 
 function fold(evs: AgEvent[]): Reducer {
@@ -4741,7 +5003,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     expect(closes[0]).toEqual({
       type: "turn.error",
       seq: expect.any(Number),
-      turnId: TOP_TURN,
+      turnId: API_ERROR_TURN,
       message: "rate_limit",
       code: "rate_limit",
       retriable: true,
@@ -4770,7 +5032,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
   it("fold: reduce() records the API-error turn as an error, with the result's usage, not as a success whose result is the error text", () => {
     const r = fold(drive([apiErrorAssistantFrame(), apiErrorResultFrame()]));
     expect(r.needsResync).toBe(false);
-    const turn = r.result().turns.find((t) => t.turnId === TOP_TURN);
+    const turn = r.result().turns.find((t) => t.turnId === API_ERROR_TURN);
     expect(turn?.outcome).toEqual({ type: "error", message: "rate_limit", code: "rate_limit" });
     expect(turn?.usage).toEqual(RESULT_USAGE);
   });
@@ -4788,7 +5050,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     expect(turnCloses(evs)).toHaveLength(1);
     const r = fold(evs);
     expect(r.needsResync).toBe(false);
-    expect(r.result().turns.find((t) => t.turnId === TOP_TURN)?.outcome).toMatchObject({ type: "error" });
+    expect(r.result().turns.find((t) => t.turnId === API_ERROR_TURN)?.outcome).toMatchObject({ type: "error" });
   });
 
   it("denials on an API-error turn (stashed close) open the SAME `<turnId>:denials` carrier as a normal turn, in the same place — carrier, result-meta, then ONE turn.error with usage", () => {
@@ -4828,8 +5090,12 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
       ...evs.slice(sealAt + 1, -1).map((e) => e.type),
       "turn.done",
     ]);
-    expect(denialCarrier(evs)).toEqual(denialCarrier(normal));
-    expect(denialCarrier(evs)[0]).toMatchObject({ type: "message.start", id: `${TOP_TURN}:denials`, turnId: TOP_TURN });
+    expect(denialCarrier(evs, true)).toEqual(denialCarrier(normal, true));
+    expect(denialCarrier(evs)[0]).toMatchObject({
+      type: "message.start",
+      id: `${API_ERROR_TURN}:denials`,
+      turnId: API_ERROR_TURN,
+    });
     // The live enrichment (with the decisionReasonCode carry) rides the
     // carrier's tool.done, as on every turn; the bare denial fabricates nothing.
     const dones = evs.filter((e): e is Extract<AgEvent, { type: "tool.done" }> => e.type === "tool.done");
@@ -4854,7 +5120,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
       {
         type: "turn.error",
         seq: expect.any(Number),
-        turnId: TOP_TURN,
+        turnId: API_ERROR_TURN,
         message: "rate_limit",
         code: "rate_limit",
         retriable: true,
@@ -4863,9 +5129,9 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     ]);
     const r = fold(evs);
     expect(r.needsResync).toBe(false);
-    const carrier = r.result().messages.find((m) => m.id === `${TOP_TURN}:denials`);
+    const carrier = r.result().messages.find((m) => m.id === `${API_ERROR_TURN}:denials`);
     expect(carrier?.content.filter((b) => b.type === "tool-result" && b.outcome === "denied")).toHaveLength(2);
-    const turn = r.result().turns.find((t) => t.turnId === TOP_TURN);
+    const turn = r.result().turns.find((t) => t.turnId === API_ERROR_TURN);
     expect(turn?.outcome).toEqual({ type: "error", message: "rate_limit", code: "rate_limit" });
     expect(turn?.usage).toEqual(RESULT_USAGE);
   });
@@ -4888,7 +5154,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     ]);
     const normal = run(resultWithDenial());
     expect(denialCarrier(withDenial)).toHaveLength(4);
-    expect(denialCarrier(withDenial)).toEqual(denialCarrier(normal));
+    expect(denialCarrier(withDenial, true)).toEqual(denialCarrier(normal, true));
     // The one close carries the usage the ordinary turn.done carries.
     const normalDone = normal.find((e): e is Extract<AgEvent, { type: "turn.done" }> => e.type === "turn.done");
     expect(normalDone?.usage).toBeDefined();
@@ -4896,7 +5162,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
       {
         type: "turn.error",
         seq: expect.any(Number),
-        turnId: TOP_TURN,
+        turnId: API_ERROR_TURN,
         message: "rate_limit",
         code: "rate_limit",
         retriable: true,
@@ -4939,7 +5205,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     expect(closes[0]).toEqual({
       type: "turn.error",
       seq: expect.any(Number),
-      turnId: TOP_TURN,
+      turnId: API_ERROR_TURN,
       message: "rate_limit",
       code: "rate_limit",
       retriable: true,
@@ -4947,17 +5213,18 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     });
     const r = fold(evs);
     expect(r.needsResync).toBe(false);
-    const turn = r.result().turns.find((t) => t.turnId === TOP_TURN);
+    const turn = r.result().turns.find((t) => t.turnId === API_ERROR_TURN);
     expect(turn?.outcome).toEqual({ type: "error", message: "rate_limit", code: "rate_limit" });
     expect(turn?.usage).toEqual(RESULT_USAGE);
 
     // Without a stash the error arm is unchanged: its own fields, no usage key.
+    // (A result-only turn: named by the error result's own uuid.)
     const alone = turnCloses(drive([errorResultWithUsage()]));
     expect(alone).toEqual([
       {
         type: "turn.error",
         seq: expect.any(Number),
-        turnId: TOP_TURN,
+        turnId: "turn_00000000-0000-0000-0000-000000000004",
         message: "max turns reached",
         code: "error_during_execution",
         retriable: true,
@@ -5008,7 +5275,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
       {
         type: "turn.error",
         seq: expect.any(Number),
-        turnId: TOP_TURN,
+        turnId: API_ERROR_TURN,
         message: "rate_limit",
         code: "rate_limit",
         retriable: true,
@@ -5020,7 +5287,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     expect(evs.some((e) => e.type === "turn.abort")).toBe(false);
     const r = fold(evs);
     expect(r.needsResync).toBe(false);
-    expect(r.result().turns.find((t) => t.turnId === TOP_TURN)?.outcome).toEqual({
+    expect(r.result().turns.find((t) => t.turnId === API_ERROR_TURN)?.outcome).toEqual({
       type: "error",
       message: "rate_limit",
       code: "rate_limit",
@@ -5036,7 +5303,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     const closes = turnCloses(evs);
     expect(closes).toHaveLength(1);
     expect(closes[0]).toMatchObject({
-      turnId: TOP_TURN,
+      turnId: API_ERROR_TURN,
       message: "authentication_failed",
       code: "authentication_failed",
       retriable: false,
@@ -5053,7 +5320,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     expect(atFlush[0]).not.toHaveProperty("usage");
   });
 
-  it("a NESTED (subagent) error frame stashes like a top-level one: message.end and subagent.done at the frame, one turn.error on the same turnId at the result (or at flush)", () => {
+  it("a NESTED (subagent) error frame inside an OPEN top-level turn stashes on that turn: one turn.error on it at the result (or at flush)", () => {
     const nested = apiErrorAssistantFrame({ parent_tool_use_id: "toolu_parent_1" });
     const bracket = [
       "subagent.start",
@@ -5064,13 +5331,42 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
       "message.end",
       "subagent.done",
     ];
-    const evs = drive([nested, apiErrorResultFrame()]);
-    expect(evs.map((e) => e.type)).toEqual([...bracket, "turn.error"]);
+    const top = assistantMsg([{ type: "text", text: "delegating", citations: null }]);
+    const evs = drive([top, nested, apiErrorResultFrame()]);
+    expect(evs.slice(-bracket.length - 1).map((e) => e.type)).toEqual([...bracket, "turn.error"]);
+    // The nested bracket is its own (nested) turn; the close is the TOP turn's.
+    expect(evs.find((e) => e.type === "subagent.start")).toMatchObject({ turnId: API_ERROR_TURN });
+    expect(turnCloses(evs)).toHaveLength(1);
     expect(turnCloses(evs)[0]).toMatchObject({ turnId: TOP_TURN, code: "rate_limit", usage: RESULT_USAGE });
     // No result frame: the flush emits the same single close, never turn.abort.
-    const alone = drive([nested]);
-    expect(alone.map((e) => e.type)).toEqual([...bracket, "turn.error"]);
+    const alone = drive([top, nested]);
+    expect(turnCloses(alone)).toHaveLength(1);
     expect(turnCloses(alone)[0]).toMatchObject({ turnId: TOP_TURN, code: "rate_limit", retriable: true });
+  });
+
+  it("a NESTED error frame with NO top-level turn open fabricates no close: nothing is stashed, and a later turn is not tainted", () => {
+    const nested = apiErrorAssistantFrame({ parent_tool_use_id: "toolu_parent_1" });
+    // Stream starts inside a subagent, then a result: the result closes its own
+    // result-only turn with ITS fields (not the nested frame's rate_limit).
+    const evs = drive([nested, apiErrorResultFrame()]);
+    expect(turnCloses(evs)).toHaveLength(1);
+    expect(turnCloses(evs)[0]).toMatchObject({ turnId: RESULT_ONLY_TURN, code: "api_error", retriable: true });
+    // Nested frame alone: no top-level turn ever opened, so no terminal at flush.
+    expect(turnCloses(drive([nested]))).toEqual([]);
+    // Background subagent frames AFTER a result (review of b8ea926, MAJOR 1):
+    // the next turn is named by ITS first message and closes as it ended.
+    const next = { ...(assistantMsg([{ type: "text", text: "turn two", citations: null }]) as object), message: { ...betaMessage([{ type: "text", text: "turn two", citations: null }]), id: "msg_turn_two" }, uuid: "00000000-0000-0000-0000-0000000000d7" };
+    const after = drive([
+      assistantMsg([{ type: "text", text: "turn one", citations: null }]),
+      resultSuccess("end_turn"),
+      nested,
+      next,
+      { ...resultSuccess("end_turn"), uuid: "00000000-0000-0000-0000-0000000000d8" },
+    ]);
+    expect(turnCloses(after).map((e) => [e.type, "turnId" in e ? e.turnId : undefined])).toEqual([
+      ["turn.done", TOP_TURN],
+      ["turn.done", "turn_msg_turn_two"],
+    ]);
   });
 
   it("result-only path (no assistant error frame was seen): the result closes the turn with turn.error — message = result text, code = api_error_code, retriable from the HTTP status, usage kept", () => {
@@ -5079,7 +5375,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     expect(evs[0]).toMatchObject({ apiErrorCode: "rate_limit_exceeded" });
     expect(evs[1]).toMatchObject({
       type: "turn.error",
-      turnId: TOP_TURN,
+      turnId: RESULT_ONLY_TURN,
       message: API_ERROR_TEXT,
       code: "rate_limit_exceeded",
       retriable: true,
@@ -5130,14 +5426,16 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     expect(evs.some((e) => e.type === "ext.anthropic.result-meta")).toBe(false);
     const r = fold(evs);
     expect(r.needsResync).toBe(false);
-    expect(r.result().turns.find((t) => t.turnId === TOP_TURN)?.outcome).toMatchObject({ type: "error", code: "api_error" });
+    expect(r.result().turns.find((t) => t.turnId === RESULT_ONLY_TURN)?.outcome).toMatchObject({ type: "error", code: "api_error" });
   });
 
   it("NEGATIVE CONTROL: with no assistant error frame, is_error false or absent keeps the success path byte-for-byte", () => {
     // The frozen success fixture's exact wire bytes, pinned from the facet
-    // before CL-09 (identical at HEAD and before the stash).
+    // before CL-09 (identical at HEAD and before the stash). The one change
+    // since: the per-turn ids (INV-TURN, B) name this result-only turn by the
+    // result's uuid, not by the session.
     const GOLDEN =
-      '[{"type":"turn.done","seq":0,"turnId":"turn_sess_fixture","outcome":{"type":"success","result":"all done"},' +
+      '[{"type":"turn.done","seq":0,"turnId":"turn_00000000-0000-0000-0000-000000000002","outcome":{"type":"success","result":"all done"},' +
       '"finishReason":"stop","usage":{"inputTokens":100,"outputTokens":50,"cacheReadTokens":20,"cacheWriteTokens":10,' +
       '"serverToolRequests":0,"costUsd":0.05,"cumulative":true,"byModel":{"claude-opus":{"inputTokens":100,' +
       '"outputTokens":50,"cacheReadTokens":20,"cacheWriteTokens":10,"costUsd":0.05,"serverToolRequests":0,' +
@@ -5282,7 +5580,8 @@ const LIVE_RESULT_FRAME = {
 };
 
 describe("createClaudeNormalizer — CL-09 LIVE: the captured invalid-API-key frames (401)", () => {
-  const LIVE_TURN = `turn_${LIVE_SESSION}`;
+  // INV-TURN (B): named by the live error frame's message id, not the session.
+  const LIVE_TURN = "turn_00000000-0000-4000-8000-0000000c1091";
 
   it("close the turn exactly ONCE, as turn.error authentication_failed (retriable false) carrying the result's usage", () => {
     const evs = drive([LIVE_ASSISTANT_ERROR_FRAME, LIVE_RESULT_FRAME]);
@@ -5360,7 +5659,7 @@ describe("createClaudeNormalizer — the API-error triad (api_error / api_error_
     expect(r.needsResync).toBe(false);
     const block = r.result().messages.find((m) => m.id === "msg_api_error_1")?.content[0];
     expect(block).toMatchObject({ type: "text", _meta: TRIAD });
-    expect(r.result().turns.find((t) => t.turnId === TOP_TURN)?.outcome).toMatchObject({ type: "error" });
+    expect(r.result().turns.find((t) => t.turnId === API_ERROR_TURN)?.outcome).toMatchObject({ type: "error" });
     // The carry lands on the message BEFORE its seal and the turn close.
     const types = evs.map((e) => e.type);
     expect(types.indexOf("text.start")).toBeLessThan(types.indexOf("message.end"));

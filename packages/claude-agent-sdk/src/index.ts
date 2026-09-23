@@ -119,12 +119,13 @@ function mapStopReason(stop: BetaStopReason | string | null): AgFinishReason {
 }
 
 // ─── derive stable ids ────────────────────────────────────────────────────────
-// A stable per-message turn id: the assistant message is the model's turn, so
-// the SDK session id names the turn (a top-level turn shares the session). When
-// absent, fall back to the message id.
-function turnIdFor(sessionId: string | undefined, messageId: string): string {
-  return sessionId && sessionId.length > 0 ? `turn_${sessionId}` : `turn_${messageId}`;
-}
+// Turn ids are minted per TURN inside `createClaudeNormalizer()` (see
+// `topTurnId` / `nestedTurnId`), never per session: through 0.6.4 the facet
+// keyed every top-level turn on `turn_${session_id}`, so in a multi-turn
+// invoke the second turn's message.start and content landed on T AFTER
+// turn.done(T) (the assembler's seen-turn set suppressed a second
+// turn.start), breaking INV-TURN (SPEC:743), and reduce() merged every turn
+// of a session into one AgTurnRecord (sp-protocol, 2026-09-23).
 
 // ─── image source mapping (Anthropic → AgSource, spec §2) ─────────────────────
 function imageSource(source: ImageBlockSource): AgSource {
@@ -960,6 +961,69 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
   // tool_result (same non-null parent_tool_use_id) can route to it instead.
   const subagentTurnByParentToolUseId = new Map<string, string>();
 
+  // INV-TURN (SPEC:743; sp-protocol ruling B, 2026-09-23): ONE turnId names
+  // exactly ONE turn. A top-level turn is `turn_` + the id of the frame that
+  // OPENS it: the first assistant message's id (`m.id`, from a complete frame
+  // or a stream `message_start`) in the ordinary case, or the frame's own
+  // `uuid` when a notice or a result opens it (a result-only turn). The id is
+  //  - unique per turn, across the invokes of a resumed session too (a resume
+  //    keeps `session_id` unless `forkSession` is set, so the old
+  //    `turn_${session_id}` collided across invokes; message ids never repeat);
+  //  - deterministic from the wire, so the same native replays to the same ids;
+  //  - known at turn.start, since the opening frame carries it;
+  //  - `turn_`-prefixed.
+  // Open from the first frame that needs a turn; the turn's result frame
+  // (either arm) closes it and clears it, so the next frame opens a new one.
+  //
+  // Two guards keep an id naming ONE turn even on odd wire:
+  //  - a CLOSED id is never reopened: a late frame reusing a closed turn's
+  //    message id opens its turn under its own frame uuid instead;
+  //  - `isSDKMessage` validates only discriminants, so a missing or non-string
+  //    id/uuid falls back to a positional `turn_frame_<n>` (still deterministic
+  //    from the wire) rather than a shared `turn_undefined`.
+  // Nested (subagent) frames never open or name a top-level turn.
+  let openTopTurnId: string | undefined;
+  const closedTopTurnIds = new Set<string>();
+  let framesSeen = 0;
+  function mintId(candidate: unknown): string | undefined {
+    return typeof candidate === "string" && candidate.length > 0 ? `turn_${candidate}` : undefined;
+  }
+  function topTurnId(openingId: unknown, frameUuid: unknown): string {
+    if (openTopTurnId === undefined) {
+      const byId = mintId(openingId);
+      const byUuid = mintId(frameUuid);
+      openTopTurnId =
+        byId !== undefined && !closedTopTurnIds.has(byId)
+          ? byId
+          : byUuid !== undefined && !closedTopTurnIds.has(byUuid)
+            ? byUuid
+            : `turn_frame_${framesSeen}`;
+    }
+    return openTopTurnId;
+  }
+  // The result frame closes the open turn (or, for a result-only turn, the one
+  // it opens itself) and clears it.
+  function closingTopTurnId(resultUuid: unknown): string {
+    const turnId = openTopTurnId ?? topTurnId(resultUuid, undefined);
+    openTopTurnId = undefined;
+    closedTopTurnIds.add(turnId);
+    return turnId;
+  }
+  // A NESTED (subagent) turn is one per subagent run, keyed by the spawning
+  // `parent_tool_use_id`: `turn_` + that run's first nested message id. Through
+  // 0.6.4 it was `turn_${session_id}` too, which merged every subagent run of a
+  // session into one nested turn (and, if a subagent's frames carry the
+  // parent's session_id, collided with the top-level turn itself). It must
+  // never equal the synthetic `parentTurnId` label `turn_${parent_tool_use_id}`
+  // (guuey capstone finding A), and a message id never does.
+  function nestedTurnId(parentToolUseId: string, firstMessageId: unknown): string {
+    const known = subagentTurnByParentToolUseId.get(parentToolUseId);
+    if (known !== undefined) return known;
+    const minted = mintId(firstMessageId) ?? `turn_frame_${framesSeen}`;
+    subagentTurnByParentToolUseId.set(parentToolUseId, minted);
+    return minted;
+  }
+
   // Playbook 2026-07-03 SDK-bump adaptation, Finding #1 (critical) — refusal-
   // fallback retraction (§8 item 19). `supersedes` / `retracted_message_uuids`
   // name PRIOR DELIVERED MESSAGES by their wire-frame `uuid` (`msg.uuid`) — a
@@ -1030,8 +1094,8 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
   //    engine-synthesized turn.abort.
   // The FIRST error frame's fields win: a later error frame on the same turn
   // leaves the stash alone. EVERY result frame consumes the entry, whichever
-  // arm it is, because every turn of a session shares one turnId (`turnIdFor`)
-  // and a stale entry must never leak into the next turn's result.
+  // arm it is. Since the per-turn ids (INV-TURN, 2026-09-23) an entry can only
+  // be its own turn's, so a stale one can no longer leak into the next turn.
   type StashedTurnError = { readonly message: string; readonly code: string; readonly retriable: boolean };
   const stashedTurnErrors = new Map<string, StashedTurnError>();
 
@@ -1268,7 +1332,8 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
 
     if (ev.type === "message_start") {
       const m = ev.message;
-      const turnId = turnIdFor(msg.session_id, m.id);
+      const turnId =
+        msg.parent_tool_use_id !== null ? nestedTurnId(msg.parent_tool_use_id, m.id) : topTurnId(m.id, msg.uuid);
       const parentTurnId =
         msg.parent_tool_use_id !== null ? `turn_${msg.parent_tool_use_id}` : undefined;
       // Same continuation test as the complete arm: a message_start naming the
@@ -1581,7 +1646,17 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
   function drive(msg: SDKMessage): void {
     if (msg.type === "assistant") {
       const m = msg.message;
-      const turnId = turnIdFor(msg.session_id, m.id);
+      const turnId =
+        msg.parent_tool_use_id !== null ? nestedTurnId(msg.parent_tool_use_id, m.id) : topTurnId(m.id, msg.uuid);
+      // The turn a CL-09 error close belongs to: only a top-level result closes a
+      // turn, so for a NESTED frame it is the OPEN top-level turn. With none open
+      // (a stream that starts inside a subagent, or background subagent frames
+      // after the result) there is nothing to close: the error stays on its
+      // message (text + the `_meta` triad) and no turn terminal is fabricated.
+      // Through 0.6.4 a nested error closed the parent turn whenever the
+      // subagent's frames carried the parent's session_id; that stays for an
+      // open turn (a ruling on it is with sp-protocol).
+      const stashTurnId = msg.parent_tool_use_id !== null ? openTopTurnId : turnId;
       const parentTurnId =
         msg.parent_tool_use_id !== null ? `turn_${msg.parent_tool_use_id}` : undefined;
 
@@ -1889,8 +1964,8 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         const errCode: NonNullable<SDKAssistantError> = msg.error;
         // First error frame wins: a turn already carrying a stashed close keeps
         // it (before CL-09's stash, the first error frame closed the turn).
-        if (!stashedTurnErrors.has(turnId)) {
-          stashedTurnErrors.set(turnId, {
+        if (stashTurnId !== undefined && !stashedTurnErrors.has(stashTurnId)) {
+          stashedTurnErrors.set(stashTurnId, {
             message: errCode,
             code: errCode,
             // Finding #2 (minor): `overloaded` (transient capacity error, a first
@@ -2079,7 +2154,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // guuey#26: the turn is closing — seal the open assistant message first
       // (message.end has always preceded the turn close).
       closePendingMessage();
-      const turnId = turnIdFor(msg.session_id, msg.uuid);
+      const turnId = closingTopTurnId(msg.uuid);
       // CL-09 (0.3.280 sweep): `subtype: "success"` does NOT mean the turn
       // succeeded. Upstream's SDKResultMessage doc: "subtype "success" carries
       // the final assistant text in result — or, with is_error true, the error
@@ -2188,10 +2263,10 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // At this point msg.subtype can only be an error variant (success handled above).
       // guuey#26: seal the open assistant message before the turn close.
       closePendingMessage();
-      const turnId = turnIdFor(msg.session_id, msg.uuid);
+      const turnId = closingTopTurnId(msg.uuid);
       // CL-09: consume any stashed assistant-error close for this turnId — this
-      // frame emits it (below), and it cannot leak into a later turn's result
-      // (every turn of a session shares the turnId).
+      // frame emits it (below). Each turn has its own id now, so an entry can
+      // only ever be this turn's.
       const stashedError = takeStashedTurnError(turnId);
       // Guard `errors` and `subtype` defensively: `isSDKMessage` only checks
       // `typeof v.subtype === "string"` for the result arm — it does NOT validate
@@ -2263,7 +2338,9 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // promotion is strictly more lossless. Wrapper siblings ride the text
       // block's providerMetadata (camelCased per the facet's carry
       // convention, mirroring the 0.3.217 first-block precedent).
-      const turnId = turnIdFor(msg.session_id, msg.uuid);
+      // The open turn, or (between turns) the one this notice opens; the next
+      // assistant frame then joins it and its result closes it.
+      const turnId = topTurnId(msg.uuid, undefined);
       const noticeMeta = AgProviderMeta.parse({
         level: msg.level,
         ...(msg.prevent_continuation !== undefined ? { preventContinuation: msg.prevent_continuation } : {}),
@@ -2369,6 +2446,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
 
   return {
     push(native: JsonValue): AgEvent[] {
+      framesSeen++;
       if (!isSDKMessage(native)) {
         // Graceful guard (Tenet 6): route the raw payload through the lossless
         // vendor channel rather than throwing. Nest under `native` so a payload
