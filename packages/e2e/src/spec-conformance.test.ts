@@ -125,7 +125,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 27, leg: "goldens", title: "Re-delivery never folds twice (draft.4): on every replay golden, block-creating *.start ids are unique within each invoke", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.27(goldens), a scan of every corpus/*/*.agjson.json" },
   { n: 28, title: "Host-appended events (draft.4): every replay golden plus a host-appended paused hitl.ask turn from lastSeq+1 folds with needsResync false and the turn in turns (§8.0 host obligation 5)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.28 over every corpus/*/*.agjson.json via ingestAgEvents → reduce" },
   { n: 29, leg: "a", title: "Forward-compatible records: a stored AgMessage/AgMemoryRecord reader omits an unreadable content element or record, reports it with its index and verbatim value, never coerces, and the reports reconstruct the stored value", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.29(a) via core readStoredAgMessage(s)/readStoredAgMemoryRecords (probe P3 2bd1abf; unit legs core/src/record.test.ts)" },
-  { n: 29, leg: "b", title: "Forward-compatible inputs: an undefined closed-set value at any depth rejects the whole input with unknown-value at its path, distinct from malformed and major-mismatch; unknown fields pass intact", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.29(b) via core checkAgInput (probe P3 2bd1abf; unit legs core/src/input-check.test.ts)" },
+  { n: 29, leg: "b", title: "Forward-compatible inputs: an input that fails the schema other than by an unknown field is rejected whole with one class and one path — protocol first, then version (major-mismatch), then the rest; malformed beats unknown-value; unknown fields pass intact", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.29(b) via core checkAgInput (probe P3 2bd1abf; unit legs core/src/input-check.test.ts)" },
   { n: 30, leg: "adk", title: "No credential material in authentication requests (draft.4): an ADK-generated OAuth2 request (state + nonce + PKCE in the authorization URI; client secret, tokens, verifier, auth code, standalone state/nonce seeded) emits no seeded secret at any depth, raw or JSON-escaped; state/nonce appear only inside the byte-equal ADK-issued authorization URI", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.30(adk) over fixtures/adk-pause/plain-credential-authuri (engine-built by ADK 2.1.0 generateAuthUri; probe)" },
   { n: 30, leg: "claude", title: "No credential material in authentication requests (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
   { n: 30, leg: "openai", title: "No credential material in authentication requests (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
@@ -1640,6 +1640,30 @@ describe("§10.29 — forward-compatible records and inputs (draft.4; §0.2 stor
 
   it("(b8) a different major version is major-mismatch", () => {
     expect(reject({ ...ENV, version: "2.0.0", kind: "start", messages: [] })).toEqual({ code: "major-mismatch", path: ["version"] });
+  });
+
+  it("(b11-b17) one class and one path per input: protocol first, then version, then the rest; malformed beats unknown-value; envelope members are judged whatever the kind", () => {
+    // b11: a protocol other than "agjson" is malformed, judged first
+    expect(reject(start({ protocol: "foo" }))).toEqual({ code: "malformed", path: ["protocol"] });
+    expect(reject({ ...ENV, protocol: "foo", kind: "zz" })).toEqual({ code: "malformed", path: ["protocol"] });
+    expect(reject({ ...ENV, protocol: "foo", version: "2.0.0", kind: "start", messages: [] })).toEqual({ code: "malformed", path: ["protocol"] });
+    // b12: a different major is major-mismatch at version
+    expect(reject({ ...ENV, version: "2.0.0", kind: "start", messages: [] })).toEqual({ code: "major-mismatch", path: ["version"] });
+    // b13/b14: an envelope member is judged whatever the kind; a member only an undefined kind would select is not
+    expect(reject({ ...ENV, kind: "zz", threadId: 5 })).toEqual({ code: "malformed", path: ["threadId"] });
+    expect(reject({ ...ENV, kind: "zz", messages: 5 })).toEqual({ code: "unknown-value", path: ["kind"] });
+    // b15: malformed beats unknown-value, in either element order
+    expect(reject(start({ messages: [{ id: "u1", role: "user", content: [{ type: "zz", text: 5 }, { type: "text" }] }] }))).toEqual({ code: "malformed", path: ["messages", 0, "content", 1, "text"] });
+    expect(reject(start({ messages: [{ id: "u1", role: "user", content: [{ type: "text" }, { type: "zz", text: 5 }] }] }))).toEqual({ code: "malformed", path: ["messages", 0, "content", 0, "text"] });
+    // b16: an undefined value in a frozen closed set is still unknown-value
+    expect(reject(start({ messages: [{ id: "u1", role: "zz", content: [] }] }))).toEqual({ code: "unknown-value", path: ["messages", 0, "role"] });
+    // b17: a wrong JSON type inside an MCP Apps view interaction is malformed at its own member
+    const r17 = checkAgInput({ ...ENV, kind: "resume", uiActions: [{ surfaceId: "s1", surface: "mcp-app", method: "ui/open-link", params: { url: 5 } }] });
+    expect(r17.ok).toBe(false);
+    if (!r17.ok) {
+      expect(r17.code).toBe("malformed");
+      expect(r17.path.slice(0, 3)).toEqual(["uiActions", 0, "params"]);
+    }
   });
 
   it("(b9-b10) unknown fields on an answer and in capabilities (top-level and nested) are accepted and returned intact", () => {
