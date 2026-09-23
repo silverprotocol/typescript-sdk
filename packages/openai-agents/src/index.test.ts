@@ -4622,6 +4622,30 @@ describe("createOpenaiNormalizer — LV live (non-JSON-round-tripped) natives ne
     expect(guard).not.toHaveProperty("native");
   });
 
+  // sp-cto's aliasing / `__proto__` checks on the toJsonValueSafe swap
+  // (2026-09-24): the helper returns plain input BY REFERENCE and keeps an own
+  // `__proto__` as data. The unrecognised-envelope branch was the one emit path
+  // with no copying parse, so its `ext.openai.unparsed.native` WAS the host's
+  // object (aliased; a later host mutation would rewrite an emitted event) and
+  // carried an own `__proto__` key to consumers. It now copies through
+  // JsonValue.parse like every other carry path (which drops an own
+  // `__proto__`, never pollutes).
+  it("unrecognised envelope: ext.openai.unparsed.native is a COPY (never the host's object) with no own __proto__", () => {
+    const hostObject: JsonValue = JSON.parse('{"weird":true,"nested":{"k":1},"__proto__":{"p":1}}');
+    const n = createOpenaiNormalizer();
+    const unparsed = n.push(hostObject).find((e) => e.type === "ext.openai.unparsed");
+    if (unparsed === undefined || unparsed.type !== "ext.openai.unparsed") throw new Error("no ext.openai.unparsed");
+    const carried: unknown = Reflect.get(unparsed, "native");
+    expect(carried).not.toBe(hostObject);
+    expect(carried).toEqual({ weird: true, nested: { k: 1 } });
+    expect(Object.keys(carried ?? {})).toEqual(["weird", "nested"]);
+    // A later host mutation must not reach the emitted event.
+    if (typeof hostObject === "object" && hostObject !== null && !Array.isArray(hostObject)) {
+      Reflect.set(hostObject, "weird", "mutated");
+    }
+    expect(carried).toEqual({ weird: true, nested: { k: 1 } });
+  });
+
   it("identity: an already-JSON native produces byte-identical output to before (the corpus shape)", () => {
     const plain: JsonValue[] = [
       rawModel({ type: "response.created", response: { id: "resp_id" } }),

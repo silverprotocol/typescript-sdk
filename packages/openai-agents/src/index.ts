@@ -2979,14 +2979,18 @@ export function createOpenaiNormalizer(): Normalizer {
       // whole event. Already-JSON input comes back by identity, so every replay
       // is unchanged: the whole corpus proves the live path.
       const wire = toJsonValueSafe(native);
-      if (!isOpenAIStreamEvent(wire)) {
-        // Graceful guard (Tenet 6): route a genuinely unrecognisable payload through
-        // the lossless vendor channel rather than throwing. Nest under `native` so a
-        // payload carrying its own `type` key does NOT clobber the event type.
-        a.emitExt("openai", "unparsed", { native: wire });
-        return a.drain();
-      }
       try {
+        if (!isOpenAIStreamEvent(wire)) {
+          // Graceful guard (Tenet 6): route a genuinely unrecognisable payload through
+          // the lossless vendor channel rather than throwing. Nest under `native` so a
+          // payload carrying its own `type` key does NOT clobber the event type.
+          // A COPY via JsonValue.parse, like every other carry path: the helper
+          // returns plain input by reference, so carrying `wire` itself would
+          // alias the host's object into an emitted event, and would forward an
+          // own `__proto__` key (sp-cto's checks, 2026-09-24).
+          a.emitExt("openai", "unparsed", { native: JsonValue.parse(wire) });
+          return a.drain();
+        }
         drive(wire);
       } catch (err) {
         // Last-resort guard (sp-main, 2026-09-24): a facet bug on some
