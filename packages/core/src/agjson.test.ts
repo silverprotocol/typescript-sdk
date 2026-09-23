@@ -1391,6 +1391,20 @@ describe("grant modes (spec §7, draft.2)", () => {
     expect(validateHitlAnswer(ASK, { askId: "ask1", status: "declined", grantModeId: "always" } as AgHitlAnswer)).toMatchObject({ ok: false, code: "grant-mode-on-nonresolved" });
   });
 
+  it("validateHitlAnswer: an undefined status is rejected before dispatch, never read as a grant (draft.4 §0.2, workspace#20 decision 6)", () => {
+    // A raw or hand-built answer: the typed path already fails at parse.
+    for (const status of ["deferred", "zz", undefined, 7]) {
+      expect(validateHitlAnswer(ASK, { askId: "ask1", status } as unknown as AgHitlAnswer)).toMatchObject({ ok: false, code: "unknown-status" });
+      expect(validateHitlAnswer(PLAIN_ASK, { askId: "ask1", status } as unknown as AgHitlAnswer)).toMatchObject({ ok: false, code: "unknown-status" });
+    }
+    // It is checked first: even a mismatched askId reports the undefined status.
+    expect(validateHitlAnswer(ASK, { askId: "other", status: "deferred" } as unknown as AgHitlAnswer)).toMatchObject({ ok: false, code: "unknown-status" });
+    // Every defined status still validates as before.
+    expect(validateHitlAnswer(ASK, { askId: "ask1", status: "resolved", grantModeId: "always" })).toEqual({ ok: true });
+    expect(validateHitlAnswer(ASK, { askId: "ask1", status: "declined" })).toEqual({ ok: true });
+    expect(validateHitlAnswer(ASK, { askId: "ask1", status: "cancelled" })).toEqual({ ok: true });
+  });
+
   it("validateHitlAnswer: absent declaration = draft.1 binary shape (and a stray echo is rejected)", () => {
     expect(validateHitlAnswer(PLAIN_ASK, { askId: "ask1", status: "resolved" })).toEqual({ ok: true });
     expect(validateHitlAnswer(PLAIN_ASK, { askId: "ask1", status: "resolved", grantModeId: "always" })).toMatchObject({ ok: false, code: "grant-mode-without-declaration" });

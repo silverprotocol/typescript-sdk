@@ -300,11 +300,19 @@ export type AgHitlAnswerValidation =
         | "grant-mode-undeclared"
         | "grant-mode-without-declaration"
         | "grant-mode-on-nonresolved"
-        | "request-state-mismatch";
+        | "request-state-mismatch"
+        | "unknown-status";
       message: string;
     };
 
 export function validateHitlAnswer(ask: AgPausedAsk, answer: AgHitlAnswer): AgHitlAnswerValidation {
+  // draft.4 §0.2 (workspace#20 decision 6): an undefined status is rejected
+  // before dispatch, never read as a grant. The typed path already fails at
+  // parse; this closes the fail-open for a raw or hand-built answer.
+  const statuses: readonly unknown[] = AgHitlAnswer.shape.status.options;
+  if (!statuses.includes(answer.status)) {
+    return { ok: false, code: "unknown-status", message: `status ${JSON.stringify(answer.status) ?? "undefined"} is not a defined AgHitlAnswer status (spec §0.2, §7)` };
+  }
   if (answer.askId !== ask.askId) {
     return { ok: false, code: "ask-id-mismatch", message: `answer.askId ${JSON.stringify(answer.askId)} does not name ask ${JSON.stringify(ask.askId)}` };
   }
