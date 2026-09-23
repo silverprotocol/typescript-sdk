@@ -181,6 +181,14 @@ const OPENAI_SEEDS = [
   // gpt-6-luna chose not to reason on the echo.
   "echo-gpt6sol",
   "echo-gpt6luna",
+  // 2026-09-23: the corpus's FIRST live `phase:"commentary"` (the founder's gate
+  // for rnd 13+17 stage 2, the draft.4 `phase` field). gpt-6-sol at
+  // @openai/agents 0.18.0, reasoningSummary "auto" (echoed back as "detailed",
+  // effort medium), three DEPENDENT echo calls with a system-prompt preamble
+  // rule: each call's response carries a commentary message before its
+  // function_call, folding as text.start.providerMetadata.phase "commentary"
+  // ×3 + one "final_answer". Summaries stayed EMPTY (44/6/0 reasoning tokens).
+  "commentary-gpt6sol",
 ] as const;
 
 /**
@@ -738,6 +746,12 @@ const SURFACE_GUARDS: ReadonlyArray<{
     framework: "adk",
     surface: "an MCP isError:true function response (the clean error path)",
     count: (n) => JSON.stringify(n).split('\\"isError\\":true').length - 1 + (JSON.stringify(n).split('"isError":true').length - 1),
+  },
+  {
+    scenario: "commentary-gpt6sol",
+    framework: "openai",
+    surface: 'a live phase:"commentary" message (the founder-gated evidence for the draft.4 phase field)',
+    count: (n) => JSON.stringify(n).split('"phase":"commentary"').length - 1,
   },
   {
     scenario: "echo-gpt6sol",

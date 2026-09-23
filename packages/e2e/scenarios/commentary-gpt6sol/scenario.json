@@ -1,0 +1,12 @@
+{
+  "name": "commentary-gpt6sol",
+  "prompt": "Use the echo tool three times, one step at a time. Step 1: echo the message 'alpha'. Step 2: echo the exact text that step 1 returned, followed by '-beta'. Step 3: echo the exact text that step 2 returned, followed by '-gamma'. Then tell me the final result.",
+  "mcpServers": [
+    {
+      "key": "t",
+      "kind": "text"
+    }
+  ],
+  "steer": "Before EVERY tool call, first send the user one short sentence saying what you are about to do and why. Then make the call. You MUST call the tool mcp__t__echo three separate times, each call only after the previous result has come back. Do not answer from memory.",
+  "reasoningSummary": "auto"
+}

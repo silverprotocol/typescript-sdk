@@ -167,6 +167,9 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "echo-gpt6luna", framework: "openai" },
   { scenario: "echo-gpt6sol", framework: "vercel" },
   { scenario: "echo-gpt6luna", framework: "vercel" },
+  // 2026-09-23: the founder-gated commentary seed, enrolled at capture time
+  // (capture-time coverage.json is computed against EMPTY guard maps).
+  { scenario: "commentary-gpt6sol", framework: "openai" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {
