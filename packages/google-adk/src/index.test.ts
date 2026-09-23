@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { AgEvent, AgReduceResult, JsonValue, Reducer, toJsonValue } from "@silverprotocol/core";
 import {
+  ADK_HOST_ERROR_TYPE,
   createAdkNormalizer,
   isLossyFinishReason,
   mapFinishReason,
@@ -3828,5 +3829,82 @@ describe("createAdkNormalizer — push() reads a live native as plain JSON (SPEC
     const native: JsonValue = { invocationId: "inv_fixture_1", author: "agent", content: { role: "model", parts: [{ text: "hi" }] }, output: { x: [1, "two", null, { y: true }] }, turnComplete: true, finishReason: "STOP" };
     expect(JSON.stringify(pushAll(native))).toBe(JSON.stringify(pushAll(JSON.parse(JSON.stringify(native)))));
     expect(raw(pushAll(native), "output")).toEqual({ x: [1, "two", null, { y: true }] });
+  });
+});
+
+describe("createAdkNormalizer — the host-error sentinel (SPEC §8.0 host obligation 1)", () => {
+  const terminals = (out: AgEvent[]) => out.filter((e) => e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort");
+  const folds = (out: AgEvent[]) => {
+    const r = new Reducer();
+    for (const e of out) r.push(e);
+    expect(r.needsResync).toBe(false);
+  };
+
+  it("an open turn closes turn.error with the sentinel's code and message and the turn's accumulated usage; nothing aborts at flush", () => {
+    const n = createAdkNormalizer();
+    const out = [
+      ...n.push(toJsonValue(event([{ text: "working" }], { usageMetadata: { promptTokenCount: 3, candidatesTokenCount: 2, totalTokenCount: 5 } }))),
+      ...n.push({ type: ADK_HOST_ERROR_TYPE, code: "max_llm_calls", message: "LLM call limit reached" }),
+      ...n.flush(),
+    ];
+    expect(terminals(out)).toEqual([
+      expect.objectContaining({ type: "turn.error", turnId: "turn_inv_fixture_1", code: "max_llm_calls", message: "LLM call limit reached", usage: expect.objectContaining({ inputTokens: 3 }) }),
+    ]);
+    expect(out.filter((e) => e.type === "message.end")).toHaveLength(1);
+    expect(out.some((e) => e.type === "ext.google.unparsed")).toBe(false);
+    folds(out);
+  });
+
+  it("a sentinel built from the caught Error keeps the Error's message", () => {
+    const n = createAdkNormalizer();
+    const caught = Object.assign(new Error("LLM call limit reached"), { type: ADK_HOST_ERROR_TYPE, code: "max_llm_calls" });
+    const out = [...n.push(toJsonValue(event([{ text: "working" }], {}))), ...n.push(caught as unknown as JsonValue), ...n.flush()];
+    expect(terminals(out)).toEqual([expect.objectContaining({ type: "turn.error", code: "max_llm_calls", message: "LLM call limit reached" })]);
+    expect(JSON.stringify(out)).not.toContain("stack");
+    folds(out);
+  });
+
+  it("with no turn open, a fresh terminal turn carries the error (never start-less)", () => {
+    const n = createAdkNormalizer();
+    const out = [...n.push({ type: ADK_HOST_ERROR_TYPE, code: "runner_error", message: "boom" }), ...n.flush()];
+    expect(out.map((e) => e.type)).toEqual(["turn.start", "message.start", "message.end", "turn.error"]);
+    folds(out);
+  });
+
+  it("after a turn already closed, the error takes a fresh terminal turn rather than a second terminal on the closed one", () => {
+    const n = createAdkNormalizer();
+    const out = [
+      ...n.push(toJsonValue(event([{ text: "done" }], { turnComplete: true, finishReason: "STOP" }))),
+      ...n.push({ type: ADK_HOST_ERROR_TYPE, code: "runner_error", message: "late" }),
+      ...n.flush(),
+    ];
+    const t = terminals(out);
+    expect(t.map((e) => e.type)).toEqual(["turn.done", "turn.error"]);
+    expect(new Set(t.map((e) => (e as { turnId: string }).turnId)).size).toBe(2);
+    folds(out);
+  });
+
+  it("under the host-completion opt-in, a success close stashed for the signal is dropped: the run errored", () => {
+    const n = createAdkNormalizer({ hostCompletion: true });
+    const out = [
+      ...n.push(toJsonValue(event([{ text: "answer" }], { turnComplete: true, finishReason: "STOP" }))),
+      ...n.push({ type: ADK_HOST_ERROR_TYPE, code: "runner_error", message: "failed after the answer" }),
+      ...n.push({ type: "__host_complete__" }),
+      ...n.flush(),
+    ];
+    expect(terminals(out).map((e) => e.type)).toEqual(["turn.error"]);
+    folds(out);
+  });
+
+  it("the sentinel's own usage is used when valid; an invalid one is dropped; a malformed sentinel is not one", () => {
+    const withUsage = createAdkNormalizer();
+    const a = [...withUsage.push(toJsonValue(event([{ text: "x" }], {}))), ...withUsage.push({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m", usage: { inputTokens: 9, outputTokens: 1 } })];
+    expect(terminals(a)[0]).toMatchObject({ usage: { inputTokens: 9, outputTokens: 1 } });
+    const badUsage = createAdkNormalizer();
+    const b = [...badUsage.push(toJsonValue(event([{ text: "x" }], {}))), ...badUsage.push({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m", usage: { inputTokens: "nine" } })];
+    expect(JSON.stringify(terminals(b)[0])).not.toContain("nine");
+    const malformed = createAdkNormalizer();
+    const c = [...malformed.push({ type: ADK_HOST_ERROR_TYPE, code: "c" })];
+    expect(c.map((e) => e.type)).toEqual(["ext.google.unparsed"]);
   });
 });

@@ -58,7 +58,7 @@ import {
   type AgMeta,
   type AgPausedAsk,
   type AgSafety,
-  type AgUsage,
+  AgUsage,
   AgProviderMeta,
   JsonValue,
   type Normalizer,
@@ -1701,6 +1701,41 @@ export interface AdkNormalizerOptions {
 /** The facet-local host-completion native (§8.0 host obligation 4). */
 export const ADK_HOST_COMPLETE_TYPE = "__host_complete__";
 
+/**
+ * SPEC §8.0 host obligation 1: when the ADK runtime THROWS instead of ending
+ * the stream (e.g. its LLM-call limit), the host catches it and pushes
+ * `{ type: "__host_error__", code, message, usage? }`. The open turn closes
+ * `turn.error` with that code and message. The shape matches the OpenAI
+ * facet's sentinel. A host may build it from the caught Error itself
+ * (`Object.assign(err, { type: "__host_error__", code })`): the sentinel is
+ * read from the raw native, so the Error's own message is kept.
+ */
+export const ADK_HOST_ERROR_TYPE = "__host_error__";
+
+interface AdkHostError {
+  code: string;
+  message: string;
+  usage?: AgUsage;
+}
+
+/** The host-error sentinel, read from the RAW native (an Error's message is
+ *  not an own enumerable member, so a JSON copy would lose it). A usage that is
+ *  not a valid AgUsage is dropped. Never throws. */
+function hostErrorOf(raw: unknown): AdkHostError | undefined {
+  if (raw === null || typeof raw !== "object") return undefined;
+  try {
+    if (Reflect.get(raw, "type") !== ADK_HOST_ERROR_TYPE) return undefined;
+    const code: unknown = Reflect.get(raw, "code");
+    const message: unknown = Reflect.get(raw, "message");
+    if (typeof code !== "string" || typeof message !== "string") return undefined;
+    const usageRaw: unknown = Reflect.get(raw, "usage");
+    const usage = usageRaw === undefined ? undefined : AgUsage.safeParse(toJsonValueSafe(usageRaw));
+    return { code, message, ...(usage?.success === true ? { usage: usage.data } : {}) };
+  } catch {
+    return undefined;
+  }
+}
+
 /** Exactly `{ type: "__host_complete__" }` (one key), as recorded by a capture harness. */
 function isHostCompleteNative(v: JsonValue): boolean {
   return isJsonObject(v) && v["type"] === ADK_HOST_COMPLETE_TYPE && Object.keys(v).length === 1;
@@ -1946,6 +1981,35 @@ export function createAdkNormalizer(options: AdkNormalizerOptions = {}): Normali
     }
   }
 
+  /** Host obligation 1: close every still-open turn, innermost first, as
+   *  turn.error with the sentinel's code and message (and its usage, else the
+   *  turn's accumulated usage). A success close stashed for the host-completion
+   *  signal never fires, since the turn is now closed: the run did not
+   *  complete. With no turn open, a fresh terminal turn carries the error, so
+   *  it is never start-less. */
+  let hostErrorTurns = 0;
+  function hostError(err: AdkHostError): void {
+    let closed = 0;
+    for (const turnId of [...openTurns].reverse()) {
+      if (closedTurns.has(turnId)) continue;
+      closedTurns.add(turnId);
+      const usage = err.usage ?? mapUsage(usageByTurn.get(turnId));
+      a.closeMessage(`msg_${turnId}`);
+      a.closeTurnError(turnId, { message: err.message, code: err.code, ...(usage !== undefined ? { usage } : {}) });
+      closed++;
+    }
+    if (closed > 0) return;
+    const turnId = `turn_host_error_${hostErrorTurns++}`;
+    const messageId = ensureOpen(turnId);
+    closedTurns.add(turnId);
+    a.closeMessage(messageId);
+    a.closeTurnError(turnId, {
+      message: err.message,
+      code: err.code,
+      ...(err.usage !== undefined ? { usage: err.usage } : {}),
+    });
+  }
+
   function drive(event: AdkEvent): void {
     const key = turnKey(event);
     const turnId = `turn_${key}`;
@@ -2092,6 +2156,13 @@ export function createAdkNormalizer(options: AdkNormalizerOptions = {}): Normali
       const raw: unknown = native;
       if (raw === undefined || typeof raw === "function" || typeof raw === "symbol") {
         a.emitExt("google", "unparsed", { reason: "not-serializable" });
+        return a.drain();
+      }
+      const hostErr = hostErrorOf(raw);
+      if (hostErr !== undefined) {
+        // Like the completion sentinel below, a host<->facet contract input
+        // (SPEC §8.0 host obligation 1), not a framework native.
+        hostError(hostErr);
         return a.drain();
       }
       const json = toJsonValueSafe(raw);
