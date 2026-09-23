@@ -60,7 +60,9 @@ export interface AtomicPushOptions {
  *   closes, so after the last turn closed it is still that turn, and before
  *   any turn there is none. It is replayed from the delivered events, which
  *   show every move of the assembler's last turn except one: a facet
- *   re-calling openTurn() on an already-seen turn, which emits nothing.
+ *   re-calling openTurn() on an already-seen turn, which emits nothing. The
+ *   e2e corpus leg asserts no committed native reaches that move
+ *   (atomic-guard.corpus.test.ts).
  *   From then on every inner event is
  *   renumbered by +1 per error emitted, so seq stays ascending and gap-free
  *   and no seq repeats.

@@ -98,6 +98,40 @@ describe("the per-native guard over the committed corpus", () => {
     expect(cassettes).toBeGreaterThanOrEqual(50);
   });
 
+  it("no committed native makes a facet re-call openTurn() on a seen turn while another turn owns (the one owner move withAtomicPush cannot replay)", async () => {
+    // StreamAssembler.openTurn() sets #lastTurn even when the turn was already
+    // seen and nothing is emitted, so B's replayed owner could differ from the
+    // assembler's there (atomic-push.ts JSDoc). The assembler's own checkpoint()
+    // exposes seenTurns and lastTurn, so the spy reads the state it acts on.
+    const original = StreamAssembler.prototype.openTurn;
+    let calls = 0;
+    const silentMoves: string[] = [];
+    let current = "";
+    vi.spyOn(StreamAssembler.prototype, "openTurn").mockImplementation(function (this: StreamAssembler, turnId: string, ...rest: unknown[]) {
+      calls++;
+      const cp = this.checkpoint();
+      if (cp.seenTurns.has(turnId) && cp.lastTurn !== turnId) silentMoves.push(`${current}: ${turnId} (owner was ${String(cp.lastTurn)})`);
+      return (original as (...a: unknown[]) => void).call(this, turnId, ...rest);
+    });
+    // Positive control: the predicate fires on exactly the move it guards.
+    current = "control";
+    const probe = new StreamAssembler();
+    probe.openTurn("T", "th");
+    probe.subagentStart("S", "T");
+    probe.openTurn("T", "th"); // seen, owner is S: a silent move to T
+    expect(silentMoves).toEqual(["control: T (owner was S)"]);
+    silentMoves.length = 0;
+    calls = 0;
+    for (const d of readdirSync(CORPUS)) {
+      for (const f of readdirSync(join(CORPUS, d)).filter((x) => x.endsWith(".native.json"))) {
+        current = `${d}/${f}`;
+        await replayCassette(join(CORPUS, d, f));
+      }
+    }
+    expect(calls).toBeGreaterThan(50);
+    expect(silentMoves).toEqual([]);
+  });
+
   for (const fw of ["claude", "openai", "adk"] as const) {
     it(`B, ${fw}: push(prefix, bad, rest) ≡ push(prefix, rest) + one error, +1 renumbered; clock and randomness poisoned`, () => {
       vi.spyOn(Date, "now").mockImplementation(() => { throw new Error("Date.now in a facet"); });
