@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { runInNewContext } from "node:vm";
 import {
   toWire,
   toJsonValue,
@@ -158,3 +159,133 @@ describe("isJsonValue / toJsonValueSafe / toJsonValueSafeWithIssues (live-bounda
     for (const v of [undefined, () => 1, Symbol("s")]) expect(toJsonValueSafe(v)).toBeNull();
   });
 });
+
+describe("toJsonValueSafe: Error instances (a deliberate extension beyond JSON)", () => {
+  class ProviderError extends Error {
+    code = "rate_limit_exceeded";
+    isRetryable = true;
+    data = { status: 429, when: new Date(0) };
+    constructor(message: string) {
+      super(message);
+      this.name = "AI_StreamProviderError";
+    }
+  }
+
+  it("an Error becomes {name, message}: JSON alone would give {}", () => {
+    expect(JSON.stringify(new Error("boom"))).toBe("{}");
+    expect(toJsonValueSafe(new Error("boom"))).toEqual({ name: "Error", message: "boom" });
+    expect(toJsonValueSafe(new TypeError("t"))).toEqual({ name: "TypeError", message: "t" });
+  });
+
+  it("a provider error keeps name, message and its own enumerable fields (converted), and never stack", () => {
+    const out = toJsonValueSafe(new ProviderError("Rate limit reached")) as Record<string, unknown>;
+    expect(out).toEqual({
+      name: "AI_StreamProviderError",
+      message: "Rate limit reached",
+      code: "rate_limit_exceeded",
+      isRetryable: true,
+      data: { status: 429, when: "1970-01-01T00:00:00.000Z" },
+    });
+    expect("stack" in out).toBe(false);
+  });
+
+  it("stack is dropped even when a host made it enumerable", () => {
+    const e = new Error("x");
+    Object.defineProperty(e, "stack", { value: "at /Users/someone/secret/path.ts:1:1", enumerable: true });
+    const out = toJsonValueSafe(e);
+    expect(JSON.stringify(out)).not.toContain("/Users/");
+    expect(out).toEqual({ name: "Error", message: "x" });
+  });
+
+  it("a nested Error (e.g. an error part's payload) keeps its text; siblings kept", () => {
+    expect(toJsonValueSafe({ type: "error", error: new Error("upstream failed"), keep: 1 })).toEqual({
+      type: "error",
+      error: { name: "Error", message: "upstream failed" },
+      keep: 1,
+    });
+  });
+
+  it("a throwing message getter omits just that member, reported as an issue", () => {
+    const e = new Error("x");
+    Object.defineProperty(e, "message", { get: () => { throw new Error("no"); } });
+    const r = toJsonValueSafeWithIssues(e);
+    expect(r.value).toEqual({ name: "Error" });
+    expect(r.issues).toEqual([{ path: "$.message", kind: "throwing-getter" }]);
+  });
+
+  it("key order: name, message, then own enumerable keys; an own name/message keeps its first position", () => {
+    const e = Object.assign(new TypeError("bad"), { code: "E1" });
+    expect(Object.keys(toJsonValueSafe(e) as object)).toEqual(["name", "message", "code"]);
+    const q = new Error("m") as Error & { extra?: number };
+    q.extra = 1;
+    q.name = "QuotaError"; // own, enumerable, assigned AFTER extra
+    expect(Object.keys(q)).toEqual(["extra", "name"]);
+    expect(toJsonValueSafe(q)).toEqual({ name: "QuotaError", message: "m", extra: 1 });
+    expect(Object.keys(toJsonValueSafe(q) as object)).toEqual(["name", "message", "extra"]);
+  });
+
+  it("as c6ecc1c: an own enumerable name/message is read again by the own-keys pass; that read wins, first position kept", () => {
+    let reads = 0;
+    const e = new Error("x");
+    Object.defineProperty(e, "message", { get: () => `read ${++reads}`, enumerable: true });
+    const out = toJsonValueSafe(e);
+    expect(out).toEqual({ name: "Error", message: "read 2" });
+    expect(Object.keys(out as object)).toEqual(["name", "message"]);
+    expect(reads).toBe(2);
+  });
+
+  it("parity with sp-google's c6ecc1c facet vectors (0.6.7 and 0.7.0 map the same values)", () => {
+    class QuotaError extends Error {
+      override name = "QuotaError";
+    }
+    const withFields = Object.assign(new TypeError("bad input"), { code: "E1", detail: { retry: false } });
+    const enumerableStack = new Error("s");
+    Object.defineProperty(enumerableStack, "stack", { value: "at /Users/someone/app.ts:1:1", enumerable: true });
+    const out = toJsonValueSafe({ plain: new Error("returned as a value"), withFields, custom: new QuotaError("over"), enumerableStack });
+    expect(out).toEqual({
+      plain: { name: "Error", message: "returned as a value" },
+      withFields: { name: "TypeError", message: "bad input", code: "E1", detail: { retry: false } },
+      custom: { name: "QuotaError", message: "over" },
+      enumerableStack: { name: "Error", message: "s" },
+    });
+    expect(JSON.stringify(out)).not.toContain("stack");
+    expect(JSON.stringify(out)).not.toContain("/Users/");
+  });
+
+  it("cause and AggregateError.errors are non-enumerable own data: not carried unless a host made them enumerable", () => {
+    expect(toJsonValueSafe(new Error("outer", { cause: new Error("inner") }))).toEqual({ name: "Error", message: "outer" });
+    expect(toJsonValueSafe(new AggregateError([new Error("a")], "agg"))).toEqual({ name: "AggregateError", message: "agg" });
+    const withCause = Object.assign(new Error("outer"), { cause: new RangeError("inner") });
+    expect(toJsonValueSafe(withCause)).toEqual({ name: "Error", message: "outer", cause: { name: "RangeError", message: "inner" } });
+  });
+
+  it("an Error's own toJSON wins (the JSON rule runs first); a cycle through an Error is [Circular]", () => {
+    const j = Object.assign(new Error("x"), { toJSON: () => ({ custom: true }) });
+    expect(toJsonValueSafe(j)).toEqual({ custom: true });
+    const c = new Error("loop") as Error & { self?: unknown };
+    c.self = c;
+    expect(toJsonValueSafe(c)).toEqual({ name: "Error", message: "loop", self: JSON_SAFE_CIRCULAR });
+  });
+
+  it("detection is instanceof Error (as c6ecc1c): an Error from another realm converts as a plain object", () => {
+    const foreign = runInNewContext("Object.assign(new RangeError('r'), { code: 7 })") as unknown;
+    expect(foreign instanceof Error).toBe(false);
+    expect(toJsonValueSafe(foreign)).toEqual({ code: 7 });
+  });
+
+  it("a chain of Errors deeper than the depth cap stays total: [MaxDepth], never a stack overflow", () => {
+    let e: Error & { inner?: unknown } = new Error("leaf");
+    for (let i = 0; i < 5000; i++) e = Object.assign(new Error(`e${i}`), { inner: e });
+    let r: ReturnType<typeof toJsonValueSafeWithIssues> | undefined;
+    expect(() => (r = toJsonValueSafeWithIssues(e))).not.toThrow();
+    expect(JSON.stringify(r!.value)).toContain(JSON_SAFE_MAX_DEPTH_MARK);
+    expect(r!.issues.some((i) => i.kind === "max-depth")).toBe(true);
+  });
+
+  it("an Error is never plain JSON, so corpus identity is unaffected", () => {
+    expect(isJsonValue(new Error("x"))).toBe(false);
+    const plainErrorShape = { name: "Error", message: "x" };
+    expect(toJsonValueSafe(plainErrorShape)).toBe(plainErrorShape);
+  });
+});
+

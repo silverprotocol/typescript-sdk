@@ -135,6 +135,14 @@ export function isJsonValue(v: unknown): v is JsonValue {
  *   {@link JSON_SAFE_MAX_DEPTH_MARK}, so a pathological structure cannot
  *   overflow the stack.
  *
+ * One deliberate extension beyond JSON: an `Error` instance (whose `name` and
+ * `message` are not enumerable, so JSON would reduce it to its enumerable
+ * props) becomes `{name, message, …own enumerable props}`, recursively
+ * converted, and NEVER `stack`, which holds local file paths. The rule is the
+ * google-adk 0.6.x facet's (c6ecc1c) exactly, so 0.6.7 and 0.7.0 map an Error
+ * the same way: detection is `instanceof Error`, and `cause` or
+ * AggregateError `errors` ride only when a host made them enumerable.
+ *
  * A `__proto__` key is kept as an ordinary own data member on BOTH paths (as
  * `JSON.parse` does), never as a prototype. The helper does not strip it: a
  * consumer that must drop it does so downstream (ingest's copy does, and the
@@ -150,6 +158,17 @@ export function isJsonValue(v: unknown): v is JsonValue {
  */
 export function toJsonValueSafe(v: unknown): JsonValue {
   return toJsonValueSafeWithIssues(v).value;
+}
+
+/** `instanceof Error`, exactly as the google-adk 0.6.x facet decides it
+ *  (c6ecc1c), so 0.6.7 and 0.7.0 map the same values. An Error from another
+ *  realm is not one, and converts as a plain object. */
+function isErrorObject(o: object): boolean {
+  try {
+    return o instanceof Error;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -205,6 +224,44 @@ export function toJsonValueSafeWithIssues(v: unknown): { value: JsonValue; issue
     if (depth >= JSON_SAFE_MAX_DEPTH) {
       issues.push({ path, kind: "max-depth" });
       return JSON_SAFE_MAX_DEPTH_MARK;
+    }
+    if (isErrorObject(obj)) {
+      // Deliberate extension beyond JSON (sp-main, 2026-09-24): an Error's
+      // `name` and `message` are not enumerable own data, so JSON drops them
+      // and a live error part loses its text. Map it to {name, message, …own
+      // enumerable props}, and NEVER `stack` (it holds local file paths).
+      ancestors.push(obj);
+      try {
+        const out: { [k: string]: JsonValue } = {};
+        const put = (k: string, read: () => unknown): void => {
+          let item: unknown;
+          try {
+            item = read();
+          } catch {
+            issues.push({ path: child(path, k, false), kind: "throwing-getter" });
+            return;
+          }
+          const c = convert(item, k, child(path, k, false), depth + 1);
+          if (c !== OMIT) Object.defineProperty(out, k, { value: c, enumerable: true, writable: true, configurable: true });
+        };
+        put("name", () => (obj as Error).name);
+        put("message", () => (obj as Error).message);
+        let keys: string[] = [];
+        try {
+          keys = Object.keys(obj);
+        } catch {
+          issues.push({ path, kind: "throwing-keys" });
+        }
+        for (const k of keys) {
+          // As c6ecc1c: an own enumerable name/message is read again here and
+          // that read wins, keeping its first position.
+          if (k === "stack") continue;
+          put(k, () => (obj as Record<string, unknown>)[k]);
+        }
+        return out;
+      } finally {
+        ancestors.pop();
+      }
     }
     ancestors.push(obj);
     try {
