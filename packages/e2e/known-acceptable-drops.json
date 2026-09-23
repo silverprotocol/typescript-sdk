@@ -24,14 +24,6 @@
     ]
   },
   {
-    "path": "[*].api_error_status",
-    "reason": "claude: the HTTP status of the API error that ended a turn, on the result frame (0.3.199 addition). Null on every successful turn in the corpus, so it is allowlisted NULL-ONLY: a populated status is a consumer signal (why the turn failed) and must surface as a drop. The facet reads it only to derive turn.error.retriable (429 or >= 500), and only when no assistant `error` frame preceded the is_error:true result; in the live invalid-key run (401) an authentication_failed assistant frame did precede it, so the status was not read. The status itself is not carried - a carry candidate the first time an error seed surfaces it. (Corrected 2026-09-23 (cohort 0.6.3): the earlier reason said it was never read by the normalizer.)",
-    "reviewed": "null-only",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
     "path": "[*].author",
     "reason": "adk: the originating agent/user name on the Event (LlmResponse.author) \u2014 never read by createAdkNormalizer (grep: zero non-declaration call sites); no AgJSON home (mirrors the openai item.agent.name precedent: \"SDK agent label ... no AgJSON home\").",
     "reviewed": "any",

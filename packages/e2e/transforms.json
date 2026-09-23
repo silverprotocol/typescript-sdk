@@ -1,5 +1,6 @@
 {
   "[*].actions.agentState.input": "[*].block.raw.agentState.input",
+  "[*].api_error_status": "[*].apiErrorStatus",
   "[*].content.parts[*].functionCall.args.payload": "[*].input.payload",
   "[*].content.parts[*].functionCall.args.response_schema": "[*].input.response_schema",
   "[*].content.parts[*].functionResponse.response._meta.ui.resourceUri": "[*]._meta.ui.resourceUri",

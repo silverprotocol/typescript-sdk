@@ -1,15 +1,4 @@
 {
-  "drops": [
-    {
-      "path": "[13].stop_reason",
-      "norm": "[*].stop_reason",
-      "value": "stop_sequence"
-    },
-    {
-      "path": "[13].api_error_status",
-      "norm": "[*].api_error_status",
-      "value": 401
-    }
-  ],
+  "drops": [],
   "newFields": []
 }

@@ -1,7 +1,13 @@
 [
   {
-    "type": "turn.done",
+    "type": "turn.start",
     "seq": 0,
+    "turnId": "turn_00000000-0000-0000-0000-0000000000aa",
+    "threadId": "sess_silver"
+  },
+  {
+    "type": "turn.done",
+    "seq": 1,
     "turnId": "turn_00000000-0000-0000-0000-0000000000aa",
     "outcome": {
       "type": "success",
