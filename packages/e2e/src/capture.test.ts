@@ -504,3 +504,21 @@ describe("runCapture — hostCompletion records the host-completion marker (adk)
     expect(agjson.some((e) => (e as { type: string }).type === "turn.abort")).toBe(true);
   });
 });
+
+describe("runCapture — account-identifying values are redacted before anything reads them", () => {
+  it("the cassette's native carries <redacted> for response-header identifiers, and the normalizer never saw the originals", async () => {
+    const withHeaders = [
+      ...fakeNativeNoTools(),
+      { type: "probe-headers", response: { headers: { "openai-organization": "acct-org", "openai-project": "proj_x", "set-cookie": "c=1" } } },
+    ] as JsonValue[];
+    const cassette = await runCapture(Scenario.parse({ name: "text-only", prompt: "Say something." }), makeRealDeps(withHeaders), {
+      ports: [],
+      framework: "claude",
+    });
+    const all = JSON.stringify(cassette);
+    expect(all).not.toContain("acct-org");
+    expect(all).not.toContain("proj_x");
+    expect(all).not.toContain("c=1");
+    expect(JSON.stringify(cassette.native.at(-1))).toContain('"openai-organization":"<redacted>"');
+  });
+});

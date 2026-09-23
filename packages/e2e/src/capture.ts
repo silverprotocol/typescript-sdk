@@ -29,6 +29,7 @@ import type { CaptureRunInput, CaptureRunFn } from "./agents/types.js";
 import { Scenario, derivedTools } from "./scenario.js";
 import { extractToolCalls } from "./extract-tools.js";
 import { HOST_COMPLETE_MARKER, splitHostCompleteMarker } from "./replay.js";
+import { redactNative } from "./redact.js";
 
 export type { CaptureRunInput };
 
@@ -162,7 +163,8 @@ export async function runCapture(
     let runError: string | undefined;
     try {
       for await (const event of deps.runAgentCapture(agentInput)) {
-        native.push(event);
+        // Scrub account-identifying values before anything reads the event (redact.ts).
+        native.push(redactNative(event));
       }
     } catch (err) {
       // An error seed expects the throw and keeps what arrived before it.
