@@ -112,6 +112,9 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 26, leg: "vercel", title: "Interim-narration marker (draft.4): an OpenAI commentary text part opens phase 'interim'; final_answer / unknown / no bag → no phase; providerMetadata.phase kept verbatim", disposition: "COVERED-BY", citation: "vercel-ai/src/index.test.ts:1809-1840 'draft.4 phase' (commentary → text.start{phase:'interim'}; final_answer/unknown/no bag → no phase key) + :430-515 (commentary and final answer stay separate blocks, each bag verbatim) (probe b52b8eb)" },
   { n: 26, leg: "openai", title: "Interim-narration marker (draft.4): a commentary + final_answer response yields phase 'interim' on the first item's text.start only; null/\"\" yield neither phase nor providerMetadata.phase", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.26(openai) via createOpenaiNormalizer (sp-openai PH-2 d8d04ca)" },
   { n: 26, leg: "emit", title: "Interim-narration marker (draft.4): no phase in a native re-input payload", disposition: "N/A", citation: "§10 preamble emit/re-input carve-out: no facet in this repo ships an AgJSON→native emit surface" },
+  { n: 27, leg: "fold", title: "Re-delivery never folds twice (draft.4): re-delivered seq, duplicate *.start id, delta/start into a sealed message or a closed turn, second final tool.done → resync with the fold unchanged; a later invoke's 0-restart reusing a block id folds; a forward gap still parks", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.27(fold), reference Reducer + reduce() (probe P14)" },
+  { n: 27, leg: "goldens", title: "Re-delivery never folds twice (draft.4): on every replay golden, block-creating *.start ids are unique within each invoke", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.27(goldens), a scan of every corpus/*/*.agjson.json" },
+  { n: 28, title: "Host-appended events (draft.4): every replay golden plus a host-appended paused hitl.ask turn from lastSeq+1 folds with needsResync false and the turn in turns (§8.0 host obligation 5)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.28 over every corpus/*/*.agjson.json via ingestAgEvents → reduce" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -219,6 +222,20 @@ describe("§10.2 — Reconnect: stream-with-gap + messages.snapshot → reduce =
     acc.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t2" });
     expect(acc.needsResync).toBe(false);
     expect(acc.result().turns.find((t) => t.turnId === "t2")).toBeDefined();
+  });
+
+  it("(draft.4 amended item 2) a repeated or backward seq above 0 parks (seq 3 after lastSeq 7); only seq 0 lowers lastSeq", () => {
+    const evs = [
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+      { type: "text.start", seq: 2, id: "b1", turnId: "t1" },
+      ...[3, 4, 5, 6, 7].map((seq) => ({ type: "text.delta", seq, id: "b1", delta: String(seq) })),
+    ].map((e) => AgEvent.parse(e));
+    const prefix = reduce(evs);
+    expect(prefix.needsResync).toBe(false);
+    const back = reduce([...evs, AgEvent.parse({ type: "text.delta", seq: 3, id: "b1", delta: "again" })]);
+    expect(back.needsResync).toBe(true);
+    expect(back.result).toEqual(prefix.result);
   });
 });
 
@@ -1322,4 +1339,139 @@ describe("§10.23(openai) — an unmapped OpenAI finish reason → fallback + fi
       expect(out.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "unknown", finishReasonRaw: raw });
     });
   }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.27 — Re-delivery never folds twice (draft.4; INV-SEQ/INV-BLOCK/INV-MSG,
+// rd-14 path 1 + 1a). Each offending event leaves needsResync true and the
+// fold equal to the fold of the events before it, on the incremental Reducer
+// AND the batch reduce().
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.27 — re-delivery never folds twice (draft.4)", () => {
+  const P = (evs: Array<Record<string, unknown>>) => evs.map((e) => AgEvent.parse(e));
+  const S = P([
+    { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+    { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+    { type: "text.start", seq: 2, id: "b1", turnId: "t1" },
+    { type: "text.delta", seq: 3, id: "b1", delta: "a" },
+    { type: "text.delta", seq: 4, id: "b1", delta: "b" },
+    { type: "text.delta", seq: 5, id: "b1", delta: "c" },
+    { type: "text.delta", seq: 6, id: "b1", delta: "d" },
+    { type: "text.delta", seq: 7, id: "b1", delta: "e" },
+  ]);
+  const both = (evs: AgEvent[]) => {
+    const live = new Reducer();
+    for (const e of evs) live.push(e);
+    const batch = reduce(evs);
+    expect(live.needsResync).toBe(batch.needsResync);
+    expect(live.result()).toEqual(batch.result);
+    return batch;
+  };
+  const parksUnchanged = (prefix: AgEvent[], offending: AgEvent[]) => {
+    const before = both(prefix);
+    expect(before.needsResync).toBe(false);
+    const after = both([...prefix, ...offending]);
+    expect(after.needsResync).toBe(true);
+    expect(after.result).toEqual(before.result);
+  };
+  const END = P([{ type: "message.end", seq: 8, id: "m1" }]);
+  const DONE = P([{ type: "turn.done", seq: 9, turnId: "t1", outcome: { type: "success" }, finishReason: "stop" }]);
+
+  it("(i) a text.delta re-delivered at seq == lastSeq", () => parksUnchanged(S, P([{ type: "text.delta", seq: 7, id: "b1", delta: "e" }])));
+  it("(ii) an event re-delivered at 0 < seq < lastSeq (seq 3 after seq 7)", () => parksUnchanged(S, P([{ type: "text.delta", seq: 3, id: "b1", delta: "a" }])));
+  it("(iii) a second text.start / reasoning.start naming an id already present", () => {
+    parksUnchanged(S, P([{ type: "text.start", seq: 8, id: "b1", turnId: "t1" }]));
+    const R = P([...S.slice(0, 2).map((e) => e as unknown as Record<string, unknown>), { type: "reasoning.start", seq: 2, id: "r1", turnId: "t1" }, { type: "reasoning.delta", seq: 3, id: "r1", delta: "x" }]);
+    parksUnchanged(R, P([{ type: "reasoning.start", seq: 4, id: "r1", turnId: "t1" }]));
+  });
+  it("(iv) a text.delta into a message after its message.end", () => parksUnchanged([...S, ...END], P([{ type: "text.delta", seq: 9, id: "b1", delta: "late" }])));
+  it("(v) a message.start and text.start after the turn's turn.done", () =>
+    parksUnchanged([...S, ...END, ...DONE], P([
+      { type: "message.start", seq: 10, id: "m2", role: "assistant", turnId: "t1", threadId: "th1" },
+      { type: "text.start", seq: 11, id: "b2", turnId: "t1" },
+    ])));
+  it("(vi) a second more-less tool.done for one toolCallId while the turn is open", () => {
+    const T = P([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+      { type: "tool.start", seq: 2, toolCallId: "c1", name: "calc", turnId: "t1", threadId: "th1" },
+      { type: "tool.args.assembled", seq: 3, toolCallId: "c1", input: { x: 1 } },
+      { type: "tool.done", seq: 4, toolCallId: "c1", content: [{ type: "text", text: "1" }], outcome: "ok" },
+    ]);
+    parksUnchanged(T, P([{ type: "tool.done", seq: 5, toolCallId: "c1", content: [{ type: "text", text: "2" }], outcome: "ok" }]));
+  });
+  it("(vii) control: a second invoke restarting at seq 0 and reusing block id r0 folds with needsResync false", () => {
+    const invoke = (turnId: string, msgId: string) => P([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId },
+      { type: "message.start", seq: 1, id: msgId, role: "assistant", turnId, threadId: "th1" },
+      { type: "reasoning.start", seq: 2, id: "r0", turnId },
+      { type: "reasoning.delta", seq: 3, id: "r0", delta: turnId },
+      { type: "reasoning.end", seq: 4, id: "r0" },
+      { type: "message.end", seq: 5, id: msgId },
+      { type: "turn.done", seq: 6, turnId, outcome: { type: "success" }, finishReason: "stop" },
+    ]);
+    const r = both([...invoke("t1", "m1"), ...invoke("t2", "m2")]);
+    expect(r.needsResync).toBe(false);
+    expect(r.result.turns).toHaveLength(2);
+  });
+  it("(viii) control: a forward gap still parks", () => {
+    expect(both([...S, ...P([{ type: "text.delta", seq: 9, id: "b1", delta: "gap" }])]).needsResync).toBe(true);
+  });
+
+  it("(goldens) on every replay golden, block-creating *.start ids are unique within each invoke", () => {
+    const corpus = new URL("../corpus/", import.meta.url);
+    const dups: string[] = [];
+    let files = 0;
+    for (const dir of readdirSync(corpus)) {
+      for (const fw of ["claude", "openai", "adk", "vercel"]) {
+        const f = new URL(`${dir}/${fw}.agjson.json`, corpus);
+        if (!existsSync(f)) continue;
+        files++;
+        const seen = new Set<string>();
+        for (const e of JSON.parse(readFileSync(f, "utf8")) as Array<Record<string, unknown>>) {
+          if (e["seq"] === 0) seen.clear(); // a 0-restart opens a new invoke (INV-SEQ)
+          const id = e["type"] === "tool.start" ? e["toolCallId"] : e["type"] === "text.start" || e["type"] === "reasoning.start" ? e["id"] : undefined;
+          if (typeof id !== "string") continue;
+          const key = `${e["type"] === "tool.start" ? "tool" : "block"}:${id}`;
+          if (seen.has(key)) dups.push(`${dir}/${fw}:${key}`);
+          seen.add(key);
+        }
+      }
+    }
+    expect(files).toBeGreaterThan(0);
+    expect(dups).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.28 — Host-appended events (draft.4; §8.0 host obligation 5).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.28 — host-appended events (draft.4): every replay golden + a host-appended paused hitl.ask turn from lastSeq+1 folds cleanly", () => {
+  it("every corpus/*/*.agjson.json golden, followed by turn.start → hitl.ask → turn.done{paused} numbered from its last seq + 1, folds with needsResync false and the appended turn in turns", () => {
+    const corpus = new URL("../corpus/", import.meta.url);
+    const bad: string[] = [];
+    let files = 0;
+    for (const dir of readdirSync(corpus)) {
+      for (const fw of ["claude", "openai", "adk", "vercel"]) {
+        const f = new URL(`${dir}/${fw}.agjson.json`, corpus);
+        if (!existsSync(f)) continue;
+        files++;
+        const golden = JSON.parse(readFileSync(f, "utf8")) as Array<Record<string, unknown>>;
+        const last = Math.max(...golden.map((e) => (typeof e["seq"] === "number" ? (e["seq"] as number) : -1)));
+        const threadId = (golden.find((e) => e["type"] === "turn.start")?.["threadId"] as string | undefined) ?? "th_host";
+        const turnId = `turn_host_${dir}`;
+        const appended = [
+          { type: "turn.start", seq: last + 1, threadId, turnId },
+          { type: "hitl.ask", seq: last + 2, askId: "consent_1", kind: "approval", turnId, message: "Allow?" },
+          { type: "turn.done", seq: last + 3, turnId, outcome: { type: "paused", asks: [{ askId: "consent_1", kind: "approval" }] }, finishReason: "paused" },
+        ];
+        const r = reduce(ingestAgEvents([...golden, ...appended] as unknown as JsonValue[]));
+        if (r.needsResync || !r.result.turns.some((t) => t.turnId === turnId)) bad.push(`${dir}/${fw}`);
+      }
+    }
+    expect(files).toBeGreaterThan(0);
+    expect(bad).toEqual([]);
+  });
 });
