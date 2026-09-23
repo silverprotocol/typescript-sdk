@@ -2128,6 +2128,101 @@ describe("createAdkNormalizer — genai-optional arm members ride provider-raw, 
   });
 });
 
+describe("createAdkNormalizer — genai 2.24.0 Blob/FileData.displayName (existing field or carry, never a new literal)", () => {
+  // genai 2.24.0 drops "not supported in Gemini API" from displayName's doc on
+  // Blob and FileData, so the name may now reach the wire. Blob → file.filename
+  // (SPEC §2) or providerMetadata.google.displayName on image/audio (no name
+  // slot); FileData → a sibling provider-raw, because resource-link has no name
+  // slot. Absent ⇒ byte-identical.
+  const one = (part: AdkPart) => run([event([part], { partial: false, turnComplete: true, finishReason: "STOP" })]);
+  const expectValid = (out: AgEvent[]) => {
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+    const r = new Reducer();
+    for (const ev of out) r.push(ev);
+    expect(r.needsResync).toBe(false);
+  };
+
+  it("a file-arm Blob → file.filename", () => {
+    const out = one({ inlineData: { mimeType: "application/pdf", data: "JVBE", displayName: "invoice.pdf" } });
+    expect(typedBlocks(out)).toEqual([
+      { type: "file", source: { type: "base64", mediaType: "application/pdf", data: "JVBE" }, filename: "invoice.pdf" },
+    ]);
+    expect(providerRawBlocks(out)).toHaveLength(0);
+    expectValid(out);
+  });
+
+  it("image and audio Blobs → providerMetadata.google.displayName (no name slot)", () => {
+    const out = run([
+      event([{ inlineData: { mimeType: "image/png", data: "AAAA", displayName: "chart.png" } }]),
+      event([{ inlineData: { mimeType: "audio/wav", data: "BBBB", displayName: "memo.wav" } }], {
+        partial: false,
+        turnComplete: true,
+        finishReason: "STOP",
+      }),
+    ]);
+    expect(typedBlocks(out)).toEqual([
+      {
+        type: "image",
+        source: { type: "base64", mediaType: "image/png", data: "AAAA" },
+        providerMetadata: { google: { displayName: "chart.png" } },
+      },
+      {
+        type: "audio",
+        source: { type: "base64", mediaType: "audio/wav", data: "BBBB" },
+        providerMetadata: { google: { displayName: "memo.wav" } },
+      },
+    ]);
+    expectValid(out);
+  });
+
+  it("FileData → the resource-link unchanged, then a sibling provider-raw {fileData:{displayName}}", () => {
+    const out = one({ fileData: { fileUri: "gs://b/report.pdf", mimeType: "application/pdf", displayName: "Q3 report" } });
+    expect(typedBlocks(out)).toEqual([{ type: "resource-link", uri: "gs://b/report.pdf", mimeType: "application/pdf" }]);
+    expect(providerRawBlocks(out).map((e) => (e as { block: { raw: unknown } }).block.raw)).toEqual([
+      { fileData: { displayName: "Q3 report" } },
+    ]);
+    expectValid(out);
+  });
+
+  it("negative control: absent displayName stays byte-identical (no filename, no providerMetadata, no carry)", () => {
+    const out = run([
+      event([{ inlineData: { mimeType: "application/pdf", data: "JVBE" } }]),
+      event([{ inlineData: { mimeType: "image/png", data: "AAAA" } }]),
+      event([{ fileData: { fileUri: "gs://b/o" } }], { partial: false, turnComplete: true, finishReason: "STOP" }),
+    ]);
+    const json = JSON.stringify(out);
+    for (const k of ["filename", "displayName", "providerMetadata"]) expect(json).not.toContain(k);
+    expect(providerRawBlocks(out)).toHaveLength(0);
+  });
+
+  it("a JSON-null displayName is absent (null guard)", () => {
+    const n = createAdkNormalizer();
+    const out = [
+      ...n.push({
+        content: {
+          role: "model",
+          parts: [
+            { inlineData: { mimeType: "application/pdf", data: "JVBE", displayName: null } },
+            { fileData: { fileUri: "gs://b/o", displayName: null } },
+          ],
+        },
+        invocationId: "inv_fixture_1",
+        turnComplete: true,
+      }),
+      ...n.flush(),
+    ];
+    expect(JSON.stringify(out)).not.toContain("displayName");
+    expectValid(out);
+  });
+
+  it("an unmappable Blob carrying displayName rides verbatim once (no second carry)", () => {
+    const out = one({ inlineData: { data: "AAAA", displayName: "x.bin" } });
+    expect(providerRawBlocks(out).map((e) => (e as { block: { raw: unknown } }).block.raw)).toEqual([
+      { inlineData: { data: "AAAA", displayName: "x.bin" } },
+    ]);
+  });
+});
+
 describe("createAdkNormalizer — JSON-null guard: a null arm is carried, a null member is absent, nothing is dereferenced", () => {
   // A snake_case serializer that keeps Python None (session payloads) can hand
   // the facet `null` where the genai types say "optional". The AdkPart

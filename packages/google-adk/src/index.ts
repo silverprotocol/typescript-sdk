@@ -96,8 +96,11 @@ export interface AdkPart {
   /** Embedded media bytes (base64). Both members are OPTIONAL on the genai
    *  `Blob` type (`data?`/`mimeType?`, doc-"Required" only) — `driveAdkPart`
    *  typeof-guards them and carries a Blob missing either via provider-raw
-   *  rather than crash on `mimeType.startsWith` or emit a `data`-less source. */
-  inlineData?: { mimeType?: string; data?: string };
+   *  rather than crash on `mimeType.startsWith` or emit a `data`-less source.
+   *  `displayName?` (genai 2.24.0 drops "not supported in Gemini API" from its
+   *  doc): → `file.filename`, or `providerMetadata.google.displayName` on an
+   *  image/audio block, which has no name slot. */
+  inlineData?: { mimeType?: string; data?: string; displayName?: string };
   /** Model-generated code (the Code Execution tool). `code` is OPTIONAL on
    *  the genai `ExecutableCode` type (upstream adk #868 fixed the same
    *  assumption) — a code-less part rides provider-raw, never a `code` block
@@ -107,8 +110,10 @@ export interface AdkPart {
   codeExecutionResult?: { outcome?: string; output?: string };
   /** A reference to an uploaded file (passed through opaquely). `fileUri` is
    *  OPTIONAL on the genai `FileData` type — a uri-less part rides
-   *  provider-raw, never a schema-invalid `resource-link`. */
-  fileData?: { mimeType?: string; fileUri?: string };
+   *  provider-raw, never a schema-invalid `resource-link`. `displayName?`
+   *  (genai 2.24.0): `resource-link` has no name slot (SPEC §2), so it rides a
+   *  sibling provider-raw `{ fileData: { displayName } }`. */
+  fileData?: { mimeType?: string; fileUri?: string; displayName?: string };
   /** Media resolution hint for the input media (fixture-drift ratchet finding,
    *  google-adk-ratchet task) — carried opaquely via `driveAdkPart`'s
    *  unmapped-part-fields provider-raw block; never interpreted. */
@@ -568,13 +573,20 @@ function mapBlockReason(reason: string): "safety" | "blocklist" | "prohibited" |
 // ─── inlineData.mimeType → AgBlock type (spec §2) ─────────────────────────────
 // Route a Gemini Blob by its MIME type to the matching AgBlock media arm. base64
 // is the only source kind Gemini inlineData carries (Blob = {mimeType, data}).
-function inlineDataBlock(d: { mimeType: string; data: string }): AgBlock {
+function inlineDataBlock(d: { mimeType: string; data: string; displayName?: string }): AgBlock {
   const source = { type: "base64", mediaType: d.mimeType, data: d.data } as const;
-  if (d.mimeType.startsWith("image/")) return { type: "image", source };
-  if (d.mimeType.startsWith("audio/")) return { type: "audio", source };
+  // genai 2.24.0 Blob.displayName: the file arm's own `filename` (SPEC §2) is
+  // its home; image/audio have no name slot, so it rides providerMetadata.
+  // Absent ⇒ byte-identical.
+  const named =
+    d.displayName !== undefined
+      ? { providerMetadata: AgProviderMeta.parse({ google: { displayName: d.displayName } }) }
+      : {};
+  if (d.mimeType.startsWith("image/")) return { type: "image", source, ...named };
+  if (d.mimeType.startsWith("audio/")) return { type: "audio", source, ...named };
   // Everything else (video/*, application/*, text/*, …) rides the file arm
   // (spec §2: video = mediaType video/*). It is still a typed media block.
-  return { type: "file", source };
+  return { type: "file", source, ...(d.displayName !== undefined ? { filename: d.displayName } : {}) };
 }
 
 // ─── genai-optional arm members (adk-13 hardening) ───────────────────────────
@@ -1087,7 +1099,11 @@ function driveAdkPart(
     const mimeType = stringMember(part.inlineData, "mimeType");
     const data = stringMember(part.inlineData, "data");
     if (mimeType !== undefined && data !== undefined) {
-      a.contentBlock(messageId, inlineDataBlock({ mimeType, data }));
+      const displayName = stringMember(part.inlineData, "displayName");
+      a.contentBlock(
+        messageId,
+        inlineDataBlock({ mimeType, data, ...(displayName !== undefined ? { displayName } : {}) }),
+      );
     } else {
       carryUnmappableArm(a, messageId, "inlineData", part.inlineData);
     }
@@ -1132,6 +1148,18 @@ function driveAdkPart(
         // the block as `null`, which the schema rejects).
         mimeType: stringMember(part.fileData, "mimeType"),
       });
+      // genai 2.24.0 FileData.displayName: resource-link has no name slot
+      // (SPEC §2), so it rides a sibling provider-raw keyed by the wire path.
+      // Absent ⇒ byte-identical. (Spec R&D item 5 would map it to an MCP
+      // `name` if protocol adds one.)
+      const displayName = stringMember(part.fileData, "displayName");
+      if (displayName !== undefined) {
+        a.contentBlock(messageId, {
+          type: "provider-raw",
+          vendor: "google",
+          raw: { fileData: { displayName } },
+        });
+      }
     } else {
       carryUnmappableArm(a, messageId, "fileData", part.fileData);
     }

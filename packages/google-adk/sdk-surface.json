@@ -144,7 +144,7 @@
         },
         "inlineData": {
           "disposition": "handled",
-          "note": "inlineDataBlock() routes by MIME prefix to the image/audio/file AgBlock arm (spec \u00a72). mimeType/data are OPTIONAL on genai Blob: a Blob missing either (or a null arm) now rides verbatim as provider-raw {inlineData} instead of throwing on mimeType.startsWith (cohort 0.6.3)."
+          "note": "inlineDataBlock() routes by MIME prefix to the image/audio/file AgBlock arm (spec \u00a72). mimeType/data are OPTIONAL on genai Blob: a Blob missing either (or a null arm) now rides verbatim as provider-raw {inlineData} instead of throwing on mimeType.startsWith (cohort 0.6.3). Blob.displayName (genai 2.24.0 dropped \"not supported in Gemini API\" from its doc) -> file.filename on the file arm (existing spec field), else providerMetadata.google.displayName on image/audio (no name slot); absent => byte-identical."
         },
         "executableCode": {
           "disposition": "handled",
@@ -156,7 +156,7 @@
         },
         "fileData": {
           "disposition": "handled",
-          "note": "-> a `resource-link` content.block (uri + mimeType). fileUri is OPTIONAL on genai FileData: a uri-less arm now rides verbatim as provider-raw {fileData}, never a schema-invalid resource-link (cohort 0.6.3)."
+          "note": "-> a `resource-link` content.block (uri + mimeType). fileUri is OPTIONAL on genai FileData: a uri-less arm now rides verbatim as provider-raw {fileData}, never a schema-invalid resource-link (cohort 0.6.3). FileData.displayName (genai 2.24.0) -> a sibling provider-raw {fileData:{displayName}} because resource-link has no name slot (spec R&D item 5 would map it to an MCP name if one is added); absent => byte-identical."
         },
         "mediaResolution": {
           "disposition": "carried",
