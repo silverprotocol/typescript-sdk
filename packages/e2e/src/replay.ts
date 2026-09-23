@@ -85,8 +85,12 @@ export interface ReplayResult {
  * it before driving the normalizer and before the census, and reports
  * `hostCompleted`. For the google-adk facet a marker opts in to its
  * `hostCompletion` option (§8.0 host obligation 4) and is fed to it after the
- * natives; every ADK golden still replays byte-identically with or without the
- * marker, because the facet's stashed close lands at the same seq.
+ * natives. An ADK golden whose run ends on an IN-BAND close replays
+ * byte-identically with or without the marker, because the facet's stashed
+ * close lands at the same seq. A run with NO in-band terminal does not: a
+ * completed Workflow (corpus/workflow-complete-gemini38) closes success only
+ * with the marker and flushes turn.abort without it (adk-pause.test.ts pins
+ * both cases, MARKER_CLOSES).
  */
 export const HOST_COMPLETE_MARKER = "__host_complete__";
 
