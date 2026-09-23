@@ -6837,7 +6837,9 @@ describe("createClaudeNormalizer — non_execution_kind denials (C) and the clos
   }
 
   it("C: user-rejected, permission-rule and automode-* map to denied, with no isError and no errorText; the native message stays in content", () => {
-    for (const kind of ["user-rejected", "permission-rule", "automode-deny", "automode-classifier-unavailable"]) {
+    // The CLI 2.1.280 enum's three automode-* values, plus one it does not have
+    // yet (the prefix rule covers future automode reasons).
+    for (const kind of ["user-rejected", "permission-rule", "automode-blocked", "automode-unavailable", "automode-parsing-error", "automode-future-reason"]) {
       const done = oneCall(kind);
       expect(done, kind).toMatchObject({ toolCallId: "toolu_c1", outcome: "denied", content: [{ type: "text", text: HOOK_TEXT }] });
       expect(done !== undefined && "isError" in done, kind).toBe(false);
@@ -6972,5 +6974,66 @@ describe("createClaudeNormalizer — non_execution_kind denials (C) and the clos
     // Negative control: with no live notice, the closing tool.done has no bag.
     const bare = dones(drive([useFrame("msg_c1", "toolu_c1", "00000000-0000-0000-0000-0000000000c1"), resultFrame("toolu_c1", "00000000-0000-0000-0000-0000000000c2", "permission-rule")]))[0];
     expect(bare !== undefined && "providerMetadata" in bare).toBe(false);
+  });
+
+  // Second key (sp-protocol, after 6d980a5): a live permission_denied notice
+  // seen before an UNSTAMPED is_error result marks it denied. 2.1.280 stamps no
+  // kind on a frame with more than one tool_result, and an older CLI stamps none.
+  function twoResultFrame(a: string, b: string): unknown {
+    return {
+      type: "user",
+      message: {
+        role: "user",
+        content: [
+          { type: "tool_result", content: "denied by rule", is_error: true, tool_use_id: a },
+          { type: "tool_result", content: [{ type: "text", text: "ran" }], is_error: false, tool_use_id: b },
+        ],
+      },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000f7",
+      session_id: "sess_fixture",
+    };
+  }
+
+  it("notice key: with no stamped kind, a prior permission_denied notice for the id closes it denied (no isError), carrying the notice context", () => {
+    const evs = drive([
+      assistantMsg([{ type: "tool_use", id: "toolu_denied_1", name: "bash", input: { command: "rm -rf" } }]),
+      permissionDeniedMsg({ decision_reason_type: "rule" }),
+      resultFrame("toolu_denied_1", "00000000-0000-0000-0000-0000000000a2"),
+      resultWithDenial(),
+    ]);
+    const done = dones(evs);
+    expect(done).toHaveLength(1);
+    expect(done[0]).toMatchObject({ toolCallId: "toolu_denied_1", outcome: "denied", providerMetadata: { decisionReasonType: "rule" } });
+    expect(done[0] !== undefined && "isError" in done[0]).toBe(false);
+    expect(denialCarrier(evs)).toEqual([]);
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("notice key: the unstamped two-result frame (2.1.280 stamps no kind there): the noticed call is denied, its sibling stays ok", () => {
+    const evs = drive([
+      assistantMsg([
+        { type: "tool_use", id: "toolu_denied_1", name: "bash", input: { command: "rm -rf" } },
+        { type: "tool_use", id: "toolu_ok_1", name: "bash", input: { command: "ls" } },
+      ]),
+      permissionDeniedMsg(),
+      twoResultFrame("toolu_denied_1", "toolu_ok_1"),
+    ]);
+    expect(dones(evs).map((d) => [d["toolCallId"], d["outcome"], d["isError"]])).toEqual([
+      ["toolu_denied_1", "denied", undefined],
+      ["toolu_ok_1", "ok", false],
+    ]);
+  });
+
+  it("notice key negative controls: a stamped kind stays primary; is_error:false stays ok; a notice for another id, or one that arrives AFTER the result, changes nothing", () => {
+    const stampedInterrupted = dones(drive([permissionDeniedMsg(), resultFrame("toolu_denied_1", "00000000-0000-0000-0000-0000000000a2", "interrupted")]))[0];
+    expect(stampedInterrupted).toMatchObject({ outcome: "error", isError: true });
+    const notError = dones(drive([permissionDeniedMsg(), resultFrame("toolu_denied_1", "00000000-0000-0000-0000-0000000000a2", undefined, false)]))[0];
+    expect(notError).toMatchObject({ outcome: "ok", isError: false });
+    const otherId = dones(drive([permissionDeniedMsg(), resultFrame("toolu_other", "00000000-0000-0000-0000-0000000000a2")]))[0];
+    expect(otherId).toMatchObject({ outcome: "error", isError: true });
+    // No retroactive change: a result already closed stays as it closed.
+    const late = drive([resultFrame("toolu_denied_1", "00000000-0000-0000-0000-0000000000a2"), permissionDeniedMsg()]);
+    expect(dones(late).map((d) => d["outcome"])).toEqual(["error"]);
   });
 });

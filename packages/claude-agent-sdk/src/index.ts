@@ -2483,7 +2483,18 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
             // errorText belong to outcome "error"). Before this, the same call
             // folded "error" here and then "denied" again from the result's
             // permission_denials (sp-probe's resume-deny leg).
-            const denied = block.is_error === true && isDenialKind(nonExecutionById.get(block.tool_use_id));
+            // Second key (sp-protocol, same basis): when no kind is stamped, a
+            // live `permission_denied` notice already seen for this id is the
+            // harness's own denial record (the CLI emits it at decision time,
+            // always before this result). No kind is stamped on a frame holding
+            // more than one tool_result (2.1.280's stamper returns [] unless
+            // exactly one), nor by a CLI that predates the stamp. A stamped kind
+            // stays the primary key, so "interrupted" with a notice is still an
+            // error.
+            const kind = nonExecutionById.get(block.tool_use_id);
+            const denied =
+              block.is_error === true &&
+              (kind !== undefined ? isDenialKind(kind) : deniedLiveByToolUseId.has(block.tool_use_id));
             const outcome: ToolOutcome = denied ? "denied" : block.is_error === true ? "error" : "ok";
             const toolContent =
               block.content === undefined ? [] : toolResultContentToAgBlocks(block.content);
