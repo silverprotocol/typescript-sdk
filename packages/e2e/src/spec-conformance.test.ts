@@ -112,7 +112,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 23, leg: "claude", title: "Unmapped native value (draft.4): an unmapped Claude stop_reason → finishReason unknown + finishReasonRaw verbatim; mapped and null stop_reasons carry no finishReasonRaw", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(claude) via createClaudeNormalizer (sp-claude 44938c2 / main's edb4cb5)" },
   { n: 23, leg: "vercel", title: "Unmapped native value (draft.4): a vercel finish whose unified reason falls back (other/unknown) carries the native rawFinishReason as finishReasonRaw", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(vercel) via createVercelNormalizer (probe c524ece)" },
   { n: 24, leg: "scan", title: "Tool-result errorText scoping (draft.4): no replay golden carries errorText on a non-error result", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.24(scan), a scan of every corpus/*/*.agjson.json" },
-  { n: 24, leg: "adk", title: "ADK failure envelope (draft.4, §8.0 item 25): the error/denied/placeholder/negative vectors", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.24(adk) via createAdkNormalizer (sp-google 877f37f, on the E8 scrub 81dc906)" },
+  { n: 24, leg: "adk", title: "ADK failure envelope (draft.4, §8.0 item 25): the error/denied/placeholder/negative vectors", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.24(adk) via createAdkNormalizer (sp-google 877f37f)" },
   { n: 25, leg: "fold", title: "Framework pause and completion closure (draft.4): pauses close paused from push(), completed-without-signal and cut-short invokes close turn.abort from flush(), never success, no park", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(fold) over the engine-built fixtures/adk-pause natives (probe P-RED 3c82c3a); step-1 scope mirrored by adk-pause.test.ts" },
   { n: 25, leg: "answer-id", title: "Framework pause and completion closure (draft.4): each ask's toolCallId is the adk_request_* call id (the answering id), one ask per pending request, kind per §8.0 item 26", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(answer-id) over fixtures/adk-pause (sp-google step 2 613fd7f)" },
   { n: 25, leg: "host-completion", title: "Framework pause and completion closure (draft.4): with the §8.0 obligation-4 host-completion event fed, a completed invoke closes turn.done success from push(); a pause still closes paused from push()", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(host-completion), createAdkNormalizer({ hostCompletion: true }) + ADK_HOST_COMPLETE_TYPE (sp-google step 2 613fd7f)" },
@@ -126,6 +126,19 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 28, title: "Host-appended events (draft.4): every replay golden plus a host-appended paused hitl.ask turn from lastSeq+1 folds with needsResync false and the turn in turns (§8.0 host obligation 5)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.28 over every corpus/*/*.agjson.json via ingestAgEvents → reduce" },
   { n: 29, leg: "a", title: "Forward-compatible records: a stored AgMessage/AgMemoryRecord reader omits an unreadable content element or record, reports it with its index and verbatim value, never coerces, and the reports reconstruct the stored value", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.29(a) via core readStoredAgMessage(s)/readStoredAgMemoryRecords (probe P3 2bd1abf; unit legs core/src/record.test.ts)" },
   { n: 29, leg: "b", title: "Forward-compatible inputs: an undefined closed-set value at any depth rejects the whole input with unknown-value at its path, distinct from malformed and major-mismatch; unknown fields pass intact", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.29(b) via core checkAgInput (probe P3 2bd1abf; unit legs core/src/input-check.test.ts)" },
+  { n: 30, leg: "adk", title: "No credential material in authentication requests (draft.4): an ADK-generated OAuth2 request (state + nonce + PKCE in the authorization URI; client secret, tokens, verifier, auth code, standalone state/nonce seeded) emits no seeded secret at any depth, raw or JSON-escaped; state/nonce appear only inside the byte-equal ADK-issued authorization URI", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.30(adk) over fixtures/adk-pause/plain-credential-authuri (engine-built by ADK 2.1.0 generateAuthUri; probe)" },
+  { n: 30, leg: "claude", title: "No credential material in authentication requests (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
+  { n: 30, leg: "openai", title: "No credential material in authentication requests (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
+  { n: 30, leg: "vercel", title: "No credential material in authentication requests (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
+  { n: 31, leg: "adk", title: "Credential objects omitted from shared state (draft.4): credential-object entries (any depth, both spellings, whole AuthConfig, resourceRef-only, useDefaultCredential), temp: entries and an own __proto__ are omitted; one state.delta per native change ({} when empty); ordinary entries byte-identical; push() never throws", disposition: "COVERED-BY", citation: "google-adk/src/index.test.ts \"state.delta omits every entry holding an ADK credential …\", \"… snake_case form, a credential nested at any depth …\", \"… a whole ADK AuthConfig stored in state …\", \"… useDefaultCredential …\", \"… resourceRef …\", \"… exactly one event per native state change …\", \"state.delta never throws …\", \"a rebuilt state map carries no reserved key …\", \"negative control: a state delta with no ADK credential …\"" },
+  { n: 31, leg: "claude", title: "Credential objects omitted from shared state (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
+  { n: 31, leg: "openai", title: "Credential objects omitted from shared state (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
+  { n: 31, leg: "vercel", title: "Credential objects omitted from shared state (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
+  { n: 32, leg: "adk", title: "Credential material off provider-raw carries (draft.4): a typed ADK auth configuration as agentState.input, as output with its rendering, at output.result with its rendering and in customMetadata, and an untyped reply inside a response named adk_request_credential, leave no secret leaf raw or JSON-escaped; non-secret members byte-identical to the native; no text block from a rendering part; strict parse, no throw, no resync", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.32(adk) (unit legs google-adk/src/index.test.ts \"node data: …\", \"rendering: …\", \"every provider-raw carry reduces …\"; the full-carry reduction 46ee052)" },
+  { n: 32, leg: "adk-goldens", title: "Credential material off provider-raw carries (draft.4): on every replay golden the rule changes no byte of the serialized stream", disposition: "COVERED-BY", citation: "probe serialized old-vs-new dumps over every corpus native + fixtures/adk-pause, with and without the host-completion marker: 92/92 byte-identical at 46ee052; §10.25(replay) keeps every ADK golden byte-equal" },
+  { n: 32, leg: "claude", title: "Credential material off provider-raw carries (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
+  { n: 32, leg: "openai", title: "Credential material off provider-raw carries (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
+  { n: 32, leg: "vercel", title: "Credential material off provider-raw carries (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -1625,6 +1638,111 @@ describe("§10.29 — forward-compatible records and inputs (draft.4; §0.2 stor
     const caps = start({ capabilities: { zzTop: true, hitl: { ask: true, zzNested: [1] } } });
     const r2 = checkAgInput(structuredClone(caps));
     expect(r2.ok && isDeepStrictEqual(r2.input, caps)).toBe(true);
+  });
+});
+
+describe("§10.30 — no credential material in authentication requests (draft.4; §8.0 item 28(a))", () => {
+  it("(adk) the engine-built OAuth2 credential request: no seeded secret reaches any event or the fold, raw or JSON-escaped; state and nonce appear only inside the byte-equal ADK-issued authorization URI", () => {
+    const natives = JSON.parse(readFileSync(new URL("../fixtures/adk-pause/plain-credential-authuri.native.json", import.meta.url), "utf8")) as JsonValue[];
+    const nativeText = JSON.stringify(natives);
+    const authUri = /"authUri":"([^"]+)"/.exec(nativeText)?.[1];
+    expect(authUri).toBeDefined();
+    // Every seeded value except the non-secret client id; the nonce is allowed only inside the URI.
+    const seeds = [...new Set(nativeText.match(/SEED_[A-Za-z0-9_]+/g) ?? [])].filter((s) => s !== "SEED_client_id");
+    expect(seeds).toContain("SEED_nonce");
+    expect(seeds.length).toBeGreaterThan(4);
+    const n = createAdkNormalizer();
+    const out: AgEvent[] = [];
+    for (const f of natives) out.push(...n.push(f as unknown as AdkEvent));
+    out.push(...n.flush());
+    for (const e of out) expect(() => AgEvent.parse(e)).not.toThrow();
+    const r = reduce(out);
+    expect(r.needsResync).toBe(false);
+    const leaks: string[] = [];
+    for (const x of [...out, r.result] as unknown[]) {
+      const outsideUri = JSON.stringify(x).split(authUri as string).join("");
+      for (const s of seeds) if (outsideUri.includes(s)) leaks.push(s);
+    }
+    expect(leaks).toEqual([]);
+    // The authorization URI the user must open is carried as the framework issued it.
+    expect(out.some((e) => JSON.stringify(e).includes(authUri as string))).toBe(true);
+  });
+});
+
+describe("§10.32 — credential material off provider-raw carries (draft.4; §8.0 item 28(c))", () => {
+  const event = (parts: AdkPart[], extra: Record<string, unknown> = {}): AdkEvent =>
+    ({ content: { role: "model", parts }, invocationId: "inv_10_32", turnComplete: true, finishReason: "STOP", ...extra }) as unknown as AdkEvent;
+  // A typed ADK auth configuration whose API-key, OAuth2 and service-account credentials, in both spellings, hold distinct secret leaves.
+  const typed = {
+    authScheme: { type: "apiKey", in: "header", name: "X-Key" },
+    rawAuthCredential: { authType: "apiKey", apiKey: "SECRET_api_key" },
+    exchangedAuthCredential: { authType: "oauth2", oauth2: { clientId: "client-1", clientSecret: "SECRET_client_secret", accessToken: "SECRET_access", refreshToken: "SECRET_refresh" } },
+    serviceAccount: { auth_type: "serviceAccount", service_account: { serviceAccountCredential: { private_key: "SECRET_private_key", client_email: "sa@example.test" } } },
+    snake: { auth_type: "apiKey", api_key: "SECRET_snake_key" },
+    credentialKey: "fetch-key",
+  };
+  const untyped = { parts: [{ functionResponse: { id: "fetch-key", name: "adk_request_credential", response: { token: "SECRET_untyped" } } }] };
+  const drive = (natives: AdkEvent[]): AgEvent[] => {
+    const n = createAdkNormalizer(); // one Normalizer per invoke (§8.0 obligation 3)
+    const out: AgEvent[] = [];
+    for (const f of natives) expect(() => out.push(...n.push(f))).not.toThrow();
+    out.push(...n.flush());
+    for (const e of out) expect(() => AgEvent.parse(e), JSON.stringify(e).slice(0, 120)).not.toThrow();
+    return out;
+  };
+  const rawCarry = (out: AgEvent[], member: string): Record<string, unknown> | undefined => {
+    for (const e of out) {
+      if (e.type !== "content.block") continue;
+      const b = (e as unknown as { block: { type: string; raw?: Record<string, unknown> } }).block;
+      if (b.type === "provider-raw" && b.raw && Object.hasOwn(b.raw, member)) return b.raw;
+    }
+    return undefined;
+  };
+  const noSecret = (label: string, out: AgEvent[]): void => {
+    expect(JSON.stringify(out).includes("SECRET_"), `${label}: a secret leaf reached an event`).toBe(false);
+    const byBlock = new Map<string, string>();
+    for (const e of out) if (e.type === "text.delta") { const k = e.id ?? ""; byBlock.set(k, (byBlock.get(k) ?? "") + (e.delta ?? "")); }
+    for (const [id, text] of byBlock) expect(text.includes("SECRET_"), `${label}: text block ${id}`).toBe(false);
+    expect(reduce(out).needsResync, label).toBe(false);
+  };
+  const vectors: [string, AdkEvent, (out: AgEvent[]) => void][] = [
+    ["agentState.input", event([{ text: "done" }], { actions: { agentState: { input: typed } } }), (out) => {
+      const input = (rawCarry(out, "agentState")?.["agentState"] as { input?: Record<string, unknown> } | undefined)?.input;
+      expect(input?.["authScheme"]).toEqual(typed.authScheme);
+      expect(input?.["credentialKey"]).toBe("fetch-key");
+      expect((input?.["rawAuthCredential"] as Record<string, unknown> | undefined)?.["authType"]).toBe("apiKey");
+    }],
+    ["output + rendering", event([{ text: JSON.stringify(typed) }], { output: typed }), (out) => {
+      expect(out.some((e) => e.type === "text.start")).toBe(false);
+      expect((rawCarry(out, "output")?.["output"] as Record<string, unknown> | undefined)?.["credentialKey"]).toBe("fetch-key");
+    }],
+    ["output.result + rendering", event([{ text: JSON.stringify({ result: typed, step: 2 }) }], { output: { result: typed, step: 2 } }), (out) => {
+      expect(out.some((e) => e.type === "text.start")).toBe(false);
+      expect((rawCarry(out, "output")?.["output"] as Record<string, unknown> | undefined)?.["step"]).toBe(2);
+    }],
+    ["customMetadata", event([{ text: "done" }], { customMetadata: { k: typed, other: "kept" } }), (out) => {
+      expect((rawCarry(out, "customMetadata")?.["customMetadata"] as Record<string, unknown> | undefined)?.["other"]).toBe("kept");
+    }],
+    ["named response in agentState.input", event([{ text: "done" }], { actions: { agentState: { input: untyped } } }), (out) => {
+      const input = (rawCarry(out, "agentState")?.["agentState"] as { input?: { parts?: { functionResponse?: Record<string, unknown> }[] } } | undefined)?.input;
+      const fr = input?.parts?.[0]?.functionResponse;
+      expect(fr?.["id"]).toBe("fetch-key");
+      expect(fr?.["name"]).toBe("adk_request_credential");
+    }],
+  ];
+  for (const [label, native, check] of vectors) {
+    it(`(adk) ${label}: no secret leaf on the wire or in any text block; non-secret members carried; strict parse; no throw; no resync`, () => {
+      const out = drive([native]);
+      noSecret(label, out);
+      check(out);
+    });
+  }
+  it("(adk) a dropped rendering leaves the same event types as the native with that part removed (twin run)", () => {
+    for (const output of [typed, { result: typed, step: 2 }]) {
+      const withPart = drive([event([{ text: JSON.stringify(output) }], { output })]).map((e) => e.type);
+      const without = drive([event([], { output })]).map((e) => e.type);
+      expect(withPart).toEqual(without);
+    }
   });
 });
 
