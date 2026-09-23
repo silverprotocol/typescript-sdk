@@ -64,6 +64,26 @@ const THINKING_LEVELS: Record<NonNullable<CaptureRunInput["thinkingLevel"]>, Thi
 };
 
 /**
+ * The LlmAgent `generateContentConfig` for the scenario's thinking knob, or
+ * `undefined` when the scenario sets none. Shared with `workflow.ts` so both
+ * capture agents build the same model request. Thought summaries are OFF by
+ * default on gemini-3.7-flash, so `includeThoughts` must ride alongside the
+ * level for `thought: true` parts to appear on the wire at all.
+ */
+export function adkGenerateContentConfig(
+  input: Pick<CaptureRunInput, "thinkingLevel">,
+): { thinkingConfig: { includeThoughts: true; thinkingLevel: ThinkingLevel } } | undefined {
+  return input.thinkingLevel !== undefined
+    ? {
+        thinkingConfig: {
+          includeThoughts: true,
+          thinkingLevel: THINKING_LEVELS[input.thinkingLevel],
+        },
+      }
+    : undefined;
+}
+
+/**
  * Yields the RAW native `@google/adk` `Event` stream, unnormalized, each item
  * materialized as a plain `JsonValue` via `toJsonValue` (audit D5-a's
  * native-ingestion boundary — the whole event, no per-field cast).
@@ -97,25 +117,15 @@ export async function* runAdkCapture(input: CaptureRunInput): AsyncIterable<Json
   );
 
   try {
+    // Thinking knob (scenario.thinkingLevel → CaptureRunInput); see
+    // adkGenerateContentConfig.
+    const generateContentConfig = adkGenerateContentConfig(input);
     const agent = new LlmAgent({
       name: "spike",
       model: input.model ?? "gemini-2.5-flash",
       instruction: input.systemPrompt ?? "You are a helpful assistant.",
       tools: toolsets,
-      // Thinking knob (scenario.thinkingLevel → CaptureRunInput): thought
-      // summaries are OFF by default on gemini-3.7-flash, so includeThoughts
-      // must ride alongside the level for `thought: true` parts to appear on
-      // the wire at all.
-      ...(input.thinkingLevel !== undefined
-        ? {
-            generateContentConfig: {
-              thinkingConfig: {
-                includeThoughts: true,
-                thinkingLevel: THINKING_LEVELS[input.thinkingLevel],
-              },
-            },
-          }
-        : {}),
+      ...(generateContentConfig !== undefined ? { generateContentConfig } : {}),
     });
     const runner = new InMemoryRunner({ agent });
     const session = await runner.sessionService.createSession({
