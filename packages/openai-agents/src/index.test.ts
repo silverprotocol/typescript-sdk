@@ -4257,3 +4257,134 @@ describe("createOpenaiNormalizer — OA-14 phase on text.start from output_item.
     expect(run(finalRound({ phase: "" }))).toEqual(bare);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OA-13 — `tool.start.providerExecuted` (SPEC:632; tool-call block
+// `providerExecuted`, SPEC:210; SPEC:496 "server already ran it; client MUST
+// NOT execute"). An existing optional slot (sp-rnd item 10 re-verify,
+// 2026-09-23); claude and vercel already set it. Which item kinds OpenAI
+// executes, per the installed runtime (agents-core 0.18.0
+// dist/runner/modelOutputs.mjs):
+//  - hosted_tool_call — always (:443-: resolved server-side, its own output).
+//  - program — always: programmatic tool calling is a hosted tool
+//    (`providerData.type:"programmatic_tool_calling"`, :23-28) and its
+//    program_output arrives in the MODEL output (:435-441), never run locally.
+//  - shell_call — only a hosted-container shell: "Hosted container shell is
+//    executed by the API provider" (:511-517, keyed on the tool's environment
+//    type); on the item that is `providerData.environment.type` (openai-node
+//    7.22.0 `environment: ResponseLocalEnvironment | ResponseContainerReference
+//    | null`, carried into providerData by agents-openai's converter :1318).
+//  - tool_search_call — only `execution:"server"` (the item's own field).
+//  - computer_call / apply_patch_call / function_call — client-executed: unset.
+// Absent ⇒ key omitted (SPEC treats absent as not provider-executed).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("createOpenaiNormalizer — OA-13 tool.start.providerExecuted", () => {
+  function called(rawItem: JsonValue): JsonValue[] {
+    return [
+      rawModel({ type: "response.created", response: { id: "resp_oa13" } }),
+      runItem("tool_called", { type: "tool_call_item", rawItem }),
+    ];
+  }
+  function startOf(stream: JsonValue[]): AgEvent | undefined {
+    const n = createOpenaiNormalizer();
+    return stream
+      .flatMap((e) => n.push(e))
+      .concat(n.flush())
+      .find((e) => e.type === "tool.start");
+  }
+  const SHELL = {
+    type: "shell_call",
+    callId: "call_sh",
+    status: "completed",
+    action: { commands: ["ls"] },
+    id: "sh_1",
+  };
+
+  it("hosted_tool_call ⇒ providerExecuted:true", () => {
+    const start = startOf(
+      called({ type: "hosted_tool_call", id: "ws_1", name: "web_search_call", arguments: "{}", status: "completed", output: "ok" }),
+    );
+    expect(start).toMatchObject({ type: "tool.start", providerExecuted: true });
+  });
+
+  it("program (hosted programmatic tool calling) ⇒ providerExecuted:true", () => {
+    const start = startOf(called({ type: "program", callId: "call_prog", code: "print(1)", fingerprint: "fp", id: "prog_1" }));
+    expect(start).toMatchObject({ type: "tool.start", providerExecuted: true });
+  });
+
+  it("shell_call in a hosted container (environment.type container_reference) ⇒ providerExecuted:true", () => {
+    const start = startOf(
+      called({ ...SHELL, providerData: { environment: { type: "container_reference", container_id: "cntr_1" } } }),
+    );
+    expect(start).toMatchObject({ type: "tool.start", providerExecuted: true });
+  });
+
+  it("shell_call local / environment null / no providerData ⇒ no providerExecuted key (byte-identical)", () => {
+    const bare = startOf(called(SHELL));
+    expect(bare).not.toHaveProperty("providerExecuted");
+    expect(startOf(called({ ...SHELL, providerData: { environment: { type: "local" } } }))).toEqual(bare);
+    expect(startOf(called({ ...SHELL, providerData: { environment: null } }))).toEqual(bare);
+    expect(startOf(called({ ...SHELL, providerData: { environment: "container" } }))).toEqual(bare);
+  });
+
+  it("tool_search execution:server ⇒ true; execution:client / absent ⇒ no key", () => {
+    const search = (execution: string | undefined): JsonValue[] => [
+      rawModel({ type: "response.created", response: { id: "resp_oa13_ts" } }),
+      runItem("tool_search_called", {
+        type: "tool_search_call_item",
+        rawItem: {
+          type: "tool_search_call",
+          callId: "call_ts",
+          ...(execution !== undefined ? { execution } : {}),
+          arguments: { query: "q" },
+          id: "ts_1",
+        },
+      }),
+    ];
+    expect(startOf(search("server"))).toMatchObject({ providerExecuted: true });
+    expect(startOf(search("client"))).not.toHaveProperty("providerExecuted");
+    expect(startOf(search(undefined))).not.toHaveProperty("providerExecuted");
+  });
+
+  it("client-executed kinds (computer_call, apply_patch_call, raw function_call) ⇒ no providerExecuted key", () => {
+    expect(
+      startOf(called({ type: "computer_call", callId: "call_cu", status: "completed", action: { type: "screenshot" }, id: "cu_1" })),
+    ).not.toHaveProperty("providerExecuted");
+    expect(
+      startOf(
+        called({
+          type: "apply_patch_call",
+          callId: "call_ap",
+          status: "completed",
+          operation: { type: "update_file", path: "a.txt", diff: "-a\n+b" },
+          id: "ap_1",
+        }),
+      ),
+    ).not.toHaveProperty("providerExecuted");
+    expect(
+      startOf([
+        rawModel({ type: "response.created", response: { id: "resp_oa13_fc" } }),
+        rawModel({ type: "response.output_item.added", item: { id: "fc_1", type: "function_call", call_id: "call_fc", name: "echo" } }),
+      ]),
+    ).not.toHaveProperty("providerExecuted");
+  });
+
+  it("fold: the tool-call block carries providerExecuted:true for a hosted call", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    const stream = [
+      ...called({ type: "hosted_tool_call", id: "ws_2", name: "web_search_call", arguments: "{}", status: "completed", output: "ok" }),
+      rawModel({ type: "response.completed", response: { id: "resp_oa13", status: "completed" } }),
+    ];
+    for (const e of stream) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const block = r
+      .result()
+      .messages.flatMap((m) => m.content)
+      .find((b) => b.type === "tool-call");
+    expect(block).toMatchObject({ providerExecuted: true });
+    expect(() => AgReduceResult.parse(r.result())).not.toThrow();
+  });
+});

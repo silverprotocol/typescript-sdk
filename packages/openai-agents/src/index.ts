@@ -2414,6 +2414,36 @@ export function createOpenaiNormalizer(): Normalizer {
    * `tool.start` + `tool.done` fire together from this ONE event (see its own
    * doc) — no pending registration.
    */
+  /**
+   * OA-13: did OpenAI (the provider) already execute this built-in call? →
+   * `tool.start.providerExecuted` (SPEC:632; SPEC:496 "client MUST NOT
+   * execute"). Per the installed runtime (agents-core 0.18.0
+   * `dist/runner/modelOutputs.mjs`): `hosted_tool_call` always (resolved
+   * server-side, :443); `program` always (programmatic tool calling is a hosted
+   * tool, :23-28, whose `program_output` arrives in the MODEL output, :435-441);
+   * `shell_call` only for a hosted-container shell ("Hosted container shell is
+   * executed by the API provider", :511-517), which the item shows as
+   * `providerData.environment.type` ≠ `"local"` (openai-node 7.22.0
+   * `ResponseLocalEnvironment | ResponseContainerReference | null`, spread into
+   * providerData by agents-openai's converter :1318). `computer_call` /
+   * `apply_patch_call` run client-side → false (the key is then omitted).
+   */
+  function builtinProviderExecuted(
+    rawItem:
+      | OpenAIShellCallItem
+      | OpenAIApplyPatchCallItem
+      | OpenAIComputerCallItem
+      | OpenAIHostedToolCallItem
+      | OpenAIProgramCallItem,
+  ): boolean {
+    if (rawItem.type === "hosted_tool_call" || rawItem.type === "program") return true;
+    if (rawItem.type === "shell_call") {
+      const env = rawItem.providerData?.environment;
+      return isJsonObject(env) && typeof env.type === "string" && env.type !== "local";
+    }
+    return false;
+  }
+
   function driveBuiltinToolCalled(
     rawItem:
       | OpenAIShellCallItem
@@ -2438,6 +2468,8 @@ export function createOpenaiNormalizer(): Normalizer {
       name,
       ...(rawItem.id !== undefined ? { itemId: rawItem.id } : {}),
       ...(startMeta !== undefined ? { providerMetadata: startMeta } : {}),
+      // OA-13: see builtinProviderExecuted().
+      ...(builtinProviderExecuted(rawItem) ? { providerExecuted: true } : {}),
       messageId: msgId,
     });
     const input: JsonValue =
@@ -2522,6 +2554,10 @@ export function createOpenaiNormalizer(): Normalizer {
       toolCallId,
       name: "builtin:tool_search",
       ...(rawItem.id !== undefined ? { itemId: rawItem.id } : {}),
+      // OA-13: the item says where it ran — only `execution:"server"` is the
+      // provider's (SPEC:496); "client" (the SDK's own loader / a custom
+      // execute()) and absent leave the key off.
+      ...(rawItem.execution === "server" ? { providerExecuted: true } : {}),
       messageId: msgId,
     });
     const input: JsonValue = JsonValue.parse(rawItem.arguments ?? {});
