@@ -52,8 +52,10 @@
  * NOTE on turn ids across invokes: google-adk derives turn ids from ADK's
  * `invocationId`, which ADK-JS mints fresh on every `runAsync` (including a
  * resume), so they don't repeat across the invokes of a fold. ADK-Python's
- * resumable resume reuses `invocation_id`; a facet over ADK-Python would need
- * a per-invoke stem.
+ * resumable resume reuses `invocation_id`, and this facet also accepts events
+ * serialized from Python: fed that resume, it would repeat `turn_${invocationId}`
+ * (and the message id derived from it) across the fold. Supporting that path
+ * needs a per-invoke stem; it is queued, not part of this release.
  */
 import {
   type AgEvent,
@@ -1797,7 +1799,14 @@ interface IdStem {
 }
 
 /** A random per-instance stem; never called while a replay re-drives, since
- *  the stem is drawn once and kept. */
+ *  the stem is drawn once and kept.
+ *
+ *  The `Date.now` + `Math.random` fallback runs only when `crypto.randomUUID`
+ *  is absent, which cannot happen on Node >= 19 (a global `crypto`). It is the
+ *  facet's one read of the clock or a random source, and it is safe for
+ *  determinism: the stem is drawn outside the inner, once, and a
+ *  withAtomicPush rebuild reuses it, so the corpus legs that poison the clock
+ *  and randomness never reach this call. */
 function drawIdStem(): string {
   const cryptoObj: unknown = Reflect.get(globalThis, "crypto");
   const randomUUID: unknown = cryptoObj !== undefined && cryptoObj !== null ? Reflect.get(cryptoObj, "randomUUID") : undefined;

@@ -97,6 +97,8 @@ agEvents.push(...n.flush());        // seal anything still open
 
 > **Errors the runtime throws (spec §8.0 host obligation 1).** When ADK throws instead of ending the stream (for example its LLM-call limit), catch it and push `{ type: "__host_error__", code, message, usage?, invocationId? }` (exported as `ADK_HOST_ERROR_TYPE`) before `flush()`: the open turn closes `turn.error` with that code and message, and with no turn open a fresh terminal turn carries it. That turn is named from the invoke's own `invocationId`, so it stays unique across the invokes a host folds together; for an error before any event, pass `invocationId` if you have it (otherwise a per-instance stem is used). The sentinel may be the caught Error itself with `type` and `code` assigned; its message is kept.
 
+> **Credential material (spec §8.0 item 28).** ADK credential material is the one exception to the compatibility table's "carried losslessly". In an `adk_request_credential` call and its reply, the facet carries only the auth-config members it knows to be non-secret. In `state.delta` it omits every entry that holds an ADK credential object, and every `temp:` entry. Inside a `provider-raw` carry it reduces each ADK credential object, and each response to `adk_request_credential`, to its non-secret members; when that reduces a node's output, the text part ADK renders from that output is skipped too. A credential an application keeps in a shape of its own is not recognised, and rides unchanged.
+
 Then fold the resulting `AgEvent`s into messages and turns with
 `@silverprotocol/core`'s `reduce()` — the same client code regardless of which
 framework produced the stream.
