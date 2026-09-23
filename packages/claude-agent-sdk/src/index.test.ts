@@ -280,10 +280,10 @@ describe("createClaudeNormalizer — INV-FLUSH truncation (audit M21)", () => {
 });
 
 describe("createClaudeNormalizer — result success", () => {
-  it("maps a result success to turn.done with finishReason stop (NO synthesized turn.start)", () => {
+  it("maps a result success to turn.done with finishReason stop (a result-only turn opens with its own turn.start, INV-TURN)", () => {
     const evs = run(resultSuccess("end_turn"));
-    expect(evs.map((e) => e.type)).toEqual(["turn.done"]);
-    expect(evs[0]).toMatchObject({
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "turn.done"]);
+    expect(evs[1]).toMatchObject({
       type: "turn.done",
       turnId: RESULT_ONLY_TURN,
       finishReason: "stop",
@@ -301,7 +301,7 @@ describe("createClaudeNormalizer — finishReasonRaw (draft.4)", () => {
   it("an unmapped stop_reason → finishReason 'unknown' + finishReasonRaw verbatim; every event parses", () => {
     const evs = run(resultSuccess("zz_future"));
     assertAllValid(evs);
-    expect(evs[0]).toMatchObject({ type: "turn.done", finishReason: "unknown", finishReasonRaw: "zz_future" });
+    expect(evs[1]).toMatchObject({ type: "turn.done", finishReason: "unknown", finishReasonRaw: "zz_future" });
     // It folds onto the turn record (SPEC §5 turn.done row).
     const r = new Reducer();
     for (const e of evs) r.push(e);
@@ -313,9 +313,48 @@ describe("createClaudeNormalizer — finishReasonRaw (draft.4)", () => {
     for (const stop of ["end_turn", "stop_sequence", "max_tokens", "tool_use", "pause_turn", "refusal", "compaction", "model_context_window_exceeded", null]) {
       const evs = run(resultSuccess(stop));
       assertAllValid(evs);
-      expect(evs[0]?.type).toBe("turn.done");
+      expect(evs[1]?.type).toBe("turn.done");
       expect("finishReasonRaw" in (evs[0] as object), `stop_reason ${String(stop)}`).toBe(false);
     }
+  });
+});
+
+// ─── INV-TURN: a RESULT-ONLY turn is opened, not only closed (sp-protocol) ───
+// Through the B commit a result with no preceding assistant frame / notice /
+// stream emitted a lone terminal, and reduce() minted a stub record whose
+// threadId was the turnId. Every turn is now opened by exactly one turn.start.
+describe("createClaudeNormalizer — result-only turns open with a turn.start (INV-TURN)", () => {
+  function pushAll(frames: unknown[]): AgEvent[] {
+    const n = createClaudeNormalizer();
+    const evs = [...frames.flatMap((f) => n.push(JsonValue.parse(f))), ...n.flush()];
+    assertAllValid(evs);
+    return evs;
+  }
+
+  it("both arms: exactly one turn.start (threadId = the session) before the close; the fold records the real thread root", () => {
+    for (const frame of [resultSuccess("end_turn"), resultError("error_max_turns")]) {
+      const evs = pushAll([frame]);
+      const starts = evs.filter((e) => e.type === "turn.start");
+      expect(starts).toHaveLength(1);
+      expect(evs[0]).toMatchObject({ type: "turn.start", threadId: "sess_fixture" });
+      const r = new Reducer();
+      for (const e of evs) r.push(e);
+      expect(r.needsResync).toBe(false);
+      const turn = r.result().turns[0];
+      expect(turn?.threadId).toBe("sess_fixture");
+      expect(turn?.threadId).not.toBe(turn?.turnId);
+    }
+  });
+
+  it("with denials the carrier does not open a second turn.start (the turn is already open)", () => {
+    const evs = pushAll([resultWithDenial()]);
+    expect(evs.filter((e) => e.type === "turn.start")).toHaveLength(1);
+    expect(evs[0]?.type).toBe("turn.start");
+  });
+
+  it("a turn an assistant frame opened is NOT re-opened by its result (one turn.start per turn)", () => {
+    const evs = pushAll([assistantMsg([{ type: "text", text: "hi", citations: null }]), resultSuccess("end_turn")]);
+    expect(evs.filter((e) => e.type === "turn.start")).toHaveLength(1);
   });
 });
 
@@ -903,8 +942,8 @@ describe("createClaudeNormalizer — result success with usage", () => {
 describe("createClaudeNormalizer — result error", () => {
   it("maps error_max_turns to turn.error with retriable: false", () => {
     const evs = run(resultError("error_max_turns"));
-    expect(evs.map((e) => e.type)).toEqual(["turn.error"]);
-    expect(evs[0]).toMatchObject({
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "turn.error"]);
+    expect(evs[1]).toMatchObject({
       type: "turn.error",
       code: "error_max_turns",
       retriable: false,
@@ -1180,7 +1219,7 @@ describe("createClaudeNormalizer — permission_denials on an error-subtype resu
 
   it("NEGATIVE CONTROL: empty denials stay byte-identical; malformed denials are skipped, never thrown on", () => {
     const bare = drive([resultError("error_max_turns")]);
-    expect(bare.map((e) => e.type)).toEqual(["turn.error"]);
+    expect(bare.map((e) => e.type)).toEqual(["turn.start", "turn.error"]);
     expect(JSON.stringify(drive([{ ...resultError("error_max_turns"), permission_denials: [] }]))).toBe(JSON.stringify(bare));
     for (const bad of ["nope", null, 7, [{ tool_name: 1 }], [{ tool_use_id: "x" }], [null]]) {
       expect(() => drive([{ ...resultError("error_max_turns"), permission_denials: bad }])).not.toThrow();
@@ -4005,8 +4044,8 @@ describe("createClaudeNormalizer — deferred_tool_use rides ext.anthropic.resul
   it("carries deferred_tool_use verbatim as result-meta.deferredToolUse, before the close, without touching the fold", () => {
     const evs = run({ ...(resultSuccess("tool_use") as object), deferred_tool_use: DEFERRED } as unknown as SDKMessage);
     assertAllValid(evs);
-    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
-    expect(evs[0]).toMatchObject({ deferredToolUse: DEFERRED });
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.done"]);
+    expect(evs[1]).toMatchObject({ deferredToolUse: DEFERRED });
     const r = new Reducer();
     for (const e of evs) r.push(e);
     expect(r.needsResync).toBe(false);
@@ -4015,7 +4054,7 @@ describe("createClaudeNormalizer — deferred_tool_use rides ext.anthropic.resul
 
   it("NEGATIVE CONTROL: absent or non-object deferred_tool_use emits nothing new (byte-identical)", () => {
     const bare = run(resultSuccess("end_turn"));
-    expect(bare.map((e) => e.type)).toEqual(["turn.done"]);
+    expect(bare.map((e) => e.type)).toEqual(["turn.start", "turn.done"]);
     for (const bad of [null, "Bash", 7, ["x"]]) {
       const evs = run({ ...(resultSuccess("end_turn") as object), deferred_tool_use: bad } as unknown as SDKMessage);
       expect(JSON.stringify(evs)).toBe(JSON.stringify(bare));
@@ -4056,14 +4095,14 @@ describe("createClaudeNormalizer — 0.3.220 result-meta carry (fast_mode_disabl
 
   it("carries fast_mode_disabled_reason + per-model canonicalModel/provider as ONE ext.anthropic.result-meta before turn.done", () => {
     const evs = run(resultSuccessWithMeta("extra_usage_disabled"));
-    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
-    expect(evs[0]).toMatchObject({
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.done"]);
+    expect(evs[1]).toMatchObject({
       type: "ext.anthropic.result-meta",
       fastModeDisabledReason: "extra_usage_disabled",
       modelUsage: { "claude-opus": { canonicalModel: "claude-opus-4-7", provider: "bedrock" } },
     });
     // turn.done itself is unchanged — usage.byModel still maps the token/cost fields.
-    expect(evs[1]).toMatchObject({
+    expect(evs[2]).toMatchObject({
       type: "turn.done",
       finishReason: "stop",
       usage: { byModel: { "claude-opus": { inputTokens: 100, costUsd: 0.05 } } },
@@ -4073,8 +4112,8 @@ describe("createClaudeNormalizer — 0.3.220 result-meta carry (fast_mode_disabl
 
   it("emits the carry with modelUsage identity alone (no fabricated fastModeDisabledReason key)", () => {
     const evs = run(resultSuccessWithMeta());
-    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
-    expect(evs[0]).toMatchObject({
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.done"]);
+    expect(evs[1]).toMatchObject({
       modelUsage: { "claude-opus": { canonicalModel: "claude-opus-4-7", provider: "bedrock" } },
     });
     expect((evs[0] as { fastModeDisabledReason?: unknown }).fastModeDisabledReason).toBeUndefined();
@@ -4086,12 +4125,12 @@ describe("createClaudeNormalizer — 0.3.220 result-meta carry (fast_mode_disabl
       fast_mode_disabled_reason: "network_error",
     };
     const evs = run(msg);
-    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.error"]);
-    expect(evs[0]).toMatchObject({
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.error"]);
+    expect(evs[1]).toMatchObject({
       type: "ext.anthropic.result-meta",
       fastModeDisabledReason: "network_error",
     });
-    expect(evs[1]).toMatchObject({
+    expect(evs[2]).toMatchObject({
       type: "turn.error",
       code: "error_during_execution",
       retriable: true,
@@ -4103,9 +4142,9 @@ describe("createClaudeNormalizer — 0.3.220 result-meta carry (fast_mode_disabl
     // The frozen fixtures carry neither fast_mode_disabled_reason nor any
     // modelUsage identity field — exactly the pre-0.3.220 wire.
     const success = run(resultSuccess("end_turn"));
-    expect(success.map((e) => e.type)).toEqual(["turn.done"]);
+    expect(success.map((e) => e.type)).toEqual(["turn.start", "turn.done"]);
     const error = run(resultError("error_max_turns"));
-    expect(error.map((e) => e.type)).toEqual(["turn.error"]);
+    expect(error.map((e) => e.type)).toEqual(["turn.start", "turn.error"]);
   });
 
   it("fold: a result-meta carry sandwiched inside a real turn folds clean through Reducer — needsResync===false", () => {
@@ -4166,15 +4205,15 @@ describe("createClaudeNormalizer — 0.3.258 result-meta additions (ModelUsage.c
       modelUsage: PRICED_MODEL_USAGE,
     };
     const evs = run(msg);
-    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
-    expect(evs[0]).toMatchObject({
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.done"]);
+    expect(evs[1]).toMatchObject({
       type: "ext.anthropic.result-meta",
       modelUsage: {
         "claude-opus": { canonicalModel: "claude-opus-4-7", provider: "bedrock", costBasis: "managed" },
       },
     });
     // turn.done's byModel still maps the token/cost fields, identity-free.
-    expect(evs[1]).toMatchObject({
+    expect(evs[2]).toMatchObject({
       type: "turn.done",
       usage: { byModel: { "claude-opus": { inputTokens: 100, costUsd: 0.05 } } },
     });
@@ -4188,8 +4227,8 @@ describe("createClaudeNormalizer — 0.3.258 result-meta additions (ModelUsage.c
       queued_turn_count: 0,
     };
     const evs = run(msg);
-    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
-    expect(evs[0]).toMatchObject({
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.done"]);
+    expect(evs[1]).toMatchObject({
       type: "ext.anthropic.result-meta",
       userMessageUuid: UMU,
       queuedTurnCount: 0,
@@ -4207,13 +4246,13 @@ describe("createClaudeNormalizer — 0.3.258 result-meta additions (ModelUsage.c
       queued_turn_count: 2,
     };
     const evs = run(msg);
-    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.error"]);
-    expect(evs[0]).toMatchObject({
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.error"]);
+    expect(evs[1]).toMatchObject({
       type: "ext.anthropic.result-meta",
       userMessageUuid: UMU,
       queuedTurnCount: 2,
     });
-    expect(evs[1]).toMatchObject({ type: "turn.error", code: "error_during_execution", retriable: true });
+    expect(evs[2]).toMatchObject({ type: "turn.error", code: "error_during_execution", retriable: true });
     assertAllValid(evs);
   });
 
@@ -4222,8 +4261,8 @@ describe("createClaudeNormalizer — 0.3.258 result-meta additions (ModelUsage.c
       ...(resultSuccess("end_turn") as SDKResultSuccessMsg),
       modelUsage: IDENTITY_ONLY_MODEL_USAGE,
     });
-    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
-    const meta = evs[0] as {
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.done"]);
+    const meta = evs[1] as {
       modelUsage?: { [model: string]: { costBasis?: unknown } | undefined };
       userMessageUuid?: unknown;
       queuedTurnCount?: unknown;
@@ -4233,8 +4272,8 @@ describe("createClaudeNormalizer — 0.3.258 result-meta additions (ModelUsage.c
     expect(meta.userMessageUuid).toBeUndefined();
     expect(meta.queuedTurnCount).toBeUndefined();
     // The frozen fixtures (no identity, no siblings) still emit NO result-meta at all.
-    expect(run(resultSuccess("end_turn")).map((e) => e.type)).toEqual(["turn.done"]);
-    expect(run(resultError("error_max_turns")).map((e) => e.type)).toEqual(["turn.error"]);
+    expect(run(resultSuccess("end_turn")).map((e) => e.type)).toEqual(["turn.start", "turn.done"]);
+    expect(run(resultError("error_max_turns")).map((e) => e.type)).toEqual(["turn.start", "turn.error"]);
   });
 
   // ── 0.3.259 (0.3.261 bump): `user_message_uuids` on BOTH result arms — the
@@ -4252,13 +4291,13 @@ describe("createClaudeNormalizer — 0.3.258 result-meta additions (ModelUsage.c
       user_message_uuids: UMUS,
     };
     const evs = run(msg);
-    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
-    expect(evs[0]).toMatchObject({
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.done"]);
+    expect(evs[1]).toMatchObject({
       type: "ext.anthropic.result-meta",
       userMessageUuid: UMU,
       userMessageUuids: UMUS,
     });
-    expect((evs[0] as { userMessageUuids?: unknown }).userMessageUuids).toEqual(UMUS);
+    expect((evs[1] as { userMessageUuids?: unknown }).userMessageUuids).toEqual(UMUS);
     assertAllValid(evs);
   });
 
@@ -4269,39 +4308,39 @@ describe("createClaudeNormalizer — 0.3.258 result-meta additions (ModelUsage.c
       user_message_uuids: UMUS,
     };
     const evs = run(msg);
-    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.error"]);
-    expect(evs[0]).toMatchObject({
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.error"]);
+    expect(evs[1]).toMatchObject({
       type: "ext.anthropic.result-meta",
       userMessageUuid: UMU,
       userMessageUuids: UMUS,
     });
-    expect(evs[1]).toMatchObject({ type: "turn.error", code: "error_during_execution", retriable: true });
+    expect(evs[2]).toMatchObject({ type: "turn.error", code: "error_during_execution", retriable: true });
     assertAllValid(evs);
   });
 
   it("negative control: a singular-only result emits NO userMessageUuids key (0.3.258 output byte-identical); a malformed list is ignored, never thrown", () => {
     const singularOnly = run({ ...(resultSuccess("end_turn") as SDKResultSuccessMsg), user_message_uuid: UMU });
-    expect(singularOnly.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
-    expect(singularOnly[0]).toEqual({
+    expect(singularOnly.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.done"]);
+    expect(singularOnly[1]).toEqual({
       type: "ext.anthropic.result-meta",
       userMessageUuid: UMU,
-      turnId: (singularOnly[0] as { turnId: string }).turnId,
-      seq: (singularOnly[0] as { seq: number }).seq,
+      turnId: (singularOnly[1] as { turnId: string }).turnId,
+      seq: (singularOnly[1] as { seq: number }).seq,
     });
-    expect((singularOnly[0] as { userMessageUuids?: unknown }).userMessageUuids).toBeUndefined();
+    expect((singularOnly[1] as { userMessageUuids?: unknown }).userMessageUuids).toBeUndefined();
 
     // Malformed (a non-string member) — assembled at the JSON boundary, no cast.
     const wire: unknown = { ...resultSuccess("end_turn"), user_message_uuid: UMU, user_message_uuids: [UMU, 7] };
     const n = createClaudeNormalizer();
     const evs = [...n.push(JsonValue.parse(wire)), ...n.flush()];
-    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
-    expect((evs[0] as { userMessageUuid?: unknown }).userMessageUuid).toBe(UMU);
-    expect((evs[0] as { userMessageUuids?: unknown }).userMessageUuids).toBeUndefined();
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.done"]);
+    expect((evs[1] as { userMessageUuid?: unknown }).userMessageUuid).toBe(UMU);
+    expect((evs[1] as { userMessageUuids?: unknown }).userMessageUuids).toBeUndefined();
     // Not-an-array — same outcome.
     const wire2: unknown = { ...resultSuccess("end_turn"), user_message_uuids: "nope" };
     const m = createClaudeNormalizer();
     const evs2 = [...m.push(JsonValue.parse(wire2)), ...m.flush()];
-    expect(evs2.map((e) => e.type)).toEqual(["turn.done"]);
+    expect(evs2.map((e) => e.type)).toEqual(["turn.start", "turn.done"]);
   });
 
   // ── 0.3.268 (0.3.272 bump): three more result-frame siblings on the SAME
@@ -4318,8 +4357,8 @@ describe("createClaudeNormalizer — 0.3.258 result-meta additions (ModelUsage.c
       resume_reason: RESUME_REASON,
     };
     const evs = run(msg);
-    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
-    expect(evs[0]).toMatchObject({
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.done"]);
+    expect(evs[1]).toMatchObject({
       type: "ext.anthropic.result-meta",
       userMessageUuid: UMU,
       resumeReason: RESUME_REASON,
@@ -4333,29 +4372,29 @@ describe("createClaudeNormalizer — 0.3.258 result-meta additions (ModelUsage.c
       resume_reason: "interrupted_turn",
     };
     const evs = run(msg);
-    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.error"]);
-    expect(evs[0]).toMatchObject({ type: "ext.anthropic.result-meta", resumeReason: "interrupted_turn" });
-    expect(evs[1]).toMatchObject({ type: "turn.error", code: "error_during_execution", retriable: true });
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.error"]);
+    expect(evs[1]).toMatchObject({ type: "ext.anthropic.result-meta", resumeReason: "interrupted_turn" });
+    expect(evs[2]).toMatchObject({ type: "turn.error", code: "error_during_execution", retriable: true });
     assertAllValid(evs);
   });
 
   it("carries resultIndex on BOTH arms — 0 is a REAL value (the first result of every run), never dropped by truthiness", () => {
     const first = run({ ...(resultSuccess("end_turn") as SDKResultSuccessMsg), result_index: 0 });
-    expect(first.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
-    expect(first[0]).toMatchObject({ type: "ext.anthropic.result-meta", resultIndex: 0 });
+    expect(first.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.done"]);
+    expect(first[1]).toMatchObject({ type: "ext.anthropic.result-meta", resultIndex: 0 });
     // Explicitly: the key EXISTS and is the number 0, not absent.
-    expect((first[0] as { resultIndex?: unknown }).resultIndex).toBe(0);
+    expect((first[1] as { resultIndex?: unknown }).resultIndex).toBe(0);
     assertAllValid(first);
 
     const later = run({ ...(resultSuccess("end_turn") as SDKResultSuccessMsg), result_index: 7 });
-    expect(later[0]).toMatchObject({ resultIndex: 7 });
+    expect(later[1]).toMatchObject({ resultIndex: 7 });
 
     const errored = run({
       ...(resultError("error_during_execution") as SDKResultErrorMsg),
       result_index: 3,
     });
-    expect(errored.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.error"]);
-    expect(errored[0]).toMatchObject({ type: "ext.anthropic.result-meta", resultIndex: 3 });
+    expect(errored.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.error"]);
+    expect(errored[1]).toMatchObject({ type: "ext.anthropic.result-meta", resultIndex: 3 });
     assertAllValid(errored);
   });
 
@@ -4365,8 +4404,8 @@ describe("createClaudeNormalizer — 0.3.258 result-meta additions (ModelUsage.c
     const wire: unknown = { ...resultSuccess("end_turn"), local_command: "context", result_index: 0 };
     const n = createClaudeNormalizer();
     const evs = [...n.push(JsonValue.parse(wire)), ...n.flush()];
-    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
-    expect(evs[0]).toMatchObject({
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.done"]);
+    expect(evs[1]).toMatchObject({
       type: "ext.anthropic.result-meta",
       localCommand: "context",
       resultIndex: 0,
@@ -4378,29 +4417,30 @@ describe("createClaudeNormalizer — 0.3.258 result-meta additions (ModelUsage.c
     const custom: unknown = { ...resultSuccess("end_turn"), local_command: "custom" };
     const m = createClaudeNormalizer();
     const evsC = [...m.push(JsonValue.parse(custom)), ...m.flush()];
-    expect(evsC[0]).toMatchObject({ localCommand: "custom" });
+    expect(evsC[1]).toMatchObject({ localCommand: "custom" });
 
     // A non-string is guarded out, never thrown on (Tenet 6).
     const bad: unknown = { ...resultSuccess("end_turn"), local_command: 7 };
     const k = createClaudeNormalizer();
     const evsB = [...k.push(JsonValue.parse(bad)), ...k.flush()];
-    expect(evsB.map((e) => e.type)).toEqual(["turn.done"]);
+    expect(evsB.map((e) => e.type)).toEqual(["turn.start", "turn.done"]);
   });
 
   it("negative control: frames without the three 0.3.268 siblings emit no such keys — pre-0.3.268 output byte-identical", () => {
     const withOld = run({ ...(resultSuccess("end_turn") as SDKResultSuccessMsg), user_message_uuid: UMU });
-    expect(withOld.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
+    expect(withOld.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.done"]);
     // The whole carrier, exhaustively: exactly the 0.3.258 bag, nothing added.
-    expect(withOld[0]).toEqual({
+    expect(withOld[1]).toEqual({
       type: "ext.anthropic.result-meta",
       userMessageUuid: UMU,
-      turnId: (withOld[0] as { turnId: string }).turnId,
-      seq: (withOld[0] as { seq: number }).seq,
+      turnId: (withOld[1] as { turnId: string }).turnId,
+      seq: (withOld[1] as { seq: number }).seq,
     });
 
-    // And the frozen fixtures (no siblings at all) still emit NO result-meta.
-    expect(run(resultSuccess("end_turn")).map((e) => e.type)).toEqual(["turn.done"]);
-    expect(run(resultError("error_max_turns")).map((e) => e.type)).toEqual(["turn.error"]);
+    // And the frozen fixtures (no siblings at all) still emit NO result-meta
+    // (a result-only turn opens with its own turn.start, INV-TURN).
+    expect(run(resultSuccess("end_turn")).map((e) => e.type)).toEqual(["turn.start", "turn.done"]);
+    expect(run(resultError("error_max_turns")).map((e) => e.type)).toEqual(["turn.start", "turn.error"]);
   });
 
   it("fold: the 0.3.268 siblings inside a real turn fold clean through Reducer — needsResync===false", () => {
@@ -5447,21 +5487,21 @@ describe("createClaudeNormalizer — result-frame subagent_stats (runtime-only, 
     const wire: unknown = { ...resultSuccess("end_turn"), subagent_stats: STATS };
     const n = createClaudeNormalizer();
     const evs = [...n.push(JsonValue.parse(wire)), ...n.flush()];
-    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.done"]);
-    expect((evs[0] as { subagentStats?: unknown }).subagentStats).toEqual(STATS);
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.done"]);
+    expect((evs[1] as { subagentStats?: unknown }).subagentStats).toEqual(STATS);
     assertAllValid(evs);
   });
 
   it("emits NO subagentStats key (and no result-meta at all) when the frame lacks it — byte-identical pre-0.3.258 output", () => {
     const evs = run(resultSuccess("end_turn"));
-    expect(evs.map((e) => e.type)).toEqual(["turn.done"]);
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "turn.done"]);
   });
 
   it("a malformed (non-object) subagent_stats is ignored, never thrown (Tenet 6)", () => {
     const wire: unknown = { ...resultSuccess("end_turn"), subagent_stats: "nope" };
     const n = createClaudeNormalizer();
     const evs = [...n.push(JsonValue.parse(wire)), ...n.flush()];
-    expect(evs.map((e) => e.type)).toEqual(["turn.done"]);
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "turn.done"]);
   });
 });
 
@@ -6095,9 +6135,9 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
 
   it("result-only path (no assistant error frame was seen): the result closes the turn with turn.error — message = result text, code = api_error_code, retriable from the HTTP status, usage kept", () => {
     const evs = drive([apiErrorResultFrame({ api_error_code: "rate_limit_exceeded" })]);
-    expect(evs.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.error"]);
-    expect(evs[0]).toMatchObject({ apiErrorCode: "rate_limit_exceeded" });
-    expect(evs[1]).toMatchObject({
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.error"]);
+    expect(evs[1]).toMatchObject({ apiErrorCode: "rate_limit_exceeded" });
+    expect(evs[2]).toMatchObject({
       type: "turn.error",
       turnId: RESULT_ONLY_TURN,
       message: API_ERROR_TEXT,
@@ -6129,8 +6169,8 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     }
     // Absent status (an older producer): not retriable, still an error close.
     const evs = drive([withoutKey(apiErrorResultFrame(), "api_error_status")]);
-    expect(evs.map((e) => e.type)).toEqual(["turn.error"]);
-    expect(evs[0]).toMatchObject({ code: "api_error", retriable: false });
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "turn.error"]);
+    expect(evs[1]).toMatchObject({ code: "api_error", retriable: false });
   });
 
   it("result-only path with denials: the `<turnId>:denials` carrier opens as on every turn — then turn.error", () => {
@@ -6158,8 +6198,10 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     // before CL-09 (identical at HEAD and before the stash). The one change
     // since: the per-turn ids (INV-TURN, B) name this result-only turn by the
     // result's uuid, not by the session.
+    // And since the result-only turn.start (INV-TURN), a turn.start at seq 0.
     const GOLDEN =
-      '[{"type":"turn.done","seq":0,"turnId":"turn_00000000-0000-0000-0000-000000000002","outcome":{"type":"success","result":"all done"},' +
+      '[{"type":"turn.start","seq":0,"turnId":"turn_00000000-0000-0000-0000-000000000002","threadId":"sess_fixture"},' +
+      '{"type":"turn.done","seq":1,"turnId":"turn_00000000-0000-0000-0000-000000000002","outcome":{"type":"success","result":"all done"},' +
       '"finishReason":"stop","usage":{"inputTokens":100,"outputTokens":50,"cacheReadTokens":20,"cacheWriteTokens":10,' +
       '"serverToolRequests":0,"costUsd":0.05,"cumulative":true,"byModel":{"claude-opus":{"inputTokens":100,' +
       '"outputTokens":50,"cacheReadTokens":20,"cacheWriteTokens":10,"costUsd":0.05,"serverToolRequests":0,' +
@@ -6592,9 +6634,9 @@ describe("createClaudeNormalizer — startup_failure_reason (0.3.274, SDKResultE
     expect(table).toHaveLength(16);
     for (const [reason, retriable] of table) {
       const evs = drive([startupFailure(reason)]);
-      expect(evs.map((e) => e.type), reason).toEqual(["ext.anthropic.result-meta", "turn.error"]);
-      expect(evs[0], reason).toMatchObject({ startupFailureReason: reason });
-      expect(evs[1], reason).toMatchObject({
+      expect(evs.map((e) => e.type), reason).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.error"]);
+      expect(evs[1], reason).toMatchObject({ startupFailureReason: reason });
+      expect(evs[2], reason).toMatchObject({
         type: "turn.error",
         code: "error_during_execution",
         message: "Claude Code could not start: see stderr",
@@ -6605,16 +6647,16 @@ describe("createClaudeNormalizer — startup_failure_reason (0.3.274, SDKResultE
 
   it("an unknown future value is carried and is NOT retriable (the enum's 'offer the fix instead of a retry' framing)", () => {
     const evs = drive([startupFailure("some_new_reason")]);
-    expect(evs[0]).toMatchObject({ startupFailureReason: "some_new_reason" });
-    expect(evs[1]).toMatchObject({ type: "turn.error", retriable: false });
+    expect(evs[1]).toMatchObject({ startupFailureReason: "some_new_reason" });
+    expect(evs[2]).toMatchObject({ type: "turn.error", retriable: false });
   });
 
   it("NEGATIVE CONTROL: absent (or non-string) reason keeps the old rule and emits no result-meta — byte-identical", () => {
     const during = run(resultError("error_during_execution"));
-    expect(during.map((e) => e.type)).toEqual(["turn.error"]);
-    expect(during[0]).toMatchObject({ code: "error_during_execution", retriable: true });
+    expect(during.map((e) => e.type)).toEqual(["turn.start", "turn.error"]);
+    expect(during[1]).toMatchObject({ code: "error_during_execution", retriable: true });
     const maxTurns = run(resultError("error_max_turns"));
-    expect(maxTurns[0]).toMatchObject({ code: "error_max_turns", retriable: false });
+    expect(maxTurns[1]).toMatchObject({ code: "error_max_turns", retriable: false });
     const malformed = drive([{ ...resultError("error_during_execution"), startup_failure_reason: 3 }]);
     expect(malformed).toEqual(during);
   });

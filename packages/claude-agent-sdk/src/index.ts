@@ -1125,9 +1125,20 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
     return openTopTurnId;
   }
   // The result frame closes the open turn (or, for a result-only turn, the one
-  // it opens itself) and clears it.
-  function closingTopTurnId(resultUuid: unknown): string {
-    const turnId = openTopTurnId ?? topTurnId(resultUuid, undefined);
+  // it opens itself) and clears it. A RESULT-ONLY turn (no assistant frame,
+  // notice or stream opened it: the CL-09 result-only API-error path, a
+  // startup-failure result, a local-command result) is OPENED here with an
+  // explicit turn.start before anything else the result emits (INV-TURN,
+  // SPEC:743: every turn is opened by exactly one turn.start and closed by
+  // exactly one terminal; sp-protocol, 2026-09-23). Through the B commit such a
+  // turn was only closed, and reduce() minted a stub record whose threadId was
+  // the turnId. An open turn already has its turn.start (openMessage).
+  function closingTopTurnId(resultUuid: unknown, sessionId: string): string {
+    let turnId = openTopTurnId;
+    if (turnId === undefined) {
+      turnId = topTurnId(resultUuid, undefined);
+      a.openTurn(turnId, options.threadId ?? sessionId);
+    }
     openTopTurnId = undefined;
     closedTopTurnIds.add(turnId);
     return turnId;
@@ -2448,7 +2459,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       closePendingMessage();
       // Every subagent run still open ends with the turn (per-run bracket).
       closeAllRuns();
-      const turnId = closingTopTurnId(msg.uuid);
+      const turnId = closingTopTurnId(msg.uuid, msg.session_id);
       // CL-09 (0.3.280 sweep): `subtype: "success"` does NOT mean the turn
       // succeeded. Upstream's SDKResultMessage doc: "subtype "success" carries
       // the final assistant text in result — or, with is_error true, the error
@@ -2537,7 +2548,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // guuey#26: seal the open assistant message before the turn close.
       closePendingMessage();
       closeAllRuns();
-      const turnId = closingTopTurnId(msg.uuid);
+      const turnId = closingTopTurnId(msg.uuid, msg.session_id);
       // CL-09: consume any stashed assistant-error close for this turnId — this
       // frame emits it (below). Each turn has its own id now, so an entry can
       // only ever be this turn's.
