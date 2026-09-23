@@ -495,7 +495,7 @@ describe("text-start/text-end providerMetadata carry (captured echo-gpt56/gpt6as
     expectAllParse(out);
   });
 
-  it("a hostile bag (non-object, circular) on text-start/text-end is skipped, never throws", () => {
+  it("a hostile bag on text-start/text-end never throws: a non-object is skipped, a circular bag keeps everything but its repeated node", () => {
     const circular: { [k: string]: unknown } = { openai: {} };
     (circular["openai"] as { [k: string]: unknown })["self"] = circular;
     const n = createVercelNormalizer();
@@ -507,9 +507,14 @@ describe("text-start/text-end providerMetadata carry (captured echo-gpt56/gpt6as
       ...n.push({ type: "text-end", id: "t1", providerMetadata: circular }),
       ...n.flush(),
     ];
-    for (const e of out.filter((x) => x.type === "text.start" || x.type === "text.end")) {
-      expect("providerMetadata" in e).toBe(false);
-    }
+    // A non-object bag has nothing to carry.
+    expect("providerMetadata" in (out.find((x) => x.type === "text.start") ?? {})).toBe(false);
+    // A circular bag degrades per node (core toJsonValueSafe): the cycle becomes
+    // "[Circular]" at the repeated node and the rest of the bag rides. Before the json-safe switch it collapsed to
+    // "[object Object]" and was dropped whole.
+    expect((out.find((x) => x.type === "text.end") as { providerMetadata?: unknown }).providerMetadata).toEqual({
+      openai: { self: "[Circular]" },
+    });
     expectAllParse(out);
   });
 });
@@ -1950,5 +1955,31 @@ describe("turn.done.finishReasonRaw for an unmapped native finish reason (draft.
   it("the turn record folds finishReasonRaw", () => {
     const res = reduce(run(stream({ finishReason: "other", rawFinishReason: "zz" })));
     expect(res.turns[0]).toMatchObject({ finishReason: "other", finishReasonRaw: "zz" });
+  });
+});
+
+describe("live (not JSON round-tripped) parts: no throw, and no whole-value collapse (core toJsonValueSafe)", () => {
+  it("a tool output holding a cycle and a BigInt keeps every JSON-able sibling; only those nodes degrade", () => {
+    const output: Record<string, unknown> = { keep: "sibling", n: 10n, when: new Date(0), gone: undefined };
+    output["self"] = output;
+    const out = run([
+      { type: "start" },
+      { type: "start-step", request: {}, warnings: [] },
+      { type: "tool-call", toolCallId: "c1", toolName: "echo", input: { msg: "hi", big: 2n } },
+      { type: "tool-result", toolCallId: "c1", toolName: "echo", input: { msg: "hi" }, output },
+      { type: "finish-step", finishReason: "stop", rawFinishReason: "stop", usage: USAGE, response: RESPONSE_S1 },
+      { type: "finish", finishReason: "stop", rawFinishReason: "stop", totalUsage: USAGE },
+    ]);
+    const done = out.find((e) => e.type === "tool.done");
+    const serialized = JSON.stringify(done);
+    // Before: safeJson's String(v) fallback made the whole output "[object Object]".
+    expect(serialized).not.toContain("[object Object]");
+    expect(serialized).toContain('"keep":"sibling"');
+    expect(serialized).toContain('"n":"10"');
+    expect(serialized).toContain('"when":"1970-01-01T00:00:00.000Z"');
+    expect(serialized).toContain('"self":"[Circular]"');
+    expect(serialized).not.toContain('"gone"');
+    expect(JSON.stringify(out.find((e) => e.type === "tool.args.assembled"))).toContain('"big":"2"');
+    expectAllParse(out);
   });
 });

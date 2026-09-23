@@ -100,7 +100,7 @@
  */
 
 import type { AgEvent, AgFinishReason, AgUsage, JsonValue, Normalizer } from "@silverprotocol/core";
-import { AgProviderMeta, StreamAssembler, toJsonValue } from "@silverprotocol/core";
+import { AgProviderMeta, StreamAssembler, toJsonValueSafe } from "@silverprotocol/core";
 
 // ─── host-boundary sentinel (error arm C) ────────────────────────────────────
 
@@ -118,14 +118,14 @@ export interface VercelStreamPart {
   [k: string]: unknown;
 }
 
-/** JSON-materialize ANY input without ever throwing (Tenet 6). */
+/** JSON-materialize ANY input without ever throwing (Tenet 6). Core's
+ *  toJsonValueSafe keeps JSON semantics per node and degrades only the node
+ *  that cannot be JSON (a cycle → "[Circular]", a BigInt → its string), so a
+ *  live value never collapses whole. The earlier `String(v)` fallback turned
+ *  an entire tool output into "[object Object]". Plain input is returned
+ *  unchanged. */
 function safeJson(v: unknown): JsonValue {
-  if (v === undefined) return null;
-  try {
-    return toJsonValue(v);
-  } catch {
-    return String(v);
-  }
+  return toJsonValueSafe(v);
 }
 
 /** True for a non-null, non-array object carrying a string `type` (guard idiom
