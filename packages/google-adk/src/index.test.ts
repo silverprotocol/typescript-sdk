@@ -1170,6 +1170,21 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
 
   const stateDeltaOf = (out: AgEvent[]): JsonValue[] =>
     out.filter((e) => e.type === "state.delta").map((e) => (e as { patch: JsonValue }).patch);
+  const foldedState = (out: AgEvent[]): unknown => {
+    const r = new Reducer();
+    for (const e of out) r.push(e);
+    expect(r.needsResync).toBe(false);
+    return r.result().state;
+  };
+  /** Every object, at any depth, that carries an OWN `__proto__` key. */
+  const ownProtoPaths = (v: unknown, path = "$", hits: string[] = []): string[] => {
+    if (Array.isArray(v)) v.forEach((x, i) => ownProtoPaths(x, `${path}[${i}]`, hits));
+    else if (v !== null && typeof v === "object") {
+      if (Object.hasOwn(v, "__proto__")) hits.push(path);
+      for (const k of Object.keys(v)) ownProtoPaths((v as { [k: string]: unknown })[k], `${path}.${k}`, hits);
+    }
+    return hits;
+  };
   const httpBearer = { authType: "http", http: { scheme: "bearer", credentials: { token: "SECRET_bearer_token" } } };
   const oauth2Exchanged = {
     authType: "oauth2",
@@ -1233,6 +1248,8 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
   it("state.delta: a serviceAccount credential that holds no secret (useDefaultCredential) is still omitted: fail-closed by design, not a false positive", () => {
     const out = run([event([], { actions: { stateDelta: { k: { authType: "serviceAccount", serviceAccount: { useDefaultCredential: true } }, n: 2 } } })]);
     expect(stateDeltaOf(out)).toEqual([{ n: 2 }]);
+    const state = foldedState(out);
+    expect(state !== null && typeof state === "object" && Object.hasOwn(state, "k")).toBe(false);
   });
 
   it("state.delta: a credential that only names a stored credential (resourceRef, either spelling) is omitted; a bare resourceRef with no authType is carried", () => {
@@ -1240,14 +1257,61 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
       event([], {
         actions: {
           stateDelta: {
-            k: { authType: "apiKey", resourceRef: "projects/1/locations/x/resources/r" },
-            s: { auth_type: "oauth2", resource_ref: "projects/1/locations/x/resources/s" },
+            k: { authType: "apiKey", resourceRef: "projects/1/locations/x/resources/LOCATOR_MARKER_k" },
+            s: { auth_type: "oauth2", resource_ref: "projects/1/locations/x/resources/LOCATOR_MARKER_s" },
             plain: { resourceRef: "x" },
+            nullRef: { authType: "apiKey", resourceRef: null },
           },
         },
       }),
     ]);
-    expect(stateDeltaOf(out)).toEqual([{ plain: { resourceRef: "x" } }]);
+    // A null resourceRef is not a credential member (own and non-null only).
+    expect(stateDeltaOf(out)).toEqual([{ plain: { resourceRef: "x" }, nullRef: { authType: "apiKey", resourceRef: null } }]);
+    expect(JSON.stringify(out)).not.toContain("LOCATOR_MARKER");
+    expect(JSON.stringify(foldedState(out))).not.toContain("LOCATOR_MARKER");
+  });
+
+  it("a rebuilt state map carries no reserved key: an own __proto__ in a JSON-parsed native (top level and nested) never reaches a patch or the folded state, on either path", () => {
+    const natives: JsonValue[] = [
+      // nothing omitted: the plain parse path
+      JSON.parse('{"invocationId":"inv_fixture_1","author":"agent","content":{"role":"model","parts":[{"text":"ok"}]},"actions":{"stateDelta":{"__proto__":{"polluted":"SECRET_p"},"cart":3,"nested":{"__proto__":{"deep":"SECRET_p"},"b":2}}}}'),
+      // an entry omitted: the rebuilt-map path
+      JSON.parse('{"invocationId":"inv_fixture_1","author":"agent","content":{"role":"model","parts":[{"text":"ok"}]},"actions":{"stateDelta":{"__proto__":{"polluted":"SECRET_p"},"temp:k":"SECRET_temp","cart":3,"nested":{"__proto__":{"deep":"SECRET_p"},"b":2}}}}'),
+    ];
+    for (const native of natives) {
+      const n = createAdkNormalizer();
+      const out = [...n.push(native), ...n.flush()];
+      expect(stateDeltaOf(out)).toEqual([{ cart: 3, nested: { b: 2 } }]);
+      expect(ownProtoPaths(out)).toEqual([]);
+      const state = foldedState(out);
+      expect(ownProtoPaths(state)).toEqual([]);
+      // Neither dropped into a prototype: a rebuild by bracket assignment
+      // would SET the prototype to the native's object instead of skipping it.
+      for (const obj of [...stateDeltaOf(out), state]) {
+        expect(Object.getPrototypeOf(obj)).toBe(Object.prototype);
+        expect((obj as { polluted?: unknown }).polluted).toBeUndefined();
+      }
+      const nested = (stateDeltaOf(out)[0] as { nested?: object }).nested;
+      expect(nested !== undefined && Object.getPrototypeOf(nested) === Object.prototype).toBe(true);
+      expect(JSON.stringify(out)).not.toContain("SECRET_p");
+      expect(JSON.stringify(state)).not.toContain("SECRET_p");
+      expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
+    }
+  });
+
+  it("a rebuilt scope map carries no reserved key: an own __proto__ scope in a JSON-parsed credential answer never reaches the wire", () => {
+    const n = createAdkNormalizer();
+    const out = [
+      ...n.push(toJsonValue(event([{ functionCall: { name: "adk_request_credential", args: { functionCallId: "o" }, id: "adk-cred-1" } }], { longRunningToolIds: ["adk-cred-1"] }))),
+      ...n.push(
+        JSON.parse(
+          '{"invocationId":"inv_fixture_1","content":{"role":"user","parts":[{"functionResponse":{"name":"adk_request_credential","id":"adk-cred-1","response":{"authScheme":{"type":"oauth2","flows":{"clientCredentials":{"tokenUrl":"https://idp.example/t","scopes":{"__proto__":"x","read":"Read"}}}}}}}]}}',
+        ),
+      ),
+      ...n.flush(),
+    ];
+    expect(JSON.stringify(out)).toContain('"read":"Read"');
+    expect(ownProtoPaths(out)).toEqual([]);
   });
 
   it("state.delta: exactly one event per native state change, {} when every entry is omitted, partial events included", () => {

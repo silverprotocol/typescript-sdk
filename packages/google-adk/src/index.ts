@@ -1330,13 +1330,21 @@ const AUTH_CREDENTIAL_ALLOW: AllowSpec = {
 const schemeString = (v: JsonValue): JsonValue | undefined => (typeof v === "string" ? v : undefined);
 const schemeStringList = (v: JsonValue): JsonValue | undefined =>
   Array.isArray(v) ? v.filter((x) => typeof x === "string") : undefined;
+/** A map this facet rebuilds from native entries never carries an own
+ *  `__proto__` key (SPEC §13.7): JsonValue.parse drops one, and
+ *  Object.fromEntries would re-create it as an own property. */
+function isReservedMapKey(k: string): boolean {
+  return k === "__proto__";
+}
 /** OAuth2 flow scopes are a map of scope name -> description; OIDC config
  *  scopes are a list. Either keeps only its string entries. */
 const schemeScopes = (v: JsonValue): JsonValue | undefined =>
   Array.isArray(v)
     ? schemeStringList(v)
     : isJsonObject(v)
-      ? Object.fromEntries(Object.entries(v).filter((e): e is [string, string] => typeof e[1] === "string"))
+      ? Object.fromEntries(
+          Object.entries(v).filter((e): e is [string, string] => !isReservedMapKey(e[0]) && typeof e[1] === "string"),
+        )
       : undefined;
 const OAUTH2_FLOW_ALLOW: AllowSpec = {
   authorizationUrl: schemeString,
@@ -1462,7 +1470,7 @@ function scrubStateMap(raw: unknown): JsonValue {
   if (!omitted.includes(true)) return JsonValue.parse(raw);
   const kept: [string, JsonValue][] = [];
   keys.forEach((k, i) => {
-    if (omitted[i] === true) return;
+    if (omitted[i] === true || isReservedMapKey(k)) return;
     const parsed = JsonValue.safeParse(raw[k]);
     if (parsed.success) kept.push([k, parsed.data]);
   });
