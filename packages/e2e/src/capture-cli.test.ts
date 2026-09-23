@@ -30,7 +30,7 @@
 import { describe, expect, it } from "vitest";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type { JsonValue } from "@silverprotocol/core";
 import { createClaudeNormalizer } from "@silverprotocol/claude-agent-sdk";
 import { census } from "./census.js";
@@ -358,4 +358,98 @@ describe.runIf(process.env["CAPTURE"] === "1")("e2e:capture — LIVE (operator)"
     const outDir = await runCaptureCli(scenarioName, frameworkRaw);
     console.log(`e2e:capture: corpus triple + provenance sidecar written to ${outDir}`);
   }, 300000);
+});
+
+// ─── expectError: an error seed persists the natives the run yielded before it threw ──
+describe("runCaptureAndWrite — expectError (error seeds; probe queue item 1)", () => {
+  // The Claude Agent SDK surfaces an API error in-band and THEN throws out of
+  // the query iterator; this boundary does the same after the result frame.
+  const throwingDeps = (message: string, hostCompletion = false): CaptureDeps => ({
+    async *runAgentCapture(_input) {
+      yield* fakeNativeNoTools();
+      throw new Error(message);
+    },
+    serveMock,
+    createNormalizer: createClaudeNormalizer,
+    census,
+    ...(hostCompletion ? { hostCompletion: true } : {}),
+  });
+
+  it("writes the natives that arrived before the throw, and the thrown message into provenance note", async () => {
+    const outDir = await mkdtemp(join(tmpdir(), "capture-cli-test-"));
+    try {
+      const scenario = Scenario.parse({ name: "api-error", prompt: "Say something.", expectError: true });
+      const { cassette } = await runCaptureAndWrite(
+        scenario,
+        throwingDeps("Claude Code process exited with code 1", true),
+        { ports: [], framework: "claude" },
+        outDir,
+        { sdkVersion: "0.3.280", model: "claude-sonnet-5" },
+      );
+      expect(cassette.runError).toBe("Claude Code process exited with code 1");
+      // Both frames kept; NO host-completion marker after a throw, even with hostCompletion set.
+      expect(await readJson(join(outDir, "claude.native.json"))).toEqual(fakeNativeNoTools());
+      const p = (await readJson(join(outDir, "claude.provenance.json"))) as { [k: string]: JsonValue };
+      expect(p["kind"]).toBe("capture");
+      expect(p["note"]).toBe(
+        "expectError seed: the run threw after its last native event: Claude Code process exited with code 1",
+      );
+    } finally {
+      await rm(outDir, { recursive: true, force: true });
+    }
+  });
+
+  it("an expectError scenario whose run returns normally fails the capture and writes nothing", async () => {
+    const outDir = join(await mkdtemp(join(tmpdir(), "capture-cli-test-")), "out");
+    try {
+      const scenario = Scenario.parse({ name: "api-error", prompt: "Say something.", expectError: true });
+      await expect(
+        runCaptureAndWrite(scenario, makeDeps(), { ports: [], framework: "claude" }, outDir, {
+          sdkVersion: null,
+          model: null,
+        }),
+      ).rejects.toThrow(/expects the run to fail \(expectError\) but it returned normally/);
+      await expect(readFile(join(outDir, "claude.native.json"), "utf8")).rejects.toThrow();
+    } finally {
+      await rm(dirname(outDir), { recursive: true, force: true });
+    }
+  });
+
+  it("without expectError a throw still propagates and writes nothing (negative control)", async () => {
+    const outDir = join(await mkdtemp(join(tmpdir(), "capture-cli-test-")), "out");
+    try {
+      const scenario = Scenario.parse({ name: "text-only", prompt: "Say something." });
+      await expect(
+        runCaptureAndWrite(scenario, throwingDeps("boom"), { ports: [], framework: "claude" }, outDir, {
+          sdkVersion: null,
+          model: null,
+        }),
+      ).rejects.toThrow("boom");
+      await expect(readFile(join(outDir, "claude.native.json"), "utf8")).rejects.toThrow();
+    } finally {
+      await rm(dirname(outDir), { recursive: true, force: true });
+    }
+  });
+
+  it("the expectTools check is skipped for a run that threw (a failed run calls no tools)", async () => {
+    const outDir = await mkdtemp(join(tmpdir(), "capture-cli-test-"));
+    try {
+      const scenario = Scenario.parse({
+        name: "api-error",
+        prompt: "Echo.",
+        mcpServers: [{ key: "t", kind: "text" }],
+        expectError: true,
+      });
+      const { cassette } = await runCaptureAndWrite(
+        scenario,
+        throwingDeps("401"),
+        { ports: [0], framework: "claude" },
+        outDir,
+        { sdkVersion: null, model: null },
+      );
+      expect(cassette.runError).toBe("401");
+    } finally {
+      await rm(outDir, { recursive: true, force: true });
+    }
+  });
 });

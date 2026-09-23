@@ -42,6 +42,8 @@ export interface Cassette {
   agjson: JsonValue[];
   /** Census lossiness report */
   coverage: CensusReport;
+  /** The message the run threw, kept only for an `expectError` scenario. */
+  runError?: string;
 }
 
 /**
@@ -153,15 +155,29 @@ export async function runCapture(
       ...(scenario.reasoningSummary !== undefined ? { reasoningSummary: scenario.reasoningSummary } : {}),
     };
 
-    for await (const event of deps.runAgentCapture(agentInput)) {
-      native.push(event);
+    let runError: string | undefined;
+    try {
+      for await (const event of deps.runAgentCapture(agentInput)) {
+        native.push(event);
+      }
+    } catch (err) {
+      // An error seed expects the throw and keeps what arrived before it.
+      if (scenario.expectError !== true) throw err;
+      runError = err instanceof Error ? err.message : String(err);
     }
-    // Reached only when the run returned normally (a throw skips it).
-    if (deps.hostCompletion === true) native.push({ type: HOST_COMPLETE_MARKER });
+    if (scenario.expectError === true && runError === undefined) {
+      throw new Error(
+        "runCapture: the scenario expects the run to fail (expectError) but it returned normally. " +
+          "No cassette written.",
+      );
+    }
+    // Only a run that returned normally gets the marker (never after a throw).
+    if (runError === undefined && deps.hostCompletion === true) native.push({ type: HOST_COMPLETE_MARKER });
 
     // ── Step 3: Verify expectTools ⊇ extractToolCalls(native) ────────────────
+    // (skipped for an error seed: a failed run calls no tools)
     const calledTools = extractToolCalls(native, opts.framework);
-    const missingTools = expectTools.filter((t) => !calledTools.includes(t));
+    const missingTools = runError !== undefined ? [] : expectTools.filter((t) => !calledTools.includes(t));
     if (missingTools.length > 0) {
       throw new Error(
         `runCapture: agent did not call expected tools: ${missingTools.join(", ")}. ` +
@@ -206,6 +222,7 @@ export async function runCapture(
       native,
       agjson: agEvents,
       coverage,
+      ...(runError !== undefined ? { runError } : {}),
     };
   } finally {
     // ── Cleanup: close all mock servers ────────────────────────────────────

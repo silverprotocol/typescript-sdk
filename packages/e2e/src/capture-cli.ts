@@ -218,6 +218,9 @@ export async function runCaptureAndWrite(
     capturedAt: new Date().toISOString(),
     sdkVersion: provenanceMeta.sdkVersion,
     model: provenanceMeta.model,
+    ...(cassette.runError !== undefined
+      ? { note: `expectError seed: the run threw after its last native event: ${cassette.runError}` }
+      : {}),
   };
 
   const fw = opts.framework;

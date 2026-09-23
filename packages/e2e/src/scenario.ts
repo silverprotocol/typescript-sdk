@@ -84,6 +84,17 @@ export const Scenario = z.object({
   // the host-completion marker. Model-named seeds using it MUST be captured
   // with an explicit CAPTURE_MODEL, like thinkingLevel.
   adkWorkflow: z.enum(["pause", "complete"]).optional(),
+  // Error-seed knob (any framework). The run is EXPECTED to throw: the Claude
+  // Agent SDK surfaces an API error in-band (an assistant frame with `error`,
+  // then a result with is_error:true and api_error_status) and THEN throws out
+  // of the query iterator. With the flag, runCapture keeps the natives that
+  // arrived before the throw, skips the expectTools check (a failed run calls
+  // no tools; declare no mcpServers), records no host-completion marker, and
+  // capture-cli writes the thrown message into provenance `note`. A run that
+  // returns normally FAILS the capture, so an error-seed name can never hold a
+  // success cassette. Added 2026-09-23 (probe queue item 1: until now no
+  // cassette carried is_error:true, because the throw escaped runCapture).
+  expectError: z.literal(true).optional(),
 });
 
 export type Scenario = z.infer<typeof Scenario>;
