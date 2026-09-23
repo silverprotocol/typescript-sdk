@@ -10,9 +10,12 @@
  * depth (SPEC.md:27 does not limit "untouched" to the top level). After a
  * successful `AgEvent.safeParse`, the returned event is an own-property deep
  * copy of the RAW input, not zod's validated output, which strips unknown
- * nested keys. The copy equals the validated value only because no schema in
- * agjson.ts rewrites values (no transform/default/coerce/catch/pipe/
- * preprocess); ingest.test.ts guards that.
+ * nested keys. The copy carries the same keys and values as the validated
+ * value only because no schema in agjson.ts rewrites values (no transform/
+ * default/coerce/catch/pipe/preprocess); ingest.test.ts guards that. It is
+ * NOT byte-identical to it: nested objects keep the PRODUCER's key order,
+ * where zod's output (and so 0.6.4's ingest) used the schema's. Over the
+ * 0.6.5 corpus that reordered 64 of 1,103 events, all inside `usage`.
  *
  * One exception, at every depth: a key named `__proto__` is dropped, never
  * copied. A consumer must not let wire data select the prototype of any object

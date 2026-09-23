@@ -123,10 +123,30 @@ describe("ingestAgEvent — wire data never sets the returned event's prototype 
     expect(Object.keys(e)).toEqual(["type", "seq", "turnId", "block", "futureField"]);
   });
 
-  it("an event without the key is byte-identical to the pre-fix merge", () => {
+  it("an event whose nested keys already follow the schema's order serializes like the old validated merge", () => {
+    // Only true because this fixture's nested block is in schema order; see the
+    // next test for the general case.
     const v = { type: "content.block", seq: 2, block: { type: "text", text: "x" }, futureField: 1 } as JsonValue;
     const expected = Object.assign({}, v, AgEvent.parse(v));
     expect(JSON.stringify(ingestAgEvent(v))).toBe(JSON.stringify(expected));
+  });
+
+  it("nested objects keep the PRODUCER's key order (not byte-identical to the old validated merge); keys and values are unchanged", () => {
+    // The shape that reordered 64 corpus events in 0.6.5: usage with totalTokens
+    // before reasoningTokens, where the schema declares reasoningTokens first.
+    const v = {
+      type: "turn.done",
+      seq: 0,
+      turnId: "t1",
+      outcome: { type: "success" },
+      finishReason: "stop",
+      usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3, reasoningTokens: 1 },
+    } as JsonValue;
+    const got = ingestAgEvent(v) as unknown as { usage: { [k: string]: number } };
+    expect(Object.keys(got.usage)).toEqual(["inputTokens", "outputTokens", "totalTokens", "reasoningTokens"]);
+    const old = Object.assign({}, v, AgEvent.parse(v)) as unknown as { usage: { [k: string]: number } };
+    expect(Object.keys(old.usage)).not.toEqual(Object.keys(got.usage)); // the disclosed reorder
+    expect(got.usage).toEqual(old.usage); // same keys, same values
   });
 });
 
