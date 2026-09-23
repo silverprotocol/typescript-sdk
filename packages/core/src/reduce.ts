@@ -480,6 +480,10 @@ export class Reducer {
           if (ev.sideData !== undefined) block.sideData = ev.sideData;
           if (ev.errorText !== undefined) block.errorText = ev.errorText;
           if (ev.errorCode !== undefined) block.errorCode = ev.errorCode;
+          // SPEC.md:799: tool.done lands toolMetadata and dynamic (the create
+          // path always did); same guarded per-field merge as the rest.
+          if (ev.toolMetadata !== undefined) block.toolMetadata = ev.toolMetadata;
+          if (ev.dynamic !== undefined) block.dynamic = ev.dynamic;
           if (ev.pendingInput !== undefined) block.pendingInput = ev.pendingInput;
           // workspace#9: the §0.4 host side-channel joins the merge like every
           // other result field — guarded, so a preliminary's `_meta` (the

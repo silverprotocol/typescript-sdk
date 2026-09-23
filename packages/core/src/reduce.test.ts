@@ -2571,6 +2571,55 @@ describe("INV-MSG seal + binding window enforcement (audit M19)", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("tool-result typed preliminary + turn.done.messageId targeting (audit M20)", () => {
+  // SPEC.md:799: tool.done lands toolMetadata and dynamic. The CREATE path
+  // always did; the MERGE path (a final tool.done over a more:true
+  // preliminary) dropped both. Same guarded per-field merge as its siblings.
+  it("a final tool.done over a preliminary lands toolMetadata + dynamic; a final that omits them keeps the preliminary's", () => {
+    const open = (): Reducer => {
+      const r = new Reducer();
+      r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+      r.push({ type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+      r.push({ type: "tool.start", seq: 2, toolCallId: "c1", name: "poll", turnId: "t1" });
+      return r;
+    };
+    const result = (r: Reducer) => r.result().messages[0]!.content.find((b) => b.type === "tool-result") as {
+      toolMetadata?: unknown;
+      dynamic?: boolean;
+    };
+
+    const landed = open();
+    landed.push({ type: "tool.done", seq: 3, toolCallId: "c1", content: [], outcome: "ok", more: true, turnId: "t1" });
+    landed.push({
+      type: "tool.done",
+      seq: 4,
+      toolCallId: "c1",
+      content: [{ type: "text", text: "done" }],
+      outcome: "ok",
+      toolMetadata: { "host/k": "final" },
+      dynamic: true,
+      turnId: "t1",
+    });
+    expect(landed.needsResync).toBe(false);
+    expect(result(landed).toolMetadata).toEqual({ "host/k": "final" });
+    expect(result(landed).dynamic).toBe(true);
+
+    const kept = open();
+    kept.push({
+      type: "tool.done",
+      seq: 3,
+      toolCallId: "c1",
+      content: [],
+      outcome: "ok",
+      more: true,
+      toolMetadata: { "host/k": "prelim" },
+      dynamic: false,
+      turnId: "t1",
+    });
+    kept.push({ type: "tool.done", seq: 4, toolCallId: "c1", content: [], outcome: "ok", turnId: "t1" });
+    expect(result(kept).toolMetadata).toEqual({ "host/k": "prelim" });
+    expect(result(kept).dynamic).toBe(false);
+  });
+
   it("more:true lands a typed preliminary flag on the tool-result block (audit M20)", () => {
     const r = new Reducer();
     r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
