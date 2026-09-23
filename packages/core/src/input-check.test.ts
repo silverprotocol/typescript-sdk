@@ -92,6 +92,27 @@ describe("checkAgInput — draft.4 §0.2, workspace#20 decision 6 (§10 item N, 
     expect(reject({ ...start({}), metadata: { k: undefined } })).toEqual({ code: "malformed", path: [] });
   });
 
+  it("CB-9: resume.uiActions reports the member that is actually wrong (surface first, then its own discriminant)", () => {
+    const ui = (a: Record<string, unknown>) => ({ ...ENV, kind: "resume", uiActions: [{ surfaceId: "s1", ...a }] });
+    // protocol's vector: a non-string url is a wrong JSON type → malformed, at the url.
+    expect(reject(ui({ surface: "mcp-app", method: "ui/open-link", params: { url: 5 } }))).toEqual({ code: "malformed", path: ["uiActions", 0, "params", "url"] });
+    // an undefined method of a defined surface → unknown-value at the method, not at `surface`.
+    expect(reject(ui({ surface: "mcp-app", method: "zz", params: {} }))).toEqual({ code: "unknown-value", path: ["uiActions", 0, "method"] });
+    expect(reject(ui({ surface: "mcp-app", params: {} }))).toEqual({ code: "malformed", path: ["uiActions", 0, "method"] });
+    expect(reject(ui({ surface: "mcp-app", method: "ui/request-display-mode", params: { mode: "modal" } }))).toEqual({ code: "unknown-value", path: ["uiActions", 0, "params", "mode"] });
+    expect(reject(ui({ surface: "a2ui", a2uiMessage: "action", sourceComponentId: "c", timestamp: "t", context: {} }))).toEqual({ code: "malformed", path: ["uiActions", 0, "name"] });
+    expect(reject(ui({ surface: "a2ui", a2uiMessage: "zz" }))).toEqual({ code: "unknown-value", path: ["uiActions", 0, "a2uiMessage"] });
+    expect(reject(ui({ surface: "openai-app", method: "callTool", name: "n", args: {} }))).toEqual({ code: "malformed", path: ["uiActions", 0, "callId"] });
+    expect(reject(ui({ surface: "openai-app", method: "requestDisplayMode", mode: "modal", requestId: "r" }))).toEqual({ code: "unknown-value", path: ["uiActions", 0, "mode"] });
+    // an undefined surface → unknown-value at `surface`; a wrong-typed one → malformed.
+    expect(reject(ui({ surface: "zz" }))).toEqual({ code: "unknown-value", path: ["uiActions", 0, "surface"] });
+    expect(reject(ui({ surface: 9 }))).toEqual({ code: "malformed", path: ["uiActions", 0, "surface"] });
+    // and a valid interaction still passes, unknown fields intact.
+    const ok = ui({ surface: "mcp-app", method: "ui/open-link", params: { url: "https://x.example", zz: 1 } });
+    const r = checkAgInput(structuredClone(ok));
+    expect(r.ok && isDeepStrictEqual(r.input, ok)).toBe(true);
+  });
+
   it("several problems: the first in schema order is reported", () => {
     expect(reject({ ...ENV, kind: "resume", answers: [{ askId: "a", status: "zz" }, { askId: 1, status: "resolved" }] })).toEqual({ code: "unknown-value", path: ["answers", 0, "status"] });
   });

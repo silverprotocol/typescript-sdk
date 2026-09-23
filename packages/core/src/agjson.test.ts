@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { z } from "zod";
 import {
   AgEvent,
   AgBlock,
@@ -1451,3 +1452,50 @@ describe("the notice role (spec §3, draft.2)", () => {
     ).toThrow();
   });
 });
+
+describe("AgSurfaceInteraction: discriminated on surface first (CB-9) accepts exactly what the plain union accepted", () => {
+  // The previous definition, rebuilt here as the reference.
+  const plain = z.union([AgA2uiSurfaceAction, AgA2uiFunctionResponse, AgA2uiError, AgMcpAppViewMessage, AgOpenAiWidgetAction]);
+  const S = { surfaceId: "s1" };
+  const samples: unknown[] = [
+    // valid: one per member
+    { ...S, surface: "a2ui", a2uiMessage: "action", name: "go", sourceComponentId: "c", timestamp: "t", context: {} },
+    { ...S, surface: "a2ui", a2uiMessage: "function-response", functionCallId: "f", call: "fn", value: 1 },
+    { ...S, surface: "a2ui", a2uiMessage: "error", code: "X", message: "m" },
+    { ...S, surface: "mcp-app", method: "ui/update-model-context", params: {} },
+    { ...S, surface: "mcp-app", method: "ui/message", params: { role: "user", content: { type: "text", text: "hi" } } },
+    { ...S, surface: "mcp-app", method: "ui/request-display-mode", params: { mode: "pip" } },
+    { ...S, surface: "mcp-app", method: "ui/open-link", params: { url: "https://x.example" }, zz: 1 },
+    { ...S, surface: "openai-app", method: "setWidgetState", widgetState: { a: 1 } },
+    { ...S, surface: "openai-app", method: "callTool", name: "n", args: {}, callId: "c" },
+    { ...S, surface: "openai-app", method: "sendFollowUpMessage", prompt: "p" },
+    { ...S, surface: "openai-app", method: "requestDisplayMode", mode: "inline", requestId: "r" },
+    // invalid: wrong member types, undefined values, cross-surface mixes, missing discriminants
+    { ...S, surface: "mcp-app", method: "ui/open-link", params: { url: 5 } },
+    { ...S, surface: "mcp-app", method: "zz", params: {} },
+    { ...S, surface: "mcp-app", params: {} },
+    { ...S, surface: "mcp-app", method: "callTool", name: "n", args: {}, callId: "c" },
+    { ...S, surface: "openai-app", method: "ui/open-link", params: { url: "u" } },
+    { ...S, surface: "a2ui", method: "ui/open-link", params: { url: "u" } },
+    { ...S, surface: "a2ui", a2uiMessage: "zz" },
+    { ...S, surface: "a2ui", a2uiMessage: "error", code: "X" },
+    { ...S, surface: "a2ui", a2uiMessage: "error", code: "VALIDATION_FAILED", message: "m" },
+    { ...S, surface: "openai-app", method: "requestDisplayMode", mode: "modal", requestId: "r" },
+    { ...S, surface: "zz" },
+    { ...S, surface: 9 },
+    { surface: "mcp-app", method: "ui/open-link", params: { url: "u" } },
+    null,
+    "x",
+  ];
+
+  it("the same verdict and the same parsed value for every sample", () => {
+    for (const v of samples) {
+      const a = plain.safeParse(v);
+      const b = AgSurfaceInteraction.safeParse(v);
+      expect(b.success, JSON.stringify(v)).toBe(a.success);
+      if (a.success && b.success) expect(b.data).toEqual(a.data);
+    }
+    expect(samples.filter((v) => plain.safeParse(v).success)).toHaveLength(11);
+  });
+});
+

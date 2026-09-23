@@ -1014,10 +1014,14 @@ export type AgOpenAiWidgetAction = z.infer<typeof AgOpenAiWidgetAction>;
 // The surface-interaction union (spec §3 / §6). Element type of
 // resume.uiActions[]. Discriminated on `surface`; the three A2UI legs narrow
 // further on the inner `a2uiMessage` discriminant.
-export const AgSurfaceInteraction = z.union([
-  AgA2uiSurfaceAction,
-  AgA2uiFunctionResponse,
-  AgA2uiError,
+// Discriminated on `surface` FIRST, then each surface's own discriminant
+// (a2uiMessage / method), so a validation issue names the member that is
+// actually wrong: a plain z.union let every non-matching branch report its
+// own `surface` literal, and the input check (input-check.ts) misclassified
+// e.g. an mcp-app ui/open-link with a non-string url (CB-9). Same members,
+// same literals, same accepted values; only the failure path is exact.
+export const AgSurfaceInteraction = z.discriminatedUnion("surface", [
+  z.discriminatedUnion("a2uiMessage", [AgA2uiSurfaceAction, AgA2uiFunctionResponse, AgA2uiError]),
   AgMcpAppViewMessage,
   AgOpenAiWidgetAction,
 ]);
