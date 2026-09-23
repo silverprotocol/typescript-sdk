@@ -425,6 +425,32 @@ describe("runCapture", () => {
     expect("resumeSessionId" in (without.input() as object)).toBe(false);
   });
 
+  it("forwards scenario.adkStateScript and records the session state the agent reports via onSessionState", async () => {
+    const script = [{ cfg: { a: 1, b: 2 }, "temp:scratch": "x" }, { cfg: { a: 5 } }];
+    let seenScript: unknown;
+    const deps: CaptureDeps = {
+      async *runAgentCapture(input) {
+        seenScript = input.adkStateScript;
+        yield* fakeNativeNoTools();
+        input.onSessionState?.({ cfg: { a: 5 } });
+      },
+      serveMock,
+      createNormalizer: createClaudeNormalizer,
+      census,
+    };
+    const cassette = await runCapture(Scenario.parse({ name: "state-fold", prompt: "x", adkStateScript: script }), deps, {
+      ports: [],
+      framework: "claude",
+    });
+    expect(seenScript).toEqual(script);
+    expect(cassette.sessionState).toEqual({ cfg: { a: 5 } });
+    const plainRun = await runCapture(Scenario.parse({ name: "text-only", prompt: "x" }), makeRealDeps(fakeNativeNoTools()), {
+      ports: [],
+      framework: "claude",
+    });
+    expect("sessionState" in plainRun).toBe(false);
+  });
+
   it("a resume leg skips the expectTools check (its tool call was made in the leg it resumes); a fresh run still enforces it", async () => {
     const scenario = Scenario.parse({
       name: "defer-tool-sonnet5-resume-allow",

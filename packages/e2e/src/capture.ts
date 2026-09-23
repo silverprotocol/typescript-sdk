@@ -45,6 +45,8 @@ export interface Cassette {
   coverage: CensusReport;
   /** The message the run threw, kept only for an `expectError` scenario. */
   runError?: string;
+  /** The framework's own session state read back after the run (adkStateScript). */
+  sessionState?: JsonValue;
 }
 
 /**
@@ -142,6 +144,8 @@ export async function runCapture(
   try {
     // ── Step 2: Run the agent ───────────────────────────────────────────────
     const native: JsonValue[] = [];
+    // ADK's session.state read back after the run (adkStateScript scenarios).
+    let sessionState: JsonValue | undefined;
     const systemPrompt = opts.systemPrompt ?? scenario.steer;
 
     const agentInput: CaptureRunInput = {
@@ -158,6 +162,9 @@ export async function runCapture(
       ...(scenario.reasoningSummary !== undefined ? { reasoningSummary: scenario.reasoningSummary } : {}),
       ...(scenario.preToolUseDecision !== undefined ? { preToolUseDecision: scenario.preToolUseDecision } : {}),
       ...(opts.resumeSessionId !== undefined ? { resumeSessionId: opts.resumeSessionId } : {}),
+      ...(scenario.adkStateScript !== undefined
+        ? { adkStateScript: scenario.adkStateScript, onSessionState: (state: JsonValue) => { sessionState = state; } }
+        : {}),
     };
 
     let runError: string | undefined;
@@ -232,6 +239,7 @@ export async function runCapture(
       agjson: agEvents,
       coverage,
       ...(runError !== undefined ? { runError } : {}),
+      ...(sessionState !== undefined ? { sessionState } : {}),
     };
   } finally {
     // ── Cleanup: close all mock servers ────────────────────────────────────

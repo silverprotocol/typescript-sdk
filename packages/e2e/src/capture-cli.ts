@@ -229,6 +229,11 @@ export async function runCaptureAndWrite(
     writeFile(join(outDir, `${fw}.agjson.json`), JSON.stringify(cassette.agjson, null, 2) + "\n", "utf8"),
     writeFile(join(outDir, `${fw}.coverage.json`), JSON.stringify(cassette.coverage, null, 2) + "\n", "utf8"),
     writeFile(join(outDir, `${fw}.provenance.json`), JSON.stringify(provenance, null, 2) + "\n", "utf8"),
+    // Ground truth for a state-fold seed: the framework's own session state,
+    // read back after the run. Harness data; replay never reads it.
+    ...(cassette.sessionState !== undefined
+      ? [writeFile(join(outDir, `${fw}.session-state.json`), JSON.stringify(cassette.sessionState, null, 2) + "\n", "utf8")]
+      : []),
   ]);
 
   return { outDir, cassette };
@@ -264,11 +269,15 @@ async function freePort(): Promise<number> {
  * a resume-leg name. A capture must fail before spending an API call instead.
  */
 export const KNOB_SUPPORT: Readonly<
-  Record<"preToolUseDecision" | "resumeFrom" | "adkWorkflow", { frameworks: readonly Framework[]; proof?: string }>
+  Record<
+    "preToolUseDecision" | "resumeFrom" | "adkWorkflow" | "adkStateScript",
+    { frameworks: readonly Framework[]; proof?: string }
+  >
 > = {
   preToolUseDecision: { frameworks: ["claude"], proof: "captureQueryExtras" },
   resumeFrom: { frameworks: ["claude"], proof: "captureQueryExtras" },
   adkWorkflow: { frameworks: ["adk"], proof: "runAdkWorkflowCapture" },
+  adkStateScript: { frameworks: ["adk"], proof: "ADK_STATE_TOOL" },
 };
 
 /**
@@ -334,12 +343,14 @@ async function loadFrameworkDeps(
     // agjson equals its replay; the facet's default stem is random.
     return { runAgentCapture: runVercelCapture, createNormalizer: () => createVercelNormalizer({ invokeId: "vercel" }) };
   }
-  const [{ runAdkCapture }, workflowAgent, { createAdkNormalizer }] = await Promise.all([
+  const [adkAgent, workflowAgent, { createAdkNormalizer }] = await Promise.all([
     import("./agents/google-adk/run.js"),
     import("./agents/google-adk/workflow.js"),
     import("@silverprotocol/google-adk"),
   ]);
-  assertKnobsHonored(scenario, framework, workflowAgent);
+  // Both adk agent modules together prove the knobs (runAdkWorkflowCapture, ADK_STATE_TOOL).
+  assertKnobsHonored(scenario, framework, { ...adkAgent, ...workflowAgent });
+  const { runAdkCapture } = adkAgent;
   const { runAdkWorkflowCapture } = workflowAgent;
   const shape = scenario.adkWorkflow;
   return {

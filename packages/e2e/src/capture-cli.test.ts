@@ -525,3 +525,38 @@ describe("assertKnobsHonored", () => {
     expect(() => assertKnobsHonored(withKnobs({ adkWorkflow: "pause" }), "adk", { runAdkWorkflowCapture: () => undefined })).not.toThrow();
   });
 });
+
+describe("adkStateScript: the knob guard and the session-state sidecar", () => {
+  const scenario = Scenario.parse({ name: "state-fold", prompt: "x", adkStateScript: [{ cfg: { a: 1 } }] });
+
+  it("passes on an adk agent that exports ADK_STATE_TOOL, fails without it or off adk", () => {
+    expect(() => assertKnobsHonored(scenario, "adk", { ADK_STATE_TOOL: "apply_state_step" })).not.toThrow();
+    expect(() => assertKnobsHonored(scenario, "adk", {})).toThrow(/does not export ADK_STATE_TOOL/);
+    expect(() => assertKnobsHonored(scenario, "claude", { ADK_STATE_TOOL: "x" })).toThrow(/only the adk capture agent honors/);
+  });
+
+  it("runCaptureAndWrite writes <fw>.session-state.json when the agent reports session state, and not otherwise", async () => {
+    const outDir = await mkdtemp(join(tmpdir(), "capture-cli-test-"));
+    try {
+      const deps: CaptureDeps = {
+        async *runAgentCapture(input) {
+          yield* fakeNativeNoTools();
+          input.onSessionState?.({ cfg: { a: 5 } });
+        },
+        serveMock,
+        createNormalizer: createClaudeNormalizer,
+        census,
+      };
+      await runCaptureAndWrite(scenario, deps, { ports: [], framework: "claude" }, outDir, { sdkVersion: null, model: null });
+      expect(await readJson(join(outDir, "claude.session-state.json"))).toEqual({ cfg: { a: 5 } });
+      const plainDir = join(outDir, "plain");
+      await runCaptureAndWrite(Scenario.parse({ name: "text-only", prompt: "x" }), makeDeps(), { ports: [], framework: "claude" }, plainDir, {
+        sdkVersion: null,
+        model: null,
+      });
+      await expect(readFile(join(plainDir, "claude.session-state.json"), "utf8")).rejects.toThrow();
+    } finally {
+      await rm(outDir, { recursive: true, force: true });
+    }
+  });
+});

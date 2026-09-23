@@ -78,6 +78,12 @@ export interface CaptureRunInput {
   preToolUseDecision?: "defer" | "allow" | "deny";
   /** claude-agent-sdk only: resume this earlier session (the SDK's `resume`). */
   resumeSessionId?: string;
+  /** google-adk only: a scripted state-writing tool (apply_state_step) writes
+   *  entry `step - 1` through toolContext.state (sp-google 5bc5351). */
+  adkStateScript?: ReadonlyArray<Readonly<Record<string, JsonValue>>>;
+  /** google-adk only: called once after a normal run with ADK's own
+   *  session.state read back (never yielded as a native event). */
+  onSessionState?: (state: JsonValue) => void;
 }
 
 /** The LLM/process boundary contract every capture agent implements. */

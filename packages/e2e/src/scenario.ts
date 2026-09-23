@@ -9,6 +9,7 @@
  * The Scenario schema does NOT contain allowedTools/expectTools fields.
  */
 import { z } from "zod";
+import { JsonValue } from "@silverprotocol/core";
 import { knownToolsFor, type MockKind } from "./mcp-mocks/tools.js";
 import type { Framework } from "./census.js";
 
@@ -105,6 +106,13 @@ export const Scenario = z.object({
   // MUST be captured with an explicit CAPTURE_MODEL.
   preToolUseDecision: z.enum(["defer", "allow", "deny"]).optional(),
   resumeFrom: z.string().min(1).optional(),
+  // Shared-state knob (google-adk only; rnd's ADK state-fold candidate,
+  // 2026-09-24). Each entry is one step's state writes: the agent registers
+  // apply_state_step({step}), which writes entry step-1 through
+  // toolContext.state (sp-google 5bc5351), so the values never depend on the
+  // model. The capture also reads ADK's session.state back after the run into
+  // a <fw>.session-state.json sidecar, as ground truth for the fold.
+  adkStateScript: z.array(z.record(z.string(), JsonValue)).min(1).optional(),
 });
 
 export type Scenario = z.infer<typeof Scenario>;
