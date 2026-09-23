@@ -253,9 +253,52 @@ async function freePort(): Promise<number> {
   });
 }
 
+/**
+ * Scenario knobs that change what a capture MEANS, and that only some capture
+ * agents honor. `proof` names an export the loaded agent module must have,
+ * which shows the running tree implements the knob.
+ *
+ * Why this exists: on 2026-09-23 a resume-leg capture ran on a lineage whose
+ * claude run.ts predated the hook/resume support (a22d669). The agent silently
+ * ignored preToolUseDecision and the resume, and recorded a FRESH session under
+ * a resume-leg name. A capture must fail before spending an API call instead.
+ */
+export const KNOB_SUPPORT: Readonly<
+  Record<"preToolUseDecision" | "resumeFrom" | "adkWorkflow", { frameworks: readonly Framework[]; proof?: string }>
+> = {
+  preToolUseDecision: { frameworks: ["claude"], proof: "captureQueryExtras" },
+  resumeFrom: { frameworks: ["claude"], proof: "captureQueryExtras" },
+  adkWorkflow: { frameworks: ["adk"], proof: "runAdkWorkflowCapture" },
+};
+
+/**
+ * Throws if the scenario sets a KNOB_SUPPORT knob that `framework` does not
+ * honor, or that the loaded `agentModule` cannot prove it implements.
+ * Exported for unit testing.
+ */
+export function assertKnobsHonored(scenario: Scenario, framework: Framework, agentModule: object): void {
+  for (const [knob, support] of Object.entries(KNOB_SUPPORT)) {
+    if ((scenario as Record<string, unknown>)[knob] === undefined) continue;
+    if (!support.frameworks.includes(framework)) {
+      throw new Error(
+        `e2e:capture: scenario "${scenario.name}" sets ${knob}, which only the ${support.frameworks.join("/")} ` +
+          `capture agent honors (framework="${framework}"). No capture attempted.`,
+      );
+    }
+    if (support.proof !== undefined && !(support.proof in agentModule)) {
+      throw new Error(
+        `e2e:capture: scenario "${scenario.name}" sets ${knob}, but this tree's ${framework} capture agent does not ` +
+          `export ${support.proof}, so it would silently ignore the knob. Capture on a tree whose agent implements it. ` +
+          `No capture attempted.`,
+      );
+    }
+  }
+}
+
 /** Resolves { runAgentCapture, createNormalizer } for one framework via a
  *  lazy import — importing capture-cli.ts never requires all three provider
- *  SDKs to be resolvable, only the one actually invoked. */
+ *  SDKs to be resolvable, only the one actually invoked. Every branch first
+ *  checks the scenario's knobs against the loaded agent (assertKnobsHonored). */
 async function loadFrameworkDeps(
   framework: Framework,
   scenario: Scenario,
@@ -265,33 +308,39 @@ async function loadFrameworkDeps(
   hostCompletion?: boolean;
 }> {
   if (framework === "claude") {
-    const [{ runClaudeCapture }, { createClaudeNormalizer }] = await Promise.all([
+    const [agent, { createClaudeNormalizer }] = await Promise.all([
       import("./agents/claude-agent-sdk/run.js"),
       import("@silverprotocol/claude-agent-sdk"),
     ]);
-    return { runAgentCapture: runClaudeCapture, createNormalizer: createClaudeNormalizer };
+    assertKnobsHonored(scenario, framework, agent);
+    return { runAgentCapture: agent.runClaudeCapture, createNormalizer: createClaudeNormalizer };
   }
   if (framework === "openai") {
-    const [{ runOpenaiCapture }, { createOpenaiNormalizer }] = await Promise.all([
+    const [agent, { createOpenaiNormalizer }] = await Promise.all([
       import("./agents/openai-agents-sdk/run.js"),
       import("@silverprotocol/openai-agents"),
     ]);
-    return { runAgentCapture: runOpenaiCapture, createNormalizer: createOpenaiNormalizer };
+    assertKnobsHonored(scenario, framework, agent);
+    return { runAgentCapture: agent.runOpenaiCapture, createNormalizer: createOpenaiNormalizer };
   }
   if (framework === "vercel") {
-    const [{ runVercelCapture }, { createVercelNormalizer }] = await Promise.all([
+    const [agent, { createVercelNormalizer }] = await Promise.all([
       import("./agents/vercel-ai/run.js"),
       import("@silverprotocol/vercel-ai"),
     ]);
+    assertKnobsHonored(scenario, framework, agent);
+    const { runVercelCapture } = agent;
     // The same fixed id stem replay uses (replay.ts), so a fresh capture's
     // agjson equals its replay; the facet's default stem is random.
     return { runAgentCapture: runVercelCapture, createNormalizer: () => createVercelNormalizer({ invokeId: "vercel" }) };
   }
-  const [{ runAdkCapture }, { runAdkWorkflowCapture }, { createAdkNormalizer }] = await Promise.all([
+  const [{ runAdkCapture }, workflowAgent, { createAdkNormalizer }] = await Promise.all([
     import("./agents/google-adk/run.js"),
     import("./agents/google-adk/workflow.js"),
     import("@silverprotocol/google-adk"),
   ]);
+  assertKnobsHonored(scenario, framework, workflowAgent);
+  const { runAdkWorkflowCapture } = workflowAgent;
   const shape = scenario.adkWorkflow;
   return {
     runAgentCapture: shape !== undefined ? (input) => runAdkWorkflowCapture(input, shape) : runAdkCapture,

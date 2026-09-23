@@ -41,6 +41,7 @@ import {
   isFramework,
   resolveModel,
   resolveSdkVersion,
+  assertKnobsHonored,
   resumeSessionFrom,
   runCaptureAndWrite,
   runCaptureCli,
@@ -485,5 +486,42 @@ describe("resumeSessionFrom", () => {
 
   it("resolves the committed defer-tool-sonnet5 leg to its live session", async () => {
     expect(await resumeSessionFrom("defer-tool-sonnet5", "claude")).toMatch(/^[0-9a-f-]{36}$/);
+  });
+});
+
+// ─── knob guard: a capture fails loud when its agent would ignore a knob ─────
+describe("assertKnobsHonored", () => {
+  const withKnobs = (extra: Record<string, unknown>) => Scenario.parse({ name: "probe-knobs", prompt: "x", ...extra });
+  const claudeWithHooks = { runClaudeCapture: () => undefined, captureQueryExtras: () => ({}) };
+  const claudeWithoutHooks = { runClaudeCapture: () => undefined };
+
+  it("passes a scenario with no guarded knob on any framework and any agent", () => {
+    for (const fw of ["claude", "openai", "adk", "vercel"] as const) {
+      expect(() => assertKnobsHonored(withKnobs({}), fw, {})).not.toThrow();
+    }
+  });
+
+  it("passes preToolUseDecision / resumeFrom on a claude agent that exports captureQueryExtras", () => {
+    expect(() => assertKnobsHonored(withKnobs({ preToolUseDecision: "defer" }), "claude", claudeWithHooks)).not.toThrow();
+    expect(() => assertKnobsHonored(withKnobs({ resumeFrom: "defer-tool-sonnet5" }), "claude", claudeWithHooks)).not.toThrow();
+  });
+
+  it("FAILS on a claude agent that lacks captureQueryExtras (the silent fresh-session capture of 2026-09-23)", () => {
+    expect(() => assertKnobsHonored(withKnobs({ resumeFrom: "defer-tool-sonnet5" }), "claude", claudeWithoutHooks)).toThrow(
+      /does not export captureQueryExtras, so it would silently ignore the knob/,
+    );
+    expect(() => assertKnobsHonored(withKnobs({ preToolUseDecision: "deny" }), "claude", claudeWithoutHooks)).toThrow(
+      /preToolUseDecision/,
+    );
+  });
+
+  it("FAILS a claude-only knob on another framework, and adkWorkflow off adk", () => {
+    expect(() => assertKnobsHonored(withKnobs({ preToolUseDecision: "defer" }), "openai", claudeWithHooks)).toThrow(
+      /only the claude capture agent honors/,
+    );
+    expect(() => assertKnobsHonored(withKnobs({ adkWorkflow: "pause" }), "claude", claudeWithHooks)).toThrow(
+      /only the adk capture agent honors/,
+    );
+    expect(() => assertKnobsHonored(withKnobs({ adkWorkflow: "pause" }), "adk", { runAdkWorkflowCapture: () => undefined })).not.toThrow();
   });
 });
