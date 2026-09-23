@@ -277,3 +277,75 @@ describe.runIf(process.env["GEN_ADK_PAUSE"] === "1")("rd-06 P-RED fixture genera
     }
   }, 120_000);
 });
+
+/**
+ * One OAuth2 credential request, built by ADK's own AuthHandler.generateAuthUri
+ * (@google/adk 2.1.0, auth_handler.js), so its auth URI carries both `state=`
+ * and `nonce=` (ADK sets `nonce` from oauth2.nonce for any oauth2 credential)
+ * and a PKCE S256 challenge. Every other credential member is seeded with a
+ * `SEED_` placeholder: client secret, access and refresh tokens, PKCE
+ * verifier, auth code, auth response URI, and standalone `state` and `nonce`.
+ * The engine copies the raw oauth2 object into the exchanged credential, so
+ * both carry them. The values are placeholders, never real material.
+ *
+ * Its own gate, so regenerating it never rewrites the other fixtures (their
+ * event ids and timestamps are per run):
+ *   GEN_ADK_AUTH_URI=1 npx vitest run --config ../../vitest.config.ts src/adk-pause-fixtures.gen.test.ts
+ */
+describe.runIf(process.env["GEN_ADK_AUTH_URI"] === "1")("an OAuth2 credential request with a generated auth URI (real @google/adk, stub model)", () => {
+  it("writes fixtures/adk-pause/plain-credential-authuri.native.json", async () => {
+    const events = await runOnce(
+      new LlmAgent({
+        name: "agent",
+        model: new StubModel({ name: "read_mail", args: {} }),
+        instruction: "Read the mail.",
+        tools: [
+          new FunctionTool({
+            name: "read_mail",
+            description: "Read mail.",
+            parameters: z.object({}),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            execute: async (_a: unknown, toolContext: any) => {
+              toolContext.requestCredential({
+                authScheme: {
+                  type: "oauth2",
+                  flows: {
+                    authorizationCode: {
+                      authorizationUrl: "https://auth.example/authorize",
+                      tokenUrl: "https://auth.example/token",
+                      scopes: { "mail.read": "" },
+                    },
+                  },
+                },
+                rawAuthCredential: {
+                  authType: "oauth2",
+                  oauth2: {
+                    clientId: "SEED_client_id",
+                    clientSecret: "SEED_client_secret",
+                    redirectUri: "https://app.example/callback",
+                    nonce: "SEED_nonce",
+                    state: "SEED_state",
+                    codeChallengeMethod: "S256",
+                    codeVerifier: "SEED_pkce_verifier_0123456789abcdefghijklmnopqrstuvwxyz",
+                    authCode: "SEED_auth_code",
+                    authResponseUri: "https://app.example/callback?code=SEED_auth_code&state=SEED_state",
+                    accessToken: "SEED_access_token",
+                    refreshToken: "SEED_refresh_token",
+                  },
+                },
+                credentialKey: "mail-cred",
+              });
+              return { status: "pending auth" };
+            },
+          }),
+        ],
+      }),
+    );
+    const uris = JSON.stringify(events).match(/https:\/\/auth\.example\/authorize\?[^"]*/g) ?? [];
+    if (!uris.some((u) => u.includes("state=") && u.includes("nonce=SEED_nonce") && u.includes("code_challenge="))) {
+      throw new Error(`the engine did not generate an auth URI carrying state, nonce and a code challenge: ${JSON.stringify(uris)}`);
+    }
+    mkdirSync(ADK_PAUSE_DIR, { recursive: true });
+    writeFileSync(join(ADK_PAUSE_DIR, "plain-credential-authuri.native.json"), JSON.stringify(events, null, 2) + "\n");
+  }, 120_000);
+});

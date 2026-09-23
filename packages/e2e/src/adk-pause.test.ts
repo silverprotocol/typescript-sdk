@@ -96,7 +96,7 @@ function expectOneTerminalAndNothingAfter(tagged: Tagged[]): void {
 type Outcome = { type?: string; asks?: unknown[] };
 const outcomeOf = (ev: AgEvent): Outcome => ((ev as { outcome?: Outcome }).outcome ?? {});
 
-const PAUSE = ["wf-pause", "plain-confirmation", "plain-credential", "plain-request-input", "wf-functionnode-credential"] as const;
+const PAUSE = ["wf-pause", "plain-confirmation", "plain-credential", "plain-credential-authuri", "plain-request-input", "wf-functionnode-credential"] as const;
 /** Completed runs: turn.abort at flush on the legacy path; success from push() with the sentinel. */
 const COMPLETED = ["wf-complete", "wf-terminal-llm", "wf-functionnode-only"] as const;
 /** Truncated streams: never success (a host never feeds the sentinel after an abnormal end). */
