@@ -1,0 +1,16 @@
+{
+  "name": "handoff-gpt6sol",
+  "prompt": "Hand this request to the Echoer: echo the message 'handoff-probe' and tell me what came back.",
+  "mcpServers": [
+    {
+      "key": "t",
+      "kind": "text"
+    }
+  ],
+  "steer": "You MUST hand the request off to the Echoer agent with its transfer tool. Do not call the echo tool yourself and do not answer yourself.",
+  "openaiHandoff": {
+    "name": "Echoer",
+    "instructions": "You echo messages. Call the echo tool with the exact message you are given, then reply with the tool's result and nothing else.",
+    "handoffDescription": "Echoes a message with the echo tool."
+  }
+}

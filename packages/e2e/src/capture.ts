@@ -172,6 +172,8 @@ export async function runCapture(
       ...(scenario.adkStateScript !== undefined
         ? { adkStateScript: scenario.adkStateScript, onSessionState: (state: JsonValue) => { sessionState = state; } }
         : {}),
+      ...(scenario.claudeSubagents !== undefined ? { subagents: scenario.claudeSubagents } : {}),
+      ...(scenario.openaiHandoff !== undefined ? { handoff: scenario.openaiHandoff } : {}),
     };
 
     let runError: string | undefined;

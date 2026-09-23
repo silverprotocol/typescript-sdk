@@ -123,6 +123,40 @@ export const Scenario = z.object({
   // model. The capture also reads ADK's session.state back after the run into
   // a <fw>.session-state.json sidecar, as ground truth for the fold.
   adkStateScript: z.array(z.record(z.string(), JsonValue)).min(1).optional(),
+  // Subagent knob (claude-agent-sdk only; the nested-turn package's capture ask,
+  // 2026-09-24). Each entry is a programmatic subagent the agent passes as the
+  // query's options.agents, with the built-in Agent tool enabled and
+  // auto-allowed. A definition with background:true runs as a background task
+  // (the Agent tool_result is async_launched): the capture keeps its input open
+  // until every launched task's system/task_notification has arrived and the
+  // turn it wakes has closed. A `model` the API rejects is how a FAILING
+  // subagent is recorded. Model-named seeds MUST be captured with CAPTURE_MODEL.
+  claudeSubagents: z
+    .record(
+      z.string().min(1),
+      z.object({
+        description: z.string().min(1),
+        prompt: z.string().min(1),
+        tools: z.array(z.string().min(1)).optional(),
+        model: z.string().min(1).optional(),
+        maxTurns: z.number().int().positive().optional(),
+        background: z.boolean().optional(),
+      }),
+    )
+    .refine((r) => Object.keys(r).length > 0, "claudeSubagents needs at least one agent")
+    .optional(),
+  // Handoff knob (openai-agents only; the same capture ask). The agent builds a
+  // second Agent with these instructions (same model and MCP servers) and puts
+  // it in the main agent's `handoffs`; the steer tells the main agent to hand
+  // off, so the native stream carries handoff_requested / handoff_occurred and
+  // the second agent's turn.
+  openaiHandoff: z
+    .object({
+      name: z.string().min(1),
+      instructions: z.string().min(1),
+      handoffDescription: z.string().min(1).optional(),
+    })
+    .optional(),
 });
 
 export type Scenario = z.infer<typeof Scenario>;
@@ -138,12 +172,13 @@ export type Scenario = z.infer<typeof Scenario>;
  * Both lists are identical — every declared server's tool is expected to be
  * called (so capture validation can confirm the LLM actually used each tool).
  *
- * NOTE (subagent scenario): scenarios/subagent/scenario.json is structurally
- * identical to single-tool-call (same mcp__t__echo derivation). The subagent
- * distinction is prompt-steered today (via `steer`); it will become
- * structurally distinct once subagent routing lands. The Scenario schema uses
- * Zod's default strip mode, so `_note` keys in JSON are silently dropped —
- * keep this prose note here rather than in the JSON file.
+ * NOTE (subagent scenarios): scenarios/subagent and the subagent-*-sonnet5
+ * seeds define their subagents with the `claudeSubagents` knob, so the echo
+ * call is the SUBAGENT's (a nested frame), not the main agent's. A seed whose
+ * subagent calls no tool (bg, fail) declares no mcpServers, so its
+ * expectTools list is empty. The Scenario schema uses Zod's default strip
+ * mode, so `_note` keys in JSON are silently dropped — keep prose notes here
+ * rather than in the JSON files.
  *
  * NOTE (framework param, Task 6): `mcp__<key>__<tool>` is the Claude Agent
  * SDK's OWN permission-gate naming convention for MCP-sourced tools — it is

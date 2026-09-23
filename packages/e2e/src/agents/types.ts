@@ -96,6 +96,26 @@ export interface CaptureRunInput {
   /** google-adk only: called once after a normal run with ADK's own
    *  session.state read back (never yielded as a native event). */
   onSessionState?: (state: JsonValue) => void;
+  /** claude-agent-sdk only: programmatic subagents for the query's
+   *  options.agents, with the Agent tool enabled and auto-allowed; a
+   *  background:true launch keeps the input open until its task_notification
+   *  and the turn it wakes have arrived. See scenario.ts `claudeSubagents`. */
+  subagents?: Readonly<
+    Record<
+      string,
+      {
+        description: string;
+        prompt: string;
+        tools?: readonly string[];
+        model?: string;
+        maxTurns?: number;
+        background?: boolean;
+      }
+    >
+  >;
+  /** openai-agents only: a second agent the main agent can hand off to (same
+   *  model and MCP servers). See scenario.ts `openaiHandoff`. */
+  handoff?: { name: string; instructions: string; handoffDescription?: string };
 }
 
 /** The LLM/process boundary contract every capture agent implements. */

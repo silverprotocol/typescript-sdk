@@ -1,13 +1,13 @@
 {
-  "name": "subagent",
-  "prompt": "Use the echoer subagent to echo the message 'subagent-probe', then tell me what it returned.",
+  "name": "subagent-fg-sonnet5",
+  "prompt": "Use the echoer subagent to echo the message 'subagent-fg-probe', then tell me what it returned.",
   "mcpServers": [
     {
       "key": "t",
       "kind": "text"
     }
   ],
-  "steer": "You MUST delegate with the Agent tool (subagent_type 'echoer') and wait for its result. Do not call the echo tool yourself.",
+  "steer": "You MUST delegate with the Agent tool (subagent_type 'echoer') in the foreground and wait for its result. Do not call the echo tool yourself.",
   "claudeSubagents": {
     "echoer": {
       "description": "Echoes a message with the echo tool.",

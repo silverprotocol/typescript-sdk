@@ -455,6 +455,20 @@ describe("runCapture", () => {
     await expect(runCapture(scenario, resumed.deps, { ports: [0], framework: "openai", resumeRunState: "rs" })).resolves.toHaveProperty("native");
   });
 
+  it("forwards scenario.claudeSubagents as subagents and scenario.openaiHandoff as handoff, and omits them otherwise", async () => {
+    const agents = { helper: { description: "echoes", prompt: "Call echo.", background: true, maxTurns: 3 } };
+    const claude = makeInputCapturingDeps();
+    await runCapture(Scenario.parse({ name: "subagent-bg", prompt: "x", claudeSubagents: agents }), claude.deps, { ports: [], framework: "claude" });
+    expect((claude.input() as { subagents?: unknown }).subagents).toEqual(agents);
+    const handoff = { name: "Specialist", instructions: "Answer.", handoffDescription: "answers" };
+    const openai = makeInputCapturingDeps();
+    await runCapture(Scenario.parse({ name: "handoff", prompt: "x", openaiHandoff: handoff }), openai.deps, { ports: [], framework: "openai" });
+    expect((openai.input() as { handoff?: unknown }).handoff).toEqual(handoff);
+    const plain = makeInputCapturingDeps();
+    await runCapture(Scenario.parse({ name: "text-only", prompt: "x" }), plain.deps, { ports: [], framework: "claude" });
+    for (const k of ["subagents", "handoff"]) expect(k in (plain.input() as object)).toBe(false);
+  });
+
   it("forwards scenario.adkStateScript and records the session state the agent reports via onSessionState", async () => {
     const script = [{ cfg: { a: 1, b: 2 }, "temp:scratch": "x" }, { cfg: { a: 5 } }];
     let seenScript: unknown;

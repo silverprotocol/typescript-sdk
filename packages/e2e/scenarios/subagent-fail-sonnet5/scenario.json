@@ -1,0 +1,13 @@
+{
+  "name": "subagent-fail-sonnet5",
+  "prompt": "Ask the checker subagent to reply 'ok', then tell me what happened.",
+  "steer": "You MUST delegate with the Agent tool (subagent_type 'checker') in the foreground. If it fails, say that it failed; do not retry and do not answer for it.",
+  "claudeSubagents": {
+    "checker": {
+      "description": "Replies ok.",
+      "prompt": "Reply with the single word ok.",
+      "model": "claude-nonexistent-0",
+      "maxTurns": 1
+    }
+  }
+}

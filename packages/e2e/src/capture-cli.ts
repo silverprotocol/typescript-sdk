@@ -270,7 +270,7 @@ async function freePort(): Promise<number> {
  */
 export const KNOB_SUPPORT: Readonly<
   Record<
-    "preToolUseDecision" | "resumeFrom" | "toolApproval" | "adkWorkflow" | "adkStateScript",
+    "preToolUseDecision" | "resumeFrom" | "toolApproval" | "adkWorkflow" | "adkStateScript" | "claudeSubagents" | "openaiHandoff",
     { frameworks: readonly Framework[]; proof?: string | Partial<Record<Framework, string>> }
   >
 > = {
@@ -279,6 +279,10 @@ export const KNOB_SUPPORT: Readonly<
   toolApproval: { frameworks: ["openai"], proof: "openaiApprovalPlan" },
   adkWorkflow: { frameworks: ["adk"], proof: "runAdkWorkflowCapture" },
   adkStateScript: { frameworks: ["adk"], proof: "ADK_STATE_TOOL" },
+  // The nested-turn capture ask (2026-09-24): each agent proves the knob by
+  // exporting the named symbol; until it does, a capture fails loud.
+  claudeSubagents: { frameworks: ["claude"], proof: "claudeSubagentOptions" },
+  openaiHandoff: { frameworks: ["openai"], proof: "openaiHandoffAgent" },
 };
 
 /**

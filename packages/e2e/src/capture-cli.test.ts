@@ -617,3 +617,35 @@ describe("adkStateScript: the knob guard and the session-state sidecar", () => {
     }
   });
 });
+
+describe("claudeSubagents and openaiHandoff: the knob guards (nested-turn capture ask)", () => {
+  const withKnobs = (extra: Record<string, unknown>) => Scenario.parse({ name: "nested-probe", prompt: "x", ...extra });
+  const agents = { helper: { description: "echoes", prompt: "Call echo." } };
+
+  it("claudeSubagents passes only on a claude agent that exports claudeSubagentOptions", () => {
+    expect(() => assertKnobsHonored(withKnobs({ claudeSubagents: agents }), "claude", { claudeSubagentOptions: () => ({}) })).not.toThrow();
+    expect(() => assertKnobsHonored(withKnobs({ claudeSubagents: agents }), "claude", { captureQueryExtras: () => ({}) })).toThrow(
+      /does not export claudeSubagentOptions/,
+    );
+    expect(() => assertKnobsHonored(withKnobs({ claudeSubagents: agents }), "openai", { claudeSubagentOptions: () => ({}) })).toThrow(
+      /only the claude capture agent honors/,
+    );
+  });
+
+  it("openaiHandoff passes only on an openai agent that exports openaiHandoffAgent", () => {
+    const handoff = { name: "Specialist", instructions: "Answer." };
+    expect(() => assertKnobsHonored(withKnobs({ openaiHandoff: handoff }), "openai", { openaiHandoffAgent: () => undefined })).not.toThrow();
+    expect(() => assertKnobsHonored(withKnobs({ openaiHandoff: handoff }), "openai", { runOpenaiCapture: () => undefined })).toThrow(
+      /does not export openaiHandoffAgent/,
+    );
+    expect(() => assertKnobsHonored(withKnobs({ openaiHandoff: handoff }), "claude", { openaiHandoffAgent: () => undefined })).toThrow(
+      /only the openai capture agent honors/,
+    );
+  });
+
+  it("the scenario schema rejects an empty agent map and a definition without a prompt", () => {
+    expect(() => withKnobs({ claudeSubagents: {} })).toThrow();
+    expect(() => withKnobs({ claudeSubagents: { helper: { description: "d" } } })).toThrow();
+    expect(() => withKnobs({ openaiHandoff: { name: "" , instructions: "i" } })).toThrow();
+  });
+});

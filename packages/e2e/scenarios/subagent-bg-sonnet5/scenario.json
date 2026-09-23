@@ -1,0 +1,13 @@
+{
+  "name": "subagent-bg-sonnet5",
+  "prompt": "Launch the notetaker subagent, then tell me what it wrote once it has finished.",
+  "steer": "You MUST delegate with the Agent tool (subagent_type 'notetaker'). It runs in the background: wait for its completion notification, then report what it wrote.",
+  "claudeSubagents": {
+    "notetaker": {
+      "description": "Writes a one-line status note.",
+      "prompt": "Reply with exactly this sentence and nothing else: background subagent finished.",
+      "maxTurns": 2,
+      "background": true
+    }
+  }
+}
