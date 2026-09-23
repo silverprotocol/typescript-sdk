@@ -589,10 +589,19 @@ function stringMember(arm: unknown, key: string): string | undefined {
 // A media/code arm missing a member its AgBlock arm REQUIRES rides verbatim in
 // one provider-raw block keyed by its wire Part field name — the same
 // `{ <field>: <value> }` shape as `driveAdkPart`'s unmapped-part-fields ledger.
+// A JSON-null arm (a snake_case serializer that keeps None) rides the same way
+// for every object arm, the tool arms included (null guard): it is carried,
+// never dereferenced.
 function carryUnmappableArm(
   a: StreamAssembler,
   messageId: string,
-  field: "inlineData" | "executableCode" | "fileData",
+  field:
+    | "inlineData"
+    | "executableCode"
+    | "codeExecutionResult"
+    | "fileData"
+    | "functionCall"
+    | "functionResponse",
   arm: unknown,
 ): void {
   a.contentBlock(messageId, {
@@ -935,7 +944,8 @@ function driveAdkPart(
   if (part.thought === true) {
     const id = `reasoning:${index}`;
     a.reasoningStart(id, messageId);
-    if (part.text !== undefined && part.text.length > 0) a.reasoningDelta(id, messageId, part.text);
+    // typeof, not `!== undefined`: a JSON-null text is absent (null guard).
+    if (typeof part.text === "string" && part.text.length > 0) a.reasoningDelta(id, messageId, part.text);
     a.reasoningEnd(id, messageId, { provider: "google" });
     if (part.thoughtSignature !== undefined && part.thoughtSignature.length > 0) {
       a.reasoningOpaque(id, messageId, {
@@ -948,7 +958,10 @@ function driveAdkPart(
   }
 
   // ── TEXT ──
-  if (part.text !== undefined) {
+  // A JSON-null text is ABSENT (null guard): it is not a text arm, so the part
+  // falls through to the arms below (a functionCall beside it still maps), and
+  // `null` never reaches textDelta or the streamed-text accumulator.
+  if (typeof part.text === "string") {
     const id = `text:${index}`;
     const signed = part.thoughtSignature !== undefined && part.thoughtSignature.length > 0;
     // STREAMED-text citations carrier (audit M22): `citations` collects ALL of this
@@ -974,6 +987,10 @@ function driveAdkPart(
 
   // ── FUNCTION CALL → tool.start + tool.args.delta + tool.args.assembled ──
   if (part.functionCall !== undefined) {
+    if (!isJsonObject(part.functionCall)) {
+      carryUnmappableArm(a, messageId, "functionCall", part.functionCall);
+      return "";
+    }
     const fc = part.functionCall;
     const realId = fc.id != null && fc.id.length > 0 ? fc.id : null;
     let toolCallId: string;
@@ -1019,6 +1036,10 @@ function driveAdkPart(
 
   // ── FUNCTION RESPONSE → tool.done ──
   if (part.functionResponse !== undefined) {
+    if (!isJsonObject(part.functionResponse)) {
+      carryUnmappableArm(a, messageId, "functionResponse", part.functionResponse);
+      return "";
+    }
     const fr = part.functionResponse;
     const realId = fr.id != null && fr.id.length > 0 ? fr.id : null;
     // Null id (audit M47): correlation was already resolved by `drive()`'s
@@ -1037,7 +1058,8 @@ function driveAdkPart(
     const outcome: ToolOutcome = fr.response?.["isError"] === true ? "error" : "ok";
     a.toolDone({
       toolCallId,
-      ...functionResponseToToolDoneFields(fr.name, fr.response),
+      // A JSON-null response is absent (null guard): it was dereferenced below.
+      ...functionResponseToToolDoneFields(fr.name, isJsonObject(fr.response) ? fr.response : undefined),
       outcome,
       turnId,
       providerMetadata:
@@ -1058,8 +1080,8 @@ function driveAdkPart(
   // `mimeType.startsWith`), so the arm rides VERBATIM via
   // `carryUnmappableArm`'s provider-raw block instead — lossless, never a
   // fabricated value. Branch order is unchanged: the carry fires exactly
-  // where the arm would otherwise have mapped. codeExecutionResult already
-  // defaults both of its optional members, so it needs no guard.
+  // where the arm would otherwise have mapped. codeExecutionResult defaults
+  // both of its optional members, so only a JSON-null arm needs the carry.
   if (part.inlineData !== undefined) {
     const mimeType = stringMember(part.inlineData, "mimeType");
     const data = stringMember(part.inlineData, "data");
@@ -1075,7 +1097,9 @@ function driveAdkPart(
     if (code !== undefined) {
       a.contentBlock(messageId, {
         type: "code",
-        language: codeLanguage(part.executableCode.language),
+        // stringMember: a JSON-null language is absent → "python" (null guard;
+        // it was `null.toLowerCase()`).
+        language: codeLanguage(stringMember(part.executableCode, "language")),
         code,
       });
     } else {
@@ -1084,11 +1108,17 @@ function driveAdkPart(
     return "";
   }
   if (part.codeExecutionResult !== undefined) {
-    a.contentBlock(messageId, {
-      type: "code-result",
-      outcome: codeOutcome(part.codeExecutionResult.outcome),
-      output: part.codeExecutionResult.output ?? "",
-    });
+    // Null guard: a JSON-null arm rides provider-raw (it was dereferenced);
+    // a null or non-string member is absent and takes its existing default.
+    if (isJsonObject(part.codeExecutionResult)) {
+      a.contentBlock(messageId, {
+        type: "code-result",
+        outcome: codeOutcome(stringMember(part.codeExecutionResult, "outcome")),
+        output: stringMember(part.codeExecutionResult, "output") ?? "",
+      });
+    } else {
+      carryUnmappableArm(a, messageId, "codeExecutionResult", part.codeExecutionResult);
+    }
     return "";
   }
   if (part.fileData !== undefined) {
@@ -1097,7 +1127,9 @@ function driveAdkPart(
       a.contentBlock(messageId, {
         type: "resource-link",
         uri: fileUri,
-        mimeType: part.fileData.mimeType,
+        // stringMember: a JSON-null mimeType is absent (null guard; it rode
+        // the block as `null`, which the schema rejects).
+        mimeType: stringMember(part.fileData, "mimeType"),
       });
     } else {
       carryUnmappableArm(a, messageId, "fileData", part.fileData);
@@ -1130,14 +1162,16 @@ function driveAdkTopLevel(
   closedTurns: Set<string>,
   pendingAsks: Map<string, AgPausedAsk[]>
 ): void {
-  if (event.inputTranscription?.text !== undefined) {
+  // typeof: a JSON-null transcription text is absent (null guard; it rode the
+  // text block as `null`, which the schema rejects).
+  if (typeof event.inputTranscription?.text === "string") {
     a.contentBlock(messageId, {
       type: "text",
       text: event.inputTranscription.text,
       _meta: { "agjson/transcription": { role: "input", kind: "transcription" } },
     });
   }
-  if (event.outputTranscription?.text !== undefined) {
+  if (typeof event.outputTranscription?.text === "string") {
     a.contentBlock(messageId, {
       type: "text",
       text: event.outputTranscription.text,
@@ -1474,7 +1508,7 @@ export function createAdkNormalizer(): Normalizer {
     const citations = mapGroundingCitations(event.groundingMetadata);
     const citedPartIndex =
       citations !== undefined
-        ? parts.findIndex((p) => p.thought !== true && p.functionCall === undefined && p.text !== undefined)
+        ? parts.findIndex((p) => p.thought !== true && p.functionCall === undefined && typeof p.text === "string")
         : -1;
 
     // Review finding c-i/c-ii: resolve null-id functionResponse correlation
@@ -1489,7 +1523,8 @@ export function createAdkNormalizer(): Normalizer {
     const nullIdResponseIds = new Map<number, string | undefined>();
     parts.forEach((part, idx) => {
       const fr = part.functionResponse;
-      if (fr === undefined) return;
+      // A JSON-null arm is carried by driveAdkPart; never dereference it here.
+      if (fr === undefined || !isJsonObject(fr)) return;
       if (fr.id != null && fr.id.length > 0) return; // real id — resolved directly, not via this map
       nullIdResponseIds.set(idx, consumeMintedCallId(toolCallMint, turnId, fr.name));
     });
@@ -1499,7 +1534,7 @@ export function createAdkNormalizer(): Normalizer {
     const isAggregate = !isPartial && alreadyStreamed.length > 0;
     const aggregateText = isAggregate
       ? parts
-          .filter((p) => p.thought !== true && p.functionCall === undefined && p.text !== undefined)
+          .filter((p) => p.thought !== true && p.functionCall === undefined && typeof p.text === "string")
           .map((p) => p.text ?? "")
           .join("")
       : "";
@@ -1514,7 +1549,7 @@ export function createAdkNormalizer(): Normalizer {
         isAggregate &&
         part.thought !== true &&
         part.functionCall === undefined &&
-        part.text !== undefined;
+        typeof part.text === "string";
       if (isAggregateText) {
         if (suppressAggregateText) {
           // NOTE: fully-suppressed aggregate — this event emits NO text.end at all

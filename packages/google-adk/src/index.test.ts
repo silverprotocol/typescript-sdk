@@ -1989,6 +1989,152 @@ describe("createAdkNormalizer — genai-optional arm members ride provider-raw, 
   });
 });
 
+describe("createAdkNormalizer — JSON-null guard: a null arm is carried, a null member is absent, nothing is dereferenced", () => {
+  // A snake_case serializer that keeps Python None (session payloads) can hand
+  // the facet `null` where the genai types say "optional". The AdkPart
+  // projection cannot express these shapes, so they go in as raw JSON. No live
+  // capture has shown any of them.
+  const INV = "inv_fixture_1";
+  const partsEvent = (parts: JsonValue[], extra: { [k: string]: JsonValue } = {}): JsonValue => ({
+    content: { role: "model", parts },
+    invocationId: INV,
+    turnComplete: true,
+    finishReason: "STOP",
+    ...extra,
+  });
+  function runRaw(...natives: JsonValue[]): AgEvent[] {
+    const n = createAdkNormalizer();
+    return [...natives.flatMap((v) => n.push(v)), ...n.flush()];
+  }
+  function expectValidAndFolds(out: AgEvent[]): void {
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+    const r = new Reducer();
+    for (const ev of out) r.push(ev);
+    expect(r.needsResync).toBe(false);
+  }
+
+  describe("a null MEMBER is absent: output is byte-identical to the member left out", () => {
+    it("thought part: text null (was `null.length`)", () => {
+      const nulled = runRaw(partsEvent([{ thought: true, text: null }]));
+      expect(nulled).toEqual(runRaw(partsEvent([{ thought: true }])));
+      expect(nulled.some((e) => e.type === "reasoning.start")).toBe(true);
+      expect(nulled.some((e) => e.type === "reasoning.delta")).toBe(false);
+      expectValidAndFolds(nulled);
+    });
+
+    it("text part: text null emits no text block (was textDelta(null))", () => {
+      const nulled = runRaw(partsEvent([{ text: null }]));
+      expect(nulled).toEqual(runRaw(partsEvent([{}])));
+      expect(nulled.some((e) => e.type.startsWith("text."))).toBe(false);
+      expectValidAndFolds(nulled);
+    });
+
+    it("text null beside a functionCall no longer swallows the call", () => {
+      const call = { id: "call_1", name: "echo", args: { message: "hi" } };
+      const nulled = runRaw(partsEvent([{ text: null, functionCall: call }], { finishReason: null }));
+      expect(nulled).toEqual(runRaw(partsEvent([{ functionCall: call }], { finishReason: null })));
+      expect(nulled.filter((e) => e.type === "tool.start")).toHaveLength(1);
+      for (const ev of nulled) expect(() => AgEvent.parse(ev)).not.toThrow();
+    });
+
+    it("a partial null-text part never reaches the streamed-text accumulator", () => {
+      const partial = (parts: JsonValue[]): JsonValue => ({
+        content: { role: "model", parts },
+        invocationId: INV,
+        partial: true,
+      });
+      const aggregate = partsEvent([{ text: "Hello" }]);
+      const nulled = runRaw(partial([{ text: "Hel" }]), partial([{ text: null }]), aggregate);
+      expect(nulled).toEqual(runRaw(partial([{ text: "Hel" }]), partial([{}]), aggregate));
+      expect(JSON.stringify(nulled)).not.toContain("null\"");
+      expectValidAndFolds(nulled);
+    });
+
+    it("codeExecutionResult: null outcome/output take their existing defaults", () => {
+      const nulled = runRaw(partsEvent([{ codeExecutionResult: { outcome: null, output: null } }]));
+      expect(nulled).toEqual(runRaw(partsEvent([{ codeExecutionResult: {} }])));
+      expect(typedBlocks(nulled)).toEqual([{ type: "code-result", outcome: "failed", output: "" }]);
+      expectValidAndFolds(nulled);
+    });
+
+    it("executableCode: null language maps as absent → python (was `null.toLowerCase()`)", () => {
+      const nulled = runRaw(partsEvent([{ executableCode: { code: "print(1)", language: null } }]));
+      expect(nulled).toEqual(runRaw(partsEvent([{ executableCode: { code: "print(1)" } }])));
+      expect(typedBlocks(nulled)).toEqual([{ type: "code", language: "python", code: "print(1)" }]);
+      expectValidAndFolds(nulled);
+    });
+
+    it("fileData: null mimeType is left out of the resource-link (it rode as null)", () => {
+      const nulled = runRaw(partsEvent([{ fileData: { fileUri: "gs://b/o", mimeType: null } }]));
+      expect(nulled).toEqual(runRaw(partsEvent([{ fileData: { fileUri: "gs://b/o" } }])));
+      expectValidAndFolds(nulled);
+    });
+
+    it("functionResponse: null response maps as absent (was dereferenced for `content`)", () => {
+      const call = partsEvent([{ functionCall: { id: "call_1", name: "echo", args: {} } }], {
+        finishReason: null,
+        turnComplete: null,
+      });
+      const resp = (response: JsonValue | undefined): JsonValue =>
+        partsEvent([
+          response === undefined
+            ? { functionResponse: { id: "call_1", name: "echo" } }
+            : { functionResponse: { id: "call_1", name: "echo", response } },
+        ]);
+      const nulled = runRaw(call, resp(null));
+      expect(nulled).toEqual(runRaw(call, resp(undefined)));
+      expect(nulled.filter((e) => e.type === "tool.done")).toHaveLength(1);
+      expectValidAndFolds(nulled);
+    });
+
+    it("transcription: a null text emits no transcription block (it rode as null)", () => {
+      const nulled = runRaw(
+        partsEvent([], { inputTranscription: { text: null }, outputTranscription: { text: null } }),
+      );
+      expect(nulled).toEqual(
+        runRaw(partsEvent([], { inputTranscription: {}, outputTranscription: {} })),
+      );
+      expectValidAndFolds(nulled);
+    });
+  });
+
+  describe("a null ARM rides provider-raw verbatim (adk-13 precedent), never dereferenced", () => {
+    for (const field of ["codeExecutionResult", "functionCall", "functionResponse"]) {
+      it(`${field}: null`, () => {
+        let out: AgEvent[] = [];
+        expect(() => {
+          out = runRaw(partsEvent([{ [field]: null }]));
+        }).not.toThrow();
+        expect(findProviderRawWith(out, field)?.block.raw).toEqual({ [field]: null });
+        expect(typedBlocks(out)).toHaveLength(0);
+        expect(out.some((e) => e.type.startsWith("tool."))).toBe(false);
+        expectValidAndFolds(out);
+      });
+    }
+  });
+
+  describe("negative controls: present values map exactly as before", () => {
+    it("string members still map (language, mimeType, outcome/output, text)", () => {
+      const out = runRaw(
+        partsEvent([
+          { text: "hi" },
+          { executableCode: { code: "x", language: "PYTHON" } },
+          { codeExecutionResult: { outcome: "OUTCOME_OK", output: "1" } },
+          { fileData: { fileUri: "gs://b/o", mimeType: "text/plain" } },
+        ]),
+      );
+      expect(out.some((e) => e.type === "text.delta")).toBe(true);
+      expect(typedBlocks(out)).toEqual([
+        { type: "code", language: "python", code: "x" },
+        { type: "code-result", outcome: "ok", output: "1" },
+        { type: "resource-link", uri: "gs://b/o", mimeType: "text/plain" },
+      ]);
+      expect(providerRawBlocks(out)).toHaveLength(0);
+      expectValidAndFolds(out);
+    });
+  });
+});
+
 describe("createAdkNormalizer — adk 2.1.0 unresolvable-tool `{error}` envelope (adk-10, OPEN FOUNDER DECISION)", () => {
   // OPEN FOUNDER DECISION (adk-10, cohort 0.6.3): should ADK's own tool-failure
   // envelope `{ error: "<message>" }` classify as tool.done outcome "error"?
