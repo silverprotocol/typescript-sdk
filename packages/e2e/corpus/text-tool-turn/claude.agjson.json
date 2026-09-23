@@ -228,14 +228,23 @@
     }
   },
   {
-    "type": "subagent.done",
+    "type": "turn.done",
     "seq": 28,
+    "turnId": "turn_msg_sub_1",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "unknown"
+  },
+  {
+    "type": "subagent.done",
+    "seq": 29,
     "turnId": "turn_msg_sub_1",
     "parentTurnId": "turn_toolu_task"
   },
   {
     "type": "tool.done",
-    "seq": 29,
+    "seq": 30,
     "turnId": "turn_msg_top_1",
     "toolCallId": "toolu_task",
     "content": [
@@ -250,7 +259,7 @@
   },
   {
     "type": "turn.done",
-    "seq": 30,
+    "seq": 31,
     "turnId": "turn_msg_top_1",
     "outcome": {
       "type": "success",
