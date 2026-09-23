@@ -8,6 +8,12 @@
  * the live path with a real GOOGLE_API_KEY.
  */
 import { afterEach, describe, expect, it } from "vitest";
+// Static on purpose: the vendor SDK's cold load runs at collection, which
+// vitest does not time. Inside the test body it raced testTimeout on a busy
+// box (101.9 s at load avg ~300, 2026-09-23). A throw at import still fails
+// this file, so the module-load contract still gates. run.ts reads the key
+// only inside runAdkCapture, so importing before ORIGINAL_KEY is safe.
+import * as runModule from "./run.js";
 
 const ORIGINAL_KEY = process.env["GOOGLE_API_KEY"];
 
@@ -20,9 +26,8 @@ afterEach(() => {
 });
 
 describe("runAdkCapture — module-load smoke", () => {
-  it("importing the module does NOT throw", async () => {
-    const m = await import("./run.js");
-    expect(typeof m.runAdkCapture).toBe("function");
+  it("importing the module does NOT throw", () => {
+    expect(typeof runModule.runAdkCapture).toBe("function");
   });
 
   it("runAdkCapture is an async generator (returns AsyncIterable) — lazy, no work until iterated", async () => {

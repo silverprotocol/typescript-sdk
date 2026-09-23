@@ -8,6 +8,12 @@
  * the live path with a real OPENAI_API_KEY.
  */
 import { afterEach, describe, expect, it } from "vitest";
+// Static on purpose: the vendor SDK's cold load runs at collection, which
+// vitest does not time. Inside the test body it raced testTimeout on a busy
+// box (43.7 s at load avg ~300, 2026-09-23). A throw at import still fails
+// this file, so the module-load contract still gates. run.ts reads the key
+// only inside runOpenaiCapture, so importing before ORIGINAL_KEY is safe.
+import * as runModule from "./run.js";
 
 const ORIGINAL_KEY = process.env["OPENAI_API_KEY"];
 
@@ -20,9 +26,8 @@ afterEach(() => {
 });
 
 describe("runOpenaiCapture — module-load smoke", () => {
-  it("importing the module does NOT throw", async () => {
-    const m = await import("./run.js");
-    expect(typeof m.runOpenaiCapture).toBe("function");
+  it("importing the module does NOT throw", () => {
+    expect(typeof runModule.runOpenaiCapture).toBe("function");
   });
 
   it("runOpenaiCapture is an async generator (returns AsyncIterable) — lazy, no work until iterated", async () => {

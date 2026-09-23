@@ -16,6 +16,14 @@ export default defineConfig({
     // `--config ../../vitest.config.ts` (vitest 5 stopped resolving a parent
     // config, so the capture ritual passes the flag explicitly).
     exclude: [...configDefaults.exclude, "**/dist/**"],
+    // The budget catches hangs; it does not time tests. On a busy fleet box
+    // (load avg ~300 on 12 cores, 2026-09-23) the slowest ordinary test body,
+    // provenance.test.ts's corpus walk, took 5.05 s: past vitest's 5 s
+    // default. 30 s gives it 6x and sits far below CI's 15-minute test-job cap.
+    // Vendor-SDK cold loads are NOT covered by this: they took up to 101.9 s
+    // at that load, so the agents' run.smoke tests import statically (at
+    // collection, which vitest does not time) instead of inside a test body.
+    testTimeout: 30_000,
   },
   resolve: {
     alias: {

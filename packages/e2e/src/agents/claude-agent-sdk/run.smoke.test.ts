@@ -6,14 +6,18 @@
  * required. Task 7 (operator) exercises the live path.
  */
 import { describe, it, expect } from "vitest";
+// Static on purpose: the vendor SDK's cold load runs at collection, which
+// vitest does not time. Inside the test body it raced testTimeout on a busy
+// box (28.4 s here, 101.9 s for adk, at load avg ~300, 2026-09-23). A throw at
+// import still fails this file, so the invariant below still gates.
+import * as runModule from "./run.js";
 
 describe("runClaudeCapture — module-load smoke", () => {
-  it("importing the module does NOT throw (no module-load CLI resolution)", async () => {
+  it("importing the module does NOT throw (no module-load CLI resolution)", () => {
     // The critical invariant: 0.2.141 ships a native binary and self-resolves
     // it at run time, NOT at import time. If resolveClaudeCliPath / spawnClaudeCli
     // were lifted from the ../ggui sample they would throw here.
-    const m = await import("./run.js");
-    expect(typeof m.runClaudeCapture).toBe("function");
+    expect(typeof runModule.runClaudeCapture).toBe("function");
   });
 
   it("runClaudeCapture is an async generator (returns AsyncIterable)", async () => {
