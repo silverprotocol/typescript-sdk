@@ -13,7 +13,13 @@ import {
   toJsonValue,
   AGJSON_VERSION,
   ingestAgEvents,
+  readStoredAgMessage,
+  readStoredAgMessages,
+  readStoredAgMemoryRecords,
+  checkAgInput,
 } from "@silverprotocol/core";
+import type { AgRecordReport } from "@silverprotocol/core";
+import { isDeepStrictEqual } from "node:util";
 import type { JsonValue } from "@silverprotocol/core";
 import { createAdkNormalizer, ADK_HOST_COMPLETE_TYPE } from "@silverprotocol/google-adk";
 import { replayNatives, HOST_COMPLETE_MARKER } from "./replay.js";
@@ -118,6 +124,8 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 27, leg: "fold", title: "Re-delivery never folds twice (draft.4): re-delivered seq, duplicate *.start id, delta/start into a sealed message or a closed turn, second final tool.done → resync with the fold unchanged; a later invoke's 0-restart reusing a block id folds; a forward gap still parks", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.27(fold), reference Reducer + reduce() (probe P14)" },
   { n: 27, leg: "goldens", title: "Re-delivery never folds twice (draft.4): on every replay golden, block-creating *.start ids are unique within each invoke", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.27(goldens), a scan of every corpus/*/*.agjson.json" },
   { n: 28, title: "Host-appended events (draft.4): every replay golden plus a host-appended paused hitl.ask turn from lastSeq+1 folds with needsResync false and the turn in turns (§8.0 host obligation 5)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.28 over every corpus/*/*.agjson.json via ingestAgEvents → reduce" },
+  { n: 29, leg: "a", title: "Forward-compatible records: a stored AgMessage/AgMemoryRecord reader omits an unreadable content element or record, reports it with its index and verbatim value, never coerces, and the reports reconstruct the stored value", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.29(a) via core readStoredAgMessage(s)/readStoredAgMemoryRecords (probe P3 2bd1abf; unit legs core/src/record.test.ts)" },
+  { n: 29, leg: "b", title: "Forward-compatible inputs: an undefined closed-set value at any depth rejects the whole input with unknown-value at its path, distinct from malformed and major-mismatch; unknown fields pass intact", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.29(b) via core checkAgInput (probe P3 2bd1abf; unit legs core/src/input-check.test.ts)" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -1476,6 +1484,120 @@ describe("§10.28 — host-appended events (draft.4): every replay golden + a ho
     }
     expect(files).toBeGreaterThan(0);
     expect(bad).toEqual([]);
+  });
+});
+
+describe("§10.29 — forward-compatible records and inputs (draft.4; §0.2 stored records and inputs)", () => {
+  // Splice each report's raw back at its (last) index: the §0.2 reconstruction requirement.
+  const reinsert = (value: unknown[], reports: AgRecordReport[]): unknown[] => {
+    const out = [...value];
+    for (const r of [...reports].sort((x, y) => (x.path.at(-1) as number) - (y.path.at(-1) as number))) out.splice(r.path.at(-1) as number, 0, r.raw);
+    return out;
+  };
+  const T1 = { type: "text", text: "a", zzKey: "k" };
+  const U = { type: "zz" };
+  const TR = { type: "tool-result", toolCallId: "c1", content: [{ type: "text", text: "r" }, { type: "zz" }] };
+  const T2 = { type: "text", text: "b" };
+  const M = { id: "m", role: "assistant", zzTop: 1, usage: { inputTokens: 10, outputTokens: 5, zzCounter: 3 }, content: [T1, U, TR, T2] };
+
+  it("(a1-a4) the stored message reads as content [T1, T2] with unknown fields intact, exactly two reports (U at [content,1], TR at [content,2]), reinsertion reproduces it, and the input is not mutated", () => {
+    const input = structuredClone(M);
+    const before = structuredClone(M);
+    const r = readStoredAgMessage(input);
+    const v = r.value as unknown as Record<string, unknown>;
+    expect(isDeepStrictEqual(v["content"], [T1, T2])).toBe(true);
+    expect(v["zzTop"]).toBe(1);
+    expect((v["usage"] as Record<string, unknown>)["zzCounter"]).toBe(3);
+    expect(r.reports).toEqual([
+      { path: ["content", 1], ignoredType: "zz", raw: U },
+      { path: ["content", 2], ignoredType: "tool-result", raw: TR },
+    ]);
+    expect(isDeepStrictEqual({ ...v, content: reinsert(v["content"] as unknown[], r.reports) }, before)).toBe(true);
+    expect(isDeepStrictEqual(input, before)).toBe(true);
+  });
+
+  it("(a5) memory records: [R1, R2 scope 'zz', R3] reads as [R1, R3] with unknown fields intact and one report at [1]; reinsertion reproduces the array", () => {
+    const R1 = { scope: "thread", key: "k1", value: { a: 1 }, zz: "keep" };
+    const R2 = { scope: "zz", key: "k2", value: 2 };
+    const R3 = { scope: "user", value: null, zzNested: { q: [1] } };
+    const r = readStoredAgMemoryRecords([R1, R2, R3]);
+    expect(isDeepStrictEqual(r.value, [R1, R3])).toBe(true);
+    expect(r.reports).toEqual([{ path: [1], raw: R2 }]);
+    expect(isDeepStrictEqual(reinsert(r.value as unknown[], r.reports), [R1, R2, R3])).toBe(true);
+  });
+
+  it("(a6) an object that is not a stored message (no id/role, or role 'zz') is not materialized and is reported whole", () => {
+    for (const raw of [{ kind: "text", text: "x" }, { id: "m2", role: "zz", content: [] }]) {
+      const r = readStoredAgMessage(raw);
+      expect(r.value).toBeUndefined();
+      expect(r.reports).toHaveLength(1);
+      expect(isDeepStrictEqual(r.reports[0]!.raw, raw)).toBe(true);
+    }
+  });
+
+  it("(a7) an own __proto__ key at any depth never becomes a prototype of a returned object", () => {
+    const raw = JSON.parse('{"__proto__":{"polluted":1},"id":"m3","role":"assistant","content":[{"type":"text","text":"t","__proto__":{"polluted":2}}]}') as unknown;
+    const r = readStoredAgMessage(raw);
+    const walk = (o: unknown): boolean => {
+      if (o === null || typeof o !== "object") return true;
+      if (!Array.isArray(o) && Object.getPrototypeOf(o) !== Object.prototype) return false;
+      return Object.values(o as Record<string, unknown>).every(walk);
+    };
+    expect(r.value).toBeDefined();
+    expect(walk(r.value)).toBe(true);
+    expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
+  });
+
+  it("(a8) every message folded from the recorded corpus reads back deep-equal with zero reports", () => {
+    const corpus = new URL("../corpus/", import.meta.url);
+    let messages = 0;
+    const bad: string[] = [];
+    for (const dir of readdirSync(corpus)) {
+      for (const fw of ["claude", "openai", "adk", "vercel"]) {
+        const f = new URL(`${dir}/${fw}.agjson.json`, corpus);
+        if (!existsSync(f)) continue;
+        const golden = JSON.parse(readFileSync(f, "utf8")) as JsonValue[];
+        const folded = JSON.parse(JSON.stringify(reduce(ingestAgEvents(golden)).result.messages)) as unknown[];
+        const r = readStoredAgMessages(folded);
+        messages += folded.length;
+        if (r.reports.length > 0 || !isDeepStrictEqual(r.value, folded)) bad.push(`${dir}/${fw}`);
+      }
+    }
+    expect(messages).toBeGreaterThan(0);
+    expect(bad).toEqual([]);
+  });
+
+  const ENV = { protocol: "agjson", version: AGJSON_VERSION, threadId: "th", turnId: "t" };
+  const start = (extra: Record<string, unknown>) => ({ ...ENV, kind: "start", messages: [], ...extra });
+  const reject = (raw: unknown) => {
+    const r = checkAgInput(raw);
+    return r.ok ? { ok: true } : { code: r.code, path: r.path };
+  };
+
+  it("(b1-b4) an undefined closed-set value rejects the whole input with unknown-value at its path", () => {
+    expect(reject({ ...ENV, kind: "resume", answers: [{ askId: "a", status: "resolved" }, { askId: "b", status: "zz" }] })).toEqual({ code: "unknown-value", path: ["answers", 1, "status"] });
+    expect(reject({ ...ENV, kind: "zz" })).toEqual({ code: "unknown-value", path: ["kind"] });
+    expect(reject(start({ run: { reasoning: { mode: "enabled", effort: "xhigh" } } }))).toEqual({ code: "unknown-value", path: ["run", "reasoning", "effort"] });
+    expect(reject(start({ messages: [{ id: "u1", role: "user", content: [{ type: "text", text: "hi" }, { type: "zz" }] }] }))).toEqual({ code: "unknown-value", path: ["messages", 0, "content", 1, "type"] });
+  });
+
+  it("(b5-b7) a missing value or a value of the wrong JSON type is malformed", () => {
+    expect(reject({ ...ENV, kind: 9 }).code).toBe("malformed");
+    expect(reject({ ...ENV, kind: "resume", answers: [{ askId: "a" }] })).toEqual({ code: "malformed", path: ["answers", 0, "status"] });
+    expect(reject(start({ capabilities: { hitl: { grantModes: {} } } }))).toEqual({ code: "malformed", path: ["capabilities", "hitl", "grantModes"] });
+  });
+
+  it("(b8) a different major version is major-mismatch", () => {
+    expect(reject({ ...ENV, version: "2.0.0", kind: "start", messages: [] })).toEqual({ code: "major-mismatch", path: ["version"] });
+  });
+
+  it("(b9-b10) unknown fields on an answer and in capabilities (top-level and nested) are accepted and returned intact", () => {
+    const resume = { ...ENV, kind: "resume", answers: [{ askId: "a", status: "resolved", zzExtra: { k: 1 } }] };
+    const r1 = checkAgInput(structuredClone(resume));
+    expect(r1.ok && isDeepStrictEqual(r1.input, resume)).toBe(true);
+    const caps = start({ capabilities: { zzTop: true, hitl: { ask: true, zzNested: [1] } } });
+    const r2 = checkAgInput(structuredClone(caps));
+    expect(r2.ok && isDeepStrictEqual(r2.input, caps)).toBe(true);
   });
 });
 
