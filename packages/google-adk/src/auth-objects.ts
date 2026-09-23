@@ -239,9 +239,10 @@ function holdsObject(v: unknown, match: (o: { readonly [k: string]: unknown }) =
  *  those is carried exactly as before. When entries were omitted, a remaining
  *  entry that is not JSON is dropped rather than thrown on, since a throw would
  *  hand the raw native event to the host's error path. A value that is not a
- *  map is carried as before, or as {} if it holds a credential. */
+ *  map of entries (an array, a scalar, or an ADK AuthCredential itself) is
+ *  carried as before, or as {} if it holds a credential. */
 export function scrubStateMap(raw: unknown): JsonValue {
-  if (!isObjectRecord(raw)) return holdsAuthCredential(raw) ? {} : JsonValue.parse(raw);
+  if (!isObjectRecord(raw) || isAuthCredentialObject(raw)) return holdsAuthCredential(raw) ? {} : JsonValue.parse(raw);
   const keys = Object.keys(raw);
   const omitted = keys.map((k) => k.startsWith(ADK_TEMP_STATE_PREFIX) || holdsAuthCredential(raw[k]));
   if (!omitted.includes(true)) return JsonValue.parse(raw);

@@ -1420,6 +1420,52 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
     }
   });
 
+  it("state.delta: §8.0 item 28(b) holds for every patch shape", () => {
+    const patchOf = (stateDelta: JsonValue): { out: AgEvent[]; patch: JsonValue } => {
+      const n = createAdkNormalizer();
+      const out = [
+        ...n.push({ invocationId: "inv_fixture_1", author: "agent", content: { role: "model", parts: [{ text: "ok" }] }, actions: { stateDelta } }),
+        ...n.flush(),
+      ];
+      const patches = stateDeltaOf(out);
+      expect(patches, JSON.stringify(stateDelta)).toHaveLength(1);
+      return { out, patch: patches[0] ?? null };
+    };
+    // No unit remains: the empty patch, other members included (the unit is
+    // the whole patch, as it is the whole entry below).
+    const emptied: JsonValue[] = [
+      { authType: "apiKey", apiKey: "SECRET_fake_api_key" },
+      { auth_type: "apiKey", api_key: "SECRET_fake_api_key_snake" },
+      { authType: "apiKey", apiKey: "SECRET_fake_api_key", cart: 3 },
+      httpBearer,
+      oauth2Exchanged,
+    ];
+    for (const stateDelta of emptied) {
+      const { out, patch } = patchOf(stateDelta);
+      expect(patch, JSON.stringify(stateDelta)).toEqual({});
+      expect(foldedState(out), JSON.stringify(stateDelta)).toEqual({});
+      expectNoSecretAnywhere(out);
+    }
+    // The same object as one entry: that entry is omitted, the rest rides.
+    {
+      const { out, patch } = patchOf({ entry: { authType: "apiKey", apiKey: "SECRET_fake_api_key" }, keep: 1 });
+      expect(patch).toEqual({ keep: 1 });
+      expectNoSecretAnywhere(out);
+    }
+    // Nothing to omit: carried byte-identical.
+    const carried: JsonValue[] = [
+      { authType: "apiKey" },
+      { authType: "apiKey", apiKey: null },
+      { authType: "bearer", http: {} },
+      { authType: "apiKey", note: "plain" },
+      { cart: 3, step: "two" },
+    ];
+    for (const stateDelta of carried) {
+      const { patch } = patchOf(stateDelta);
+      expect(JSON.stringify(patch), JSON.stringify(stateDelta)).toBe(JSON.stringify(stateDelta));
+    }
+  });
+
   // ── node data in provider-raw (event output, actions.agentState) ──
   const typedReply: { [k: string]: JsonValue } = {
     authScheme: { type: "apiKey", in: "header", name: "X-Key" },
