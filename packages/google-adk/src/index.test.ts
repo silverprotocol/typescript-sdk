@@ -3896,6 +3896,32 @@ describe("createAdkNormalizer — the host-error sentinel (SPEC §8.0 host oblig
     folds(out);
   });
 
+  it("two turns open: they close innermost first (reverse opening order, INV-FLUSH), each turn.error with the sentinel's code", () => {
+    const n = createAdkNormalizer();
+    const out = [
+      ...n.push(toJsonValue(event([{ text: "outer" }], { invocationId: "inv_outer" }))),
+      ...n.push(toJsonValue(event([{ text: "inner" }], { invocationId: "inv_inner" }))),
+      ...n.push({ type: ADK_HOST_ERROR_TYPE, code: "max_llm_calls", message: "limit" }),
+      ...n.flush(),
+    ];
+    const errs = terminals(out);
+    expect(errs.map((e) => [e.type, (e as { turnId: string }).turnId, (e as { code?: string }).code])).toEqual([
+      ["turn.error", "turn_inv_inner", "max_llm_calls"],
+      ["turn.error", "turn_inv_outer", "max_llm_calls"],
+    ]);
+    folds(out);
+  });
+
+  it("with both a sentinel usage and accumulated turn usage, the sentinel's usage wins", () => {
+    const n = createAdkNormalizer();
+    const out = [
+      ...n.push(toJsonValue(event([{ text: "x" }], { usageMetadata: { promptTokenCount: 3, candidatesTokenCount: 2, totalTokenCount: 5 } }))),
+      ...n.push({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m", usage: { inputTokens: 9, outputTokens: 1 } }),
+    ];
+    expect(terminals(out)[0]).toMatchObject({ usage: { inputTokens: 9, outputTokens: 1 } });
+    expect((terminals(out)[0] as { usage?: { totalTokens?: number } }).usage?.totalTokens).toBeUndefined();
+  });
+
   it("the sentinel's own usage is used when valid; an invalid one is dropped; a malformed sentinel is not one", () => {
     const withUsage = createAdkNormalizer();
     const a = [...withUsage.push(toJsonValue(event([{ text: "x" }], {}))), ...withUsage.push({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m", usage: { inputTokens: 9, outputTokens: 1 } })];
