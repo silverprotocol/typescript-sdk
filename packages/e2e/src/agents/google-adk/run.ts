@@ -48,11 +48,77 @@
  * no mock server booted.
  */
 
-import { InMemoryRunner, LlmAgent, MCPToolset } from "@google/adk";
+import { FunctionTool, InMemoryRunner, LlmAgent, MCPToolset } from "@google/adk";
 import { ThinkingLevel } from "@google/genai";
+import { z } from "zod";
 import type { JsonValue } from "@silverprotocol/core";
 import { toJsonValue } from "@silverprotocol/core";
 import type { CaptureRunInput } from "../types.js";
+
+/** The scripted-state tool's name, and the harness's proof that this agent
+ *  supports `adkStateScript` (its knob guard, KNOB_SUPPORT). */
+export const ADK_STATE_TOOL = "apply_state_step";
+
+/**
+ * The inputs only this agent reads, on top of the shared contract. Both
+ * optional; with both absent a capture is byte-identical to one without them.
+ */
+export interface AdkCaptureInput extends CaptureRunInput {
+  /**
+   * Scripted session-state writes. When set, the agent gets one extra
+   * FunctionTool, `apply_state_step({ step })`, which writes
+   * `adkStateScript[step - 1]`'s entries through ADK's own
+   * `toolContext.state.set(key, value)`, one call per entry. The values are
+   * fixed by the script, so the model only chooses which step to call.
+   */
+  adkStateScript?: ReadonlyArray<Readonly<Record<string, JsonValue>>>;
+  /**
+   * Called once, after the run completes normally, with the session's state as
+   * ADK's own session service holds it (`getSession(...).state`), as plain JSON.
+   * It is kept OUT of the native stream, so replay and the census never see
+   * harness data. `null` when the session is gone.
+   */
+  onSessionState?: (state: JsonValue) => void;
+}
+
+/** Applies one scripted step to a state writer. Returns what the tool answers:
+ *  the step and the keys it wrote, or `applied: false` for a step the script
+ *  does not have. */
+export function applyAdkStateStep(
+  script: ReadonlyArray<Readonly<Record<string, JsonValue>>>,
+  step: number,
+  state: { set(key: string, value: unknown): void },
+): { applied: boolean; step: number; keys: string[] } {
+  const entries = Number.isInteger(step) && step >= 1 ? script[step - 1] : undefined;
+  if (entries === undefined) return { applied: false, step, keys: [] };
+  const keys = Object.keys(entries);
+  // structuredClone: each write stores its own copy, so no two steps (and no
+  // step and the script) share an object.
+  for (const key of keys) state.set(key, structuredClone(entries[key]));
+  return { applied: true, step, keys };
+}
+
+/** The `apply_state_step` FunctionTool over a script. */
+export function adkStateTool(script: ReadonlyArray<Readonly<Record<string, JsonValue>>>): FunctionTool {
+  return new FunctionTool({
+    name: ADK_STATE_TOOL,
+    description:
+      "Apply one scripted session-state step. Call it with step 1, then with step 2, and so on, one call at a time.",
+    parameters: z.object({ step: z.number().int().describe("The 1-based step number to apply.") }),
+    execute: ({ step }, toolContext) =>
+      toolContext === undefined ? { applied: false, step, keys: [] } : applyAdkStateStep(script, step, toolContext.state),
+  });
+}
+
+/** The session's state as ADK's session service holds it, as plain JSON
+ *  (`null` when the session is gone). */
+export async function adkSessionState(
+  runner: InMemoryRunner,
+  key: { userId: string; sessionId: string },
+): Promise<JsonValue> {
+  const session = await runner.sessionService.getSession({ appName: runner.appName, ...key });
+  return session === undefined ? null : toJsonValue(session.state);
+}
 
 /** CaptureRunInput's lowercase levels → genai's enum. The 3.7-flash set only
  *  (low/medium/high) — MINIMAL exists in the enum but is rejected server-side
@@ -88,7 +154,7 @@ export function adkGenerateContentConfig(
  * materialized as a plain `JsonValue` via `toJsonValue` (audit D5-a's
  * native-ingestion boundary — the whole event, no per-field cast).
  */
-export async function* runAdkCapture(input: CaptureRunInput): AsyncIterable<JsonValue> {
+export async function* runAdkCapture(input: AdkCaptureInput): AsyncIterable<JsonValue> {
   const apiKey = input.apiKey ?? process.env["GOOGLE_API_KEY"];
   if (!apiKey) {
     throw new Error(
@@ -124,7 +190,7 @@ export async function* runAdkCapture(input: CaptureRunInput): AsyncIterable<Json
       name: "spike",
       model: input.model ?? "gemini-2.5-flash",
       instruction: input.systemPrompt ?? "You are a helpful assistant.",
-      tools: toolsets,
+      tools: input.adkStateScript !== undefined ? [...toolsets, adkStateTool(input.adkStateScript)] : toolsets,
       ...(generateContentConfig !== undefined ? { generateContentConfig } : {}),
     });
     const runner = new InMemoryRunner({ agent });
@@ -151,6 +217,11 @@ export async function* runAdkCapture(input: CaptureRunInput): AsyncIterable<Json
       // Wire projection (audit D5-a) — toJsonValue materializes the WHOLE raw
       // event into plain JsonValue with no per-field cast.
       yield toJsonValue(event);
+    }
+    // Ground truth for the state seed: ADK's own session state, after the run
+    // returned normally. Reported through the callback, never yielded.
+    if (input.onSessionState !== undefined) {
+      input.onSessionState(await adkSessionState(runner, { userId: session.userId, sessionId: session.id }));
     }
   } finally {
     await Promise.all(toolsets.map((toolset) => toolset.close()));
