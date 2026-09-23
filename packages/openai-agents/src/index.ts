@@ -3046,15 +3046,48 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
           // this seam, unlike google-adk's per-message agentId/agentName).
           const item = event.item;
           const open = openHandoffs.shift(); // FIFO — see openHandoffs' doc.
-          if (open !== undefined) a.subagentDone(open.turnId, open.parentTurnId);
+          if (open !== undefined) {
+            // draft.4 nested-run closure (§8.0 item 29, §10 item 36; sp-protocol's
+            // nested-turn package A.6): the bracket closes with its own terminal,
+            // immediately followed by `subagent.done`. `handoff_occurred` IS the
+            // SDK's report that the transfer ran (the handoff span closed and the
+            // new agent resolved), so success; the SDK reports no finish reason
+            // for it ("unknown") and no usage (the top-level round carries the spend).
+            a.closeTurnDone(open.turnId, { outcome: { type: "success" }, finishReason: "unknown" });
+            a.subagentDone(open.turnId, open.parentTurnId);
+          }
+          // HO (0.7.0 regression, sp-probe's live handoff-gpt6sol): the transfer is
+          // an ordinary function_call the model emitted (tool.start from
+          // `response.output_item.added`, registered pending), and THIS item's
+          // rawItem is its result — the SDK never sends a `tool_output` for it.
+          // Land it as that call's tool.done, routed exactly as the tool_output
+          // arm routes a function result, so the pending set drains and the
+          // source round's deferred close (§8.0 item 14) emits here as its real
+          // turn.done, not as O1's flush-time turn.abort. A resumed invoke can
+          // deliver this for a call started in the interrupted invoke
+          // (agents-core 0.18.0 `resolveInterruptedTurn` runs the response's
+          // pending handoffs): that leading result opens its resume turn FIRST,
+          // so the `handoff` event below lands in the same turn as the result.
+          const result = item.rawItem;
+          const doneTurnId = resolvePendingTurnId(result.callId);
+          const owner = doneTurnId !== undefined ? { turnId: doneTurnId } : (openTurnForLeadingResult(result.callId) ?? {});
           // Defensive orphan (no open bracket — e.g. a resumed/truncated stream):
           // still emit the `handoff` event losslessly rather than dropping the
-          // now-known identity (Tenet 6) — it just doesn't close anything.
+          // now-known identity (Tenet 6) — it just doesn't close anything. It
+          // precedes the tool.done, which may close the source round.
           a.emit({
             type: "handoff",
             kind: "transfer",
             toAgentName: item.targetAgent.name,
           });
+          a.toolDone({
+            toolCallId: result.callId,
+            content: toolOutputToAgBlocks(result.output),
+            outcome: result.status === "incomplete" ? "error" : "ok",
+            isError: result.status === "incomplete",
+            ...owner,
+          });
+          drainPendingTool(result.callId, doneTurnId);
           return;
         }
         case "compaction_item_created": {

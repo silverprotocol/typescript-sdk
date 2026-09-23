@@ -2402,6 +2402,9 @@ describe("createOpenaiNormalizer — handoff_requested / handoff_occurred (Task 
     const r = new Reducer();
     const stream = [
       rawModel({ type: "response.created", response: { id: "resp_handoff_2" } }),
+      // The transfer function_call the model emitted (live wire, handoff-gpt6sol):
+      // its result rides handoff_occurred (HO), so this round stays open for it.
+      rawModel({ type: "response.output_item.added", item: { id: "fc_handoff_2", type: "function_call", call_id: "call_handoff_2", name: "transfer_to_billing_agent" } }),
       rawModel({ type: "response.completed", response: { id: "resp_handoff_2", status: "completed" } }),
       runItem("handoff_requested", {
         type: "handoff_call_item",
@@ -2472,6 +2475,193 @@ describe("createOpenaiNormalizer — handoff_requested / handoff_occurred (Task 
     expect(handoff).toBeDefined();
     expect(handoff?.kind).toBe("transfer");
     expect(handoff?.toAgentName).toBe("billing_agent");
+  });
+});
+
+// HO — the handoff close (0.7.0 regression, sp-probe's live handoff-gpt6sol at
+// c08a2a2). On the real wire the transfer is an ordinary function_call the
+// model emits (`response.output_item.added` → tool.start, pending), and its
+// result arrives ONLY as `handoff_occurred`'s `handoff_output_item` rawItem (a
+// function_call_result for that callId), never as a `tool_output`. Without a
+// tool.done there, the main round's deferred close never drained and O1's
+// honest flush released it as turn.abort{stream-truncated}. The nested bracket
+// closes with its draft.4 terminal (§8.0 item 29, §10 item 36): the SDK reports
+// the transfer done, so success with finishReason "unknown", no usage.
+describe("createOpenaiNormalizer — HO handoff close (the transfer result + the nested terminal)", () => {
+  const U = { input_tokens: 90, output_tokens: 12, total_tokens: 102 };
+  const TRANSFER_OUT = '{"assistant":"Echoer"}';
+  function mainRound(respId: string, callId: string): JsonValue[] {
+    return [
+      rawModel({ type: "response.created", response: { id: respId, model: "gpt-6-sol" } }),
+      rawModel({
+        type: "response.output_item.added",
+        item: { id: `fc_${callId}`, type: "function_call", status: "in_progress", arguments: "", call_id: callId, name: "transfer_to_Echoer" },
+      }),
+      rawModel({ type: "response.function_call_arguments.done", item_id: `fc_${callId}`, arguments: "{}" }),
+      rawModel({ type: "response.completed", response: { id: respId, status: "completed", usage: U } }),
+    ];
+  }
+  function requested(callId: string): JsonValue {
+    return runItem("handoff_requested", {
+      type: "handoff_call_item",
+      rawItem: { type: "function_call", name: "transfer_to_Echoer", callId, status: "completed", arguments: "{}", id: `fc_${callId}` },
+      agent: { name: "spike" },
+    });
+  }
+  function occurred(callId: string): JsonValue {
+    return runItem("handoff_occurred", {
+      type: "handoff_output_item",
+      rawItem: { type: "function_call_result", name: "transfer_to_Echoer", callId, status: "completed", output: { type: "text", text: TRANSFER_OUT } },
+      sourceAgent: { name: "spike" },
+      targetAgent: { name: "Echoer" },
+    });
+  }
+  function echoerRound(respId: string): JsonValue[] {
+    return [
+      rawModel({ type: "response.created", response: { id: respId, model: "gpt-6-sol" } }),
+      rawModel({ type: "response.output_item.added", item: { id: `msg_${respId}`, type: "message", status: "in_progress", content: [], role: "assistant" } }),
+      rawModel({ type: "response.output_text.delta", item_id: `msg_${respId}`, delta: "handoff-probe" }),
+      rawModel({ type: "response.completed", response: { id: respId, status: "completed", usage: U } }),
+    ];
+  }
+  const LIVE_SHAPED: JsonValue[] = [
+    ...mainRound("resp_ho_main", "call_ho"),
+    requested("call_ho"),
+    occurred("call_ho"),
+    { type: "agent_updated_stream_event", agent: { name: "Echoer" } },
+    ...echoerRound("resp_ho_echo"),
+  ];
+  function run(s: JsonValue[]): AgEvent[] {
+    const n = createOpenaiNormalizer({ invokeId: "inv1" });
+    return s.flatMap((e) => n.push(e)).concat(n.flush());
+  }
+  function fold(evs: AgEvent[]): Reducer {
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    return r;
+  }
+
+  it("the main round folds SUCCESS: the transfer call gets its tool.done (content = the transfer output), which drains the deferred close; no turn.abort anywhere", () => {
+    const evs = run(LIVE_SHAPED);
+    expect(evs.some((e) => e.type === "turn.abort")).toBe(false);
+    const toolDone = evs.find((e) => e.type === "tool.done" && e.toolCallId === "call_ho");
+    expect(toolDone).toMatchObject({
+      turnId: "turn_resp_ho_main",
+      content: [{ type: "text", text: TRANSFER_OUT }],
+      outcome: "ok",
+      isError: false,
+    });
+    const mainDone = evs.find((e) => e.type === "turn.done" && e.turnId === "turn_resp_ho_main");
+    expect(mainDone).toMatchObject({ outcome: { type: "success" }, usage: { inputTokens: 90, outputTokens: 12 } });
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    expect(res.turns.find((t) => t.turnId === "turn_resp_ho_main")?.outcome).toMatchObject({ type: "success" });
+    expect(res.turns.find((t) => t.turnId === "turn_resp_ho_echo")?.outcome).toMatchObject({ type: "success" });
+    expect(() => AgReduceResult.parse(res)).not.toThrow();
+  });
+
+  it("the main round closes AT handoff_occurred, not at flush: that one push() batch is the whole close", () => {
+    const n = createOpenaiNormalizer({ invokeId: "inv1" });
+    for (const e of mainRound("resp_ho_main", "call_ho")) n.push(e);
+    n.push(requested("call_ho"));
+    const batch = n.push(occurred("call_ho"));
+    // message.end names its message by `id` (the owner resolves through it, INV-OWNER).
+    const owner = (e: AgEvent): string | undefined =>
+      e.type === "message.end" ? e.id : "turnId" in e ? e.turnId : undefined;
+    expect(batch.map((e) => [e.type, owner(e)])).toEqual([
+      ["turn.done", "turn_inv1_handoff_1"],
+      ["subagent.done", "turn_inv1_handoff_1"],
+      ["handoff", "turn_resp_ho_main"],
+      ["tool.done", "turn_resp_ho_main"],
+      ["message.end", "msg_turn_resp_ho_main"],
+      ["turn.done", "turn_resp_ho_main"],
+    ]);
+  });
+
+  it("wire order at handoff_occurred: nested turn.done{success, unknown, no usage} → subagent.done (adjacent) → handoff → tool.done → main message.end → main turn.done", () => {
+    const evs = run(LIVE_SHAPED);
+    const nestedTerminals = evs.filter(
+      (e) => (e.type === "turn.done" || e.type === "turn.abort" || e.type === "turn.error") && e.turnId === "turn_inv1_handoff_1",
+    );
+    expect(nestedTerminals).toHaveLength(1);
+    const nested = nestedTerminals[0];
+    expect(nested).toMatchObject({ type: "turn.done", outcome: { type: "success" }, finishReason: "unknown" });
+    expect(nested).not.toHaveProperty("usage");
+    const at = (pred: (e: AgEvent) => boolean): number => evs.findIndex(pred);
+    const iNested = at((e) => e.type === "turn.done" && e.turnId === "turn_inv1_handoff_1");
+    const iSubDone = at((e) => e.type === "subagent.done");
+    const iHandoff = at((e) => e.type === "handoff");
+    const iToolDone = at((e) => e.type === "tool.done" && e.toolCallId === "call_ho");
+    const iMainEnd = at((e) => e.type === "message.end" && e.id === "msg_turn_resp_ho_main");
+    const iMainDone = at((e) => e.type === "turn.done" && e.turnId === "turn_resp_ho_main");
+    expect(iSubDone).toBe(iNested + 1);
+    expect(iHandoff).toBeGreaterThan(iSubDone);
+    expect(iToolDone).toBeGreaterThan(iHandoff);
+    expect(iMainEnd).toBeGreaterThan(iToolDone);
+    expect(iMainDone).toBeGreaterThan(iMainEnd);
+    // The target agent's round opens only after the source round closed.
+    expect(at((e) => e.type === "turn.start" && e.turnId === "turn_resp_ho_echo")).toBeGreaterThan(iMainDone);
+    // The nested record carries the outcome; the handoff still lands on the parent.
+    const res = fold(evs).result();
+    expect(res.turns.find((t) => t.turnId === "turn_inv1_handoff_1")).toMatchObject({
+      parentTurnId: "turn_resp_ho_main",
+      outcome: { type: "success" },
+    });
+    expect(res.turns.find((t) => t.turnId === "turn_resp_ho_main")?.handoffs).toMatchObject([{ kind: "transfer", toAgentName: "Echoer" }]);
+  });
+
+  it("§10 item 36: folding with the subagent.done events removed (seq renumbered, INV-SEQ) is structurally identical", () => {
+    const evs = run(LIVE_SHAPED);
+    expect(evs.some((e) => e.type === "subagent.done")).toBe(true);
+    const without = evs.filter((e) => e.type !== "subagent.done").map((e, seq) => ({ ...e, seq }));
+    const withDone = fold(evs);
+    const withoutDone = fold(without);
+    expect(withDone.needsResync).toBe(false);
+    expect(withoutDone.needsResync).toBe(false);
+    expect(withoutDone.result()).toEqual(withDone.result());
+  });
+
+  it("a bracket still open at flush (handoff_requested, no handoff_occurred) is never closed success: the nested turn aborts, and so does the round whose transfer never resolved", () => {
+    const evs = run([...mainRound("resp_ho_cut", "call_cut"), requested("call_cut")]);
+    // No turn.done at all: both closes are flush-time, and a flush never emits success.
+    expect(evs.some((e) => e.type === "turn.done")).toBe(false);
+    expect(evs.find((e) => e.type === "turn.abort" && e.turnId === "turn_inv1_handoff_1")).toMatchObject({ reason: "stream-truncated" });
+    expect(evs.find((e) => e.type === "turn.abort" && e.turnId === "turn_resp_ho_cut")).toMatchObject({ reason: "stream-truncated" });
+    expect(evs.some((e) => e.type === "tool.done")).toBe(false);
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("a RESUMED invoke whose leading item is handoff_occurred (agents-core resolveInterruptedTurn runs the interrupted response's handoff): the result opens turn_resume_<callId>, the handoff lands there too, the target's response adopts that turn; no park", () => {
+    const evs = run([occurred("call_ho_resumed"), ...echoerRound("resp_ho_after")]);
+    const start = evs.find((e) => e.type === "turn.start");
+    expect(start).toMatchObject({ turnId: "turn_resume_call_ho_resumed" });
+    expect(evs.find((e) => e.type === "handoff")).toMatchObject({ turnId: "turn_resume_call_ho_resumed", toAgentName: "Echoer" });
+    expect(evs.find((e) => e.type === "tool.done")).toMatchObject({
+      turnId: "turn_resume_call_ho_resumed",
+      messageId: "call_ho_resumed:result",
+      content: [{ type: "text", text: TRANSFER_OUT }],
+    });
+    // No bracket was opened in this invoke, so none is closed.
+    expect(evs.some((e) => e.type === "subagent.done" || e.type === "subagent.start")).toBe(false);
+    expect(evs.filter((e) => e.type === "turn.start")).toHaveLength(1);
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns).toMatchObject([{ turnId: "turn_resume_call_ho_resumed", outcome: { type: "success" }, handoffs: [{ toAgentName: "Echoer" }] }]);
+  });
+
+  it("negative control: a transfer_to_* function_call whose result rides a plain tool_output still drains through the tool_output arm, exactly once", () => {
+    const evs = run([
+      ...mainRound("resp_ho_plain", "call_plain"),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "function_call_result", name: "transfer_to_Echoer", callId: "call_plain", status: "completed", output: "Multiple handoffs detected, ignoring this one." },
+        output: "Multiple handoffs detected, ignoring this one.",
+      }),
+    ]);
+    expect(evs.filter((e) => e.type === "tool.done")).toHaveLength(1);
+    expect(evs.find((e) => e.type === "turn.done" && e.turnId === "turn_resp_ho_plain")).toMatchObject({ outcome: { type: "success" } });
+    expect(evs.some((e) => e.type === "subagent.start" || e.type === "handoff")).toBe(false);
   });
 });
 
@@ -5115,9 +5305,12 @@ describe("createOpenaiNormalizer — IS minted ids are unique across invokes fol
   // No response.created: the facet mints the fallback turn id.
   const FALLBACK_INVOKE: JsonValue[] = [rawModel({ type: "response.output_text.delta", item_id: "msg_fb", delta: "hi" })];
   // Each invoke has its own (wire-unique) response id; only the MINTED
-  // subagent turn id is under test.
+  // subagent turn id is under test. The transfer is the function_call the
+  // model emitted (as on the live wire, handoff-gpt6sol): its result rides
+  // handoff_occurred (HO), so the round's close waits for it.
   const handoffInvoke = (respId: string): JsonValue[] => [
     rawModel({ type: "response.created", response: { id: respId } }),
+    rawModel({ type: "response.output_item.added", item: { id: "fc_h", type: "function_call", call_id: "call_h", name: "transfer_to_helper" } }),
     rawModel({ type: "response.completed", response: { id: respId, status: "completed" } }),
     runItem("handoff_requested", {
       type: "handoff_call_item",
