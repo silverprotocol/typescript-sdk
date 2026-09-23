@@ -21,7 +21,7 @@
 
 import { randomUUID, type UUID } from "node:crypto";
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import type { SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { HookCallbackMatcher, HookEvent, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { JsonValue } from "@silverprotocol/core";
 import { toJsonValue } from "@silverprotocol/core";
 
@@ -71,6 +71,48 @@ export interface CaptureRunInput {
    * to before (the live receipt for the facet's one-turnId-per-turn fix).
    */
   followUpPrompts?: string[];
+  /**
+   * Installs a PreToolUse hook that returns this `permissionDecision` for every
+   * tool call. "defer" parks the call: the CLI ends the turn and reports it as
+   * the result's `deferred_tool_use` (the claude facet carries it on
+   * `ext.anthropic.result-meta.deferredToolUse`; R&D candidate 20's live
+   * receipt). "allow" and "deny" are the two resume legs' decisions ("deny"
+   * exercises the decline path: permission_denials → tool.done{outcome:"denied"}).
+   * Absent ⇒ no hooks option, byte-identical to before.
+   */
+  preToolUseDecision?: "defer" | "allow" | "deny";
+  /** Resume an earlier session (the SDK's `resume`). Absent ⇒ a new session. */
+  resumeSessionId?: string;
+}
+
+/**
+ * The query() options behind `preToolUseDecision` and `resumeSessionId`, as a
+ * pure builder so the unit test can exercise the installed hook without the
+ * SDK. Returns only the keys that were asked for.
+ */
+export function captureQueryExtras(input: Pick<CaptureRunInput, "preToolUseDecision" | "resumeSessionId">): {
+  hooks?: Partial<Record<HookEvent, HookCallbackMatcher[]>>;
+  resume?: string;
+} {
+  const decision = input.preToolUseDecision;
+  return {
+    ...(decision !== undefined
+      ? {
+          hooks: {
+            PreToolUse: [
+              {
+                hooks: [
+                  async () => ({
+                    hookSpecificOutput: { hookEventName: "PreToolUse" as const, permissionDecision: decision },
+                  }),
+                ],
+              },
+            ],
+          },
+        }
+      : {}),
+    ...(input.resumeSessionId !== undefined ? { resume: input.resumeSessionId } : {}),
+  };
 }
 
 /**
@@ -203,6 +245,7 @@ export async function* runClaudeCapture(input: CaptureRunInput): AsyncIterable<J
       ...(input.thinkingDisplay !== undefined
         ? { thinking: { type: "adaptive" as const, display: input.thinkingDisplay } }
         : {}),
+      ...captureQueryExtras(input),
       abortController,
     },
   });
