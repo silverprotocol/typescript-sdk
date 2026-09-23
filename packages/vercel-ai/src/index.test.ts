@@ -1893,3 +1893,62 @@ describe("invoke-scoped ids: turn and message ids unique across the invokes of o
     expect(res.messages.map((m) => m.id)).toEqual([...messageIds(a), ...messageIds(b)]);
   });
 });
+
+describe("turn.done.finishReasonRaw for an unmapped native finish reason (draft.4, SPEC §8.0, §10 item 23)", () => {
+  const stream = (finish: Record<string, unknown>) => [
+    { type: "start" },
+    { type: "start-step", request: {}, warnings: [] },
+    { type: "text-start", id: "t1" },
+    { type: "text-delta", id: "t1", text: "hi" },
+    { type: "text-end", id: "t1" },
+    { type: "finish-step", finishReason: "stop", rawFinishReason: "stop", usage: USAGE, response: RESPONSE_S1 },
+    { type: "finish", totalUsage: USAGE, ...finish },
+  ];
+  const done = (evs: AgEvent[]) =>
+    evs.find((e) => e.type === "turn.done") as { finishReason: string; finishReasonRaw?: string } | undefined;
+
+  it("item 23: rawFinishReason 'zz' behind a unified 'other' → finishReason other + finishReasonRaw 'zz'; every event parses", () => {
+    const out = run(stream({ finishReason: "other", rawFinishReason: "zz" }));
+    expect(done(out)).toMatchObject({ finishReason: "other", finishReasonRaw: "zz" });
+    expectAllParse(out);
+  });
+
+  it("carries the native value byte for byte (unicode, punctuation, quotes)", () => {
+    const raw = 'ZZ-未来.☃ "q" \\ end';
+    const out = run(stream({ finishReason: "other", rawFinishReason: raw }));
+    expect(done(out)?.finishReasonRaw).toBe(raw);
+    expectAllParse(out);
+  });
+
+  it("an unrecognized unified finishReason (a future ai value) maps to unknown and carries rawFinishReason, else the unified value", () => {
+    const withRaw = run(stream({ finishReason: "zz-future", rawFinishReason: "provider_zz" }));
+    expect(done(withRaw)).toMatchObject({ finishReason: "unknown", finishReasonRaw: "provider_zz" });
+    const bare = run(stream({ finishReason: "zz-future" }));
+    expect(done(bare)).toMatchObject({ finishReason: "unknown", finishReasonRaw: "zz-future" });
+    expectAllParse([...withRaw, ...bare]);
+  });
+
+  it("a mapped reason sets no finishReasonRaw, whatever the provider's raw value", () => {
+    for (const [unified, raw, mapped] of [
+      ["stop", "end_turn", "stop"],
+      ["length", "max_tokens", "token_limit"],
+      ["content-filter", "SAFETY", "safety_blocked"],
+      ["tool-calls", "tool_use", "tool_call"],
+    ] as const) {
+      const d = done(run(stream({ finishReason: unified, rawFinishReason: raw })));
+      expect(d?.finishReason).toBe(mapped);
+      expect(d !== undefined && "finishReasonRaw" in d).toBe(false);
+    }
+  });
+
+  it("a bare unified 'other' with no rawFinishReason carries nothing (it would only repeat the fallback)", () => {
+    const d = done(run(stream({ finishReason: "other" })));
+    expect(d?.finishReason).toBe("other");
+    expect(d !== undefined && "finishReasonRaw" in d).toBe(false);
+  });
+
+  it("the turn record folds finishReasonRaw", () => {
+    const res = reduce(run(stream({ finishReason: "other", rawFinishReason: "zz" })));
+    expect(res.turns[0]).toMatchObject({ finishReason: "other", finishReasonRaw: "zz" });
+  });
+});

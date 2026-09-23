@@ -260,6 +260,26 @@ function mapFinishReason(v: unknown): AgFinishReason {
   }
 }
 
+/**
+ * `turn.done.finishReasonRaw` (draft.4, SPEC §8.0 graceful degradation, §10
+ * item 23): the native reason verbatim, set ONLY when the mapping fell back
+ * to `"other"`/`"unknown"`. A real mapping sets nothing (the OA-15 scope).
+ * The native value is the provider's `rawFinishReason` on the `finish` part,
+ * which is what ai itself could not map when it reports `"other"`. With no
+ * `rawFinishReason`, an unrecognized unified `finishReason` (a future ai
+ * value, mapped to `"unknown"`) is carried instead; a bare unified `"other"`
+ * carries nothing, since it would only repeat the fallback.
+ */
+function fallbackFinishReasonRaw(
+  mapped: AgFinishReason,
+  part: { [k: string]: unknown },
+): string | undefined {
+  if (mapped !== "other" && mapped !== "unknown") return undefined;
+  const raw = str(part["rawFinishReason"]);
+  if (raw !== undefined) return raw;
+  return mapped === "unknown" ? str(part["finishReason"]) : undefined;
+}
+
 // ─── factory ──────────────────────────────────────────────────────────────────
 
 const THREAD_ID = "vercel";
@@ -668,9 +688,12 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
             ...(usage !== undefined ? { usage } : {}),
           });
         } else {
+          const finishReason = mapFinishReason(part["finishReason"]);
+          const finishReasonRaw = fallbackFinishReasonRaw(finishReason, part);
           a.closeTurnDone(t, {
             outcome: { type: "success" },
-            finishReason: mapFinishReason(part["finishReason"]),
+            finishReason,
+            ...(finishReasonRaw !== undefined ? { finishReasonRaw } : {}),
             ...(usage !== undefined ? { usage } : {}),
           });
         }
