@@ -135,7 +135,14 @@
     "seq": 19,
     "turnId": "turn_resp_0d049a1c53912f99006ab409cc8db087d0ae1e2029c755f9ef",
     "outcome": {
-      "type": "success"
+      "type": "paused",
+      "asks": [
+        {
+          "askId": "approval_call_xqZZcXHOAmS73QrOGrXeJfON",
+          "kind": "approval",
+          "toolCallId": "call_xqZZcXHOAmS73QrOGrXeJfON"
+        }
+      ]
     },
     "finishReason": "stop",
     "usage": {

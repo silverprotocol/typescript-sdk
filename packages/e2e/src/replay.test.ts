@@ -261,6 +261,17 @@ const OPENAI_SEEDS = [
   // before the stream, so tool.done carries it as ONE text block of JSON:
   // lossless as a string, but not structured.
   "resource-link-gpt6sol",
+  // 2026-09-24 (fold/flush, enrolled with the group): the openai tool-approval
+  // legs (gpt-6-sol @ @openai/agents 0.18.0, live, real SDK order). Leg 1 is the
+  // interrupt: the round's deferred close releases as turn.done{paused, asks:[the
+  // approval ask]} (sp-openai O1), never success. The two resume legs are fresh
+  // invokes from the saved RunState: the leading tool result opens its own turn
+  // (643e322) and folds without parking. Census per sp-openai's triage: request
+  // config echoes and the RunState key are allowlisted; the resumed invoke's tool
+  // name joins leg 1's tool-call block by toolCallId.
+  "approval-tool-gpt6sol",
+  "approval-tool-gpt6sol-resume-approve",
+  "approval-tool-gpt6sol-resume-reject",
 ] as const;
 
 /**

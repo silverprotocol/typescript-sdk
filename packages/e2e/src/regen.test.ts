@@ -198,10 +198,11 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "defer-tool-sonnet5-resume-unavailable", framework: "claude" },
   // 2026-09-24 (rnd): the ADK shared-state fold seed, enrolled at capture time.
   { scenario: "state-fold-gemini38", framework: "adk" },
-  // 2026-09-24 (fold/flush Q2 evidence, unenrolled): the openai tool-approval
-  // legs. Leg 1's capture-time coverage was computed against empty guard maps
+  // 2026-09-24 (fold/flush Q2 evidence): the openai tool-approval legs.
+  // Leg 1's capture-time coverage was computed against empty guard maps
   // (coverage kept honest); the two resume goldens are generated from their
   // captured natives on sp-openai's resume-turn fix (643e322, c20 A.6).
+  // Regenerated on O1 (leg 1's close → paused) and enrolled in OPENAI_SEEDS.
   { scenario: "approval-tool-gpt6sol", framework: "openai" },
   { scenario: "approval-tool-gpt6sol-resume-approve", framework: "openai" },
   { scenario: "approval-tool-gpt6sol-resume-reject", framework: "openai" },

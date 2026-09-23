@@ -3377,5 +3377,69 @@
     "frameworks": [
       "claude"
     ]
+  },
+  {
+    "path": "[*].data.providerData.response.text.format.type",
+    "reason": "openai: the response's echo of the request's text-format config (value \"text\"): request configuration, not turn content. In other seeds the value coincides with a text block; the tool-approval interrupt leg stops before any text (sp-openai triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].data.event.response.text.format.type",
+    "reason": "openai: the response's echo of the request's text-format config (value \"text\"): request configuration, not turn content. In other seeds the value coincides with a text block; the tool-approval interrupt leg stops before any text (sp-openai triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].data.response.providerData.text.format.type",
+    "reason": "openai: the response's echo of the request's text-format config (value \"text\"): request configuration, not turn content. In other seeds the value coincides with a text block; the tool-approval interrupt leg stops before any text (sp-openai triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].item.functionToolStateKey",
+    "reason": "openai: the tool_approval_item's RunState bookkeeping key (agents-core 0.18.0), a JSON-encoded [namespace, tool] pair. A resume uses the RunState, never this key, and hitl.ask stays {askId, kind, toolCallId} (sp-openai triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].item.rawItem.name",
+    "reason": "openai: on a resumed invoke, the tool-output run item's tool name. The name belongs to the first leg's tool-call block, joined across invokes by toolCallId; the resumed invoke opens no tool.start for it to match, and c20 A.6 adds no name carry. The model stream's item.name and response.output[*].name paths still guard the tool name in every seed that calls a tool (sp-openai triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].data.providerData.response.tools[*].name",
+    "reason": "openai: the response's echo of the request's tool definitions: request configuration, not turn content. In a seed that calls the tool the value coincides with tool.start's name; a resumed invoke calls none, so nothing matches (sp-openai triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].data.event.response.tools[*].name",
+    "reason": "openai: the response's echo of the request's tool definitions: request configuration, not turn content. In a seed that calls the tool the value coincides with tool.start's name; a resumed invoke calls none, so nothing matches (sp-openai triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].data.response.providerData.tools[*].name",
+    "reason": "openai: the response's echo of the request's tool definitions: request configuration, not turn content. In a seed that calls the tool the value coincides with tool.start's name; a resumed invoke calls none, so nothing matches (sp-openai triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
   }
 ]
