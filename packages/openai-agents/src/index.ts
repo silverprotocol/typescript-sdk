@@ -1633,6 +1633,13 @@ function createInnerOpenaiNormalizer(): Normalizer {
     if (turnId !== undefined) {
       // Backfill the real id if it arrives after a defensive synthesized open.
       if (respId !== undefined && responseId === undefined) responseId = respId;
+      // A resumed invoke's turn (`openTurnForLeadingResult`) opens with no
+      // assistant message: the resumed response opens it here, AFTER the
+      // leading tool result's own message, so the fold stays chronological.
+      if (msgId === undefined) {
+        msgId = `msg_${turnId}`;
+        a.openMessage({ id: msgId, role: "assistant", turnId, threadId, ...(model !== undefined ? { model } : {}) });
+      }
       return responseId ?? turnId;
     }
     responseId = respId;
@@ -1644,6 +1651,29 @@ function createInnerOpenaiNormalizer(): Normalizer {
     a.openTurn(turnId, threadId);
     a.openMessage({ id: msgId, role: "assistant", turnId, threadId, ...(model !== undefined ? { model } : {}) });
     return responseId ?? turnId;
+  }
+
+  /**
+   * INV-TURN (SPEC:743) for a RESUMED invoke — sp-protocol's c20 package, A.6
+   * (openai): when a tool result's round is unknown to this invoke
+   * (`resolvePendingTurnId` misses) and no response is open, the result is the
+   * resumed stream's LEADING event (sp-probe's live approval-resume capture,
+   * 2026-09-24: after `RunState.fromString` + approve/reject, the approved or
+   * rejected call's `tool_output` arrives before any `response.created`). Open a
+   * turn for it — `turn_resume_<callId>`: deterministic, and never a leg-1
+   * `turn_resp_*` id (INV-XINV) — and land the result as its OWN role:"tool"
+   * message (`messageId: "<callId>:result"`). The resumed model response then
+   * opens its assistant message in this same turn (`ensureResponseOpen`) and its
+   * response.completed closes it. Returns the toolDone fields, or `undefined`
+   * when the result joins a known round or an open response (unchanged).
+   */
+  function openTurnForLeadingResult(callId: string): { turnId: string; messageId: string } | undefined {
+    if (turnId !== undefined) return undefined;
+    const opened = `turn_resume_${callId}`;
+    turnId = opened;
+    lastTopLevelTurnId = opened;
+    a.openTurn(opened, threadId);
+    return { turnId: opened, messageId: `${callId}:result` };
   }
 
   /** Reset per-response state after a close. Marks the response closed (close-once). */
@@ -2450,7 +2480,7 @@ function createInnerOpenaiNormalizer(): Normalizer {
       isError: outcome === "error",
       ...(structuredContent !== undefined ? { structuredContent } : {}),
       ...(providerMetadata !== undefined ? { providerMetadata } : {}),
-      ...(doneTurnId !== undefined ? { turnId: doneTurnId } : {}),
+      ...(doneTurnId !== undefined ? { turnId: doneTurnId } : (openTurnForLeadingResult(toolCallId) ?? {})),
     });
     drainPendingTool(toolCallId, doneTurnId);
   }
@@ -2711,7 +2741,7 @@ function createInnerOpenaiNormalizer(): Normalizer {
       content,
       outcome: "ok",
       ...(searchMeta !== undefined ? { providerMetadata: searchMeta } : {}),
-      ...(doneTurnId !== undefined ? { turnId: doneTurnId } : {}),
+      ...(doneTurnId !== undefined ? { turnId: doneTurnId } : (openTurnForLeadingResult(toolCallId) ?? {})),
     });
     drainPendingTool(toolCallId, doneTurnId);
   }
@@ -2809,7 +2839,7 @@ function createInnerOpenaiNormalizer(): Normalizer {
             ...(uiData !== undefined ? { uiData } : {}),
             ...(resultMeta !== undefined ? { _meta: resultMeta } : {}),
             ...(doneMeta !== undefined ? { providerMetadata: doneMeta } : {}),
-            ...(doneTurnId !== undefined ? { turnId: doneTurnId } : {}),
+            ...(doneTurnId !== undefined ? { turnId: doneTurnId } : (openTurnForLeadingResult(rawItem.callId) ?? {})),
           });
           drainPendingTool(rawItem.callId, doneTurnId);
           return;

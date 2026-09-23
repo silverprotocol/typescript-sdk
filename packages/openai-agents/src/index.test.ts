@@ -4782,6 +4782,102 @@ describe("createOpenaiNormalizer — LV live (non-JSON-round-tripped) natives ne
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// RS — a RESUMED invoke opens its own turn (INV-TURN, SPEC:743). sp-probe's live
+// approval-resume capture (gpt-6-sol, @openai/agents 0.18.0, 2026-09-24): after
+// `RunState.fromString` + approve/reject, the resumed stream's FIRST event is the
+// approved (or rejected) call's `tool_output`, before any `response.created`. The
+// facet emitted tool.done with no turn open, so reduce() parked on the stream
+// alone. Per sp-protocol's c20 package (A.6, openai): when the call's round is
+// unknown, the leading result opens `turn_resume_<callId>` (deterministic, never
+// a leg-1 `turn_resp_*` id: INV-XINV) and lands as its OWN role:"tool" message
+// (`messageId: "<callId>:result"`); the resumed model response then opens its
+// assistant message in that turn and its response.completed closes it (the
+// sp-claude 37185be shape). Outcome stays ok/error from rawItem.status — never
+// "denied" (PS-13).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("createOpenaiNormalizer — RS a resumed invoke's leading tool_output opens its own turn", () => {
+  const CALL = "call_xqZZcXHOAmS73QrOGrXeJfON"; // the captured call id
+  function resumedStream(output: JsonValue, executionStatus: string | undefined): JsonValue[] {
+    const item: { [k: string]: JsonValue } = {
+      type: "tool_call_output_item",
+      rawItem: { type: "function_call_result", name: "echo", callId: CALL, status: "completed", output },
+      agent: { name: "spike" },
+      output: typeof output === "string" ? output : JSON.stringify(output),
+    };
+    if (executionStatus !== undefined) item.executionStatus = executionStatus;
+    return [
+      runItem("tool_output", item),
+      rawModel({ type: "response.created", response: { id: "resp_resumed", model: "gpt-6-sol" } }),
+      rawModel({ type: "response.output_item.added", item: { id: "msg_resumed", type: "message", phase: "final_answer" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_resumed", delta: "Echoed." }),
+      rawModel({ type: "response.completed", response: { id: "resp_resumed", status: "completed" } }),
+    ];
+  }
+  function run(s: JsonValue[]): AgEvent[] {
+    const n = createOpenaiNormalizer();
+    return s.flatMap((e) => n.push(e)).concat(n.flush());
+  }
+
+  const legs: Array<[string, JsonValue, string | undefined]> = [
+    ["approve", [{ type: "input_text", text: "conformance-probe-approval" }], "executed"],
+    ["reject", { type: "text", text: "Tool execution was not approved." }, undefined],
+  ];
+  it.each(legs)("%s leg: turn.start → tool.done{messageId:<callId>:result} → the resumed response's message.start in the SAME turn; reduce() never parks", (_leg, output, status) => {
+    const evs = run(resumedStream(output, status));
+    const types = evs.map((e) => e.type);
+    expect(types.slice(0, 3)).toEqual(["turn.start", "tool.done", "message.start"]);
+    expect(evs[0]).toMatchObject({ type: "turn.start", turnId: `turn_resume_${CALL}` });
+    expect(evs[1]).toMatchObject({ type: "tool.done", toolCallId: CALL, messageId: `${CALL}:result`, outcome: "ok" });
+    expect(evs[2]).toMatchObject({ type: "message.start", turnId: `turn_resume_${CALL}`, model: "gpt-6-sol" });
+    expect(evs.filter((e) => e.type === "turn.start")).toHaveLength(1);
+    expect(evs.find((e) => e.type === "turn.done")).toMatchObject({ turnId: `turn_resume_${CALL}`, outcome: { type: "success" } });
+    for (const e of evs) expect(AgEvent.safeParse(e).success).toBe(true);
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    expect(res.turns).toHaveLength(1);
+    // Chronological: the tool-result message, then the assistant's reply.
+    expect(res.messages.map((m) => m.id)).toEqual([`${CALL}:result`, `msg_turn_resume_${CALL}`]);
+    const blocks = res.messages.flatMap((m) => m.content);
+    expect(blocks.find((b) => b.type === "tool-result")).toMatchObject({ toolCallId: CALL });
+    expect(blocks.find((b) => b.type === "text")).toMatchObject({ text: "Echoed." });
+    expect(() => AgReduceResult.parse(res)).not.toThrow();
+  });
+
+  it("deterministic and never a leg-1 id: the same input yields the same turn id, and it is not a turn_resp_* id", () => {
+    const a = run(resumedStream("ok", "executed")).find((e) => e.type === "turn.start");
+    const b = run(resumedStream("ok", "executed")).find((e) => e.type === "turn.start");
+    expect(a).toEqual(b);
+    expect(a).toMatchObject({ turnId: `turn_resume_${CALL}` });
+  });
+
+  it("a leading result with NOTHING after it (stream ends) ⇒ flush aborts the turn (INV-FLUSH); no park", () => {
+    const evs = run(resumedStream("ok", "executed").slice(0, 1));
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "tool.done", "turn.abort"]);
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+  });
+
+  it("negative control: a NORMAL deferred tool result (its round is known) opens no resume turn", () => {
+    const evs = run([
+      rawModel({ type: "response.created", response: { id: "resp_norm" } }),
+      rawModel({ type: "response.output_item.added", item: { id: "fc_norm", type: "function_call", call_id: "call_norm", name: "echo" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_norm", status: "completed" } }),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "function_call_result", name: "echo", callId: "call_norm", status: "completed", output: "ok" },
+        output: "ok",
+      }),
+    ]);
+    expect(evs.filter((e) => e.type === "turn.start")).toHaveLength(1);
+    expect(evs.find((e) => e.type === "turn.start")).toMatchObject({ turnId: "turn_resp_norm" });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // OA-13 — `tool.start.providerExecuted` (SPEC:632; tool-call block
 // `providerExecuted`, SPEC:210; SPEC:496 "server already ran it; client MUST
 // NOT execute"). An existing optional slot (sp-rnd item 10 re-verify,
