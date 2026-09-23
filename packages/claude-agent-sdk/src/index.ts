@@ -2352,6 +2352,22 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         // lands on a nested turn after its subagent.done. A run that NEVER
         // opened (the stream started mid-run) keeps Task 8c leg 3's synthetic
         // label, which parks loudly rather than fabricating a nested turn.
+        // INV-TURN (SPEC:743: a normalizer MUST synthesize turn.start before any
+        // content event for a turn the stream has not opened; sp-protocol,
+        // 2026-09-23): a TOP-LEVEL tool_result with NO turn open (a resumed
+        // invoke's first frame is the deferred call's tool_result, before
+        // system/init; sp-probe's defer-resume capture) opens the turn it lands
+        // in, named by this frame's uuid. The resumed invoke's assistant frames
+        // then join it and its result closes it. Through c54eb7f its tool.done
+        // had no turn and reduce() parked from the first event. Where that result
+        // folds relative to the PREVIOUS invoke's open tool block is candidate
+        // 20's bar question, not decided here.
+        let opensWithToolResult = false;
+        for (const b of content) if (b.type === "tool_result") opensWithToolResult = true;
+        if (msg.parent_tool_use_id === null && openTopTurnId === undefined && opensWithToolResult) {
+          const opened = topTurnId(msg.uuid, undefined);
+          a.openTurn(opened, options.threadId ?? msg.session_id ?? opened);
+        }
         let toolTurnId: string | undefined;
         if (msg.parent_tool_use_id !== null) {
           const parentToolUseId = msg.parent_tool_use_id;

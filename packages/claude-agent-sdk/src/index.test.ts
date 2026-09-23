@@ -331,6 +331,34 @@ describe("createClaudeNormalizer — result-only turns open with a turn.start (I
     return evs;
   }
 
+  it("a RESUMED invoke's leading tool_result (the deferred call's, before init) opens the turn; the invoke's reply joins it; one close; no park", () => {
+    // Frame order from sp-probe's live defer-tool-sonnet5-resume-allow capture.
+    const leading: unknown = {
+      type: "user",
+      message: { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_deferred_leg1", content: [{ type: "text", text: "echoed" }] }] },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000f1",
+      session_id: "sess_fork",
+    };
+    const evs = pushAll([
+      { type: "command_lifecycle", command_uuid: "c1", state: "started", uuid: "00000000-0000-0000-0000-0000000000f0", session_id: "sess_fork" },
+      leading,
+      { type: "system", subtype: "init", uuid: "00000000-0000-0000-0000-0000000000f2", session_id: "sess_fork" },
+      assistantMsg([{ type: "text", text: "Done.", citations: null }]),
+      resultSuccess("end_turn"),
+    ]);
+    const turnId = "turn_00000000-0000-0000-0000-0000000000f1";
+    const types = evs.map((e) => e.type);
+    expect(types.indexOf("turn.start")).toBeLessThan(types.indexOf("tool.done"));
+    expect(evs.filter((e) => e.type === "turn.start")).toEqual([expect.objectContaining({ turnId, threadId: "sess_fork" })]);
+    expect(evs.find((e) => e.type === "tool.done")).toMatchObject({ turnId, toolCallId: "toolu_deferred_leg1" });
+    expect(evs.filter((e) => e.type === "turn.done")).toEqual([expect.objectContaining({ turnId })]);
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.map((t) => t.turnId)).toEqual([turnId]);
+  });
+
   it("both arms: exactly one turn.start (threadId = the session) before the close; the fold records the real thread root", () => {
     for (const frame of [resultSuccess("end_turn"), resultError("error_max_turns")]) {
       const evs = pushAll([frame]);
@@ -429,10 +457,15 @@ describe("createClaudeNormalizer — thinking", () => {
 });
 
 describe("createClaudeNormalizer — tool_result", () => {
-  it("maps a user tool_result to tool.done with mcp content + outcome (NO turn.start)", () => {
+  it("maps a user tool_result to tool.done with mcp content + outcome; with NO turn open it OPENS one first (INV-TURN)", () => {
     const evs = run(toolResultMsg());
-    expect(evs).toHaveLength(1);
-    expect(evs[0]).toMatchObject({
+    // A lone top-level tool_result (e.g. a resumed invoke's first frame) opens
+    // the turn it lands in, named by the frame's uuid; flush then closes that
+    // still-open turn as INV-FLUSH's abort.
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "tool.done", "turn.abort"]);
+    const turnId = "turn_00000000-0000-0000-0000-000000000003";
+    expect(evs[0]).toMatchObject({ type: "turn.start", turnId, threadId: "sess_fixture" });
+    expect(evs[1]).toMatchObject({
       type: "tool.done",
       toolCallId: "toolu_fixture_1",
       outcome: "ok",
@@ -443,9 +476,8 @@ describe("createClaudeNormalizer — tool_result", () => {
       // sealed) assistant message — see the messageId-adoption describe block
       // below for the full fold-level regression pin.
       messageId: "toolu_fixture_1:result",
+      turnId,
     });
-    // Orphan user-side tool.done has no owning message and no parent → no turnId.
-    expect((evs[0] as { turnId?: string }).turnId).toBeUndefined();
     assertAllValid(evs);
   });
 });
