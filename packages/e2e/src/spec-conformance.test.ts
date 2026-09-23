@@ -760,6 +760,32 @@ describe("§10.20 — malformed input at a trust boundary: a schema-invalid even
     expect(needsResync).toBe(false);
     expect(result.messages[0]?.content).toEqual([expect.objectContaining({ type: "text", text: "kept" })]);
   });
+
+  it("unknown fields pass through at EVERY depth, not only the top level (SPEC.md:27 'pass unknown fields through untouched'; core fix 4070b81, workspace#20 stage 1): nested unknown keys survive ingest into the fold", () => {
+    const wire = JSON.parse(
+      "[" +
+        '{"type":"turn.start","seq":0,"threadId":"th1","turnId":"t1"},' +
+        '{"type":"message.start","seq":1,"id":"m1","role":"assistant","turnId":"t1","threadId":"th1"},' +
+        '{"type":"content.block","seq":2,"turnId":"t1","block":{"type":"text","text":"x","zzKey":"k"}},' +
+        '{"type":"message.end","seq":3,"id":"m1"},' +
+        '{"type":"turn.done","seq":4,"turnId":"t1","outcome":{"type":"success"},"finishReason":"stop",' +
+        '"usage":{"inputTokens":1,"outputTokens":2,"zzCounter":7,"byModel":{"m":{"inputTokens":1,"zzPerModel":9}}}}' +
+        "]",
+    ) as JsonValue[];
+
+    const events = ingestAgEvents(wire);
+    expect(events).toHaveLength(5);
+    const block = (events[2] as unknown as { block: Record<string, unknown> }).block;
+    expect(block["zzKey"]).toBe("k"); // depth 2
+    const usage = (events[4] as unknown as { usage: Record<string, unknown> }).usage;
+    expect(usage["zzCounter"]).toBe(7); // depth 2
+    expect((usage["byModel"] as Record<string, Record<string, unknown>>)["m"]?.["zzPerModel"]).toBe(9); // depth 4
+
+    const { result, needsResync } = reduce(events);
+    expect(needsResync).toBe(false);
+    expect((result.messages[0]?.content[0] as unknown as Record<string, unknown>)["zzKey"]).toBe("k");
+    expect((result.turns[0]?.usage as unknown as Record<string, unknown>)["zzCounter"]).toBe(7);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
