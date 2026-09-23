@@ -266,6 +266,12 @@ export async function* runOpenaiCapture(input: OpenaiCaptureRunInput): AsyncIter
       runInput = state;
     }
 
+    // NO `context` is passed, deliberately (sp-cto, 2026-09-24): the run
+    // `context` rides into the serialized RunState (agents-core 0.18.0
+    // RunState: context, originalInput, modelResponses, currentStep, spans),
+    // which leg 1 hands out via `onRunState`. It is kept in a gitignored
+    // capture-time location, never the corpus, but anything the corpus would
+    // redact must still never be put in `context`.
     const stream = await run(agent, runInput, {
       stream: true,
       maxTurns: input.maxTurns ?? 8,
