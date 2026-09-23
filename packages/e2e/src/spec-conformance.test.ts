@@ -147,6 +147,10 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 34, leg: "adk", title: "Partial-frame carry (draft.4)", disposition: "N/A", citation: "§8 item 22 applicability: the google-adk facet has no frame that maps only in part and rides ext.google.frame" },
   { n: 34, leg: "vercel", title: "Partial-frame carry (draft.4)", disposition: "N/A", citation: "§8 item 22 applicability: the vercel-ai facet has no frame that maps only in part and rides ext.vercel.frame" },
   { n: 35, title: "Sealed-message finalizers and merges (draft.4): text.end / reasoning.end / reasoning.opaque / tool.args.assembled into a sealed message or any message of a closed turn park with the fold equal to the fold before them; the same events fold before the seal / terminal; message.metadata and turn.done{messageId, messageMetadata} naming a sealed message merge without parking", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.35 (reference reducer guard 648cecb; delta and block-creating legs: §10.27)" },
+  { n: 36, leg: "claude", title: "Nested-turn closure (draft.4): for every subagent.start, exactly one turn.done|turn.error|turn.abort with that turnId, no usage, immediately before its subagent.done; no nested turnId equals a turn.start turnId; the fold without subagent.done is structurally identical", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.36 over every corpus golden with subagent.start (claude B-strict 7f315e2 + regen 5cdade3)" },
+  { n: 36, leg: "openai", title: "Nested-turn closure (draft.4)", disposition: "N/A", citation: "§8.0 applicability: this facet emits no subagent.* (no nested turns)" },
+  { n: 36, leg: "adk", title: "Nested-turn closure (draft.4)", disposition: "N/A", citation: "§8.0 applicability: this facet emits no subagent.* (no nested turns)" },
+  { n: 36, leg: "vercel", title: "Nested-turn closure (draft.4)", disposition: "N/A", citation: "§8.0 applicability: this facet emits no subagent.* (no nested turns)" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -1868,6 +1872,50 @@ describe("§10.35 — sealed-message finalizers and merges (draft.4; §5.0 INV-M
     const r2 = reduce(parse([...sealed, { ...done, messageId: "m1", messageMetadata: { usage: 3 } }]));
     expect(r2.needsResync).toBe(false);
     expect(JSON.stringify(r2.result.messages.find((m) => m.id === "m1"))).toContain("\"usage\":3");
+  });
+});
+
+describe("§10.36 — nested-turn closure (draft.4; §5.0 INV-TURN, §8.0 item 29)", () => {
+  it("every corpus golden: each subagent.start's turn closes with exactly one terminal carrying its turnId and no usage, immediately before its subagent.done; no nested turnId is a top-level turnId; the fold without subagent.done is structurally identical", () => {
+    const corpus = new URL("../corpus/", import.meta.url);
+    const TERMINALS = new Set(["turn.done", "turn.error", "turn.abort"]);
+    const bad: string[] = [];
+    let nested = 0;
+    for (const d of readdirSync(corpus)) {
+      for (const fw of ["claude", "openai", "adk", "vercel"]) {
+        const f = new URL(`${d}/${fw}.agjson.json`, corpus);
+        if (!existsSync(f)) continue;
+        const ev = JSON.parse(readFileSync(f, "utf8")) as Array<Record<string, unknown>>;
+        const topLevel = new Set(ev.filter((e) => e["type"] === "turn.start").map((e) => e["turnId"]));
+        const subs = ev.filter((e) => e["type"] === "subagent.start");
+        if (subs.length === 0) continue;
+        for (const s of subs) {
+          nested++;
+          const tid = s["turnId"];
+          const at = `${d}/${fw}:${String(tid)}`;
+          if (topLevel.has(tid)) bad.push(`${at} reuses a top-level turnId`);
+          const terms = ev.flatMap((e, i) => (TERMINALS.has(e["type"] as string) && e["turnId"] === tid ? [i] : []));
+          if (terms.length !== 1) { bad.push(`${at} has ${terms.length} terminals`); continue; }
+          const ti = terms[0] as number;
+          if (ev[ti]?.["usage"] !== undefined) bad.push(`${at} terminal carries usage`);
+          const done = ev.findIndex((e) => e["type"] === "subagent.done" && e["turnId"] === tid);
+          if (done !== -1 && done !== ti + 1) bad.push(`${at} subagent.done is not immediately after the terminal`);
+        }
+        const withDone = reduce(ingestAgEvents(ev as unknown as JsonValue[]));
+        // Remove subagent.done and renumber seq so the stream stays gap-free (INV-SEQ).
+        let seq = 0; let prev = -1;
+        const without = ev.filter((e) => e["type"] !== "subagent.done").map((e) => {
+          const s0 = e["seq"] as number;
+          if (s0 === 0 || s0 < prev) seq = 0; // a 0-restart opens a new invoke
+          prev = s0;
+          return { ...e, seq: seq++ };
+        });
+        const withoutDone = reduce(ingestAgEvents(without as unknown as JsonValue[]));
+        if (withDone.needsResync || withoutDone.needsResync || !isDeepStrictEqual(withDone.result, withoutDone.result)) bad.push(`${d}/${fw}: the fold differs without subagent.done`);
+      }
+    }
+    expect(nested).toBeGreaterThan(0);
+    expect(bad).toEqual([]);
   });
 });
 
