@@ -423,6 +423,7 @@
   "[*].message.content[*].input.prompt",
   "[*].message.content[*].input.text",
   "[*].message.content[*].input.title",
+  "[*].message.content[*].input.topic",
   "[*].message.content[*].is_error",
   "[*].message.content[*].name",
   "[*].message.content[*].signature",
@@ -624,6 +625,8 @@
   "[*].tool_use_result.content",
   "[*].tool_use_result.content[*].text",
   "[*].tool_use_result.content[*].type",
+  "[*].tool_use_result.resourceLinks[*].annotations.audience[*]",
+  "[*].tool_use_result.resourceLinks[*].annotations.priority",
   "[*].tool_use_result.resourceLinks[*].description",
   "[*].tool_use_result.resourceLinks[*].mimeType",
   "[*].tool_use_result.resourceLinks[*].name",
@@ -698,5 +701,6 @@
   "[*].uuid",
   "[*].wire_tool_inputs.{id}.body",
   "[*].wire_tool_inputs.{id}.message",
-  "[*].wire_tool_inputs.{id}.title"
+  "[*].wire_tool_inputs.{id}.title",
+  "[*].wire_tool_inputs.{id}.topic"
 ]

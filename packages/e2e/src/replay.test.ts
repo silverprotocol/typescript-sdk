@@ -157,6 +157,16 @@ const CLAUDE_SEEDS = [
   // (no tool.done). result-meta carries deferredToolUse. The resume legs
   // (resumeFrom this seed; allow / deny) are separate cassettes.
   "defer-tool-sonnet5",
+  // 2026-09-23 (rnd capture #1, capture backlog "MCP resource_link"): the
+  // first live resource_link tool result, from the new resource-link mock
+  // (find_doc returns a text block + one fully populated resource_link).
+  // claude-sonnet-5 @0.3.280. The CLI flattens the link into a text block
+  // "[Resource link: <name>] <uri> (<description>)" in the tool_result
+  // content and keeps the structured copy in tool_use_result.resourceLinks,
+  // which the facet carries as tool.done providerMetadata.resourceLinks (all
+  // eight leaves, pinned by transforms: the flattened text repeats
+  // uri/name/description, so value-match alone could not prove the carry).
+  "resource-link-sonnet5",
   // NOT YET ENROLLED (evidence for R&D candidate 20, 2026-09-23):
   // defer-tool-sonnet5-resume-allow and -resume-deny, the two resume legs
   // (resumeFrom defer-tool-sonnet5, forked; hook allow / deny). Both PARK

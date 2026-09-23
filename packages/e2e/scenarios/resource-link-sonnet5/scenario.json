@@ -1,0 +1,8 @@
+{
+  "name": "resource-link-sonnet5",
+  "prompt": "Find the document about 'conformance probes' using the available tool, then tell me its name.",
+  "mcpServers": [
+    { "key": "d", "kind": "resource-link" }
+  ],
+  "steer": "You MUST call the find_doc tool with topic='conformance probes'. Do not answer from memory."
+}

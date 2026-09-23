@@ -186,6 +186,8 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "defer-tool-sonnet5", framework: "claude" },
   { scenario: "defer-tool-sonnet5-resume-allow", framework: "claude" },
   { scenario: "defer-tool-sonnet5-resume-deny", framework: "claude" },
+  // 2026-09-23 (rnd capture #1): the resource_link seed, enrolled at capture time.
+  { scenario: "resource-link-sonnet5", framework: "claude" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {
