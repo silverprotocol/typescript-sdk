@@ -31,6 +31,9 @@ function createToy(opts: { throwOnFlush?: boolean } = {}): Normalizer {
           break;
         case "boom": // throws before emitting anything
           throw new RangeError("SECRET_boom");
+        case "assembler-guard-error": // option A's guard error, emitted through the assembler (default backfill)
+          a.emit({ type: "error", message: NORMALIZER_ERROR_MESSAGE, code: "RangeError" });
+          break;
         case "boom-after-open": // opens a message, then throws: the batch must vanish
           a.openMessage({ id: n["id"] as string, role: "assistant", turnId: n["turn"] as string, threadId: "th" });
           a.textStart(`${n["id"] as string}:b`, n["id"] as string);
@@ -107,7 +110,7 @@ describe("withAtomicPush (per-native atomicity, the fleet guard; option B)", () 
     expect(res.turns.map((t) => t.turnId)).toEqual(["T"]);
   });
 
-  it("the error carries the innermost OPEN turn's turnId (INV-OWNER, converged with option A), and none when no turn is open", () => {
+  it("the error's owner is INV-OWNER's backfill (SPEC.md:766): none before any turn, the last-opened turn, the PARENT restored when a subagent closes, the closed turn after the terminal", () => {
     const errors = (natives: Toy[]) =>
       run(withAtomicPush(() => createToy()), natives)
         .filter((e) => e.type === "error")
@@ -117,15 +120,43 @@ describe("withAtomicPush (per-native atomicity, the fleet guard; option B)", () 
       errors([
         BOOM, // before any turn
         { t: "turn", id: "T" },
-        BOOM, // T open
+        BOOM, // T
         { t: "sub", id: "S", parent: "T" },
-        BOOM, // S nested in T: the innermost
+        BOOM, // the subagent S, last opened
         { t: "subdone", id: "S", parent: "T" },
-        BOOM, // back to T
+        BOOM, // S closed: the parent T is restored
         { t: "done", turn: "T" },
-        BOOM, // no turn open any more
+        BOOM, // after the last turn closed: still T
       ]),
-    ).toEqual(["(none)", "T", "S", "T", "(none)"]);
+    ).toEqual(["(none)", "T", "S", "T", "T"]);
+  });
+
+  it("A ≡ B byte-for-byte after EVERY prefix of a nesting script: before, inside, across a subagent close and after the terminal", () => {
+    const script: Toy[] = [
+      { t: "turn", id: "T" },
+      { t: "msg", id: "M1", turn: "T" },
+      { t: "sub", id: "S", parent: "T" },
+      { t: "msg", id: "M2", turn: "S" },
+      { t: "end", msg: "M2" },
+      { t: "msg", id: "M3", turn: "T" }, // a parent-turn message while S is open: the backfill moves to T
+      { t: "end", msg: "M3" },
+      { t: "subdone", id: "S", parent: "T" },
+      { t: "end", msg: "M1" },
+      { t: "done", turn: "T" },
+      { t: "turn", id: "U" },
+      { t: "done", turn: "U" },
+    ];
+    const owners: string[] = [];
+    for (let k = 0; k <= script.length; k++) {
+      const prefix = script.slice(0, k);
+      const viaAssembler = createToy();
+      const a = [...prefix, { t: "assembler-guard-error" }].flatMap((n) => viaAssembler.push(n)).find((e) => e.type === "error");
+      const wrapped = withAtomicPush(() => createToy());
+      const b = [...prefix, { t: "boom" }].flatMap((n) => wrapped.push(n)).find((e) => e.type === "error");
+      expect(JSON.stringify(b), `after ${k} natives`).toBe(JSON.stringify(a));
+      owners.push((b as { turnId?: string }).turnId ?? "(none)");
+    }
+    expect(owners).toEqual(["(none)", "T", "T", "S", "S", "S", "T", "T", "T", "T", "T", "U", "U"]);
   });
 
   it("the error serializes byte-for-byte like an assembler-emitted guard error (vercel-ai's; google-adk's in 0.6.x)", () => {

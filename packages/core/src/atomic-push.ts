@@ -54,9 +54,14 @@ export interface AtomicPushOptions {
  * - Throw: the partial batch is discarded, the inner is rebuilt and re-driven
  *   from the journal with its output dropped (a throw during that re-drive is
  *   caught too), and ONE core `error {message: "normalizer error", code}`
- *   takes the next seq. It carries the innermost open turn's `turnId` when a
- *   turn is open (INV-OWNER; the same owner an assembler-emitted guard error
- *   gets), and no `turnId` when none is. From then on every inner event is
+ *   takes the next seq. Its `turnId` is the owner INV-OWNER backfills
+ *   (SPEC.md:766), resolved exactly as StreamAssembler.emit() resolves it:
+ *   the last-opened turn, restored to the parent when a subagent turn
+ *   closes, so after the last turn closed it is still that turn, and before
+ *   any turn there is none. It is replayed from the delivered events, which
+ *   show every move of the assembler's last turn except one: a facet
+ *   re-calling openTurn() on an already-seen turn, which emits nothing.
+ *   From then on every inner event is
  *   renumbered by +1 per error emitted, so seq stays ascending and gap-free
  *   and no seq repeats.
  * - flush() throwing: inner.flush() is NOT retried (so it cannot throw a
@@ -84,7 +89,35 @@ export function withAtomicPush(createInner: () => Normalizer, opts: AtomicPushOp
   const openTurns = new Set<string>();
   let lastTurn: string | undefined;
 
+  // The guard error's owner, per INV-OWNER (SPEC.md:766: every emit path,
+  // the generic emit() included, applies the same owner backfill): the
+  // StreamAssembler's last-turn rule (#resolveTurnId, stream-assembler.ts),
+  // replayed from the events the consumer has seen. turn.start and
+  // message.start set it, subagent.start saves it and moves in,
+  // subagent.done restores the saved one (the parent), and no close clears it.
+  let ownerTurn: string | undefined;
+  const ownerStack: (string | undefined)[] = [];
+  const trackOwner = (ev: AgEvent): void => {
+    const turnId = (ev as { turnId?: string }).turnId;
+    switch (ev.type) {
+      case "turn.start":
+      case "message.start":
+        if (turnId !== undefined) ownerTurn = turnId;
+        break;
+      case "subagent.start":
+        ownerStack.push(ownerTurn);
+        ownerTurn = turnId;
+        break;
+      case "subagent.done":
+        ownerTurn = ownerStack.length > 0 ? ownerStack.pop() : (ev as { parentTurnId?: string }).parentTurnId;
+        break;
+      default:
+        break;
+    }
+  };
+
   const track = (ev: AgEvent): void => {
+    trackOwner(ev);
     const turnId = (ev as { turnId?: string }).turnId;
     const id = (ev as { id?: string }).id;
     switch (ev.type) {
@@ -134,16 +167,8 @@ export function withAtomicPush(createInner: () => Normalizer, opts: AtomicPushOp
     }
   };
 
-  /** The innermost turn the consumer has seen open (turns open and close
-   *  nested, so it is the most recently opened one still open), else none. */
-  const innermostOpenTurn = (): string | undefined => {
-    let last: string | undefined;
-    for (const t of openTurns) last = t;
-    return last;
-  };
-
   const guardError = (err: unknown): AgEvent => {
-    const turnId = innermostOpenTurn();
+    const turnId = ownerTurn;
     // Key order as StreamAssembler.emit() builds it ({...ev, turnId, seq}), so
     // this error serializes byte-for-byte like an assembler-emitted guard
     // error (vercel-ai's, and google-adk's in 0.6.x).

@@ -45,23 +45,25 @@ const FACTORY: Record<Exclude<Fw, "vercel">, () => Normalizer> = {
 const run = (n: Normalizer, xs: unknown[]): AgEvent[] => [...xs.flatMap((x) => n.push(x)), ...n.flush()];
 /** How many events the prefix's pushes emit (no flush: its INV-FLUSH closes are not in the full stream). */
 const pushedLen = (n: Normalizer, xs: unknown[]): number => xs.flatMap((x) => n.push(x)).length;
-/** The innermost turn open after `events` (turns nest: the most recently opened still open), else none. */
-function innermostOpenTurn(events: AgEvent[]): string | undefined {
-  const open: string[] = [];
+/** INV-OWNER's backfill after `events` (SPEC.md:766), as StreamAssembler
+ *  resolves it: turn.start and message.start set it, subagent.start saves it and
+ *  moves in, subagent.done restores the saved one (the parent), no close clears it. */
+function backfilledOwner(events: AgEvent[]): string | undefined {
+  let owner: string | undefined;
+  const stack: (string | undefined)[] = [];
   for (const e of events) {
     const t = (e as { turnId?: string }).turnId;
-    if ((e.type === "turn.start" || e.type === "subagent.start") && t !== undefined) open.push(t);
-    else if (e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort" || e.type === "subagent.done") {
-      const closed = t ?? open[open.length - 1];
-      const i = open.lastIndexOf(closed as string);
-      if (i >= 0) open.splice(i, 1);
-    }
+    if ((e.type === "turn.start" || e.type === "message.start") && t !== undefined) owner = t;
+    else if (e.type === "subagent.start") {
+      stack.push(owner);
+      owner = t;
+    } else if (e.type === "subagent.done") owner = stack.length > 0 ? stack.pop() : (e as { parentTurnId?: string }).parentTurnId;
   }
-  return open[open.length - 1];
+  return owner;
 }
-/** The guard error both options emit: the innermost open turn's id when one is open, else none. */
+/** The guard error both options emit carries that owner, when there is one. */
 const guardErrorOwner = (prefix: AgEvent[]): Record<string, string> => {
-  const t = innermostOpenTurn(prefix);
+  const t = backfilledOwner(prefix);
   return t === undefined ? {} : { turnId: t };
 };
 /** No park: the guarded stream passes ingest whole and folds without asking for a resync. */
@@ -106,7 +108,7 @@ describe("the per-native guard over the committed corpus", () => {
       expect(all.length).toBeGreaterThan(0);
       let emittedBeforeThrow = 0;
       let emittingK = 0;
-      let owned = 0; // cases whose throw landed inside an open turn (the error carries its turnId)
+      let owned = 0; // cases whose error names an owner turn
       for (const [name, frames] of all) {
         if (frames.length < 3) continue;
         // bad = the first frame from the midpoint on that emits, so the throw discards real partial output.
@@ -141,7 +143,7 @@ describe("the per-native guard over the committed corpus", () => {
         expect(JSON.stringify(got)).not.toContain("SECRET_");
       }
       expect(emittedBeforeThrow, fw).toBe(emittingK);
-      expect(owned, `${fw}: throws inside an open turn`).toBeGreaterThan(emittingK / 2);
+      expect(owned, `${fw}: errors with an owner turn`).toBeGreaterThan(emittingK / 2);
       expect(emittingK, fw).toBeGreaterThanOrEqual(all.length - 2);
     });
   }

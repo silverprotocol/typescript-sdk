@@ -2095,6 +2095,21 @@ describe("per-native guard: a throw mid-part discards that part's batch, emits o
     expectFoldsClean(out);
   });
 
+  it("(d) a throw after the last turn closed: the error names the closed turn (INV-OWNER's backfill), byte-equal to core withAtomicPush's", () => {
+    const n = createVercelNormalizer({ invokeId: "vercel" });
+    const out: AgEvent[] = [];
+    for (const p of PARTS) out.push(...n.push(p)); // ends with finish → turn.done
+    expect(out[out.length - 1]).toMatchObject({ type: "turn.done", turnId: "turn_vercel_1" });
+    const arm = armThrowOnCall(1); // the next part's first assembler call throws
+    const after = n.push({ type: "start" });
+    arm.disarm();
+    expect(JSON.stringify(after)).toBe(
+      JSON.stringify([{ type: "error", message: "normalizer error", code: "TypeError", turnId: "turn_vercel_1", seq: out.length }]),
+    );
+    out.push(...after, ...n.flush());
+    expectFoldsClean(out);
+  });
+
   it("saveLocal()/restoreLocal() cover every mutable per-invoke local of the factory (a new one cannot silently escape a rollback)", () => {
     // Source reflection (sp-cto's nit 3): the factory's top-level `let`s and
     // Set/Map locals are the facet's per-invoke state; each must be saved and
