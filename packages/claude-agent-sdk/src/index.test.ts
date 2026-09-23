@@ -7212,3 +7212,97 @@ describe("createClaudeNormalizer — the result-only error close names a non-API
     expect(turnCloses(withStash)).toEqual(turnCloses(without));
   });
 });
+
+// ─── SPEC:933 — push() never throws on a LIVE (not JSON round-tripped) frame ──
+// sp-google found it on google-adk; sp-probe reproduced it here (bb319bf): a
+// host pushing an in-process object whose members are not JSON (an undefined
+// member, a Date, NaN, a function) made push() THROW (ZodError from a
+// JsonValue.parse site; `JSON.stringify(input)` for the args delta on a cycle).
+// No 0.3.280 SDK frame trips it: the SDK parses the CLI's NDJSON, and its one
+// in-process frame (mirror_error) is strings only. The fix normalizes the frame
+// ONCE at push() entry (core toJsonValueSafe), so a live frame folds exactly as
+// its JSON form, which is what every capture already is.
+describe("createClaudeNormalizer — a live, non-JSON frame never throws out of push() (SPEC:933)", () => {
+  // `push` is typed JsonValue; a host that skips the JSON boundary gets here
+  // without a type error (e.g. `any` from a relay). Reach it the same way.
+  function pushLive(frames: unknown[]): AgEvent[] {
+    const n = createClaudeNormalizer();
+    const push: (native: unknown) => AgEvent[] = (native) => Reflect.apply(n.push, n, [native]);
+    return [...frames.flatMap((f) => push(f)), ...n.flush()];
+  }
+  function pushJson(frames: unknown[]): AgEvent[] {
+    const n = createClaudeNormalizer();
+    return [...frames.flatMap((f) => n.push(JsonValue.parse(JSON.parse(JSON.stringify(f))))), ...n.flush()];
+  }
+  function toolUseFrame(input: unknown): unknown {
+    return {
+      type: "assistant",
+      message: { ...betaMessage([]), content: [{ type: "tool_use", id: "toolu_live", name: "t", input }] },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000l1",
+      session_id: "sess_fixture",
+    };
+  }
+
+  it("RED-first (sp-probe's reproduction): tool_use.input {a: undefined, d: Date} folds exactly as its JSON form", () => {
+    const frames = [toolUseFrame({ a: undefined, d: new Date(0), keep: 1 })];
+    expect(() => pushLive(frames)).not.toThrow();
+    expect(JSON.stringify(pushLive(frames))).toBe(JSON.stringify(pushJson(frames)));
+    expect(pushLive(frames).find((e) => e.type === "tool.args.assembled")).toMatchObject({ input: { d: "1970-01-01T00:00:00.000Z", keep: 1 } });
+  });
+
+  it("every JSON-defined hostile member, at every carry site, folds serialized-identical to its JSON round trip", () => {
+    const hostile: Array<[string, unknown]> = [
+      ["undefined member", { a: undefined, b: 1 }],
+      ["Date", { when: new Date(0) }],
+      ["NaN and Infinity", { n: NaN, i: Infinity }],
+      ["function", { f: () => 1, b: 2 }],
+    ];
+    const sites: Array<[string, (v: unknown) => unknown[]]> = [
+      ["tool_use.input", (v) => [toolUseFrame(v)]],
+      ["carried frame", (v) => [{ type: "command_lifecycle", command_uuid: "c", state: "started", uuid: "00000000-0000-0000-0000-0000000000l2", session_id: "sess_fixture", extra: v }]],
+      ["unknown top-level type", (v) => [{ type: "zz_future", uuid: "00000000-0000-0000-0000-0000000000l3", session_id: "sess_fixture", extra: v }]],
+      ["tool_result structuredContent", (v) => [
+        toolUseFrame({}),
+        { type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_live", content: [], is_error: false, structuredContent: v }] }, parent_tool_use_id: null, uuid: "00000000-0000-0000-0000-0000000000l4", session_id: "sess_fixture" },
+      ]],
+      ["result structured_output", (v) => [{ ...Object.fromEntries(Object.entries(resultSuccess("end_turn"))), structured_output: v }]],
+    ];
+    for (const [hName, value] of hostile) {
+      for (const [sName, build] of sites) {
+        const frames = build(value);
+        let live: AgEvent[] = [];
+        expect(() => { live = pushLive(frames); }, `${sName} / ${hName}`).not.toThrow();
+        expect(JSON.stringify(live), `${sName} / ${hName}`).toBe(JSON.stringify(pushJson(frames)));
+      }
+    }
+  });
+
+  it("where JSON has no form, core's documented rule applies: a BigInt is its decimal string, a node repeating an ancestor is \"[Circular]\"", () => {
+    const cyc: { [k: string]: unknown } = { keep: 1 };
+    cyc["self"] = cyc;
+    const evs = pushLive([toolUseFrame({ big: 10n, cyc })]);
+    expect(evs.find((e) => e.type === "tool.args.assembled")).toMatchObject({ input: { big: "10", cyc: { keep: 1, self: "[Circular]" } } });
+    expect(evs.find((e) => e.type === "tool.args.delta")).toMatchObject({ delta: JSON.stringify({ big: "10", cyc: { keep: 1, self: "[Circular]" } }) });
+    // Every carry site survives both, and the fold never parks.
+    for (const frames of [
+      [{ type: "command_lifecycle", command_uuid: "c", state: "started", uuid: "00000000-0000-0000-0000-0000000000l2", session_id: "sess_fixture", extra: { big: 1n, cyc } }],
+      [{ type: "zz_future", uuid: "00000000-0000-0000-0000-0000000000l3", session_id: "sess_fixture", extra: { big: 1n, cyc } }],
+      [{ ...Object.fromEntries(Object.entries(resultSuccess("end_turn"))), structured_output: { big: 1n, cyc } }],
+    ]) {
+      let live: AgEvent[] = [];
+      expect(() => { live = pushLive(frames); }).not.toThrow();
+      expect(fold(live).needsResync).toBe(false);
+    }
+  });
+
+  it("a frame that is not an SDKMessage after conversion still lands on ext.anthropic.unparsed, converted (never a throw)", () => {
+    const evs = pushLive([{ type: 42, junk: undefined, when: new Date(0) }]);
+    expect(evs).toEqual([expect.objectContaining({ type: "ext.anthropic.unparsed", native: { type: 42, when: "1970-01-01T00:00:00.000Z" } })]);
+  });
+
+  it("negative control: a plain-JSON frame's output is unchanged (the fixture every other test pushes)", () => {
+    const frames = [toolUseFrame({ city: "SF" }), resultSuccess("end_turn")];
+    expect(JSON.stringify(pushLive(frames))).toBe(JSON.stringify(pushJson(frames)));
+  });
+});

@@ -47,6 +47,7 @@ import {
   JsonValue,
   type Normalizer,
   StreamAssembler,
+  toJsonValueSafe,
   type ToolOutcome,
 } from "@silverprotocol/core";
 
@@ -2915,16 +2916,30 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
   return {
     push(native: JsonValue): AgEvent[] {
       framesSeen++;
-      if (!isSDKMessage(native)) {
+      // SPEC:933 (a Normalizer MUST NOT throw out of push()): `native` is typed
+      // JsonValue, but a host can hand in the in-process object itself (a relay,
+      // a test double, anything typed `any`), whose members need not be JSON:
+      // an undefined member, a Date, NaN, a BigInt, a function, a cycle. Every
+      // value this facet carries derives from `native`, and ~30 sites validate
+      // them with JsonValue.parse / AgMeta.parse (zod) or JSON.stringify the
+      // tool input, so such a frame threw (sp-probe's reproduction:
+      // tool_use.input {a: undefined, d: Date}). Normalize ONCE here with core's
+      // total converter: a JSON frame comes back as the same reference (one
+      // allocation-free walk, no copy), anything else folds exactly as its JSON
+      // form, which is what every capture already is (the SDK itself parses the
+      // CLI's NDJSON; no 0.3.280 SDK frame trips this). Every downstream parse
+      // then validates already-JSON data.
+      const frame = toJsonValueSafe(native);
+      if (!isSDKMessage(frame)) {
         // Graceful guard (Tenet 6): route the raw payload through the lossless
         // vendor channel rather than throwing. Nest under `native` so a payload
         // that carries its own `type` key (the common malformed-SDKMessage shape
         // that lands here) does NOT clobber the `ext.anthropic.unparsed` event type
         // (emitExt spreads object payloads at the top level).
-        a.emitExt("anthropic", "unparsed", { native });
+        a.emitExt("anthropic", "unparsed", { native: frame });
         return a.drain();
       }
-      drive(native);
+      drive(frame);
       return a.drain();
     },
     flush(): AgEvent[] {
