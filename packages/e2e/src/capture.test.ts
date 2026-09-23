@@ -364,4 +364,21 @@ describe("runCapture", () => {
 
     expect((input() as { thinkingLevel?: string }).thinkingLevel).toBeUndefined();
   });
+
+  it("forwards scenario.reasoningSummary to CaptureRunInput.reasoningSummary when set, and omits it otherwise", async () => {
+    const withKnob = makeInputCapturingDeps();
+    await runCapture(
+      Scenario.parse({ name: "commentary-gpt6sol", prompt: "Say something.", reasoningSummary: "auto" }),
+      withKnob.deps,
+      { ports: [], framework: "claude" },
+    );
+    expect((withKnob.input() as { reasoningSummary?: string }).reasoningSummary).toBe("auto");
+
+    const without = makeInputCapturingDeps();
+    await runCapture(Scenario.parse({ name: "text-only", prompt: "Say something." }), without.deps, {
+      ports: [],
+      framework: "claude",
+    });
+    expect("reasoningSummary" in (without.input() as object)).toBe(false);
+  });
 });

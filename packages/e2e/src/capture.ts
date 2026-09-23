@@ -137,6 +137,7 @@ export async function runCapture(
       ...(scenario.includePartialMessages === true ? { includePartialMessages: true } : {}),
       ...(scenario.thinkingLevel !== undefined ? { thinkingLevel: scenario.thinkingLevel } : {}),
       ...(scenario.thinkingDisplay !== undefined ? { thinkingDisplay: scenario.thinkingDisplay } : {}),
+      ...(scenario.reasoningSummary !== undefined ? { reasoningSummary: scenario.reasoningSummary } : {}),
     };
 
     for await (const event of deps.runAgentCapture(agentInput)) {

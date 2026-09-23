@@ -61,6 +61,14 @@ export const Scenario = z.object({
   // reproducibly a thinking cassette. "summarized" is the value that makes
   // thinking blocks (and their summary text) reach the stream.
   thinkingDisplay: z.enum(["summarized", "omitted"]).optional(),
+  // OpenAI reasoning-summary knob (openai-agents only; the other capture agents
+  // ignore it). Presence asks the Responses API for reasoning summaries
+  // (`modelSettings.reasoning.summary`). Added 2026-09-23 for the founder-gated
+  // commentary capture (rnd 13+17 stage 2): the corpus's live OpenAI legs carry
+  // only phase "final_answer" and empty summaries, and without this knob a
+  // capture cannot ask for summary text at all. Model-named seeds using it
+  // MUST be captured with an explicit CAPTURE_MODEL, like thinkingLevel.
+  reasoningSummary: z.enum(["auto", "concise", "detailed"]).optional(),
 });
 
 export type Scenario = z.infer<typeof Scenario>;

@@ -61,6 +61,12 @@ export interface CaptureRunInput {
    * it. See scenario.ts for why "summarized" is required for streamed thinking.
    */
   thinkingDisplay?: "summarized" | "omitted";
+  /**
+   * OpenAI reasoning summaries (openai-agents only): maps to the Agent's
+   * `modelSettings.reasoning.summary`. Agents without the concept ignore it.
+   * See scenario.ts for why the commentary capture needs it.
+   */
+  reasoningSummary?: "auto" | "concise" | "detailed";
 }
 
 /** The LLM/process boundary contract every capture agent implements. */

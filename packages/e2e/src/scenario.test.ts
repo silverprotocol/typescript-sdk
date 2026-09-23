@@ -95,6 +95,12 @@ describe("Scenario.parse", () => {
     expect(Scenario.parse({ name: "x", prompt: "y" }).thinkingLevel).toBeUndefined();
   });
 
+  it("parses the optional reasoningSummary knob, and refuses values the Responses API does not define", () => {
+    expect(Scenario.parse({ name: "c", prompt: "p", reasoningSummary: "auto" }).reasoningSummary).toBe("auto");
+    expect(Scenario.parse({ name: "x", prompt: "y" }).reasoningSummary).toBeUndefined();
+    expect(() => Scenario.parse({ name: "c", prompt: "p", reasoningSummary: "full" })).toThrow();
+  });
+
   it("rejects thinking levels outside 3.7's low/medium/high set", () => {
     // "minimal" exists in genai's ThinkingLevel enum but gemini-3.7-flash
     // rejects it server-side — the schema refuses it up front.
