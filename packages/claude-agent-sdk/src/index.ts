@@ -1735,6 +1735,47 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
     }
   }
 
+  // Emit a result's permission_denials as tool.start + tool.done denied pairs,
+  // inside a dedicated carrier message: the assistant message is already
+  // sealed, and INV-MSG (audit M19) forbids attaching to sealed messages or
+  // closed turns. BOTH result arms call it, at the same point (after the seal
+  // and the run closes, before result-meta and the close). Through 0.6.4 only
+  // the success arm did, so an error-subtype result (SDKResultError declares
+  // permission_denials too, e.g. error_max_turns after a denied tool) dropped
+  // its denials.
+  function emitDenialsCarrier(
+    turnId: string,
+    denials: ReadonlyArray<{ readonly tool_name: string; readonly tool_use_id: string }>,
+    sessionId: string,
+  ): void {
+    if (denials.length > 0) {
+      const denialMsgId = `${turnId}:denials`;
+      a.openMessage({ id: denialMsgId, role: "assistant", turnId, threadId: options.threadId ?? sessionId });
+      for (const denial of denials) {
+        // Fixture-drift ratchet finding (SDKPermissionDeniedMessage,
+        // "handled" via existing-home mapping): enrich with the live
+        // standalone denial notice recorded above (keyed by tool_use_id),
+        // when one preceded this aggregate — the actual rejection text
+        // returned to the model, plus decision-reason/agent-id context —
+        // rather than leaving a bare empty-content stub. No second
+        // tool.start/tool.done pair is ever emitted for the live frame
+        // itself (see the dedicated `permission_denied` branch below).
+        const live = deniedLiveByToolUseId.get(denial.tool_use_id);
+        const liveFields = liveDenialMeta(live);
+        const liveMeta: AgProviderMeta | undefined =
+          liveFields !== undefined ? AgProviderMeta.parse(liveFields) : undefined;
+        a.toolStart({ toolCallId: denial.tool_use_id, name: denial.tool_name });
+        a.toolDone({
+          toolCallId: denial.tool_use_id,
+          content: live !== undefined ? [{ type: "text", text: live.message }] : [],
+          outcome: "denied",
+          ...(liveMeta !== undefined ? { providerMetadata: liveMeta } : {}),
+        });
+      }
+      a.closeMessage(denialMsgId);
+    }
+  }
+
   function drive(msg: SDKMessage): void {
     if (msg.type === "assistant") {
       const m = msg.message;
@@ -2285,32 +2326,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // CL-09: an API-error turn's denials take this same carrier, at the same
       // point — its close is deferred to this frame (below), so the turn is
       // still open here, like every other turn.
-      if (msg.permission_denials.length > 0) {
-        const denialMsgId = `${turnId}:denials`;
-        a.openMessage({ id: denialMsgId, role: "assistant", turnId, threadId: options.threadId ?? msg.session_id });
-        for (const denial of msg.permission_denials) {
-          // Fixture-drift ratchet finding (SDKPermissionDeniedMessage,
-          // "handled" via existing-home mapping): enrich with the live
-          // standalone denial notice recorded above (keyed by tool_use_id),
-          // when one preceded this aggregate — the actual rejection text
-          // returned to the model, plus decision-reason/agent-id context —
-          // rather than leaving a bare empty-content stub. No second
-          // tool.start/tool.done pair is ever emitted for the live frame
-          // itself (see the dedicated `permission_denied` branch below).
-          const live = deniedLiveByToolUseId.get(denial.tool_use_id);
-          const liveFields = liveDenialMeta(live);
-          const liveMeta: AgProviderMeta | undefined =
-            liveFields !== undefined ? AgProviderMeta.parse(liveFields) : undefined;
-          a.toolStart({ toolCallId: denial.tool_use_id, name: denial.tool_name });
-          a.toolDone({
-            toolCallId: denial.tool_use_id,
-            content: live !== undefined ? [{ type: "text", text: live.message }] : [],
-            outcome: "denied",
-            ...(liveMeta !== undefined ? { providerMetadata: liveMeta } : {}),
-          });
-        }
-        a.closeMessage(denialMsgId);
-      }
+      emitDenialsCarrier(turnId, msg.permission_denials, msg.session_id);
       // 0.3.220: fast_mode_disabled_reason + per-model canonicalModel/provider
       // ride `ext.anthropic.result-meta` before the close (no core home on
       // turn.done — see resultMetaPayload's doc). CL-09: it is emitted on an
@@ -2385,6 +2401,18 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         startupFailureReason !== undefined
           ? startupFailureRetriable(startupFailureReason)
           : subtype !== "error_max_turns";
+      // Denials ride the SAME carrier as on the success arm, at the same point.
+      // This arm is discriminant-validated only, so the array is shape-guarded
+      // (a malformed entry is skipped; Tenet 6: never throw).
+      const rawDenials: unknown = isJsonObject(msg) ? msg["permission_denials"] : undefined;
+      const denials = Array.isArray(rawDenials)
+        ? rawDenials.flatMap((d: unknown) =>
+            isJsonObject(d) && typeof d["tool_name"] === "string" && typeof d["tool_use_id"] === "string"
+              ? [{ tool_name: d["tool_name"], tool_use_id: d["tool_use_id"] }]
+              : [],
+          )
+        : [];
+      emitDenialsCarrier(turnId, denials, msg.session_id);
       // 0.3.220: fast_mode_disabled_reason exists on BOTH result arms — the
       // error variant gets the SAME `ext.anthropic.result-meta` carry as the
       // success arm above (turn.error carries no metadata slot at all).

@@ -1103,6 +1103,94 @@ describe("createClaudeNormalizer — permission_denials", () => {
   });
 });
 
+// ─── permission_denials on an ERROR-subtype result (persona queue item 1) ────
+// SDKResultError declares permission_denials too (e.g. error_max_turns after a
+// denied tool). Through 0.6.4 only the success arm emitted the carrier, so an
+// error-subtype result dropped its denials. Both arms now share one carrier,
+// emitted at the same point: after the seal, before result-meta and the close.
+describe("createClaudeNormalizer — permission_denials on an error-subtype result", () => {
+  const ERROR_RESULT_TURN = "turn_00000000-0000-0000-0000-000000000004";
+  const DENIALS = [
+    { tool_name: "bash", tool_use_id: "toolu_denied_1", tool_input: { command: "rm -rf /" } },
+    { tool_name: "Read", tool_use_id: "toolu_denied_2", tool_input: { file_path: "/etc/passwd" } },
+  ];
+  const errorWithDenials = (extra: { [k: string]: unknown } = {}): unknown => ({
+    ...resultError("error_max_turns"),
+    permission_denials: DENIALS,
+    ...extra,
+  });
+  function drive(frames: unknown[]): AgEvent[] {
+    const n = createClaudeNormalizer();
+    const evs = [...frames.flatMap((f) => n.push(JsonValue.parse(f))), ...n.flush()];
+    assertAllValid(evs);
+    return evs;
+  }
+
+  it("emits the denials carrier (tool.start + tool.done denied per denial) BEFORE the turn.error, and it folds", () => {
+    const evs = drive([errorWithDenials()]);
+    expect(evs.map((e) => e.type)).toEqual([
+      "turn.start",
+      "message.start",
+      "tool.start",
+      "tool.done",
+      "tool.start",
+      "tool.done",
+      "message.end",
+      "turn.error",
+    ]);
+    expect(evs[1]).toMatchObject({ type: "message.start", id: `${ERROR_RESULT_TURN}:denials`, turnId: ERROR_RESULT_TURN });
+    expect(evs.filter((e) => e.type === "tool.done").map((e) => ("outcome" in e ? e.outcome : undefined))).toEqual(["denied", "denied"]);
+    expect(evs[7]).toMatchObject({ type: "turn.error", turnId: ERROR_RESULT_TURN, code: "error_max_turns" });
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.map((m) => m.id)).toContain(`${ERROR_RESULT_TURN}:denials`);
+    expect(r.result().turns.find((t) => t.turnId === ERROR_RESULT_TURN)?.outcome).toMatchObject({ type: "error" });
+  });
+
+  it("MIRROR: the carrier is event-for-event the success arm's (turn id and seq aside)", () => {
+    const ok = drive([{ ...resultSuccess("end_turn"), permission_denials: DENIALS }]);
+    const err = drive([errorWithDenials()]);
+    expect(denialCarrier(err, true)).toEqual(denialCarrier(ok, true));
+    expect(denialCarrier(err)).toHaveLength(6);
+  });
+
+  it("the live permission_denied enrichment reaches the error arm's carrier too", () => {
+    const evs = drive([
+      permissionDeniedMsg({ decision_reason_type: "rule", decision_reason: "matches deny-rule" }),
+      errorWithDenials(),
+    ]);
+    const done = evs.find((e) => e.type === "tool.done" && "toolCallId" in e && e.toolCallId === "toolu_denied_1");
+    expect(done).toMatchObject({
+      outcome: "denied",
+      content: [{ type: "text", text: "This command was blocked by a deny rule (no destructive filesystem operations)." }],
+      providerMetadata: { decisionReasonType: "rule", decisionReason: "matches deny-rule" },
+    });
+  });
+
+  it("with a STASHED close (assistant error frame first), the carrier still precedes that one turn.error", () => {
+    const evs = drive([apiErrorAssistantFrame(), errorWithDenials()]);
+    const closes = turnCloses(evs);
+    expect(closes).toHaveLength(1);
+    expect(closes[0]).toMatchObject({ type: "turn.error", turnId: API_ERROR_TURN, code: "rate_limit" });
+    const carrierAt = evs.findIndex((e) => e.type === "message.start" && "id" in e && e.id === `${API_ERROR_TURN}:denials`);
+    expect(carrierAt).toBeGreaterThan(-1);
+    expect(carrierAt).toBeLessThan(evs.findIndex((e) => e.type === "turn.error"));
+  });
+
+  it("NEGATIVE CONTROL: empty denials stay byte-identical; malformed denials are skipped, never thrown on", () => {
+    const bare = drive([resultError("error_max_turns")]);
+    expect(bare.map((e) => e.type)).toEqual(["turn.error"]);
+    expect(JSON.stringify(drive([{ ...resultError("error_max_turns"), permission_denials: [] }]))).toBe(JSON.stringify(bare));
+    for (const bad of ["nope", null, 7, [{ tool_name: 1 }], [{ tool_use_id: "x" }], [null]]) {
+      expect(() => drive([{ ...resultError("error_max_turns"), permission_denials: bad }])).not.toThrow();
+      expect(JSON.stringify(drive([{ ...resultError("error_max_turns"), permission_denials: bad }]))).toBe(JSON.stringify(bare));
+    }
+    const partial = drive([{ ...resultError("error_max_turns"), permission_denials: [null, DENIALS[0]] }]);
+    expect(partial.filter((e) => e.type === "tool.done")).toHaveLength(1);
+  });
+});
+
 describe("createClaudeNormalizer — message.end usage", () => {
   it("populates message.end.usage from BetaMessage.usage", () => {
     const nonZeroUsage: BetaMessage["usage"] = {
