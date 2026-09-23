@@ -741,16 +741,104 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
     a.emitExt(EXT_VENDOR, "frame", { kind: part.type, frame: safeJson(part) });
   }
 
+  /** The last-resort guard's ONE emission point (fleet pattern, 2026-09-24):
+   *  the core non-terminal `error` event (SPEC §8.0 allows it besides an
+   *  unparsed carry), with `code` = the thrown value's constructor NAME only.
+   *  Never its message (a SyntaxError quotes its input) and never the native.
+   *  Kept behind this one helper while guuey/ggui confirm they treat the event
+   *  as non-fatal. The committed corpus never fires it. */
+  function emitNormalizerError(err: unknown): void {
+    let code = "NonError";
+    try {
+      if (err instanceof Error) code = err.constructor.name || "Error";
+    } catch {
+      code = "Error";
+    }
+    a.emit({ type: "error", message: "normalizer error", code });
+  }
+
+  /** The facet's own per-invoke state, for a per-native transaction. */
+  function saveLocal() {
+    return {
+      turnCounter,
+      turnId,
+      turnClosed,
+      stepIndex,
+      stepId,
+      msgId,
+      openTextIds: [...openTextIds],
+      openReasoningIds: [...openReasoningIds],
+      pendingToolIds: [...pendingToolIds],
+      deniedReasons: [...deniedReasons],
+      stashedError,
+    };
+  }
+  function restoreLocal(s: ReturnType<typeof saveLocal>): void {
+    turnCounter = s.turnCounter;
+    turnId = s.turnId;
+    turnClosed = s.turnClosed;
+    stepIndex = s.stepIndex;
+    stepId = s.stepId;
+    msgId = s.msgId;
+    openTextIds.clear();
+    for (const id of s.openTextIds) openTextIds.add(id);
+    openReasoningIds.clear();
+    for (const id of s.openReasoningIds) openReasoningIds.add(id);
+    pendingToolIds.clear();
+    for (const id of s.pendingToolIds) pendingToolIds.add(id);
+    deniedReasons.clear();
+    for (const [k, v] of s.deniedReasons) deniedReasons.set(k, v);
+    stashedError = s.stashedError;
+  }
+
+  /**
+   * The last-resort guard, per native (the fleet guard ruling, 2026-09-24,
+   * binding): if handling one native throws, its partial batch is DISCARDED
+   * (the assembler rolls back, so it consumes no seq; INV-SEQ), the facet's
+   * own state rolls back with it, and one core `error` event is emitted in its
+   * place. The committed corpus never reaches it: the fuzz of 14,398
+   * envelope-valid malformed parts found no throw.
+   */
+  function transact(step: () => void): AgEvent[] {
+    const cp = a.checkpoint();
+    const local = saveLocal();
+    try {
+      step();
+    } catch (err) {
+      a.rollback(cp);
+      restoreLocal(local);
+      emitNormalizerError(err);
+    }
+    return a.drain();
+  }
+
   return {
-    push(native: unknown): AgEvent[] {
-      if (!isVercelStreamPart(native)) {
-        a.emitExt(EXT_VENDOR, "unparsed", { native: safeJson(native) });
-        return a.drain();
-      }
-      drive(native);
-      return a.drain();
+    push(raw: unknown): AgEvent[] {
+      return transact(() => {
+        // NOT normalized at entry, unlike the other facets: a live fullStream
+        // part carries class instances the drive switch recognizes by class,
+        // above all the `error` part's Error (StreamProviderError). errText()
+        // takes `.message` only from an `instanceof Error`; any JSON-shaped
+        // copy (plain JSON drops the non-enumerable message, and even core's
+        // Error mapping yields a plain object) would render as its JSON text.
+        // Carried values go through safeJson (core toJsonValueSafe) per site
+        // instead; anything else that throws is caught by transact().
+        if (!isVercelStreamPart(raw)) {
+          a.emitExt(EXT_VENDOR, "unparsed", { native: safeJson(raw) });
+          return;
+        }
+        drive(raw);
+      });
     },
     flush(): AgEvent[] {
+      const sealed = transact(sealTurn);
+      return [...sealed, ...a.flush()];
+    },
+  };
+
+  /** flush()'s facet-side seal, before the assembler's own INV-FLUSH close. */
+  function sealTurn(): void {
+    {
       if (turnId !== undefined && !turnClosed) {
         if (stashedError !== undefined) {
           // Arm B: in-band error and the stream just ended (doStream
@@ -766,9 +854,8 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
           closeOpenMessage();
         }
       }
-      return a.flush();
-    },
-  };
+    }
+  }
 }
 
 export default createVercelNormalizer;

@@ -7,8 +7,8 @@
  * that the bulky derived `performance` bag on finish-step is trimmed
  * everywhere but F1 (kept there to prove extra-field tolerance).
  */
-import { describe, expect, it } from "vitest";
-import { AgEvent, Reducer } from "@silverprotocol/core";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { AgEvent, Reducer, StreamAssembler, reduce as foldBatch } from "@silverprotocol/core";
 import { VERCEL_HOST_ERROR, createVercelNormalizer } from "./index.js";
 
 function run(parts: unknown[]): AgEvent[] {
@@ -1981,5 +1981,123 @@ describe("live (not JSON round-tripped) parts: no throw, and no whole-value coll
     expect(serialized).not.toContain('"gone"');
     expect(JSON.stringify(out.find((e) => e.type === "tool.args.assembled"))).toContain('"big":"2"');
     expectAllParse(out);
+  });
+});
+
+describe("per-native guard: a throw mid-part discards that part's batch, emits one error, parks nothing (core checkpoint/rollback)", () => {
+  afterEach(() => vi.restoreAllMocks());
+  const U = { inputTokens: 1, outputTokens: 1, totalTokens: 2 };
+  const R = { id: "r", timestamp: "1970-01-01T00:00:00.000Z", modelId: "m" };
+  const BAD = 8; // the second start-step: emits step.start, then openMessage (the throw lands between them)
+  const PARTS = [
+    { type: "start" },
+    { type: "start-step", request: {}, warnings: [] },
+    { type: "text-start", id: "t1" },
+    { type: "text-delta", id: "t1", text: "hello" },
+    { type: "text-end", id: "t1" },
+    { type: "tool-call", toolCallId: "c1", toolName: "echo", input: { msg: "hi" } },
+    { type: "tool-result", toolCallId: "c1", toolName: "echo", input: { msg: "hi" }, output: "hi" },
+    { type: "finish-step", finishReason: "tool-calls", rawFinishReason: "tool_calls", usage: U, response: R },
+    { type: "start-step", request: {}, warnings: [], secret: "SECRET_native" },
+    { type: "text-start", id: "t2" },
+    { type: "text-delta", id: "t2", text: "world" },
+    { type: "text-end", id: "t2" },
+    { type: "finish-step", finishReason: "stop", rawFinishReason: "stop", usage: U, response: R },
+    { type: "finish", finishReason: "stop", rawFinishReason: "stop", totalUsage: U },
+  ];
+  /** Every StreamAssembler method throws on the `nth` call made after arming. */
+  function armThrowOnCall(nth: number): { calls: () => number; disarm: () => void } {
+    let calls = 0;
+    const methods = Object.getOwnPropertyNames(StreamAssembler.prototype).filter(
+      (m) => !["constructor", "drain", "flush", "checkpoint", "rollback"].includes(m),
+    );
+    const spies = methods.map((m) => {
+      const proto = StreamAssembler.prototype as unknown as Record<string, (...a: unknown[]) => unknown>;
+      const original = proto[m]!;
+      return vi.spyOn(proto, m).mockImplementation(function (this: StreamAssembler, ...a: unknown[]) {
+        if (++calls === nth) throw new TypeError("SECRET_in_message: normalizer bug");
+        return original.apply(this, a);
+      });
+    });
+    return { calls: () => calls, disarm: () => spies.forEach((s) => s.mockRestore()) };
+  }
+  function expectFoldsClean(out: AgEvent[]): void {
+    expectAllParse(out);
+    expect(out.map((e) => e.seq), "seq contiguous").toEqual(out.map((_, i) => i));
+    const { result, needsResync } = foldBatch(out);
+    expect(needsResync, "reduce() parked").toBe(false);
+    const starts = out.filter((e) => e.type === "message.start").map((e) => (e as { id: string }).id);
+    const ends = out.filter((e) => e.type === "message.end").map((e) => (e as { id: string }).id);
+    expect(ends.sort(), "INV-MSG: every opened message closes once").toEqual(starts.sort());
+    return void result;
+  }
+
+  it("(a) a throw after step.start is emitted: ≡ the stream without that part + one error, +1 renumbered; no park; INV-MSG/INV-BLOCK hold", () => {
+    const reference = run(PARTS.filter((_, i) => i !== BAD));
+    const at = (() => {
+      const n = createVercelNormalizer({ invokeId: "vercel" });
+      return PARTS.slice(0, BAD).flatMap((p) => n.push(p)).length;
+    })();
+    const n = createVercelNormalizer({ invokeId: "vercel" });
+    const out: AgEvent[] = [];
+    for (const [i, p] of PARTS.entries()) {
+      if (i !== BAD) {
+        out.push(...n.push(p));
+        continue;
+      }
+      const arm = armThrowOnCall(2);
+      expect(() => out.push(...n.push(p))).not.toThrow();
+      arm.disarm();
+      // Call 1 emitted step.start, call 2 (openMessage) threw, call 3 is the guard's own error emit.
+      expect(arm.calls(), "the throw landed after an open").toBe(3);
+    }
+    out.push(...n.flush());
+    expect(out).toEqual([
+      ...reference.slice(0, at),
+      { type: "error", seq: at, turnId: "turn_vercel_1", message: "normalizer error", code: "TypeError" },
+      ...reference.slice(at).map((e) => ({ ...e, seq: e.seq + 1 })),
+    ]);
+    expect(out.filter((e) => e.type === "step.start")).toHaveLength(reference.filter((e) => e.type === "step.start").length);
+    expectFoldsClean(out);
+    const texts = reduce(out).messages.flatMap((m) => m.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text));
+    expect(texts, "INV-BLOCK: each text block once, in order").toEqual(["hello", "world"]);
+  });
+
+  it("(b) neither the thrown message nor the native reaches the wire", () => {
+    const n = createVercelNormalizer({ invokeId: "vercel" });
+    const out: AgEvent[] = [];
+    for (const [i, p] of PARTS.entries()) {
+      const arm = i === BAD ? armThrowOnCall(2) : undefined;
+      out.push(...n.push(p));
+      arm?.disarm();
+    }
+    out.push(...n.flush());
+    const wire = JSON.stringify(out);
+    expect(wire).toContain('"message":"normalizer error"');
+    expect(wire).not.toContain("SECRET_");
+    expect(wire).not.toContain("normalizer bug");
+  });
+
+  it("(c) a throw while flush() seals a truncated turn: one error, then the assembler's INV-FLUSH closes; no park", () => {
+    const n = createVercelNormalizer({ invokeId: "vercel" });
+    const out: AgEvent[] = [];
+    for (const p of PARTS.slice(0, 4)) out.push(...n.push(p)); // text block t1 left open, no finish
+    const arm = armThrowOnCall(1);
+    let flushed: AgEvent[] = [];
+    expect(() => (flushed = n.flush())).not.toThrow();
+    arm.disarm();
+    out.push(...flushed);
+    expect(flushed[0]).toMatchObject({ type: "error", message: "normalizer error", code: "TypeError" });
+    expect(types(flushed).slice(1)).toContain("message.end");
+    expect(JSON.stringify(out)).not.toContain("SECRET_");
+    expectFoldsClean(out);
+  });
+
+  it("no throw: the guard is invisible (identical output with and without the spies armed at an unreachable call)", () => {
+    const plain = run(PARTS);
+    const arm = armThrowOnCall(Number.MAX_SAFE_INTEGER);
+    const guarded = run(PARTS);
+    arm.disarm();
+    expect(guarded).toEqual(plain);
   });
 });
