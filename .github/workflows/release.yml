@@ -208,15 +208,42 @@ jobs:
           set -euo pipefail
           # Install the EXACT version just published — for a prerelease, `latest`
           # is unchanged, so pinning the version is what actually smokes it.
-          # A freshly-published version can take a while to reach npm's read
-          # replicas, so wait generously (12 × 30s ≈ 6 min) before giving up —
-          # and fail cleanly if it never resolves, rather than falling through
-          # to a confusing MODULE_NOT_FOUND.
+          #
+          # Two phases, so registry propagation can never be mistaken for a
+          # broken release (and vice versa):
+          #  1. PROPAGATION — wait until `npm view` sees all six versions. A
+          #     fresh publish can take several minutes to reach npm's read
+          #     replicas (0.6.4, run 35841775022: ETARGET for >6 min, then fine).
+          #     `--prefer-online` revalidates npm's local packument cache, which
+          #     would otherwise keep serving the pre-publish metadata between
+          #     attempts. Still not visible after the budget ⇒ WARNING, exit 0:
+          #     the publish step already succeeded, and the pre-publish
+          #     pack:smoke already proved the tarballs import.
+          #  2. INSTALL + import — once all six are visible, a failure is a real
+          #     release problem (e.g. a dependency version that never
+          #     published), so it FAILS the job.
+          PKGS="core richtext claude-agent-sdk openai-agents google-adk vercel-ai"
+          attempts="${PROPAGATION_ATTEMPTS:-20}"   # × 30s ≈ 10 min
+          visible=0
+          for attempt in $(seq 1 "$attempts"); do
+            missing=""
+            for p in $PKGS; do
+              got=$(npm view --prefer-online "@silverprotocol/$p@$VER" version 2>/dev/null || true)
+              [ "$got" = "$VER" ] || missing="$missing $p"
+            done
+            if [ -z "$missing" ]; then visible=1; break; fi
+            echo "@$VER not visible yet for:$missing (registry propagation) — attempt $attempt/$attempts, retrying in ${PROPAGATION_SLEEP:-30}s"
+            sleep "${PROPAGATION_SLEEP:-30}"
+          done
+          if [ "$visible" -ne 1 ]; then
+            echo "::warning::published @$VER, but after ~$((attempts / 2)) min the registry still did not show:$missing. Consumer smoke SKIPPED; re-run this job, or verify by hand: npm view @silverprotocol/<pkg>@$VER version"
+            exit 0
+          fi
           mkdir -p /tmp/consumer-smoke && cd /tmp/consumer-smoke
           npm init -y >/dev/null
           ok=0
-          for attempt in $(seq 1 12); do
-            if npm install --no-audit --no-fund \
+          for attempt in 1 2 3; do   # absorbs replica skew between view and install
+            if npm install --prefer-online --no-audit --no-fund \
                 "@silverprotocol/core@$VER" \
                 "@silverprotocol/richtext@$VER" \
                 "@silverprotocol/claude-agent-sdk@$VER" \
@@ -225,11 +252,11 @@ jobs:
                 "@silverprotocol/vercel-ai@$VER"; then
               ok=1; break
             fi
-            echo "@$VER not resolvable yet (registry propagation) — attempt $attempt/12, retrying in 30s"
-            sleep 30
+            echo "install of @$VER failed although all six are visible — attempt $attempt/3, retrying in ${PROPAGATION_SLEEP:-30}s"
+            sleep "${PROPAGATION_SLEEP:-30}"
           done
           if [ "$ok" -ne 1 ]; then
-            echo "::error::consumer smoke could not install @$VER after ~6 min of propagation wait"
+            echo "::error::all six @$VER are visible on the registry but the consumer install failed — a real release problem, not propagation"
             exit 1
           fi
           node -e '
