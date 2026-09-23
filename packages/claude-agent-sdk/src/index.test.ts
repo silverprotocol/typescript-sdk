@@ -7802,3 +7802,51 @@ describe("createClaudeNormalizer — B-strict nested terminals", () => {
     for (const frames of streams) assertBStrict(drive(frames));
   });
 });
+
+// ─── every verbatim carrier drops provider credit tokens at any depth ─────────
+// "A normalizer MUST NOT emit a provider credit or bearer token in any event"
+// (rd-15 / §13.7 queued) holds on EVERY path that forwards a native subtree
+// whole, not only the stop_details carry. Each case injects, at depth, a subtree
+// {keep, deep:[{fallback_credit_token, other}]} into one carrier: KEEP_<n> must
+// reach the wire (the path really carried it), the token must not.
+describe("createClaudeNormalizer — verbatim carries drop provider credit tokens at any depth", () => {
+  const sub = (n: number): { [k: string]: unknown } => ({ keep: `KEEP_${n}`, deep: [{ fallback_credit_token: `SECRET_credit_${n}`, other: 1 }] });
+  const asstWith = (content: unknown[], wrapper: { [k: string]: unknown } = {}, message: { [k: string]: unknown } = {}): unknown => ({
+    ...Object.fromEntries(Object.entries(assistantMsg([]))),
+    message: { ...betaMessage([]), content, ...message },
+    ...wrapper,
+  });
+  const text = { type: "text", text: "hi", citations: null };
+  const streamStart: unknown = { type: "stream_event", event: { type: "message_start", message: { ...betaMessage([]), id: "msg_stream_tok" } }, parent_tool_use_id: null, uuid: "00000000-0000-0000-0000-0000000000s1", session_id: "sess_fixture" };
+  const CASES: Array<[string, (n: number) => unknown[]]> = [
+    ["provider-raw assistant block", (n) => [asstWith([{ type: "zz_server_result", ...sub(n) }])]],
+    ["provider-raw tool-result part", (n) => [
+      asstWith([{ type: "tool_use", id: "toolu_tok", name: "t", input: {} }]),
+      { type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_tok", content: [{ type: "zz_part", ...sub(n) }], is_error: false }] }, parent_tool_use_id: null, uuid: "00000000-0000-0000-0000-0000000000t2", session_id: "sess_fixture" },
+    ]],
+    ["stream_event frame (unmappable)", (n) => [streamStart, { type: "stream_event", event: { type: "zz_future_event", ...sub(n) }, parent_tool_use_id: null, uuid: "00000000-0000-0000-0000-0000000000s2", session_id: "sess_fixture" }]],
+    ["stream provider-raw block", (n) => [streamStart, { type: "stream_event", event: { type: "content_block_start", index: 0, content_block: { type: "zz_server_result", ...sub(n) } }, parent_tool_use_id: null, uuid: "00000000-0000-0000-0000-0000000000s3", session_id: "sess_fixture" }]],
+    ["wrapper context_usage", (n) => [asstWith([text], { context_usage: sub(n) })]],
+    ["wrapper usage_report", (n) => [asstWith([text], { usage_report: sub(n) })]],
+    ["message diagnostics", (n) => [asstWith([text], {}, { diagnostics: sub(n) })]],
+    ["wrapper api_error_params", (n) => [asstWith([text], { api_error_params: sub(n) })]],
+    ["result subagent_stats", (n) => [{ ...Object.fromEntries(Object.entries(resultSuccess("end_turn"))), subagent_stats: sub(n) }]],
+    ["CLI-added user frame", (n) => [{ type: "user", message: { role: "user", content: [{ type: "text", text: "nudge" }] }, parent_tool_use_id: null, isSynthetic: true, uuid: "00000000-0000-0000-0000-0000000000u9", session_id: "sess_fixture", extra: sub(n) }]],
+    ["model_refusal_fallback frame", (n) => [{ ...Object.fromEntries(Object.entries(modelRefusalFallbackMsg())), extra: sub(n) }]],
+    ["item-22 carried frame", (n) => [{ ...Object.fromEntries(Object.entries(hookResponseMsg())), extra: sub(n) }]],
+    ["unknown top-level frame", (n) => [{ type: "zz_future_type", uuid: "00000000-0000-0000-0000-0000000000z1", session_id: "sess_fixture", ...sub(n) }]],
+    ["ext.anthropic.unparsed", (n) => [{ type: 42, ...sub(n) }]],
+  ];
+
+  it.each(CASES.map(([name, build], i) => [name, build, i] as const))("%s: the subtree is carried, its fallback_credit_token is not", (_name, build, i) => {
+    const wire = JSON.stringify(drive(build(i)));
+    expect(wire).toContain(`KEEP_${i}`);
+    expect(wire).not.toContain("fallback_credit_token");
+    expect(wire).not.toContain("SECRET_");
+  });
+
+  it("negative control: a model- or tool-authored payload is NOT stripped (a key named fallback_credit_token in tool input is user content)", () => {
+    const evs = drive([asstWith([{ type: "tool_use", id: "toolu_user", name: "t", input: { fallback_credit_token: "user-data" } }])]);
+    expect(evs.find((e) => e.type === "tool.args.assembled")).toMatchObject({ input: { fallback_credit_token: "user-data" } });
+  });
+});

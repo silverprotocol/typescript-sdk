@@ -314,7 +314,7 @@ function assistantContentBlockToAgBlock(block: BetaContentBlock): AgBlock {
   return {
     type: "provider-raw",
     vendor: "anthropic",
-    raw: JsonValue.parse(block),
+    raw: carryVerbatim(block),
   };
 }
 
@@ -334,7 +334,7 @@ function toolResultContentToAgBlocks(content: NonNullable<ToolResultContent>): A
     } else if (part.type === "image") {
       out.push({ type: "image", source: imageSource(part.source) });
     } else {
-      out.push({ type: "provider-raw", vendor: "anthropic", raw: JsonValue.parse(part) });
+      out.push({ type: "provider-raw", vendor: "anthropic", raw: carryVerbatim(part) });
     }
   }
   return out;
@@ -830,6 +830,20 @@ function readNarrationBlockIndexes(v: unknown): number[] | undefined {
     : undefined;
 }
 
+// A provider- or harness-originated native subtree forwarded WHOLE: JSON-
+// validated (a copy) and with every `fallback_credit_token` deleted at any
+// depth (withoutCreditTokens). Every verbatim carrier of this facet goes
+// through it: the whole-frame ext.anthropic.frame / ext.anthropic.unparsed
+// carries, provider-raw blocks, and the CLI/API wrapper subtrees
+// (context_usage, usage_report, diagnostics, api_error_params, subagent_stats).
+// Model- or tool-authored payloads (tool input, a deferred tool call, MCP
+// structuredContent / _meta / resourceLinks, structured_output) are NOT
+// stripped: a key there is user content, and the wire already carries the same
+// data as the tool call or result.
+function carryVerbatim(v: unknown): JsonValue {
+  return withoutCreditTokens(JsonValue.parse(v));
+}
+
 // rd-15 / SPEC §13.7 (queued): a provider credit or bearer token is never
 // emitted. Anthropic's refusal `stop_details` can hold `fallback_credit_token`
 // (top level and per fallback), so every key of that name is deleted at any
@@ -1055,7 +1069,7 @@ function resultMetaPayload(msg: SDKResultMsg, closesAsError: boolean): { [k: str
   // `unknown` (no cast) and let the isJsonObject guard narrow.
   const raw: unknown = msg;
   const subagentStats =
-    isJsonObject(raw) && isJsonObject(raw["subagent_stats"]) ? JsonValue.parse(raw["subagent_stats"]) : undefined;
+    isJsonObject(raw) && isJsonObject(raw["subagent_stats"]) ? carryVerbatim(raw["subagent_stats"]) : undefined;
   const userMessageUuids = readUserMessageUuids(msg.user_message_uuids);
   // SUCCESS-arm-only field (0.3.268) — the union carries no such property, so
   // it is read through the same JSON boundary as `subagent_stats`, never cast.
@@ -1598,7 +1612,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // ride the uniform lossless carry (`kind` is the frame's own discriminant,
   // per the ext.anthropic.frame convention). Nothing is silently dropped.
   function carryStreamFrame(msg: SDKPartial): void {
-    a.emitExt("anthropic", "frame", { kind: "stream_event", frame: JsonValue.parse(msg) });
+    a.emitExt("anthropic", "frame", { kind: "stream_event", frame: carryVerbatim(msg) });
   }
 
   // `ttft_ms` (time to first token, on the partial envelope) has no core home —
@@ -1896,7 +1910,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
           a.contentBlock(messageId, {
             type: "provider-raw",
             vendor: "anthropic",
-            raw: JsonValue.parse(block),
+            raw: carryVerbatim(block),
           });
           p.streamBlocks.set(index, { kind: "emitted" });
           return;
@@ -2163,7 +2177,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // Structured plain-JSON shape per its own doc (evolves additively);
         // JsonValue.parse both validates that invariant and satisfies the
         // wrapper-meta channel's type without an unchecked cast.
-        wrapperMetaRaw["context_usage"] = JsonValue.parse(msg.context_usage);
+        wrapperMetaRaw["context_usage"] = carryVerbatim(msg.context_usage);
       }
       // `usage_report` (0.3.273): the structured twin of the /usage report,
       // riding the synthetic assistant message that delivers its text (session
@@ -2177,7 +2191,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // claude.ai-subscriber sessions", and the capture harness authenticates
       // with ANTHROPIC_API_KEY, so no live cassette can carry it.
       if (msg.usage_report !== undefined) {
-        wrapperMetaRaw["usage_report"] = JsonValue.parse(msg.usage_report);
+        wrapperMetaRaw["usage_report"] = carryVerbatim(msg.usage_report);
       }
       // `narration_block_indexes` (0.3.272, first seen live on app-update-fable51):
       // the indexes of THIS frame's content blocks that are user-facing narration
@@ -2211,7 +2225,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       const rawMessage: unknown = m;
       const diagnostics =
         isJsonObject(rawMessage) && isJsonObject(rawMessage["diagnostics"])
-          ? JsonValue.parse(rawMessage["diagnostics"])
+          ? carryVerbatim(rawMessage["diagnostics"])
           : undefined;
       if (diagnostics !== undefined) {
         const diagnosticsKey = JSON.stringify(diagnostics);
@@ -2244,7 +2258,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         const apiError = rawAssistant["api_error"];
         if (typeof apiError === "string") wrapperMetaRaw["api_error"] = apiError;
         const apiErrorParams = rawAssistant["api_error_params"];
-        if (isJsonObject(apiErrorParams)) wrapperMetaRaw["api_error_params"] = JsonValue.parse(apiErrorParams);
+        if (isJsonObject(apiErrorParams)) wrapperMetaRaw["api_error_params"] = carryVerbatim(apiErrorParams);
       }
       const assistantApiErrorCode = readApiErrorCode(rawAssistant);
       if (assistantApiErrorCode !== undefined) {
@@ -2604,7 +2618,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         for (const b of msg.message.content) if (b.type === "tool_result") carriesToolResult = true;
       }
       if (!carriesToolResult) {
-        a.emitExt("anthropic", "frame", { kind: "user", frame: JsonValue.parse(msg) });
+        a.emitExt("anthropic", "frame", { kind: "user", frame: carryVerbatim(msg) });
       }
       // A user message carrying tool_result blocks → tool.done per result.
       // parent_tool_use_id (when set) identifies a subagent tool call — the
@@ -3020,7 +3034,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // and non-folding, so the second copy of `retracted_message_uuids`
       // cannot double-fold (the M22 hazard). This is the only producer for R&D
       // item 3's `turn.model-switch`. Synthetic-only (needs a classifier refusal).
-      a.emitExt("anthropic", "frame", { kind: msg.subtype, frame: JsonValue.parse(msg) });
+      a.emitExt("anthropic", "frame", { kind: msg.subtype, frame: carryVerbatim(msg) });
       return;
     }
 
@@ -3072,7 +3086,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
     // comment above for the full per-arm reasoning, SPEC §8 item 22).
     const carriedKind = anthropicFrameKind(msg);
     if (carriedKind !== undefined) {
-      a.emitExt("anthropic", "frame", { kind: carriedKind, frame: JsonValue.parse(msg) });
+      a.emitExt("anthropic", "frame", { kind: carriedKind, frame: carryVerbatim(msg) });
       // B-strict: a background sub-run's outcome arrives as task_notification,
       // correlated to its run by tool_use_id (or by task_id through the
       // task_started frame that named it).
@@ -3099,7 +3113,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
     // literals, but the frame is only discriminant-validated at runtime.
     const topLevelType: string = msg.type;
     if (!KNOWN_TOP_LEVEL_TYPES.has(topLevelType)) {
-      a.emitExt("anthropic", "frame", { kind: topLevelType, frame: JsonValue.parse(msg) });
+      a.emitExt("anthropic", "frame", { kind: topLevelType, frame: carryVerbatim(msg) });
       return;
     }
 
@@ -3125,7 +3139,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // copies and, like every other carry here, drops an own "__proto__"
         // (sp-main 2026-09-24, matching sp-openai cf55e08 and the 0.6.6
         // reserved-key rule 314a183: an emitted map carries no own __proto__).
-        a.emitExt("anthropic", "unparsed", { native: JsonValue.parse(frame) });
+        a.emitExt("anthropic", "unparsed", { native: carryVerbatim(frame) });
         return a.drain();
       }
       drive(frame);
