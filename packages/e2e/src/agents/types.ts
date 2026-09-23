@@ -20,6 +20,12 @@ export interface CaptureRunInput {
   /** The user prompt to run. */
   prompt: string;
   /**
+   * Claude follow-up prompts (claude-agent-sdk only): streamed into the SAME
+   * query() after each previous `result`, so one invoke yields one result per
+   * prompt. Agents without the concept ignore it. See scenario.ts `followUps`.
+   */
+  followUpPrompts?: string[];
+  /**
    * MCP servers to attach. Keys are server names; values carry the HTTP URL
    * and a bearer token used for the Authorization header.
    */

@@ -129,6 +129,7 @@ export async function runCapture(
 
     const agentInput: CaptureRunInput = {
       prompt: scenario.prompt,
+      ...(scenario.followUps !== undefined ? { followUpPrompts: scenario.followUps } : {}),
       mcpServers,
       allowedTools,
       ...(systemPrompt !== undefined ? { systemPrompt } : {}),

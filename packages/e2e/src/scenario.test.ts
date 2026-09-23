@@ -50,6 +50,14 @@ describe("Scenario.parse", () => {
     expect(s.mcpServers[1]).toEqual({ key: "errsrv", kind: "error" });
   });
 
+  it("parses optional followUps (claude streaming-input knob) and refuses an empty list or an empty prompt", () => {
+    const s = Scenario.parse({ name: "multi-result", prompt: "first", followUps: ["second", "third"] });
+    expect(s.followUps).toEqual(["second", "third"]);
+    expect(Scenario.parse({ name: "x", prompt: "y" }).followUps).toBeUndefined();
+    expect(() => Scenario.parse({ name: "x", prompt: "y", followUps: [] })).toThrow();
+    expect(() => Scenario.parse({ name: "x", prompt: "y", followUps: [""] })).toThrow();
+  });
+
   it("rejects an unknown mcpServers kind", () => {
     const raw = {
       name: "bad",

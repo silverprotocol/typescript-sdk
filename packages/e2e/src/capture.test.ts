@@ -150,6 +150,26 @@ function makeRealDeps(fakeStream: JsonValue[]): CaptureDeps {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("runCapture", () => {
+  it("forwards scenario.followUps to CaptureRunInput.followUpPrompts when set, and omits it otherwise", async () => {
+    const seen: unknown[] = [];
+    const deps = (): CaptureDeps => ({
+      async *runAgentCapture(input) {
+        seen.push(input);
+        yield* fakeNativeNoTools();
+      },
+      serveMock,
+      createNormalizer: createClaudeNormalizer,
+      census,
+    });
+    await runCapture(Scenario.parse({ name: "multi-result", prompt: "first", followUps: ["second"] }), deps(), {
+      ports: [],
+      framework: "claude",
+    });
+    await runCapture(Scenario.parse({ name: "text-only", prompt: "only" }), deps(), { ports: [], framework: "claude" });
+    expect((seen[0] as { followUpPrompts?: string[] }).followUpPrompts).toEqual(["second"]);
+    expect("followUpPrompts" in (seen[1] as object)).toBe(false);
+  });
+
   it("produces a 3-part cassette (native, agjson, coverage) for text-only scenario", async () => {
     const scenario = Scenario.parse({
       name: "text-only",

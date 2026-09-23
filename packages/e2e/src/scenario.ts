@@ -26,6 +26,13 @@ export const Scenario = z.object({
     )
     .default([]),
   steer: z.string().optional(),
+  // Claude follow-up prompts (claude-agent-sdk only; the other capture agents
+  // ignore it). Presence runs ONE query() in streaming-input mode: `prompt`
+  // first, then each follow-up only after the previous `result` frame, so a
+  // single invoke yields one result per prompt. Added 2026-09-23 for sp-claude
+  // B's live receipt (≥2 results in one invoke → ≥2 AgTurnRecords, each
+  // closed once). At least one non-empty follow-up when present.
+  followUps: z.array(z.string().min(1)).min(1).optional(),
   // workspace#7: run the capture with token-granular partials enabled.
   // Claude-only today (`includePartialMessages: true` on the Agent SDK query);
   // the other capture agents ignore it. Declared per-SCENARIO, not per-run, so
