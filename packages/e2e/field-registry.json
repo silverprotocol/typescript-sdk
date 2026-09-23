@@ -358,6 +358,8 @@
   "[*].invocationId",
   "[*].is_error",
   "[*].item.agent.name",
+  "[*].item.customData._meta.ui.resourceUri",
+  "[*].item.customData._meta.ui.visibility[*]",
   "[*].item.customData.structuredContent.body",
   "[*].item.customData.structuredContent.cache.hit",
   "[*].item.customData.structuredContent.cache.kind",
