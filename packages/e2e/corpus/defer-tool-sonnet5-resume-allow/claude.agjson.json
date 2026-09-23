@@ -12,8 +12,15 @@
     }
   },
   {
-    "type": "tool.done",
+    "type": "turn.start",
     "seq": 1,
+    "turnId": "turn_90865a39-ecaf-43c6-b5eb-6750572abd81",
+    "threadId": "50d2750f-162e-448f-bc5f-1c65ef5c94c2"
+  },
+  {
+    "type": "tool.done",
+    "seq": 2,
+    "turnId": "turn_90865a39-ecaf-43c6-b5eb-6750572abd81",
     "toolCallId": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK",
     "content": [
       {
@@ -26,7 +33,7 @@
     "messageId": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK:result"
   },
   {
-    "seq": 2,
+    "seq": 3,
     "type": "ext.anthropic.frame",
     "kind": "thinking_tokens",
     "frame": {
@@ -39,7 +46,7 @@
     }
   },
   {
-    "seq": 3,
+    "seq": 4,
     "type": "ext.anthropic.frame",
     "kind": "thinking_tokens",
     "frame": {
@@ -52,16 +59,10 @@
     }
   },
   {
-    "type": "turn.start",
-    "seq": 4,
-    "turnId": "turn_msg_011CfLKL2sCMAn8wm3zDdFhJ",
-    "threadId": "50d2750f-162e-448f-bc5f-1c65ef5c94c2"
-  },
-  {
     "type": "message.start",
     "seq": 5,
     "id": "msg_011CfLKL2sCMAn8wm3zDdFhJ",
-    "turnId": "turn_msg_011CfLKL2sCMAn8wm3zDdFhJ",
+    "turnId": "turn_90865a39-ecaf-43c6-b5eb-6750572abd81",
     "threadId": "50d2750f-162e-448f-bc5f-1c65ef5c94c2",
     "role": "assistant",
     "model": "claude-sonnet-5"
@@ -71,7 +72,7 @@
     "seq": 6,
     "id": "msg_011CfLKL2sCMAn8wm3zDdFhJ:reasoning:0",
     "messageId": "msg_011CfLKL2sCMAn8wm3zDdFhJ",
-    "turnId": "turn_msg_011CfLKL2sCMAn8wm3zDdFhJ"
+    "turnId": "turn_90865a39-ecaf-43c6-b5eb-6750572abd81"
   },
   {
     "type": "reasoning.delta",
@@ -79,14 +80,14 @@
     "id": "msg_011CfLKL2sCMAn8wm3zDdFhJ:reasoning:0",
     "messageId": "msg_011CfLKL2sCMAn8wm3zDdFhJ",
     "delta": "",
-    "turnId": "turn_msg_011CfLKL2sCMAn8wm3zDdFhJ"
+    "turnId": "turn_90865a39-ecaf-43c6-b5eb-6750572abd81"
   },
   {
     "type": "reasoning.end",
     "seq": 8,
     "id": "msg_011CfLKL2sCMAn8wm3zDdFhJ:reasoning:0",
     "messageId": "msg_011CfLKL2sCMAn8wm3zDdFhJ",
-    "turnId": "turn_msg_011CfLKL2sCMAn8wm3zDdFhJ"
+    "turnId": "turn_90865a39-ecaf-43c6-b5eb-6750572abd81"
   },
   {
     "type": "reasoning.opaque",
@@ -95,7 +96,7 @@
     "messageId": "msg_011CfLKL2sCMAn8wm3zDdFhJ",
     "kind": "signature",
     "value": "Eo0ECqgBCBIYAipANR37FyzasREY2wD8+wHaRf/HQ6qeqDu9lbq2yCRqDh9YCFLd8pfkAmMl3WcObOCTcDa2M4jKuRbuiwRQyMZpmjIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiQ2NThiNDdmOS0wMWUyLTQ3OTgtYjViZS00NGUyYTM1ZDhjY2FyELKOZMSwnhnZyM97wUmgANmIAQGoAbv4ztUGsAECEgzG88MYMX+ucfuP4gcaDIuwZ8HTn0Udaf34uiIwsX9XHGEF1ZfyOfpmkd5T5CuSR3oaHie6TCoNE7svKJLIslo/nWAeZJbsRAEL71AzKpECUjTEdCqX0rWysKQ1DVKHCdgVf8Yuve4B71Ap0cEEP+2557bgiyOzyZYWjr1p3Si9aKu06z1T9QyTCHwKZ7NThT/wBh0fbYyuQoQZ2llLejjWdrF2Mys3lARt4nQTYnonZZQCy69VySsmj4Y0SrPkf0ovxDrJPU2wyjRNrwAN7bLduOynwNwxvE6TSjoZGCJnNvasS0K3dsc53QPvtAhot+TqPe6vYtAzag3q8zg/GJ106O7S/PAa6j0JeEmzYyEz7MAVGxnqPA+ARMsr0rtmD+O7W1rHM/XmYtn0Ui+VkAPNaMtnbtXTYaRYn5jH+8dAiW167hmrl6bQ221CRETuegsH6EmnK8/ekR/UhB1/jhMVGAE=",
-    "turnId": "turn_msg_011CfLKL2sCMAn8wm3zDdFhJ",
+    "turnId": "turn_90865a39-ecaf-43c6-b5eb-6750572abd81",
     "provider": "anthropic"
   },
   {
@@ -103,7 +104,7 @@
     "seq": 10,
     "id": "msg_011CfLKL2sCMAn8wm3zDdFhJ:text:1",
     "messageId": "msg_011CfLKL2sCMAn8wm3zDdFhJ",
-    "turnId": "turn_msg_011CfLKL2sCMAn8wm3zDdFhJ"
+    "turnId": "turn_90865a39-ecaf-43c6-b5eb-6750572abd81"
   },
   {
     "type": "text.delta",
@@ -111,14 +112,14 @@
     "id": "msg_011CfLKL2sCMAn8wm3zDdFhJ:text:1",
     "messageId": "msg_011CfLKL2sCMAn8wm3zDdFhJ",
     "delta": "I've already completed the requested action — I called the echo tool with the message and it returned successfully:\n\n**conformance-probe-defer**\n\nThe task is done. Let me know if there's anything else you'd like me to do.",
-    "turnId": "turn_msg_011CfLKL2sCMAn8wm3zDdFhJ"
+    "turnId": "turn_90865a39-ecaf-43c6-b5eb-6750572abd81"
   },
   {
     "type": "text.end",
     "seq": 12,
     "id": "msg_011CfLKL2sCMAn8wm3zDdFhJ:text:1",
     "messageId": "msg_011CfLKL2sCMAn8wm3zDdFhJ",
-    "turnId": "turn_msg_011CfLKL2sCMAn8wm3zDdFhJ"
+    "turnId": "turn_90865a39-ecaf-43c6-b5eb-6750572abd81"
   },
   {
     "type": "message.end",
@@ -173,7 +174,7 @@
   {
     "type": "turn.done",
     "seq": 15,
-    "turnId": "turn_msg_011CfLKL2sCMAn8wm3zDdFhJ",
+    "turnId": "turn_90865a39-ecaf-43c6-b5eb-6750572abd81",
     "outcome": {
       "type": "success",
       "result": "I've already completed the requested action — I called the echo tool with the message and it returned successfully:\n\n**conformance-probe-defer**\n\nThe task is done. Let me know if there's anything else you'd like me to do."

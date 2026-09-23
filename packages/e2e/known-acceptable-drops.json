@@ -3345,5 +3345,37 @@
     "frameworks": [
       "openai"
     ]
+  },
+  {
+    "path": "[*].tools[*]",
+    "reason": "claude: the system/init frame's tool catalog (session capability listing, the same init-frame disposition as slash_commands[*]; never read by createClaudeNormalizer). On every other seed its values coincide with a tool.start name; a resumed invoke whose tool call was made in an earlier invoke (defer-tool-sonnet5-resume-allow, 2026-09-23) has no tool.start to coincide with.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].tool_use_result",
+    "reason": "claude: the user frame's display restatement of a tool_result (here \"Error: \" + the hook-block text). sp-claude disposition E (2026-09-23): it restates the tool_result content, which tool.done.content carries; no AgJSON home of its own, so no transform. First live in defer-tool-sonnet5-resume-deny.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].tool_result_meta[*].id",
+    "reason": "claude: tool_result_meta[] (new at 0.3.280; first live in defer-tool-sonnet5-resume-deny, 2026-09-23): the harness stamp on a tool_result, here {id, non_execution_kind: \"permission-rule\"} for a PreToolUse-hook-blocked call. CONSUMED, not carried: createClaudeNormalizer reads non_execution_kind to close the call as tool.done outcome \"denied\" instead of \"error\" (sp-claude C, 6d980a5). Carrying the entry itself is package 15's, pending the founder's ruling - retarget or drop this entry when it lands (stale-allowlist rule).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].tool_result_meta[*].non_execution_kind",
+    "reason": "claude: tool_result_meta[] (new at 0.3.280; first live in defer-tool-sonnet5-resume-deny, 2026-09-23): the harness stamp on a tool_result, here {id, non_execution_kind: \"permission-rule\"} for a PreToolUse-hook-blocked call. CONSUMED, not carried: createClaudeNormalizer reads non_execution_kind to close the call as tool.done outcome \"denied\" instead of \"error\" (sp-claude C, 6d980a5). Carrying the entry itself is package 15's, pending the founder's ruling - retarget or drop this entry when it lands (stale-allowlist rule).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
   }
 ]

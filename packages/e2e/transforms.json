@@ -51,7 +51,10 @@
   "[*].item.customData.structuredContent.cache.llmCallsAvoided": "[*].structuredContent.cache.llmCallsAvoided",
   "[*].item.executionStatus": "[*].providerMetadata.executionStatus",
   "[*].item.rawItem.phase": "[*].providerMetadata.phase",
-  "[*].message.content[*].is_error": "[*].isError",
+  "[*].message.content[*].is_error": [
+    "[*].isError",
+    "[*].outcome"
+  ],
   "[*].message.content[*].text": "[*].delta",
   "[*].message.content[*].thinking": "[*].delta",
   "[*].message.usage.cache_creation_input_tokens": "[*].usage.cacheWriteTokens",
