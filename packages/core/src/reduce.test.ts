@@ -3018,6 +3018,37 @@ describe("tool.done snapshot fold over a kept-open result (draft.4 §5; fold/flu
   };
   const results = (r: Reducer) => r.result().messages.flatMap((m) => m.content).filter((b) => b.type === "tool-result");
 
+  const LEG1: AgEvent[] = [
+    { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+    { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+    { type: "tool.start", seq: 2, toolCallId: "c1", name: "poll", turnId: "t1" },
+    {
+      type: "tool.done",
+      seq: 3,
+      toolCallId: "c1",
+      more: true,
+      content: [{ type: "text", text: "A" }],
+      outcome: "error",
+      isError: true,
+      errorText: "e",
+      structuredContent: S,
+      uiData: U,
+      _meta: M,
+      toolMetadata: T,
+      providerMetadata: { p: 1 },
+      turnId: "t1",
+    },
+    {
+      type: "tool.done",
+      seq: 4,
+      toolCallId: "c1",
+      content: [{ type: "text", text: "B" }],
+      outcome: "ok",
+      providerMetadata: { q: 2 },
+      turnId: "t1",
+    },
+  ];
+
   it("§10 item 25 leg: an ok final over a kept-open error folds to exactly the ok snapshot", () => {
     const r = open();
     r.push({
@@ -3048,7 +3079,7 @@ describe("tool.done snapshot fold over a kept-open result (draft.4 §5; fold/flu
     expect(r.needsResync).toBe(false);
     const blocks = results(r);
     expect(blocks).toHaveLength(1);
-    const { uiData, ...rest } = blocks[0] as Record<string, unknown>;
+    const rest = blocks[0] as Record<string, unknown>;
     expect(rest).toEqual({
       type: "tool-result",
       toolCallId: "c1",
@@ -3058,11 +3089,34 @@ describe("tool.done snapshot fold over a kept-open result (draft.4 §5; fold/flu
       toolMetadata: T,
       providerMetadata: { p: 1, q: 2 },
     });
-    for (const k of ["isError", "errorText", "structuredContent", "preliminary"]) expect(k in rest, k).toBe(false);
-    // uiData's group waits on the delta bar wf_93a30c7b-cd0: until the founder
-    // rules, it survives an omitting final (the item-25 vector clears it once
-    // uiData is ruled payload). This pin makes that flip deliberate.
-    expect(uiData).toEqual(U);
+    // uiData is payload (founder ruling, bar wf_93a30c7b-cd0): the final omits it, so it clears.
+    for (const k of ["isError", "errorText", "structuredContent", "uiData", "preliminary"]) expect(k in rest, k).toBe(false);
+  });
+
+  it("§10 item 25 leg: the incremental fold deep-equals the batch fold", () => {
+    const acc = new Reducer();
+    for (const ev of LEG1) acc.push(ev);
+    expect(acc.result()).toEqual(reduce(LEG1).result);
+    expect(reduce(LEG1).needsResync).toBe(false);
+  });
+
+  it("§10 item 25 null leg: a final carrying uiData: null stores null, a value, never a retraction", () => {
+    const r = open();
+    r.push({ type: "tool.done", seq: 3, toolCallId: "c1", more: true, content: [], outcome: "ok", uiData: U, turnId: "t1" });
+    r.push({ type: "tool.done", seq: 4, toolCallId: "c1", content: [], outcome: "ok", uiData: null, turnId: "t1" });
+    const block = results(r)[0] as Record<string, unknown>;
+    expect("uiData" in block).toBe(true);
+    expect(block["uiData"]).toBeNull();
+    expect(r.needsResync).toBe(false);
+  });
+
+  it("omitted uiData and structuredContent clear, while _meta.ui.resourceUri (a descriptor) survives", () => {
+    const r = open();
+    r.push({ type: "tool.done", seq: 3, toolCallId: "c1", more: true, content: [], outcome: "ok", uiData: U, structuredContent: S, _meta: M, turnId: "t1" });
+    r.push({ type: "tool.done", seq: 4, toolCallId: "c1", content: [{ type: "text", text: "done" }], outcome: "ok", turnId: "t1" });
+    const block = results(r)[0] as Record<string, unknown>;
+    for (const k of ["uiData", "structuredContent"]) expect(k in block, k).toBe(false);
+    expect(block["_meta"]).toEqual({ ui: { resourceUri: "ui://cards/weather" } });
   });
 
   it("an error final over a kept-open structuredContent folds with no structuredContent", () => {

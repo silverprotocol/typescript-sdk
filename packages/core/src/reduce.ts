@@ -580,22 +580,23 @@ export class Reducer {
           // Snapshot fold (draft.4 §5; fold/flush P1, bar wf_2231e194-e31): while a
           // result is kept open, every tool.done carries the FULL current result, so
           // a later one REPLACES the payload as a unit. content, outcome, isError,
-          // structuredContent, sideData, errorText, errorCode and pendingInput take
-          // the later event's values, and a field it omits is CLEARED: an ok final no
-          // longer keeps a kept-open error's isError/errorText, and an error final no
-          // longer keeps a kept-open structuredContent.
+          // structuredContent, uiData, sideData, errorText, errorCode and
+          // pendingInput take the later event's values, and a field it omits is
+          // CLEARED: an ok final no longer keeps a kept-open error's
+          // isError/errorText, and an error final no longer keeps a kept-open
+          // structuredContent. uiData is payload (founder ruling, bar
+          // wf_93a30c7b-cd0): a carried `uiData: null` is STORED as a value ("no
+          // view data"), never a retraction; a view's identity that must outlive a
+          // snapshot lives on `_meta.ui.resourceUri`, a descriptor below.
           block.content = ev.content;
           replaceOrClear(block, "outcome", ev.outcome);
           replaceOrClear(block, "isError", ev.isError);
           replaceOrClear(block, "structuredContent", ev.structuredContent);
+          replaceOrClear(block, "uiData", ev.uiData);
           replaceOrClear(block, "sideData", ev.sideData);
           replaceOrClear(block, "errorText", ev.errorText);
           replaceOrClear(block, "errorCode", ev.errorCode);
           replaceOrClear(block, "pendingInput", ev.pendingInput);
-          // uiData: whether it is payload (cleared when omitted) or a descriptor
-          // (kept) waits on the delta bar wf_93a30c7b-cd0 and the founder's pick.
-          // Until then it keeps the draft.3 rule: replaced only when carried.
-          if (ev.uiData !== undefined) block.uiData = ev.uiData;
           // Descriptors are replaced only when the later event carries them:
           // toolMetadata and dynamic (SPEC.md:799; as tool.args.assembled treats
           // toolMetadata), and `_meta`, the §0.4 host side-channel, so a kept-open
