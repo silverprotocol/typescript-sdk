@@ -1539,9 +1539,13 @@ describe("reduce — R8 shared-state snapshot + delta", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("reduce — D9: a terminal for a never-opened turn folds onto no record", () => {
+  /** Folds incrementally and asserts the batch fold agrees, on every vector. */
   const fold = (evs: AgEvent[]) => {
     const acc = new Reducer();
     for (const ev of evs) acc.push(ev);
+    const batch = reduce(evs);
+    expect(acc.result()).toEqual(batch.result);
+    expect(acc.needsResync).toBe(batch.needsResync);
     return acc;
   };
   const turnIds = (acc: Reducer) => acc.result().turns.map((t) => t.turnId);
@@ -1587,27 +1591,141 @@ describe("reduce — D9: a terminal for a never-opened turn folds onto no record
     expect(byId.get("t1")?.outcome).toEqual({ type: "success" });
   });
 
-  it("seen by a messages.snapshot, in turns[] or only as a message's turnId: the terminal folds", () => {
+  it("seen by a messages.snapshot, in turns[] or only as a message's turnId: the terminal folds, on the thread the snapshot names", () => {
     const viaTurns = fold([
       { type: "messages.snapshot", seq: 0, messages: [], turns: [{ turnId: "tS", threadId: "th1" }] },
       { type: "turn.done", seq: 1, turnId: "tS", outcome: { type: "success" } },
     ]);
-    expect(viaTurns.result().turns).toMatchObject([{ turnId: "tS", outcome: { type: "success" } }]);
+    expect(viaTurns.result().turns).toEqual([{ turnId: "tS", threadId: "th1", outcome: { type: "success" } }]);
+    // cto's control 2 / §10 item 43 (b): the record takes the message's thread, never the turnId.
     const viaMessage = fold([
-      { type: "messages.snapshot", seq: 0, messages: [{ id: "m1", role: "assistant", content: [], turnId: "tM", threadId: "th1" }] },
+      { type: "messages.snapshot", seq: 0, messages: [{ id: "m1", role: "assistant", content: [], turnId: "tM", threadId: "thX" }], turns: [] },
       { type: "turn.abort", seq: 1, turnId: "tM", reason: "stream-truncated" },
     ]);
-    expect(turnIds(viaMessage)).toEqual(["tM"]);
+    const rec = viaMessage.result().turns.find((t) => t.turnId === "tM");
+    expect(rec?.threadId).toBe("thX");
+    expect(viaMessage.result().turns).toEqual([{ turnId: "tM", threadId: "thX", outcome: { type: "aborted", reason: "stream-truncated" } }]);
     expect(viaMessage.needsResync).toBe(false);
   });
 
-  it("a turn seen opened stays seen after a snapshot that replaces the turns without it", () => {
+  it("a snapshot is authoritative: a turn seen before it and absent from it folds its terminal onto no record (cto's control 1)", () => {
     const acc = fold([
       { type: "turn.start", seq: 0, turnId: "t1", threadId: "th1" },
       { type: "messages.snapshot", seq: 1, messages: [], turns: [] },
       { type: "turn.done", seq: 2, turnId: "t1", outcome: { type: "success" } },
     ]);
-    expect(turnIds(acc)).toEqual(["t1"]);
+    expect(acc.result().turns).toEqual([]);
+    expect(acc.needsResync).toBe(false);
+  });
+
+  it("a snapshot with no turns keeps the records it keeps, and their terminals fold onto them", () => {
+    const acc = fold([
+      { type: "turn.start", seq: 0, turnId: "t1", threadId: "th1" },
+      { type: "messages.snapshot", seq: 1, messages: [] },
+      { type: "turn.done", seq: 2, turnId: "t1", outcome: { type: "success" } },
+    ]);
+    expect(acc.result().turns).toEqual([{ turnId: "t1", threadId: "th1", outcome: { type: "success" } }]);
+  });
+
+  it("a message-seeded turn with no threadId folds onto no record — no other turn's thread is borrowed", () => {
+    const msg = { id: "m1", role: "assistant" as const, content: [], turnId: "tM" };
+    const withReal = fold([
+      { type: "turn.start", seq: 0, turnId: "t1", threadId: "th1" },
+      { type: "messages.snapshot", seq: 1, messages: [msg] },
+      { type: "turn.error", seq: 2, turnId: "tM", message: "boom" },
+    ]);
+    expect(turnIds(withReal)).toEqual(["t1"]);
+    const none = fold([
+      { type: "messages.snapshot", seq: 0, messages: [msg], turns: [] },
+      { type: "turn.error", seq: 1, turnId: "tM", message: "boom" },
+    ]);
+    expect(none.result().turns).toEqual([]);
+    expect(none.needsResync).toBe(false);
+  });
+
+  it("a subagent's parent label is never adopted as a threadId: a threadless message-seeded turn gets no record", () => {
+    const acc = fold([
+      { type: "subagent.start", seq: 0, turnId: "t2", parentTurnId: "turn_x" },
+      { type: "messages.snapshot", seq: 1, messages: [{ id: "m1", role: "assistant", content: [], turnId: "tM" }] },
+      { type: "turn.done", seq: 2, turnId: "tM", outcome: { type: "success" } },
+    ] as AgEvent[]);
+    expect(acc.result().turns.find((t) => t.turnId === "tM")).toBeUndefined();
+    expect(acc.needsResync).toBe(false);
+  });
+
+  it("a stub a non-terminal arm minted is not 'seen': a turns-omitted snapshot then its terminal leaves it with no outcome", () => {
+    const acc = fold([
+      { type: "source", seq: 0, turnId: "tq", sourceId: "s1", source: { url: "https://example.com" } },
+      { type: "messages.snapshot", seq: 1, messages: [] },
+      { type: "turn.done", seq: 2, turnId: "tq", outcome: { type: "success" } },
+    ] as AgEvent[]);
+    const tq = acc.result().turns.find((t) => t.turnId === "tq");
+    expect(tq).toBeDefined(); // the source arm's stub, as before
+    expect(tq?.outcome).toBeUndefined();
+    expect(acc.needsResync).toBe(false);
+  });
+
+  it("after a turns:[] snapshot, a message.start then a terminal for the dropped turn fold onto no record", () => {
+    const acc = fold([
+      { type: "turn.start", seq: 0, turnId: "t1", threadId: "th1" },
+      { type: "messages.snapshot", seq: 1, messages: [], turns: [] },
+      { type: "message.start", seq: 2, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+      { type: "turn.done", seq: 3, turnId: "t1", outcome: { type: "success" } },
+    ]);
+    expect(acc.result().turns).toEqual([]);
+  });
+
+  it("after a turns:[] snapshot, a paused terminal for the dropped turn folds onto no record", () => {
+    const acc = fold([
+      { type: "turn.start", seq: 0, turnId: "t1", threadId: "th1" },
+      { type: "messages.snapshot", seq: 1, messages: [], turns: [] },
+      {
+        type: "turn.done",
+        seq: 2,
+        turnId: "t1",
+        finishReason: "paused",
+        outcome: { type: "paused", asks: [{ askId: "a1", kind: "approval" }] },
+      },
+    ] as AgEvent[]);
+    expect(acc.result().turns).toEqual([]);
+    expect(acc.needsResync).toBe(false);
+  });
+
+  it("path 1: a reducer that saw the turn open before a turns:[] snapshot ends where a joiner that saw only the snapshot ends", () => {
+    const snap: AgEvent = { type: "messages.snapshot", seq: 1, messages: [], turns: [] };
+    const done: AgEvent = { type: "turn.done", seq: 2, turnId: "t1", outcome: { type: "success" } };
+    const continuing = fold([{ type: "turn.start", seq: 0, turnId: "t1", threadId: "th1" }, snap, done]);
+    const joiner = fold([snap, done]);
+    expect(continuing.result()).toEqual(joiner.result());
+    expect(continuing.needsResync).toBe(joiner.needsResync);
+  });
+
+  it("no D9 path writes a turn record whose threadId is its turnId", () => {
+    const streams: AgEvent[][] = [
+      [{ type: "turn.done", seq: 0, turnId: "tX", outcome: { type: "success" } }],
+      [
+        { type: "turn.start", seq: 0, turnId: "t1", threadId: "th1" },
+        { type: "messages.snapshot", seq: 1, messages: [], turns: [] },
+        { type: "turn.abort", seq: 2, turnId: "t1" },
+      ],
+      [
+        { type: "messages.snapshot", seq: 0, messages: [{ id: "m1", role: "assistant", content: [], turnId: "tM", threadId: "thM" }], turns: [] },
+        { type: "turn.done", seq: 1, turnId: "tM", outcome: { type: "success" } },
+      ],
+      [
+        { type: "messages.snapshot", seq: 0, messages: [{ id: "m1", role: "assistant", content: [], turnId: "tM" }], turns: [] },
+        { type: "turn.error", seq: 1, turnId: "tM", message: "boom" },
+      ],
+      [
+        { type: "turn.start", seq: 0, turnId: "t1", threadId: "th1" },
+        { type: "subagent.start", seq: 1, turnId: "t2", parentTurnId: "t1" },
+        { type: "messages.snapshot", seq: 2, messages: [{ id: "m2", role: "assistant", content: [], turnId: "t2" }] },
+        { type: "turn.done", seq: 3, turnId: "t2", outcome: { type: "success" } },
+      ],
+    ] as AgEvent[][];
+    for (const [i, evs] of streams.entries()) {
+      for (const t of fold(evs).result().turns) expect(t.threadId, `stream ${i} turn ${t.turnId}`).not.toBe(t.turnId);
+    }
   });
 
   it("a terminal with no turnId keeps the INV-OWNER backfill: it folds onto the only turn", () => {
