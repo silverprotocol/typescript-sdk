@@ -104,6 +104,19 @@ const RESERVED_EXT_KEYS = new Set<string>([
   "_meta",
 ]);
 
+/** An opaque {@link StreamAssembler.checkpoint} value: restore it with {@link StreamAssembler.rollback}. */
+export interface AssemblerCheckpoint {
+  readonly seq: number;
+  readonly seenTurns: ReadonlySet<string>;
+  readonly openTurns: ReadonlySet<string>;
+  readonly openMessages: ReadonlyMap<string, { turnId: string }>;
+  readonly msgTurn: ReadonlyMap<string, string>;
+  readonly lastTurn: string | undefined;
+  readonly turnStack: readonly (string | undefined)[];
+  readonly cumulative: ReadonlyMap<string, string>;
+  readonly bufferLength: number;
+}
+
 export class StreamAssembler {
   // Turn-scoped monotonic sequence counter (never calls Date.now/Math.random).
   #seq = 0;
@@ -638,6 +651,47 @@ export class StreamAssembler {
       ...(turnId !== undefined ? { turnId } : {}),
       seq: this.#nextSeq(),
     } as AgClosedEventType);
+  }
+
+  /**
+   * A restorable snapshot of this assembler's whole state: the seq counter,
+   * the turn / message trackers, the turn stack, the cumulative-delta
+   * buffers and how many events sit undrained. It exists for a facet's
+   * per-native transaction (the fleet guard ruling, 2026-09-24): take a
+   * checkpoint before driving one native, and {@link rollback} to it if
+   * driving throws. The discarded partial batch then consumes no seq
+   * (INV-SEQ), and no turn, message or block it half-opened survives.
+   * Treat the value as opaque.
+   */
+  checkpoint(): AssemblerCheckpoint {
+    return {
+      seq: this.#seq,
+      seenTurns: new Set(this.#seenTurns),
+      openTurns: new Set(this.#openTurns),
+      openMessages: new Map([...this.#openMessages].map(([k, v]) => [k, { ...v }])),
+      msgTurn: new Map(this.#msgTurn),
+      lastTurn: this.#lastTurn,
+      turnStack: [...this.#turnStack],
+      cumulative: new Map(this.#cumulative),
+      bufferLength: this.#buffer.length,
+    };
+  }
+
+  /**
+   * Restore a {@link checkpoint}: every event emitted since it is discarded,
+   * and the seq counter and trackers return to their state at that moment.
+   * The checkpoint stays valid, so it can be rolled back to again.
+   */
+  rollback(cp: AssemblerCheckpoint): void {
+    this.#seq = cp.seq;
+    this.#seenTurns = new Set(cp.seenTurns);
+    this.#openTurns = new Set(cp.openTurns);
+    this.#openMessages = new Map([...cp.openMessages].map(([k, v]) => [k, { ...v }]));
+    this.#msgTurn = new Map(cp.msgTurn);
+    this.#lastTurn = cp.lastTurn;
+    this.#turnStack = [...cp.turnStack];
+    this.#cumulative = new Map(cp.cumulative);
+    this.#buffer = this.#buffer.slice(0, cp.bufferLength);
   }
 
   /**

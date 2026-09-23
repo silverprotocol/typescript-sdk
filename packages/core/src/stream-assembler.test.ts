@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { StreamAssembler } from "./stream-assembler.js";
-import { AgProviderMeta } from "./agjson.js";
+import { AgEvent, AgProviderMeta } from "./agjson.js";
+import { Reducer } from "./reduce.js";
 
 // ── Existing T1 tests ──────────────────────────────────────────────────────────
 
@@ -572,5 +573,46 @@ describe("draft.4 phase option on the text/reasoning start and end sugar", () =>
       ["reasoning.end", "r2", undefined],
     ]);
     for (const e of out.slice(4)) expect("phase" in e).toBe(false); // absent ⇒ no key (draft.3 byte-identity)
+  });
+});
+
+describe("StreamAssembler.checkpoint / rollback (option A, used by vercel-ai)", () => {
+  const fold = (evs: AgEvent[]) => {
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    return r;
+  };
+  it("rolling back discards every event since the checkpoint; the next event reuses the checkpointed seq", () => {
+    const a = new StreamAssembler();
+    a.openTurn("T", "th");
+    a.openMessage({ id: "M1", role: "assistant", turnId: "T", threadId: "th" });
+    const before = a.drain();
+    const cp = a.checkpoint();
+    a.openMessage({ id: "M2", role: "assistant", turnId: "T", threadId: "th" });
+    a.textStart("B", "M2");
+    a.rollback(cp);
+    expect(a.drain()).toEqual([]);
+    a.closeMessage("M1");
+    a.closeTurnDone("T", { outcome: { type: "success" }, finishReason: "stop" });
+    const after = [...before, ...a.drain(), ...a.flush()];
+    expect(after.map((e) => e.seq)).toEqual(after.map((_e, i) => i));
+    expect(JSON.stringify(after)).not.toContain('"M2"');
+    const r = fold(after);
+    expect(r.needsResync).toBe(false);
+    // M2 was rolled back, so INV-FLUSH has nothing left open to close.
+    expect(after.filter((e) => e.type === "message.end").map((e) => (e as { id: string }).id)).toEqual(["M1"]);
+  });
+
+  it("the checkpoint is reusable and does not alias live state", () => {
+    const a = new StreamAssembler();
+    a.openTurn("T", "th");
+    a.drain();
+    const cp = a.checkpoint();
+    a.openMessage({ id: "M1", role: "assistant", turnId: "T", threadId: "th" });
+    a.rollback(cp);
+    a.openMessage({ id: "M9", role: "assistant", turnId: "T", threadId: "th" });
+    a.rollback(cp);
+    expect(a.drain()).toEqual([]);
+    expect(a.flush().map((e) => e.type)).toEqual(["turn.abort"]);
   });
 });
