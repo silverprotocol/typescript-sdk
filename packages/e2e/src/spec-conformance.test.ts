@@ -19,6 +19,8 @@ import { createAdkNormalizer, ADK_HOST_COMPLETE_TYPE } from "@silverprotocol/goo
 import { replayNatives, HOST_COMPLETE_MARKER } from "./replay.js";
 import type { AdkEvent, AdkPart } from "@silverprotocol/google-adk";
 import { createOpenaiNormalizer } from "@silverprotocol/openai-agents";
+import { createClaudeNormalizer } from "@silverprotocol/claude-agent-sdk";
+import { createVercelNormalizer } from "@silverprotocol/vercel-ai";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // §10 Conformance Suite (audit M55 — "§10 items are prose, zero executable
@@ -101,7 +103,8 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 22, title: "Forward-compatible ingest (draft.4): an ignored well-formed event occupies its seq slot, is reported in place, and the fold is unchanged", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.22, reference ingest (ingestAgEvents) → reduce" },
   { n: 23, leg: "adk", title: "Unmapped native value (draft.4): an ADK finish reason with no AgJSON target → finishReason other|unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(adk) via createAdkNormalizer (sp-google a0c5dcf)" },
   { n: 23, leg: "openai", title: "Unmapped native value (draft.4): an OpenAI incomplete_details.reason with no AgJSON target → finishReason unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(openai) via createOpenaiNormalizer (sp-openai OA-15 abd73cf)" },
-  { n: 23, leg: "claude|vercel", title: "Unmapped native value (draft.4): the claude and vercel raw-reason carries", disposition: "N/A", citation: "pending: the claude and vercel finishReasonRaw carries land AFTER this SPEC pair; each leg flips to RUNNABLE on its facet sha" },
+  { n: 23, leg: "claude", title: "Unmapped native value (draft.4): an unmapped Claude stop_reason → finishReason unknown + finishReasonRaw verbatim; mapped and null stop_reasons carry no finishReasonRaw", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(claude) via createClaudeNormalizer (sp-claude 44938c2 / main's edb4cb5)" },
+  { n: 23, leg: "vercel", title: "Unmapped native value (draft.4): a vercel finish whose unified reason falls back (other/unknown) carries the native rawFinishReason as finishReasonRaw", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(vercel) via createVercelNormalizer (probe c524ece)" },
   { n: 24, leg: "scan", title: "Tool-result errorText scoping (draft.4): no replay golden carries errorText on a non-error result", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.24(scan), a scan of every corpus/*/*.agjson.json" },
   { n: 24, leg: "adk", title: "ADK failure envelope (draft.4, §8.0 item 25): the error/denied/placeholder/negative vectors", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.24(adk) via createAdkNormalizer (sp-google 877f37f, on the E8 scrub 81dc906)" },
   { n: 25, leg: "fold", title: "Framework pause and completion closure (draft.4): pauses close paused from push(), completed-without-signal and cut-short invokes close turn.abort from flush(), never success, no park", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(fold) over the engine-built fixtures/adk-pause natives (probe P-RED 3c82c3a); step-1 scope mirrored by adk-pause.test.ts" },
@@ -1473,5 +1476,60 @@ describe("§10.28 — host-appended events (draft.4): every replay golden + a ho
     }
     expect(files).toBeGreaterThan(0);
     expect(bad).toEqual([]);
+  });
+});
+
+describe("§10.23(claude) — an unmapped Claude stop_reason → fallback + finishReasonRaw byte for byte; only on the fallback (sp-claude 44938c2)", () => {
+  const result = (stop_reason: string | null) => ({
+    type: "result", subtype: "success", result: "all done", stop_reason, is_error: false,
+    duration_ms: 0, duration_api_ms: 0, num_turns: 1, total_cost_usd: 0.05,
+    usage: { input_tokens: 100, output_tokens: 50, cache_creation: { ephemeral_1h_input_tokens: 0, ephemeral_5m_input_tokens: 0 }, cache_creation_input_tokens: 10, cache_read_input_tokens: 20, inference_geo: "unknown", iterations: [], server_tool_use: { web_fetch_requests: 0, web_search_requests: 0 }, service_tier: "standard", speed: "standard" },
+    modelUsage: { "claude-opus": { inputTokens: 100, outputTokens: 50, cacheReadInputTokens: 20, cacheCreationInputTokens: 10, webSearchRequests: 0, costUSD: 0.05, contextWindow: 200000, maxOutputTokens: 8192 } },
+    permission_denials: [], uuid: "00000000-0000-0000-0000-000000000002", session_id: "sess_c23",
+  });
+  const drive = (stop: string | null): AgEvent[] => {
+    const n = createClaudeNormalizer();
+    const out = [...n.push(result(stop) as never), ...n.flush()];
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+    return out;
+  };
+  it("stop_reason \"zz_future\" → exactly one turn.done with finishReason \"unknown\" + finishReasonRaw \"zz_future\"; the fold carries it", () => {
+    const out = drive("zz_future");
+    const dones = out.filter((e) => e.type === "turn.done");
+    expect(dones).toHaveLength(1);
+    expect(dones[0]).toMatchObject({ finishReason: "unknown", finishReasonRaw: "zz_future" });
+    expect(reduce(out).result.turns[0]).toMatchObject({ finishReason: "unknown", finishReasonRaw: "zz_future" });
+  });
+  for (const stop of ["end_turn", "stop_sequence", "max_tokens", "model_context_window_exceeded", "tool_use", "pause_turn", "refusal", "compaction", null]) {
+    it(`negative: a mapped (or null) stop_reason ${JSON.stringify(stop)} carries no finishReasonRaw`, () => {
+      const done = drive(stop).find((e) => e.type === "turn.done");
+      expect(done).toBeDefined();
+      expect("finishReasonRaw" in (done as object)).toBe(false);
+    });
+  }
+});
+
+describe("§10.23(vercel) — a vercel finish with no AgJSON target → fallback + finishReasonRaw byte for byte (probe c524ece)", () => {
+  const USAGE = { inputTokens: 5, inputTokenDetails: { noCacheTokens: 3, cacheReadTokens: 2, cacheWriteTokens: 0 }, outputTokens: 7, outputTokenDetails: { textTokens: 4, reasoningTokens: 3 }, totalTokens: 12 };
+  const stream = (finish: Record<string, unknown>) => [
+    { type: "start" },
+    { type: "start-step", request: {}, warnings: [] },
+    { type: "text-start", id: "t1" },
+    { type: "text-delta", id: "t1", text: "hi" },
+    { type: "text-end", id: "t1" },
+    { type: "finish-step", finishReason: "stop", rawFinishReason: "stop", usage: USAGE, response: { id: "resp-s1", timestamp: "1970-01-01T00:00:00.000Z", modelId: "mock-model" } },
+    { type: "finish", totalUsage: USAGE, ...finish },
+  ];
+  const drive = (parts: unknown[]): AgEvent[] => {
+    const n = createVercelNormalizer({ invokeId: "c23" });
+    const out = [...parts.flatMap((p) => n.push(p as never)), ...n.flush()];
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+    return out;
+  };
+  it("rawFinishReason \"zz\" behind a unified \"other\" → turn.done finishReason \"other\" + finishReasonRaw \"zz\"", () => {
+    expect(drive(stream({ finishReason: "other", rawFinishReason: "zz" })).find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "other", finishReasonRaw: "zz" });
+  });
+  it("an unrecognized unified value with a raw → \"unknown\" + finishReasonRaw equal to the raw", () => {
+    expect(drive(stream({ finishReason: "zz-future", rawFinishReason: "provider_zz" })).find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "unknown", finishReasonRaw: "provider_zz" });
   });
 });
