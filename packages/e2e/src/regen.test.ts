@@ -196,6 +196,8 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "narration-opus55", framework: "claude" },
   // 2026-09-23 (candidate-20 bar): the unavailable resume leg, unenrolled (coverage kept honest).
   { scenario: "defer-tool-sonnet5-resume-unavailable", framework: "claude" },
+  // 2026-09-24 (rnd): the ADK shared-state fold seed, enrolled at capture time.
+  { scenario: "state-fold-gemini38", framework: "adk" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

@@ -338,6 +338,16 @@ const ADK_SEEDS = [
   // resource_link whole as a provider-raw block in tool.done.content
   // (transforms pin all eight leaves).
   "resource-link-gemini38",
+  // 2026-09-24 (rnd, ADK shared-state fold): the corpus's first NON-EMPTY
+  // actions.stateDelta. The scenario knob adkStateScript drives sp-google's
+  // scripted apply_state_step tool (5bc5351): step 1 writes cfg={a:1,b:2}
+  // plus temp:scratch, step 2 writes cfg={a:5}. ADK's Runner trims temp: before
+  // yielding, so the native deltas are {cfg:{a:1,b:2}} then {cfg:{a:5}}, carried
+  // verbatim as state.delta patches. ADK's own session.state, read back into
+  // adk.session-state.json, is {cfg:{a:5}}; the reference Reducer folds the two
+  // patches to {cfg:{a:5,b:2}} (one-level merge vs ADK's per-key replace), and
+  // that divergence is sp-rnd's finding.
+  "state-fold-gemini38",
   // 2026-09-23 (rd-06 A.9 step 5): the FIRST live ADK 2.x WORKFLOW-plane
   // captures (@google/adk 2.1.0, gemini-3.8-flash), rooted at google's
   // agents/google-adk/workflow.ts graph through the scenario knob adkWorkflow.

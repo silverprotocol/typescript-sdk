@@ -1,0 +1,10 @@
+{
+  "name": "state-fold-gemini38",
+  "prompt": "Apply the two configuration steps in order, then reply with the single word: done.",
+  "mcpServers": [],
+  "steer": "You MUST call apply_state_step with step=1, then call apply_state_step with step=2, one call at a time and in that order. Then answer with the single word: done.",
+  "adkStateScript": [
+    { "cfg": { "a": 1, "b": 2 }, "temp:scratch": "x" },
+    { "cfg": { "a": 5 } }
+  ]
+}
