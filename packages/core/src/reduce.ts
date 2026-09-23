@@ -186,6 +186,20 @@ export class Reducer {
       this.#finalToolDone.clear();
     }
 
+    // Store-time isolation: the handlers below keep references into the event
+    // (a block, a providerMetadata or _meta bag, a tool result, an outcome, a
+    // state snapshot, a patch value, a memory value), so the fold works on its
+    // own copy. A host that reuses or mutates its event object after push() can
+    // never move the fold; result() clones on the way out, this on the way in.
+    // It runs before the ext guard below, which then narrows the copy. An event
+    // structuredClone cannot copy (a function-valued field) folds as pushed, as
+    // it always did, rather than throwing out of push().
+    try {
+      ev = structuredClone(ev);
+    } catch {
+      // not cloneable: fold the event as pushed
+    }
+
     // Ext events (`ext.<vendor>.<key>`) are live-only / non-folding (§4/§12).
     // Rule them out HERE — after seq accounting above, so an ext event still
     // advances the gap check/#lastSeq — so the switch below sees the narrowed

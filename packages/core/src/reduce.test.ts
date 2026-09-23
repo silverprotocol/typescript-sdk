@@ -1535,6 +1535,103 @@ describe("reduce — R8 shared-state snapshot + delta", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Store-time isolation — push() folds its own copy of the event
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("reduce — store-time isolation (a host mutating a pushed event never moves the fold)", () => {
+  /** Push each event, mutate it in place right after, and return the result. */
+  const foldThenMutate = (evs: AgEvent[], mutate: (ev: AgEvent) => void) => {
+    const acc = new Reducer();
+    for (const ev of evs) {
+      acc.push(ev);
+      mutate(ev);
+    }
+    return acc;
+  };
+  const obj = (ev: AgEvent) => ev as unknown as Record<string, any>;
+
+  it("state.snapshot: the snapshot value", () => {
+    const acc = foldThenMutate([{ type: "state.snapshot", seq: 0, snapshot: { cfg: { a: 1 } } }], (ev) => {
+      obj(ev).snapshot.cfg.a = 99;
+    });
+    expect(acc.result().state).toEqual({ cfg: { a: 1 } });
+  });
+
+  it("state.delta JSON Patch add: the op's value", () => {
+    const acc = foldThenMutate(
+      [
+        { type: "state.snapshot", seq: 0, snapshot: {} },
+        { type: "state.delta", seq: 1, patch: [{ op: "add", path: "/cfg", value: { a: 1 } }] },
+      ],
+      (ev) => {
+        if (ev.type === "state.delta") obj(ev).patch[0].value.a = 99;
+      },
+    );
+    expect(acc.result().state).toEqual({ cfg: { a: 1 } });
+    expect(acc.needsResync).toBe(false);
+  });
+
+  it("state.delta JSON Patch replace: the op's value", () => {
+    const acc = foldThenMutate(
+      [
+        { type: "state.snapshot", seq: 0, snapshot: { cfg: { a: 0 } } },
+        { type: "state.delta", seq: 1, patch: [{ op: "replace", path: "/cfg", value: { a: 1, list: [1] } }] },
+      ],
+      (ev) => {
+        if (ev.type !== "state.delta") return;
+        obj(ev).patch[0].value.a = 99;
+        obj(ev).patch[0].value.list.push(2);
+      },
+    );
+    expect(acc.result().state).toEqual({ cfg: { a: 1, list: [1] } });
+    expect(acc.needsResync).toBe(false);
+  });
+
+  it("memory.write: a set value and a patch value", () => {
+    const acc = foldThenMutate(
+      [
+        { type: "memory.write", seq: 0, scope: "user", key: "p", value: { v: { w: 1 } } },
+        { type: "memory.write", seq: 1, scope: "user", key: "p", patch: [{ op: "add", path: "/n", value: { q: 1 } }] },
+      ],
+      (ev) => {
+        if (obj(ev).value !== undefined) obj(ev).value.v.w = 99;
+        if (obj(ev).patch !== undefined) obj(ev).patch[0].value.q = 99;
+      },
+    );
+    expect(acc.result().memory).toEqual([{ scope: "user", key: "p", value: { v: { w: 1 }, n: { q: 1 } } }]);
+  });
+
+  it("a block and its providerMetadata (content.block into an open message)", () => {
+    const acc = foldThenMutate(
+      [
+        { type: "turn.start", seq: 0, turnId: "t1", threadId: "th1" },
+        { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+        AgEvent.parse({
+          type: "content.block",
+          seq: 2,
+          id: "b1",
+          turnId: "t1",
+          block: { type: "text", text: "hi", providerMetadata: { vendor: { k: 1 } } },
+        }),
+      ],
+      (ev) => {
+        if (ev.type !== "content.block") return;
+        obj(ev).block.text = "moved";
+        obj(ev).block.providerMetadata.vendor.k = 99;
+      },
+    );
+    expect(acc.result().messages[0]?.content).toEqual([{ type: "text", text: "hi", providerMetadata: { vendor: { k: 1 } } }]);
+  });
+
+  it("an event structuredClone cannot copy still folds as pushed, and push() does not throw", () => {
+    const withFn = { type: "state.snapshot", seq: 0, snapshot: { a: 1 }, hook: () => 1 } as unknown as AgEvent;
+    const acc = new Reducer();
+    expect(() => acc.push(withFn)).not.toThrow();
+    expect(acc.result().state).toEqual({ a: 1 });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // R9 — message.remove + messages.snapshot + seq-gap resync + live-only sweep
 // ─────────────────────────────────────────────────────────────────────────────
 
