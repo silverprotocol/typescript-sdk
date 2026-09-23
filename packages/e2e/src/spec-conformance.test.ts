@@ -12,6 +12,7 @@ import {
   toWire,
   toJsonValue,
   AGJSON_VERSION,
+  ingestAgEvents,
 } from "@silverprotocol/core";
 import type { JsonValue } from "@silverprotocol/core";
 import { createAdkNormalizer } from "@silverprotocol/google-adk";
@@ -732,6 +733,32 @@ describe("§10.20 — malformed input at a trust boundary: a schema-invalid even
     const result = r.result();
     expect(result.messages[0]?.content[0]).toMatchObject({ type: "text", text: "unaffected" });
     expect(r.needsResync).toBe(false); // fold state / resync condition unaffected by the rejected event
+  });
+
+  it("a VALID event carrying an own `__proto__` key is not silently skipped: the consumer ingest (ingestAgEvents) returns a plain event whose prototype the wire cannot choose, so no unvalidated field is inherited and the block folds (SPEC.md:759 'never a silent skip', :27 pass-through; core fix 7ede731)", () => {
+    // JSON.parse keeps "__proto__" as an OWN data property, which is the shape
+    // a wire frame arrives in. An inherited `transient: true` would make
+    // reduce() skip the content.block (reduce.ts `if (ev.transient === true)`).
+    const wire = JSON.parse(
+      "[" +
+        '{"type":"turn.start","seq":0,"threadId":"th1","turnId":"t1"},' +
+        '{"type":"message.start","seq":1,"id":"m1","role":"assistant","turnId":"t1","threadId":"th1"},' +
+        '{"type":"content.block","seq":2,"turnId":"t1","block":{"type":"text","text":"kept"},"__proto__":{"transient":true}},' +
+        '{"type":"message.end","seq":3,"id":"m1"}' +
+        "]",
+    ) as JsonValue[];
+    expect(Object.prototype.hasOwnProperty.call(wire[2], "__proto__")).toBe(true); // the hazard is really on the wire
+
+    const events = ingestAgEvents(wire);
+    expect(events).toHaveLength(4);
+    const block = events[2] as unknown as Record<string, unknown>;
+    expect(Object.getPrototypeOf(block)).toBe(Object.prototype);
+    expect(Object.prototype.hasOwnProperty.call(block, "__proto__")).toBe(false);
+    expect(block["transient"]).toBeUndefined();
+
+    const { result, needsResync } = reduce(events);
+    expect(needsResync).toBe(false);
+    expect(result.messages[0]?.content).toEqual([expect.objectContaining({ type: "text", text: "kept" })]);
   });
 });
 
