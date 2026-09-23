@@ -691,6 +691,78 @@ function turnKey(ev: AdkEvent): string {
 // the positional index on tool.start/tool-call `providerCallIndex` so re-input can
 // restore name+position correlation when echoing functionResponse parts.
 
+// ─── functionResponse.response → tool.done outcome (SPEC §8.0 item 25, draft.4) ─
+// adk-10, founder-ruled 2026-09-23 ("Flip on error, approvals kept"). ADK
+// answers a failed tool call with a response carrying Gemini's documented
+// `error` key: an unresolvable tool name (functions.js:264), a thrown tool
+// including a thrown MCP call (functions.js:282), several built-in tools.
+// Rules, in order:
+//   1. MCP CallToolResult `isError: true` → "error" + isError.
+//   2. The call id is named in the SAME event's actions.requestedToolConfirmations
+//      or actions.requestedAuthConfigs → "ok": ADK's pause placeholder
+//      (function_tool.js:139-141, same event per functions.js:422-431); the
+//      pause rides hitl.ask (§8.0 items 12 and 18).
+//   3. A declined approval → "denied", no errorText, no isError: an `error`
+//      equal to a rejection literal or starting with the policy-engine prefix,
+//      or an error_code/errorCode of CONFIRMATION_REJECTED.
+//   4. An `error` present and not null/false/0/"" → "error" + isError, with
+//      errorText when it is a string and errorCode from a string
+//      error_code/errorCode.
+//   5. Otherwise "ok" (incl. `{status:"error", …}`, out of scope per item 25).
+// `content` always carries the response verbatim (functionResponseToToolDoneFields).
+// Literals pinned at @google/adk 2.1.0: function_tool.js:144,
+// security_plugin.js:75 and :113, run_skill_inline_script_tool.js:160-163.
+const ADK_REJECTION_ERRORS: ReadonlySet<string> = new Set([
+  "This tool call is rejected.",
+  "Tool call rejected from confirmation flow.",
+]);
+const ADK_POLICY_REJECTION_PREFIX = "This tool call is rejected by policy engine.";
+const ADK_REJECTION_ERROR_CODE = "CONFIRMATION_REJECTED";
+
+type ToolResultClassification = {
+  outcome: ToolOutcome;
+  isError?: true;
+  errorText?: string;
+  errorCode?: string;
+};
+
+function isAdkPausePlaceholder(toolCallId: string, actions: AdkEvent["actions"]): boolean {
+  const confirmations = actions?.requestedToolConfirmations;
+  const auths = actions?.requestedAuthConfigs;
+  return (
+    (isJsonObject(confirmations) && Object.hasOwn(confirmations, toolCallId)) ||
+    (isJsonObject(auths) && Object.hasOwn(auths, toolCallId))
+  );
+}
+
+function classifyFunctionResponse(
+  response: { readonly [k: string]: JsonValue } | undefined,
+  toolCallId: string,
+  actions: AdkEvent["actions"],
+): ToolResultClassification {
+  if (response === undefined) return { outcome: "ok" };
+  if (response["isError"] === true) return { outcome: "error", isError: true };
+  if (isAdkPausePlaceholder(toolCallId, actions)) return { outcome: "ok" };
+  const error = response["error"];
+  const code = stringMember(response, "error_code") ?? stringMember(response, "errorCode");
+  if (
+    code === ADK_REJECTION_ERROR_CODE ||
+    (typeof error === "string" &&
+      (ADK_REJECTION_ERRORS.has(error) || error.startsWith(ADK_POLICY_REJECTION_PREFIX)))
+  ) {
+    return { outcome: "denied" };
+  }
+  if (error !== undefined && error !== null && error !== false && error !== 0 && error !== "") {
+    return {
+      outcome: "error",
+      isError: true,
+      ...(typeof error === "string" ? { errorText: error } : {}),
+      ...(code !== undefined ? { errorCode: code } : {}),
+    };
+  }
+  return { outcome: "ok" };
+}
+
 // ─── functionResponse.response → tool.done channels (spec §2/§2.1, MCP shape) ──
 // The Gemini functionResponse.response is a JSON OBJECT (the function result).
 // Preserve its shape: an MCP-style { content: AgBlock[] } passes through as the
@@ -1133,17 +1205,17 @@ function driveAdkPart(
       a.emitExt("google", "unparsed", { functionResponse: carriedResponse, turnId });
       return "";
     }
-    const outcome: ToolOutcome = fr.response?.["isError"] === true ? "error" : "ok";
+    // A JSON-null response is absent (null guard): it was dereferenced below.
+    const response = isJsonObject(fr.response) ? fr.response : undefined;
+    // A reserved-credential answer carries the client's credential: its content
+    // AND its classification use the allowlisted form (see scrubAdkAuthConfig),
+    // so nothing omitted can resurface through errorText.
+    const carried = fr.name === ADK_REQUEST_CREDENTIAL ? scrubbedResponse(fr.response) : response;
     a.toolDone({
       toolCallId,
-      // A JSON-null response is absent (null guard): it was dereferenced below.
-      // A reserved-credential answer carries the client's credential: scrub it
-      // to the allowlist like the request.
-      ...functionResponseToToolDoneFields(
-        fr.name,
-        fr.name === ADK_REQUEST_CREDENTIAL ? scrubbedResponse(fr.response) : isJsonObject(fr.response) ? fr.response : undefined,
-      ),
-      outcome,
+      ...functionResponseToToolDoneFields(fr.name, carried),
+      // adk-10 / SPEC §8.0 item 25: see classifyFunctionResponse.
+      ...classifyFunctionResponse(carried, toolCallId, event.actions),
       turnId,
       providerMetadata:
         fr.thoughtSignature !== undefined && fr.thoughtSignature.length > 0

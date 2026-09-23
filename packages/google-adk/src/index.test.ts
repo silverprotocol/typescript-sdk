@@ -3332,43 +3332,194 @@ describe("createAdkNormalizer — JSON-null guard: a null arm is carried, a null
   });
 });
 
-describe("createAdkNormalizer — adk 2.1.0 unresolvable-tool `{error}` envelope (adk-10, OPEN FOUNDER DECISION)", () => {
-  // OPEN FOUNDER DECISION (adk-10, cohort 0.6.3): should ADK's own tool-failure
-  // envelope `{ error: "<message>" }` classify as tool.done outcome "error"?
-  // This test PINS THE CURRENT BEHAVIOUR (outcome "ok", the whole response
-  // carried losslessly as a `data` block) and is the SINGLE place to flip if
-  // the answer is yes. Pre-existing gap: the facet reads only MCP's
-  // `isError` flag, so ADK's envelope has classified "ok" since at least 2.0.0
-  // (MCPTool rejections, throwing FunctionTools — functions.js 2.0.0:316).
-  // 2.1.0 adds a third trigger: an unregistered / hallucinated tool name no
-  // longer throws out of runAsync but is answered by `answerUnresolvableCall`
-  // (functions.js 2.1.0:251-289) with EXACTLY this envelope, built by
-  // `buildResponseEvent` as a user-role functionResponse event.
-  it("classifies `Function X is not found in the toolsDict.` as outcome ok and carries it verbatim (current mapping)", () => {
-    const callId = "adk-5b0e7c1a-9f7d-4c2e-8a51-3d2f6e0b9c47";
-    const envelope = { error: "Function lookup_weather is not found in the toolsDict." };
-    const out = run([
-      event([{ functionCall: { name: "lookup_weather", args: { city: "Seoul" }, id: callId } }], {
-        partial: false,
-        finishReason: "STOP",
-      }),
-      {
-        invocationId: "inv_fixture_1",
-        author: "spike",
-        content: {
-          role: "user",
-          parts: [{ functionResponse: { name: "lookup_weather", response: envelope, id: callId } }],
-        },
-      },
-    ]);
+describe("createAdkNormalizer — ADK tool-failure envelope → tool.done outcome (adk-10, SPEC §8.0 item 25, draft.4)", () => {
+  // adk-10, founder-ruled 2026-09-23: "Flip on error, approvals kept". ADK
+  // answers a failed tool call with a functionResponse whose response carries
+  // Gemini's documented `error` key: an unresolvable tool name
+  // (answerUnresolvableCall, functions.js 2.1.0:264), a thrown tool including
+  // a thrown MCP call (:282), several built-in tools. Before draft.4 every one
+  // read outcome "ok". The pause placeholder stays "ok" and declined approvals
+  // read "denied". The vectors mirror spec-conformance §10 item 24 leg (b) (final draft.4 numbering);
+  // the literals are pinned at @google/adk 2.1.0.
+  const CALL = "adk-5b0e7c1a-9f7d-4c2e-8a51-3d2f6e0b9c47";
+  const call = (id: string = CALL): AdkEvent =>
+    event([{ functionCall: { name: "lookup_weather", args: { city: "Seoul" }, id } }], {
+      partial: false,
+      finishReason: "STOP",
+    });
+  const answer = (response: { [k: string]: JsonValue }, extra: Partial<AdkEvent> = {}, id: string = CALL): AdkEvent => ({
+    invocationId: "inv_fixture_1",
+    author: "spike",
+    content: { role: "user", parts: [{ functionResponse: { name: "lookup_weather", response, id } }] },
+    ...extra,
+  });
+  function doneFor(response: { [k: string]: JsonValue }, extra: Partial<AdkEvent> = {}): AgEvent {
+    const out = run([call(), answer(response, extra)]);
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
     const dones = out.filter((e) => e.type === "tool.done");
     expect(dones).toHaveLength(1);
-    expect(dones[0]).toMatchObject({
-      toolCallId: callId,
-      // adk-10: flip to "error" here if the founder picks reclassification.
-      outcome: "ok",
-      content: [{ type: "data", name: "lookup_weather", data: envelope }],
+    const done = dones[0];
+    if (done === undefined) throw new Error("no tool.done");
+    return done;
+  }
+  const keysOf = (e: AgEvent): string[] => Object.keys(e);
+
+  describe("rule 4: an `error` member present and not null/false/0/\"\" → error", () => {
+    it("`Function X is not found in the toolsDict.` → error + isError + errorText, response verbatim in content", () => {
+      const envelope = { error: "Function lookup_weather is not found in the toolsDict." };
+      expect(doneFor(envelope)).toMatchObject({
+        toolCallId: CALL,
+        outcome: "error",
+        isError: true,
+        errorText: "Function lookup_weather is not found in the toolsDict.",
+        content: [{ type: "data", name: "lookup_weather", data: envelope }],
+      });
     });
-    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+
+    it("{error, error_code} → errorText + errorCode; errorCode (camelCase) also read, error_code preferred", () => {
+      expect(doneFor({ error: "x", error_code: "E_X" })).toMatchObject({
+        outcome: "error",
+        isError: true,
+        errorText: "x",
+        errorCode: "E_X",
+      });
+      expect(doneFor({ error: "x", errorCode: "E_CAMEL" })).toMatchObject({ errorCode: "E_CAMEL" });
+      expect(doneFor({ error: "x", error_code: "E_SNAKE", errorCode: "E_CAMEL" })).toMatchObject({
+        errorCode: "E_SNAKE",
+      });
+    });
+
+    it("a non-string error ({code:…}, 42, true) → error + isError with NO errorText key", () => {
+      for (const error of [{ code: "E" }, 42, true]) {
+        const done = doneFor({ error });
+        expect(done).toMatchObject({ outcome: "error", isError: true });
+        expect(keysOf(done)).not.toContain("errorText");
+      }
+    });
+  });
+
+  describe("negative vectors → ok, with no errorText / isError / errorCode keys", () => {
+    const negatives: Array<{ [k: string]: JsonValue }> = [
+      { error: "" },
+      { error: null },
+      { error: false },
+      { error: 0 },
+      { result: null },
+      { status: "error", error_message: "x" },
+      { errorCode: "E_ALONE" },
+    ];
+    for (const response of negatives) {
+      it(JSON.stringify(response), () => {
+        const done = doneFor(response);
+        expect(done).toMatchObject({ outcome: "ok", content: [{ type: "data", data: response }] });
+        for (const k of ["errorText", "isError", "errorCode"]) expect(keysOf(done)).not.toContain(k);
+      });
+    }
+
+    it('MCP {content:[text], isError:false} → ok (MCP blocks in content, no isError key)', () => {
+      const done = doneFor({ content: [{ type: "text", text: "fine" }], isError: false });
+      expect(done).toMatchObject({ outcome: "ok", content: [{ type: "text", text: "fine" }] });
+      for (const k of ["errorText", "isError", "errorCode"]) expect(keysOf(done)).not.toContain(k);
+    });
+  });
+
+  describe("rule 1: MCP CallToolResult isError:true → error + isError (isError is new)", () => {
+    it("{content:[text], isError:true}", () => {
+      const done = doneFor({ content: [{ type: "text", text: "boom" }], isError: true });
+      expect(done).toMatchObject({ outcome: "error", isError: true, content: [{ type: "text", text: "boom" }] });
+      expect(keysOf(done)).not.toContain("errorText");
+    });
+  });
+
+  describe("rule 2: the pause placeholder stays ok; the pause rides hitl.ask (§8.0 items 12 and 18)", () => {
+    // Real shape, built from the ADK source: the placeholder response and the
+    // actions are on ONE event (function_tool.js:139-141; functions.js:422-431).
+    it("requestedToolConfirmations names the call → exactly one hitl.ask approval, tool.done ok", () => {
+      const out = run([
+        call(),
+        answer(
+          { error: "This tool call requires confirmation, please approve or reject." },
+          {
+            actions: {
+              requestedToolConfirmations: {
+                [CALL]: { hint: "Please approve or reject the tool call lookup_weather().", confirmed: false },
+              },
+            },
+          },
+        ),
+      ]);
+      for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+      expect(out.filter((e) => e.type === "hitl.ask" && e.toolCallId === CALL)).toHaveLength(1);
+      const dones = out.filter((e) => e.type === "tool.done" && e.toolCallId === CALL);
+      expect(dones).toHaveLength(1);
+      for (const d of dones) expect(d).toMatchObject({ outcome: "ok" });
+      for (const d of dones) expect(keysOf(d)).not.toContain("isError");
+    });
+
+    it("requestedAuthConfigs names the call → tool.done ok", () => {
+      const done = doneFor(
+        { error: "This tool call requires authentication." },
+        { actions: { requestedAuthConfigs: { [CALL]: { authScheme: { type: "oauth2" } } } } },
+      );
+      expect(done).toMatchObject({ outcome: "ok" });
+    });
+
+    it("a confirmation naming a DIFFERENT call does not shield this one (negative control)", () => {
+      const done = doneFor(
+        { error: "Function lookup_weather is not found in the toolsDict." },
+        { actions: { requestedToolConfirmations: { "adk-other": { confirmed: false } } } },
+      );
+      expect(done).toMatchObject({ outcome: "error", isError: true });
+    });
+  });
+
+  describe("rule 3: a declined approval → denied, with no errorText and no isError", () => {
+    const declined: Array<[string, { [k: string]: JsonValue }]> = [
+      ["FunctionTool rejection (function_tool.js:144)", { error: "This tool call is rejected." }],
+      ["SecurityPlugin rejection (security_plugin.js:75)", { error: "Tool call rejected from confirmation flow." }],
+      [
+        "policy-engine DENY (security_plugin.js:113)",
+        { error: "This tool call is rejected by policy engine. Reason: blocked by rule 7" },
+      ],
+      [
+        "skill CONFIRMATION_REJECTED (run_skill_inline_script_tool.js:160-163)",
+        { error: "Inline script execution was not confirmed and was rejected.", errorCode: "CONFIRMATION_REJECTED" },
+      ],
+      ["error_code CONFIRMATION_REJECTED (snake_case)", { error: "declined", error_code: "CONFIRMATION_REJECTED" }],
+    ];
+    for (const [label, response] of declined) {
+      it(label, () => {
+        const done = doneFor(response);
+        expect(done).toMatchObject({ outcome: "denied", content: [{ type: "data", data: response }] });
+        for (const k of ["errorText", "isError", "errorCode"]) expect(keysOf(done)).not.toContain(k);
+      });
+    }
+  });
+
+  it("a mixed stream (error, denied, ok, then the confirmation placeholder) folds cleanly through the Reducer", () => {
+    // The placeholder comes LAST: on the real @google/adk 2.1.0 engine a
+    // confirmation pause ENDS the invocation. With parallel calls, ADK yields
+    // the model's calls, then the confirmation-bearing event, and withholds the
+    // other calls' responses. Nothing follows the pause in the same invoke (R&D
+    // item 6 step 1 closes the turn paused on that event).
+    const ids = ["c_err", "c_den", "c_ok", "c_pause"];
+    const r = new Reducer();
+    for (const ev of run([
+      event(
+        ids.map((id) => ({ functionCall: { name: "lookup_weather", args: {}, id } })),
+        { partial: false },
+      ),
+      answer({ error: "boom" }, {}, "c_err"),
+      answer({ error: "This tool call is rejected." }, {}, "c_den"),
+      answer({ result: "sunny" }, {}, "c_ok"),
+      answer(
+        { error: "This tool call requires confirmation, please approve or reject." },
+        { actions: { requestedToolConfirmations: { c_pause: { confirmed: false } } } },
+        "c_pause",
+      ),
+    ]))
+      r.push(ev);
+    expect(r.needsResync).toBe(false);
+    expect(() => AgReduceResult.parse(r.result())).not.toThrow();
   });
 });
