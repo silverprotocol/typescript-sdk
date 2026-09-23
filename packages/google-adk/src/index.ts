@@ -52,6 +52,7 @@
 import {
   type AgEvent,
   type AgBlock,
+  type AgAuthConfig,
   type AgCitation,
   type AgFinishReason,
   type AgMeta,
@@ -1140,6 +1141,61 @@ function driveAdkPart(
   return "";
 }
 
+// ─── ADK AuthConfig → flat AgAuthConfig view (SPEC §8.0 item 12) ─────────────
+// ADK's AuthConfig (@google/adk 2.1.0 dist/types/auth/auth_tool.d.ts:12-42) is
+// `{ authScheme, rawAuthCredential?, exchangedAuthCredential?, credentialKey }`,
+// with authScheme an OpenAPI v3 SecuritySchemeObject or OIDC-with-config
+// (auth_schemes.d.ts:12, :25). The view maps ONLY what has a native value:
+// - scheme ← authScheme.type, verbatim; no string type → no view at all (the
+//   field is required and never invented);
+// - authorizationUrl / tokenUrl / scopes follow ADK's own derivation
+//   (dist/esm/auth/auth_handler.js:112-128): OIDC-with-config's
+//   authorizationEndpoint / tokenEndpoint / scopes; for oauth2, the first
+//   present flow of implicit > authorizationCode > clientCredentials >
+//   password, with scopes = the keys of its OpenAPI scopes map;
+// - clientId / audience ← rawAuthCredential.oauth2 (auth_credential.d.ts:35-62).
+// credentialKey, secrets and exchange state never enter the view.
+function adkAuthConfigView(native: JsonValue): AgAuthConfig | undefined {
+  if (!isJsonObject(native)) return undefined;
+  const authScheme = native["authScheme"];
+  const scheme = stringMember(authScheme, "type");
+  if (scheme === undefined || !isJsonObject(authScheme)) return undefined;
+  let authorizationUrl: string | undefined;
+  let tokenUrl: string | undefined;
+  let scopes: string[] | undefined;
+  if ("authorizationEndpoint" in authScheme) {
+    authorizationUrl = stringMember(authScheme, "authorizationEndpoint");
+    tokenUrl = stringMember(authScheme, "tokenEndpoint");
+    const s = authScheme["scopes"];
+    if (Array.isArray(s)) scopes = s.filter((x): x is string => typeof x === "string");
+  } else if (scheme === "oauth2") {
+    const flows = authScheme["flows"];
+    const flow = isJsonObject(flows)
+      ? [flows["implicit"], flows["authorizationCode"], flows["clientCredentials"], flows["password"]].find(
+          isJsonObject,
+        )
+      : undefined;
+    if (flow !== undefined) {
+      authorizationUrl = stringMember(flow, "authorizationUrl");
+      tokenUrl = stringMember(flow, "tokenUrl");
+      const s = flow["scopes"];
+      if (isJsonObject(s)) scopes = Object.keys(s);
+    }
+  }
+  const raw = native["rawAuthCredential"];
+  const oauth2 = isJsonObject(raw) ? raw["oauth2"] : undefined;
+  const clientId = stringMember(oauth2, "clientId");
+  const audience = stringMember(oauth2, "audience");
+  return {
+    scheme,
+    ...(scopes !== undefined ? { scopes } : {}),
+    ...(authorizationUrl !== undefined ? { authorizationUrl } : {}),
+    ...(tokenUrl !== undefined ? { tokenUrl } : {}),
+    ...(clientId !== undefined ? { clientId } : {}),
+    ...(audience !== undefined ? { audience } : {}),
+  };
+}
+
 /** Append `ask` to the turn's pending-asks list (creating it on first use).
  *  Preserves emission order — asks accumulate in the order their originating
  *  hitl.ask events were emitted, which `maybeCloseTurn` folds verbatim into
@@ -1241,20 +1297,23 @@ function driveAdkTopLevel(
     }
     if (actions.escalate === true) a.emit({ type: "handoff", kind: "escalate" });
     if (actions.requestedAuthConfigs !== undefined) {
-      // ADK dict[str, AuthConfig] keyed by function-call-id. The AuthConfig is a
-      // complex framework-specific object (auth-scheme union + credentials) that
-      // does not fit the flat AgAuthConfig OAuth projection, so it rides opaque
-      // in `metadata` (AgJSON: framework-specifics lossless via metadata; SPEC §8
-      // item 12's sanctioned carrier). The SAME ask fields are tracked in
-      // `pendingAsks` — if this turn's close-path event turns out to be THIS
-      // event (or a later one for the same turnId), `maybeCloseTurn` folds them
-      // into `turn.done.outcome.paused.asks[]` instead of fabricating success
-      // (audit M26).
+      // ADK dict[str, AuthConfig] keyed by function-call-id (SPEC §8.0 item 12).
+      // `authConfig` is the flat AgAuthConfig VIEW derived by
+      // `adkAuthConfigView` (absent when no string scheme exists). The native
+      // AuthConfig rides WHOLE and verbatim in `metadata.authConfig`, the
+      // item's sanctioned carrier, so the ask stays lossless and the mapped
+      // values may appear twice (sp-protocol confirmed 2026-09-23). The SAME
+      // ask fields are tracked in `pendingAsks`: if this turn's close-path
+      // event turns out to be THIS event (or a later one for the same turnId),
+      // `maybeCloseTurn` folds them into `turn.done.outcome.paused.asks[]`
+      // instead of fabricating success (audit M26).
       for (const [callId, authConfig] of Object.entries(actions.requestedAuthConfigs)) {
+        const view = adkAuthConfigView(authConfig);
         const ask: AgPausedAsk = {
           askId: `auth_${callId}`,
           kind: "auth",
           toolCallId: callId,
+          ...(view !== undefined ? { authConfig: view } : {}),
           metadata: { authConfig: JsonValue.parse(authConfig) },
         };
         a.emit({ type: "hitl.ask", ...ask });

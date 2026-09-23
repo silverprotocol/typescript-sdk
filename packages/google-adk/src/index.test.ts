@@ -755,6 +755,145 @@ describe("createAdkNormalizer — actions.requestedAuthConfigs → hitl.ask (kin
   });
 });
 
+describe("createAdkNormalizer — hitl.ask auth: flat `authConfig` view + native AuthConfig verbatim in metadata (SPEC §8.0 item 12)", () => {
+  // `authConfig` is the AgAuthConfig view (scheme verbatim from
+  // authScheme.type; URLs/scopes by ADK's own auth_handler.js:112-128
+  // derivation; clientId/audience from rawAuthCredential.oauth2). The native
+  // AuthConfig rides WHOLE in metadata.authConfig, so the ask stays lossless
+  // (sp-protocol confirmed 2026-09-23).
+  function askFor(native: JsonValue): AgEvent {
+    const out = run([event([], { actions: { requestedAuthConfigs: { fc_1: native } } })]);
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+    const ask = out.find((e) => e.type === "hitl.ask");
+    if (ask === undefined) throw new Error("no hitl.ask");
+    return ask;
+  }
+  const viewOf = (ask: AgEvent): unknown => (ask as { authConfig?: unknown }).authConfig;
+  const metaOf = (ask: AgEvent): unknown =>
+    (ask as { metadata?: { authConfig?: unknown } }).metadata?.authConfig;
+
+  const oauth2Native = {
+    authScheme: {
+      type: "oauth2",
+      flows: {
+        authorizationCode: {
+          authorizationUrl: "https://accounts.example/auth",
+          tokenUrl: "https://accounts.example/token",
+          scopes: { "mail.read": "Read mail", "mail.send": "Send mail" },
+        },
+      },
+    },
+    rawAuthCredential: {
+      authType: "oauth2",
+      oauth2: { clientId: "cid-123", clientSecret: "SECRET-CS", audience: "aud-1" },
+    },
+    exchangedAuthCredential: {
+      authType: "oauth2",
+      oauth2: { clientId: "cid-123", accessToken: "SECRET-AT", refreshToken: "SECRET-RT", state: "st-9" },
+    },
+    credentialKey: "adk_mail_cred",
+  };
+
+  it("oauth2 authorizationCode → full view; the native config rides whole and verbatim in metadata", () => {
+    const ask = askFor(oauth2Native);
+    expect(viewOf(ask)).toEqual({
+      scheme: "oauth2",
+      scopes: ["mail.read", "mail.send"],
+      authorizationUrl: "https://accounts.example/auth",
+      tokenUrl: "https://accounts.example/token",
+      clientId: "cid-123",
+      audience: "aud-1",
+    });
+    expect(metaOf(ask)).toEqual(oauth2Native);
+  });
+
+  it("no secret-bearing field ever reaches the view (clientSecret, tokens, state, exchangedAuthCredential, credentialKey)", () => {
+    const view = JSON.stringify(viewOf(askFor(oauth2Native)));
+    for (const leak of ["SECRET", "st-9", "adk_mail_cred", "exchangedAuthCredential", "clientSecret", "accessToken"]) {
+      expect(view).not.toContain(leak);
+    }
+  });
+
+  it("oauth2 flow precedence follows ADK's auth_handler.js:119 (implicit > authorizationCode > clientCredentials > password)", () => {
+    const ask = askFor({
+      authScheme: {
+        type: "oauth2",
+        flows: {
+          clientCredentials: { tokenUrl: "https://cc.example/token", scopes: { cc: "" } },
+          implicit: { authorizationUrl: "https://imp.example/auth", scopes: { imp: "" } },
+        },
+      },
+      credentialKey: "k",
+    });
+    expect(viewOf(ask)).toEqual({ scheme: "oauth2", scopes: ["imp"], authorizationUrl: "https://imp.example/auth" });
+  });
+
+  it("OIDC with config → authorizationEndpoint / tokenEndpoint / scopes", () => {
+    const ask = askFor({
+      authScheme: {
+        type: "openIdConnect",
+        openIdConnectUrl: "https://idp.example/.well-known/openid-configuration",
+        authorizationEndpoint: "https://idp.example/authorize",
+        tokenEndpoint: "https://idp.example/token",
+        scopes: ["openid", "email"],
+      },
+      credentialKey: "k",
+    });
+    expect(viewOf(ask)).toEqual({
+      scheme: "openIdConnect",
+      scopes: ["openid", "email"],
+      authorizationUrl: "https://idp.example/authorize",
+      tokenUrl: "https://idp.example/token",
+    });
+  });
+
+  it("apiKey → scheme only", () => {
+    const native = { authScheme: { type: "apiKey", in: "header", name: "X-Api-Key" }, credentialKey: "k" };
+    const ask = askFor(native);
+    expect(viewOf(ask)).toEqual({ scheme: "apiKey" });
+    expect(metaOf(ask)).toEqual(native);
+  });
+
+  it("no string scheme → NO authConfig key (never invented); metadata unchanged", () => {
+    const natives: JsonValue[] = [
+      { credentialKey: "k" },
+      { authScheme: { flows: {} }, credentialKey: "k" },
+      { authScheme: { type: 7 }, credentialKey: "k" },
+      { scope: "x" },
+    ];
+    for (const native of natives) {
+      const ask = askFor(native);
+      expect(Object.keys(ask)).not.toContain("authConfig");
+      expect(metaOf(ask)).toEqual(native);
+    }
+  });
+
+  it("absent requestedAuthConfigs → no hitl.ask and no authConfig anywhere (byte-identical)", () => {
+    const out = run([event([{ text: "hi" }], { actions: { stateDelta: {} }, turnComplete: true, finishReason: "STOP" })]);
+    expect(out.some((e) => e.type === "hitl.ask")).toBe(false);
+    expect(JSON.stringify(out)).not.toContain("authConfig");
+  });
+
+  it("the paused close folds the SAME ask (view included) into turn.done asks, and folds cleanly", () => {
+    const out = run([
+      event([], {
+        actions: { requestedAuthConfigs: { fc_1: oauth2Native } },
+        turnComplete: true,
+        finishReason: "STOP",
+      }),
+    ]);
+    const ask = out.find((e) => e.type === "hitl.ask");
+    const done = out.find((e) => e.type === "turn.done");
+    const asks = (done as { outcome?: { type?: string; asks?: unknown[] } } | undefined)?.outcome?.asks;
+    expect(asks).toHaveLength(1);
+    expect(asks?.[0]).toMatchObject({ kind: "auth", toolCallId: "fc_1", authConfig: viewOf(ask ?? out[0]!) });
+    const r = new Reducer();
+    for (const ev of out) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    expect(() => AgReduceResult.parse(r.result())).not.toThrow();
+  });
+});
+
 describe("createAdkNormalizer — actions.requestedToolConfirmations → hitl.ask (kind approval)", () => {
   // ADK serializes requestedToolConfirmations as dict[str, ToolConfirmation]
   // keyed by the function-call-id; hint -> message, confirmed/payload -> metadata.
