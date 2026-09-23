@@ -99,9 +99,10 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 21, leg: "fold", title: "Reasoning-inclusive usage identity — the Gemini fold (thoughts added; absent ⇒ draft.2 bytes; already-inclusive not double-added)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.21(fold), facet-driven via createAdkNormalizer" },
   { n: 21, leg: "replay", title: "Reasoning-inclusive usage identity — input + output (+ toolUseInput) == total on every replay golden with a provider total", disposition: "COVERED-BY", citation: "replay.test.ts:331 assertUsageIdentity, run by all four replay suites (:380 claude, :417 openai, :456 adk, :491 vercel)" },
   { n: 22, title: "Forward-compatible ingest (draft.4): an ignored well-formed event occupies its seq slot, is reported in place, and the fold is unchanged", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.22, reference ingest (ingestAgEvents) → reduce" },
-  { n: 23, title: "Unmapped native value (draft.4): fallback finishReason + verbatim finishReasonRaw", disposition: "N/A", citation: "pending: the facets' raw-reason carry (claude/openai/google/vercel, §8.0 graceful degradation) lands AFTER this SPEC pair; this row flips to RUNNABLE, facet-driven, in sp-protocol's follow-up sha" },
+  { n: 23, leg: "adk", title: "Unmapped native value (draft.4): an ADK finish reason with no AgJSON target → finishReason other|unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(adk) via createAdkNormalizer (sp-google a0c5dcf)" },
+  { n: 23, leg: "claude|openai|vercel", title: "Unmapped native value (draft.4): the other facets' raw-reason carry", disposition: "N/A", citation: "pending: the claude, openai and vercel finishReasonRaw carries land AFTER this SPEC pair; each leg flips to RUNNABLE on its facet sha" },
   { n: 24, leg: "scan", title: "Tool-result errorText scoping (draft.4): no replay golden carries errorText on a non-error result", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.24(scan), a scan of every corpus/*/*.agjson.json" },
-  { n: 24, leg: "adk", title: "ADK failure envelope (draft.4, §8.0 item 25): the error/denied/placeholder/negative vectors", disposition: "N/A", citation: "pending: the google-adk item-25 flip (sp-google 1904293) lands AFTER this SPEC pair; this row flips to RUNNABLE, facet-driven via createAdkNormalizer, in sp-protocol's follow-up sha" },
+  { n: 24, leg: "adk", title: "ADK failure envelope (draft.4, §8.0 item 25): the error/denied/placeholder/negative vectors", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.24(adk) via createAdkNormalizer (sp-google 877f37f, on the E8 scrub 81dc906)" },
   { n: 25, leg: "fold", title: "Framework pause and completion closure (draft.4): pauses close paused from push(), completed-without-signal and cut-short invokes close turn.abort from flush(), never success, no park", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(fold) over the engine-built fixtures/adk-pause natives (probe P-RED 3c82c3a); step-1 scope mirrored by adk-pause.test.ts" },
   { n: 25, leg: "answer-id", title: "Framework pause and completion closure (draft.4): each ask's toolCallId is the adk_request_* call id (the answering id), one ask per pending request, kind per §8.0 item 26", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(answer-id) over fixtures/adk-pause (sp-google step 2 613fd7f)" },
   { n: 25, leg: "host-completion", title: "Framework pause and completion closure (draft.4): with the §8.0 obligation-4 host-completion event fed, a completed invoke closes turn.done success from push(); a pause still closes paused from push()", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(host-completion), createAdkNormalizer({ hostCompletion: true }) + ADK_HOST_COMPLETE_TYPE (sp-google step 2 613fd7f)" },
@@ -1174,4 +1175,78 @@ describe("§10.26 — interim-narration marker (draft.4): phase folds set-if-pre
     expect("phase" in fold(text({}, {}))).toBe(false);
     expect("phase" in fold(reasoning({}, {}))).toBe(false);
   });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.24 leg (b) and §10.23 ADK leg — driven through the reference ADK
+// normalizer with the SPEC's own vectors (sp-google 877f37f / a0c5dcf).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.24(adk) + §10.23(adk) — the ADK failure envelope and the unmapped finish reason (draft.4)", () => {
+  const CALL = "adk-call-1";
+  const callEv = (): AdkEvent => ({ invocationId: "inv1", author: "agent", content: { role: "model", parts: [{ functionCall: { name: "lookup", args: { q: "x" }, id: CALL } }] }, partial: false, finishReason: "STOP" } as unknown as AdkEvent);
+  const answerEv = (response: Record<string, unknown>, extra: Record<string, unknown> = {}): AdkEvent =>
+    ({ invocationId: "inv1", author: "agent", content: { role: "user", parts: [{ functionResponse: { name: "lookup", response, id: CALL } }] }, ...extra } as unknown as AdkEvent);
+  const drive = (evs: AdkEvent[]): AgEvent[] => {
+    const n = createAdkNormalizer();
+    const out = [...evs.flatMap((e) => n.push(e)), ...n.flush()];
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow(); // every emitted event is AgEvent-valid
+    return out;
+  };
+  const doneFor = (response: Record<string, unknown>, extra: Record<string, unknown> = {}) => {
+    const dones = drive([callEv(), answerEv(response, extra)]).filter((e) => e.type === "tool.done") as unknown as Array<Record<string, unknown>>;
+    expect(dones).toHaveLength(1);
+    return dones[0]!;
+  };
+
+  it("{error:\"Function x is not found in the toolsDict.\"} → outcome error, isError, errorText = that string, content a data block carrying the response verbatim", () => {
+    const response = { error: "Function lookup is not found in the toolsDict." };
+    const d = doneFor(response);
+    expect(d).toMatchObject({ outcome: "error", isError: true, errorText: response.error });
+    const content = d["content"] as Array<Record<string, unknown>>;
+    expect(content[0]?.["type"]).toBe("data");
+    expect(content[0]?.["data"]).toEqual(response);
+  });
+  it("{error:\"x\", error_code:\"E_X\"} → outcome error, errorText x, errorCode E_X", () => {
+    expect(doneFor({ error: "x", error_code: "E_X" })).toMatchObject({ outcome: "error", errorText: "x", errorCode: "E_X" });
+  });
+  it("{error:{code:\"E\"}} → outcome error with no errorText", () => {
+    const d = doneFor({ error: { code: "E" } });
+    expect(d["outcome"]).toBe("error");
+    expect("errorText" in d).toBe(false);
+  });
+  it("the confirmation placeholder on an event whose requestedToolConfirmations names the call → one approval hitl.ask and no outcome error for that call", () => {
+    const out = drive([
+      callEv(),
+      answerEv({ error: "This tool call requires confirmation, please approve or reject." }, { actions: { requestedToolConfirmations: { [CALL]: { hint: "approve?", confirmed: false } } } }),
+    ]);
+    const asks = out.filter((e) => e.type === "hitl.ask") as unknown as Array<{ kind: string }>;
+    expect(asks).toHaveLength(1);
+    expect(asks[0]!.kind).toBe("approval");
+    const errs = out.filter((e) => e.type === "tool.done" && (e as { toolCallId?: string }).toolCallId === CALL && (e as { outcome?: string }).outcome === "error");
+    expect(errs).toHaveLength(0);
+  });
+  it("{error:\"This tool call is rejected.\"} → outcome denied with no errorText", () => {
+    const d = doneFor({ error: "This tool call is rejected." });
+    expect(d["outcome"]).toBe("denied");
+    expect("errorText" in d).toBe(false);
+  });
+  it("an MCP {content:[…], isError:true} → outcome error with isError true", () => {
+    expect(doneFor({ content: [{ type: "text", text: "boom" }], isError: true })).toMatchObject({ outcome: "error", isError: true });
+  });
+  for (const response of [{ result: null }, { error: "" }, { error: null }, { error: false }, { error: 0 }, { status: "error", error_message: "x" }]) {
+    it(`${JSON.stringify(response)} → outcome ok (negative vector)`, () => {
+      const d = doneFor(response);
+      expect(d["outcome"]).toBe("ok");
+      expect("errorText" in d).toBe(false);
+    });
+  }
+
+  // §10.23 ADK leg: a native finish reason with no AgJSON target.
+  for (const [raw, fallback] of [["TOO_MANY_TOOL_CALLS", "other"], ["SOME_FUTURE_REASON", "unknown"]] as const) {
+    it(`§10.23(adk): finishReason ${raw} → turn.done finishReason "${fallback}" + finishReasonRaw "${raw}" byte for byte`, () => {
+      const out = drive([{ invocationId: "inv1", author: "agent", content: { role: "model", parts: [{ text: "done" }] }, partial: false, turnComplete: true, finishReason: raw } as unknown as AdkEvent]);
+      expect(out.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: fallback, finishReasonRaw: raw });
+    });
+  }
 });
