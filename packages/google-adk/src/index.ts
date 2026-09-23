@@ -645,6 +645,42 @@ function codeOutcome(outcome: string | undefined): "ok" | "failed" | "deadline_e
   }
 }
 
+// ─── ADK pause family: the event with which ADK ENDS a pause (R&D item 6) ────
+// Package rd-06 (sp-protocol bar wf_6973f170-9d0), step 1. Observed on the
+// real @google/adk 2.1.0 engine (offline, stub model), each pause's LAST event:
+//   - requireConfirmation: the confirmation-request event, which carries
+//     actions.requestedToolConfirmations (plus a user-role adk_request_confirmation
+//     call);
+//   - credential: the tool's functionResponse carrying actions.requestedAuthConfigs,
+//     AFTER the adk_request_credential call (closing on that call would put the
+//     response after the terminal and park);
+//   - requestInputTool: the content-less skipSummarization event after the call;
+//   - a Workflow root pause: the root's own content-less input record, which
+//     carries longRunningToolIds. The root is identified by adk-js path grammar
+//     (a dotless nodeInfo.path); that detail is facet-local, not spec.
+// The caller closes `paused` on one of these only while an ask is pending.
+const ADK_REQUEST_INPUT = "adk_request_input";
+
+function isNonEmptyRecord(v: unknown): boolean {
+  return isJsonObject(v) && Object.keys(v).length > 0;
+}
+
+function isAdkPauseEnd(event: AdkEvent): boolean {
+  const actions = event.actions;
+  if (isNonEmptyRecord(actions?.requestedToolConfirmations)) return true;
+  if (isNonEmptyRecord(actions?.requestedAuthConfigs)) return true;
+  const contentless = (event.content?.parts ?? []).length === 0;
+  if (contentless && actions?.skipSummarization === true) return true;
+  const path = event.nodeInfo?.path;
+  return (
+    contentless &&
+    typeof path === "string" &&
+    path.length > 0 &&
+    !path.includes(".") &&
+    (event.longRunningToolIds?.length ?? 0) > 0
+  );
+}
+
 function turnKey(ev: AdkEvent): string {
   return ev.invocationId && ev.invocationId.length > 0 ? ev.invocationId : ev.id ?? "adk";
 }
@@ -1244,7 +1280,8 @@ function driveAdkTopLevel(
   messageId: string,
   turnId: string,
   closedTurns: Set<string>,
-  pendingAsks: Map<string, AgPausedAsk[]>
+  pendingAsks: Map<string, AgPausedAsk[]>,
+  emittedInputAsks: Set<string>
 ): void {
   // typeof: a JSON-null transcription text is absent (null guard; it rode the
   // text block as `null`, which the schema rejects).
@@ -1314,6 +1351,40 @@ function driveAdkTopLevel(
         provider: "google",
         html: gm.searchEntryPoint.renderedContent,
       });
+    }
+  }
+
+  // ── ADK request-input pause → hitl.ask text|form (R&D item 6, step 1) ──
+  // `adk_request_input` is ADK's reserved input-pause call: a workflow
+  // `RequestInput` (args {interruptId, payload, message, response_schema}) or
+  // the `requestInputTool` (args {message, response_schema?}). askId =
+  // toolCallId = the call's id, the id ADK answers with. It is form when
+  // response_schema is a non-null object, else text; payload rides metadata.
+  // Tracked pending, so the pause-ending event closes the turn `paused`
+  // (maybeCloseTurn). Deduped by id across the partial/aggregate re-send. The
+  // call's own tool.start still opens (whether to suppress reserved calls is an
+  // open step-2 decision).
+  if (event.partial !== true) {
+    for (const part of event.content?.parts ?? []) {
+      const fc = part.functionCall;
+      if (!isJsonObject(fc) || fc["name"] !== ADK_REQUEST_INPUT) continue;
+      const callId = stringMember(fc, "id");
+      if (callId === undefined || callId.length === 0 || emittedInputAsks.has(callId)) continue;
+      emittedInputAsks.add(callId);
+      const args = isJsonObject(fc["args"]) ? fc["args"] : {};
+      const schema = args["response_schema"];
+      const message = stringMember(args, "message");
+      const payload = args["payload"];
+      const ask: AgPausedAsk = {
+        askId: callId,
+        kind: isJsonObject(schema) ? "form" : "text",
+        toolCallId: callId,
+        ...(message !== undefined ? { message } : {}),
+        ...(isJsonObject(schema) ? { schema } : {}),
+        ...(payload !== undefined ? { metadata: { payload } } : {}),
+      };
+      a.emit({ type: "hitl.ask", ...ask });
+      trackPendingAsk(pendingAsks, turnId, ask);
     }
   }
 
@@ -1437,12 +1508,13 @@ function driveAdkTopLevel(
     unmappedEvent["compactedContent"] = event.compactedContent;
   if (event.isScratchpad !== undefined) unmappedEvent["isScratchpad"] = event.isScratchpad;
   // Workflow-plane quartet (2.0.0 peer bump; see the AdkEvent field docs):
-  // stamped only by dist/esm/workflow/* and round-tripped by the Vertex
-  // session service — never on a plain LlmAgent runAsync stream, so this is
-  // the same never-fires-on-captured-wire tolerance class as the
-  // CompactedEvent projection above. Present-checks throughout (`route` may
-  // legitimately be `false`/`0`; `output` may be any JSON value incl. null);
-  // `nodeInfo` rides as a WHOLE object.
+  // stamped only by dist/esm/workflow/* (and round-tripped by the Vertex
+  // session service); a plain LlmAgent runAsync stream carries it only via a
+  // NodeTool. It fires on every Workflow invoke (the e2e workflow capture
+  // agent, observed offline on the real 2.1.0 engine). Present-checks
+  // throughout (`route` may legitimately be `false`/`0`; `output` may be any
+  // JSON value incl. null); `nodeInfo` rides as a WHOLE object. `nodeInfo` is
+  // also READ by maybeCloseTurn's per-event gate and by isAdkPauseEnd.
   if (event.output !== undefined) unmappedEvent["output"] = JsonValue.parse(event.output);
   if (event.route !== undefined) unmappedEvent["route"] = JsonValue.parse(event.route);
   if (event.nodeInfo !== undefined) unmappedEvent["nodeInfo"] = JsonValue.parse(event.nodeInfo);
@@ -1487,6 +1559,8 @@ export function createAdkNormalizer(): Normalizer {
   // (the is_final_response aggregate); the `flush()` truncation path never
   // reads it — see the comment there.
   const pendingAsks = new Map<string, AgPausedAsk[]>();
+  // adk_request_input call ids already asked (partial/aggregate re-send dedup).
+  const emittedInputAsks = new Set<string>();
   const assembledToolCalls = new Set<string>(); // FC dedup across partial/aggregate (Task 3)
   // Null-id call mint state (audit M47) — per-invoke ordinal counter + the
   // content/name correlation maps; lives exactly as long as this Normalizer
@@ -1522,13 +1596,31 @@ export function createAdkNormalizer(): Normalizer {
     const parts = event.content?.parts ?? [];
     const hasFunctionCall = parts.some((p) => p.functionCall !== undefined);
     const interrupted = event.interrupted === true;
+    // ── The pause close (R&D item 6, step 1) ──
+    // SPEC §7 "the pause is the turn outcome" (SPEC.md:896): while an ask is
+    // pending, the event with which ADK ENDS the pause (isAdkPauseEnd) closes
+    // the turn `paused` from push(), with finishReason "paused". This runs
+    // before the functionCall early-return, because the confirmation-request
+    // event carries a (reserved) call. Items 12/18 now close on the real wire;
+    // before, their close never fired and the turn flushed as an abort.
+    const pending = pendingAsks.get(turnId);
+    if (!interrupted && pending !== undefined && pending.length > 0 && isAdkPauseEnd(event)) {
+      closedTurns.add(turnId);
+      const usage = mapUsage(usageByTurn.get(turnId) ?? event.usageMetadata);
+      a.closeMessage(messageId);
+      a.closeTurnDone(turnId, {
+        outcome: { type: "paused", asks: pending },
+        finishReason: "paused",
+        ...(usage !== undefined ? { usage } : {}),
+      });
+      return;
+    }
     const hasCompletion =
       event.turnComplete === true ||
       event.finishReason !== undefined ||
       event.errorCode !== undefined;
     // is_final_response: a non-partial event with no pending function call and not interrupted.
     if (hasFunctionCall || interrupted || !hasCompletion) return;
-    closedTurns.add(turnId);
     // The error-close predicate, spelled ONCE: both errorCode AND errorMessage
     // present ⇒ turn.error (values captured here so the close below needs no
     // re-narrowing).
@@ -1536,6 +1628,17 @@ export function createAdkNormalizer(): Normalizer {
       event.errorCode !== undefined && event.errorMessage !== undefined
         ? { code: event.errorCode, message: event.errorMessage }
         : undefined;
+    // ── The nodeInfo gate (R&D item 6, step 1) ──
+    // ADK's final-response rule is PER AGENT. On a Workflow invoke a node's
+    // final text (nodeInfo present) is mid-invocation: closing the invocation
+    // turn on it put the workflow's later events after the terminal and parked
+    // reduce() (INV-MSG, SPEC.md:745/:757). So an event carrying nodeInfo never
+    // closes the turn as success. It is a per-EVENT test, never a latch
+    // (NodeTool puts nodeInfo into plain runs too). Error closes stay
+    // immediate. A completed workflow therefore flushes turn.abort until a host
+    // completion signal exists (step 2): a documented known gap.
+    if (errorClose === undefined && event.nodeInfo !== undefined) return;
+    closedTurns.add(turnId);
     const rawFinish = event.finishReason ?? event.errorCode;
     const finish = resolveFinishReason(rawFinish);
     // Lossy finish mappings (resolveFinishReason's lossy arms) land the wire
@@ -1565,14 +1668,17 @@ export function createAdkNormalizer(): Normalizer {
       const usage = mapUsage(usageByTurn.get(turnId) ?? event.usageMetadata);
       const safety = mapBlockedSafety(event.safetyRatings);
       // A turn with pending HITL asks (requestedAuthConfigs /
-      // requestedToolConfirmations, tracked by `trackPendingAsk` above) closes
-      // PAUSED, not success — the asks are real, unresolved requests the
-      // turn is parked on, never a fabricated success (audit M26 / SPEC §8
-      // items 12 + 18). `finishReason` stays the same mapping either way.
+      // requestedToolConfirmations / adk_request_input, tracked by
+      // `trackPendingAsk` above) closes PAUSED, not success: the asks are real,
+      // unresolved requests the turn is parked on, never a fabricated success
+      // (audit M26 / SPEC §8 items 12 + 18). A paused close carries
+      // finishReason "paused" (the HITL value, R&D item 6 step 1), the same as
+      // the pause-end close above.
       const asks = pendingAsks.get(turnId);
+      const paused = asks !== undefined && asks.length > 0;
       a.closeTurnDone(turnId, {
-        outcome: asks !== undefined && asks.length > 0 ? { type: "paused", asks } : { type: "success" },
-        finishReason: finish.value,
+        outcome: paused ? { type: "paused", asks } : { type: "success" },
+        finishReason: paused ? "paused" : finish.value,
         ...(usage !== undefined ? { usage } : {}),
         ...(safety !== undefined ? { safety } : {}),
       });
@@ -1691,7 +1797,7 @@ export function createAdkNormalizer(): Normalizer {
     // aggregate never arrives simply die with the invoke's closure — bounded,
     // per-invoke.
 
-    driveAdkTopLevel(a, event, messageId, turnId, closedTurns, pendingAsks); // standalone/content arms (Tasks 4–5)
+    driveAdkTopLevel(a, event, messageId, turnId, closedTurns, pendingAsks, emittedInputAsks); // standalone/content arms (Tasks 4–5)
     maybeCloseTurn(event, turnId, messageId, isPartial);
   }
 
@@ -1713,10 +1819,15 @@ export function createAdkNormalizer(): Normalizer {
       // (the is_final_response aggregate — see `maybeCloseTurn`) is an
       // INTERRUPTED stream, not a resolved pause. A truncated pause is a
       // truncation — `pendingAsks` is never consulted here (audit M26).
+      // The synthetic message.end carries the turn's accumulated usage
+      // (SPEC.md:779; R&D item 6 step 1), so a flushed turn, e.g. a completed
+      // Workflow invoke until the host completion signal exists, still reports
+      // the tokens it spent. There is never a turn.done here, so the usage
+      // appears only once.
       for (const turnId of openTurns) {
         if (!closedTurns.has(turnId)) {
           closedTurns.add(turnId);
-          a.closeMessage(`msg_${turnId}`);
+          a.closeMessage(`msg_${turnId}`, mapUsage(usageByTurn.get(turnId)));
         }
       }
       return a.flush();

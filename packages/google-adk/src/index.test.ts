@@ -1021,21 +1021,287 @@ describe("createAdkNormalizer — HITL pauses fold as outcome:paused at the real
     expect(done).toMatchObject({ type: "turn.done", outcome: { type: "success" } });
   });
 
-  it("a truncated stream with pending asks but no close-path completion aborts at flush — never fabricates paused (INV-FLUSH)", () => {
-    // No turnComplete/finishReason/errorCode on this event, so maybeCloseTurn's
-    // is_final_response check never fires; the stream ends without a terminal.
-    // A truncated pause is a truncation (INV-FLUSH) — flush() aborts, it does
-    // NOT consult the pending-asks bookkeeping to fabricate a paused close.
+  it("a truncated stream with pending asks but no pause-ending event aborts at flush — never fabricates paused (INV-FLUSH)", () => {
+    // Engine shape (@google/adk 2.1.0, requestInputTool): the model's
+    // adk_request_input call, then a content-less skipSummarization event that
+    // ENDS the pause. Here the stream is cut after the call, so the pause-ending
+    // event never arrives. The ask is pending, but a truncated pause is a
+    // truncation (INV-FLUSH): flush() aborts and does NOT consult the
+    // pending-asks bookkeeping to fabricate a paused close. (R&D item 6 step 1:
+    // an event carrying requestedAuthConfigs now IS a pause-ending event, so
+    // the pre-step-1 fixture no longer models truncation.)
     const out = run([
-      event([], {
-        actions: {
-          requestedAuthConfigs: { fc_gmail_1: { scope: "x" } },
-        },
+      event([{ functionCall: { name: "adk_request_input", args: { message: "Which city?" }, id: "adk-in-1" } }], {
+        turnComplete: true,
+        longRunningToolIds: ["adk-in-1"],
       }),
     ]);
     expect(out.some((e) => e.type === "hitl.ask")).toBe(true);
     expect(out.some((e) => e.type === "turn.done")).toBe(false);
     expect(out.find((e) => e.type === "turn.abort")).toBeDefined();
+  });
+});
+
+describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D item 6, step 1: no park, pauses close paused from push)", () => {
+  // Fixtures mirror event sequences observed on the REAL @google/adk 2.1.0
+  // engine (offline, stub model; authors, roles, reserved calls, actions,
+  // longRunningToolIds and nodeInfo as ADK built them). Every stream is one
+  // invoke through one Normalizer with exactly one flush (SPEC §8.0 Lifetime).
+  const INV = "e-inv-1";
+  const emptyActions = { stateDelta: {}, artifactDelta: {}, requestedAuthConfigs: {}, requestedToolConfirmations: {} };
+  const ev = (e: Partial<AdkEvent>): AdkEvent => ({ invocationId: INV, actions: { ...emptyActions }, ...e });
+  const node = (path: string) => ({ nodeInfo: { path } });
+  const usage = { promptTokenCount: 10, candidatesTokenCount: 3, totalTokenCount: 13 };
+
+  /** The whole-stream checks every fixture must pass. */
+  function fold(out: AgEvent[]) {
+    for (const e of out) expect(() => AgEvent.parse(e)).not.toThrow();
+    const r = new Reducer();
+    for (const e of out) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const terminals = out.filter((e) => e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort");
+    expect(terminals).toHaveLength(1);
+    const t = terminals[0];
+    if (t === undefined) throw new Error("no terminal");
+    // Nothing after the terminal (INV-MSG / INV-TURN).
+    expect(out.indexOf(t)).toBe(out.length - 1);
+    return t;
+  }
+  /** Split push() output from flush() output for one stream. */
+  function pushAndFlush(events: AdkEvent[]) {
+    const n = createAdkNormalizer();
+    const pushed = events.flatMap((e) => n.push(toJsonValue(e)));
+    const flushed = n.flush();
+    return { pushed, flushed, all: [...pushed, ...flushed] };
+  }
+
+  // (a)/(b)/(c) share the head: classify routes, the LLM node calls echo and answers.
+  const workflowHead = (): AdkEvent[] => [
+    ev({ author: "classify", output: "Echo wf-probe", route: "tool", ...node("spike_workflow.classify") }),
+    ev({
+      author: "spike",
+      content: { role: "model", parts: [{ functionCall: { name: "echo", args: { message: "wf-probe" }, id: "adk-c1" } }] },
+      turnComplete: true,
+      usageMetadata: usage,
+      ...node("spike_workflow.spike"),
+      isolationScope: "spike_workflow.spike@1",
+    }),
+    ev({
+      author: "spike",
+      content: { role: "user", parts: [{ functionResponse: { name: "echo", response: { echoed: "wf-probe" }, id: "adk-c1" } }] },
+      ...node("spike_workflow.spike"),
+      isolationScope: "spike_workflow.spike@1",
+    }),
+    ev({
+      author: "spike",
+      content: { role: "model", parts: [{ text: "Done." }] },
+      turnComplete: true,
+      finishReason: "STOP",
+      usageMetadata: usage,
+      output: "Done.",
+      nodeInfo: { path: "spike_workflow.spike", outputFor: ["spike_workflow.spike"], messageAsOutput: true },
+      isolationScope: "spike_workflow.spike@1",
+    }),
+  ];
+
+  it("(a) workflow pause: the LLM node's final text does NOT close; the root's input record closes paused from push()", () => {
+    const { pushed, flushed, all } = pushAndFlush([
+      ...workflowHead(),
+      ev({
+        author: "approve",
+        content: { role: "model", parts: [{ functionCall: { name: "adk_request_input", args: { interruptId: "approve-1", payload: { draft: "Done." }, message: "Approve?", response_schema: null }, id: "approve-1" } }] },
+        longRunningToolIds: ["approve-1"],
+        actions: { ...emptyActions, agentState: { input: "Done." } },
+        ...node("spike_workflow.approve"),
+      }),
+      ev({
+        author: "spike_workflow",
+        longRunningToolIds: ["approve-1"],
+        actions: { ...emptyActions, agentState: { input: "Echo wf-probe" } },
+        ...node("spike_workflow"),
+      }),
+    ]);
+    const t = fold(all);
+    expect(pushed).toContain(t);
+    expect(flushed.some((e) => e.type.startsWith("turn."))).toBe(false);
+    expect(t).toMatchObject({
+      type: "turn.done",
+      finishReason: "paused",
+      outcome: { type: "paused", asks: [{ askId: "approve-1", kind: "text", toolCallId: "approve-1", message: "Approve?", metadata: { payload: { draft: "Done." } } }] },
+      usage: { inputTokens: 20, outputTokens: 6, totalTokens: 26 },
+    });
+    expect(all.filter((e) => e.type === "hitl.ask")).toHaveLength(1);
+  });
+
+  it("(b) workflow complete: no success close; flush aborts (known gap until the host completion signal), message.end keeps the usage", () => {
+    const { flushed, all } = pushAndFlush([
+      ...workflowHead(),
+      ev({
+        author: "finalize",
+        content: { role: "model", parts: [{ text: "{\"done\":true,\"result\":\"Done.\"}" }] },
+        output: { done: true, result: "Done." },
+        nodeInfo: { path: "spike_workflow.finalize", outputFor: ["spike_workflow.finalize"] },
+      }),
+    ]);
+    const t = fold(all);
+    expect(flushed).toContain(t);
+    expect(t).toMatchObject({ type: "turn.abort", reason: "stream-truncated" });
+    expect(all.some((e) => e.type === "turn.done")).toBe(false);
+    const end = flushed.find((e) => e.type === "message.end");
+    expect(end).toMatchObject({ usage: { inputTokens: 20, outputTokens: 6, totalTokens: 26 } });
+  });
+
+  it("(c) terminal-LlmAgent workflow: the node's STOP text no longer closes success (documented regression until step 2)", () => {
+    const { flushed, all } = pushAndFlush(workflowHead());
+    const t = fold(all);
+    expect(flushed).toContain(t);
+    expect(t).toMatchObject({ type: "turn.abort" });
+  });
+
+  it("(i)/(j) truncated workflow streams (after the spike final, after classify) never close success", () => {
+    for (const events of [workflowHead(), workflowHead().slice(0, 1)]) {
+      const t = fold(pushAndFlush(events).all);
+      expect(t).toMatchObject({ type: "turn.abort" });
+    }
+  });
+
+  it("(d) plain requireConfirmation: the confirmation-request event closes paused with item 18's ask", () => {
+    const { pushed, all } = pushAndFlush([
+      ev({
+        author: "agent",
+        content: { role: "model", parts: [{ functionCall: { name: "delete_file", args: { path: "/x" }, id: "adk-orig" } }] },
+        turnComplete: true,
+        usageMetadata: usage,
+      }),
+      ev({
+        author: "agent",
+        content: { role: "user", parts: [{ functionCall: { name: "adk_request_confirmation", args: { originalFunctionCall: { name: "delete_file", args: { path: "/x" }, id: "adk-orig" }, toolConfirmation: { hint: "Approve delete_file()?", confirmed: false } }, id: "adk-conf" } }] },
+        longRunningToolIds: ["adk-conf"],
+        actions: { ...emptyActions, requestedToolConfirmations: { "adk-orig": { hint: "Approve delete_file()?", confirmed: false } }, skipSummarization: true },
+      }),
+    ]);
+    const t = fold(all);
+    expect(pushed).toContain(t);
+    expect(t).toMatchObject({
+      type: "turn.done",
+      finishReason: "paused",
+      outcome: { type: "paused", asks: [{ kind: "approval", toolCallId: "adk-orig", message: "Approve delete_file()?" }] },
+    });
+  });
+
+  it("(e) plain credential: the functionResponse carrying requestedAuthConfigs closes paused with item 12's ask (not the credential call)", () => {
+    const { pushed, all } = pushAndFlush([
+      ev({
+        author: "agent",
+        content: { role: "model", parts: [{ functionCall: { name: "read_mail", args: {}, id: "adk-orig" } }] },
+        turnComplete: true,
+      }),
+      ev({
+        author: "agent",
+        content: { role: "user", parts: [{ functionCall: { name: "adk_request_credential", args: { functionCallId: "adk-orig" }, id: "adk-cred" } }] },
+        longRunningToolIds: ["adk-cred"],
+      }),
+      ev({
+        author: "agent",
+        content: { role: "user", parts: [{ functionResponse: { name: "read_mail", response: { status: "pending auth" }, id: "adk-orig" } }] },
+        actions: { ...emptyActions, requestedAuthConfigs: { "adk-orig": { authScheme: { type: "apiKey", in: "header", name: "X-Key" }, credentialKey: "k" } } },
+      }),
+    ]);
+    const t = fold(all);
+    expect(pushed).toContain(t);
+    expect(t).toMatchObject({
+      type: "turn.done",
+      finishReason: "paused",
+      outcome: { type: "paused", asks: [{ kind: "auth", toolCallId: "adk-orig" }] },
+    });
+  });
+
+  it("(f) plain requestInputTool: text ask, closed paused by the content-less skipSummarization event", () => {
+    const { pushed, all } = pushAndFlush([
+      ev({
+        author: "agent",
+        content: { role: "model", parts: [{ functionCall: { name: "adk_request_input", args: { message: "Which city?" }, id: "adk-in" } }] },
+        turnComplete: true,
+        longRunningToolIds: ["adk-in"],
+      }),
+      ev({ author: "agent", actions: { ...emptyActions, skipSummarization: true } }),
+    ]);
+    const t = fold(all);
+    expect(pushed).toContain(t);
+    expect(t).toMatchObject({
+      type: "turn.done",
+      finishReason: "paused",
+      outcome: { type: "paused", asks: [{ askId: "adk-in", kind: "text", toolCallId: "adk-in", message: "Which city?" }] },
+    });
+  });
+
+  it("a response_schema object makes the input ask a form carrying the schema", () => {
+    const schema = { type: "object", properties: { city: { type: "string" } } };
+    const out = pushAndFlush([
+      ev({
+        author: "agent",
+        content: { role: "model", parts: [{ functionCall: { name: "adk_request_input", args: { message: "City?", response_schema: schema }, id: "adk-in" } }] },
+        turnComplete: true,
+        longRunningToolIds: ["adk-in"],
+      }),
+      ev({ author: "agent", actions: { ...emptyActions, skipSummarization: true } }),
+    ]).all;
+    expect(out.find((e) => e.type === "hitl.ask")).toMatchObject({ kind: "form", schema });
+    fold(out);
+  });
+
+  it("(g) workflow FunctionNode credential: no ask in step 1 (credential/confirmation calls map in step 2) → flush aborts, no park", () => {
+    const t = fold(
+      pushAndFlush([
+        ev({
+          author: "fetch",
+          content: { role: "model", parts: [{ functionCall: { name: "adk_request_credential", args: {}, id: "k2" } }] },
+          longRunningToolIds: ["k2"],
+          actions: { ...emptyActions, agentState: { input: "x" } },
+          ...node("cred_wf.fetch"),
+        }),
+        ev({ author: "cred_wf", longRunningToolIds: ["k2"], actions: { ...emptyActions, agentState: { input: "x" } }, ...node("cred_wf") }),
+      ]).all,
+    );
+    expect(t).toMatchObject({ type: "turn.abort" });
+  });
+
+  it("the nodeInfo gate is per EVENT, not a latch: a later plain final response still closes success", () => {
+    const t = fold(
+      pushAndFlush([
+        ev({ author: "tool_node", content: { role: "model", parts: [{ text: "node says" }] }, turnComplete: true, ...node("wf.tool_node") }),
+        ev({ author: "agent", content: { role: "model", parts: [{ text: "Final." }] }, turnComplete: true, finishReason: "STOP" }),
+      ]).all,
+    );
+    expect(t).toMatchObject({ type: "turn.done", outcome: { type: "success" }, finishReason: "stop" });
+  });
+
+  it("error closes stay immediate even on a nodeInfo event", () => {
+    const t = fold(
+      pushAndFlush([ev({ author: "spike", errorCode: "500", errorMessage: "boom", ...node("wf.spike") })]).all,
+    );
+    expect(t).toMatchObject({ type: "turn.error", code: "500" });
+  });
+
+  it("an adk_request_input call re-sent as the partial:false aggregate yields ONE ask", () => {
+    const call = { functionCall: { name: "adk_request_input", args: { message: "City?" }, id: "adk-in" } };
+    const out = pushAndFlush([
+      ev({ author: "agent", content: { role: "model", parts: [call] }, partial: true }),
+      ev({ author: "agent", content: { role: "model", parts: [call] }, turnComplete: true, longRunningToolIds: ["adk-in"] }),
+      ev({ author: "agent", actions: { ...emptyActions, skipSummarization: true } }),
+    ]).all;
+    expect(out.filter((e) => e.type === "hitl.ask")).toHaveLength(1);
+    fold(out);
+  });
+
+  it("negative control: a plain run with no pause and no nodeInfo closes exactly as before (success, mapped finishReason)", () => {
+    const t = fold(
+      pushAndFlush([
+        ev({ author: "agent", content: { role: "model", parts: [{ text: "Hi." }] }, turnComplete: true, finishReason: "STOP", usageMetadata: usage }),
+      ]).all,
+    );
+    expect(t).toMatchObject({ type: "turn.done", outcome: { type: "success" }, finishReason: "stop" });
+    expect(Object.keys(t)).toContain("usage");
   });
 });
 

@@ -89,6 +89,8 @@ agEvents.push(...n.flush());        // seal anything still open
 `flush()` drains buffered end-of-stream state. Any async/sync iterable of ADK
 `Event`s works — a live `runAsync()` run, or events you captured earlier.
 
+> **ADK pauses and Workflow runs.** Construct one normalizer per `runAsync()` call and call `flush()` once when it ends. When ADK pauses a run for a human, the turn closes from `push()` as `turn.done` with `outcome: "paused"` and `finishReason: "paused"`, carrying one ask per pending request. That covers a tool needing confirmation, a credential request, `adk_request_input` (`requestInputTool` or a Workflow `RequestInput`; text, or form when it declares a `response_schema`), and a Workflow node's input pause. On a graph `Workflow`, a node's own final answer never ends the run. **Known gap:** a Workflow run that COMPLETES has no end marker in ADK's stream, so today it closes at `flush()` as `turn.abort` (`stream-truncated`). That includes a Workflow whose last node is an LLM agent, which used to close `success` by mistake. The usage is kept on its `message.end`. A host-fed completion signal is planned to close these `success`.
+
 Then fold the resulting `AgEvent`s into messages and turns with
 `@silverprotocol/core`'s `reduce()` — the same client code regardless of which
 framework produced the stream.
