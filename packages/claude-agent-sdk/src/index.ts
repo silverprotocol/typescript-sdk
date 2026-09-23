@@ -196,6 +196,22 @@ function mapModelUsage(mu: SDKModelUsage): AgUsage {
   };
 }
 
+// `server_tool_use` is typed `{web_search_requests, web_fetch_requests} | null`,
+// but a result frame is discriminant-validated only, so a leaner producer (a
+// proxy, an older CLI) can omit it or a member. Through 0.7.0's stack an ABSENT
+// member passed the `!== null` check and threw a TypeError out of push()
+// (Tenet 6 / SPEC §8.0 "MUST NOT throw"; found by sp-protocol writing §10.23),
+// and a missing counter summed to NaN. Both counters numbers ⇒ their sum;
+// anything else ⇒ absent.
+function serverToolRequestCount(usage: unknown): number | undefined {
+  if (!isJsonObject(usage)) return undefined;
+  const stu = usage["server_tool_use"];
+  if (!isJsonObject(stu)) return undefined;
+  const search = stu["web_search_requests"];
+  const fetch = stu["web_fetch_requests"];
+  return typeof search === "number" && typeof fetch === "number" ? search + fetch : undefined;
+}
+
 function mapTurnUsage(
   usage: SDKResultSuccessMsg["usage"],
   totalCostUsd: number,
@@ -212,10 +228,7 @@ function mapTurnUsage(
     cacheReadTokens: usage.cache_read_input_tokens,
     cacheWriteTokens: usage.cache_creation_input_tokens,
     ...(reasoningTokens !== undefined ? { reasoningTokens } : {}),
-    serverToolRequests:
-      usage.server_tool_use !== null
-        ? usage.server_tool_use.web_search_requests + usage.server_tool_use.web_fetch_requests
-        : undefined,
+    serverToolRequests: serverToolRequestCount(usage),
     costUsd: totalCostUsd,
     cumulative: true,
     ...(Object.keys(byModel).length > 0 ? { byModel } : {}),
@@ -1003,6 +1016,31 @@ function resultMetaPayload(msg: SDKResultMsg): { [k: string]: JsonValue } | unde
     ...(Object.keys(byModel).length > 0 ? { modelUsage: byModel } : {}),
   };
   return Object.keys(payload).length > 0 ? payload : undefined;
+}
+
+// A result frame's turn usage, or undefined when the frame's usage trio is not
+// the shape `mapTurnUsage` dereferences. Both result arms are
+// discriminant-validated only, so every call goes through this guard (Tenet 6:
+// a malformed frame must not throw out of push()); absent ⇒ no usage key.
+// The guard covers each property `mapTurnUsage` reads unguarded: the `usage`
+// object and its minimal real shape (numeric input/output token counts, so an
+// empty `usage: {}` stays "no usage" as before), the `modelUsage` object and
+// each of its entries (`mapModelUsage`), and `total_cost_usd`.
+// `server_tool_use` is NOT required: `serverToolRequestCount` reads it totally,
+// so a leaner producer that omits it keeps the rest of its usage.
+function guardedTurnUsage(msg: SDKResultMsg): AgUsage | undefined {
+  const raw: unknown = msg;
+  if (!isJsonObject(raw)) return undefined;
+  const rawUsage = raw["usage"];
+  const rawModelUsage = raw["modelUsage"];
+  return isJsonObject(rawUsage) &&
+    typeof rawUsage["input_tokens"] === "number" &&
+    typeof rawUsage["output_tokens"] === "number" &&
+    isJsonObject(rawModelUsage) &&
+    Object.values(rawModelUsage).every(isJsonObject) &&
+    typeof raw["total_cost_usd"] === "number"
+    ? mapTurnUsage(msg.usage, msg.total_cost_usd, msg.modelUsage)
+    : undefined;
 }
 
 // ─── the stateful normalizer ──────────────────────────────────────────────────
@@ -2430,6 +2468,8 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // discriminant-validated, and false/absent must stay on the success path
       // byte-for-byte. The stash entry is consumed either way.
       const stashedError = takeStashedTurnError(turnId);
+      // Shape-guarded once for every close below (Tenet 6; see guardedTurnUsage).
+      const turnUsage = guardedTurnUsage(msg);
       const apiErrorTurn = msg.is_error === true;
       const safety: AgSafety[] | undefined =
         msg.stop_reason === "refusal" ? [{ category: "refusal", blocked: true }] : undefined;
@@ -2459,7 +2499,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         // the fold keeps the cost of every round the turn ran before failing.
         a.closeTurnError(turnId, {
           ...stashedError,
-          usage: mapTurnUsage(msg.usage, msg.total_cost_usd, msg.modelUsage),
+          ...(turnUsage !== undefined ? { usage: turnUsage } : {}),
         });
         return;
       }
@@ -2477,7 +2517,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
           message: typeof msg.result === "string" ? msg.result : code,
           code,
           retriable: apiErrorStatusRetriable(msg.api_error_status),
-          usage: mapTurnUsage(msg.usage, msg.total_cost_usd, msg.modelUsage),
+          ...(turnUsage !== undefined ? { usage: turnUsage } : {}),
         });
         return;
       }
@@ -2486,7 +2526,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         outcome: { type: "success", result: structuredOutput ?? msg.result },
         finishReason: mapStopReason(msg.stop_reason),
         ...(finishReasonRaw !== undefined ? { finishReasonRaw } : {}),
-        usage: mapTurnUsage(msg.usage, msg.total_cost_usd, msg.modelUsage),
+        ...(turnUsage !== undefined ? { usage: turnUsage } : {}),
         safety,
       });
       return;
@@ -2544,22 +2584,10 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         // usage (the success arm's mapping). This arm is only
         // discriminant-validated, so the usage trio is shape-guarded first
         // (Tenet 6: a malformed frame must not throw); absent ⇒ no usage key.
-        // The guard covers every property `mapTurnUsage` dereferences: the
-        // `server_tool_use` object (null allowed, as typed) and each
-        // `modelUsage` entry — `usage: {}` or a null entry would otherwise
+        // The guard (`guardedTurnUsage`) covers every property `mapTurnUsage`
+        // dereferences — `usage: {}` or a null modelUsage entry would otherwise
         // throw here, after the stash was already consumed.
-        const raw: unknown = msg;
-        const rawUsage = isJsonObject(raw) ? raw["usage"] : undefined;
-        const rawModelUsage = isJsonObject(raw) ? raw["modelUsage"] : undefined;
-        const usage =
-          isJsonObject(raw) &&
-          isJsonObject(rawUsage) &&
-          (rawUsage["server_tool_use"] === null || isJsonObject(rawUsage["server_tool_use"])) &&
-          isJsonObject(rawModelUsage) &&
-          Object.values(rawModelUsage).every(isJsonObject) &&
-          typeof raw["total_cost_usd"] === "number"
-            ? mapTurnUsage(msg.usage, msg.total_cost_usd, msg.modelUsage)
-            : undefined;
+        const usage = guardedTurnUsage(msg);
         a.closeTurnError(turnId, { ...stashedError, ...(usage !== undefined ? { usage } : {}) });
         return;
       }

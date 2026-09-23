@@ -1191,6 +1191,76 @@ describe("createClaudeNormalizer — permission_denials on an error-subtype resu
   });
 });
 
+// ─── Tenet 6: a result frame's usage never throws out of push() ─────────────
+// sp-protocol, writing §10.23's claude leg: a result whose `usage` lacks
+// `server_tool_use` threw a TypeError out of push() (`!== null` let `undefined`
+// through to a dereference). SPEC §8.0: a normalizer MUST NOT throw out of push().
+describe("createClaudeNormalizer — result usage is shape-guarded (Tenet 6, SPEC §8.0)", () => {
+  const LEAN_USAGE = { input_tokens: 100, output_tokens: 50, cache_creation_input_tokens: 10, cache_read_input_tokens: 20 };
+  const result = (usage: unknown, extra: { [k: string]: unknown } = {}): unknown => ({
+    ...(resultSuccess("end_turn") as object),
+    usage,
+    ...extra,
+  });
+  function pushAll(frames: unknown[]): AgEvent[] {
+    const n = createClaudeNormalizer();
+    return [...frames.flatMap((f) => n.push(JsonValue.parse(f))), ...n.flush()];
+  }
+
+  it("usage WITHOUT server_tool_use (a leaner producer): no throw, the token usage is kept, serverToolRequests is absent", () => {
+    let evs: AgEvent[] = [];
+    expect(() => {
+      evs = pushAll([result(LEAN_USAGE)]);
+    }).not.toThrow();
+    assertAllValid(evs);
+    const done = evs.find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({ usage: { inputTokens: 100, outputTokens: 50, cacheReadTokens: 20, cacheWriteTokens: 10, costUsd: 0.05 } });
+    // The key has always been written as `undefined` when there is no count
+    // (as for a null server_tool_use); it drops out on the JSON wire.
+    // (byModel entries keep their own per-model count from modelUsage.)
+    expect((done as { usage?: { serverToolRequests?: unknown } }).usage?.serverToolRequests).toBeUndefined();
+  });
+
+  it("a PARTIAL server_tool_use (one counter) gives no serverToolRequests — never NaN", () => {
+    const evs = pushAll([result({ ...LEAN_USAGE, server_tool_use: { web_search_requests: 2 } })]);
+    assertAllValid(evs);
+    const usage = (evs.find((e) => e.type === "turn.done") as { usage?: { serverToolRequests?: unknown } }).usage;
+    expect(usage).toBeDefined();
+    expect(usage?.serverToolRequests).toBeUndefined();
+  });
+
+  it("usage or modelUsage ABSENT: no throw, the turn still closes once, with no usage key", () => {
+    for (const frame of [
+      withoutKey(resultSuccess("end_turn"), "usage"),
+      withoutKey(resultSuccess("end_turn"), "modelUsage"),
+      { ...(resultSuccess("end_turn") as object), total_cost_usd: "0.05" },
+    ]) {
+      let evs: AgEvent[] = [];
+      expect(() => {
+        evs = pushAll([frame]);
+      }).not.toThrow();
+      const closes = turnCloses(evs);
+      expect(closes).toHaveLength(1);
+      expect(closes[0]).not.toHaveProperty("usage");
+    }
+  });
+
+  it("the stashed API-error close with a lean usage (no server_tool_use) closes once with that usage, and never throws", () => {
+    let evs: AgEvent[] = [];
+    expect(() => {
+      evs = pushAll([apiErrorAssistantFrame(), result(LEAN_USAGE, { is_error: true, api_error_status: 429 })]);
+    }).not.toThrow();
+    const closes = turnCloses(evs);
+    expect(closes).toHaveLength(1);
+    expect(closes[0]).toMatchObject({ type: "turn.error", code: "rate_limit", usage: { inputTokens: 100, outputTokens: 50 } });
+  });
+
+  it("NEGATIVE CONTROL: the full typed shape still sums both server-tool counters", () => {
+    const evs = pushAll([result({ ...LEAN_USAGE, server_tool_use: { web_search_requests: 2, web_fetch_requests: 3 } })]);
+    expect(evs.find((e) => e.type === "turn.done")).toMatchObject({ usage: { serverToolRequests: 5 } });
+  });
+});
+
 describe("createClaudeNormalizer — message.end usage", () => {
   it("populates message.end.usage from BetaMessage.usage", () => {
     const nonZeroUsage: BetaMessage["usage"] = {
