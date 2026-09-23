@@ -1391,7 +1391,8 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
   // ── OPAQUE / ADVANCED STATE PASSTHROUGH (LangGraph values/updates) ──
   // `snapshot` = full graph-state dict ("values" stream mode); REPLACE on fold (§5).
   z.object({ ...base, type: z.literal("state.snapshot"), snapshot: JsonValue }),
-  // `patch` = LangGraph "updates" ({node:{key:value}}) OR an RFC-6902 JSON Patch — both opaque.
+  // `patch` = an RFC-6902 JSON Patch array OR a key-replace object (each top-level key
+  // replaces the state's key whole, draft.4 §5; ADK's actions.stateDelta is one).
   z.object({ ...base, type: z.literal("state.delta"), patch: JsonValue }),
   // ── STREAMED ARTIFACTS (A2A) — side-channel landing (§5) ──
   z.object({

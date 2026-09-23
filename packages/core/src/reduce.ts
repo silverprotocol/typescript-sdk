@@ -913,7 +913,7 @@ export class Reducer {
         // Apply patch to #state using a tightened discriminator:
         //
         //   Array.isArray(patch)                 → RFC-6902 via applyPatch (R6)
-        //   typeof patch === "object" && != null  → LangGraph node-keyed last-writer-wins merge
+        //   typeof patch === "object" && != null  → key-replace: each top-level key set whole (draft.4, pkg-21)
         //   else (scalar / null)                  → explicit no-op
         //     (documented: a future third source may extend this discriminator;
         //      scalars are NOT an error and must NOT set #resync)
@@ -934,29 +934,26 @@ export class Reducer {
           }
           this.#state = result.value;
         } else if (typeof patch === "object" && patch !== null) {
-          // LangGraph node-keyed last-writer-wins merge:
-          //   patch = { nodeKey: { key: value, ... }, ... }
-          // For each top-level node key, shallow-merge its sub-object into #state[node].
-          // Creates #state as {} if undefined; creates the node sub-object if absent.
+          // Key-replace (draft.4 §5, pkg-21, founder-ruled): each top-level key
+          // of the patch REPLACES #state[key] whole, which is how ADK applies
+          // a stateDelta (sessions/state.js State.set). draft.3 merged one
+          // level deep: a write that rewrote part of an object-valued key kept
+          // the stale members (state-fold-gemini38: {cfg:{a:1,b:2}} then
+          // {cfg:{a:5}} folded to {cfg:{a:5,b:2}} where ADK holds {cfg:{a:5}}),
+          // and two partial writes to one key could assemble an object neither
+          // write held (DC-6). null is stored as a value. #state starts as {}
+          // when it is absent or not an object.
+          // Keys are DEFINED, never assigned, so an own `__proto__` key of a
+          // hand-built patch never selects the state's prototype.
           const base: { [k: string]: JsonValue } =
             this.#state !== undefined && typeof this.#state === "object" && !Array.isArray(this.#state)
               ? { ...this.#state }
               : {};
-          for (const nodeKey of Object.keys(patch)) {
-            const nodeUpdate = patch[nodeKey];
-            if (typeof nodeUpdate === "object" && nodeUpdate !== null && !Array.isArray(nodeUpdate)) {
-              // Shallow-merge the node's key-value pairs into base[nodeKey].
-              const existing = base[nodeKey];
-              const existingObj: { [k: string]: JsonValue } =
-                typeof existing === "object" && existing !== null && !Array.isArray(existing)
-                  ? { ...(existing as { [k: string]: JsonValue }) }
-                  : {};
-              base[nodeKey] = { ...existingObj, ...(nodeUpdate as { [k: string]: JsonValue }) };
-            } else {
-              // Non-object node value: replace the node entry wholesale.
-              if (nodeUpdate !== undefined) {
-                base[nodeKey] = nodeUpdate;
-              }
+          for (const key of Object.keys(patch)) {
+            const value = patch[key];
+            if (value !== undefined) {
+              // Copy-isolated from the event, as the capstone C1/C2 fixes require.
+              Object.defineProperty(base, key, { value: structuredClone(value), enumerable: true, writable: true, configurable: true });
             }
           }
           this.#state = base;

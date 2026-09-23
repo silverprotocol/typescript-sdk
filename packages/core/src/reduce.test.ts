@@ -1309,7 +1309,7 @@ describe("reduce — R7 artifact + memory side-channels", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// R8 — shared-state: state.snapshot REPLACE + state.delta (RFC-6902 / LangGraph)
+// R8 — shared-state: state.snapshot REPLACE + state.delta (RFC-6902 / key-replace object, draft.4)
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("reduce — R8 shared-state snapshot + delta", () => {
@@ -1385,25 +1385,107 @@ describe("reduce — R8 shared-state snapshot + delta", () => {
     expect(r.state).toEqual({ x: 0 });
   });
 
-  // (c) state.delta LangGraph {nodeX:{k:"v"}} → node-keyed merge into state.nodeX
-  it("(c) state.delta LangGraph {nodeX:{k:'v'}} → shallow-merged into state.nodeX", () => {
+  // (c) state.delta {nodeX:{k:"v"}} → key-replace (draft.4 §5, pkg-21): the key is set WHOLE
+  it("(c) state.delta {nodeX:{k:'v'}} replaces state.nodeX whole (draft.4 key-replace; draft.3 merged one level)", () => {
     const acc = new Reducer();
     // Seed initial state
     acc.push({ type: "state.snapshot", seq: 0, snapshot: { nodeX: { existing: "yes" } } });
-    // Merge a new key into nodeX (should not remove existing)
+    // Rewrite nodeX: the stale member does NOT survive
     acc.push({
       type: "state.delta",
       seq: 1,
       patch: { nodeX: { k: "v" } },
     });
     const r = acc.result();
-    expect(r.state).toEqual({ nodeX: { existing: "yes", k: "v" } });
+    expect(r.state).toEqual({ nodeX: { k: "v" } });
     expect(acc.needsResync).toBe(false);
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
 
-  // (c2) state.delta LangGraph with no prior state → creates state from scratch
-  it("(c2) state.delta LangGraph with no prior state → creates {nodeX:{k:'v'}}", () => {
+  describe("draft.4 key-replace object fold (pkg-21; §10.29 vectors)", () => {
+    const fold = (evs: AgEvent[]) => reduce(evs);
+    it("D1: {cfg:{a:1,b:2}} then {cfg:{a:5}} folds to {cfg:{a:5}} (state-fold-gemini38; ADK holds the same)", () => {
+      const out = fold([
+        { type: "state.delta", seq: 0, patch: { cfg: { a: 1, b: 2 } } },
+        { type: "state.delta", seq: 1, patch: { cfg: { a: 5 } } },
+      ]);
+      expect(out.result.state).toEqual({ cfg: { a: 5 } });
+      expect(out.needsResync).toBe(false);
+    });
+    it("keys the patch does not name are untouched", () => {
+      const out = fold([
+        { type: "state.delta", seq: 0, patch: { a: 1, b: { x: 1 } } },
+        { type: "state.delta", seq: 1, patch: { a: 9 } },
+      ]);
+      expect(out.result.state).toEqual({ a: 9, b: { x: 1 } });
+    });
+    it("null is stored as a value (the key is present)", () => {
+      const out = fold([{ type: "state.delta", seq: 0, patch: { k: null } }]);
+      const state = out.result.state as Record<string, unknown>;
+      expect(Object.hasOwn(state, "k")).toBe(true);
+      expect(state["k"]).toBeNull();
+      expect(out.needsResync).toBe(false);
+    });
+    it("a scalar patch is a no-op, never a resync", () => {
+      const out = fold([
+        { type: "state.snapshot", seq: 0, snapshot: { x: 1 } },
+        { type: "state.delta", seq: 1, patch: 7 },
+      ]);
+      expect(out.result.state).toEqual({ x: 1 });
+      expect(out.needsResync).toBe(false);
+    });
+    it("a JSON Patch against an absent working copy still resyncs, and state stays absent (unchanged)", () => {
+      const out = fold([{ type: "state.delta", seq: 0, patch: [{ op: "add", path: "/k", value: 1 }] }]);
+      expect(out.needsResync).toBe(true);
+      expect("state" in out.result).toBe(false);
+    });
+    it("DC-6: two writes to one key keep only the second, never an object assembled from both", () => {
+      const out = fold([
+        { type: "state.delta", seq: 0, patch: { obj: { kind: "a" } } },
+        { type: "state.delta", seq: 1, patch: { obj: { value: "v" } } },
+      ]);
+      expect(out.result.state).toEqual({ obj: { value: "v" } });
+      expect(Object.hasOwn((out.result.state as { obj: object }).obj, "kind")).toBe(false);
+    });
+    it("copy-isolated and batch == incremental; an own __proto__ key stays data, never a prototype", () => {
+      const evs: AgEvent[] = [
+        { type: "state.delta", seq: 0, patch: JSON.parse('{"k":{"a":1},"__proto__":{"polluted":true}}') },
+        { type: "state.delta", seq: 1, patch: [{ op: "replace", path: "/k/a", value: 2 }] },
+      ];
+      const before = JSON.stringify(evs);
+      const out = fold(evs);
+      const acc = new Reducer();
+      for (const e of evs) acc.push(e);
+      expect(acc.result()).toEqual(out.result);
+      expect(JSON.stringify(evs)).toBe(before); // the fold mutated no event
+      const state = out.result.state as Record<string, unknown>;
+      expect(Object.getPrototypeOf(state)).toBe(Object.prototype);
+      expect((state as { k: unknown }).k).toEqual({ a: 2 });
+      (state as { k: { a: number } }).k.a = 99; // a consumer mutating the result
+      expect((evs[0] as unknown as { patch: { k: { a: number } } }).patch.k.a).toBe(1);
+      expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
+    });
+    it("an own __proto__ key of a patch is stored as data under that key, never as the state's prototype", () => {
+      const out = fold([{ type: "state.delta", seq: 0, patch: JSON.parse('{"__proto__":{"polluted":true},"k":1}') }]);
+      const state = out.result.state as Record<string, unknown>;
+      expect(Object.getPrototypeOf(state)).toBe(Object.prototype);
+      expect(Object.getOwnPropertyDescriptor(state, "__proto__")?.value).toEqual({ polluted: true });
+      expect(state["k"]).toBe(1);
+      expect(out.needsResync).toBe(false);
+    });
+    it("the fold holds a copy: mutating a pushed patch afterwards changes no state", () => {
+      const ev = { type: "state.delta", seq: 0, patch: { cfg: { a: 1, list: [1] } } } as AgEvent;
+      const acc = new Reducer();
+      acc.push(ev);
+      const patch = (ev as unknown as { patch: { cfg: { a: number; list: number[] } } }).patch;
+      patch.cfg.a = 99; // a host reusing its event object
+      patch.cfg.list.push(2);
+      expect(acc.result().state).toEqual({ cfg: { a: 1, list: [1] } });
+    });
+  });
+
+  // (c2) state.delta key-replace object with no prior state → creates state from scratch
+  it("(c2) state.delta key-replace object with no prior state → creates {nodeX:{k:'v'}}", () => {
     const r = reduce([
       { type: "state.delta", seq: 0, patch: { nodeX: { k: "v" } } },
     ]).result;
@@ -2308,7 +2390,7 @@ const EXPECTED_RESULT = {
   memory: [
     { scope: "user" as const, key: "pref", value: "dark" },
   ],
-  // state.delta LangGraph node-merge creates {agent:{status:"running"}} from no prior state
+  // state.delta key-replace sets {agent:{status:"running"}} from no prior state (draft.4 §5)
   state: { agent: { status: "running" } },
 } satisfies import("./agjson.js").AgReduceResult;
 
