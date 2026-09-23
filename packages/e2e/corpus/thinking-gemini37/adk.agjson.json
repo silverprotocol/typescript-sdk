@@ -113,14 +113,14 @@
   {
     "type": "reasoning.start",
     "seq": 13,
-    "id": "reasoning:0",
+    "id": "reasoning:1",
     "messageId": "msg_turn_e-c6b13ca9-ed1c-4180-ab99-fb43b4959f1e",
     "turnId": "turn_e-c6b13ca9-ed1c-4180-ab99-fb43b4959f1e"
   },
   {
     "type": "reasoning.delta",
     "seq": 14,
-    "id": "reasoning:0",
+    "id": "reasoning:1",
     "messageId": "msg_turn_e-c6b13ca9-ed1c-4180-ab99-fb43b4959f1e",
     "delta": "Here's my attempt at summarizing the thought process, tailored for an expert user:\n\n**Generating the Final Response**\n\nOkay, so the tool has identified itself as 'thinking-probe-gemini37'. That gives me some valuable context, even if the user isn't explicitly told. It suggests we're working with an internal, potentially experimental model. Now, I need to synthesize the information, assumptions, and implicit goals of the interaction and craft a final response. The key here is to leverage my understanding of the user's expertise. I need to assume a high degree of technical understanding and precision in their field. The output needs to be concise, accurate, and provide a clear, unambiguous answer based on the preceding prompts. Furthermore, I need to make sure to remain in line with the implied expectations of the model.\n\n\n",
     "turnId": "turn_e-c6b13ca9-ed1c-4180-ab99-fb43b4959f1e"
@@ -128,7 +128,7 @@
   {
     "type": "reasoning.end",
     "seq": 15,
-    "id": "reasoning:0",
+    "id": "reasoning:1",
     "messageId": "msg_turn_e-c6b13ca9-ed1c-4180-ab99-fb43b4959f1e",
     "turnId": "turn_e-c6b13ca9-ed1c-4180-ab99-fb43b4959f1e",
     "provider": "google"
@@ -136,7 +136,7 @@
   {
     "type": "text.start",
     "seq": 16,
-    "id": "text:1",
+    "id": "text:0",
     "messageId": "msg_turn_e-c6b13ca9-ed1c-4180-ab99-fb43b4959f1e",
     "turnId": "turn_e-c6b13ca9-ed1c-4180-ab99-fb43b4959f1e",
     "providerMetadata": {
@@ -148,7 +148,7 @@
   {
     "type": "text.delta",
     "seq": 17,
-    "id": "text:1",
+    "id": "text:0",
     "messageId": "msg_turn_e-c6b13ca9-ed1c-4180-ab99-fb43b4959f1e",
     "delta": "thinking-probe-gemini37",
     "turnId": "turn_e-c6b13ca9-ed1c-4180-ab99-fb43b4959f1e"
@@ -156,7 +156,7 @@
   {
     "type": "text.end",
     "seq": 18,
-    "id": "text:1",
+    "id": "text:0",
     "messageId": "msg_turn_e-c6b13ca9-ed1c-4180-ab99-fb43b4959f1e",
     "turnId": "turn_e-c6b13ca9-ed1c-4180-ab99-fb43b4959f1e",
     "providerMetadata": {

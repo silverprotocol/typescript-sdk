@@ -113,14 +113,14 @@
   {
     "type": "reasoning.start",
     "seq": 13,
-    "id": "reasoning:0",
+    "id": "reasoning:1",
     "messageId": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
   },
   {
     "type": "reasoning.delta",
     "seq": 14,
-    "id": "reasoning:0",
+    "id": "reasoning:1",
     "messageId": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "delta": "Okay, here's my interpretation of that thought process, tailored for an expert user:\n\n**Responding to the Echo**\n\nAlright, the tool is showing the expected echo. That's the signal, right? My internal systems are confirming the data. So, what's next? It’s time to move beyond the data acquisition phase. The user, with their depth of knowledge, needs the next layer of information and now I need to formulate a response to engage them further. There are parameters to this response, so I'll create a response now.\n\n\n",
     "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
@@ -128,7 +128,7 @@
   {
     "type": "reasoning.end",
     "seq": 15,
-    "id": "reasoning:0",
+    "id": "reasoning:1",
     "messageId": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "provider": "google"
@@ -136,7 +136,7 @@
   {
     "type": "text.start",
     "seq": 16,
-    "id": "text:1",
+    "id": "text:0",
     "messageId": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "providerMetadata": {
@@ -148,7 +148,7 @@
   {
     "type": "text.delta",
     "seq": 17,
-    "id": "text:1",
+    "id": "text:0",
     "messageId": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "delta": "thinking-probe-gemini38",
     "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
@@ -156,7 +156,7 @@
   {
     "type": "text.end",
     "seq": 18,
-    "id": "text:1",
+    "id": "text:0",
     "messageId": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "providerMetadata": {
