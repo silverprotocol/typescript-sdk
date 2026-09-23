@@ -24,10 +24,25 @@
  * first iteration with a clear message.
  */
 
-import { Agent, MCPServerStreamableHttp, run } from "@openai/agents";
+import { Agent, MCPServerStreamableHttp, type ModelSettings, run } from "@openai/agents";
 import type { JsonValue } from "@silverprotocol/core";
 import { toJsonValue } from "@silverprotocol/core";
 import type { CaptureRunInput } from "../types.js";
+
+/**
+ * The Agent's `modelSettings` for this capture, or `undefined` when no knob asks
+ * for any (then NO `modelSettings` key is passed — byte-identical to the
+ * pre-knob agent). Today one knob: `reasoningSummary` → `reasoning.summary`
+ * (agents-core 0.18.0 `dist/model.d.ts`:37, `ModelSettingsReasoning.summary:
+ * 'auto' | 'concise' | 'detailed' | null`), so a capture can request the
+ * reasoning-summary text the commentary scenario needs (sp-probe ad6f19f,
+ * rnd 13+17 stage 2 evidence). Effort is left at the API default. Exported
+ * so the keyless smoke test can pin it.
+ */
+export function openaiModelSettings(input: CaptureRunInput): ModelSettings | undefined {
+  if (input.reasoningSummary === undefined) return undefined;
+  return { reasoning: { summary: input.reasoningSummary } };
+}
 
 /**
  * Yields the RAW native `@openai/agents` `RunStreamEvent` stream, unnormalized,
@@ -110,11 +125,13 @@ export async function* runOpenaiCapture(input: CaptureRunInput): AsyncIterable<J
       await server.connect();
     }
 
+    const modelSettings = openaiModelSettings(input);
     const agent = new Agent({
       name: "spike",
       instructions: input.systemPrompt ?? "You are a helpful assistant.",
       model: input.model ?? "gpt-4o-mini",
       mcpServers,
+      ...(modelSettings !== undefined ? { modelSettings } : {}),
     });
 
     const stream = await run(agent, input.prompt, {

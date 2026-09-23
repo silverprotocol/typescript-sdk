@@ -51,3 +51,20 @@ describe("runOpenaiCapture — module-load smoke", () => {
     await expect(iter[Symbol.asyncIterator]().next()).rejects.toThrow(/OPENAI_API_KEY/);
   });
 });
+
+// The commentary capture (commentary-gpt6sol, sp-probe ad6f19f) needs reasoning
+// summaries: `CaptureRunInput.reasoningSummary` → the Agent's
+// `modelSettings.reasoning.summary` (agents-core 0.18.0 dist/model.d.ts:37,
+// `ModelSettingsReasoning.summary: 'auto' | 'concise' | 'detailed' | null`).
+// Keyless: the helper is pure, so no SDK run or network is involved.
+describe("openaiModelSettings — reasoningSummary knob", () => {
+  it.each(["auto", "concise", "detailed"] as const)("reasoningSummary %s → { reasoning: { summary } }", (summary) => {
+    expect(
+      runModule.openaiModelSettings({ prompt: "p", mcpServers: {}, allowedTools: [], reasoningSummary: summary }),
+    ).toEqual({ reasoning: { summary } });
+  });
+
+  it("absent → undefined (the Agent gets NO modelSettings key — byte-identical to before the knob)", () => {
+    expect(runModule.openaiModelSettings({ prompt: "p", mcpServers: {}, allowedTools: [] })).toBeUndefined();
+  });
+});
