@@ -1641,6 +1641,8 @@ describe("§10.29 — forward-compatible records and inputs (draft.4; §0.2 stor
     expect(reject({ ...ENV, kind: 9 }).code).toBe("malformed");
     expect(reject({ ...ENV, kind: "resume", answers: [{ askId: "a" }] })).toEqual({ code: "malformed", path: ["answers", 0, "status"] });
     expect(reject(start({ capabilities: { hitl: { grantModes: {} } } }))).toEqual({ code: "malformed", path: ["capabilities", "hitl", "grantModes"] });
+    // draft.4 §3/§6: viewMessageTurns is a boolean; an MCP-shaped modalities object where it belongs is malformed at the member
+    expect(reject(start({ capabilities: { uiResources: { viewMessageTurns: { text: {} } } } }))).toEqual({ code: "malformed", path: ["capabilities", "uiResources", "viewMessageTurns"] });
   });
 
   it("(b8) a different major version is major-mismatch", () => {
@@ -1678,6 +1680,10 @@ describe("§10.29 — forward-compatible records and inputs (draft.4; §0.2 stor
     const caps = start({ capabilities: { zzTop: true, hitl: { ask: true, zzNested: [1] } } });
     const r2 = checkAgInput(structuredClone(caps));
     expect(r2.ok && isDeepStrictEqual(r2.input, caps)).toBe(true);
+    // draft.4 §3/§6: the viewMessageTurns flag, a known sibling and an unknown sibling all round-trip intact
+    const view = start({ capabilities: { uiResources: { htmlResources: true, viewMessageTurns: true, zzFuture: 1 } } });
+    const r3 = checkAgInput(structuredClone(view));
+    expect(r3.ok && isDeepStrictEqual(r3.input, view)).toBe(true);
   });
 });
 
