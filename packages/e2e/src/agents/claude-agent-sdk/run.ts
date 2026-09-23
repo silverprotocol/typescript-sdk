@@ -19,7 +19,9 @@
  * and returns an AsyncIterable without starting the SDK.
  */
 
+import { randomUUID, type UUID } from "node:crypto";
 import { query } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { JsonValue } from "@silverprotocol/core";
 import { toJsonValue } from "@silverprotocol/core";
 
@@ -59,6 +61,56 @@ export interface CaptureRunInput {
    * CLI's own selector (connector_text: narration only, no thinking summaries).
    */
   thinkingDisplay?: "summarized" | "omitted";
+  /**
+   * Multi-result capture (one invoke, several results): when set and
+   * non-empty, `query()` runs in STREAMING-INPUT mode. `prompt` is sent first,
+   * then each follow-up only after the previous turn's `result` frame has been
+   * yielded, and the input ends after the last one. Every streamed prompt
+   * carries a caller-minted `uuid`, so the SDK stamps `user_message_uuid(s)` on
+   * its reply frames. Absent or empty ⇒ the plain string prompt, byte-identical
+   * to before (the live receipt for the facet's one-turnId-per-turn fix).
+   */
+  followUpPrompts?: string[];
+}
+
+/**
+ * The streaming-input prompt source behind `followUpPrompts`: yields the first
+ * prompt at once and each later one only after `resultSeen()` is called (the
+ * run loop calls it on every `result` frame), then ends. Exported for its unit
+ * test, which exercises the gate without the SDK.
+ */
+export function gatedPromptStream(
+  prompts: readonly string[],
+  mintUuid: () => UUID = randomUUID,
+): { stream: AsyncIterable<SDKUserMessage>; resultSeen: () => void } {
+  let release: (() => void) | undefined;
+  let pendingReleases = 0;
+  const resultSeen = (): void => {
+    if (release !== undefined) {
+      const r = release;
+      release = undefined;
+      r();
+    } else {
+      pendingReleases++;
+    }
+  };
+  async function* stream(): AsyncIterable<SDKUserMessage> {
+    for (let i = 0; i < prompts.length; i++) {
+      if (i > 0) {
+        if (pendingReleases > 0) pendingReleases--;
+        else await new Promise<void>((resolve) => { release = resolve; });
+      }
+      const text = prompts[i];
+      if (text === undefined) continue;
+      yield {
+        type: "user",
+        message: { role: "user", content: text },
+        parent_tool_use_id: null,
+        uuid: mintUuid(),
+      };
+    }
+  }
+  return { stream: stream(), resultSeen };
 }
 
 // ─── Implementation ───────────────────────────────────────────────────────────
@@ -133,8 +185,10 @@ export async function* runClaudeCapture(input: CaptureRunInput): AsyncIterable<J
     };
   }
 
+  const followUps = input.followUpPrompts ?? [];
+  const gated = followUps.length > 0 ? gatedPromptStream([input.prompt, ...followUps]) : undefined;
   const response = query({
-    prompt: input.prompt,
+    prompt: gated !== undefined ? gated.stream : input.prompt,
     options: {
       model: input.model ?? "claude-sonnet-4-6",
       mcpServers: sdkMcpServers,
@@ -158,6 +212,9 @@ export async function* runClaudeCapture(input: CaptureRunInput): AsyncIterable<J
       // Wire projection (audit D5-a) — toJsonValue materializes the WHOLE raw
       // message (including fields typed as `unknown` by the SDK) into plain JsonValue.
       yield toJsonValue(msg);
+      // Multi-result capture: a turn ended, so release the next prompt (after
+      // the result frame itself was yielded).
+      if (gated !== undefined && msg.type === "result") gated.resultSeen();
     }
   } finally {
     // Remove the abort listener (no-op if it was never added) so a long-lived
