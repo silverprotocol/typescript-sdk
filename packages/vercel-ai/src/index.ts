@@ -797,7 +797,9 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
    * (the assembler rolls back, so it consumes no seq; INV-SEQ), the facet's
    * own state rolls back with it, and one core `error` event is emitted in its
    * place. The committed corpus never reaches it: the fuzz of 14,398
-   * envelope-valid malformed parts found no throw.
+   * envelope-valid malformed parts found no throw. Cost: one checkpoint per
+   * part, which grows with the messages seen (see StreamAssembler.checkpoint:
+   * 1.6 ms per 100-step invoke, 41 ms per 500-step invoke).
    */
   function transact(step: () => void): AgEvent[] {
     const cp = a.checkpoint();

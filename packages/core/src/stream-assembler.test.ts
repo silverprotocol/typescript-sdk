@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { StreamAssembler } from "./stream-assembler.js";
 import { AgEvent, AgProviderMeta } from "./agjson.js";
 import { Reducer } from "./reduce.js";
@@ -601,6 +603,26 @@ describe("StreamAssembler.checkpoint / rollback (option A, used by vercel-ai)", 
     expect(r.needsResync).toBe(false);
     // M2 was rolled back, so INV-FLUSH has nothing left open to close.
     expect(after.filter((e) => e.type === "message.end").map((e) => (e as { id: string }).id)).toEqual(["M1"]);
+  });
+
+  it("checkpoint() and rollback() cover every data field the assembler declares (a new field cannot silently escape a rollback)", () => {
+    // Source reflection (sp-cto's nit 1): a data field added later without a
+    // checkpoint()/rollback() line would make rollback partial with no other
+    // test failing. Methods (`#name(`) are not state.
+    const src = readFileSync(join(import.meta.dirname, "stream-assembler.ts"), "utf8");
+    const fields = [...src.matchAll(/^  #(\w+)\s*[:=]/gm)].map((m) => m[1]!);
+    expect(fields).toEqual(["seq", "seenTurns", "openTurns", "openMessages", "msgTurn", "lastTurn", "turnStack", "cumulative", "buffer"]);
+    const body = (signature: string): string => {
+      const i = src.indexOf(signature);
+      expect(i, signature).toBeGreaterThan(0);
+      return src.slice(i, src.indexOf("\n  }\n", i));
+    };
+    const cp = body("  checkpoint(): AssemblerCheckpoint {");
+    const rb = body("  rollback(cp: AssemblerCheckpoint): void {");
+    for (const f of fields) {
+      expect(cp, `checkpoint() reads #${f}`).toContain(`this.#${f}`);
+      expect(rb, `rollback() restores #${f}`).toMatch(new RegExp(`this\\.#${f}\\s*=`));
+    }
   });
 
   it("the checkpoint is reusable and does not alias live state", () => {

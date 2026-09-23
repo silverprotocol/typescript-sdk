@@ -8,6 +8,8 @@
  * everywhere but F1 (kept there to prove extra-field tolerance).
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { AgEvent, Reducer, StreamAssembler, reduce as foldBatch } from "@silverprotocol/core";
 import { VERCEL_HOST_ERROR, createVercelNormalizer } from "./index.js";
 
@@ -2091,6 +2093,36 @@ describe("per-native guard: a throw mid-part discards that part's batch, emits o
     expect(types(flushed).slice(1)).toContain("message.end");
     expect(JSON.stringify(out)).not.toContain("SECRET_");
     expectFoldsClean(out);
+  });
+
+  it("saveLocal()/restoreLocal() cover every mutable per-invoke local of the factory (a new one cannot silently escape a rollback)", () => {
+    // Source reflection (sp-cto's nit 3): the factory's top-level `let`s and
+    // Set/Map locals are the facet's per-invoke state; each must be saved and
+    // restored, or a rolled-back part leaves it advanced.
+    const src = readFileSync(join(import.meta.dirname, "index.ts"), "utf8");
+    const start = src.indexOf("export function createVercelNormalizer(");
+    const factory = src.slice(start, src.indexOf("\n}\n", start));
+    const lets = [...factory.matchAll(/^  let (\w+)/gm)].map((m) => m[1]!);
+    const containers = [...factory.matchAll(/^  const (\w+)(?::[^=]+)? = new (?:Set|Map)\b/gm)].map((m) => m[1]!);
+    const locals = [...lets, ...containers];
+    expect(locals.sort()).toEqual(
+      ["deniedReasons", "msgId", "openReasoningIds", "openTextIds", "pendingToolIds", "stashedError", "stepId", "stepIndex", "turnClosed", "turnCounter", "turnId"],
+    );
+    const body = (signature: string): string => {
+      const i = factory.indexOf(signature);
+      expect(i, signature).toBeGreaterThan(0);
+      return factory.slice(i, factory.indexOf("\n  }\n", i));
+    };
+    const save = body("  function saveLocal() {");
+    const restore = body("  function restoreLocal(");
+    for (const name of lets) {
+      expect(save, `saveLocal() keeps ${name}`).toMatch(new RegExp(`\\b${name}\\b`));
+      expect(restore, `restoreLocal() sets ${name}`).toMatch(new RegExp(`\\b${name} = s\\.${name};`));
+    }
+    for (const name of containers) {
+      expect(save, `saveLocal() copies ${name}`).toContain(`[...${name}]`);
+      expect(restore, `restoreLocal() refills ${name}`).toContain(`${name}.clear();`);
+    }
   });
 
   it("no throw: the guard is invisible (identical output with and without the spies armed at an unreachable call)", () => {

@@ -662,6 +662,14 @@ export class StreamAssembler {
    * driving throws. The discarded partial batch then consumes no seq
    * (INV-SEQ), and no turn, message or block it half-opened survives.
    * Treat the value as opaque.
+   *
+   * Cost: O(state) per call. The message→turn map and the seen-turn set keep
+   * every message and turn of the invoke, so a facet that checkpoints per
+   * native pays O(natives × messages) per invoke. Measured 2026-09-24 on
+   * vercel-ai (the cost over a constant-size checkpoint, per invoke):
+   * 0.006 ms for the largest corpus native (50 parts), 1.6 ms for a synthetic
+   * 100-step run (702 parts), 41 ms for 500 steps (3,502 parts). Copy-on-write
+   * is the fix if that ever matters.
    */
   checkpoint(): AssemblerCheckpoint {
     return {
