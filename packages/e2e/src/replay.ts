@@ -83,9 +83,10 @@ export interface ReplayResult {
  * what only the host knows: that the run ended cleanly (adk-js writes no in-band
  * completion marker). It is harness data, not framework wire, so replay strips
  * it before driving the normalizer and before the census, and reports
- * `hostCompleted`. Feeding it to a facet is that facet's own opt-in (the
- * google-adk step-2 host-completion option), wired there, never here; until
- * then a cassette replays byte-identically with or without the marker.
+ * `hostCompleted`. For the google-adk facet a marker opts in to its
+ * `hostCompletion` option (§8.0 host obligation 4) and is fed to it after the
+ * natives; every ADK golden still replays byte-identically with or without the
+ * marker, because the facet's stashed close lands at the same seq.
  */
 export const HOST_COMPLETE_MARKER = "__host_complete__";
 
@@ -259,7 +260,10 @@ export async function replayNatives(recorded: JsonValue[], fw: Framework): Promi
     fw === "openai"
       ? createOpenaiNormalizer()
       : fw === "adk"
-        ? createAdkNormalizer()
+        ? // A recorded host-completion marker opts the google-adk facet into
+          // SPEC §8.0 host obligation 4 and is fed to it after the natives
+          // (below): its own opt-in, as HOST_COMPLETE_MARKER's doc promises.
+          createAdkNormalizer(hostCompleted ? { hostCompletion: true } : {})
         : fw === "vercel"
           ? createVercelNormalizer()
           : createClaudeNormalizer();
@@ -270,6 +274,9 @@ export async function replayNatives(recorded: JsonValue[], fw: Framework): Promi
       // plain JsonValue, exactly as the wire delivers it.
       agjson.push(toWire(e));
     }
+  }
+  if (hostCompleted && fw === "adk") {
+    for (const e of normalizer.push({ type: HOST_COMPLETE_MARKER })) agjson.push(toWire(e));
   }
   for (const e of normalizer.flush()) {
     agjson.push(toWire(e));

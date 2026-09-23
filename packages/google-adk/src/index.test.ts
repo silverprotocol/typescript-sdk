@@ -1881,7 +1881,7 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
     expect(end).toMatchObject({ usage: { inputTokens: 20, outputTokens: 6, totalTokens: 26 } });
   });
 
-  it("(c) terminal-LlmAgent workflow: the node's STOP text no longer closes success (documented regression until step 2)", () => {
+  it("(c) terminal-LlmAgent workflow without the host-completion signal: the node's STOP text never closes success (abort at flush; the hostCompletion opt-in closes it success)", () => {
     const { flushed, all } = pushAndFlush(workflowHead());
     const t = fold(all);
     expect(flushed).toContain(t);
@@ -1895,7 +1895,7 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
     }
   });
 
-  it("(d) plain requireConfirmation: the confirmation-request event closes paused with item 18's ask", () => {
+  it("(d) plain requireConfirmation: the confirmation-request event closes paused with ONE approval ask keyed by the reserved call (item 26)", () => {
     const { pushed, all } = pushAndFlush([
       ev({
         author: "agent",
@@ -1915,11 +1915,25 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
     expect(t).toMatchObject({
       type: "turn.done",
       finishReason: "paused",
-      outcome: { type: "paused", asks: [{ kind: "approval", toolCallId: "adk-orig", message: "Approve delete_file()?" }] },
+      outcome: {
+        type: "paused",
+        asks: [
+          {
+            askId: "approval_adk-conf",
+            kind: "approval",
+            toolCallId: "adk-conf",
+            resumeBinding: "id",
+            message: "Approve delete_file()?",
+            metadata: { confirmed: false, originalFunctionCallId: "adk-orig" },
+          },
+        ],
+      },
     });
+    // item 26 dedupe: item 18's entry for the same original id yields no second ask.
+    expect(all.filter((e) => e.type === "hitl.ask")).toHaveLength(1);
   });
 
-  it("(e) plain credential: the functionResponse carrying requestedAuthConfigs closes paused with item 12's ask (not the credential call)", () => {
+  it("(e) plain credential: the functionResponse carrying requestedAuthConfigs closes paused with ONE auth ask keyed by the reserved call (item 26)", () => {
     const { pushed, all } = pushAndFlush([
       ev({
         author: "agent",
@@ -1942,8 +1956,21 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
     expect(t).toMatchObject({
       type: "turn.done",
       finishReason: "paused",
-      outcome: { type: "paused", asks: [{ kind: "auth", toolCallId: "adk-orig" }] },
+      outcome: {
+        type: "paused",
+        asks: [
+          {
+            askId: "auth_adk-cred",
+            kind: "auth",
+            toolCallId: "adk-cred",
+            resumeBinding: "id",
+            metadata: { originalFunctionCallId: "adk-orig" },
+          },
+        ],
+      },
     });
+    // item 26 dedupe: item 12's entry for the same original id yields no second ask.
+    expect(all.filter((e) => e.type === "hitl.ask")).toHaveLength(1);
   });
 
   it("(f) plain requestInputTool: text ask, closed paused by the content-less skipSummarization event", () => {
@@ -1980,9 +2007,8 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
     fold(out);
   });
 
-  it("(g) workflow FunctionNode credential: no ask in step 1 (credential/confirmation calls map in step 2) → flush aborts, no park", () => {
-    const t = fold(
-      pushAndFlush([
+  it("(g) workflow FunctionNode credential: the reserved call yields an auth ask and the root record closes paused (item 26)", () => {
+    const { pushed, all } = pushAndFlush([
         ev({
           author: "fetch",
           content: { role: "model", parts: [{ functionCall: { name: "adk_request_credential", args: {}, id: "k2" } }] },
@@ -1991,9 +2017,14 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
           ...node("cred_wf.fetch"),
         }),
         ev({ author: "cred_wf", longRunningToolIds: ["k2"], actions: { ...emptyActions, agentState: { input: "x" } }, ...node("cred_wf") }),
-      ]).all,
-    );
-    expect(t).toMatchObject({ type: "turn.abort" });
+      ]);
+    const t = fold(all);
+    expect(pushed).toContain(t);
+    expect(t).toMatchObject({
+      type: "turn.done",
+      finishReason: "paused",
+      outcome: { type: "paused", asks: [{ askId: "auth_k2", kind: "auth", toolCallId: "k2", resumeBinding: "id" }] },
+    });
   });
 
   it("the nodeInfo gate is per EVENT, not a latch: a later plain final response still closes success", () => {
@@ -2032,6 +2063,141 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
     );
     expect(t).toMatchObject({ type: "turn.done", outcome: { type: "success" }, finishReason: "stop" });
     expect(Object.keys(t)).toContain("usage");
+  });
+});
+
+describe("createAdkNormalizer({ hostCompletion: true }) — the host-completion sentinel (SPEC §8.0 host obligation 4, draft.4; R&D item 6 step 2)", () => {
+  const INV = "e-hc-1";
+  const SENTINEL: JsonValue = { type: "__host_complete__" };
+  const empty = { stateDelta: {}, artifactDelta: {}, requestedAuthConfigs: {}, requestedToolConfirmations: {} };
+  const ev = (e: Partial<AdkEvent>): AdkEvent => ({ invocationId: INV, actions: { ...empty }, ...e });
+  const usage = { promptTokenCount: 10, candidatesTokenCount: 3, totalTokenCount: 13 };
+  const TERMINAL = new Set(["turn.done", "turn.error", "turn.abort"]);
+
+  function drive(events: AdkEvent[], opts: { hostCompletion?: boolean; sentinel?: boolean }) {
+    const n = createAdkNormalizer(opts.hostCompletion === true ? { hostCompletion: true } : {});
+    const pushed = events.flatMap((e) => n.push(toJsonValue(e)));
+    const onSentinel = opts.sentinel === true ? n.push(SENTINEL) : [];
+    const flushed = n.flush();
+    const all = [...pushed, ...onSentinel, ...flushed];
+    const r = new Reducer();
+    for (const e of all) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const terms = all.filter((e) => TERMINAL.has(e.type));
+    expect(terms).toHaveLength(1);
+    expect(all.indexOf(terms[0]!)).toBe(all.length - 1);
+    return { pushed, onSentinel, flushed, all, term: terms[0]! };
+  }
+
+  const plain = (finishReason = "STOP"): AdkEvent[] => [
+    ev({ author: "agent", content: { role: "model", parts: [{ text: "Hi." }] }, turnComplete: true, finishReason, usageMetadata: usage }),
+  ];
+  const workflow = (terminalLlm: boolean): AdkEvent[] => [
+    ev({ author: "classify", output: "q", route: "tool", nodeInfo: { path: "wf.classify", outputFor: ["wf.classify"] } }),
+    ev({
+      author: "spike",
+      content: { role: "model", parts: [{ text: "Done." }] },
+      turnComplete: true,
+      finishReason: "STOP",
+      usageMetadata: usage,
+      output: "Done.",
+      nodeInfo: { path: "wf.spike", outputFor: ["wf.spike"], messageAsOutput: true },
+    }),
+    ...(terminalLlm
+      ? []
+      : [ev({ author: "finalize", content: { role: "model", parts: [{ text: "{}" }] }, output: {}, nodeInfo: { path: "wf.finalize", outputFor: ["wf.finalize"] } })]),
+  ];
+
+  it("a plain agent: sentinel-fed output is byte-identical to the option-off stream (the stashed close lands at the same seq)", () => {
+    const off = drive(plain(), {});
+    const on = drive(plain(), { hostCompletion: true, sentinel: true });
+    expect(JSON.stringify(on.all)).toBe(JSON.stringify(off.all));
+    expect(on.onSentinel).toContain(on.term);
+    expect(on.term).toMatchObject({ type: "turn.done", outcome: { type: "success" }, finishReason: "stop" });
+  });
+
+  it("a lossy finish (metadata + finishReasonRaw) is stashed and emitted unchanged on the sentinel", () => {
+    const off = drive(plain("TOO_MANY_TOOL_CALLS"), {});
+    const on = drive(plain("TOO_MANY_TOOL_CALLS"), { hostCompletion: true, sentinel: true });
+    expect(JSON.stringify(on.all)).toBe(JSON.stringify(off.all));
+    expect(on.term).toMatchObject({ finishReason: "other", finishReasonRaw: "TOO_MANY_TOOL_CALLS" });
+  });
+
+  it("option on but no sentinel (the host did not feed it): the turn flushes turn.abort, never success", () => {
+    const { term, flushed } = drive(plain(), { hostCompletion: true });
+    expect(flushed).toContain(term);
+    expect(term).toMatchObject({ type: "turn.abort" });
+  });
+
+  it("a completed Workflow closes success from push() on the sentinel, with the accumulated usage", () => {
+    for (const terminalLlm of [false, true]) {
+      const { term, onSentinel } = drive(workflow(terminalLlm), { hostCompletion: true, sentinel: true });
+      expect(onSentinel).toContain(term);
+      expect(term).toMatchObject({
+        type: "turn.done",
+        outcome: { type: "success" },
+        finishReason: "stop",
+        usage: { inputTokens: 10, outputTokens: 3, totalTokens: 13 },
+      });
+    }
+  });
+
+  it("a pending ask closes paused on the sentinel at the latest (no pause-ending event arrived)", () => {
+    const { term, onSentinel } = drive(
+      [
+        ev({
+          author: "agent",
+          content: { role: "model", parts: [{ functionCall: { name: "adk_request_input", args: { message: "City?" }, id: "adk-in" } }] },
+          turnComplete: true,
+          longRunningToolIds: ["adk-in"],
+        }),
+      ],
+      { hostCompletion: true, sentinel: true },
+    );
+    expect(onSentinel).toContain(term);
+    expect(term).toMatchObject({ type: "turn.done", outcome: { type: "paused" }, finishReason: "paused" });
+  });
+
+  it("an unanswered NON-HITL long-running call leaves the turn to flush on the sentinel", () => {
+    const { term, flushed, onSentinel } = drive(
+      [
+        ev({
+          author: "agent",
+          content: { role: "model", parts: [{ functionCall: { name: "start_job", args: {}, id: "job-1" } }] },
+          turnComplete: true,
+          longRunningToolIds: ["job-1"],
+        }),
+        ev({ author: "agent", content: { role: "model", parts: [{ text: "Started." }] }, turnComplete: true, finishReason: "STOP" }),
+      ],
+      { hostCompletion: true, sentinel: true },
+    );
+    expect(onSentinel.some((e) => TERMINAL.has(e.type))).toBe(false);
+    expect(flushed).toContain(term);
+    expect(term).toMatchObject({ type: "turn.abort" });
+  });
+
+  it("the plain-plane parks are fixed on the opt-in path: SequentialAgent roots and after-agent callback content", () => {
+    const sequential = [
+      ev({ author: "first", content: { role: "model", parts: [{ text: "one" }] }, turnComplete: true, finishReason: "STOP" }),
+      ev({ author: "second", content: { role: "model", parts: [{ text: "two" }] }, turnComplete: true, finishReason: "STOP" }),
+    ];
+    const afterCallback = [
+      ev({ author: "agent", content: { role: "model", parts: [{ text: "answer" }] }, turnComplete: true, finishReason: "STOP" }),
+      ev({ author: "agent", content: { role: "model", parts: [{ text: "callback note" }] } }),
+    ];
+    for (const events of [sequential, afterCallback]) {
+      const { term, onSentinel } = drive(events, { hostCompletion: true, sentinel: true });
+      expect(onSentinel).toContain(term);
+      expect(term).toMatchObject({ type: "turn.done", outcome: { type: "success" } });
+    }
+  });
+
+  it("option OFF: a stray sentinel is ignored (a host↔facet contract input, not a framework native) and changes nothing", () => {
+    const n = createAdkNormalizer();
+    const pushed = plain().flatMap((e) => n.push(toJsonValue(e)));
+    expect(n.push(SENTINEL)).toEqual([]);
+    const withSentinel = [...pushed, ...n.flush()];
+    expect(JSON.stringify(withSentinel)).toBe(JSON.stringify(drive(plain(), {}).all));
   });
 });
 

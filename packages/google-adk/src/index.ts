@@ -660,6 +660,87 @@ function codeOutcome(outcome: string | undefined): "ok" | "failed" | "deadline_e
 //     (a dotless nodeInfo.path); that detail is facet-local, not spec.
 // The caller closes `paused` on one of these only while an ask is pending.
 const ADK_REQUEST_INPUT = "adk_request_input";
+const ADK_REQUEST_CONFIRMATION = "adk_request_confirmation";
+
+/** Per-normalizer pause-family bookkeeping (item 26): reserved-call ids already
+ *  asked, and per turn the ORIGINAL tool-call ids those asks cover (so items
+ *  12/18 yield no second ask for them). */
+type ReservedAskState = { asked: Set<string>; originalsByTurn: Map<string, Set<string>> };
+
+/** A member of `v` by camelCase or snake_case name. */
+function memberOf(v: JsonValue | undefined, name: string): JsonValue | undefined {
+  if (!isJsonObject(v)) return undefined;
+  if (Object.hasOwn(v, name)) return v[name];
+  const snake = snakeKey(name);
+  return Object.hasOwn(v, snake) ? v[snake] : undefined;
+}
+
+/** The ask a reserved adk_request_* call yields (SPEC §8.0 item 26). */
+function reservedCallAsk(
+  name: string,
+  callId: string,
+  args: { readonly [k: string]: JsonValue },
+): { ask: AgPausedAsk; originalId?: string } {
+  if (name === ADK_REQUEST_INPUT) {
+    const schema = args["response_schema"];
+    const message = stringMember(args, "message");
+    const payload = args["payload"];
+    return {
+      ask: {
+        askId: callId,
+        kind: isJsonObject(schema) ? "form" : "text",
+        toolCallId: callId,
+        resumeBinding: "id",
+        ...(message !== undefined ? { message } : {}),
+        ...(isJsonObject(schema) ? { schema } : {}),
+        ...(payload !== undefined ? { metadata: { payload } } : {}),
+      },
+    };
+  }
+  if (name === ADK_REQUEST_CREDENTIAL) {
+    const originalId =
+      stringMember(args, "functionCallId") ?? stringMember(args, "function_call_id");
+    const authConfig = memberOf(args, "authConfig") ?? null;
+    const message = stringMember(args, "message");
+    const view = adkAuthConfigView(authConfig);
+    return {
+      ask: {
+        askId: `auth_${callId}`,
+        kind: "auth",
+        toolCallId: callId,
+        resumeBinding: "id",
+        ...(message !== undefined ? { message } : {}),
+        ...(view !== undefined ? { authConfig: view } : {}),
+        metadata: {
+          authConfig: scrubAdkAuthConfig(authConfig),
+          ...(originalId !== undefined ? { originalFunctionCallId: originalId } : {}),
+        },
+      },
+      ...(originalId !== undefined ? { originalId } : {}),
+    };
+  }
+  // adk_request_confirmation: args {originalFunctionCall {id, name, args}, toolConfirmation {hint, confirmed, payload}}.
+  const originalId = stringMember(memberOf(args, "originalFunctionCall"), "id");
+  const confirmation = memberOf(args, "toolConfirmation");
+  const hint = stringMember(confirmation, "hint");
+  const confirmed = memberOf(confirmation, "confirmed");
+  const payload = memberOf(confirmation, "payload");
+  const metadata: { [k: string]: JsonValue } = {};
+  if (typeof confirmed === "boolean") metadata["confirmed"] = confirmed;
+  if (payload !== undefined) metadata["payload"] = payload;
+  if (originalId !== undefined) metadata["originalFunctionCallId"] = originalId;
+  return {
+    ask: {
+      askId: `approval_${callId}`,
+      kind: "approval",
+      toolCallId: callId,
+      resumeBinding: "id",
+      ...(hint !== undefined ? { message: hint } : {}),
+      ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
+    },
+    ...(originalId !== undefined ? { originalId } : {}),
+  };
+}
 
 function isNonEmptyRecord(v: unknown): boolean {
   return isJsonObject(v) && Object.keys(v).length > 0;
@@ -1716,7 +1797,7 @@ function driveAdkTopLevel(
   turnId: string,
   closedTurns: Set<string>,
   pendingAsks: Map<string, AgPausedAsk[]>,
-  emittedInputAsks: Set<string>
+  reserved: ReservedAskState
 ): void {
   // typeof: a JSON-null transcription text is absent (null guard; it rode the
   // text block as `null`, which the schema rejects).
@@ -1789,39 +1870,39 @@ function driveAdkTopLevel(
     }
   }
 
-  // ── ADK request-input pause → hitl.ask text|form (R&D item 6, step 1) ──
-  // `adk_request_input` is ADK's reserved input-pause call: a workflow
-  // `RequestInput` (args {interruptId, payload, message, response_schema}) or
-  // the `requestInputTool` (args {message, response_schema?}). askId =
-  // toolCallId = the call's id, the id ADK answers with. It is form when
-  // response_schema is a non-null object, else text; payload rides metadata.
-  // Tracked pending, so the pause-ending event closes the turn `paused`
-  // (maybeCloseTurn). Deduped by id across the partial/aggregate re-send. The
-  // call's own tool.start still opens (whether to suppress reserved calls is an
-  // open step-2 decision).
+  // ── ADK pause family → hitl.ask (SPEC §8.0 item 26, draft.4; R&D item 6) ──
+  // An ADK pause is a functionCall named adk_request_input,
+  // adk_request_credential or adk_request_confirmation. Each yields ONE ask:
+  // toolCallId = the reserved call's id (the id ADK accepts as the answer),
+  // resumeBinding "id", and the ORIGINAL tool-call id (when the call names
+  // one) in metadata.originalFunctionCallId. When items 12/18 surface the
+  // same request (actions keyed by the original id), the reserved call's ask is
+  // the one: the original id is recorded, and those loops skip it. On the real
+  // engine the reserved call arrives before, or on the same event as, those
+  // actions. Deduped by id across the partial/aggregate re-send. The reserved
+  // call's own tool.start still opens (suppressing it is an unwalked decision).
   if (event.partial !== true) {
     for (const part of event.content?.parts ?? []) {
       const fc = part.functionCall;
-      if (!isJsonObject(fc) || fc["name"] !== ADK_REQUEST_INPUT) continue;
+      if (!isJsonObject(fc)) continue;
+      const name = fc["name"];
+      if (name !== ADK_REQUEST_INPUT && name !== ADK_REQUEST_CREDENTIAL && name !== ADK_REQUEST_CONFIRMATION)
+        continue;
       const callId = stringMember(fc, "id");
-      if (callId === undefined || callId.length === 0 || emittedInputAsks.has(callId)) continue;
-      emittedInputAsks.add(callId);
+      if (callId === undefined || callId.length === 0 || reserved.asked.has(callId)) continue;
+      reserved.asked.add(callId);
       const args = isJsonObject(fc["args"]) ? fc["args"] : {};
-      const schema = args["response_schema"];
-      const message = stringMember(args, "message");
-      const payload = args["payload"];
-      const ask: AgPausedAsk = {
-        askId: callId,
-        kind: isJsonObject(schema) ? "form" : "text",
-        toolCallId: callId,
-        ...(message !== undefined ? { message } : {}),
-        ...(isJsonObject(schema) ? { schema } : {}),
-        ...(payload !== undefined ? { metadata: { payload } } : {}),
-      };
+      const { ask, originalId } = reservedCallAsk(name, callId, args);
+      if (originalId !== undefined) {
+        const originals = reserved.originalsByTurn.get(turnId) ?? new Set<string>();
+        originals.add(originalId);
+        reserved.originalsByTurn.set(turnId, originals);
+      }
       a.emit({ type: "hitl.ask", ...ask });
       trackPendingAsk(pendingAsks, turnId, ask);
     }
   }
+  const askedOriginals = reserved.originalsByTurn.get(turnId);
 
   // ── actions → handoff / hitl.ask / state.delta / provider-raw bag ──
   const actions = event.actions;
@@ -1833,15 +1914,17 @@ function driveAdkTopLevel(
     if (actions.requestedAuthConfigs !== undefined) {
       // ADK dict[str, AuthConfig] keyed by function-call-id (SPEC §8.0 item 12).
       // `authConfig` is the flat AgAuthConfig VIEW derived by
-      // `adkAuthConfigView` (absent when no string scheme exists). The native
-      // AuthConfig rides WHOLE and verbatim in `metadata.authConfig`, the
-      // item's sanctioned carrier, so the ask stays lossless and the mapped
-      // values may appear twice (sp-protocol confirmed 2026-09-23). The SAME
-      // ask fields are tracked in `pendingAsks`: if this turn's close-path
-      // event turns out to be THIS event (or a later one for the same turnId),
-      // `maybeCloseTurn` folds them into `turn.done.outcome.paused.asks[]`
-      // instead of fabricating success (audit M26).
+      // `adkAuthConfigView` (absent when no string scheme exists), and
+      // `metadata.authConfig` carries the native AuthConfig through the
+      // allowlist (scrubAdkAuthConfig). A request the reserved
+      // adk_request_credential call already asked for (item 26) yields no
+      // second ask. The SAME ask fields are tracked in `pendingAsks`: if this
+      // turn's close-path event turns out to be THIS event (or a later one for
+      // the same turnId), `maybeCloseTurn` folds them into
+      // `turn.done.outcome.paused.asks[]` instead of fabricating success
+      // (audit M26).
       for (const [callId, authConfig] of Object.entries(actions.requestedAuthConfigs)) {
+        if (askedOriginals?.has(callId) === true) continue;
         const view = adkAuthConfigView(authConfig);
         const ask: AgPausedAsk = {
           askId: `auth_${callId}`,
@@ -1859,6 +1942,8 @@ function driveAdkTopLevel(
       // `message`; `confirmed`/`payload` ride opaque in `metadata` (SPEC §8 item
       // 18). Tracked in `pendingAsks` for the same paused-close fold as above.
       for (const [callId, conf] of Object.entries(actions.requestedToolConfirmations)) {
+        // Asked already by the reserved adk_request_confirmation call (item 26).
+        if (askedOriginals?.has(callId) === true) continue;
         const metadata: { [k: string]: JsonValue } = {};
         if (conf.confirmed !== undefined) metadata["confirmed"] = conf.confirmed;
         if (conf.payload !== undefined) metadata["payload"] = JsonValue.parse(conf.payload);
@@ -1976,7 +2061,31 @@ function driveAdkTopLevel(
 }
 
 // ─── stateful factory: createAdkNormalizer ────────────────────────────────────
-export function createAdkNormalizer(): Normalizer {
+/** Options for {@link createAdkNormalizer}. */
+export interface AdkNormalizerOptions {
+  /**
+   * Opt in to SPEC §8.0 host obligation 4 (draft.4): the host feeds
+   * `{ type: "__host_complete__" }` after the ADK run returned NORMALLY (never
+   * after a cancel, an abort signal or a thrown error), before `flush()`.
+   * Then a success close waits for that event (so a Workflow, a
+   * SequentialAgent or after-agent callback content can follow a node's final
+   * text), and on it each still-open turn closes: `paused` if an ask is
+   * pending, left to `flush()` if a non-HITL long-running call is unanswered,
+   * else `success`. Default off: the step-1 behaviour.
+   */
+  hostCompletion?: boolean;
+}
+
+/** The facet-local host-completion native (§8.0 host obligation 4). */
+export const ADK_HOST_COMPLETE_TYPE = "__host_complete__";
+
+/** Exactly `{ type: "__host_complete__" }` (one key), as recorded by a capture harness. */
+function isHostCompleteNative(v: JsonValue): boolean {
+  return isJsonObject(v) && v["type"] === ADK_HOST_COMPLETE_TYPE && Object.keys(v).length === 1;
+}
+
+export function createAdkNormalizer(options: AdkNormalizerOptions = {}): Normalizer {
+  const hostCompletion = options.hostCompletion === true;
   const a = new StreamAssembler();
   const threadId = "google";
   // §8.3 per-instance accumulator (replaces the module-level streamedText Map):
@@ -2001,8 +2110,13 @@ export function createAdkNormalizer(): Normalizer {
   // (the is_final_response aggregate); the `flush()` truncation path never
   // reads it — see the comment there.
   const pendingAsks = new Map<string, AgPausedAsk[]>();
-  // adk_request_input call ids already asked (partial/aggregate re-send dedup).
-  const emittedInputAsks = new Set<string>();
+  // Pause-family bookkeeping (item 26): reserved-call ids already asked, and the
+  // original tool-call ids their asks cover, per turn.
+  const reserved: ReservedAskState = { asked: new Set(), originalsByTurn: new Map() };
+  // Host obligation 4 (opt-in): a success close stashed until the sentinel, and
+  // the non-HITL long-running calls still unanswered, per turn.
+  const deferredClose = new Map<string, AdkEvent>();
+  const pendingLongRunning = new Map<string, Set<string>>();
   const assembledToolCalls = new Set<string>(); // FC dedup across partial/aggregate (Task 3)
   // Null-id call mint state (audit M47) — per-invoke ordinal counter + the
   // content/name correlation maps; lives exactly as long as this Normalizer
@@ -2079,9 +2193,30 @@ export function createAdkNormalizer(): Normalizer {
     // reduce() (INV-MSG, SPEC.md:745/:757). So an event carrying nodeInfo never
     // closes the turn as success. It is a per-EVENT test, never a latch
     // (NodeTool puts nodeInfo into plain runs too). Error closes stay
-    // immediate. A completed workflow therefore flushes turn.abort until a host
-    // completion signal exists (step 2): a documented known gap.
+    // immediate. A completed workflow closes success only on the host-completion
+    // event (the `hostCompletion` opt-in, §8.0 host obligation 4); without it,
+    // it flushes turn.abort.
     if (errorClose === undefined && event.nodeInfo !== undefined) return;
+    // Host obligation 4 (opt-in): a SUCCESS close waits for the host-completion
+    // event, because the run may not be over (a SequentialAgent's next agent,
+    // after-agent callback content). The final response is stashed and closed
+    // unchanged on the sentinel, so a stream ending here is byte-identical.
+    // Error and paused closes stay immediate.
+    if (hostCompletion && errorClose === undefined && !((pendingAsks.get(turnId)?.length ?? 0) > 0)) {
+      deferredClose.set(turnId, event);
+      return;
+    }
+    closeOnFinalResponse(event, turnId, messageId, errorClose);
+  }
+
+  /** The close on a final response: lossy-finish metadata, message.end, then
+   *  turn.error or turn.done (paused when asks are pending, else success). */
+  function closeOnFinalResponse(
+    event: AdkEvent,
+    turnId: string,
+    messageId: string,
+    errorClose: { code: string; message: string } | undefined,
+  ): void {
     closedTurns.add(turnId);
     const rawFinish = event.finishReason ?? event.errorCode;
     const finish = resolveFinishReason(rawFinish);
@@ -2132,6 +2267,59 @@ export function createAdkNormalizer(): Normalizer {
         ...(!paused && rawFinish !== undefined && finish.lossy ? { finishReasonRaw: rawFinish } : {}),
         ...(usage !== undefined ? { usage } : {}),
         ...(safety !== undefined ? { safety } : {}),
+      });
+    }
+  }
+
+  /** Host obligation 4 bookkeeping: a call named in longRunningToolIds is
+   *  pending until its functionResponse arrives. */
+  function trackLongRunning(event: AdkEvent, turnId: string): void {
+    const longRunningIds = event.longRunningToolIds ?? [];
+    const pending = pendingLongRunning.get(turnId) ?? new Set<string>();
+    for (const part of event.content?.parts ?? []) {
+      const callId = stringMember(part.functionCall, "id");
+      if (callId !== undefined && longRunningIds.includes(callId)) pending.add(callId);
+      const responseId = stringMember(part.functionResponse, "id");
+      if (responseId !== undefined) pending.delete(responseId);
+    }
+    pendingLongRunning.set(turnId, pending);
+  }
+
+  /** The host-completion event (SPEC §8.0 host obligation 4): the run returned
+   *  normally. Each still-open turn closes from push(): paused when an ask is
+   *  pending; left to flush() when a non-HITL long-running call is unanswered;
+   *  otherwise success (the stashed final response's close, or a plain success
+   *  close with the accumulated usage when the run ended on a non-final event,
+   *  e.g. a completed Workflow). */
+  function hostComplete(): void {
+    for (const turnId of openTurns) {
+      if (closedTurns.has(turnId)) continue;
+      const messageId = `msg_${turnId}`;
+      const asks = pendingAsks.get(turnId);
+      if (asks !== undefined && asks.length > 0) {
+        closedTurns.add(turnId);
+        const usage = mapUsage(usageByTurn.get(turnId));
+        a.closeMessage(messageId);
+        a.closeTurnDone(turnId, {
+          outcome: { type: "paused", asks },
+          finishReason: "paused",
+          ...(usage !== undefined ? { usage } : {}),
+        });
+        continue;
+      }
+      if ((pendingLongRunning.get(turnId)?.size ?? 0) > 0) continue;
+      const stashed = deferredClose.get(turnId);
+      if (stashed !== undefined) {
+        closeOnFinalResponse(stashed, turnId, messageId, undefined);
+        continue;
+      }
+      closedTurns.add(turnId);
+      const usage = mapUsage(usageByTurn.get(turnId));
+      a.closeMessage(messageId);
+      a.closeTurnDone(turnId, {
+        outcome: { type: "success" },
+        finishReason: "stop",
+        ...(usage !== undefined ? { usage } : {}),
       });
     }
   }
@@ -2266,12 +2454,23 @@ export function createAdkNormalizer(): Normalizer {
     // aggregate never arrives simply die with the invoke's closure — bounded,
     // per-invoke.
 
-    driveAdkTopLevel(a, event, messageId, turnId, closedTurns, pendingAsks, emittedInputAsks); // standalone/content arms (Tasks 4–5)
+    if (!isPartial) trackLongRunning(event, turnId);
+    driveAdkTopLevel(a, event, messageId, turnId, closedTurns, pendingAsks, reserved); // standalone/content arms (Tasks 4–5)
     maybeCloseTurn(event, turnId, messageId, isPartial);
   }
 
   return {
     push(native: JsonValue): AgEvent[] {
+      if (isHostCompleteNative(native)) {
+        // The host-completion sentinel is a host<->facet contract input (SPEC
+        // §8.0 host obligation 4), like obligation 1's `__host_error__`: NOT a
+        // framework native. So §8.0's graceful-degradation rule ("MUST NOT
+        // silently drop a native event") does not bind it. With the option OFF
+        // it is ignored by design and never reaches the wire as
+        // ext.google.unparsed.
+        if (hostCompletion) hostComplete();
+        return a.drain();
+      }
       if (!isAdkEvent(native)) {
         a.emitExt("google", "unparsed", { native });
         return a.drain();

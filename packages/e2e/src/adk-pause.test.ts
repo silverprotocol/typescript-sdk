@@ -17,11 +17,15 @@
  * Every class: needsResync false, exactly one terminal per opened turn, and no
  * event targets a turn after its terminal.
  *
- * NOT asserted here (step 2 scope): the answer-id rule for asks, the
- * credential → auth / confirmation → approval family, and the sentinel-fed
- * success close. KNOWN GAPS pinned as they behave today: a SequentialAgent root
- * and afterAgentCallback content (rd-06 PS-2). Flip those pins when step 2's
- * host-completion opt-in lands.
+ * Step 2 (sp-google, draft.4 §8.0 item 26 + host obligation 4) adds:
+ *  - the answer-id rule: each ask's toolCallId is its adk_request_* call id;
+ *  - credential → auth / confirmation → approval (wf-functionnode-credential
+ *    is now a PAUSE);
+ *  - the sentinel-fed close: with `createAdkNormalizer({ hostCompletion: true })`
+ *    and `{type:"__host_complete__"}` after the natives, a completed run closes
+ *    success from push(), and the two plain-plane parks fold clean.
+ * The KNOWN GAPS stay pinned on the legacy path (option off), where they still
+ * park: rd-06 PS-2.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -40,17 +44,36 @@ const TERMINALS = new Set(["turn.done", "turn.error", "turn.abort"]);
 
 const load = (name: string): JsonValue[] => JSON.parse(readFileSync(join(DIR, `${name}.native.json`), "utf8")) as JsonValue[];
 
-/** One Normalizer per invoke; every invoke folds into ONE Reducer. */
-function fold(...invokes: JsonValue[][]): { r: Reducer; tagged: Tagged[] } {
+const SENTINEL = { type: HOST_COMPLETE_MARKER } as JsonValue;
+
+/** One Normalizer per invoke; every invoke folds into ONE Reducer. With
+ *  `hostCompleted`, each invoke is driven with the step-2 opt-in and the
+ *  sentinel is pushed after its natives (a normal return). */
+function foldWith(hostCompleted: boolean, ...invokes: JsonValue[][]): { r: Reducer; tagged: Tagged[] } {
   const r = new Reducer();
   const tagged: Tagged[] = [];
   invokes.forEach((natives, invoke) => {
-    const n = createAdkNormalizer();
-    for (const f of natives) for (const ev of n.push(f)) tagged.push({ ev, from: "push", invoke });
+    const n = createAdkNormalizer(hostCompleted ? { hostCompletion: true } : {});
+    const feed = hostCompleted ? [...natives, SENTINEL] : natives;
+    for (const f of feed) for (const ev of n.push(f)) tagged.push({ ev, from: "push", invoke });
     for (const ev of n.flush()) tagged.push({ ev, from: "flush", invoke });
   });
   for (const t of tagged) r.push(t.ev);
   return { r, tagged };
+}
+const fold = (...invokes: JsonValue[][]) => foldWith(false, ...invokes);
+
+/** The ids of the reserved adk_request_* calls in a native stream (item 26's answer ids). */
+function reservedCallIds(natives: JsonValue[]): string[] {
+  const ids: string[] = [];
+  for (const e of natives) {
+    const parts = ((e as { content?: { parts?: unknown[] } }).content?.parts ?? []) as Array<{ functionCall?: { name?: string; id?: string } }>;
+    for (const p of parts) {
+      const name = p.functionCall?.name;
+      if (typeof name === "string" && name.startsWith("adk_request_") && typeof p.functionCall?.id === "string") ids.push(p.functionCall.id);
+    }
+  }
+  return [...new Set(ids)];
 }
 
 const terminals = (tagged: Tagged[]): Tagged[] => tagged.filter((t) => TERMINALS.has(t.ev.type));
@@ -73,15 +96,12 @@ function expectOneTerminalAndNothingAfter(tagged: Tagged[]): void {
 type Outcome = { type?: string; asks?: unknown[] };
 const outcomeOf = (ev: AgEvent): Outcome => ((ev as { outcome?: Outcome }).outcome ?? {});
 
-const PAUSE = ["wf-pause", "plain-confirmation", "plain-credential", "plain-request-input"] as const;
-const ABORT_AT_FLUSH = [
-  "wf-complete",
-  "wf-terminal-llm",
-  "wf-functionnode-only",
-  "wf-functionnode-credential",
-  "truncated-after-classify",
-  "truncated-after-spike-final",
-] as const;
+const PAUSE = ["wf-pause", "plain-confirmation", "plain-credential", "plain-request-input", "wf-functionnode-credential"] as const;
+/** Completed runs: turn.abort at flush on the legacy path; success from push() with the sentinel. */
+const COMPLETED = ["wf-complete", "wf-terminal-llm", "wf-functionnode-only"] as const;
+/** Truncated streams: never success (a host never feeds the sentinel after an abnormal end). */
+const TRUNCATED = ["truncated-after-classify", "truncated-after-spike-final"] as const;
+const ABORT_AT_FLUSH = [...COMPLETED, ...TRUNCATED] as const;
 const SUCCESS = ["nodetool-in-llmagent"] as const;
 const KNOWN_GAPS = ["known-gap-sequential-root", "known-gap-after-agent-callback"] as const;
 
@@ -104,6 +124,28 @@ describe("rd-06 P-RED: ADK pause / completion closure (§10 item 25, step-1 scop
       expect((term!.ev as { finishReason?: string }).finishReason).toBe("paused");
       expect(outcomeOf(term!.ev).asks).toHaveLength(1);
       expect(tagged.filter((t) => t.ev.type === "hitl.ask")).toHaveLength(1);
+      // item 26 answer-id rule: the ask is keyed by the reserved call's id.
+      const natives = load(name);
+      const ids = reservedCallIds(natives);
+      expect(ids).toHaveLength(1);
+      expect((outcomeOf(term!.ev).asks?.[0] as { toolCallId?: string }).toolCallId).toBe(ids[0]);
+      // With the sentinel fed the pause still closes paused from push(), exactly once.
+      const hc = foldWith(true, natives);
+      expect(hc.r.needsResync).toBe(false);
+      expectOneTerminalAndNothingAfter(hc.tagged);
+      expect(outcomeOf(terminals(hc.tagged)[0]!.ev).type).toBe("paused");
+    });
+  }
+
+  for (const name of COMPLETED) {
+    it(`${name}: with the host-completion sentinel fed, closes success from push() (step 2, obligation 4)`, () => {
+      const { r, tagged } = foldWith(true, load(name));
+      expect(r.needsResync).toBe(false);
+      expectOneTerminalAndNothingAfter(tagged);
+      const [term] = terminals(tagged);
+      expect(term?.ev.type).toBe("turn.done");
+      expect(term?.from).toBe("push");
+      expect(outcomeOf(term!.ev).type).toBe("success");
     });
   }
 
@@ -144,12 +186,21 @@ describe("rd-06 P-RED: ADK pause / completion closure (§10 item 25, step-1 scop
   });
 
   for (const name of KNOWN_GAPS) {
-    it(`KNOWN GAP (rd-06 PS-2, step 2 fixes it): ${name} parks today — flip this pin when the host-completion opt-in lands`, () => {
+    it(`KNOWN GAP on the legacy path (rd-06 PS-2): ${name} still parks without the host-completion opt-in`, () => {
       const { r, tagged } = fold(load(name));
       expect(r.needsResync).toBe(true);
       const [term] = terminals(tagged);
       expect(term?.ev.type).toBe("turn.done");
       expect(term?.from).toBe("push");
+    });
+
+    it(`${name}: FIXED on the opt-in path — with the sentinel fed it folds clean and closes success from push()`, () => {
+      const { r, tagged } = foldWith(true, load(name));
+      expect(r.needsResync).toBe(false);
+      expectOneTerminalAndNothingAfter(tagged);
+      const [term] = terminals(tagged);
+      expect(term?.from).toBe("push");
+      expect(outcomeOf(term!.ev).type).toBe("success");
     });
   }
 });
@@ -176,7 +227,7 @@ describe("replay: the recorded host-completion marker (rd-06; draft.4 §8.0 host
     }
   });
 
-  it(`all ${adkGoldens.length} ADK goldens replay byte-identically with and without a trailing marker (it never reaches the facet)`, async () => {
+  it(`all ${adkGoldens.length} ADK goldens replay byte-identically with and without a trailing marker (it drives the hostCompletion opt-in; the golden close is the same event at the same seq)`, async () => {
     expect(adkGoldens.length).toBeGreaterThan(0);
     for (const d of adkGoldens) {
       const native = JSON.parse(readFileSync(join(CORPUS, d, "adk.native.json"), "utf8")) as JsonValue[];
