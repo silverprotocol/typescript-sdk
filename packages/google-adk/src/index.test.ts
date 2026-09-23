@@ -3437,6 +3437,38 @@ describe("createAdkNormalizer — push() reads a live native as plain JSON (SPEC
     expect(raw(out, "output")).toEqual({ big: "12345678901234567890", arr: [null, 2], ok: true });
   });
 
+  it("an Error becomes {name, message, ...its own enumerable members}; its stack never rides", () => {
+    class QuotaError extends Error {
+      override name = "QuotaError";
+    }
+    const withFields = Object.assign(new TypeError("bad input"), { code: "E1", detail: { retry: false } });
+    const enumerableStack = new Error("s");
+    Object.defineProperty(enumerableStack, "stack", { value: "at /Users/someone/app.ts:1:1", enumerable: true });
+    const out = pushAll(live({ output: { plain: new Error("returned as a value"), withFields, custom: new QuotaError("over"), enumerableStack } }));
+    expect(raw(out, "output")).toEqual({
+      plain: { name: "Error", message: "returned as a value" },
+      withFields: { name: "TypeError", message: "bad input", code: "E1", detail: { retry: false } },
+      custom: { name: "QuotaError", message: "over" },
+      enumerableStack: { name: "Error", message: "s" },
+    });
+    expect(JSON.stringify(out)).not.toContain("stack");
+    expect(JSON.stringify(out)).not.toContain("/Users/");
+  });
+
+  it("a tool that returns an Error as its value: the response rides as {name, message}, not {}", () => {
+    const native = live({
+      content: { role: "user", parts: [{ functionResponse: { name: "t", id: "c1", response: new Error("returned as a value") } }] },
+    });
+    const n = createAdkNormalizer();
+    const out = [
+      ...n.push(live({ content: { role: "model", parts: [{ functionCall: { name: "t", id: "c1", args: {} } }] } })),
+      ...n.push(native),
+      ...n.flush(),
+    ];
+    expect(JSON.stringify(out.find((e) => e.type === "tool.done"))).toContain('"message":"returned as a value"');
+    expect(JSON.stringify(out)).not.toContain("stack");
+  });
+
   it("a native with nothing serializable is reported once, without content", () => {
     for (const native of [undefined, () => 1] as unknown as JsonValue[]) {
       const out = pushAll(native);

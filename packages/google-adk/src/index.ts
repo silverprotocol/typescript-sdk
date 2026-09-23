@@ -1509,7 +1509,8 @@ function scrubbedResponse(response: unknown): { readonly [k: string]: JsonValue 
 // that cannot be walked or reduced is omitted, never thrown on.
 
 /** The native as plain JSON, converted node by node with JSON semantics: an
- *  undefined, function or symbol member is dropped (null inside an array), a
+ *  Error becomes {name, message, ...its own enumerable members} without its
+ *  stack, an undefined, function or symbol member is dropped (null inside an array), a
  *  non-finite number becomes null, a value with toJSON (a Date) is read
  *  through it, a BigInt becomes its decimal string, a node that repeats one of
  *  its own ancestors becomes "[Circular]", and a member whose read throws is
@@ -1551,7 +1552,23 @@ function asWireJson(native: unknown): JsonValue | undefined {
     try {
       if (Array.isArray(v)) return v.map((x, i) => convert(x, String(i)) ?? null);
       const out: { [k: string]: JsonValue } = {};
+      if (v instanceof Error) {
+        // An Error's name and message are not own enumerable members, so JSON
+        // would drop them; they are read explicitly. Its stack never rides.
+        for (const k of ["name", "message"]) {
+          let member: unknown;
+          try {
+            member = Reflect.get(v, k);
+          } catch {
+            continue;
+          }
+          const converted = convert(member, k);
+          if (converted !== undefined)
+            Object.defineProperty(out, k, { value: converted, enumerable: true, writable: true, configurable: true });
+        }
+      }
       for (const k of Object.keys(v)) {
+        if (k === "stack" && v instanceof Error) continue;
         let member: unknown;
         try {
           member = Reflect.get(v, k);
