@@ -787,8 +787,12 @@ function anthropicFrameKind(msg: SDKMessage): string | undefined {
 // runtime (Array.isArray + every-string, the `resourceLinks` precedent) and
 // carry it verbatim. A malformed list is ignored, never thrown on (Tenet 6);
 // `string[]` is itself a JsonValue, so no cast is needed downstream.
+// A COPY, never the frame's own array: the value is emitted unparsed
+// (result-meta, message.metadata), core's StreamAssembler does not copy, and
+// push() hands a JSON frame through by reference, so returning `v` would let an
+// emitted event share the host's live array (cto's aliasing audit).
 function readUserMessageUuids(v: unknown): string[] | undefined {
-  return Array.isArray(v) && v.every((s): s is string => typeof s === "string") ? v : undefined;
+  return Array.isArray(v) && v.every((s): s is string => typeof s === "string") ? [...v] : undefined;
 }
 
 // X5 (2026-09-23): the assistant-wrapper keys that ride a block's HOST-ONLY
@@ -811,11 +815,13 @@ const HOST_ONLY_WRAPPER_KEYS: ReadonlySet<string> = new Set([
 // means the producer changed shape, so the whole array is refused rather than
 // half-carried. The upper bound is not checked here: an out-of-range index
 // simply names no block where it is used (the draft.4 `phase` mapping).
+// A copy for the same reason as readUserMessageUuids: the block-less wrapper
+// path emits it in message.metadata unparsed.
 function readNarrationBlockIndexes(v: unknown): number[] | undefined {
   return Array.isArray(v) &&
     v.length > 0 &&
     v.every((n): n is number => typeof n === "number" && Number.isInteger(n) && n >= 0)
-    ? v
+    ? [...v]
     : undefined;
 }
 
@@ -2936,7 +2942,12 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         // that carries its own `type` key (the common malformed-SDKMessage shape
         // that lands here) does NOT clobber the `ext.anthropic.unparsed` event type
         // (emitExt spreads object payloads at the top level).
-        a.emitExt("anthropic", "unparsed", { native: frame });
+        // A copy: `frame` IS the host's object when it was already JSON, and
+        // this raw channel would otherwise emit it by reference. JsonValue.parse
+        // copies and, like every other carry here, drops an own "__proto__"
+        // (sp-main 2026-09-24, matching sp-openai cf55e08 and the 0.6.6
+        // reserved-key rule 314a183: an emitted map carries no own __proto__).
+        a.emitExt("anthropic", "unparsed", { native: JsonValue.parse(frame) });
         return a.drain();
       }
       drive(frame);

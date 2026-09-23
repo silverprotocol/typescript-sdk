@@ -1,5 +1,5 @@
 import type { UUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
@@ -7304,5 +7304,147 @@ describe("createClaudeNormalizer — a live, non-JSON frame never throws out of 
   it("negative control: a plain-JSON frame's output is unchanged (the fixture every other test pushes)", () => {
     const frames = [toolUseFrame({ city: "SF" }), resultSuccess("end_turn")];
     expect(JSON.stringify(pushLive(frames))).toBe(JSON.stringify(pushJson(frames)));
+  });
+});
+
+// ─── no emitted event aliases the pushed frame (cto, on the live-JSON swap) ───
+// toJsonValueSafe hands a JSON frame back BY REFERENCE, and core's
+// StreamAssembler does not copy, so any native value the facet puts into an
+// event without a zod parse (which copies) is shared with the host's live
+// object. Four paths did (all pre-dating the swap): result-meta.userMessageUuids,
+// the streamed turn-binding message.metadata.user_message_uuids, the block-less
+// wrapper message.metadata (narration_block_indexes / user_message_uuids), and
+// ext.anthropic.unparsed.native (the whole frame).
+describe("createClaudeNormalizer — no emitted event shares an object with the pushed frame", () => {
+  function refsOf(v: unknown, set: Set<object> = new Set()): Set<object> {
+    if (typeof v === "object" && v !== null && !set.has(v)) {
+      set.add(v);
+      for (const x of Object.values(v)) refsOf(x, set);
+    }
+    return set;
+  }
+  function aliases(ev: unknown, refs: Set<object>, path: string, out: string[]): string[] {
+    if (typeof ev === "object" && ev !== null) {
+      if (refs.has(ev)) out.push(path);
+      for (const [k, x] of Object.entries(ev)) aliases(x, refs, `${path}.${k}`, out);
+    }
+    return out;
+  }
+  function aliasPaths(frames: unknown[]): string[] {
+    const n = createClaudeNormalizer();
+    const push: (native: unknown) => AgEvent[] = (native) => Reflect.apply(n.push, n, [native]);
+    const out: string[] = [];
+    for (const f of frames) {
+      const refs = refsOf(f);
+      for (const ev of push(f)) aliases(ev, refs, ev.type, out);
+    }
+    for (const ev of n.flush()) aliases(ev, new Set(), ev.type, out);
+    return out;
+  }
+  const UUIDS = ["00000000-0000-0000-0000-0000000000u1", "00000000-0000-0000-0000-0000000000u2"];
+
+  it("result-meta.userMessageUuids is a copy", () => {
+    const frame = { ...Object.fromEntries(Object.entries(resultSuccess("end_turn"))), user_message_uuids: [...UUIDS] };
+    const evs = drive([frame]);
+    expect(evs.find((e) => e.type === "ext.anthropic.result-meta")).toMatchObject({ userMessageUuids: UUIDS });
+    expect(aliasPaths([frame])).toEqual([]);
+  });
+
+  it("the block-less wrapper message.metadata (narration_block_indexes, user_message_uuids) is a copy", () => {
+    const frame = {
+      type: "assistant",
+      message: { ...betaMessage([]), id: "msg_blockless" },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000a1",
+      session_id: "sess_fixture",
+      narration_block_indexes: [0],
+      user_message_uuids: [...UUIDS],
+    };
+    const evs = drive([frame]);
+    expect(evs.some((e) => e.type === "message.metadata")).toBe(true);
+    expect(aliasPaths([frame])).toEqual([]);
+  });
+
+  it("the streamed turn-binding message.metadata.user_message_uuids is a copy", () => {
+    const start = {
+      type: "stream_event",
+      event: { type: "message_start", message: { ...betaMessage([]), id: "msg_streamed" } },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000s1",
+      session_id: "sess_fixture",
+      user_message_uuids: [...UUIDS],
+    };
+    const evs = drive([start]);
+    expect(evs.find((e) => e.type === "message.metadata")).toMatchObject({ metadata: { user_message_uuids: UUIDS } });
+    expect(aliasPaths([start])).toEqual([]);
+  });
+
+  // The same three checks over every committed claude native (sp-probe's corpus,
+  // all JSON: exactly the frames push() now hands through by reference).
+  const corpusDir = fileURLToPath(new URL("../../e2e/corpus/", import.meta.url));
+  function corpusSeeds(): Array<[string, string]> {
+    const out: Array<[string, string]> = [];
+    for (const d of readdirSync(corpusDir)) {
+      const p = `${corpusDir}${d}/claude.native.json`;
+      if (existsSync(p)) out.push([d, readFileSync(p, "utf8")]);
+    }
+    return out;
+  }
+  function framesOf(text: string): unknown[] {
+    const v: unknown = JSON.parse(text);
+    return Array.isArray(v) ? v : [];
+  }
+
+  it("corpus: no emitted event shares an object with its pushed frame (every committed claude native)", () => {
+    const seeds = corpusSeeds();
+    expect(seeds.length).toBeGreaterThan(20);
+    for (const [seed, text] of seeds) expect(aliasPaths(framesOf(text)), seed).toEqual([]);
+  });
+
+  it("corpus: the facet never mutates a pushed frame (deep-frozen frames replay without a throw)", () => {
+    const deepFreeze = (v: unknown): unknown => {
+      if (typeof v === "object" && v !== null && !Object.isFrozen(v)) {
+        Object.freeze(v);
+        for (const x of Object.values(v)) deepFreeze(x);
+      }
+      return v;
+    };
+    for (const [seed, text] of corpusSeeds()) {
+      const n = createClaudeNormalizer();
+      const push: (native: unknown) => AgEvent[] = (native) => Reflect.apply(n.push, n, [native]);
+      expect(() => { for (const f of framesOf(text)) push(deepFreeze(f)); n.flush(); }, seed).not.toThrow();
+    }
+  });
+
+  it("corpus: the facet keeps no reference it reads later (scrambling each frame after its push changes no later output)", () => {
+    const scramble = (v: unknown, seen: Set<object> = new Set()): void => {
+      if (typeof v === "object" && v !== null && !seen.has(v)) {
+        seen.add(v);
+        for (const k of Object.keys(v)) {
+          scramble(Reflect.get(v, k), seen);
+          Reflect.set(v, k, "SCRAMBLED");
+        }
+      }
+    };
+    for (const [seed, text] of corpusSeeds()) {
+      const clean = createClaudeNormalizer();
+      const expected = JSON.stringify([...framesOf(text).flatMap((f) => clean.push(JsonValue.parse(f))), ...clean.flush()]);
+      const n = createClaudeNormalizer();
+      const push: (native: unknown) => AgEvent[] = (native) => Reflect.apply(n.push, n, [native]);
+      const seen: unknown[] = [];
+      for (const f of framesOf(text)) {
+        seen.push(...JSON.parse(JSON.stringify(push(f))));
+        scramble(f);
+      }
+      seen.push(...JSON.parse(JSON.stringify(n.flush())));
+      expect(JSON.stringify(seen), seed).toBe(expected);
+    }
+  });
+
+  it("ext.anthropic.unparsed carries a copy of the (converted) frame, not the host's object", () => {
+    const junk = { type: 42, nested: { deep: [1, { x: 2 }] } };
+    const evs = aliasPaths([junk]);
+    expect(evs).toEqual([]);
+    expect(drive([junk])).toEqual([expect.objectContaining({ type: "ext.anthropic.unparsed", native: junk })]);
   });
 });
