@@ -167,6 +167,16 @@ const CLAUDE_SEEDS = [
   // eight leaves, pinned by transforms: the flattened text repeats
   // uri/name/description, so value-match alone could not prove the carry).
   "resource-link-sonnet5",
+  // 2026-09-23 (rnd #4, rnd 13+17 Claude leg): Opus 5.5 @0.3.280 with
+  // includePartialMessages + thinkingDisplay "summarized", two sequential MCP
+  // tools, and a steer asking for a one-sentence progress update before each
+  // call. The model writes both updates (58- and 73-char text blocks before
+  // each tool_use), but Claude Code stamps narration_block_indexes on NO frame
+  // (0 occurrences, partials included), so the facet marks no phase:"interim"
+  // (0 phase events). The only corpus stamp is still app-update-fable51, in
+  // connector_text mode (display unset), where narration blocks come back
+  // EMPTY. So the Claude SHOULD can never fire with text on CLI 2.1.280.
+  "narration-opus55",
   // NOT YET ENROLLED (evidence for R&D candidate 20, 2026-09-23):
   // defer-tool-sonnet5-resume-allow and -resume-deny, the two resume legs
   // (resumeFrom defer-tool-sonnet5, forked; hook allow / deny). Both PARK

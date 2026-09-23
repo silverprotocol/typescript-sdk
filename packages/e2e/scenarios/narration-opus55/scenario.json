@@ -1,0 +1,11 @@
+{
+  "name": "narration-opus55",
+  "prompt": "Echo the message 'conformance-probe-narration' and then find the document about 'narration probes'. Tell me both results at the end.",
+  "mcpServers": [
+    { "key": "t", "kind": "text" },
+    { "key": "d", "kind": "resource-link" }
+  ],
+  "steer": "You MUST call mcp__t__echo with message='conformance-probe-narration' and then mcp__d__find_doc with topic='narration probes', one after the other. Before EACH tool call, write the user a one-sentence progress update saying what you are about to do. Do not answer from memory.",
+  "includePartialMessages": true,
+  "thinkingDisplay": "summarized"
+}

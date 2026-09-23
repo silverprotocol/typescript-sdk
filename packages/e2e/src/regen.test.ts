@@ -192,6 +192,8 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "resource-link-gpt6sol", framework: "openai" },
   // 2026-09-23: the vercel parallel-tools seed, enrolled at capture time.
   { scenario: "parallel-tools-gpt6sol", framework: "vercel" },
+  // 2026-09-23 (rnd #4): the Opus 5.5 narration seed, enrolled at capture time.
+  { scenario: "narration-opus55", framework: "claude" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {
