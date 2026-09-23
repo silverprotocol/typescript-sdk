@@ -102,7 +102,7 @@ import {
   JsonValue,
   type Normalizer,
   StreamAssembler,
-  toJsonValueSafe,
+  withAtomicPush,
   type ToolOutcome,
   type TurnDoneFields,
 } from "@silverprotocol/core";
@@ -1415,7 +1415,27 @@ function isOpenAIStreamEvent(v: unknown): v is OpenAIStreamEvent {
  * genuinely unrecognisable OUTER envelope AND — per the run-item switch's default
  * arm — a genuinely-unknown run-item `name` (mirrors the Claude facet).
  */
+/**
+ * The OpenAI Agents SDK normalizer. The inner, deterministic normalizer
+ * (`createInnerOpenaiNormalizer` below) is wrapped in core's `withAtomicPush`
+ * (sp-probe; sp-main's binding guard ruling, 2026-09-24). Every `push()` is
+ * atomic, and none of it lives in the facet:
+ * - The native is normalized with `toJsonValueSafe`, so LIVE SDK objects map
+ *   exactly like the JSON corpus.
+ * - On a throw anywhere in the facet, this native's partial batch is
+ *   discarded. The inner is rebuilt from the journal of accepted natives
+ *   (identical state and seq; the facet never reads the clock or randomness),
+ *   and ONE core `error {message: "normalizer error", code: <constructor
+ *   name>}` takes the next seq. It carries no payload and no message text.
+ * So push() never throws (SPEC.md:933), no seq is consumed by the discarded
+ * batch (INV-SEQ), and no facet state ever believes a block or message is
+ * open that never reached the wire.
+ */
 export function createOpenaiNormalizer(): Normalizer {
+  return withAtomicPush(createInnerOpenaiNormalizer);
+}
+
+function createInnerOpenaiNormalizer(): Normalizer {
   const a = new StreamAssembler();
   // OpenAI's native stream carries no thread/session id (unlike Claude's
   // `session_id`), so the threadId is a fixed facet label. The Router rebases
@@ -2967,40 +2987,27 @@ export function createOpenaiNormalizer(): Normalizer {
 
   return {
     push(native: JsonValue): AgEvent[] {
-      // LV (SPEC.md:933 — a Normalizer MUST NOT throw out of push()): a host may
-      // push the SDK's LIVE stream objects, not the JSON round-tripped shape the
-      // corpus records (the capture agent yields `toJsonValue(event)`). Live
-      // values carry `undefined` members, Dates, class instances and cycles,
-      // and the carried-member `JsonValue.parse` sites threw a ZodError on them
-      // (sp-main's no-throw check, 2026-09-24: 6 of 9 live shapes). Normalize
-      // ONCE, here, with core's TOTAL `toJsonValueSafe` — JSON.stringify's
-      // rules per node (toJSON honoured, undefined dropped, Date → ISO string);
-      // a BigInt / cycle / throwing getter degrades that one node, never the
-      // whole event. Already-JSON input comes back by identity, so every replay
-      // is unchanged: the whole corpus proves the live path.
-      const wire = toJsonValueSafe(native);
-      try {
-        if (!isOpenAIStreamEvent(wire)) {
-          // Graceful guard (Tenet 6): route a genuinely unrecognisable payload through
-          // the lossless vendor channel rather than throwing. Nest under `native` so a
-          // payload carrying its own `type` key does NOT clobber the event type.
-          // A COPY via JsonValue.parse, like every other carry path: the helper
-          // returns plain input by reference, so carrying `wire` itself would
-          // alias the host's object into an emitted event, and would forward an
-          // own `__proto__` key (sp-cto's checks, 2026-09-24).
-          a.emitExt("openai", "unparsed", { native: JsonValue.parse(wire) });
-          return a.drain();
-        }
-        drive(wire);
-      } catch (err) {
-        // Last-resort guard (sp-main, 2026-09-24): a facet bug on some
-        // envelope-valid but malformed event must still not throw out of
-        // push(). Visible on the wire, without the payload.
-        a.emitExt("openai", "unparsed", {
-          reason: "normalizer-error",
-          error: err instanceof Error ? err.message : String(err),
-        });
+      // LV: a host may push the SDK's LIVE stream objects (undefined members,
+      // Dates, class instances, cycles), not the JSON round-tripped shape the
+      // corpus records, and the carried-member `JsonValue.parse` sites threw a
+      // ZodError on them (sp-main's no-throw check, 2026-09-24: 6 of 9 live
+      // shapes). The native arrives already normalized: `withAtomicPush` ran core's
+      // `toJsonValueSafe` on it (JSON semantics per node: toJSON honoured,
+      // undefined dropped, Date → ISO string), and it owns the no-throw
+      // guarantee too. This inner push MUST NOT catch; a throw here is the
+      // wrapper's signal to discard the batch and rebuild.
+      if (!isOpenAIStreamEvent(native)) {
+        // Graceful guard (Tenet 6): route a genuinely unrecognisable payload through
+        // the lossless vendor channel rather than throwing. Nest under `native` so a
+        // payload carrying its own `type` key does NOT clobber the event type.
+        // A COPY via JsonValue.parse, like every other carry path: plain input
+        // arrives by reference, so carrying it as-is would alias the host's
+        // object into an emitted event, and would forward an own `__proto__`
+        // key (sp-cto's checks, 2026-09-24).
+        a.emitExt("openai", "unparsed", { native: JsonValue.parse(native) });
+        return a.drain();
       }
+      drive(native);
       return a.drain();
     },
     flush(): AgEvent[] {

@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { AgEvent, AgReduceResult, JsonValue, Reducer } from "@silverprotocol/core";
+import { describe, it, expect, vi } from "vitest";
+import { AgEvent, AgProviderMeta, AgReduceResult, JsonValue, Reducer, StreamAssembler } from "@silverprotocol/core";
 import { createOpenaiNormalizer, mapFinishReason } from "./index.js";
 
 describe("mapFinishReason", () => {
@@ -4615,11 +4615,12 @@ describe("createOpenaiNormalizer — LV live (non-JSON-round-tripped) natives ne
     ["message_output_created with no content", { type: "run_item_stream_event", name: "message_output_created", item: { rawItem: { type: "message" } } }],
     ["response.completed with no response", { type: "raw_model_stream_event", data: { type: "model", event: { type: "response.completed" } } }],
     ["output_item.added with no item", { type: "raw_model_stream_event", data: { type: "model", event: { type: "response.output_item.added" } } }],
-  ])("last-resort guard: %s ⇒ no throw, ext.openai.unparsed{reason:normalizer-error}", (_label, malformed) => {
+  ])("last-resort guard: %s ⇒ no throw, the core non-terminal `error` event {message:\"normalizer error\", code:<error name>}", (_label, malformed) => {
     const evs = run([liveNative(malformed)]);
-    const guard = evs.find((e) => e.type === "ext.openai.unparsed");
-    expect(guard).toMatchObject({ reason: "normalizer-error" });
+    const guard = evs.find((e) => e.type === "error");
+    expect(guard).toMatchObject({ type: "error", message: "normalizer error", code: "TypeError" });
     expect(guard).not.toHaveProperty("native");
+    expect(evs.some((e) => e.type === "ext.openai.unparsed")).toBe(false);
   });
 
   // sp-cto's aliasing / `__proto__` checks on the toJsonValueSafe swap
@@ -4644,6 +4645,127 @@ describe("createOpenaiNormalizer — LV live (non-JSON-round-tripped) natives ne
       Reflect.set(hostObject, "weird", "mutated");
     }
     expect(carried).toEqual({ weird: true, nested: { k: 1 } });
+  });
+
+  // sp-cto nit (2026-09-24): the guard's payload must be content-free BY
+  // CONSTRUCTION, not because today's throws happen to be TypeErrors. A V8
+  // SyntaxError quotes its input (`Unexpected token 'o', "{"secret":"…" is not
+  // valid JSON`), so an error MESSAGE can carry a slice of tool arguments or a
+  // wrapper output. Force one out of drive(): the OA-14 phase carry reaches
+  // AgProviderMeta.parse unguarded, so a spy that throws there reaches the guard.
+  it("last-resort guard carries the error NAME only: a SyntaxError quoting SECRET_ content never reaches the wire", () => {
+    const spy = vi.spyOn(AgProviderMeta, "parse").mockImplementation(() => {
+      throw new SyntaxError('Unexpected token \'o\', "{"secret":"SECRET_TOOL_ARGS_42"}" is not valid JSON');
+    });
+    try {
+      const evs = run([
+        created,
+        rm({ type: "response.output_item.added", item: { id: "msg_sec", type: "message", phase: "commentary" } }),
+        rm({ type: "response.output_text.delta", item_id: "msg_sec", delta: "hi" }),
+      ]);
+      const guard = evs.find((e) => e.type === "error");
+      expect(guard).toMatchObject({ message: "normalizer error", code: "SyntaxError" });
+      expect(JSON.stringify(evs)).not.toContain("SECRET_");
+      expect(spy).toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  // sp-cto (2026-09-24): the guard catches a throw DEEP in drive(), possibly
+  // AFTER this same native already opened a turn, a message and a block. Those
+  // events stay on the wire (the assembler's seq/open-state advanced past them);
+  // what must hold is: reduce() never parks, INV-MSG (every message.start gets
+  // exactly one message.end), INV-BLOCK (no block id is created twice) and
+  // INV-TURN at flush, and the stream keeps working after the guard.
+  function assertInvariantsHold(evs: AgEvent[]): void {
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const starts = evs.filter((e) => e.type === "message.start").map((e) => (e.type === "message.start" ? e.id : ""));
+    for (const id of starts) {
+      expect(evs.filter((e) => e.type === "message.end" && e.id === id)).toHaveLength(1);
+    }
+    const blockIds = evs
+      .filter((e) => e.type === "text.start" || e.type === "reasoning.start")
+      .map((e) => (e.type === "text.start" || e.type === "reasoning.start" ? e.id : ""));
+    expect(new Set(blockIds).size).toBe(blockIds.length);
+    const opened = evs.filter((e) => e.type === "turn.start").length;
+    const closed = evs.filter((e) => e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort").length;
+    expect(closed).toBe(opened);
+    expect(() => AgReduceResult.parse(r.result())).not.toThrow();
+  }
+
+  const stripSeq = (evs: AgEvent[]): unknown[] => evs.map((e) => ({ ...e, seq: 0 }));
+  function assertSeqGapFree(evs: AgEvent[]): void {
+    evs.forEach((e, i) => expect(e.seq).toBe(i));
+  }
+
+  it("ATOMIC: a throw AFTER open (turn + message + text block opened by the SAME native) discards that whole batch — the wire gets ONLY the error event, and flush closes nothing that never went out", () => {
+    const spy = vi.spyOn(StreamAssembler.prototype, "textDelta").mockImplementationOnce(() => {
+      throw new RangeError("boom after open");
+    });
+    try {
+      // No response.created: this delta alone would open the turn, the message
+      // and the text block before textDelta throws.
+      const evs = run([rm({ type: "response.output_text.delta", item_id: "msg_open", delta: "lost" })]);
+      expect(evs.map((e) => e.type)).toEqual(["error"]);
+      expect(evs[0]).toMatchObject({ message: "normalizer error", code: "RangeError" });
+      assertInvariantsHold(evs);
+      assertSeqGapFree(evs);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("ATOMIC + no state divergence: a throw after open, then NORMAL natives ⇒ exactly the stream WITHOUT that native plus one error event (seq gap-free); reduce() never parks", () => {
+    const spy = vi.spyOn(StreamAssembler.prototype, "textDelta").mockImplementationOnce(() => {
+      throw new RangeError("boom after open");
+    });
+    const created = rm({ type: "response.created", response: { id: "resp_cont" } });
+    const bad = rm({ type: "response.output_text.delta", item_id: "msg_cont", delta: "lost " });
+    const rest = [
+      rm({ type: "response.output_text.delta", item_id: "msg_cont", delta: "kept" }),
+      rm({ type: "response.completed", response: { id: "resp_cont", status: "completed" } }),
+    ];
+    let evs: AgEvent[] = [];
+    try {
+      evs = run([created, bad, ...rest]);
+    } finally {
+      spy.mockRestore();
+    }
+    const baseline = run([created, ...rest]);
+    const errors = evs.filter((e) => e.type === "error");
+    expect(errors).toHaveLength(1);
+    expect(stripSeq(evs.filter((e) => e.type !== "error"))).toEqual(stripSeq(baseline));
+    assertSeqGapFree(evs);
+    assertInvariantsHold(evs);
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.result().messages.flatMap((m) => m.content).find((b) => b.type === "text")).toMatchObject({ text: "kept" });
+  });
+
+  it("a SECRET_ marker in the THROWING NATIVE never reaches the wire (its batch is discarded)", () => {
+    const spy = vi.spyOn(StreamAssembler.prototype, "textDelta").mockImplementationOnce(() => {
+      throw new RangeError("boom");
+    });
+    try {
+      const evs = run([
+        rm({ type: "response.created", response: { id: "resp_secret_native" } }),
+        rm({ type: "response.output_text.delta", item_id: "msg_sn", delta: "SECRET_NATIVE_7" }),
+      ]);
+      expect(JSON.stringify(evs)).not.toContain("SECRET_");
+      expect(evs.some((e) => e.type === "error")).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("an Error-based __host_error__ sentinel (Object.assign(new Error(msg), {type, code})) keeps its message through the entry conversion ⇒ turn.error", () => {
+    const sentinel = Object.assign(new Error("Max turns (8) exceeded"), { type: "__host_error__", code: "max_turns" });
+    const evs = run([created, liveNative(sentinel)]);
+    expect(evs.find((e) => e.type === "turn.error")).toMatchObject({ code: "max_turns", message: "Max turns (8) exceeded" });
+    expect(evs.some((e) => e.type === "ext.openai.unparsed")).toBe(false);
   });
 
   it("identity: an already-JSON native produces byte-identical output to before (the corpus shape)", () => {
