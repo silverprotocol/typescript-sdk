@@ -239,6 +239,12 @@ const OPENAI_SEEDS = [
   // function_call, folding as text.start.providerMetadata.phase "commentary"
   // ×3 + one "final_answer". Summaries stayed EMPTY (44/6/0 reasoning tokens).
   "commentary-gpt6sol",
+  // 2026-09-23 (rnd capture #1): the resource_link leg on OpenAI (gpt-6-sol
+  // @ @openai/agents 0.18.0). The agents SDK JSON-stringifies the whole MCP
+  // content (text + resource_link) into the function_call_output string
+  // before the stream, so tool.done carries it as ONE text block of JSON:
+  // lossless as a string, but not structured.
+  "resource-link-gpt6sol",
 ] as const;
 
 /**
@@ -310,6 +316,12 @@ const ADK_SEEDS = [
   // decision. This scenario steers the bare name and records the clean MCP
   // isError path. tool-error itself stays as the historical 2.5-flash record.
   "tool-error-gemini38",
+  // 2026-09-23 (rnd capture #1): the resource_link leg on ADK (gemini-3.8-flash
+  // @2.1.0). MCPToolset hands the MCP content through as
+  // functionResponse.response.content[*], and the facet keeps the
+  // resource_link whole as a provider-raw block in tool.done.content
+  // (transforms pin all eight leaves).
+  "resource-link-gemini38",
   // 2026-09-23 (rd-06 A.9 step 5): the FIRST live ADK 2.x WORKFLOW-plane
   // captures (@google/adk 2.1.0, gemini-3.8-flash), rooted at google's
   // agents/google-adk/workflow.ts graph through the scenario knob adkWorkflow.

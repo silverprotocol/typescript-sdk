@@ -1,0 +1,1977 @@
+[
+  {
+    "data": {
+      "type": "response_started",
+      "providerData": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_06d5c5dbb7ad065e006ab3be29e14487d0b51ae459c7995fbc",
+          "object": "response",
+          "created_at": 1790164521,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the find_doc tool with topic='conformance probes'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Finds a document by topic and returns a link to it (not its contents).",
+              "name": "find_doc",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "topic": {
+                    "description": "What the document is about",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_06d5c5dbb7ad065e006ab3be29e14487d0b51ae459c7995fbc",
+          "object": "response",
+          "created_at": 1790164521,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the find_doc tool with topic='conformance probes'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Finds a document by topic and returns a link to it (not its contents).",
+              "name": "find_doc",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "topic": {
+                    "description": "What the document is about",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.in_progress",
+        "response": {
+          "id": "resp_06d5c5dbb7ad065e006ab3be29e14487d0b51ae459c7995fbc",
+          "object": "response",
+          "created_at": 1790164521,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the find_doc tool with topic='conformance probes'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Finds a document by topic and returns a link to it (not its contents).",
+              "name": "find_doc",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "topic": {
+                    "description": "What the document is about",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 1
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "fc_06d5c5dbb7ad065e006ab3be2af73087d09d9a7577e77aac35",
+          "type": "function_call",
+          "status": "in_progress",
+          "arguments": "",
+          "call_id": "call_RjzYOFD5BhC0olW5aFfwcc7P",
+          "name": "find_doc"
+        },
+        "output_index": 0,
+        "sequence_number": 2
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "{\"",
+        "item_id": "fc_06d5c5dbb7ad065e006ab3be2af73087d09d9a7577e77aac35",
+        "obfuscation": "BTxTaiB8XL59Az",
+        "output_index": 0,
+        "sequence_number": 3
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "topic",
+        "item_id": "fc_06d5c5dbb7ad065e006ab3be2af73087d09d9a7577e77aac35",
+        "obfuscation": "pIL8LVTa9n1",
+        "output_index": 0,
+        "sequence_number": 4
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "\":\"",
+        "item_id": "fc_06d5c5dbb7ad065e006ab3be2af73087d09d9a7577e77aac35",
+        "obfuscation": "WdkP8UmZpbGNg",
+        "output_index": 0,
+        "sequence_number": 5
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "con",
+        "item_id": "fc_06d5c5dbb7ad065e006ab3be2af73087d09d9a7577e77aac35",
+        "obfuscation": "kA8wmv3cYOY5d",
+        "output_index": 0,
+        "sequence_number": 6
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "formance",
+        "item_id": "fc_06d5c5dbb7ad065e006ab3be2af73087d09d9a7577e77aac35",
+        "obfuscation": "y8hCSNrJ",
+        "output_index": 0,
+        "sequence_number": 7
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " probes",
+        "item_id": "fc_06d5c5dbb7ad065e006ab3be2af73087d09d9a7577e77aac35",
+        "obfuscation": "is3oqm9SA",
+        "output_index": 0,
+        "sequence_number": 8
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "\"}",
+        "item_id": "fc_06d5c5dbb7ad065e006ab3be2af73087d09d9a7577e77aac35",
+        "obfuscation": "iZ6v8aEp8RBptX",
+        "output_index": 0,
+        "sequence_number": 9
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.done",
+        "arguments": "{\"topic\":\"conformance probes\"}",
+        "item_id": "fc_06d5c5dbb7ad065e006ab3be2af73087d09d9a7577e77aac35",
+        "output_index": 0,
+        "sequence_number": 10
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "fc_06d5c5dbb7ad065e006ab3be2af73087d09d9a7577e77aac35",
+          "type": "function_call",
+          "status": "completed",
+          "arguments": "{\"topic\":\"conformance probes\"}",
+          "call_id": "call_RjzYOFD5BhC0olW5aFfwcc7P",
+          "name": "find_doc"
+        },
+        "output_index": 0,
+        "sequence_number": 11
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_done",
+      "response": {
+        "id": "resp_06d5c5dbb7ad065e006ab3be29e14487d0b51ae459c7995fbc",
+        "requestId": "req_a12397084ef84bd58a88bceb14199d6f",
+        "output": [
+          {
+            "type": "function_call",
+            "id": "fc_06d5c5dbb7ad065e006ab3be2af73087d09d9a7577e77aac35",
+            "callId": "call_RjzYOFD5BhC0olW5aFfwcc7P",
+            "name": "find_doc",
+            "status": "completed",
+            "arguments": "{\"topic\":\"conformance probes\"}",
+            "providerData": {
+              "id": "fc_06d5c5dbb7ad065e006ab3be2af73087d09d9a7577e77aac35",
+              "type": "function_call"
+            }
+          }
+        ],
+        "usage": {
+          "inputTokens": 109,
+          "outputTokens": 20,
+          "totalTokens": 129,
+          "inputTokensDetails": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "outputTokensDetails": {
+            "reasoning_tokens": 0
+          },
+          "requestUsageEntries": [
+            {
+              "inputTokens": 109,
+              "outputTokens": 20,
+              "totalTokens": 129,
+              "inputTokensDetails": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0
+              },
+              "outputTokensDetails": {
+                "reasoning_tokens": 0
+              },
+              "endpoint": "responses.create"
+            }
+          ]
+        },
+        "providerData": {
+          "object": "response",
+          "created_at": 1790164521,
+          "status": "completed",
+          "access_programs": null,
+          "background": false,
+          "completed_at": 1790164523,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the find_doc tool with topic='conformance probes'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Finds a document by topic and returns a link to it (not its contents).",
+              "name": "find_doc",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "topic": {
+                    "description": "What the document is about",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "user": null,
+          "metadata": {}
+        }
+      },
+      "providerData": {
+        "type": "response.completed",
+        "sequence_number": 12
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_06d5c5dbb7ad065e006ab3be29e14487d0b51ae459c7995fbc",
+          "object": "response",
+          "created_at": 1790164521,
+          "status": "completed",
+          "access_programs": null,
+          "background": false,
+          "completed_at": 1790164523,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the find_doc tool with topic='conformance probes'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [
+            {
+              "id": "fc_06d5c5dbb7ad065e006ab3be2af73087d09d9a7577e77aac35",
+              "type": "function_call",
+              "status": "completed",
+              "arguments": "{\"topic\":\"conformance probes\"}",
+              "call_id": "call_RjzYOFD5BhC0olW5aFfwcc7P",
+              "name": "find_doc"
+            }
+          ],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Finds a document by topic and returns a link to it (not its contents).",
+              "name": "find_doc",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "topic": {
+                    "description": "What the document is about",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": {
+            "input_tokens": 109,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 20,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "total_tokens": 129
+          },
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 12
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "name": "tool_called",
+    "item": {
+      "type": "tool_call_item",
+      "rawItem": {
+        "providerData": {
+          "id": "fc_06d5c5dbb7ad065e006ab3be2af73087d09d9a7577e77aac35",
+          "type": "function_call"
+        },
+        "id": "fc_06d5c5dbb7ad065e006ab3be2af73087d09d9a7577e77aac35",
+        "type": "function_call",
+        "callId": "call_RjzYOFD5BhC0olW5aFfwcc7P",
+        "name": "find_doc",
+        "status": "completed",
+        "arguments": "{\"topic\":\"conformance probes\"}"
+      },
+      "agent": {
+        "name": "spike"
+      }
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "name": "tool_output",
+    "item": {
+      "type": "tool_call_output_item",
+      "rawItem": {
+        "type": "function_call_result",
+        "name": "find_doc",
+        "callId": "call_RjzYOFD5BhC0olW5aFfwcc7P",
+        "status": "completed",
+        "output": {
+          "type": "text",
+          "text": "[{\"type\":\"text\",\"text\":\"Found one document for \\\"conformance probes\\\".\"},{\"name\":\"conformance-probe-resource-link.md\",\"title\":\"Conformance probe: resource link\",\"uri\":\"file:///docs/conformance-probe-resource-link.md\",\"description\":\"A document the find_doc tool links to instead of inlining.\",\"mimeType\":\"text/markdown\",\"size\":2048,\"annotations\":{\"audience\":[\"user\",\"assistant\"],\"priority\":0.7},\"type\":\"resource_link\"}]"
+        }
+      },
+      "agent": {
+        "name": "spike"
+      },
+      "output": "[{\"type\":\"text\",\"text\":\"Found one document for \\\"conformance probes\\\".\"},{\"name\":\"conformance-probe-resource-link.md\",\"title\":\"Conformance probe: resource link\",\"uri\":\"file:///docs/conformance-probe-resource-link.md\",\"description\":\"A document the find_doc tool links to instead of inlining.\",\"mimeType\":\"text/markdown\",\"size\":2048,\"annotations\":{\"audience\":[\"user\",\"assistant\"],\"priority\":0.7},\"type\":\"resource_link\"}]",
+      "executionStatus": "executed"
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_started",
+      "providerData": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_06d5c5dbb7ad065e006ab3be2b995887d0a8f0c6135d498591",
+          "object": "response",
+          "created_at": 1790164523,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the find_doc tool with topic='conformance probes'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Finds a document by topic and returns a link to it (not its contents).",
+              "name": "find_doc",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "topic": {
+                    "description": "What the document is about",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_06d5c5dbb7ad065e006ab3be2b995887d0a8f0c6135d498591",
+          "object": "response",
+          "created_at": 1790164523,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the find_doc tool with topic='conformance probes'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Finds a document by topic and returns a link to it (not its contents).",
+              "name": "find_doc",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "topic": {
+                    "description": "What the document is about",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.in_progress",
+        "response": {
+          "id": "resp_06d5c5dbb7ad065e006ab3be2b995887d0a8f0c6135d498591",
+          "object": "response",
+          "created_at": 1790164523,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the find_doc tool with topic='conformance probes'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Finds a document by topic and returns a link to it (not its contents).",
+              "name": "find_doc",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "topic": {
+                    "description": "What the document is about",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 1
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+          "type": "message",
+          "status": "in_progress",
+          "content": [],
+          "phase": "final_answer",
+          "role": "assistant"
+        },
+        "output_index": 0,
+        "sequence_number": 2
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.content_part.added",
+        "content_index": 0,
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "output_index": 0,
+        "part": {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": ""
+        },
+        "sequence_number": 3
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "The",
+      "itemId": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "pclIPovyCMwCX",
+        "output_index": 0,
+        "sequence_number": 4
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "The",
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "pclIPovyCMwCX",
+        "output_index": 0,
+        "sequence_number": 4
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " document",
+      "itemId": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "iMIMNY3",
+        "output_index": 0,
+        "sequence_number": 5
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " document",
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "iMIMNY3",
+        "output_index": 0,
+        "sequence_number": 5
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " is",
+      "itemId": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "fdYuoZTJdYvwR",
+        "output_index": 0,
+        "sequence_number": 6
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " is",
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "fdYuoZTJdYvwR",
+        "output_index": 0,
+        "sequence_number": 6
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " **",
+      "itemId": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "H0a7dq8aRwEce",
+        "output_index": 0,
+        "sequence_number": 7
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " **",
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "H0a7dq8aRwEce",
+        "output_index": 0,
+        "sequence_number": 7
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "con",
+      "itemId": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "PjbtiaWi6YYpd",
+        "output_index": 0,
+        "sequence_number": 8
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "con",
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "PjbtiaWi6YYpd",
+        "output_index": 0,
+        "sequence_number": 8
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "formance",
+      "itemId": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "zLICHNFj",
+        "output_index": 0,
+        "sequence_number": 9
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "formance",
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "zLICHNFj",
+        "output_index": 0,
+        "sequence_number": 9
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "-pro",
+      "itemId": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "9NRIyS8yp8pH",
+        "output_index": 0,
+        "sequence_number": 10
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "-pro",
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "9NRIyS8yp8pH",
+        "output_index": 0,
+        "sequence_number": 10
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "be",
+      "itemId": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "I70799yXJuIJK5",
+        "output_index": 0,
+        "sequence_number": 11
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "be",
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "I70799yXJuIJK5",
+        "output_index": 0,
+        "sequence_number": 11
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "-resource",
+      "itemId": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "H4cpiuP",
+        "output_index": 0,
+        "sequence_number": 12
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "-resource",
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "H4cpiuP",
+        "output_index": 0,
+        "sequence_number": 12
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "-link",
+      "itemId": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "m7gSCUatVr6",
+        "output_index": 0,
+        "sequence_number": 13
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "-link",
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "m7gSCUatVr6",
+        "output_index": 0,
+        "sequence_number": 13
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": ".md",
+      "itemId": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "6HaZySIdgb93r",
+        "output_index": 0,
+        "sequence_number": 14
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": ".md",
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "6HaZySIdgb93r",
+        "output_index": 0,
+        "sequence_number": 14
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "**",
+      "itemId": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "WWcqXDlLgXnq14",
+        "output_index": 0,
+        "sequence_number": 15
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "**",
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "WWcqXDlLgXnq14",
+        "output_index": 0,
+        "sequence_number": 15
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": ".",
+      "itemId": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "D36zJFZC8UOTegx",
+        "output_index": 0,
+        "sequence_number": 16
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": ".",
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "obfuscation": "D36zJFZC8UOTegx",
+        "output_index": 0,
+        "sequence_number": 16
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.done",
+        "content_index": 0,
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "logprobs": [],
+        "output_index": 0,
+        "sequence_number": 17,
+        "text": "The document is **conformance-probe-resource-link.md**."
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.content_part.done",
+        "content_index": 0,
+        "item_id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "output_index": 0,
+        "part": {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "The document is **conformance-probe-resource-link.md**."
+        },
+        "sequence_number": 18
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+          "type": "message",
+          "status": "completed",
+          "content": [
+            {
+              "type": "output_text",
+              "annotations": [],
+              "logprobs": [],
+              "text": "The document is **conformance-probe-resource-link.md**."
+            }
+          ],
+          "phase": "final_answer",
+          "role": "assistant"
+        },
+        "output_index": 0,
+        "sequence_number": 19
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_done",
+      "response": {
+        "id": "resp_06d5c5dbb7ad065e006ab3be2b995887d0a8f0c6135d498591",
+        "requestId": "req_48894237c9d243f0ae5ae1659777fdf0",
+        "output": [
+          {
+            "id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "The document is **conformance-probe-resource-link.md**.",
+                "providerData": {
+                  "annotations": [],
+                  "logprobs": []
+                }
+              }
+            ],
+            "status": "completed",
+            "phase": "final_answer",
+            "providerData": {
+              "phase": "final_answer"
+            }
+          }
+        ],
+        "usage": {
+          "inputTokens": 240,
+          "outputTokens": 17,
+          "totalTokens": 257,
+          "inputTokensDetails": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "outputTokensDetails": {
+            "reasoning_tokens": 0
+          },
+          "requestUsageEntries": [
+            {
+              "inputTokens": 240,
+              "outputTokens": 17,
+              "totalTokens": 257,
+              "inputTokensDetails": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0
+              },
+              "outputTokensDetails": {
+                "reasoning_tokens": 0
+              },
+              "endpoint": "responses.create"
+            }
+          ]
+        },
+        "providerData": {
+          "object": "response",
+          "created_at": 1790164523,
+          "status": "completed",
+          "access_programs": null,
+          "background": false,
+          "completed_at": 1790164524,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the find_doc tool with topic='conformance probes'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Finds a document by topic and returns a link to it (not its contents).",
+              "name": "find_doc",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "topic": {
+                    "description": "What the document is about",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "user": null,
+          "metadata": {}
+        }
+      },
+      "providerData": {
+        "type": "response.completed",
+        "sequence_number": 20
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_06d5c5dbb7ad065e006ab3be2b995887d0a8f0c6135d498591",
+          "object": "response",
+          "created_at": 1790164523,
+          "status": "completed",
+          "access_programs": null,
+          "background": false,
+          "completed_at": 1790164524,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST call the find_doc tool with topic='conformance probes'. Do not answer from memory.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [
+            {
+              "id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+              "type": "message",
+              "status": "completed",
+              "content": [
+                {
+                  "type": "output_text",
+                  "annotations": [],
+                  "logprobs": [],
+                  "text": "The document is **conformance-probe-resource-link.md**."
+                }
+              ],
+              "phase": "final_answer",
+              "role": "assistant"
+            }
+          ],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Finds a document by topic and returns a link to it (not its contents).",
+              "name": "find_doc",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "topic": {
+                    "description": "What the document is about",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": {
+            "input_tokens": 240,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 17,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "total_tokens": 257
+          },
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 20
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "name": "message_output_created",
+    "item": {
+      "type": "message_output_item",
+      "rawItem": {
+        "providerData": {
+          "phase": "final_answer"
+        },
+        "id": "msg_06d5c5dbb7ad065e006ab3be2c75b087d0b84f1089f61bcfe2",
+        "type": "message",
+        "role": "assistant",
+        "phase": "final_answer",
+        "status": "completed",
+        "content": [
+          {
+            "providerData": {
+              "annotations": [],
+              "logprobs": []
+            },
+            "type": "output_text",
+            "text": "The document is **conformance-probe-resource-link.md**."
+          }
+        ]
+      },
+      "agent": {
+        "name": "spike"
+      }
+    },
+    "type": "run_item_stream_event"
+  }
+]

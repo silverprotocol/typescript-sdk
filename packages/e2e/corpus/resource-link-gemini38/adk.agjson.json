@@ -1,0 +1,182 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9",
+    "threadId": "google"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9",
+    "turnId": "turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9",
+    "threadId": "google",
+    "role": "assistant"
+  },
+  {
+    "type": "tool.start",
+    "seq": 2,
+    "turnId": "turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9",
+    "toolCallId": "call_164587",
+    "name": "find_doc",
+    "index": 0
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 3,
+    "toolCallId": "call_164587",
+    "delta": "{\"topic\":\"conformance probes\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 4,
+    "toolCallId": "call_164587",
+    "input": {
+      "topic": "conformance probes"
+    },
+    "signature": "EuwDCukDAWkUfRPpAnat2P2F8+Ze9DfCMM2Vi/g6jwNXTuXK+eQwv3Fld3mr8GIAraUalE9TuQm8VuMD9n6SF8wYFi/xki1xBwDYGxEG+0xqzx0xahzy+N4ZGq6Ogk3NRURGyQQfqbQX04HrhQkE1anCa9q9SYuavyuNwdIWOyyYOoZPiCT1zQvc3Cpp56aIg27iwlhizr7qcw6D6SrlqjDxMY03nJ8P9V5u92nrlhtEFnIEoGdZT0WzBnmeVClcuvITg/hI4UO9QN/RQCBTfImIgBAWuSBKnp9C0nRmVsrTq+v5JtrWDc2u9L0n5EpKMuXLUlvakbNlELduUdEYEJ3ByWGw/nWWCVVcNc3eOhXDNXWe1q2RQTrk+ZLNwTkOQVUe5IaSK35NXSeiNoAPIxrtkVFo7Q0uZWXJrUNMXR7YA1dJAYQNIbsYgLvm2L3oaoxdGiciyExNk1vP+j4B+EBXbVfIO6efX3yBnoLb+SCs/pEce7EMxlOcWa5rHZRTpw01l/hku+PjQB/SnAPYAygH69wcs9lFueRD/SqQomU0ckRk4R4LhZn5/jb1WZgfGuDOuzLQQHp60EibZZhy8a/+77Tmtx7BcZO23rcBo9j3GQkda5An8esVJn6LeHGFBOYI7d7EvIhcKvbWGgoG"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9",
+    "seq": 5
+  },
+  {
+    "type": "content.block",
+    "seq": 6,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9",
+    "turnId": "turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9"
+  },
+  {
+    "type": "tool.done",
+    "seq": 7,
+    "turnId": "turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9",
+    "toolCallId": "call_164587",
+    "content": [
+      {
+        "type": "text",
+        "text": "Found one document for \"conformance probes\"."
+      },
+      {
+        "type": "provider-raw",
+        "vendor": "google",
+        "raw": {
+          "name": "conformance-probe-resource-link.md",
+          "title": "Conformance probe: resource link",
+          "uri": "file:///docs/conformance-probe-resource-link.md",
+          "description": "A document the find_doc tool links to instead of inlining.",
+          "mimeType": "text/markdown",
+          "size": 2048,
+          "annotations": {
+            "audience": [
+              "user",
+              "assistant"
+            ],
+            "priority": 0.7
+          },
+          "type": "resource_link"
+        }
+      }
+    ],
+    "outcome": "ok"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9",
+    "seq": 8
+  },
+  {
+    "type": "content.block",
+    "seq": 9,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9",
+    "turnId": "turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9"
+  },
+  {
+    "type": "text.start",
+    "seq": 10,
+    "id": "text:0",
+    "messageId": "msg_turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9",
+    "turnId": "turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9",
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "EtwCCtkCAWkUfROclAqiYdqsxwomDU4iBjvoS9HqobVwsEUSoifVZSSf7C0+5+E2Lc9FlbnxLKFM8VOBGbEQlbqBARbooWRSqgWfG50o7FxSLZl14kZ2ETveEHeRPY7461jkGTzPWf2uACSu5o7+eUDjTnA6BGZ57XHOGsPedW4Ixqb1DQhrqK3x20eBuumfxGjB2q/VzDfrYQZPH9GDShsQAQ/Ynbcq7VH7ZYcoJSQ1OA2ocTalJyAJWo1lDRVPmzzJFANlAuJGwQb6asKkIBdqWAYhTdqKsRPSMKwzMKhj574jguJ9GyBP3SncxKWR5pKtee+taeuiJoaeEOVD8LjV6xyd+kV7sGdLtTj6iB4gzZTO7MJGnHtOMt4pscTl2O6SxgWbtnOl/H/NZsN2fwQ/UyU0UU3GoOTz36m1KuoS3H1F/RyKrYI6qn+QnCaqpdtY2+FQOcAgnA1R9mqH"
+      }
+    }
+  },
+  {
+    "type": "text.delta",
+    "seq": 11,
+    "id": "text:0",
+    "messageId": "msg_turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9",
+    "delta": "The document found is **`conformance-probe-resource-link.md`** (titled *\"Conformance probe: resource link\"*).",
+    "turnId": "turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9"
+  },
+  {
+    "type": "text.end",
+    "seq": 12,
+    "id": "text:0",
+    "messageId": "msg_turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9",
+    "turnId": "turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9",
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "EtwCCtkCAWkUfROclAqiYdqsxwomDU4iBjvoS9HqobVwsEUSoifVZSSf7C0+5+E2Lc9FlbnxLKFM8VOBGbEQlbqBARbooWRSqgWfG50o7FxSLZl14kZ2ETveEHeRPY7461jkGTzPWf2uACSu5o7+eUDjTnA6BGZ57XHOGsPedW4Ixqb1DQhrqK3x20eBuumfxGjB2q/VzDfrYQZPH9GDShsQAQ/Ynbcq7VH7ZYcoJSQ1OA2ocTalJyAJWo1lDRVPmzzJFANlAuJGwQb6asKkIBdqWAYhTdqKsRPSMKwzMKhj574jguJ9GyBP3SncxKWR5pKtee+taeuiJoaeEOVD8LjV6xyd+kV7sGdLtTj6iB4gzZTO7MJGnHtOMt4pscTl2O6SxgWbtnOl/H/NZsN2fwQ/UyU0UU3GoOTz36m1KuoS3H1F/RyKrYI6qn+QnCaqpdtY2+FQOcAgnA1R9mqH"
+      }
+    }
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9",
+    "seq": 13
+  },
+  {
+    "type": "content.block",
+    "seq": 14,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9",
+    "turnId": "turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9"
+  },
+  {
+    "type": "message.end",
+    "seq": 15,
+    "id": "msg_turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9"
+  },
+  {
+    "type": "turn.done",
+    "seq": 16,
+    "turnId": "turn_e-6c0adb07-5ec4-4579-80b0-ba829eec17d9",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 477,
+      "outputTokens": 208,
+      "totalTokens": 685,
+      "reasoningTokens": 162,
+      "cumulative": false
+    }
+  }
+]

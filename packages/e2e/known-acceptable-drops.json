@@ -3297,5 +3297,53 @@
     "frameworks": [
       "claude"
     ]
+  },
+  {
+    "path": "[*].data.event.response.tools[*].parameters.properties.topic.description",
+    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text for the resource-link mock's \"topic\" parameter (find_doc) - mirrors the existing ...properties.message/body entries for differently-named parameters, same bucket, no AgJSON home. First observed live 2026-09-23 (resource-link-gpt6sol, gpt-6-sol @ @openai/agents 0.18.0).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].data.event.response.tools[*].parameters.properties.topic.type",
+    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema type for the resource-link mock's \"topic\" parameter (find_doc) - mirrors the existing ...properties.message/body entries for differently-named parameters, same bucket, no AgJSON home. First observed live 2026-09-23 (resource-link-gpt6sol, gpt-6-sol @ @openai/agents 0.18.0).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].data.providerData.response.tools[*].parameters.properties.topic.description",
+    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text for the resource-link mock's \"topic\" parameter (find_doc) - mirrors the existing ...properties.message/body entries for differently-named parameters, same bucket, no AgJSON home. First observed live 2026-09-23 (resource-link-gpt6sol, gpt-6-sol @ @openai/agents 0.18.0).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].data.providerData.response.tools[*].parameters.properties.topic.type",
+    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema type for the resource-link mock's \"topic\" parameter (find_doc) - mirrors the existing ...properties.message/body entries for differently-named parameters, same bucket, no AgJSON home. First observed live 2026-09-23 (resource-link-gpt6sol, gpt-6-sol @ @openai/agents 0.18.0).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].data.response.providerData.tools[*].parameters.properties.topic.description",
+    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text for the resource-link mock's \"topic\" parameter (find_doc) - mirrors the existing ...properties.message/body entries for differently-named parameters, same bucket, no AgJSON home. First observed live 2026-09-23 (resource-link-gpt6sol, gpt-6-sol @ @openai/agents 0.18.0).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
+  },
+  {
+    "path": "[*].data.response.providerData.tools[*].parameters.properties.topic.type",
+    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema type for the resource-link mock's \"topic\" parameter (find_doc) - mirrors the existing ...properties.message/body entries for differently-named parameters, same bucket, no AgJSON home. First observed live 2026-09-23 (resource-link-gpt6sol, gpt-6-sol @ @openai/agents 0.18.0).",
+    "reviewed": "any",
+    "frameworks": [
+      "openai"
+    ]
   }
 ]
