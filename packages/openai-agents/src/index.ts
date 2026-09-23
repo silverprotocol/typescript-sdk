@@ -1668,12 +1668,20 @@ function createInnerOpenaiNormalizer(): Normalizer {
    * when the result joins a known round or an open response (unchanged).
    */
   function openTurnForLeadingResult(callId: string): { turnId: string; messageId: string } | undefined {
-    if (turnId !== undefined) return undefined;
-    const opened = `turn_resume_${callId}`;
-    turnId = opened;
-    lastTopLevelTurnId = opened;
-    a.openTurn(opened, threadId);
-    return { turnId: opened, messageId: `${callId}:result` };
+    if (turnId === undefined) {
+      const opened = `turn_resume_${callId}`;
+      turnId = opened;
+      lastTopLevelTurnId = opened;
+      a.openTurn(opened, threadId);
+      return { turnId: opened, messageId: `${callId}:result` };
+    }
+    // Approve-all (sp-protocol's D3 pin, 2026-09-24): the resuming invoke can
+    // replay SEVERAL results before its response. While the resume turn is
+    // open with no assistant message yet (turnId set, msgId unset — a state
+    // only this helper creates), each further result joins THAT turn as its
+    // own role:"tool" message; no second turn opens.
+    if (msgId === undefined) return { turnId, messageId: `${callId}:result` };
+    return undefined;
   }
 
   /** Reset per-response state after a close. Marks the response closed (close-once). */

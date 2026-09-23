@@ -4861,6 +4861,61 @@ describe("createOpenaiNormalizer — RS a resumed invoke's leading tool_output o
     expect(r.needsResync).toBe(false);
   });
 
+  // sp-protocol's pin for the pending D3 wording (c20, bar wf_9722b7bc-ba9):
+  // ONE resuming invoke that carries TWO approved results (approve-all), in the
+  // order the SDK replays them from RunState. One resume turn, named for the
+  // FIRST call; both results are their own role:"tool" messages in it; no
+  // second turn; no park. And replaying the same RunState twice (two
+  // normalizers, two folds) mints the same turn id.
+  function twoResultResume(): JsonValue[] {
+    const result = (callId: string, text: string): JsonValue =>
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "function_call_result", name: "echo", callId, status: "completed", output: [{ type: "input_text", text }] },
+        agent: { name: "spike" },
+        output: JSON.stringify({ type: "text", text }),
+        executionStatus: "executed",
+      });
+    return [
+      result("call_first", "one"),
+      result("call_second", "two"),
+      rawModel({ type: "response.created", response: { id: "resp_two", model: "gpt-6-sol" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_two", delta: "Both echoed." }),
+      rawModel({ type: "response.completed", response: { id: "resp_two", status: "completed" } }),
+    ];
+  }
+
+  it("approve-all: TWO leading results ⇒ ONE resume turn (turn_resume_<firstCallId>), both results own messages <callId>:result in it, no second turn, no park", () => {
+    const evs = run(twoResultResume());
+    const starts = evs.filter((e) => e.type === "turn.start");
+    expect(starts).toHaveLength(1);
+    expect(starts[0]).toMatchObject({ turnId: "turn_resume_call_first" });
+    const dones = evs.filter((e) => e.type === "tool.done");
+    expect(dones).toHaveLength(2);
+    expect(dones[0]).toMatchObject({ toolCallId: "call_first", messageId: "call_first:result", turnId: "turn_resume_call_first" });
+    expect(dones[1]).toMatchObject({ toolCallId: "call_second", messageId: "call_second:result", turnId: "turn_resume_call_first" });
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    expect(res.turns).toHaveLength(1);
+    expect(res.messages.map((m) => m.id)).toEqual(["call_first:result", "call_second:result", "msg_turn_resume_call_first"]);
+    expect(() => AgReduceResult.parse(res)).not.toThrow();
+  });
+
+  it("approve-all determinism: the same RunState replayed through two normalizers and two folds mints the same turn id and the same fold", () => {
+    const fold = (): { turnIds: unknown[]; result: unknown } => {
+      const evs = run(twoResultResume());
+      const r = new Reducer();
+      for (const e of evs) r.push(e);
+      return { turnIds: evs.filter((e) => e.type === "turn.start").map((e) => Reflect.get(e, "turnId")), result: r.result() };
+    };
+    const first = fold();
+    const second = fold();
+    expect(first.turnIds).toEqual(["turn_resume_call_first"]);
+    expect(second).toEqual(first);
+  });
+
   it("negative control: a NORMAL deferred tool result (its round is known) opens no resume turn", () => {
     const evs = run([
       rawModel({ type: "response.created", response: { id: "resp_norm" } }),
