@@ -1,0 +1,24 @@
+{
+  "drops": [
+    {
+      "path": "[4].message.diagnostics.cache_miss_reason.type",
+      "norm": "[*].message.diagnostics.cache_miss_reason.type",
+      "value": "tools_changed"
+    },
+    {
+      "path": "[4].message.diagnostics.cache_miss_reason.cache_missed_input_tokens",
+      "norm": "[*].message.diagnostics.cache_miss_reason.cache_missed_input_tokens",
+      "value": 3258
+    },
+    {
+      "path": "[5].isSynthetic",
+      "norm": "[*].isSynthetic",
+      "value": true
+    }
+  ],
+  "newFields": [
+    "[*].message.diagnostics.cache_miss_reason.type",
+    "[*].message.diagnostics.cache_miss_reason.cache_missed_input_tokens",
+    "[*].isSynthetic"
+  ]
+}

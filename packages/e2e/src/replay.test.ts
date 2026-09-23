@@ -187,6 +187,12 @@ const CLAUDE_SEEDS = [
   // tool.start + tool.done{denied} for ids this invoke already started and
   // closed. They enroll once sp-claude and sp-protocol settle the resumed
   // closure mapping. Their committed coverage lists the census findings.
+  // Also unenrolled until the ruling (candidate-20 bar, package decision 6):
+  // -resume-unavailable (no MCP server on resume, so the tool is gone). The
+  // FIRST result (before init) has is_error:true and stop_reason /
+  // terminal_reason "tool_deferred_unavailable", with the same
+  // deferred_tool_use and an empty result. It folds as a turn.error close,
+  // then the prompt's own success turn.
 ] as const;
 
 /**

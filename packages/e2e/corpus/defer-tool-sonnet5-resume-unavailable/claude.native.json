@@ -1,0 +1,404 @@
+[
+  {
+    "type": "command_lifecycle",
+    "command_uuid": "93740bcd-c84d-415e-8eb4-636069f4aecf",
+    "state": "started",
+    "uuid": "cc71985b-d6b1-4fe0-9eb2-ad00d6d09d58",
+    "session_id": "6eae91af-cccc-4758-9b0c-33bd9d42333e"
+  },
+  {
+    "is_error": true,
+    "duration_api_ms": 0,
+    "num_turns": 11,
+    "stop_reason": "tool_deferred_unavailable",
+    "session_id": "6eae91af-cccc-4758-9b0c-33bd9d42333e",
+    "total_cost_usd": 0.011266,
+    "usage": {
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "output_tokens": 0,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "",
+      "iterations": [],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-haiku-4-5-20251001": {
+        "inputTokens": 912,
+        "outputTokens": 13,
+        "thinkingTokens": 0,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0,
+        "webSearchRequests": 0,
+        "costUSD": 0.000977,
+        "contextWindow": 200000,
+        "maxOutputTokens": 32000
+      },
+      "claude-sonnet-5": {
+        "inputTokens": 2,
+        "outputTokens": 60,
+        "thinkingTokens": 0,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 3874,
+        "webSearchRequests": 0,
+        "costUSD": 0.010289,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "tool_deferred_unavailable",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required",
+    "subagent_stats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "subtype": "success",
+    "result": "",
+    "deferred_tool_use": {
+      "id": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK",
+      "name": "mcp__t__echo",
+      "input": {
+        "message": "conformance-probe-defer"
+      }
+    },
+    "type": "result",
+    "duration_ms": 16,
+    "uuid": "303f4dbd-ff65-4c21-af57-3d0e6c4bd441",
+    "queued_turn_count": 0,
+    "result_index": 0
+  },
+  {
+    "type": "command_lifecycle",
+    "command_uuid": "93740bcd-c84d-415e-8eb4-636069f4aecf",
+    "state": "cancelled",
+    "uuid": "11587752-1048-4b00-868e-980396905164",
+    "session_id": "6eae91af-cccc-4758-9b0c-33bd9d42333e"
+  },
+  {
+    "type": "system",
+    "subtype": "init",
+    "cwd": "/Users/gustavo/Projects/silverprotocol/.tmp/seats/probe/sdks/typescript/packages/e2e",
+    "session_id": "6eae91af-cccc-4758-9b0c-33bd9d42333e",
+    "tools": [],
+    "mcp_servers": [],
+    "model": "claude-sonnet-5",
+    "permissionMode": "default",
+    "slash_commands": [
+      "deep-research",
+      "design",
+      "design-sync",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator",
+      "advisor",
+      "agents",
+      "auto-mode-setup",
+      "autocompact",
+      "clear",
+      "color",
+      "compact",
+      "config",
+      "output-style",
+      "context",
+      "effort",
+      "fast",
+      "heapdump",
+      "init",
+      "mcp",
+      "import",
+      "model",
+      "__remote-workflow",
+      "workflow-launch-exec",
+      "reload-plugins",
+      "reload-skills",
+      "rename",
+      "security-review",
+      "usage",
+      "insights",
+      "recap",
+      "skill-doctor",
+      "goal",
+      "design-consent",
+      "design-revoke",
+      "list-agents",
+      "team-onboarding"
+    ],
+    "terminal_slash_commands": [
+      "doctor",
+      "color",
+      "reload-plugins"
+    ],
+    "apiKeySource": "ANTHROPIC_API_KEY",
+    "claude_code_version": "2.1.280",
+    "output_style": "default",
+    "agents": [
+      "claude",
+      "Explore",
+      "general-purpose",
+      "Plan",
+      "statusline-setup"
+    ],
+    "skills": [
+      "deep-research",
+      "design",
+      "design-sync",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator"
+    ],
+    "plugins": [
+      {
+        "name": "agents-md",
+        "path": "builtin",
+        "source": "agents-md@builtin"
+      },
+      {
+        "name": "telemetry",
+        "path": "builtin",
+        "source": "telemetry@builtin"
+      }
+    ],
+    "capabilities": [
+      "interrupt_receipt_v1",
+      "interrupt_cancel_queued_v1",
+      "msg_lifecycle_v1",
+      "mcp_read_resource_v1",
+      "mcp_tool_ui_meta_v1"
+    ],
+    "analytics_disabled": false,
+    "product_feedback_disabled": false,
+    "uuid": "5dc04123-d0ec-4b62-bf7f-9833d659ef3d",
+    "memory_paths": {
+      "auto": "/Users/gustavo/.claude/projects/-Users-gustavo-Projects-silverprotocol/memory/"
+    },
+    "messaging_socket_path": "/tmp/cc-socks/53404.sock",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-sonnet-5",
+      "id": "msg_011CfLPUUZhVMA78j2zrdMcB",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "",
+          "signature": "ErICCqgBCBIYAipAOWPD/PZ71yNs9Ycan8oyZKJLvQ82x09L6esBzZ8ihh/Hv+RkBiLW/xkOZmhj1IP7hxhL/zyFM6Ih02o6us6W3jIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiQ2NThiNDdmOS0wMWUyLTQ3OTgtYjViZS00NGUyYTM1ZDhjY2FyELKOZMSwnhnZyM97wUmgANmIAQGoAfeRz9UGsAECEgxlP2mXKOnDmZrrOSUaDPaPD8GOEilddMty9yIwA1rhfvPUpFFEFxkki+OS9r4iRDbgNyEdR0G2tFJF9RL/bHEdcuyDoEZiHw/XCyDfKjeZzcuhAGEmrHuU3WECnz5lVVUZpTudyQbzljX9801PmNaPymM9kzRTK/kAWVDa4wDV5pnFYwxjGAE="
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 6679,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 6679,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": {
+        "cache_miss_reason": {
+          "type": "tools_changed",
+          "cache_missed_input_tokens": 3258
+        }
+      },
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "6eae91af-cccc-4758-9b0c-33bd9d42333e",
+    "uuid": "33b61874-59cd-41cc-85f8-26a8b36b6411",
+    "timestamp": "2026-09-23T12:41:27.597Z",
+    "request_id": "req_011CfLPUUBdkAYnBzNzYnZMB"
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "[Your previous response had no visible output. Please continue and produce a user-visible response.]"
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "session_id": "6eae91af-cccc-4758-9b0c-33bd9d42333e",
+    "uuid": "778f51c3-9c9c-45c9-9024-3baf16c8e936",
+    "timestamp": "2026-09-23T12:41:27.605Z",
+    "isSynthetic": true
+  },
+  {
+    "duration_api_ms": 7241,
+    "stop_reason": "end_turn",
+    "session_id": "6eae91af-cccc-4758-9b0c-33bd9d42333e",
+    "total_cost_usd": 0.044929,
+    "usage": {
+      "input_tokens": 4,
+      "cache_creation_input_tokens": 13386,
+      "cache_read_input_tokens": 0,
+      "output_tokens": 19,
+      "output_tokens_details": {
+        "thinking_tokens": 16
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 13386
+      },
+      "inference_geo": "global",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 1,
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 6707,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 6707,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-haiku-4-5-20251001": {
+        "inputTokens": 912,
+        "outputTokens": 13,
+        "thinkingTokens": 0,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0,
+        "webSearchRequests": 0,
+        "costUSD": 0.000977,
+        "contextWindow": 200000,
+        "maxOutputTokens": 32000
+      },
+      "claude-sonnet-5": {
+        "inputTokens": 6,
+        "outputTokens": 79,
+        "thinkingTokens": 16,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 17260,
+        "webSearchRequests": 0,
+        "costUSD": 0.043952000000000005,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000,
+        "canonicalModel": "claude-sonnet-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required",
+    "subagent_stats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "is_error": false,
+    "num_turns": 2,
+    "subtype": "success",
+    "api_error_status": null,
+    "result": "",
+    "ttft_ms": 2563,
+    "type": "result",
+    "duration_ms": 3823,
+    "uuid": "629320e1-cdd4-42fc-bc73-5972d04d2b78",
+    "ttft_stream_ms": 2377,
+    "time_to_request_ms": 248,
+    "first_content_frame_ms": 2377,
+    "queued_turn_count": 0,
+    "result_index": 1
+  }
+]
