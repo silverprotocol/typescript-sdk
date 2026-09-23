@@ -876,7 +876,62 @@ interface OpenAIResponsesCompleted {
     status?: "completed" | "failed" | "in_progress" | "cancelled" | "queued" | "incomplete";
     incomplete_details?: { reason?: string };
     usage?: OpenAIResponseUsage;
+    /** openai-node `Response.output: ResponseOutputItem[]` — consumed ONLY for its
+     *  `type:"reasoning"` members (OA-11; see `terminalReasoningItems`). Typed as
+     *  the raw `JsonValue` it is on this seam and narrowed item-by-item there:
+     *  the outer guard (`isOpenAIStreamEvent`) validates the envelope only. */
+    output?: JsonValue;
   };
+}
+
+/** One `type:"reasoning"` member of a terminal event's `response.output`
+ *  (openai-node `ResponseReasoningItem`: `id`, `summary: {type:"summary_text";
+ *  text}[]`, `encrypted_content?: string | null`), narrowed from `JsonValue`.
+ *  `summary[i]` keeps its wire index — it becomes `reasoning.delta.partIndex`
+ *  (SPEC `reasoning.start` row: "OpenAI summary_index → partIndex"). */
+interface TerminalReasoningItem {
+  id: string;
+  summary: ReadonlyArray<{ partIndex: number; text: string }>;
+  encryptedContent?: string;
+}
+
+/**
+ * OA-11: extract the reasoning items from a terminal event's `response.output`.
+ * This — not `response.output_item.done` — is the replayable source: OpenAI
+ * re-encrypts `encrypted_content` per stage (live, echo-gpt6sol natives [4] vs
+ * [21]: two different blobs for one `rs_`), and only the terminal blob is the
+ * one stateless replay sends back (§10 item 4). The run-item the SDK builds
+ * afterwards carries the same terminal blob (natives [22]); its `content[]` is
+ * this `summary[]` re-labelled `input_text` (agents-openai 0.18.0
+ * `openaiResponsesConverter.mjs`:1481-1497).
+ *
+ * Deserialization boundary: a non-array `output`, a non-object member, a member
+ * with no string `id`, and a non-string summary `text` are all skipped (an
+ * id-less reasoning item stays with the run-item path, which already degrades
+ * it losslessly). Absent/empty output ⇒ `[]` ⇒ byte-identical to pre-OA-11.
+ */
+function terminalReasoningItems(output: JsonValue | undefined): TerminalReasoningItem[] {
+  if (!Array.isArray(output)) return [];
+  const items: TerminalReasoningItem[] = [];
+  for (const member of output) {
+    if (!isJsonObject(member) || member.type !== "reasoning") continue;
+    const id = member.id;
+    if (typeof id !== "string" || id.length === 0) continue;
+    const summary: { partIndex: number; text: string }[] = [];
+    const rawSummary = member.summary;
+    if (Array.isArray(rawSummary)) {
+      rawSummary.forEach((part, partIndex) => {
+        if (isJsonObject(part) && typeof part.text === "string") summary.push({ partIndex, text: part.text });
+      });
+    }
+    const enc = member.encrypted_content;
+    items.push({
+      id,
+      summary,
+      ...(typeof enc === "string" && enc.length > 0 ? { encryptedContent: enc } : {}),
+    });
+  }
+  return items;
 }
 
 /** The `ResponseStatus` members that ASSERT the response did not succeed
@@ -1289,6 +1344,10 @@ function isOpenAIStreamEvent(v: unknown): v is OpenAIStreamEvent {
  *                 no-op; text streams left open by it fall to the defensive
  *                 close-any-dangling-stream fallback in `closeResponse()` /
  *                 `endOpenStreamsAndCloseMessage()` / `emitRoundClose()`)
+ *  - reasoning  ← opens at `model:response.output_item.added{reasoning}` (wire
+ *                 position), filled from the `model:response.completed` /
+ *                 `.incomplete` `response.output` (OA-11 — the final, replayable
+ *                 `encrypted_content`); `reasoning_item_created` is the fallback
  *  - turn close ← `model:response.completed` (guard close-once)
  *
  * `ensureResponseOpen()` opens turn + message exactly once per response;
@@ -1325,6 +1384,14 @@ export function createOpenaiNormalizer(): Normalizer {
   let responseId: string | undefined; // real response.id once known
   // Open text streams keyed by Responses item_id (textStart once per id).
   const openTextStreams = new Set<string>();
+  // OA-11 reasoning-block state. `openReasoning`: rs_ id → the message id its
+  // block opened in (at `output_item.added{reasoning}`), awaiting its fill from
+  // the terminal output; per-response (cleared by `resetResponseState`).
+  // `filledReasoning`: every rs_ id whose block has been filled — normalizer-
+  // lifetime, because the SDK's `reasoning_item_created` for it lands AFTER the
+  // response closed and must dedupe against it (single source per rs_ id).
+  const openReasoning = new Map<string, string>();
+  const filledReasoning = new Set<string>();
   // Close-once guard: the SDK emits `response.completed` TWICE per response. Once a
   // response.id (or a synthesized turnId) has been closed, any further terminal event
   // for it is a no-op — it must NOT reopen a fresh message/turn.
@@ -1490,6 +1557,10 @@ export function createOpenaiNormalizer(): Normalizer {
     const key = responseId ?? turnId;
     if (key !== undefined) closedResponses.add(key);
     openTextStreams.clear();
+    // OA-11: an rs_ block opened but never filled (e.g. `response.failed`) stays
+    // as the spec's own unsealed-block outcome (INV-FLUSH (3)); forget it so a
+    // late run-item for it takes the existing `late-reasoning` degrade.
+    openReasoning.clear();
     turnId = undefined;
     msgId = undefined;
     responseId = undefined;
@@ -1539,9 +1610,21 @@ export function createOpenaiNormalizer(): Normalizer {
         return;
       }
       case "response.output_item.added": {
+        // OA-11: a reasoning item OPENS its block here — id only, the added event
+        // carries no replayable content — so the block takes its wire position
+        // ahead of the `fc_` it precedes (§5 block insertion order, SPEC:763;
+        // §10 item 4's stateless loop replays `rs_` before its `fc_`). It is
+        // filled from the terminal output (`fillReasoningFromTerminalOutput`).
+        if (ev.item.type === "reasoning") {
+          ensureResponseOpen();
+          // typeof guard: the envelope guard does not validate `item.id` (JsonValue boundary).
+          const rsId: unknown = ev.item.id;
+          if (typeof rsId === "string") openReasoningBlock(rsId);
+          return;
+        }
         // Authoritative tool-start source (canonical model, A1 §"Spike Findings").
-        // Only function_call items carry a tool name + call_id; other item types
-        // (message, reasoning) are no-op'd here — their lifecycle is handled elsewhere.
+        // Only function_call items carry a tool name + call_id; message items are
+        // no-op'd here — their lifecycle is handled elsewhere.
         if (ev.item.type === "function_call" && ev.item.call_id !== undefined && ev.item.name !== undefined) {
           const fcId = ev.item.id;
           const callId = ev.item.call_id;
@@ -1624,6 +1707,11 @@ export function createOpenaiNormalizer(): Normalizer {
         if (ensureResponseOpen(ev.response.id) === undefined) return;
         if (turnId === undefined) return; // unreachable post-ensure; satisfies narrowing
         if (msgId === undefined) return; // unreachable post-ensure; satisfies narrowing
+        // OA-11: fill every reasoning block from THIS output (the replayable blob)
+        // FIRST — before any branch below can emit message.end / turn.* (INV-MSG:
+        // a reasoning.* event must never target a sealed message; core's reduce()
+        // does not check that for reasoning.*, so the order is this facet's job).
+        fillReasoningFromTerminalOutput(ev.response.output);
         // Snapshot before any deferral: `resetResponseState()` below always
         // clears these, but a deferred close needs them later (Task 4b).
         const currentTurnId = turnId;
@@ -1923,12 +2011,77 @@ export function createOpenaiNormalizer(): Normalizer {
   }
 
   /**
-   * Map a `reasoning_item_created` run-item (Task 3, audit M48): the SOLE source
-   * for reasoning content on this seam — `response.output_item.added` only special-
-   * cases `item.type==="function_call"` (canonical model, A1); it carries no
-   * `content`/`providerData` for a `reasoning` item, so it structurally cannot
-   * supply the summary text or the ZDR blob and is left untouched (single-source
-   * per concern, no double-emit).
+   * OA-11: open the reasoning block for `rsId` in the current message — once per
+   * id (a re-announce, or an id already filled, is a no-op). `id` and `itemId`
+   * are both the `rs_` id (the run-item path's convention). Called from
+   * `output_item.added{reasoning}` so the block takes its WIRE position, and
+   * defensively from the terminal fill for an item never announced.
+   */
+  function openReasoningBlock(rsId: string): void {
+    if (msgId === undefined || rsId.length === 0) return;
+    if (openReasoning.has(rsId) || filledReasoning.has(rsId)) return;
+    a.emit({ type: "reasoning.start", id: rsId, messageId: msgId, itemId: rsId });
+    openReasoning.set(rsId, msgId);
+  }
+
+  /**
+   * OA-11: fill + seal an OPEN reasoning block: one `reasoning.delta` per
+   * non-empty summary part (`partIndex` = the wire `summary_index`), then
+   * `reasoning.opaque` (the replayable ciphertext, `itemId` = rs_) BEFORE
+   * `reasoning.end`, so "sealed" means complete (sp-protocol's recommendation;
+   * the Claude signature-before-stop order). The facet never consumes
+   * `response.reasoning_summary_text.delta` (the raw default arm drops it), so
+   * this is the ONLY place summary text is emitted — no double under INV-DELTA.
+   */
+  function fillReasoningBlock(
+    rsId: string,
+    summary: ReadonlyArray<{ partIndex: number; text: string }>,
+    encryptedContent: string | undefined,
+  ): void {
+    const mId = openReasoning.get(rsId);
+    if (mId === undefined) return;
+    for (const part of summary) {
+      if (part.text.length > 0) {
+        a.emit({ type: "reasoning.delta", id: rsId, messageId: mId, delta: part.text, partIndex: part.partIndex });
+      }
+    }
+    if (encryptedContent !== undefined) {
+      a.emit({
+        type: "reasoning.opaque",
+        id: rsId,
+        messageId: mId,
+        kind: "ciphertext",
+        value: encryptedContent,
+        provider: "openai",
+        itemId: rsId,
+      });
+    }
+    a.reasoningEnd(rsId, mId);
+    openReasoning.delete(rsId);
+    filledReasoning.add(rsId);
+  }
+
+  /** OA-11: fill every reasoning block from a terminal event's `response.output`
+   *  (see `terminalReasoningItems` for why this, not `output_item.done`, is the
+   *  source). An item never announced by `output_item.added` opens here
+   *  (defensive — position is then the terminal event's). */
+  function fillReasoningFromTerminalOutput(output: JsonValue | undefined): void {
+    for (const item of terminalReasoningItems(output)) {
+      if (filledReasoning.has(item.id)) continue;
+      openReasoningBlock(item.id);
+      fillReasoningBlock(item.id, item.summary, item.encryptedContent);
+    }
+  }
+
+  /**
+   * Map a `reasoning_item_created` run-item (Task 3, audit M48). Since OA-11 it
+   * is the FALLBACK source: on the live wire it lands after `response.completed`,
+   * whose output already filled the block, so a run-item whose `rs_` id is in
+   * `filledReasoning` is a no-op (single source per id — no duplicate block, no
+   * `late-reasoning` ext). If raw `output_item.added` opened the block but no
+   * terminal output has filled it yet, the run-item fills that block in place.
+   * Only with NO raw reasoning events for the id (run-item-only streams) does the
+   * pre-OA-11 mapping below still run, unchanged:
    *
    * The run-item wrapper delivers the reasoning item as ONE completed unit (unlike
    * the incremental text/tool-arg deltas elsewhere in this facet), so
@@ -1967,6 +2120,20 @@ export function createOpenaiNormalizer(): Normalizer {
    * return.
    */
   function driveReasoningItemCreated(item: OpenAIReasoningItem): void {
+    // OA-11 dedupe: already filled from the terminal output (or an earlier run-item).
+    if (item.id !== undefined && filledReasoning.has(item.id)) return;
+    // OA-11: raw `output_item.added` opened this block; no terminal output has
+    // filled it yet (synthetic ordering) — fill it in place from the run-item,
+    // whose `content[]` IS the raw `summary[]` (one part per index).
+    if (msgId !== undefined && item.id !== undefined && openReasoning.has(item.id)) {
+      const enc = item.providerData?.encrypted_content;
+      fillReasoningBlock(
+        item.id,
+        item.content.map((p, partIndex) => ({ partIndex, text: p.text })),
+        typeof enc === "string" && enc.length > 0 ? enc : undefined,
+      );
+      return;
+    }
     if (msgId === undefined) {
       // response already closed — see doc above.
       const lateEncrypted = item.providerData?.encrypted_content;
@@ -1996,6 +2163,8 @@ export function createOpenaiNormalizer(): Normalizer {
         ...(itemId !== undefined ? { itemId } : {}),
       });
     }
+    // OA-11: a terminal output naming this rs_ later must not open a second block.
+    if (itemId !== undefined) filledReasoning.add(itemId);
   }
 
   /** Resolve the turn a pending tool call started under (Task 4b) — a plain
@@ -2480,8 +2649,8 @@ export function createOpenaiNormalizer(): Normalizer {
           driveToolSearchOutput(event.item.rawItem);
           return;
         case "reasoning_item_created":
-          // SOLE source for reasoning content — see driveReasoningItemCreated's
-          // docstring for the single-sourcing rationale (Task 3, audit M48).
+          // FALLBACK source since OA-11 (the raw terminal output fills first; an
+          // already-filled rs_ is a no-op) — see driveReasoningItemCreated's docstring.
           driveReasoningItemCreated(event.item.rawItem);
           return;
         case "handoff_requested": {

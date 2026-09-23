@@ -1685,7 +1685,10 @@ describe("createOpenaiNormalizer — capstone fold-identity over a combined corp
 // cases `item.type === "function_call"`, and none of these declares a richer
 // item shape there — reasoning's content/encrypted_content and the handoff
 // agents exist ONLY on the run-item wrappers). So the run-item arm is the sole
-// source for all of them; `output_item.added` is left untouched.
+// source for all of them; `output_item.added` is left untouched. SUPERSEDED for
+// reasoning by OA-11 (see the OA-11 describe below): the raw `output_item.added`
+// opens the block and the terminal `response.output` fills it; the tests in THIS
+// describe feed no raw reasoning events, so they pin the run-item FALLBACK path.
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("createOpenaiNormalizer — reasoning_item_created (Task 3, audit M48)", () => {
@@ -1865,6 +1868,293 @@ describe("createOpenaiNormalizer — reasoning_item_created (Task 3, audit M48)"
       .concat(n.flush());
     expect(evs.find((e) => e.type === "ext.openai.late-reasoning")).toBeUndefined();
     expect(evs.find((e) => e.type === "reasoning.start")).toBeUndefined();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OA-11 — reasoning as a first-class block on the LIVE wire order.
+//
+// Live evidence (corpus/echo-gpt6sol/openai.native.json, gpt-6-sol, @openai/
+// agents 0.18.0): `output_item.added{reasoning rs_}` [3] → `output_item.done
+// {reasoning}` [4] → `output_item.added{function_call fc_}` [5] … →
+// `response.completed` [21] → run-item `reasoning_item_created` [22]. The run-
+// item lands AFTER the close, so before OA-11 only `ext.openai.late-reasoning`
+// fired and no reasoning block folded. And the `encrypted_content` at [4] is a
+// DIFFERENT blob from [21]/[22] — OpenAI re-encrypts per stage; only the final
+// one (the `response.completed` output's) is what stateless replay sends back.
+//
+// Mapping: the block OPENS at `output_item.added{reasoning}` (id only — keeps
+// wire order: `rs_` before `fc_`, §5 block insertion order, SPEC:763; §10 item
+// 4's stateless loop needs `rs_` ahead of its `fc_` on replay) and is FILLED
+// (summary delta, end, opaque) from the `response.completed`/`.incomplete`
+// output, never from `output_item.done`. The run-item then dedupes by id.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("createOpenaiNormalizer — OA-11 reasoning sourced from the response.completed output", () => {
+  const RESP = "resp_oa11";
+  const RS = "rs_oa11";
+  const FC = "fc_oa11";
+  const CALL = "call_oa11";
+
+  /** The live gpt-6-sol tool round (echo-gpt6sol natives [1]..[24]), minimised. */
+  function liveToolRound(opts: {
+    finalBlob?: string;
+    summary?: JsonValue;
+    terminal?: "response.completed" | "response.incomplete";
+  }): JsonValue[] {
+    const reasoningOut: { [k: string]: JsonValue } = { id: RS, type: "reasoning", content: [] };
+    reasoningOut.summary = opts.summary ?? [];
+    if (opts.finalBlob !== undefined) reasoningOut.encrypted_content = opts.finalBlob;
+    const runItemProviderData: { [k: string]: JsonValue } = { id: RS, type: "reasoning", content: [] };
+    if (opts.finalBlob !== undefined) runItemProviderData.encrypted_content = opts.finalBlob;
+    return [
+      rawModel({ type: "response.created", response: { id: RESP } }),
+      rawModel({ type: "response.output_item.added", item: { id: RS, type: "reasoning", summary: [] } }),
+      // The STAGE blob: re-encrypted before the terminal event — never replayable.
+      rawModel({
+        type: "response.output_item.done",
+        item: { id: RS, type: "reasoning", content: [], encrypted_content: "ENC_STAGE_NOT_REPLAYABLE", summary: [] },
+      }),
+      rawModel({
+        type: "response.output_item.added",
+        item: { id: FC, type: "function_call", call_id: CALL, name: "echo", arguments: "" },
+      }),
+      rawModel({ type: "response.function_call_arguments.delta", item_id: FC, delta: '{"message":"hi"}' }),
+      rawModel({ type: "response.function_call_arguments.done", item_id: FC, arguments: '{"message":"hi"}' }),
+      rawModel({
+        type: opts.terminal ?? "response.completed",
+        response: {
+          id: RESP,
+          status: opts.terminal === "response.incomplete" ? "incomplete" : "completed",
+          ...(opts.terminal === "response.incomplete" ? { incomplete_details: { reason: "max_output_tokens" } } : {}),
+          output: [
+            reasoningOut,
+            { id: FC, type: "function_call", status: "completed", arguments: '{"message":"hi"}', call_id: CALL, name: "echo" },
+          ],
+        },
+      }),
+      runItem("reasoning_item_created", {
+        type: "reasoning_item",
+        rawItem: { providerData: runItemProviderData, id: RS, type: "reasoning", content: [] },
+      }),
+    ];
+  }
+
+  function drive(stream: JsonValue[]): AgEvent[] {
+    const n = createOpenaiNormalizer();
+    return stream.flatMap((e) => n.push(e)).concat(n.flush());
+  }
+
+  it("live order: one reasoning block, opened BEFORE the fc_ tool.start, sealed with the FINAL blob + rs_ itemId; no late-reasoning ext", () => {
+    const evs = drive(liveToolRound({ finalBlob: "ENC_FINAL" }));
+    const types = evs.map((e) => e.type);
+
+    expect(types.filter((t) => t === "reasoning.start")).toHaveLength(1);
+    expect(types.indexOf("reasoning.start")).toBeGreaterThan(-1);
+    expect(types.indexOf("reasoning.start")).toBeLessThan(types.indexOf("tool.start"));
+
+    const start = evs.find((e) => e.type === "reasoning.start");
+    expect(start).toMatchObject({ id: RS, itemId: RS });
+
+    const opaques = evs.filter((e) => e.type === "reasoning.opaque");
+    expect(opaques).toHaveLength(1);
+    expect(opaques[0]).toMatchObject({ id: RS, kind: "ciphertext", value: "ENC_FINAL", provider: "openai", itemId: RS });
+    expect(types.filter((t) => t === "reasoning.end")).toHaveLength(1);
+    // Opaque BEFORE end: "sealed" means complete (sp-protocol's recommendation —
+    // mirrors Claude's signature landing before content_block_stop).
+    expect(types.indexOf("reasoning.opaque")).toBeLessThan(types.indexOf("reasoning.end"));
+
+    // The per-stage blob from output_item.done is never emitted, anywhere.
+    expect(JSON.stringify(evs)).not.toContain("ENC_STAGE_NOT_REPLAYABLE");
+    // The late run-item dedupes — the block already carries the blob.
+    expect(types).not.toContain("ext.openai.late-reasoning");
+  });
+
+  // A reasoning + text round with NO tool call: the close is NOT deferred, so
+  // message.end + turn.done fire inside the very `response.completed` arm that
+  // fills the block — the path where a mis-ordered fill would land post-seal.
+  function liveTextRound(): JsonValue[] {
+    return [
+      rawModel({ type: "response.created", response: { id: "resp_txt" } }),
+      rawModel({ type: "response.output_item.added", item: { id: "rs_txt", type: "reasoning", summary: [] } }),
+      rawModel({ type: "response.output_item.added", item: { id: "msg_txt", type: "message" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_txt", delta: "hello" }),
+      rawModel({ type: "response.output_text.done", item_id: "msg_txt", text: "hello" }),
+      rawModel({
+        type: "response.completed",
+        response: {
+          id: "resp_txt",
+          status: "completed",
+          output: [
+            { id: "rs_txt", type: "reasoning", content: [], summary: [{ type: "summary_text", text: "think" }], encrypted_content: "ENC_TXT" },
+            { id: "msg_txt", type: "message", role: "assistant", content: [{ type: "output_text", text: "hello", annotations: [] }] },
+          ],
+        },
+      }),
+    ];
+  }
+
+  it.each([
+    ["text round (close inside the completed arm)", "rs_txt", liveTextRound()],
+    ["tool round (close deferred to flush)", RS, liveToolRound({ finalBlob: "ENC_FINAL", summary: [{ type: "summary_text", text: "think" }] })],
+  ])(
+    "INV-MSG (SPEC:745), %s: every rs_ fill event (delta/opaque/end) has a LOWER seq than the holding message's message.end and than the turn terminal — core's reduce() has no sealed-message check on reasoning.*, so the order is asserted here",
+    (_label, rsId, stream) => {
+      const evs = drive(stream);
+      const start = evs.find((e) => e.type === "reasoning.start");
+      if (start === undefined || start.type !== "reasoning.start") throw new Error("no reasoning.start");
+      const fills = evs.filter(
+        (e) => (e.type === "reasoning.delta" || e.type === "reasoning.opaque" || e.type === "reasoning.end") && e.id === rsId,
+      );
+      expect(fills.map((e) => e.type)).toEqual(["reasoning.delta", "reasoning.opaque", "reasoning.end"]);
+      const msgEnd = evs.find((e) => e.type === "message.end" && e.id === start.messageId);
+      const terminal = evs.find((e) => e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort");
+      expect(msgEnd).toBeDefined();
+      expect(terminal).toBeDefined();
+      const maxFillSeq = Math.max(...fills.map((e) => e.seq));
+      expect(maxFillSeq).toBeLessThan(msgEnd?.seq ?? -1);
+      expect(maxFillSeq).toBeLessThan(terminal?.seq ?? -1);
+    },
+  );
+
+  it("INV-DELTA (SPEC:749): a raw stream that ALSO carried response.reasoning_summary_text.delta folds the summary exactly once", () => {
+    const stream = liveToolRound({ finalBlob: "ENC_FINAL", summary: [{ type: "summary_text", text: "only once" }] });
+    // Splice the live summary-streaming events in after output_item.added{reasoning}.
+    stream.splice(
+      2,
+      0,
+      rawModel({ type: "response.reasoning_summary_part.added", item_id: RS, output_index: 0, summary_index: 0, part: { type: "summary_text", text: "" } }),
+      rawModel({ type: "response.reasoning_summary_text.delta", item_id: RS, output_index: 0, summary_index: 0, delta: "only " }),
+      rawModel({ type: "response.reasoning_summary_text.delta", item_id: RS, output_index: 0, summary_index: 0, delta: "once" }),
+      rawModel({ type: "response.reasoning_summary_text.done", item_id: RS, output_index: 0, summary_index: 0, text: "only once" }),
+    );
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    for (const e of stream) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    const block = r
+      .result()
+      .messages.flatMap((m) => m.content)
+      .find((b) => b.type === "reasoning");
+    expect(block).toMatchObject({ type: "reasoning", text: "only once", itemId: RS });
+  });
+
+  it("fold: content[0] is the reasoning block (rs_ itemId + final opaque), content[1] the fc_ tool-call — the §10.4 stateless-replay order", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    for (const e of liveToolRound({ finalBlob: "ENC_FINAL" })) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    const assistant = res.messages.find((m) => m.content.some((b) => b.type === "reasoning"));
+    expect(assistant).toBeDefined();
+    expect(assistant?.content[0]).toMatchObject({
+      type: "reasoning",
+      itemId: RS,
+      opaque: { kind: "ciphertext", value: "ENC_FINAL", provider: "openai" },
+    });
+    expect(assistant?.content[1]).toMatchObject({ type: "tool-call", itemId: FC });
+    expect(() => AgReduceResult.parse(res)).not.toThrow();
+  });
+
+  it("summary text rides one reasoning.delta PER summary part with partIndex = summary_index, sourced from the completed output's summary[] (the text the run-item's content[] is built from — agents-openai 0.18.0 openaiResponsesConverter.mjs:1481-1497); empty parts emit nothing", () => {
+    const summary: JsonValue = [
+      { type: "summary_text", text: "Plan: call echo. " },
+      { type: "summary_text", text: "" },
+      { type: "summary_text", text: "Then answer." },
+    ];
+    const evs = drive(liveToolRound({ finalBlob: "ENC_FINAL", summary }));
+    const deltas = evs.filter((e) => e.type === "reasoning.delta");
+    expect(deltas).toHaveLength(2);
+    expect(deltas[0]).toMatchObject({ id: RS, delta: "Plan: call echo. ", partIndex: 0 });
+    expect(deltas[1]).toMatchObject({ id: RS, delta: "Then answer.", partIndex: 2 });
+
+    // The fold's `text` is the in-order concatenation of parts (SPEC reasoning.delta row).
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    for (const e of liveToolRound({ finalBlob: "ENC_FINAL", summary })) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    const block = r
+      .result()
+      .messages.flatMap((m) => m.content)
+      .find((b) => b.type === "reasoning");
+    expect(block).toMatchObject({ text: "Plan: call echo. Then answer." });
+  });
+
+  it("mirror: no encrypted_content in the completed output ⇒ block still folds, but no reasoning.opaque and no late-reasoning ext", () => {
+    const evs = drive(liveToolRound({}));
+    const types = evs.map((e) => e.type);
+    expect(types).toContain("reasoning.start");
+    expect(types).toContain("reasoning.end");
+    expect(types).not.toContain("reasoning.opaque");
+    expect(types).not.toContain("ext.openai.late-reasoning");
+  });
+
+  it("response.incomplete carries the same output ⇒ the block is filled there too (the turn still closes as an error)", () => {
+    const evs = drive(liveToolRound({ finalBlob: "ENC_FINAL", terminal: "response.incomplete" }));
+    expect(evs.find((e) => e.type === "reasoning.opaque")).toMatchObject({ value: "ENC_FINAL", itemId: RS });
+    expect(evs.find((e) => e.type === "turn.error")).toMatchObject({ code: "max_output_tokens" });
+  });
+
+  it("defensive: a reasoning item in the completed output with NO output_item.added still folds (opened at the terminal event)", () => {
+    const evs = drive([
+      rawModel({ type: "response.created", response: { id: "resp_noadd" } }),
+      rawModel({
+        type: "response.completed",
+        response: {
+          id: "resp_noadd",
+          status: "completed",
+          output: [{ id: "rs_noadd", type: "reasoning", content: [], summary: [], encrypted_content: "ENC_NOADD" }],
+        },
+      }),
+    ]);
+    expect(evs.find((e) => e.type === "reasoning.start")).toMatchObject({ id: "rs_noadd", itemId: "rs_noadd" });
+    expect(evs.find((e) => e.type === "reasoning.opaque")).toMatchObject({ value: "ENC_NOADD", itemId: "rs_noadd" });
+  });
+
+  it("negative control: absent / empty / reasoning-free output ⇒ byte-identical to a completed event with no output field", () => {
+    const base = (extra: { [k: string]: JsonValue }): AgEvent[] =>
+      drive([
+        rawModel({ type: "response.created", response: { id: "resp_neg" } }),
+        rawModel({ type: "response.completed", response: { id: "resp_neg", status: "completed", ...extra } }),
+      ]);
+    const bare = base({});
+    expect(base({ output: [] })).toEqual(bare);
+    expect(base({ output: [{ id: "msg_1", type: "message", role: "assistant", content: [] }] })).toEqual(bare);
+    // A malformed output (not an array) is ignored at the deserialization boundary.
+    expect(base({ output: "not-an-array" })).toEqual(bare);
+    expect(bare.map((e) => e.type)).not.toContain("reasoning.start");
+  });
+
+  it("run-item arriving while the message is still open after the raw fill ⇒ no duplicate block (single-source by rs_ id)", () => {
+    const stream = liveToolRound({ finalBlob: "ENC_FINAL" });
+    // Move the run-item BEFORE the terminal event (synthetic ordering).
+    const runItemEv = stream.pop();
+    const terminal = stream.pop();
+    if (runItemEv === undefined || terminal === undefined) throw new Error("fixture shape");
+    const reordered = [...stream, runItemEv, terminal];
+    const evs = drive(reordered);
+    expect(evs.filter((e) => e.type === "reasoning.start")).toHaveLength(1);
+    expect(evs.filter((e) => e.type === "reasoning.opaque")).toHaveLength(1);
+    expect(evs.filter((e) => e.type === "reasoning.end")).toHaveLength(1);
+  });
+
+  it("response.failed after the reasoning item opened ⇒ the open block folds empty (no opaque), the turn errors, no resync", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    const stream = [
+      rawModel({ type: "response.created", response: { id: "resp_fail" } }),
+      rawModel({ type: "response.output_item.added", item: { id: "rs_fail", type: "reasoning", summary: [] } }),
+      rawModel({ type: "response.failed", response: { id: "resp_fail", error: { code: "server_error", message: "boom" } } }),
+    ];
+    for (const e of stream) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    const block = res.messages.flatMap((m) => m.content).find((b) => b.type === "reasoning");
+    expect(block).toMatchObject({ type: "reasoning", text: "", itemId: "rs_fail" });
+    expect(block).not.toHaveProperty("opaque");
+    expect(res.turns.some((t) => t.outcome?.type === "error")).toBe(true);
   });
 });
 

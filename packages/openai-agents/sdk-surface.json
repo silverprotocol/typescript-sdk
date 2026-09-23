@@ -119,7 +119,7 @@
         },
         "reasoning_item_created": {
           "disposition": "handled",
-          "note": "driveReasoningItemCreated() \u2014 sole source for reasoning content on this seam (start/delta/end/opaque incl. the ZDR encrypted_content replay blob)."
+          "note": "driveReasoningItemCreated() \u2014 the FALLBACK source since OA-11 (2026-09-23). On the live wire (echo-gpt6sol, gpt-6-sol) this run-item lands AFTER response.completed, so the block is already opened at raw response.output_item.added{reasoning} (wire position, ahead of its fc_) and filled from the terminal response.output (summary deltas with partIndex, then opaque with the FINAL encrypted_content, then end); a run-item whose rs_ id is already filled is a no-op. The pre-OA-11 mapping (start/delta/end/opaque, or ext.openai.late-reasoning after close) runs only for an rs_ with no raw reasoning events."
         },
         "handoff_requested": {
           "disposition": "handled",
@@ -208,7 +208,7 @@
         },
         "reasoning": {
           "disposition": "handled",
-          "note": "The rawItem of reasoning_item_created -> driveReasoningItemCreated() (start/delta/end/opaque incl. the rs_\u2026 id and ZDR encrypted_content replay blob)."
+          "note": "OA-11 (2026-09-23): the replayable source is the raw openai-node ResponseReasoningItem inside response.completed / response.incomplete `response.output` (terminalReasoningItems()), NOT response.output_item.done \u2014 OpenAI re-encrypts encrypted_content per stage (echo-gpt6sol natives [4] vs [21] carry different blobs for one rs_) and only the terminal blob replays (\u00a710 item 4). The block opens at response.output_item.added{reasoning} so it precedes its fc_ in content[] (\u00a75 block insertion order); summary[i].text -> reasoning.delta{partIndex:i}; the rs_ id rides reasoning.start/opaque itemId. The run-item's content[] is this summary[] relabelled input_text (agents-openai 0.18.0 openaiResponsesConverter.mjs:1481-1497), which keeps the fallback run-item path textually identical."
         },
         "compaction": {
           "disposition": "not-applicable",
