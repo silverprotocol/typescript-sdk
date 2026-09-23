@@ -206,7 +206,7 @@ function isAuthCredentialObject(v: { readonly [k: string]: unknown }): boolean {
 /** Whether `v` is, or holds at any depth (arrays included), an ADK
  *  AuthCredential. Iterative and cycle-safe over the raw native value; a value
  *  that cannot be walked counts as holding one, so this never throws. */
-function holdsAuthCredential(v: unknown): boolean {
+export function holdsAuthCredential(v: unknown): boolean {
   return holdsObject(v, isAuthCredentialObject);
 }
 

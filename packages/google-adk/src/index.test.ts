@@ -1883,7 +1883,7 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
     expect(all.filter((e) => e.type === "hitl.ask")).toHaveLength(1);
   });
 
-  it("(b) workflow complete: no success close; flush aborts (known gap until the host completion signal), message.end keeps the usage", () => {
+  it("(b) workflow complete without the host-completion signal: no success close; flush aborts, message.end keeps the usage (the hostCompletion opt-in closes it success)", () => {
     const { flushed, all } = pushAndFlush([
       ...workflowHead(),
       ev({
