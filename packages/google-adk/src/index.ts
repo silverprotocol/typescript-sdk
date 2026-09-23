@@ -1553,6 +1553,23 @@ function carryNodeValue(raw: unknown): { value: JsonValue; changed: boolean } | 
   }
 }
 
+/** JSON.stringify of a raw `output` whose node-data reduction changed or
+ *  omitted it: the text ADK renders from that output. `undefined` otherwise
+ *  (including a string output, which ADK renders as itself). */
+function changedOutputRendering(output: unknown): string | undefined {
+  if (output === undefined || output === null || typeof output !== "object") return undefined;
+  // Detection first, so an output holding neither is never parsed here.
+  if (!holdsAuthCredential(output) && !holdsObject(output, isCredentialRequestResponse)) return undefined;
+  const carried = carryNodeValue(output);
+  if (carried !== undefined && !carried.changed) return undefined;
+  try {
+    const rendered: unknown = JSON.stringify(output);
+    return typeof rendered === "string" ? rendered : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** The reserved credential call's args: its id, its message and the scrubbed
  *  AuthConfig. Nothing else is forwarded. */
 function scrubCredentialCallArgs(args: JsonValue): JsonValue {
@@ -2046,6 +2063,18 @@ export function createAdkNormalizer(): Normalizer {
     const messageId = ensureOpen(turnId);
     const parts = event.content?.parts ?? [];
     const isPartial = event.partial === true;
+    // ADK renders an object `output` as the same event's text part, byte-equal
+    // to JSON.stringify(output) (workflow/base_node.js toContent → valueToText).
+    // When the node-data reduction changed that output, the rendering would
+    // repeat what the reduction removed, so that one part is skipped here and
+    // in the aggregate below. Nothing else matches: not a string output, not
+    // a substring, not model text.
+    const renderedOutput = changedOutputRendering(event.output);
+    const skipped = new Set<number>();
+    if (renderedOutput !== undefined)
+      parts.forEach((p, idx) => {
+        if (p.thought !== true && typeof p.text === "string" && p.text === renderedOutput) skipped.add(idx);
+      });
 
     // STREAMED-text citations carrier (audit M22): groundingMetadata is
     // EVENT-level, not per-part. A Gemini grounding response carries the full
@@ -2056,7 +2085,9 @@ export function createAdkNormalizer(): Normalizer {
     const citations = mapGroundingCitations(event.groundingMetadata);
     const citedPartIndex =
       citations !== undefined
-        ? parts.findIndex((p) => p.thought !== true && p.functionCall === undefined && typeof p.text === "string")
+        ? parts.findIndex(
+            (p, idx) => !skipped.has(idx) && p.thought !== true && p.functionCall === undefined && typeof p.text === "string",
+          )
         : -1;
 
     // Review finding c-i/c-ii: resolve null-id functionResponse correlation
@@ -2082,7 +2113,9 @@ export function createAdkNormalizer(): Normalizer {
     const isAggregate = !isPartial && alreadyStreamed.length > 0;
     const aggregateText = isAggregate
       ? parts
-          .filter((p) => p.thought !== true && p.functionCall === undefined && typeof p.text === "string")
+          .filter(
+            (p, idx) => !skipped.has(idx) && p.thought !== true && p.functionCall === undefined && typeof p.text === "string",
+          )
           .map((p) => p.text ?? "")
           .join("")
       : "";
@@ -2093,6 +2126,7 @@ export function createAdkNormalizer(): Normalizer {
     let accumulated = alreadyStreamed;
 
     parts.forEach((part, index) => {
+      if (skipped.has(index)) return;
       const isAggregateText =
         isAggregate &&
         part.thought !== true &&

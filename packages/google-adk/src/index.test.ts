@@ -1470,6 +1470,60 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
     }
   });
 
+  // ── the same event's text rendering of a reduced output ──
+  const textDeltas = (out: AgEvent[]): string[] =>
+    out.filter((e) => e.type === "text.delta").map((e) => (e as { delta: string }).delta);
+
+  it("rendering: the same event's text part byte-equal to JSON.stringify(output) is omitted when the node-data reduction changed output (typed output, output.result, a named response)", () => {
+    const outputs: JsonValue[] = [
+      typedReply,
+      { result: typedReply },
+      { history: [{ role: "user", parts: [{ functionResponse: { id: "fetch-key", name: "adk_request_credential", response: untypedReply } }] }] },
+    ];
+    for (const output of outputs) {
+      const out = run([event([{ text: JSON.stringify(output) }], { output, turnComplete: true, finishReason: "STOP" })]);
+      expect(textDeltas(out), JSON.stringify(output)).toEqual([]);
+      expect(out.some((e) => e.type === "text.start")).toBe(false);
+      expectNoSecretAnywhere(out);
+    }
+  });
+
+  it("rendering: omitted before the aggregate text is computed, so a streamed turn's residual tail cannot re-emit it", () => {
+    const rendering = JSON.stringify(typedReply);
+    const out = run([
+      event([{ text: "Working" }], { partial: true }),
+      event([{ text: "Working" }, { text: rendering }], { output: typedReply, turnComplete: true, finishReason: "STOP" }),
+    ]);
+    expect(textDeltas(out).join("")).toBe("Working");
+    expectNoSecretAnywhere(out);
+  });
+
+  it("rendering: when the omitted part was the event's only content, the event types equal those of the same native without that part", () => {
+    const twin = (parts: AdkPart[]) =>
+      run([event(parts, { output: typedReply, turnComplete: true, finishReason: "STOP" })]).map((e) => e.type);
+    const types = twin([{ text: JSON.stringify(typedReply) }]);
+    expect(types).toEqual(twin([]));
+    expect(types).toContain("message.start");
+    expect(types).toContain("message.end");
+  });
+
+  it("rendering scope: only a byte-equal rendering of an output the reduction changed is omitted (known residue: a bare-string reply, a substring, model text)", () => {
+    const cases: [JsonValue, string][] = [
+      // A bare-string reply: ADK renders a string as itself, and nothing was reduced.
+      ["SECRET_bare_string_reply", "SECRET_bare_string_reply"],
+      // Model text restating a value (an LLM node's output is its text).
+      ["The input holds a token.", "The input holds a token."],
+      // An output with no credential: its rendering rides unchanged.
+      [{ result: { cart: 3 } }, JSON.stringify({ result: { cart: 3 } })],
+      // Not byte-equal: a text that merely contains the rendering.
+      [typedReply, `Result: ${JSON.stringify(typedReply)}`],
+    ];
+    for (const [output, text] of cases) {
+      const out = run([event([{ text }], { output, turnComplete: true, finishReason: "STOP" })]);
+      expect(textDeltas(out), text).toEqual([text]);
+    }
+  });
+
   it("negative control: an ordinary ORPHAN response still rides ext.google.unparsed whole", () => {
     const fr = { name: "ghost", response: { token: "not-a-credential-here", state: "ok" }, willContinue: false };
     const out = run([{ invocationId: "inv_fixture_1", content: { role: "user", parts: [{ functionResponse: fr }] } }]);
