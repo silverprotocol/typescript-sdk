@@ -1034,7 +1034,7 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
       "x-client-secret": "SECRET_scheme_extension",
       flows: {
         authorizationCode: { ...cleanScheme.flows.authorizationCode, clientSecret: "SECRET_flow_member" },
-        password: { ...cleanScheme.flows.password, scopes: { "mail.read": "", "x-leak": { token: "SECRET_scope_value" } } },
+        password: { ...cleanScheme.flows.password, scopes: { "mail.read": "", "x-extra": { token: "SECRET_scope_value" } } },
         "x-flow": { tokenUrl: "SECRET_undeclared_flow" },
       },
     },
@@ -1070,7 +1070,13 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
     const r = new Reducer();
     for (const e of out) r.push(e);
     expect(r.needsResync).toBe(false);
-    walk(r.result(), keys, values);
+    // The folded result's top-level `state` key is the schema's shared-state
+    // slot, not a credential member: exempt that one key name and still scan
+    // everything inside it.
+    for (const [k, member] of Object.entries(r.result())) {
+      if (k !== "state") keys.add(k);
+      walk(member, keys, values);
+    }
     for (const v of values) expect(v).not.toContain("SECRET_");
     for (const denied of [
       "clientSecret", "client_secret", "accessToken", "access_token", "refreshToken", "refresh_token",
@@ -1159,6 +1165,105 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
       expect(ext?.functionResponse?.["name"]).toBe("adk_request_credential");
       const { values } = expectNoSecretAnywhere(out);
       for (const kept of ["cid-ok", "cred-key-ok", "https://idp.example/password-grant-token"]) expect(values.has(kept)).toBe(true);
+    }
+  });
+
+  const stateDeltaOf = (out: AgEvent[]): JsonValue[] =>
+    out.filter((e) => e.type === "state.delta").map((e) => (e as { patch: JsonValue }).patch);
+  const httpBearer = { authType: "http", http: { scheme: "bearer", credentials: { token: "SECRET_bearer_token" } } };
+  const oauth2Exchanged = {
+    authType: "oauth2",
+    oauth2: {
+      clientId: "cid-ok",
+      clientSecret: "SECRET_client_secret",
+      accessToken: "SECRET_access_token",
+      refreshToken: "SECRET_refresh_token",
+      codeVerifier: "SECRET_code_verifier",
+      state: "SECRET_state",
+      authCode: "SECRET_auth_code",
+    },
+  };
+
+  it("state.delta omits every entry holding an ADK credential (an app key, the <scheme>_existing_exchanged_credential key, the bare and temp: credentialKey) and carries the rest unchanged, in order", () => {
+    const stateDelta: { [k: string]: JsonValue } = {
+      "app:theme": "dark",
+      my_app_cred: httpBearer,
+      bearer_existing_exchanged_credential: httpBearer,
+      adk_oauth2_abc123: oauth2Exchanged,
+      "temp:adk_oauth2_abc123": oauth2Exchanged,
+      full: credential,
+      counter: 3,
+    };
+    const out = run([event([], { actions: { stateDelta }, turnComplete: true, finishReason: "STOP" })]);
+    expect(stateDeltaOf(out)).toEqual([{ "app:theme": "dark", counter: 3 }]);
+    expect(Object.keys(stateDeltaOf(out)[0] as object)).toEqual(["app:theme", "counter"]);
+    expectNoSecretAnywhere(out);
+  });
+
+  it("state.delta: the snake_case form, a credential nested at any depth (arrays included) and every temp: entry are omitted", () => {
+    const stateDelta: { [k: string]: JsonValue } = {
+      snake: { auth_type: "oauth2", oauth2: { access_token: "SECRET_snake_access" } },
+      sa: { auth_type: "serviceAccount", service_account: { service_account_credential: { private_key: "SECRET_sa_key" } } },
+      profile: { name: "ok", vault: [{ note: "x" }, { authType: "apiKey", apiKey: "SECRET_nested_api_key" }] },
+      deep: { a: { b: { c: [[{ authType: "openIdConnect", oauth2: { idToken: "SECRET_deep_id_token" } }]] } } },
+      "temp:k": "SECRET_temp_string",
+      "temp:j": { token: "SECRET_temp_object" },
+      keep: { authType: "oauth2" },
+    };
+    const out = run([event([], { actions: { stateDelta } })]);
+    expect(stateDeltaOf(out)).toEqual([{ keep: { authType: "oauth2" } }]);
+    expectNoSecretAnywhere(out);
+  });
+
+  it("state.delta: exactly one event per native state change, {} when every entry is omitted, partial events included", () => {
+    const out = run([
+      event([{ text: "Hel" }], { partial: true, actions: { stateDelta: { "temp:adk_x": oauth2Exchanged } } }),
+      event([{ text: "Hello" }], { partial: false, actions: { stateDelta: { cred: httpBearer } }, turnComplete: true, finishReason: "STOP" }),
+    ]);
+    expect(stateDeltaOf(out)).toEqual([{}, {}]);
+    expectNoSecretAnywhere(out);
+  });
+
+  it("state.delta never throws on a credential-bearing native: undefined members (a live ADK object, not JSON) are walked, and a remaining non-JSON value is dropped", () => {
+    const n = createAdkNormalizer();
+    const liveCredential = { authType: "oauth2", oauth2: { accessToken: "SECRET_live_access", refreshToken: undefined, expiresAt: undefined } };
+    const native = {
+      invocationId: "inv_fixture_1",
+      author: "agent",
+      content: { role: "model", parts: [{ text: "ok" }] },
+      actions: { stateDelta: { "temp:adk_live": liveCredential, adk_live: liveCredential, when: new Date(0), count: 2 } },
+    };
+    let out: AgEvent[] = [];
+    expect(() => {
+      out = [...n.push(native as unknown as JsonValue), ...n.flush()];
+    }).not.toThrow();
+    expect(stateDeltaOf(out)).toEqual([{ count: 2 }]);
+    expect(out.some((e) => e.type === "ext.google.unparsed")).toBe(false);
+    expectNoSecretAnywhere(out);
+  });
+
+  it("negative control: a state delta with no ADK credential is carried byte-identical (app objects that merely name an authType, a null value, malformed maps included)", () => {
+    const maps: JsonValue[] = [
+      { cart: 3 },
+      { step: 1 },
+      {},
+      { profile: { authType: "oauth2" } },
+      { x: { authType: "bearer", http: {} } },
+      { my_tool_tokens: null },
+      { cred: { authType: "oauth2", oauth2: null } },
+      null,
+      [],
+      "x",
+    ];
+    for (const stateDelta of maps) {
+      const n = createAdkNormalizer();
+      const out = [
+        ...n.push({ invocationId: "inv_fixture_1", author: "agent", content: { role: "model", parts: [{ text: "ok" }] }, actions: { stateDelta } }),
+        ...n.flush(),
+      ];
+      const patches = stateDeltaOf(out);
+      expect(patches, JSON.stringify(stateDelta)).toHaveLength(1);
+      expect(JSON.stringify(patches[0]), JSON.stringify(stateDelta)).toBe(JSON.stringify(stateDelta));
     }
   });
 

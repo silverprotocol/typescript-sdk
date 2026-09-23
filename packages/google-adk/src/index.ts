@@ -1379,6 +1379,83 @@ const AUTH_CONFIG_ALLOW: AllowSpec = {
   exchangedAuthCredential: (v) => pickAllowed(v, AUTH_CREDENTIAL_ALLOW),
 };
 
+// ─── shared state (state.delta) ──────────────────────────────────────────────
+// ADK itself writes an exchanged AuthCredential into the event's
+// actions.stateDelta on two paths (@google/adk 2.1.0):
+// - a Runner configured with SessionStateCredentialService saves it under the
+//   bare credentialKey (session_state_credential_service.js; ToolContext's
+//   State writes value AND delta, agents/context.js:37-39, sessions/state.js:97-102);
+// - the Workflow plane's FunctionNode auth resume stores it under
+//   "temp:" + credentialKey (auth_handler.js:35-38, :47), and function_node.js
+//   copies every new delta entry into the yielded event (:93-127). ADK strips
+//   "temp:" entries only when it persists the session, never on the event.
+// ADK treats any value under the key as a stored credential
+// (hitl_utils.js:131-133), so the entry is omitted whole: a redacted value left
+// behind would read as a credential. Every "temp:" entry is omitted too
+// (invocation-scoped by ADK's contract). Every other entry rides unchanged.
+const ADK_TEMP_STATE_PREFIX = "temp:";
+const AUTH_CREDENTIAL_TYPES: ReadonlySet<string> = new Set(["apiKey", "http", "oauth2", "openIdConnect", "serviceAccount"]);
+const AUTH_CREDENTIAL_MEMBERS = ["apiKey", "api_key", "http", "oauth2", "serviceAccount", "service_account"] as const;
+
+function isObjectRecord(v: unknown): v is { readonly [k: string]: unknown } {
+  return v !== null && typeof v === "object" && !Array.isArray(v);
+}
+
+/** An ADK AuthCredential: `authType` (either spelling) is one of ADK's
+ *  credential types (auth_credential.d.ts) and a credential member is present
+ *  and non-null. */
+function isAuthCredentialObject(v: { readonly [k: string]: unknown }): boolean {
+  const typed = ["authType", "auth_type"].some((k) => {
+    const t = Object.hasOwn(v, k) ? v[k] : undefined;
+    return typeof t === "string" && AUTH_CREDENTIAL_TYPES.has(t);
+  });
+  return typed && AUTH_CREDENTIAL_MEMBERS.some((m) => Object.hasOwn(v, m) && v[m] !== null && v[m] !== undefined);
+}
+
+/** Whether `v` is, or holds at any depth (arrays included), an ADK
+ *  AuthCredential. Iterative and cycle-safe over the raw native value; a value
+ *  that cannot be walked counts as holding one, so this never throws. */
+function holdsAuthCredential(v: unknown): boolean {
+  try {
+    const seen = new Set<object>();
+    const stack: unknown[] = [v];
+    while (stack.length > 0) {
+      const x = stack.pop();
+      if (x === null || typeof x !== "object" || seen.has(x)) continue;
+      seen.add(x);
+      if (Array.isArray(x)) {
+        for (const y of x) stack.push(y);
+      } else if (isObjectRecord(x)) {
+        if (isAuthCredentialObject(x)) return true;
+        for (const k of Object.keys(x)) stack.push(x[k]);
+      }
+    }
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+/** The state map ADK yields, minus its "temp:" entries and every entry that
+ *  holds an ADK AuthCredential, in the original key order. A map with none of
+ *  those is carried exactly as before. When entries were omitted, a remaining
+ *  entry that is not JSON is dropped rather than thrown on, since a throw would
+ *  hand the raw native event to the host's error path. A value that is not a
+ *  map is carried as before, or as {} if it holds a credential. */
+function scrubStateMap(raw: unknown): JsonValue {
+  if (!isObjectRecord(raw)) return holdsAuthCredential(raw) ? {} : JsonValue.parse(raw);
+  const keys = Object.keys(raw);
+  const omitted = keys.map((k) => k.startsWith(ADK_TEMP_STATE_PREFIX) || holdsAuthCredential(raw[k]));
+  if (!omitted.includes(true)) return JsonValue.parse(raw);
+  const kept: [string, JsonValue][] = [];
+  keys.forEach((k, i) => {
+    if (omitted[i] === true) return;
+    const parsed = JsonValue.safeParse(raw[k]);
+    if (parsed.success) kept.push([k, parsed.data]);
+  });
+  return Object.fromEntries(kept);
+}
+
 /** The ADK AuthConfig reduced to its non-secret members ({} for a non-object). */
 function scrubAdkAuthConfig(native: JsonValue): JsonValue {
   return pickAllowed(native, AUTH_CONFIG_ALLOW) ?? {};
@@ -1623,8 +1700,10 @@ function driveAdkTopLevel(
         trackPendingAsk(pendingAsks, turnId, ask);
       }
     }
+    // One state.delta per native state change, partial events included; see
+    // scrubStateMap for the entries it omits ({} when none remain).
     if (actions.stateDelta !== undefined)
-      a.emit({ type: "state.delta", patch: JsonValue.parse(actions.stateDelta) });
+      a.emit({ type: "state.delta", patch: scrubStateMap(actions.stateDelta) });
 
     const unmappedActions: { [k: string]: JsonValue } = {};
     if (actions.artifactDelta !== undefined)
