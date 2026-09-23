@@ -2,14 +2,14 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b",
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R",
     "threadId": "cb0166b5-0c76-4022-a48d-66668263173b"
   },
   {
     "type": "message.start",
     "seq": 1,
     "id": "msg_011Cf4PnzetTFSDXvoP8779R",
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b",
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R",
     "threadId": "cb0166b5-0c76-4022-a48d-66668263173b",
     "role": "assistant",
     "model": "claude-fable-5-1"
@@ -19,7 +19,7 @@
     "seq": 2,
     "id": "msg_011Cf4PnzetTFSDXvoP8779R:text:0",
     "messageId": "msg_011Cf4PnzetTFSDXvoP8779R",
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b"
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R"
   },
   {
     "type": "text.delta",
@@ -27,19 +27,19 @@
     "id": "msg_011Cf4PnzetTFSDXvoP8779R:text:0",
     "messageId": "msg_011Cf4PnzetTFSDXvoP8779R",
     "delta": "I'll render the card first, then update it once the result arrives.",
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b"
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R"
   },
   {
     "type": "text.end",
     "seq": 4,
     "id": "msg_011Cf4PnzetTFSDXvoP8779R:text:0",
     "messageId": "msg_011Cf4PnzetTFSDXvoP8779R",
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b"
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R"
   },
   {
     "type": "tool.start",
     "seq": 5,
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b",
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R",
     "toolCallId": "toolu_01McYLVkjrqsTEcvnT9ch9MT",
     "name": "mcp__cards__render_card",
     "index": 1,
@@ -76,7 +76,7 @@
   {
     "type": "tool.done",
     "seq": 9,
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b",
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R",
     "toolCallId": "toolu_01McYLVkjrqsTEcvnT9ch9MT",
     "content": [
       {
@@ -106,7 +106,7 @@
     "type": "message.start",
     "seq": 10,
     "id": "msg_011Cf4PoxWwMThwanv9dFKTW",
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b",
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R",
     "threadId": "cb0166b5-0c76-4022-a48d-66668263173b",
     "role": "assistant",
     "model": "claude-fable-5-1"
@@ -115,12 +115,12 @@
     "type": "reasoning.start",
     "id": "msg_011Cf4PoxWwMThwanv9dFKTW:reasoning:0",
     "messageId": "msg_011Cf4PoxWwMThwanv9dFKTW",
-    "providerMetadata": {
+    "_meta": {
       "narration_block_indexes": [
         0
       ]
     },
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b",
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R",
     "seq": 11
   },
   {
@@ -129,14 +129,14 @@
     "id": "msg_011Cf4PoxWwMThwanv9dFKTW:reasoning:0",
     "messageId": "msg_011Cf4PoxWwMThwanv9dFKTW",
     "delta": "",
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b"
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R"
   },
   {
     "type": "reasoning.end",
     "seq": 13,
     "id": "msg_011Cf4PoxWwMThwanv9dFKTW:reasoning:0",
     "messageId": "msg_011Cf4PoxWwMThwanv9dFKTW",
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b"
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R"
   },
   {
     "type": "reasoning.opaque",
@@ -145,13 +145,13 @@
     "messageId": "msg_011Cf4PoxWwMThwanv9dFKTW",
     "kind": "signature",
     "value": "CAQSxAQKEQgRGAI4AUIJbmFycmF0aW9uEgw//TrkDH+1+PxCVEUaDHjRDYxPS2LZif7H8iIwk/F7Fw7k2KQKcGwSCSIExVBjES0psGeHJz0j1KTN2ej6gpmBe53/ohvCQo3NZJHTKuADFh33CMLxvZCQFNqvYyyDVbcsDBgxckO9b1wLv/ElNINUg1AoLoJ12TtJYXsXFhj71uR2kvjWSsBZNxa0GV4rIlXo7nHf60dcjnJmjjuw7rLZWw9qKTgdSdr9g5fq4RK3SqE7aRrZqyO3sO4T676pnzgKbYZHTmle2LWqm2suA8pnFWiCj5IlIhfNLk8K6B8NTiMF8cn5rm5cI+yMWeXOdvdFvI0fCtaECsSvMjuOm4pvDsN1+tKYy+wSqtGm9o9893IhfncO4magXqHKvm6LCJwG3kRCBfMhCKcQFpx6wzG7iqmXvfu41wKEYgLJa6uBjtfvh2SKjkpY+iaaE3rKpfyh6vnAzj+e5VXweHbdJCXq1/KXQq3nocJle3vSnDsu78eybvtLOY+pANuZrVTUb47T/hxVplPUTLytf2PqL4/Dgea9OIxmoEUbsvwCLXEa5w16WMH3lUqKAwJVVASTIWihJzfAlYGfACSftb4GXfyunOq5QGphSxA48TxvL8JKjJqgJE9tg4OvDzCw5TjeZVMzsm5zfXP5vhNPoKNBIw11H+kRw4jO8g4NgEZWoGgwjdCNGpXwgjIcR8xIr3jF6Imga1ZXo3JdCYWO7f56NhAOehFYkHJRjwS9nt1r+LNkGAE=",
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b",
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R",
     "provider": "anthropic"
   },
   {
     "type": "tool.start",
     "seq": 15,
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b",
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R",
     "toolCallId": "toolu_01Asr9f1Kov6hrBmNRyLZCGh",
     "name": "mcp__cards__update_card",
     "index": 1,
@@ -188,7 +188,7 @@
   {
     "type": "tool.done",
     "seq": 19,
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b",
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R",
     "toolCallId": "toolu_01Asr9f1Kov6hrBmNRyLZCGh",
     "content": [
       {
@@ -244,7 +244,7 @@
     "type": "message.start",
     "seq": 22,
     "id": "msg_011Cf4PpwuVbvmaHv4PF9RNG",
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b",
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R",
     "threadId": "cb0166b5-0c76-4022-a48d-66668263173b",
     "role": "assistant",
     "model": "claude-fable-5-1"
@@ -254,7 +254,7 @@
     "seq": 23,
     "id": "msg_011Cf4PpwuVbvmaHv4PF9RNG:reasoning:0",
     "messageId": "msg_011Cf4PpwuVbvmaHv4PF9RNG",
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b"
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R"
   },
   {
     "type": "reasoning.delta",
@@ -262,14 +262,14 @@
     "id": "msg_011Cf4PpwuVbvmaHv4PF9RNG:reasoning:0",
     "messageId": "msg_011Cf4PpwuVbvmaHv4PF9RNG",
     "delta": "",
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b"
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R"
   },
   {
     "type": "reasoning.end",
     "seq": 25,
     "id": "msg_011Cf4PpwuVbvmaHv4PF9RNG:reasoning:0",
     "messageId": "msg_011Cf4PpwuVbvmaHv4PF9RNG",
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b"
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R"
   },
   {
     "type": "reasoning.opaque",
@@ -278,7 +278,7 @@
     "messageId": "msg_011Cf4PpwuVbvmaHv4PF9RNG",
     "kind": "signature",
     "value": "CAQSmAYKEAgRGAI4AUIIdGhpbmtpbmcSDCy5uomeKnVyuNje+RoMPv7iANFCUCQRqJESIjBbcn5a3JmjqdhOue6NoslgK5GRCU8l9BLKtDcit4TCagRtdNPb3Iy4kw6LxWXCLIoqtQWjBfrtzrfKza0BGMsBJUaoqGrehnmCFdOxRkS6ncPd6cBuClsck/EptAZcF1YXVoIH0YsjliG+mOeJOCoogHu9t8f8URNfYBj4UJ3qfr+OZB+Ug6K5l4dZjlOk6VlOMlGVIGd1JBTa4t/RoDN+SQABnGoYYGM2wBgSPwuMLW33fJVJ+34nB3DhCJl3x6CxDPF/5UoDjh9zT7QwPN9CyXZMW3AZGAgg+XDHXzIGuk41gwc2QarEkDojbx+WNMhIU36fIbSZSVQ0UnOohOwNE8Rj6y1SJw9tBPwB/V+oHJTlY123+T4jjp+h/fLbb6CC6efwIATF9Lylmdth4myJzp7qMOY8iRyEsdXnTWYEdMxrel7B/WOLLo/IuWdLI4iy3uKgZ7eeZ4pA71t1uMmt7sD9zqyltJqUKMVCZhuSG45AUCcwainkUYi7hZT1BmvSL/px2p04UxNYvXpRf/JjVfRlUdnwiTXIEMdaPrPI2CZHs16YjLm+tNF4/yIrwLlGkvd91IPPS/+FnAJy1yzwiGKKXqYNH91MKzkj121FKyxgPP7ev5bAy/VBjurboSVhxKtE/+vNtZFrbMLlwa2OG2n9/nLFugDjnhHWvKTAhjqAgcGBNuSIl4kK1qSmrYkESx9M7Nzhs1Fh/yr1tM/+pYaHXEwcd2v4bc7ksubV26/jd3eEjnfofmKET8IFh3UyUNqkB/k1qGlOJkmw0w8Uj4GkMrE3mowIwvFm+EP9ts1E8cerUeu2y2Weof0M9pyVrYcglF8Js9siVC9htQiJacRk8TAM8RgHJgutx9v/dMwWWAYS64vyctCDDwIEt3W+oj/DE44v+zcsJWYPrUg/8IKOabv3qMz6PcJjwxGb8b+L1iFNi6YS5iQKvUNjOtCV8ct2S+C109kgfGYooCAcPVN8rY15kUUYAQ==",
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b",
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R",
     "provider": "anthropic"
   },
   {
@@ -286,7 +286,7 @@
     "seq": 27,
     "id": "msg_011Cf4PpwuVbvmaHv4PF9RNG:text:1",
     "messageId": "msg_011Cf4PpwuVbvmaHv4PF9RNG",
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b"
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R"
   },
   {
     "type": "text.delta",
@@ -294,14 +294,14 @@
     "id": "msg_011Cf4PpwuVbvmaHv4PF9RNG:text:1",
     "messageId": "msg_011Cf4PpwuVbvmaHv4PF9RNG",
     "delta": "Both steps are complete — nothing further to request.\n\n**Result:**\n- `render_card` → title \"Hello\", body \"World\", **revision 1** (kind: render)\n- `update_card` → title \"Hello\", body \"Updated World\", **revision 2** (kind: update)\n\nThe card was updated in place; the final revision returned by the update tool is **2**.",
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b"
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R"
   },
   {
     "type": "text.end",
     "seq": 29,
     "id": "msg_011Cf4PpwuVbvmaHv4PF9RNG:text:1",
     "messageId": "msg_011Cf4PpwuVbvmaHv4PF9RNG",
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b"
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R"
   },
   {
     "type": "message.end",
@@ -361,7 +361,7 @@
   {
     "type": "turn.done",
     "seq": 32,
-    "turnId": "turn_cb0166b5-0c76-4022-a48d-66668263173b",
+    "turnId": "turn_msg_011Cf4PnzetTFSDXvoP8779R",
     "outcome": {
       "type": "success",
       "result": "Both steps are complete — nothing further to request.\n\n**Result:**\n- `render_card` → title \"Hello\", body \"World\", **revision 1** (kind: render)\n- `update_card` → title \"Hello\", body \"Updated World\", **revision 2** (kind: update)\n\nThe card was updated in place; the final revision returned by the update tool is **2**."

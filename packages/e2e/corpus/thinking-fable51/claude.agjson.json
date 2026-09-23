@@ -14,14 +14,14 @@
   {
     "type": "turn.start",
     "seq": 1,
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
     "threadId": "cbf43222-39d5-460d-b4e0-d9e1ea602f11"
   },
   {
     "type": "message.start",
     "seq": 2,
     "id": "msg_011CfK6VC73jJkA3hWYLBpgi",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
     "threadId": "cbf43222-39d5-460d-b4e0-d9e1ea602f11",
     "role": "assistant",
     "model": "claude-fable-5-1"
@@ -32,7 +32,7 @@
     "metadata": {
       "ttft_ms": 2467
     },
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
     "seq": 3
   },
   {
@@ -40,7 +40,7 @@
     "seq": 4,
     "id": "msg_011CfK6VC73jJkA3hWYLBpgi:text:0",
     "messageId": "msg_011CfK6VC73jJkA3hWYLBpgi",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -48,7 +48,7 @@
     "id": "msg_011CfK6VC73jJkA3hWYLBpgi:text:0",
     "messageId": "msg_011CfK6VC73jJkA3hWYLBpgi",
     "delta": "An",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -56,7 +56,7 @@
     "id": "msg_011CfK6VC73jJkA3hWYLBpgi:text:0",
     "messageId": "msg_011CfK6VC73jJkA3hWYLBpgi",
     "delta": " ech",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -64,7 +64,7 @@
     "id": "msg_011CfK6VC73jJkA3hWYLBpgi:text:0",
     "messageId": "msg_011CfK6VC73jJkA3hWYLBpgi",
     "delta": "o tool takes wh",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -72,7 +72,7 @@
     "id": "msg_011CfK6VC73jJkA3hWYLBpgi:text:0",
     "messageId": "msg_011CfK6VC73jJkA3hWYLBpgi",
     "delta": "atever text you h",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -80,7 +80,7 @@
     "id": "msg_011CfK6VC73jJkA3hWYLBpgi:text:0",
     "messageId": "msg_011CfK6VC73jJkA3hWYLBpgi",
     "delta": "and it and returns that",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -88,7 +88,7 @@
     "id": "msg_011CfK6VC73jJkA3hWYLBpgi:text:0",
     "messageId": "msg_011CfK6VC73jJkA3hWYLBpgi",
     "delta": " exact text",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -96,7 +96,7 @@
     "id": "msg_011CfK6VC73jJkA3hWYLBpgi:text:0",
     "messageId": "msg_011CfK6VC73jJkA3hWYLBpgi",
     "delta": " un",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -104,7 +104,7 @@
     "id": "msg_011CfK6VC73jJkA3hWYLBpgi:text:0",
     "messageId": "msg_011CfK6VC73jJkA3hWYLBpgi",
     "delta": "changed.",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -112,7 +112,7 @@
     "id": "msg_011CfK6VC73jJkA3hWYLBpgi:text:0",
     "messageId": "msg_011CfK6VC73jJkA3hWYLBpgi",
     "delta": " It's m",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -120,7 +120,7 @@
     "id": "msg_011CfK6VC73jJkA3hWYLBpgi:text:0",
     "messageId": "msg_011CfK6VC73jJkA3hWYLBpgi",
     "delta": "ain",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -128,7 +128,7 @@
     "id": "msg_011CfK6VC73jJkA3hWYLBpgi:text:0",
     "messageId": "msg_011CfK6VC73jJkA3hWYLBpgi",
     "delta": "ly useful as a round-tr",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -136,7 +136,7 @@
     "id": "msg_011CfK6VC73jJkA3hWYLBpgi:text:0",
     "messageId": "msg_011CfK6VC73jJkA3hWYLBpgi",
     "delta": "ip probe to",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -144,7 +144,7 @@
     "id": "msg_011CfK6VC73jJkA3hWYLBpgi:text:0",
     "messageId": "msg_011CfK6VC73jJkA3hWYLBpgi",
     "delta": " confirm the tool-",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -152,7 +152,7 @@
     "id": "msg_011CfK6VC73jJkA3hWYLBpgi:text:0",
     "messageId": "msg_011CfK6VC73jJkA3hWYLBpgi",
     "delta": "calling path works end",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -160,19 +160,19 @@
     "id": "msg_011CfK6VC73jJkA3hWYLBpgi:text:0",
     "messageId": "msg_011CfK6VC73jJkA3hWYLBpgi",
     "delta": " to end.",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.end",
     "seq": 20,
     "id": "msg_011CfK6VC73jJkA3hWYLBpgi:text:0",
     "messageId": "msg_011CfK6VC73jJkA3hWYLBpgi",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "tool.start",
     "seq": 21,
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
     "toolCallId": "toolu_0168mgaCAbAJJj9gEWC1e35Z",
     "name": "mcp__t__echo",
     "index": 1,
@@ -233,7 +233,7 @@
   {
     "type": "tool.done",
     "seq": 29,
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
     "toolCallId": "toolu_0168mgaCAbAJJj9gEWC1e35Z",
     "content": [
       {
@@ -261,7 +261,7 @@
     "type": "message.start",
     "seq": 31,
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
     "threadId": "cbf43222-39d5-460d-b4e0-d9e1ea602f11",
     "role": "assistant",
     "model": "claude-fable-5-1"
@@ -272,7 +272,7 @@
     "metadata": {
       "ttft_ms": 3654
     },
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
     "seq": 32
   },
   {
@@ -280,7 +280,7 @@
     "seq": 33,
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:reasoning:0",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "seq": 34,
@@ -297,14 +297,14 @@
   },
   {
     "type": "reasoning.delta",
-    "seq": 35,
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:reasoning:0",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": "I",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
-    "providerMetadata": {
+    "_meta": {
       "estimated_tokens": null
-    }
+    },
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
+    "seq": 35
   },
   {
     "seq": 36,
@@ -321,14 +321,14 @@
   },
   {
     "type": "reasoning.delta",
-    "seq": 37,
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:reasoning:0",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": "'ve",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
-    "providerMetadata": {
+    "_meta": {
       "estimated_tokens": null
-    }
+    },
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
+    "seq": 37
   },
   {
     "seq": 38,
@@ -345,14 +345,14 @@
   },
   {
     "type": "reasoning.delta",
-    "seq": 39,
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:reasoning:0",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": " confirmed the echo result",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
-    "providerMetadata": {
+    "_meta": {
       "estimated_tokens": null
-    }
+    },
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
+    "seq": 39
   },
   {
     "seq": 40,
@@ -369,14 +369,14 @@
   },
   {
     "type": "reasoning.delta",
-    "seq": 41,
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:reasoning:0",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": " and",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
-    "providerMetadata": {
+    "_meta": {
       "estimated_tokens": null
-    }
+    },
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
+    "seq": 41
   },
   {
     "seq": 42,
@@ -393,14 +393,14 @@
   },
   {
     "type": "reasoning.delta",
-    "seq": 43,
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:reasoning:0",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": " don",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
-    "providerMetadata": {
+    "_meta": {
       "estimated_tokens": null
-    }
+    },
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
+    "seq": 43
   },
   {
     "seq": 44,
@@ -417,14 +417,14 @@
   },
   {
     "type": "reasoning.delta",
-    "seq": 45,
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:reasoning:0",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": "'t need an",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
-    "providerMetadata": {
+    "_meta": {
       "estimated_tokens": null
-    }
+    },
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
+    "seq": 45
   },
   {
     "seq": 46,
@@ -441,14 +441,14 @@
   },
   {
     "type": "reasoning.delta",
-    "seq": 47,
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:reasoning:0",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": "ything further",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
-    "providerMetadata": {
+    "_meta": {
       "estimated_tokens": null
-    }
+    },
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
+    "seq": 47
   },
   {
     "seq": 48,
@@ -465,14 +465,14 @@
   },
   {
     "type": "reasoning.delta",
-    "seq": 49,
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:reasoning:0",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": " —",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
-    "providerMetadata": {
+    "_meta": {
       "estimated_tokens": null
-    }
+    },
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
+    "seq": 49
   },
   {
     "seq": 50,
@@ -489,14 +489,14 @@
   },
   {
     "type": "reasoning.delta",
-    "seq": 51,
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:reasoning:0",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": " there",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
-    "providerMetadata": {
+    "_meta": {
       "estimated_tokens": null
-    }
+    },
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
+    "seq": 51
   },
   {
     "seq": 52,
@@ -513,14 +513,14 @@
   },
   {
     "type": "reasoning.delta",
-    "seq": 53,
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:reasoning:0",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": "'s nothing left",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
-    "providerMetadata": {
+    "_meta": {
       "estimated_tokens": null
-    }
+    },
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
+    "seq": 53
   },
   {
     "seq": 54,
@@ -537,14 +537,14 @@
   },
   {
     "type": "reasoning.delta",
-    "seq": 55,
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:reasoning:0",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": " to request since the task is already",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
-    "providerMetadata": {
+    "_meta": {
       "estimated_tokens": null
-    }
+    },
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
+    "seq": 55
   },
   {
     "seq": 56,
@@ -561,14 +561,14 @@
   },
   {
     "type": "reasoning.delta",
-    "seq": 57,
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:reasoning:0",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": " complete.",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
-    "providerMetadata": {
+    "_meta": {
       "estimated_tokens": null
-    }
+    },
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
+    "seq": 57
   },
   {
     "seq": 58,
@@ -585,14 +585,14 @@
   },
   {
     "type": "reasoning.delta",
-    "seq": 59,
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:reasoning:0",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": "\n\n",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
-    "providerMetadata": {
+    "_meta": {
       "estimated_tokens": null
-    }
+    },
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
+    "seq": 59
   },
   {
     "seq": 60,
@@ -612,7 +612,7 @@
     "seq": 61,
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:reasoning:0",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "reasoning.opaque",
@@ -621,7 +621,7 @@
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "kind": "signature",
     "value": "CAQS7QYKEAgSGAI4AUIIdGhpbmtpbmcSDAahakfmCBsaqeD6yhoMuzM/RrDp5q5si2pPIjDXmXrEPVD73cyc+USxWewS920DR+sHVSj8b2Q8tjNoCwge/DJBNngqsFicPceTP2gqigal1lb6J1XQlyaHciOGLZijMvMDR7ZiRoWONB5ngzAq/257Wt1oZ2yvsp5NNKdDgYOcvgdMeXB8BpZoQQc440BWnGPdqT0xI2P1BqT5eWn2INLy8Ce76bJfJRHyLOrijgcqeoC5Kt4ZCPvEYE0VTj7AUlbd3ZDDxbyjWZ1CjkiKxxu/kx074danyQnVlzx1jmFtHLj0l9JXI7ksULZbFUlvN+4T3pXjclgnpxWNDn6MzcFaUoE2bTC8AEiEohUbffQkgDRfA72wRjCLZ2lR1WBflgpLQBi3pLdwh8sAlAybB+G6S63dYa5zF9icdllqkoyG+ktfPnlu116IkmBiCFfl6445IH4wIIdRm5C2tdUf9a3RwTBfkQEQ6E7dTu/BZ/agZem1kFuhY35vnvelse1MMtVSEAmdUH/LARdW4e+p/M5XZjLG3yYP6xz+yMZWbNr4IJO8yID2zIemV5lI69No5+0fiQmj14zSBgInV8fTc1ENJD4e2vAsow4myY9p3LmUZjFbvti2QjVLsGGIW+7HQj1AIaba9l3+aWLAXgcYMWEmuiKtJw3b2vm6WEVHaal6W2Qq2nEcFdovYiGUi7b1MfNmhF9YKikJOYuZa2eYDVogjgHexjeXOcS4tq0P7xHabug3dM9QGNzv8FcxYZ+YgokEpg2HXLbGYvHT8F2ozeVQpSmGAe+UGmaCl2YCl4xLmIv/o6dZVSSqdh+kYNKlEkC7B0l3BwocpGReU+kF1858nh80QpqWzCdSEDqUo7yFOu4fSCvD31t8j9YhTRRT/u+samhSAOXCJJ1W0exsSiWk5kwLfsYlMiDumJtgs965UALyYwfzRWhYk00uHsIlvQhjXYz/4gPuHldBcjHvEsMq6wMWbDQnelMzBgTs5Em+09NorZm0Vgz16rr2gxQhblF0MH43jo1Ka3Q4x8NgxfhR8wMMhAJ+yE+cdCZ225wAxo8pGq1uVtTJ7nG9fIMwVoTOol3/67MO4LDJ8xTkltp27Uce05Rzcog55AWoEc/Z7518/d2U3bUJGAE=",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
     "provider": "anthropic"
   },
   {
@@ -629,7 +629,7 @@
     "seq": 63,
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:text:1",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -637,7 +637,7 @@
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:text:1",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": "The tool retur",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -645,7 +645,7 @@
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:text:1",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": "ned exactly `",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -653,7 +653,7 @@
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:text:1",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": "conformance-probe-th",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -661,7 +661,7 @@
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:text:1",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": "inking-fable51`",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -669,7 +669,7 @@
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:text:1",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": " — a",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -677,7 +677,7 @@
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:text:1",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": " byte-for-byte match",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -685,7 +685,7 @@
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:text:1",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": " with the message I",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -693,7 +693,7 @@
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:text:1",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": " sent, so the round trip",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -701,7 +701,7 @@
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:text:1",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": " succ",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -709,7 +709,7 @@
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:text:1",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": "eeded. Nothing",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -717,7 +717,7 @@
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:text:1",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": " further is needed; the prob",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -725,7 +725,7 @@
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:text:1",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": "e is complete and there are no",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -733,7 +733,7 @@
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:text:1",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": " remaining tool calls to",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.delta",
@@ -741,14 +741,14 @@
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:text:1",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
     "delta": " make.",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "text.end",
     "seq": 78,
     "id": "msg_011CfK6VYkGCyZRP7Woy8Ns7:text:1",
     "messageId": "msg_011CfK6VYkGCyZRP7Woy8Ns7",
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11"
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi"
   },
   {
     "type": "message.end",
@@ -809,7 +809,7 @@
   {
     "type": "turn.done",
     "seq": 81,
-    "turnId": "turn_cbf43222-39d5-460d-b4e0-d9e1ea602f11",
+    "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
     "outcome": {
       "type": "success",
       "result": "The tool returned exactly `conformance-probe-thinking-fable51` — a byte-for-byte match with the message I sent, so the round trip succeeded. Nothing further is needed; the probe is complete and there are no remaining tool calls to make."

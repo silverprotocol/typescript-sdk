@@ -2,7 +2,7 @@
   {
     "type": "turn.done",
     "seq": 0,
-    "turnId": "turn_sess_silver",
+    "turnId": "turn_00000000-0000-0000-0000-0000000000aa",
     "outcome": {
       "type": "success",
       "result": "the complete answer"

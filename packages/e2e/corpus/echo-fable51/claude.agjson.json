@@ -2,14 +2,14 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_dd1e2c09-0da6-4241-9f4e-d2b1cffd6d43",
+    "turnId": "turn_msg_011CfK5yXxKGSfXmNC5MTEhp",
     "threadId": "dd1e2c09-0da6-4241-9f4e-d2b1cffd6d43"
   },
   {
     "type": "message.start",
     "seq": 1,
     "id": "msg_011CfK5yXxKGSfXmNC5MTEhp",
-    "turnId": "turn_dd1e2c09-0da6-4241-9f4e-d2b1cffd6d43",
+    "turnId": "turn_msg_011CfK5yXxKGSfXmNC5MTEhp",
     "threadId": "dd1e2c09-0da6-4241-9f4e-d2b1cffd6d43",
     "role": "assistant",
     "model": "claude-fable-5-1"
@@ -17,7 +17,7 @@
   {
     "type": "tool.start",
     "seq": 2,
-    "turnId": "turn_dd1e2c09-0da6-4241-9f4e-d2b1cffd6d43",
+    "turnId": "turn_msg_011CfK5yXxKGSfXmNC5MTEhp",
     "toolCallId": "toolu_013cRbzxsKJPQ2MiCJiX6cyb",
     "name": "mcp__t__echo",
     "index": 0,
@@ -53,7 +53,7 @@
   {
     "type": "tool.done",
     "seq": 6,
-    "turnId": "turn_dd1e2c09-0da6-4241-9f4e-d2b1cffd6d43",
+    "turnId": "turn_msg_011CfK5yXxKGSfXmNC5MTEhp",
     "toolCallId": "toolu_013cRbzxsKJPQ2MiCJiX6cyb",
     "content": [
       {
@@ -69,7 +69,7 @@
     "type": "message.start",
     "seq": 7,
     "id": "msg_011CfK5ypp4sLTeK6vQQqs9p",
-    "turnId": "turn_dd1e2c09-0da6-4241-9f4e-d2b1cffd6d43",
+    "turnId": "turn_msg_011CfK5yXxKGSfXmNC5MTEhp",
     "threadId": "dd1e2c09-0da6-4241-9f4e-d2b1cffd6d43",
     "role": "assistant",
     "model": "claude-fable-5-1"
@@ -79,7 +79,7 @@
     "seq": 8,
     "id": "msg_011CfK5ypp4sLTeK6vQQqs9p:text:0",
     "messageId": "msg_011CfK5ypp4sLTeK6vQQqs9p",
-    "turnId": "turn_dd1e2c09-0da6-4241-9f4e-d2b1cffd6d43"
+    "turnId": "turn_msg_011CfK5yXxKGSfXmNC5MTEhp"
   },
   {
     "type": "text.delta",
@@ -87,14 +87,14 @@
     "id": "msg_011CfK5ypp4sLTeK6vQQqs9p:text:0",
     "messageId": "msg_011CfK5ypp4sLTeK6vQQqs9p",
     "delta": "The echo tool returned: `conformance-probe-fable51`",
-    "turnId": "turn_dd1e2c09-0da6-4241-9f4e-d2b1cffd6d43"
+    "turnId": "turn_msg_011CfK5yXxKGSfXmNC5MTEhp"
   },
   {
     "type": "text.end",
     "seq": 10,
     "id": "msg_011CfK5ypp4sLTeK6vQQqs9p:text:0",
     "messageId": "msg_011CfK5ypp4sLTeK6vQQqs9p",
-    "turnId": "turn_dd1e2c09-0da6-4241-9f4e-d2b1cffd6d43"
+    "turnId": "turn_msg_011CfK5yXxKGSfXmNC5MTEhp"
   },
   {
     "type": "message.end",
@@ -154,7 +154,7 @@
   {
     "type": "turn.done",
     "seq": 13,
-    "turnId": "turn_dd1e2c09-0da6-4241-9f4e-d2b1cffd6d43",
+    "turnId": "turn_msg_011CfK5yXxKGSfXmNC5MTEhp",
     "outcome": {
       "type": "success",
       "result": "The echo tool returned: `conformance-probe-fable51`"

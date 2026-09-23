@@ -2,14 +2,14 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_873a8ff6-401e-4117-8b5e-4a3a03ddf17f",
+    "turnId": "turn_msg_011CfK6FGAz4QxCBCC6s8t5Y",
     "threadId": "873a8ff6-401e-4117-8b5e-4a3a03ddf17f"
   },
   {
     "type": "message.start",
     "seq": 1,
     "id": "msg_011CfK6FGAz4QxCBCC6s8t5Y",
-    "turnId": "turn_873a8ff6-401e-4117-8b5e-4a3a03ddf17f",
+    "turnId": "turn_msg_011CfK6FGAz4QxCBCC6s8t5Y",
     "threadId": "873a8ff6-401e-4117-8b5e-4a3a03ddf17f",
     "role": "assistant",
     "model": "claude-opus-5"
@@ -19,7 +19,7 @@
     "seq": 2,
     "id": "msg_011CfK6FGAz4QxCBCC6s8t5Y:text:0",
     "messageId": "msg_011CfK6FGAz4QxCBCC6s8t5Y",
-    "turnId": "turn_873a8ff6-401e-4117-8b5e-4a3a03ddf17f"
+    "turnId": "turn_msg_011CfK6FGAz4QxCBCC6s8t5Y"
   },
   {
     "type": "text.delta",
@@ -27,19 +27,19 @@
     "id": "msg_011CfK6FGAz4QxCBCC6s8t5Y:text:0",
     "messageId": "msg_011CfK6FGAz4QxCBCC6s8t5Y",
     "delta": "I'll echo that message for you.",
-    "turnId": "turn_873a8ff6-401e-4117-8b5e-4a3a03ddf17f"
+    "turnId": "turn_msg_011CfK6FGAz4QxCBCC6s8t5Y"
   },
   {
     "type": "text.end",
     "seq": 4,
     "id": "msg_011CfK6FGAz4QxCBCC6s8t5Y:text:0",
     "messageId": "msg_011CfK6FGAz4QxCBCC6s8t5Y",
-    "turnId": "turn_873a8ff6-401e-4117-8b5e-4a3a03ddf17f"
+    "turnId": "turn_msg_011CfK6FGAz4QxCBCC6s8t5Y"
   },
   {
     "type": "tool.start",
     "seq": 5,
-    "turnId": "turn_873a8ff6-401e-4117-8b5e-4a3a03ddf17f",
+    "turnId": "turn_msg_011CfK6FGAz4QxCBCC6s8t5Y",
     "toolCallId": "toolu_01Ay3GFqtaha5WDCs9Hwsyut",
     "name": "mcp__t__echo",
     "index": 1,
@@ -75,7 +75,7 @@
   {
     "type": "tool.done",
     "seq": 9,
-    "turnId": "turn_873a8ff6-401e-4117-8b5e-4a3a03ddf17f",
+    "turnId": "turn_msg_011CfK6FGAz4QxCBCC6s8t5Y",
     "toolCallId": "toolu_01Ay3GFqtaha5WDCs9Hwsyut",
     "content": [
       {
@@ -91,7 +91,7 @@
     "type": "message.start",
     "seq": 10,
     "id": "msg_011CfK6FSCEEqXLN5QbyHhXe",
-    "turnId": "turn_873a8ff6-401e-4117-8b5e-4a3a03ddf17f",
+    "turnId": "turn_msg_011CfK6FGAz4QxCBCC6s8t5Y",
     "threadId": "873a8ff6-401e-4117-8b5e-4a3a03ddf17f",
     "role": "assistant",
     "model": "claude-opus-5"
@@ -101,7 +101,7 @@
     "seq": 11,
     "id": "msg_011CfK6FSCEEqXLN5QbyHhXe:text:0",
     "messageId": "msg_011CfK6FSCEEqXLN5QbyHhXe",
-    "turnId": "turn_873a8ff6-401e-4117-8b5e-4a3a03ddf17f"
+    "turnId": "turn_msg_011CfK6FGAz4QxCBCC6s8t5Y"
   },
   {
     "type": "text.delta",
@@ -109,14 +109,14 @@
     "id": "msg_011CfK6FSCEEqXLN5QbyHhXe:text:0",
     "messageId": "msg_011CfK6FSCEEqXLN5QbyHhXe",
     "delta": "Echoed: `conformance-probe-opus5`",
-    "turnId": "turn_873a8ff6-401e-4117-8b5e-4a3a03ddf17f"
+    "turnId": "turn_msg_011CfK6FGAz4QxCBCC6s8t5Y"
   },
   {
     "type": "text.end",
     "seq": 13,
     "id": "msg_011CfK6FSCEEqXLN5QbyHhXe:text:0",
     "messageId": "msg_011CfK6FSCEEqXLN5QbyHhXe",
-    "turnId": "turn_873a8ff6-401e-4117-8b5e-4a3a03ddf17f"
+    "turnId": "turn_msg_011CfK6FGAz4QxCBCC6s8t5Y"
   },
   {
     "type": "message.end",
@@ -176,7 +176,7 @@
   {
     "type": "turn.done",
     "seq": 16,
-    "turnId": "turn_873a8ff6-401e-4117-8b5e-4a3a03ddf17f",
+    "turnId": "turn_msg_011CfK6FGAz4QxCBCC6s8t5Y",
     "outcome": {
       "type": "success",
       "result": "Echoed: `conformance-probe-opus5`"

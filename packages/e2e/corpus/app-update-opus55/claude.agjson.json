@@ -2,14 +2,14 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "turnId": "turn_msg_011CfK6EWpGPUDxs8HAYHYN8",
     "threadId": "b17fe68b-a8ad-495b-bfd4-4fd28c5cb302"
   },
   {
     "type": "message.start",
     "seq": 1,
     "id": "msg_011CfK6EWpGPUDxs8HAYHYN8",
-    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "turnId": "turn_msg_011CfK6EWpGPUDxs8HAYHYN8",
     "threadId": "b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
     "role": "assistant",
     "model": "claude-opus-5-5"
@@ -17,7 +17,7 @@
   {
     "type": "tool.start",
     "seq": 2,
-    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "turnId": "turn_msg_011CfK6EWpGPUDxs8HAYHYN8",
     "toolCallId": "toolu_01RDpUbaJt8tPa6R8hG9rVWa",
     "name": "mcp__cards__render_card",
     "index": 0,
@@ -54,7 +54,7 @@
   {
     "type": "tool.done",
     "seq": 6,
-    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "turnId": "turn_msg_011CfK6EWpGPUDxs8HAYHYN8",
     "toolCallId": "toolu_01RDpUbaJt8tPa6R8hG9rVWa",
     "content": [
       {
@@ -84,7 +84,7 @@
     "type": "message.start",
     "seq": 7,
     "id": "msg_011CfK6Edf22nUmi2QEFkrvW",
-    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "turnId": "turn_msg_011CfK6EWpGPUDxs8HAYHYN8",
     "threadId": "b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
     "role": "assistant",
     "model": "claude-opus-5-5"
@@ -92,7 +92,7 @@
   {
     "type": "tool.start",
     "seq": 8,
-    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "turnId": "turn_msg_011CfK6EWpGPUDxs8HAYHYN8",
     "toolCallId": "toolu_016hrSJ5ARfqdoSX3ZaKwfGt",
     "name": "mcp__cards__update_card",
     "index": 0,
@@ -129,7 +129,7 @@
   {
     "type": "tool.done",
     "seq": 12,
-    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "turnId": "turn_msg_011CfK6EWpGPUDxs8HAYHYN8",
     "toolCallId": "toolu_016hrSJ5ARfqdoSX3ZaKwfGt",
     "content": [
       {
@@ -159,7 +159,7 @@
     "type": "message.start",
     "seq": 13,
     "id": "msg_011CfK6Ekx4m8ZMe9KvSzjYu",
-    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "turnId": "turn_msg_011CfK6EWpGPUDxs8HAYHYN8",
     "threadId": "b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
     "role": "assistant",
     "model": "claude-opus-5-5"
@@ -169,7 +169,7 @@
     "seq": 14,
     "id": "msg_011CfK6Ekx4m8ZMe9KvSzjYu:text:0",
     "messageId": "msg_011CfK6Ekx4m8ZMe9KvSzjYu",
-    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302"
+    "turnId": "turn_msg_011CfK6EWpGPUDxs8HAYHYN8"
   },
   {
     "type": "text.delta",
@@ -177,14 +177,14 @@
     "id": "msg_011CfK6Ekx4m8ZMe9KvSzjYu:text:0",
     "messageId": "msg_011CfK6Ekx4m8ZMe9KvSzjYu",
     "delta": "I rendered the card, then updated it in place. The update tool's final state is **revision 2**:\n\n- **Title:** Hello\n- **Body:** Updated World\n\nThe first call created the card as revision 1 with the body \"World\". The second call changed that same card to revision 2.",
-    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302"
+    "turnId": "turn_msg_011CfK6EWpGPUDxs8HAYHYN8"
   },
   {
     "type": "text.end",
     "seq": 16,
     "id": "msg_011CfK6Ekx4m8ZMe9KvSzjYu:text:0",
     "messageId": "msg_011CfK6Ekx4m8ZMe9KvSzjYu",
-    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302"
+    "turnId": "turn_msg_011CfK6EWpGPUDxs8HAYHYN8"
   },
   {
     "type": "message.end",
@@ -244,7 +244,7 @@
   {
     "type": "turn.done",
     "seq": 19,
-    "turnId": "turn_b17fe68b-a8ad-495b-bfd4-4fd28c5cb302",
+    "turnId": "turn_msg_011CfK6EWpGPUDxs8HAYHYN8",
     "outcome": {
       "type": "success",
       "result": "I rendered the card, then updated it in place. The update tool's final state is **revision 2**:\n\n- **Title:** Hello\n- **Body:** Updated World\n\nThe first call created the card as revision 1 with the body \"World\". The second call changed that same card to revision 2."

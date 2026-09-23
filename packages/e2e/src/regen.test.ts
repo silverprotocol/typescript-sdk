@@ -21,6 +21,9 @@ import { replayCassette } from "./replay.js";
 
 const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk" | "vercel" }> = [
   { scenario: "text-tool-turn", framework: "claude" },
+  // 2026-09-23 (sp-claude B, per-turn turnIds): complete-result's turnId moves
+  // (turn_<session> → turn_<its result uuid>); it was never on this list.
+  { scenario: "complete-result", framework: "claude" },
   // Task 4b: deferred round-close (message.end + turn.done past a late
   // tool.done) reorders this scenario's tool-turn round — see
   // or-responses-regression.test.ts and index.test.ts (Task 4b describe block)

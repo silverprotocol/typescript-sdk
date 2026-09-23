@@ -2,14 +2,14 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_sess_top",
+    "turnId": "turn_msg_top_1",
     "threadId": "sess_top"
   },
   {
     "type": "message.start",
     "seq": 1,
     "id": "msg_top_1",
-    "turnId": "turn_sess_top",
+    "turnId": "turn_msg_top_1",
     "threadId": "sess_top",
     "role": "assistant",
     "model": "claude-sonnet-4-6"
@@ -19,7 +19,7 @@
     "seq": 2,
     "id": "msg_top_1:reasoning:0",
     "messageId": "msg_top_1",
-    "turnId": "turn_sess_top"
+    "turnId": "turn_msg_top_1"
   },
   {
     "type": "reasoning.delta",
@@ -27,14 +27,14 @@
     "id": "msg_top_1:reasoning:0",
     "messageId": "msg_top_1",
     "delta": "Look up the weather, then delegate.",
-    "turnId": "turn_sess_top"
+    "turnId": "turn_msg_top_1"
   },
   {
     "type": "reasoning.end",
     "seq": 4,
     "id": "msg_top_1:reasoning:0",
     "messageId": "msg_top_1",
-    "turnId": "turn_sess_top"
+    "turnId": "turn_msg_top_1"
   },
   {
     "type": "reasoning.opaque",
@@ -43,7 +43,7 @@
     "messageId": "msg_top_1",
     "kind": "signature",
     "value": "sig_xyz",
-    "turnId": "turn_sess_top",
+    "turnId": "turn_msg_top_1",
     "provider": "anthropic"
   },
   {
@@ -51,7 +51,7 @@
     "seq": 6,
     "id": "msg_top_1:text:1",
     "messageId": "msg_top_1",
-    "turnId": "turn_sess_top"
+    "turnId": "turn_msg_top_1"
   },
   {
     "type": "text.delta",
@@ -59,19 +59,19 @@
     "id": "msg_top_1:text:1",
     "messageId": "msg_top_1",
     "delta": "Let me check the weather.",
-    "turnId": "turn_sess_top"
+    "turnId": "turn_msg_top_1"
   },
   {
     "type": "text.end",
     "seq": 8,
     "id": "msg_top_1:text:1",
     "messageId": "msg_top_1",
-    "turnId": "turn_sess_top"
+    "turnId": "turn_msg_top_1"
   },
   {
     "type": "tool.start",
     "seq": 9,
-    "turnId": "turn_sess_top",
+    "turnId": "turn_msg_top_1",
     "toolCallId": "toolu_weather",
     "name": "get_weather",
     "index": 2,
@@ -104,7 +104,7 @@
   {
     "type": "tool.done",
     "seq": 13,
-    "turnId": "turn_sess_top",
+    "turnId": "turn_msg_top_1",
     "toolCallId": "toolu_weather",
     "content": [
       {
@@ -120,7 +120,7 @@
     "type": "message.start",
     "seq": 14,
     "id": "msg_top_2",
-    "turnId": "turn_sess_top",
+    "turnId": "turn_msg_top_1",
     "threadId": "sess_top",
     "role": "assistant",
     "model": "claude-sonnet-4-6"
@@ -130,7 +130,7 @@
     "seq": 15,
     "id": "msg_top_2:text:0",
     "messageId": "msg_top_2",
-    "turnId": "turn_sess_top"
+    "turnId": "turn_msg_top_1"
   },
   {
     "type": "text.delta",
@@ -138,19 +138,19 @@
     "id": "msg_top_2:text:0",
     "messageId": "msg_top_2",
     "delta": "Now delegating research.",
-    "turnId": "turn_sess_top"
+    "turnId": "turn_msg_top_1"
   },
   {
     "type": "text.end",
     "seq": 17,
     "id": "msg_top_2:text:0",
     "messageId": "msg_top_2",
-    "turnId": "turn_sess_top"
+    "turnId": "turn_msg_top_1"
   },
   {
     "type": "tool.start",
     "seq": 18,
-    "turnId": "turn_sess_top",
+    "turnId": "turn_msg_top_1",
     "toolCallId": "toolu_task",
     "name": "Task",
     "index": 1,
@@ -183,14 +183,14 @@
   {
     "type": "subagent.start",
     "seq": 22,
-    "turnId": "turn_sess_sub",
+    "turnId": "turn_msg_sub_1",
     "parentTurnId": "turn_toolu_task"
   },
   {
     "type": "message.start",
     "seq": 23,
     "id": "msg_sub_1",
-    "turnId": "turn_sess_sub",
+    "turnId": "turn_msg_sub_1",
     "threadId": "sess_sub",
     "role": "assistant",
     "model": "claude-sonnet-4-6"
@@ -200,7 +200,7 @@
     "seq": 24,
     "id": "msg_sub_1:text:0",
     "messageId": "msg_sub_1",
-    "turnId": "turn_sess_sub"
+    "turnId": "turn_msg_sub_1"
   },
   {
     "type": "text.delta",
@@ -208,14 +208,14 @@
     "id": "msg_sub_1:text:0",
     "messageId": "msg_sub_1",
     "delta": "Subagent finished the research.",
-    "turnId": "turn_sess_sub"
+    "turnId": "turn_msg_sub_1"
   },
   {
     "type": "text.end",
     "seq": 26,
     "id": "msg_sub_1:text:0",
     "messageId": "msg_sub_1",
-    "turnId": "turn_sess_sub"
+    "turnId": "turn_msg_sub_1"
   },
   {
     "type": "message.end",
@@ -230,13 +230,13 @@
   {
     "type": "subagent.done",
     "seq": 28,
-    "turnId": "turn_sess_sub",
+    "turnId": "turn_msg_sub_1",
     "parentTurnId": "turn_toolu_task"
   },
   {
     "type": "tool.done",
     "seq": 29,
-    "turnId": "turn_sess_top",
+    "turnId": "turn_msg_top_1",
     "toolCallId": "toolu_task",
     "content": [
       {
@@ -251,7 +251,7 @@
   {
     "type": "turn.done",
     "seq": 30,
-    "turnId": "turn_sess_top",
+    "turnId": "turn_msg_top_1",
     "outcome": {
       "type": "success",
       "result": "final answer"

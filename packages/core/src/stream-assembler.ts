@@ -421,10 +421,10 @@ export class StreamAssembler {
   /**
    * Emit `reasoning.delta`. With `{cumulative:true}` de-cumulates against the
    * prior buffer. `opts.providerMetadata` rides the delta verbatim — the home
-   * for a provider's per-chunk reasoning telemetry when the reasoning TEXT
-   * itself is withheld (e.g. Claude Fable 5.1's default `display: omitted`
-   * streams empty `thinking_delta`s whose only payload is the CLI's
-   * `estimated_tokens`); absent ⇒ no key.
+   * for a provider's per-chunk, replay-load-bearing reasoning metadata; absent
+   * ⇒ no key. Host-only telemetry does NOT belong here: e.g. the Claude CLI's
+   * per-delta `estimated_tokens` rides `_meta` (X5). This sugar has no `_meta`
+   * option, so a facet raw-emits the delta for that case.
    */
   reasoningDelta(
     id: string,
