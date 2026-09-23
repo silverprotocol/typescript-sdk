@@ -4317,6 +4317,175 @@ describe("createOpenaiNormalizer — OA-14 phase on text.start from output_item.
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PH-2 — rnd 13+17 STAGE 2 (draft.4, sp-protocol fb2126a on sp-probe P-phase):
+// the first-class optional `phase` on text.start/text.end. SPEC §8.0 item 27:
+// OpenAI `phase:"commentary"` → `phase:"interim"` on that message's text block;
+// "final_answer", null, "", absent and any other value → `phase` absent; the
+// vendor marker stays VERBATIM in providerMetadata (the stage-1 carry). §5
+// "`phase` timing": on the `*.start` when known before the first delta, else on
+// the block's `*.end` — never after an emitted `*.end` (then first-class phase
+// stays absent and the lossless ext.openai.late-phase carry stays). sp-protocol
+// ruled a STASHED (deferred tool-round) text.end "not yet emitted" (2026-09-23).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("createOpenaiNormalizer — PH-2 first-class phase:\"interim\" (draft.4, §8.0 item 27, §10 item 26)", () => {
+  function run(s: JsonValue[]): AgEvent[] {
+    const n = createOpenaiNormalizer();
+    return s.flatMap((e) => n.push(e)).concat(n.flush());
+  }
+  function fold(s: JsonValue[]): ReturnType<Reducer["result"]> {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    for (const e of s) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    return r.result();
+  }
+  function msgItem(id: string, phase?: JsonValue): JsonValue {
+    const rawItem: { [k: string]: JsonValue } = {
+      type: "message",
+      role: "assistant",
+      status: "completed",
+      content: [{ type: "output_text", text: `text of ${id}` }],
+      id,
+    };
+    if (phase !== undefined) rawItem.phase = phase;
+    return runItem("message_output_created", { type: "message_output_item", rawItem });
+  }
+  function textEvent(evs: AgEvent[], type: "text.start" | "text.end", id: string): AgEvent | undefined {
+    return evs.find((e) => e.type === type && e.id === id);
+  }
+
+  // §10 item 26's OpenAI vector: two message items, commentary then
+  // final_answer (each on output_item.added), completions after the close.
+  function twoItemVector(phaseA: JsonValue, phaseB: JsonValue): JsonValue[] {
+    return [
+      rawModel({ type: "response.created", response: { id: "resp_ph2" } }),
+      rawModel({ type: "response.output_item.added", item: { id: "msg_A", type: "message", phase: phaseA } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_A", delta: "text of msg_A" }),
+      rawModel({ type: "response.output_item.added", item: { id: "msg_B", type: "message", phase: phaseB } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_B", delta: "text of msg_B" }),
+      rawModel({ type: "response.completed", response: { id: "resp_ph2", status: "completed" } }),
+      msgItem("msg_A", phaseA),
+      msgItem("msg_B", phaseB),
+    ];
+  }
+
+  it("§10 item 26 vector: commentary → phase:\"interim\" on msg_A's text.start ONLY; msg_B (final_answer) carries no phase; both keep providerMetadata.phase verbatim; no late-phase; every event passes AgEvent.safeParse", () => {
+    const evs = run(twoItemVector("commentary", "final_answer"));
+    expect(textEvent(evs, "text.start", "msg_A")).toMatchObject({ phase: "interim", providerMetadata: { phase: "commentary" } });
+    expect(textEvent(evs, "text.start", "msg_B")).not.toHaveProperty("phase");
+    expect(textEvent(evs, "text.end", "msg_B")).not.toHaveProperty("phase");
+    expect(textEvent(evs, "text.start", "msg_B")).toMatchObject({ providerMetadata: { phase: "final_answer" } });
+    expect(evs.map((e) => e.type)).not.toContain("ext.openai.late-phase");
+    for (const e of evs) expect(AgEvent.safeParse(e).success).toBe(true);
+
+    const blocks = fold(twoItemVector("commentary", "final_answer"))
+      .messages.flatMap((m) => m.content)
+      .filter((b) => b.type === "text");
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0]).toMatchObject({ text: "text of msg_A", phase: "interim", providerMetadata: { phase: "commentary" } });
+    expect(blocks[1]).toMatchObject({ text: "text of msg_B", providerMetadata: { phase: "final_answer" } });
+    expect(blocks[1]).not.toHaveProperty("phase");
+  });
+
+  it.each([
+    ["null", null],
+    ["empty string", ""],
+  ])("negative control: phase %s ⇒ neither `phase` nor `providerMetadata.phase` (sp-protocol ruling (a))", (_label, bad) => {
+    const evs = run(twoItemVector(bad, "final_answer"));
+    const startA = textEvent(evs, "text.start", "msg_A");
+    expect(startA).not.toHaveProperty("phase");
+    expect(startA).not.toHaveProperty("providerMetadata");
+    // No marker ⇒ no lossless ext either (pre-PH-2 the post-close run-item
+    // emitted ext.openai.late-phase {phase: null} for a null phase).
+    expect(evs.map((e) => e.type)).not.toContain("ext.openai.late-phase");
+    const block = fold(twoItemVector(bad, "final_answer"))
+      .messages.flatMap((m) => m.content)
+      .find((b) => b.type === "text");
+    // Value checks, not key checks: core's text fold assigns
+    // `providerMetadata = mergeProviderMeta(...)`, which leaves an explicit
+    // `undefined` key on the block (pre-existing, JSON-invisible).
+    expect(block?.type === "text" ? block.phase : "not-a-text-block").toBeUndefined();
+    expect(block?.type === "text" ? block.providerMetadata : "not-a-text-block").toBeUndefined();
+  });
+
+  it("negative control: an unknown vendor value (\"foo\") ⇒ `phase` absent, providerMetadata.phase \"foo\" verbatim (never copied into `phase`)", () => {
+    const evs = run(twoItemVector("foo", "final_answer"));
+    const startA = textEvent(evs, "text.start", "msg_A");
+    expect(startA).not.toHaveProperty("phase");
+    expect(startA).toMatchObject({ providerMetadata: { phase: "foo" } });
+  });
+
+  // ── §5 timing boundary: known only at the run-item (raw added lacks phase) ──
+  it("(i) message OPEN, stream still open when the commentary completion lands ⇒ phase:\"interim\" on that text.end", () => {
+    const evs = run([
+      rawModel({ type: "response.created", response: { id: "resp_ph2_i" } }),
+      rawModel({ type: "response.output_item.added", item: { id: "msg_i", type: "message" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_i", delta: "Let me check." }),
+      msgItem("msg_i", "commentary"),
+      rawModel({ type: "response.completed", response: { id: "resp_ph2_i", status: "completed" } }),
+    ]);
+    expect(textEvent(evs, "text.start", "msg_i")).not.toHaveProperty("phase");
+    expect(textEvent(evs, "text.end", "msg_i")).toMatchObject({ phase: "interim", providerMetadata: { phase: "commentary" } });
+  });
+
+  it("(ii) DEFERRED tool-round close: the text.end is still stashed when the post-close commentary completion lands ⇒ phase:\"interim\" rides the stashed text.end; late-phase retired", () => {
+    const evs = run([
+      rawModel({ type: "response.created", response: { id: "resp_ph2_ii" } }),
+      rawModel({ type: "response.output_item.added", item: { id: "msg_ii", type: "message" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_ii", delta: "Calling echo." }),
+      rawModel({
+        type: "response.output_item.added",
+        item: { id: "fc_ii", type: "function_call", call_id: "call_ii", name: "echo" },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_ph2_ii", status: "completed" } }),
+      msgItem("msg_ii", "commentary"),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "function_call_result", name: "echo", callId: "call_ii", status: "completed", output: "ok" },
+        output: "ok",
+      }),
+    ]);
+    const types = evs.map((e) => e.type);
+    const end = textEvent(evs, "text.end", "msg_ii");
+    expect(end).toMatchObject({ phase: "interim", providerMetadata: { phase: "commentary" } });
+    // It really was the deferred close: text.end lands AFTER the tool.done.
+    expect(types.indexOf("tool.done")).toBeLessThan(evs.findIndex((e) => e.type === "text.end" && e.id === "msg_ii"));
+    expect(types).not.toContain("ext.openai.late-phase");
+  });
+
+  it("(iii) text.end ALREADY emitted (non-deferred close) before the commentary completion lands ⇒ first-class phase absent; ext.openai.late-phase carries it", () => {
+    const evs = run([
+      rawModel({ type: "response.created", response: { id: "resp_ph2_iii" } }),
+      rawModel({ type: "response.output_item.added", item: { id: "msg_iii", type: "message" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_iii", delta: "Done." }),
+      rawModel({ type: "response.completed", response: { id: "resp_ph2_iii", status: "completed" } }),
+      msgItem("msg_iii", "commentary"),
+    ]);
+    const end = textEvent(evs, "text.end", "msg_iii");
+    expect(end).not.toHaveProperty("phase");
+    expect(evs.findIndex((e) => e.type === "text.end" && e.id === "msg_iii")).toBeLessThan(
+      evs.findIndex((e) => e.type === "ext.openai.late-phase"),
+    );
+    expect(evs.find((e) => e.type === "ext.openai.late-phase")).toMatchObject({ itemId: "msg_iii", phase: "commentary" });
+    expect(evs.filter((e) => e.type === "text.end" && e.id === "msg_iii")).toHaveLength(1); // never a second end
+  });
+
+  it("a late final_answer (open message) sets NO first-class phase on text.end — only providerMetadata.phase", () => {
+    const evs = run([
+      rawModel({ type: "response.created", response: { id: "resp_ph2_fa" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_fa", delta: "Answer." }),
+      msgItem("msg_fa", "final_answer"),
+      rawModel({ type: "response.completed", response: { id: "resp_ph2_fa", status: "completed" } }),
+    ]);
+    const end = textEvent(evs, "text.end", "msg_fa");
+    expect(end).not.toHaveProperty("phase");
+    expect(end).toMatchObject({ providerMetadata: { phase: "final_answer" } });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // OA-13 — `tool.start.providerExecuted` (SPEC:632; tool-call block
 // `providerExecuted`, SPEC:210; SPEC:496 "server already ran it; client MUST
 // NOT execute"). An existing optional slot (sp-rnd item 10 re-verify,

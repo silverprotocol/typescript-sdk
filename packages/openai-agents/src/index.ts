@@ -1211,6 +1211,24 @@ function mapAnnotationsToCitations(
 // Wire names ride verbatim at the top level (the claude facet's wrapper-carry
 // precedent — AgProviderMeta imposes no key namespacing). Drops undefined
 // values; an ALL-absent input yields undefined, never an empty metadata object.
+/** PH-2 / OA-14: an OpenAI message `phase` as a vendor MARKER — a non-empty
+ *  string, verbatim — or `undefined`. openai-node types it
+ *  `'commentary' | 'final_answer' | null`; null and "" carry no marker, so they
+ *  yield neither a `providerMetadata.phase` carry nor an ext.openai.late-phase
+ *  (sp-protocol ruling (a), SPEC §10 item 26). Read through `unknown`: the
+ *  run-item field is envelope-only-validated wire data (JsonValue boundary). */
+function vendorPhase(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+/** PH-2 (draft.4, SPEC §8.0 item 27): the first-class `phase` for an OpenAI
+ *  vendor marker — `"commentary"` → `"interim"`; "final_answer", absent and
+ *  every other value → `undefined` (a vendor spelling is never copied into
+ *  `phase`; it stays verbatim in `providerMetadata`). */
+function interimPhase(vendor: string | undefined): "interim" | undefined {
+  return vendor === "commentary" ? "interim" : undefined;
+}
+
 function openaiProviderMeta(fields: { [k: string]: JsonValue | undefined }): AgProviderMeta | undefined {
   const raw: { [k: string]: JsonValue } = {};
   for (const [k, v] of Object.entries(fields)) {
@@ -1425,6 +1443,12 @@ export function createOpenaiNormalizer(): Normalizer {
   // `ext.openai.late-phase` against lands AFTER the response closed.
   const pendingPhase = new Map<string, string>();
   const carriedPhase = new Map<string, string>();
+  // PH-2 (draft.4 stage 2): text stream ids whose `text.start` already set the
+  // first-class `phase:"interim"` (so no `*.end` repeats it), and per-stream
+  // `text.end` fields learned for a round close that is STASHED (deferred until
+  // its tool results land) — consumed by `emitRoundClose`.
+  const interimAtStart = new Set<string>();
+  const stashedEndFields = new Map<string, { phase?: string; providerMetadata?: AgProviderMeta }>();
   // Close-once guard: the SDK emits `response.completed` TWICE per response. Once a
   // response.id (or a synthesized turnId) has been closed, any further terminal event
   // for it is a no-op — it must NOT reopen a fresh message/turn.
@@ -1536,8 +1560,22 @@ export function createOpenaiNormalizer(): Normalizer {
    * whichever values are live right now (immediate path) or were captured at
    * defer time (drain path) — same three calls either way.
    */
+  /** PH-2: is `streamId`'s text.end still pending in a STASHED round close
+   *  (a deferred tool round), i.e. not yet emitted? */
+  function isStashedTextStream(streamId: string): boolean {
+    for (const stashed of stashedCloseByTurn.values()) {
+      if (stashed.openTextStreamIds.includes(streamId)) return true;
+    }
+    return false;
+  }
+
   function emitRoundClose(tid: string, mId: string, textStreamIds: readonly string[], fields: TurnDoneFields): void {
-    for (const streamId of textStreamIds) a.textEnd(streamId, mId);
+    for (const streamId of textStreamIds) {
+      // PH-2: a phase learned while this close sat stashed rides its text.end.
+      const endFields = stashedEndFields.get(streamId);
+      stashedEndFields.delete(streamId);
+      a.textEnd(streamId, mId, endFields);
+    }
     a.closeMessage(mId);
     a.closeTurnDone(tid, fields);
   }
@@ -1638,14 +1676,19 @@ export function createOpenaiNormalizer(): Normalizer {
           // (rnd 13+17 Stage 1, founder ruling 2026-09-23; vercel parity c4f5981).
           const phase = pendingPhase.get(ev.item_id);
           const startMeta = openaiProviderMeta({ phase });
+          // PH-2 (draft.4, SPEC §8.0 item 27 + §5 "phase timing"): known before
+          // the first delta ⇒ the first-class `phase` goes on text.start.
+          const interim = interimPhase(phase);
           a.textStart(ev.item_id, msgId, {
             role: "assistant",
             ...(startMeta !== undefined ? { providerMetadata: startMeta } : {}),
+            ...(interim !== undefined ? { phase: interim } : {}),
           });
           if (phase !== undefined) {
             pendingPhase.delete(ev.item_id);
             carriedPhase.set(ev.item_id, phase);
           }
+          if (interim !== undefined) interimAtStart.add(ev.item_id);
         }
         // OpenAI text deltas are suffix-only fragments (cumulative:false, the default).
         a.textDelta(ev.item_id, msgId, ev.delta, { cumulative: false });
@@ -2053,8 +2096,26 @@ export function createOpenaiNormalizer(): Normalizer {
           // OA-14: RETIRED when this id's SAME phase already rode its text.start
           // (the live case); kept — lossless — when only the run-item knows it,
           // or knows a different value.
-          if (item.phase !== undefined && carriedPhase.get(item.id) !== item.phase) {
-            a.emitExt("openai", "late-phase", { itemId: item.id, phase: item.phase });
+          // PH-2: null/"" is no marker at all (sp-protocol ruling (a)) — neither
+          // a carry nor a late-phase ext.
+          const lateItemPhase = vendorPhase(item.phase);
+          if (lateItemPhase !== undefined && carriedPhase.get(item.id) !== lateItemPhase) {
+            if (isStashedTextStream(item.id)) {
+              // PH-2 case (ii): the round close is STASHED (a deferred tool
+              // round), so this block's text.end is NOT yet emitted — the §5
+              // timing rule makes the end the phase's home (sp-protocol,
+              // 2026-09-23). The marker has a first-class home, so no late-phase.
+              const interim = interimAtStart.has(item.id) ? undefined : interimPhase(lateItemPhase);
+              const endMeta = openaiProviderMeta({ phase: lateItemPhase });
+              stashedEndFields.set(item.id, {
+                ...(endMeta !== undefined ? { providerMetadata: endMeta } : {}),
+                ...(interim !== undefined ? { phase: interim } : {}),
+              });
+            } else {
+              // Case (iii): this block's text.end is already out — never a
+              // second end; the vendor marker rides the lossless ext.
+              a.emitExt("openai", "late-phase", { itemId: item.id, phase: lateItemPhase });
+            }
           }
           continue;
         }
@@ -2069,14 +2130,19 @@ export function createOpenaiNormalizer(): Normalizer {
         // message, and a program-driven turn emits multiple message items with
         // DIFFERENT phases (commentary vs final_answer) whose message-level
         // merge would clobber (see OpenAIAssistantMessageItem.phase's doc).
-        const phaseMeta = openaiProviderMeta({ phase: item.phase });
+        const itemPhase = vendorPhase(item.phase);
+        const phaseMeta = openaiProviderMeta({ phase: itemPhase });
+        // PH-2 case (i): known before this block's text.end ⇒ the end carries
+        // the first-class phase, unless text.start already did.
+        const endInterim = interimAtStart.has(streamId) ? undefined : interimPhase(itemPhase);
         a.textEnd(
           streamId,
           msgId,
-          citations !== undefined || phaseMeta !== undefined
+          citations !== undefined || phaseMeta !== undefined || endInterim !== undefined
             ? {
                 ...(citations !== undefined ? { citations } : {}),
                 ...(phaseMeta !== undefined ? { providerMetadata: phaseMeta } : {}),
+                ...(endInterim !== undefined ? { phase: endInterim } : {}),
               }
             : undefined,
         );
