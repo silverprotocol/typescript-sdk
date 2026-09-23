@@ -2201,3 +2201,57 @@ describe("preliminary tool-result, then tool-error (CB-7; draft.4 §5 snapshot f
     for (const k of ["structuredContent", "preliminary"]) expect(k in block, k).toBe(false);
   });
 });
+
+describe("§10 item 42 — kept-open results are snapshots (yield/yield/return, yield/throw)", () => {
+  const head = [
+    { type: "start" },
+    { type: "start-step", request: {}, warnings: [] },
+    { type: "tool-call", toolCallId: "call_1", toolName: "gen", input: {} },
+  ];
+  const yielded = (v: number) => ({ type: "tool-result", toolCallId: "call_1", toolName: "gen", input: {}, output: { v }, preliminary: true });
+  const toolDones = (parts: unknown[]) =>
+    run(parts).filter((e) => (e as { type: string }).type === "tool.done").map((e) => {
+      const { seq: _seq, ...rest } = e as Record<string, unknown>;
+      return rest;
+    });
+  const snapshot = (v: number) => ({
+    type: "tool.done",
+    turnId: "turn_vercel_1",
+    toolCallId: "call_1",
+    outcome: "ok",
+    structuredContent: { v },
+    content: [{ type: "text", text: JSON.stringify({ v }) }],
+  });
+
+  it("yields V1, yields V2, returns V2: two kept-open snapshots and a final snapshot with no more", () => {
+    const parts = [...head, yielded(1), yielded(2), { type: "tool-result", toolCallId: "call_1", toolName: "gen", input: {}, output: { v: 2 } }];
+    expect(toolDones(parts)).toEqual([
+      { ...snapshot(1), more: true, preliminary: true },
+      { ...snapshot(2), more: true, preliminary: true },
+      snapshot(2),
+    ]);
+  });
+
+  it("yields V1, then throws E: a final error with E's message and no more, no structuredContent", () => {
+    const parts = [...head, yielded(1), { type: "tool-error", toolCallId: "call_1", toolName: "gen", input: {}, error: new Error("E") }];
+    expect(toolDones(parts)).toEqual([
+      { ...snapshot(1), more: true, preliminary: true },
+      { type: "tool.done", turnId: "turn_vercel_1", toolCallId: "call_1", outcome: "error", isError: true, errorText: "E", content: [{ type: "text", text: "E" }] },
+    ]);
+  });
+
+  it("both sequences fold to exactly their final result (the snapshot fold drops V1 on the throw)", () => {
+    const fold = (parts: unknown[]) => {
+      const r = new Reducer();
+      for (const ev of run(parts)) r.push(ev);
+      expect(r.needsResync).toBe(false);
+      return r.result().messages.flatMap((m) => m.content).filter((b) => b.type === "tool-result");
+    };
+    expect(fold([...head, yielded(1), yielded(2), { type: "tool-result", toolCallId: "call_1", toolName: "gen", input: {}, output: { v: 2 } }])).toEqual([
+      { type: "tool-result", toolCallId: "call_1", outcome: "ok", structuredContent: { v: 2 }, content: [{ type: "text", text: '{"v":2}' }] },
+    ]);
+    expect(fold([...head, yielded(1), { type: "tool-error", toolCallId: "call_1", toolName: "gen", input: {}, error: new Error("E") }])).toEqual([
+      { type: "tool-result", toolCallId: "call_1", outcome: "error", isError: true, errorText: "E", content: [{ type: "text", text: "E" }] },
+    ]);
+  });
+});
