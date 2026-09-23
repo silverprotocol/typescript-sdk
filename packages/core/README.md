@@ -106,12 +106,16 @@ if (!checked.ok) return reply(400, { code: checked.code, path: checked.path }); 
   resync a parked live fold, while the same message read from storage keeps its
   readable blocks.
 - `checkAgInput` rejects the whole input, before you act on any of it, when it
-  carries a value outside a closed set this version defines (a `kind`, an
-  answer `status`, a reasoning `effort`, a block `type` in `messages`,
-  `run.system`, `run.context` or `results[].content`, …): `unknown-value` with
-  the path. A missing value or a wrong JSON type is `malformed`; another major
-  `version` is `major-mismatch`. An accepted input comes back with its unknown
-  fields intact.
+  fails the schema in any way other than an unknown field, and names one path
+  and one class. `unknown-value`: a string outside a closed set this version
+  defines (a `kind`, an answer `status`, a reasoning `effort`, a block `type` in
+  `messages`, `run.system`, `run.context` or `results[].content`, …).
+  `major-mismatch`: another major `version`. `malformed`: everything else,
+  including a missing value, a wrong JSON type, a non-object input, or a
+  `protocol` other than `"agjson"`. It judges `protocol` first, then `version`,
+  then the rest; it checks the envelope members whatever the `kind`, and when
+  the rest has both kinds of problem the class is `malformed`. An accepted
+  input comes back with its unknown fields intact.
 - `validateHitlAnswer` rejects an answer whose `status` is not a defined one
   (`unknown-status`), so an unrecognized status is never read as a grant.
 

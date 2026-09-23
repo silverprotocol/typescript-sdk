@@ -113,7 +113,63 @@ describe("checkAgInput — draft.4 §0.2, workspace#20 decision 6 (§10 item N, 
     expect(r.ok && isDeepStrictEqual(r.input, ok)).toBe(true);
   });
 
-  it("several problems: the first in schema order is reported", () => {
-    expect(reject({ ...ENV, kind: "resume", answers: [{ askId: "a", status: "zz" }, { askId: 1, status: "resolved" }] })).toEqual({ code: "unknown-value", path: ["answers", 0, "status"] });
+  it("several problems: malformed beats unknown-value, whatever the order (ALT-1; flipped from first-issue-wins)", () => {
+    expect(reject({ ...ENV, kind: "resume", answers: [{ askId: "a", status: "zz" }, { askId: 1, status: "resolved" }] })).toEqual({ code: "malformed", path: ["answers", 1, "askId"] });
+    expect(reject({ ...ENV, kind: "resume", answers: [{ askId: 1, status: "resolved" }, { askId: "a", status: "zz" }] })).toEqual({ code: "malformed", path: ["answers", 0, "askId"] });
+  });
+
+  describe("ALT-1 input classes (founder ruling on decision 6, bar wf_a8a31902-fb5; §10 item 29 inputs b11-b17)", () => {
+    it("protocol is judged FIRST: a protocol other than agjson is malformed at [protocol], before version and before kind (b11)", () => {
+      expect(reject({ ...ENV, protocol: "foo", kind: "start", messages: [] })).toEqual({ code: "malformed", path: ["protocol"] });
+      expect(reject({ ...ENV, protocol: "foo", kind: "zz" })).toEqual({ code: "malformed", path: ["protocol"] });
+      // not AgJSON 2.x: not AgJSON at all
+      expect(reject({ ...ENV, protocol: "foo", version: "2.0.0", kind: "start", messages: [] })).toEqual({ code: "malformed", path: ["protocol"] });
+      const { protocol: _p, ...noProtocol } = ENV;
+      expect(reject({ ...noProtocol, kind: "start", messages: [] })).toEqual({ code: "malformed", path: ["protocol"] });
+    });
+
+    it("then version: another major is major-mismatch (b12); a missing or non-semver version is malformed at [version]", () => {
+      expect(reject({ ...ENV, version: "2.0.0", kind: "start", messages: [] })).toEqual({ code: "major-mismatch", path: ["version"] });
+      const { version: _v, ...noVersion } = ENV;
+      expect(reject({ ...noVersion, kind: "start", messages: [] })).toEqual({ code: "malformed", path: ["version"] });
+      expect(reject({ ...ENV, version: 1, kind: "start", messages: [] })).toEqual({ code: "malformed", path: ["version"] });
+    });
+
+    it("envelope members are checked whatever the kind, and malformed beats unknown-value (b13)", () => {
+      expect(reject({ ...ENV, threadId: 5, kind: "zz" })).toEqual({ code: "malformed", path: ["threadId"] });
+      expect(reject({ ...ENV, capabilities: { hitl: { grantModes: {} } }, kind: "zz" })).toEqual({ code: "malformed", path: ["capabilities", "hitl", "grantModes"] });
+    });
+
+    it("a member only an undefined kind would select is not checked (b14)", () => {
+      expect(reject({ ...ENV, kind: "zz", messages: 5 })).toEqual({ code: "unknown-value", path: ["kind"] });
+    });
+
+    it("malformed beats unknown-value in either array order; members of an undefined-type block are not checked (b15)", () => {
+      const msg = (content: unknown[]) => start({ messages: [{ id: "m", role: "user", content }] });
+      expect(reject(msg([{ type: "zz", text: 5 }, { type: "text" }]))).toEqual({ code: "malformed", path: ["messages", 0, "content", 1, "text"] });
+      expect(reject(msg([{ type: "text" }, { type: "zz", text: 5 }]))).toEqual({ code: "malformed", path: ["messages", 0, "content", 0, "text"] });
+      // the same through a plain union (run.system: string | AgBlock[]): the array branch is the one that fits
+      expect(reject(start({ run: { system: [{ type: "zz", text: 5 }, { type: "text" }] } }))).toEqual({ code: "malformed", path: ["run", "system", 1, "text"] });
+      // with only unknown-value problems the class stays unknown-value
+      expect(reject(msg([{ type: "zz", text: 5 }]))).toEqual({ code: "unknown-value", path: ["messages", 0, "content", 0, "type"] });
+    });
+
+    it("a frozen closed set is still unknown-value (b16), and a malformed member of a defined surface interaction is malformed at its own path (b17)", () => {
+      expect(reject(start({ messages: [{ id: "m", role: "zz", content: [] }] }))).toEqual({ code: "unknown-value", path: ["messages", 0, "role"] });
+      const r = checkAgInput({ ...ENV, kind: "resume", uiActions: [{ surface: "mcp-app", surfaceId: "s", method: "ui/open-link", params: { url: 5 } }] });
+      expect(!r.ok && r.code).toBe("malformed");
+      expect(!r.ok && isDeepStrictEqual(r.path.slice(0, 3), ["uiActions", 0, "params"])).toBe(true);
+    });
+
+    it("an unknown field is tolerated: a valid input carrying unknown fields at every depth is accepted with them intact", () => {
+      const withUnknown = { ...start({ messages: [{ id: "m", role: "user", content: [{ type: "text", text: "a", zzBlock: 1 }], zzMsg: true }] }), zzTop: { any: "thing" } };
+      const r = checkAgInput(structuredClone(withUnknown));
+      expect(r.ok).toBe(true);
+      expect(r.ok && isDeepStrictEqual(r.input, withUnknown)).toBe(true);
+    });
+
+    it("a non-object input is malformed at [] before anything else", () => {
+      for (const x of [null, "start", [ENV], 7, true]) expect(reject(x)).toEqual({ code: "malformed", path: [] });
+    });
   });
 });
