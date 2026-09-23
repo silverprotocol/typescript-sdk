@@ -8055,3 +8055,49 @@ describe("createClaudeNormalizer — subagent carries: AgentOutput and result or
     expect(plain === undefined || !("origin" in plain)).toBe(true);
   });
 });
+
+// ─── rd-15: tool_result_meta rides tool.done._meta (deferred past 0.7.0) ─────
+describe("createClaudeNormalizer — rd-15: the CLI's tool_result_meta entry rides its tool.done _meta", () => {
+  const use = (): unknown => ({ ...Object.fromEntries(Object.entries(assistantMsg([{ type: "tool_use", id: "toolu_m", name: "mcp__t__echo", input: {} }]))) });
+  const result = (extra: { [k: string]: unknown }): unknown => ({
+    type: "user",
+    message: { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_m", content: "Blocked by hook", is_error: true }] },
+    parent_tool_use_id: null,
+    uuid: "00000000-0000-0000-0000-0000000000m2",
+    session_id: "sess_fixture",
+    ...extra,
+  });
+  const ENTRY = { id: "toolu_m", non_execution_kind: "permission-rule", remedy: { kind: "future" } };
+  const done = (evs: AgEvent[]): { [k: string]: unknown } | undefined => {
+    const e = evs.find((x) => x.type === "tool.done");
+    return e === undefined ? undefined : Object.fromEntries(Object.entries(e));
+  };
+
+  it("the matching entry rides verbatim under anthropic/toolResultMeta and folds onto the tool-result block", () => {
+    const evs = drive([use(), result({ tool_result_meta: [{ id: "toolu_other", non_execution_kind: "cancelled" }, ENTRY] })]);
+    expect(done(evs)?.["_meta"]).toEqual({ "anthropic/toolResultMeta": ENTRY });
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    const block = r.result().messages.flatMap((m) => m.content).find((b) => "toolCallId" in b && b.toolCallId === "toolu_m" && "outcome" in b);
+    expect(block).toMatchObject({ _meta: { "anthropic/toolResultMeta": ENTRY } });
+  });
+
+  it("it MERGES into the MCP sibling's _meta, never replacing it, and a tool-authored key of the same name cannot stand in for it", () => {
+    const evs = drive([use(), result({ tool_result_meta: [ENTRY], tool_use_result: { _meta: { ui: { resourceUri: "ui://x" }, "anthropic/toolResultMeta": "spoofed" } } })]);
+    expect(done(evs)?.["_meta"]).toEqual({ ui: { resourceUri: "ui://x" }, "anthropic/toolResultMeta": ENTRY });
+  });
+
+  it("with NO CLI entry for the call, a tool-authored anthropic/toolResultMeta is dropped (the reserved namespace), never carried as a harness fact", () => {
+    const forged = result({ tool_use_result: { _meta: { "anthropic/toolResultMeta": { remedy: "SPOOFED" }, "vendor/keep": 1 } } });
+    const evs = drive([use(), forged]);
+    expect(done(evs)?.["_meta"]).toEqual({ "vendor/keep": 1 });
+    expect(JSON.stringify(evs)).not.toContain("SPOOFED");
+  });
+
+  it("negative control: no tool_result_meta, or no entry for this id, leaves tool.done byte-identical", () => {
+    const plain = drive([use(), result({})]);
+    expect(JSON.stringify(drive([use(), result({ tool_result_meta: [{ id: "toolu_other" }] })]))).toBe(JSON.stringify(plain));
+    expect(JSON.stringify(drive([use(), result({ tool_result_meta: "junk" })]))).toBe(JSON.stringify(plain));
+    expect(done(plain) !== undefined && "_meta" in (done(plain) ?? {})).toBe(false);
+  });
+});

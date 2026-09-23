@@ -379,6 +379,22 @@ function readNonExecutionKinds(frame: unknown): Map<string, string> {
   return out;
 }
 
+// rd-15 (founder ruling 2026-09-24, fix the carries): each `tool_result_meta`
+// entry, keyed by its `id` (the tool_use_id), verbatim: {id, non_execution_kind?,
+// user_feedback?, remedy?} per the CLI's schema ("@internal Display metadata for
+// this message's tool_result blocks"). Read through the JSON boundary; an entry
+// without a string id is skipped. It rides the matching tool.done's `_meta`.
+function readToolResultMetaEntries(frame: unknown): Map<string, JsonValue> {
+  const out = new Map<string, JsonValue>();
+  if (!isJsonObject(frame)) return out;
+  const list = frame["tool_result_meta"];
+  if (!Array.isArray(list)) return out;
+  for (const entry of list) {
+    if (isJsonObject(entry) && typeof entry["id"] === "string") out.set(entry["id"], JsonValue.parse(entry));
+  }
+  return out;
+}
+
 // The non_execution_kinds that mean the call was NOT PERMITTED to run →
 // `outcome:"denied"` (SPEC :850: "denied is a distinct recorded outcome"; §8.0
 // item 15 routes Claude's permission denials to it; sp-protocol, 2026-09-23).
@@ -2796,6 +2812,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // collect every adopted messageId this frame produces below.
         const resultMessageIds: string[] = [];
         const nonExecutionById = readNonExecutionKinds(msg);
+        const toolResultMetaById = readToolResultMetaEntries(msg);
         for (const block of content) {
           if (block.type === "tool_result") {
             // A harness-stamped denial (see isDenialKind) records as "denied"
@@ -2868,14 +2885,17 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
                   ? { structuredContent: sc }
                   : {}),
               ...(applySibling && siblingHasUi && sc !== undefined ? { structuredContent: sc } : {}),
-              // The facet's harness keys ride the same `_meta`, MERGED into the MCP
-              // sibling's `_meta` (never replacing it), so they fold with the
-              // tool-result block. The "anthropic/" namespace is the harness's
-              // own: see `mergeHarnessMeta`.
+              // The facet's harness keys, the Agent run report ("anthropic/agentOutput")
+              // and rd-15's CLI `tool_result_meta` entry ("anthropic/toolResultMeta"),
+              // ride the same `_meta`, MERGED into the MCP sibling's `_meta` (never
+              // replacing it), so they fold with the tool-result block. The
+              // "anthropic/" namespace is the harness's own: see `mergeHarnessMeta`.
               ...(() => {
                 const report = applySibling && agentCallIds.has(block.tool_use_id) ? agentOutput : undefined;
+                const entry = toolResultMetaById.get(block.tool_use_id);
                 const merged = mergeHarnessMeta(applySibling ? siblingMeta : undefined, {
                   ...(report !== undefined ? { "anthropic/agentOutput": report } : {}),
+                  ...(entry !== undefined ? { "anthropic/toolResultMeta": entry } : {}),
                 });
                 return merged !== undefined ? { _meta: merged } : {};
               })(),
