@@ -818,6 +818,15 @@ function readNarrationBlockIndexes(v: unknown): number[] | undefined {
     : undefined;
 }
 
+// A result's `terminal_reason` when it names why the turn ended other than a
+// normal completion (e.g. "tool_deferred_unavailable"); undefined otherwise. A
+// live API error's own value is "api_error", which is also the generic code, so
+// that close is unchanged. Typed as the SDK's TerminalReason union, but a newer
+// CLI may send an undeclared value, so only a non-empty string is taken.
+function closeCauseTerminalReason(v: unknown): string | undefined {
+  return typeof v === "string" && v !== "" && v !== "completed" ? v : undefined;
+}
+
 // `api_error_code` (CLI 2.1.280, @internal) — UNDECLARED in sdk.d.ts at 0.3.280
 // on both frames that carry it (the API-error assistant frame and the
 // `is_error: true` success result), so it is read through the JSON boundary.
@@ -2671,15 +2680,26 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       if (apiErrorTurn) {
         // No assistant error frame preceded this result (a producer that did
         // not yield it, or a normalizer that never saw it), so this result is
-        // the turn's only close. message = the result text, which on this frame
-        // is the API error text; code = the server's api_error_code when the
-        // CLI copied one through, else the generic "api_error"; retriable = the
-        // HTTP status says rate limit or server failure (see
-        // `apiErrorStatusRetriable`); usage = the turn's accrued usage, as
-        // above.
-        const code = readApiErrorCode(msg) ?? "api_error";
+        // the turn's only close. code = the server's api_error_code when the
+        // CLI copied one through; else the CLI's own terminal_reason when it
+        // names a cause other than a normal completion; else the generic
+        // "api_error".
+        // message = the result text (on an API error, its text), or the code
+        // when that text is empty. retriable = the HTTP status says rate limit
+        // or server failure (see `apiErrorStatusRetriable`); usage = the turn's
+        // accrued usage, as above.
+        // The terminal_reason step (sp-protocol, facet-local, 2026-09-23): the
+        // CLI also sets is_error on a result that is NOT an API error. sp-probe's
+        // resume-unavailable leg (7c6880f) is a resumed invoke whose deferred
+        // tool's MCP server is gone: terminal_reason "tool_deferred_unavailable",
+        // result "", no status, no api_error_code. Through b7dd7ff it closed
+        // turn.error{message: "", code: "api_error"}, claiming an API failure
+        // that never happened. `code` is free-form (SPEC :618), so this fills
+        // existing fields from the frame's own value; a live API error
+        // (terminal_reason "api_error", api-error-auth) is unchanged.
+        const code = readApiErrorCode(msg) ?? closeCauseTerminalReason(msg.terminal_reason) ?? "api_error";
         a.closeTurnError(turnId, {
-          message: typeof msg.result === "string" ? msg.result : code,
+          message: typeof msg.result === "string" && msg.result !== "" ? msg.result : code,
           code,
           retriable: apiErrorStatusRetriable(msg.api_error_status),
           ...(turnUsage !== undefined ? { usage: turnUsage } : {}),

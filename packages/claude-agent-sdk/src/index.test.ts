@@ -7148,3 +7148,67 @@ describe("createClaudeNormalizer — message.diagnostics and CLI-added user fram
     expect(fold(evs).needsResync).toBe(false);
   });
 });
+
+// ─── result-only error close: code from a non-API terminal_reason (sp-protocol,
+// facet-local, 2026-09-23) ────────────────────────────────────────────────────
+// The CLI sets is_error on a result that is NOT an API error: sp-probe's
+// resume-unavailable leg (7c6880f), terminal_reason "tool_deferred_unavailable",
+// result "". code = api_error_code, else a terminal_reason other than
+// "completed" (a live API error's own is "api_error", the same code), else
+// "api_error"; message = the non-empty result, else the code.
+describe("createClaudeNormalizer — the result-only error close names a non-API terminal_reason", () => {
+  function isErrorResult(extra: { [k: string]: unknown }): unknown {
+    const base = Object.fromEntries(Object.entries(resultSuccess("end_turn")));
+    return { ...base, is_error: true, ...extra };
+  }
+  function close(frame: unknown): { [k: string]: unknown } | undefined {
+    const c = turnCloses(drive([frame]))[0];
+    return c === undefined ? undefined : Object.fromEntries(Object.entries(c));
+  }
+
+  it("the live unavailable shape closes turn.error{code and message: 'tool_deferred_unavailable', retriable:false}; the fold records it", () => {
+    const frame = isErrorResult({
+      result: "",
+      stop_reason: "tool_deferred_unavailable",
+      terminal_reason: "tool_deferred_unavailable",
+      deferred_tool_use: { id: "toolu_deferred", name: "mcp__t__echo", input: { message: "x" } },
+    });
+    expect(close(frame)).toMatchObject({
+      type: "turn.error",
+      message: "tool_deferred_unavailable",
+      code: "tool_deferred_unavailable",
+      retriable: false,
+    });
+    const r = fold(drive([frame]));
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns[0]?.outcome).toMatchObject({ type: "error", code: "tool_deferred_unavailable" });
+  });
+
+  it("precedence: api_error_code beats terminal_reason; a non-empty result stays the message", () => {
+    expect(close(isErrorResult({ api_error_code: "billing_blocked", terminal_reason: "tool_deferred_unavailable", result: "Billing." }))).toMatchObject({
+      code: "billing_blocked",
+      message: "Billing.",
+    });
+    expect(close(isErrorResult({ terminal_reason: "budget_exhausted", result: "Out of budget." }))).toMatchObject({
+      code: "budget_exhausted",
+      message: "Out of budget.",
+    });
+  });
+
+  it("negative controls: terminal_reason 'api_error', 'completed', empty or absent keeps code 'api_error' and the result text (the live api-error-auth close is unchanged)", () => {
+    for (const tr of ["api_error", "completed", "", undefined]) {
+      const frame = isErrorResult({ result: "API Error: 401", ...(tr !== undefined ? { terminal_reason: tr } : {}) });
+      expect(close(frame), String(tr)).toMatchObject({ code: "api_error", message: "API Error: 401" });
+    }
+  });
+
+  it("an empty result with no cause falls back to the code as the message (never an empty message)", () => {
+    expect(close(isErrorResult({ result: "" }))).toMatchObject({ code: "api_error", message: "api_error" });
+  });
+
+  it("mirror: when the assistant error frame already decided the close, the result's terminal_reason changes nothing", () => {
+    const withStash = drive([apiErrorAssistantFrame(), apiErrorResultFrame({ terminal_reason: "tool_deferred_unavailable" })]);
+    const without = drive([apiErrorAssistantFrame(), apiErrorResultFrame()]);
+    expect(turnCloses(withStash)).toEqual(turnCloses(without));
+  });
+});
