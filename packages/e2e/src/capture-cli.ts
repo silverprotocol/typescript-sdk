@@ -324,7 +324,10 @@ async function loadFrameworkDeps(
       import("@silverprotocol/claude-agent-sdk"),
     ]);
     assertKnobsHonored(scenario, framework, agent);
-    return { runAgentCapture: agent.runClaudeCapture, createNormalizer: createClaudeNormalizer };
+    // The same fixed id stem replay uses (replay.ts), so a capture that hits the
+    // claude facet's fallback id path (a frame with no uuid, sp-claude d2ba53e)
+    // replays identically; the facet's default stem is random.
+    return { runAgentCapture: agent.runClaudeCapture, createNormalizer: () => createClaudeNormalizer({ invokeId: "claude" }) };
   }
   if (framework === "openai") {
     const [agent, { createOpenaiNormalizer }] = await Promise.all([

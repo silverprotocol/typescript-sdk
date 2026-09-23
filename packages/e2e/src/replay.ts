@@ -286,7 +286,7 @@ export async function replayNatives(recorded: JsonValue[], fw: Framework): Promi
           createAdkNormalizer(hostCompleted ? { hostCompletion: true } : {})
         : fw === "vercel"
           ? createVercelNormalizer({ invokeId: "vercel" })
-          : createClaudeNormalizer();
+          : createClaudeNormalizer({ invokeId: "claude" });
   const agjson: JsonValue[] = [];
   for (const event of native) {
     for (const e of normalizer.push(event)) {
