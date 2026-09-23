@@ -637,8 +637,11 @@ describe("createOpenaiNormalizer — function_call_arguments.done never crashes 
 
     const turnRecord = result.turns[0];
     expect(turnRecord).toBeDefined();
-    expect(turnRecord?.outcome).toBeDefined();
-    expect(turnRecord?.finishReason).toBeDefined();
+    // O1 (the honest flush): this round's tool result never arrives, so its
+    // deferred success close is released at flush as turn.abort (its usage
+    // moves to message.end) — an aborted outcome, and no finishReason.
+    expect(turnRecord?.outcome).toMatchObject({ type: "aborted" });
+    expect(turnRecord?.finishReason).toBeUndefined();
 
     const toolCallBlock = result.messages
       .flatMap((m) => m.content)
@@ -762,30 +765,27 @@ describe("createOpenaiNormalizer — defer turn.done past pending tool results (
     expect(() => AgReduceResult.parse(res)).not.toThrow();
   });
 
-  it("tool_output never arrives ⇒ flush() emits the stashed turn.done (not turn.abort)", () => {
+  // O1 (sp-protocol's fold/flush package, A.5 INV-TURN/INV-FLUSH + A.6 openai;
+  // founder: Q1 option 1, "honest flush"): a flush NEVER emits a success
+  // turn.done. A close deferred under §8.0 item 14 is released as `paused` (an
+  // approval ask outstanding), verbatim (a non-success outcome), or else as
+  // message.end carrying the round's usage, then turn.abort{stream-truncated}.
+  it("O1 — tool_output never arrives, no approval ask ⇒ flush releases message.end carrying the round's usage, then turn.abort{stream-truncated} — never a success turn.done", () => {
     const n = createOpenaiNormalizer();
-    // Drop the trailing tool_output run-item — the result never lands.
     const withoutToolOutput = TOOL_TURN_LATE_RESULT.slice(0, -1);
     const evs = withoutToolOutput.flatMap((e) => n.push(e)).concat(n.flush());
     const types = evs.map((e) => e.type);
-
-    // No tool.done was ever emitted, but the round's genuine completion still
-    // surfaces via flush() as turn.done — never turn.abort.
     expect(types).not.toContain("tool.done");
-    expect(types).not.toContain("turn.abort");
-    expect(types.filter((t) => t === "turn.done")).toHaveLength(1);
-
-    const done = evs.find((e) => e.type === "turn.done") as {
-      turnId?: string;
-      finishReason?: string;
-      outcome?: { type?: string };
-    };
-    expect(done).toBeDefined();
-    expect(done?.turnId).toBe("turn_resp_late_1");
-    // finishReason/outcome come from the STASHED payload (the original close),
-    // not a synthesized abort.
-    expect(done?.finishReason).toBe("stop");
-    expect(done?.outcome).toMatchObject({ type: "success" });
+    expect(types).not.toContain("turn.done");
+    const end = evs.find((e) => e.type === "message.end");
+    expect(end).toMatchObject({ usage: { inputTokens: 10, outputTokens: 5 } });
+    const abort = evs.find((e) => e.type === "turn.abort");
+    expect(abort).toMatchObject({ turnId: "turn_resp_late_1", reason: "stream-truncated" });
+    expect(types.indexOf("message.end")).toBeLessThan(types.indexOf("turn.abort"));
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns[0]).toMatchObject({ outcome: { type: "aborted" } });
   });
 
   it("a no-tools round closes turn.done immediately — deferral never engages", () => {
@@ -5201,5 +5201,116 @@ describe("createOpenaiNormalizer — IS minted ids are unique across invokes fol
     for (const e of evs) r.push(e);
     expect(r.needsResync).toBe(false);
     expect(r.result().messages.flatMap((m) => m.content).find((b) => b.type === "text")).toMatchObject({ text: "hi there" });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// O1 — the honest flush (sp-protocol's fold/flush package, A.5 + A.6 openai;
+// §10 item 26's OpenAI leg). The real-order approval interruption is
+// function_call → response.completed (usage U) → tool_called →
+// tool_approval_requested → end of stream (sp-probe's live leg-1 capture). It
+// used to flush as turn.done{success} (CB-14 / PS-2): now `paused`, asks naming
+// approval_<callId>, the stashed finishReason and usage U.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("createOpenaiNormalizer — O1 honest flush (fold/flush option 1)", () => {
+  const U = { input_tokens: 110, output_tokens: 56, total_tokens: 166 };
+  function approvalRound(respId: string, callId: string, opts: { ask: boolean; completed?: { [k: string]: JsonValue } }): JsonValue[] {
+    return [
+      rawModel({ type: "response.created", response: { id: respId } }),
+      rawModel({ type: "response.output_item.added", item: { id: `fc_${callId}`, type: "function_call", call_id: callId, name: "echo" } }),
+      rawModel({ type: "response.function_call_arguments.done", item_id: `fc_${callId}`, arguments: '{"message":"x"}' }),
+      rawModel({ type: "response.completed", response: { id: respId, status: "completed", usage: U, ...(opts.completed ?? {}) } }),
+      runItem("tool_called", {
+        type: "tool_call_item",
+        rawItem: { type: "function_call", name: "echo", callId, status: "completed", arguments: '{"message":"x"}' },
+      }),
+      ...(opts.ask
+        ? [
+            runItem("tool_approval_requested", {
+              type: "tool_approval_item",
+              rawItem: { type: "function_call", name: "echo", callId, status: "completed", arguments: '{"message":"x"}' },
+            }),
+          ]
+        : []),
+    ];
+  }
+  function run(s: JsonValue[]): AgEvent[] {
+    const n = createOpenaiNormalizer();
+    return s.flatMap((e) => n.push(e)).concat(n.flush());
+  }
+  function fold(evs: AgEvent[]): Reducer {
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    return r;
+  }
+
+  it("§10.26 leg: the approval interruption flushes EXACTLY one terminal — turn.done{paused, asks:[approval_<callId>]}, the stashed finishReason and usage U; never success, never abort", () => {
+    const evs = run(approvalRound("resp_ap", "call_ap", { ask: true }));
+    const terminals = evs.filter((e) => e.type === "turn.done" || e.type === "turn.abort" || e.type === "turn.error");
+    expect(terminals).toHaveLength(1);
+    expect(terminals[0]).toMatchObject({
+      type: "turn.done",
+      turnId: "turn_resp_ap",
+      outcome: { type: "paused", asks: [{ askId: "approval_call_ap", kind: "approval", toolCallId: "call_ap" }] },
+      finishReason: "stop",
+      usage: { inputTokens: 110, outputTokens: 56 },
+    });
+    // The hitl.ask the pause names was emitted before it.
+    const types = evs.map((e) => e.type);
+    expect(types.indexOf("hitl.ask")).toBeLessThan(types.indexOf("turn.done"));
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns[0]).toMatchObject({ outcome: { type: "paused" } });
+    expect(() => AgReduceResult.parse(r.result())).not.toThrow();
+  });
+
+  it("§10.26 leg: the same stream WITHOUT tool_approval_requested ⇒ turn.abort{stream-truncated} and a message.end carrying usage U", () => {
+    const evs = run(approvalRound("resp_na", "call_na", { ask: false }));
+    expect(evs.filter((e) => e.type === "turn.done")).toHaveLength(0);
+    expect(evs.find((e) => e.type === "turn.abort")).toMatchObject({ turnId: "turn_resp_na", reason: "stream-truncated" });
+    expect(evs.find((e) => e.type === "message.end")).toMatchObject({ usage: { inputTokens: 110, outputTokens: 56 } });
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("a NON-success deferred close (content_filter, tool still pending) is released VERBATIM at flush", () => {
+    const evs = run(approvalRound("resp_cf", "call_cf", { ask: false, completed: { incomplete_details: { reason: "content_filter" } } }));
+    const done = evs.find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({ turnId: "turn_resp_cf", outcome: { type: "error" }, finishReason: "safety_blocked" });
+    expect(evs.some((e) => e.type === "turn.abort")).toBe(false);
+  });
+
+  it("message.end in insertion order: an OLDER stashed round's message ends before the live response's", () => {
+    const evs = run([
+      ...approvalRound("resp_old", "call_old", { ask: false }),
+      rawModel({ type: "response.created", response: { id: "resp_live" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_live", delta: "partial" }),
+    ]);
+    const ends = evs.filter((e) => e.type === "message.end").map((e) => Reflect.get(e, "id"));
+    expect(ends).toEqual(["msg_turn_resp_old", "msg_turn_resp_live"]);
+    expect(evs.some((e) => e.type === "turn.done")).toBe(false);
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.every((t) => t.outcome?.type === "aborted")).toBe(true);
+  });
+
+  it.each([
+    ["no approval ask", false, "turn.abort"],
+    ["an approval ask outstanding", true, "turn.done"],
+  ] as const)("host error with a DEFERRED round (%s) ⇒ the stash is released per INV-FLUSH (2) BEFORE the error closes", (_label, ask, releasedAs) => {
+    const evs = run([
+      ...approvalRound("resp_he", "call_he", { ask }),
+      { type: "__host_error__", code: "max_turns", message: "Max turns (8) exceeded" } satisfies JsonValue,
+    ]);
+    const types = evs.map((e) => e.type);
+    const release = types.indexOf(releasedAs);
+    const error = types.indexOf("turn.error");
+    expect(release).toBeGreaterThanOrEqual(0);
+    expect(error).toBeGreaterThan(release);
+    expect(evs[release]).toMatchObject({ turnId: "turn_resp_he" });
+    if (ask) expect(evs[release]).toMatchObject({ outcome: { type: "paused" } });
+    const outcomes = evs.filter((e) => e.type === "turn.done").map((e) => Reflect.get(e, "outcome"));
+    expect(outcomes.some((o) => typeof o === "object" && o !== null && Reflect.get(o, "type") === "success")).toBe(false);
+    expect(fold(evs).needsResync).toBe(false);
   });
 });

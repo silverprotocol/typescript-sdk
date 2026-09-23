@@ -99,6 +99,7 @@ import {
   AgProviderMeta,
   type AgUsage,
   type AgSafety,
+  type AgPausedAsk,
   type AgCitation,
   JsonValue,
   type Normalizer,
@@ -1505,6 +1506,10 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
   // its tool results land) — consumed by `emitRoundClose`.
   const interimAtStart = new Set<string>();
   const stashedEndFields = new Map<string, { phase?: string; providerMetadata?: AgProviderMeta }>();
+  // O1 (fold/flush option 1): callId → the askId of the `hitl.ask{approval}`
+  // emitted for it. A deferred round whose still-pending call has one flushes
+  // as `paused` naming that ask (INV-FLUSH (2)).
+  const askedApprovals = new Map<string, string>();
   // Close-once guard: the SDK emits `response.completed` TWICE per response. Once a
   // response.id (or a synthesized turnId) has been closed, any further terminal event
   // for it is a no-op — it must NOT reopen a fresh message/turn.
@@ -1625,15 +1630,58 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
     return false;
   }
 
-  function emitRoundClose(tid: string, mId: string, textStreamIds: readonly string[], fields: TurnDoneFields): void {
+  function endStashedTextStreams(mId: string, textStreamIds: readonly string[]): void {
     for (const streamId of textStreamIds) {
       // PH-2: a phase learned while this close sat stashed rides its text.end.
       const endFields = stashedEndFields.get(streamId);
       stashedEndFields.delete(streamId);
       a.textEnd(streamId, mId, endFields);
     }
+  }
+
+  function emitRoundClose(tid: string, mId: string, textStreamIds: readonly string[], fields: TurnDoneFields): void {
+    endStashedTextStreams(mId, textStreamIds);
     a.closeMessage(mId);
     a.closeTurnDone(tid, fields);
+  }
+
+  /**
+   * O1 — release a close deferred under §8.0 item 14 at END OF STREAM (flush) or
+   * ahead of a host-fed error, per INV-FLUSH (2) as sp-protocol's fold/flush
+   * package words it (A.5; founder: Q1 option 1, "honest flush"). A flush never
+   * emits a success turn.done:
+   *  - an approval `hitl.ask` was emitted for a still-pending call of this
+   *    round ⇒ `turn.done{outcome:{type:"paused", asks}}`, with the deferred
+   *    finishReason and usage (the OpenAI approval interruption — the run ends
+   *    with no tool_output; sp-probe's live leg-1 capture);
+   *  - else a non-success deferred outcome (the content_filter arm) ⇒ released
+   *    verbatim;
+   *  - else ⇒ `message.end` carrying the round's usage (a per-message usage
+   *    carrier, so it isn't lost), then `turn.abort{stream-truncated}`.
+   */
+  function releaseDeferredClose(tid: string, stashed: StashedRoundClose): void {
+    const asks: AgPausedAsk[] = [];
+    for (const callId of pendingToolsByTurn.get(tid) ?? []) {
+      const askId = askedApprovals.get(callId);
+      if (askId !== undefined) asks.push({ askId, kind: "approval", toolCallId: callId });
+    }
+    if (asks.length > 0) {
+      emitRoundClose(tid, stashed.msgId, stashed.openTextStreamIds, { ...stashed.fields, outcome: { type: "paused", asks } });
+      return;
+    }
+    if (stashed.fields.outcome.type !== "success") {
+      emitRoundClose(tid, stashed.msgId, stashed.openTextStreamIds, stashed.fields);
+      return;
+    }
+    endStashedTextStreams(stashed.msgId, stashed.openTextStreamIds);
+    a.closeMessage(stashed.msgId, stashed.fields.usage);
+    a.emit({ type: "turn.abort", turnId: tid, reason: "stream-truncated" });
+  }
+
+  /** O1: release every deferred close (insertion order: older rounds first). */
+  function releaseAllDeferredCloses(): void {
+    for (const [tid, stashed] of stashedCloseByTurn) releaseDeferredClose(tid, stashed);
+    stashedCloseByTurn.clear();
   }
 
   /**
@@ -2828,6 +2876,10 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
    *    a turn that has a `turn.start`.
    */
   function driveHostError(event: OpenAIHostError): void {
+    // O1 (§8.0 item 14 as amended): a host-fed error arriving while a round's
+    // close is deferred releases that close per INV-FLUSH (2) BEFORE the
+    // normalizer closes the error (PS-21).
+    releaseAllDeferredCloses();
     ensureResponseOpen();
     if (turnId === undefined) return; // unreachable post-ensure; satisfies narrowing
     endOpenStreamsAndCloseMessage();
@@ -3044,6 +3096,7 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
             kind: "approval",
             toolCallId: item.callId,
           });
+          askedApprovals.set(item.callId, `approval_${item.callId}`);
           return;
         }
         default:
@@ -3110,19 +3163,17 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
       return a.drain();
     },
     flush(): AgEvent[] {
-      // Close any dangling open response (e.g. a stream that ended before
-      // response.completed) — unrelated to Task 4b: that round never reached a
-      // native close signal at all, so it has no stashed closeTurnDone.
+      // O1 (INV-FLUSH as amended; fold/flush option 1): release the deferred
+      // closes FIRST — they are older rounds, so their message.end precedes the
+      // live response's (insertion order, CB-16) — as paused / verbatim /
+      // message.end+usage then turn.abort (`releaseDeferredClose`); a flush
+      // never emits a success turn.done.
+      releaseAllDeferredCloses();
+      // Then close any dangling open response (a stream that ended before
+      // response.completed): its message ends here and the engine's flush
+      // aborts its turn as stream-truncated.
       if (turnId !== undefined) closeResponse();
-      // Task 4b: emit any still-stashed closes BEFORE delegating to the engine's
-      // flush. Each stashed round genuinely completed on the wire — a tool
-      // result that never arrives must not swallow that close (message.end +
-      // turn.done both replay here, verbatim, in the order INV-MSG requires).
-      for (const [tid, stashed] of stashedCloseByTurn) {
-        emitRoundClose(tid, stashed.msgId, stashed.openTextStreamIds, stashed.fields);
-      }
-      stashedCloseByTurn.clear();
-      // Flush the engine's dangling open messages (I7).
+      // Flush the engine's dangling open messages / turns (I7).
       return a.flush();
     },
   };
