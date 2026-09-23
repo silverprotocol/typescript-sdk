@@ -971,6 +971,10 @@ interface OpenAIResponsesOutputItemAdded {
     // AUTHORITATIVE tool.start source for function_call, so caller provenance
     // must ride HERE — the run-item wrapper occurrence stays ignored.
     caller?: { type: "direct" } | { type: "program"; caller_id: string } | null;
+    // OA-14: openai-node `ResponseOutputMessage.phase` (`'commentary' |
+    // 'final_answer' | null`) — present on a `type:"message"` item AT ADD time
+    // (6/8 live openai seeds). Raw `JsonValue`; string-guarded at the read.
+    phase?: JsonValue;
   };
 }
 
@@ -1396,6 +1400,13 @@ export function createOpenaiNormalizer(): Normalizer {
   // response closed and must dedupe against it (single source per rs_ id).
   const openReasoning = new Map<string, string>();
   const filledReasoning = new Set<string>();
+  // OA-14 phase state. `pendingPhase`: message item id → the phase its raw
+  // `output_item.added` announced, awaiting that item's `text.start`
+  // (per-response). `carriedPhase`: item id → the phase that rode its
+  // `text.start` — normalizer-lifetime, because the run-item it retires
+  // `ext.openai.late-phase` against lands AFTER the response closed.
+  const pendingPhase = new Map<string, string>();
+  const carriedPhase = new Map<string, string>();
   // Close-once guard: the SDK emits `response.completed` TWICE per response. Once a
   // response.id (or a synthesized turnId) has been closed, any further terminal event
   // for it is a no-op — it must NOT reopen a fresh message/turn.
@@ -1567,6 +1578,7 @@ export function createOpenaiNormalizer(): Normalizer {
     // as the spec's own unsealed-block outcome (INV-FLUSH (3)); forget it so a
     // late run-item for it takes the existing `late-reasoning` degrade.
     openReasoning.clear();
+    pendingPhase.clear();
     turnId = undefined;
     msgId = undefined;
     responseId = undefined;
@@ -1604,7 +1616,18 @@ export function createOpenaiNormalizer(): Normalizer {
         if (msgId === undefined) return; // unreachable post-ensure; satisfies the narrowing
         if (!openTextStreams.has(ev.item_id)) {
           openTextStreams.add(ev.item_id);
-          a.textStart(ev.item_id, msgId, { role: "assistant" });
+          // OA-14: the phase announced at output_item.added rides text.start
+          // (rnd 13+17 Stage 1, founder ruling 2026-09-23; vercel parity c4f5981).
+          const phase = pendingPhase.get(ev.item_id);
+          const startMeta = openaiProviderMeta({ phase });
+          a.textStart(ev.item_id, msgId, {
+            role: "assistant",
+            ...(startMeta !== undefined ? { providerMetadata: startMeta } : {}),
+          });
+          if (phase !== undefined) {
+            pendingPhase.delete(ev.item_id);
+            carriedPhase.set(ev.item_id, phase);
+          }
         }
         // OpenAI text deltas are suffix-only fragments (cumulative:false, the default).
         a.textDelta(ev.item_id, msgId, ev.delta, { cumulative: false });
@@ -1631,6 +1654,18 @@ export function createOpenaiNormalizer(): Normalizer {
           // typeof guard: the envelope guard does not validate `item.id` (JsonValue boundary).
           const rsId: unknown = ev.item.id;
           if (typeof rsId === "string") openReasoningBlock(rsId);
+          return;
+        }
+        // OA-14: a message item announces its `phase` here, BEFORE its first
+        // text delta — record it for that item's `text.start`. Record only: no
+        // response open, no emit, so an absent/null/non-string/empty phase is
+        // byte-identical to a stream without this event.
+        if (ev.item.type === "message") {
+          const itemId: unknown = ev.item.id;
+          const phase: unknown = ev.item.phase;
+          if (typeof itemId === "string" && typeof phase === "string" && phase.length > 0) {
+            pendingPhase.set(itemId, phase);
+          }
           return;
         }
         // Authoritative tool-start source (canonical model, A1 §"Spike Findings").
@@ -1903,10 +1938,14 @@ export function createOpenaiNormalizer(): Normalizer {
    * `refusal` part sets `pendingRefusal` so the downstream `response.completed`
    * arm closes with `finishReason:"refusal"` (no text stream to close for it).
    *
-   * Correlation: the Responses `item_id` used by the raw delta/done events and the
-   * run-item wrapper's `rawItem.id` are DIFFERENT id spaces on this SDK's surface,
-   * so the match is positional — FIFO against `openTextStreams` (insertion-ordered;
-   * in practice exactly one open stream per output_text part).
+   * Correlation (OA-14 — id FIRST, FIFO fallback; protocol package rd-13-17
+   * §2 stage 1): on the direct OpenAI wire the raw delta's `item_id` and the
+   * run-item's `rawItem.id` are the SAME id (all 8 openai corpus seeds), so the
+   * stream is matched by id — a completion can no longer land on an earlier
+   * part's stream when two are open. Only when the id is unknown to
+   * `openTextStreams` does the match fall back to positional FIFO (insertion-
+   * ordered): the OpenRouter surface (#128 capture) mints `msg_tmp_` run-item
+   * ids in a DIFFERENT id space from its raw `item_id`s.
    *
    * On the real wire this run-item can arrive AFTER `response.completed` (verified
    * by the #128 OpenRouter capture — round 2's `message_output_created` lands last,
@@ -1992,12 +2031,17 @@ export function createOpenaiNormalizer(): Normalizer {
           // (deferred-close) messages ever reach it. Same post-close degrade
           // convention as late-citations: a dedicated itemId-keyed vendor
           // carry, one per phase-bearing part.
-          if (item.phase !== undefined) {
+          // OA-14: RETIRED when this id's SAME phase already rode its text.start
+          // (the live case); kept — lossless — when only the run-item knows it,
+          // or knows a different value.
+          if (item.phase !== undefined && carriedPhase.get(item.id) !== item.phase) {
             a.emitExt("openai", "late-phase", { itemId: item.id, phase: item.phase });
           }
           continue;
         }
-        const streamId = openTextStreams.values().next().value;
+        // OA-14: id first, FIFO fallback — see "Correlation" in the doc above.
+        const streamId =
+          item.id !== undefined && openTextStreams.has(item.id) ? item.id : openTextStreams.values().next().value;
         if (streamId === undefined) continue; // defensive: no matching open stream
         openTextStreams.delete(streamId);
         const citations = mapAnnotationsToCitations(part.annotations, part.text);

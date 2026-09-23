@@ -4078,3 +4078,182 @@ describe("createOpenaiNormalizer — AssistantMessageItem.phase (agents-core 0.1
     expect(textBlock?.providerMetadata).toEqual({ phase: "final_answer" });
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OA-14 — rnd 13+17 Stage 1 (founder ruling 2026-09-23, relayed by sp-main):
+// `phase` is read at raw `response.output_item.added{type:"message"}` and carried
+// on the matching `text.start.providerMetadata` (the vercel half: c4f5981). Live
+// evidence: 6/8 openai seeds carry `phase` on that added event — incl. echo-gpt55,
+// whose 0.12.0 run-item never did. `ext.openai.late-phase` is RETIRED for an id
+// whose phase already rode text.start; it stays (lossless) when only the run-item
+// knows the phase. text.end's existing carry is untouched (start + end, the
+// vercel parity). A providerMetadata carry — no new wire literal.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("createOpenaiNormalizer — OA-14 phase on text.start from output_item.added", () => {
+  function run(s: JsonValue[]): AgEvent[] {
+    const n = createOpenaiNormalizer();
+    return s.flatMap((e) => n.push(e)).concat(n.flush());
+  }
+  /** The live final round (echo-gpt6sol natives [26]..[51]), minimised. */
+  function finalRound(added: { [k: string]: JsonValue } | undefined, runItemPhase?: string): JsonValue[] {
+    const rawItem: { [k: string]: JsonValue } = {
+      type: "message",
+      role: "assistant",
+      status: "completed",
+      content: [{ type: "output_text", text: "Done" }],
+      id: "msg_oa14",
+    };
+    if (runItemPhase !== undefined) rawItem.phase = runItemPhase;
+    return [
+      rawModel({ type: "response.created", response: { id: "resp_oa14" } }),
+      ...(added !== undefined
+        ? [rawModel({ type: "response.output_item.added", item: { id: "msg_oa14", type: "message", ...added } })]
+        : []),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_oa14", delta: "Done" }),
+      rawModel({ type: "response.output_text.done", item_id: "msg_oa14", text: "Done" }),
+      rawModel({ type: "response.completed", response: { id: "resp_oa14", status: "completed" } }),
+      runItem("message_output_created", { type: "message_output_item", rawItem }),
+    ];
+  }
+
+  it("live order: phase from output_item.added rides text.start.providerMetadata; the late-phase ext is retired for that id", () => {
+    const evs = run(finalRound({ phase: "final_answer" }, "final_answer"));
+    expect(evs.find((e) => e.type === "text.start")).toMatchObject({
+      id: "msg_oa14",
+      providerMetadata: { phase: "final_answer" },
+    });
+    expect(evs.map((e) => e.type)).not.toContain("ext.openai.late-phase");
+  });
+
+  it("fold: the text block carries providerMetadata.phase", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    for (const e of finalRound({ phase: "final_answer" }, "final_answer")) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const block = r
+      .result()
+      .messages.flatMap((m) => m.content)
+      .find((b) => b.type === "text");
+    expect(block).toMatchObject({ text: "Done", providerMetadata: { phase: "final_answer" } });
+    expect(() => AgReduceResult.parse(r.result())).not.toThrow();
+  });
+
+  it("a 0.12.0-era run-item WITHOUT phase (echo-gpt55 shape) still gets it from the raw added event", () => {
+    const evs = run(finalRound({ phase: "final_answer" }));
+    expect(evs.find((e) => e.type === "text.start")).toMatchObject({ providerMetadata: { phase: "final_answer" } });
+    expect(evs.map((e) => e.type)).not.toContain("ext.openai.late-phase");
+  });
+
+  it("per part: commentary and final_answer message items in ONE response each carry their own phase on text.start", () => {
+    const evs = run([
+      rawModel({ type: "response.created", response: { id: "resp_oa14_two" } }),
+      rawModel({ type: "response.output_item.added", item: { id: "msg_c", type: "message", phase: "commentary" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_c", delta: "Checking the tool first." }),
+      rawModel({ type: "response.output_item.added", item: { id: "msg_f", type: "message", phase: "final_answer" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_f", delta: "Done." }),
+      rawModel({ type: "response.completed", response: { id: "resp_oa14_two", status: "completed" } }),
+    ]);
+    const starts = evs.filter((e) => e.type === "text.start");
+    expect(starts).toHaveLength(2);
+    expect(starts[0]).toMatchObject({ id: "msg_c", providerMetadata: { phase: "commentary" } });
+    expect(starts[1]).toMatchObject({ id: "msg_f", providerMetadata: { phase: "final_answer" } });
+  });
+
+  it("lossless: raw added WITHOUT phase but the late run-item has it ⇒ late-phase ext still fires, text.start carries none", () => {
+    const evs = run(finalRound({}, "final_answer"));
+    expect(evs.find((e) => e.type === "text.start")).not.toHaveProperty("providerMetadata");
+    expect(evs.find((e) => e.type === "ext.openai.late-phase")).toMatchObject({ itemId: "msg_oa14", phase: "final_answer" });
+  });
+
+  it("lossless: a run-item phase that DIFFERS from the one carried on text.start still rides late-phase", () => {
+    const evs = run(finalRound({ phase: "commentary" }, "final_answer"));
+    expect(evs.find((e) => e.type === "text.start")).toMatchObject({ providerMetadata: { phase: "commentary" } });
+    expect(evs.find((e) => e.type === "ext.openai.late-phase")).toMatchObject({ phase: "final_answer" });
+  });
+
+  it("tool round (message still open when the run-item lands): phase rides BOTH text.start and text.end (vercel parity)", () => {
+    const evs = run([
+      rawModel({ type: "response.created", response: { id: "resp_oa14_open" } }),
+      rawModel({ type: "response.output_item.added", item: { id: "msg_open", type: "message", phase: "commentary" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_open", delta: "Let me check." }),
+      runItem("message_output_created", {
+        type: "message_output_item",
+        rawItem: {
+          type: "message",
+          role: "assistant",
+          status: "completed",
+          content: [{ type: "output_text", text: "Let me check." }],
+          id: "msg_open",
+          phase: "commentary",
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_oa14_open", status: "completed" } }),
+    ]);
+    expect(evs.find((e) => e.type === "text.start")).toMatchObject({ providerMetadata: { phase: "commentary" } });
+    expect(evs.find((e) => e.type === "text.end")).toMatchObject({ providerMetadata: { phase: "commentary" } });
+  });
+
+  // Completion correlation (protocol package rd-13-17 §2 stage 1): match
+  // message_output_created to its open text stream by id FIRST — on the direct
+  // OpenAI wire the raw `item_id` and the run-item `rawItem.id` are the SAME
+  // (all 8 openai seeds) — and fall back to FIFO only when the id is unknown
+  // (the OpenRouter `msg_tmp_` surface, index.ts's correlation doc).
+  function twoOpenStreams(completedId: string): JsonValue[] {
+    return [
+      rawModel({ type: "response.created", response: { id: "resp_oa14_corr" } }),
+      rawModel({ type: "response.output_item.added", item: { id: "msg_A", type: "message", phase: "commentary" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_A", delta: "Checking." }),
+      rawModel({ type: "response.output_item.added", item: { id: "msg_B", type: "message", phase: "final_answer" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_B", delta: "See [1]." }),
+      // msg_B's completion arrives FIRST, while both streams are still open.
+      runItem("message_output_created", {
+        type: "message_output_item",
+        rawItem: {
+          type: "message",
+          role: "assistant",
+          status: "completed",
+          content: [
+            {
+              type: "output_text",
+              text: "See [1].",
+              annotations: [{ type: "url_citation", url: "https://example.com", title: "Ex", start_index: 4, end_index: 7 }],
+            },
+          ],
+          id: completedId,
+          phase: "final_answer",
+        },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_oa14_corr", status: "completed" } }),
+    ];
+  }
+
+  it("correlation id-first: a completion for msg_B closes msg_B's stream (citations + phase), even with msg_A opened earlier", () => {
+    const evs = run(twoOpenStreams("msg_B"));
+    const endB = evs.find((e) => e.type === "text.end" && e.id === "msg_B");
+    expect(endB).toMatchObject({ providerMetadata: { phase: "final_answer" } });
+    expect(endB).toHaveProperty("citations");
+    // msg_A is closed later by the native-close fallback, with neither.
+    const endA = evs.find((e) => e.type === "text.end" && e.id === "msg_A");
+    expect(endA).toBeDefined();
+    expect(endA).not.toHaveProperty("citations");
+    expect(endA).not.toHaveProperty("providerMetadata");
+  });
+
+  it("correlation FIFO fallback: an unknown run-item id (OpenRouter msg_tmp_ shape) still closes the FIRST open stream", () => {
+    const evs = run(twoOpenStreams("msg_tmp_unknown"));
+    const endA = evs.find((e) => e.type === "text.end" && e.id === "msg_A");
+    expect(endA).toHaveProperty("citations");
+    expect(endA).toMatchObject({ providerMetadata: { phase: "final_answer" } });
+  });
+
+  it("negative control: added{message} with absent / null / non-string / empty phase ⇒ byte-identical to a stream with no added event", () => {
+    const bare = run(finalRound(undefined));
+    expect(bare.find((e) => e.type === "text.start")).not.toHaveProperty("providerMetadata");
+    expect(run(finalRound({}))).toEqual(bare);
+    expect(run(finalRound({ phase: null }))).toEqual(bare);
+    expect(run(finalRound({ phase: 7 }))).toEqual(bare);
+    expect(run(finalRound({ phase: "" }))).toEqual(bare);
+  });
+});
