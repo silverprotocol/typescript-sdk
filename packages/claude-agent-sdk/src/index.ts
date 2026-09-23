@@ -844,6 +844,17 @@ function withoutCreditTokens(v: JsonValue): JsonValue {
   return v;
 }
 
+// A tool_result's text, for a failed Task's nested turn.error message: the
+// string content, or its text blocks joined; undefined when there is none.
+function toolResultText(content: unknown): string | undefined {
+  if (typeof content === "string") return content !== "" ? content : undefined;
+  if (!Array.isArray(content)) return undefined;
+  const texts: string[] = [];
+  for (const b of content) if (isJsonObject(b) && b["type"] === "text" && typeof b["text"] === "string") texts.push(b["text"]);
+  const joined = texts.join("\n");
+  return joined !== "" ? joined : undefined;
+}
+
 // A result's `terminal_reason` when it names why the turn ended other than a
 // normal completion (e.g. "tool_deferred_unavailable"); undefined otherwise. A
 // live API error's own value is "api_error", which is also the generic code, so
@@ -1293,26 +1304,76 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // own turn. What still backfills: tool.args.* and ext.* (no turnId at all),
   // and a top-level tool.done with NO turn open (pre-existing: it lands on the
   // closed turn, as before B).
+  //
+  // B-STRICT NESTED TERMINALS (draft.4, the founder's nested-turn ruling Q1,
+  // 2026-09-24; sp-protocol's package, sp-claude's leg). A nested turn opens
+  // with exactly one subagent.start and closes with exactly one turn.done |
+  // turn.error | turn.abort carrying its turnId, IMMEDIATELY followed by its
+  // subagent.done (a no-fold bracket close that restores the owner). The five
+  // guards: the terminal carries the nested turnId; a nested turn.done uses
+  // finishReason "unknown" (the SDK reports none); no nested success before the
+  // framework reports the sub-run complete (the run may outlive its parent's
+  // terminal); no usage on a nested terminal (the top-level turn is the
+  // accounting boundary: Claude's parent cost already includes subagent spend);
+  // a nested turnId never equals a top-level one (message ids / fallback ids).
+  // The close, by what the framework reported (`NestedClose`):
+  //  - the spawning Task's tool_result: `is_error` → turn.error; AgentOutput
+  //    status "async_launched" / "remote_launched" (a BACKGROUND launch ack) →
+  //    the run stays OPEN; otherwise (status "completed", or no attributable
+  //    tool_use_result) the returned call is the completion report → turn.done
+  //    success;
+  //  - a correlated task_notification (a background run): completed → success,
+  //    failed → turn.error, stopped → turn.abort;
+  //  - a stashed nested API error (the assistant error frame; its live
+  //    non-terminal `error` stays) wins over any of these → turn.error;
+  //  - flush: a run still open closes as turn.abort{stream-truncated}, or as its
+  //    stashed API error.
+  // The parent's result frame no longer closes runs: a still-open run is a
+  // background (or unreported) sub-run, and closing it there would report an
+  // outcome the framework never gave.
   type OpenRun = { readonly turnId: string; readonly parentTurnId: string };
+  type NestedClose =
+    | { readonly kind: "success" }
+    | { readonly kind: "error"; readonly message: string; readonly code?: string }
+    | { readonly kind: "aborted"; readonly reason: string };
   const openRuns = new Map<string, OpenRun>();
   const closedRuns = new Set<string>();
   const closedNestedTurnIds = new Set<string>();
+  // Nested turnId → its FIRST API error frame's close (released at run close).
+  const nestedStashedErrors = new Map<string, StashedTurnError>();
+  // task_started: task_id → the spawning tool_use_id, for a task_notification
+  // that carries only its task_id.
+  const toolUseIdByTaskId = new Map<string, string>();
   function openRun(parentToolUseId: string, turnId: string, parentTurnId: string): void {
     if (openRuns.has(parentToolUseId)) return;
     openRuns.set(parentToolUseId, { turnId, parentTurnId });
     a.subagentStart(turnId, parentTurnId);
   }
-  function closeRun(parentToolUseId: string): void {
+  function closeRun(parentToolUseId: string, close: NestedClose): void {
     const run = openRuns.get(parentToolUseId);
     if (run === undefined) return;
     openRuns.delete(parentToolUseId);
     closedRuns.add(parentToolUseId);
     closedNestedTurnIds.add(run.turnId);
+    const stashed = nestedStashedErrors.get(run.turnId);
+    nestedStashedErrors.delete(run.turnId);
+    if (stashed !== undefined) {
+      a.closeTurnError(run.turnId, { message: stashed.message, code: stashed.code, retriable: stashed.retriable });
+    } else if (close.kind === "success") {
+      a.closeTurnDone(run.turnId, { outcome: { type: "success" }, finishReason: "unknown" });
+    } else if (close.kind === "error") {
+      a.closeTurnError(run.turnId, { message: close.message, ...(close.code !== undefined ? { code: close.code } : {}) });
+    } else {
+      a.emit({ type: "turn.abort", turnId: run.turnId, reason: close.reason });
+    }
     a.subagentDone(run.turnId, run.parentTurnId);
   }
-  // Innermost (latest-opened) first, as INV-FLUSH orders its own closes.
-  function closeAllRuns(): void {
-    for (const parentToolUseId of [...openRuns.keys()].reverse()) closeRun(parentToolUseId);
+  // Flush only: every run still open, innermost (latest-opened) first, as
+  // INV-FLUSH orders its own closes.
+  function abortOpenRuns(): void {
+    for (const parentToolUseId of [...openRuns.keys()].reverse()) {
+      closeRun(parentToolUseId, { kind: "aborted", reason: "stream-truncated" });
+    }
   }
 
   // Playbook 2026-07-03 SDK-bump adaptation, Finding #1 (critical) — refusal-
@@ -2458,6 +2519,10 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
           // run's still-open bracket, so before its subagent.done. The folded gap
           // ("a nested turn has no failure outcome") is sp-protocol's to bar.
           a.emit({ type: "error", turnId, message: errCode, code: errCode, retriable });
+          // B-strict: the nested turn now HAS a failure outcome. The FIRST error
+          // frame's close is stashed and released as the nested turn.error when
+          // its run closes (see `closeRun`), whatever the Task result reports.
+          if (!nestedStashedErrors.has(turnId)) nestedStashedErrors.set(turnId, { message: errCode, code: errCode, retriable });
         } else if (!stashedTurnErrors.has(turnId)) {
           // First error frame wins: a turn already carrying a stashed close keeps
           // it (before CL-09's stash, the first error frame closed the turn).
@@ -2503,11 +2568,24 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // message first, exactly as the per-frame close used to (spec §5 tool.done
       // adoption below depends on this ordering).
       closePendingMessage();
-      // A tool_result answering a Task call ENDS that subagent run: close its
-      // bracket before the result's own tool.done (per-run bracket, see
-      // `openRun`). A result for any other tool closes nothing.
+      // A tool_result answering a Task call ENDS that subagent run, by what it
+      // reports (B-strict, see `openRun`): its nested terminal and bracket close
+      // come before the result's own tool.done. A result for any other tool
+      // closes nothing. A background launch ack keeps the run open.
       if (typeof msg.message.content !== "string") {
-        for (const b of msg.message.content) if (b.type === "tool_result") closeRun(b.tool_use_id);
+        let resultCount = 0;
+        for (const b of msg.message.content) if (b.type === "tool_result") resultCount++;
+        const rawUser: unknown = msg;
+        const sibling = resultCount === 1 && isJsonObject(rawUser) ? rawUser["tool_use_result"] : undefined;
+        const status = isJsonObject(sibling) && typeof sibling["status"] === "string" ? sibling["status"] : undefined;
+        for (const b of msg.message.content) {
+          if (b.type !== "tool_result" || !openRuns.has(b.tool_use_id)) continue;
+          if (b.is_error === true) {
+            closeRun(b.tool_use_id, { kind: "error", message: toolResultText(b.content) ?? "subagent failed" });
+          } else if (status !== "async_launched" && status !== "remote_launched") {
+            closeRun(b.tool_use_id, { kind: "success" });
+          }
+        }
       }
       // A LIVE user frame with no tool_result block is content the CLI added to
       // the conversation itself (the SDKUserMessage doc; the host's own prompts
@@ -2714,8 +2792,9 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // guuey#26: the turn is closing — seal the open assistant message first
       // (message.end has always preceded the turn close).
       closePendingMessage();
-      // Every subagent run still open ends with the turn (per-run bracket).
-      closeAllRuns();
+      // B-strict: a subagent run still open (a background or unreported sub-run)
+      // is NOT closed by its parent's result; it closes when the framework
+      // reports it, or at flush.
       const turnId = closingTopTurnId(msg.uuid, msg.session_id);
       // CL-09 (0.3.280 sweep): `subtype: "success"` does NOT mean the turn
       // succeeded. Upstream's SDKResultMessage doc: "subtype "success" carries
@@ -2820,7 +2899,6 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // At this point msg.subtype can only be an error variant (success handled above).
       // guuey#26: seal the open assistant message before the turn close.
       closePendingMessage();
-      closeAllRuns();
       const turnId = closingTopTurnId(msg.uuid, msg.session_id);
       // CL-09: consume any stashed assistant-error close for this turnId — this
       // frame emits it (below). Each turn has its own id now, so an entry can
@@ -2995,6 +3073,24 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
     const carriedKind = anthropicFrameKind(msg);
     if (carriedKind !== undefined) {
       a.emitExt("anthropic", "frame", { kind: carriedKind, frame: JsonValue.parse(msg) });
+      // B-strict: a background sub-run's outcome arrives as task_notification,
+      // correlated to its run by tool_use_id (or by task_id through the
+      // task_started frame that named it).
+      const raw: unknown = msg;
+      if (isJsonObject(raw) && raw["type"] === "system" && typeof raw["task_id"] === "string") {
+        const taskId = raw["task_id"];
+        const named = typeof raw["tool_use_id"] === "string" ? raw["tool_use_id"] : undefined;
+        if (raw["subtype"] === "task_started" && named !== undefined) toolUseIdByTaskId.set(taskId, named);
+        if (raw["subtype"] === "task_notification") {
+          const runKey = named ?? toolUseIdByTaskId.get(taskId);
+          const status = raw["status"];
+          if (runKey !== undefined && openRuns.has(runKey)) {
+            if (status === "completed") closeRun(runKey, { kind: "success" });
+            else if (status === "failed") closeRun(runKey, { kind: "error", message: typeof raw["summary"] === "string" && raw["summary"] !== "" ? raw["summary"] : "subagent failed", code: "failed" });
+            else if (status === "stopped") closeRun(runKey, { kind: "aborted", reason: "stopped" });
+          }
+        }
+      }
       return;
     }
 
@@ -3040,9 +3136,10 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // its real usage rather than leaving INV-FLUSH to synthesize a bare
       // `message.end`.
       closePendingMessage();
-      // Close any subagent run still open, so INV-FLUSH never aborts a nested
-      // turn the stream simply ended inside (per-run bracket).
-      closeAllRuns();
+      // B-strict: every subagent run still open closes here with its nested
+      // terminal (turn.abort{stream-truncated}, or its stashed API error) and
+      // its subagent.done, innermost first.
+      abortOpenRuns();
       // CL-09: a turn whose assistant error frame stashed its close but whose
       // result frame never arrived still closes as that turn.error (no usage:
       // only a result carries the turn's), never as INV-FLUSH's synthesized

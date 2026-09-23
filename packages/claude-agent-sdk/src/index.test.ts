@@ -800,8 +800,9 @@ describe("createClaudeNormalizer — nested subagent turn (assembled golden)", (
     const evs = run(
       assistantMsg([{ type: "text", text: "sub", citations: null }], "toolu_parent_1"),
     );
-    // The nested turnId is turn_<session> (turnIdFor uses the session id); the
-    // subagent.start seeds it so openMessage does NOT synthesize a turn.start.
+    // The subagent.start seeds the nested turn, so openMessage does NOT
+    // synthesize a turn.start. B-strict: the run never got its Task result, so
+    // flush closes it with its nested terminal, immediately before subagent.done.
     expect(evs.map((e) => e.type)).toEqual([
       "subagent.start",
       "message.start",
@@ -809,8 +810,10 @@ describe("createClaudeNormalizer — nested subagent turn (assembled golden)", (
       "text.delta",
       "text.end",
       "message.end",
+      "turn.abort",
       "subagent.done",
     ]);
+    expect(evs.find((e) => e.type === "turn.abort")).toMatchObject({ turnId: TOP_TURN, reason: "stream-truncated" });
     const start = evs.find((e) => e.type === "subagent.start");
     expect(start).toMatchObject({ turnId: TOP_TURN, parentTurnId: "turn_toolu_parent_1" });
     const done = evs.find((e) => e.type === "subagent.done");
@@ -1803,7 +1806,7 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
     };
   }
 
-  it("nested turns: one per subagent RUN (keyed by parent_tool_use_id), ONE bracket each, never the parentTurnId label", () => {
+  it("nested turns: one per subagent RUN (keyed by parent_tool_use_id), ONE bracket each, never the parentTurnId label; B-strict: unreported runs outlive the parent's close", () => {
     const evs = events([
       asst("msg_top", "delegating", "00000000-0000-0000-0000-0000000000e2"),
       asst("msg_run_a1", "a1", "00000000-0000-0000-0000-0000000000e3", "toolu_task_a"),
@@ -1814,15 +1817,20 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
     const brackets = evs
       .filter((e) => e.type === "subagent.start" || e.type === "subagent.done")
       .map((e) => [e.type, "turnId" in e ? e.turnId : undefined, "parentTurnId" in e ? e.parentTurnId : undefined]);
-    // Neither run got its Task tool_result, so both close at the turn's result,
-    // innermost (latest-opened) first — and before the turn's own close.
+    // Neither run got its Task tool_result, so neither closes at the parent's
+    // result (B-strict: no outcome the framework never reported). Both close at
+    // flush, innermost (latest-opened) first, each with its nested terminal
+    // immediately before its subagent.done.
     expect(brackets).toEqual([
       ["subagent.start", "turn_msg_run_a1", "turn_toolu_task_a"],
       ["subagent.start", "turn_msg_run_b1", "turn_toolu_task_b"],
       ["subagent.done", "turn_msg_run_b1", "turn_toolu_task_b"],
       ["subagent.done", "turn_msg_run_a1", "turn_toolu_task_a"],
     ]);
-    expect(evs.findIndex((e) => e.type === "turn.done")).toBeGreaterThan(evs.map((e) => e.type).lastIndexOf("subagent.done"));
+    expect(evs.findIndex((e) => e.type === "turn.done")).toBeLessThan(evs.findIndex((e) => e.type === "subagent.done"));
+    for (const [i, e] of evs.entries()) {
+      if (e.type === "subagent.done") expect(evs[i - 1]).toMatchObject({ type: "turn.abort", turnId: e.turnId, reason: "stream-truncated" });
+    }
     assertOneBracketPerRun(evs, 2);
     // Run a's two messages both belong to its one nested turn.
     const r = new Reducer();
@@ -1865,13 +1873,17 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
     expect(byTurn("turn_msg_b1")).toEqual(["msg_b1", "msg_b2"]);
   });
 
-  it("flush closes a run the stream ended inside with ONE subagent.done — never a turn.abort on the nested turn", () => {
+  it("flush closes a run the stream ended inside with ONE nested turn.abort{stream-truncated} and ONE subagent.done (B-strict), innermost first", () => {
     const evs = events([
       asst("msg_top", "delegating", "00000000-0000-0000-0000-0000000000e2"),
       asst("msg_a1", "a1", "00000000-0000-0000-0000-0000000000e3", "toolu_task_a"),
     ]);
     assertOneBracketPerRun(evs, 1);
-    expect(turnCloses(evs).map((e) => [e.type, "turnId" in e ? e.turnId : undefined])).toEqual([["turn.abort", "turn_msg_top"]]);
+    expect(turnCloses(evs).map((e) => [e.type, "turnId" in e ? e.turnId : undefined])).toEqual([
+      ["turn.abort", "turn_msg_a1"],
+      ["turn.abort", "turn_msg_top"],
+    ]);
+    expect(evs.find((e) => e.type === "turn.abort" && e.turnId === "turn_msg_a1")).not.toHaveProperty("usage");
   });
 
   it("a frame for a run that already CLOSED opens a NEW nested turn: a closed nested id is never reopened", () => {
@@ -1911,7 +1923,7 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
     };
   }
 
-  it("a background agent's nested tool_result AFTER the parent's result opens a fresh run — never content on a closed nested turn (R1/R2 review S1)", () => {
+  it("a background agent's nested tool_result AFTER the parent's result stays in its still-open run (B-strict: the run outlives its parent), and flush closes it", () => {
     const evs = events([
       toolUseMsg("msg_top", ["toolu_x"], "00000000-0000-0000-0000-0000000000f1"),
       userFrame(null, ["toolu_x"], "00000000-0000-0000-0000-0000000000f2"), // async ack: the run never opened yet
@@ -1919,9 +1931,14 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
       result("00000000-0000-0000-0000-0000000000f4"),
       userFrame("toolu_x", ["toolu_bash1"], "00000000-0000-0000-0000-0000000000f5"),
     ]);
-    assertOneBracketPerRun(evs, 2);
+    assertOneBracketPerRun(evs, 1);
     const late = evs.find((e) => e.type === "tool.done" && "toolCallId" in e && e.toolCallId === "toolu_bash1");
-    expect(late).toMatchObject({ turnId: "turn_00000000-0000-0000-0000-0000000000f5" });
+    expect(late).toMatchObject({ turnId: "turn_msg_n1" });
+    expect(turnCloses(evs).map((e) => [e.type, "turnId" in e ? e.turnId : undefined])).toEqual([
+      ["turn.done", "turn_msg_top"],
+      ["turn.abort", "turn_msg_n1"],
+    ]);
+    expect(fold(evs).needsResync).toBe(false);
   });
 
   it("nested-in-nested runs close innermost first, each once; a sub-run's Task result (a NESTED user frame) closes it (S2)", () => {
@@ -6109,7 +6126,16 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     };
     const m2 = { ...(assistantMsg([{ type: "text", text: "recovered", citations: null }]) as object), message: { ...betaMessage([{ type: "text", text: "recovered", citations: null }]), id: "msg_recovered" }, uuid: "00000000-0000-0000-0000-0000000000d6" };
     const evs = drive([top, nested, taskFailed, m2, resultSuccess("end_turn")]);
-    expect(turnCloses(evs).map((e) => [e.type, "turnId" in e ? e.turnId : undefined])).toEqual([["turn.done", TOP_TURN]]);
+    // B-strict: the failed Task closes the nested turn with its stashed API error
+    // (it wins over the tool_result's own text), no usage, then subagent.done.
+    expect(turnCloses(evs).map((e) => [e.type, "turnId" in e ? e.turnId : undefined])).toEqual([
+      ["turn.error", API_ERROR_TURN],
+      ["turn.done", TOP_TURN],
+    ]);
+    const nestedClose = evs.findIndex((e) => e.type === "turn.error");
+    expect(evs[nestedClose]).toMatchObject({ code: "rate_limit", retriable: true });
+    expect(evs[nestedClose]).not.toHaveProperty("usage");
+    expect(evs[nestedClose + 1]).toMatchObject({ type: "subagent.done", turnId: API_ERROR_TURN });
     expect(nestedErrors(evs)).toEqual([{ turnId: API_ERROR_TURN, code: "rate_limit", retriable: true }]);
     // Owned by the nested turn: inside its bracket, before its subagent.done.
     const errAt = evs.findIndex((e) => e.type === "error");
@@ -6125,8 +6151,12 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     const nested = apiErrorAssistantFrame({ parent_tool_use_id: "toolu_t" });
     const ownError = { ...(apiErrorAssistantFrame({ error: "billing_error" }) as object), message: { ...betaMessage([{ type: "text", text: API_ERROR_TEXT, citations: null }]), id: "msg_own_error", model: "<synthetic>" }, uuid: "00000000-0000-0000-0000-0000000000d9" };
     const evs = drive([top, nested, ownError, apiErrorResultFrame()]);
-    expect(turnCloses(evs)).toHaveLength(1);
+    // The parent closes on its OWN billing_error; the nested run (no Task result)
+    // outlives it and closes at flush with its own stashed rate_limit (B-strict).
+    expect(turnCloses(evs)).toHaveLength(2);
     expect(turnCloses(evs)[0]).toMatchObject({ type: "turn.error", turnId: TOP_TURN, code: "billing_error", retriable: false, usage: RESULT_USAGE });
+    expect(turnCloses(evs)[1]).toMatchObject({ type: "turn.error", turnId: API_ERROR_TURN, code: "rate_limit" });
+    expect(turnCloses(evs)[1]).not.toHaveProperty("usage");
     expect(nestedErrors(evs)).toEqual([{ turnId: API_ERROR_TURN, code: "rate_limit", retriable: true }]);
   });
 
@@ -6134,26 +6164,33 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     const top = assistantMsg([{ type: "text", text: "delegating", citations: null }]);
     const nested = apiErrorAssistantFrame({ parent_tool_use_id: "toolu_parent_1" });
     const evs = drive([top, nested, apiErrorResultFrame()]);
-    // No top-level stash: the is_error result closes with its own fields.
+    // No top-level stash: the is_error result closes with its own fields. The
+    // nested run closes at flush with its own stashed error (B-strict).
     expect(turnCloses(evs).map((e) => [e.type, "turnId" in e ? e.turnId : undefined, "code" in e ? e.code : undefined])).toEqual([
       ["turn.error", TOP_TURN, "api_error"],
+      ["turn.error", API_ERROR_TURN, "rate_limit"],
     ]);
     const alone = drive([top, nested]);
-    expect(turnCloses(alone).map((e) => [e.type, "turnId" in e ? e.turnId : undefined])).toEqual([["turn.abort", TOP_TURN]]);
+    expect(turnCloses(alone).map((e) => [e.type, "turnId" in e ? e.turnId : undefined])).toEqual([
+      ["turn.error", API_ERROR_TURN],
+      ["turn.abort", TOP_TURN],
+    ]);
     expect(nestedErrors(alone)).toEqual([{ turnId: API_ERROR_TURN, code: "rate_limit", retriable: true }]);
   });
 
-  it("a NESTED error frame with NO top-level turn open fabricates no close: nothing is stashed, and a later turn is not tainted", () => {
+  it("a NESTED error frame with NO top-level turn open fabricates no TOP-LEVEL close (the nested turn closes as its own error), and a later turn is not tainted", () => {
     const nested = apiErrorAssistantFrame({ parent_tool_use_id: "toolu_parent_1" });
     // Stream starts inside a subagent, then a result: the result closes its own
     // result-only turn with ITS fields (not the nested frame's rate_limit).
     const evs = drive([nested, apiErrorResultFrame()]);
-    expect(turnCloses(evs)).toHaveLength(1);
+    expect(turnCloses(evs)).toHaveLength(2);
     expect(turnCloses(evs)[0]).toMatchObject({ turnId: RESULT_ONLY_TURN, code: "api_error", retriable: true });
-    // Nested frame alone: no top-level turn ever opened, so no terminal at flush;
-    // the failure still rides its nested turn's non-terminal `error`.
+    expect(turnCloses(evs)[1]).toMatchObject({ type: "turn.error", turnId: API_ERROR_TURN, code: "rate_limit" });
+    // Nested frame alone: no top-level turn ever opened, so no TOP-LEVEL terminal
+    // at flush; the nested turn closes with its own failure (B-strict), after its
+    // live non-terminal `error`.
     const nestedAlone = drive([nested]);
-    expect(turnCloses(nestedAlone)).toEqual([]);
+    expect(turnCloses(nestedAlone).map((e) => [e.type, "turnId" in e ? e.turnId : undefined])).toEqual([["turn.error", API_ERROR_TURN]]);
     expect(nestedErrors(nestedAlone)).toEqual([{ turnId: API_ERROR_TURN, code: "rate_limit", retriable: true }]);
     // Background subagent frames AFTER a result (review of b8ea926, MAJOR 1):
     // the next turn is named by ITS first message and closes as it ended.
@@ -6168,6 +6205,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     expect(turnCloses(after).map((e) => [e.type, "turnId" in e ? e.turnId : undefined])).toEqual([
       ["turn.done", TOP_TURN],
       ["turn.done", "turn_msg_turn_two"],
+      ["turn.error", API_ERROR_TURN],
     ]);
   });
 
@@ -7636,5 +7674,131 @@ describe("createClaudeNormalizer — rd-15 carries: host-readable homes that fol
     const withNested = drive([frameWith({}), nested, resultSuccess("end_turn")]);
     const nestedDone = withNested.find((e) => e.type === "turn.done");
     expect(nestedDone !== undefined && "messageMetadata" in nestedDone).toBe(false);
+  });
+});
+
+// ─── B-strict nested terminals (draft.4; the founder's nested-turn ruling Q1) ──
+// sp-protocol's §10 item 22 statement, checked on every stream below: for every
+// subagent.start, exactly ONE turn.done | turn.error | turn.abort with that
+// turnId, carrying no usage, IMMEDIATELY followed by that turn's subagent.done;
+// no nested turnId equals a turn.start turnId; and folding the stream with its
+// subagent.done events removed gives a structurally identical AgReduceResult.
+describe("createClaudeNormalizer — B-strict nested terminals", () => {
+  const TERMINALS = new Set(["turn.done", "turn.error", "turn.abort"]);
+  function assertBStrict(evs: AgEvent[]): void {
+    const nested: string[] = [];
+    for (const e of evs) if (e.type === "subagent.start" && e.turnId !== undefined) nested.push(e.turnId);
+    const topStarts = new Set<string>();
+    for (const e of evs) if (e.type === "turn.start" && e.turnId !== undefined) topStarts.add(e.turnId);
+    for (const id of nested) {
+      expect(topStarts.has(id), `nested ${id} is also a top-level turn`).toBe(false);
+      const closes = evs.flatMap((e, i) => (TERMINALS.has(e.type) && "turnId" in e && e.turnId === id ? [i] : []));
+      expect(closes, `terminals for ${id}`).toHaveLength(1);
+      const at = closes[0] ?? -1;
+      expect(evs[at], `nested terminal ${id} carries no usage`).not.toHaveProperty("usage");
+      expect(evs[at + 1], `subagent.done right after ${id}'s terminal`).toMatchObject({ type: "subagent.done", turnId: id });
+    }
+    // Removing events leaves seq holes, which park under INV-SEQ, so the
+    // subagent.done-free stream is renumbered gap-free before it is folded.
+    const whole = fold(evs);
+    const withoutDone = fold(evs.filter((e) => e.type !== "subagent.done").map((e, i) => ({ ...e, seq: i })));
+    expect(whole.needsResync).toBe(false);
+    expect(withoutDone.needsResync).toBe(false);
+    expect(withoutDone.result()).toEqual(whole.result());
+  }
+  const taskUse = (id: string): unknown =>
+    assistantMsg([{ type: "tool_use", id, name: "Task", input: { prompt: "research" } }], null, { stop_reason: "tool_use" });
+  const nestedText = (msgId: string, parent: string, uuid: string): unknown => ({
+    ...Object.fromEntries(Object.entries(assistantMsg([{ type: "text", text: "working", citations: null }], parent))),
+    message: { ...betaMessage([{ type: "text", text: "working", citations: null }]), id: msgId },
+    uuid,
+  });
+  const taskResult = (id: string, extra: { [k: string]: unknown } = {}, isError = false, text = "done"): unknown => ({
+    type: "user",
+    message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: [{ type: "text", text }], is_error: isError }] },
+    parent_tool_use_id: null,
+    uuid: `00000000-0000-0000-0000-0000000000b${id.slice(-1)}`,
+    session_id: "sess_fixture",
+    ...extra,
+  });
+  const notification = (fields: { [k: string]: unknown }): unknown => ({
+    type: "system", subtype: "task_notification", task_id: "task_1", output_file: "/tmp/o", summary: "", uuid: "00000000-0000-0000-0000-0000000000c9", session_id: "sess_fixture", ...fields,
+  });
+  const closesOf = (evs: AgEvent[], turnId: string): unknown[] =>
+    evs.filter((e) => TERMINALS.has(e.type) && "turnId" in e && e.turnId === turnId).map((e) => Object.fromEntries(Object.entries(e).filter(([k]) => k !== "seq")));
+
+  it("a foreground Task that COMPLETED closes its nested turn with turn.done{success, finishReason:'unknown'}, no usage, right before subagent.done; the fold records it", () => {
+    const evs = drive([taskUse("toolu_t1"), nestedText("msg_sub1", "toolu_t1", "00000000-0000-0000-0000-0000000000a1"), taskResult("toolu_t1", { tool_use_result: { status: "completed", agentId: "a1" } }), resultSuccess("end_turn")]);
+    expect(closesOf(evs, "turn_msg_sub1")).toEqual([{ type: "turn.done", turnId: "turn_msg_sub1", outcome: { type: "success" }, finishReason: "unknown" }]);
+    assertBStrict(evs);
+    expect(fold(evs).result().turns.find((t) => t.turnId === "turn_msg_sub1")?.outcome).toEqual({ type: "success" });
+  });
+
+  it("a failed Task (is_error) closes its nested turn with turn.error naming the tool result's text, no usage", () => {
+    const evs = drive([taskUse("toolu_t2"), nestedText("msg_sub2", "toolu_t2", "00000000-0000-0000-0000-0000000000a2"), taskResult("toolu_t2", {}, true, "subagent crashed"), resultSuccess("end_turn")]);
+    expect(closesOf(evs, "turn_msg_sub2")).toEqual([{ type: "turn.error", turnId: "turn_msg_sub2", message: "subagent crashed" }]);
+    assertBStrict(evs);
+  });
+
+  it("a BACKGROUND launch (status async_launched) keeps the run open past the parent's close; a task_notification closes it: completed → success, failed → error, stopped → aborted", () => {
+    for (const [status, expected] of [
+      ["completed", { type: "turn.done", outcome: { type: "success" }, finishReason: "unknown" }],
+      ["failed", { type: "turn.error", message: "it broke", code: "failed" }],
+      ["stopped", { type: "turn.abort", reason: "stopped" }],
+    ] as const) {
+      const evs = drive([
+        taskUse("toolu_t3"),
+        nestedText("msg_sub3", "toolu_t3", "00000000-0000-0000-0000-0000000000a3"),
+        taskResult("toolu_t3", { tool_use_result: { status: "async_launched", agentId: "a3" } }),
+        resultSuccess("end_turn"),
+        notification({ tool_use_id: "toolu_t3", status, summary: "it broke" }),
+      ]);
+      const types = evs.map((e) => e.type);
+      expect(types.indexOf("turn.done"), status).toBeLessThan(evs.findIndex((e) => e.type === "subagent.done"));
+      expect(closesOf(evs, "turn_msg_sub3"), status).toEqual([{ turnId: "turn_msg_sub3", ...expected }]);
+      assertBStrict(evs);
+    }
+  });
+
+  it("a task_notification without tool_use_id correlates through its task_started's task_id; one for an unknown task closes nothing", () => {
+    const started = { type: "system", subtype: "task_started", task_id: "task_1", tool_use_id: "toolu_t4", description: "d", uuid: "00000000-0000-0000-0000-0000000000c8", session_id: "sess_fixture" };
+    const evs = drive([taskUse("toolu_t4"), started, nestedText("msg_sub4", "toolu_t4", "00000000-0000-0000-0000-0000000000a4"), taskResult("toolu_t4", { tool_use_result: { status: "async_launched" } }), resultSuccess("end_turn"), notification({ status: "completed" })]);
+    expect(closesOf(evs, "turn_msg_sub4")).toEqual([{ type: "turn.done", turnId: "turn_msg_sub4", outcome: { type: "success" }, finishReason: "unknown" }]);
+    assertBStrict(evs);
+    const stray = drive([taskUse("toolu_t5"), nestedText("msg_sub5", "toolu_t5", "00000000-0000-0000-0000-0000000000a5"), taskResult("toolu_t5", { tool_use_result: { status: "remote_launched" } }), resultSuccess("end_turn"), notification({ task_id: "task_other", status: "completed" })]);
+    expect(closesOf(stray, "turn_msg_sub5")).toEqual([{ type: "turn.abort", turnId: "turn_msg_sub5", reason: "stream-truncated" }]);
+    assertBStrict(stray);
+  });
+
+  it("no success is ever fabricated for a background run: with no notification, flush aborts it", () => {
+    const evs = drive([taskUse("toolu_t6"), nestedText("msg_sub6", "toolu_t6", "00000000-0000-0000-0000-0000000000a6"), taskResult("toolu_t6", { tool_use_result: { status: "async_launched" } }), resultSuccess("end_turn")]);
+    expect(closesOf(evs, "turn_msg_sub6")).toEqual([{ type: "turn.abort", turnId: "turn_msg_sub6", reason: "stream-truncated" }]);
+    assertBStrict(evs);
+  });
+
+  it("a Task result with no attributable tool_use_result (a multi-result frame) is the completion report: success (pending the live capture)", () => {
+    const both = {
+      type: "user",
+      message: { role: "user", content: [
+        { type: "tool_result", tool_use_id: "toolu_t7", content: [{ type: "text", text: "done" }], is_error: false },
+        { type: "tool_result", tool_use_id: "toolu_other", content: [{ type: "text", text: "x" }], is_error: false },
+      ] },
+      parent_tool_use_id: null,
+      tool_use_result: { status: "async_launched" },
+      uuid: "00000000-0000-0000-0000-0000000000b7",
+      session_id: "sess_fixture",
+    };
+    const evs = drive([taskUse("toolu_t7"), nestedText("msg_sub7", "toolu_t7", "00000000-0000-0000-0000-0000000000a7"), both, resultSuccess("end_turn")]);
+    expect(closesOf(evs, "turn_msg_sub7")).toEqual([{ type: "turn.done", turnId: "turn_msg_sub7", outcome: { type: "success" }, finishReason: "unknown" }]);
+    assertBStrict(evs);
+  });
+
+  it("the §10 item 22 property holds on every nested stream the facet tests build here (terminal before subagent.done, no usage, fold unchanged without subagent.done)", () => {
+    const streams: unknown[][] = [
+      [taskUse("toolu_p1"), nestedText("msg_p1", "toolu_p1", "00000000-0000-0000-0000-0000000000a8"), nestedText("msg_p2", "toolu_p1", "00000000-0000-0000-0000-0000000000a9"), taskResult("toolu_p1", { tool_use_result: { status: "completed" } }), resultSuccess("end_turn")],
+      [taskUse("toolu_p2"), nestedText("msg_p3", "toolu_p2", "00000000-0000-0000-0000-0000000000aa"), apiErrorAssistantFrame({ parent_tool_use_id: "toolu_p2" }), taskResult("toolu_p2", {}, true), resultSuccess("end_turn")],
+      [nestedText("msg_p4", "toolu_p3", "00000000-0000-0000-0000-0000000000ab")],
+    ];
+    for (const frames of streams) assertBStrict(drive(frames));
   });
 });
