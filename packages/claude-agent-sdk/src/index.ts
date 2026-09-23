@@ -557,6 +557,12 @@ function isSDKMessage(v: unknown): v is SDKMessage {
 // branch + `deniedLiveByToolUseId` in `createClaudeNormalizer()` below; it
 // is deliberately EXCLUDED from the carried sets here.
 //
+// SDKModelRefusalFallbackMessage is HALF-mapped: its retraction goes to
+// `message.remove` (§8 item 19) and the rest of the frame has no home. It is
+// NOT in the sets below either. Its dedicated branch does the retraction and
+// then emits the same `ext.anthropic.frame` carry itself (X4, 2026-09-23, on
+// sp-protocol's item-22 reading for half-mapped frames — see that branch).
+//
 // ONE uniform key — `ext.anthropic.frame{kind, frame}` (SPEC §8 item 22 /
 // §12) — not 15 distinct ext keys (ext-vocabulary sprawl, the standing
 // review Minor this closes). `kind` is the frame's own discriminating
@@ -2162,6 +2168,27 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       closePendingMessage();
       const uuids = Array.isArray(msg.retracted_message_uuids) ? msg.retracted_message_uuids : [];
       retractUuids(uuids);
+      // X4 (sp-rnd re-cut, 2026-09-23): only the retraction has a core home.
+      // A notice yields 0..N `message.remove`s, so there is no single event to
+      // hang the rest on. The rest of the frame is the switch itself: `trigger`, `direction`
+      // ('retry'; 'revert'/'sticky' are "no longer emitted" per 0.3.280),
+      // `scope` ('session'|'local', absent ⇒ 'session' on older CLIs),
+      // `original_model`/`fallback_model`, `request_id`, `api_refusal_category`
+      // /`_explanation`, `refused_user_message_uuid` (the edit-and-retry target)
+      // and the human-readable `content`. Through 0.6.3 it was dropped. It now
+      // rides the uniform carry beside its `model_refusal_no_fallback` sibling
+      // (SPEC §8 item 22 / §12), the WHOLE frame verbatim, AFTER the removes
+      // (the frame is itself "emitted AFTER the retraction"). Item 22 says a
+      // mapped frame goes to its home "instead" of the bulk carry. sp-protocol
+      // ruled on 2026-09-23 (SPEC blob bef014c) that the clause covers frames
+      // whose content that home already conveys, and `message.remove` conveys
+      // only the retraction. So the residual fields fall under item 22's
+      // no-drop MUST, and the whole frame rides. (sp-protocol's clarifying
+      // line for item 22 is queued for the review bar.) `ext.*` is live-only
+      // and non-folding, so the second copy of `retracted_message_uuids`
+      // cannot double-fold (the M22 hazard). This is the only producer for R&D
+      // item 3's `turn.model-switch`. Synthetic-only (needs a classifier refusal).
+      a.emitExt("anthropic", "frame", { kind: msg.subtype, frame: JsonValue.parse(msg) });
       return;
     }
 

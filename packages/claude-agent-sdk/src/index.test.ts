@@ -1522,6 +1522,149 @@ describe("createClaudeNormalizer — refusal-fallback retraction (playbook 2026-
     const turnDone = events.find((e) => e.type === "turn.done");
     expect(turnDone).toMatchObject({ usage: { cumulative: true } });
   });
+
+  // ─── X4 (sp-rnd re-cut, 2026-09-23): the rest of the frame rides the carry ──
+  // Through 0.6.3 only `retracted_message_uuids` was read; the switch itself
+  // (models, direction, scope, refusal category/explanation, the edit-and-retry
+  // uuid, `content`) was dropped. The whole frame now rides
+  // `ext.anthropic.frame{kind:"model_refusal_fallback"}`, beside its
+  // no-fallback sibling (SPEC §8 item 22 / §12), after the removes.
+
+  // Every 0.3.280 field set (sdk.d.ts :5192-5223), including the optional ones
+  // the older fixture above leaves out.
+  function refusalFallbackNoticeFull(retracted: string[]): SDKMessage {
+    return {
+      type: "system",
+      subtype: "model_refusal_fallback",
+      trigger: "refusal",
+      direction: "retry",
+      scope: "local",
+      original_model: "claude-a",
+      fallback_model: "claude-b",
+      request_id: "req_fixture_1",
+      api_refusal_category: "cyber",
+      api_refusal_explanation: "The request asked for working exploit code.",
+      retracted_message_uuids: retracted,
+      refused_user_message_uuid: "00000000-0000-0000-0000-0000000000f4",
+      content: "Switched to claude-b after a refusal.",
+      uuid: NOTICE_UUID,
+      session_id: "sess_fixture",
+    };
+  }
+
+  // An older CLI's frame: every optional field absent.
+  function refusalFallbackNoticeOldCli(): SDKMessage {
+    return {
+      type: "system",
+      subtype: "model_refusal_fallback",
+      trigger: "refusal",
+      direction: "retry",
+      original_model: "claude-a",
+      fallback_model: "claude-b",
+      request_id: null,
+      content: "Switched to a fallback model.",
+      uuid: NOTICE_UUID,
+      session_id: "sess_fixture",
+    };
+  }
+
+  it("carries the WHOLE fallback frame verbatim as ext.anthropic.frame{kind:model_refusal_fallback}, after its removes", () => {
+    const notice = refusalFallbackNoticeFull([REFUSED_UUID]);
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(refusedAssistant())),
+      ...n.push(JsonValue.parse(notice)),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const frames = evs.filter((e) => e.type === "ext.anthropic.frame");
+    expect(frames).toHaveLength(1);
+    expect(frames[0]).toMatchObject({ kind: "model_refusal_fallback" });
+    // Verbatim: every field of the native frame, no reinterpretation, no
+    // camelCasing (the item-22 contract).
+    expect((frames[0] as { frame?: unknown }).frame).toEqual(notice);
+    // Order: the retraction first, then the carry (the native frame is itself
+    // "emitted AFTER the retraction").
+    const removeAt = evs.findIndex((e) => e.type === "message.remove");
+    const frameAt = evs.findIndex((e) => e.type === "ext.anthropic.frame");
+    expect(removeAt).toBeGreaterThanOrEqual(0);
+    expect(removeAt).toBeLessThan(frameAt);
+    expect(evs[removeAt]).toMatchObject({ id: "msg_refused" });
+  });
+
+  it("an older CLI's frame (no retracted_message_uuids / scope / refusal fields) removes nothing and carries only what arrived", () => {
+    const notice = refusalFallbackNoticeOldCli();
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(JsonValue.parse(notice)), ...n.flush()];
+    assertAllValid(evs);
+    expect(evs.some((e) => e.type === "message.remove")).toBe(false);
+    expect(evs).toHaveLength(1);
+    expect(evs[0]).toMatchObject({ type: "ext.anthropic.frame", kind: "model_refusal_fallback" });
+    const frame = (evs[0] as { frame?: unknown }).frame;
+    expect(frame).toEqual(notice);
+    // Absent stays absent: the facet does not default `scope` to 'session'
+    // (the d.ts's reading for an older CLI) or fabricate null refusal fields.
+    for (const k of ["scope", "api_refusal_category", "api_refusal_explanation", "refused_user_message_uuid", "retracted_message_uuids"]) {
+      expect(Object.keys(frame as object)).not.toContain(k);
+    }
+  });
+
+  it("negative control: a superseding assistant frame with NO notice emits no model_refusal_fallback carry", () => {
+    // The carry is tied to the notice frame. `supersedes` alone keeps its
+    // existing eviction and never gets a fabricated switch record.
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...n.push(JsonValue.parse(refusedAssistant())),
+      ...n.push(JsonValue.parse(fallbackAssistant([REFUSED_UUID]))),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    expect(evs.some((e) => e.type === "ext.anthropic.frame")).toBe(false);
+    expect(evs).toContainEqual(expect.objectContaining({ type: "message.remove", id: "msg_refused" }));
+  });
+
+  it("a notice that arrives AFTER the result frame still carries once and does not park the fold", () => {
+    // `emitExt` stamps only `seq` (no turnId/messageId), so an ext frame after
+    // the turn's close has no owner to violate; the late remove was already
+    // legal (item 19). Pins the ordering the SDK does not promise.
+    const n = createClaudeNormalizer();
+    const events = [
+      ...n.push(JsonValue.parse(refusedAssistant())),
+      ...n.push(JsonValue.parse(fallbackAssistant([REFUSED_UUID]))),
+      ...n.push(JsonValue.parse(resultSuccess("end_turn"))),
+      ...n.push(JsonValue.parse(refusalFallbackNoticeFull([REFUSED_UUID]))),
+      ...n.flush(),
+    ];
+    assertAllValid(events);
+    expect(events.filter((e) => e.type === "ext.anthropic.frame")).toHaveLength(1);
+    const doneAt = events.findIndex((e) => e.type === "turn.done");
+    const frameAt = events.findIndex((e) => e.type === "ext.anthropic.frame");
+    expect(doneAt).toBeLessThan(frameAt);
+    const r = new Reducer();
+    for (const e of events) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.map((m) => m.id)).toEqual(["msg_fallback"]);
+  });
+
+  it("fold: the carried frame is non-folding — refused leg gone, fallback leg the only message, turn closes success, no resync", () => {
+    const n = createClaudeNormalizer();
+    const events = [
+      ...n.push(JsonValue.parse(refusedAssistant())),
+      ...n.push(JsonValue.parse(fallbackAssistant([REFUSED_UUID]))),
+      ...n.push(JsonValue.parse(refusalFallbackNoticeFull([REFUSED_UUID]))),
+      ...n.push(JsonValue.parse(resultSuccess("end_turn"))),
+      ...n.flush(),
+    ];
+    assertAllValid(events);
+    expect(events.filter((e) => e.type === "ext.anthropic.frame")).toHaveLength(1);
+    const r = new Reducer();
+    for (const e of events) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const result = r.result();
+    // The ext frame adds no row (no notice message, no ghost of the refused leg).
+    expect(result.messages.map((m) => m.id)).toEqual(["msg_fallback"]);
+    expect(result.turns.find((t) => t.turnId === TOP_TURN)?.outcome).toMatchObject({ type: "success" });
+  });
 });
 
 // ─── SDKInformationalMessage — first-class `notice` message (spec draft.2) ────
@@ -1957,6 +2100,30 @@ function modelRefusalNoFallbackMsg(): SDKMessage {
   };
 }
 
+// X4 (2026-09-23): the half-mapped fallback arm. Its retraction names a uuid a
+// fresh normalizer never saw, so `message.remove` is a no-op (item 19) and the
+// uniform carry is the ONLY event — the same shape the table below pins for
+// every fully carried arm. The describe block above covers the mapped half.
+function modelRefusalFallbackMsg(): SDKMessage {
+  return {
+    type: "system",
+    subtype: "model_refusal_fallback",
+    trigger: "refusal",
+    direction: "retry",
+    scope: "session",
+    original_model: "claude-opus-test",
+    fallback_model: "claude-fallback-test",
+    request_id: "req_124",
+    api_refusal_category: null,
+    api_refusal_explanation: null,
+    retracted_message_uuids: ["00000000-0000-0000-0000-0000000000a5"],
+    refused_user_message_uuid: null,
+    content: "Switched to claude-fallback-test after a refusal.",
+    uuid: "00000000-0000-0000-0000-0000000000a4",
+    session_id: "sess_fixture",
+  };
+}
+
 function localCommandOutputMsg(): SDKMessage {
   return {
     type: "system",
@@ -2164,6 +2331,8 @@ function mirrorErrorMsg(): SDKMessage {
 
 const CARRIED_ARMS: ReadonlyArray<{ armName: string; kind: string; msg: SDKMessage }> = [
   { armName: "SDKModelRefusalNoFallbackMessage", kind: "model_refusal_no_fallback", msg: modelRefusalNoFallbackMsg() },
+  // X4: carried AND mapped (its retraction -> message.remove, a no-op here).
+  { armName: "SDKModelRefusalFallbackMessage", kind: "model_refusal_fallback", msg: modelRefusalFallbackMsg() },
   { armName: "SDKLocalCommandOutputMessage", kind: "local_command_output", msg: localCommandOutputMsg() },
   { armName: "SDKHookProgressMessage", kind: "hook_progress", msg: hookProgressMsg() },
   // cohort 0.5.4 (corpus/partials-fable51): the thinking-progress ping — see
