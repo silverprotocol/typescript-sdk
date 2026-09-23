@@ -741,6 +741,9 @@ describe("§10.20 — malformed input at a trust boundary (draft.4): a non-envel
     const ignored = withIt.filter((e) => e.type === "ext.agjson.ignored") as unknown as Array<Record<string, unknown>>;
     expect(ignored).toHaveLength(1);
     expect(ignored[0]).toMatchObject({ seq: 2, ignoredType: "message.remove", raw: malformed });
+    // The report is itself a well-formed event: a consumer that re-validates
+    // ingest output strictly meets the stub first (sp-cto, P2 second read).
+    expect(AgEvent.safeParse(ignored[0]).success).toBe(true);
 
     const a = reduce(withIt);
     const b = reduce(without);
@@ -899,6 +902,7 @@ describe("§10.22 — forward-compatible ingest (draft.4): an ignored well-forme
       expect(ignored).toHaveLength(1);
       expect(ignored[0]).toMatchObject({ seq: 2, ignoredType: c.x["type"] });
       expect(ignored[0]?.["raw"]).toEqual(c.x);
+      expect(AgEvent.safeParse(ignored[0]).success).toBe(true);
       const r = reduce(out);
       expect(r.needsResync).toBe(false);
       expect(r.result).toEqual(foldS.result);
