@@ -11,7 +11,8 @@
     "id": "msg_turn_resp_05eb5a7326bd5d33006a4729434d50819a9ce610bc2d191a65",
     "turnId": "turn_resp_05eb5a7326bd5d33006a4729434d50819a9ce610bc2d191a65",
     "threadId": "openai",
-    "role": "assistant"
+    "role": "assistant",
+    "model": "gpt-5.5-2026-04-23"
   },
   {
     "type": "tool.start",
@@ -144,7 +145,8 @@
     "id": "msg_turn_resp_05eb5a7326bd5d33006a472944b970819a88cd2d17c2b0d125",
     "turnId": "turn_resp_05eb5a7326bd5d33006a472944b970819a88cd2d17c2b0d125",
     "threadId": "openai",
-    "role": "assistant"
+    "role": "assistant",
+    "model": "gpt-5.5-2026-04-23"
   },
   {
     "type": "text.start",
@@ -152,7 +154,10 @@
     "id": "msg_05eb5a7326bd5d33006a472945b5d8819abae1a59e9ad7ae56",
     "messageId": "msg_turn_resp_05eb5a7326bd5d33006a472944b970819a88cd2d17c2b0d125",
     "turnId": "turn_resp_05eb5a7326bd5d33006a472944b970819a88cd2d17c2b0d125",
-    "role": "assistant"
+    "role": "assistant",
+    "providerMetadata": {
+      "phase": "final_answer"
+    }
   },
   {
     "type": "text.delta",

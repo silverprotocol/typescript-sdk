@@ -136,14 +136,6 @@
     ]
   },
   {
-    "path": "[*].data.event.item.phase",
-    "reason": "openai: a carrier of the gpt-5.5+ `phase` discriminant (\"commentary\" | \"final_answer\"; OpenAIAssistantMessageItem.phase, openai-agents/src/index.ts:161). From @openai/agents 0.14.0 the facet reads the message item's first-class phase ([*].item.rawItem.phase) and carries it on text.end.providerMetadata.openai.phase, or on ext.openai.late-phase / late-message when the message has already closed (index.ts:1848-1898). Every 0.18.0 phase-bearing cassette (app-spec-structured-result, echo-gpt56, echo-gpt6astra/luna/sol) lands phase in its agjson, so this path repeats a value that is carried. Exception: the frozen 0.12.0 cassette echo-gpt55 predates the first-class field (phase only under providerData: 6 in the native, 0 in the agjson); there the drop is real and disclosed. The live corpus holds only \"final_answer\"; a commentary capture is queued (sp-rnd package 13+17). Re-triaged 2026-09-23 (was FLAGGED FOR FOLLOW-UP, playbook 2026-07-03).",
-    "reviewed": "any",
-    "frameworks": [
-      "openai"
-    ]
-  },
-  {
     "path": "[*].data.event.item.status",
     "reason": "openai: response output item data in response.output_item.added/response.output_item.done events; response.output_item.added is the authoritative tool-start source, but only call_id/name/id are consumed; done-item is IGNORED (not authoritative).",
     "reviewed": "any",
@@ -288,14 +280,6 @@
     ]
   },
   {
-    "path": "[*].data.event.response.model",
-    "reason": "openai: the response's model id on model:response.created/response.in_progress/response.completed. AgJSON HAS a home for it: message.start.model? (SPEC.md:610). Only the claude facet fills that today; filling it from here is an openai-facet change (sp-openai; routed by sp-rnd 2026-09-23). Until then a disclosed drop. Corrected 2026-09-23 (previously said \"no AgJSON home\").",
-    "reviewed": "any",
-    "frameworks": [
-      "openai"
-    ]
-  },
-  {
     "path": "[*].data.event.response.moderation",
     "reason": "openai: agent config / response metadata in model:response.created/response.in_progress/response.completed event payload; no AgJSON home (only response.id and usage are consumed).",
     "reviewed": "any",
@@ -330,14 +314,6 @@
   {
     "path": "[*].data.event.response.output[*].content[*].type",
     "reason": "openai: response.completed full output array in event payload; assembled message content duplicated by earlier streaming text.delta events; no AgJSON home for the redundant assembled payload.",
-    "reviewed": "any",
-    "frameworks": [
-      "openai"
-    ]
-  },
-  {
-    "path": "[*].data.event.response.output[*].phase",
-    "reason": "openai: a carrier of the gpt-5.5+ `phase` discriminant (\"commentary\" | \"final_answer\"; OpenAIAssistantMessageItem.phase, openai-agents/src/index.ts:161). From @openai/agents 0.14.0 the facet reads the message item's first-class phase ([*].item.rawItem.phase) and carries it on text.end.providerMetadata.openai.phase, or on ext.openai.late-phase / late-message when the message has already closed (index.ts:1848-1898). Every 0.18.0 phase-bearing cassette (app-spec-structured-result, echo-gpt56, echo-gpt6astra/luna/sol) lands phase in its agjson, so this path repeats a value that is carried. Exception: the frozen 0.12.0 cassette echo-gpt55 predates the first-class field (phase only under providerData: 6 in the native, 0 in the agjson); there the drop is real and disclosed. The live corpus holds only \"final_answer\"; a commentary capture is queued (sp-rnd package 13+17). Re-triaged 2026-09-23 (was FLAGGED FOR FOLLOW-UP, playbook 2026-07-03).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1264,14 +1240,6 @@
     ]
   },
   {
-    "path": "[*].data.response.output[*].providerData.phase",
-    "reason": "openai: a carrier of the gpt-5.5+ `phase` discriminant (\"commentary\" | \"final_answer\"; OpenAIAssistantMessageItem.phase, openai-agents/src/index.ts:161). From @openai/agents 0.14.0 the facet reads the message item's first-class phase ([*].item.rawItem.phase) and carries it on text.end.providerMetadata.openai.phase, or on ext.openai.late-phase / late-message when the message has already closed (index.ts:1848-1898). Every 0.18.0 phase-bearing cassette (app-spec-structured-result, echo-gpt56, echo-gpt6astra/luna/sol) lands phase in its agjson, so this path repeats a value that is carried. Exception: the frozen 0.12.0 cassette echo-gpt55 predates the first-class field (phase only under providerData: 6 in the native, 0 in the agjson); there the drop is real and disclosed. The live corpus holds only \"final_answer\"; a commentary capture is queued (sp-rnd package 13+17). Re-triaged 2026-09-23 (was FLAGGED FOR FOLLOW-UP, playbook 2026-07-03).",
-    "reviewed": "any",
-    "frameworks": [
-      "openai"
-    ]
-  },
-  {
     "path": "[*].data.response.output[*].providerData.type",
     "reason": "openai: SDK-assembled response object on response_done event; IGNORED (response_done is the SDK-flattened duplicate of model:response.completed, which is the authoritative turn-close source).",
     "reviewed": "any",
@@ -2122,14 +2090,6 @@
   {
     "path": "[*].item.rawItem.output[*].type",
     "reason": "openai: the array-form tool-result content-part discriminant (\"input_text\"/\"input_image\"/\"input_file\" \u2014 see Finding #2, the toolOutputToAgBlocks fix landed this playbook step) \u2014 consumed structurally by the `part.type === \"input_text\"` check to select which parts carry model-visible text; the discriminant STRING itself is never copied verbatim anywhere (only the sibling .text is). Mirrors the existing bare-object [*].message.content[*].type precedent pattern (content-block discriminant, consumed structurally). First observed live (playbook 2026-07-03, echo-gpt55).",
-    "reviewed": "any",
-    "frameworks": [
-      "openai"
-    ]
-  },
-  {
-    "path": "[*].item.rawItem.providerData.phase",
-    "reason": "openai: a carrier of the gpt-5.5+ `phase` discriminant (\"commentary\" | \"final_answer\"; OpenAIAssistantMessageItem.phase, openai-agents/src/index.ts:161). From @openai/agents 0.14.0 the facet reads the message item's first-class phase ([*].item.rawItem.phase) and carries it on text.end.providerMetadata.openai.phase, or on ext.openai.late-phase / late-message when the message has already closed (index.ts:1848-1898). Every 0.18.0 phase-bearing cassette (app-spec-structured-result, echo-gpt56, echo-gpt6astra/luna/sol) lands phase in its agjson, so this path repeats a value that is carried. Exception: the frozen 0.12.0 cassette echo-gpt55 predates the first-class field (phase only under providerData: 6 in the native, 0 in the agjson); there the drop is real and disclosed. The live corpus holds only \"final_answer\"; a commentary capture is queued (sp-rnd package 13+17). Re-triaged 2026-09-23 (was FLAGGED FOR FOLLOW-UP, playbook 2026-07-03).",
     "reviewed": "any",
     "frameworks": [
       "openai"

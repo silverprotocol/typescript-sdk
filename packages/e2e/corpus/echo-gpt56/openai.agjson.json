@@ -11,7 +11,8 @@
     "id": "msg_turn_resp_0793114f0fe45b53006ab2e29a819c87d0bc7c673799f9ca6c",
     "turnId": "turn_resp_0793114f0fe45b53006ab2e29a819c87d0bc7c673799f9ca6c",
     "threadId": "openai",
-    "role": "assistant"
+    "role": "assistant",
+    "model": "gpt-5.6-sol"
   },
   {
     "type": "tool.start",
@@ -148,7 +149,8 @@
     "id": "msg_turn_resp_0793114f0fe45b53006ab2e29d738887d0aa5347714aff813c",
     "turnId": "turn_resp_0793114f0fe45b53006ab2e29d738887d0aa5347714aff813c",
     "threadId": "openai",
-    "role": "assistant"
+    "role": "assistant",
+    "model": "gpt-5.6-sol"
   },
   {
     "type": "text.start",
@@ -156,7 +158,10 @@
     "id": "msg_0793114f0fe45b53006ab2e29f012487d0bf6317e9a681c5f9",
     "messageId": "msg_turn_resp_0793114f0fe45b53006ab2e29d738887d0aa5347714aff813c",
     "turnId": "turn_resp_0793114f0fe45b53006ab2e29d738887d0aa5347714aff813c",
-    "role": "assistant"
+    "role": "assistant",
+    "providerMetadata": {
+      "phase": "final_answer"
+    }
   },
   {
     "type": "text.delta",
@@ -243,11 +248,5 @@
       "cacheWriteTokens": 0,
       "reasoningTokens": 0
     }
-  },
-  {
-    "seq": 31,
-    "type": "ext.openai.late-phase",
-    "itemId": "msg_0793114f0fe45b53006ab2e29f012487d0bf6317e9a681c5f9",
-    "phase": "final_answer"
   }
 ]

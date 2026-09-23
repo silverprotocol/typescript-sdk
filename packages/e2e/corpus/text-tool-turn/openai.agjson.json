@@ -11,7 +11,8 @@
     "id": "msg_turn_resp_0e10e9968fce76e4006a3bdceffcb0819baceb37d4e408f02f",
     "turnId": "turn_resp_0e10e9968fce76e4006a3bdceffcb0819baceb37d4e408f02f",
     "threadId": "openai",
-    "role": "assistant"
+    "role": "assistant",
+    "model": "gpt-4o-mini-2024-07-18"
   },
   {
     "type": "tool.start",
@@ -108,7 +109,8 @@
     "id": "msg_turn_resp_0e10e9968fce76e4006a3bdcf3b5c4819b858c4b9381bfe2c5",
     "turnId": "turn_resp_0e10e9968fce76e4006a3bdcf3b5c4819b858c4b9381bfe2c5",
     "threadId": "openai",
-    "role": "assistant"
+    "role": "assistant",
+    "model": "gpt-4o-mini-2024-07-18"
   },
   {
     "type": "text.start",

@@ -11,7 +11,8 @@
     "id": "msg_turn_resp_049872164be6d604006ab2e2a5784c87d09eaa8c90f94cc6e5",
     "turnId": "turn_resp_049872164be6d604006ab2e2a5784c87d09eaa8c90f94cc6e5",
     "threadId": "openai",
-    "role": "assistant"
+    "role": "assistant",
+    "model": "gpt-6-astra"
   },
   {
     "type": "tool.start",
@@ -154,7 +155,8 @@
     "id": "msg_turn_resp_049872164be6d604006ab2e2a7d6fc87d082d96e51ec7de19c",
     "turnId": "turn_resp_049872164be6d604006ab2e2a7d6fc87d082d96e51ec7de19c",
     "threadId": "openai",
-    "role": "assistant"
+    "role": "assistant",
+    "model": "gpt-6-astra"
   },
   {
     "type": "text.start",
@@ -162,7 +164,10 @@
     "id": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
     "messageId": "msg_turn_resp_049872164be6d604006ab2e2a7d6fc87d082d96e51ec7de19c",
     "turnId": "turn_resp_049872164be6d604006ab2e2a7d6fc87d082d96e51ec7de19c",
-    "role": "assistant"
+    "role": "assistant",
+    "providerMetadata": {
+      "phase": "final_answer"
+    }
   },
   {
     "type": "text.delta",
@@ -257,11 +262,5 @@
       "cacheWriteTokens": 0,
       "reasoningTokens": 0
     }
-  },
-  {
-    "seq": 33,
-    "type": "ext.openai.late-phase",
-    "itemId": "msg_049872164be6d604006ab2e2a93f6087d0b552461502b1ba4c",
-    "phase": "final_answer"
   }
 ]
