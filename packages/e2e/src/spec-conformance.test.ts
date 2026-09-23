@@ -156,6 +156,13 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 38, leg: "claude", title: "ADK shared-state fixture (draft.4)", disposition: "N/A", citation: "§10 item 38: the Claude Agent SDK has no key-addressed shared state" },
   { n: 38, leg: "openai", title: "ADK shared-state fixture (draft.4)", disposition: "N/A", citation: "§10 item 38: the OpenAI Agents SDK has no key-addressed shared state" },
   { n: 38, leg: "vercel", title: "ADK shared-state fixture (draft.4)", disposition: "N/A", citation: "§10 item 38: the Vercel AI SDK has no key-addressed shared state" },
+  { n: 39, title: "Kept-open tool-result snapshot fold (draft.4): a later tool.done replaces the payload as a unit (omitted payload fields clear, uiData and structuredContent included), _meta/toolMetadata kept unless re-sent, providerMetadata merged by key, preliminary cleared; an error final clears an earlier structuredContent; a carried uiData:null is stored present", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.39, reference reduce() + Reducer (probe P1 6debaf1 + uiData flip c2ddfd2)" },
+  { n: 40, leg: "sweep", title: "Flush honesty (draft.4): every prefix of every corpus native, flushed by its reference normalizer, emits only lifecycle closes, message.end, non-success terminals and ext carries (the carries before the terminals), never a success turn.done or content, and every opened turn folds to an outcome", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.40(sweep) over every corpus/*/<fw>.native.json via the four reference normalizers" },
+  { n: 40, leg: "claude", title: "Flush honesty (draft.4): a Claude stream cut mid-turn with open text, reasoning and a partial tool call flushes content-free lifecycle closes only", disposition: "COVERED-BY", citation: "claude-agent-sdk/src/index.test.ts \"createClaudeNormalizer — C1: flush never mints content\" › \"leg (a): every flush() event is a content-free lifecycle close; …\"" },
+  { n: 40, leg: "openai", title: "Flush honesty (draft.4): the approval interruption flushes exactly one turn.done{paused, asks:[approval_<callId>], usage U}; without the approval, turn.abort{stream-truncated} and a message.end carrying U", disposition: "COVERED-BY", citation: "openai-agents/src/index.test.ts \"createOpenaiNormalizer — O1 honest flush (fold/flush option 1)\" › the two \"§10.26 leg: …\" cases (the item's pre-landing number)" },
+  { n: 41, title: "MCP Apps view locator carry (draft.4): every native tool result's MCP Apps _meta.ui reaches its tool.done's _meta.ui deep-equal", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.41: every corpus native carrying _meta.ui, replayed through its reference normalizer (claude, openai, adk)" },
+  { n: 42, leg: "vercel", title: "Kept-open results are snapshots (draft.4): yield/yield/return and yield/throw emit full snapshots; the error final carries E's message and no structuredContent", disposition: "COVERED-BY", citation: "vercel-ai/src/index.test.ts \"§10 item 42 — kept-open results are snapshots (yield/yield/return, yield/throw)\" (probe a84fd65)" },
+  { n: 42, leg: "single-delivery", title: "Kept-open results are snapshots (draft.4): claude, openai and adk never emit more than one tool.done per call, so they satisfy the item trivially", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.42(single-delivery), a scan of every corpus/*/{claude,openai,adk}.agjson.json" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -2076,3 +2083,198 @@ describe("§10.38 — ADK shared-state fixture (draft.4; §8.0 item 30)", () => 
     }
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.39 — Kept-open tool-result snapshot fold (draft.4; §5 tool.done)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.39 — kept-open tool-result snapshot fold (draft.4; §5 tool.done)", () => {
+  const PRE = [
+    { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+    { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+    { type: "tool.start", seq: 2, toolCallId: "c1", name: "calc", turnId: "t1", threadId: "th1" },
+  ] as AgEvent[];
+  const td = (seq: number, x: Record<string, unknown>) => ({ type: "tool.done", seq, toolCallId: "c1", turnId: "t1", threadId: "th1", ...x }) as unknown as AgEvent;
+  const A = { type: "text", text: "a" }, B = { type: "text", text: "b" }, E = { type: "text", text: "boom" };
+  const S = { s: 1 }, U = { u: 1 }, M = { m: 1 }, T = { t: 1 };
+  // reduce() and the incremental Reducer agree (INV-FOLD); returns the tool-result blocks for c1.
+  const fold = (tail: AgEvent[]) => {
+    const evs = [...PRE, ...tail];
+    const batch = reduce(evs);
+    const acc = new Reducer();
+    for (const e of evs) acc.push(e);
+    expect(acc.result()).toEqual(batch.result);
+    expect(acc.needsResync).toBe(batch.needsResync);
+    const blocks = batch.result.messages.flatMap((m) => m.content).filter((b) => b.type === "tool-result" && b.toolCallId === "c1") as unknown as Array<Record<string, unknown>>;
+    return { blocks, needsResync: batch.needsResync };
+  };
+
+  it("(1) an errored preliminary then an ok final: one block, the final's payload, descriptors kept, providerMetadata merged, nothing stale", () => {
+    const r = fold([
+      td(3, { more: true, content: [A], outcome: "error", isError: true, errorText: "e", structuredContent: S, uiData: U, _meta: M, toolMetadata: T, providerMetadata: { p: 1 } }),
+      td(4, { content: [B], outcome: "ok", providerMetadata: { q: 2 } }),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(r.blocks).toHaveLength(1);
+    const b = r.blocks[0] as Record<string, unknown>;
+    expect({ content: b["content"], outcome: b["outcome"], _meta: b["_meta"], toolMetadata: b["toolMetadata"], providerMetadata: b["providerMetadata"] }).toEqual({ content: [B], outcome: "ok", _meta: M, toolMetadata: T, providerMetadata: { p: 1, q: 2 } });
+    for (const k of ["isError", "errorText", "structuredContent", "uiData", "preliminary"]) expect({ k, present: k in b }).toEqual({ k, present: false });
+  });
+
+  it("(2) a kept-open structuredContent then an error final without it: the error result alone", () => {
+    const r = fold([
+      td(3, { more: true, content: [A], outcome: "ok", structuredContent: S }),
+      td(4, { content: [E], outcome: "error", isError: true, errorText: "boom" }),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(r.blocks).toHaveLength(1);
+    const b = r.blocks[0] as Record<string, unknown>;
+    expect("structuredContent" in b).toBe(false);
+    expect({ outcome: b["outcome"], isError: b["isError"], errorText: b["errorText"], content: b["content"] }).toEqual({ outcome: "error", isError: true, errorText: "boom", content: [E] });
+  });
+
+  it("(3) a kept-open uiData then a final carrying uiData:null: the member is present with the value null", () => {
+    const r = fold([
+      td(3, { more: true, content: [A], outcome: "ok", uiData: U }),
+      td(4, { content: [B], outcome: "ok", uiData: null }),
+    ]);
+    expect(r.needsResync).toBe(false);
+    const b = r.blocks[0] as Record<string, unknown>;
+    expect("uiData" in b && b["uiData"] === null).toBe(true);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.40 — Flush honesty (draft.4; §5.0 INV-TURN / INV-FLUSH)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.40 — flush honesty (draft.4; §5.0 INV-FLUSH)", () => {
+  const CLOSES = new Set(["text.end", "reasoning.end", "step.done", "subagent.done", "message.end"]);
+  const TERMINALS = new Set(["turn.done", "turn.abort", "turn.error"]);
+  // INV-FLUSH (3): a text.end / reasoning.end at flush carries at most citations, phase and providerMetadata.
+  const END_KEYS = new Set(["type", "seq", "id", "turnId", "threadId", "messageId", "provider", "citations", "phase", "providerMetadata"]);
+  const make = (fw: string) =>
+    fw === "openai" ? createOpenaiNormalizer({ invokeId: "openai" })
+    : fw === "adk" ? createAdkNormalizer()
+    : fw === "vercel" ? createVercelNormalizer({ invokeId: "vercel" })
+    : createClaudeNormalizer({ invokeId: "claude" });
+
+  it("(sweep) every prefix of every corpus native, flushed: only lifecycle closes, message.end, non-success terminals and ext carries (before the terminals); never a success turn.done or content; every opened turn folds to an outcome", () => {
+    const corpus = new URL("../corpus/", import.meta.url);
+    const bad: string[] = [];
+    const cuts: Record<string, number> = {};
+    for (const dir of readdirSync(corpus).sort()) {
+      for (const fw of ["claude", "openai", "adk", "vercel"]) {
+        const f = new URL(`${dir}/${fw}.native.json`, corpus);
+        if (!existsSync(f)) continue;
+        const native = (JSON.parse(readFileSync(f, "utf8")) as JsonValue[]).filter((e) => (e as { type?: string } | null)?.type !== HOST_COMPLETE_MARKER);
+        for (let cut = 1; cut <= native.length; cut++) {
+          const n = make(fw);
+          const pushed: AgEvent[] = [];
+          for (const e of native.slice(0, cut)) pushed.push(...(n.push(e as never) as AgEvent[]));
+          const flushed = n.flush() as AgEvent[];
+          cuts[fw] = (cuts[fw] ?? 0) + 1;
+          const at = `${dir}/${fw}@${cut}`;
+          let firstTerminal = -1;
+          flushed.forEach((e, i) => {
+            const ty = e.type as string;
+            if (TERMINALS.has(ty) && firstTerminal < 0) firstTerminal = i;
+            if (ty.startsWith("ext.")) {
+              if (firstTerminal >= 0) bad.push(`${at}: ${ty} after a terminal`);
+            } else if (ty === "turn.done") {
+              if ((e as { outcome?: { type?: string } }).outcome?.type === "success") bad.push(`${at}: success turn.done at flush`);
+            } else if (!CLOSES.has(ty) && !TERMINALS.has(ty)) {
+              bad.push(`${at}: ${ty} at flush`);
+            }
+            if (ty === "text.end" || ty === "reasoning.end") {
+              const extra = Object.keys(e).filter((k) => !END_KEYS.has(k));
+              if (extra.length) bad.push(`${at}: ${ty} carries ${extra.join(",")}`);
+            }
+          });
+          const turns = reduce([...pushed, ...flushed]).result.turns;
+          for (const t of turns) if (t.outcome === undefined) bad.push(`${at}: turn ${t.turnId} has no outcome`);
+        }
+      }
+    }
+    expect(bad.slice(0, 20)).toEqual([]);
+    // Non-vacuity: every reference normalizer was cut and flushed.
+    expect(Object.keys(cuts).sort()).toEqual(["adk", "claude", "openai", "vercel"]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.41 — MCP Apps view locator carry (draft.4; §2.1 View locator)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.41 — MCP Apps view locator carry (draft.4; §2.1)", () => {
+  // Every `_meta.ui` member found in a value (the native stream, or the tool.done events), as sorted-key JSON.
+  const uiMembers = (v: unknown, out: string[] = []): string[] => {
+    if (Array.isArray(v)) for (const x of v) uiMembers(x, out);
+    else if (v !== null && typeof v === "object") {
+      const o = v as Record<string, unknown>;
+      const meta = o["_meta"];
+      if (meta !== null && typeof meta === "object" && !Array.isArray(meta) && "ui" in meta) out.push(canon((meta as Record<string, unknown>)["ui"]));
+      for (const x of Object.values(o)) uiMembers(x, out);
+    }
+    return out;
+  };
+  const canon = (v: unknown): string => JSON.stringify(v, (_k, x) => (x !== null && typeof x === "object" && !Array.isArray(x) ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => a.localeCompare(b))) : x));
+
+  it("every corpus native, replayed through its reference normalizer: the native's MCP Apps _meta.ui members and the emitted tool.done _meta.ui members are the same multiset", async () => {
+    const corpus = new URL("../corpus/", import.meta.url);
+    const bad: string[] = [];
+    const carried: string[] = [];
+    for (const dir of readdirSync(corpus).sort()) {
+      for (const fw of ["claude", "openai", "adk", "vercel"]) {
+        const nf = new URL(`${dir}/${fw}.native.json`, corpus);
+        if (!existsSync(nf)) continue;
+        const recorded = JSON.parse(readFileSync(nf, "utf8")) as JsonValue[];
+        const native = uiMembers(recorded).sort();
+        if (native.length === 0) continue;
+        const done = ((await replayNatives(recorded, fw as "claude" | "openai" | "adk" | "vercel")).agjson as Array<Record<string, unknown>>)
+          .filter((e) => e["type"] === "tool.done")
+          .flatMap((e) => {
+            const m = e["_meta"] as Record<string, unknown> | undefined;
+            return m && "ui" in m ? [canon(m["ui"])] : [];
+          })
+          .sort();
+        if (JSON.stringify(native) !== JSON.stringify(done)) bad.push(`${dir}/${fw}: native ${native.length} vs tool.done ${done.length}`);
+        else carried.push(`${dir}/${fw}`);
+      }
+    }
+    expect(bad).toEqual([]);
+    // Non-vacuity: the corpus's MCP Apps goldens (claude app-spec/app-update, openai app-spec-structured-result, adk app-spec-gemini36-38).
+    expect(carried.length).toBeGreaterThanOrEqual(8);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.42 — Kept-open results are snapshots (draft.4); vercel leg COVERED-BY
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.42 — kept-open results are snapshots (draft.4)", () => {
+  it("(single-delivery) claude, openai and adk goldens carry at most one tool.done per toolCallId, so the item holds trivially for them", () => {
+    const corpus = new URL("../corpus/", import.meta.url);
+    const bad: string[] = [];
+    let calls = 0;
+    for (const dir of readdirSync(corpus).sort()) {
+      for (const fw of ["claude", "openai", "adk"]) {
+        const f = new URL(`${dir}/${fw}.agjson.json`, corpus);
+        if (!existsSync(f)) continue;
+        const counts = new Map<string, number>();
+        for (const e of JSON.parse(readFileSync(f, "utf8")) as Array<Record<string, unknown>>) {
+          if (e["type"] !== "tool.done") continue;
+          const id = String(e["toolCallId"]);
+          counts.set(id, (counts.get(id) ?? 0) + 1);
+        }
+        for (const [id, c] of counts) {
+          calls++;
+          if (c > 1) bad.push(`${dir}/${fw}:${id} has ${c} tool.done`);
+        }
+      }
+    }
+    expect(bad).toEqual([]);
+    expect(calls).toBeGreaterThan(0);
+  });
+});
+
