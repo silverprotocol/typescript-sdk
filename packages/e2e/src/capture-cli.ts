@@ -270,12 +270,13 @@ async function freePort(): Promise<number> {
  */
 export const KNOB_SUPPORT: Readonly<
   Record<
-    "preToolUseDecision" | "resumeFrom" | "adkWorkflow" | "adkStateScript",
-    { frameworks: readonly Framework[]; proof?: string }
+    "preToolUseDecision" | "resumeFrom" | "toolApproval" | "adkWorkflow" | "adkStateScript",
+    { frameworks: readonly Framework[]; proof?: string | Partial<Record<Framework, string>> }
   >
 > = {
   preToolUseDecision: { frameworks: ["claude"], proof: "captureQueryExtras" },
-  resumeFrom: { frameworks: ["claude"], proof: "captureQueryExtras" },
+  resumeFrom: { frameworks: ["claude", "openai"], proof: { claude: "captureQueryExtras", openai: "openaiApprovalPlan" } },
+  toolApproval: { frameworks: ["openai"], proof: "openaiApprovalPlan" },
   adkWorkflow: { frameworks: ["adk"], proof: "runAdkWorkflowCapture" },
   adkStateScript: { frameworks: ["adk"], proof: "ADK_STATE_TOOL" },
 };
@@ -294,10 +295,11 @@ export function assertKnobsHonored(scenario: Scenario, framework: Framework, age
           `capture agent honors (framework="${framework}"). No capture attempted.`,
       );
     }
-    if (support.proof !== undefined && !(support.proof in agentModule)) {
+    const proof = typeof support.proof === "string" ? support.proof : support.proof?.[framework];
+    if (proof !== undefined && !(proof in agentModule)) {
       throw new Error(
         `e2e:capture: scenario "${scenario.name}" sets ${knob}, but this tree's ${framework} capture agent does not ` +
-          `export ${support.proof}, so it would silently ignore the knob. Capture on a tree whose agent implements it. ` +
+          `export ${proof}, so it would silently ignore the knob. Capture on a tree whose agent implements it. ` +
           `No capture attempted.`,
       );
     }
@@ -391,6 +393,59 @@ export async function resumeSessionFrom(seed: string, framework: Framework, corp
 }
 
 /**
+ * Where an openai leg-1 capture (toolApproval "interrupt") keeps its RunState:
+ * a gitignored capture-time location in this checkout, keyed by seed. NEVER the
+ * corpus: the RunState can carry the conversation, tool arguments and response
+ * ids, the corpus is public, and replay never needs it (sp-main, 2026-09-24).
+ */
+export function runStatePath(seed: string, root = join(PACKAGE_ROOT, ".tmp", "capture-state")): string {
+  return join(root, seed, "openai.runstate");
+}
+
+/**
+ * The RunState an openai `resumeFrom` scenario resumes: the one leg 1 saved at
+ * capture time (runStatePath). Exported for unit testing.
+ */
+export async function resumeRunStateFrom(seed: string, root?: string): Promise<string> {
+  const path = runStatePath(seed, root);
+  try {
+    return await readFile(path, "utf8");
+  } catch {
+    throw new Error(
+      `e2e:capture: resumeFrom "${seed}": no saved RunState at ${path}. A leg-1 RunState is kept only in the ` +
+        `checkout that captured it (never committed); capture "${seed}" first here.`,
+    );
+  }
+}
+
+/**
+ * An openai resume leg must run on leg 1's steer, MCP servers and model, or the
+ * rebuilt RunState would meet a different agent. Throws on any difference.
+ * Exported for unit testing.
+ */
+export async function assertSameAsLeg1(
+  scenario: Scenario,
+  model: string | undefined,
+  packageRoot = PACKAGE_ROOT,
+): Promise<void> {
+  const seed = scenario.resumeFrom!;
+  const leg1 = Scenario.parse(JSON.parse(await readFile(join(packageRoot, "scenarios", seed, "scenario.json"), "utf8")));
+  const differs: string[] = [];
+  if (JSON.stringify(leg1.steer) !== JSON.stringify(scenario.steer)) differs.push("steer");
+  if (JSON.stringify(leg1.mcpServers) !== JSON.stringify(scenario.mcpServers)) differs.push("mcpServers");
+  let leg1Model: unknown;
+  try {
+    leg1Model = (JSON.parse(await readFile(join(packageRoot, "corpus", seed, "openai.provenance.json"), "utf8")) as { model?: unknown }).model;
+  } catch {
+    throw new Error(`e2e:capture: resumeFrom "${seed}": no leg-1 openai.provenance.json to read its model from`);
+  }
+  if (leg1Model !== model) differs.push(`model (leg 1 ${String(leg1Model)}, this leg ${String(model)})`);
+  if (differs.length > 0) {
+    throw new Error(`e2e:capture: scenario "${scenario.name}" must match its leg 1 "${seed}": ${differs.join(", ")} differ. No capture attempted.`);
+  }
+}
+
+/**
  * The real `pnpm e2e:capture <scenario> <framework>` entry point.
  *
  * OPERATOR-GATED: fails fast with a clear message when the framework's
@@ -431,16 +486,40 @@ export async function runCaptureCli(scenarioName: string, framework: Framework):
   const sdkVersion = await resolveSdkVersion(framework);
   const model = resolveModel(framework);
   const outDir = join(PACKAGE_ROOT, "corpus", scenarioName);
+  const openaiResume = framework === "openai" && scenario.resumeFrom !== undefined;
   const resumeSessionId =
-    scenario.resumeFrom !== undefined ? await resumeSessionFrom(scenario.resumeFrom, framework) : undefined;
+    scenario.resumeFrom !== undefined && !openaiResume ? await resumeSessionFrom(scenario.resumeFrom, framework) : undefined;
+  let resumeRunState: string | undefined;
+  if (openaiResume) {
+    await assertSameAsLeg1(scenario, model);
+    resumeRunState = await resumeRunStateFrom(scenario.resumeFrom!);
+  }
+  // Leg 1: keep the RunState in memory; it is saved only once the capture succeeded.
+  let runState: string | undefined;
+  const onRunState = scenario.toolApproval === "interrupt" ? (s: string) => void (runState = s) : undefined;
 
   const { outDir: written } = await runCaptureAndWrite(
     scenario,
     deps,
-    { ports, framework, apiKey, model, ...(resumeSessionId !== undefined ? { resumeSessionId } : {}) },
+    {
+      ports,
+      framework,
+      apiKey,
+      model,
+      ...(resumeSessionId !== undefined ? { resumeSessionId } : {}),
+      ...(resumeRunState !== undefined ? { resumeRunState } : {}),
+      ...(onRunState !== undefined ? { onRunState } : {}),
+    },
     outDir,
     { sdkVersion, model },
   );
+
+  if (onRunState !== undefined) {
+    if (runState === undefined) throw new Error(`e2e:capture: "${scenario.name}" is a toolApproval "interrupt" leg but no RunState was reported`);
+    const path = runStatePath(scenario.name);
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(path, runState, "utf8");
+  }
 
   return written;
 }

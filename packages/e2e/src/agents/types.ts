@@ -48,6 +48,18 @@ export interface CaptureRunInput {
    *  underlying SDK requires. */
   abortSignal?: AbortSignal;
   /**
+   * OpenAI tool-approval knob (openai-agents only; sp-openai 82b3aae). "interrupt"
+   * is leg 1: every MCP tool needs approval, the run stops on the first call, and
+   * its serialized RunState goes to `onRunState`. "approve" / "reject" is a resume
+   * leg: it rebuilds leg 1's RunState (`resumeRunState`) and gives that decision
+   * to every pending approval. See scenario.ts `toolApproval`.
+   */
+  toolApproval?: "interrupt" | "approve" | "reject";
+  /** A resume leg's input: the RunState string leg 1 handed to `onRunState` (openai only). */
+  resumeRunState?: string;
+  /** Leg 1 (toolApproval "interrupt"): receives the interrupted run's serialized RunState. */
+  onRunState?: (serializedRunState: string) => void;
+  /**
    * workspace#7: enable token-granular partial frames in the native stream.
    * Claude-only today (`includePartialMessages: true` on the Agent SDK query);
    * agents without a partials concept ignore it.

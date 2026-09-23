@@ -2,3 +2,5 @@ node_modules/
 dist/
 *.tsbuildinfo
 .DS_Store
+# capture-time state that must never be committed (e.g. an openai leg-1 RunState)
+.tmp/

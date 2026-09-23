@@ -425,6 +425,36 @@ describe("runCapture", () => {
     expect("resumeSessionId" in (without.input() as object)).toBe(false);
   });
 
+  it("forwards scenario.toolApproval, opts.resumeRunState and opts.onRunState (openai approval legs), and omits them otherwise", async () => {
+    const seen: string[] = [];
+    const leg1 = makeInputCapturingDeps();
+    await runCapture(Scenario.parse({ name: "approval-tool-gpt6sol", prompt: "x", toolApproval: "interrupt" }), leg1.deps, {
+      ports: [],
+      framework: "openai",
+      onRunState: (s) => seen.push(s),
+    });
+    const leg1Input = leg1.input() as { toolApproval?: string; onRunState?: (s: string) => void };
+    expect(leg1Input.toolApproval).toBe("interrupt");
+    leg1Input.onRunState?.("rs");
+    expect(seen).toEqual(["rs"]);
+    const resume = makeInputCapturingDeps();
+    await runCapture(Scenario.parse({ name: "approval-tool-gpt6sol-resume-approve", prompt: "x", toolApproval: "approve" }), resume.deps, {
+      ports: [],
+      framework: "openai",
+      resumeRunState: "rs",
+    });
+    expect(resume.input()).toMatchObject({ toolApproval: "approve", resumeRunState: "rs" });
+    const plain = makeInputCapturingDeps();
+    await runCapture(Scenario.parse({ name: "text-only", prompt: "x" }), plain.deps, { ports: [], framework: "openai" });
+    for (const k of ["toolApproval", "resumeRunState", "onRunState"]) expect(k in (plain.input() as object)).toBe(false);
+  });
+
+  it("an openai resume leg (resumeRunState) skips the expectTools check, like a claude resume", async () => {
+    const scenario = Scenario.parse({ name: "approval-tool-gpt6sol-resume-reject", prompt: "x", mcpServers: [{ key: "t", kind: "text" }], toolApproval: "reject" });
+    const resumed = makeInputCapturingDeps();
+    await expect(runCapture(scenario, resumed.deps, { ports: [0], framework: "openai", resumeRunState: "rs" })).resolves.toHaveProperty("native");
+  });
+
   it("forwards scenario.adkStateScript and records the session state the agent reports via onSessionState", async () => {
     const script = [{ cfg: { a: 1, b: 2 }, "temp:scratch": "x" }, { cfg: { a: 5 } }];
     let seenScript: unknown;

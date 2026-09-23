@@ -90,6 +90,10 @@ export interface CaptureRunOptions {
   apiKey?: string;
   /** Resume this session (resolved by capture-cli from scenario.resumeFrom). */
   resumeSessionId?: string;
+  /** Resume this RunState (openai; resolved by capture-cli from scenario.resumeFrom). */
+  resumeRunState?: string;
+  /** Leg 1 (toolApproval "interrupt"): receives the interrupted run's RunState. */
+  onRunState?: (serializedRunState: string) => void;
   /** System prompt override. Defaults to scenario.steer if present. */
   systemPrompt?: string;
   /**
@@ -162,6 +166,9 @@ export async function runCapture(
       ...(scenario.reasoningSummary !== undefined ? { reasoningSummary: scenario.reasoningSummary } : {}),
       ...(scenario.preToolUseDecision !== undefined ? { preToolUseDecision: scenario.preToolUseDecision } : {}),
       ...(opts.resumeSessionId !== undefined ? { resumeSessionId: opts.resumeSessionId } : {}),
+      ...(scenario.toolApproval !== undefined ? { toolApproval: scenario.toolApproval } : {}),
+      ...(opts.resumeRunState !== undefined ? { resumeRunState: opts.resumeRunState } : {}),
+      ...(opts.onRunState !== undefined ? { onRunState: opts.onRunState } : {}),
       ...(scenario.adkStateScript !== undefined
         ? { adkStateScript: scenario.adkStateScript, onSessionState: (state: JsonValue) => { sessionState = state; } }
         : {}),
@@ -191,7 +198,7 @@ export async function runCapture(
     // Skipped for an error seed (a failed run calls no tools) and for a resume
     // leg (its tool call was made in the leg it resumes; the resumed stream
     // carries only what happens next, e.g. the deferred call's execution).
-    const skipToolCheck = runError !== undefined || opts.resumeSessionId !== undefined;
+    const skipToolCheck = runError !== undefined || opts.resumeSessionId !== undefined || opts.resumeRunState !== undefined;
     const calledTools = extractToolCalls(native, opts.framework);
     const missingTools = skipToolCheck ? [] : expectTools.filter((t) => !calledTools.includes(t));
     if (missingTools.length > 0) {

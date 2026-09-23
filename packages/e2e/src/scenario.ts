@@ -105,6 +105,16 @@ export const Scenario = z.object({
   // a separate cassette, SPEC §8.0 Lifetime). Model-named seeds using them
   // MUST be captured with an explicit CAPTURE_MODEL.
   preToolUseDecision: z.enum(["defer", "allow", "deny"]).optional(),
+  // OpenAI tool-approval knob (openai-agents only; sp-openai 82b3aae,
+  // 2026-09-24). "interrupt" is leg 1: every MCP tool needs approval, so the
+  // run stops on the first call; the harness keeps its RunState OUT of the
+  // corpus (capture-cli.ts runStatePath). "approve" / "reject" is a resume leg
+  // and needs resumeFrom naming leg 1's seed.
+  toolApproval: z.enum(["interrupt", "approve", "reject"]).optional(),
+  // resumeFrom, for openai: the seed whose leg-1 capture saved its RunState at
+  // capture time in this checkout (never committed; it can carry the
+  // conversation, tool arguments and response ids). The resume leg must use
+  // leg 1's steer, MCP servers and model (capture-cli enforces it).
   resumeFrom: z.string().min(1).optional(),
   // Shared-state knob (google-adk only; rnd's ADK state-fold candidate,
   // 2026-09-24). Each entry is one step's state writes: the agent registers

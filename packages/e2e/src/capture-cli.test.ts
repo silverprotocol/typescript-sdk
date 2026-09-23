@@ -43,6 +43,9 @@ import {
   resolveSdkVersion,
   assertKnobsHonored,
   resumeSessionFrom,
+  resumeRunStateFrom,
+  runStatePath,
+  assertSameAsLeg1,
   runCaptureAndWrite,
   runCaptureCli,
 } from "./capture-cli.js";
@@ -523,6 +526,60 @@ describe("assertKnobsHonored", () => {
       /only the adk capture agent honors/,
     );
     expect(() => assertKnobsHonored(withKnobs({ adkWorkflow: "pause" }), "adk", { runAdkWorkflowCapture: () => undefined })).not.toThrow();
+  });
+});
+
+describe("openai tool approval: the knob guard, the RunState location and the leg-1 match (sp-openai 82b3aae)", () => {
+  const withKnobs = (extra: Record<string, unknown>) => Scenario.parse({ name: "approval-probe", prompt: "x", ...extra });
+  const openaiWithApproval = { runOpenaiCapture: () => undefined, openaiApprovalPlan: () => undefined };
+
+  it("toolApproval and resumeFrom pass on an openai agent that exports openaiApprovalPlan, and fail without it", () => {
+    expect(() => assertKnobsHonored(withKnobs({ toolApproval: "interrupt" }), "openai", openaiWithApproval)).not.toThrow();
+    expect(() => assertKnobsHonored(withKnobs({ toolApproval: "approve", resumeFrom: "leg-1" }), "openai", openaiWithApproval)).not.toThrow();
+    expect(() => assertKnobsHonored(withKnobs({ toolApproval: "reject", resumeFrom: "leg-1" }), "openai", { runOpenaiCapture: () => undefined })).toThrow(
+      /does not export openaiApprovalPlan/,
+    );
+    // resumeFrom's proof is per framework: claude still needs captureQueryExtras.
+    expect(() => assertKnobsHonored(withKnobs({ resumeFrom: "leg-1" }), "claude", openaiWithApproval)).toThrow(/does not export captureQueryExtras/);
+    expect(() => assertKnobsHonored(withKnobs({ toolApproval: "interrupt" }), "claude", { captureQueryExtras: () => ({}) })).toThrow(
+      /only the openai capture agent honors/,
+    );
+    expect(() => assertKnobsHonored(withKnobs({ resumeFrom: "leg-1" }), "adk", {})).toThrow(/only the claude\/openai capture agent honors/);
+  });
+
+  it("the RunState lives under the package's gitignored .tmp/capture-state, keyed by seed, never in corpus/", async () => {
+    expect(runStatePath("approval-tool-gpt6sol")).toMatch(/[\\/]packages[\\/]e2e[\\/]\.tmp[\\/]capture-state[\\/]approval-tool-gpt6sol[\\/]openai\.runstate$/);
+    expect(runStatePath("x")).not.toMatch(/[\\/]corpus[\\/]/);
+    const root = await mkdtemp(join(tmpdir(), "capture-cli-test-"));
+    try {
+      await expect(resumeRunStateFrom("leg-1", root)).rejects.toThrow(/no saved RunState .*never committed/);
+      const { mkdir, writeFile } = await import("node:fs/promises");
+      await mkdir(dirname(runStatePath("leg-1", root)), { recursive: true });
+      await writeFile(runStatePath("leg-1", root), "state-string", "utf8");
+      expect(await resumeRunStateFrom("leg-1", root)).toBe("state-string");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("a resume leg must match leg 1's steer, MCP servers and model; any difference fails before a capture", async () => {
+    const root = await mkdtemp(join(tmpdir(), "capture-cli-test-"));
+    try {
+      const { mkdir, writeFile } = await import("node:fs/promises");
+      const leg1 = { name: "leg-1", prompt: "call it", steer: "S", mcpServers: [{ key: "t", kind: "text" }], toolApproval: "interrupt" };
+      await mkdir(join(root, "scenarios", "leg-1"), { recursive: true });
+      await writeFile(join(root, "scenarios", "leg-1", "scenario.json"), JSON.stringify(leg1));
+      await mkdir(join(root, "corpus", "leg-1"), { recursive: true });
+      await writeFile(join(root, "corpus", "leg-1", "openai.provenance.json"), JSON.stringify({ kind: "capture", model: "gpt-6-sol" }));
+      const resume = (extra: Record<string, unknown>) =>
+        Scenario.parse({ name: "leg-1-resume-approve", prompt: "Continue.", steer: "S", mcpServers: [{ key: "t", kind: "text" }], toolApproval: "approve", resumeFrom: "leg-1", ...extra });
+      await expect(assertSameAsLeg1(resume({}), "gpt-6-sol", root)).resolves.toBeUndefined();
+      await expect(assertSameAsLeg1(resume({ steer: "other" }), "gpt-6-sol", root)).rejects.toThrow(/steer differ/);
+      await expect(assertSameAsLeg1(resume({ mcpServers: [] }), "gpt-6-sol", root)).rejects.toThrow(/mcpServers differ/);
+      await expect(assertSameAsLeg1(resume({}), "gpt-6-luna", root)).rejects.toThrow(/model \(leg 1 gpt-6-sol, this leg gpt-6-luna\)/);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });
 
