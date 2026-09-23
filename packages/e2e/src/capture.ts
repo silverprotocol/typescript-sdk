@@ -179,9 +179,12 @@ export async function runCapture(
     if (runError === undefined && deps.hostCompletion === true) native.push({ type: HOST_COMPLETE_MARKER });
 
     // ── Step 3: Verify expectTools ⊇ extractToolCalls(native) ────────────────
-    // (skipped for an error seed: a failed run calls no tools)
+    // Skipped for an error seed (a failed run calls no tools) and for a resume
+    // leg (its tool call was made in the leg it resumes; the resumed stream
+    // carries only what happens next, e.g. the deferred call's execution).
+    const skipToolCheck = runError !== undefined || opts.resumeSessionId !== undefined;
     const calledTools = extractToolCalls(native, opts.framework);
-    const missingTools = runError !== undefined ? [] : expectTools.filter((t) => !calledTools.includes(t));
+    const missingTools = skipToolCheck ? [] : expectTools.filter((t) => !calledTools.includes(t));
     if (missingTools.length > 0) {
       throw new Error(
         `runCapture: agent did not call expected tools: ${missingTools.join(", ")}. ` +

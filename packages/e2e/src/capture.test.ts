@@ -424,6 +424,22 @@ describe("runCapture", () => {
     expect("preToolUseDecision" in (without.input() as object)).toBe(false);
     expect("resumeSessionId" in (without.input() as object)).toBe(false);
   });
+
+  it("a resume leg skips the expectTools check (its tool call was made in the leg it resumes); a fresh run still enforces it", async () => {
+    const scenario = Scenario.parse({
+      name: "defer-tool-sonnet5-resume-allow",
+      prompt: "Continue.",
+      mcpServers: [{ key: "t", kind: "text" }],
+    });
+    const resumed = makeInputCapturingDeps();
+    await expect(
+      runCapture(scenario, resumed.deps, { ports: [0], framework: "claude", resumeSessionId: "sess-leg-1" }),
+    ).resolves.toHaveProperty("native");
+    const fresh = makeInputCapturingDeps();
+    await expect(runCapture(scenario, fresh.deps, { ports: [0], framework: "claude" })).rejects.toThrow(
+      /did not call expected tools: mcp__t__echo/,
+    );
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
