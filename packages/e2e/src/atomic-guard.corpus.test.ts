@@ -39,7 +39,10 @@ function natives(fw: Fw): Array<[string, JsonValue[]]> {
 }
 const FACTORY: Record<Exclude<Fw, "vercel">, () => Normalizer> = {
   claude: () => createClaudeNormalizer(),
-  openai: () => createOpenaiNormalizer(),
+  // A pinned invokeId, as the vercel legs pin theirs: the default stem is drawn
+  // once at CONSTRUCTION (outside withAtomicPush's inner factory, DC-10), and B
+  // poisons randomness to prove no facet push draws any.
+  openai: () => createOpenaiNormalizer({ invokeId: "openai" }),
   adk: () => createAdkNormalizer(),
 };
 const run = (n: Normalizer, xs: unknown[]): AgEvent[] => [...xs.flatMap((x) => n.push(x)), ...n.flush()];

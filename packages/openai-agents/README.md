@@ -109,3 +109,17 @@ new MCPServerStreamableHttp({
   it is.
 
 Without `_meta` the output is unchanged.
+
+## Ids across invokes
+
+Build one normalizer per invoke. The facet uses ids from the wire where it has
+them (`turn_<response id>`). Where it has to mint its own, it uses a per-invoke
+stem, so ids stay unique when a host folds every invoke of a conversation into
+one reducer:
+- a response with no `response.created`, or a host error with no turn open,
+  gets a fallback turn `turn_<stem>_<n>`;
+- a handoff gets a subagent turn `turn_<stem>_handoff_<n>`.
+
+By default the stem is a random `openai_<16 hex>` drawn once per normalizer.
+Pass `createOpenaiNormalizer({ invokeId })` to make the output deterministic
+(replay, tests). An `invokeId` you pass must be unique per invoke within a fold.

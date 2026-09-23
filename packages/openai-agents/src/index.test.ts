@@ -2287,7 +2287,7 @@ describe("createOpenaiNormalizer — OA-12 message.start.model from response.cre
 // fixtures below put `response.completed` BEFORE the handoff run-items.
 describe("createOpenaiNormalizer — handoff_requested / handoff_occurred (Task 3, audit M48 review Finding 1)", () => {
   it("handoff_requested ⇒ subagent.start; handoff_occurred ⇒ subagent.done (agent identity rides via the paired handoff event, not subagentStart)", () => {
-    const n = createOpenaiNormalizer();
+    const n = createOpenaiNormalizer({ invokeId: "inv1" });
     const evs = [
       rawModel({ type: "response.created", response: { id: "resp_handoff_1" } }),
       rawModel({ type: "response.completed", response: { id: "resp_handoff_1", status: "completed" } }),
@@ -2323,7 +2323,7 @@ describe("createOpenaiNormalizer — handoff_requested / handoff_occurred (Task 
       parentTurnId?: string;
     };
     expect(start).toBeDefined();
-    expect(start?.turnId).toBe("turn_handoff_1");
+    expect(start?.turnId).toBe("turn_inv1_handoff_1");
     expect(start?.parentTurnId).toBe("turn_resp_handoff_1");
 
     const done = evs.find((e) => e.type === "subagent.done") as {
@@ -2331,7 +2331,7 @@ describe("createOpenaiNormalizer — handoff_requested / handoff_occurred (Task 
       parentTurnId?: string;
     };
     expect(done).toBeDefined();
-    expect(done?.turnId).toBe("turn_handoff_1");
+    expect(done?.turnId).toBe("turn_inv1_handoff_1");
     expect(done?.parentTurnId).toBe("turn_resp_handoff_1");
 
     // Ordering: start precedes done, which precedes (or is same-batch-adjacent
@@ -2359,7 +2359,7 @@ describe("createOpenaiNormalizer — handoff_requested / handoff_occurred (Task 
   });
 
   it("fold-identity: the subagent turn record carries parentTurnId and the handoff lands on the parent round's handoffs[], needsResync=false (no park)", () => {
-    const n = createOpenaiNormalizer();
+    const n = createOpenaiNormalizer({ invokeId: "inv1" });
     const r = new Reducer();
     const stream = [
       rawModel({ type: "response.created", response: { id: "resp_handoff_2" } }),
@@ -2392,7 +2392,7 @@ describe("createOpenaiNormalizer — handoff_requested / handoff_occurred (Task 
     expect(r.needsResync).toBe(false);
 
     const res = r.result();
-    const subTurn = res.turns.find((t) => t.turnId === "turn_handoff_1");
+    const subTurn = res.turns.find((t) => t.turnId === "turn_inv1_handoff_1");
     expect(subTurn).toBeDefined();
     expect(subTurn?.parentTurnId).toBe("turn_resp_handoff_2");
     expect(subTurn?.threadId).toBe("openai");
@@ -5060,5 +5060,107 @@ describe("createOpenaiNormalizer — OA-13 tool.start.providerExecuted", () => {
       .find((b) => b.type === "tool-call");
     expect(block).toMatchObject({ providerExecuted: true });
     expect(() => AgReduceResult.parse(r.result())).not.toThrow();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IS — ids the facet MINTS are unique across invokes (sp-protocol's D3 bar,
+// wf_9722b7bc-ba9, finding DC-10; the rnd-14 ruling; INV-BLOCK collision-free
+// derived ids). guuey folds every invoke of a conversation into ONE Reducer; the
+// old per-normalizer counters (`turn_openai_<n>`, `turn_handoff_<n>`) repeated
+// across invokes. Now each normalizer draws a random `openai_<16 hex>` stem once
+// (outside withAtomicPush's inner factory), or takes the host's `invokeId`.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("createOpenaiNormalizer — IS minted ids are unique across invokes folded into one Reducer", () => {
+  // No response.created: the facet mints the fallback turn id.
+  const FALLBACK_INVOKE: JsonValue[] = [rawModel({ type: "response.output_text.delta", item_id: "msg_fb", delta: "hi" })];
+  // Each invoke has its own (wire-unique) response id; only the MINTED
+  // subagent turn id is under test.
+  const handoffInvoke = (respId: string): JsonValue[] => [
+    rawModel({ type: "response.created", response: { id: respId } }),
+    rawModel({ type: "response.completed", response: { id: respId, status: "completed" } }),
+    runItem("handoff_requested", {
+      type: "handoff_call_item",
+      rawItem: { type: "function_call", name: "transfer_to_helper", callId: "call_h", status: "completed", arguments: "{}" },
+      agent: { name: "spike" },
+    }),
+    runItem("handoff_occurred", {
+      type: "handoff_output_item",
+      rawItem: { type: "function_call_result", name: "transfer_to_helper", callId: "call_h", status: "completed", output: "{}" },
+      sourceAgent: { name: "spike" },
+      targetAgent: { name: "helper" },
+    }),
+  ];
+  function invoke(stream: JsonValue[], options?: { invokeId?: string }): AgEvent[] {
+    const n = createOpenaiNormalizer(options);
+    return stream.flatMap((e) => n.push(e)).concat(n.flush());
+  }
+  function turnIds(evs: AgEvent[]): unknown[] {
+    return evs.filter((e) => e.type === "turn.start" || e.type === "subagent.start").map((e) => Reflect.get(e, "turnId"));
+  }
+  function foldTogether(...invokes: AgEvent[][]): Reducer {
+    const r = new Reducer();
+    // Each invoke restarts seq at 0 (a backward jump folds normally, INV-SEQ).
+    for (const evs of invokes) for (const e of evs) r.push(e);
+    return r;
+  }
+
+  it("two FALLBACK-path invokes (no response.created) ⇒ distinct turn ids; one Reducer folds both without parking", () => {
+    const a = invoke(FALLBACK_INVOKE);
+    const b = invoke(FALLBACK_INVOKE);
+    const [ta] = turnIds(a);
+    const [tb] = turnIds(b);
+    expect(typeof ta).toBe("string");
+    expect(ta).not.toBe(tb);
+    expect(String(ta)).toMatch(/^turn_openai_[0-9a-f]{16}_1$/);
+    const r = foldTogether(a, b);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.map((t) => t.turnId)).toEqual([ta, tb]);
+  });
+
+  it("two HANDOFF invokes ⇒ distinct subagent turn ids; one Reducer folds both without parking", () => {
+    const a = invoke(handoffInvoke("resp_h1"));
+    const b = invoke(handoffInvoke("resp_h2"));
+    const subA = a.find((e) => e.type === "subagent.start");
+    const subB = b.find((e) => e.type === "subagent.start");
+    expect(Reflect.get(subA ?? {}, "turnId")).not.toBe(Reflect.get(subB ?? {}, "turnId"));
+    expect(String(Reflect.get(subA ?? {}, "turnId"))).toMatch(/^turn_openai_[0-9a-f]{16}_handoff_1$/);
+    expect(foldTogether(a, b).needsResync).toBe(false);
+  });
+
+  it("two host-error sentinels with no turn open ⇒ distinct terminal turns", () => {
+    const sentinel = [
+      { type: "__host_error__", code: "max_turns", message: "Max turns (8) exceeded" } satisfies JsonValue,
+    ];
+    const a = invoke(sentinel);
+    const b = invoke(sentinel);
+    expect(turnIds(a)[0]).not.toBe(turnIds(b)[0]);
+    expect(foldTogether(a, b).needsResync).toBe(false);
+  });
+
+  it("a host-supplied invokeId makes the minted ids deterministic (replay, tests)", () => {
+    expect(turnIds(invoke(FALLBACK_INVOKE, { invokeId: "inv_A" }))).toEqual(["turn_inv_A_1"]);
+    expect(turnIds(invoke(handoffInvoke("resp_h"), { invokeId: "inv_A" }))).toEqual(["turn_resp_h", "turn_inv_A_handoff_1"]);
+  });
+
+  it("withAtomicPush rebuild keeps the SAME random stem: a throw after a fallback open ⇒ one turn, its id unchanged through the rebuild", () => {
+    const n = createOpenaiNormalizer();
+    const evs = [
+      ...FALLBACK_INVOKE,
+      runItem("tool_called", { type: "tool_call_item" }), // malformed: drive() throws → rebuild
+      rawModel({ type: "response.output_text.delta", item_id: "msg_fb", delta: " there" }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    const starts = evs.filter((e) => e.type === "turn.start");
+    expect(starts).toHaveLength(1);
+    expect(evs.filter((e) => e.type === "error")).toHaveLength(1);
+    const tid = Reflect.get(starts[0] ?? {}, "turnId");
+    expect(evs.find((e) => e.type === "turn.abort")).toMatchObject({ turnId: tid });
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.flatMap((m) => m.content).find((b) => b.type === "text")).toMatchObject({ text: "hi there" });
   });
 });

@@ -273,10 +273,12 @@ export async function replayNatives(recorded: JsonValue[], fw: Framework): Promi
   // vercel mints a random id stem per normalizer (its wire has no early id);
   // replay pins it to "vercel", which reproduces the committed goldens'
   // `turn_vercel_<n>` ids byte-for-byte. Each cassette is its own fold, so
-  // the fixed stem cannot collide.
+  // the fixed stem cannot collide. openai mints a random stem for its fallback
+  // and handoff turn ids the same way (DC-10); replay pins it to "openai", so a
+  // fallback turn reproduces the pre-DC-10 `turn_openai_<n>` byte-for-byte.
   const normalizer =
     fw === "openai"
-      ? createOpenaiNormalizer()
+      ? createOpenaiNormalizer({ invokeId: "openai" })
       : fw === "adk"
         ? // A recorded host-completion marker opts the google-adk facet into
           // SPEC §8.0 host obligation 4 and is fed to it after the natives

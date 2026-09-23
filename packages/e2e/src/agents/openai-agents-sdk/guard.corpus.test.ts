@@ -43,7 +43,7 @@ describe("openai last-resort push() guard — fires 0 times over the committed c
   });
 
   it.each(natives)("%s: every native maps with ZERO guard firings", (_scenario, events) => {
-    const n = createOpenaiNormalizer();
+    const n = createOpenaiNormalizer({ invokeId: "openai" });
     const emitted = events.flatMap((e) => n.push(e)).concat(n.flush());
     expect(guardFirings(emitted)).toEqual([]);
   });
@@ -62,12 +62,12 @@ describe("openai withAtomicPush rebuild is deterministic over the committed corp
 
   it.each(openaiNatives())("%s: a mid-stream throw ⇒ the untouched stream + one error, seq gap-free", (_scenario, events) => {
     const baseline = (() => {
-      const n = createOpenaiNormalizer();
+      const n = createOpenaiNormalizer({ invokeId: "openai" });
       return events.flatMap((e) => n.push(e)).concat(n.flush());
     })();
     const k = Math.floor(events.length / 2);
     const injected = (() => {
-      const n = createOpenaiNormalizer();
+      const n = createOpenaiNormalizer({ invokeId: "openai" });
       const out: AgEvent[] = [];
       events.forEach((e, i) => {
         if (i === k) out.push(...n.push(THROWING_NATIVE));

@@ -1431,11 +1431,45 @@ function isOpenAIStreamEvent(v: unknown): v is OpenAIStreamEvent {
  * batch (INV-SEQ), and no facet state ever believes a block or message is
  * open that never reached the wire.
  */
-export function createOpenaiNormalizer(): Normalizer {
-  return withAtomicPush(createInnerOpenaiNormalizer);
+/** Options for {@link createOpenaiNormalizer}. */
+export interface OpenaiNormalizerOptions {
+  /**
+   * The stem for the ids this facet mints on its own: a fallback turn (a
+   * response with no `response.created`, or a host-error sentinel with no turn
+   * open) is `turn_<invokeId>_<n>`, and a handoff's subagent turn is
+   * `turn_<invokeId>_handoff_<n>`.
+   *
+   * These ids must be unique across every invoke folded into one reducer. The
+   * rnd-14 ruling and INV-BLOCK's collision-free derived ids require it: guuey
+   * folds a whole conversation into ONE Reducer, and a repeated turn id
+   * re-opens a closed turn, which parks INV-TURN / INV-MSG consumers.
+   * sp-protocol's D3 bar (wf_9722b7bc-ba9, DC-10) found the old per-normalizer
+   * counters (`turn_openai_<n>`, `turn_handoff_<n>`) repeating across invokes.
+   *
+   * By default each normalizer draws a fresh `openai_<16 hex>` stem from
+   * `crypto.getRandomValues`. It's drawn ONCE, outside the atomic inner
+   * factory, so a `withAtomicPush` rebuild mints the SAME ids. Pass one to make
+   * the output deterministic (replay, tests). A host that passes one MUST keep
+   * it unique per invoke within a fold. Ids taken from the wire
+   * (`turn_<response.id>`, `turn_resume_<callId>`) are unaffected. This mirrors
+   * the vercel facet's e900d03.
+   */
+  invokeId?: string;
 }
 
-function createInnerOpenaiNormalizer(): Normalizer {
+/** 64 random bits as 16 hex chars: the default per-invoke id stem. */
+function mintInvokeNonce(): string {
+  const bytes = new Uint8Array(8);
+  globalThis.crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export function createOpenaiNormalizer(options: OpenaiNormalizerOptions = {}): Normalizer {
+  const invokeStem = options.invokeId ?? `openai_${mintInvokeNonce()}`;
+  return withAtomicPush(() => createInnerOpenaiNormalizer(invokeStem));
+}
+
+function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
   const a = new StreamAssembler();
   // OpenAI's native stream carries no thread/session id (unlike Claude's
   // `session_id`), so the threadId is a fixed facet label. The Router rebases
@@ -1643,7 +1677,7 @@ function createInnerOpenaiNormalizer(): Normalizer {
       return responseId ?? turnId;
     }
     responseId = respId;
-    turnId = respId !== undefined ? `turn_${respId}` : `turn_${threadId}_${++turnCounter}`;
+    turnId = respId !== undefined ? `turn_${respId}` : `turn_${invokeStem}_${++turnCounter}`;
     msgId = `msg_${turnId}`;
     // Task 3 (audit M48 review, Finding 1): survives resetResponseState() —
     // see the closure-state doc above.
@@ -2916,7 +2950,7 @@ function createInnerOpenaiNormalizer(): Normalizer {
           // EVENT carve-out), emitted once it's actually known — paired with
           // `subagentDone` in the `handoff_occurred` case below.
           const ordinal = ++handoffOrdinal;
-          const handoffTurnId = `turn_handoff_${ordinal}`;
+          const handoffTurnId = `turn_${invokeStem}_handoff_${ordinal}`;
           const parentTurnId = lastTopLevelTurnId ?? threadId;
           openHandoffs.push({ turnId: handoffTurnId, parentTurnId });
           a.subagentStart(handoffTurnId, parentTurnId);
