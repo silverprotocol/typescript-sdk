@@ -334,6 +334,33 @@ function mcpToolResultContentToAgBlocks(content: McpToolResultContent): AgBlock[
   return out;
 }
 
+// Which assistant `error` codes are transient (retriable). CL-09's stashed
+// top-level close and a nested frame's non-terminal `error` share it.
+// Finding #2 (minor): `overloaded` (transient capacity error, a first
+// cousin of rate_limit/server_error) joins the retriable set.
+// `model_not_found` (a permanent misconfiguration — e.g. a stale/
+// decommissioned model id) is deliberately EXCLUDED: explicit
+// false-by-omission, not an oversight (playbook 2026-07-03 SDK-bump
+// adaptation, Finding #2). `account_on_hold` (0.3.258) is likewise a
+// deliberate non-retriable: a billing-class code (the account is on
+// hold — a first cousin of `billing_error`, cleared by the account
+// holder, never by re-sending the turn).
+//
+// 0.3.272 widened `SDKAssistantMessageError` by two more values, both
+// deliberate non-retriables recorded here for the same reason — an
+// omission must never read as an oversight:
+//  - `verification_required`: the request is gated on an out-of-band
+//    human step (identity/org verification). Nothing about the turn
+//    changes by re-sending it; the block clears only when a person
+//    completes the verification.
+//  - `cloud_credential_error`: a credential/billing-class failure on
+//    the cloud-provider leg (a first cousin of `billing_error` and
+//    `account_on_hold`, not of `overloaded`) — a bad, expired or
+//    unauthorized credential is exactly as bad on the next attempt.
+function assistantErrorRetriable(errCode: NonNullable<SDKAssistantError>): boolean {
+  return errCode === "rate_limit" || errCode === "server_error" || errCode === "overloaded";
+}
+
 // ─── assistant content block fan-out (spec §4 mapping table) ──────────────────
 // Per content[] block, drive the engine to emit its lifecycle events under the
 // open message named by `messageId`. The caller passes the frame's wrapper
@@ -1695,15 +1722,6 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         msg.parent_tool_use_id !== null
           ? nestedTurnId(msg.parent_tool_use_id, m.id, msg.uuid)
           : topTurnId(m.id, msg.uuid);
-      // The turn a CL-09 error close belongs to: only a top-level result closes a
-      // turn, so for a NESTED frame it is the OPEN top-level turn. With none open
-      // (a stream that starts inside a subagent, or background subagent frames
-      // after the result) there is nothing to close: the error stays on its
-      // message (text + the `_meta` triad) and no turn terminal is fabricated.
-      // Through 0.6.4 a nested error closed the parent turn whenever the
-      // subagent's frames carried the parent's session_id; that stays for an
-      // open turn (a ruling on it is with sp-protocol).
-      const stashTurnId = msg.parent_tool_use_id !== null ? openTopTurnId : turnId;
       const parentTurnId =
         msg.parent_tool_use_id !== null ? `turn_${msg.parent_tool_use_id}` : undefined;
 
@@ -2006,41 +2024,30 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         // close.
         closePendingMessage();
         const errCode: NonNullable<SDKAssistantError> = msg.error;
-        // First error frame wins: a turn already carrying a stashed close keeps
-        // it (before CL-09's stash, the first error frame closed the turn).
-        if (stashTurnId !== undefined && !stashedTurnErrors.has(stashTurnId)) {
-          stashedTurnErrors.set(stashTurnId, {
-            message: errCode,
-            code: errCode,
-            // Finding #2 (minor): `overloaded` (transient capacity error, a first
-            // cousin of rate_limit/server_error) joins the retriable set.
-            // `model_not_found` (a permanent misconfiguration — e.g. a stale/
-            // decommissioned model id) is deliberately EXCLUDED: explicit
-            // false-by-omission, not an oversight (playbook 2026-07-03 SDK-bump
-            // adaptation, Finding #2). `account_on_hold` (0.3.258) is likewise a
-            // deliberate non-retriable: a billing-class code (the account is on
-            // hold — a first cousin of `billing_error`, cleared by the account
-            // holder, never by re-sending the turn).
-            //
-            // 0.3.272 widened `SDKAssistantMessageError` by two more values, both
-            // deliberate non-retriables recorded here for the same reason — an
-            // omission must never read as an oversight:
-            //  - `verification_required`: the request is gated on an out-of-band
-            //    human step (identity/org verification). Nothing about the turn
-            //    changes by re-sending it; the block clears only when a person
-            //    completes the verification.
-            //  - `cloud_credential_error`: a credential/billing-class failure on
-            //    the cloud-provider leg (a first cousin of `billing_error` and
-            //    `account_on_hold`, not of `overloaded`) — a bad, expired or
-            //    unauthorized credential is exactly as bad on the next attempt.
-            retriable: errCode === "rate_limit" || errCode === "server_error" || errCode === "overloaded",
-          });
+        const retriable = assistantErrorRetriable(errCode);
+        if (msg.parent_tool_use_id !== null) {
+          // A NESTED error frame (sp-protocol ruling 1, 2026-09-23): the error is
+          // owned by the NESTED turn (SPEC:97 a subagent is a full turn with its
+          // own turnId; INV-OWNER, SPEC:753), so it never closes the parent. The
+          // parent closes as an error only when its OWN result frame says so.
+          // Through 0.6.4 (whenever subagent frames carried the parent's
+          // session_id) a nested rate_limit closed a recovered parent as a
+          // retriable error and, first-error-wins, masked a later top-level
+          // billing_error. `subagent.done` carries no outcome (SPEC:648), so the
+          // failure rides the NON-terminal `error` event (SPEC:609) on the nested
+          // turn: live-only but truthful and correctly owned, and inside the
+          // run's still-open bracket, so before its subagent.done. The folded gap
+          // ("a nested turn has no failure outcome") is sp-protocol's to bar.
+          a.emit({ type: "error", turnId, message: errCode, code: errCode, retriable });
+        } else if (!stashedTurnErrors.has(turnId)) {
+          // First error frame wins: a turn already carrying a stashed close keeps
+          // it (before CL-09's stash, the first error frame closed the turn).
+          stashedTurnErrors.set(turnId, { message: errCode, code: errCode, retriable });
         }
       }
 
-      // `subagent.done` is NOT emitted here: it brackets the MESSAGE, and the
-      // message's seal is deferred (guuey#26) — `closePendingMessage` emits both,
-      // in the same order, once nothing can continue this message.
+      // `subagent.done` is NOT emitted here: it brackets the RUN (see `openRun`),
+      // and this message's seal is deferred (guuey#26) until nothing can continue it.
 
       // Record this frame's own uuid → the messageId it produced, so a LATER
       // retraction naming this uuid can translate it (Finding #1). The EMITTED

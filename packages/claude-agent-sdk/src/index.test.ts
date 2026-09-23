@@ -5413,28 +5413,58 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     expect(atFlush[0]).not.toHaveProperty("usage");
   });
 
-  it("a NESTED (subagent) error frame inside an OPEN top-level turn stashes on that turn: one turn.error on it at the result (or at flush)", () => {
-    const nested = apiErrorAssistantFrame({ parent_tool_use_id: "toolu_parent_1" });
-    const bracket = [
-      "subagent.start",
-      "message.start",
-      "text.start",
-      "text.delta",
-      "text.end",
-      "message.end",
-      "subagent.done",
-    ];
+  // sp-protocol ruling 1 (2026-09-23): a nested-origin error never closes the
+  // parent; the parent closes as an error only when its OWN result says so. The
+  // nested failure rides a non-terminal `error` event on the NESTED turn.
+  const nestedErrors = (evs: AgEvent[]): unknown[] =>
+    evs
+      .filter((e) => e.type === "error")
+      .map((e) => ({ turnId: "turnId" in e ? e.turnId : undefined, code: "code" in e ? e.code : undefined, retriable: "retriable" in e ? e.retriable : undefined }));
+
+  it("ruling 1 (protocol's repro): a nested rate_limit does NOT close a recovered parent — the parent closes success, the nested turn gets one non-terminal `error`", () => {
+    const top = assistantMsg([{ type: "tool_use", id: "toolu_t", name: "Task", input: { prompt: "research" } }], null, { stop_reason: "tool_use" });
+    const nested = apiErrorAssistantFrame({ parent_tool_use_id: "toolu_t" });
+    const taskFailed: unknown = {
+      type: "user",
+      message: { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_t", content: [{ type: "text", text: "subagent failed" }], is_error: true }] },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000d5",
+      session_id: "sess_fixture",
+    };
+    const m2 = { ...(assistantMsg([{ type: "text", text: "recovered", citations: null }]) as object), message: { ...betaMessage([{ type: "text", text: "recovered", citations: null }]), id: "msg_recovered" }, uuid: "00000000-0000-0000-0000-0000000000d6" };
+    const evs = drive([top, nested, taskFailed, m2, resultSuccess("end_turn")]);
+    expect(turnCloses(evs).map((e) => [e.type, "turnId" in e ? e.turnId : undefined])).toEqual([["turn.done", TOP_TURN]]);
+    expect(nestedErrors(evs)).toEqual([{ turnId: API_ERROR_TURN, code: "rate_limit", retriable: true }]);
+    // Owned by the nested turn: inside its bracket, before its subagent.done.
+    const errAt = evs.findIndex((e) => e.type === "error");
+    expect(errAt).toBeGreaterThan(evs.findIndex((e) => e.type === "subagent.start"));
+    expect(errAt).toBeLessThan(evs.findIndex((e) => e.type === "subagent.done"));
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.find((t) => t.turnId === TOP_TURN)?.outcome).toMatchObject({ type: "success" });
+  });
+
+  it("ruling 1: a nested error no longer masks the parent's OWN later error — a top-level billing_error closes the parent as billing_error", () => {
     const top = assistantMsg([{ type: "text", text: "delegating", citations: null }]);
-    const evs = drive([top, nested, apiErrorResultFrame()]);
-    expect(evs.slice(-bracket.length - 1).map((e) => e.type)).toEqual([...bracket, "turn.error"]);
-    // The nested bracket is its own (nested) turn; the close is the TOP turn's.
-    expect(evs.find((e) => e.type === "subagent.start")).toMatchObject({ turnId: API_ERROR_TURN });
+    const nested = apiErrorAssistantFrame({ parent_tool_use_id: "toolu_t" });
+    const ownError = { ...(apiErrorAssistantFrame({ error: "billing_error" }) as object), message: { ...betaMessage([{ type: "text", text: API_ERROR_TEXT, citations: null }]), id: "msg_own_error", model: "<synthetic>" }, uuid: "00000000-0000-0000-0000-0000000000d9" };
+    const evs = drive([top, nested, ownError, apiErrorResultFrame()]);
     expect(turnCloses(evs)).toHaveLength(1);
-    expect(turnCloses(evs)[0]).toMatchObject({ turnId: TOP_TURN, code: "rate_limit", usage: RESULT_USAGE });
-    // No result frame: the flush emits the same single close, never turn.abort.
+    expect(turnCloses(evs)[0]).toMatchObject({ type: "turn.error", turnId: TOP_TURN, code: "billing_error", retriable: false, usage: RESULT_USAGE });
+    expect(nestedErrors(evs)).toEqual([{ turnId: API_ERROR_TURN, code: "rate_limit", retriable: true }]);
+  });
+
+  it("ruling 1: when the parent's OWN result says error, it closes as that result's error (not the nested frame's), and a flush with no result aborts the parent", () => {
+    const top = assistantMsg([{ type: "text", text: "delegating", citations: null }]);
+    const nested = apiErrorAssistantFrame({ parent_tool_use_id: "toolu_parent_1" });
+    const evs = drive([top, nested, apiErrorResultFrame()]);
+    // No top-level stash: the is_error result closes with its own fields.
+    expect(turnCloses(evs).map((e) => [e.type, "turnId" in e ? e.turnId : undefined, "code" in e ? e.code : undefined])).toEqual([
+      ["turn.error", TOP_TURN, "api_error"],
+    ]);
     const alone = drive([top, nested]);
-    expect(turnCloses(alone)).toHaveLength(1);
-    expect(turnCloses(alone)[0]).toMatchObject({ turnId: TOP_TURN, code: "rate_limit", retriable: true });
+    expect(turnCloses(alone).map((e) => [e.type, "turnId" in e ? e.turnId : undefined])).toEqual([["turn.abort", TOP_TURN]]);
+    expect(nestedErrors(alone)).toEqual([{ turnId: API_ERROR_TURN, code: "rate_limit", retriable: true }]);
   });
 
   it("a NESTED error frame with NO top-level turn open fabricates no close: nothing is stashed, and a later turn is not tainted", () => {
@@ -5444,8 +5474,11 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     const evs = drive([nested, apiErrorResultFrame()]);
     expect(turnCloses(evs)).toHaveLength(1);
     expect(turnCloses(evs)[0]).toMatchObject({ turnId: RESULT_ONLY_TURN, code: "api_error", retriable: true });
-    // Nested frame alone: no top-level turn ever opened, so no terminal at flush.
-    expect(turnCloses(drive([nested]))).toEqual([]);
+    // Nested frame alone: no top-level turn ever opened, so no terminal at flush;
+    // the failure still rides its nested turn's non-terminal `error`.
+    const nestedAlone = drive([nested]);
+    expect(turnCloses(nestedAlone)).toEqual([]);
+    expect(nestedErrors(nestedAlone)).toEqual([{ turnId: API_ERROR_TURN, code: "rate_limit", retriable: true }]);
     // Background subagent frames AFTER a result (review of b8ea926, MAJOR 1):
     // the next turn is named by ITS first message and closes as it ended.
     const next = { ...(assistantMsg([{ type: "text", text: "turn two", citations: null }]) as object), message: { ...betaMessage([{ type: "text", text: "turn two", citations: null }]), id: "msg_turn_two" }, uuid: "00000000-0000-0000-0000-0000000000d7" };
