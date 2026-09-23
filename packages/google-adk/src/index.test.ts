@@ -236,7 +236,7 @@ describe("createAdkNormalizer — reasoning + content blocks", () => {
   });
 });
 
-describe("createAdkNormalizer — block ids are a per-turn ordinal per kind, never the part index (SPEC.md:747 INV-BLOCK; R&D item 14 prerequisite)", () => {
+describe("createAdkNormalizer — block ids are a per-invoke ordinal per kind, never the part index (SPEC.md INV-BLOCK; R&D item 14 prerequisite + P14)", () => {
   const starts = (out: AgEvent[]) =>
     out
       .filter((e) => e.type === "text.start" || e.type === "reasoning.start")
@@ -282,14 +282,34 @@ describe("createAdkNormalizer — block ids are a per-turn ordinal per kind, nev
     expectUniqueAndFolds(out);
   });
 
-  it("ordinals are per TURN: a second invocation starts at text:0 again", () => {
+  it("ordinals are per INVOKE: a second turn in the same normalizer continues at text:1, never re-opens text:0 (P14 parks on a repeat)", () => {
     const n = createAdkNormalizer();
-    const a = n.push(toJsonValue(event([{ text: "one" }], { partial: false, turnComplete: true, finishReason: "STOP" })));
-    const b = n.push(
-      toJsonValue(event([{ text: "two" }], { invocationId: "inv_fixture_2", partial: false, turnComplete: true, finishReason: "STOP" })),
+    const a = n.push(
+      toJsonValue(event([{ thought: true, text: "t1" }, { text: "one" }], { partial: false, turnComplete: true, finishReason: "STOP" })),
     );
-    expect(starts(a)).toEqual(["text:0"]);
-    expect(starts(b)).toEqual(["text:0"]);
+    const b = n.push(
+      toJsonValue(
+        event([{ thought: true, text: "t2" }, { text: "two" }], {
+          invocationId: "inv_fixture_2",
+          partial: false,
+          turnComplete: true,
+          finishReason: "STOP",
+        }),
+      ),
+    );
+    const out = [...a, ...b, ...n.flush()];
+    const turns = new Set(out.filter((e) => e.type === "turn.start").map((e) => (e as { turnId: string }).turnId));
+    expect(turns.size).toBe(2);
+    expect(starts(a)).toEqual(["reasoning:0", "text:0"]);
+    expect(starts(b)).toEqual(["reasoning:1", "text:1"]);
+    expectUniqueAndFolds(out);
+  });
+
+  it("a fresh normalizer (the next invoke, seq restarts at 0) starts again at text:0", () => {
+    const first = run([event([{ text: "one" }], { partial: false, turnComplete: true, finishReason: "STOP" })]);
+    const next = run([event([{ text: "two" }], { invocationId: "inv_fixture_2", partial: false, turnComplete: true, finishReason: "STOP" })]);
+    expect(starts(first)).toEqual(["text:0"]);
+    expect(starts(next)).toEqual(["text:0"]);
   });
 
   it("negative control: a single text part keeps text:0, byte-identical to the positional scheme", () => {

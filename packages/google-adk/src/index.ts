@@ -1084,20 +1084,24 @@ function consumeMintedCallId(
 }
 
 // ─── stateful factory: driveAdkPart ──────────────────────────────────────────
-// ─── block ids: a per-turn ordinal per kind (SPEC.md:747, INV-BLOCK) ─────────
+// ─── block ids: a per-INVOKE ordinal per kind (SPEC.md INV-BLOCK) ────────────
 // Streaming block ids MUST be unique within a fold, and identity MUST never
 // derive solely from a per-event positional index. ADK/Gemini parts carry no
 // block id, so the facet mints `${kind}:${n}`, where n counts that kind's
-// blocks in the turn. The old `${kind}:${partIndex}` repeated across events:
-// two thought events in one invoke both opened reasoning:0 (thinking-gemini37/38,
-// R&D item 14 prerequisite). The first block of each kind keeps its old id, so
-// only streams that repeated an id, or put text after a thought, change.
-type BlockIdMint = Map<string, number>;
+// blocks across the WHOLE normalizer (one invoke, §8.0 obligation 3). The id
+// carries no turnId, so the counter must not reset per turn. A per-turn count
+// re-opened text:0 in a second turn of the same invoke (a workflow-node turn
+// then a plain turn), and the draft.4 reducer parks on that (rd-14 P14:
+// invoke-scoped INV-BLOCK, reset at the seq-0 restart). The old
+// `${kind}:${partIndex}` repeated across events: two thought events in one
+// invoke both opened reasoning:0 (thinking-gemini37/38, R&D item 14
+// prerequisite). A one-turn invoke's ids are unchanged, and every committed
+// adk golden is a one-turn invoke.
+type BlockIdMint = Map<"text" | "reasoning", number>;
 
-function mintBlockId(m: BlockIdMint, turnId: string, kind: "text" | "reasoning"): string {
-  const key = `${turnId} ${kind}`;
-  const n = m.get(key) ?? 0;
-  m.set(key, n + 1);
+function mintBlockId(m: BlockIdMint, kind: "text" | "reasoning"): string {
+  const n = m.get(kind) ?? 0;
+  m.set(kind, n + 1);
   return `${kind}:${n}`;
 }
 
@@ -1162,7 +1166,7 @@ function driveAdkPart(
 
   // ── REASONING (thought:true) → reasoning.start/delta/end + opaque signature ──
   if (part.thought === true) {
-    const id = mintBlockId(blockIds, turnId, "reasoning");
+    const id = mintBlockId(blockIds, "reasoning");
     a.reasoningStart(id, messageId);
     // typeof, not `!== undefined`: a JSON-null text is absent (null guard).
     if (typeof part.text === "string" && part.text.length > 0) a.reasoningDelta(id, messageId, part.text);
@@ -1182,7 +1186,7 @@ function driveAdkPart(
   // falls through to the arms below (a functionCall beside it still maps), and
   // `null` never reaches textDelta or the streamed-text accumulator.
   if (typeof part.text === "string") {
-    const id = mintBlockId(blockIds, turnId, "text");
+    const id = mintBlockId(blockIds, "text");
     const signed = part.thoughtSignature !== undefined && part.thoughtSignature.length > 0;
     // STREAMED-text citations carrier (audit M22): `citations` collects ALL of this
     // event's groundingSupports segments (each already carries its own offsets +
@@ -2411,7 +2415,7 @@ export function createAdkNormalizer(options: AdkNormalizerOptions = {}): Normali
           return;
         }
         if (residualTail.length > 0) {
-          const id = mintBlockId(blockIds, turnId, "text");
+          const id = mintBlockId(blockIds, "text");
           a.textStart(id, messageId);
           a.textDelta(id, messageId, residualTail);
           a.textEnd(id, messageId, index === citedPartIndex && citations !== undefined ? { citations } : undefined);
