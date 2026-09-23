@@ -334,7 +334,7 @@ export class Reducer {
         if (msg === undefined) break;
         // INV-MSG (SPEC.md:745): a straggler delta into a sealed message, or into
         // any message of a closed turn (rd-14), parks.
-        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; }
+        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; } // INV-MSG delta guard
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "text") break;
         block.text += ev.delta;
@@ -349,7 +349,7 @@ export class Reducer {
         if (msg === undefined) break;
         // INV-MSG (SPEC.md:745, draft.4 E5): a block-finalizing event into a sealed
         // message, or into any message of a closed turn, parks like a delta.
-        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; }
+        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; } // INV-MSG finalizer guard (E5)
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "text") break;
         // draft.4 phase: a value on the end REPLACES the start one; absent keeps
@@ -389,7 +389,7 @@ export class Reducer {
         if (msg === undefined) break;
         // INV-MSG (SPEC.md:745): a straggler delta into a sealed message, or into
         // any message of a closed turn (rd-14), parks.
-        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; }
+        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; } // INV-MSG delta guard
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "reasoning") break;
         // APPEND delta to text (in-order concat of parts)
@@ -405,7 +405,7 @@ export class Reducer {
         if (msg === undefined) break;
         // INV-MSG (SPEC.md:745, draft.4 E5): a block-finalizing event into a sealed
         // message, or into any message of a closed turn, parks like a delta.
-        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; }
+        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; } // INV-MSG finalizer guard (E5)
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "reasoning") break;
         // draft.4 phase: same rule as text.end (end REPLACES, absent keeps, no post-seal fill).
@@ -423,7 +423,7 @@ export class Reducer {
         // parks. The block is resolved by id; with no known block the delta
         // stays scratch-only, as before.
         const opaquePos = this.#blockPos.get(ev.id);
-        if (opaquePos !== undefined && this.#isClosedTarget(opaquePos.messageId)) { this.#resync = true; break; }
+        if (opaquePos !== undefined && this.#isClosedTarget(opaquePos.messageId)) { this.#resync = true; break; } // INV-MSG delta guard
         const existing = this.#opaque.get(ev.id) ?? "";
         this.#opaque.set(ev.id, existing + ev.delta);
         break;
@@ -437,7 +437,7 @@ export class Reducer {
         if (msg === undefined) break;
         // INV-MSG (SPEC.md:745, draft.4 E5): a block-finalizing event into a sealed
         // message, or into any message of a closed turn, parks like a delta.
-        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; }
+        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; } // INV-MSG finalizer guard (E5)
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "reasoning") break;
         // Use accumulated opaque scratch if present; otherwise use ev.value directly.
@@ -484,7 +484,7 @@ export class Reducer {
         // APPEND raw partial-JSON delta to scratch (NEVER authoritative input).
         // INV-MSG (SPEC.md:745): a straggler into a sealed message's tool call parks.
         const argsPos = this.#blockPos.get(ev.toolCallId);
-        if (argsPos !== undefined && this.#isClosedTarget(argsPos.messageId)) { this.#resync = true; break; }
+        if (argsPos !== undefined && this.#isClosedTarget(argsPos.messageId)) { this.#resync = true; break; } // INV-MSG delta guard
         const existing = this.#toolArgs.get(ev.toolCallId) ?? "";
         this.#toolArgs.set(ev.toolCallId, existing + ev.delta);
         break;
@@ -498,7 +498,7 @@ export class Reducer {
         if (msg === undefined) break;
         // INV-MSG (SPEC.md:745, draft.4 E5): a block-finalizing event into a sealed
         // message, or into any message of a closed turn, parks like a delta.
-        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; }
+        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; } // INV-MSG finalizer guard (E5)
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "tool-call") break;
         block.input = ev.input;
