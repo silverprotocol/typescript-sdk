@@ -24,7 +24,16 @@
  * first iteration with a clear message.
  */
 
-import { Agent, getAllMcpTools, MCPServerStreamableHttp, type ModelSettings, run, RunState, type Tool } from "@openai/agents";
+import {
+  Agent,
+  getAllMcpTools,
+  type MCPServer,
+  MCPServerStreamableHttp,
+  type ModelSettings,
+  run,
+  RunState,
+  type Tool,
+} from "@openai/agents";
 import type { JsonValue } from "@silverprotocol/core";
 import { toJsonValue } from "@silverprotocol/core";
 import type { CaptureRunInput } from "../types.js";
@@ -154,6 +163,38 @@ export function serializeInterruptedRun(result: {
   return result.state.toString();
 }
 
+/** Where an agent's tools come from: the MCP servers (default), or the
+ *  approval knob's approval-gated copies of their tools. */
+export type OpenaiToolSource = { mcpServers: MCPServer[] } | { tools: Tool[] };
+
+/**
+ * The handoff knob (sp-probe's nested-turn package ask, 2026-09-24: a live
+ * OpenAI handoff cassette gates §10 item 22 and the facet's `handoff_occurred`
+ * terminal mapping). When `input.handoff` is set, it builds the agent the main
+ * agent may hand off to: the knob's `name` / `instructions` /
+ * `handoffDescription`, on the SAME model, model settings and tool source as
+ * the main agent, so the handoff target can call the same MCP echo tool. It
+ * returns `undefined` when the knob is absent, and the main agent then gets no
+ * `handoffs` (byte-identical to before). Nothing is filtered: the stream
+ * carries `handoff_requested`, `handoff_occurred` and `agent_updated_stream_event`
+ * exactly as the SDK emits them. Also this agent's KNOB_SUPPORT proof export.
+ */
+export function openaiHandoffAgent(
+  input: Pick<CaptureRunInput, "handoff">,
+  shared: { model: string; modelSettings?: ModelSettings; toolSource: OpenaiToolSource },
+): Agent | undefined {
+  const h = input.handoff;
+  if (h === undefined) return undefined;
+  return new Agent({
+    name: h.name,
+    instructions: h.instructions,
+    ...(h.handoffDescription !== undefined ? { handoffDescription: h.handoffDescription } : {}),
+    model: shared.model,
+    ...shared.toolSource,
+    ...(shared.modelSettings !== undefined ? { modelSettings: shared.modelSettings } : {}),
+  });
+}
+
 /**
  * Yields the RAW native `@openai/agents` `RunStreamEvent` stream, unnormalized,
  * each item materialized as a plain `JsonValue` via `toJsonValue` (audit
@@ -240,22 +281,24 @@ export async function* runOpenaiCapture(input: OpenaiCaptureRunInput): AsyncIter
     const modelSettings = openaiModelSettings(input);
     // With an approval knob, the MCP tools are listed once and passed as
     // approval-gated `tools`; otherwise the agent is built exactly as before.
-    const agent =
-      approval === undefined
-        ? new Agent({
-            name: "spike",
-            instructions: input.systemPrompt ?? "You are a helpful assistant.",
-            model: input.model ?? "gpt-4o-mini",
-            mcpServers,
-            ...(modelSettings !== undefined ? { modelSettings } : {}),
-          })
-        : new Agent({
-            name: "spike",
-            instructions: input.systemPrompt ?? "You are a helpful assistant.",
-            model: input.model ?? "gpt-4o-mini",
-            tools: withRequiredApproval(await getAllMcpTools(mcpServers)),
-            ...(modelSettings !== undefined ? { modelSettings } : {}),
-          });
+    const model = input.model ?? "gpt-4o-mini";
+    const toolSource: OpenaiToolSource =
+      approval === undefined ? { mcpServers } : { tools: withRequiredApproval(await getAllMcpTools(mcpServers)) };
+    // The handoff knob: a second agent on the same model and tool source; the
+    // main agent may hand off to it. Absent ⇒ no `handoffs` key at all.
+    const handoffAgent = openaiHandoffAgent(input, {
+      model,
+      toolSource,
+      ...(modelSettings !== undefined ? { modelSettings } : {}),
+    });
+    const agent = new Agent({
+      name: "spike",
+      instructions: input.systemPrompt ?? "You are a helpful assistant.",
+      model,
+      ...toolSource,
+      ...(modelSettings !== undefined ? { modelSettings } : {}),
+      ...(handoffAgent !== undefined ? { handoffs: [handoffAgent] } : {}),
+    });
 
     let runInput: string | RunState<unknown, typeof agent> = input.prompt;
     if (approval?.mode === "resume") {
