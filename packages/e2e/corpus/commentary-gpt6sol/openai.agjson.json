@@ -29,6 +29,7 @@
     "messageId": "msg_turn_resp_0efe55287537ad4a006ab3a1075f3087d09153c1c2ed3835be",
     "turnId": "turn_resp_0efe55287537ad4a006ab3a1075f3087d09153c1c2ed3835be",
     "role": "assistant",
+    "phase": "interim",
     "providerMetadata": {
       "phase": "commentary"
     }
@@ -327,6 +328,7 @@
     "messageId": "msg_turn_resp_0efe55287537ad4a006ab3a10a5e3087d0880a626d585f9c82",
     "turnId": "turn_resp_0efe55287537ad4a006ab3a10a5e3087d0880a626d585f9c82",
     "role": "assistant",
+    "phase": "interim",
     "providerMetadata": {
       "phase": "commentary"
     }
@@ -615,6 +617,7 @@
     "messageId": "msg_turn_resp_0efe55287537ad4a006ab3a10d5b6887d08bed93e26b57cc4b",
     "turnId": "turn_resp_0efe55287537ad4a006ab3a10d5b6887d08bed93e26b57cc4b",
     "role": "assistant",
+    "phase": "interim",
     "providerMetadata": {
       "phase": "commentary"
     }
