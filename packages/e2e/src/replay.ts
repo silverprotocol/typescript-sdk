@@ -70,6 +70,35 @@ export interface ReplayResult {
   agjson: JsonValue[];
   /** The census lossiness report for this cassette against the guard JSONs. */
   report: CensusReport;
+  /** True when the cassette ends with the recorded host-completion marker (see below). */
+  hostCompleted: boolean;
+}
+
+// ─── the recorded host-completion marker (rd-06; draft.4 §8.0 host obligation 4) ──
+
+/**
+ * A capture harness MAY append ONE line `{"type": HOST_COMPLETE_MARKER}` as the
+ * LAST element of a native cassette, and only after the framework run returned
+ * normally (never after a cancel, an abort signal or a thrown error). It records
+ * what only the host knows: that the run ended cleanly (adk-js writes no in-band
+ * completion marker). It is harness data, not framework wire, so replay strips
+ * it before driving the normalizer and before the census, and reports
+ * `hostCompleted`. Feeding it to a facet is that facet's own opt-in (the
+ * google-adk step-2 host-completion option), wired there, never here; until
+ * then a cassette replays byte-identically with or without the marker.
+ */
+export const HOST_COMPLETE_MARKER = "__host_complete__";
+
+/** Splits a trailing host-completion marker off a native cassette. Only the LAST element counts. */
+export function splitHostCompleteMarker(native: JsonValue[]): { native: JsonValue[]; hostCompleted: boolean } {
+  const last = native[native.length - 1];
+  const isMarker =
+    last !== null &&
+    typeof last === "object" &&
+    !Array.isArray(last) &&
+    last["type"] === HOST_COMPLETE_MARKER &&
+    Object.keys(last).length === 1;
+  return isMarker ? { native: native.slice(0, -1), hostCompleted: true } : { native, hostCompleted: false };
 }
 
 // ─── JSON loaders (typed, no `as any` / `Record<string, unknown>`) ────────────
@@ -214,8 +243,16 @@ export async function replayCassette(
   nativePath: string,
   framework?: Framework,
 ): Promise<ReplayResult> {
-  const native = await readJsonArray(nativePath);
-  const fw = framework ?? inferFramework(nativePath);
+  return replayNatives(await readJsonArray(nativePath), framework ?? inferFramework(nativePath));
+}
+
+/**
+ * The replay core over an in-memory native array (what `replayCassette` runs
+ * after reading the file). A trailing host-completion marker is split off
+ * first; see {@link HOST_COMPLETE_MARKER}.
+ */
+export async function replayNatives(recorded: JsonValue[], fw: Framework): Promise<ReplayResult> {
+  const { native, hostCompleted } = splitHostCompleteMarker(recorded);
 
   // ── Drive the real facet normalizer: push each event, then flush. ──────────
   const normalizer =
@@ -254,5 +291,5 @@ export async function replayCassette(
     framework: fw,
   });
 
-  return { agjson, report };
+  return { agjson, report, hostCompleted };
 }

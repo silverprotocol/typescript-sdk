@@ -1,0 +1,46 @@
+[
+  {
+    "invocationId": "e-507b890b-35ad-49ec-999d-fe9bf4184772",
+    "author": "agent",
+    "id": "DlV65vPk",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [
+      "adk-93828bcf-83e9-4598-8a55-d78467fabf06"
+    ],
+    "timestamp": 1790159491554,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "name": "adk_request_input",
+            "args": {
+              "message": "Which city?"
+            },
+            "id": "adk-93828bcf-83e9-4598-8a55-d78467fabf06"
+          }
+        }
+      ]
+    },
+    "turnComplete": true
+  },
+  {
+    "invocationId": "e-507b890b-35ad-49ec-999d-fe9bf4184772",
+    "author": "agent",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "skipSummarization": true
+    },
+    "id": "JcZJ7sJg",
+    "longRunningToolIds": [],
+    "timestamp": 1790159491554
+  }
+]

@@ -1,0 +1,177 @@
+[
+  {
+    "output": "Echo wf-probe",
+    "route": "tool",
+    "id": "veq5SAHE",
+    "invocationId": "e-d95ba8e4-3a5a-41bf-a216-e6baf20c6884",
+    "author": "classify",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790159491529,
+    "nodeInfo": {
+      "path": "spike_workflow.classify",
+      "outputFor": [
+        "spike_workflow.classify"
+      ]
+    }
+  },
+  {
+    "invocationId": "e-d95ba8e4-3a5a-41bf-a216-e6baf20c6884",
+    "author": "spike",
+    "id": "0HbdvdDp",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790159491533,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "name": "echo",
+            "args": {
+              "message": "wf-probe"
+            },
+            "id": "adk-b345d6ce-2664-40b6-952a-d56076384a48"
+          }
+        }
+      ]
+    },
+    "turnComplete": true,
+    "nodeInfo": {
+      "path": "spike_workflow.spike"
+    },
+    "isolationScope": "spike_workflow.spike@1"
+  },
+  {
+    "invocationId": "e-d95ba8e4-3a5a-41bf-a216-e6baf20c6884",
+    "author": "spike",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "adk-b345d6ce-2664-40b6-952a-d56076384a48",
+            "name": "echo",
+            "response": {
+              "echoed": "wf-probe"
+            }
+          }
+        }
+      ]
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "KJwk1QrD",
+    "longRunningToolIds": [],
+    "timestamp": 1790159491536,
+    "nodeInfo": {
+      "path": "spike_workflow.spike"
+    },
+    "isolationScope": "spike_workflow.spike@1"
+  },
+  {
+    "invocationId": "e-d95ba8e4-3a5a-41bf-a216-e6baf20c6884",
+    "author": "spike",
+    "id": "lcshEo0T",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790159491540,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Done."
+        }
+      ]
+    },
+    "turnComplete": true,
+    "finishReason": "STOP",
+    "output": "Done.",
+    "nodeInfo": {
+      "messageAsOutput": true,
+      "path": "spike_workflow.spike",
+      "outputFor": [
+        "spike_workflow.spike"
+      ]
+    },
+    "isolationScope": "spike_workflow.spike@1"
+  },
+  {
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "name": "adk_request_input",
+            "args": {
+              "interruptId": "approve-1",
+              "payload": null,
+              "message": "Approve the echo result?",
+              "response_schema": null
+            },
+            "id": "approve-1"
+          }
+        }
+      ]
+    },
+    "longRunningToolIds": [
+      "approve-1"
+    ],
+    "id": "ic4wTeGy",
+    "invocationId": "e-d95ba8e4-3a5a-41bf-a216-e6baf20c6884",
+    "author": "approve",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "agentState": {
+        "input": "Done."
+      }
+    },
+    "timestamp": 1790159491541,
+    "nodeInfo": {
+      "path": "spike_workflow.approve"
+    }
+  },
+  {
+    "author": "spike_workflow",
+    "invocationId": "e-d95ba8e4-3a5a-41bf-a216-e6baf20c6884",
+    "longRunningToolIds": [
+      "approve-1"
+    ],
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "agentState": {
+        "input": "Echo wf-probe"
+      }
+    },
+    "id": "lcVFzGuG",
+    "timestamp": 1790159491542,
+    "nodeInfo": {
+      "path": "spike_workflow"
+    }
+  }
+]

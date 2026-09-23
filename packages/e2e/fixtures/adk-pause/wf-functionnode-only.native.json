@@ -1,0 +1,65 @@
+[
+  {
+    "author": "first",
+    "invocationId": "e-d12e7c31-3eec-4e3b-8e12-4da0ff5df071",
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "{\"seen\":\"Echo wf-probe\"}"
+        }
+      ]
+    },
+    "output": {
+      "seen": "Echo wf-probe"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "D4oDlYfx",
+    "longRunningToolIds": [],
+    "timestamp": 1790159491550,
+    "nodeInfo": {
+      "path": "fn_only_workflow.first",
+      "outputFor": [
+        "fn_only_workflow.first"
+      ]
+    }
+  },
+  {
+    "author": "second",
+    "invocationId": "e-d12e7c31-3eec-4e3b-8e12-4da0ff5df071",
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "{\"done\":true,\"result\":{\"seen\":\"Echo wf-probe\"}}"
+        }
+      ]
+    },
+    "output": {
+      "done": true,
+      "result": {
+        "seen": "Echo wf-probe"
+      }
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "aSBb1k2y",
+    "longRunningToolIds": [],
+    "timestamp": 1790159491550,
+    "nodeInfo": {
+      "path": "fn_only_workflow.second",
+      "outputFor": [
+        "fn_only_workflow.second"
+      ]
+    }
+  }
+]

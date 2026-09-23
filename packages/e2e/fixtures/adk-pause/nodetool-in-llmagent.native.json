@@ -1,0 +1,117 @@
+[
+  {
+    "invocationId": "e-c023b07f-25af-4dd8-9811-d016d000c7a9",
+    "author": "agent",
+    "id": "me1mJR8L",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [
+      "adk-a3330aa2-bbd7-4c1d-b089-bb84aacd1e79"
+    ],
+    "timestamp": 1790159491555,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "name": "lookup",
+            "args": {
+              "q": "probe"
+            },
+            "id": "adk-a3330aa2-bbd7-4c1d-b089-bb84aacd1e79"
+          }
+        }
+      ]
+    },
+    "turnComplete": true
+  },
+  {
+    "author": "lookup",
+    "invocationId": "e-c023b07f-25af-4dd8-9811-d016d000c7a9",
+    "branch": "lookup@adk-a3330aa2-bbd7-4c1d-b089-bb84aacd1e79",
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "{\"found\":{\"q\":\"probe\"}}"
+        }
+      ]
+    },
+    "output": {
+      "found": {
+        "q": "probe"
+      }
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "mQbTxhDW",
+    "longRunningToolIds": [],
+    "timestamp": 1790159491555,
+    "nodeInfo": {
+      "path": "lookup",
+      "outputFor": [
+        "lookup"
+      ]
+    }
+  },
+  {
+    "invocationId": "e-c023b07f-25af-4dd8-9811-d016d000c7a9",
+    "author": "agent",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "adk-a3330aa2-bbd7-4c1d-b089-bb84aacd1e79",
+            "name": "lookup",
+            "response": {
+              "found": {
+                "q": "probe"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "sU8mXqOw",
+    "longRunningToolIds": [],
+    "timestamp": 1790159491555
+  },
+  {
+    "invocationId": "e-c023b07f-25af-4dd8-9811-d016d000c7a9",
+    "author": "agent",
+    "id": "SNQ9Lev4",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790159491556,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Done."
+        }
+      ]
+    },
+    "turnComplete": true,
+    "finishReason": "STOP"
+  }
+]

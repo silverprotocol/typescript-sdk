@@ -1,0 +1,118 @@
+[
+  {
+    "output": "Echo wf-probe",
+    "route": "tool",
+    "id": "MwuWRidi",
+    "invocationId": "e-a451a9f0-51b2-4157-83d4-e35770643a47",
+    "author": "classify",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790159491548,
+    "nodeInfo": {
+      "path": "terminal_llm_workflow.classify",
+      "outputFor": [
+        "terminal_llm_workflow.classify"
+      ]
+    }
+  },
+  {
+    "invocationId": "e-a451a9f0-51b2-4157-83d4-e35770643a47",
+    "author": "spike",
+    "id": "pJzN2JdG",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790159491549,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "name": "echo",
+            "args": {
+              "message": "wf-probe"
+            },
+            "id": "adk-9c4d62d6-adc1-4a8d-8273-4dddc45027a7"
+          }
+        }
+      ]
+    },
+    "turnComplete": true,
+    "nodeInfo": {
+      "path": "terminal_llm_workflow.spike"
+    },
+    "isolationScope": "terminal_llm_workflow.spike@1"
+  },
+  {
+    "invocationId": "e-a451a9f0-51b2-4157-83d4-e35770643a47",
+    "author": "spike",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "adk-9c4d62d6-adc1-4a8d-8273-4dddc45027a7",
+            "name": "echo",
+            "response": {
+              "echoed": "wf-probe"
+            }
+          }
+        }
+      ]
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "h4VcckJr",
+    "longRunningToolIds": [],
+    "timestamp": 1790159491549,
+    "nodeInfo": {
+      "path": "terminal_llm_workflow.spike"
+    },
+    "isolationScope": "terminal_llm_workflow.spike@1"
+  },
+  {
+    "invocationId": "e-a451a9f0-51b2-4157-83d4-e35770643a47",
+    "author": "spike",
+    "id": "43XE4ebz",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790159491549,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Done."
+        }
+      ]
+    },
+    "turnComplete": true,
+    "finishReason": "STOP",
+    "output": "Done.",
+    "nodeInfo": {
+      "messageAsOutput": true,
+      "path": "terminal_llm_workflow.spike",
+      "outputFor": [
+        "terminal_llm_workflow.spike"
+      ]
+    },
+    "isolationScope": "terminal_llm_workflow.spike@1"
+  }
+]

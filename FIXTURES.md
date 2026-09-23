@@ -97,3 +97,38 @@ Precedent: `corpus/text-tool-turn/adk.native.json` shipped hand-authored
 (`kind: "fixture"` provenance, openly documented) when no ADK runtime existed
 to capture from — this tier formalizes that practice instead of leaving it
 exceptional.
+
+## Host-completion marker (optional last line)
+
+Some frameworks write no in-band "the run finished" event (adk-js: "the
+workflow's output is the last output on the stream"), so only the host knows a
+run ended normally. A capture MAY therefore end with ONE recorded line:
+
+```json
+{ "type": "__host_complete__" }
+```
+
+- It is written only after the framework run returned normally, never after
+  a cancel, an abort signal or a thrown error.
+- It is harness data, not framework wire. `replay.ts` (`splitHostCompleteMarker`)
+  splits it off before the normalizer and the census run, and reports
+  `hostCompleted`. Only the LAST element counts, and only with no other key.
+- Feeding it to a normalizer is that facet's own opt-in (AgJSON draft.4 §8.0
+  host obligation 4: a host SHOULD feed a clean-completion event after a normal
+  return). Until a facet opts in, a cassette replays byte-identically with or
+  without the marker; `adk-pause.test.ts` asserts that for every ADK golden.
+
+If you replay cassettes yourself, strip a trailing marker line the same way
+unless your normalizer is constructed to consume it.
+
+## Engine-built fixtures (not corpus)
+
+`packages/e2e/fixtures/adk-pause/` holds ADK pause/completion streams built by
+the REAL `@google/adk` engine with a stub model (no key, no network), plus two
+truncations cut from a complete run. They exercise engine-produced shapes a
+benign live capture cannot reliably reach (confirmation, credential and
+request-input pauses, workflow pause/resume, truncation). They are NOT corpus
+cassettes: they fail the acceptance filter's "real framework wire" test
+because the model is a stub. They are regenerated only by
+`GEN_ADK_PAUSE=1 … adk-pause-fixtures.gen.test.ts` and gated by
+`adk-pause.test.ts` against AgJSON draft.4 §10 item 25.

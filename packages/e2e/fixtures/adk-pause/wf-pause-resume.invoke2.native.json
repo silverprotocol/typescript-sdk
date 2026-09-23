@@ -1,0 +1,35 @@
+[
+  {
+    "author": "finalize",
+    "invocationId": "e-ba7c3eab-4877-46b1-bb55-878d902b6501",
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "{\"done\":true,\"result\":{\"approved\":true}}"
+        }
+      ]
+    },
+    "output": {
+      "done": true,
+      "result": {
+        "approved": true
+      }
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "sr5Jqw8B",
+    "longRunningToolIds": [],
+    "timestamp": 1790159491552,
+    "nodeInfo": {
+      "path": "spike_workflow.finalize",
+      "outputFor": [
+        "spike_workflow.finalize"
+      ]
+    }
+  }
+]

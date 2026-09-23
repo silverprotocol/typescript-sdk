@@ -1,0 +1,75 @@
+[
+  {
+    "invocationId": "e-75c10b2c-c360-48eb-95c1-175a0db32d4e",
+    "author": "agent",
+    "id": "Qu6BvJrZ",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790159491552,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "name": "delete_file",
+            "args": {
+              "path": "/tmp/x"
+            },
+            "id": "adk-139c1788-4f56-4c58-b703-d15b61771fc1"
+          }
+        }
+      ]
+    },
+    "turnComplete": true
+  },
+  {
+    "invocationId": "e-75c10b2c-c360-48eb-95c1-175a0db32d4e",
+    "author": "agent",
+    "content": {
+      "parts": [
+        {
+          "functionCall": {
+            "name": "adk_request_confirmation",
+            "args": {
+              "originalFunctionCall": {
+                "name": "delete_file",
+                "args": {
+                  "path": "/tmp/x"
+                },
+                "id": "adk-139c1788-4f56-4c58-b703-d15b61771fc1"
+              },
+              "toolConfirmation": {
+                "hint": "Please approve or reject the tool call delete_file() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
+                "confirmed": false
+              }
+            },
+            "id": "adk-968274a3-1efb-40a7-8da3-0cb4f199c2fa"
+          }
+        }
+      ],
+      "role": "user"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {
+        "adk-139c1788-4f56-4c58-b703-d15b61771fc1": {
+          "hint": "Please approve or reject the tool call delete_file() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
+          "confirmed": false
+        }
+      },
+      "skipSummarization": true
+    },
+    "longRunningToolIds": [
+      "adk-968274a3-1efb-40a7-8da3-0cb4f199c2fa"
+    ],
+    "id": "XXaMNhWy",
+    "timestamp": 1790159491553
+  }
+]

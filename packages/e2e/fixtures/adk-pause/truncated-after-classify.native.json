@@ -1,0 +1,23 @@
+[
+  {
+    "output": "Echo wf-probe",
+    "route": "tool",
+    "id": "OLTMi6jk",
+    "invocationId": "e-6e69db3c-3edf-4585-8fc1-851236f3c583",
+    "author": "classify",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790159491545,
+    "nodeInfo": {
+      "path": "spike_workflow.classify",
+      "outputFor": [
+        "spike_workflow.classify"
+      ]
+    }
+  }
+]
