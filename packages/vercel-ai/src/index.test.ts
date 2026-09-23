@@ -2255,3 +2255,33 @@ describe("§10 item 42 — kept-open results are snapshots (yield/yield/return, 
     ]);
   });
 });
+
+describe("emitted values are copies: a host mutating its part after push() changes no emitted event", () => {
+  it("tool input and output, a carried frame, warnings and an unparsed native", () => {
+    const n = createVercelNormalizer({ invokeId: "vercel" });
+    const input = { q: { a: 1 } };
+    const output = { r: { b: [1] } };
+    const warnings = [{ type: "other", message: { m: "w" } }];
+    const unknownPart = { type: "zz-future", payload: { k: { v: 1 } } };
+    const notAPart = { payload: { k: { v: 1 } } };
+    const out: AgEvent[] = [];
+    for (const p of [
+      { type: "start" },
+      { type: "start-step", request: {}, warnings },
+      { type: "tool-call", toolCallId: "c1", toolName: "t", input },
+      { type: "tool-result", toolCallId: "c1", toolName: "t", input, output },
+      unknownPart,
+      notAPart,
+    ]) out.push(...n.push(p));
+    const before = JSON.stringify(out);
+    input.q.a = 99;
+    output.r.b.push(2);
+    warnings[0]!.message.m = "changed";
+    unknownPart.payload.k.v = 99;
+    notAPart.payload.k.v = 99;
+    expect(JSON.stringify(out)).toBe(before);
+    // the sites the test covers really carry those values
+    expect(before).toContain('"q":{"a":1}');
+    expect(before).toContain('"r":{"b":[1]}');
+  });
+});
