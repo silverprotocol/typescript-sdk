@@ -2917,7 +2917,7 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
   // NOT under the turn-binding flag. First observed live on app-update-fable51
   // (cohort 0.6.2). --
 
-  it("carries narration_block_indexes verbatim on the first block (0.3.272)", () => {
+  it("carries narration_block_indexes verbatim on the first block's HOST-ONLY _meta, not providerMetadata (0.3.272; X5)", () => {
     const n = createClaudeNormalizer();
     const evs = [
       ...n.push(JsonValue.parse(wrapperAssistant({ narration_block_indexes: [0] }))),
@@ -2926,8 +2926,18 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     assertAllValid(evs);
     const firstBlock = evs.find(
       (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
-    ) as { providerMetadata?: unknown };
-    expect(firstBlock.providerMetadata).toEqual({ narration_block_indexes: [0] });
+    ) as { providerMetadata?: unknown; _meta?: unknown };
+    expect(firstBlock._meta).toEqual({ narration_block_indexes: [0] });
+    expect(firstBlock.providerMetadata).toBeUndefined();
+    // Fold: `_meta` lands on the block itself (per-frame anchoring kept).
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const block = r.result().messages.find((m) => m.id === "msg_wrapper")?.content[0];
+    expect(block).toMatchObject({ type: "text", _meta: { narration_block_indexes: [0] } });
+    // reduce() leaves the key present with an `undefined` value on text blocks
+    // (its delta merge assigns it), so check the value, not `in`.
+    expect(block?.type === "text" ? block.providerMetadata : "not-a-text-block").toBeUndefined();
   });
 
   it("narration_block_indexes rides the bag ALONGSIDE the turn-binding family without consuming its once-per-message flag", () => {
@@ -2943,11 +2953,41 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     assertAllValid(evs);
     const firstBlock = evs.find(
       (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
-    ) as { providerMetadata?: unknown };
-    expect(firstBlock.providerMetadata).toEqual({
-      user_message_uuid: USER_MESSAGE_UUID,
-      narration_block_indexes: [0, 2],
-    });
+    ) as { providerMetadata?: unknown; _meta?: unknown };
+    // X5: the bag splits by key — the turn-binding uuid stays replay-side, the
+    // narration list goes host-side.
+    expect(firstBlock.providerMetadata).toEqual({ user_message_uuid: USER_MESSAGE_UUID });
+    expect(firstBlock._meta).toEqual({ narration_block_indexes: [0, 2] });
+  });
+
+  it("X5 fallback: a TOOL-first frame (tool.start folds no _meta) routes the host-only half through message.metadata, which folds", () => {
+    const toolFirst = {
+      ...assistantMsg(
+        [
+          { type: "tool_use", id: "toolu_x5", name: "Read", input: { path: "a" } },
+          { type: "text", text: "narrated", citations: null },
+        ],
+        null,
+        { stop_reason: "tool_use" },
+      ),
+      narration_block_indexes: [1],
+    };
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(JsonValue.parse(toolFirst)), ...n.flush()];
+    assertAllValid(evs);
+    const toolStart = evs.find((e) => e.type === "tool.start");
+    expect(toolStart !== undefined && "_meta" in toolStart).toBe(false);
+    expect(toolStart !== undefined && "providerMetadata" in toolStart).toBe(false);
+    const meta = evs.filter((e) => e.type === "message.metadata");
+    expect(meta).toHaveLength(1);
+    expect(meta[0]).toMatchObject({ messageId: "msg_fixture_1", metadata: { narration_block_indexes: [1] } });
+    // It lands before the seal, and it folds onto the message.
+    const types = evs.map((e) => e.type);
+    expect(types.indexOf("message.metadata")).toBeLessThan(types.indexOf("message.end"));
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.find((m) => m.id === "msg_fixture_1")?.metadata).toEqual({ narration_block_indexes: [1] });
   });
 
   it("NEGATIVE CONTROL: absent or malformed narration_block_indexes leaves the stream byte-identical (nothing new is carried)", () => {
@@ -2966,8 +3006,9 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     }
     const firstBlock = bare.find(
       (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
-    ) as { providerMetadata?: unknown };
+    ) as { providerMetadata?: unknown; _meta?: unknown };
     expect(firstBlock.providerMetadata).toBeUndefined();
+    expect(firstBlock._meta).toBeUndefined();
   });
 
   it("resume_reason on a BLOCK-LESS frame rides message.metadata with the other wrapper siblings (fallback channel)", () => {
@@ -4432,7 +4473,7 @@ describe("createClaudeNormalizer — result-frame subagent_stats (runtime-only, 
   });
 });
 
-describe("createClaudeNormalizer — thinking_delta.estimated_tokens (runtime-only; Fable 5.1 display:omitted) → reasoning.delta providerMetadata", () => {
+describe("createClaudeNormalizer — thinking_delta.estimated_tokens (runtime-only; Fable 5.1 display:omitted) → reasoning.delta _meta (host-only, live-only; X5)", () => {
   type SDKPartial = Extract<SDKMessage, { type: "stream_event" }>;
   type StreamEvent = SDKPartial["event"];
   const frame = (event: StreamEvent): SDKMessage => ({
@@ -4453,7 +4494,7 @@ describe("createClaudeNormalizer — thinking_delta.estimated_tokens (runtime-on
     event: { type: "content_block_delta", index: 0, delta: { type: "thinking_delta", thinking: "", ...extra } },
   });
 
-  function reasoningDeltas(deltas: unknown[]): Array<{ delta: string; providerMetadata?: unknown }> {
+  function allEvents(deltas: unknown[]): AgEvent[] {
     const n = createClaudeNormalizer();
     const evs = [
       ...n.push(JsonValue.parse(frame(start))),
@@ -4462,20 +4503,40 @@ describe("createClaudeNormalizer — thinking_delta.estimated_tokens (runtime-on
       ...n.flush(),
     ];
     assertAllValid(evs);
-    return evs.filter((e) => e.type === "reasoning.delta") as Array<{ delta: string; providerMetadata?: unknown }>;
+    return evs;
+  }
+  function reasoningDeltas(deltas: unknown[]): Array<{ delta: string; providerMetadata?: unknown; _meta?: unknown }> {
+    return allEvents(deltas).filter((e) => e.type === "reasoning.delta") as Array<{
+      delta: string;
+      providerMetadata?: unknown;
+      _meta?: unknown;
+    }>;
   }
 
-  it("carries a numeric estimate verbatim and a null estimate as null (both are real wire values)", () => {
+  it("carries a numeric estimate verbatim and a null estimate as null on _meta, never providerMetadata", () => {
     const out = reasoningDeltas([thinkingDelta({ estimated_tokens: 50 }), thinkingDelta({ estimated_tokens: null })]);
     expect(out).toHaveLength(2);
-    expect(out[0]).toMatchObject({ delta: "", providerMetadata: { estimated_tokens: 50 } });
-    expect(out[1]).toMatchObject({ delta: "", providerMetadata: { estimated_tokens: null } });
+    expect(out[0]).toMatchObject({ delta: "", _meta: { estimated_tokens: 50 } });
+    expect(out[1]).toMatchObject({ delta: "", _meta: { estimated_tokens: null } });
+    for (const d of out) expect("providerMetadata" in d).toBe(false);
   });
 
-  it("emits NO providerMetadata key when the delta carries no estimated_tokens (pre-Fable wire, byte-identical)", () => {
+  it("emits NO _meta and NO providerMetadata key when the delta carries no estimated_tokens (pre-Fable wire, byte-identical)", () => {
     const out = reasoningDeltas([thinkingDelta({})]);
     expect(out).toHaveLength(1);
     expect("providerMetadata" in out[0]!).toBe(false);
+    expect("_meta" in out[0]!).toBe(false);
+  });
+
+  it("fold: the estimate is LIVE-ONLY — the reasoning block folds with no estimate on either bag, and nothing parks", () => {
+    // `reduce()` folds `_meta` only on start events; a delta's `_meta` is live.
+    const evs = allEvents([thinkingDelta({ estimated_tokens: 50 }), thinkingDelta({ estimated_tokens: 80 })]);
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const block = r.result().messages.find((m) => m.id === "msg_fable_1")?.content[0];
+    expect(block).toMatchObject({ type: "reasoning" });
+    expect(JSON.stringify(block)).not.toContain("estimated_tokens");
   });
 });
 
@@ -5225,11 +5286,20 @@ describe("createClaudeNormalizer — the API-error triad (api_error / api_error_
     api_error_code: "credentials_expired",
   };
 
-  it("carries all three verbatim on the first block's providerMetadata; is_api_error_message is NOT carried", () => {
+  it("carries all three verbatim, as ONE unit, on the first block's HOST-ONLY _meta (X5); is_api_error_message is NOT carried", () => {
     const evs = drive([apiErrorAssistantFrame(TRIAD)]);
     const first = evs.find((e) => e.type === "text.start");
-    expect(first).toMatchObject({ providerMetadata: TRIAD });
-    expect((first as { providerMetadata: { [k: string]: unknown } }).providerMetadata).toEqual(TRIAD);
+    expect(first).toMatchObject({ _meta: TRIAD });
+    expect((first as { _meta: { [k: string]: unknown } })._meta).toEqual(TRIAD);
+    // Nothing of the triad stays on the replay-load-bearing channel.
+    expect("providerMetadata" in (first as object)).toBe(false);
+    // Fold: the triad lands on the text block's `_meta`, and the turn closes error.
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const block = r.result().messages.find((m) => m.id === "msg_api_error_1")?.content[0];
+    expect(block).toMatchObject({ type: "text", _meta: TRIAD });
+    expect(r.result().turns.find((t) => t.turnId === TOP_TURN)?.outcome).toMatchObject({ type: "error" });
     // The carry lands on the message BEFORE its seal and the turn close.
     const types = evs.map((e) => e.type);
     expect(types.indexOf("text.start")).toBeLessThan(types.indexOf("message.end"));
@@ -5239,7 +5309,8 @@ describe("createClaudeNormalizer — the API-error triad (api_error / api_error_
   it("each member carries alone (per-frame facts, no member gates another)", () => {
     for (const [k, v] of Object.entries(TRIAD)) {
       const first = drive([apiErrorAssistantFrame({ [k]: v })]).find((e) => e.type === "text.start");
-      expect((first as { providerMetadata?: unknown }).providerMetadata).toEqual({ [k]: v });
+      expect((first as { _meta?: unknown })._meta).toEqual({ [k]: v });
+      expect("providerMetadata" in (first as object)).toBe(false);
     }
   });
 
@@ -5259,7 +5330,9 @@ describe("createClaudeNormalizer — the API-error triad (api_error / api_error_
     const uuid = "018f0000-0000-7000-8000-00000000e0e0";
     const evs = drive([apiErrorAssistantFrame({ ...TRIAD, user_message_uuid: uuid })]);
     const first = evs.find((e) => e.type === "text.start");
-    expect((first as { providerMetadata?: unknown }).providerMetadata).toEqual({ ...TRIAD, user_message_uuid: uuid });
+    // X5: split by key — the turn-binding uuid replay-side, the triad host-side.
+    expect((first as { providerMetadata?: unknown }).providerMetadata).toEqual({ user_message_uuid: uuid });
+    expect((first as { _meta?: unknown })._meta).toEqual(TRIAD);
 
     // The discriminating case: a CONTINUATION frame of the same message, after
     // an earlier frame already consumed the turn-binding flag. The triad must
@@ -5273,7 +5346,9 @@ describe("createClaudeNormalizer — the API-error triad (api_error / api_error_
     const starts = cont.filter((e) => e.type === "text.start");
     expect(starts).toHaveLength(2);
     expect((starts[0] as { providerMetadata?: unknown }).providerMetadata).toEqual({ user_message_uuid: uuid });
-    expect((starts[1] as { providerMetadata?: unknown }).providerMetadata).toEqual(TRIAD);
+    expect("_meta" in (starts[0] as object)).toBe(false);
+    expect((starts[1] as { _meta?: unknown })._meta).toEqual(TRIAD);
+    expect("providerMetadata" in (starts[1] as object)).toBe(false);
     expect(cont.filter((e) => e.type === "message.start")).toHaveLength(1);
   });
 
@@ -5281,6 +5356,7 @@ describe("createClaudeNormalizer — the API-error triad (api_error / api_error_
     const bare = drive([apiErrorAssistantFrame()]);
     const first = bare.find((e) => e.type === "text.start");
     expect((first as { providerMetadata?: unknown }).providerMetadata).toBeUndefined();
+    expect((first as { _meta?: unknown })._meta).toBeUndefined();
     expect(bare.some((e) => e.type === "message.metadata")).toBe(false);
     const malformed = drive([
       apiErrorAssistantFrame({ api_error: 7, api_error_params: "remedy", api_error_code: null }),

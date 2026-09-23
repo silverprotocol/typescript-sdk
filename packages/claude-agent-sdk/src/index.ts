@@ -345,13 +345,18 @@ function mcpToolResultContentToAgBlocks(content: McpToolResultContent): AgBlock[
 // (image/resource/mcp_tool_result/compaction) have no providerMetadata slot on
 // `content.block` and drop the annotation (NOT the retraction itself, which
 // already executed via `message.remove` regardless — see `drive()`).
+// Returns true when `blockMeta` landed on a start event that `reduce()` folds
+// onto the block (text.start / reasoning.start). Every other block type returns
+// false so the caller can route the host-only bag through `message.metadata`
+// instead (tool.start does not fold `_meta`).
 function emitAssistantBlock(
   a: StreamAssembler,
   block: BetaContentBlock,
   messageId: string,
   blockIndex: number,
   blockProviderMetadata?: AgProviderMeta,
-): void {
+  blockMeta?: AgMeta,
+): boolean {
   switch (block.type) {
     case "text": {
       // Claude's assistant message is a COMPLETE structure (not a live stream), so
@@ -361,20 +366,37 @@ function emitAssistantBlock(
       const id = `${messageId}:text:${blockIndex}`;
       const citations =
         block.citations != null && block.citations.length > 0 ? mapCitations(block.citations) : undefined;
-      a.textStart(id, messageId, blockProviderMetadata !== undefined ? { providerMetadata: blockProviderMetadata } : undefined);
+      if (blockMeta !== undefined) {
+        // textStart's sugar has no `_meta` field; `a.emit()` is the base primitive.
+        a.emit({
+          type: "text.start",
+          id,
+          messageId,
+          ...(blockProviderMetadata !== undefined ? { providerMetadata: blockProviderMetadata } : {}),
+          _meta: blockMeta,
+        });
+      } else {
+        a.textStart(id, messageId, blockProviderMetadata !== undefined ? { providerMetadata: blockProviderMetadata } : undefined);
+      }
       a.textDelta(id, messageId, block.text);
       a.textEnd(id, messageId, citations !== undefined ? { citations } : undefined);
-      return;
+      return blockMeta !== undefined;
     }
     case "thinking": {
       const id = `${messageId}:reasoning:${blockIndex}`;
-      if (blockProviderMetadata !== undefined) {
-        // reasoningStart's sugar signature has no providerMetadata parameter
-        // (only textStart's does) — `a.emit()` is the documented base
-        // primitive for exactly this case (schema DOES support it on
-        // reasoning.start; StreamAssembler docstring: "guarantees no
-        // AgClosedEventType is ever unreachable").
-        a.emit({ type: "reasoning.start", id, messageId, providerMetadata: blockProviderMetadata });
+      if (blockProviderMetadata !== undefined || blockMeta !== undefined) {
+        // reasoningStart's sugar signature has no providerMetadata or `_meta`
+        // parameter — `a.emit()` is the documented base primitive for exactly
+        // this case (schema DOES support both on reasoning.start;
+        // StreamAssembler docstring: "guarantees no AgClosedEventType is ever
+        // unreachable").
+        a.emit({
+          type: "reasoning.start",
+          id,
+          messageId,
+          ...(blockProviderMetadata !== undefined ? { providerMetadata: blockProviderMetadata } : {}),
+          ...(blockMeta !== undefined ? { _meta: blockMeta } : {}),
+        });
       } else {
         a.reasoningStart(id, messageId);
       }
@@ -390,13 +412,19 @@ function emitAssistantBlock(
           provider: "anthropic",
         });
       }
-      return;
+      return blockMeta !== undefined;
     }
     case "redacted_thinking": {
       // No visible text; the redacted blob is the replay-load-bearing opaque part.
       const id = `${messageId}:reasoning:${blockIndex}`;
-      if (blockProviderMetadata !== undefined) {
-        a.emit({ type: "reasoning.start", id, messageId, providerMetadata: blockProviderMetadata });
+      if (blockProviderMetadata !== undefined || blockMeta !== undefined) {
+        a.emit({
+          type: "reasoning.start",
+          id,
+          messageId,
+          ...(blockProviderMetadata !== undefined ? { providerMetadata: blockProviderMetadata } : {}),
+          ...(blockMeta !== undefined ? { _meta: blockMeta } : {}),
+        });
       } else {
         a.reasoningStart(id, messageId);
       }
@@ -406,7 +434,7 @@ function emitAssistantBlock(
         value: block.data,
         provider: "anthropic",
       });
-      return;
+      return blockMeta !== undefined;
     }
     case "tool_use":
     case "server_tool_use":
@@ -439,7 +467,7 @@ function emitAssistantBlock(
       });
       a.toolArgsDelta(toolCallId, JSON.stringify(input));
       a.toolArgsAssembled(toolCallId, input);
-      return;
+      return false;
     }
     case "mcp_tool_result": {
       // MCP tool results from the assistant side: map to tool.done with content + outcome.
@@ -452,7 +480,7 @@ function emitAssistantBlock(
         isError: block.is_error,
         messageId,
       });
-      return;
+      return false;
     }
     case "compaction": {
       // Compaction blocks carry a provider-produced context summary (spec §4).
@@ -466,12 +494,12 @@ function emitAssistantBlock(
             : undefined,
         provider: "anthropic",
       });
-      return;
+      return false;
     }
     default: {
       // image / resource / other rich content blocks ride content.block (spec §4).
       a.contentBlock(messageId, assistantContentBlockToAgBlock(block));
-      return;
+      return false;
     }
   }
 }
@@ -637,6 +665,17 @@ function anthropicFrameKind(msg: SDKMessage): string | undefined {
 function readUserMessageUuids(v: unknown): string[] | undefined {
   return Array.isArray(v) && v.every((s): s is string => typeof s === "string") ? v : undefined;
 }
+
+// X5 (2026-09-23): the assistant-wrapper keys that ride a block's HOST-ONLY
+// `_meta` rather than replay-load-bearing `providerMetadata` (SPEC §12). They
+// are CLI-wrapper facts the Messages API never consumes. See the split in
+// drive()'s assistant branch.
+const HOST_ONLY_WRAPPER_KEYS: ReadonlySet<string> = new Set([
+  "narration_block_indexes",
+  "api_error",
+  "api_error_params",
+  "api_error_code",
+]);
 
 // `narration_block_indexes` (0.3.272) — which of THIS frame's content blocks are
 // user-facing NARRATION rather than private reasoning. Undeclared in sdk.d.ts at
@@ -1415,15 +1454,29 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         // Claude Code stamps a RUNTIME-ONLY `estimated_tokens` (number | null;
         // undeclared on BetaThinkingDelta) on each thinking_delta. Under
         // Fable 5.1's default `display: omitted` the `thinking` text is '' and
-        // that estimate is the delta's entire payload — carried verbatim as
-        // providerMetadata (wire name kept; null kept: "no estimate yet" is a
-        // real value). Absent key ⇒ no providerMetadata, byte-identical.
+        // that estimate is the delta's entire payload — carried verbatim (wire
+        // name kept; null kept: "no estimate yet" is a real value). Absent key ⇒
+        // no bag, byte-identical.
+        //
+        // X5 (sp-rnd, 2026-09-23): it rides the delta's host-only `_meta`, not
+        // `providerMetadata`. The latter is REPLAY-LOAD-BEARING (SPEC §12: values
+        // that must round-trip to the provider), and the Messages API never
+        // consumes this CLI estimate. Consequence: `reduce()` folds `_meta` only
+        // on start events, so the estimate is now LIVE-ONLY (it used to fold
+        // last-value-wins onto the reasoning block) — the same standing as its
+        // `system/thinking_tokens` twin, which rides `ext.anthropic.frame`. No
+        // consumer read the folded value (guuey/ggui checked via sp-team-main).
+        // `reasoningDelta`'s sugar has no `_meta` option; `a.emit()` is the base
+        // primitive (the reasoning.start precedent in `emitAssistantBlock`), and
+        // the sugar's only extra step, de-cumulation, is a pass-through for a
+        // non-cumulative delta like this one.
         const rawDelta: unknown = d;
-        const estimate =
-          isJsonObject(rawDelta) && "estimated_tokens" in rawDelta
-            ? AgProviderMeta.parse({ estimated_tokens: rawDelta["estimated_tokens"] })
-            : undefined;
-        a.reasoningDelta(b.id, messageId, d.thinking, estimate !== undefined ? { providerMetadata: estimate } : undefined);
+        if (isJsonObject(rawDelta) && "estimated_tokens" in rawDelta) {
+          const estimate = AgMeta.parse({ estimated_tokens: rawDelta["estimated_tokens"] });
+          a.emit({ type: "reasoning.delta", id: b.id, messageId, delta: d.thinking, _meta: estimate });
+        } else {
+          a.reasoningDelta(b.id, messageId, d.thinking);
+        }
         return;
       }
       if (d.type === "input_json_delta" && b.kind === "tool") {
@@ -1734,8 +1787,31 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
           if (resumeReason !== undefined) wrapperMetaRaw["resume_reason"] = resumeReason;
         }
       }
+      // X5 (sp-rnd re-cut, 2026-09-23): the bag mixes two kinds of fact. SPEC
+      // §12 makes `providerMetadata` REPLAY-LOAD-BEARING (values that must
+      // round-trip to the provider) and `_meta` host-only side metadata.
+      // `narration_block_indexes` and the API-error triad are CLI-wrapper facts
+      // the Messages API never consumes, so where the bag anchors on a BLOCK they
+      // ride that block's start event `_meta` (`reduce()` folds it onto
+      // `block._meta`, keeping the per-frame anchoring). The rest keeps
+      // `providerMetadata`. The split is by key, so the combined bag, and the
+      // `message.metadata` path below that uses it, stay byte-identical
+      // (message.metadata is already `AgMeta`).
+      //
+      // Consumer check (sp-team-main, 2026-09-23): ggui has none of these names.
+      // No guuey code reads `providerMetadata`, and its #367/#1652 scrub keys on
+      // the native frame. guuey asked that the triad move as ONE unit; the
+      // result frame's `apiErrorCode` stays on `ext.anthropic.result-meta`.
+      const replayRaw: { [k: string]: JsonValue } = {};
+      const hostRaw: { [k: string]: JsonValue } = {};
+      for (const [k, v] of Object.entries(wrapperMetaRaw)) {
+        if (HOST_ONLY_WRAPPER_KEYS.has(k)) hostRaw[k] = v;
+        else replayRaw[k] = v;
+      }
       const wrapperMeta: AgProviderMeta | undefined =
-        Object.keys(wrapperMetaRaw).length > 0 ? AgProviderMeta.parse(wrapperMetaRaw) : undefined;
+        Object.keys(replayRaw).length > 0 ? AgProviderMeta.parse(replayRaw) : undefined;
+      const hostMeta: AgMeta | undefined = Object.keys(hostRaw).length > 0 ? AgMeta.parse(hostRaw) : undefined;
+      let hostMetaAnchored = false;
       // workspace#7 dedupe: a STREAMED lifecycle already emitted every block
       // incrementally (stream ids reuse the content `index`, identical to the
       // arithmetic below) — this complete frame must not re-synthesize them.
@@ -1757,15 +1833,29 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
           // (`<id>:text:0` twice would clobber in the fold). The wrapper carry
           // stays anchored to this FRAME's first block: `aborted` /
           // `resumed_from_incomplete_thinking` are per-frame facts.
-          emitAssistantBlock(a, block, messageId, open.blockIndex + i, i === 0 ? wrapperMeta : undefined);
+          const anchored = emitAssistantBlock(
+            a,
+            block,
+            messageId,
+            open.blockIndex + i,
+            i === 0 ? wrapperMeta : undefined,
+            i === 0 ? hostMeta : undefined,
+          );
+          if (i === 0) hostMetaAnchored = anchored;
         }
         open.blockIndex += m.content.length;
       }
       // Block-less frame (e.g. aborted before any content streamed) — or a
       // suppressed one, whose blocks were already sealed by the stream: no
-      // first block exists to anchor the wrapper carry — ride message.metadata.
-      if ((suppressed || m.content.length === 0) && wrapperMeta !== undefined) {
+      // first block exists to anchor the wrapper carry — ride message.metadata
+      // (the whole combined bag, unchanged).
+      if ((suppressed || m.content.length === 0) && (wrapperMeta !== undefined || hostMeta !== undefined)) {
         a.emit({ type: "message.metadata", messageId, metadata: wrapperMetaRaw });
+      } else if (hostMeta !== undefined && !hostMetaAnchored) {
+        // The first block is one whose start event does not fold `_meta` (a tool
+        // call, a compaction, an image, …): the host-only half rides the
+        // message instead, so it still folds.
+        a.emit({ type: "message.metadata", messageId, metadata: hostMeta });
       }
       // The seal is DEFERRED (guuey#26) — the next frame may continue this same
       // message id. Usage is message-level and repeated per frame, so the newest
