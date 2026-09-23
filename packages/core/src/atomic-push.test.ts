@@ -23,6 +23,14 @@ function createToy(opts: { throwOnFlush?: boolean } = {}): Normalizer {
           a.textDelta(n["id"] as string, n["msg"] as string, n["s"] as string);
           a.textEnd(n["id"] as string, n["msg"] as string);
           break;
+        case "sub":
+          a.subagentStart(n["id"] as string, n["parent"] as string);
+          break;
+        case "subdone":
+          a.subagentDone(n["id"] as string, n["parent"] as string);
+          break;
+        case "boom": // throws before emitting anything
+          throw new RangeError("SECRET_boom");
         case "boom-after-open": // opens a message, then throws: the batch must vanish
           a.openMessage({ id: n["id"] as string, role: "assistant", turnId: n["turn"] as string, threadId: "th" });
           a.textStart(`${n["id"] as string}:b`, n["id"] as string);
@@ -67,11 +75,11 @@ const REST: Toy[] = [
 
 /** The differential expectation: the stream WITHOUT `bad`, with ONE error at its
  *  position and every later seq shifted by +1. */
-function expected(atIndexOfBad: number, withoutBad: AgEvent[], code: string): AgEvent[] {
+function expected(atIndexOfBad: number, withoutBad: AgEvent[], code: string, turnId?: string): AgEvent[] {
   const errorSeq = atIndexOfBad;
   return [
     ...withoutBad.slice(0, atIndexOfBad),
-    { type: "error", seq: errorSeq, message: NORMALIZER_ERROR_MESSAGE, code },
+    { type: "error", seq: errorSeq, ...(turnId !== undefined ? { turnId } : {}), message: NORMALIZER_ERROR_MESSAGE, code },
     ...withoutBad.slice(atIndexOfBad).map((e) => ({ ...e, seq: e.seq + 1 })),
   ];
 }
@@ -83,7 +91,7 @@ describe("withAtomicPush (per-native atomicity, the fleet guard; option B)", () 
     const reference = run(createToy(), [...PREFIX, ...REST]);
     const refPrefixLen = run(createToy(), PREFIX).filter((e) => e.type !== "turn.abort" && e.type !== "message.end").length;
     const got = run(withAtomicPush(() => createToy()), [...PREFIX, BAD, ...REST]);
-    expect(got).toEqual(expected(refPrefixLen, reference, "Error"));
+    expect(got).toEqual(expected(refPrefixLen, reference, "Error", "T")); // thrown inside the open turn T
     expect(contiguous(got)).toBe(true);
     // The half-opened M2 never reaches the wire.
     expect(JSON.stringify(got)).not.toContain('"M2"');
@@ -97,6 +105,38 @@ describe("withAtomicPush (per-native atomicity, the fleet guard; option B)", () 
     expect(res.messages.map((m) => m.id)).toEqual(["M1"]);
     expect(res.messages[0]?.content.map((b) => (b as { text?: string }).text)).toEqual(["hello", "world"]);
     expect(res.turns.map((t) => t.turnId)).toEqual(["T"]);
+  });
+
+  it("the error carries the innermost OPEN turn's turnId (INV-OWNER, converged with option A), and none when no turn is open", () => {
+    const errors = (natives: Toy[]) =>
+      run(withAtomicPush(() => createToy()), natives)
+        .filter((e) => e.type === "error")
+        .map((e) => (e as { turnId?: string }).turnId ?? "(none)");
+    const BOOM: Toy = { t: "boom" };
+    expect(
+      errors([
+        BOOM, // before any turn
+        { t: "turn", id: "T" },
+        BOOM, // T open
+        { t: "sub", id: "S", parent: "T" },
+        BOOM, // S nested in T: the innermost
+        { t: "subdone", id: "S", parent: "T" },
+        BOOM, // back to T
+        { t: "done", turn: "T" },
+        BOOM, // no turn open any more
+      ]),
+    ).toEqual(["(none)", "T", "S", "T", "(none)"]);
+  });
+
+  it("the error serializes byte-for-byte like an assembler-emitted guard error (vercel-ai's; google-adk's in 0.6.x)", () => {
+    const a = new StreamAssembler();
+    a.openTurn("T", "th");
+    a.emit({ type: "error", message: NORMALIZER_ERROR_MESSAGE, code: "RangeError" });
+    const viaAssembler = a.drain().find((e) => e.type === "error")!;
+    const got = run(withAtomicPush(() => createToy()), [{ t: "turn", id: "T" }, { t: "boom" }]);
+    const viaWrapper = got.find((e) => e.type === "error")!;
+    expect(JSON.stringify(viaWrapper)).toBe(JSON.stringify(viaAssembler));
+    expect(Object.keys(viaWrapper)).toEqual(["type", "message", "code", "turnId", "seq"]);
   });
 
   it("neither the error's message nor the native reaches the wire: only the constructor name", () => {
@@ -136,7 +176,7 @@ describe("withAtomicPush (per-native atomicity, the fleet guard; option B)", () 
     const got = run(withAtomicPush(() => createToy({ throwOnFlush: true })), PREFIX);
     expect(got.map((e) => e.type).slice(-3)).toEqual(["error", "message.end", "turn.abort"]);
     expect(JSON.stringify(got)).not.toContain("SECRET_");
-    expect(got.find((e) => e.type === "error")).toMatchObject({ code: "TypeError" });
+    expect(got.find((e) => e.type === "error")).toMatchObject({ code: "TypeError", turnId: "T" });
     expect(contiguous(got)).toBe(true);
     expect(fold(got).needsResync).toBe(false);
   });

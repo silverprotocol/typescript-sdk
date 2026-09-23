@@ -52,12 +52,16 @@ export interface AtomicPushOptions {
  * - Throw: the partial batch is discarded, the inner is rebuilt and re-driven
  *   from the journal with its output dropped (a throw during that re-drive is
  *   caught too), and ONE core `error {message: "normalizer error", code}`
- *   takes the next seq. From then on every inner event is renumbered by +1 per
- *   error emitted, so seq stays ascending and gap-free and no seq repeats.
- * - flush() throwing: the same rebuild and `error`, then the wrapper closes
- *   what the consumer has seen open, per INV-FLUSH: a message.end for each
- *   open message, then turn.abort{stream-truncated} for each open turn,
- *   innermost first.
+ *   takes the next seq. It carries the innermost open turn's `turnId` when a
+ *   turn is open (INV-OWNER; the same owner an assembler-emitted guard error
+ *   gets), and no `turnId` when none is. From then on every inner event is
+ *   renumbered by +1 per error emitted, so seq stays ascending and gap-free
+ *   and no seq repeats.
+ * - flush() throwing: inner.flush() is NOT retried (so it cannot throw a
+ *   second time). The wrapper rebuilds, emits the same `error`, then
+ *   synthesizes the INV-FLUSH closes from its own tracker of what the
+ *   consumer has seen open: a message.end for each open message, then
+ *   turn.abort{stream-truncated} for each open turn, innermost first.
  *
  * Costs, by design (caps deferred):
  * - Memory: O(invoke). The journal keeps a COPY of every accepted native (a
@@ -128,8 +132,26 @@ export function withAtomicPush(createInner: () => Normalizer, opts: AtomicPushOp
     }
   };
 
+  /** The innermost turn the consumer has seen open (turns open and close
+   *  nested, so it is the most recently opened one still open), else none. */
+  const innermostOpenTurn = (): string | undefined => {
+    let last: string | undefined;
+    for (const t of openTurns) last = t;
+    return last;
+  };
+
   const guardError = (err: unknown): AgEvent => {
-    const ev: AgEvent = { type: "error", seq: lastSeq + 1, message: NORMALIZER_ERROR_MESSAGE, code: normalizerErrorCode(err) };
+    const turnId = innermostOpenTurn();
+    // Key order as StreamAssembler.emit() builds it ({...ev, turnId, seq}), so
+    // this error serializes byte-for-byte like an assembler-emitted guard
+    // error (vercel-ai's, and google-adk's in 0.6.x).
+    const ev: AgEvent = {
+      type: "error",
+      message: NORMALIZER_ERROR_MESSAGE,
+      code: normalizerErrorCode(err),
+      ...(turnId !== undefined ? { turnId } : {}),
+      seq: lastSeq + 1,
+    };
     lastSeq = ev.seq;
     offset += 1;
     return ev;
