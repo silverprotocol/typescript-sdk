@@ -1366,6 +1366,11 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // task_started: task_id → the spawning tool_use_id, for a task_notification
   // that carries only its task_id.
   const toolUseIdByTaskId = new Map<string, string>();
+  // The ids of every Agent (or legacy Task) tool call seen in this invoke. Only
+  // a result for one of these can carry an AgentOutput: a third-party tool whose
+  // result happens to hold an `agentId` (a CRM, a ticketing system, any agent
+  // registry) is not Anthropic's Agent run report (sp-cto's read of f2c75d8).
+  const agentCallIds = new Set<string>();
   function openRun(parentToolUseId: string, turnId: string, parentTurnId: string): void {
     if (openRuns.has(parentToolUseId)) return;
     openRuns.set(parentToolUseId, { turnId, parentTurnId });
@@ -2500,6 +2505,11 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         open.blockIndex += m.content.length;
       }
       open.framedThrough += m.content.length;
+      // Record this frame's Agent/Task calls (the complete frame arrives in both
+      // modes, streamed or not), so their results can be recognized as reports.
+      for (const block of m.content) {
+        if (block.type === "tool_use" && (block.name === "Agent" || block.name === "Task")) agentCallIds.add(block.id);
+      }
       // Block-less frame (e.g. aborted before any content streamed) — or a
       // suppressed one, whose blocks were already sealed by the stream: no
       // first block exists to anchor the wrapper carry — ride message.metadata
@@ -2725,7 +2735,8 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // run report ("the completed shape is the subagent's final report ...
         // plus run totals — render from it instead of parsing the tool_result
         // text"), or the background launch ack (status async_launched, isAsync,
-        // outputFile). Recognized by its `agentId`. It rides the Agent call's
+        // outputFile). Recognized by its `agentId` on the result of a call this
+        // invoke saw as an Agent (or Task) tool_use (`agentCallIds`). It rides the Agent call's
         // tool.done host-only `_meta` under "anthropic/agentOutput", verbatim
         // minus `content` (already the tool.done content) and `prompt` (already
         // the tool input). Its `usage` is the subagent's own and stays out of
@@ -2837,7 +2848,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
               ...(applySibling && siblingHasUi && sc !== undefined ? { structuredContent: sc } : {}),
               ...(() => {
                 const meta = applySibling ? siblingMeta : undefined;
-                const report = applySibling ? agentOutput : undefined;
+                const report = applySibling && agentCallIds.has(block.tool_use_id) ? agentOutput : undefined;
                 if (report === undefined) return meta !== undefined ? { _meta: meta } : {};
                 const merged: AgMeta = { ...(meta ?? {}), "anthropic/agentOutput": report };
                 return { _meta: merged };

@@ -8008,6 +8008,23 @@ describe("createClaudeNormalizer — subagent carries: AgentOutput and result or
     expect(doneOf(drive([agentUse(), agentResult(ack)]))?.["_meta"]).toEqual({ "anthropic/agentOutput": expected });
   });
 
+  it("sp-cto's false positive: a THIRD-PARTY tool whose result holds an agentId is not an Agent run report (no carry, nothing stripped)", () => {
+    const crmUse = assistantMsg([{ type: "tool_use", id: "toolu_x", name: "mcp__crm__lookup_agent", input: { q: "who" } }]);
+    const crmResult = {
+      type: "user",
+      message: { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_x", content: [{ type: "text", text: "ok" }], is_error: false }] },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000cr",
+      session_id: "sess_fixture",
+      tool_use_result: { agentId: "crm-agent-42", region: "eu", content: "ok", prompt: "who" },
+    };
+    const evs = drive([crmUse, crmResult]);
+    const done = evs.find((e) => e.type === "tool.done" && "toolCallId" in e && e.toolCallId === "toolu_x");
+    expect(done).toBeDefined();
+    expect(done !== undefined && "_meta" in done).toBe(false);
+    expect(JSON.stringify(evs)).not.toContain("anthropic/agentOutput");
+  });
+
   it("negative controls: a non-Agent tool_use_result (no agentId), or a multi-result frame, adds no _meta", () => {
     expect(doneOf(drive([agentUse(), agentResult({ stdout: "x" })])) ).not.toHaveProperty("_meta");
     const multi = agentResult(COMPLETED, [{ type: "tool_result", tool_use_id: "toolu_other", content: "y", is_error: false }]);
