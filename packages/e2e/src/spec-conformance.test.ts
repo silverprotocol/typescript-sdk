@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import {
   reduce,
   Reducer,
@@ -10,6 +11,7 @@ import {
   AgA2uiError,
   toWire,
   toJsonValue,
+  AGJSON_VERSION,
 } from "@silverprotocol/core";
 import type { JsonValue } from "@silverprotocol/core";
 import { createAdkNormalizer } from "@silverprotocol/google-adk";
@@ -26,8 +28,12 @@ import { createOpenaiNormalizer } from "@silverprotocol/openai-agents";
 // items — e2e is the one package in this workspace that already depends on
 // core + all three facets (claude-agent-sdk, google-adk, openai-agents).
 //
-// Every SPEC.md §10 item (HEAD: 20 items — grown from M55's original 19
-// through batches A–C) gets exactly one disposition per leg:
+// Every SPEC.md §10 item gets exactly one disposition per leg. The item count
+// is NOT hardcoded: the accounting test below reads the SDK's SPEC.md (the
+// follower of protocol/SPEC.md, kept in lockstep by sync-spec.mjs --check) and
+// derives N from §10's numbered items, so a new §10 item with no manifest row
+// fails here instead of going silently unaccounted (item 21, draft.3, went
+// unaccounted for three weeks while the count was pinned at 20).
 //
 //   RUNNABLE    a self-contained fixture below IS the proof of the claim.
 //               Reduce-level event vectors for framework-neutral items;
@@ -45,18 +51,18 @@ import { createOpenaiNormalizer } from "@silverprotocol/openai-agents";
 //               openai-agents exist here — no LangChain/LangGraph/Pydantic-AI
 //               facet).
 //
-// The manifest below is the 20-item accounting the task requires: every
-// SPEC.md §10 item NUMBER 1–20 is represented by at least one manifest row.
-// Items 4 and 17 expand into lettered/named legs because SPEC.md's own item
-// text splits their claims across sub-claims with different testability —
-// "no item silently absent" is enforced per LEG, and the accounting test
-// below asserts the union of item numbers is exactly {1..20}.
+// The manifest below accounts for every SPEC.md §10 item NUMBER 1–N, each by
+// at least one manifest row. Items 4, 17 and 21 expand into lettered/named
+// legs because SPEC.md's own item text splits their claims across sub-claims
+// with different testability — "no item silently absent" is enforced per LEG,
+// and the accounting test below asserts the union of item numbers is exactly
+// the set of §10 item numbers SPEC.md declares.
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Disposition = "RUNNABLE" | "COVERED-BY" | "N/A";
 
 interface Section10Item {
-  n: number; // SPEC.md §10 item number (1-20)
+  n: number; // SPEC.md §10 item number (1-N; N derived from SPEC.md, see the accounting test)
   leg?: string; // sub-leg label when the item's own text splits its claim
   title: string;
   disposition: Disposition;
@@ -88,12 +94,36 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 18, title: "MCP MRTR requestState round-trip", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.18, wire/schema-level" },
   { n: 19, title: "A2UI component streaming", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.19, wire round-trip" },
   { n: 20, title: "Malformed input at a trust boundary", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.20" },
+  { n: 21, leg: "fold", title: "Reasoning-inclusive usage identity — the Gemini fold (thoughts added; absent ⇒ draft.2 bytes; already-inclusive not double-added)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.21(fold), facet-driven via createAdkNormalizer" },
+  { n: 21, leg: "replay", title: "Reasoning-inclusive usage identity — input + output (+ toolUseInput) == total on every replay golden with a provider total", disposition: "COVERED-BY", citation: "replay.test.ts:331 assertUsageIdentity, run by all four replay suites (:380 claude, :417 openai, :456 adk, :491 vercel)" },
 ];
 
+// §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
+// between the "## 10. Conformance" heading and the next "## " heading, read
+// from the SDK's follower SPEC.md (sdks/typescript/SPEC.md — the copy the SDK
+// mirror publishes; sync-spec.mjs --check keeps it byte-identical to
+// protocol/SPEC.md).
+function specSection10ItemNumbers(): number[] {
+  const spec = readFileSync(new URL("../../../SPEC.md", import.meta.url), "utf8");
+  const start = spec.indexOf("\n## 10. Conformance");
+  if (start < 0) throw new Error("SPEC.md: no '## 10. Conformance' heading");
+  const rest = spec.slice(start + 1);
+  const end = rest.indexOf("\n## ", 1);
+  const section = end < 0 ? rest : rest.slice(0, end);
+  return Array.from(section.matchAll(/^(\d+)\. \*\*/gm), (m) => Number(m[1]));
+}
+
 describe("§10 conformance accounting (audit M55)", () => {
-  it("covers every SPEC.md §10 item 1–20 at least once, each row disposed RUNNABLE | COVERED-BY | N/A", () => {
+  it("SPEC.md §10 numbers its items 1..N with no gap or repeat (N derived, never pinned)", () => {
+    const declared = specSection10ItemNumbers();
+    expect(declared.length).toBeGreaterThan(0);
+    expect(declared).toEqual(Array.from({ length: declared.length }, (_, i) => i + 1));
+  });
+
+  it("covers every SPEC.md §10 item 1..N at least once, each row disposed RUNNABLE | COVERED-BY | N/A", () => {
+    const declared = specSection10ItemNumbers();
     const nums = new Set(SPEC_10_MANIFEST.map((i) => i.n));
-    expect(Array.from(nums).sort((a, b) => a - b)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
+    expect(Array.from(nums).sort((a, b) => a - b)).toEqual(declared);
     for (const item of SPEC_10_MANIFEST) {
       expect(["RUNNABLE", "COVERED-BY", "N/A"]).toContain(item.disposition);
       expect(item.citation.length).toBeGreaterThan(0);
@@ -595,9 +625,12 @@ describe("§10.18 — MCP MRTR: requestState survives emit→reduce→re-input b
     if (ask.type !== "hitl.ask") throw new Error("expected hitl.ask");
 
     // The app echoes requestState BYTE-IDENTICAL — it MUST NOT inspect/decode it (SPEC §13).
+    // The current spec version (never a pinned draft string, which went stale
+    // at draft.1 through two bumps); same-major acceptance of an OLDER draft
+    // is §12's rule and is not what this item tests.
     const resume = AgInput.parse({
       protocol: "agjson",
-      version: "1.0.0-draft.1",
+      version: AGJSON_VERSION,
       threadId: "th1",
       turnId: "t1",
       kind: "resume",
@@ -699,5 +732,43 @@ describe("§10.20 — malformed input at a trust boundary: a schema-invalid even
     const result = r.result();
     expect(result.messages[0]?.content[0]).toMatchObject({ type: "text", text: "unaffected" });
     expect(r.needsResync).toBe(false); // fold state / resync condition unaffected by the rejected event
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.21 — Reasoning-inclusive usage identity (draft.3)
+// (fold leg RUNNABLE, facet-driven; replay leg COVERED-BY replay.test.ts:331)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function adkUsageTurn(usageMetadata: NonNullable<AdkEvent["usageMetadata"]>): Record<string, unknown> | undefined {
+  const n = createAdkNormalizer();
+  const native = adkEvent([{ text: "x" }], { finishReason: "STOP", usageMetadata });
+  const out = n.push(toJsonValue(native)).concat(n.flush());
+  const done = out.find((e) => e.type === "turn.done");
+  return done?.type === "turn.done" ? (done.usage as Record<string, unknown> | undefined) : undefined;
+}
+
+describe("§10.21 — reasoning-inclusive usage identity (draft.3)", () => {
+  it("(fold) the spec's literal example folds as written: {109, 22, 125, 256} → inputTokens 109, outputTokens 147, reasoningTokens 125, totalTokens 256", () => {
+    const usage = adkUsageTurn({ promptTokenCount: 109, candidatesTokenCount: 22, thoughtsTokenCount: 125, totalTokenCount: 256 });
+    expect(usage).toMatchObject({ inputTokens: 109, outputTokens: 147, reasoningTokens: 125, totalTokens: 256 });
+  });
+
+  it("(fold) the same object without thoughtsTokenCount folds byte-identically to draft.2: outputTokens = candidatesTokenCount, no reasoningTokens key", () => {
+    const usage = adkUsageTurn({ promptTokenCount: 109, candidatesTokenCount: 22, totalTokenCount: 131 });
+    expect(usage).toMatchObject({ inputTokens: 109, outputTokens: 22, totalTokens: 131 });
+    expect(usage !== undefined && "reasoningTokens" in usage).toBe(false);
+  });
+
+  it("(fold) an already-inclusive shape (prompt + candidates == total with thoughtsTokenCount > 0) is NOT double-added", () => {
+    const usage = adkUsageTurn({ promptTokenCount: 100, candidatesTokenCount: 50, thoughtsTokenCount: 30, totalTokenCount: 150 });
+    expect(usage).toMatchObject({ inputTokens: 100, outputTokens: 50, reasoningTokens: 30, totalTokens: 150 });
+  });
+
+  it("(replay) COVERED-BY replay.test.ts:331 assertUsageIdentity on every replay golden (all four suites: :380, :417, :456, :491); thin confirming re-assertion of the identity on the folded example", () => {
+    const usage = adkUsageTurn({ promptTokenCount: 109, candidatesTokenCount: 22, thoughtsTokenCount: 125, totalTokenCount: 256 });
+    const num = (k: string): number => (typeof usage?.[k] === "number" ? (usage[k] as number) : Number.NaN);
+    const toolUse = typeof usage?.["toolUseInputTokens"] === "number" ? (usage["toolUseInputTokens"] as number) : 0;
+    expect(num("inputTokens") + num("outputTokens") + toolUse).toBe(num("totalTokens"));
   });
 });
