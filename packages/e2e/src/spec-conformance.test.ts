@@ -146,6 +146,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 34, leg: "openai", title: "Partial-frame carry (draft.4)", disposition: "N/A", citation: "§8 item 22 applicability: the openai facet has no frame that maps only in part and rides ext.openai.frame" },
   { n: 34, leg: "adk", title: "Partial-frame carry (draft.4)", disposition: "N/A", citation: "§8 item 22 applicability: the google-adk facet has no frame that maps only in part and rides ext.google.frame" },
   { n: 34, leg: "vercel", title: "Partial-frame carry (draft.4)", disposition: "N/A", citation: "§8 item 22 applicability: the vercel-ai facet has no frame that maps only in part and rides ext.vercel.frame" },
+  { n: 35, title: "Sealed-message finalizers and merges (draft.4): text.end / reasoning.end / reasoning.opaque / tool.args.assembled into a sealed message or any message of a closed turn park with the fold equal to the fold before them; the same events fold before the seal / terminal; message.metadata and turn.done{messageId, messageMetadata} naming a sealed message merge without parking", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.35 (reference reducer guard 648cecb; delta and block-creating legs: §10.27)" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -924,10 +925,9 @@ describe("§10.21 — reasoning-inclusive usage identity (draft.3)", () => {
 // §5.0 INV-MSG — a straggler delta into a sealed message parks (SPEC.md:745)
 // Contract case for core 7853259 (conformance, no bar). Scope is the literal
 // text: "a block-creating or delta event targeting a sealed message ... is a
-// reduce()-error → snapshot-resync, never a silent attach". The non-delta
-// mutators (text.end, reasoning.end, reasoning.opaque, tool.args.assembled) are
-// NOT named by :745 and are not asserted here; the closed-turn half waits for
-// the claude facet's one-turnId-per-turn fix (INV-TURN, :743).
+// reduce()-error → snapshot-resync, never a silent attach". The four
+// block-finalizing events (text.end, reasoning.end, reasoning.opaque,
+// tool.args.assembled) and the closed-turn half are asserted by §10.35 below.
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("§5.0 INV-MSG — a delta event into a sealed message is a reduce()-error → resync, never a silent attach (SPEC.md:745)", () => {
@@ -1826,6 +1826,48 @@ describe("§10.34 — partial-frame carry (draft.4; §8 item 22)", () => {
     }
     expect(frames).toBeGreaterThan(0);
     expect(bad).toEqual([]);
+  });
+});
+
+describe("§10.35 — sealed-message finalizers and merges (draft.4; §5.0 INV-MSG)", () => {
+  const head = [
+    { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+    { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+  ];
+  const cases: Array<{ name: string; opener: Record<string, unknown>; finalizer: Record<string, unknown> }> = [
+    { name: "text.end", opener: { type: "text.start", id: "b1", turnId: "t1" }, finalizer: { type: "text.end", id: "b1" } },
+    { name: "reasoning.end", opener: { type: "reasoning.start", id: "r1", turnId: "t1" }, finalizer: { type: "reasoning.end", id: "r1" } },
+    { name: "reasoning.opaque", opener: { type: "reasoning.start", id: "r1", turnId: "t1" }, finalizer: { type: "reasoning.opaque", id: "r1", kind: "signature", value: "sig" } },
+    { name: "tool.args.assembled", opener: { type: "tool.start", toolCallId: "c1", name: "echo", turnId: "t1" }, finalizer: { type: "tool.args.assembled", toolCallId: "c1", input: {} } },
+  ];
+  const parse = (evs: Record<string, unknown>[]): AgEvent[] => evs.map((e, i) => AgEvent.parse({ ...e, seq: i }));
+  const done = { type: "turn.done", turnId: "t1", outcome: { type: "success" }, finishReason: "stop" };
+  for (const c of cases) {
+    it(`${c.name} into a sealed message parks and leaves the fold equal to the fold before it; before message.end it folds normally`, () => {
+      const before = parse([...head, c.opener, { type: "message.end", id: "m1" }]);
+      const after = parse([...head, c.opener, { type: "message.end", id: "m1" }, c.finalizer]);
+      const r = reduce(after);
+      expect(r.needsResync).toBe(true);
+      expect(JSON.stringify(r.result)).toBe(JSON.stringify(reduce(before).result));
+      expect(reduce(parse([...head, c.opener, c.finalizer, { type: "message.end", id: "m1" }])).needsResync).toBe(false);
+    });
+    it(`${c.name} into a message of a closed turn parks; before the turn's terminal it folds normally`, () => {
+      const before = parse([...head, c.opener, done]);
+      const after = parse([...head, c.opener, done, c.finalizer]);
+      const r = reduce(after);
+      expect(r.needsResync).toBe(true);
+      expect(JSON.stringify(r.result)).toBe(JSON.stringify(reduce(before).result));
+      expect(reduce(parse([...head, c.opener, c.finalizer, done])).needsResync).toBe(false);
+    });
+  }
+  it("message.metadata and turn.done{messageId, messageMetadata} naming a sealed message merge onto it without parking", () => {
+    const sealed = [...head, { type: "text.start", id: "b1", turnId: "t1" }, { type: "text.delta", id: "b1", delta: "hi" }, { type: "text.end", id: "b1" }, { type: "message.end", id: "m1" }];
+    const r1 = reduce(parse([...sealed, { type: "message.metadata", messageId: "m1", metadata: { k: "v" } }]));
+    expect(r1.needsResync).toBe(false);
+    expect(JSON.stringify(r1.result.messages.find((m) => m.id === "m1"))).toContain("\"k\":\"v\"");
+    const r2 = reduce(parse([...sealed, { ...done, messageId: "m1", messageMetadata: { usage: 3 } }]));
+    expect(r2.needsResync).toBe(false);
+    expect(JSON.stringify(r2.result.messages.find((m) => m.id === "m1"))).toContain("\"usage\":3");
   });
 });
 
