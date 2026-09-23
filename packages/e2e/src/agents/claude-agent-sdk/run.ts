@@ -21,7 +21,7 @@
 
 import { randomUUID, type UUID } from "node:crypto";
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import type { HookCallbackMatcher, HookEvent, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { AgentDefinition, HookCallbackMatcher, HookEvent, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { JsonValue } from "@silverprotocol/core";
 import { toJsonValue } from "@silverprotocol/core";
 
@@ -89,6 +89,164 @@ export interface CaptureRunInput {
    * never from each other's (sdk.d.ts `forkSession`). Absent ⇒ a new session.
    */
   resumeSessionId?: string;
+  /**
+   * Programmatic subagents (the SDK's `options.agents`), for the nested-turn
+   * captures (sp-probe's `claudeSubagents` scenario knob). Set ⇒ the built-in
+   * Agent tool is enabled and auto-allowed (see `claudeSubagentOptions`), and a
+   * `background: true` subagent runs the query in streaming-input mode that
+   * stays open until every background launch has reported (see
+   * `createBackgroundTracker`). Absent ⇒ no agents and `tools: []`,
+   * byte-identical to before.
+   */
+  subagents?: Readonly<
+    Record<
+      string,
+      {
+        description: string;
+        prompt: string;
+        tools?: readonly string[];
+        model?: string;
+        maxTurns?: number;
+        background?: boolean;
+      }
+    >
+  >;
+}
+
+/** The built-in tool that spawns a subagent (SDK 0.3.x names it "Agent"). */
+export const AGENT_TOOL = "Agent";
+
+/**
+ * The query() options behind `subagents`: the SDK `agents` record, the built-in
+ * Agent tool enabled (in place of `tools: []`), and Agent added to the
+ * auto-allowed tools. No `subagents` ⇒ `{}` (byte-identical query). Pure, so the
+ * unit test and the harness's KNOB_SUPPORT proof need no SDK.
+ */
+export function claudeSubagentOptions(input: Pick<CaptureRunInput, "subagents" | "allowedTools">): {
+  agents?: Record<string, AgentDefinition>;
+  tools?: string[];
+  allowedTools?: string[];
+} {
+  const subagents = input.subagents;
+  if (subagents === undefined) return {};
+  const agents: Record<string, AgentDefinition> = {};
+  for (const [name, def] of Object.entries(subagents)) {
+    agents[name] = {
+      description: def.description,
+      prompt: def.prompt,
+      ...(def.tools !== undefined ? { tools: [...def.tools] } : {}),
+      ...(def.model !== undefined ? { model: def.model } : {}),
+      ...(def.maxTurns !== undefined ? { maxTurns: def.maxTurns } : {}),
+      ...(def.background !== undefined ? { background: def.background } : {}),
+    };
+  }
+  const allowed = input.allowedTools ?? [];
+  return {
+    agents,
+    tools: [AGENT_TOOL],
+    allowedTools: allowed.includes(AGENT_TOOL) ? [...allowed] : [...allowed, AGENT_TOOL],
+  };
+}
+
+/** How long a capture holds its input open for background sub-runs to report. */
+export const BACKGROUND_HOLD_CAP_MS = 180_000;
+
+/**
+ * Tracks background subagent launches across the native stream, so the capture
+ * ends its input only once every launch has reported and the turn it woke has
+ * closed. A launch is the Agent tool_result whose `tool_use_result.status` is
+ * "async_launched" / "remote_launched" (keyed by its tool_use_id; its `agentId`
+ * is recorded too). A report is the `system/task_notification` correlated by
+ * its `tool_use_id`, else by its `task_id` through the `task_started` frame
+ * that named it, else by `task_id` = the launch's `agentId`. The report wakes a
+ * turn, so the input may end at the NEXT result with nothing still pending.
+ * Nothing is filtered: this only reads the frames the capture yields anyway.
+ */
+export function createBackgroundTracker(): {
+  observe(msg: unknown): void;
+  canEnd(): boolean;
+  pending(): readonly string[];
+} {
+  const pending = new Set<string>();
+  const toolUseByTask = new Map<string, string>();
+  let awaitingWokenResult = false;
+  const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+  return {
+    observe(msg: unknown): void {
+      if (!isObj(msg)) return;
+      if (msg["type"] === "user") {
+        const message = msg["message"];
+        const content = isObj(message) ? message["content"] : undefined;
+        const results = Array.isArray(content) ? content.filter((b) => isObj(b) && b["type"] === "tool_result") : [];
+        const sibling = msg["tool_use_result"];
+        const status = isObj(sibling) ? sibling["status"] : undefined;
+        if (results.length === 1 && (status === "async_launched" || status === "remote_launched")) {
+          const block = results[0];
+          const id = isObj(block) && typeof block["tool_use_id"] === "string" ? block["tool_use_id"] : undefined;
+          if (id !== undefined) {
+            pending.add(id);
+            if (isObj(sibling) && typeof sibling["agentId"] === "string") toolUseByTask.set(sibling["agentId"], id);
+          }
+        }
+        return;
+      }
+      if (msg["type"] === "system" && typeof msg["task_id"] === "string") {
+        const named = typeof msg["tool_use_id"] === "string" ? msg["tool_use_id"] : undefined;
+        if (msg["subtype"] === "task_started" && named !== undefined) toolUseByTask.set(msg["task_id"], named);
+        if (msg["subtype"] === "task_notification") {
+          const key = named ?? toolUseByTask.get(msg["task_id"]);
+          if (key !== undefined && pending.delete(key)) awaitingWokenResult = true;
+        }
+        return;
+      }
+      if (msg["type"] === "result") awaitingWokenResult = false;
+    },
+    canEnd(): boolean {
+      return pending.size === 0 && !awaitingWokenResult;
+    },
+    pending(): readonly string[] {
+      return [...pending];
+    },
+  };
+}
+
+/**
+ * The end-of-input gate for streaming-input mode: after the last prompt, the
+ * prompt stream awaits `wait()`, which resolves at the first `onResult(true)`
+ * after it was called, at `capMs` after it was called, or on `release()`
+ * (always called when the run ends, so the stream can never hang).
+ */
+export function createEndGate(capMs: number): {
+  wait(): Promise<void>;
+  onResult(canEnd: boolean): void;
+  release(): void;
+} {
+  let resolveWait: (() => void) | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let released = false;
+  const finish = (): void => {
+    if (timer !== undefined) clearTimeout(timer);
+    timer = undefined;
+    const r = resolveWait;
+    resolveWait = undefined;
+    r?.();
+  };
+  return {
+    wait(): Promise<void> {
+      if (released) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        resolveWait = resolve;
+        timer = setTimeout(finish, capMs);
+      });
+    },
+    onResult(canEnd: boolean): void {
+      if (canEnd && resolveWait !== undefined) finish();
+    },
+    release(): void {
+      released = true;
+      finish();
+    },
+  };
 }
 
 /**
@@ -131,6 +289,7 @@ export function captureQueryExtras(input: Pick<CaptureRunInput, "preToolUseDecis
 export function gatedPromptStream(
   prompts: readonly string[],
   mintUuid: () => UUID = randomUUID,
+  endGate?: { wait(): Promise<void> },
 ): { stream: AsyncIterable<SDKUserMessage>; resultSeen: () => void } {
   let release: (() => void) | undefined;
   let pendingReleases = 0;
@@ -158,6 +317,9 @@ export function gatedPromptStream(
         uuid: mintUuid(),
       };
     }
+    // Background subagents: hold the input open until every launch reported
+    // (or the cap), so the CLI can deliver the task_notification and wake a turn.
+    if (endGate !== undefined) await endGate.wait();
   }
   return { stream: stream(), resultSeen };
 }
@@ -235,7 +397,16 @@ export async function* runClaudeCapture(input: CaptureRunInput): AsyncIterable<J
   }
 
   const followUps = input.followUpPrompts ?? [];
-  const gated = followUps.length > 0 ? gatedPromptStream([input.prompt, ...followUps]) : undefined;
+  // A background subagent needs streaming-input mode: a plain string prompt ends
+  // the input at the first result, before its task_notification can arrive.
+  const background =
+    input.subagents !== undefined && Object.values(input.subagents).some((d) => d.background === true)
+      ? { tracker: createBackgroundTracker(), gate: createEndGate(BACKGROUND_HOLD_CAP_MS) }
+      : undefined;
+  const gated =
+    followUps.length > 0 || background !== undefined
+      ? gatedPromptStream([input.prompt, ...followUps], randomUUID, background?.gate)
+      : undefined;
   const response = query({
     prompt: gated !== undefined ? gated.stream : input.prompt,
     options: {
@@ -253,6 +424,7 @@ export async function* runClaudeCapture(input: CaptureRunInput): AsyncIterable<J
         ? { thinking: { type: "adaptive" as const, display: input.thinkingDisplay } }
         : {}),
       ...captureQueryExtras(input),
+      ...claudeSubagentOptions(input),
       abortController,
     },
   });
@@ -262,11 +434,16 @@ export async function* runClaudeCapture(input: CaptureRunInput): AsyncIterable<J
       // Wire projection (audit D5-a) — toJsonValue materializes the WHOLE raw
       // message (including fields typed as `unknown` by the SDK) into plain JsonValue.
       yield toJsonValue(msg);
+      if (background !== undefined) {
+        background.tracker.observe(msg);
+        if (msg.type === "result") background.gate.onResult(background.tracker.canEnd());
+      }
       // Multi-result capture: a turn ended, so release the next prompt (after
       // the result frame itself was yielded).
       if (gated !== undefined && msg.type === "result") gated.resultSeen();
     }
   } finally {
+    background?.gate.release();
     // Remove the abort listener (no-op if it was never added) so a long-lived
     // caller signal doesn't accumulate listeners across captures.
     signal?.removeEventListener("abort", onAbort);
