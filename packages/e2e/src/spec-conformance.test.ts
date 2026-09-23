@@ -139,6 +139,13 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 32, leg: "claude", title: "Credential material off provider-raw carries (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
   { n: 32, leg: "openai", title: "Credential material off provider-raw carries (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
   { n: 32, leg: "vercel", title: "Credential material off provider-raw carries (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
+  { n: 33, leg: "reference", title: "Ext segment reservation (draft.4): the reference SDK's normalizers (and core) emit only segments on §12's reserved list", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.33(reference): §12's reserved list parsed from SPEC.md vs every ext.<vendor> segment named in the packages' sources and found in every corpus golden" },
+  { n: 33, leg: "third-party", title: "Ext segment reservation (draft.4): a normalizer outside the reference SDK emits no reserved segment unless the whole type is one the spec names", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.33(third-party): the collision rule over a table of third-party types, the spec-named carve-out included" },
+  { n: 34, leg: "scan", title: "Partial-frame carry (draft.4): no replay golden carries an ext.anthropic.frame whose frame is a result frame, an assistant frame, a permission_denied notice, or a user frame whose every content block is a tool_result", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.34(scan) over every corpus/*/claude.agjson.json" },
+  { n: 34, leg: "claude-refusal", title: "Partial-frame carry (draft.4): a Claude model_refusal_fallback frame yields its message.remove events, then exactly one ext.anthropic.frame{kind:\"model_refusal_fallback\"} deep-equal to the native frame", disposition: "COVERED-BY", citation: "claude-agent-sdk/src/index.test.ts \"carries the WHOLE fallback frame verbatim as ext.anthropic.frame{kind:model_refusal_fallback}, after its removes\" + \"the CLI's isSynthetic nudge rides ext.anthropic.frame{kind:'user'} verbatim …\"" },
+  { n: 34, leg: "openai", title: "Partial-frame carry (draft.4)", disposition: "N/A", citation: "§8 item 22 applicability: the openai facet has no frame that maps only in part and rides ext.openai.frame" },
+  { n: 34, leg: "adk", title: "Partial-frame carry (draft.4)", disposition: "N/A", citation: "§8 item 22 applicability: the google-adk facet has no frame that maps only in part and rides ext.google.frame" },
+  { n: 34, leg: "vercel", title: "Partial-frame carry (draft.4)", disposition: "N/A", citation: "§8 item 22 applicability: the vercel-ai facet has no frame that maps only in part and rides ext.vercel.frame" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -1743,6 +1750,82 @@ describe("§10.32 — credential material off provider-raw carries (draft.4; §8
       const without = drive([event([], { output })]).map((e) => e.type);
       expect(withPart).toEqual(without);
     }
+  });
+});
+
+describe("§10.33 — ext segment reservation (draft.4; §12)", () => {
+  const spec = readFileSync(new URL("../../../SPEC.md", import.meta.url), "utf8");
+  const reservedLine = /Reserved segments \([^)]*\):([^.]*)\./.exec(spec)?.[1] ?? "";
+  const reserved = new Set([...reservedLine.matchAll(/`([a-z0-9_-]+)`/g)].map((m) => m[1] as string));
+  // Types this specification names in full under a reserved segment (the item's carve-out).
+  const specNamed = new Set([...spec.matchAll(/`(ext\.[a-z0-9_-]+\.[a-z0-9_.-]+)`/g)].map((m) => m[1] as string));
+  it("(reference) every ext.<vendor> segment the reference SDK's packages name or emit is on §12's reserved list", () => {
+    expect(reserved.has("agjson")).toBe(true);
+    const emitted = new Set<string>();
+    const pkgs = new URL("../../", import.meta.url);
+    for (const p of ["core", "claude-agent-sdk", "openai-agents", "google-adk", "vercel-ai"]) {
+      const dir = new URL(`${p}/src/`, pkgs);
+      for (const f of readdirSync(dir)) {
+        if (!f.endsWith(".ts") || f.endsWith(".test.ts")) continue;
+        const src = readFileSync(new URL(f, dir), "utf8");
+        for (const m of src.matchAll(/["`]ext\.([a-z0-9_-]+)\./g)) emitted.add(m[1] as string);
+        for (const m of src.matchAll(/emitExt\(\s*"([a-z0-9_-]+)"/g)) emitted.add(m[1] as string);
+        for (const m of src.matchAll(/EXT_VENDOR\s*=\s*"([a-z0-9_-]+)"/g)) emitted.add(m[1] as string);
+      }
+    }
+    const corpus = new URL("../corpus/", import.meta.url);
+    for (const d of readdirSync(corpus)) {
+      for (const fw of ["claude", "openai", "adk", "vercel"]) {
+        const f = new URL(`${d}/${fw}.agjson.json`, corpus);
+        if (!existsSync(f)) continue;
+        for (const e of JSON.parse(readFileSync(f, "utf8")) as Array<{ type?: unknown }>) {
+          const m = typeof e.type === "string" ? /^ext\.([^.]+)\./.exec(e.type) : null;
+          if (m) emitted.add(m[1] as string);
+        }
+      }
+    }
+    expect(emitted.size).toBeGreaterThan(3);
+    expect([...emitted].filter((s) => !reserved.has(s))).toEqual([]);
+  });
+  it("(third-party) a reserved segment collides unless the whole type is one this specification names", () => {
+    const collides = (type: string): boolean => {
+      const seg = /^ext\.([^.]+)\./.exec(type)?.[1];
+      return seg !== undefined && reserved.has(seg) && !specNamed.has(type);
+    };
+    expect(specNamed.has("ext.anthropic.frame")).toBe(true);
+    expect(specNamed.has("ext.langgraph.custom")).toBe(true);
+    expect(collides("ext.anthropic.frame")).toBe(false);
+    expect(collides("ext.langgraph.custom")).toBe(false);
+    expect(collides("ext.anthropic.mything")).toBe(true);
+    expect(collides("ext.vercel.foo")).toBe(true);
+    expect(collides("ext.agjson.ignored")).toBe(false);
+    expect(collides("ext.acme.frame")).toBe(false);
+  });
+});
+
+describe("§10.34 — partial-frame carry (draft.4; §8 item 22)", () => {
+  it("(scan) no replay golden carries an ext.anthropic.frame whose frame is a result frame, an assistant frame, a permission_denied notice, or a user frame whose every content block is a tool_result", () => {
+    const corpus = new URL("../corpus/", import.meta.url);
+    const bad: string[] = [];
+    let frames = 0;
+    for (const d of readdirSync(corpus)) {
+      const f = new URL(`${d}/claude.agjson.json`, corpus);
+      if (!existsSync(f)) continue;
+      for (const e of JSON.parse(readFileSync(f, "utf8")) as Array<Record<string, unknown>>) {
+        if (e["type"] !== "ext.anthropic.frame") continue;
+        frames++;
+        const fr = (e["frame"] ?? {}) as Record<string, unknown>;
+        const content = ((fr["message"] as Record<string, unknown> | undefined)?.["content"] ?? []) as Array<{ type?: unknown }>;
+        const homeOnly =
+          fr["type"] === "result" ||
+          fr["type"] === "assistant" ||
+          (fr["type"] === "system" && fr["subtype"] === "permission_denied") ||
+          (fr["type"] === "user" && Array.isArray(content) && content.length > 0 && content.every((b) => b.type === "tool_result"));
+        if (homeOnly) bad.push(`${d}@${String(e["seq"])}`);
+      }
+    }
+    expect(frames).toBeGreaterThan(0);
+    expect(bad).toEqual([]);
   });
 });
 
