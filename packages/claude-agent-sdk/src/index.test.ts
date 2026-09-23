@@ -1398,9 +1398,8 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
   }
   // INV-TURN as a property of the stream, for TOP-LEVEL turns: each turnId is
   // opened (turn.start) before it closes, gets exactly one terminal, and
-  // nothing carries it after that terminal. (Nested turns are bracketed per
-  // MESSAGE by subagent.start/done, a disclosed pre-existing shape, so they are
-  // out of this helper's scope.)
+  // nothing carries it after that terminal. Nested turns (one subagent.start /
+  // subagent.done per run) are checked by `assertOneBracketPerRun` below.
   function assertOneTerminalPerTurn(evs: AgEvent[]): void {
     const opened = new Set<string>();
     const closedAt = new Map<string, number>();
@@ -1519,7 +1518,7 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
   // Nested INV-TURN (per-run bracket, sp-protocol ruling 2026-09-23): each
   // nested turn opens once (subagent.start) and closes once (subagent.done),
   // with none of its events after that close.
-  function assertOneBracketPerRun(evs: AgEvent[]): void {
+  function assertOneBracketPerRun(evs: AgEvent[], runs: number): void {
     const starts = new Map<string, number>();
     const dones = new Map<string, number>();
     evs.forEach((e, i) => {
@@ -1536,6 +1535,8 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
       }
     });
     expect([...dones.keys()].sort()).toEqual([...starts.keys()].sort());
+    // Never vacuous: the stream must hold exactly the runs the test expects.
+    expect(starts.size).toBe(runs);
   }
   function taskResult(toolUseId: string, uuid: UUID): SDKMessage {
     return {
@@ -1567,7 +1568,7 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
       ["subagent.done", "turn_msg_run_a1", "turn_toolu_task_a"],
     ]);
     expect(evs.findIndex((e) => e.type === "turn.done")).toBeGreaterThan(evs.map((e) => e.type).lastIndexOf("subagent.done"));
-    assertOneBracketPerRun(evs);
+    assertOneBracketPerRun(evs, 2);
     // Run a's two messages both belong to its one nested turn.
     const r = new Reducer();
     for (const e of evs) r.push(e);
@@ -1587,7 +1588,7 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
       taskResult("toolu_task_b", "00000000-0000-0000-0000-0000000000e8"),
       result("00000000-0000-0000-0000-0000000000e9"),
     ]);
-    assertOneBracketPerRun(evs);
+    assertOneBracketPerRun(evs, 2);
     const at = (pred: (e: AgEvent) => boolean): number => evs.findIndex(pred);
     const doneA = at((e) => e.type === "subagent.done" && "turnId" in e && e.turnId === "turn_msg_a1");
     const toolDoneA = at((e) => e.type === "tool.done" && "toolCallId" in e && e.toolCallId === "toolu_task_a");
@@ -1614,7 +1615,7 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
       asst("msg_top", "delegating", "00000000-0000-0000-0000-0000000000e2"),
       asst("msg_a1", "a1", "00000000-0000-0000-0000-0000000000e3", "toolu_task_a"),
     ]);
-    assertOneBracketPerRun(evs);
+    assertOneBracketPerRun(evs, 1);
     expect(turnCloses(evs).map((e) => [e.type, "turnId" in e ? e.turnId : undefined])).toEqual([["turn.abort", "turn_msg_top"]]);
   });
 
@@ -1626,8 +1627,117 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
       asst("msg_a1", "late frame, same message id", "00000000-0000-0000-0000-0000000000ea", "toolu_task_a"),
       result("00000000-0000-0000-0000-0000000000e9"),
     ]);
-    assertOneBracketPerRun(evs);
+    assertOneBracketPerRun(evs, 2);
     expect(turnIds(evs, "subagent.start")).toEqual(["turn_msg_a1", "turn_00000000-0000-0000-0000-0000000000ea"]);
+  });
+
+  function userFrame(parent: string | null, toolUseIds: string[], uuid: UUID): SDKMessage {
+    return {
+      type: "user",
+      message: {
+        role: "user",
+        content: toolUseIds.map((id) => ({ type: "tool_result" as const, tool_use_id: id, content: [{ type: "text" as const, text: "ok" }], is_error: false })),
+      },
+      parent_tool_use_id: parent,
+      uuid,
+      session_id: "sess_fixture",
+    };
+  }
+  function toolUseMsg(id: string, toolUseIds: string[], uuid: UUID, parent: string | null = null): SDKMessage {
+    return {
+      type: "assistant",
+      message: {
+        ...betaMessage(toolUseIds.map((t) => ({ type: "tool_use" as const, id: t, name: "Task", input: { prompt: "go" } })), { stop_reason: "tool_use" }),
+        id,
+      },
+      parent_tool_use_id: parent,
+      uuid,
+      session_id: "sess_fixture",
+    };
+  }
+
+  it("a background agent's nested tool_result AFTER the parent's result opens a fresh run — never content on a closed nested turn (R1/R2 review S1)", () => {
+    const evs = events([
+      toolUseMsg("msg_top", ["toolu_x"], "00000000-0000-0000-0000-0000000000f1"),
+      userFrame(null, ["toolu_x"], "00000000-0000-0000-0000-0000000000f2"), // async ack: the run never opened yet
+      toolUseMsg("msg_n1", ["toolu_bash1"], "00000000-0000-0000-0000-0000000000f3", "toolu_x"),
+      result("00000000-0000-0000-0000-0000000000f4"),
+      userFrame("toolu_x", ["toolu_bash1"], "00000000-0000-0000-0000-0000000000f5"),
+    ]);
+    assertOneBracketPerRun(evs, 2);
+    const late = evs.find((e) => e.type === "tool.done" && "toolCallId" in e && e.toolCallId === "toolu_bash1");
+    expect(late).toMatchObject({ turnId: "turn_00000000-0000-0000-0000-0000000000f5" });
+  });
+
+  it("nested-in-nested runs close innermost first, each once; a sub-run's Task result (a NESTED user frame) closes it (S2)", () => {
+    const evs = events([
+      toolUseMsg("msg_top", ["toolu_x"], "00000000-0000-0000-0000-0000000000f1"),
+      toolUseMsg("msg_x1", ["toolu_y"], "00000000-0000-0000-0000-0000000000f3", "toolu_x"),
+      asst("msg_y1", "deep", "00000000-0000-0000-0000-0000000000f6", "toolu_y"),
+      userFrame("toolu_x", ["toolu_y"], "00000000-0000-0000-0000-0000000000f7"),
+      userFrame(null, ["toolu_x"], "00000000-0000-0000-0000-0000000000f8"),
+      result("00000000-0000-0000-0000-0000000000f9"),
+    ]);
+    assertOneBracketPerRun(evs, 2);
+    const brackets = evs
+      .filter((e) => e.type === "subagent.start" || e.type === "subagent.done")
+      .map((e) => [e.type, "turnId" in e ? e.turnId : undefined]);
+    expect(brackets).toEqual([
+      ["subagent.start", "turn_msg_x1"],
+      ["subagent.start", "turn_msg_y1"],
+      ["subagent.done", "turn_msg_y1"],
+      ["subagent.done", "turn_msg_x1"],
+    ]);
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+  });
+
+  it("several Task results in ONE user frame close each run before its own tool.done (S3)", () => {
+    const evs = events([
+      toolUseMsg("msg_top", ["toolu_a", "toolu_b"], "00000000-0000-0000-0000-0000000000f1"),
+      asst("msg_a1", "a", "00000000-0000-0000-0000-0000000000f3", "toolu_a"),
+      asst("msg_b1", "b", "00000000-0000-0000-0000-0000000000f4", "toolu_b"),
+      userFrame(null, ["toolu_a", "toolu_b"], "00000000-0000-0000-0000-0000000000f5"),
+      result("00000000-0000-0000-0000-0000000000f9"),
+    ]);
+    assertOneBracketPerRun(evs, 2);
+    for (const [run, tool] of [["turn_msg_a1", "toolu_a"], ["turn_msg_b1", "toolu_b"]] as const) {
+      const done = evs.findIndex((e) => e.type === "subagent.done" && "turnId" in e && e.turnId === run);
+      const td = evs.findIndex((e) => e.type === "tool.done" && "toolCallId" in e && e.toolCallId === tool);
+      expect(done).toBeGreaterThan(-1);
+      expect(done).toBeLessThan(td);
+    }
+  });
+
+  it("a retraction's message.remove names the REMOVED message's own turn, even after overlapping runs close out of order (S4)", () => {
+    const refused: SDKMessage = {
+      type: "assistant",
+      message: { ...betaMessage([{ type: "tool_use", id: "toolu_a", name: "Task", input: {} }, { type: "tool_use", id: "toolu_b", name: "Task", input: {} }], { stop_reason: "tool_use" }), id: "msg_refused_top" },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000f1",
+      session_id: "sess_fixture",
+    };
+    const evs = events([
+      refused,
+      asst("msg_a1", "a", "00000000-0000-0000-0000-0000000000f3", "toolu_a"),
+      asst("msg_b1", "b", "00000000-0000-0000-0000-0000000000f4", "toolu_b"),
+      userFrame(null, ["toolu_a"], "00000000-0000-0000-0000-0000000000f5"), // closes A while B is open (LIFO skew)
+      {
+        type: "system",
+        subtype: "model_refusal_fallback",
+        trigger: "refusal",
+        direction: "retry",
+        original_model: "claude-a",
+        fallback_model: "claude-b",
+        request_id: null,
+        retracted_message_uuids: ["00000000-0000-0000-0000-0000000000f1"],
+        content: "Switched.",
+        uuid: "00000000-0000-0000-0000-0000000000fa",
+        session_id: "sess_fixture",
+      },
+    ]);
+    expect(evs.find((e) => e.type === "message.remove")).toMatchObject({ id: "msg_refused_top", turnId: "turn_msg_refused_top" });
   });
 
   it("a notice between turns opens the next turn (named by its uuid), and that turn's assistant frame and result join it", () => {

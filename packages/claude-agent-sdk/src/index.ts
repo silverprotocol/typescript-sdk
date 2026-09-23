@@ -1069,9 +1069,13 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
   // frame, and closes exactly once, at whichever comes first: the spawning
   // Task's tool_result (any user frame, so a subagent's own sub-run closes
   // too), the turn's result frame, or flush. Parallel Task calls give
-  // OVERLAPPING runs, so every event this facet emits carries an explicit
-  // turnId or a known messageId: nothing leans on the assembler's LIFO
-  // last-turn backfill, which out-of-order closes would skew.
+  // OVERLAPPING runs, and the assembler's last-turn backfill is a LIFO stack
+  // that out-of-order closes skew. So the facet's turn-scoped events name their
+  // owner: messages and their blocks by turnId / messageId, top-level tool.done
+  // by the open turn, a retraction's message.remove by the removed message's
+  // own turn. What still backfills: tool.args.* and ext.* (no turnId at all),
+  // and a top-level tool.done with NO turn open (pre-existing: it lands on the
+  // closed turn, as before B).
   type OpenRun = { readonly turnId: string; readonly parentTurnId: string };
   const openRuns = new Map<string, OpenRun>();
   const closedRuns = new Set<string>();
@@ -1204,7 +1208,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
     /** The id actually emitted (`sdkId`, or a derived carrier — see below). */
     readonly emittedId: string;
     readonly turnId: string;
-    /** Set iff this message opened a nested (subagent) turn, whose `subagent.done` is deferred with it. */
+    /** Set iff this is a NESTED (subagent) message: the run's synthetic parent label (continuation test). */
     readonly parentTurnId: string | undefined;
     /** Content-block index to resume at, so a second frame's block never collides with the first's. */
     blockIndex: number;
@@ -1263,7 +1267,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
   // blocks, their order and their content are the SDK's own.
   const lifecyclesBySdkId = new Map<string, number>();
 
-  /** Seal the deferred message (and its subagent bracket), if one is open. */
+  /** Seal the deferred message, if one is open (a run's bracket closes separately; see `openRun`). */
   function closePendingMessage(): void {
     if (pending === undefined) return;
     const p = pending;
@@ -1689,7 +1693,12 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
     carryStreamFrame(msg);
   }
 
-  function registerUuid(uuid: string | undefined, ids: readonly string[]): void {
+  // The turn each retractable message was emitted under, so a retraction's
+  // `message.remove` names its OWNER explicitly (INV-OWNER) instead of taking
+  // the assembler's last-turn backfill, which overlapping subagent runs can skew.
+  const turnByMessageId = new Map<string, string>();
+  function registerUuid(uuid: string | undefined, ids: readonly string[], turnId?: string): void {
+    if (turnId !== undefined) for (const id of ids) turnByMessageId.set(id, turnId);
     if (uuid === undefined || ids.length === 0) return;
     const existing = messageIdsByUuid.get(uuid);
     if (existing !== undefined) existing.push(...ids);
@@ -1710,7 +1719,8 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       const ids = messageIdsByUuid.get(uuid);
       if (ids === undefined) continue;
       for (const id of ids) {
-        a.emit({ type: "message.remove", id });
+        const owner = turnByMessageId.get(id);
+        a.emit({ type: "message.remove", id, ...(owner !== undefined ? { turnId: owner } : {}) });
       }
     }
   }
@@ -1851,12 +1861,12 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // the bag below, once `open` is known — their once-per-message flag is
       // shared with the stream arm's carry.
 
-      // A non-null parent_tool_use_id ⇒ this assistant message is a NESTED turn
-      // (subagent). subagent.start is the SOLE nested-turn opener (spec §4/§5) and
-      // seeds the turn so openMessage does NOT synthesize a duplicate turn.start.
-      // guuey#26: a CONTINUATION frame joins the message (and, when nested, the
-      // subagent bracket) the previous frame opened — no second subagent.start,
-      // no second message.start.
+      // A non-null parent_tool_use_id ⇒ this assistant message belongs to a
+      // NESTED turn (subagent run). subagent.start is the SOLE nested-turn opener
+      // (spec §4/§5), emitted once per run by `openRun`, and seeds the turn so
+      // openMessage does NOT synthesize a duplicate turn.start. guuey#26: a
+      // CONTINUATION frame joins the message the previous frame opened — no
+      // second message.start.
       let open: PendingMessage;
       if (continued !== undefined) {
         open = continued;
@@ -2053,7 +2063,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // retraction naming this uuid can translate it (Finding #1). The EMITTED
       // id, so a retraction still names the message that actually exists on the
       // wire when this frame rode a derived carrier.
-      registerUuid(msg.uuid, [messageId]);
+      registerUuid(msg.uuid, [messageId], turnId);
       return;
     }
 
@@ -2104,11 +2114,27 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         // Top-level: the OPEN top-level turn, explicitly (overlapping subagent
         // runs make the assembler's last-turn backfill unreliable); undefined
         // only with no turn open, which backfills as before.
-        const toolTurnId =
-          msg.parent_tool_use_id !== null
-            ? (subagentTurnByParentToolUseId.get(msg.parent_tool_use_id) ??
-              `turn_${msg.parent_tool_use_id}`)
-            : openTopTurnId;
+        // Nested: the run's OPEN nested turn. A nested frame for a run that has
+        // CLOSED (e.g. a background agent's tool_result after the parent's
+        // result) gets a fresh run, as nested assistant frames do, so nothing
+        // lands on a nested turn after its subagent.done. A run that NEVER
+        // opened (the stream started mid-run) keeps Task 8c leg 3's synthetic
+        // label, which parks loudly rather than fabricating a nested turn.
+        let toolTurnId: string | undefined;
+        if (msg.parent_tool_use_id !== null) {
+          const parentToolUseId = msg.parent_tool_use_id;
+          const run = openRuns.get(parentToolUseId);
+          if (run !== undefined) {
+            toolTurnId = run.turnId;
+          } else if (closedRuns.has(parentToolUseId)) {
+            toolTurnId = nestedTurnId(parentToolUseId, undefined, msg.uuid);
+            openRun(parentToolUseId, toolTurnId, `turn_${parentToolUseId}`);
+          } else {
+            toolTurnId = subagentTurnByParentToolUseId.get(parentToolUseId) ?? `turn_${parentToolUseId}`;
+          }
+        } else {
+          toolTurnId = openTopTurnId;
+        }
         // tool_use_result sibling (SDK-injected rich MCP result; audit B7): carries
         // structuredContent (incl. render-cache markers) + _meta.ui the block-level
         // arm never sees. Applies only when the message has exactly ONE tool_result
@@ -2205,7 +2231,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         }
         // Finding #1: record this frame's uuid → the adopted messageId(s) it
         // produced, so a later retraction naming this uuid can translate it.
-        registerUuid(msg.uuid, resultMessageIds);
+        registerUuid(msg.uuid, resultMessageIds, toolTurnId);
       }
       return;
     }
@@ -2524,8 +2550,8 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
     },
     flush(): AgEvent[] {
       // guuey#26: nothing can continue the deferred message now — seal it with
-      // its real usage (and its subagent bracket) rather than leaving INV-FLUSH
-      // to synthesize a bare `message.end`.
+      // its real usage rather than leaving INV-FLUSH to synthesize a bare
+      // `message.end`.
       closePendingMessage();
       // Close any subagent run still open, so INV-FLUSH never aborts a nested
       // turn the stream simply ended inside (per-run bracket).
