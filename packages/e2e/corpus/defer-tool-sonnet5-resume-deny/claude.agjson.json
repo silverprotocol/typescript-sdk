@@ -1,0 +1,463 @@
+[
+  {
+    "seq": 0,
+    "type": "ext.anthropic.frame",
+    "kind": "command_lifecycle",
+    "frame": {
+      "type": "command_lifecycle",
+      "command_uuid": "81c723ff-fc41-4831-8d79-d2a3e1ec52bb",
+      "state": "started",
+      "uuid": "ae7bdddb-d976-4c5a-a217-6e5b705ea5ad",
+      "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376"
+    }
+  },
+  {
+    "type": "tool.done",
+    "seq": 1,
+    "toolCallId": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK",
+    "content": [
+      {
+        "type": "text",
+        "text": "PreToolUse:mcp__t__echo hook error: Blocked by hook"
+      }
+    ],
+    "outcome": "error",
+    "isError": true,
+    "messageId": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK:result"
+  },
+  {
+    "seq": 2,
+    "type": "ext.anthropic.frame",
+    "kind": "thinking_tokens",
+    "frame": {
+      "type": "system",
+      "subtype": "thinking_tokens",
+      "estimated_tokens": 50,
+      "estimated_tokens_delta": 50,
+      "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+      "uuid": "62141e89-9dc0-4e25-82b2-887ed4d6a34d"
+    }
+  },
+  {
+    "seq": 3,
+    "type": "ext.anthropic.frame",
+    "kind": "thinking_tokens",
+    "frame": {
+      "type": "system",
+      "subtype": "thinking_tokens",
+      "estimated_tokens": 154,
+      "estimated_tokens_delta": 104,
+      "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+      "uuid": "643fc7fb-3d89-45a1-b377-9874bd4561d9"
+    }
+  },
+  {
+    "type": "turn.start",
+    "seq": 4,
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "threadId": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376"
+  },
+  {
+    "type": "message.start",
+    "seq": 5,
+    "id": "msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "threadId": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+    "role": "assistant",
+    "model": "claude-sonnet-5"
+  },
+  {
+    "type": "reasoning.start",
+    "seq": 6,
+    "id": "msg_011CfLKNoBkGEUCh6wRRTqrV:reasoning:0",
+    "messageId": "msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV"
+  },
+  {
+    "type": "reasoning.delta",
+    "seq": 7,
+    "id": "msg_011CfLKNoBkGEUCh6wRRTqrV:reasoning:0",
+    "messageId": "msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "delta": "",
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV"
+  },
+  {
+    "type": "reasoning.end",
+    "seq": 8,
+    "id": "msg_011CfLKNoBkGEUCh6wRRTqrV:reasoning:0",
+    "messageId": "msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV"
+  },
+  {
+    "type": "reasoning.opaque",
+    "seq": 9,
+    "id": "msg_011CfLKNoBkGEUCh6wRRTqrV:reasoning:0",
+    "messageId": "msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "kind": "signature",
+    "value": "EuEECqgBCBIYAipADQMYcUcD/7DZqUUqivgNOfyBRM1wDuOc/cVMFPiJvVBRJ0mbZyYa1S6M9KoJ8+vZ8igOIpxz6jl0tLqudzsVgDIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiQ2NThiNDdmOS0wMWUyLTQ3OTgtYjViZS00NGUyYTM1ZDhjY2FyELKOZMSwnhnZyM97wUmgANmIAQGoAeH4ztUGsAECEgyLls7/VamvzMA3AUUaDFVbvXvZ1rvBiKDYUiIwobphCylwFoe1id0jZOpH2qdgJp5Fc9wF03yIVDsfdv+v2+FEHjTewVxuouUlA4JIKuUCg6KoQn7KINkR5ByET/FgZW/9sUkfSxXRcmGCAmOV1WQ2fqggYFU4ikBDTBWYg3Z8lVS2rnuVpu+v5wRIPnfUWtOEVkVTlo+jKRMEgyAW8JaICeJCpV7vXextZ6P9YfKKDphA/X+2KdOdboPVv5a/Ogpw7QSJai+oR7R0rKRoyoBlmix8otIfaP2VzUsl0eS1wYgxbvKMHJHWplZ7sw8UUVkBERfa8IWcBrMPCaIrzCGzHsoAbCybNB7d6Q6JZelskfMYrn62m5c7e/nLbt8CmOoV10YFbIBn82IS+ktbyFiMpqJ9CjScheQNrgfVS6PkU6vGLkpwfH+WoACKq09KEHF8baS7z/hFB4WTTwjOvaURoApqg0PD3scrZ0U5fAW1/Gs/KBk2ln3GynxXXR3GDSgQD98sAXyuj66Q0ziDf1pOoNyCok9bkjcADBe1uLoFRmnWWOSIPSXiX/6yD97dKjTmhK+JGAE=",
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "provider": "anthropic"
+  },
+  {
+    "type": "tool.start",
+    "seq": 10,
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "toolCallId": "toolu_01PJVmyct9fYViJerxicP94g",
+    "name": "mcp__t__echo",
+    "index": 1,
+    "messageId": "msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "providerExecuted": false
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 11,
+    "toolCallId": "toolu_01PJVmyct9fYViJerxicP94g",
+    "delta": "{\"message\":\"conformance-probe-defer\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 12,
+    "toolCallId": "toolu_01PJVmyct9fYViJerxicP94g",
+    "input": {
+      "message": "conformance-probe-defer"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 13,
+    "id": "msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "usage": {
+      "inputTokens": 2,
+      "outputTokens": 4,
+      "cacheReadTokens": 3874,
+      "cacheWriteTokens": 3006,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "tool.done",
+    "seq": 14,
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "toolCallId": "toolu_01PJVmyct9fYViJerxicP94g",
+    "content": [
+      {
+        "type": "text",
+        "text": "PreToolUse:mcp__t__echo hook error: Blocked by hook"
+      }
+    ],
+    "outcome": "error",
+    "isError": true,
+    "messageId": "toolu_01PJVmyct9fYViJerxicP94g:result"
+  },
+  {
+    "seq": 15,
+    "type": "ext.anthropic.frame",
+    "kind": "thinking_tokens",
+    "frame": {
+      "type": "system",
+      "subtype": "thinking_tokens",
+      "estimated_tokens": 50,
+      "estimated_tokens_delta": 50,
+      "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+      "uuid": "c6a87c63-c2e4-488e-a012-b52a079d8268"
+    }
+  },
+  {
+    "seq": 16,
+    "type": "ext.anthropic.frame",
+    "kind": "thinking_tokens",
+    "frame": {
+      "type": "system",
+      "subtype": "thinking_tokens",
+      "estimated_tokens": 129,
+      "estimated_tokens_delta": 79,
+      "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+      "uuid": "9168345f-d0c7-47a0-b119-90d48073e43e"
+    }
+  },
+  {
+    "type": "message.start",
+    "seq": 17,
+    "id": "msg_011CfLKP8rSGhYm1AHQsTiXV",
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "threadId": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+    "role": "assistant",
+    "model": "claude-sonnet-5"
+  },
+  {
+    "type": "reasoning.start",
+    "seq": 18,
+    "id": "msg_011CfLKP8rSGhYm1AHQsTiXV:reasoning:0",
+    "messageId": "msg_011CfLKP8rSGhYm1AHQsTiXV",
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV"
+  },
+  {
+    "type": "reasoning.delta",
+    "seq": 19,
+    "id": "msg_011CfLKP8rSGhYm1AHQsTiXV:reasoning:0",
+    "messageId": "msg_011CfLKP8rSGhYm1AHQsTiXV",
+    "delta": "",
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV"
+  },
+  {
+    "type": "reasoning.end",
+    "seq": 20,
+    "id": "msg_011CfLKP8rSGhYm1AHQsTiXV:reasoning:0",
+    "messageId": "msg_011CfLKP8rSGhYm1AHQsTiXV",
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV"
+  },
+  {
+    "type": "reasoning.opaque",
+    "seq": 21,
+    "id": "msg_011CfLKP8rSGhYm1AHQsTiXV:reasoning:0",
+    "messageId": "msg_011CfLKP8rSGhYm1AHQsTiXV",
+    "kind": "signature",
+    "value": "EvwDCqgBCBIYAipAHE0E081xNTkTA8rHzVwONt/6DhkH+PNCYRnj5Cg+sZhY8pPcNk0FiK5XPmGTwyLVWXayQVD3W1nlIb9iVHuXFDIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiQ2NThiNDdmOS0wMWUyLTQ3OTgtYjViZS00NGUyYTM1ZDhjY2FyELKOZMSwnhnZyM97wUmgANmIAQGoAeT4ztUGsAECEgxIcpc+8b9twB0tGBkaDFjxT6Vt9Kr2HiK2mSIwU109aeiT1aW7t5aJZM/jaeGJHIhAVPO3hL6mlZ4N9LsLnDX9lRgvRqbgTTudy07tKoACFOdI5fIVWNJ5AOg7z7OwRXS5sU1GODvQvjwlZohhXynJvFle+/OCTxIAWvXzFR6qN+JbdD9UZsC34ykru4N7Bs+ssWw1tVp3d2wZrMkFl0DluwgcDyOrzjIv77VGy2gGz0qpNlhmYA/rPQ39sPcibYM56V2RATkgu5xveTqmNEcFUH0+iqO2WhffF9Qxrv09IvF9+EOeTVB+OZQijwVDH814CZ6L3r1+o6/OwnzCG7mvKiM+voq8fVLv+LwZOG7UHCb5p9KPHNlDpHWCFRawe9x5X8TpOTKp6cVXpEulQajv9TY4qJY6710cULruRm3kGxCFKFesMZ6ZTysYcaeEqhgB",
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "provider": "anthropic"
+  },
+  {
+    "type": "tool.start",
+    "seq": 22,
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "toolCallId": "toolu_01KPeZiYEqgnJjRpREHuihWx",
+    "name": "mcp__t__echo",
+    "index": 1,
+    "messageId": "msg_011CfLKP8rSGhYm1AHQsTiXV",
+    "providerExecuted": false
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 23,
+    "toolCallId": "toolu_01KPeZiYEqgnJjRpREHuihWx",
+    "delta": "{\"message\":\"conformance-probe-defer\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 24,
+    "toolCallId": "toolu_01KPeZiYEqgnJjRpREHuihWx",
+    "input": {
+      "message": "conformance-probe-defer"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 25,
+    "id": "msg_011CfLKP8rSGhYm1AHQsTiXV",
+    "usage": {
+      "inputTokens": 2,
+      "outputTokens": 9,
+      "cacheReadTokens": 6880,
+      "cacheWriteTokens": 347,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "tool.done",
+    "seq": 26,
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "toolCallId": "toolu_01KPeZiYEqgnJjRpREHuihWx",
+    "content": [
+      {
+        "type": "text",
+        "text": "PreToolUse:mcp__t__echo hook error: Blocked by hook"
+      }
+    ],
+    "outcome": "error",
+    "isError": true,
+    "messageId": "toolu_01KPeZiYEqgnJjRpREHuihWx:result"
+  },
+  {
+    "type": "message.start",
+    "seq": 27,
+    "id": "msg_011CfLKPQodgCaDTcB9PSEHz",
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "threadId": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+    "role": "assistant",
+    "model": "claude-sonnet-5"
+  },
+  {
+    "type": "text.start",
+    "seq": 28,
+    "id": "msg_011CfLKPQodgCaDTcB9PSEHz:text:0",
+    "messageId": "msg_011CfLKPQodgCaDTcB9PSEHz",
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV"
+  },
+  {
+    "type": "text.delta",
+    "seq": 29,
+    "id": "msg_011CfLKPQodgCaDTcB9PSEHz:text:0",
+    "messageId": "msg_011CfLKPQodgCaDTcB9PSEHz",
+    "delta": "I've attempted the `echo` call with message `'conformance-probe-defer'` three times now, and each attempt was blocked by the same PreToolUse hook with no further detail beyond \"Blocked by hook.\" There's no additional error content or guidance being returned that would let me adjust the call to get past it — the message, tool, and parameters all match what was requested.\n\nAt this point, retrying again isn't likely to produce a different outcome since nothing about the request has changed between attempts. I'll stop here rather than loop indefinitely. If you have a way to inspect or adjust the hook configuration (or if the block is intentional for this probe), let me know how you'd like me to proceed — e.g., a different tool, a modified message, or confirmation that the block itself is the expected/desired result.",
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV"
+  },
+  {
+    "type": "text.end",
+    "seq": 30,
+    "id": "msg_011CfLKPQodgCaDTcB9PSEHz:text:0",
+    "messageId": "msg_011CfLKPQodgCaDTcB9PSEHz",
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV"
+  },
+  {
+    "type": "message.end",
+    "seq": 31,
+    "id": "msg_011CfLKPQodgCaDTcB9PSEHz",
+    "usage": {
+      "inputTokens": 2,
+      "outputTokens": 1,
+      "cacheReadTokens": 7227,
+      "cacheWriteTokens": 215,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "message.start",
+    "seq": 32,
+    "id": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV:denials",
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "threadId": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+    "role": "assistant"
+  },
+  {
+    "type": "tool.start",
+    "seq": 33,
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "toolCallId": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK",
+    "name": "mcp__t__echo"
+  },
+  {
+    "type": "tool.done",
+    "seq": 34,
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "toolCallId": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK",
+    "content": [],
+    "outcome": "denied"
+  },
+  {
+    "type": "tool.start",
+    "seq": 35,
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "toolCallId": "toolu_01PJVmyct9fYViJerxicP94g",
+    "name": "mcp__t__echo"
+  },
+  {
+    "type": "tool.done",
+    "seq": 36,
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "toolCallId": "toolu_01PJVmyct9fYViJerxicP94g",
+    "content": [],
+    "outcome": "denied"
+  },
+  {
+    "type": "tool.start",
+    "seq": 37,
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "toolCallId": "toolu_01KPeZiYEqgnJjRpREHuihWx",
+    "name": "mcp__t__echo"
+  },
+  {
+    "type": "tool.done",
+    "seq": 38,
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "toolCallId": "toolu_01KPeZiYEqgnJjRpREHuihWx",
+    "content": [],
+    "outcome": "denied"
+  },
+  {
+    "type": "message.end",
+    "seq": 39,
+    "id": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV:denials"
+  },
+  {
+    "seq": 40,
+    "type": "ext.anthropic.result-meta",
+    "fastModeDisabledReason": "sdk_opt_in_required",
+    "queuedTurnCount": 0,
+    "resultIndex": 0,
+    "subagentStats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "modelUsage": {
+      "claude-sonnet-5": {
+        "canonicalModel": "claude-sonnet-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    }
+  },
+  {
+    "type": "turn.done",
+    "seq": 41,
+    "turnId": "turn_msg_011CfLKNoBkGEUCh6wRRTqrV",
+    "outcome": {
+      "type": "success",
+      "result": "I've attempted the `echo` call with message `'conformance-probe-defer'` three times now, and each attempt was blocked by the same PreToolUse hook with no further detail beyond \"Blocked by hook.\" There's no additional error content or guidance being returned that would let me adjust the call to get past it — the message, tool, and parameters all match what was requested.\n\nAt this point, retrying again isn't likely to produce a different outcome since nothing about the request has changed between attempts. I'll stop here rather than loop indefinitely. If you have a way to inspect or adjust the hook configuration (or if the block is intentional for this probe), let me know how you'd like me to proceed — e.g., a different tool, a modified message, or confirmation that the block itself is the expected/desired result."
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 6,
+      "outputTokens": 557,
+      "cacheReadTokens": 17981,
+      "cacheWriteTokens": 3568,
+      "reasoningTokens": 185,
+      "serverToolRequests": 0,
+      "costUsd": 0.029364200000000003,
+      "cumulative": true,
+      "byModel": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 912,
+          "outputTokens": 13,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "costUsd": 0.000977,
+          "serverToolRequests": 0,
+          "cumulative": true
+        },
+        "claude-sonnet-5": {
+          "inputTokens": 8,
+          "outputTokens": 617,
+          "cacheReadTokens": 17981,
+          "cacheWriteTokens": 7442,
+          "reasoningTokens": 185,
+          "costUsd": 0.028387199999999998,
+          "serverToolRequests": 0,
+          "cumulative": true
+        }
+      }
+    }
+  },
+  {
+    "seq": 42,
+    "type": "ext.anthropic.frame",
+    "kind": "command_lifecycle",
+    "frame": {
+      "type": "command_lifecycle",
+      "command_uuid": "81c723ff-fc41-4831-8d79-d2a3e1ec52bb",
+      "state": "completed",
+      "uuid": "a8053b3b-c055-4b93-ae35-6cf55ce0f02e",
+      "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376"
+    }
+  }
+]

@@ -1,0 +1,42 @@
+{
+  "drops": [
+    {
+      "path": "[1].tool_use_result",
+      "norm": "[*].tool_use_result",
+      "value": "Error: PreToolUse:mcp__t__echo hook error: Blocked by hook"
+    },
+    {
+      "path": "[1].tool_result_meta[0].non_execution_kind",
+      "norm": "[*].tool_result_meta[*].non_execution_kind",
+      "value": "permission-rule"
+    },
+    {
+      "path": "[7].tool_use_result",
+      "norm": "[*].tool_use_result",
+      "value": "Error: PreToolUse:mcp__t__echo hook error: Blocked by hook"
+    },
+    {
+      "path": "[7].tool_result_meta[0].non_execution_kind",
+      "norm": "[*].tool_result_meta[*].non_execution_kind",
+      "value": "permission-rule"
+    },
+    {
+      "path": "[12].tool_use_result",
+      "norm": "[*].tool_use_result",
+      "value": "Error: PreToolUse:mcp__t__echo hook error: Blocked by hook"
+    },
+    {
+      "path": "[12].tool_result_meta[0].non_execution_kind",
+      "norm": "[*].tool_result_meta[*].non_execution_kind",
+      "value": "permission-rule"
+    }
+  ],
+  "newFields": [
+    "[*].tool_use_result",
+    "[*].tool_result_meta[*].id",
+    "[*].tool_result_meta[*].non_execution_kind",
+    "[*].permission_denials[*].tool_name",
+    "[*].permission_denials[*].tool_use_id",
+    "[*].permission_denials[*].tool_input.message"
+  ]
+}

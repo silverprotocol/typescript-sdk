@@ -1,0 +1,619 @@
+[
+  {
+    "type": "command_lifecycle",
+    "command_uuid": "81c723ff-fc41-4831-8d79-d2a3e1ec52bb",
+    "state": "started",
+    "uuid": "ae7bdddb-d976-4c5a-a217-6e5b705ea5ad",
+    "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376"
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "content": "PreToolUse:mcp__t__echo hook error: Blocked by hook",
+          "is_error": true,
+          "tool_use_id": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK"
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+    "uuid": "5867b3e3-37de-4e70-ba02-b4cdc9f7181f",
+    "timestamp": "2026-09-23T11:47:40.469Z",
+    "tool_use_result": "Error: PreToolUse:mcp__t__echo hook error: Blocked by hook",
+    "tool_result_meta": [
+      {
+        "id": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK",
+        "non_execution_kind": "permission-rule"
+      }
+    ]
+  },
+  {
+    "type": "system",
+    "subtype": "init",
+    "cwd": "/Users/gustavo/Projects/silverprotocol/.tmp/seats/probe/sdks/typescript/packages/e2e",
+    "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+    "tools": [
+      "mcp__t__echo"
+    ],
+    "mcp_servers": [
+      {
+        "name": "t",
+        "status": "connected",
+        "source": "dynamic"
+      }
+    ],
+    "model": "claude-sonnet-5",
+    "permissionMode": "default",
+    "slash_commands": [
+      "deep-research",
+      "design",
+      "design-sync",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator",
+      "advisor",
+      "agents",
+      "auto-mode-setup",
+      "autocompact",
+      "clear",
+      "color",
+      "compact",
+      "config",
+      "output-style",
+      "context",
+      "effort",
+      "fast",
+      "heapdump",
+      "init",
+      "mcp",
+      "import",
+      "model",
+      "__remote-workflow",
+      "workflow-launch-exec",
+      "reload-plugins",
+      "reload-skills",
+      "rename",
+      "security-review",
+      "usage",
+      "insights",
+      "recap",
+      "skill-doctor",
+      "goal",
+      "design-consent",
+      "design-revoke",
+      "list-agents",
+      "team-onboarding"
+    ],
+    "terminal_slash_commands": [
+      "doctor",
+      "color",
+      "reload-plugins"
+    ],
+    "apiKeySource": "ANTHROPIC_API_KEY",
+    "claude_code_version": "2.1.280",
+    "output_style": "default",
+    "agents": [
+      "claude",
+      "Explore",
+      "general-purpose",
+      "Plan",
+      "statusline-setup"
+    ],
+    "skills": [
+      "deep-research",
+      "design",
+      "design-sync",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator"
+    ],
+    "plugins": [
+      {
+        "name": "agents-md",
+        "path": "builtin",
+        "source": "agents-md@builtin"
+      },
+      {
+        "name": "telemetry",
+        "path": "builtin",
+        "source": "telemetry@builtin"
+      }
+    ],
+    "capabilities": [
+      "interrupt_receipt_v1",
+      "interrupt_cancel_queued_v1",
+      "msg_lifecycle_v1",
+      "mcp_read_resource_v1",
+      "mcp_tool_ui_meta_v1"
+    ],
+    "analytics_disabled": false,
+    "product_feedback_disabled": false,
+    "uuid": "6c4af467-1481-491c-90a2-d8802b2b2eb2",
+    "memory_paths": {
+      "auto": "/Users/gustavo/.claude/projects/-Users-gustavo-Projects-silverprotocol/memory/"
+    },
+    "messaging_socket_path": "/tmp/cc-socks/91200.sock",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 50,
+    "estimated_tokens_delta": 50,
+    "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+    "uuid": "62141e89-9dc0-4e25-82b2-887ed4d6a34d"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 154,
+    "estimated_tokens_delta": 104,
+    "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+    "uuid": "643fc7fb-3d89-45a1-b377-9874bd4561d9"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-sonnet-5",
+      "id": "msg_011CfLKNoBkGEUCh6wRRTqrV",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "",
+          "signature": "EuEECqgBCBIYAipADQMYcUcD/7DZqUUqivgNOfyBRM1wDuOc/cVMFPiJvVBRJ0mbZyYa1S6M9KoJ8+vZ8igOIpxz6jl0tLqudzsVgDIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiQ2NThiNDdmOS0wMWUyLTQ3OTgtYjViZS00NGUyYTM1ZDhjY2FyELKOZMSwnhnZyM97wUmgANmIAQGoAeH4ztUGsAECEgyLls7/VamvzMA3AUUaDFVbvXvZ1rvBiKDYUiIwobphCylwFoe1id0jZOpH2qdgJp5Fc9wF03yIVDsfdv+v2+FEHjTewVxuouUlA4JIKuUCg6KoQn7KINkR5ByET/FgZW/9sUkfSxXRcmGCAmOV1WQ2fqggYFU4ikBDTBWYg3Z8lVS2rnuVpu+v5wRIPnfUWtOEVkVTlo+jKRMEgyAW8JaICeJCpV7vXextZ6P9YfKKDphA/X+2KdOdboPVv5a/Ogpw7QSJai+oR7R0rKRoyoBlmix8otIfaP2VzUsl0eS1wYgxbvKMHJHWplZ7sw8UUVkBERfa8IWcBrMPCaIrzCGzHsoAbCybNB7d6Q6JZelskfMYrn62m5c7e/nLbt8CmOoV10YFbIBn82IS+ktbyFiMpqJ9CjScheQNrgfVS6PkU6vGLkpwfH+WoACKq09KEHF8baS7z/hFB4WTTwjOvaURoApqg0PD3scrZ0U5fAW1/Gs/KBk2ln3GynxXXR3GDSgQD98sAXyuj66Q0ziDf1pOoNyCok9bkjcADBe1uLoFRmnWWOSIPSXiX/6yD97dKjTmhK+JGAE="
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 3006,
+        "cache_read_input_tokens": 3874,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 3006,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 4,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+    "uuid": "8be964c0-7bb3-4d3d-914e-4e91a6a39c83",
+    "timestamp": "2026-09-23T11:47:45.348Z",
+    "request_id": "req_011CfLKNnezrbrbQgSuSBMB1"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-sonnet-5",
+      "id": "msg_011CfLKNoBkGEUCh6wRRTqrV",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_01PJVmyct9fYViJerxicP94g",
+          "name": "mcp__t__echo",
+          "input": {
+            "message": "conformance-probe-defer"
+          },
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 3006,
+        "cache_read_input_tokens": 3874,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 3006,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 4,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+    "uuid": "105943a6-f110-4fe5-b95e-b56bb892d9bb",
+    "timestamp": "2026-09-23T11:47:45.545Z",
+    "request_id": "req_011CfLKNnezrbrbQgSuSBMB1",
+    "wire_tool_inputs": {
+      "toolu_01PJVmyct9fYViJerxicP94g": {
+        "message": "conformance-probe-defer"
+      }
+    },
+    "tool_use_meta": [
+      {
+        "id": "toolu_01PJVmyct9fYViJerxicP94g",
+        "display_name": "Echo",
+        "server_display_name": "mock-text"
+      }
+    ]
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "content": "PreToolUse:mcp__t__echo hook error: Blocked by hook",
+          "is_error": true,
+          "tool_use_id": "toolu_01PJVmyct9fYViJerxicP94g"
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+    "uuid": "199f357a-2fe2-4a5c-8802-c01aaba7a20b",
+    "timestamp": "2026-09-23T11:47:45.567Z",
+    "tool_use_result": "Error: PreToolUse:mcp__t__echo hook error: Blocked by hook",
+    "tool_result_meta": [
+      {
+        "id": "toolu_01PJVmyct9fYViJerxicP94g",
+        "non_execution_kind": "permission-rule"
+      }
+    ]
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 50,
+    "estimated_tokens_delta": 50,
+    "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+    "uuid": "c6a87c63-c2e4-488e-a012-b52a079d8268"
+  },
+  {
+    "type": "system",
+    "subtype": "thinking_tokens",
+    "estimated_tokens": 129,
+    "estimated_tokens_delta": 79,
+    "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+    "uuid": "9168345f-d0c7-47a0-b119-90d48073e43e"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-sonnet-5",
+      "id": "msg_011CfLKP8rSGhYm1AHQsTiXV",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "",
+          "signature": "EvwDCqgBCBIYAipAHE0E081xNTkTA8rHzVwONt/6DhkH+PNCYRnj5Cg+sZhY8pPcNk0FiK5XPmGTwyLVWXayQVD3W1nlIb9iVHuXFDIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiQ2NThiNDdmOS0wMWUyLTQ3OTgtYjViZS00NGUyYTM1ZDhjY2FyELKOZMSwnhnZyM97wUmgANmIAQGoAeT4ztUGsAECEgxIcpc+8b9twB0tGBkaDFjxT6Vt9Kr2HiK2mSIwU109aeiT1aW7t5aJZM/jaeGJHIhAVPO3hL6mlZ4N9LsLnDX9lRgvRqbgTTudy07tKoACFOdI5fIVWNJ5AOg7z7OwRXS5sU1GODvQvjwlZohhXynJvFle+/OCTxIAWvXzFR6qN+JbdD9UZsC34ykru4N7Bs+ssWw1tVp3d2wZrMkFl0DluwgcDyOrzjIv77VGy2gGz0qpNlhmYA/rPQ39sPcibYM56V2RATkgu5xveTqmNEcFUH0+iqO2WhffF9Qxrv09IvF9+EOeTVB+OZQijwVDH814CZ6L3r1+o6/OwnzCG7mvKiM+voq8fVLv+LwZOG7UHCb5p9KPHNlDpHWCFRawe9x5X8TpOTKp6cVXpEulQajv9TY4qJY6710cULruRm3kGxCFKFesMZ6ZTysYcaeEqhgB"
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 347,
+        "cache_read_input_tokens": 6880,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 347,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 9,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+    "uuid": "bc2fc110-b87f-4862-86b1-9eb62e3aacce",
+    "timestamp": "2026-09-23T11:47:49.081Z",
+    "request_id": "req_011CfLKP8UN2GWw3udFMNjTQ"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-sonnet-5",
+      "id": "msg_011CfLKP8rSGhYm1AHQsTiXV",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_01KPeZiYEqgnJjRpREHuihWx",
+          "name": "mcp__t__echo",
+          "input": {
+            "message": "conformance-probe-defer"
+          },
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 347,
+        "cache_read_input_tokens": 6880,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 347,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 9,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+    "uuid": "854faf1d-85df-4995-b992-49338c4b28f5",
+    "timestamp": "2026-09-23T11:47:49.306Z",
+    "request_id": "req_011CfLKP8UN2GWw3udFMNjTQ",
+    "wire_tool_inputs": {
+      "toolu_01KPeZiYEqgnJjRpREHuihWx": {
+        "message": "conformance-probe-defer"
+      }
+    },
+    "tool_use_meta": [
+      {
+        "id": "toolu_01KPeZiYEqgnJjRpREHuihWx",
+        "display_name": "Echo",
+        "server_display_name": "mock-text"
+      }
+    ]
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "content": "PreToolUse:mcp__t__echo hook error: Blocked by hook",
+          "is_error": true,
+          "tool_use_id": "toolu_01KPeZiYEqgnJjRpREHuihWx"
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+    "uuid": "cfdb0683-c7ca-4a38-ac1b-44d3e17782bf",
+    "timestamp": "2026-09-23T11:47:49.309Z",
+    "tool_use_result": "Error: PreToolUse:mcp__t__echo hook error: Blocked by hook",
+    "tool_result_meta": [
+      {
+        "id": "toolu_01KPeZiYEqgnJjRpREHuihWx",
+        "non_execution_kind": "permission-rule"
+      }
+    ]
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-sonnet-5",
+      "id": "msg_011CfLKPQodgCaDTcB9PSEHz",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "I've attempted the `echo` call with message `'conformance-probe-defer'` three times now, and each attempt was blocked by the same PreToolUse hook with no further detail beyond \"Blocked by hook.\" There's no additional error content or guidance being returned that would let me adjust the call to get past it — the message, tool, and parameters all match what was requested.\n\nAt this point, retrying again isn't likely to produce a different outcome since nothing about the request has changed between attempts. I'll stop here rather than loop indefinitely. If you have a way to inspect or adjust the hook configuration (or if the block is intentional for this probe), let me know how you'd like me to proceed — e.g., a different tool, a modified message, or confirmation that the block itself is the expected/desired result."
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 215,
+        "cache_read_input_tokens": 7227,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 215,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 1,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+    "uuid": "ab5a7b76-e4d7-44ab-ae39-fc3eea9561ad",
+    "timestamp": "2026-09-23T11:47:54.769Z",
+    "request_id": "req_011CfLKPQUnDtDMqVc1jT66B"
+  },
+  {
+    "duration_api_ms": 17570,
+    "stop_reason": "end_turn",
+    "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376",
+    "total_cost_usd": 0.029364200000000003,
+    "usage": {
+      "input_tokens": 6,
+      "cache_creation_input_tokens": 3568,
+      "cache_read_input_tokens": 17981,
+      "output_tokens": 557,
+      "output_tokens_details": {
+        "thinking_tokens": 185
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 3568
+      },
+      "inference_geo": "global",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 248,
+          "cache_read_input_tokens": 7227,
+          "cache_creation_input_tokens": 215,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 215,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-haiku-4-5-20251001": {
+        "inputTokens": 912,
+        "outputTokens": 13,
+        "thinkingTokens": 0,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0,
+        "webSearchRequests": 0,
+        "costUSD": 0.000977,
+        "contextWindow": 200000,
+        "maxOutputTokens": 32000
+      },
+      "claude-sonnet-5": {
+        "inputTokens": 8,
+        "outputTokens": 617,
+        "thinkingTokens": 185,
+        "cacheReadInputTokens": 17981,
+        "cacheCreationInputTokens": 7442,
+        "webSearchRequests": 0,
+        "costUSD": 0.028387199999999998,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000,
+        "canonicalModel": "claude-sonnet-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    },
+    "permission_denials": [
+      {
+        "tool_name": "mcp__t__echo",
+        "tool_use_id": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK",
+        "tool_input": {
+          "message": "conformance-probe-defer"
+        }
+      },
+      {
+        "tool_name": "mcp__t__echo",
+        "tool_use_id": "toolu_01PJVmyct9fYViJerxicP94g",
+        "tool_input": {
+          "message": "conformance-probe-defer"
+        }
+      },
+      {
+        "tool_name": "mcp__t__echo",
+        "tool_use_id": "toolu_01KPeZiYEqgnJjRpREHuihWx",
+        "tool_input": {
+          "message": "conformance-probe-defer"
+        }
+      }
+    ],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required",
+    "subagent_stats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "is_error": false,
+    "num_turns": 3,
+    "subtype": "success",
+    "api_error_status": null,
+    "result": "I've attempted the `echo` call with message `'conformance-probe-defer'` three times now, and each attempt was blocked by the same PreToolUse hook with no further detail beyond \"Blocked by hook.\" There's no additional error content or guidance being returned that would let me adjust the call to get past it — the message, tool, and parameters all match what was requested.\n\nAt this point, retrying again isn't likely to produce a different outcome since nothing about the request has changed between attempts. I'll stop here rather than loop indefinitely. If you have a way to inspect or adjust the hook configuration (or if the block is intentional for this probe), let me know how you'd like me to proceed — e.g., a different tool, a modified message, or confirmation that the block itself is the expected/desired result.",
+    "ttft_ms": 4916,
+    "type": "result",
+    "duration_ms": 14389,
+    "uuid": "9803ec64-7cf7-4b2c-8ed1-a31e413ad73f",
+    "ttft_stream_ms": 3195,
+    "time_to_request_ms": 477,
+    "first_content_frame_ms": 3195,
+    "queued_turn_count": 0,
+    "result_index": 0
+  },
+  {
+    "type": "command_lifecycle",
+    "command_uuid": "81c723ff-fc41-4831-8d79-d2a3e1ec52bb",
+    "state": "completed",
+    "uuid": "a8053b3b-c055-4b93-ae35-6cf55ce0f02e",
+    "session_id": "10905a13-d7ad-4c30-8b0d-eb22f7ac3376"
+  }
+]

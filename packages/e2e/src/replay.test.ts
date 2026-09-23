@@ -157,6 +157,16 @@ const CLAUDE_SEEDS = [
   // (no tool.done). result-meta carries deferredToolUse. The resume legs
   // (resumeFrom this seed; allow / deny) are separate cassettes.
   "defer-tool-sonnet5",
+  // NOT YET ENROLLED (evidence for R&D candidate 20, 2026-09-23):
+  // defer-tool-sonnet5-resume-allow and -resume-deny, the two resume legs
+  // (resumeFrom defer-tool-sonnet5, forked; hook allow / deny). Both PARK
+  // at seq 1: the resumed invoke's FIRST frame is the deferred call's
+  // tool_result (before system init), which the facet maps to a bare
+  // tool.done before any turn.start, closing a tool opened in leg 1's
+  // invoke. The deny leg also re-emits permission_denials as
+  // tool.start + tool.done{denied} for ids this invoke already started and
+  // closed. They enroll once sp-claude and sp-protocol settle the resumed
+  // closure mapping. Their committed coverage lists the census findings.
 ] as const;
 
 /**

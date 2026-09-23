@@ -1,0 +1,15 @@
+{
+  "drops": [
+    {
+      "path": "[2].tools[0]",
+      "norm": "[*].tools[*]",
+      "value": "mcp__t__echo"
+    },
+    {
+      "path": "[9].tools[0]",
+      "norm": "[*].tools[*]",
+      "value": "mcp__t__echo"
+    }
+  ],
+  "newFields": []
+}

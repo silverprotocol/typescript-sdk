@@ -1,0 +1,9 @@
+{
+  "name": "defer-tool-sonnet5-resume-allow",
+  "prompt": "Continue.",
+  "mcpServers": [
+    { "key": "t", "kind": "text" }
+  ],
+  "preToolUseDecision": "allow",
+  "resumeFrom": "defer-tool-sonnet5"
+}

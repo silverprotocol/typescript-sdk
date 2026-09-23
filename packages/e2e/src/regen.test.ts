@@ -184,6 +184,8 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "api-error-auth", framework: "claude" },
   // 2026-09-23 (R&D candidate 20): the deferred-tool legs, enrolled at capture time.
   { scenario: "defer-tool-sonnet5", framework: "claude" },
+  { scenario: "defer-tool-sonnet5-resume-allow", framework: "claude" },
+  { scenario: "defer-tool-sonnet5-resume-deny", framework: "claude" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {
