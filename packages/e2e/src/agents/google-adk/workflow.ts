@@ -18,41 +18,43 @@
  *     derives `${nodePath}@${runId}` (node_runner.js:66, :415).
  *   - `actions.agentState` (object `{input}`) ONLY on an interrupt: an event
  *     with `longRunningToolIds` (node_runner.js:302) and the workflow's own
- *     input record (node_runner.js:387). No interrupt, no agentState — hence the
- *     HITL leg below.
+ *     input record (node_runner.js:387). No interrupt, no agentState — hence
+ *     the `pause` shape's HITL node.
  *   - `route` only from a node that emits one (here: an Event built with
  *     `createEvent({ output, route })`, which FunctionNode emits as-is).
  *
- * THE GRAPH (deterministic except the LLM leg, so the model never decides
- * the topology):
+ * ONE CAPTURE = ONE INVOKE. SPEC §8.0 "Lifetime" gives a Normalizer exactly one
+ * invoke (one framework run/stream), and the harness normalizes a cassette with
+ * one normalizer and one flush (capture.ts, replay.ts). An ADK invoke is one
+ * `runAsync` call on a fresh session, so this agent yields exactly one. The two
+ * {@link WorkflowShape}s split the plane between two single-invoke captures:
  *
- *   START → classify ─route "tool"────────→ spike (LlmAgent) → approve → finalize
- *                    └─route DEFAULT_ROUTE → finalize
+ *   pause:    START → classify ─"tool"→ spike → approve (HITL) ⇢ finalize
+ *   complete: START → classify ─"tool"→ spike → finalize
+ *             (both: classify ─DEFAULT_ROUTE→ finalize, never taken)
  *
+ *   - `pause` carries all five surfaces. The invoke ENDS at `approve`: the
+ *     runner turns its `RequestInput` into an `adk_request_input` functionCall
+ *     with `longRunningToolIds` + `actions.agentState`, then closes with the
+ *     workflow's own content-less input record. `finalize` never runs.
+ *   - `complete` carries output/route/nodeInfo/isolationScope and runs to
+ *     completion. At 2.1.0 a completed workflow has NO in-band end marker: it
+ *     ends on `finalize`'s output event, whose `outputFor` omits the workflow
+ *     and no event carries `endOfAgent` (upstream-issue-draft-end-of-agent.md).
+ *
+ * THE NODES (deterministic except the LLM leg, so the model never decides the
+ * topology):
  *   - `classify`: FunctionNode; output = the user prompt, route = "tool". The
- *     DEFAULT_ROUTE edge never fires; it makes the edge conditional, which is
- *     what `route` exists for.
+ *     DEFAULT_ROUTE edge makes the edge conditional, which is what `route`
+ *     exists for.
  *   - `spike`: the SAME LlmAgent `run.ts` builds (name, MCP toolsets, steer as
  *     instruction, thinking knob), plus `isolationScope: true`. As a node it
  *     runs single_turn with `includeContents: "none"`
  *     (run_llm_agent_as_node.js:24): the model sees the steer + the node input
  *     (classify's output = the prompt) — the same request an echo scenario
- *     sends, so the scenario's expectTools check holds.
- *   - `approve`: FunctionNode that yields a `RequestInput` (HITL) on first run.
- *     The runner turns it into an `adk_request_input` functionCall with
- *     `longRunningToolIds` + `actions.agentState`, and invocation 1 ENDS there
- *     (paused). `rerunOnResume: true` makes the node re-run on resume and emit
- *     its own output event; without it the resume answer silently becomes the
- *     node output with no event (workflow.js:291).
+ *     sends, so the scenario's expectTools check holds for both shapes.
+ *   - `approve` (pause only): FunctionNode that yields a `RequestInput`.
  *   - `finalize`: FunctionNode returning an OBJECT output (structured, not text).
- *
- * TWO INVOCATIONS, ONE CAPTURE: after invocation 1 pauses, the agent resumes
- * the same session with the plain-text answer {@link WORKFLOW_RESUME_TEXT} (a
- * plain-text turn resolves the single pending interrupt,
- * run_node_as_invocation.js:74). The runner appends that message to the session
- * but does not yield it, so the cassette holds every yielded event of both
- * invocations in order, under two `invocationId`s. The answer is scripted: a
- * capture has no human in the loop.
  *
  * `Workflow` is marked experimental upstream (the SDK logs a WARN at
  * construction); the facet peer range is the pin that decides which shape a
@@ -69,6 +71,7 @@ import {
   Workflow,
   createEvent,
   type BaseLlm,
+  type EdgeItem,
   type LlmAgentConfig,
 } from "@google/adk";
 import type { JsonValue } from "@silverprotocol/core";
@@ -76,14 +79,16 @@ import { toJsonValue } from "@silverprotocol/core";
 import type { CaptureRunInput } from "../types.js";
 import { adkGenerateContentConfig } from "./run.js";
 
+/** Which single-invoke graph to capture (see the header). */
+export type WorkflowShape = "pause" | "complete";
+
 /** The fixed HITL interrupt id — a stable id keeps re-captures diffable. */
 export const WORKFLOW_INTERRUPT_ID = "approve-1";
-/** The scripted plain-text answer that resumes invocation 2. */
-export const WORKFLOW_RESUME_TEXT = "approved";
 /** The route key `classify` emits. */
 export const WORKFLOW_ROUTE = "tool";
 
 export interface CaptureWorkflowOptions {
+  shape: WorkflowShape;
   /** A model id, or a `BaseLlm` instance (the offline test's stub). */
   model: string | BaseLlm;
   instruction: string;
@@ -91,7 +96,7 @@ export interface CaptureWorkflowOptions {
   generateContentConfig?: LlmAgentConfig["generateContentConfig"];
 }
 
-/** Builds the capture graph (see the header). Pure: no key, no network. */
+/** Builds the capture graph for `opts.shape`. Pure: no key, no network. */
 export function buildCaptureWorkflow(opts: CaptureWorkflowOptions): Workflow {
   const classify = new FunctionNode("classify", (_ctx, input: unknown) =>
     createEvent({ output: typeof input === "string" ? input : null, route: WORKFLOW_ROUTE }),
@@ -106,33 +111,23 @@ export function buildCaptureWorkflow(opts: CaptureWorkflowOptions): Workflow {
       ? { generateContentConfig: opts.generateContentConfig }
       : {}),
   });
-  const approve = new FunctionNode(
-    "approve",
-    async function* (ctx, input: unknown) {
-      const answer = ctx.resumeInputs[WORKFLOW_INTERRUPT_ID];
-      if (answer === undefined) {
-        yield new RequestInput({
-          interruptId: WORKFLOW_INTERRUPT_ID,
-          message: "Approve the echo result?",
-          payload: { draft: input },
-        });
-        return;
-      }
-      yield { approved: answer, draft: input };
-    },
-    { rerunOnResume: true },
-  );
   const finalize = new FunctionNode("finalize", (_ctx, input: unknown) => ({
     done: true,
     result: input,
   }));
-  return new Workflow({
-    name: "spike_workflow",
-    edges: [
-      ["START", classify, { [WORKFLOW_ROUTE]: spike, [DEFAULT_ROUTE]: finalize }],
-      [spike, approve, finalize],
-    ],
-  });
+  const route: EdgeItem = ["START", classify, { [WORKFLOW_ROUTE]: spike, [DEFAULT_ROUTE]: finalize }];
+  if (opts.shape === "complete") {
+    return new Workflow({ name: "spike_workflow", edges: [route, [spike, finalize]] });
+  }
+  const approve = new FunctionNode(
+    "approve",
+    () =>
+      new RequestInput({
+        interruptId: WORKFLOW_INTERRUPT_ID,
+        message: "Approve the echo result?",
+      }),
+  );
+  return new Workflow({ name: "spike_workflow", edges: [route, [spike, approve, finalize]] });
 }
 
 export interface DriveWorkflowOptions {
@@ -142,9 +137,9 @@ export interface DriveWorkflowOptions {
 }
 
 /**
- * Runs the workflow as two invocations on one session: the prompt (pauses at
- * `approve`), then the scripted resume. Yields every event as a plain
- * `JsonValue` (the same `toJsonValue` boundary as `run.ts`).
+ * Runs the workflow as ONE invoke (one `runAsync` on a fresh session) and
+ * yields every event as a plain `JsonValue` (the same `toJsonValue` boundary
+ * as `run.ts`).
  */
 export async function* driveCaptureWorkflow(
   workflow: Workflow,
@@ -155,25 +150,28 @@ export async function* driveCaptureWorkflow(
     appName: runner.appName,
     userId: "user-1",
   });
-  for (const text of [opts.prompt, WORKFLOW_RESUME_TEXT]) {
-    const stream = runner.runAsync({
-      userId: session.userId,
-      sessionId: session.id,
-      newMessage: { role: "user", parts: [{ text }] },
-      runConfig: { maxLlmCalls: opts.maxLlmCalls },
-      ...(opts.abortSignal !== undefined ? { abortSignal: opts.abortSignal } : {}),
-    });
-    for await (const event of stream) {
-      yield toJsonValue(event);
-    }
+  const stream = runner.runAsync({
+    userId: session.userId,
+    sessionId: session.id,
+    newMessage: { role: "user", parts: [{ text: opts.prompt }] },
+    runConfig: { maxLlmCalls: opts.maxLlmCalls },
+    ...(opts.abortSignal !== undefined ? { abortSignal: opts.abortSignal } : {}),
+  });
+  for await (const event of stream) {
+    yield toJsonValue(event);
   }
 }
 
 /**
- * The workflow-plane `CaptureRunFn`: same input contract, key gate, MCP wiring
- * and thinking knob as `runAdkCapture`, rooted at {@link buildCaptureWorkflow}.
+ * The workflow-plane capture: same input contract, key gate, MCP wiring and
+ * thinking knob as `runAdkCapture`, rooted at {@link buildCaptureWorkflow}.
+ * With `shape` bound (e.g. `(input) => runAdkWorkflowCapture(input, "complete")`)
+ * it is a `CaptureRunFn`.
  */
-export async function* runAdkWorkflowCapture(input: CaptureRunInput): AsyncIterable<JsonValue> {
+export async function* runAdkWorkflowCapture(
+  input: CaptureRunInput,
+  shape: WorkflowShape = "pause",
+): AsyncIterable<JsonValue> {
   const apiKey = input.apiKey ?? process.env["GOOGLE_API_KEY"];
   if (!apiKey) {
     throw new Error(
@@ -196,6 +194,7 @@ export async function* runAdkWorkflowCapture(input: CaptureRunInput): AsyncItera
   try {
     const generateContentConfig = adkGenerateContentConfig(input);
     const workflow = buildCaptureWorkflow({
+      shape,
       model: input.model ?? "gemini-2.5-flash",
       instruction: input.systemPrompt ?? "You are a helpful assistant.",
       tools: toolsets,

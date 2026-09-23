@@ -3,12 +3,10 @@
  *
  * Runs the REAL `@google/adk` Workflow engine and InMemoryRunner end to end,
  * with a stub `BaseLlm` and an in-process `FunctionTool` in place of Gemini and
- * the MCP mock: no key, no network. It pins what the live capture relies on —
- * that this graph stamps all five workflow-plane surfaces (output, route,
- * nodeInfo, isolationScope, object actions.agentState) across the two
- * invocations — so an ADK bump that moves any of them fails here before a
+ * the MCP mock: no key, no network. It pins what each single-invoke capture
+ * shape relies on, so an ADK bump that moves any surface fails here before a
  * capture is spent. It pins the NATIVE stream only: how the facet should map a
- * workflow invocation's turn boundaries is open (spec R&D item 6), so no AgJSON
+ * workflow invoke's turn boundaries is open (spec R&D item 6), so no AgJSON
  * shape is asserted here.
  */
 import { afterEach, describe, expect, it } from "vitest";
@@ -18,11 +16,11 @@ import { z } from "zod";
 import type { JsonValue } from "@silverprotocol/core";
 import {
   WORKFLOW_INTERRUPT_ID,
-  WORKFLOW_RESUME_TEXT,
   WORKFLOW_ROUTE,
   buildCaptureWorkflow,
   driveCaptureWorkflow,
   runAdkWorkflowCapture,
+  type WorkflowShape,
 } from "./workflow.js";
 
 /** First call: a functionCall to `echo`. Once a functionResponse is in the
@@ -64,8 +62,9 @@ const isObj = (v: JsonValue | undefined): v is Obj =>
   typeof v === "object" && v !== null && !Array.isArray(v);
 const obj = (v: JsonValue | undefined): Obj => (isObj(v) ? v : {});
 
-async function capture(): Promise<Obj[]> {
+async function capture(shape: WorkflowShape): Promise<Obj[]> {
   const workflow = buildCaptureWorkflow({
+    shape,
     model: new StubLlm(),
     instruction: "You MUST call the echo tool with message='wf-probe'.",
     tools: [echo],
@@ -77,59 +76,72 @@ async function capture(): Promise<Obj[]> {
   return out;
 }
 
-describe("buildCaptureWorkflow + driveCaptureWorkflow — offline, stub model", () => {
-  it("stamps all five workflow-plane surfaces across two invocations", async () => {
-    const events = await capture();
-    const invocations = [...new Set(events.map((e) => e["invocationId"]))];
-    expect(invocations).toHaveLength(2);
-    const [inv1, inv2] = invocations;
+/** The four surfaces both shapes share. */
+function expectSharedPlane(events: Obj[]): void {
+  // One capture = one invoke (SPEC §8.0 Lifetime).
+  expect(new Set(events.map((e) => e["invocationId"])).size).toBe(1);
 
-    // nodeInfo.path on every event; outputFor on every event with output.
-    for (const e of events) {
-      expect(typeof obj(e["nodeInfo"])["path"]).toBe("string");
-      if (e["output"] !== undefined) expect(obj(e["nodeInfo"])["outputFor"]).toBeDefined();
-    }
+  // nodeInfo.path on every event; outputFor on every event with output.
+  for (const e of events) {
+    expect(typeof obj(e["nodeInfo"])["path"]).toBe("string");
+    if (e["output"] !== undefined) expect(obj(e["nodeInfo"])["outputFor"]).toBeDefined();
+  }
 
-    // route: classify's routing event.
-    const routed = events.filter((e) => e["route"] !== undefined);
-    expect(routed.map((e) => [e["author"], e["route"]])).toEqual([["classify", WORKFLOW_ROUTE]]);
+  // route: classify's routing event, and only that one.
+  const routed = events.filter((e) => e["route"] !== undefined);
+  expect(routed.map((e) => [e["author"], e["route"]])).toEqual([["classify", WORKFLOW_ROUTE]]);
 
-    // isolationScope: every event of the LlmAgent node, and only those.
-    const spike = events.filter((e) => e["author"] === "spike");
-    expect(spike.length).toBeGreaterThanOrEqual(3); // call, response, final text
-    for (const e of events) {
-      expect(e["isolationScope"] !== undefined).toBe(e["author"] === "spike");
-    }
-    expect(spike[0]?.["isolationScope"]).toMatch(/^spike_workflow\.spike@/);
+  // isolationScope: every event of the LlmAgent node, and only those.
+  const spike = events.filter((e) => e["author"] === "spike");
+  expect(spike.length).toBeGreaterThanOrEqual(3); // call, response, final text
+  for (const e of events) {
+    expect(e["isolationScope"] !== undefined).toBe(e["author"] === "spike");
+  }
+  expect(spike[0]?.["isolationScope"]).toMatch(/^spike_workflow\.spike@/);
 
-    // messageAsOutput + output on the LlmAgent's final text.
-    const final = spike.find((e) => obj(e["nodeInfo"])["messageAsOutput"] === true);
-    expect(final?.["output"]).toBe("Echoed: wf-probe");
+  // messageAsOutput + output on the LlmAgent's final text.
+  const final = spike.find((e) => obj(e["nodeInfo"])["messageAsOutput"] === true);
+  expect(final?.["output"]).toBe("Echoed: wf-probe");
+}
 
-    // agentState (an OBJECT) only on invocation 1's interrupt events.
+describe("workflow capture shapes — offline, stub model, real engine", () => {
+  it("pause: one invoke carrying all five surfaces, ending on the workflow's input record", async () => {
+    const events = await capture("pause");
+    expectSharedPlane(events);
+
+    // agentState (an OBJECT) only on the interrupt events.
     const withState = events.filter((e) => obj(e["actions"])["agentState"] !== undefined);
-    expect(withState.length).toBeGreaterThanOrEqual(1);
+    expect(withState.map((e) => e["author"])).toEqual(["approve", "spike_workflow"]);
     for (const e of withState) {
-      expect(e["invocationId"]).toBe(inv1);
       expect(isObj(obj(e["actions"])["agentState"])).toBe(true);
       expect(e["longRunningToolIds"]).toEqual([WORKFLOW_INTERRUPT_ID]);
     }
-    const ask = withState.find((e) => e["author"] === "approve");
-    expect(JSON.stringify(ask?.["content"])).toContain('"name":"adk_request_input"');
-    // The workflow's own input record closes invocation 1 (no content).
-    expect(events.filter((e) => e["invocationId"] === inv1).at(-1)?.["author"]).toBe(
-      "spike_workflow",
-    );
+    expect(JSON.stringify(withState[0]?.["content"])).toContain('"name":"adk_request_input"');
 
-    // Invocation 2: the re-run approve node and finalize both emit output.
-    const second = events.filter((e) => e["invocationId"] === inv2);
-    expect(second.map((e) => [e["author"], e["output"]])).toEqual([
-      ["approve", { approved: WORKFLOW_RESUME_TEXT, draft: "Echoed: wf-probe" }],
-      [
-        "finalize",
-        { done: true, result: { approved: WORKFLOW_RESUME_TEXT, draft: "Echoed: wf-probe" } },
-      ],
-    ]);
+    // The invoke ends on the workflow's own content-less input record;
+    // finalize never runs.
+    const last = events.at(-1);
+    expect(last?.["author"]).toBe("spike_workflow");
+    expect(last?.["content"]).toBeUndefined();
+    expect(events.some((e) => e["author"] === "finalize")).toBe(false);
+  }, 60_000);
+
+  it("complete: one invoke that ends on finalize's output with no end marker (adk-js 2.1.0)", async () => {
+    const events = await capture("complete");
+    expectSharedPlane(events);
+
+    // No interrupt, so no agentState.
+    expect(events.some((e) => obj(e["actions"])["agentState"] !== undefined)).toBe(false);
+
+    const last = events.at(-1);
+    expect(last?.["author"]).toBe("finalize");
+    expect(last?.["output"]).toEqual({ done: true, result: "Echoed: wf-probe" });
+    // TRIPWIRE for upstream-issue-draft-end-of-agent.md: adk-python marks a
+    // clean finish (terminal outputFor names the workflow; end_of_agent when
+    // resumable). If either assertion fails after a bump, adk-js ported it and
+    // the facet's workflow turn-close mapping (spec R&D item 6) can use it.
+    expect(obj(last?.["nodeInfo"])["outputFor"]).toEqual(["spike_workflow.finalize"]);
+    expect(events.some((e) => obj(e["actions"])["endOfAgent"] !== undefined)).toBe(false);
   }, 60_000);
 });
 
@@ -148,7 +160,7 @@ describe("runAdkWorkflowCapture — OPERATOR-GATED key check (mirrors run.smoke.
 
   it("throws a clear error on first iteration when no key is available", async () => {
     delete process.env["GOOGLE_API_KEY"];
-    const iter = runAdkWorkflowCapture({ prompt: "test", mcpServers: {}, allowedTools: [] });
+    const iter = runAdkWorkflowCapture({ prompt: "test", mcpServers: {}, allowedTools: [] }, "complete");
     await expect(iter[Symbol.asyncIterator]().next()).rejects.toThrow(/GOOGLE_API_KEY/);
   });
 });
