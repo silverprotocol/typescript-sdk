@@ -95,6 +95,16 @@ export const Scenario = z.object({
   // success cassette. Added 2026-09-23 (probe queue item 1: until now no
   // cassette carried is_error:true, because the throw escaped runCapture).
   expectError: z.literal(true).optional(),
+  // Deferred-tool knobs (claude-agent-sdk only; R&D candidate 20, 2026-09-23).
+  // preToolUseDecision installs a PreToolUse hook answering every tool call
+  // with that decision: "defer" parks the call as the result's
+  // deferred_tool_use; "allow" / "deny" are the resume legs' answers.
+  // resumeFrom names an earlier SEED (a corpus/ dir) whose committed claude
+  // cassette's result session_id this capture resumes (a separate invoke and
+  // a separate cassette, SPEC §8.0 Lifetime). Model-named seeds using them
+  // MUST be captured with an explicit CAPTURE_MODEL.
+  preToolUseDecision: z.enum(["defer", "allow", "deny"]).optional(),
+  resumeFrom: z.string().min(1).optional(),
 });
 
 export type Scenario = z.infer<typeof Scenario>;

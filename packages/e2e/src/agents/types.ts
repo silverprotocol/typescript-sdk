@@ -73,6 +73,11 @@ export interface CaptureRunInput {
    * See scenario.ts for why the commentary capture needs it.
    */
   reasoningSummary?: "auto" | "concise" | "detailed";
+  /** claude-agent-sdk only: a PreToolUse hook returns this permissionDecision
+   *  for every tool call ("defer" parks it as the result's deferred_tool_use). */
+  preToolUseDecision?: "defer" | "allow" | "deny";
+  /** claude-agent-sdk only: resume this earlier session (the SDK's `resume`). */
+  resumeSessionId?: string;
 }
 
 /** The LLM/process boundary contract every capture agent implements. */

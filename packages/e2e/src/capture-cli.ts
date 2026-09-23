@@ -306,6 +306,31 @@ async function loadFrameworkDeps(
 }
 
 /**
+ * The session a `resumeFrom` scenario resumes: the `session_id` of the LAST
+ * result frame in the named seed's committed claude cassette. claude only
+ * (the other agents have no resume input). Exported for unit testing.
+ */
+export async function resumeSessionFrom(seed: string, framework: Framework, corpusRoot = join(PACKAGE_ROOT, "corpus")): Promise<string> {
+  if (framework !== "claude") {
+    throw new Error(`e2e:capture: resumeFrom is claude-only (framework="${framework}")`);
+  }
+  const path = join(corpusRoot, seed, "claude.native.json");
+  let native: unknown;
+  try {
+    native = JSON.parse(await readFile(path, "utf8"));
+  } catch {
+    throw new Error(`e2e:capture: resumeFrom "${seed}": no committed cassette at ${path}`);
+  }
+  const results = (Array.isArray(native) ? native : []).filter(
+    (e): e is { type: "result"; session_id: string } =>
+      e !== null && typeof e === "object" && e.type === "result" && typeof e.session_id === "string",
+  );
+  const last = results.at(-1);
+  if (last === undefined) throw new Error(`e2e:capture: resumeFrom "${seed}": its cassette has no result frame with a session_id`);
+  return last.session_id;
+}
+
+/**
  * The real `pnpm e2e:capture <scenario> <framework>` entry point.
  *
  * OPERATOR-GATED: fails fast with a clear message when the framework's
@@ -346,11 +371,13 @@ export async function runCaptureCli(scenarioName: string, framework: Framework):
   const sdkVersion = await resolveSdkVersion(framework);
   const model = resolveModel(framework);
   const outDir = join(PACKAGE_ROOT, "corpus", scenarioName);
+  const resumeSessionId =
+    scenario.resumeFrom !== undefined ? await resumeSessionFrom(scenario.resumeFrom, framework) : undefined;
 
   const { outDir: written } = await runCaptureAndWrite(
     scenario,
     deps,
-    { ports, framework, apiKey, model },
+    { ports, framework, apiKey, model, ...(resumeSessionId !== undefined ? { resumeSessionId } : {}) },
     outDir,
     { sdkVersion, model },
   );

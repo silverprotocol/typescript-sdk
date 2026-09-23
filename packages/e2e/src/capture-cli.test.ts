@@ -41,6 +41,7 @@ import {
   isFramework,
   resolveModel,
   resolveSdkVersion,
+  resumeSessionFrom,
   runCaptureAndWrite,
   runCaptureCli,
 } from "./capture-cli.js";
@@ -451,5 +452,34 @@ describe("runCaptureAndWrite — expectError (error seeds; probe queue item 1)",
     } finally {
       await rm(outDir, { recursive: true, force: true });
     }
+  });
+});
+
+// ─── resumeFrom: the session a resume leg resumes (R&D candidate 20) ──────────
+describe("resumeSessionFrom", () => {
+  it("returns the LAST result frame's session_id from the seed's committed claude cassette", async () => {
+    const root = await mkdtemp(join(tmpdir(), "capture-cli-test-"));
+    try {
+      const { mkdir, writeFile } = await import("node:fs/promises");
+      await mkdir(join(root, "leg-1"));
+      await writeFile(
+        join(root, "leg-1", "claude.native.json"),
+        JSON.stringify([
+          { type: "system", subtype: "init", session_id: "s-init" },
+          { type: "result", subtype: "success", session_id: "s-first" },
+          { type: "result", subtype: "success", session_id: "s-last" },
+        ]),
+      );
+      expect(await resumeSessionFrom("leg-1", "claude", root)).toBe("s-last");
+      await expect(resumeSessionFrom("missing", "claude", root)).rejects.toThrow(/no committed cassette/);
+      await writeFile(join(root, "leg-1", "claude.native.json"), JSON.stringify([{ type: "system", session_id: "x" }]));
+      await expect(resumeSessionFrom("leg-1", "claude", root)).rejects.toThrow(/no result frame/);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("is claude-only", async () => {
+    await expect(resumeSessionFrom("defer-tool-sonnet5", "openai")).rejects.toThrow(/claude-only/);
   });
 });

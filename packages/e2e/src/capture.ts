@@ -85,6 +85,8 @@ export interface CaptureRunOptions {
   framework: Framework;
   /** Provider API key (live captures only). */
   apiKey?: string;
+  /** Resume this session (resolved by capture-cli from scenario.resumeFrom). */
+  resumeSessionId?: string;
   /** System prompt override. Defaults to scenario.steer if present. */
   systemPrompt?: string;
   /**
@@ -153,6 +155,8 @@ export async function runCapture(
       ...(scenario.thinkingLevel !== undefined ? { thinkingLevel: scenario.thinkingLevel } : {}),
       ...(scenario.thinkingDisplay !== undefined ? { thinkingDisplay: scenario.thinkingDisplay } : {}),
       ...(scenario.reasoningSummary !== undefined ? { reasoningSummary: scenario.reasoningSummary } : {}),
+      ...(scenario.preToolUseDecision !== undefined ? { preToolUseDecision: scenario.preToolUseDecision } : {}),
+      ...(opts.resumeSessionId !== undefined ? { resumeSessionId: opts.resumeSessionId } : {}),
     };
 
     let runError: string | undefined;

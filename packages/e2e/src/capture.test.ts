@@ -406,6 +406,24 @@ describe("runCapture", () => {
     });
     expect("reasoningSummary" in (without.input() as object)).toBe(false);
   });
+
+  it("forwards scenario.preToolUseDecision and opts.resumeSessionId to CaptureRunInput when set, and omits both otherwise", async () => {
+    const withKnobs = makeInputCapturingDeps();
+    await runCapture(
+      Scenario.parse({ name: "defer-tool-sonnet5-resume-deny", prompt: "Continue.", preToolUseDecision: "deny" }),
+      withKnobs.deps,
+      { ports: [], framework: "claude", resumeSessionId: "sess-leg-1" },
+    );
+    expect(withKnobs.input()).toMatchObject({ preToolUseDecision: "deny", resumeSessionId: "sess-leg-1" });
+
+    const without = makeInputCapturingDeps();
+    await runCapture(Scenario.parse({ name: "text-only", prompt: "Say something." }), without.deps, {
+      ports: [],
+      framework: "claude",
+    });
+    expect("preToolUseDecision" in (without.input() as object)).toBe(false);
+    expect("resumeSessionId" in (without.input() as object)).toBe(false);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
