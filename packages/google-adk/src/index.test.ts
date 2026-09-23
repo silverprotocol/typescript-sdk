@@ -116,6 +116,9 @@ describe("createAdkNormalizer — text turn lifecycle", () => {
       out.findIndex((e) => e.type === "message.end")
     );
     expect(out.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "other" });
+    // draft.4 (SPEC.md:941, §10 item 23): the verbatim native value rides the
+    // turn.done companion as well.
+    expect(out.find((e) => e.type === "turn.done")).toMatchObject({ finishReasonRaw: "TOO_MANY_TOOL_CALLS" });
   });
 
   it("carries an UNRECOGNIZED finishReason as message.metadata and maps it to 'unknown'", () => {
@@ -129,7 +132,10 @@ describe("createAdkNormalizer — text turn lifecycle", () => {
     expect(out.find((e) => e.type === "message.metadata")).toMatchObject({
       metadata: { rawFinishReason: "SOME_FUTURE_REASON" },
     });
-    expect(out.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "unknown" });
+    expect(out.find((e) => e.type === "turn.done")).toMatchObject({
+      finishReason: "unknown",
+      finishReasonRaw: "SOME_FUTURE_REASON",
+    });
   });
 
   it("keys an errorCode-only soft close by its TRUE wire field (rawErrorCode, never finishReason)", () => {
@@ -146,7 +152,11 @@ describe("createAdkNormalizer — text turn lifecycle", () => {
     const carry = out.find((e) => e.type === "message.metadata");
     expect(carry).toMatchObject({ metadata: { rawErrorCode: "RESOURCE_EXHAUSTED" } });
     expect((carry as { metadata: object }).metadata).not.toHaveProperty("rawFinishReason");
-    expect(out.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "unknown" });
+    // finishReasonRaw is the value finishReason was mapped from: here the errorCode.
+    expect(out.find((e) => e.type === "turn.done")).toMatchObject({
+      finishReason: "unknown",
+      finishReasonRaw: "RESOURCE_EXHAUSTED",
+    });
     // No errorMessage ⇒ still a turn.done close, not turn.error.
     expect(out.some((e) => e.type === "turn.error")).toBe(false);
   });
@@ -157,6 +167,29 @@ describe("createAdkNormalizer — text turn lifecycle", () => {
     ]);
     expect(out.filter((e) => e.type === "message.metadata")).toHaveLength(0);
     expect(out.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "stop" });
+    expect(out.find((e) => e.type === "turn.done")).not.toHaveProperty("finishReasonRaw");
+  });
+
+  it("a paused close carries no finishReasonRaw, even when the closing event's reason is lossy (\"paused\" is not a fallback)", () => {
+    const out = run([
+      event([{ functionCall: { name: "adk_request_input", args: { message: "City?" }, id: "adk-in" } }], {
+        turnComplete: true,
+        longRunningToolIds: ["adk-in"],
+      }),
+      event([{ text: "waiting" }], { partial: false, turnComplete: true, finishReason: "SOME_FUTURE_REASON" }),
+    ]);
+    const done = out.find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({ finishReason: "paused", outcome: { type: "paused" } });
+    expect(done).not.toHaveProperty("finishReasonRaw");
+  });
+
+  it("an exact mapping never carries finishReasonRaw (Gemini OTHER → \"other\" is exact, not lossy)", () => {
+    const out = run([
+      event([{ text: "done" }], { partial: false, turnComplete: true, finishReason: "OTHER" }),
+    ]);
+    const done = out.find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({ finishReason: "other" });
+    expect(done).not.toHaveProperty("finishReasonRaw");
   });
 });
 

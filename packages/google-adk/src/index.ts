@@ -2123,6 +2123,13 @@ export function createAdkNormalizer(): Normalizer {
       a.closeTurnDone(turnId, {
         outcome: paused ? { type: "paused", asks } : { type: "success" },
         finishReason: paused ? "paused" : finish.value,
+        // draft.4 (SPEC.md:941, §10 item 23): a lossy mapping carries the
+        // native value verbatim in turn.done.finishReasonRaw. That is the value
+        // finishReason was mapped from: the wire finishReason, or for an
+        // errorCode-only soft close the errorCode. A paused close's "paused" is
+        // not a fallback, so it takes no companion. message.metadata's
+        // rawFinishReason/rawErrorCode carry stays for one cohort.
+        ...(!paused && rawFinish !== undefined && finish.lossy ? { finishReasonRaw: rawFinish } : {}),
         ...(usage !== undefined ? { usage } : {}),
         ...(safety !== undefined ? { safety } : {}),
       });
