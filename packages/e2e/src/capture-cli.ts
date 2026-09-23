@@ -332,7 +332,10 @@ async function loadFrameworkDeps(
       import("@silverprotocol/openai-agents"),
     ]);
     assertKnobsHonored(scenario, framework, agent);
-    return { runAgentCapture: agent.runOpenaiCapture, createNormalizer: createOpenaiNormalizer };
+    // The same fixed id stem replay uses (replay.ts, sp-openai f986f9c), so a
+    // fresh capture's agjson equals its replay; the facet's default stem is
+    // random, which a capture hitting a fallback id path would record.
+    return { runAgentCapture: agent.runOpenaiCapture, createNormalizer: () => createOpenaiNormalizer({ invokeId: "openai" }) };
   }
   if (framework === "vercel") {
     const [agent, { createVercelNormalizer }] = await Promise.all([
