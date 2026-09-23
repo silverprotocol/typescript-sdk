@@ -117,6 +117,12 @@ export class Reducer {
   // path can degrade loudly (resync) instead of silently minting a phantom
   // turn for a key that was never actually opened.
   #openedTurns: Set<string> = new Set();
+  // D9 (draft.4 §5.0 INV-OWNER): every turnId the fold ever SAW opened — by
+  // turn.start, by subagent.start, or by a folded messages.snapshot that carries
+  // it in `turns` or as a message's turnId. Only a terminal for one of these
+  // folds onto a turn record. Kept apart from #openedTurns, which gates tool.done
+  // adoption and is re-seeded (not unioned) by a snapshot.
+  #seenOpened: Set<string> = new Set();
   // block/tool-call id → position in its owning message's content[], for REPLACE.
   #blockPos: Map<string, { messageId: string; index: number }> = new Map();
 
@@ -212,6 +218,7 @@ export class Reducer {
       case "turn.start": {
         // Task 8c leg 3: a turn.start always counts as a legitimately opened turn.
         this.#openedTurns.add(ev.turnId);
+        this.#seenOpened.add(ev.turnId);
         // Idempotent: if the turn already exists, merge defined fields only.
         const existing = this.#turns.get(ev.turnId);
         if (existing === undefined) {
@@ -274,6 +281,7 @@ export class Reducer {
         // Task 8c leg 3: a subagent.start always counts as a legitimately
         // opened turn, even on the idempotent-duplicate early return below.
         this.#openedTurns.add(ev.turnId);
+        this.#seenOpened.add(ev.turnId);
         // Idempotent: if the nested turn already exists, skip (never duplicate).
         if (this.#turns.has(ev.turnId)) break;
         // threadId is required on AgTurnRecord; inherit from the parent turn.
@@ -715,6 +723,12 @@ export class Reducer {
       // ── TURN-RECORD events (R5) ───────────────────────────────────────────────
 
       case "turn.done": {
+        // D9 (draft.4 §5.0 INV-OWNER): a terminal for a turn this fold never saw
+        // opened is not an unresolvable owner: it folds onto no turn record and
+        // does not park. A CORE client that ignores subagent.*, or a fold whose
+        // opener was dropped, sees exactly this; a producer's lone terminal fails
+        // the §10 producer turn-open leg instead of minting a stub record here.
+        if (!this.#seenOpened.has(ev.turnId)) break;
         const turn = this.ensureTurn(ev.turnId);
         turn.finishReason = ev.finishReason;
         // draft.4: the native finish value, verbatim, beside its mapped reason.
@@ -745,6 +759,9 @@ export class Reducer {
 
       case "turn.error": {
         // Non-folding into content; sets outcome={type:"error",...} on the turn record.
+        // D9, as turn.done; only for a NAMED turnId (a turnId-less terminal keeps
+        // the INV-OWNER backfill below).
+        if (ev.turnId !== undefined && !this.#seenOpened.has(ev.turnId)) break;
         const turn = this.ensureTurn(ev.turnId);
         turn.outcome = {
           type: "error",
@@ -763,6 +780,9 @@ export class Reducer {
         // Non-folding into content; sets a dedicated aborted outcome on the turn record
         // (symmetric with turn.error). taskState is verbatim-A2A only and is NEVER
         // reducer-invented (audit M29) — it stays whatever a prior turn.done left it as.
+        // D9, as turn.done; only for a NAMED turnId (a turnId-less terminal keeps
+        // the INV-OWNER backfill below).
+        if (ev.turnId !== undefined && !this.#seenOpened.has(ev.turnId)) break;
         const turn = this.ensureTurn(ev.turnId);
         turn.outcome = { type: "aborted", ...(ev.reason !== undefined ? { reason: ev.reason } : {}) };
         // INV-MSG binding window: no blocks attach to a closed turn's messages.
@@ -1047,6 +1067,11 @@ export class Reducer {
         // diverges (same aliasing discipline as result()/applyPatch).
         // ALWAYS replace #messages.
         this.#messages = new Map(structuredClone(ev.messages).map((m) => [m.id, m]));
+
+        // D9: a snapshot shows its turns (and its messages' turns) opened; the
+        // seen set only grows, since a turn seen opened stays seen.
+        for (const m of ev.messages) if (m.turnId !== undefined) this.#seenOpened.add(m.turnId);
+        for (const t of ev.turns ?? []) this.#seenOpened.add(t.turnId);
 
         // CONDITIONALLY replace #turns (only if turns? present in event).
         if (ev.turns !== undefined) {

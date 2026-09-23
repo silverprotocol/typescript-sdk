@@ -882,21 +882,21 @@ describe("reduce — R5 turn-records", () => {
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
 
-  // (b2) turn.error before turn.start → defensive ensureTurn creates the turn
-  it("(b2) turn.error before turn.start → defensive turn created with error outcome", () => {
-    const r = reduce([
+  // (b2) D9 (draft.4 §5.0 INV-OWNER): a terminal for a turn the fold never saw
+  // opened folds onto NO turn record and does not park. Through draft.3 the
+  // reducer minted a defensive stub record for it.
+  it("(b2) turn.error before turn.start → no turn record, no resync (D9)", () => {
+    const out = reduce([
       {
         type: "turn.error",
         seq: 0,
         turnId: "t-orphan",
         message: "Pre-start error",
       },
-    ]).result;
-    expect(r.turns).toHaveLength(1);
-    const turn = r.turns[0];
-    expect(turn?.turnId).toBe("t-orphan");
-    expect(turn?.outcome?.type).toBe("error");
-    expect(() => AgReduceResult.parse(r)).not.toThrow();
+    ]);
+    expect(out.result.turns).toEqual([]);
+    expect(out.needsResync).toBe(false);
+    expect(() => AgReduceResult.parse(out.result)).not.toThrow();
   });
 
   // (c) turn.abort → AgTurnRecord.outcome = {type:"aborted"} (taskState is verbatim-A2A
@@ -1531,6 +1531,91 @@ describe("reduce — R8 shared-state snapshot + delta", () => {
     // R0 contract: state key must be absent (not undefined, not null — absent)
     expect("state" in r).toBe(false);
     expect(() => AgReduceResult.parse(r)).not.toThrow();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// D9 — a terminal folds only onto a turn the fold saw opened (draft.4 INV-OWNER)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("reduce — D9: a terminal for a never-opened turn folds onto no record", () => {
+  const fold = (evs: AgEvent[]) => {
+    const acc = new Reducer();
+    for (const ev of evs) acc.push(ev);
+    return acc;
+  };
+  const turnIds = (acc: Reducer) => acc.result().turns.map((t) => t.turnId);
+
+  it("a lone turn.done, turn.error or turn.abort mints no record and does not park", () => {
+    const lone: AgEvent[] = [
+      { type: "turn.done", seq: 0, turnId: "tX", outcome: { type: "success" } },
+      { type: "turn.error", seq: 0, turnId: "tX", message: "boom" },
+      { type: "turn.abort", seq: 0, turnId: "tX", reason: "stream-truncated" },
+    ];
+    for (const ev of lone) {
+      const acc = fold([ev]);
+      expect(turnIds(acc), ev.type).toEqual([]);
+      expect(acc.needsResync, ev.type).toBe(false);
+    }
+  });
+
+  it("the ignored terminal closes nothing: the same turnId, opened later, streams and closes normally", () => {
+    const acc = fold([
+      { type: "turn.done", seq: 0, turnId: "tX", outcome: { type: "success" } },
+      { type: "turn.start", seq: 1, turnId: "tX", threadId: "th1" },
+      { type: "message.start", seq: 2, id: "m1", role: "assistant", turnId: "tX", threadId: "th1" },
+      { type: "text.start", seq: 3, id: "x1", turnId: "tX" },
+      { type: "text.delta", seq: 4, id: "x1", delta: "hi", turnId: "tX" },
+      { type: "turn.done", seq: 5, turnId: "tX", outcome: { type: "success" } },
+    ]);
+    expect(acc.needsResync).toBe(false);
+    expect(acc.result().turns).toMatchObject([{ turnId: "tX", threadId: "th1", outcome: { type: "success" } }]);
+    expect(acc.result().messages[0]?.content).toEqual([{ type: "text", text: "hi" }]);
+  });
+
+  it("opened by turn.start or by subagent.start: the terminal folds onto its record", () => {
+    const acc = fold([
+      { type: "turn.start", seq: 0, turnId: "t1", threadId: "th1" },
+      { type: "subagent.start", seq: 1, turnId: "t2", parentTurnId: "t1" },
+      { type: "turn.error", seq: 2, turnId: "t2", message: "nested failed" },
+      { type: "subagent.done", seq: 3, turnId: "t2" },
+      { type: "turn.done", seq: 4, turnId: "t1", outcome: { type: "success" } },
+    ] as AgEvent[]);
+    expect(acc.needsResync).toBe(false);
+    const byId = new Map(acc.result().turns.map((t) => [t.turnId, t]));
+    expect(byId.get("t2")?.outcome).toMatchObject({ type: "error", message: "nested failed" });
+    expect(byId.get("t1")?.outcome).toEqual({ type: "success" });
+  });
+
+  it("seen by a messages.snapshot, in turns[] or only as a message's turnId: the terminal folds", () => {
+    const viaTurns = fold([
+      { type: "messages.snapshot", seq: 0, messages: [], turns: [{ turnId: "tS", threadId: "th1" }] },
+      { type: "turn.done", seq: 1, turnId: "tS", outcome: { type: "success" } },
+    ]);
+    expect(viaTurns.result().turns).toMatchObject([{ turnId: "tS", outcome: { type: "success" } }]);
+    const viaMessage = fold([
+      { type: "messages.snapshot", seq: 0, messages: [{ id: "m1", role: "assistant", content: [], turnId: "tM", threadId: "th1" }] },
+      { type: "turn.abort", seq: 1, turnId: "tM", reason: "stream-truncated" },
+    ]);
+    expect(turnIds(viaMessage)).toEqual(["tM"]);
+    expect(viaMessage.needsResync).toBe(false);
+  });
+
+  it("a turn seen opened stays seen after a snapshot that replaces the turns without it", () => {
+    const acc = fold([
+      { type: "turn.start", seq: 0, turnId: "t1", threadId: "th1" },
+      { type: "messages.snapshot", seq: 1, messages: [], turns: [] },
+      { type: "turn.done", seq: 2, turnId: "t1", outcome: { type: "success" } },
+    ]);
+    expect(turnIds(acc)).toEqual(["t1"]);
+  });
+
+  it("a terminal with no turnId keeps the INV-OWNER backfill: it folds onto the only turn", () => {
+    const acc = fold([
+      { type: "turn.start", seq: 0, turnId: "t1", threadId: "th1" },
+      { type: "turn.error", seq: 1, message: "boom" },
+    ]);
+    expect(acc.result().turns).toMatchObject([{ turnId: "t1", outcome: { type: "error", message: "boom" } }]);
   });
 });
 
