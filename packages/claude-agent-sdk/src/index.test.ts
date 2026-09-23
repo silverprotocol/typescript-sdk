@@ -1,7 +1,7 @@
 import type { UUID } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import { type AgClosedEventType, AgEvent, JsonValue, Reducer } from "@silverprotocol/core";
 import createClaudeNormalizer, { mapStopReason } from "./index.js";
@@ -2040,7 +2040,8 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
     const noUuid = (): unknown => withoutKey(resultSuccess("end_turn"), "uuid");
     const evs = events([noUuid(), noUuid()]);
     const ids = turnIds(evs, "turn.done");
-    expect(ids).toEqual(["turn_frame_1", "turn_frame_2"]);
+    // DC-10: the positional fallback carries this invoke's random stem.
+    expect(ids).toEqual([expect.stringMatching(/^turn_claude_[0-9a-f]{16}_frame_1$/), expect.stringMatching(/^turn_claude_[0-9a-f]{16}_frame_2$/)]);
     expect(ids.some((id) => typeof id === "string" && id.includes("undefined"))).toBe(false);
   });
 
@@ -7446,5 +7447,120 @@ describe("createClaudeNormalizer — no emitted event shares an object with the 
     const evs = aliasPaths([junk]);
     expect(evs).toEqual([]);
     expect(drive([junk])).toEqual([expect.objectContaining({ type: "ext.anthropic.unparsed", native: junk })]);
+  });
+});
+
+// ─── DC-10: the positional fallback turn id is unique across invokes ──────────
+// sp-protocol's D3 bar / sp-probe's cross-invoke guard: guuey folds a whole
+// conversation into ONE Reducer, and `turn_frame_<n>` (a result with no uuid)
+// depended only on wire position, so two invokes named the same turn. The
+// fold did NOT park: a silent id reuse, so ids are compared directly.
+describe("createClaudeNormalizer — DC-10: fallback turn ids never repeat across invokes", () => {
+  const noUuidResult = (): unknown => ({
+    type: "result", subtype: "success", is_error: false, result: "hi", session_id: "s", num_turns: 1,
+    duration_ms: 1, duration_api_ms: 1, total_cost_usd: 0, usage: {}, modelUsage: {}, permission_denials: [],
+  });
+  const starts = (evs: AgEvent[]): string[] => {
+    const out: string[] = [];
+    for (const e of evs) if (e.type === "turn.start" && e.turnId !== undefined) out.push(e.turnId);
+    return out;
+  };
+  const invoke = (n: ReturnType<typeof createClaudeNormalizer>): AgEvent[] => [...n.push(JsonValue.parse(noUuidResult())), ...n.flush()];
+
+  it("sp-probe's leg: two fresh normalizers, the same uuid-less result, folded into ONE Reducer: distinct turn ids, no park, two turns", () => {
+    const first = invoke(createClaudeNormalizer());
+    const second = invoke(createClaudeNormalizer());
+    expect(starts(first)).toHaveLength(1);
+    expect(starts(second)).toHaveLength(1);
+    expect(starts(second).filter((t) => starts(first).includes(t))).toEqual([]);
+    const r = fold([...first, ...second]);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns).toHaveLength(2);
+  });
+
+  it("the stem is minted once per normalizer, outside the atomic-push rebuild: a fallback id minted after a rebuild shares the stem of one minted before it", () => {
+    const n = createClaudeNormalizer();
+    const push: (native: unknown) => AgEvent[] = (native) => Reflect.apply(n.push, n, [native]);
+    const throwing = { type: "assistant", message: { ...betaMessage([]), id: "msg_x", content: [null] }, parent_tool_use_id: null, uuid: "00000000-0000-0000-0000-0000000000x1", session_id: "s" };
+    const evs = [...push(noUuidResult()), ...push(throwing), ...push(noUuidResult()), ...n.flush()];
+    expect(evs.filter((e) => e.type === "error")).toHaveLength(1);
+    const ids = starts(evs);
+    expect(ids).toHaveLength(2);
+    const stem = (id: string): string | undefined => /^turn_(claude_[0-9a-f]{16})_frame_\d+$/.exec(id)?.[1];
+    expect(stem(ids[0] ?? "")).toBeDefined();
+    expect(stem(ids[1] ?? "")).toBe(stem(ids[0] ?? ""));
+    expect(new Set(ids).size).toBe(2);
+  });
+
+  it("invokeId pins the stem (capture / replay / tests); the normal path is unchanged by it", () => {
+    expect(starts(invoke(createClaudeNormalizer({ invokeId: "pin" })))).toEqual(["turn_pin_frame_1"]);
+    const evs = drive([assistantMsg([{ type: "text", text: "hi", citations: null }]), resultSuccess("end_turn")]);
+    expect(starts(evs)).toEqual([TOP_TURN]);
+  });
+});
+
+// ─── the atomic-push guard (core withAtomicPush; the fleet guard ruling) ──────
+// An envelope-valid but malformed frame throws inside the inner normalizer;
+// its partial batch and state are discarded (rebuild + re-drive), and one core
+// `error` takes the next seq.
+describe("createClaudeNormalizer — withAtomicPush: a throwing frame leaves no trace but one payload-free error", () => {
+  // Passes isSDKMessage (message.id, content array), opens its turn, message
+  // and text block, THEN throws on the null block.
+  const throwsAfterOpen = (): unknown => ({
+    type: "assistant",
+    message: { ...betaMessage([]), id: "msg_guard_throw", content: [{ type: "text", text: "partial", citations: null }, null] },
+    parent_tool_use_id: null,
+    uuid: "00000000-0000-0000-0000-0000000000g9",
+    session_id: "sess_fixture",
+  });
+  const guardErrors = (evs: AgEvent[]): AgEvent[] => evs.filter((e) => e.type === "error" && e.message === "normalizer error");
+
+  it("(a) a throw after the frame opened a turn, message and block, then normal frames: one error, nothing of the frame, seq gap-free, no park, every message closed once", () => {
+    const n = createClaudeNormalizer();
+    const push: (native: unknown) => AgEvent[] = (native) => Reflect.apply(n.push, n, [native]);
+    const evs = [
+      ...push(assistantMsg([{ type: "text", text: "before", citations: null }])),
+      ...push(throwsAfterOpen()),
+      ...push(resultSuccess("end_turn")),
+      ...push({ ...Object.fromEntries(Object.entries(assistantMsg([{ type: "text", text: "after", citations: null }]))), message: { ...betaMessage([{ type: "text", text: "after", citations: null }]), id: "msg_after" }, uuid: "00000000-0000-0000-0000-0000000000g8" }),
+      ...n.flush(),
+    ];
+    expect(guardErrors(evs)).toEqual([expect.objectContaining({ type: "error", message: "normalizer error", code: "TypeError" })]);
+    expect(JSON.stringify(evs)).not.toContain("msg_guard_throw");
+    expect(JSON.stringify(evs)).not.toContain("partial");
+    evs.forEach((e, i) => expect(e.seq).toBe(i));
+    const starts = evs.filter((e) => e.type === "message.start").map((e) => ("id" in e ? e.id : undefined));
+    const ends = evs.filter((e) => e.type === "message.end").map((e) => ("id" in e ? e.id : undefined));
+    expect([...ends].sort()).toEqual([...starts].sort());
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.map((t) => t.outcome?.type)).toEqual(["success", "aborted"]);
+  });
+
+  it("(b) a SECRET_ marker in the thrown error's message and in the native never reaches the wire", () => {
+    const secretNative = {
+      type: "assistant",
+      message: { ...betaMessage([]), id: "msg_secret", content: [{ type: "tool_use", id: "toolu_secret", name: "t", input: { SECRET_native: "SECRET_value" } }] },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000g7",
+      session_id: "sess_fixture",
+    };
+    const realStringify = JSON.stringify;
+    // Throw from inside the facet, AFTER tool.start: the args-delta stringify of
+    // exactly this tool input, with the marker in the error's message.
+    const spy = vi.spyOn(JSON, "stringify").mockImplementation((v: unknown, ...rest: unknown[]) => {
+      if (typeof v === "object" && v !== null && Object.hasOwn(v, "SECRET_native")) throw new SyntaxError("bad input SECRET_error");
+      return Reflect.apply(realStringify, JSON, [v, ...rest]);
+    });
+    let evs: AgEvent[] = [];
+    try {
+      const n = createClaudeNormalizer();
+      evs = [...n.push(JsonValue.parse(secretNative)), ...n.flush()];
+    } finally {
+      spy.mockRestore();
+    }
+    expect(guardErrors(evs)).toEqual([expect.objectContaining({ code: "SyntaxError" })]);
+    expect(JSON.stringify(evs)).not.toContain("SECRET_");
+    expect(evs).toEqual([expect.objectContaining({ type: "error", message: "normalizer error", code: "SyntaxError", seq: 0 })]);
   });
 });

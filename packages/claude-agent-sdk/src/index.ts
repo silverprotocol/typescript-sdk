@@ -47,7 +47,7 @@ import {
   JsonValue,
   type Normalizer,
   StreamAssembler,
-  toJsonValueSafe,
+  withAtomicPush,
   type ToolOutcome,
 } from "@silverprotocol/core";
 
@@ -1125,15 +1125,41 @@ export interface ClaudeNormalizerOptions {
    * construction.
    */
   threadId?: string;
+  /**
+   * The stem of this invoke's POSITIONAL fallback turn ids,
+   * `turn_<invokeId>_frame_<n>`, minted only for a top-level or nested turn
+   * whose frame carries no usable message id or uuid (the normal path names a
+   * turn by its SDK message id or frame uuid, unique by construction). A host
+   * folds every invoke of a conversation into ONE Reducer, so a stem that
+   * restarted with each invoke repeated those ids across invokes (DC-10, from
+   * sp-protocol's D3 bar). Absent, each normalizer draws a random
+   * `claude_<16 hex>` stem at most once, lazily (only when a fallback id is
+   * first needed, so the common path draws no randomness), and holds it
+   * OUTSIDE the atomic-push rebuild, so a rebuild reproduces it. Pass a fixed
+   * value only where one invoke's output must be byte-reproducible (capture,
+   * replay, tests), as vercel-ai's `invokeId`.
+   */
+  invokeId?: string;
+}
+
+/** 64 random bits as 16 hex chars: the default per-invoke fallback id stem
+ *  (vercel-ai's mintInvokeNonce). */
+function mintInvokeNonce(): string {
+  const bytes = new Uint8Array(8);
+  globalThis.crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 /**
- * Build a stateful Claude-facet normalizer over a fresh {@link StreamAssembler}.
- * Each `push(native)` validates `native` → `SDKMessage`, drives the engine via
- * primitive calls, and drains the buffered `AgEvent[]`. `flush()` closes any
- * dangling open message (none, in Claude's complete-message model) and drains.
+ * The inner Claude-facet normalizer over a fresh {@link StreamAssembler}: each
+ * `push(native)` validates `native` → `SDKMessage`, drives the engine via
+ * primitive calls, and drains the buffered `AgEvent[]`; `flush()` closes any
+ * dangling open message and drains. `createClaudeNormalizer` wraps it in core's
+ * withAtomicPush. It must stay deterministic (no clock, no randomness): a
+ * rebuild re-drives it from the journal. Its one invoke-unique input, the
+ * fallback id stem, comes from the caller, which mints and holds it.
  */
-export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): Normalizer {
+function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeStem: () => string): Normalizer {
   const a = new StreamAssembler();
 
   // Task 8c leg 4 (guuey capstone finding A): the wire-visible `parentTurnId`
@@ -1164,8 +1190,11 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
   //  - a CLOSED id is never reopened: a late frame reusing a closed turn's
   //    message id opens its turn under its own frame uuid instead;
   //  - `isSDKMessage` validates only discriminants, so a missing or non-string
-  //    id/uuid falls back to a positional `turn_frame_<n>` (still deterministic
-  //    from the wire) rather than a shared `turn_undefined`.
+  //    id/uuid falls back to a positional `turn_<stem>_frame_<n>` rather than a
+  //    shared `turn_undefined`. The stem is per invoke (DC-10: a bare
+  //    `turn_frame_<n>` repeated across the invokes one Reducer folds), and the
+  //    counter is deterministic from the wire, so an atomic-push rebuild
+  //    reproduces every delivered id.
   // Nested (subagent) frames never open or name a top-level turn.
   let openTopTurnId: string | undefined;
   const closedTopTurnIds = new Set<string>();
@@ -1182,7 +1211,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
           ? byId
           : byUuid !== undefined && !closedTopTurnIds.has(byUuid)
             ? byUuid
-            : `turn_frame_${framesSeen}`;
+            : `turn_${invokeStem()}_frame_${framesSeen}`;
     }
     return openTopTurnId;
   }
@@ -1224,7 +1253,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         ? byId
         : byUuid !== undefined && !closedNestedTurnIds.has(byUuid)
           ? byUuid
-          : `turn_frame_${framesSeen}`;
+          : `turn_${invokeStem()}_frame_${framesSeen}`;
     closedRuns.delete(parentToolUseId);
     subagentTurnByParentToolUseId.set(parentToolUseId, minted);
     return minted;
@@ -2922,20 +2951,10 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
   return {
     push(native: JsonValue): AgEvent[] {
       framesSeen++;
-      // SPEC:933 (a Normalizer MUST NOT throw out of push()): `native` is typed
-      // JsonValue, but a host can hand in the in-process object itself (a relay,
-      // a test double, anything typed `any`), whose members need not be JSON:
-      // an undefined member, a Date, NaN, a BigInt, a function, a cycle. Every
-      // value this facet carries derives from `native`, and ~30 sites validate
-      // them with JsonValue.parse / AgMeta.parse (zod) or JSON.stringify the
-      // tool input, so such a frame threw (sp-probe's reproduction:
-      // tool_use.input {a: undefined, d: Date}). Normalize ONCE here with core's
-      // total converter: a JSON frame comes back as the same reference (one
-      // allocation-free walk, no copy), anything else folds exactly as its JSON
-      // form, which is what every capture already is (the SDK itself parses the
-      // CLI's NDJSON; no 0.3.280 SDK frame trips this). Every downstream parse
-      // then validates already-JSON data.
-      const frame = toJsonValueSafe(native);
+      // `native` is already plain JSON: withAtomicPush (createClaudeNormalizer)
+      // ran core's toJsonValueSafe on it before this push (SPEC:933; a JSON
+      // frame is the same reference, anything else its JSON form).
+      const frame = native;
       if (!isSDKMessage(frame)) {
         // Graceful guard (Tenet 6): route the raw payload through the lossless
         // vendor channel rather than throwing. Nest under `native` so a payload
@@ -2972,6 +2991,35 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       return a.flush();
     },
   };
+}
+
+/**
+ * Build the Claude-facet normalizer: the inner normalizer wrapped in core's
+ * withAtomicPush (the fleet guard ruling, 2026-09-24, binding). push() never
+ * throws (SPEC:933):
+ *  - each native is first read as plain JSON (core toJsonValueSafe): a host
+ *    may hand in the in-process object, whose members need not be JSON (an
+ *    undefined member, a Date, NaN, a BigInt, a function, a cycle); a JSON
+ *    frame passes by reference, anything else folds exactly as its JSON form,
+ *    which is what every capture already is (the SDK itself parses the CLI's
+ *    NDJSON, so no 0.3.280 SDK frame needs it);
+ *  - an envelope-valid but malformed frame (a required field missing or
+ *    mistyped below the isSDKMessage discriminants: 61 single-point fuzz
+ *    mutants of the corpus's 25 frame shapes threw, from ~17 sites, most after
+ *    the frame had emitted) no longer throws: its partial batch is discarded
+ *    with its state (the inner is rebuilt and re-driven from the journal) and
+ *    one core `error {message: "normalizer error", code: <constructor name>}`
+ *    takes the next seq. Over every committed native it fires zero times
+ *    (e2e agents/claude-agent-sdk/guard.corpus.test.ts).
+ * The fallback id stem is held HERE, outside the rebuild's factory: drawn at
+ * most once, and only when a fallback id is first needed, so the common path
+ * never touches randomness (core's atomic-guard differential runs with it
+ * poisoned) and a rebuild re-reads the same stem.
+ */
+export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): Normalizer {
+  let stem = options.invokeId;
+  const invokeStem = (): string => (stem ??= `claude_${mintInvokeNonce()}`);
+  return withAtomicPush(() => createInnerClaudeNormalizer(options, invokeStem));
 }
 
 export default createClaudeNormalizer;
