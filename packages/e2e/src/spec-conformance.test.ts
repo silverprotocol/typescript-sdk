@@ -171,6 +171,20 @@ describe("§10.1 — reduce() invariant: stream → reduce == AgReduceResult (fu
     expect(content.map((b) => b.type)).toEqual(["text", "reasoning", "tool-call"]); // insertion order preserved
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
+
+  it("§5 message.start row (draft.4 editorial correction): threadId and every present extensions/candidateIndex/agentId/agentName/agentRole/noticeSource/model fold verbatim onto the AgMessage", () => {
+    const r = reduce([
+      TURN_START,
+      { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1", candidateIndex: 0, extensions: ["urn:x-ext:a"], agentId: "ag1", agentName: "Planner", agentRole: "planner", model: "model-x" },
+      { type: "message.end", seq: 2, id: "m1" },
+      { type: "message.start", seq: 3, id: "m2", role: "notice", turnId: "t1", threadId: "th1", noticeSource: "host" },
+      { type: "message.end", seq: 4, id: "m2" },
+      { type: "turn.done", seq: 5, turnId: "t1", outcome: { type: "success" }, finishReason: "stop" },
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(r.result.messages[0]).toMatchObject({ id: "m1", threadId: "th1", candidateIndex: 0, extensions: ["urn:x-ext:a"], agentId: "ag1", agentName: "Planner", agentRole: "planner", model: "model-x" });
+    expect(r.result.messages[1]).toMatchObject({ id: "m2", role: "notice", threadId: "th1", noticeSource: "host" });
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
