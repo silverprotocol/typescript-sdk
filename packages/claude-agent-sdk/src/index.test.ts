@@ -1916,6 +1916,147 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
   });
 });
 
+// ─── draft.4 `phase:"interim"` from narration_block_indexes (§8.0 item 27) ───
+// rnd 13+17 stage 2, the claude leg (A.6; a SHOULD per the founder's A.10.5
+// ruling). A `thinking` block listed in the frame-local narration_block_indexes
+// whose text is NON-EMPTY → phase "interim" on that reasoning block: on
+// reasoning.start when the frame is complete-form (known before the first
+// delta), on reasoning.end when it streamed (the complete frame precedes the
+// block's content_block_stop, CB-13). A listed empty block gets no phase.
+describe("createClaudeNormalizer — draft.4 phase:'interim' from narration_block_indexes", () => {
+  const SIG = "sig_fixture";
+  function frame(id: string, content: unknown[], nbi?: number[]): unknown {
+    return {
+      type: "assistant",
+      message: { ...betaMessage([]), id, content },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000d1",
+      session_id: "sess_fixture",
+      ...(nbi !== undefined ? { narration_block_indexes: nbi } : {}),
+    };
+  }
+  const thinking = (text: string): unknown => ({ type: "thinking", thinking: text, signature: SIG });
+  const text = (t: string): unknown => ({ type: "text", text: t, citations: null });
+  function drive(frames: unknown[]): AgEvent[] {
+    const n = createClaudeNormalizer();
+    const evs = [...frames.flatMap((f) => n.push(JsonValue.parse(f))), ...n.flush()];
+    assertAllValid(evs);
+    return evs;
+  }
+  const phases = (evs: AgEvent[], type: string): unknown[] =>
+    evs.filter((e) => e.type === type).map((e) => ("phase" in e ? e.phase : undefined));
+
+  it("NON-STREAMED: a listed, non-empty thinking block → phase 'interim' on reasoning.start, folded onto the block", () => {
+    const evs = drive([frame("msg_n1", [thinking("Checking the config first.")], [0])]);
+    expect(phases(evs, "reasoning.start")).toEqual(["interim"]);
+    expect(phases(evs, "reasoning.end")).toEqual([undefined]);
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages[0]?.content[0]).toMatchObject({ type: "reasoning", phase: "interim" });
+  });
+
+  it("a listed but EMPTY thinking block (display 'omitted'; the app-update-fable51 [4] shape) gets NO phase", () => {
+    const evs = drive([frame("msg_n2", [thinking("")], [0])]);
+    expect(phases(evs, "reasoning.start")).toEqual([undefined]);
+    expect(evs.some((e) => "phase" in e)).toBe(false);
+  });
+
+  it("only LISTED THINKING blocks: an unlisted thinking block and a listed text block stay unmarked; the index is frame-local", () => {
+    const evs = drive([frame("msg_n3", [text("Here is the plan."), thinking("interim note"), thinking("private")], [0, 1])]);
+    // index 0 is a text block (not thinking) → no phase; index 1 → interim; index 2 unlisted → none.
+    expect(evs.some((e) => e.type === "text.start" && "phase" in e)).toBe(false);
+    expect(phases(evs, "reasoning.start")).toEqual(["interim", undefined]);
+  });
+
+  it("the index is FRAME-local across a multi-frame message (the CLI's one-block-per-frame shape): frame 2's [0] is its own thinking block", () => {
+    const evs = drive([frame("msg_n5", [text("Let me check.")]), frame("msg_n5", [thinking("Checking the logs now.")], [0])]);
+    expect(evs.some((e) => e.type === "text.start" && "phase" in e)).toBe(false);
+    expect(phases(evs, "reasoning.start")).toEqual(["interim"]);
+  });
+
+  it("NEGATIVE CONTROL: no narration_block_indexes → no phase key anywhere (the unchanged goldens prove byte-identity)", () => {
+    const evs = drive([frame("msg_n4", [thinking("some thought")])]);
+    expect(evs.some((e) => "phase" in e)).toBe(false);
+  });
+
+  describe("STREAMED", () => {
+    type SE = Extract<SDKMessage, { type: "stream_event" }>["event"];
+    const se = (event: SE): unknown => ({
+      type: "stream_event",
+      event,
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000d2",
+      session_id: "sess_fixture",
+    });
+    const start = se({ type: "message_start", message: { ...betaMessage([]), id: "msg_s1" } });
+    const cbStart = se({ type: "content_block_start", index: 0, content_block: { type: "thinking", thinking: "", signature: "" } });
+    const delta = (t: string): unknown => se({ type: "content_block_delta", index: 0, delta: { type: "thinking_delta", thinking: t } });
+    const sigDelta = se({ type: "content_block_delta", index: 0, delta: { type: "signature_delta", signature: SIG } });
+    const stop = se({ type: "content_block_stop", index: 0 });
+
+    it("a listed block with non-empty streamed text → phase 'interim' on reasoning.end (the complete frame precedes the stop), folded", () => {
+      const evs = drive([start, cbStart, delta("Now running "), delta("the tests."), sigDelta, frame("msg_s1", [thinking("Now running the tests.")], [0]), stop]);
+      expect(phases(evs, "reasoning.start")).toEqual([undefined]);
+      expect(phases(evs, "reasoning.end")).toEqual(["interim"]);
+      const r = new Reducer();
+      for (const e of evs) r.push(e);
+      expect(r.needsResync).toBe(false);
+      expect(r.result().messages.find((m) => m.id === "msg_s1")?.content[0]).toMatchObject({ type: "reasoning", phase: "interim" });
+    });
+
+    it("a listed block whose streamed text is EMPTY gets no phase", () => {
+      const evs = drive([start, cbStart, delta(""), sigDelta, frame("msg_s1", [thinking("")], [0]), stop]);
+      expect(evs.some((e) => "phase" in e)).toBe(false);
+    });
+
+    it("resolves to the RIGHT stream block when it is not index 0 (a text block streamed first); the estimated_tokens delta path counts as text", () => {
+      const cbText = se({ type: "content_block_start", index: 0, content_block: { type: "text", text: "", citations: null } });
+      const textDelta = se({ type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "Plan:" } });
+      const stop0 = se({ type: "content_block_stop", index: 0 });
+      const cbThink1 = se({ type: "content_block_start", index: 1, content_block: { type: "thinking", thinking: "", signature: "" } });
+      const delta1 = {
+        ...(se({ type: "content_block_delta", index: 1, delta: { type: "thinking_delta", thinking: "" } }) as object),
+        event: { type: "content_block_delta", index: 1, delta: { type: "thinking_delta", thinking: "Running the suite.", estimated_tokens: 12 } },
+      };
+      const sig1 = se({ type: "content_block_delta", index: 1, delta: { type: "signature_delta", signature: SIG } });
+      const stop1 = se({ type: "content_block_stop", index: 1 });
+      const evs = drive([start, cbText, textDelta, frame("msg_s1", [text("Plan:")]), stop0, cbThink1, delta1, sig1, frame("msg_s1", [thinking("Running the suite.")], [0]), stop1]);
+      const ends = evs.filter((e) => e.type === "reasoning.end");
+      expect(ends).toHaveLength(1);
+      expect(ends[0]).toMatchObject({ id: "msg_s1:reasoning:1", phase: "interim" });
+      expect(evs.some((e) => e.type === "text.end" && "phase" in e)).toBe(false);
+    });
+
+    it("a frame naming an ALREADY-SEALED block never marks the next open block (review MINOR 1)", () => {
+      const cbThink1 = se({ type: "content_block_start", index: 1, content_block: { type: "thinking", thinking: "", signature: "" } });
+      const delta1 = se({ type: "content_block_delta", index: 1, delta: { type: "thinking_delta", thinking: "B" } });
+      const stop1 = se({ type: "content_block_stop", index: 1 });
+      const evs = drive([start, cbStart, delta("A"), stop, cbThink1, delta1, frame("msg_s1", [thinking("A")], [0]), stop1]);
+      expect(evs.some((e) => "phase" in e)).toBe(false);
+    });
+
+    it("Tenet 6: a thinking start or delta with no `thinking` key never throws", () => {
+      const bareStart = se({ type: "content_block_start", index: 0, content_block: { type: "thinking", thinking: "", signature: "" } });
+      const malformedStart = { ...(bareStart as object), event: { type: "content_block_start", index: 0, content_block: { type: "thinking", signature: "" } } };
+      const malformedDelta = { ...(bareStart as object), event: { type: "content_block_delta", index: 0, delta: { type: "thinking_delta" } } };
+      // push() itself must not throw (the new `.length` reads are typeof-guarded).
+      // Event validity of a malformed delta is a separate, pre-existing matter.
+      const n = createClaudeNormalizer();
+      expect(() => {
+        for (const f of [start, malformedStart, malformedDelta, frame("msg_s1", [thinking("x")], [0]), stop]) n.push(JsonValue.parse(f));
+        n.flush();
+      }).not.toThrow();
+    });
+
+    it("a complete frame arriving AFTER the block's stop (CB-13 violated) leaves phase absent — never a post-seal event", () => {
+      const evs = drive([start, cbStart, delta("late marker"), sigDelta, stop, frame("msg_s1", [thinking("late marker")], [0])]);
+      expect(evs.some((e) => "phase" in e)).toBe(false);
+      expect(evs.filter((e) => e.type === "reasoning.end")).toHaveLength(1);
+    });
+  });
+});
+
 // ─── SDKUserMessageReplay (`isReplay: true`) emits no core event ─────────────
 // sp-rnd lead (2026-09-23). Two hazards, both confirmed on fixtures before the fix:
 //  - the realistic one: a replay ack landing MID-STREAM ran closePendingMessage()

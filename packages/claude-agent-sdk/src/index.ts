@@ -410,6 +410,7 @@ function emitAssistantBlock(
   blockIndex: number,
   blockProviderMetadata?: AgProviderMeta,
   blockMeta?: AgMeta,
+  phase?: string,
 ): BlockAnchor {
   switch (block.type) {
     case "text": {
@@ -450,9 +451,10 @@ function emitAssistantBlock(
           messageId,
           ...(blockProviderMetadata !== undefined ? { providerMetadata: blockProviderMetadata } : {}),
           ...(blockMeta !== undefined ? { _meta: blockMeta } : {}),
+          ...(phase !== undefined ? { phase } : {}),
         });
       } else {
-        a.reasoningStart(id, messageId);
+        a.reasoningStart(id, messageId, phase !== undefined ? { phase } : undefined);
       }
       a.reasoningDelta(id, messageId, block.thinking);
       a.reasoningEnd(id, messageId);
@@ -760,9 +762,10 @@ const HOST_ONLY_WRAPPER_KEYS: ReadonlySet<string> = new Set([
 // user-facing NARRATION rather than private reasoning. Undeclared in sdk.d.ts at
 // 0.3.272 (a pass-through of the Messages API field that rides the assistant
 // wrapper), so it is read through the JSON boundary and shape-guarded here, never
-// cast. Integer indexes into `message.content`; an out-of-range or non-integer
-// member means the producer changed shape, so the whole array is refused rather
-// than half-carried.
+// cast. Integer indexes into `message.content`; a non-integer or negative member
+// means the producer changed shape, so the whole array is refused rather than
+// half-carried. The upper bound is not checked here: an out-of-range index
+// simply names no block where it is used (the draft.4 `phase` mapping).
 function readNarrationBlockIndexes(v: unknown): number[] | undefined {
   return Array.isArray(v) &&
     v.length > 0 &&
@@ -1284,6 +1287,12 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
     /** workspace#7 — `ttft_ms` carried at most once per message (message.metadata). */
     ttftCarried: boolean;
     /**
+     * draft.4 `phase`: how many of this lifecycle's blocks earlier COMPLETE
+     * frames already covered. A frame's blocks are the next ones after these,
+     * so its frame-local index `i` names stream block `framedThrough + i`.
+     */
+    framedThrough: number;
+    /**
      * The TURN-BINDING FAMILY, carried at most once per message, whichever
      * channel delivers it first: the stream arm's message.metadata carry
      * (`carryTurnBinding`, the first non-ping stream event) or the complete
@@ -1309,7 +1318,17 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
   // is clean punctuation.
   type StreamBlockState =
     | { kind: "text"; id: string; citations: AgCitation[] }
-    | { kind: "reasoning"; id: string; signature: string; redacted: string | undefined }
+    | {
+        kind: "reasoning";
+        id: string;
+        signature: string;
+        redacted: string | undefined;
+        // draft.4 `phase` (§8.0 item 27): whether any non-empty thinking text
+        // streamed, and whether the complete frame listed this block in
+        // `narration_block_indexes` while it was still open (CB-13).
+        hasText: boolean;
+        narration: boolean;
+      }
     | { kind: "tool"; toolCallId: string; json: string; startInput: JsonValue }
     | { kind: "compaction"; content: string | null; encrypted: string | null }
     | { kind: "emitted" };
@@ -1413,7 +1432,11 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         a.textEnd(b.id, messageId, b.citations.length > 0 ? { citations: b.citations } : undefined);
         return;
       case "reasoning":
-        a.reasoningEnd(b.id, messageId);
+        // draft.4 `phase` for a STREAMED narration block: known only once the
+        // complete frame arrived (after the start), so it rides reasoning.end
+        // (§5 phase timing), and only if the block's text is non-empty
+        // (§8.0 item 27). Never a post-seal event.
+        a.reasoningEnd(b.id, messageId, b.narration && b.hasText ? { phase: "interim" } : undefined);
         if (b.redacted !== undefined) {
           a.reasoningOpaque(b.id, messageId, { kind: "redacted", value: b.redacted, provider: "anthropic" });
         } else if (b.signature.length > 0) {
@@ -1502,6 +1525,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         streamed: true,
         streamBlocks: new Map(),
         ttftCarried: false,
+        framedThrough: 0,
         turnBindingCarried: false,
       };
       pending = open;
@@ -1565,14 +1589,21 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         case "thinking": {
           const id = `${messageId}:reasoning:${index}`;
           a.reasoningStart(id, messageId);
-          p.streamBlocks.set(index, { kind: "reasoning", id, signature: block.signature, redacted: undefined });
+          p.streamBlocks.set(index, {
+            kind: "reasoning",
+            id,
+            signature: block.signature,
+            redacted: undefined,
+            hasText: false,
+            narration: false,
+          });
           return;
         }
         case "redacted_thinking": {
           // Arrives complete (never delta'd); end + the redacted opaque land at stop.
           const id = `${messageId}:reasoning:${index}`;
           a.reasoningStart(id, messageId);
-          p.streamBlocks.set(index, { kind: "reasoning", id, signature: "", redacted: block.data });
+          p.streamBlocks.set(index, { kind: "reasoning", id, signature: "", redacted: block.data, hasText: false, narration: false });
           return;
         }
         case "tool_use":
@@ -1654,6 +1685,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         return;
       }
       if (d.type === "thinking_delta" && b.kind === "reasoning") {
+        if (typeof d.thinking === "string" && d.thinking.length > 0) b.hasText = true;
         // Claude Code stamps a RUNTIME-ONLY `estimated_tokens` (number | null;
         // undeclared on BetaThinkingDelta) on each thinking_delta. Under
         // Fable 5.1's default `display: omitted` the `thinking` text is '' and
@@ -1987,6 +2019,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
           streamed: false,
           streamBlocks: new Map(),
           ttftCarried: false,
+          framedThrough: 0,
           turnBindingCarried: false,
         };
         pending = open;
@@ -2068,6 +2101,29 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // Everything below the block loop (wrapper carry via message.metadata,
       // usage, error close, uuid registration) still runs.
       const suppressed = open.streamed;
+      // draft.4 `phase` (§8.0 item 27, a SHOULD per the founder's A.10.5
+      // ruling): a `thinking` block listed in `narration_block_indexes` whose
+      // text is NON-EMPTY is interim narration → `phase:"interim"` on that
+      // reasoning block. A listed empty block (display "omitted") gets none.
+      // The index is FRAME-local. Never inferred from position, text or turn
+      // end; never decoded from the signature; the vendor list itself still
+      // rides host-only `_meta` verbatim (X5).
+      const narrationIndexes = new Set(narrationBlockIndexes ?? []);
+      if (suppressed && narrationIndexes.size > 0) {
+        // STREAMED: the complete frame precedes its blocks' content_block_stop
+        // (CB-13; thinking-fable51 frames [62] signature → [63] frame → [64]
+        // stop), so each listed frame-local index names stream block
+        // `framedThrough + idx` (the frame covers the next blocks after those
+        // earlier frames covered). It is marked only while it is still OPEN;
+        // the phase then rides its reasoning.end, if its streamed text was
+        // non-empty. A block that already sealed stays unmarked, never a
+        // post-seal event and never a neighbouring block.
+        for (const idx of narrationIndexes) {
+          const frameBlock = m.content[idx];
+          const streamBlock = open.streamBlocks.get(open.framedThrough + idx);
+          if (frameBlock?.type === "thinking" && streamBlock?.kind === "reasoning") streamBlock.narration = true;
+        }
+      }
       if (!suppressed) {
         // A plain indexed loop, not `.forEach` — see `mcpToolResultContentToAgBlocks`'s
         // doc: `.forEach`'s callback parameter inference degrades to implicit `any`
@@ -2083,6 +2139,12 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
           // (`<id>:text:0` twice would clobber in the fold). The wrapper carry
           // stays anchored to this FRAME's first block: `aborted` /
           // `resumed_from_incomplete_thinking` are per-frame facts.
+          // NON-STREAMED: the marker is known before the first delta, so it
+          // rides reasoning.start (§5 phase timing).
+          const interim =
+            narrationIndexes.has(i) && block.type === "thinking" && typeof block.thinking === "string" && block.thinking.length > 0
+              ? "interim"
+              : undefined;
           const landed = emitAssistantBlock(
             a,
             block,
@@ -2090,11 +2152,13 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
             open.blockIndex + i,
             i === 0 ? wrapperMeta : undefined,
             i === 0 ? hostMeta : undefined,
+            interim,
           );
           if (i === 0) anchored = landed;
         }
         open.blockIndex += m.content.length;
       }
+      open.framedThrough += m.content.length;
       // Block-less frame (e.g. aborted before any content streamed) — or a
       // suppressed one, whose blocks were already sealed by the stream: no
       // first block exists to anchor the wrapper carry — ride message.metadata
