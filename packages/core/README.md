@@ -79,6 +79,42 @@ nothing and goes to the optional `onReject` callback. `Reducer` folds the
 validated stream into the normative snapshot; `AGJSON_VERSION` is the wire
 version this build implements (`1.0.0-draft.4`).
 
+### Stored records and inputs
+
+Messages and memory records you read back from storage, and inputs a client
+sends, follow the same forward-compatible posture (AgJSON draft.4 §0.2):
+
+```ts
+import { readStoredAgMessages, readStoredAgMemoryRecords, checkAgInput } from "@silverprotocol/core";
+
+const { value: messages, reports } = readStoredAgMessages(rowsFromYourStore);
+for (const r of reports) console.warn("unreadable", r.path, r.ignoredType, r.raw);
+
+const checked = checkAgInput(requestBody);
+if (!checked.ok) return reply(400, { code: checked.code, path: checked.path }); // "unknown-value" | "malformed" | "major-mismatch"
+```
+
+- `readStoredAgMessage(s)` and `readStoredAgMemoryRecords` omit what they
+  cannot read and report it: a `content` element that fails at any depth is
+  omitted whole, and a record that fails is omitted from its array. Each report
+  carries its `path`, the element's `type` when it has one, and the verbatim
+  value, so inserting every report back at its index rebuilds the stored
+  record. Unknown fields pass through at every depth; nothing is coerced. What
+  they return is a view: keep storing and forwarding the record as received,
+  never the view. A record carried inside an event keeps the event rule above:
+  a `messages.snapshot` with one unknown block is ignored whole, so it cannot
+  resync a parked live fold, while the same message read from storage keeps its
+  readable blocks.
+- `checkAgInput` rejects the whole input, before you act on any of it, when it
+  carries a value outside a closed set this version defines (a `kind`, an
+  answer `status`, a reasoning `effort`, a block `type` in `messages`,
+  `run.system`, `run.context` or `results[].content`, …): `unknown-value` with
+  the path. A missing value or a wrong JSON type is `malformed`; another major
+  `version` is `major-mismatch`. An accepted input comes back with its unknown
+  fields intact.
+- `validateHitlAnswer` rejects an answer whose `status` is not a defined one
+  (`unknown-status`), so an unrecognized status is never read as a grant.
+
 ## Produce AgJSON
 
 Turn a framework's native stream into AgJSON with its normalizer — the output is
