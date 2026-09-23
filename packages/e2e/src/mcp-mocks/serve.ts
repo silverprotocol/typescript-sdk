@@ -20,6 +20,7 @@ import { registerTextTool } from "./text.js";
 import { registerAppSpecTool } from "./app-spec.js";
 import { registerAppUpdateTools } from "./app-update.js";
 import { registerErrorTool } from "./error.js";
+import { registerResourceLinkTool } from "./resource-link.js";
 
 export interface MockHandle {
   /** The MCP endpoint URL, e.g. "http://127.0.0.1:PORT/mcp" */
@@ -41,6 +42,9 @@ function registerTools(server: McpServer, kind: MockKind): void {
       break;
     case "error":
       registerErrorTool(server);
+      break;
+    case "resource-link":
+      registerResourceLinkTool(server);
       break;
   }
 }

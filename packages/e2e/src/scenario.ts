@@ -21,7 +21,7 @@ export const Scenario = z.object({
     .array(
       z.object({
         key: z.string(),
-        kind: z.enum(["text", "app-spec", "app-update", "error"]),
+        kind: z.enum(["text", "app-spec", "app-update", "error", "resource-link"]),
       }),
     )
     .default([]),

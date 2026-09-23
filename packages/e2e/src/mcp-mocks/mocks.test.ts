@@ -16,6 +16,7 @@ import * as net from "node:net";
 import { knownToolFor, knownToolsFor } from "./tools.js";
 import { serveMock } from "./serve.js";
 import { callTool } from "./client.js";
+import { RESOURCE_LINK } from "./resource-link.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Port helper — allocates an OS-assigned ephemeral port, then releases it so
@@ -338,5 +339,35 @@ describe("serveMock close()", () => {
         server.close(() => resolve());
       });
     });
+  });
+});
+
+describe("resource-link mock (find_doc)", () => {
+  let close: (() => Promise<void>) | undefined;
+
+  afterEach(async () => {
+    if (close) {
+      await close();
+      close = undefined;
+    }
+  });
+
+  it('pins the tool name "find_doc" and lists exactly it', async () => {
+    expect(knownToolFor("resource-link")).toBe("find_doc");
+    expect(knownToolsFor("resource-link")).toEqual(["find_doc"]);
+  });
+
+  it("returns a text block plus ONE fully populated resource_link block, and NO structuredContent", async () => {
+    const port = await getFreePort();
+    const mock = serveMock("resource-link", port);
+    close = mock.close;
+    const result = (await callTool(mock.url, knownToolFor("resource-link"), { topic: "probes" })) as {
+      content: Array<Record<string, unknown>>;
+      structuredContent?: unknown;
+    };
+    expect(result.content.map((b) => b["type"])).toEqual(["text", "resource_link"]);
+    expect(result.content[0]?.["text"]).toContain("probes");
+    expect(result.content[1]).toEqual(RESOURCE_LINK);
+    expect(result.structuredContent).toBeUndefined();
   });
 });

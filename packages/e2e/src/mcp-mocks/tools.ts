@@ -6,7 +6,7 @@
  * import from here rather than hardcoding a literal.
  */
 
-export type MockKind = "text" | "app-spec" | "app-update" | "error";
+export type MockKind = "text" | "app-spec" | "app-update" | "error" | "resource-link";
 
 const TOOL_NAMES: Record<MockKind, string[]> = {
   "text": ["echo"],
@@ -17,6 +17,8 @@ const TOOL_NAMES: Record<MockKind, string[]> = {
   // tool — the steer drives the sequence.
   "app-update": ["render_card", "update_card"],
   "error": ["fail"],
+  // A text block + one MCP resource_link block (resource-link.ts).
+  "resource-link": ["find_doc"],
 };
 
 /**
