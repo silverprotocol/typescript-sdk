@@ -2567,6 +2567,69 @@ describe("INV-MSG seal + binding window enforcement (audit M19)", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// INV-MSG for DELTA events targeting a SEALED message (SPEC.md:745)
+//
+// "A block-creating or delta event targeting a sealed message ... is a
+// reduce()-error → snapshot-resync, never a silent attach." The delta events
+// resolve their block by id (#blockPos), so the openMessage() pointer clear
+// never saw them. This is the SEALED half only (sp-protocol ruling A,
+// 2026-09-23); the closed-turn half waits for per-turn turnIds in the claude
+// facet (ruling B). text.end / reasoning.end / reasoning.opaque /
+// tool.args.assembled are not named by :745 and are untouched.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("INV-MSG: a straggler delta into a sealed message parks (SPEC.md:745)", () => {
+  // One open message m1 holding a text, a reasoning and a tool-call block.
+  const withBlocks = (): Reducer => {
+    const r = new Reducer();
+    const evs: AgEvent[] = [
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+      { type: "text.start", seq: 2, id: "x1", turnId: "t1" },
+      { type: "text.delta", seq: 3, id: "x1", delta: "on time" },
+      { type: "reasoning.start", seq: 4, id: "r1", turnId: "t1" },
+      { type: "reasoning.delta", seq: 5, id: "r1", delta: "thought" },
+      { type: "tool.start", seq: 6, toolCallId: "c1", name: "echo", turnId: "t1" },
+      { type: "tool.args.delta", seq: 7, toolCallId: "c1", delta: "{" },
+    ];
+    for (const e of evs) r.push(e);
+    return r;
+  };
+  const seal: AgEvent = { type: "message.end", seq: 8, id: "m1" };
+
+  const stragglers: Array<[string, AgEvent]> = [
+    ["text.delta", { type: "text.delta", seq: 9, id: "x1", delta: " LATE" }],
+    ["reasoning.delta", { type: "reasoning.delta", seq: 9, id: "r1", delta: " LATE" }],
+    ["reasoning.opaque.delta", { type: "reasoning.opaque.delta", seq: 9, id: "r1", delta: "LATE" }],
+    ["tool.args.delta", { type: "tool.args.delta", seq: 9, toolCallId: "c1", delta: "LATE" }],
+  ];
+
+  for (const [name, straggler] of stragglers) {
+    it(`a straggler ${name} after message.end parks and mutates nothing`, () => {
+      const r = withBlocks();
+      r.push(seal);
+      expect(r.needsResync).toBe(false);
+      r.push(straggler);
+      expect(r.needsResync).toBe(true);
+      const content = r.result().messages.find((m) => m.id === "m1")!.content;
+      expect(content.find((b) => b.type === "text")).toMatchObject({ text: "on time" });
+      expect(content.find((b) => b.type === "reasoning")).toMatchObject({ text: "thought" });
+    });
+  }
+
+  it("control: the same deltas BEFORE the seal fold clean", () => {
+    const r = withBlocks();
+    // same four events, re-sequenced contiguously (seq 8-11) ahead of the seal
+    stragglers.forEach(([, e], i) => r.push({ ...e, seq: 8 + i } as AgEvent));
+    r.push({ ...seal, seq: 12 } as AgEvent);
+    expect(r.needsResync).toBe(false);
+    const m1 = r.result().messages.find((m) => m.id === "m1")!;
+    expect(m1.content.find((b) => b.type === "text")).toMatchObject({ text: "on time LATE" });
+    expect(m1.content.find((b) => b.type === "reasoning")).toMatchObject({ text: "thought LATE" });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // tool-result typed `preliminary` + turn.done.messageId targeting (audit M20)
 // ─────────────────────────────────────────────────────────────────────────────
 

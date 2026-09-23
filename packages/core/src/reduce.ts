@@ -298,6 +298,8 @@ export class Reducer {
         if (pos === undefined) break;
         const msg = this.#messages.get(pos.messageId);
         if (msg === undefined) break;
+        // INV-MSG (SPEC.md:745): a straggler delta into a sealed message parks.
+        if (this.#sealed.has(msg.id)) { this.#resync = true; break; }
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "text") break;
         block.text += ev.delta;
@@ -342,6 +344,8 @@ export class Reducer {
         if (pos === undefined) break;
         const msg = this.#messages.get(pos.messageId);
         if (msg === undefined) break;
+        // INV-MSG (SPEC.md:745): a straggler delta into a sealed message parks.
+        if (this.#sealed.has(msg.id)) { this.#resync = true; break; }
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "reasoning") break;
         // APPEND delta to text (in-order concat of parts)
@@ -366,6 +370,11 @@ export class Reducer {
 
       case "reasoning.opaque.delta": {
         // APPEND to per-id opaque scratch buffer (sealed by the following reasoning.opaque).
+        // INV-MSG (SPEC.md:745): a straggler into a block of a sealed message
+        // parks. The block is resolved by id; with no known block the delta
+        // stays scratch-only, as before.
+        const opaquePos = this.#blockPos.get(ev.id);
+        if (opaquePos !== undefined && this.#sealed.has(opaquePos.messageId)) { this.#resync = true; break; }
         const existing = this.#opaque.get(ev.id) ?? "";
         this.#opaque.set(ev.id, existing + ev.delta);
         break;
@@ -420,6 +429,9 @@ export class Reducer {
 
       case "tool.args.delta": {
         // APPEND raw partial-JSON delta to scratch (NEVER authoritative input).
+        // INV-MSG (SPEC.md:745): a straggler into a sealed message's tool call parks.
+        const argsPos = this.#blockPos.get(ev.toolCallId);
+        if (argsPos !== undefined && this.#sealed.has(argsPos.messageId)) { this.#resync = true; break; }
         const existing = this.#toolArgs.get(ev.toolCallId) ?? "";
         this.#toolArgs.set(ev.toolCallId, existing + ev.delta);
         break;
