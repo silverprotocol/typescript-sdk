@@ -335,20 +335,27 @@ function mcpToolResultContentToAgBlocks(content: McpToolResultContent): AgBlock[
 
 // ─── assistant content block fan-out (spec §4 mapping table) ──────────────────
 // Per content[] block, drive the engine to emit its lifecycle events under the
-// open message named by `messageId`. `blockProviderMetadata` is the refusal-
-// fallback `supersedes` carrier (playbook 2026-07-03 SDK-bump adaptation,
-// Finding #1 / §8 item 19): the caller passes it ONLY for blockIndex 0 of a
-// superseding message, mirroring the established "signature on first block"
-// precedent (§8 item 8, Gemini thoughtSignature). `text`/`thinking`/
-// `redacted_thinking`/`tool_use` family all have a providerMetadata slot on
-// their *.start event and land it there; the remaining rarer block-0 shapes
-// (image/resource/mcp_tool_result/compaction) have no providerMetadata slot on
-// `content.block` and drop the annotation (NOT the retraction itself, which
-// already executed via `message.remove` regardless — see `drive()`).
-// Returns true when `blockMeta` landed on a start event that `reduce()` folds
-// onto the block (text.start / reasoning.start). Every other block type returns
-// false so the caller can route the host-only bag through `message.metadata`
-// instead (tool.start does not fold `_meta`).
+// open message named by `messageId`. The caller passes the frame's wrapper
+// carry ONLY for blockIndex 0, mirroring the "signature on first block"
+// precedent (§8 item 8, Gemini thoughtSignature), in two bags:
+//  - `blockProviderMetadata`: the REPLAY-side wrapper facts (`supersedes`,
+//    `resumed_from_incomplete_thinking`, `aborted`, `context_usage`,
+//    `usage_report`, the turn-binding family). `text` / `thinking` /
+//    `redacted_thinking` and the `tool_use` family land it on their *.start
+//    event. The rarer block-0 shapes (mcp_tool_result / compaction / the
+//    default content.block) never apply it, so those facts drop there (a
+//    disclosed, pre-existing gap; a retraction itself still executes via
+//    `message.remove` regardless, see `drive()`).
+//  - `blockMeta` (X5): the HOST-only wrapper facts (HOST_ONLY_WRAPPER_KEYS).
+//    Only text.start / reasoning.start get it, because `reduce()` folds their
+//    `_meta` onto the block.
+// Returns true when `blockMeta` landed. Every other block type returns false,
+// and the caller routes the host-only bag through `message.metadata` instead
+// (tool.start does not fold `_meta`). That fallback is message-level and
+// merges REPLACE-by-key, so it does not say which frame the frame-relative
+// `narration_block_indexes` belong to. In practice it is not reached: the CLI
+// sends one content block per frame, narration marks thinking/text blocks, and
+// an API-error frame starts with text.
 function emitAssistantBlock(
   a: StreamAssembler,
   block: BetaContentBlock,

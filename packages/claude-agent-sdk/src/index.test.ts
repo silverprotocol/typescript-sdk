@@ -2976,6 +2976,7 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     const evs = [...n.push(JsonValue.parse(toolFirst)), ...n.flush()];
     assertAllValid(evs);
     const toolStart = evs.find((e) => e.type === "tool.start");
+    expect(toolStart).toBeDefined();
     expect(toolStart !== undefined && "_meta" in toolStart).toBe(false);
     expect(toolStart !== undefined && "providerMetadata" in toolStart).toBe(false);
     const meta = evs.filter((e) => e.type === "message.metadata");
@@ -2988,6 +2989,27 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     for (const e of evs) r.push(e);
     expect(r.needsResync).toBe(false);
     expect(r.result().messages.find((m) => m.id === "msg_fixture_1")?.metadata).toEqual({ narration_block_indexes: [1] });
+  });
+
+  it("X5 fallback, MIXED bag on a tool-first frame: the replay half stays on tool.start.providerMetadata, only the host half moves", () => {
+    const mixed = {
+      ...assistantMsg([{ type: "tool_use", id: "toolu_x5m", name: "Read", input: { path: "a" } }], null, {
+        stop_reason: "tool_use",
+      }),
+      aborted: true,
+      narration_block_indexes: [0],
+    };
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(JsonValue.parse(mixed)), ...n.flush()];
+    assertAllValid(evs);
+    const toolStart = evs.find((e) => e.type === "tool.start");
+    expect(toolStart).toBeDefined();
+    expect(toolStart).toMatchObject({ providerMetadata: { aborted: true } });
+    expect((toolStart as { providerMetadata?: unknown }).providerMetadata).toEqual({ aborted: true });
+    expect(toolStart !== undefined && "_meta" in toolStart).toBe(false);
+    const meta = evs.filter((e) => e.type === "message.metadata");
+    expect(meta).toHaveLength(1);
+    expect((meta[0] as { metadata?: unknown }).metadata).toEqual({ narration_block_indexes: [0] });
   });
 
   it("NEGATIVE CONTROL: absent or malformed narration_block_indexes leaves the stream byte-identical (nothing new is carried)", () => {
@@ -3785,6 +3807,45 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
     const result = r.result();
     expect(result.messages.map((m) => m.id)).toEqual([STREAM_ID]);
     expect(result.messages[0]?.content).toMatchObject([{ type: "text", text: "hello" }]);
+  });
+
+  it("X5: a STREAMED (suppressed) complete frame carrying host keys rides the combined bag on message.metadata, unchanged", () => {
+    // The realistic partials + thinking.display:"updates" path: the stream
+    // already emitted the blocks, so the complete frame's wrapper bag has no
+    // block to anchor on and rides message.metadata WHOLE and in wire order,
+    // exactly as before X5 (message.metadata is already AgMeta). No stream
+    // event gains `_meta` or a narration key.
+    const n = createClaudeNormalizer();
+    const evs = [
+      ...pushAll(n, TEXT_STREAM()),
+      ...n.push(
+        JsonValue.parse({
+          ...completeFrame([{ type: "text", text: "hello", citations: null }]),
+          aborted: true,
+          narration_block_indexes: [0],
+        }),
+      ),
+      ...pushAll(n, [resultSuccess("end_turn")]),
+      ...n.flush(),
+    ];
+    assertAllValid(evs);
+    const meta = evs.filter((e) => e.type === "message.metadata");
+    expect(meta).toHaveLength(1);
+    expect(JSON.stringify((meta[0] as { metadata?: unknown }).metadata)).toBe(
+      JSON.stringify({ aborted: true, narration_block_indexes: [0] }),
+    );
+    for (const e of evs) {
+      if (e.type === "message.metadata") continue;
+      expect(JSON.stringify(e)).not.toContain("narration_block_indexes");
+      expect("_meta" in e).toBe(false);
+    }
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.find((m) => m.id === STREAM_ID)?.metadata).toEqual({
+      aborted: true,
+      narration_block_indexes: [0],
+    });
   });
 
   it("INV-MSG: one message.start / one message.end across partials + complete, never a re-open", () => {
