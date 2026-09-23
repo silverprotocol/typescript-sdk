@@ -116,7 +116,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 25, leg: "fold", title: "Framework pause and completion closure (draft.4): pauses close paused from push(), completed-without-signal and cut-short invokes close turn.abort from flush(), never success, no park", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(fold) over the engine-built fixtures/adk-pause natives (probe P-RED 3c82c3a); step-1 scope mirrored by adk-pause.test.ts" },
   { n: 25, leg: "answer-id", title: "Framework pause and completion closure (draft.4): each ask's toolCallId is the adk_request_* call id (the answering id), one ask per pending request, kind per §8.0 item 26", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(answer-id) over fixtures/adk-pause (sp-google step 2 613fd7f)" },
   { n: 25, leg: "host-completion", title: "Framework pause and completion closure (draft.4): with the §8.0 obligation-4 host-completion event fed, a completed invoke closes turn.done success from push(); a pause still closes paused from push()", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(host-completion), createAdkNormalizer({ hostCompletion: true }) + ADK_HOST_COMPLETE_TYPE (sp-google step 2 613fd7f)" },
-  { n: 25, leg: "replay", title: "Framework pause and completion closure (draft.4): a golden that ends on an in-band terminal folds unchanged with and without the host-completion event; one with none closes turn.done from push() with it and turn.abort from flush() without it", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(replay) over every corpus/*/adk golden, including the live Workflow seeds (probe b407060)" },
+  { n: 25, leg: "replay", title: "Framework pause and completion closure (draft.4): a golden the normalizer closes on the framework's own events folds unchanged with and without the host-completion event; one it does not closes as obligation 4 directs with it and turn.abort from flush() without it", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(replay) over every corpus/*/adk golden, including the live Workflow seeds (probe b407060)" },
   { n: 26, leg: "fold", title: "Interim-narration marker (draft.4): phase folds set-if-present on text/reasoning start and end (end REPLACES, absent keeps), undocumented values verbatim, no-phase streams byte-identical to draft.3, INV-FOLD", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.26(fold), reference reduce() + Reducer (probe P-phase b52b8eb)" },
   { n: 26, leg: "vercel", title: "Interim-narration marker (draft.4): an OpenAI commentary text part opens phase 'interim'; final_answer / unknown / no bag → no phase; providerMetadata.phase kept verbatim", disposition: "COVERED-BY", citation: "vercel-ai/src/index.test.ts:1809-1840 'draft.4 phase' (commentary → text.start{phase:'interim'}; final_answer/unknown/no bag → no phase key) + :430-515 (commentary and final answer stay separate blocks, each bag verbatim) (probe b52b8eb)" },
   { n: 26, leg: "openai", title: "Interim-narration marker (draft.4): a commentary + final_answer response yields phase 'interim' on the first item's text.start only; null/\"\" yield neither phase nor providerMetadata.phase", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.26(openai) via createOpenaiNormalizer (sp-openai PH-2 d8d04ca)" },
@@ -1155,7 +1155,17 @@ describe("§10.25 — framework pause and completion closure (draft.4): a pause 
       } else {
         markerClosed++;
         expect(closes(plain.agjson), dir).toEqual(["turn.abort"]);
-        expect(closes(marked.agjson)[0], dir).toMatch(/^done:/);
+        // Obligation 4's three branches with the event fed: paused (an ask pending) or success (nothing
+        // pending) close turn.done from push(); a pending long-running call leaves the turn to flush().
+        // The third branch is accepted only when a call really is pending: a tool.start with no tool.done.
+        const markedClose = closes(marked.agjson)[0];
+        if (markedClose === "turn.abort") {
+          const evs = marked.agjson as Array<{ type: string; toolCallId?: string }>;
+          const done = new Set(evs.filter((e) => e.type === "tool.done").map((e) => e.toolCallId));
+          expect(evs.some((e) => e.type === "tool.start" && !done.has(e.toolCallId)), `${dir}: left to flush with no pending call`).toBe(true);
+        } else {
+          expect(markedClose, dir).toMatch(/^done:/);
+        }
         // a marker-closed success keeps the run's usage (live receipt: workflow-complete-gemini38)
         const done = (marked.agjson as Array<Record<string, unknown>>).find((e) => e["type"] === "turn.done");
         if ((done?.["outcome"] as { type?: string } | undefined)?.type === "success") expect(done?.["usage"], dir).toBeDefined();
