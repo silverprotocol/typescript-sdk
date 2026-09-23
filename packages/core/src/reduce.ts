@@ -47,6 +47,18 @@ function mergeProviderMeta(
   return { ...existing, ...incoming } as AgProviderMeta;
 }
 
+/**
+ * Merge `incoming` into a block's providerMetadata, assigning only a defined
+ * result. A bare `block.providerMetadata = mergeProviderMeta(...)` left an
+ * explicit `providerMetadata: undefined` key on blocks that never had any:
+ * invisible in JSON, but visible to `in` / `toHaveProperty` / Object.keys
+ * consumers (sp-openai's PH-2 finding, 2026-09-23).
+ */
+function setProviderMeta(block: { providerMetadata?: AgProviderMeta }, incoming: AgProviderMeta | undefined): void {
+  const merged = mergeProviderMeta(block.providerMetadata, incoming);
+  if (merged !== undefined) block.providerMetadata = merged;
+}
+
 
 /**
  * Build the partition key for the open-message map.
@@ -326,7 +338,7 @@ export class Reducer {
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "text") break;
         block.text += ev.delta;
-        block.providerMetadata = mergeProviderMeta(block.providerMetadata, ev.providerMetadata);
+        setProviderMeta(block, ev.providerMetadata);
         break;
       }
 
@@ -340,7 +352,7 @@ export class Reducer {
         // draft.4 phase: a value on the end REPLACES the start one; absent keeps
         // it; never filled once the owning message is sealed.
         if (ev.phase !== undefined && !this.#sealed.has(msg.id)) block.phase = ev.phase;
-        block.providerMetadata = mergeProviderMeta(block.providerMetadata, ev.providerMetadata);
+        setProviderMeta(block, ev.providerMetadata);
         // STREAMED-text citations carrier (audit M22): attach citations to the
         // sealed block named by `ev.id` — never re-emitted as a duplicate
         // supplement block.
@@ -379,7 +391,7 @@ export class Reducer {
         if (block === undefined || block.type !== "reasoning") break;
         // APPEND delta to text (in-order concat of parts)
         block.text = (block.text ?? "") + ev.delta;
-        block.providerMetadata = mergeProviderMeta(block.providerMetadata, ev.providerMetadata);
+        setProviderMeta(block, ev.providerMetadata);
         break;
       }
 
@@ -392,7 +404,7 @@ export class Reducer {
         if (block === undefined || block.type !== "reasoning") break;
         // draft.4 phase: same rule as text.end (end REPLACES, absent keeps, no post-seal fill).
         if (ev.phase !== undefined && !this.#sealed.has(msg.id)) block.phase = ev.phase;
-        block.providerMetadata = mergeProviderMeta(block.providerMetadata, ev.providerMetadata);
+        setProviderMeta(block, ev.providerMetadata);
         if (ev.provider !== undefined) {
           block.provider = ev.provider;
         }
@@ -487,7 +499,7 @@ export class Reducer {
         if (ev.toolMetadata !== undefined) {
           block.toolMetadata = ev.toolMetadata;
         }
-        block.providerMetadata = mergeProviderMeta(block.providerMetadata, ev.providerMetadata);
+        setProviderMeta(block, ev.providerMetadata);
         // Clear scratch now that it's been superseded by the authoritative input.
         this.#toolArgs.delete(ev.toolCallId);
         break;
@@ -539,7 +551,7 @@ export class Reducer {
           // MCP-Apps/A2UI card bootstrap) survives a final REPLACE that omits
           // its own. Mirrors the text.start/reasoning.start carriage.
           if (ev._meta !== undefined) block._meta = ev._meta;
-          block.providerMetadata = mergeProviderMeta(block.providerMetadata, ev.providerMetadata);
+          setProviderMeta(block, ev.providerMetadata);
           // Typed preliminary flag mirrors the block's `more` state (audit M20):
           // more:true keeps it set (partial, kept open); the final more-less tool.done
           // REPLACES the result fields wholesale (merge = REPLACE, code-canonical) and

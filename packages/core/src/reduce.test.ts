@@ -3362,3 +3362,34 @@ describe("rd-14 P14: delivery integrity in the reference reducer", () => {
     });
   });
 });
+
+describe("providerMetadata: no explicit undefined key on blocks without metadata (sp-openai PH-2 finding)", () => {
+  const base = { turnId: "t1", threadId: "th1" };
+  const fold = (withMeta: boolean) =>
+    reduce([
+      { type: "turn.start", seq: 0, ...base },
+      { type: "message.start", seq: 1, id: "m1", role: "assistant", ...base },
+      { type: "text.start", seq: 2, id: "x1", ...base },
+      { type: "text.delta", seq: 3, id: "x1", delta: "hi", ...base, ...(withMeta ? { providerMetadata: { openai: { a: 1 } } } : {}) },
+      { type: "text.end", seq: 4, id: "x1", ...base },
+      { type: "reasoning.start", seq: 5, id: "r1", ...base },
+      { type: "reasoning.delta", seq: 6, id: "r1", delta: "think", ...base },
+      { type: "reasoning.end", seq: 7, id: "r1", ...base },
+      { type: "tool.start", seq: 8, toolCallId: "tc1", name: "search", ...base },
+      { type: "tool.args.assembled", seq: 9, toolCallId: "tc1", input: { q: "x" }, ...base },
+      { type: "tool.done", seq: 10, toolCallId: "tc1", outcome: "ok", content: [], ...base },
+      { type: "message.end", seq: 11, id: "m1" },
+      { type: "turn.done", seq: 12, turnId: "t1", outcome: { type: "success" }, finishReason: "stop" },
+    ] as AgEvent[]).result;
+
+  it("text, reasoning and tool blocks folded with no metadata carry no own providerMetadata key", () => {
+    const blocks = fold(false).messages[0]?.content ?? [];
+    expect(blocks.length).toBeGreaterThanOrEqual(3);
+    for (const b of blocks) expect(Object.prototype.hasOwnProperty.call(b, "providerMetadata"), JSON.stringify(b)).toBe(false);
+  });
+
+  it("a delta that carries metadata still merges it onto the block (control)", () => {
+    const text = (fold(true).messages[0]?.content ?? []).find((b) => (b as { type: string }).type === "text");
+    expect((text as { providerMetadata?: unknown }).providerMetadata).toEqual({ openai: { a: 1 } });
+  });
+});
