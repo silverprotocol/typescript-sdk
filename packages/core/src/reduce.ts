@@ -347,6 +347,9 @@ export class Reducer {
         if (pos === undefined) break;
         const msg = this.#messages.get(pos.messageId);
         if (msg === undefined) break;
+        // INV-MSG (SPEC.md:745, draft.4 E5): a block-finalizing event into a sealed
+        // message, or into any message of a closed turn, parks like a delta.
+        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; }
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "text") break;
         // draft.4 phase: a value on the end REPLACES the start one; absent keeps
@@ -400,6 +403,9 @@ export class Reducer {
         if (pos === undefined) break;
         const msg = this.#messages.get(pos.messageId);
         if (msg === undefined) break;
+        // INV-MSG (SPEC.md:745, draft.4 E5): a block-finalizing event into a sealed
+        // message, or into any message of a closed turn, parks like a delta.
+        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; }
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "reasoning") break;
         // draft.4 phase: same rule as text.end (end REPLACES, absent keeps, no post-seal fill).
@@ -429,6 +435,9 @@ export class Reducer {
         if (pos === undefined) break;
         const msg = this.#messages.get(pos.messageId);
         if (msg === undefined) break;
+        // INV-MSG (SPEC.md:745, draft.4 E5): a block-finalizing event into a sealed
+        // message, or into any message of a closed turn, parks like a delta.
+        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; }
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "reasoning") break;
         // Use accumulated opaque scratch if present; otherwise use ev.value directly.
@@ -487,6 +496,9 @@ export class Reducer {
         if (pos === undefined) break;
         const msg = this.#messages.get(pos.messageId);
         if (msg === undefined) break;
+        // INV-MSG (SPEC.md:745, draft.4 E5): a block-finalizing event into a sealed
+        // message, or into any message of a closed turn, parks like a delta.
+        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; }
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "tool-call") break;
         block.input = ev.input;

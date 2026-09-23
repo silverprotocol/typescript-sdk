@@ -2646,6 +2646,97 @@ describe("INV-MSG: a straggler delta into a sealed message parks (SPEC.md:745)",
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// INV-MSG for BLOCK-FINALIZING events (draft.4 E5, founder-ruled editorial
+// batch 1): exactly text.end, reasoning.end, reasoning.opaque and
+// tool.args.assembled, targeting a sealed message or any message of a closed
+// turn, park like a delta, never a silent merge. The message-level merges
+// (message.metadata, turn.done.messageMetadata) stay outside the rule.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("INV-MSG E5: a block-finalizing event into a sealed message or a closed turn parks", () => {
+  // One open message m1 holding a text, a reasoning and a tool-call block, all unfinalized.
+  const HEAD: AgEvent[] = [
+    { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+    { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+    { type: "text.start", seq: 2, id: "x1", turnId: "t1" },
+    { type: "text.delta", seq: 3, id: "x1", delta: "on time" },
+    { type: "reasoning.start", seq: 4, id: "r1", turnId: "t1" },
+    { type: "reasoning.delta", seq: 5, id: "r1", delta: "thought" },
+    { type: "tool.start", seq: 6, toolCallId: "c1", name: "echo", turnId: "t1" },
+  ];
+  const meta = { openai: { late: true } };
+  const finalizers: Array<[string, AgEvent]> = [
+    ["text.end", { type: "text.end", seq: 0, id: "x1", providerMetadata: meta }],
+    ["reasoning.end", { type: "reasoning.end", seq: 0, id: "r1", providerMetadata: meta }],
+    ["reasoning.opaque", { type: "reasoning.opaque", seq: 0, id: "r1", kind: "signature", value: "SIG" }],
+    ["tool.args.assembled", { type: "tool.args.assembled", seq: 0, toolCallId: "c1", input: { message: "LATE" } }],
+  ];
+  const at = (e: AgEvent, seq: number) => ({ ...e, seq }) as AgEvent;
+  const fold = (evs: AgEvent[]) => {
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    return r;
+  };
+  /** The three blocks as they were before any finalizer. */
+  const expectUnfinalized = (r: Reducer) => {
+    const content = r.result().messages.find((m) => m.id === "m1")!.content;
+    const text = content.find((b) => b.type === "text") as { text: string; providerMetadata?: unknown };
+    const reasoning = content.find((b) => b.type === "reasoning") as { providerMetadata?: unknown; opaque?: unknown };
+    const call = content.find((b) => b.type === "tool-call") as { input: unknown };
+    expect(text).toMatchObject({ text: "on time" });
+    expect(text.providerMetadata).toBeUndefined();
+    expect(reasoning.providerMetadata).toBeUndefined();
+    expect(reasoning.opaque).toBeUndefined();
+    expect(call.input).toEqual({});
+  };
+
+  for (const [name, finalizer] of finalizers) {
+    it(`${name} after message.end (sealed) parks and mutates nothing`, () => {
+      const r = fold([...HEAD, { type: "message.end", seq: 7, id: "m1" }]);
+      expect(r.needsResync).toBe(false);
+      r.push(at(finalizer, 8));
+      expect(r.needsResync).toBe(true);
+      expectUnfinalized(r);
+    });
+
+    it(`${name} into an UNSEALED message of a closed turn parks and mutates nothing`, () => {
+      const r = fold([...HEAD, { type: "turn.done", seq: 7, turnId: "t1", outcome: { type: "success" }, finishReason: "stop" }]);
+      expect(r.needsResync).toBe(false);
+      r.push(at(finalizer, 8));
+      expect(r.needsResync).toBe(true);
+      expectUnfinalized(r);
+    });
+  }
+
+  it("control: the same four finalizers BEFORE the seal fold clean and land", () => {
+    const r = fold([...HEAD, ...finalizers.map(([, e], i) => at(e, 7 + i)), { type: "message.end", seq: 11, id: "m1" }]);
+    expect(r.needsResync).toBe(false);
+    const content = r.result().messages.find((m) => m.id === "m1")!.content;
+    expect(content.find((b) => b.type === "text")).toMatchObject({ providerMetadata: meta });
+    expect(content.find((b) => b.type === "reasoning")).toMatchObject({ providerMetadata: meta, opaque: { kind: "signature", value: "SIG" } });
+    expect(content.find((b) => b.type === "tool-call")).toMatchObject({ input: { message: "LATE" } });
+  });
+
+  it("outside the rule: message.metadata and turn.done.messageMetadata still merge onto a sealed message, no park", () => {
+    const r = fold([
+      ...HEAD,
+      { type: "message.end", seq: 7, id: "m1" },
+      { type: "message.metadata", seq: 8, messageId: "m1", metadata: { app: { note: "after seal" } } },
+      { type: "turn.done", seq: 9, turnId: "t1", outcome: { type: "success" }, finishReason: "stop", messageId: "m1", messageMetadata: { usage: 1 } },
+    ]);
+    expect(r.needsResync).toBe(false);
+    const m1 = r.result().messages.find((m) => m.id === "m1")!;
+    expect(m1.metadata).toMatchObject({ app: { note: "after seal" } });
+    expect(m1.messageMetadata).toEqual({ usage: 1 });
+  });
+
+  it("a finalizer for a block the reducer never saw stays a no-op (no park), as before", () => {
+    const r = fold([...HEAD, { type: "message.end", seq: 7, id: "m1" }, { type: "text.end", seq: 8, id: "unknown" }]);
+    expect(r.needsResync).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // tool-result typed `preliminary` + turn.done.messageId targeting (audit M20)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -3229,7 +3320,7 @@ describe("draft.4 phase on text and reasoning blocks (rnd 13+17 stage 2)", () =>
     expect(snapshots[snapshots.length - 1]).toEqual(reduce(evs).result);
   });
 
-  it("no post-seal fill: a phase on a text.end after message.end is not applied", () => {
+  it("no post-seal fill: a phase on a text.end after message.end is not applied, and the fold parks (draft.4 E5)", () => {
     const evs = [
       ...head,
       { type: "text.start", seq: 2, id: "x1", turnId: "t1", phase: "interim" },
@@ -3238,6 +3329,7 @@ describe("draft.4 phase on text and reasoning blocks (rnd 13+17 stage 2)", () =>
       { type: "text.end", seq: 5, id: "x1", phase: "x-late" },
     ] as AgEvent[];
     expect(block(evs).phase).toBe("interim");
+    expect(reduce(evs).needsResync).toBe(true);
   });
 });
 
