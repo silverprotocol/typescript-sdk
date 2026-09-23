@@ -15,7 +15,8 @@ import {
   ingestAgEvents,
 } from "@silverprotocol/core";
 import type { JsonValue } from "@silverprotocol/core";
-import { createAdkNormalizer } from "@silverprotocol/google-adk";
+import { createAdkNormalizer, ADK_HOST_COMPLETE_TYPE } from "@silverprotocol/google-adk";
+import { replayNatives, HOST_COMPLETE_MARKER } from "./replay.js";
 import type { AdkEvent, AdkPart } from "@silverprotocol/google-adk";
 import { createOpenaiNormalizer } from "@silverprotocol/openai-agents";
 
@@ -102,9 +103,9 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 24, leg: "scan", title: "Tool-result errorText scoping (draft.4): no replay golden carries errorText on a non-error result", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.24(scan), a scan of every corpus/*/*.agjson.json" },
   { n: 24, leg: "adk", title: "ADK failure envelope (draft.4, §8.0 item 25): the error/denied/placeholder/negative vectors", disposition: "N/A", citation: "pending: the google-adk item-25 flip (sp-google 1904293) lands AFTER this SPEC pair; this row flips to RUNNABLE, facet-driven via createAdkNormalizer, in sp-protocol's follow-up sha" },
   { n: 25, leg: "fold", title: "Framework pause and completion closure (draft.4): pauses close paused from push(), completed-without-signal and cut-short invokes close turn.abort from flush(), never success, no park", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(fold) over the engine-built fixtures/adk-pause natives (probe P-RED 3c82c3a); step-1 scope mirrored by adk-pause.test.ts" },
-  { n: 25, leg: "answer-id", title: "Framework pause and completion closure (draft.4): each ask's toolCallId is the adk_request_* call id (the answering id), one ask per pending request (§8.0 item 26)", disposition: "N/A", citation: "pending: the google-adk item-26 step 2 (sp-google) lands AFTER this SPEC sha; this row flips to RUNNABLE on the same fixtures" },
-  { n: 25, leg: "host-completion", title: "Framework pause and completion closure (draft.4): with the §8.0 obligation-4 host-completion event fed, a completed invoke closes turn.done success from push()", disposition: "N/A", citation: "pending: the google-adk host-completion opt-in (sp-google step 2) lands AFTER this SPEC sha; the fixture marker plumbing is probe's replay.ts HOST_COMPLETE_MARKER (3c82c3a)" },
-  { n: 25, leg: "replay", title: "Framework pause and completion closure (draft.4): every replay golden folds unchanged with and without the host-completion event", disposition: "N/A", citation: "pending: needs the facet to consume the event (sp-google step 2); adk-pause.test.ts's marker test covers only the harness half (the marker is stripped before the facet)" },
+  { n: 25, leg: "answer-id", title: "Framework pause and completion closure (draft.4): each ask's toolCallId is the adk_request_* call id (the answering id), one ask per pending request, kind per §8.0 item 26", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(answer-id) over fixtures/adk-pause (sp-google step 2 613fd7f)" },
+  { n: 25, leg: "host-completion", title: "Framework pause and completion closure (draft.4): with the §8.0 obligation-4 host-completion event fed, a completed invoke closes turn.done success from push(); a pause still closes paused from push()", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(host-completion), createAdkNormalizer({ hostCompletion: true }) + ADK_HOST_COMPLETE_TYPE (sp-google step 2 613fd7f)" },
+  { n: 25, leg: "replay", title: "Framework pause and completion closure (draft.4): every replay golden folds unchanged with and without the host-completion event", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(replay): replayNatives(native + marker) deep-equals each corpus/*/adk.agjson.json golden (the marker drives the facet opt-in, replay.ts HOST_COMPLETE_MARKER)" },
   { n: 26, leg: "fold", title: "Interim-narration marker (draft.4): phase folds set-if-present on text/reasoning start and end (end REPLACES, absent keeps), undocumented values verbatim, no-phase streams byte-identical to draft.3, INV-FOLD", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.26(fold), reference reduce() + Reducer (probe P-phase b52b8eb)" },
   { n: 26, leg: "vercel", title: "Interim-narration marker (draft.4): an OpenAI commentary text part opens phase 'interim'; final_answer / unknown / no bag → no phase; providerMetadata.phase kept verbatim", disposition: "COVERED-BY", citation: "vercel-ai/src/index.test.ts:1809-1840 'draft.4 phase' (commentary → text.start{phase:'interim'}; final_answer/unknown/no bag → no phase key) + :430-515 (commentary and final answer stay separate blocks, each bag verbatim) (probe b52b8eb)" },
   { n: 26, leg: "openai", title: "Interim-narration marker (draft.4): a commentary + final_answer response yields phase 'interim' on the first item's text.start only; null/\"\" yield neither phase nor providerMetadata.phase", disposition: "N/A", citation: "pending: the openai-agents stage-2 leg (sp-openai) lands AFTER this SPEC sha; this row flips to RUNNABLE via createOpenaiNormalizer" },
@@ -991,14 +992,22 @@ describe("§10.25 — framework pause and completion closure (draft.4): a pause 
   const DIR = new URL("../fixtures/adk-pause/", import.meta.url);
   const TERMINALS = new Set(["turn.done", "turn.error", "turn.abort"]);
   type Tagged = { ev: AgEvent; from: "push" | "flush" };
+  const natives = (name: string): JsonValue[] => JSON.parse(readFileSync(new URL(`${name}.native.json`, DIR), "utf8")) as JsonValue[];
+  const runOne = (name: string, hostCompletion: boolean, out: Tagged[]): void => {
+    const n = createAdkNormalizer(hostCompletion ? { hostCompletion: true } : {}); // one Normalizer per invoke (§8.0 obligation 3)
+    for (const f of natives(name)) for (const ev of n.push(f as unknown as AdkEvent)) out.push({ ev, from: "push" });
+    // §8.0 obligation 4: the host feeds the completion event after a normal return, before flush().
+    if (hostCompletion) for (const ev of n.push({ type: ADK_HOST_COMPLETE_TYPE } as unknown as AdkEvent)) out.push({ ev, from: "push" });
+    for (const ev of n.flush()) out.push({ ev, from: "flush" });
+  };
   const run = (...names: string[]): Tagged[] => {
     const out: Tagged[] = [];
-    for (const name of names) {
-      const natives = JSON.parse(readFileSync(new URL(`${name}.native.json`, DIR), "utf8")) as JsonValue[];
-      const n = createAdkNormalizer(); // one Normalizer per invoke (§8.0 obligation 3)
-      for (const f of natives) for (const ev of n.push(f as unknown as AdkEvent)) out.push({ ev, from: "push" });
-      for (const ev of n.flush()) out.push({ ev, from: "flush" });
-    }
+    for (const name of names) runOne(name, false, out);
+    return out;
+  };
+  const runCompleted = (name: string): Tagged[] => {
+    const out: Tagged[] = [];
+    runOne(name, true, out);
     return out;
   };
   const turnOf = (ev: AgEvent): string | undefined => (ev as { turnId?: string }).turnId;
@@ -1016,7 +1025,9 @@ describe("§10.25 — framework pause and completion closure (draft.4): a pause 
     return terms;
   };
 
-  for (const name of ["wf-pause", "plain-confirmation", "plain-credential", "plain-request-input"]) {
+  const PAUSE = ["wf-pause", "plain-confirmation", "plain-credential", "plain-request-input", "wf-functionnode-credential"];
+  const COMPLETED = ["wf-complete", "wf-terminal-llm", "wf-functionnode-only"];
+  for (const name of PAUSE) {
     it(`${name}: turn.done {outcome:"paused", finishReason:"paused"} from push(), one ask per pending request`, () => {
       const tagged = run(name);
       const [term] = assertClosure(tagged);
@@ -1027,7 +1038,7 @@ describe("§10.25 — framework pause and completion closure (draft.4): a pause 
     });
   }
 
-  for (const name of ["wf-complete", "wf-terminal-llm", "truncated-after-classify", "truncated-after-spike-final"]) {
+  for (const name of [...COMPLETED, "truncated-after-classify", "truncated-after-spike-final"]) {
     it(`${name}: without the completion signal (or cut short) closes turn.abort from flush(), never success`, () => {
       const tagged = run(name);
       const [term] = assertClosure(tagged);
@@ -1041,6 +1052,70 @@ describe("§10.25 — framework pause and completion closure (draft.4): a pause 
     const terms = assertClosure(tagged);
     expect(terms.map((t) => [t.ev.type, t.from])).toEqual([["turn.done", "push"], ["turn.abort", "flush"]]);
     expect(new Set(terms.map((t) => turnOf(t.ev))).size).toBe(2);
+  });
+
+  // answer-id leg (§8.0 item 26): one ask per pending adk_request_* call, toolCallId = that call's id, kind per the family.
+  const reservedCalls = (v: unknown, acc: Map<string, { name: string; args: Record<string, unknown> }> = new Map()) => {
+    if (Array.isArray(v)) v.forEach((x) => reservedCalls(x, acc));
+    else if (v !== null && typeof v === "object") {
+      const o = v as Record<string, unknown>;
+      const fc = o["functionCall"] as { id?: string; name?: string; args?: Record<string, unknown> } | undefined;
+      if (fc && typeof fc.name === "string" && fc.name.startsWith("adk_request_") && typeof fc.id === "string") acc.set(fc.id, { name: fc.name, args: fc.args ?? {} });
+      Object.values(o).forEach((x) => reservedCalls(x, acc));
+    }
+    return acc;
+  };
+  const kindFor = (c: { name: string; args: Record<string, unknown> }): string => {
+    if (c.name === "adk_request_credential") return "auth";
+    if (c.name === "adk_request_confirmation") return "approval";
+    const schema = c.args["response_schema"] ?? c.args["responseSchema"];
+    return schema !== null && typeof schema === "object" ? "form" : "text";
+  };
+  for (const name of PAUSE) {
+    it(`(answer-id) ${name}: one hitl.ask per pending adk_request_* call; toolCallId is that call's id; kind per §8.0 item 26; the paused asks[] name the same ids`, () => {
+      const reserved = reservedCalls(natives(name));
+      expect(reserved.size).toBeGreaterThan(0);
+      const tagged = run(name);
+      const asks = tagged.filter((t) => t.ev.type === "hitl.ask").map((t) => t.ev as unknown as { toolCallId?: string; kind: string });
+      expect(asks.map((a) => a.toolCallId).sort()).toEqual([...reserved.keys()].sort());
+      for (const a of asks) expect(a.kind, a.toolCallId).toBe(kindFor(reserved.get(a.toolCallId!)!));
+      const [term] = assertClosure(tagged);
+      const paused = ((term!.ev as { outcome: { asks?: Array<{ toolCallId?: string }> } }).outcome.asks ?? []).map((a) => a.toolCallId).sort();
+      expect(paused).toEqual([...reserved.keys()].sort());
+    });
+  }
+
+  // host-completion leg (§8.0 host obligation 4): with the completion event fed after the natives and before flush().
+  for (const name of PAUSE) {
+    it(`(host-completion) ${name}: with the completion event fed, a pause still closes paused from push()`, () => {
+      const [term] = assertClosure(runCompleted(name));
+      expect(term).toMatchObject({ from: "push", ev: { type: "turn.done", finishReason: "paused", outcome: { type: "paused" } } });
+    });
+  }
+  for (const name of COMPLETED) {
+    // The engine-built fixtures come from a stub model with no usageMetadata, so usage is not asserted here;
+    // the replay leg below proves a sentinel-fed close equals each golden's close, usage included.
+    it(`(host-completion) ${name}: with the completion event fed, the completed invoke closes turn.done success from push()`, () => {
+      const [term] = assertClosure(runCompleted(name));
+      expect(term).toMatchObject({ from: "push", ev: { type: "turn.done", outcome: { type: "success" } } });
+    });
+  }
+
+  // replay leg: every ADK replay golden folds unchanged with the completion event (the marker drives the facet opt-in).
+  it("(replay) every corpus/*/adk golden replays unchanged with a trailing host-completion marker", async () => {
+    const corpus = new URL("../corpus/", import.meta.url);
+    let n = 0;
+    for (const dir of readdirSync(corpus)) {
+      const nat = new URL(`${dir}/adk.native.json`, corpus);
+      if (!existsSync(nat)) continue;
+      n++;
+      const native = JSON.parse(readFileSync(nat, "utf8")) as JsonValue[];
+      const golden = JSON.parse(readFileSync(new URL(`${dir}/adk.agjson.json`, corpus), "utf8")) as unknown;
+      const marked = await replayNatives([...native, { type: HOST_COMPLETE_MARKER } as JsonValue], "adk");
+      expect(marked.hostCompleted, dir).toBe(true);
+      expect(marked.agjson, dir).toEqual(golden);
+    }
+    expect(n).toBeGreaterThan(0);
   });
 });
 
