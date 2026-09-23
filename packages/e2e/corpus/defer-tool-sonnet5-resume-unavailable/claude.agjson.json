@@ -125,10 +125,18 @@
   },
   {
     "type": "reasoning.start",
-    "seq": 7,
     "id": "msg_011CfLPUUZhVMA78j2zrdMcB:reasoning:0",
     "messageId": "msg_011CfLPUUZhVMA78j2zrdMcB",
-    "turnId": "turn_msg_011CfLPUUZhVMA78j2zrdMcB"
+    "_meta": {
+      "diagnostics": {
+        "cache_miss_reason": {
+          "type": "tools_changed",
+          "cache_missed_input_tokens": 3258
+        }
+      }
+    },
+    "turnId": "turn_msg_011CfLPUUZhVMA78j2zrdMcB",
+    "seq": 7
   },
   {
     "type": "reasoning.delta",
@@ -169,6 +177,28 @@
   },
   {
     "seq": 12,
+    "type": "ext.anthropic.frame",
+    "kind": "user",
+    "frame": {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "[Your previous response had no visible output. Please continue and produce a user-visible response.]"
+          }
+        ]
+      },
+      "parent_tool_use_id": null,
+      "session_id": "6eae91af-cccc-4758-9b0c-33bd9d42333e",
+      "uuid": "778f51c3-9c9c-45c9-9024-3baf16c8e936",
+      "timestamp": "2026-09-23T12:41:27.605Z",
+      "isSynthetic": true
+    }
+  },
+  {
+    "seq": 13,
     "type": "ext.anthropic.result-meta",
     "fastModeDisabledReason": "sdk_opt_in_required",
     "queuedTurnCount": 0,
@@ -207,7 +237,7 @@
   },
   {
     "type": "turn.done",
-    "seq": 13,
+    "seq": 14,
     "turnId": "turn_msg_011CfLPUUZhVMA78j2zrdMcB",
     "outcome": {
       "type": "success",
