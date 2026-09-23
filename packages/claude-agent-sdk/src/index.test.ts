@@ -6778,3 +6778,199 @@ describe("createClaudeNormalizer — decision_reason_code (CLI 2.1.280, undeclar
     expect((bare as { providerMetadata?: unknown }).providerMetadata).toBeUndefined();
   });
 });
+
+// ─── C + D: a harness-stamped denial is `outcome:"denied"`, closed once ──────
+// sp-protocol (2026-09-23), conformance, ships in 0.7.0:
+//  C: the CLI stamps each is_error tool_result with `tool_result_meta[]
+//     .non_execution_kind` (runtime-only). user-rejected / permission-rule /
+//     automode-* → "denied" with NO isError / errorText (the native message stays
+//     in content); interrupted / cancelled / absent / unknown → "error" unchanged.
+//     Never inferred from the result text.
+//  D: a permission_denials entry whose id already has its final tool.done in
+//     this invoke is skipped; an id not yet closed still gets its carrier pair.
+// Live shape: sp-probe's defer-tool-sonnet5-resume-deny (d8cde06, not yet
+// enrolled): 3 PreToolUse-hook-blocked calls, each result stamped
+// "permission-rule", and the result's permission_denials naming all 3.
+describe("createClaudeNormalizer — non_execution_kind denials (C) and the closed-call denials skip (D)", () => {
+  const HOOK_TEXT = "PreToolUse:mcp__t__echo hook error: Blocked by hook";
+
+  function useFrame(msgId: string, toolUseId: string, uuid: string): unknown {
+    return {
+      type: "assistant",
+      message: { ...betaMessage([{ type: "tool_use", id: toolUseId, name: "mcp__t__echo", input: { message: "x" } }]), id: msgId },
+      parent_tool_use_id: null,
+      uuid,
+      session_id: "sess_fixture",
+    };
+  }
+
+  // A tool_result frame; `kind` undefined → no tool_result_meta at all.
+  function resultFrame(toolUseId: string, uuid: string, kind?: string, isError = true): unknown {
+    return {
+      type: "user",
+      message: { role: "user", content: [{ type: "tool_result", content: HOOK_TEXT, is_error: isError, tool_use_id: toolUseId }] },
+      parent_tool_use_id: null,
+      uuid,
+      session_id: "sess_fixture",
+      tool_use_result: `Error: ${HOOK_TEXT}`,
+      ...(kind !== undefined ? { tool_result_meta: [{ id: toolUseId, non_execution_kind: kind }] } : {}),
+    };
+  }
+
+  function successWithDenials(ids: string[], uuid = "00000000-0000-0000-0000-0000000000d9"): unknown {
+    const base: unknown = JSON.parse(JSON.stringify(resultWithDenial()));
+    return {
+      ...(typeof base === "object" && base !== null ? base : {}),
+      uuid,
+      permission_denials: ids.map((id) => ({ tool_name: "mcp__t__echo", tool_use_id: id, tool_input: { message: "x" } })),
+    };
+  }
+
+  function dones(evs: AgEvent[]): Array<{ [k: string]: unknown }> {
+    const out: Array<{ [k: string]: unknown }> = [];
+    for (const e of evs) if (e.type === "tool.done") out.push(Object.fromEntries(Object.entries(e)));
+    return out;
+  }
+
+  function oneCall(kind: string | undefined, isError = true): { [k: string]: unknown } | undefined {
+    return dones(drive([useFrame("msg_c1", "toolu_c1", "00000000-0000-0000-0000-0000000000c1"), resultFrame("toolu_c1", "00000000-0000-0000-0000-0000000000c2", kind, isError)]))[0];
+  }
+
+  it("C: user-rejected, permission-rule and automode-* map to denied, with no isError and no errorText; the native message stays in content", () => {
+    for (const kind of ["user-rejected", "permission-rule", "automode-deny", "automode-classifier-unavailable"]) {
+      const done = oneCall(kind);
+      expect(done, kind).toMatchObject({ toolCallId: "toolu_c1", outcome: "denied", content: [{ type: "text", text: HOOK_TEXT }] });
+      expect(done !== undefined && "isError" in done, kind).toBe(false);
+      expect(done !== undefined && "errorText" in done, kind).toBe(false);
+    }
+  });
+
+  it("C: interrupted, cancelled, absent meta and an unknown kind all stay error with isError:true (no guessing)", () => {
+    for (const kind of ["interrupted", "cancelled", undefined, "zz_future_kind", "automode", "user-rejected-ish"]) {
+      expect(oneCall(kind), String(kind)).toMatchObject({ toolCallId: "toolu_c1", outcome: "error", isError: true });
+    }
+  });
+
+  it("C negative control: is_error:false keeps outcome ok even when a denial kind is stamped", () => {
+    expect(oneCall("permission-rule", false)).toMatchObject({ outcome: "ok", isError: false });
+  });
+
+  it("C: the kind is matched by tool_use_id; a meta entry for another id, a non-array meta or a malformed entry changes nothing and never throws", () => {
+    const withMeta = (meta: unknown): unknown => {
+      const f = resultFrame("toolu_c1", "00000000-0000-0000-0000-0000000000c2");
+      return { ...(typeof f === "object" && f !== null ? f : {}), tool_result_meta: meta };
+    };
+    for (const meta of [
+      [{ id: "toolu_other", non_execution_kind: "permission-rule" }],
+      { id: "toolu_c1", non_execution_kind: "permission-rule" },
+      [{ id: "toolu_c1" }],
+      [{ id: "toolu_c1", non_execution_kind: 7 }],
+      [null, "x", { non_execution_kind: "permission-rule" }],
+    ]) {
+      const n = createClaudeNormalizer();
+      expect(() => n.push(JsonValue.parse(useFrame("msg_c1", "toolu_c1", "00000000-0000-0000-0000-0000000000c1")))).not.toThrow();
+      const evs = n.push(JsonValue.parse(withMeta(meta)));
+      expect(dones(evs)[0], JSON.stringify(meta)).toMatchObject({ outcome: "error", isError: true });
+    }
+  });
+
+  it("C: denied folds as denied (a tool-result block with no isError); the result frame's own error restatement is not an errorText", () => {
+    const r = fold(drive([useFrame("msg_c1", "toolu_c1", "00000000-0000-0000-0000-0000000000c1"), resultFrame("toolu_c1", "00000000-0000-0000-0000-0000000000c2", "user-rejected"), resultSuccess("end_turn")]));
+    expect(r.needsResync).toBe(false);
+    const blocks = r.result().messages.flatMap((m) => m.content).filter((b) => "toolCallId" in b && b.toolCallId === "toolu_c1" && "outcome" in b);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({ outcome: "denied" });
+    expect("isError" in (blocks[0] ?? {})).toBe(false);
+    expect("errorText" in (blocks[0] ?? {})).toBe(false);
+  });
+
+  it("leg-3 shape (live): 3 hook-blocked results + 3 permission_denials give exactly 3 tool.done, all denied, no carrier, no park", () => {
+    const ids = ["toolu_01BREEQMQdDW8fsY1Gu1W1ZK", "toolu_01PJVmyct9fYViJerxicP94g", "toolu_01KPeZiYEqgnJjRpREHuihWx"];
+    const evs = drive([
+      { type: "command_lifecycle", command_uuid: "c1", state: "started", uuid: "00000000-0000-0000-0000-0000000000e0", session_id: "sess_fixture" },
+      // the resumed invoke's leading result (the deferred call's), before init
+      resultFrame(ids[0] ?? "", "00000000-0000-0000-0000-0000000000e1", "permission-rule"),
+      { type: "system", subtype: "init", uuid: "00000000-0000-0000-0000-0000000000e2", session_id: "sess_fixture" },
+      useFrame("msg_leg3_a", ids[1] ?? "", "00000000-0000-0000-0000-0000000000e3"),
+      resultFrame(ids[1] ?? "", "00000000-0000-0000-0000-0000000000e4", "permission-rule"),
+      useFrame("msg_leg3_b", ids[2] ?? "", "00000000-0000-0000-0000-0000000000e5"),
+      resultFrame(ids[2] ?? "", "00000000-0000-0000-0000-0000000000e6", "permission-rule"),
+      assistantMsg([{ type: "text", text: "Blocked three times; stopping.", citations: null }]),
+      successWithDenials(ids),
+    ]);
+    const done = dones(evs);
+    expect(done.map((d) => [d["toolCallId"], d["outcome"]])).toEqual(ids.map((id) => [id, "denied"]));
+    for (const d of done) expect("isError" in d).toBe(false);
+    // D: no second tool.start for any id, and no `<turn>:denials` carrier at all.
+    for (const id of ids.slice(1)) expect(evs.filter((e) => e.type === "tool.start" && e.toolCallId === id)).toHaveLength(1);
+    expect(denialCarrier(evs)).toEqual([]);
+    expect(turnCloses(evs)).toHaveLength(1);
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.map((t) => t.outcome?.type)).toEqual(["success"]);
+  });
+
+  it("D: only the denials not yet closed get the carrier pair (mixed list)", () => {
+    const evs = drive([
+      useFrame("msg_d1", "toolu_d1", "00000000-0000-0000-0000-0000000000a1"),
+      resultFrame("toolu_d1", "00000000-0000-0000-0000-0000000000a2", "permission-rule"),
+      successWithDenials(["toolu_d1", "toolu_never_ran"]),
+    ]);
+    expect(dones(evs).map((d) => [d["toolCallId"], d["outcome"]])).toEqual([
+      ["toolu_d1", "denied"],
+      ["toolu_never_ran", "denied"],
+    ]);
+    const carrier = denialCarrier(evs);
+    const carried: unknown[] = [];
+    for (const e of carrier) if (typeof e === "object" && e !== null && "toolCallId" in e) carried.push(e.toolCallId);
+    expect(carried).toEqual(["toolu_never_ran", "toolu_never_ran"]);
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("D: an error-closed call (no meta: a CLI that stamps none) is not re-closed by a denial — it stays error, one tool.start, no park", () => {
+    const evs = drive([
+      useFrame("msg_d1", "toolu_d1", "00000000-0000-0000-0000-0000000000a1"),
+      resultFrame("toolu_d1", "00000000-0000-0000-0000-0000000000a2"),
+      successWithDenials(["toolu_d1"]),
+    ]);
+    expect(dones(evs).map((d) => [d["toolCallId"], d["outcome"]])).toEqual([["toolu_d1", "error"]]);
+    expect(evs.filter((e) => e.type === "tool.start")).toHaveLength(1);
+    expect(denialCarrier(evs)).toEqual([]);
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("D: a denial repeated within one list or across two results in the invoke gets ONE pair (its carrier closed it)", () => {
+    const within = drive([successWithDenials(["toolu_x", "toolu_x"])]);
+    expect(dones(within).map((d) => d["toolCallId"])).toEqual(["toolu_x"]);
+    const n = createClaudeNormalizer();
+    const across = [
+      ...n.push(JsonValue.parse(successWithDenials(["toolu_x"], "00000000-0000-0000-0000-0000000000b1"))),
+      ...n.push(JsonValue.parse(successWithDenials(["toolu_x"], "00000000-0000-0000-0000-0000000000b2"))),
+      ...n.flush(),
+    ];
+    assertAllValid(across);
+    expect(dones(across).map((d) => d["toolCallId"])).toEqual(["toolu_x"]);
+    expect(across.filter((e) => e.type === "tool.start")).toHaveLength(1);
+    expect(fold(across).needsResync).toBe(false);
+  });
+
+  it("D keeps the live notice: a permission_denied frame's decision context rides the closing tool_result's tool.done (the carrier no longer does)", () => {
+    const evs = drive([
+      assistantMsg([{ type: "tool_use", id: "toolu_denied_1", name: "bash", input: { command: "rm -rf" } }]),
+      permissionDeniedMsg({ decision_reason_type: "rule", decision_reason: "deny rule", agent_id: "agent_1" }),
+      resultFrame("toolu_denied_1", "00000000-0000-0000-0000-0000000000a2", "permission-rule"),
+      resultWithDenial(),
+    ]);
+    const done = dones(evs);
+    expect(done).toHaveLength(1);
+    expect(done[0]).toMatchObject({
+      toolCallId: "toolu_denied_1",
+      outcome: "denied",
+      providerMetadata: { decisionReasonType: "rule", decisionReason: "deny rule", agentId: "agent_1" },
+    });
+    expect(denialCarrier(evs)).toEqual([]);
+    // Negative control: with no live notice, the closing tool.done has no bag.
+    const bare = dones(drive([useFrame("msg_c1", "toolu_c1", "00000000-0000-0000-0000-0000000000c1"), resultFrame("toolu_c1", "00000000-0000-0000-0000-0000000000c2", "permission-rule")]))[0];
+    expect(bare !== undefined && "providerMetadata" in bare).toBe(false);
+  });
+});

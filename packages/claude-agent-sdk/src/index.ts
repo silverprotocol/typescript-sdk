@@ -357,6 +357,36 @@ function mcpToolResultContentToAgBlocks(content: McpToolResultContent): AgBlock[
   return out;
 }
 
+// `tool_result_meta` (CLI 2.1.280, @internal, runtime-only; live on sp-probe's
+// defer resume-deny capture): per tool_result, keyed by tool_use_id. Its
+// `non_execution_kind` is "the harness-stamped reason an is_error:true result did
+// not carry the tool's own execution output (user-rejected / permission-rule /
+// automode-* / interrupted / cancelled); absent means the tool ran to
+// completion" (the CLI's own schema doc). Read through the JSON boundary; a
+// malformed entry is skipped. The entry itself is NOT carried here (that carry
+// is package 15's); only the kind decides the outcome below.
+function readNonExecutionKinds(frame: unknown): Map<string, string> {
+  const out = new Map<string, string>();
+  if (!isJsonObject(frame)) return out;
+  const list = frame["tool_result_meta"];
+  if (!Array.isArray(list)) return out;
+  for (const entry of list) {
+    if (isJsonObject(entry) && typeof entry["id"] === "string" && typeof entry["non_execution_kind"] === "string") {
+      out.set(entry["id"], entry["non_execution_kind"]);
+    }
+  }
+  return out;
+}
+
+// The non_execution_kinds that mean the call was NOT PERMITTED to run →
+// `outcome:"denied"` (SPEC :850: "denied is a distinct recorded outcome"; §8.0
+// item 15 routes Claude's permission denials to it; sp-protocol, 2026-09-23).
+// `interrupted`, `cancelled`, absent and any unknown value are not denials and
+// keep "error" (no guessing).
+function isDenialKind(kind: string | undefined): boolean {
+  return kind === "user-rejected" || kind === "permission-rule" || (kind !== undefined && kind.startsWith("automode-"));
+}
+
 // Which assistant `error` codes are transient (retriable). CL-09's stashed
 // top-level close and a nested frame's non-terminal `error` share it.
 // Finding #2 (minor): `overloaded` (transient capacity error, a first
@@ -1247,6 +1277,11 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
     agentId?: string;
   };
   const deniedLiveByToolUseId = new Map<string, LiveDenial>();
+  // Every toolCallId that already got its FINAL tool.done in this invoke. The
+  // result's permission_denials aggregate skips these: re-emitting tool.start +
+  // tool.done{denied} for a call already closed is a duplicate start and a second
+  // final tool.done (INV-BLOCK; rd-14 P14 parks it; the M22 double-fold hazard).
+  const closedToolCallIds = new Set<string>();
 
   // The live denial's diagnostic fields, camelCased — the providerMetadata bag
   // on the enriched `<turnId>:denials` tool.done. undefined when the live
@@ -1712,6 +1747,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
           // Arrives complete inside the start frame — same tool.done mapping as
           // the complete arm's mcp_tool_result case.
           const outcome: ToolOutcome = block.is_error ? "error" : "ok";
+          closedToolCallIds.add(block.tool_use_id);
           a.toolDone({
             toolCallId: block.tool_use_id,
             content: mcpToolResultContentToAgBlocks(block.content),
@@ -1889,10 +1925,20 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
     denials: ReadonlyArray<{ readonly tool_name: string; readonly tool_use_id: string }>,
     sessionId: string,
   ): void {
-    if (denials.length > 0) {
+    // Skip every denial whose call already has its final tool.done in this
+    // invoke: a harness-stamped denied tool_result (the user branch), an
+    // mcp_tool_result, or an earlier carrier (a repeated id, in this list or a
+    // later result's). A denial for an id not yet closed still gets its pair.
+    const fresh: Array<{ readonly tool_name: string; readonly tool_use_id: string }> = [];
+    for (const d of denials) {
+      if (closedToolCallIds.has(d.tool_use_id)) continue;
+      closedToolCallIds.add(d.tool_use_id);
+      fresh.push(d);
+    }
+    if (fresh.length > 0) {
       const denialMsgId = `${turnId}:denials`;
       a.openMessage({ id: denialMsgId, role: "assistant", turnId, threadId: options.threadId ?? sessionId });
-      for (const denial of denials) {
+      for (const denial of fresh) {
         // Fixture-drift ratchet finding (SDKPermissionDeniedMessage,
         // "handled" via existing-home mapping): enrich with the live
         // standalone denial notice recorded above (keyed by tool_use_id),
@@ -2218,6 +2264,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
             i === 0 ? hostMeta : undefined,
             interim,
           );
+          if (block.type === "mcp_tool_result") closedToolCallIds.add(block.tool_use_id);
           if (i === 0) anchored = landed;
         }
         open.blockIndex += m.content.length;
@@ -2427,9 +2474,17 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         // (a refused leg's tombstoned tool_results, per the field's own doc) —
         // collect every adopted messageId this frame produces below.
         const resultMessageIds: string[] = [];
+        const nonExecutionById = readNonExecutionKinds(msg);
         for (const block of content) {
           if (block.type === "tool_result") {
-            const outcome: ToolOutcome = block.is_error === true ? "error" : "ok";
+            // A harness-stamped denial (see isDenialKind) records as "denied"
+            // with no isError, and the native block message stays in `content`,
+            // so the model-facing reason survives (§2.2 draft.4: isError and
+            // errorText belong to outcome "error"). Before this, the same call
+            // folded "error" here and then "denied" again from the result's
+            // permission_denials (sp-probe's resume-deny leg).
+            const denied = block.is_error === true && isDenialKind(nonExecutionById.get(block.tool_use_id));
+            const outcome: ToolOutcome = denied ? "denied" : block.is_error === true ? "error" : "ok";
             const toolContent =
               block.content === undefined ? [] : toolResultContentToAgBlocks(block.content);
             // `structuredContent` is not declared on `ToolResultBlockParam` in the
@@ -2443,11 +2498,22 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
                 : undefined;
             const resultMessageId = `${block.tool_use_id}:result`;
             resultMessageIds.push(resultMessageId);
+            closedToolCallIds.add(block.tool_use_id);
+            // This tool.done closes the call, so the result's permission_denials
+            // carrier skips it. The live `permission_denied` notice for the id
+            // (the CLI emits it from its canUseTool wrapper at decision time,
+            // always before this tool_result) rides here instead, the same
+            // providerMetadata the carrier gave it, so D drops nothing.
+            const liveFields = liveDenialMeta(deniedLiveByToolUseId.get(block.tool_use_id));
+            const resultProviderFields: { [k: string]: JsonValue } = {
+              ...(applySibling && siblingResourceLinks !== undefined ? { resourceLinks: siblingResourceLinks } : {}),
+              ...(liveFields ?? {}),
+            };
             a.toolDone({
               toolCallId: block.tool_use_id,
               content: toolContent,
               outcome,
-              isError: block.is_error === true,
+              ...(denied ? {} : { isError: block.is_error === true }),
               turnId: toolTurnId,
               // SPEC §5 tool.done adoption (audit B10; Task 8b): the Claude SDK
               // closes the assistant message (message.end) BEFORE this tool_result
@@ -2471,8 +2537,8 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
                   : {}),
               ...(applySibling && siblingHasUi && sc !== undefined ? { structuredContent: sc } : {}),
               ...(applySibling && siblingMeta !== undefined ? { _meta: siblingMeta } : {}),
-              ...(applySibling && siblingResourceLinks !== undefined
-                ? { providerMetadata: AgProviderMeta.parse({ resourceLinks: siblingResourceLinks }) }
+              ...(Object.keys(resultProviderFields).length > 0
+                ? { providerMetadata: AgProviderMeta.parse(resultProviderFields) }
                 : {}),
             });
           }
