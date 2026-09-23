@@ -101,6 +101,10 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 23, title: "Unmapped native value (draft.4): fallback finishReason + verbatim finishReasonRaw", disposition: "N/A", citation: "pending: the facets' raw-reason carry (claude/openai/google/vercel, §8.0 graceful degradation) lands AFTER this SPEC pair; this row flips to RUNNABLE, facet-driven, in sp-protocol's follow-up sha" },
   { n: 24, leg: "scan", title: "Tool-result errorText scoping (draft.4): no replay golden carries errorText on a non-error result", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.24(scan), a scan of every corpus/*/*.agjson.json" },
   { n: 24, leg: "adk", title: "ADK failure envelope (draft.4, §8.0 item 25): the error/denied/placeholder/negative vectors", disposition: "N/A", citation: "pending: the google-adk item-25 flip (sp-google 1904293) lands AFTER this SPEC pair; this row flips to RUNNABLE, facet-driven via createAdkNormalizer, in sp-protocol's follow-up sha" },
+  { n: 25, leg: "fold", title: "Framework pause and completion closure (draft.4): pauses close paused from push(), completed-without-signal and cut-short invokes close turn.abort from flush(), never success, no park", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(fold) over the engine-built fixtures/adk-pause natives (probe P-RED 3c82c3a); step-1 scope mirrored by adk-pause.test.ts" },
+  { n: 25, leg: "answer-id", title: "Framework pause and completion closure (draft.4): each ask's toolCallId is the adk_request_* call id (the answering id), one ask per pending request (§8.0 item 26)", disposition: "N/A", citation: "pending: the google-adk item-26 step 2 (sp-google) lands AFTER this SPEC sha; this row flips to RUNNABLE on the same fixtures" },
+  { n: 25, leg: "host-completion", title: "Framework pause and completion closure (draft.4): with the §8.0 obligation-4 host-completion event fed, a completed invoke closes turn.done success from push()", disposition: "N/A", citation: "pending: the google-adk host-completion opt-in (sp-google step 2) lands AFTER this SPEC sha; the fixture marker plumbing is probe's replay.ts HOST_COMPLETE_MARKER (3c82c3a)" },
+  { n: 25, leg: "replay", title: "Framework pause and completion closure (draft.4): every replay golden folds unchanged with and without the host-completion event", disposition: "N/A", citation: "pending: needs the facet to consume the event (sp-google step 2); adk-pause.test.ts's marker test covers only the harness half (the marker is stripped before the facet)" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -969,5 +973,69 @@ describe("§10.24 — tool-result errorText scoping (draft.4): on every replay g
     }
     expect(files).toBeGreaterThan(0);
     expect(violations).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.25 — Framework pause and completion closure (draft.4; §8.0 item 26 +
+// host obligation 4). The fold leg is RUNNABLE at google-adk step-1 scope over
+// the REAL-engine fixtures (probe P-RED); the answer-id, host-completion and
+// replay legs are N/A-pending sp-google's step 2 (manifest rows above).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.25 — framework pause and completion closure (draft.4): a pause closes paused from push(), an invoke without the completion signal or cut short closes turn.abort from flush(), never success; no park", () => {
+  const DIR = new URL("../fixtures/adk-pause/", import.meta.url);
+  const TERMINALS = new Set(["turn.done", "turn.error", "turn.abort"]);
+  type Tagged = { ev: AgEvent; from: "push" | "flush" };
+  const run = (...names: string[]): Tagged[] => {
+    const out: Tagged[] = [];
+    for (const name of names) {
+      const natives = JSON.parse(readFileSync(new URL(`${name}.native.json`, DIR), "utf8")) as JsonValue[];
+      const n = createAdkNormalizer(); // one Normalizer per invoke (§8.0 obligation 3)
+      for (const f of natives) for (const ev of n.push(f as unknown as AdkEvent)) out.push({ ev, from: "push" });
+      for (const ev of n.flush()) out.push({ ev, from: "flush" });
+    }
+    return out;
+  };
+  const turnOf = (ev: AgEvent): string | undefined => (ev as { turnId?: string }).turnId;
+  const assertClosure = (tagged: Tagged[]): Tagged[] => {
+    expect(reduce(tagged.map((t) => t.ev)).needsResync).toBe(false);
+    const opened = new Set(tagged.filter((t) => t.ev.type === "turn.start").map((t) => turnOf(t.ev)));
+    const terms = tagged.filter((t) => TERMINALS.has(t.ev.type));
+    for (const id of opened) expect(terms.filter((t) => turnOf(t.ev) === id)).toHaveLength(1);
+    const closed = new Set<string>();
+    for (const t of tagged) {
+      const id = turnOf(t.ev);
+      if (id !== undefined) expect(closed.has(id), `${t.ev.type} after ${id}'s terminal`).toBe(false);
+      if (TERMINALS.has(t.ev.type) && id !== undefined) closed.add(id);
+    }
+    return terms;
+  };
+
+  for (const name of ["wf-pause", "plain-confirmation", "plain-credential", "plain-request-input"]) {
+    it(`${name}: turn.done {outcome:"paused", finishReason:"paused"} from push(), one ask per pending request`, () => {
+      const tagged = run(name);
+      const [term] = assertClosure(tagged);
+      expect(term).toMatchObject({ from: "push", ev: { type: "turn.done", finishReason: "paused", outcome: { type: "paused" } } });
+      const asks = (term!.ev as { outcome: { asks?: unknown[] } }).outcome.asks ?? [];
+      expect(asks).toHaveLength(tagged.filter((t) => t.ev.type === "hitl.ask").length);
+      expect(asks.length).toBeGreaterThan(0);
+    });
+  }
+
+  for (const name of ["wf-complete", "wf-terminal-llm", "truncated-after-classify", "truncated-after-spike-final"]) {
+    it(`${name}: without the completion signal (or cut short) closes turn.abort from flush(), never success`, () => {
+      const tagged = run(name);
+      const [term] = assertClosure(tagged);
+      expect(term).toMatchObject({ from: "flush", ev: { type: "turn.abort" } });
+      expect(tagged.some((t) => t.ev.type === "turn.done" && (t.ev as { outcome?: { type?: string } }).outcome?.type === "success")).toBe(false);
+    });
+  }
+
+  it("the pause and its resume (two invokes, one Normalizer each) fold together without a park; the resume is its own turn", () => {
+    const tagged = run("wf-pause-resume.invoke1", "wf-pause-resume.invoke2");
+    const terms = assertClosure(tagged);
+    expect(terms.map((t) => [t.ev.type, t.from])).toEqual([["turn.done", "push"], ["turn.abort", "flush"]]);
+    expect(new Set(terms.map((t) => turnOf(t.ev))).size).toBe(2);
   });
 });
