@@ -64,7 +64,8 @@
         "text": "{\"error\":{\"code\":\"E_MOCK\",\"message\":\"boom\"}}"
       }
     ],
-    "outcome": "error"
+    "outcome": "error",
+    "isError": true
   },
   {
     "type": "state.delta",
