@@ -1215,6 +1215,26 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
     expectNoSecretAnywhere(out);
   });
 
+  it("state.delta: a whole ADK AuthConfig stored in state is omitted (only the any-depth walk reaches its credential subtrees)", () => {
+    const stateDelta: { [k: string]: JsonValue } = {
+      k: {
+        authScheme: { type: "oauth2", flows: { clientCredentials: { tokenUrl: "https://idp.example/token", scopes: {} } } },
+        rawAuthCredential: { authType: "oauth2", oauth2: { clientSecret: "SECRET_a" } },
+        exchangedAuthCredential: { authType: "oauth2", oauth2: { accessToken: "SECRET_b" } },
+        credentialKey: "ck",
+      },
+      other: 1,
+    };
+    const out = run([event([], { actions: { stateDelta } })]);
+    expect(stateDeltaOf(out)).toEqual([{ other: 1 }]);
+    expectNoSecretAnywhere(out);
+  });
+
+  it("state.delta: a serviceAccount credential that holds no secret (useDefaultCredential) is still omitted: fail-closed by design, not a false positive", () => {
+    const out = run([event([], { actions: { stateDelta: { k: { authType: "serviceAccount", serviceAccount: { useDefaultCredential: true } }, n: 2 } } })]);
+    expect(stateDeltaOf(out)).toEqual([{ n: 2 }]);
+  });
+
   it("state.delta: exactly one event per native state change, {} when every entry is omitted, partial events included", () => {
     const out = run([
       event([{ text: "Hel" }], { partial: true, actions: { stateDelta: { "temp:adk_x": oauth2Exchanged } } }),

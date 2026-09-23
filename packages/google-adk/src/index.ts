@@ -1387,8 +1387,10 @@ const AUTH_CONFIG_ALLOW: AllowSpec = {
 //   State writes value AND delta, agents/context.js:37-39, sessions/state.js:97-102);
 // - the Workflow plane's FunctionNode auth resume stores it under
 //   "temp:" + credentialKey (auth_handler.js:35-38, :47), and function_node.js
-//   copies every new delta entry into the yielded event (:93-127). ADK strips
-//   "temp:" entries only when it persists the session, never on the event.
+//   copies every new delta entry into the event it yields (:93-127). A Runner
+//   removes "temp:" entries from a non-partial event as it appends it to the
+//   session, before yielding it; a partial event, or an event read before
+//   that append, still carries them.
 // ADK treats any value under the key as a stored credential
 // (hitl_utils.js:131-133), so the entry is omitted whole: a redacted value left
 // behind would read as a credential. Every "temp:" entry is omitted too
