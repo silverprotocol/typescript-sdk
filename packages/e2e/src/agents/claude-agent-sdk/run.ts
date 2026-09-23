@@ -21,7 +21,7 @@
 
 import { randomUUID, type UUID } from "node:crypto";
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import type { AgentDefinition, HookCallbackMatcher, HookEvent, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { AgentDefinition, HookCallbackMatcher, HookEvent, SDKUserMessage, Settings } from "@anthropic-ai/claude-agent-sdk";
 import type { JsonValue } from "@silverprotocol/core";
 import { toJsonValue } from "@silverprotocol/core";
 
@@ -126,6 +126,7 @@ export function claudeSubagentOptions(input: Pick<CaptureRunInput, "subagents" |
   agents?: Record<string, AgentDefinition>;
   tools?: string[];
   allowedTools?: string[];
+  hooks?: Partial<Record<HookEvent, HookCallbackMatcher[]>>;
 } {
   const subagents = input.subagents;
   if (subagents === undefined) return {};
@@ -145,7 +146,59 @@ export function claudeSubagentOptions(input: Pick<CaptureRunInput, "subagents" |
     agents,
     tools: [AGENT_TOOL],
     allowedTools: allowed.includes(AGENT_TOOL) ? [...allowed] : [...allowed, AGENT_TOOL],
+    hooks: { PreToolUse: [{ matcher: AGENT_TOOL, hooks: [stripAgentIsolation] }] },
   };
+}
+
+/**
+ * A capture must never write outside its own tree. The Agent tool's
+ * `isolation: "worktree"` makes the CLI create a git worktree under
+ * `.claude/worktrees` at the repository root, which for a seat worktree is the
+ * MAIN checkout (sp-probe saw the model set it unprompted in the background
+ * capture, and the CLI create that directory there). `"remote"` launches a
+ * cloud run. So this PreToolUse hook (matched to Agent) rewrites any Agent call
+ * that sets `isolation` to the same call without it (`updatedInput`; the CLI
+ * validates it against the tool's schema). A call without it gets no output.
+ */
+export async function stripAgentIsolation(hookInput: unknown): Promise<
+  { hookSpecificOutput: { hookEventName: "PreToolUse"; permissionDecision: "allow"; updatedInput: Record<string, unknown> } } | Record<string, never>
+> {
+  const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+  const toolInput = isObj(hookInput) ? hookInput["tool_input"] : undefined;
+  if (!isObj(toolInput) || !("isolation" in toolInput)) return {};
+  const updatedInput: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(toolInput)) if (k !== "isolation") updatedInput[k] = v;
+  return { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow", updatedInput } };
+}
+
+/**
+ * Every capture runs with Claude's AUTO-MEMORY OFF. CLI 2.1.280 enables it by
+ * default regardless of `settingSources: []` (its gate reads only the
+ * CLAUDE_CODE_DISABLE_AUTO_MEMORY env var, CLAUDE_CODE_SIMPLE, and the
+ * `autoMemoryEnabled` setting), and resolves the directory from the repository
+ * root, so a seat's capture session loaded the FLEET's memory index into its
+ * prompt, with write access to that directory (init advertised
+ * `memory_paths.auto` = the silverprotocol project memory; sp-probe's question,
+ * 2026-09-24). The corpus is public and that memory holds fleet-internal facts.
+ * Both documented switches are set: the env var, and the flag-settings layer's
+ * `autoMemoryEnabled: false` ("Claude will not read from or write to the
+ * auto-memory directory").
+ */
+export function captureIsolationOptions(): { env: Record<string, string>; settings: Settings } {
+  return { env: { CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1" }, settings: { autoMemoryEnabled: false } };
+}
+
+/** Merge two hook maps: the PreToolUse matcher lists are CONCATENATED (a
+ *  scenario's decision hook and the Agent isolation strip both run); any other
+ *  event key is kept as-is (neither source sets one today). */
+export function mergeHooks(
+  a: Partial<Record<HookEvent, HookCallbackMatcher[]>> | undefined,
+  b: Partial<Record<HookEvent, HookCallbackMatcher[]>> | undefined,
+): Partial<Record<HookEvent, HookCallbackMatcher[]>> | undefined {
+  if (a === undefined) return b;
+  if (b === undefined) return a;
+  const pre = [...(a.PreToolUse ?? []), ...(b.PreToolUse ?? [])];
+  return { ...a, ...b, ...(pre.length > 0 ? { PreToolUse: pre } : {}) };
 }
 
 /** How long a capture holds its input open for background sub-runs to report. */
@@ -407,6 +460,10 @@ export async function* runClaudeCapture(input: CaptureRunInput): AsyncIterable<J
     followUps.length > 0 || background !== undefined
       ? gatedPromptStream([input.prompt, ...followUps], randomUUID, background?.gate)
       : undefined;
+  const extras = captureQueryExtras(input);
+  const subagentExtras = claudeSubagentOptions(input);
+  const hooks = mergeHooks(extras.hooks, subagentExtras.hooks);
+  const isolation = captureIsolationOptions();
   const response = query({
     prompt: gated !== undefined ? gated.stream : input.prompt,
     options: {
@@ -417,14 +474,16 @@ export async function* runClaudeCapture(input: CaptureRunInput): AsyncIterable<J
       settingSources: [],
       strictMcpConfig: true,
       maxTurns: input.maxTurns ?? 8,
-      env: { ANTHROPIC_API_KEY: apiKey },
+      env: { ANTHROPIC_API_KEY: apiKey, ...isolation.env },
+      settings: isolation.settings,
       ...(input.systemPrompt !== undefined ? { systemPrompt: input.systemPrompt } : {}),
       ...(input.includePartialMessages === true ? { includePartialMessages: true } : {}),
       ...(input.thinkingDisplay !== undefined
         ? { thinking: { type: "adaptive" as const, display: input.thinkingDisplay } }
         : {}),
-      ...captureQueryExtras(input),
-      ...claudeSubagentOptions(input),
+      ...extras,
+      ...subagentExtras,
+      ...(hooks !== undefined ? { hooks } : {}),
       abortController,
     },
   });

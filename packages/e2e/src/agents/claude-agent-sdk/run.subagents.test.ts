@@ -8,7 +8,11 @@ import { describe, expect, it, vi } from "vitest";
 import type { UUID } from "node:crypto";
 import {
   AGENT_TOOL,
+  captureIsolationOptions,
+  captureQueryExtras,
   claudeSubagentOptions,
+  mergeHooks,
+  stripAgentIsolation,
   createBackgroundTracker,
   createEndGate,
   gatedPromptStream,
@@ -35,6 +39,7 @@ describe("claudeSubagentOptions", () => {
       },
       tools: [AGENT_TOOL],
       allowedTools: ["mcp__t__echo", AGENT_TOOL],
+      hooks: { PreToolUse: [{ matcher: AGENT_TOOL, hooks: [stripAgentIsolation] }] },
     });
     expect(out.agents?.["fg"]?.tools).not.toBe(tools);
     expect(claudeSubagentOptions({ allowedTools: [AGENT_TOOL], subagents: { a: { description: "d", prompt: "p" } } }).allowedTools).toEqual([AGENT_TOOL]);
@@ -135,5 +140,37 @@ describe("gatedPromptStream with an end gate", () => {
     gate.onResult(true);
     await next;
     expect(ended).toBe(true);
+  });
+});
+
+describe("capture isolation: never write outside the capture's tree, never load the fleet's memory", () => {
+  it("every capture turns Claude's auto-memory OFF by both documented switches (env var and flag setting)", () => {
+    expect(captureIsolationOptions()).toEqual({ env: { CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1" }, settings: { autoMemoryEnabled: false } });
+  });
+
+  it("an Agent call that sets isolation is rewritten without it (worktree or remote); every other key is kept", async () => {
+    for (const isolation of ["worktree", "remote"]) {
+      const out = await stripAgentIsolation({ hook_event_name: "PreToolUse", tool_name: "Agent", tool_input: { description: "d", prompt: "p", subagent_type: "bg", run_in_background: true, isolation } });
+      expect(out).toEqual({
+        hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "allow", updatedInput: { description: "d", prompt: "p", subagent_type: "bg", run_in_background: true } },
+      });
+    }
+  });
+
+  it("an Agent call without isolation gets no hook output (the call is untouched)", async () => {
+    expect(await stripAgentIsolation({ tool_name: "Agent", tool_input: { description: "d", prompt: "p" } })).toEqual({});
+    expect(await stripAgentIsolation(null)).toEqual({});
+  });
+
+  it("claudeSubagentOptions installs the strip on the Agent tool only, and mergeHooks keeps a scenario's own PreToolUse hook beside it", () => {
+    const sub = claudeSubagentOptions({ allowedTools: [], subagents: { a: { description: "d", prompt: "p" } } });
+    expect(sub.hooks?.PreToolUse).toEqual([{ matcher: AGENT_TOOL, hooks: [stripAgentIsolation] }]);
+    const decision = captureQueryExtras({ preToolUseDecision: "deny" }).hooks;
+    const merged = mergeHooks(decision, sub.hooks);
+    expect(merged?.PreToolUse).toHaveLength(2);
+    expect(merged?.PreToolUse?.[1]).toEqual({ matcher: AGENT_TOOL, hooks: [stripAgentIsolation] });
+    expect(mergeHooks(undefined, sub.hooks)).toBe(sub.hooks);
+    expect(mergeHooks(undefined, undefined)).toBeUndefined();
+    expect(claudeSubagentOptions({ allowedTools: [] })).toEqual({});
   });
 });
