@@ -269,6 +269,17 @@ const ADK_SEEDS = [
   // decision. This scenario steers the bare name and records the clean MCP
   // isError path. tool-error itself stays as the historical 2.5-flash record.
   "tool-error-gemini38",
+  // 2026-09-23 (rd-06 A.9 step 5): the FIRST live ADK 2.x WORKFLOW-plane
+  // captures (@google/adk 2.1.0, gemini-3.8-flash), rooted at google's
+  // agents/google-adk/workflow.ts graph through the scenario knob adkWorkflow.
+  // Recorded with the SPEC §8.0 obligation-4 host-completion marker as the
+  // last native line, so replay opts the facet into hostCompletion: "complete"
+  // closes success from push() (without the marker a completed Workflow
+  // flushes turn.abort), and "pause" closes paused on the approve-1 input ask.
+  // They carry the plane the facet carries as provider-raw: output, route,
+  // nodeInfo, isolationScope, plus actions.agentState on the pause.
+  "workflow-complete-gemini38",
+  "workflow-pause-gemini38",
 ] as const;
 
 /**

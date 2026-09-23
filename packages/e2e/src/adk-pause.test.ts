@@ -227,16 +227,56 @@ describe("replay: the recorded host-completion marker (rd-06; draft.4 §8.0 host
     }
   });
 
-  it(`all ${adkGoldens.length} ADK goldens replay byte-identically with and without a trailing marker (it drives the hostCompletion opt-in; the golden close is the same event at the same seq)`, async () => {
+  // Goldens whose run has NO in-band terminal, where the marker is what closes
+  // it (rd-06 A.9 step 5 live captures): without it a completed Workflow
+  // flushes turn.abort; with it the facet closes success from push(). Every
+  // other ADK golden ends on an in-band close, which the marker leaves as is.
+  const MARKER_CLOSES = new Set(["workflow-complete-gemini38"]);
+
+  // The bare natives of a golden: a cassette captured since rd-06 A.9 step 5
+  // records the marker itself (capture-cli sets hostCompletion for adk).
+  const bareNatives = (d: string): { native: JsonValue[]; recorded: boolean } => {
+    const split = splitHostCompleteMarker(
+      JSON.parse(readFileSync(join(CORPUS, d, "adk.native.json"), "utf8")) as JsonValue[],
+    );
+    return { native: split.native, recorded: split.hostCompleted };
+  };
+
+  it(`the ADK goldens with an in-band close (${adkGoldens.length - MARKER_CLOSES.size} of ${adkGoldens.length}) replay byte-identically with and without a trailing marker (it drives the hostCompletion opt-in; the golden close is the same event at the same seq)`, async () => {
     expect(adkGoldens.length).toBeGreaterThan(0);
-    for (const d of adkGoldens) {
-      const native = JSON.parse(readFileSync(join(CORPUS, d, "adk.native.json"), "utf8")) as JsonValue[];
+    for (const d of adkGoldens.filter((g) => !MARKER_CLOSES.has(g))) {
+      const { native } = bareNatives(d);
       const plain = await replayNatives(native, "adk");
       const marked = await replayNatives([...native, marker], "adk");
       expect(marked.hostCompleted, d).toBe(true);
       expect(plain.hostCompleted, d).toBe(false);
       expect(JSON.stringify(marked.agjson), d).toBe(JSON.stringify(plain.agjson));
       expect(marked.report, d).toEqual(plain.report);
+    }
+  });
+
+  it("a completed live Workflow closes success only with the marker (without it, the INV-FLUSH abort); its golden records the marker", async () => {
+    for (const d of MARKER_CLOSES) {
+      expect(adkGoldens, d).toContain(d);
+      const { native, recorded } = bareNatives(d);
+      expect(recorded, d).toBe(true);
+      const plain = await replayNatives(native, "adk");
+      const marked = await replayNatives([...native, marker], "adk");
+      const closes = (agjson: JsonValue[]) =>
+        agjson
+          .map((e) => e as { type: string; outcome?: { type: string } })
+          .filter((e) => e.type === "turn.done" || e.type === "turn.abort")
+          .map((e) => (e.type === "turn.done" ? `done:${e.outcome?.type}` : "abort"));
+      expect(closes(plain.agjson), d).toEqual(["abort"]);
+      expect(closes(marked.agjson), d).toEqual(["done:success"]);
+      // The census sees the difference too: the abort has no home for the
+      // model's native finishReason "STOP"; the marker's success close maps it.
+      expect(marked.report, d).toEqual({ drops: [], newFields: [] });
+      expect([...new Set(plain.report.drops.map((x) => `${x.norm}=${String(x.value)}`))], d).toEqual([
+        "[*].finishReason=STOP",
+      ]);
+      const golden = JSON.parse(readFileSync(join(CORPUS, d, "adk.agjson.json"), "utf8")) as JsonValue[];
+      expect(JSON.stringify(marked.agjson), d).toBe(JSON.stringify(golden));
     }
   });
 });

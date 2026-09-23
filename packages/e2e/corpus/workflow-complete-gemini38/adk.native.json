@@ -1,0 +1,184 @@
+[
+  {
+    "output": "Echo the message 'conformance-probe-wf-complete' back to me using the available tool.",
+    "route": "tool",
+    "id": "fSTWYkT1",
+    "invocationId": "e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "author": "classify",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790161971865,
+    "nodeInfo": {
+      "path": "spike_workflow.classify",
+      "outputFor": [
+        "spike_workflow.classify"
+      ]
+    }
+  },
+  {
+    "invocationId": "e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "author": "spike",
+    "id": "KxDIJ58V",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790161972143,
+    "content": {
+      "parts": [
+        {
+          "functionCall": {
+            "name": "echo",
+            "args": {
+              "message": "conformance-probe-wf-complete"
+            },
+            "id": "call_51176"
+          },
+          "thoughtSignature": "ErUCCrICAWkUfRPk5xSt2L8xyjXk4dsRPnJdSdDvqW0KGBZ0LhuyCl+Ky+rgAAaHgdmt69m1qoTEo5wAjtsq6wLZwM7qo9Pw/d+bg38WH4bYtAMBe2uIWJawBlndoklfvIbuYvPzbGmTOZhwYbkq8oYBQC86hCYqSa1utkVRHs/Q6yVnODXfBViLJNMqj0r4CwDUL4yHdck1SG6Jvp4/j2AuxugUzF7g3ugJLS4SqnPuK/n0XOibmeWEwKK51o38zD+FZI3zbWUeNp6ShmmlCQhGDbab6qKEHb4TSpWfL19DRoZeIkULr0blzPvWc4SbB4O20nPD4TAZXNn08+y1hS3jsn5x/2MjjhaXvdnSr4SyeFE+Y+oE4UDMpFU2y6/rV7O3m7dDf0ucN0uE/uz4k+nginxirkrL"
+        }
+      ],
+      "role": "model"
+    },
+    "usageMetadata": {
+      "promptTokenCount": 107,
+      "candidatesTokenCount": 21,
+      "totalTokenCount": 190,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 107
+        }
+      ],
+      "thoughtsTokenCount": 62,
+      "serviceTier": "standard"
+    },
+    "finishReason": "STOP",
+    "nodeInfo": {
+      "path": "spike_workflow.spike"
+    },
+    "isolationScope": "spike_workflow.spike@1"
+  },
+  {
+    "invocationId": "e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "author": "spike",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "call_51176",
+            "name": "echo",
+            "response": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "conformance-probe-wf-complete"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "2jniAhAP",
+    "longRunningToolIds": [],
+    "timestamp": 1790161973642,
+    "nodeInfo": {
+      "path": "spike_workflow.spike"
+    },
+    "isolationScope": "spike_workflow.spike@1"
+  },
+  {
+    "invocationId": "e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "author": "spike",
+    "id": "qrRkH0FK",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790161973646,
+    "content": {
+      "parts": [
+        {
+          "text": "conformance-probe-wf-complete",
+          "thoughtSignature": "EqcBCqQBAWkUfRMJJYcrgMa+14N8+NHb4yv4lbfdCGViuu2WelmQLaWGtm0BJdgz5J7vZKD/dabgh0kqAFloszK8Sa5vurblA4GdMyB2gdzrACmUFvsvYRWw1+Nws93Uo2gWZnQWzzKJi7r/brj60GWAYvxxoJ5+Nb1L1Zejd5IEfYrJcWKYN6HBMp7NaAaM0yznqPopo6MhVZ2fpSdd3vnnecKpDXlQgv4="
+        }
+      ],
+      "role": "model"
+    },
+    "usageMetadata": {
+      "promptTokenCount": 218,
+      "candidatesTokenCount": 8,
+      "totalTokenCount": 240,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 218
+        }
+      ],
+      "thoughtsTokenCount": 14,
+      "serviceTier": "standard"
+    },
+    "finishReason": "STOP",
+    "output": "conformance-probe-wf-complete",
+    "nodeInfo": {
+      "messageAsOutput": true,
+      "path": "spike_workflow.spike",
+      "outputFor": [
+        "spike_workflow.spike"
+      ]
+    },
+    "isolationScope": "spike_workflow.spike@1"
+  },
+  {
+    "author": "finalize",
+    "invocationId": "e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "{\"done\":true,\"result\":\"conformance-probe-wf-complete\"}"
+        }
+      ]
+    },
+    "output": {
+      "done": true,
+      "result": "conformance-probe-wf-complete"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "Bsy4robN",
+    "longRunningToolIds": [],
+    "timestamp": 1790161975037,
+    "nodeInfo": {
+      "path": "spike_workflow.finalize",
+      "outputFor": [
+        "spike_workflow.finalize"
+      ]
+    }
+  },
+  {
+    "type": "__host_complete__"
+  }
+]

@@ -1,0 +1,212 @@
+[
+  {
+    "output": "Echo the message 'conformance-probe-wf-pause' back to me using the available tool.",
+    "route": "tool",
+    "id": "OhHBsWp3",
+    "invocationId": "e-19faf6d8-c9a8-48c3-8cf6-5534baa2d087",
+    "author": "classify",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790161996657,
+    "nodeInfo": {
+      "path": "spike_workflow.classify",
+      "outputFor": [
+        "spike_workflow.classify"
+      ]
+    }
+  },
+  {
+    "invocationId": "e-19faf6d8-c9a8-48c3-8cf6-5534baa2d087",
+    "author": "spike",
+    "id": "BugKCI33",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790161996802,
+    "content": {
+      "parts": [
+        {
+          "functionCall": {
+            "name": "echo",
+            "args": {
+              "message": "conformance-probe-wf-pause"
+            },
+            "id": "call_60697"
+          },
+          "thoughtSignature": "EocDCoQDAWkUfRMnfrTAHteJek7s/xvjad6irnIADYkB3B5ik1YJk8iIg9ATdimTMaMdirUJ6CvvxiZA6DlCo3qCCJitMIm0BV4Z9KoXy723moIOUJ0fzyxK4IbGOtjetWE9dCnZqeGYgcZun/ZutXBcgNYvc57yc+id4O5w7se1ykhwvhBpCJrxgYgXPvPLZ8E4/kv9v1GyeDyJhIffEMKTF00U41BaAw4jy5mbeKX4ofPMJRhobZACdG1CdSWv1d0iQg61nbojWmWj1KOdmSBrtN4Ol8rEqBkZxyucfnAQnfzPrBxm3m25ny7O0fp14x36NKUwN6jd4MeGB4X6zP3fhcudshifXvU6QnNKRIC8uuiUyZ17CPThajcjq1h4RkGWk7Lr82HPYBcFEYb2BqiCIG8V5c3yAE3E+4TDavIYg3RD4AUlZdkBAvEOQCaz6TWn3spTbER4Rf7KNGAEMXRF6k4LD00j5jlsuoTnT6tKU3EPLOEqZ7XJEHqbKRVVzFaALWZvq1BpoQ=="
+        }
+      ],
+      "role": "model"
+    },
+    "usageMetadata": {
+      "promptTokenCount": 107,
+      "candidatesTokenCount": 21,
+      "totalTokenCount": 203,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 107
+        }
+      ],
+      "thoughtsTokenCount": 75,
+      "serviceTier": "standard"
+    },
+    "finishReason": "STOP",
+    "nodeInfo": {
+      "path": "spike_workflow.spike"
+    },
+    "isolationScope": "spike_workflow.spike@1"
+  },
+  {
+    "invocationId": "e-19faf6d8-c9a8-48c3-8cf6-5534baa2d087",
+    "author": "spike",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "call_60697",
+            "name": "echo",
+            "response": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "conformance-probe-wf-pause"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "MSnteTc6",
+    "longRunningToolIds": [],
+    "timestamp": 1790162001909,
+    "nodeInfo": {
+      "path": "spike_workflow.spike"
+    },
+    "isolationScope": "spike_workflow.spike@1"
+  },
+  {
+    "invocationId": "e-19faf6d8-c9a8-48c3-8cf6-5534baa2d087",
+    "author": "spike",
+    "id": "6i8Kqt4C",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790162001940,
+    "content": {
+      "parts": [
+        {
+          "text": "conformance-probe-wf-pause",
+          "thoughtSignature": "Eq0BCqoBAWkUfRObkqpSuxtqHNESYQSyDjdl7VHyieQsWZAtnQ0Kn/1rnDo9K20QLOBNqWS8CDrDCfYZv9UejGc/YX9dbI3auEci37fJ2M5/4w/eM52tEDSvm/sQbd0sKCqACLZRmk/CzUCYRE1v2k3DN0+mt0HUblyV+c98K0j1snLV9uHHr6x15KRbGXy/ZAwlslhlyycR8TthLhlDN5eJfdqlPy7DplBprfACkMw="
+        }
+      ],
+      "role": "model"
+    },
+    "usageMetadata": {
+      "promptTokenCount": 231,
+      "candidatesTokenCount": 8,
+      "totalTokenCount": 254,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 231
+        }
+      ],
+      "thoughtsTokenCount": 15,
+      "serviceTier": "standard"
+    },
+    "finishReason": "STOP",
+    "output": "conformance-probe-wf-pause",
+    "nodeInfo": {
+      "messageAsOutput": true,
+      "path": "spike_workflow.spike",
+      "outputFor": [
+        "spike_workflow.spike"
+      ]
+    },
+    "isolationScope": "spike_workflow.spike@1"
+  },
+  {
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "name": "adk_request_input",
+            "args": {
+              "interruptId": "approve-1",
+              "payload": null,
+              "message": "Approve the echo result?",
+              "response_schema": null
+            },
+            "id": "approve-1"
+          }
+        }
+      ]
+    },
+    "longRunningToolIds": [
+      "approve-1"
+    ],
+    "id": "LYx3zyR3",
+    "invocationId": "e-19faf6d8-c9a8-48c3-8cf6-5534baa2d087",
+    "author": "approve",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "agentState": {
+        "input": "conformance-probe-wf-pause"
+      }
+    },
+    "timestamp": 1790162003773,
+    "nodeInfo": {
+      "path": "spike_workflow.approve"
+    }
+  },
+  {
+    "author": "spike_workflow",
+    "invocationId": "e-19faf6d8-c9a8-48c3-8cf6-5534baa2d087",
+    "longRunningToolIds": [
+      "approve-1"
+    ],
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "agentState": {
+        "input": "Echo the message 'conformance-probe-wf-pause' back to me using the available tool."
+      }
+    },
+    "id": "hJs9kL9f",
+    "timestamp": 1790162003774,
+    "nodeInfo": {
+      "path": "spike_workflow"
+    }
+  },
+  {
+    "type": "__host_complete__"
+  }
+]

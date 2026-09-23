@@ -176,6 +176,10 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // 2026-09-23: the founder-gated commentary seed, enrolled at capture time
   // (capture-time coverage.json is computed against EMPTY guard maps).
   { scenario: "commentary-gpt6sol", framework: "openai" },
+  // 2026-09-23 (rd-06 A.9 step 5): the live ADK workflow seeds, enrolled at
+  // capture time (capture-time coverage.json is computed against EMPTY guard maps).
+  { scenario: "workflow-complete-gemini38", framework: "adk" },
+  { scenario: "workflow-pause-gemini38", framework: "adk" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

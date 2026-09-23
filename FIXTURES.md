@@ -109,14 +109,21 @@ run ended normally. A capture MAY therefore end with ONE recorded line:
 ```
 
 - It is written only after the framework run returned normally, never after
-  a cancel, an abort signal or a thrown error.
+  a cancel, an abort signal or a thrown error. The capture harness writes it on
+  every `adk` capture (`capture-cli.ts` sets `CaptureDeps.hostCompletion`),
+  because adk-js has no in-band run terminal.
 - It is harness data, not framework wire. `replay.ts` (`splitHostCompleteMarker`)
-  splits it off before the normalizer and the census run, and reports
-  `hostCompleted`. Only the LAST element counts, and only with no other key.
+  splits it off before the census runs, and reports `hostCompleted`. Only the
+  LAST element counts, and only with no other key.
 - Feeding it to a normalizer is that facet's own opt-in (AgJSON draft.4 §8.0
   host obligation 4: a host SHOULD feed a clean-completion event after a normal
-  return). Until a facet opts in, a cassette replays byte-identically with or
-  without the marker; `adk-pause.test.ts` asserts that for every ADK golden.
+  return). The google-adk facet opts in with `createAdkNormalizer({
+  hostCompletion: true })`; replay and capture both feed it the marker after the
+  natives. Every ADK golden replays byte-identically with or without the marker,
+  because the facet's stashed close lands at the same seq
+  (`adk-pause.test.ts`). A completed Workflow run is the case that differs:
+  without the marker it flushes `turn.abort`, with it it closes success from
+  `push()` (`corpus/workflow-complete-gemini38`).
 
 If you replay cassettes yourself, strip a trailing marker line the same way
 unless your normalizer is constructed to consume it.

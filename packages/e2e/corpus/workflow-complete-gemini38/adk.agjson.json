@@ -1,0 +1,317 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "threadId": "google"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "threadId": "google",
+    "role": "assistant"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "seq": 2
+  },
+  {
+    "type": "content.block",
+    "seq": 3,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817"
+  },
+  {
+    "type": "content.block",
+    "seq": 4,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "output": "Echo the message 'conformance-probe-wf-complete' back to me using the available tool.",
+        "route": "tool",
+        "nodeInfo": {
+          "path": "spike_workflow.classify",
+          "outputFor": [
+            "spike_workflow.classify"
+          ]
+        }
+      }
+    },
+    "messageId": "msg_turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817"
+  },
+  {
+    "type": "tool.start",
+    "seq": 5,
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "toolCallId": "call_51176",
+    "name": "echo",
+    "index": 0
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 6,
+    "toolCallId": "call_51176",
+    "delta": "{\"message\":\"conformance-probe-wf-complete\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 7,
+    "toolCallId": "call_51176",
+    "input": {
+      "message": "conformance-probe-wf-complete"
+    },
+    "signature": "ErUCCrICAWkUfRPk5xSt2L8xyjXk4dsRPnJdSdDvqW0KGBZ0LhuyCl+Ky+rgAAaHgdmt69m1qoTEo5wAjtsq6wLZwM7qo9Pw/d+bg38WH4bYtAMBe2uIWJawBlndoklfvIbuYvPzbGmTOZhwYbkq8oYBQC86hCYqSa1utkVRHs/Q6yVnODXfBViLJNMqj0r4CwDUL4yHdck1SG6Jvp4/j2AuxugUzF7g3ugJLS4SqnPuK/n0XOibmeWEwKK51o38zD+FZI3zbWUeNp6ShmmlCQhGDbab6qKEHb4TSpWfL19DRoZeIkULr0blzPvWc4SbB4O20nPD4TAZXNn08+y1hS3jsn5x/2MjjhaXvdnSr4SyeFE+Y+oE4UDMpFU2y6/rV7O3m7dDf0ucN0uE/uz4k+nginxirkrL"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "seq": 8
+  },
+  {
+    "type": "content.block",
+    "seq": 9,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817"
+  },
+  {
+    "type": "content.block",
+    "seq": 10,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "nodeInfo": {
+          "path": "spike_workflow.spike"
+        },
+        "isolationScope": "spike_workflow.spike@1"
+      }
+    },
+    "messageId": "msg_turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817"
+  },
+  {
+    "type": "tool.done",
+    "seq": 11,
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "toolCallId": "call_51176",
+    "content": [
+      {
+        "type": "text",
+        "text": "conformance-probe-wf-complete"
+      }
+    ],
+    "outcome": "ok"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "seq": 12
+  },
+  {
+    "type": "content.block",
+    "seq": 13,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817"
+  },
+  {
+    "type": "content.block",
+    "seq": 14,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "nodeInfo": {
+          "path": "spike_workflow.spike"
+        },
+        "isolationScope": "spike_workflow.spike@1"
+      }
+    },
+    "messageId": "msg_turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817"
+  },
+  {
+    "type": "text.start",
+    "seq": 15,
+    "id": "text:0",
+    "messageId": "msg_turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "EqcBCqQBAWkUfRMJJYcrgMa+14N8+NHb4yv4lbfdCGViuu2WelmQLaWGtm0BJdgz5J7vZKD/dabgh0kqAFloszK8Sa5vurblA4GdMyB2gdzrACmUFvsvYRWw1+Nws93Uo2gWZnQWzzKJi7r/brj60GWAYvxxoJ5+Nb1L1Zejd5IEfYrJcWKYN6HBMp7NaAaM0yznqPopo6MhVZ2fpSdd3vnnecKpDXlQgv4="
+      }
+    }
+  },
+  {
+    "type": "text.delta",
+    "seq": 16,
+    "id": "text:0",
+    "messageId": "msg_turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "delta": "conformance-probe-wf-complete",
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817"
+  },
+  {
+    "type": "text.end",
+    "seq": 17,
+    "id": "text:0",
+    "messageId": "msg_turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "EqcBCqQBAWkUfRMJJYcrgMa+14N8+NHb4yv4lbfdCGViuu2WelmQLaWGtm0BJdgz5J7vZKD/dabgh0kqAFloszK8Sa5vurblA4GdMyB2gdzrACmUFvsvYRWw1+Nws93Uo2gWZnQWzzKJi7r/brj60GWAYvxxoJ5+Nb1L1Zejd5IEfYrJcWKYN6HBMp7NaAaM0yznqPopo6MhVZ2fpSdd3vnnecKpDXlQgv4="
+      }
+    }
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "seq": 18
+  },
+  {
+    "type": "content.block",
+    "seq": 19,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817"
+  },
+  {
+    "type": "content.block",
+    "seq": 20,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "output": "conformance-probe-wf-complete",
+        "nodeInfo": {
+          "messageAsOutput": true,
+          "path": "spike_workflow.spike",
+          "outputFor": [
+            "spike_workflow.spike"
+          ]
+        },
+        "isolationScope": "spike_workflow.spike@1"
+      }
+    },
+    "messageId": "msg_turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817"
+  },
+  {
+    "type": "text.start",
+    "seq": 21,
+    "id": "text:1",
+    "messageId": "msg_turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817"
+  },
+  {
+    "type": "text.delta",
+    "seq": 22,
+    "id": "text:1",
+    "messageId": "msg_turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "delta": "{\"done\":true,\"result\":\"conformance-probe-wf-complete\"}",
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817"
+  },
+  {
+    "type": "text.end",
+    "seq": 23,
+    "id": "text:1",
+    "messageId": "msg_turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "seq": 24
+  },
+  {
+    "type": "content.block",
+    "seq": 25,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817"
+  },
+  {
+    "type": "content.block",
+    "seq": 26,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "output": {
+          "done": true,
+          "result": "conformance-probe-wf-complete"
+        },
+        "nodeInfo": {
+          "path": "spike_workflow.finalize",
+          "outputFor": [
+            "spike_workflow.finalize"
+          ]
+        }
+      }
+    },
+    "messageId": "msg_turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817"
+  },
+  {
+    "type": "message.end",
+    "seq": 27,
+    "id": "msg_turn_e-65c6510f-ca98-45c6-b784-9e244e06f817"
+  },
+  {
+    "type": "turn.done",
+    "seq": 28,
+    "turnId": "turn_e-65c6510f-ca98-45c6-b784-9e244e06f817",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 325,
+      "outputTokens": 105,
+      "totalTokens": 430,
+      "reasoningTokens": 76,
+      "cumulative": false
+    }
+  }
+]
