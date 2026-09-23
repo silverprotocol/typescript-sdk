@@ -1,26 +1,6 @@
 {
   "drops": [
     {
-      "path": "[0].model",
-      "norm": "[*].model",
-      "value": "claude-sonnet-5"
-    },
-    {
-      "path": "[12].message.stop_sequence",
-      "norm": "[*].message.stop_sequence",
-      "value": ""
-    },
-    {
-      "path": "[12].message.usage.server_tool_use.web_search_requests",
-      "norm": "[*].message.usage.server_tool_use.web_search_requests",
-      "value": 0
-    },
-    {
-      "path": "[12].message.usage.server_tool_use.web_fetch_requests",
-      "norm": "[*].message.usage.server_tool_use.web_fetch_requests",
-      "value": 0
-    },
-    {
       "path": "[13].stop_reason",
       "norm": "[*].stop_reason",
       "value": "stop_sequence"

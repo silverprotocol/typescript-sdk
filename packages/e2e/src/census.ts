@@ -6,7 +6,8 @@
  * ("drops"), plus which norm-paths are new relative to a known registry.
  *
  * Coverage rule (four steps, evaluated in order for each leaf):
- *   1. transforms.get(leaf.norm) → target norm-path → MAPPED, value-verified:
+ *   1. transforms.get(leaf.norm) → target norm-path (or an any-of list of
+ *      targets, at least one of which must be present) → MAPPED, value-verified:
  *      a non-null source MUST have a leaf at the target norm-path somewhere in
  *      the agjson (any value — this is a structural "did it land at all" check,
  *      not a value-equality check, so legitimate renames like stop_reason→
@@ -74,9 +75,13 @@ export interface CensusInput {
   native: JsonValue;
   /** The AgJSON output produced by the normalizer. */
   agjson: JsonValue;
-  /** source norm-path → target norm-path. A registered source whose value is
-   *  non-null asserts a leaf exists at the target norm-path in the agjson. */
-  transforms: Map<string, string>;
+  /** source norm-path → target norm-path, or an ANY-OF list of targets. A
+   *  registered source whose value is non-null asserts a leaf exists at the
+   *  target (at least one listed target) norm-path in the agjson. A list is
+   *  for a value whose home depends on the close: e.g. a claude result's
+   *  stop_reason lands on finishReason when the turn closes turn.done, and
+   *  on the result-meta carry when it closes turn.error. */
+  transforms: Map<string, string | readonly string[]>;
   /** norm-path → review scoping (reviewed shape + optional framework scope). */
   allowlist: Map<string, AllowlistReview>;
   /** Every classified norm-path (union of transforms, allowlist, and any prior manual triage). */
@@ -307,7 +312,8 @@ export function census(input: CensusInput): CensusReport {
     // ── Rule 1: transforms (mapped, value-verifying) ────────────────────────
     const target = transforms.get(leaf.norm);
     if (target !== undefined) {
-      if (leaf.value !== null && !agJsonNormPaths.has(target)) {
+      const targets = typeof target === "string" ? [target] : target;
+      if (leaf.value !== null && !targets.some((t) => agJsonNormPaths.has(t))) {
         // The mapped target never landed anywhere in the agjson — a genuine
         // drop (audit M57/M1: a transforms-registered value that vanishes).
         drops.push(leaf);

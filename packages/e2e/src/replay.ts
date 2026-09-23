@@ -129,19 +129,29 @@ async function readStringArray(path: string): Promise<string[]> {
 }
 
 /** Read the transforms guard: a JSON object mapping source norm-path → target
- *  norm-path (census Rule 1 — a non-null source asserts a leaf exists at the
- *  target norm-path in the agjson). */
-async function readTransforms(path: string): Promise<Map<string, string>> {
+ *  norm-path, or to a non-empty ANY-OF array of target norm-paths (census
+ *  Rule 1 — a non-null source asserts a leaf exists at a target norm-path in
+ *  the agjson). */
+async function readTransforms(path: string): Promise<Map<string, string | readonly string[]>> {
   const value = await readJsonValue(path);
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`replay: expected a JSON object at ${path}`);
   }
-  const out = new Map<string, string>();
+  const out = new Map<string, string | readonly string[]>();
   for (const [source, target] of Object.entries(value)) {
-    if (typeof target !== "string") {
-      throw new Error(`replay: transforms entry "${source}" must map to a string target at ${path}`);
+    if (typeof target === "string") {
+      out.set(source, target);
+    } else if (
+      Array.isArray(target) &&
+      target.length > 0 &&
+      target.every((t): t is string => typeof t === "string")
+    ) {
+      out.set(source, target);
+    } else {
+      throw new Error(
+        `replay: transforms entry "${source}" must map to a string target or a non-empty array of string targets at ${path}`,
+      );
     }
-    out.set(source, target);
   }
   return out;
 }

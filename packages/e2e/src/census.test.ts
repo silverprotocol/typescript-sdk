@@ -315,6 +315,31 @@ describe("census", () => {
     expect(drop).toBeUndefined();
   });
 
+  it("an ANY-OF target list is satisfied by any one present target (a close-dependent home)", () => {
+    const transforms = new Map<string, string | readonly string[]>([
+      ["[*].stop_reason", ["[*].finishReason", "[*].stopReason"]],
+    ]);
+    // turn.error close: no finishReason anywhere, the result-meta carry holds it.
+    const onError = census(
+      makeInput({ native: [{ stop_reason: "stop_sequence" }], agjson: [{ stopReason: "stop_sequence" }], transforms }),
+    );
+    expect(onError.drops.find((d) => d.norm === "[*].stop_reason")).toBeUndefined();
+    // turn.done close: finishReason holds it.
+    const onDone = census(makeInput({ native: [{ stop_reason: "end_turn" }], agjson: [{ finishReason: "stop" }], transforms }));
+    expect(onDone.drops.find((d) => d.norm === "[*].stop_reason")).toBeUndefined();
+  });
+
+  it("an ANY-OF target list with NO target present is a drop", () => {
+    const report = census(
+      makeInput({
+        native: [{ stop_reason: "stop_sequence" }],
+        agjson: [{ code: "authentication_failed" }],
+        transforms: new Map<string, string | readonly string[]>([["[*].stop_reason", ["[*].finishReason", "[*].stopReason"]]]),
+      }),
+    );
+    expect(report.drops.map((d) => d.norm)).toContain("[*].stop_reason");
+  });
+
   // ── Rule 2: allowlist-path → ignorable, NOT a drop ───────────────────────
 
   it("does not report a leaf as a drop when its norm-path is 'any'-reviewed in the allowlist", () => {

@@ -2233,8 +2233,8 @@
   },
   {
     "path": "[*].message.stop_sequence",
-    "reason": "the matched stop sequence string (null here); not surfaced in AgJSON (finishReason 'stop' suffices).",
-    "reviewed": "null-only",
+    "reason": "claude: the matched stop sequence string; not surfaced in AgJSON (finishReason 'stop' suffices). Widened null-only -> any on 2026-09-23 (sp-claude disposition): the Agent SDK exposes no stop sequences, and the synthetic API-error assistant frame (api-error-auth seed) carries \"\" as CLI filler, so no populated value can be a consumer signal.",
+    "reviewed": "any",
     "frameworks": [
       "claude"
     ]
@@ -3278,6 +3278,30 @@
     "path": "[*].message.usage.output_tokens_details",
     "reason": "claude: null on the synthetic API-error assistant frame (model \"<synthetic>\", all-zero usage) in the api-error-auth seed (2026-09-23), the first frame in the corpus to carry the key. NULL-ONLY: a populated value is real output-token detail and must surface as a drop for the facet to decide.",
     "reviewed": "null-only",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].model",
+    "reason": "claude: the system/init frame's REQUESTED model (session configuration, the init-frame disposition of slash_commands[*] etc.: never read by createClaudeNormalizer). What SERVED a turn rides message.model (carried); on every other seed this leaf is value-covered only because message.model echoes it. On an auth failure nothing served the turn (the assistant frame says \"<synthetic>\"), so no turn content is lost (sp-claude disposition, 2026-09-23, api-error-auth); a session-config carry would be sp-protocol's call.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].message.usage.server_tool_use.web_search_requests",
+    "reason": "claude: the per-MESSAGE server_tool_use breakdown on an assistant frame (first seen as zeros on the synthetic API-error frame, api-error-auth, 2026-09-23). sp-claude disposition: the turn-level count is authoritative - the result's cumulative server_tool_use lands on turn.done/turn.error usage.serverToolRequests; mapping the per-message breakdown onto every message.end would move every claude golden for ambient zeros with no consumer asking. A later mapMessageUsage carry if one does.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].message.usage.server_tool_use.web_fetch_requests",
+    "reason": "claude: the per-MESSAGE server_tool_use breakdown on an assistant frame (first seen as zeros on the synthetic API-error frame, api-error-auth, 2026-09-23). sp-claude disposition: the turn-level count is authoritative - the result's cumulative server_tool_use lands on turn.done/turn.error usage.serverToolRequests; mapping the per-message breakdown onto every message.end would move every claude golden for ambient zeros with no consumer asking. A later mapMessageUsage carry if one does.",
+    "reviewed": "any",
     "frameworks": [
       "claude"
     ]

@@ -87,7 +87,10 @@
   "[*].response.modelId": "[*].metadata.model",
   "[*].result_index": "[*].resultIndex",
   "[*].route": "[*].block.raw.route",
-  "[*].stop_reason": "[*].finishReason",
+  "[*].stop_reason": [
+    "[*].finishReason",
+    "[*].stopReason"
+  ],
   "[*].subagent_stats.completed": "[*].subagentStats.completed",
   "[*].subagent_stats.failed": "[*].subagentStats.failed",
   "[*].subagent_stats.killed.parent": "[*].subagentStats.killed.parent",
