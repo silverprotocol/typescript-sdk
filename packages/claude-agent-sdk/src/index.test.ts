@@ -7967,3 +7967,57 @@ describe("createClaudeNormalizer — C1: flush never mints content", () => {
     expect(evs.find((e) => e.type === "tool.args.assembled")).toMatchObject({ toolCallId: "toolu_mid", input: { city: "SF" } });
   });
 });
+
+// ─── subagent carries (sp-probe's subagent captures, 5ba11da): the Agent run
+// report on the Agent call's tool.done `_meta`, and a woken turn's `origin` ────
+describe("createClaudeNormalizer — subagent carries: AgentOutput and result origin", () => {
+  const agentUse = (): unknown => assistantMsg([{ type: "tool_use", id: "toolu_agent", name: "Agent", input: { description: "d", prompt: "p", subagent_type: "echoer" } }]);
+  const agentResult = (tur: unknown, extraContent: unknown[] = []): unknown => ({
+    type: "user",
+    message: { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_agent", content: [{ type: "text", text: "report" }], is_error: false }, ...extraContent] },
+    parent_tool_use_id: null,
+    uuid: "00000000-0000-0000-0000-0000000000ag",
+    session_id: "sess_fixture",
+    tool_use_result: tur,
+  });
+  const COMPLETED = {
+    status: "completed", agentId: "a1", agentType: "echoer", content: [{ type: "text", text: "report" }], prompt: "p",
+    resolvedModel: "claude-sonnet-5", totalToolUseCount: 1, totalDurationMs: 3363, totalTokens: 10453,
+    usage: { input_tokens: 10, output_tokens: 5 }, toolStats: { readCount: 0, bashCount: 0 }, harnessNoteCount: 0, harnessTailCount: 0, harnessSectionHash: "h",
+  };
+  const doneOf = (evs: AgEvent[]): { [k: string]: unknown } | undefined => {
+    const e = evs.find((x) => x.type === "tool.done" && "toolCallId" in x && x.toolCallId === "toolu_agent");
+    return e === undefined ? undefined : Object.fromEntries(Object.entries(e));
+  };
+
+  it("a completed AgentOutput rides the Agent call's tool.done _meta under anthropic/agentOutput, minus content and prompt, and folds onto the tool-result block", () => {
+    const evs = drive([agentUse(), agentResult(COMPLETED)]);
+    const { content: _c, prompt: _p, ...expected } = COMPLETED;
+    expect(doneOf(evs)?.["_meta"]).toEqual({ "anthropic/agentOutput": expected });
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    const block = r.result().messages.flatMap((m) => m.content).find((b) => "toolCallId" in b && b.toolCallId === "toolu_agent" && "outcome" in b);
+    expect(block).toMatchObject({ _meta: { "anthropic/agentOutput": { agentId: "a1", status: "completed" } } });
+    // Its usage is the subagent's own: never on any AgUsage.
+    expect(JSON.stringify(evs.filter((e) => e.type === "turn.done" || e.type === "message.end"))).not.toContain("10453");
+  });
+
+  it("the background launch ack (async_launched) rides the same way", () => {
+    const ack = { isAsync: true, status: "async_launched", agentId: "a2", description: "d", prompt: "p", outputFile: "[redacted]", canReadOutputFile: true, resolvedModel: "claude-sonnet-5" };
+    const { prompt: _p, ...expected } = ack;
+    expect(doneOf(drive([agentUse(), agentResult(ack)]))?.["_meta"]).toEqual({ "anthropic/agentOutput": expected });
+  });
+
+  it("negative controls: a non-Agent tool_use_result (no agentId), or a multi-result frame, adds no _meta", () => {
+    expect(doneOf(drive([agentUse(), agentResult({ stdout: "x" })])) ).not.toHaveProperty("_meta");
+    const multi = agentResult(COMPLETED, [{ type: "tool_result", tool_use_id: "toolu_other", content: "y", is_error: false }]);
+    expect(doneOf(drive([agentUse(), multi]))).not.toHaveProperty("_meta");
+  });
+
+  it("a woken turn's result origin rides ext.anthropic.result-meta verbatim; no origin, no key", () => {
+    const woken = { ...Object.fromEntries(Object.entries(resultSuccess("end_turn"))), origin: { kind: "task-notification" } };
+    expect(drive([woken]).find((e) => e.type === "ext.anthropic.result-meta")).toMatchObject({ origin: { kind: "task-notification" } });
+    const plain = drive([resultSuccess("end_turn")]).find((e) => e.type === "ext.anthropic.result-meta");
+    expect(plain === undefined || !("origin" in plain)).toBe(true);
+  });
+});

@@ -1068,6 +1068,11 @@ function resultMetaPayload(msg: SDKResultMsg, closesAsError: boolean): { [k: str
   // Undeclared siblings are only reachable through the JSON boundary: widen to
   // `unknown` (no cast) and let the isJsonObject guard narrow.
   const raw: unknown = msg;
+  // `origin` (SDKMessageOrigin, on the result arms): set on the result of a turn
+  // the framework WOKE, not the user, e.g. {kind: "task-notification"} after a
+  // background subagent reported (sp-probe's bg capture, 5ba11da). turn.start's
+  // `trigger` is a frozen enum, so it rides here verbatim.
+  const origin = isJsonObject(raw) && isJsonObject(raw["origin"]) ? carryVerbatim(raw["origin"]) : undefined;
   const subagentStats =
     isJsonObject(raw) && isJsonObject(raw["subagent_stats"]) ? carryVerbatim(raw["subagent_stats"]) : undefined;
   const userMessageUuids = readUserMessageUuids(msg.user_message_uuids);
@@ -1116,6 +1121,7 @@ function resultMetaPayload(msg: SDKResultMsg, closesAsError: boolean): { [k: str
     ...(apiErrorCode !== undefined ? { apiErrorCode } : {}),
     ...(startupFailureReason !== undefined ? { startupFailureReason } : {}),
     ...(subagentStats !== undefined ? { subagentStats } : {}),
+    ...(origin !== undefined ? { origin } : {}),
     ...(deferredToolUse !== undefined ? { deferredToolUse } : {}),
     ...(apiErrorStatus !== undefined ? { apiErrorStatus } : {}),
     ...(stopReason !== undefined ? { stopReason } : {}),
@@ -2715,6 +2721,21 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
           sibling !== undefined && isJsonObject(sibling["_meta"])
             ? AgMeta.parse(sibling["_meta"])
             : undefined;
+        // The Agent tool's Output (AgentOutput, sdk-tools.d.ts): the subagent's
+        // run report ("the completed shape is the subagent's final report ...
+        // plus run totals — render from it instead of parsing the tool_result
+        // text"), or the background launch ack (status async_launched, isAsync,
+        // outputFile). Recognized by its `agentId`. It rides the Agent call's
+        // tool.done host-only `_meta` under "anthropic/agentOutput", verbatim
+        // minus `content` (already the tool.done content) and `prompt` (already
+        // the tool input). Its `usage` is the subagent's own and stays out of
+        // AgUsage (B-strict: the parent's accounting already includes it).
+        // sp-probe's subagent captures (5ba11da) surfaced every one of these
+        // fields as a census drop.
+        const agentOutput =
+          sibling !== undefined && typeof sibling["agentId"] === "string"
+            ? carryVerbatim(Object.fromEntries(Object.entries(sibling).filter(([k]) => k !== "content" && k !== "prompt")))
+            : undefined;
         const siblingHasUi = siblingMeta !== undefined && siblingMeta["ui"] !== undefined;
         // 0.3.257 sibling: `resourceLinks` — the MCP result's `resource_link`
         // content blocks (files returned by reference: {uri, name, title?,
@@ -2814,7 +2835,13 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
                   ? { structuredContent: sc }
                   : {}),
               ...(applySibling && siblingHasUi && sc !== undefined ? { structuredContent: sc } : {}),
-              ...(applySibling && siblingMeta !== undefined ? { _meta: siblingMeta } : {}),
+              ...(() => {
+                const meta = applySibling ? siblingMeta : undefined;
+                const report = applySibling ? agentOutput : undefined;
+                if (report === undefined) return meta !== undefined ? { _meta: meta } : {};
+                const merged: AgMeta = { ...(meta ?? {}), "anthropic/agentOutput": report };
+                return { _meta: merged };
+              })(),
               ...(Object.keys(resultProviderFields).length > 0
                 ? { providerMetadata: AgProviderMeta.parse(resultProviderFields) }
                 : {}),
