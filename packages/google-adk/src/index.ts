@@ -1264,7 +1264,8 @@ function driveAdkPart(
 // call's args arrive snake_case at the top level); a kept key keeps its wire
 // spelling.
 //
-// Resume safety (ADK 2.1.0): the credential resume rebuilds the request
+// Resume safety (ADK 2.1.0, a tool's credential request inside an LlmAgent):
+// the credential resume rebuilds the request
 // server-side from the session's own reserved call (auth_preprocessor.js
 // requestedAuthConfigs) and takes only the auth code / response URI from the
 // client's answer (credential_response_binding.js bindCredential; the raw
@@ -1393,8 +1394,8 @@ const AUTH_CONFIG_ALLOW: AllowSpec = {
 // - a Runner configured with SessionStateCredentialService saves it under the
 //   bare credentialKey (session_state_credential_service.js; ToolContext's
 //   State writes value AND delta, agents/context.js:37-39, sessions/state.js:97-102);
-// - the Workflow plane's FunctionNode auth resume stores it under
-//   "temp:" + credentialKey (auth_handler.js:35-38, :47), and function_node.js
+// - a Workflow FunctionNode whose auth step runs again on resume stores it
+//   under "temp:" + credentialKey (auth_handler.js:35-38, :47), and function_node.js
 //   copies every new delta entry into the event it yields (:93-127). A Runner
 //   removes "temp:" entries from a non-partial event as it appends it to the
 //   session, before yielding it; a partial event, or an event read before
@@ -1437,6 +1438,13 @@ function isAuthCredentialObject(v: { readonly [k: string]: unknown }): boolean {
  *  AuthCredential. Iterative and cycle-safe over the raw native value; a value
  *  that cannot be walked counts as holding one, so this never throws. */
 function holdsAuthCredential(v: unknown): boolean {
+  return holdsObject(v, isAuthCredentialObject);
+}
+
+/** Whether `v` is, or holds at any depth (arrays included), an object `match`
+ *  accepts. Iterative and cycle-safe over the raw native value; a value that
+ *  cannot be walked counts as holding one, so this never throws. */
+function holdsObject(v: unknown, match: (o: { readonly [k: string]: unknown }) => boolean): boolean {
   try {
     const seen = new Set<object>();
     const stack: unknown[] = [v];
@@ -1447,7 +1455,7 @@ function holdsAuthCredential(v: unknown): boolean {
       if (Array.isArray(x)) {
         for (const y of x) stack.push(y);
       } else if (isObjectRecord(x)) {
-        if (isAuthCredentialObject(x)) return true;
+        if (match(x)) return true;
         for (const k of Object.keys(x)) stack.push(x[k]);
       }
     }
@@ -1488,6 +1496,61 @@ function scrubbedResponse(response: unknown): { readonly [k: string]: JsonValue 
   if (!isJsonObject(response)) return undefined;
   const scrubbed = scrubAdkAuthConfig(response);
   return isJsonObject(scrubbed) ? scrubbed : undefined;
+}
+
+// ─── provider-raw carries of node data ───────────────────────────────────────
+// A Workflow event's `output` and `actions.agentState` ride verbatim in
+// provider-raw. Inside them, each ADK AuthCredential (detected as for shared
+// state) is reduced to its allowlisted members, and each response named
+// adk_request_credential (matched by that name at any depth, never by id)
+// keeps only its id, its name and the reserved-credential answer's
+// allowlisted response, so an untyped reply becomes {}. Every other member
+// rides unchanged. A value with neither is parsed exactly as before; a value
+// that cannot be walked or reduced is omitted, never thrown on.
+
+/** A response named adk_request_credential (a functionResponse object). */
+function isCredentialRequestResponse(v: { readonly [k: string]: unknown }): boolean {
+  return v["name"] === ADK_REQUEST_CREDENTIAL && Object.hasOwn(v, "name") && Object.hasOwn(v, "response");
+}
+
+/** One JSON value with every credential object and credential-request
+ *  response reduced (see above); recursion stops at a reduced unit. */
+function reduceCredentialCarry(v: JsonValue): JsonValue {
+  if (Array.isArray(v)) return v.map(reduceCredentialCarry);
+  if (!isJsonObject(v)) return v;
+  if (isAuthCredentialObject(v)) return pickAllowed(v, AUTH_CREDENTIAL_ALLOW) ?? {};
+  if (isCredentialRequestResponse(v))
+    return pickAllowed(v, { id: true, name: true, response: (r) => scrubbedResponse(r) }) ?? {};
+  return Object.fromEntries(
+    Object.entries(v)
+      .filter(([k]) => !isReservedMapKey(k))
+      .map(([k, x]): [string, JsonValue] => [k, reduceCredentialCarry(x)]),
+  );
+}
+
+/** JSON with object keys in sorted order: "did the reduction change it"
+ *  compares members, not the order an allowlist writes them in. */
+function canonicalJson(v: JsonValue): string {
+  if (Array.isArray(v)) return `[${v.map(canonicalJson).join(",")}]`;
+  if (!isJsonObject(v)) return JSON.stringify(v);
+  return `{${Object.keys(v)
+    .sort()
+    .map((k) => `${JSON.stringify(k)}:${canonicalJson(v[k] ?? null)}`)
+    .join(",")}}`;
+}
+
+/** A node-data value for a provider-raw carry. `changed` says whether the
+ *  reduction altered it; `undefined` omits the unit. */
+function carryNodeValue(raw: unknown): { value: JsonValue; changed: boolean } | undefined {
+  if (!holdsAuthCredential(raw) && !holdsObject(raw, isCredentialRequestResponse))
+    return { value: JsonValue.parse(raw), changed: false };
+  try {
+    const before = JsonValue.parse(JSON.parse(JSON.stringify(raw)));
+    const value = reduceCredentialCarry(before);
+    return { value, changed: canonicalJson(value) !== canonicalJson(before) };
+  } catch {
+    return undefined;
+  }
 }
 
 /** The reserved credential call's args: its id, its message and the scrubbed
@@ -1734,8 +1797,10 @@ function driveAdkTopLevel(
     // agentState is an OBJECT on the official 2.0.0 EventActions (a
     // resumable-checkpoint snapshot, e.g. `{ input }`), a string on the older
     // hand-typed contract — JsonValue.parse at the boundary carries either.
-    if (actions.agentState !== undefined)
-      unmappedActions["agentState"] = JsonValue.parse(actions.agentState);
+    if (actions.agentState !== undefined) {
+      const carried = carryNodeValue(actions.agentState);
+      if (carried !== undefined) unmappedActions["agentState"] = carried.value;
+    }
     if (actions.endOfAgent !== undefined) unmappedActions["endOfAgent"] = actions.endOfAgent;
     if (Object.keys(unmappedActions).length > 0) {
       a.contentBlock(messageId, {
@@ -1800,7 +1865,10 @@ function driveAdkTopLevel(
   // throughout (`route` may legitimately be `false`/`0`; `output` may be any
   // JSON value incl. null); `nodeInfo` rides as a WHOLE object. `nodeInfo` is
   // also READ by maybeCloseTurn's per-event gate and by isAdkPauseEnd.
-  if (event.output !== undefined) unmappedEvent["output"] = JsonValue.parse(event.output);
+  if (event.output !== undefined) {
+    const carried = carryNodeValue(event.output);
+    if (carried !== undefined) unmappedEvent["output"] = carried.value;
+  }
   if (event.route !== undefined) unmappedEvent["route"] = JsonValue.parse(event.route);
   if (event.nodeInfo !== undefined) unmappedEvent["nodeInfo"] = JsonValue.parse(event.nodeInfo);
   if (event.isolationScope !== undefined)

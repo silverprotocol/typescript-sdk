@@ -1366,6 +1366,110 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
     }
   });
 
+  // ── node data in provider-raw (event output, actions.agentState) ──
+  const typedReply: { [k: string]: JsonValue } = {
+    authScheme: { type: "apiKey", in: "header", name: "X-Key" },
+    rawAuthCredential: { authType: "apiKey", apiKey: "SECRET_raw_reply" },
+    exchangedAuthCredential: { authType: "apiKey", apiKey: "SECRET_exchanged_reply" },
+    credentialKey: "fetch-key",
+  };
+  const typedReduced = {
+    authScheme: { type: "apiKey", in: "header", name: "X-Key" },
+    rawAuthCredential: { authType: "apiKey" },
+    exchangedAuthCredential: { authType: "apiKey" },
+    credentialKey: "fetch-key",
+  };
+  const untypedReply: { [k: string]: JsonValue } = { token: "SECRET_untyped_reply" };
+  const rawCarries = (out: AgEvent[]): { [k: string]: JsonValue }[] =>
+    out
+      .filter((e) => e.type === "content.block")
+      .map((e) => (e as { block: { type: string; raw?: JsonValue } }).block)
+      .filter((b) => b.type === "provider-raw" && isRecord(b.raw))
+      .map((b) => b.raw as { [k: string]: JsonValue });
+  const carryOf = (out: AgEvent[], member: string): JsonValue | undefined =>
+    rawCarries(out).find((r) => Object.hasOwn(r, member))?.[member];
+  const isRecord = (v: unknown): v is { [k: string]: JsonValue } => v !== null && typeof v === "object" && !Array.isArray(v);
+
+  it("node data: an ADK credential object inside actions.agentState.input, output or output.result is reduced to its allowlisted members; the rest rides unchanged", () => {
+    const cases: [Partial<AdkEvent>, (out: AgEvent[]) => JsonValue | undefined, JsonValue][] = [
+      [{ actions: { agentState: { input: typedReply } } }, (o) => carryOf(o, "agentState"), { input: typedReduced }],
+      [{ output: typedReply }, (o) => carryOf(o, "output"), typedReduced],
+      [{ output: { result: typedReply, step: 2 } }, (o) => carryOf(o, "output"), { result: typedReduced, step: 2 }],
+      [
+        { output: { cred: { auth_type: "apiKey", api_key: "SECRET_snake_key", resource_ref: "r" } } },
+        (o) => carryOf(o, "output"),
+        { cred: { auth_type: "apiKey", resource_ref: "r" } },
+      ],
+    ];
+    for (const [extra, pick, want] of cases) {
+      const out = run([event([{ text: "done" }], { ...extra, turnComplete: true, finishReason: "STOP" })]);
+      expect(pick(out), JSON.stringify(extra)).toEqual(want);
+      expectNoSecretAnywhere(out);
+    }
+  });
+
+  it("node data: a response named adk_request_credential, nested at any depth, keeps only its id, its name and the allowlisted response (an untyped reply becomes {}), matched by name, never by id", () => {
+    const record = (reply: JsonValue) => ({ role: "user", parts: [{ functionResponse: { id: "fetch-key", name: "adk_request_credential", response: reply } }] });
+    const reduced = (response: JsonValue) => ({ role: "user", parts: [{ functionResponse: { id: "fetch-key", name: "adk_request_credential", response } }] });
+    const cases: [Partial<AdkEvent>, string, JsonValue][] = [
+      [{ actions: { agentState: { input: record(typedReply) } } }, "agentState", { input: reduced(typedReduced) }],
+      [{ actions: { agentState: { input: record(untypedReply) } } }, "agentState", { input: reduced({}) }],
+      [{ output: { history: [record(untypedReply)] } }, "output", { history: [reduced({})] }],
+      [{ output: { fr: { name: "adk_request_credential", id: "any-other-id", response: "SECRET_string_reply", willContinue: false } } }, "output", { fr: { name: "adk_request_credential", id: "any-other-id" } }],
+    ];
+    for (const [extra, member, want] of cases) {
+      const out = run([event([{ text: "done" }], { ...extra, turnComplete: true, finishReason: "STOP" })]);
+      expect(carryOf(out, member), JSON.stringify(extra)).toEqual(want);
+      expectNoSecretAnywhere(out);
+    }
+    // The id alone never matches: another tool's response under the same id rides unchanged.
+    const other = { id: "fetch-key", name: "lookup", response: { token: "app-owned" } };
+    const out = run([event([{ text: "done" }], { output: { other }, turnComplete: true, finishReason: "STOP" })]);
+    expect(carryOf(out, "output")).toEqual({ other });
+  });
+
+  it("node data (known limit): an untyped reply forwarded bare, not inside a credential object or a response naming adk_request_credential, is not recognisable within one event and rides unchanged", () => {
+    for (const extra of [{ actions: { agentState: { input: { token: "t-open" } } } }, { output: { token: "t-open" } }, { output: { result: { token: "t-open" } } }] as Partial<AdkEvent>[]) {
+      const out = run([event([{ text: "done" }], { ...extra, turnComplete: true, finishReason: "STOP" })]);
+      expect(JSON.stringify(rawCarries(out))).toContain("t-open");
+    }
+  });
+
+  it("node data never throws: a live value with undefined members is reduced; one that cannot be serialized is omitted from the carry", () => {
+    const n = createAdkNormalizer();
+    const live = { invocationId: "inv_fixture_1", author: "node", content: { role: "model", parts: [{ text: "x" }] }, output: { cred: { authType: "apiKey", apiKey: "SECRET_live", resourceRef: undefined }, note: undefined } };
+    let out: AgEvent[] = [];
+    expect(() => {
+      out = [...n.push(live as unknown as JsonValue)];
+    }).not.toThrow();
+    expect(carryOf(out, "output")).toEqual({ cred: { authType: "apiKey" } });
+    const cyclic: { [k: string]: unknown } = { cred: { authType: "apiKey", apiKey: "SECRET_cyclic" } };
+    cyclic["self"] = cyclic;
+    const n2 = createAdkNormalizer();
+    let out2: AgEvent[] = [];
+    expect(() => {
+      out2 = [...n2.push({ invocationId: "inv_fixture_1", author: "node", content: { role: "model", parts: [{ text: "y" }] }, output: cyclic, route: "r" } as unknown as JsonValue), ...n2.flush()];
+    }).not.toThrow();
+    expect(carryOf(out2, "output")).toBeUndefined();
+    expect(carryOf(out2, "route")).toBe("r");
+    expect(JSON.stringify(out2)).not.toContain("SECRET_cyclic");
+    expect(out2.some((e) => e.type === "ext.google.unparsed")).toBe(false);
+  });
+
+  it("negative control: node data with no credential object and no credential-request response is carried byte-identical", () => {
+    const values: JsonValue[] = [
+      { result: { cart: 3 }, authType: "oauth2" },
+      { input: { parts: [{ functionResponse: { id: "c1", name: "echo", response: { ok: true } } }] } },
+      "plain LLM text as output",
+      [1, { authType: "bearer", http: {} }],
+    ];
+    for (const v of values) {
+      const out = run([event([{ text: "done" }], { output: v, actions: { agentState: { input: v } }, turnComplete: true, finishReason: "STOP" })]);
+      expect(JSON.stringify(carryOf(out, "output"))).toBe(JSON.stringify(v));
+      expect(JSON.stringify(carryOf(out, "agentState"))).toBe(JSON.stringify({ input: v }));
+    }
+  });
+
   it("negative control: an ordinary ORPHAN response still rides ext.google.unparsed whole", () => {
     const fr = { name: "ghost", response: { token: "not-a-credential-here", state: "ok" }, willContinue: false };
     const out = run([{ invocationId: "inv_fixture_1", content: { role: "user", parts: [{ functionResponse: fr }] } }]);
