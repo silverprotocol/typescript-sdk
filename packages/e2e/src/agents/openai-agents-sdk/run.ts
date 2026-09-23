@@ -24,7 +24,7 @@
  * first iteration with a clear message.
  */
 
-import { Agent, MCPServerStreamableHttp, type ModelSettings, run } from "@openai/agents";
+import { Agent, getAllMcpTools, MCPServerStreamableHttp, type ModelSettings, run, RunState, type Tool } from "@openai/agents";
 import type { JsonValue } from "@silverprotocol/core";
 import { toJsonValue } from "@silverprotocol/core";
 import type { CaptureRunInput } from "../types.js";
@@ -45,11 +45,121 @@ export function openaiModelSettings(input: CaptureRunInput): ModelSettings | und
 }
 
 /**
+ * The openai capture agent's approval / resume knobs (sp-main work order,
+ * 2026-09-24: the OpenAI approval-resume capture — evidence for the fold/flush
+ * package's Q2). They mirror sp-claude's deferred-tool pattern (a22d669 +
+ * 35ab1eb): leg 1 stops on the interruption and hands its RunState out; each
+ * resume leg forks from THAT serialized state with its own decision.
+ *
+ * - `toolApproval: "interrupt"` (leg 1): every MCP tool needs approval, so the
+ *   run stops on the first tool call's interruption. The serialized RunState
+ *   (`result.state.toString()`) goes to `onRunState`; probe's harness persists
+ *   it beside the seed. It is not in the native stream, unlike claude's
+ *   session_id.
+ * - `toolApproval: "approve" | "reject"` (a resume leg): `resumeRunState` is
+ *   leg 1's serialized state. `RunState.fromString` builds a FRESH state from
+ *   it every time, so the approve and reject legs fork from the same
+ *   interruption and never mutate each other. Every pending interruption gets
+ *   the decision, and `run(agent, state, {stream: true})` resumes. The
+ *   resumed stream is yielded in real order.
+ *
+ * Absent ⇒ none of this: the agent is built exactly as before (byte-identical).
+ * These live on an openai-local extension of CaptureRunInput. probe's
+ * harness (types.ts / scenario.ts / capture.ts / KNOB_SUPPORT) wires the
+ * scenario knobs to them.
+ */
+export interface OpenaiCaptureRunInput extends CaptureRunInput {
+  toolApproval?: "interrupt" | "approve" | "reject";
+  /** A resume leg's input: the RunState string leg 1 handed to `onRunState`. */
+  resumeRunState?: string;
+  /** Leg 1's output: receives the serialized RunState when the run stops on an interruption. */
+  onRunState?: (serializedRunState: string) => void;
+}
+
+export type OpenaiApprovalPlan =
+  | { mode: "interrupt"; onRunState: (serializedRunState: string) => void }
+  | { mode: "resume"; decision: "approve" | "reject"; runState: string };
+
+/**
+ * Validates the approval knobs before any network call and returns the plan,
+ * or `undefined` when no knob is set. A mis-set knob FAILS LOUD rather than
+ * recording a plain run under an approval-leg name (the KNOB_SUPPORT lesson,
+ * capture-cli.ts). It is also this agent's KNOB_SUPPORT proof export.
+ */
+export function openaiApprovalPlan(
+  input: Pick<OpenaiCaptureRunInput, "toolApproval" | "resumeRunState" | "onRunState">,
+): OpenaiApprovalPlan | undefined {
+  const { toolApproval, resumeRunState, onRunState } = input;
+  if (toolApproval === undefined) {
+    if (resumeRunState !== undefined) {
+      throw new Error("openai capture: resumeRunState is set but toolApproval is not; a resume leg must say approve or reject");
+    }
+    return undefined;
+  }
+  if (toolApproval === "interrupt") {
+    if (resumeRunState !== undefined) {
+      throw new Error('openai capture: toolApproval "interrupt" is leg 1 and must not resume a RunState');
+    }
+    if (onRunState === undefined) {
+      throw new Error('openai capture: toolApproval "interrupt" needs onRunState, or the leg-1 RunState would be lost');
+    }
+    return { mode: "interrupt", onRunState };
+  }
+  if (resumeRunState === undefined) {
+    throw new Error(`openai capture: toolApproval "${toolApproval}" is a resume leg and needs resumeRunState (leg 1's RunState)`);
+  }
+  return { mode: "resume", decision: toolApproval, runState: resumeRunState };
+}
+
+/** Every FUNCTION tool (the MCP tools, as `getAllMcpTools` lists them) gets a
+ *  `needsApproval` that always says yes. Other tools pass through untouched,
+ *  and the inputs are never mutated (a spread copy keeps `invoke`, so a
+ *  tool still executes against the real MCP mock once approved). */
+export function withRequiredApproval(tools: readonly Tool[]): Tool[] {
+  return tools.map((t) => (t.type === "function" ? { ...t, needsApproval: async () => true } : t));
+}
+
+/** The approval surface of a RunState that a resume leg needs (structural, so
+ *  the unit test can use a fake). */
+export interface ApprovalState<Item> {
+  getInterruptions(): Item[];
+  approve(item: Item): void;
+  reject(item: Item): void;
+}
+
+/** Applies the resume leg's decision to EVERY pending interruption and returns
+ *  the count. Zero pending FAILS LOUD: the resume would re-run nothing. */
+export function applyApprovalDecision<Item>(state: ApprovalState<Item>, decision: "approve" | "reject"): number {
+  const pending = state.getInterruptions();
+  if (pending.length === 0) {
+    throw new Error("openai capture: the resumed RunState has no pending approval interruption; nothing to approve or reject");
+  }
+  for (const item of pending) {
+    if (decision === "approve") state.approve(item);
+    else state.reject(item);
+  }
+  return pending.length;
+}
+
+/** Leg 1's serialized RunState. A run that ended WITHOUT an interruption
+ *  (no approval-gated tool was called) FAILS LOUD, so an interrupt-leg name
+ *  never holds a plain run. */
+export function serializeInterruptedRun(result: {
+  readonly interruptions: readonly unknown[];
+  readonly state: { toString(): string };
+}): string {
+  if (result.interruptions.length === 0) {
+    throw new Error('openai capture: toolApproval "interrupt" but the run ended with NO approval interruption (no approval-gated tool was called)');
+  }
+  return result.state.toString();
+}
+
+/**
  * Yields the RAW native `@openai/agents` `RunStreamEvent` stream, unnormalized,
  * each item materialized as a plain `JsonValue` via `toJsonValue` (audit
  * D5-a's native-ingestion boundary — the whole event, no per-field cast).
  */
-export async function* runOpenaiCapture(input: CaptureRunInput): AsyncIterable<JsonValue> {
+export async function* runOpenaiCapture(input: OpenaiCaptureRunInput): AsyncIterable<JsonValue> {
   const apiKey = input.apiKey ?? process.env["OPENAI_API_KEY"];
   if (!apiKey) {
     throw new Error(
@@ -61,6 +171,8 @@ export async function* runOpenaiCapture(input: CaptureRunInput): AsyncIterable<J
   // (mirrors the claude agent's `env: { ANTHROPIC_API_KEY }` per-call scoping
   // as closely as the SDK allows).
   process.env["OPENAI_API_KEY"] = apiKey;
+  // Validate the approval knobs BEFORE any MCP connect or API call.
+  const approval = openaiApprovalPlan(input);
 
   const mcpServers = Object.entries(input.mcpServers).map(
     ([name, cfg]) =>
@@ -126,15 +238,35 @@ export async function* runOpenaiCapture(input: CaptureRunInput): AsyncIterable<J
     }
 
     const modelSettings = openaiModelSettings(input);
-    const agent = new Agent({
-      name: "spike",
-      instructions: input.systemPrompt ?? "You are a helpful assistant.",
-      model: input.model ?? "gpt-4o-mini",
-      mcpServers,
-      ...(modelSettings !== undefined ? { modelSettings } : {}),
-    });
+    // With an approval knob, the MCP tools are listed once and passed as
+    // approval-gated `tools`; otherwise the agent is built exactly as before.
+    const agent =
+      approval === undefined
+        ? new Agent({
+            name: "spike",
+            instructions: input.systemPrompt ?? "You are a helpful assistant.",
+            model: input.model ?? "gpt-4o-mini",
+            mcpServers,
+            ...(modelSettings !== undefined ? { modelSettings } : {}),
+          })
+        : new Agent({
+            name: "spike",
+            instructions: input.systemPrompt ?? "You are a helpful assistant.",
+            model: input.model ?? "gpt-4o-mini",
+            tools: withRequiredApproval(await getAllMcpTools(mcpServers)),
+            ...(modelSettings !== undefined ? { modelSettings } : {}),
+          });
 
-    const stream = await run(agent, input.prompt, {
+    let runInput: string | RunState<unknown, typeof agent> = input.prompt;
+    if (approval?.mode === "resume") {
+      // A FRESH state from leg 1's string every time: the approve and reject
+      // legs fork from the same interruption.
+      const state = await RunState.fromString(agent, approval.runState);
+      applyApprovalDecision(state, approval.decision);
+      runInput = state;
+    }
+
+    const stream = await run(agent, runInput, {
       stream: true,
       maxTurns: input.maxTurns ?? 8,
       signal: abortController.signal,
@@ -148,6 +280,8 @@ export async function* runOpenaiCapture(input: CaptureRunInput): AsyncIterable<J
     // Ensure the stream is fully drained (guardrails / final-output resolution)
     // before cleanup — mirrors the SDK's own documented usage pattern.
     await stream.completed;
+    // Leg 1: the run stopped on the interruption; hand its RunState out.
+    if (approval?.mode === "interrupt") approval.onRunState(serializeInterruptedRun(stream));
   } finally {
     signal?.removeEventListener("abort", onAbort);
     await Promise.all(mcpServers.map((server) => server.close()));
