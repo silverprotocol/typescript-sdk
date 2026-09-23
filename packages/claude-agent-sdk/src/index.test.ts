@@ -1363,6 +1363,123 @@ describe("createClaudeNormalizer — deferral c: assistant error → turn.error"
   });
 });
 
+// ─── SDKUserMessageReplay (`isReplay: true`) emits no core event ─────────────
+// sp-rnd lead (2026-09-23). Two hazards, both confirmed on fixtures before the fix:
+//  - the realistic one: a replay ack landing MID-STREAM ran closePendingMessage()
+//    and split the streaming message (test in the stream_event describe below);
+//  - the defensive one: a replayed tool_result re-emitted `tool.done`, which after
+//    its turn's `turn.done` parked the fold for the rest of the stream (INV-MSG) and
+//    in a fresh normalizer parked from the first event. No 0.3.280 CLI replay
+//    builder carries tool_results (its history filter requires !toolUseResult), so
+//    this half is fixture-only.
+describe("createClaudeNormalizer — replayed user frames (isReplay) re-emit nothing", () => {
+  function asst(id: string, content: BetaMessage["content"], stop: BetaMessage["stop_reason"], uuid: UUID): SDKMessage {
+    return {
+      type: "assistant",
+      message: { ...betaMessage(content, { stop_reason: stop }), id },
+      parent_tool_use_id: null,
+      uuid,
+      session_id: "sess_fixture",
+    };
+  }
+  const toolUse = (): SDKMessage =>
+    asst("msg_tool", [{ type: "tool_use", id: "toolu_fixture_1", name: "Read", input: { path: "a" } }], "tool_use", "00000000-0000-0000-0000-0000000000c1");
+  const answer = (): SDKMessage =>
+    asst("msg_answer", [{ type: "text", text: "It is 42.", citations: null }], "end_turn", "00000000-0000-0000-0000-0000000000c2");
+  const nextTurn = (): SDKMessage =>
+    asst("msg_next", [{ type: "text", text: "Next turn.", citations: null }], "end_turn", "00000000-0000-0000-0000-0000000000c3");
+  // The replay of `toolResultMsg()`'s tool_result: same content, its own uuid.
+  // `flaglessTwin()` is the SAME frame minus `isReplay`, so the negative controls
+  // below differ from the replay by the flag alone (not by isSynthetic or uuid).
+  const replayContent = (): UserContent => [
+    { type: "tool_result", tool_use_id: "toolu_fixture_1", content: [{ type: "text", text: "42" }], is_error: false },
+  ];
+  function replayedToolResult(): SDKMessage {
+    return {
+      type: "user",
+      message: { role: "user", content: replayContent() },
+      parent_tool_use_id: null,
+      isSynthetic: true,
+      uuid: "00000000-0000-0000-0000-0000000000c4",
+      session_id: "sess_fixture",
+      isReplay: true,
+    };
+  }
+  function flaglessTwin(): SDKMessage {
+    return {
+      type: "user",
+      message: { role: "user", content: replayContent() },
+      parent_tool_use_id: null,
+      isSynthetic: true,
+      uuid: "00000000-0000-0000-0000-0000000000c4",
+      session_id: "sess_fixture",
+    };
+  }
+  function events(frames: SDKMessage[]): AgEvent[] {
+    const n = createClaudeNormalizer();
+    const evs: AgEvent[] = [];
+    for (const f of frames) evs.push(...n.push(JsonValue.parse(f)));
+    evs.push(...n.flush());
+    assertAllValid(evs);
+    return evs;
+  }
+  function fold(evs: AgEvent[]): Reducer {
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    return r;
+  }
+
+  it("fold: a replay AFTER turn.done no longer parks — the next turn still folds", () => {
+    const evs = events([toolUse(), toolResultMsg(), answer(), resultSuccess("end_turn"), replayedToolResult(), nextTurn(), resultSuccess("end_turn")]);
+    expect(evs.filter((e) => e.type === "tool.done")).toHaveLength(1);
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    const result = r.result();
+    // Both turns share `turn_sess_fixture` (turnIdFor keys on session_id), so the
+    // outcome check cannot tell them apart; `msg_next` folding is the proof.
+    expect(result.messages.map((m) => m.id)).toEqual(["msg_tool", "toolu_fixture_1:result", "msg_answer", "msg_next"]);
+    expect(result.turns.find((t) => t.turnId === TOP_TURN)?.outcome).toMatchObject({ type: "success" });
+  });
+
+  it("fold: a fresh (resumed) normalizer whose first frame is a replay emits nothing and folds the turn that follows", () => {
+    const evs = events([replayedToolResult(), nextTurn(), resultSuccess("end_turn")]);
+    expect(evs.some((e) => e.type === "tool.done")).toBe(false);
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.map((m) => m.id)).toEqual(["msg_next"]);
+  });
+
+  it("a replay inside its still-open turn is a pure no-op (byte-identical to the stream without it)", () => {
+    const base = events([toolUse(), toolResultMsg(), answer(), resultSuccess("end_turn")]);
+    const withReplay = events([toolUse(), toolResultMsg(), replayedToolResult(), answer(), resultSuccess("end_turn")]);
+    expect(withReplay).toStrictEqual(base);
+  });
+
+  it("a replay interleaved between two frames of ONE assistant message does not split it", () => {
+    // guuey#26 continuation: two frames sharing an SDK message id fold as one
+    // message. The replay returns before `closePendingMessage()`, so it cannot
+    // seal the first frame early.
+    const part1 = asst("msg_split", [{ type: "text", text: "part one", citations: null }], null, "00000000-0000-0000-0000-0000000000c5");
+    const part2 = asst("msg_split", [{ type: "text", text: "part two", citations: null }], "end_turn", "00000000-0000-0000-0000-0000000000c6");
+    const base = events([part1, part2, resultSuccess("end_turn")]);
+    const withReplay = events([part1, replayedToolResult(), part2, resultSuccess("end_turn")]);
+    expect(withReplay).toStrictEqual(base);
+    expect(withReplay.filter((e) => e.type === "message.start")).toHaveLength(1);
+  });
+
+  it("negative control: the SAME frame with the flag absent, or `isReplay: false`, still emits its tool.done", () => {
+    // Absent: the key is not there at all (a plain SDKUserMessage).
+    const absent = events([toolUse(), flaglessTwin()]);
+    expect(absent.filter((e) => e.type === "tool.done")).toHaveLength(1);
+    // `isReplay: false` is a real CLI shape: the compact-summary builder stamps
+    // `isReplay: !e.isCompactSummary` (CLI 2.1.280). Only `=== true` is a replay.
+    const n = createClaudeNormalizer();
+    const evs = [...n.push(JsonValue.parse(toolUse())), ...n.push(JsonValue.parse({ ...flaglessTwin(), isReplay: false })), ...n.flush()];
+    assertAllValid(evs);
+    expect(evs.filter((e) => e.type === "tool.done")).toHaveLength(1);
+  });
+});
+
 // ─── Finding #1 (critical): refusal-fallback retraction protocol ─────────────
 // playbook 2026-07-03 SDK-bump adaptation (claude-agent-sdk 0.2.141 → 0.3.199).
 // New wire: SDKAssistantMessage.supersedes? + the system message
@@ -3591,6 +3708,42 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
     expect(deltas.map((e) => (e.type === "text.delta" ? e.delta : ""))).toEqual(["hel", "lo"]);
     expect(evs.filter((e) => e.type === "text.start")).toHaveLength(1);
     expect(evs.filter((e) => e.type === "text.end")).toHaveLength(1);
+  });
+
+  it("a replayed prompt ACK mid-stream (isReplay, string content) neither splits the message nor strands its tail", () => {
+    // The CLI sends replay acks when it accepts stdin input and never holds them,
+    // so an ack can land between partials. Before the isReplay guard the user
+    // branch ran closePendingMessage() on it: the message split in two, and the
+    // complete frame re-opened a `:cont:` copy (sp-rnd lead, 2026-09-23).
+    const ack: SDKMessage = {
+      type: "user",
+      message: { role: "user", content: "and also check the tests" },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000d1",
+      session_id: "sess_fixture",
+      isReplay: true,
+    };
+    const head = [streamFrame(messageStart()), streamFrame(cbStartText(0)), streamFrame(cbDeltaText(0, "hel"))];
+    const tail = [
+      streamFrame(cbDeltaText(0, "lo")),
+      streamFrame(cbStop(0)),
+      streamFrame(msgDelta(5)),
+      streamFrame(msgStop()),
+      completeFrame([{ type: "text", text: "hello", citations: null }]),
+      resultSuccess("end_turn"),
+    ];
+    const n1 = createClaudeNormalizer();
+    const base = [...pushAll(n1, [...head, ...tail]), ...n1.flush()];
+    const n2 = createClaudeNormalizer();
+    const withAck = [...pushAll(n2, [...head, ack, ...tail]), ...n2.flush()];
+    assertAllValid(withAck);
+    expect(withAck).toStrictEqual(base);
+    const r = new Reducer();
+    for (const e of withAck) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const result = r.result();
+    expect(result.messages.map((m) => m.id)).toEqual([STREAM_ID]);
+    expect(result.messages[0]?.content).toMatchObject([{ type: "text", text: "hello" }]);
   });
 
   it("INV-MSG: one message.start / one message.end across partials + complete, never a re-open", () => {

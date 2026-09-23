@@ -1835,6 +1835,28 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
     }
 
     if (msg.type === "user") {
+      // SDKUserMessageReplay (`isReplay: true`, typed only on that arm; a
+      // runtime `isReplay: false` also exists, so only `=== true` counts) emits
+      // NO core event and does NOT seal the open message (sp-rnd lead,
+      // 2026-09-23). The CLI 2.1.280 replay builders are the host's own-prompt
+      // acks (sent on stdin accept, never held), queued-prompt merges, history
+      // re-sends (filtered to `!toolUseResult`, so no tool_results), and
+      // local-command/bash echo+output. All of them are string or prompt content,
+      // which this branch never mapped (it maps only tool_result blocks), so
+      // skipping loses nothing it used to emit. What the skip fixes:
+      //  - REALISTIC: an ack landing mid-stream used to run closePendingMessage()
+      //    and split the streaming message (the complete frame then re-opened a
+      //    `:cont:` copy). Returning first keeps it a byte-identical no-op.
+      //  - DEFENSIVE (fixture-only; no 0.3.280 builder produces it): a replayed
+      //    tool_result re-emitted `tool.done`. After its turn's `turn.done` that
+      //    parked `reduce()` for the rest of the stream (INV-MSG, SPEC:745); in a
+      //    fresh normalizer it carried no turnId and parked from event 0.
+      // DISCLOSED GAP, unchanged by this fix: replayed string content that is the
+      // FIRST delivery (bash `<bash-input>` echo and output, local-command
+      // output) has no AgJSON event. It is a candidate for the item-22 carry
+      // `ext.anthropic.frame{kind:"user"}`. The replay's `tool_use_result`
+      // sibling, read here for live frames, is no longer read on replays.
+      if ("isReplay" in msg && msg.isReplay === true) return;
       // guuey#26: a tool_result binds to the fold — seal the open assistant
       // message first, exactly as the per-frame close used to (spec §5 tool.done
       // adoption below depends on this ordering).
