@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { AgEvent, type JsonValue } from "./agjson.js";
 import { ingestAgEvent, ingestAgEvents } from "./ingest.js";
 import { Reducer } from "./reduce.js";
@@ -96,5 +98,71 @@ describe("ingestAgEvent — wire data never sets the returned event's prototype 
     const v = { type: "content.block", seq: 2, block: { type: "text", text: "x" }, futureField: 1 } as JsonValue;
     const expected = Object.assign({}, v, AgEvent.parse(v));
     expect(JSON.stringify(ingestAgEvent(v))).toBe(JSON.stringify(expected));
+  });
+});
+
+describe("ingestAgEvent — unknown fields pass through at EVERY depth (SPEC.md:27; workspace#20 stage 1)", () => {
+  type Rec = { [k: string]: unknown };
+  const own = (o: unknown, k: string): boolean => Object.prototype.hasOwnProperty.call(o, k);
+
+  it("keeps a nested unknown key in turn.done.usage (depth 2) and inside usage.byModel (depth 4)", () => {
+    const e = ingestAgEvent({
+      type: "turn.done",
+      seq: 0,
+      turnId: "t1",
+      outcome: { type: "success" },
+      finishReason: "stop",
+      usage: { inputTokens: 1, outputTokens: 2, zzCounter: 7, byModel: { m: { inputTokens: 1, zzPerModel: "x" } } },
+    }) as unknown as Rec;
+    const usage = e["usage"] as Rec;
+    expect(usage["zzCounter"]).toBe(7);
+    expect(((usage["byModel"] as Rec)["m"] as Rec)["zzPerModel"]).toBe("x");
+  });
+
+  it("keeps a nested unknown key in content.block.block (depth 2) and in a tool.done content element (depth 3)", () => {
+    const cb = ingestAgEvent({ type: "content.block", seq: 0, block: { type: "text", text: "x", zzKey: "kept" } }) as unknown as Rec;
+    expect((cb["block"] as Rec)["zzKey"]).toBe("kept");
+    const td = ingestAgEvent({
+      type: "tool.done",
+      seq: 0,
+      toolCallId: "c1",
+      content: [{ type: "text", text: "ok", zzDeep: 1 }],
+    }) as unknown as Rec;
+    expect(((td["content"] as Rec[])[0] as Rec)["zzDeep"]).toBe(1);
+  });
+
+  it("drops `__proto__` at depth 2 and 3: plain prototypes, nothing inherited, the data block still folds", () => {
+    // JSON.parse keeps `__proto__` as an OWN key at every depth, as a wire decoder would.
+    const wire = JSON.parse(
+      '[{"type":"turn.start","seq":0,"threadId":"th1","turnId":"t1"},' +
+        '{"type":"message.start","seq":1,"id":"m1","role":"assistant","turnId":"t1","threadId":"th1"},' +
+        '{"type":"content.block","seq":2,"turnId":"t1","block":{"type":"data","name":"d","__proto__":{"transient":true},' +
+        '"data":{"k":1,"__proto__":{"polluted":true}}}},' +
+        '{"type":"message.end","seq":3,"id":"m1"}]',
+    ) as JsonValue[];
+    const rawBlock = (wire[2] as Rec)["block"] as Rec;
+    expect(own(rawBlock, "__proto__")).toBe(true); // non-vacuity: depth 2
+    expect(own(rawBlock["data"], "__proto__")).toBe(true); // non-vacuity: depth 3
+    const evs = ingestAgEvents(wire);
+    const block = (evs[2] as unknown as Rec)["block"] as Rec;
+    const data = block["data"] as Rec;
+    for (const o of [block, data]) {
+      expect(Object.getPrototypeOf(o)).toBe(Object.prototype);
+      expect(own(o, "__proto__")).toBe(false);
+    }
+    expect("transient" in block).toBe(false);
+    expect("polluted" in data).toBe(false);
+    const r = new Reducer();
+    for (const ev of evs) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages[0]!.content).toEqual([{ type: "data", name: "d", data: { k: 1 } }]);
+  });
+
+  it("guard: agjson.ts has no value-changing zod combinator, so the raw copy IS the validated value", () => {
+    // ingest returns a copy of the RAW input after validation (workspace#20 A.6).
+    // That is only equal to the validated value while no schema rewrites values.
+    const src = readFileSync(fileURLToPath(new URL("./agjson.ts", import.meta.url)), "utf8");
+    const hits = src.match(/\.(transform|default|catch|pipe|overwrite|prefault)\(|z\.coerce|\.coerce\.|preprocess\(/g) ?? [];
+    expect(hits).toEqual([]);
   });
 });

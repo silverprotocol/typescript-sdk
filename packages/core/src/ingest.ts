@@ -6,32 +6,44 @@
  * DISTINCT from producer conformance (`AgEvent.parse`), which rejects anything
  * outside the schema.
  *
- * Field-passthrough scope: unknown TOP-LEVEL fields are preserved verbatim.
- * Nested structured sub-objects are returned in validated form; the opaque
- * channels (`_meta`, `providerMetadata`, provider payload fields) are typed as
- * opaque bags and therefore pass through in full by construction.
+ * Field-passthrough scope: unknown fields are preserved verbatim at EVERY
+ * depth (SPEC.md:27 does not limit "untouched" to the top level). After a
+ * successful `AgEvent.safeParse`, the returned event is an own-property deep
+ * copy of the RAW input, not zod's validated output, which strips unknown
+ * nested keys. The copy equals the validated value only because no schema in
+ * agjson.ts rewrites values (no transform/default/coerce/catch/pipe/
+ * preprocess); ingest.test.ts guards that.
+ *
+ * One exception, at every depth: a key named `__proto__` is dropped, never
+ * copied. A consumer must not let wire data select the prototype of any object
+ * it materialises (JSON.parse keeps such a key as an own property, and
+ * assigning it would run Object.prototype's setter).
  */
 import { AgEvent, type JsonValue } from "./agjson.js";
+
+/** Own-property deep copy of a JSON value, dropping `__proto__` at every depth. */
+function copyJson(v: JsonValue): JsonValue {
+  if (Array.isArray(v)) return v.map(copyJson);
+  if (v === null || typeof v !== "object") return v;
+  const out: { [k: string]: JsonValue } = {};
+  for (const k of Object.keys(v)) {
+    if (k === "__proto__") continue;
+    // DEFINED, never assigned (belt and braces with the skip above).
+    Object.defineProperty(out, k, {
+      value: copyJson((v as { [k: string]: JsonValue })[k]!),
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
+  }
+  return out;
+}
 
 export function ingestAgEvent(v: JsonValue): AgEvent | undefined {
   if (v === null || typeof v !== "object" || Array.isArray(v)) return undefined;
   const r = AgEvent.safeParse(v);
   if (!r.success) return undefined;
-  // Preserve unknown top-level fields: validated keys win, unknown keys ride
-  // along, in the same key order a plain merge would give. Keys are DEFINED,
-  // never assigned: assigning a wire key named `__proto__` runs
-  // Object.prototype's setter, which would let wire data choose the returned
-  // event's prototype, and then fields it never carried (and the schema never
-  // validated) would be inherited (SPEC.md:759, :27). That one key is skipped
-  // outright, matching zod, which keeps it at no nested depth either.
-  const out: { [k: string]: unknown } = {};
-  for (const src of [v, r.data] as ReadonlyArray<{ [k: string]: unknown }>) {
-    for (const k of Object.keys(src)) {
-      if (k === "__proto__") continue;
-      Object.defineProperty(out, k, { value: src[k], enumerable: true, writable: true, configurable: true });
-    }
-  }
-  return out as AgEvent;
+  return copyJson(v) as unknown as AgEvent;
 }
 
 export function ingestAgEvents(vs: JsonValue[]): AgEvent[] {
