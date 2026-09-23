@@ -5719,6 +5719,7 @@ function secondApiErrorAssistantFrame(error: NonNullable<SDKAssistantError>): un
 describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.error, never as success", () => {
   it("the two-frame sequence (assistant `error` frame, then success result with is_error:true) closes the turn exactly ONCE, as turn.error carrying the result's usage", () => {
     const evs = drive([apiErrorAssistantFrame(), apiErrorResultFrame()]);
+    // result-meta carries the error close's api_error_status + stop_reason.
     expect(evs.map((e) => e.type)).toEqual([
       "turn.start",
       "message.start",
@@ -5726,6 +5727,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
       "text.delta",
       "text.end",
       "message.end",
+      "ext.anthropic.result-meta",
       "turn.error",
     ]);
     const closes = turnCloses(evs);
@@ -5755,7 +5757,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
       "message.end",
     ]);
     const atResult = n.push(JsonValue.parse(apiErrorResultFrame()));
-    expect(atResult.map((e) => e.type)).toEqual(["turn.error"]);
+    expect(atResult.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "turn.error"]);
     // Nothing is left for the flush to close.
     expect(n.flush()).toEqual([]);
   });
@@ -5876,13 +5878,16 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     // the result frame arrives.
     const withDenial = drive([apiErrorAssistantFrame(), resultWithDenial()]);
     const sealAt = withDenial.findIndex((e) => e.type === "message.end");
+    // The turn closes as turn.error, so the result's stop_reason rides result-meta.
     expect(withDenial.slice(sealAt + 1).map((e) => e.type)).toEqual([
       "message.start",
       "tool.start",
       "tool.done",
       "message.end",
+      "ext.anthropic.result-meta",
       "turn.error",
     ]);
+    expect(withDenial.find((e) => e.type === "ext.anthropic.result-meta")).toMatchObject({ stopReason: "end_turn" });
     const normal = run(resultWithDenial());
     expect(denialCarrier(withDenial)).toHaveLength(4);
     expect(denialCarrier(withDenial, true)).toEqual(denialCarrier(normal, true));
@@ -6169,8 +6174,10 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     }
     // Absent status (an older producer): not retriable, still an error close.
     const evs = drive([withoutKey(apiErrorResultFrame(), "api_error_status")]);
-    expect(evs.map((e) => e.type)).toEqual(["turn.start", "turn.error"]);
-    expect(evs[1]).toMatchObject({ code: "api_error", retriable: false });
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.error"]);
+    expect(evs[1]).toMatchObject({ stopReason: "stop_sequence" });
+    expect(evs[1]).not.toHaveProperty("apiErrorStatus");
+    expect(evs[2]).toMatchObject({ code: "api_error", retriable: false });
   });
 
   it("result-only path with denials: the `<turnId>:denials` carrier opens as on every turn — then turn.error", () => {
@@ -6185,9 +6192,11 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
       "tool.start",
       "tool.done",
       "message.end",
+      "ext.anthropic.result-meta",
       "turn.error",
     ]);
-    expect(evs.some((e) => e.type === "ext.anthropic.result-meta")).toBe(false);
+    // Only the error close's own carries: api_error_status + stop_reason.
+    expect(evs.find((e) => e.type === "ext.anthropic.result-meta")).toMatchObject({ apiErrorStatus: 429, stopReason: "stop_sequence" });
     const r = fold(evs);
     expect(r.needsResync).toBe(false);
     expect(r.result().turns.find((t) => t.turnId === RESULT_ONLY_TURN)?.outcome).toMatchObject({ type: "error", code: "api_error" });
@@ -6345,6 +6354,40 @@ const LIVE_RESULT_FRAME = {
   result_index: 0,
 };
 
+// ─── result-meta: apiErrorStatus + an error close's stopReason ───────────────
+// The api-error-auth seed's census drops 5 and 6 (sp-probe): `api_error_status`
+// was read only for `retriable`, and `stop_reason` on a result that closes as
+// turn.error had no home (turn.error has no finishReason; finishReasonRaw is
+// turn.done-only). Both ride result-meta verbatim; stopReason ONLY on an error
+// close, so a success close keeps it on finishReason alone.
+describe("createClaudeNormalizer — result-meta apiErrorStatus / error-close stopReason", () => {
+  function pushAll(frames: unknown[]): AgEvent[] {
+    const n = createClaudeNormalizer();
+    const evs = [...frames.flatMap((f) => n.push(JsonValue.parse(f))), ...n.flush()];
+    assertAllValid(evs);
+    return evs;
+  }
+  const meta = (evs: AgEvent[]): AgEvent | undefined => evs.find((e) => e.type === "ext.anthropic.result-meta");
+
+  it("an error-subtype result carries its stop_reason; a present api_error_status rides beside it", () => {
+    const evs = pushAll([{ ...(resultError("error_max_turns") as object), stop_reason: "tool_use", api_error_status: 529 }]);
+    expect(meta(evs)).toMatchObject({ stopReason: "tool_use", apiErrorStatus: 529 });
+  });
+
+  it("NEGATIVE CONTROL: a SUCCESS close keeps stop_reason on finishReason only — no result-meta at all (byte-identical)", () => {
+    const evs = pushAll([resultSuccess("end_turn")]);
+    expect(meta(evs)).toBeUndefined();
+    expect(evs.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "stop" });
+  });
+
+  it("NEGATIVE CONTROL: a null or non-number api_error_status carries no key", () => {
+    for (const bad of [null, "401"]) {
+      const evs = pushAll([{ ...(resultError("error_max_turns") as object), stop_reason: null, api_error_status: bad }]);
+      expect(meta(evs) === undefined || !("apiErrorStatus" in (meta(evs) as object))).toBe(true);
+    }
+  });
+});
+
 describe("createClaudeNormalizer — CL-09 LIVE: the captured invalid-API-key frames (401)", () => {
   // INV-TURN (B): named by the live error frame's message id, not the session.
   const LIVE_TURN = "turn_00000000-0000-4000-8000-0000000c1091";
@@ -6366,6 +6409,10 @@ describe("createClaudeNormalizer — CL-09 LIVE: the captured invalid-API-key fr
       queuedTurnCount: 0,
       resultIndex: 0,
     });
+    // The live 401 frame's own error facts ride result-meta too (sp-probe's
+    // api-error-auth seed): the HTTP status, and the stop_reason an error close
+    // has no finishReason slot for.
+    expect(evs[6]).toMatchObject({ apiErrorStatus: 401, stopReason: "stop_sequence" });
     const closes = turnCloses(evs);
     expect(closes).toEqual([
       {
@@ -6500,7 +6547,7 @@ describe("createClaudeNormalizer — the API-error triad (api_error / api_error_
       apiErrorCode: "overloaded_error",
     });
     const without = drive([apiErrorAssistantFrame(), apiErrorResultFrame()]);
-    expect(without.some((e) => e.type === "ext.anthropic.result-meta")).toBe(false);
+    expect(without.find((e) => e.type === "ext.anthropic.result-meta")).not.toHaveProperty("apiErrorCode");
     const bad = drive([apiErrorAssistantFrame(), apiErrorResultFrame({ api_error_code: 42 })]);
     expect(bad).toEqual(without);
   });

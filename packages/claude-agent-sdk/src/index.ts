@@ -962,7 +962,7 @@ function apiErrorStatusRetriable(status: unknown): boolean {
 //    value verbatim; it also drives `turn.error.retriable` (see
 //    `startupFailureRetriable`). Read through the JSON boundary because it is
 //    declared on that one arm only.
-function resultMetaPayload(msg: SDKResultMsg): { [k: string]: JsonValue } | undefined {
+function resultMetaPayload(msg: SDKResultMsg, closesAsError: boolean): { [k: string]: JsonValue } | undefined {
   const byModel: { [k: string]: JsonValue } = {};
   const modelUsage = isJsonObject(msg.modelUsage) ? msg.modelUsage : {};
   for (const [model, mu] of Object.entries(modelUsage)) {
@@ -998,6 +998,19 @@ function resultMetaPayload(msg: SDKResultMsg): { [k: string]: JsonValue } | unde
   // capture sets a defer hook.
   const deferredToolUse =
     isJsonObject(raw) && isJsonObject(raw["deferred_tool_use"]) ? JsonValue.parse(raw["deferred_tool_use"]) : undefined;
+  // `api_error_status` (SUCCESS arm, `number | null`): the HTTP status of the
+  // API error that ended the turn. It already decides `retriable` on an
+  // is_error close; it is now also CARRIED verbatim, beside `apiErrorCode`, as
+  // the census allowlist's "carry candidate the first time an error seed
+  // surfaces it" (sp-probe's api-error-auth seed: 401). Absent or null ⇒ no key.
+  const apiErrorStatus =
+    isJsonObject(raw) && typeof raw["api_error_status"] === "number" ? raw["api_error_status"] : undefined;
+  // `stop_reason` on a result that closes as turn.error: turn.error has no
+  // finishReason slot (and finishReasonRaw is turn.done-only), so the native
+  // value would otherwise be dropped. Carried verbatim ONLY on an error close;
+  // a success close keeps it on finishReason / finishReasonRaw (no duplicate).
+  const stopReason =
+    closesAsError && isJsonObject(raw) && typeof raw["stop_reason"] === "string" ? raw["stop_reason"] : undefined;
   const payload: { [k: string]: JsonValue } = {
     ...(typeof msg.fast_mode_disabled_reason === "string"
       ? { fastModeDisabledReason: msg.fast_mode_disabled_reason }
@@ -1013,6 +1026,8 @@ function resultMetaPayload(msg: SDKResultMsg): { [k: string]: JsonValue } | unde
     ...(startupFailureReason !== undefined ? { startupFailureReason } : {}),
     ...(subagentStats !== undefined ? { subagentStats } : {}),
     ...(deferredToolUse !== undefined ? { deferredToolUse } : {}),
+    ...(apiErrorStatus !== undefined ? { apiErrorStatus } : {}),
+    ...(stopReason !== undefined ? { stopReason } : {}),
     ...(Object.keys(byModel).length > 0 ? { modelUsage: byModel } : {}),
   };
   return Object.keys(payload).length > 0 ? payload : undefined;
@@ -2499,7 +2514,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // ride `ext.anthropic.result-meta` before the close (no core home on
       // turn.done — see resultMetaPayload's doc). CL-09: it is emitted on an
       // API-error turn too, before its close like on every other turn.
-      const resultMeta = resultMetaPayload(msg);
+      const resultMeta = resultMetaPayload(msg, stashedError !== undefined || apiErrorTurn);
       if (resultMeta !== undefined) {
         a.emitExt("anthropic", "result-meta", resultMeta);
       }
@@ -2584,7 +2599,7 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
       // 0.3.220: fast_mode_disabled_reason exists on BOTH result arms — the
       // error variant gets the SAME `ext.anthropic.result-meta` carry as the
       // success arm above (turn.error carries no metadata slot at all).
-      const resultMeta = resultMetaPayload(msg);
+      const resultMeta = resultMetaPayload(msg, true);
       if (resultMeta !== undefined) {
         a.emitExt("anthropic", "result-meta", resultMeta);
       }
