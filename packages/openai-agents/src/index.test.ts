@@ -1062,47 +1062,85 @@ describe("createOpenaiNormalizer — response.failed error arm (T5c)", () => {
     // (no `error.misalignment`) emits NO ext.openai.misalignment event —
     // the pre-7.10.0 output is byte-identical.
     expect(evs.some((e) => e.type === "ext.openai.misalignment")).toBe(false);
+    expect(evs.some((e) => e.type === "message.start" && Reflect.get(e, "role") === "notice")).toBe(false);
   });
 
   // openai-node >=7.10.0 (GPT-6 Astra misalignment monitoring): response.failed
   // may carry `error.misalignment {detailed_explanation, error_type, steer{message}}`
-  // beside code `misalignment_policy_violation`. Documented auto-stop applies
-  // only to persisted-reasoning / WebSocket / compaction requests, which the
-  // e2e capture path (HTTP, no reasoning config) never uses — so this arm is
-  // synthetic-tested only. The facet carries the block VERBATIM on a
-  // turn-scoped ext.openai.misalignment event immediately before turn.error.
-  it("response.failed with error.misalignment → ext.openai.misalignment (verbatim, incl. unknown keys) right before turn.error", () => {
+  // beside code `misalignment_policy_violation` (synthetic-tested only: the
+  // documented auto-stop applies to persisted-reasoning / WebSocket / compaction
+  // requests the e2e HTTP path never uses). rd-15 (sp-protocol's package A.6,
+  // founder: rides 0.7.0; sp-cto: the carry must sit in a home that FOLDS):
+  // before turn.error the facet emits an adapter NOTICE message — one text block
+  // whose text is `detailed_explanation` verbatim (error.message when absent) and
+  // whose text.start `_meta["openai/misalignment"]` holds the WHOLE object
+  // (incl. steer and unknown keys). The live-only ext.openai.misalignment carry
+  // is RETIRED (the item-21 one-carrier precedent).
+  const MISALIGNMENT = {
+    error_type: "potentially_unintended_destructive_activity",
+    detailed_explanation: "The model attempted to delete files outside the workspace.",
+    steer: { message: "Confirm the deletion scope with the user before continuing." },
+    future_key: { nested: true },
+  };
+  function failedWith(respId: string, misalignment: JsonValue | undefined): JsonValue[] {
+    const error: { [k: string]: JsonValue } = { message: "Misalignment policy violation", code: "misalignment_policy_violation" };
+    if (misalignment !== undefined) error.misalignment = misalignment;
+    return [
+      rawModel({ type: "response.created", response: { id: respId } }),
+      rawModel({ type: "response.output_text.delta", item_id: `msg_${respId}`, delta: "Deleting…" }),
+      rawModel({ type: "response.failed", response: { id: respId, error } }),
+    ];
+  }
+
+  it("rd-15: response.failed with error.misalignment → an adapter NOTICE message (text = detailed_explanation, text.start _meta carries the whole object) right before turn.error; no ext.openai.misalignment", () => {
     const n = createOpenaiNormalizer();
-    const misalignment = {
-      error_type: "potentially_unintended_destructive_activity",
-      detailed_explanation: "The model attempted to delete files outside the workspace.",
-      steer: { message: "Confirm the deletion scope with the user before continuing." },
-      future_key: { nested: true },
-    };
-    const evs = [
-      rawModel({ type: "response.created", response: { id: "resp_mis_1" } }),
-      rawModel({
-        type: "response.failed",
-        response: {
-          id: "resp_mis_1",
-          error: { message: "Misalignment policy violation", code: "misalignment_policy_violation", misalignment },
-        },
-      }),
-    ]
+    const evs = failedWith("resp_mis_1", MISALIGNMENT)
       .flatMap((e) => n.push(e))
       .concat(n.flush());
     const types = evs.map((e) => e.type);
-    const extIdx = types.indexOf("ext.openai.misalignment");
+    expect(types).not.toContain("ext.openai.misalignment");
     const errIdx = types.indexOf("turn.error");
-    expect(extIdx).toBeGreaterThanOrEqual(0);
-    expect(errIdx).toBe(extIdx + 1);
-    const ext = evs[extIdx] as { responseId?: string; misalignment?: unknown };
-    expect(ext.responseId).toBe("resp_mis_1"); // the payload carries the response id; ext events are turn-scoped by position, not by envelope
-    expect(ext.misalignment).toEqual(misalignment);
-    const err = evs[errIdx] as { message?: string; code?: string };
-    expect(err.message).toBe("Misalignment policy violation");
-    expect(err.code).toBe("misalignment_policy_violation");
+    expect(types.slice(errIdx - 5, errIdx + 1)).toEqual(["message.start", "text.start", "text.delta", "text.end", "message.end", "turn.error"]);
+    const notice = evs[errIdx - 5];
+    expect(notice).toMatchObject({ type: "message.start", role: "notice", noticeSource: "adapter", turnId: "turn_resp_mis_1" });
+    const noticeId = Reflect.get(notice ?? {}, "id");
+    expect(evs[errIdx - 4]).toMatchObject({ type: "text.start", messageId: noticeId, _meta: { "openai/misalignment": MISALIGNMENT } });
+    expect(evs[errIdx - 3]).toMatchObject({ type: "text.delta", delta: MISALIGNMENT.detailed_explanation });
+    expect(evs[errIdx - 1]).toMatchObject({ type: "message.end", id: noticeId });
+    // The assistant's own message closed BEFORE the notice opened.
+    const assistantEnd = types.indexOf("message.end");
+    expect(assistantEnd).toBeLessThan(errIdx - 5);
+    expect(evs[errIdx]).toMatchObject({ message: "Misalignment policy violation", code: "misalignment_policy_violation" });
     for (const e of evs) expect(() => AgEvent.parse(e)).not.toThrow();
+  });
+
+  it("rd-15 (readable + durable): the fold keeps the notice message — its text is the explanation and its block `_meta` holds the whole misalignment object; no park", () => {
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    for (const e of failedWith("resp_mis_fold", MISALIGNMENT)) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    const notice = res.messages.find((m) => m.role === "notice");
+    expect(notice).toMatchObject({ role: "notice", noticeSource: "adapter" });
+    expect(notice?.content).toEqual([
+      expect.objectContaining({ type: "text", text: MISALIGNMENT.detailed_explanation, _meta: { "openai/misalignment": MISALIGNMENT } }),
+    ]);
+    expect(res.turns[0]).toMatchObject({ outcome: { type: "error", code: "misalignment_policy_violation" } });
+    expect(() => AgReduceResult.parse(res)).not.toThrow();
+  });
+
+  it("rd-15: with no detailed_explanation, the notice text falls back to error.message", () => {
+    const n = createOpenaiNormalizer();
+    const { detailed_explanation: _drop, ...noExplanation } = MISALIGNMENT;
+    const evs = failedWith("resp_mis_3", noExplanation)
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    const noticeText = evs.find((e) => e.type === "text.delta" && Reflect.get(e, "delta") === "Misalignment policy violation");
+    expect(noticeText).toBeDefined();
+    expect(evs.find((e) => e.type === "text.start" && Reflect.get(e, "_meta") !== undefined)).toMatchObject({
+      _meta: { "openai/misalignment": noExplanation },
+    });
   });
 
   it("a malformed (non-object) error.misalignment is ignored, never thrown (Tenet 6)", () => {
@@ -1117,6 +1155,7 @@ describe("createOpenaiNormalizer — response.failed error arm (T5c)", () => {
       .flatMap((e) => n.push(e))
       .concat(n.flush());
     expect(evs.some((e) => e.type === "ext.openai.misalignment")).toBe(false);
+    expect(evs.some((e) => e.type === "message.start" && Reflect.get(e, "role") === "notice")).toBe(false);
     expect(evs.some((e) => e.type === "turn.error")).toBe(true);
   });
 

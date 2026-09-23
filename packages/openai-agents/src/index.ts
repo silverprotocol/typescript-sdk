@@ -55,7 +55,8 @@
  *     `response.function_call_arguments.done` (`arguments`/`item_id`),
  *     `response.completed`/`response.incomplete` (`response.incomplete_details.reason`),
  *     `response.failed` (`response.error.{message,code}` + openai-node ≥7.10.0's
- *      `error.misalignment` block, carried verbatim as `ext.openai.misalignment`),
+ *      `error.misalignment` block, landed as an adapter notice message whose
+ *      text block `_meta["openai/misalignment"]` holds it verbatim — rd-15),
  *     and the reasoning item `rs_…` + `encrypted_content` stateless-replay payload
  *     (the `reasoning.encrypted_content` include; rides `ReasoningItem.providerData`).
  *
@@ -1718,6 +1719,29 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
     return undefined;
   }
 
+  /** rd-15: the misalignment notice (see the `response.failed` arm). */
+  function emitMisalignmentNotice(
+    responseIdForNotice: string,
+    tid: string,
+    misalignment: { readonly [k: string]: JsonValue },
+    errorMessage: string | undefined,
+  ): void {
+    const noticeId = `notice_misalignment_${responseIdForNotice}`;
+    const textId = `${noticeId}_text`;
+    const explanation = misalignment.detailed_explanation;
+    const text = typeof explanation === "string" && explanation.length > 0 ? explanation : (errorMessage ?? "");
+    a.openMessage({ id: noticeId, role: "notice", noticeSource: "adapter", turnId: tid, threadId });
+    a.emit({
+      type: "text.start",
+      id: textId,
+      messageId: noticeId,
+      _meta: AgMeta.parse({ "openai/misalignment": JsonValue.parse(misalignment) }),
+    });
+    if (text.length > 0) a.textDelta(textId, noticeId, text);
+    a.textEnd(textId, noticeId);
+    a.closeMessage(noticeId);
+  }
+
   /** Reset per-response state after a close. Marks the response closed (close-once). */
   function resetResponseState(): void {
     const key = responseId ?? turnId;
@@ -2012,21 +2036,24 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
         endOpenStreamsAndCloseMessage();
         const err = ev.response.error;
         // openai-node ≥7.10.0: `error.misalignment` (classification + public
-        // explanation + `steer.message` continuation instruction) would otherwise
-        // be silently dropped — `turn.error` carries only message/code/usage
-        // (spec §4 gives it no providerMetadata slot), so the block rides the
-        // lossless vendor channel, turn-scoped, immediately BEFORE the closing
-        // turn.error it annotates. Carried VERBATIM (wire names, whole object;
-        // no AgSafety mapping — carry only). Absent ⇒ no event (byte-identical
-        // to the pre-7.10.0 output). The isJsonObject guard keeps a malformed
-        // non-object wire value away from JsonValue.parse (push() never throws).
+        // explanation + `steer.message` continuation instruction). `turn.error`
+        // carries only message/code/usage (spec §4), so rd-15 (sp-protocol's
+        // package A.6; founder: rides 0.7.0; sp-cto: the carry must sit in a
+        // home that FOLDS) lands it as an adapter NOTICE message immediately
+        // BEFORE the closing turn.error, in this turn:
+        //   message.start {role:"notice", noticeSource:"adapter"} →
+        //   one text block, text = `detailed_explanation` verbatim (else
+        //   error.message), text.start `_meta["openai/misalignment"]` = the
+        //   WHOLE object verbatim (wire names, steer, unknown keys) →
+        //   message.end.
+        // It folds (a notice row + its block `_meta`), so it is readable and
+        // durable. The former live-only ext.openai.misalignment carry is
+        // RETIRED (the item-21 one-carrier precedent; no consumer read it).
+        // Absent or non-object ⇒ nothing new (byte-identical to the pre-7.10.0
+        // output); the isJsonObject guard keeps a malformed wire value away
+        // from JsonValue.parse.
         const misalignment = err?.misalignment;
-        if (isJsonObject(misalignment)) {
-          a.emitExt("openai", "misalignment", {
-            responseId: ev.response.id,
-            misalignment: JsonValue.parse(misalignment),
-          });
-        }
+        if (isJsonObject(misalignment)) emitMisalignmentNotice(ev.response.id, turnId, misalignment, err?.message);
         a.closeTurnError(turnId, {
           message: err?.message ?? "response.failed",
           ...(err?.code !== undefined ? { code: err.code } : {}),
