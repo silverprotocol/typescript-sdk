@@ -805,6 +805,11 @@ const HOST_ONLY_WRAPPER_KEYS: ReadonlySet<string> = new Set([
   "api_error",
   "api_error_params",
   "api_error_code",
+  // rd-15 (founder: defer the field, fix the carries): three more @internal
+  // CLI assistant-wrapper strings, carried where the host can read them.
+  "error_details",
+  "advisor_model",
+  "attribution_agent",
 ]);
 
 // `narration_block_indexes` (0.3.272) — which of THIS frame's content blocks are
@@ -823,6 +828,20 @@ function readNarrationBlockIndexes(v: unknown): number[] | undefined {
     v.every((n): n is number => typeof n === "number" && Number.isInteger(n) && n >= 0)
     ? [...v]
     : undefined;
+}
+
+// rd-15 / SPEC §13.7 (queued): a provider credit or bearer token is never
+// emitted. Anthropic's refusal `stop_details` can hold `fallback_credit_token`
+// (top level and per fallback), so every key of that name is deleted at any
+// depth; everything else is kept verbatim.
+function withoutCreditTokens(v: JsonValue): JsonValue {
+  if (Array.isArray(v)) return v.map(withoutCreditTokens);
+  if (typeof v === "object" && v !== null) {
+    const out: { [k: string]: JsonValue } = {};
+    for (const [k, x] of Object.entries(v)) if (k !== "fallback_credit_token") out[k] = withoutCreditTokens(x);
+    return out;
+  }
+  return v;
 }
 
 // A result's `terminal_reason` when it names why the turn ended other than a
@@ -1331,6 +1350,9 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // SDK message id → the `diagnostics` value already carried for it (see the
   // assistant branch): one carry per response, not one per frame.
   const diagnosticsCarried = new Map<string, string>();
+  // rd-15: top-level turnId → the closing response's non-null stop_details (credit
+  // tokens stripped) and the message it describes, emitted on that turn's turn.done.
+  const stopDetailsByTurn = new Map<string, { readonly messageId: string; readonly value: JsonValue }>();
 
   // The live denial's diagnostic fields, camelCased — the providerMetadata bag
   // on the enriched `<turnId>:denials` tool.done. undefined when the live
@@ -2167,6 +2189,27 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       if (assistantApiErrorCode !== undefined) {
         wrapperMetaRaw["api_error_code"] = assistantApiErrorCode;
       }
+      // rd-15 (founder ruling 2026-09-24: defer the neutral remedy field, fix the
+      // vendor carries; a 0.7.0 carry with zero golden moves). Three more
+      // @internal CLI 2.1.280 assistant-wrapper strings, UNDECLARED in sdk.d.ts
+      // 0.3.280 (so read through the JSON boundary), carried verbatim under their
+      // wire names on the frame's first block's host-only `_meta` (the X5 route,
+      // which folds onto block._meta; never providerMetadata, SPEC §12):
+      //  - `error_details`: "Raw API error message: preserves details (e.g.
+      //    prompt-too-long token counts) that user-facing content discards"
+      //    (the CLI's own schema doc; the same datum is typed on the StopFailure
+      //    hook input, sdk.d.ts:9154);
+      //  - `advisor_model`: "Advisor model that produced this message, when
+      //    applicable";
+      //  - `attribution_agent`: "agent name parsed from querySource".
+      // A non-string value is not carried. No committed native carries any of
+      // them, so no golden moves.
+      if (isJsonObject(rawAssistant)) {
+        for (const key of ["error_details", "advisor_model", "attribution_agent"]) {
+          const v = rawAssistant[key];
+          if (typeof v === "string") wrapperMetaRaw[key] = v;
+        }
+      }
       // `user_message_uuid` (0.3.258) and `user_message_uuids` (0.3.259) join
       // the bag below, once `open` is known — their once-per-message flag is
       // shared with the stream arm's carry.
@@ -2214,6 +2257,21 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         });
       }
       const messageId = open.emittedId;
+      // rd-15: a NON-NULL `stop_details` on a response (e.g. a refusal's
+      // {type, category, explanation, fallbacks?}) is carried verbatim on its
+      // turn's closing turn.done.messageMetadata, which folds onto the message it
+      // names (SPEC §5 turn.done row). The CLOSING response's value only: a later
+      // response of the turn without one clears it. Every `fallback_credit_token`,
+      // at any depth, is deleted first (a provider credit token is never
+      // emitted). Null (every committed golden) carries nothing. Keyed by turn,
+      // so a nested (subagent) response never touches its parent's entry, and
+      // only top-level turns close with turn.done.
+      const stopDetails: unknown = m.stop_details;
+      if (isJsonObject(stopDetails)) {
+        stopDetailsByTurn.set(turnId, { messageId, value: withoutCreditTokens(JsonValue.parse(stopDetails)) });
+      } else if (stopDetailsByTurn.get(turnId)?.messageId !== messageId) {
+        stopDetailsByTurn.delete(turnId);
+      }
       //  - `user_message_uuid` (0.3.258): the client uuid of the user message
       //    this turn answers, stamped on the turn's FIRST reply frame only
       //    (wrapper-level sibling per its own doc — never inside
@@ -2743,12 +2801,17 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         return;
       }
       const finishReasonRaw = stopReasonRaw(msg.stop_reason);
+      const stopDetails = stopDetailsByTurn.get(turnId);
+      stopDetailsByTurn.delete(turnId);
       a.closeTurnDone(turnId, {
         outcome: { type: "success", result: structuredOutput ?? msg.result },
         finishReason: mapStopReason(msg.stop_reason),
         ...(finishReasonRaw !== undefined ? { finishReasonRaw } : {}),
         ...(turnUsage !== undefined ? { usage: turnUsage } : {}),
         safety,
+        ...(stopDetails !== undefined
+          ? { messageId: stopDetails.messageId, messageMetadata: { stop_details: stopDetails.value } }
+          : {}),
       });
       return;
     }

@@ -7564,3 +7564,77 @@ describe("createClaudeNormalizer — withAtomicPush: a throwing frame leaves no 
     expect(evs).toEqual([expect.objectContaining({ type: "error", message: "normalizer error", code: "SyntaxError", seq: 0 })]);
   });
 });
+
+// ─── rd-15: defer the field, fix the carries (founder ruling 2026-09-24) ──────
+// cto's conditions: every carry sits in a home that FOLDS (readable and durable),
+// never providerMetadata; zero golden moves (no committed native carries these).
+describe("createClaudeNormalizer — rd-15 carries: host-readable homes that fold", () => {
+  function frameWith(extra: { [k: string]: unknown }, message: { [k: string]: unknown } = {}): { [k: string]: unknown } {
+    return {
+      ...Object.fromEntries(Object.entries(assistantMsg([{ type: "text", text: "hi", citations: null }]))),
+      message: { ...betaMessage([{ type: "text", text: "hi", citations: null }]), ...message },
+      ...extra,
+    };
+  }
+  const firstBlockStart = (evs: AgEvent[]): { [k: string]: unknown } | undefined => {
+    const e = evs.find((x) => x.type === "text.start");
+    return e === undefined ? undefined : Object.fromEntries(Object.entries(e));
+  };
+
+  it("error_details, advisor_model and attribution_agent ride the first block's HOST-ONLY _meta verbatim and fold onto the block", () => {
+    const wrapper = { error_details: "prompt is too long: 210000 tokens > 200000 maximum", advisor_model: "claude-opus-5-5", attribution_agent: "code-reviewer" };
+    const evs = drive([frameWith(wrapper), resultSuccess("end_turn")]);
+    const start = firstBlockStart(evs);
+    expect(start?.["_meta"]).toEqual(wrapper);
+    expect(start?.["providerMetadata"]).toBeUndefined();
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.find((m) => m.id === "msg_fixture_1")?.content[0]).toMatchObject({ _meta: wrapper });
+  });
+
+  it("negative control: absent or non-string wrapper values carry nothing (output unchanged)", () => {
+    const plain = drive([frameWith({}), resultSuccess("end_turn")]);
+    const junk = drive([frameWith({ error_details: 7, advisor_model: null, attribution_agent: { a: 1 } }), resultSuccess("end_turn")]);
+    expect(JSON.stringify(junk)).toBe(JSON.stringify(plain));
+    expect(firstBlockStart(plain) !== undefined && "_meta" in (firstBlockStart(plain) ?? {})).toBe(false);
+  });
+
+  const REFUSAL = {
+    type: "refusal",
+    category: "cyber",
+    explanation: "This request was declined.",
+    fallback_credit_token: "SECRET_credit_top",
+    fallbacks: [{ model: "claude-opus-5-5", fallback_credit_token: "SECRET_credit_nested" }],
+  };
+  const REFUSAL_CARRIED = { type: "refusal", category: "cyber", explanation: "This request was declined.", fallbacks: [{ model: "claude-opus-5-5" }] };
+
+  it("a non-null stop_details rides the closing turn.done.messageMetadata (naming its message), every fallback_credit_token stripped, and folds onto that message", () => {
+    const evs = drive([frameWith({}, { stop_details: REFUSAL, stop_reason: "refusal" }), resultSuccess("refusal")]);
+    const done = evs.find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({ messageId: "msg_fixture_1", messageMetadata: { stop_details: REFUSAL_CARRIED } });
+    expect(JSON.stringify(evs)).not.toContain("fallback_credit_token");
+    expect(JSON.stringify(evs)).not.toContain("SECRET_credit");
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.find((m) => m.id === "msg_fixture_1")?.messageMetadata).toEqual({ stop_details: REFUSAL_CARRIED });
+  });
+
+  it("only the CLOSING response's value: a later top-level response of the turn without stop_details clears it", () => {
+    const later = { ...frameWith({}, { id: "msg_later" }), uuid: "00000000-0000-0000-0000-0000000000r2" };
+    const evs = drive([frameWith({}, { stop_details: REFUSAL }), later, resultSuccess("end_turn")]);
+    const done = evs.find((e) => e.type === "turn.done");
+    expect(done !== undefined && ("messageMetadata" in done || "messageId" in done)).toBe(false);
+  });
+
+  it("negative control: null stop_details (every committed golden) leaves turn.done byte-identical; a nested frame's stop_details is not the turn's", () => {
+    const withNull = drive([frameWith({}, { stop_details: null }), resultSuccess("end_turn")]);
+    const without = drive([frameWith({}), resultSuccess("end_turn")]);
+    expect(JSON.stringify(withNull)).toBe(JSON.stringify(without));
+    const done = withNull.find((e) => e.type === "turn.done");
+    expect(done !== undefined && ("messageMetadata" in done || "messageId" in done)).toBe(false);
+    const nested = { ...frameWith({}, { id: "msg_nested", stop_details: REFUSAL }), parent_tool_use_id: "toolu_task", uuid: "00000000-0000-0000-0000-0000000000r3" };
+    const withNested = drive([frameWith({}), nested, resultSuccess("end_turn")]);
+    const nestedDone = withNested.find((e) => e.type === "turn.done");
+    expect(nestedDone !== undefined && "messageMetadata" in nestedDone).toBe(false);
+  });
+});
