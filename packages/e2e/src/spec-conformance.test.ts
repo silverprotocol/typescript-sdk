@@ -109,7 +109,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 25, leg: "replay", title: "Framework pause and completion closure (draft.4): every replay golden folds unchanged with and without the host-completion event", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(replay): replayNatives(native + marker) deep-equals each corpus/*/adk.agjson.json golden (the marker drives the facet opt-in, replay.ts HOST_COMPLETE_MARKER)" },
   { n: 26, leg: "fold", title: "Interim-narration marker (draft.4): phase folds set-if-present on text/reasoning start and end (end REPLACES, absent keeps), undocumented values verbatim, no-phase streams byte-identical to draft.3, INV-FOLD", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.26(fold), reference reduce() + Reducer (probe P-phase b52b8eb)" },
   { n: 26, leg: "vercel", title: "Interim-narration marker (draft.4): an OpenAI commentary text part opens phase 'interim'; final_answer / unknown / no bag → no phase; providerMetadata.phase kept verbatim", disposition: "COVERED-BY", citation: "vercel-ai/src/index.test.ts:1809-1840 'draft.4 phase' (commentary → text.start{phase:'interim'}; final_answer/unknown/no bag → no phase key) + :430-515 (commentary and final answer stay separate blocks, each bag verbatim) (probe b52b8eb)" },
-  { n: 26, leg: "openai", title: "Interim-narration marker (draft.4): a commentary + final_answer response yields phase 'interim' on the first item's text.start only; null/\"\" yield neither phase nor providerMetadata.phase", disposition: "N/A", citation: "pending: the openai-agents stage-2 leg (sp-openai) lands AFTER this SPEC sha; this row flips to RUNNABLE via createOpenaiNormalizer" },
+  { n: 26, leg: "openai", title: "Interim-narration marker (draft.4): a commentary + final_answer response yields phase 'interim' on the first item's text.start only; null/\"\" yield neither phase nor providerMetadata.phase", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.26(openai) via createOpenaiNormalizer (sp-openai PH-2 d8d04ca)" },
   { n: 26, leg: "emit", title: "Interim-narration marker (draft.4): no phase in a native re-input payload", disposition: "N/A", citation: "§10 preamble emit/re-input carve-out: no facet in this repo ships an AgJSON→native emit surface" },
 ];
 
@@ -1249,4 +1249,60 @@ describe("§10.24(adk) + §10.23(adk) — the ADK failure envelope and the unmap
       expect(out.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: fallback, finishReasonRaw: raw });
     });
   }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.26 openai leg — the SPEC's own two-item vector through the reference
+// OpenAI Agents normalizer (sp-openai PH-2 d8d04ca; §8.0 item 27).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.26(openai) — commentary → phase 'interim' on text.start only; final_answer / null / \"\" / unknown → no phase", () => {
+  const rawModel = (event: Record<string, unknown>) => ({ type: "raw_model_stream_event", data: { type: "model", event } }) as unknown as JsonValue;
+  const msgItem = (id: string, phase: unknown) =>
+    ({ type: "run_item_stream_event", name: "message_output_created", item: { type: "message_output_item", rawItem: { type: "message", role: "assistant", status: "completed", content: [{ type: "output_text", text: `text of ${id}` }], id, ...(phase !== undefined ? { phase } : {}) } } }) as unknown as JsonValue;
+  const vector = (a: unknown, b: unknown): JsonValue[] => [
+    rawModel({ type: "response.created", response: { id: "resp_c" } }),
+    rawModel({ type: "response.output_item.added", item: { id: "msg_A", type: "message", phase: a } }),
+    rawModel({ type: "response.output_text.delta", item_id: "msg_A", delta: "text of msg_A" }),
+    rawModel({ type: "response.output_item.added", item: { id: "msg_B", type: "message", phase: b } }),
+    rawModel({ type: "response.output_text.delta", item_id: "msg_B", delta: "text of msg_B" }),
+    rawModel({ type: "response.completed", response: { id: "resp_c", status: "completed" } }),
+    msgItem("msg_A", a),
+    msgItem("msg_B", b),
+  ];
+  const drive = (natives: JsonValue[]): AgEvent[] => {
+    const n = createOpenaiNormalizer();
+    const out = [...natives.flatMap((f) => n.push(f)), ...n.flush()];
+    for (const ev of out) expect(AgEvent.safeParse(ev).success).toBe(true);
+    return out;
+  };
+  const ev = (out: AgEvent[], type: string, id: string) => out.find((e) => e.type === type && (e as { id?: string }).id === id) as unknown as Record<string, unknown> | undefined;
+  const pm = (e: Record<string, unknown> | undefined) => (e?.["providerMetadata"] as Record<string, unknown> | undefined) ?? {};
+
+  it("commentary then final_answer: phase 'interim' on msg_A's text.start only; both text blocks keep providerMetadata.phase verbatim; the fold agrees", () => {
+    const out = drive(vector("commentary", "final_answer"));
+    expect(ev(out, "text.start", "msg_A")?.["phase"]).toBe("interim");
+    for (const t of ["text.start", "text.end"]) expect(ev(out, t, "msg_B") && "phase" in ev(out, t, "msg_B")!).toBe(false);
+    expect(pm(ev(out, "text.start", "msg_A"))["phase"]).toBe("commentary");
+    expect(pm(ev(out, "text.start", "msg_B"))["phase"]).toBe("final_answer");
+    const r = reduce(out);
+    expect(r.needsResync).toBe(false);
+    const blocks = r.result.messages.flatMap((m) => m.content).filter((b) => b.type === "text") as unknown as Array<Record<string, unknown>>;
+    expect(blocks.map((b) => b["phase"])).toEqual(["interim", undefined]);
+  });
+  for (const [label, bad] of [["null", null], ["empty string", ""]] as const) {
+    it(`a native phase of ${label} yields neither phase nor providerMetadata.phase on any emitted event`, () => {
+      const out = drive(vector(bad, "final_answer"));
+      const startA = ev(out, "text.start", "msg_A");
+      expect(startA && "phase" in startA).toBe(false);
+      // no event anywhere (text.start/text.end, a late ext carry, …) may carry the empty marker
+      const leaks = out.filter((e) => JSON.stringify(e).match(/"phase":(null|"")/));
+      expect(leaks.map((e) => e.type)).toEqual([]);
+    });
+  }
+  it("an undocumented vendor value (\"foo\") yields no phase and keeps providerMetadata.phase \"foo\"", () => {
+    const startA = ev(drive(vector("foo", "final_answer")), "text.start", "msg_A");
+    expect(startA && "phase" in startA).toBe(false);
+    expect(pm(startA)["phase"]).toBe("foo");
+  });
 });
