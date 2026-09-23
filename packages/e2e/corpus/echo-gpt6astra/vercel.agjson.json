@@ -205,7 +205,13 @@
     "seq": 26,
     "id": "msg_06da736203a4d4c8006ab2e2d2e75c87d09399794ccef1ead4",
     "messageId": "msg_turn_vercel_1_s2",
-    "turnId": "turn_vercel_1"
+    "turnId": "turn_vercel_1",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_06da736203a4d4c8006ab2e2d2e75c87d09399794ccef1ead4",
+        "phase": "final_answer"
+      }
+    }
   },
   {
     "type": "text.delta",
@@ -276,7 +282,13 @@
     "seq": 35,
     "id": "msg_06da736203a4d4c8006ab2e2d2e75c87d09399794ccef1ead4",
     "messageId": "msg_turn_vercel_1_s2",
-    "turnId": "turn_vercel_1"
+    "turnId": "turn_vercel_1",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_06da736203a4d4c8006ab2e2d2e75c87d09399794ccef1ead4",
+        "phase": "final_answer"
+      }
+    }
   },
   {
     "type": "message.metadata",

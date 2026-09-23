@@ -427,6 +427,93 @@ describe("empty text-delta metadata carry (synthetic ai>=7.0.42 wire — changes
   });
 });
 
+describe("text-start/text-end providerMetadata carry (captured echo-gpt56/gpt6astra/gpt6luna/gpt6sol shape: OpenAI `phase` on both parts)", () => {
+  // Verbatim shape of corpus/echo-gpt6sol/vercel.native.json's text parts.
+  const FINAL = { openai: { itemId: "msg_final", phase: "final_answer" } };
+  const COMMENTARY = { openai: { itemId: "msg_comm", phase: "commentary" } };
+
+  const parts = [
+    { type: "start" },
+    { type: "start-step", request: {}, warnings: [] },
+    { type: "text-start", id: "t1", providerMetadata: COMMENTARY },
+    { type: "text-delta", id: "t1", text: "Checking the tool." },
+    { type: "text-end", id: "t1", providerMetadata: COMMENTARY },
+    { type: "text-start", id: "t2", providerMetadata: FINAL },
+    { type: "text-delta", id: "t2", text: "Done." },
+    { type: "text-end", id: "t2", providerMetadata: FINAL },
+    { type: "finish-step", finishReason: "stop", usage: USAGE, response: RESPONSE_S1 },
+    { type: "finish", finishReason: "stop", totalUsage: USAGE },
+  ];
+
+  it("carries each part's bag verbatim on text.start AND text.end (phase known before the first delta)", () => {
+    const out = run(parts);
+    const starts = out.filter((e) => e.type === "text.start") as { id: string; providerMetadata?: unknown }[];
+    const ends = out.filter((e) => e.type === "text.end") as { id: string; providerMetadata?: unknown }[];
+    expect(starts.map((e) => [e.id, e.providerMetadata])).toEqual([
+      ["t1", COMMENTARY],
+      ["t2", FINAL],
+    ]);
+    expect(ends.map((e) => [e.id, e.providerMetadata])).toEqual([
+      ["t1", COMMENTARY],
+      ["t2", FINAL],
+    ]);
+    // the deltas stay bare — the carry is on the block boundaries only
+    for (const d of out.filter((e) => e.type === "text.delta")) expect("providerMetadata" in d).toBe(false);
+    expectAllParse(out);
+  });
+
+  it("folds clean: commentary and final answer stay SEPARATE text blocks, each with its own phase", () => {
+    const r = new Reducer();
+    for (const e of run(parts)) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const { messages } = r.result();
+    expect(messages).toHaveLength(1);
+    const blocks = messages[0]!.content.filter((b) => b.type === "text") as {
+      text: string;
+      providerMetadata?: unknown;
+    }[];
+    expect(blocks.map((b) => [b.text, b.providerMetadata])).toEqual([
+      ["Checking the tool.", COMMENTARY],
+      ["Done.", FINAL],
+    ]);
+  });
+
+  it("negative control: bag-less text parts normalize byte-identically — no providerMetadata key on text.start/text.end", () => {
+    const out = run([
+      { type: "start" },
+      { type: "start-step", request: {}, warnings: [] },
+      { type: "text-start", id: "t1" },
+      { type: "text-delta", id: "t1", text: "ok" },
+      { type: "text-end", id: "t1" },
+      { type: "finish-step", finishReason: "stop", usage: USAGE, response: RESPONSE_S1 },
+      { type: "finish", finishReason: "stop", totalUsage: USAGE },
+    ]);
+    expect(out.filter((e) => e.type === "text.start" || e.type === "text.end")).toEqual([
+      { type: "text.start", seq: 3, id: "t1", messageId: "msg_turn_vercel_1_s1", turnId: "turn_vercel_1" },
+      { type: "text.end", seq: 5, id: "t1", messageId: "msg_turn_vercel_1_s1", turnId: "turn_vercel_1" },
+    ]);
+    expectAllParse(out);
+  });
+
+  it("a hostile bag (non-object, circular) on text-start/text-end is skipped, never throws", () => {
+    const circular: { [k: string]: unknown } = { openai: {} };
+    (circular["openai"] as { [k: string]: unknown })["self"] = circular;
+    const n = createVercelNormalizer();
+    const out = [
+      ...n.push({ type: "start" }),
+      ...n.push({ type: "start-step", request: {}, warnings: [] }),
+      ...n.push({ type: "text-start", id: "t1", providerMetadata: "not-a-bag" }),
+      ...n.push({ type: "text-delta", id: "t1", text: "ok" }),
+      ...n.push({ type: "text-end", id: "t1", providerMetadata: circular }),
+      ...n.flush(),
+    ];
+    for (const e of out.filter((x) => x.type === "text.start" || x.type === "text.end")) {
+      expect("providerMetadata" in e).toBe(false);
+    }
+    expectAllParse(out);
+  });
+});
+
 describe("error arm A — in-band error, provider still finishes (captured error-midstream-finish)", () => {
   const parts = [
     { type: "start" },

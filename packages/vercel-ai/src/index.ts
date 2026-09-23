@@ -145,6 +145,20 @@ const num = (v: unknown): number | undefined => (typeof v === "number" ? v : und
 const rec = (v: unknown): { [k: string]: unknown } | undefined =>
   typeof v === "object" && v !== null && !Array.isArray(v) ? (v as { [k: string]: unknown }) : undefined;
 
+/**
+ * The part's AI SDK `providerMetadata` bag, verbatim, as AgProviderMeta — or
+ * undefined when the part has none. Never throws (Tenet 6): a circular or
+ * unserializable bag degrades to a string in safeJson, and only a
+ * materialized object is carried.
+ */
+function partProviderMeta(part: VercelStreamPart): AgProviderMeta | undefined {
+  if (part["providerMetadata"] === undefined) return undefined;
+  const meta = rec(safeJson(part["providerMetadata"]));
+  if (meta === undefined) return undefined;
+  const parsed = AgProviderMeta.safeParse(meta);
+  return parsed.success ? parsed.data : undefined;
+}
+
 /** Render any error-ish value to a message string, never throwing. */
 function errText(v: unknown): string {
   if (v instanceof Error) return v.message;
@@ -251,6 +265,15 @@ function mapFinishReason(v: unknown): AgFinishReason {
 const THREAD_ID = "vercel";
 
 /**
+ * The `ext.<vendor>.*` segment this facet emits under. Deliberately NOT
+ * THREAD_ID: the other facets pass a vendor literal, and a thread id may one
+ * day be host-supplied, which must never re-key the ext namespace. Same value
+ * today, so the wire is unchanged. Whether SPEC reserves `vercel` alongside
+ * anthropic/google/openai/langgraph is sp-protocol's call.
+ */
+const EXT_VENDOR = "vercel";
+
+/**
  * Stateful-per-invoke normalizer for one `streamText` run's fullStream.
  * `push(part)` → 0+ AgEvents; `flush()` seals anything still open.
  */
@@ -333,7 +356,7 @@ export function createVercelNormalizer(): Normalizer {
         a.openMessage({ id: msgId, role: "assistant", turnId: t, threadId: THREAD_ID, stepId });
         const warnings = part["warnings"];
         if (Array.isArray(warnings) && warnings.length > 0) {
-          a.emitExt(THREAD_ID, "warnings", { stepId, warnings: safeJson(warnings) });
+          a.emitExt(EXT_VENDOR, "warnings", { stepId, warnings: safeJson(warnings) });
         }
         return;
       }
@@ -342,7 +365,15 @@ export function createVercelNormalizer(): Normalizer {
         const id = str(part["id"]);
         if (id === undefined) break;
         openTextIds.add(id);
-        a.textStart(id, ensureMessage());
+        // The part's providerMetadata bag rides text.start/text.end verbatim.
+        // Load-bearing case: OpenAI's gpt-5.5+ `phase` ("commentary" |
+        // "final_answer") surfaces as providerMetadata.openai.phase on both
+        // parts. OpenAI requires it resent on follow-up requests, and a
+        // consumer that cannot see it merges commentary into the answer. The
+        // openai facet carries the same field on text.end (openai-agents
+        // index.ts `phaseMeta`); on text.start it is known before any delta.
+        const meta = partProviderMeta(part);
+        a.textStart(id, ensureMessage(), meta !== undefined ? { providerMetadata: meta } : undefined);
         return;
       }
       case "text-delta": {
@@ -382,7 +413,8 @@ export function createVercelNormalizer(): Normalizer {
         const id = str(part["id"]);
         if (id === undefined) break;
         openTextIds.delete(id);
-        a.textEnd(id, ensureMessage());
+        const meta = partProviderMeta(part); // see text-start
+        a.textEnd(id, ensureMessage(), meta !== undefined ? { providerMetadata: meta } : undefined);
         return;
       }
 
@@ -478,7 +510,7 @@ export function createVercelNormalizer(): Normalizer {
         pendingToolIds.delete(toolCallId);
         a.toolArgsAssembled(toolCallId, input);
         if (part["invalid"] === true) {
-          a.emitExt(THREAD_ID, "invalid-tool-call", {
+          a.emitExt(EXT_VENDOR, "invalid-tool-call", {
             toolCallId,
             error: errText(part["error"]),
           });
@@ -644,13 +676,13 @@ export function createVercelNormalizer(): Normalizer {
     }
     // Tolerant default arm (R2): unknown part types AND known types with
     // malformed payloads ride the lossless vendor channel.
-    a.emitExt(THREAD_ID, "frame", { kind: part.type, frame: safeJson(part) });
+    a.emitExt(EXT_VENDOR, "frame", { kind: part.type, frame: safeJson(part) });
   }
 
   return {
     push(native: unknown): AgEvent[] {
       if (!isVercelStreamPart(native)) {
-        a.emitExt(THREAD_ID, "unparsed", { native: safeJson(native) });
+        a.emitExt(EXT_VENDOR, "unparsed", { native: safeJson(native) });
         return a.drain();
       }
       drive(native);

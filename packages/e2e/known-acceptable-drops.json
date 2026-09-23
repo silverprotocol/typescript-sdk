@@ -137,7 +137,7 @@
   },
   {
     "path": "[*].data.event.item.phase",
-    "reason": "openai: GENUINE NEW WIRE FAMILY, FLAGGED FOR FOLLOW-UP (gpt-5.5 addition, playbook 2026-07-03) \u2014 a \"phase\" discriminant appearing on 4 different carrier shapes, never read by createOpenaiNormalizer. Every occurrence in this simple echo scenario is the single constant \"final_answer\"; this triage does NOT establish that other phase values (e.g. a hypothetical intermediate/draft phase preceding the final one) would be equally safe to ignore \u2014 see the playbook capture report's dedicated call-out recommending a follow-up investigation with a scenario that actually exercises multi-phase output before treating this field as permanently homeless.",
+    "reason": "openai: a carrier of the gpt-5.5+ `phase` discriminant (\"commentary\" | \"final_answer\"; OpenAIAssistantMessageItem.phase, openai-agents/src/index.ts:161). From @openai/agents 0.14.0 the facet reads the message item's first-class phase ([*].item.rawItem.phase) and carries it on text.end.providerMetadata.openai.phase, or on ext.openai.late-phase / late-message when the message has already closed (index.ts:1848-1898). Every 0.18.0 phase-bearing cassette (app-spec-structured-result, echo-gpt56, echo-gpt6astra/luna/sol) lands phase in its agjson, so this path repeats a value that is carried. Exception: the frozen 0.12.0 cassette echo-gpt55 predates the first-class field (phase only under providerData: 6 in the native, 0 in the agjson); there the drop is real and disclosed. The live corpus holds only \"final_answer\"; a commentary capture is queued (sp-rnd package 13+17). Re-triaged 2026-09-23 (was FLAGGED FOR FOLLOW-UP, playbook 2026-07-03).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -289,7 +289,7 @@
   },
   {
     "path": "[*].data.event.response.model",
-    "reason": "openai: agent config / response metadata in model:response.created/response.in_progress/response.completed event payload; no AgJSON home (only response.id and usage are consumed).",
+    "reason": "openai: the response's model id on model:response.created/response.in_progress/response.completed. AgJSON HAS a home for it: message.start.model? (SPEC.md:610). Only the claude facet fills that today; filling it from here is an openai-facet change (sp-openai; routed by sp-rnd 2026-09-23). Until then a disclosed drop. Corrected 2026-09-23 (previously said \"no AgJSON home\").",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -337,7 +337,7 @@
   },
   {
     "path": "[*].data.event.response.output[*].phase",
-    "reason": "openai: GENUINE NEW WIRE FAMILY, FLAGGED FOR FOLLOW-UP (gpt-5.5 addition, playbook 2026-07-03) \u2014 a \"phase\" discriminant appearing on 4 different carrier shapes, never read by createOpenaiNormalizer. Every occurrence in this simple echo scenario is the single constant \"final_answer\"; this triage does NOT establish that other phase values (e.g. a hypothetical intermediate/draft phase preceding the final one) would be equally safe to ignore \u2014 see the playbook capture report's dedicated call-out recommending a follow-up investigation with a scenario that actually exercises multi-phase output before treating this field as permanently homeless.",
+    "reason": "openai: a carrier of the gpt-5.5+ `phase` discriminant (\"commentary\" | \"final_answer\"; OpenAIAssistantMessageItem.phase, openai-agents/src/index.ts:161). From @openai/agents 0.14.0 the facet reads the message item's first-class phase ([*].item.rawItem.phase) and carries it on text.end.providerMetadata.openai.phase, or on ext.openai.late-phase / late-message when the message has already closed (index.ts:1848-1898). Every 0.18.0 phase-bearing cassette (app-spec-structured-result, echo-gpt56, echo-gpt6astra/luna/sol) lands phase in its agjson, so this path repeats a value that is carried. Exception: the frozen 0.12.0 cassette echo-gpt55 predates the first-class field (phase only under providerData: 6 in the native, 0 in the agjson); there the drop is real and disclosed. The live corpus holds only \"final_answer\"; a commentary capture is queued (sp-rnd package 13+17). Re-triaged 2026-09-23 (was FLAGGED FOR FOLLOW-UP, playbook 2026-07-03).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1265,7 +1265,7 @@
   },
   {
     "path": "[*].data.response.output[*].providerData.phase",
-    "reason": "openai: GENUINE NEW WIRE FAMILY, FLAGGED FOR FOLLOW-UP (gpt-5.5 addition, playbook 2026-07-03) \u2014 a \"phase\" discriminant appearing on 4 different carrier shapes, never read by createOpenaiNormalizer. Every occurrence in this simple echo scenario is the single constant \"final_answer\"; this triage does NOT establish that other phase values (e.g. a hypothetical intermediate/draft phase preceding the final one) would be equally safe to ignore \u2014 see the playbook capture report's dedicated call-out recommending a follow-up investigation with a scenario that actually exercises multi-phase output before treating this field as permanently homeless.",
+    "reason": "openai: a carrier of the gpt-5.5+ `phase` discriminant (\"commentary\" | \"final_answer\"; OpenAIAssistantMessageItem.phase, openai-agents/src/index.ts:161). From @openai/agents 0.14.0 the facet reads the message item's first-class phase ([*].item.rawItem.phase) and carries it on text.end.providerMetadata.openai.phase, or on ext.openai.late-phase / late-message when the message has already closed (index.ts:1848-1898). Every 0.18.0 phase-bearing cassette (app-spec-structured-result, echo-gpt56, echo-gpt6astra/luna/sol) lands phase in its agjson, so this path repeats a value that is carried. Exception: the frozen 0.12.0 cassette echo-gpt55 predates the first-class field (phase only under providerData: 6 in the native, 0 in the agjson); there the drop is real and disclosed. The live corpus holds only \"final_answer\"; a commentary capture is queued (sp-rnd package 13+17). Re-triaged 2026-09-23 (was FLAGGED FOR FOLLOW-UP, playbook 2026-07-03).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -2129,7 +2129,7 @@
   },
   {
     "path": "[*].item.rawItem.providerData.phase",
-    "reason": "openai: GENUINE NEW WIRE FAMILY, FLAGGED FOR FOLLOW-UP (gpt-5.5 addition, playbook 2026-07-03) \u2014 a \"phase\" discriminant appearing on 4 different carrier shapes, never read by createOpenaiNormalizer. Every occurrence in this simple echo scenario is the single constant \"final_answer\"; this triage does NOT establish that other phase values (e.g. a hypothetical intermediate/draft phase preceding the final one) would be equally safe to ignore \u2014 see the playbook capture report's dedicated call-out recommending a follow-up investigation with a scenario that actually exercises multi-phase output before treating this field as permanently homeless.",
+    "reason": "openai: a carrier of the gpt-5.5+ `phase` discriminant (\"commentary\" | \"final_answer\"; OpenAIAssistantMessageItem.phase, openai-agents/src/index.ts:161). From @openai/agents 0.14.0 the facet reads the message item's first-class phase ([*].item.rawItem.phase) and carries it on text.end.providerMetadata.openai.phase, or on ext.openai.late-phase / late-message when the message has already closed (index.ts:1848-1898). Every 0.18.0 phase-bearing cassette (app-spec-structured-result, echo-gpt56, echo-gpt6astra/luna/sol) lands phase in its agjson, so this path repeats a value that is carried. Exception: the frozen 0.12.0 cassette echo-gpt55 predates the first-class field (phase only under providerData: 6 in the native, 0 in the agjson); there the drop is real and disclosed. The live corpus holds only \"final_answer\"; a commentary capture is queued (sp-rnd package 13+17). Re-triaged 2026-09-23 (was FLAGGED FOR FOLLOW-UP, playbook 2026-07-03).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -2657,15 +2657,7 @@
   },
   {
     "path": "[*].providerMetadata.openai.itemId",
-    "reason": "vercel: OpenAI Responses item-id echo the AI SDK attaches to reasoning-start/end (rs_\u2026), tool-call/tool-result (fc_\u2026) and text-start/end (msg_\u2026) parts \u2014 never read by createVercelNormalizer (zero providerMetadata call sites in index.ts). The load-bearing correlations ARE carried elsewhere: the reasoning part id `<itemId>:<idx>` is carried verbatim as reasoning.start/end id (rs_ itemId recoverable as its prefix), the text-start id equals the msg_ itemId (carried as text.start id), and tool correlation rides toolCallId (call_\u2026, carried); the fc_ item id is a provider-side echo with no replay-load-bearing role (Responses replay pairs function items on call_id). If the reasoningEncryptedContent facet gap is fixed via reasoning.opaque, the rs_ itemId should ride along. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
-    "reviewed": "any",
-    "frameworks": [
-      "vercel"
-    ]
-  },
-  {
-    "path": "[*].providerMetadata.openai.phase",
-    "reason": "vercel: the gpt-5.5+ 'phase' discriminant surfacing through the AI SDK as providerMetadata.openai.phase on text-start/text-end \u2014 the SAME wire family as the openai framework's FLAGGED FOR FOLLOW-UP [*].data.event.item.phase entries (playbook 2026-07-03): every occurrence in this echo scenario is the single constant 'final_answer'; this triage does NOT establish that other phase values (e.g. an intermediate/draft phase) would be equally safe to ignore \u2014 the openai follow-up investigation covers this field family and should include this vercel carrier. Never read by createVercelNormalizer. First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
+    "reason": "vercel: OpenAI Responses item-id echo the AI SDK attaches to reasoning-start/end (rs_\u2026), tool-call/tool-result (fc_\u2026) and text-start/end (msg_\u2026) parts. Since 2026-09-23 the text-start/end bag rides text.start/text.end providerMetadata verbatim, so the msg_ echo is carried. The rs_ and fc_ echoes are still not read, and their load-bearing correlations are carried elsewhere: the reasoning part id `<itemId>:<idx>` is carried verbatim as the reasoning.start/end id (rs_ recoverable as its prefix), and tool correlation rides toolCallId (call_\u2026); the fc_ id has no replay role (Responses replay pairs function items on call_id). First vercel triage 2026-07-25 (echo-gpt56 @ai 7.0.34).",
     "reviewed": "any",
     "frameworks": [
       "vercel"
