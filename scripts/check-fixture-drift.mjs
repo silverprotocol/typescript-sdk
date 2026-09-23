@@ -720,6 +720,12 @@ async function gatherInventories() {
  * verification ritual (drift gate + fixtures ± live capture) being recorded
  * — the log would silently understate or overstate compatibility. A facet
  * with NO `verified` log yet is skipped (adoption is per-facet).
+ *
+ * The newest entry must also carry `tier`: "live" when a live capture ran
+ * green at this sdkVersion within the entry's cohort, "fixture" otherwise
+ * (re-capture pending included). site/scripts/sync-compat.mjs reads only the
+ * newest entry's tier and throws without it, but the public SDK mirror never
+ * runs the site workflow, so the mirror's own gate enforces it here.
  */
 function checkVerifiedLogs(verifiedChecks) {
   const findings = [];
@@ -740,6 +746,13 @@ function checkVerifiedLogs(verifiedChecks) {
       findings.push(
         `  ${check.facet}: sdk-surface.json's \`verifiedAt\` (${check.manifestVerifiedAt}) disagrees with its newest ` +
           `\`verified\` entry (${newest.sdkVersion}) — update \`verifiedAt\` when appending the entry.`,
+      );
+    }
+    if (newest.tier !== "live" && newest.tier !== "fixture") {
+      findings.push(
+        `  ${check.facet}: sdk-surface.json's newest \`verified\` entry (${newest.sdkVersion}) has \`tier\` ` +
+          `${JSON.stringify(newest.tier)} — set it to "live" (a live capture ran green at this sdkVersion in ` +
+          `this entry's cohort) or "fixture" (anything else, re-capture pending included).`,
       );
     }
   }
@@ -781,11 +794,14 @@ function runSelfTest(inventories, verifiedChecks) {
   // Negative case for the verified-log class too (same doctrine: a gate that
   // cannot fail is a defect). Mutate IN-MEMORY COPIES only: a phantom
   // installed version must trip the newest-entry check, and a phantom
-  // `verifiedAt` must trip the lockstep check.
+  // `verifiedAt` must trip the lockstep check, and a mis-cased `tier` on the
+  // newest entry must trip the tier check.
   for (const check of verifiedChecks.filter((c) => Array.isArray(c.verifiedLog) && c.verifiedLog.length > 0)) {
+    const log = check.verifiedLog;
     allFindings.push(
       ...checkVerifiedLogs([{ ...check, installedVersion: `999.999.999-${PHANTOM_MEMBER}` }]),
       ...checkVerifiedLogs([{ ...check, manifestVerifiedAt: `999.999.999-${PHANTOM_MEMBER}` }]),
+      ...checkVerifiedLogs([{ ...check, verifiedLog: [...log.slice(0, -1), { ...log[log.length - 1], tier: "Live" }] }]),
     );
   }
   const verifiedNegativesExpected = verifiedChecks.some(
@@ -793,10 +809,11 @@ function runSelfTest(inventories, verifiedChecks) {
   );
   const mentionsVerifiedLog = allFindings.some((f) => f.includes("`verified` entry"));
   const mentionsVerifiedAt = allFindings.some((f) => f.includes("`verifiedAt`"));
+  const mentionsTier = allFindings.some((f) => f.includes("has `tier` \"Live\""));
 
   const mentionsPhantom = allFindings.some((f) => f.includes(PHANTOM_MEMBER));
   const mentionsRemoval = allFindings.some((f) => f.includes("REMOVED from the installed SDK"));
-  if (!mentionsPhantom || !mentionsRemoval || (verifiedNegativesExpected && (!mentionsVerifiedLog || !mentionsVerifiedAt))) {
+  if (!mentionsPhantom || !mentionsRemoval || (verifiedNegativesExpected && (!mentionsVerifiedLog || !mentionsVerifiedAt || !mentionsTier))) {
     console.error("\n✖ --self-test: negative case did not surface the expected drift.");
     console.error("findings were:");
     for (const line of allFindings) console.error(line);

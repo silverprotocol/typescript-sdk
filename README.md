@@ -59,10 +59,13 @@ underlying contract has two layers:
   suite, and ideally a live conformance capture (`pnpm e2e:capture`).
 - **The `verified` log is the evidence.** Every green ritual appends an entry
   to the facet's `sdk-surface.json#verified` ({ sdkVersion, date,
-  silverprotocol, evidence }) — with two honesty tiers, *fixture-verified* vs
-  *live-capture-verified*, stated in the evidence text. The drift gate
+  silverprotocol, tier, evidence }) — with two honesty tiers, stated as
+  `tier: "live"` (a live capture ran green at this sdkVersion within the
+  entry's cohort) or `tier: "fixture"` (anything else, re-capture pending
+  included), with the detail in the evidence text. The drift gate
   enforces freshness end to end: it asserts the newest entry matches the
-  installed harness pin, that the manifest's `verifiedAt` agrees with it, and
+  installed harness pin, that it declares a `tier`, that the manifest's
+  `verifiedAt` agrees with it, and
   (by importing `render-compat.mjs`'s staleness check) that the rendered
   README tables are current — one gate, no separate step to forget.
 
