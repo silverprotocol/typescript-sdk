@@ -118,6 +118,16 @@ function mapStopReason(stop: BetaStopReason | string | null): AgFinishReason {
   }
 }
 
+// draft.4 (§8.0 graceful degradation / §10 item 23): when `mapStopReason` had to
+// FALL BACK (a stop_reason this facet has no mapping for, e.g. one a newer
+// Messages API ships), `turn.done.finishReasonRaw` carries the native value
+// verbatim beside finishReason "unknown", so nothing about why the turn ended
+// is lost. Set ONLY on the fallback: a mapped reason, and `null` (a real
+// "stop"), carry no raw companion, so ordinary turns stay byte-identical.
+function stopReasonRaw(stop: BetaStopReason | string | null): string | undefined {
+  return typeof stop === "string" && mapStopReason(stop) === "unknown" ? stop : undefined;
+}
+
 // ─── derive stable ids ────────────────────────────────────────────────────────
 // Turn ids are minted per TURN inside `createClaudeNormalizer()` (see
 // `topTurnId` / `nestedTurnId`), never per session: through 0.6.4 the facet
@@ -2338,9 +2348,11 @@ export function createClaudeNormalizer(options: ClaudeNormalizerOptions = {}): N
         });
         return;
       }
+      const finishReasonRaw = stopReasonRaw(msg.stop_reason);
       a.closeTurnDone(turnId, {
         outcome: { type: "success", result: structuredOutput ?? msg.result },
         finishReason: mapStopReason(msg.stop_reason),
+        ...(finishReasonRaw !== undefined ? { finishReasonRaw } : {}),
         usage: mapTurnUsage(msg.usage, msg.total_cost_usd, msg.modelUsage),
         safety,
       });

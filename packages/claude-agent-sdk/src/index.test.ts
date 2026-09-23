@@ -293,6 +293,32 @@ describe("createClaudeNormalizer — result success", () => {
   });
 });
 
+// ─── draft.4: turn.done.finishReasonRaw on a FALLBACK finishReason ──────────
+// SPEC §8.0 graceful degradation / §10 item 23 (sp-protocol 89c57db): a
+// stop_reason the facet cannot map falls back to "unknown", and the native value
+// rides `finishReasonRaw` verbatim. Only on the fallback.
+describe("createClaudeNormalizer — finishReasonRaw (draft.4)", () => {
+  it("an unmapped stop_reason → finishReason 'unknown' + finishReasonRaw verbatim; every event parses", () => {
+    const evs = run(resultSuccess("zz_future"));
+    assertAllValid(evs);
+    expect(evs[0]).toMatchObject({ type: "turn.done", finishReason: "unknown", finishReasonRaw: "zz_future" });
+    // It folds onto the turn record (SPEC §5 turn.done row).
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns[0]).toMatchObject({ finishReason: "unknown", finishReasonRaw: "zz_future" });
+  });
+
+  it("NEGATIVE CONTROL: a mapped stop_reason and a null one carry NO finishReasonRaw key (byte-identical to draft.3 output)", () => {
+    for (const stop of ["end_turn", "stop_sequence", "max_tokens", "tool_use", "pause_turn", "refusal", "compaction", "model_context_window_exceeded", null]) {
+      const evs = run(resultSuccess(stop));
+      assertAllValid(evs);
+      expect(evs[0]?.type).toBe("turn.done");
+      expect("finishReasonRaw" in (evs[0] as object), `stop_reason ${String(stop)}`).toBe(false);
+    }
+  });
+});
+
 describe("createClaudeNormalizer — tool_use", () => {
   it("emits tool.start, tool.args.delta and the mandatory tool.args.assembled", () => {
     const evs = run(
