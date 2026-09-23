@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/@silverprotocol/core"><img src="https://img.shields.io/npm/v/%40silverprotocol%2Fcore?color=0a7"></a>
   <a href="https://github.com/silverprotocol/AgJSON/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue"></a>
-  <a href="https://silverprotocol.io/AgJSON"><img src="https://img.shields.io/badge/spec-1.0.0--draft.1-6ee7ff"></a>
+  <a href="https://silverprotocol.io/AgJSON"><img src="https://img.shields.io/badge/spec-1.0.0--draft.4-6ee7ff"></a>
 </p>
 
 ---
@@ -57,7 +57,9 @@ the object graph, with the same code regardless of which framework produced it:
 ```ts
 import { ingestAgEvents, Reducer, AGJSON_VERSION } from "@silverprotocol/core";
 
-const events = ingestAgEvents(rawWireObjects); // parse-known-else-skip
+const events = ingestAgEvents(rawWireObjects, {
+  onReject: ({ input, reason }) => console.warn("not an AgJSON event:", reason, input),
+});
 
 const reducer = new Reducer();
 for (const ev of events) reducer.push(ev);
@@ -66,10 +68,16 @@ const { messages, turns, artifacts, memory } = reducer.result();
 console.log(AGJSON_VERSION, messages);
 ```
 
-`ingestAgEvents` validates raw wire objects against `AgEvent` and drops anything
-unparseable (the consumer posture); `Reducer` folds the validated stream into the
-normative snapshot; `AGJSON_VERSION` is the wire version this build implements
-(`1.0.0-draft.3`).
+`ingestAgEvents` validates raw wire objects against `AgEvent` and never throws
+(the consumer posture). Unknown fields pass through at every depth. An event it
+cannot validate (a newer event type, an unknown enum value, a malformed known
+type) is not folded: it rides in place as `{type: "ext.agjson.ignored", seq,
+ignoredType, raw}`, which keeps its `seq` slot so the `Reducer` never mistakes it
+for a gap. `raw` is for live inspection only; don't persist it. Input that is not
+an event at all (not an object, no string `type`, no number `seq`) returns
+nothing and goes to the optional `onReject` callback. `Reducer` folds the
+validated stream into the normative snapshot; `AGJSON_VERSION` is the wire
+version this build implements (`1.0.0-draft.4`).
 
 ## Produce AgJSON
 

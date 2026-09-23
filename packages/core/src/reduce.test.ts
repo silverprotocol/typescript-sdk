@@ -843,6 +843,22 @@ describe("reduce — R5 turn-records", () => {
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
 
+  // (a3) draft.4: turn.done.finishReasonRaw folds verbatim beside finishReason
+  it("(a3) turn.done.finishReasonRaw folds verbatim onto AgTurnRecord; absent ⇒ no key", () => {
+    const withRaw = reduce([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      { type: "turn.done", seq: 1, turnId: "t1", finishReason: "other", finishReasonRaw: "zz_future", outcome: { type: "success" } },
+    ]).result;
+    expect(withRaw.turns[0]?.finishReason).toBe("other");
+    expect(withRaw.turns[0]?.finishReasonRaw).toBe("zz_future");
+    expect(() => AgReduceResult.parse(withRaw)).not.toThrow();
+    const without = reduce([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      { type: "turn.done", seq: 1, turnId: "t1", finishReason: "stop", outcome: { type: "success" } },
+    ]).result;
+    expect("finishReasonRaw" in without.turns[0]!).toBe(false);
+  });
+
   // (b) turn.error → AgTurnRecord.outcome = {type:"error", message, code?}
   it("(b) turn.error folds outcome={type:'error',...} onto AgTurnRecord", () => {
     const r = reduce([

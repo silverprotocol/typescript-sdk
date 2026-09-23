@@ -642,6 +642,8 @@ export class Reducer {
       case "turn.done": {
         const turn = this.ensureTurn(ev.turnId);
         turn.finishReason = ev.finishReason;
+        // draft.4: the native finish value, verbatim, beside its mapped reason.
+        if (ev.finishReasonRaw !== undefined) turn.finishReasonRaw = ev.finishReasonRaw;
         // Usage is recorded VERBATIM — NO de-cumulation (spec §8.4; normalizer duty).
         if (ev.usage !== undefined) turn.usage = ev.usage;
         if (ev.safety !== undefined) turn.safety = ev.safety;

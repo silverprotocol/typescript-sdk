@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { AgEvent, type JsonValue } from "./agjson.js";
-import { ingestAgEvent, ingestAgEvents } from "./ingest.js";
+import { ingestAgEvent, ingestAgEvents, type AgIngestReject } from "./ingest.js";
 import { Reducer } from "./reduce.js";
 
 describe("ingestAgEvent — consumer-lenient posture (SPEC §0.2; audit B5)", () => {
@@ -11,8 +11,13 @@ describe("ingestAgEvent — consumer-lenient posture (SPEC §0.2; audit B5)", ()
     expect(e?.type).toBe("turn.start");
   });
 
-  it("SKIPS an unknown event type instead of throwing (additive-minor survival)", () => {
-    expect(ingestAgEvent({ type: "poll.start", seq: 0 })).toBeUndefined();
+  it("an unknown event type becomes the in-place ext.agjson.ignored stub, never a throw (additive-minor survival)", () => {
+    expect(ingestAgEvent({ type: "poll.start", seq: 0 })).toEqual({
+      type: "ext.agjson.ignored",
+      seq: 0,
+      ignoredType: "poll.start",
+      raw: { type: "poll.start", seq: 0 },
+    });
   });
 
   it("passes unknown TOP-LEVEL fields through untouched", () => {
@@ -26,16 +31,39 @@ describe("ingestAgEvent — consumer-lenient posture (SPEC §0.2; audit B5)", ()
     expect(e).toMatchObject({ type: "turn.start", futureField: "kept" });
   });
 
-  it("skips a malformed known-type event (parse-known-else-skip)", () => {
-    expect(ingestAgEvent({ type: "turn.start", seq: 0 })).toBeUndefined(); // missing threadId/turnId
+  it("a malformed known-type event becomes the stub too (ignored, not skipped: it keeps its seq slot)", () => {
+    // missing threadId/turnId
+    expect(ingestAgEvent({ type: "turn.start", seq: 0 })).toEqual({
+      type: "ext.agjson.ignored",
+      seq: 0,
+      ignoredType: "turn.start",
+      raw: { type: "turn.start", seq: 0 },
+    });
   });
 
-  it("skips non-object values", () => {
+  it("a non-envelope returns undefined and is reported through onReject, with its reason", () => {
+    const rejects: AgIngestReject[] = [];
+    const onReject = (r: AgIngestReject): void => void rejects.push(r);
+    expect(ingestAgEvent("nope", { onReject })).toBeUndefined();
+    expect(ingestAgEvent(null, { onReject })).toBeUndefined();
+    expect(ingestAgEvent([{ type: "turn.start", seq: 0 }], { onReject })).toBeUndefined();
+    expect(ingestAgEvent({ type: 7, seq: 0 }, { onReject })).toBeUndefined();
+    expect(ingestAgEvent({ type: "turn.start" }, { onReject })).toBeUndefined();
+    expect(ingestAgEvent({ type: "turn.start", seq: "0" }, { onReject })).toBeUndefined();
+    expect(rejects.map((r) => r.reason)).toEqual([
+      "not-object",
+      "not-object",
+      "not-object",
+      "type-not-string",
+      "seq-not-number",
+      "seq-not-number",
+    ]);
+    expect(rejects[0]!.input).toBe("nope");
+    // without a callback a non-envelope is still just undefined
     expect(ingestAgEvent("nope")).toBeUndefined();
-    expect(ingestAgEvent(null)).toBeUndefined();
   });
 
-  it("ingestAgEvents filters a mixed stream", () => {
+  it("ingestAgEvents keeps a mixed stream's slots: the unknown event rides as the stub, in place", () => {
     const out = ingestAgEvents([
       { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
       { type: "future.thing", seq: 1 },
@@ -47,7 +75,8 @@ describe("ingestAgEvent — consumer-lenient posture (SPEC §0.2; audit B5)", ()
         finishReason: "stop",
       },
     ]);
-    expect(out.map((e) => e.type)).toEqual(["turn.start", "turn.done"]);
+    expect(out.map((e) => e.type)).toEqual(["turn.start", "ext.agjson.ignored", "turn.done"]);
+    expect(out.map((e) => e.seq)).toEqual([0, 1, 2]);
   });
 });
 
@@ -164,5 +193,75 @@ describe("ingestAgEvent — unknown fields pass through at EVERY depth (SPEC.md:
     const src = readFileSync(fileURLToPath(new URL("./agjson.ts", import.meta.url)), "utf8");
     const hits = src.match(/\.(transform|default|catch|pipe|overwrite|prefault)\(|z\.coerce|\.coerce\.|preprocess\(/g) ?? [];
     expect(hits).toEqual([]);
+  });
+});
+
+describe("ingestAgEvents — ignored envelopes keep their seq slot; non-envelopes occupy none (draft.4 §0.2, workspace#20 stage 2)", () => {
+  type Rec = { [k: string]: unknown };
+  // The spec's own malformed example (§10.20): message.remove id "*" without turnId, at seq 2.
+  const stream = (mid: JsonValue): JsonValue[] => [
+    { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+    { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+    mid,
+    { type: "text.start", seq: 3, id: "x1", turnId: "t1" },
+    { type: "text.delta", seq: 4, id: "x1", delta: "kept" },
+    { type: "message.end", seq: 5, id: "m1" },
+  ];
+  const fold = (evs: AgEvent[]): Reducer => {
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    return r;
+  };
+
+  for (const [name, bad] of [
+    ["a malformed known type", { type: "message.remove", seq: 2, id: "*" }],
+    ["an undefined type", { type: "zz.start", seq: 2, zz: 1 }],
+    ["an unknown enum value", { type: "turn.abort", seq: 2, turnId: "t9", reason: 7 }],
+  ] as const) {
+    it(`${name} mid-stream rides as ONE stub in its own slot, and the stream folds without parking`, () => {
+      const evs = ingestAgEvents(stream(bad as unknown as JsonValue));
+      const stubs = evs.filter((e) => e.type === "ext.agjson.ignored") as unknown as Rec[];
+      expect(stubs).toHaveLength(1);
+      expect(stubs[0]).toMatchObject({ seq: 2, ignoredType: (bad as Rec)["type"] });
+      expect(stubs[0]!["raw"]).toEqual(bad);
+      expect(() => AgEvent.parse(stubs[0])).not.toThrow(); // a valid typed ext event
+      const r = fold(evs);
+      expect(r.needsResync).toBe(false);
+      expect(r.result().messages[0]!.content).toEqual([{ type: "text", text: "kept" }]);
+    });
+  }
+
+  it("the stub's raw drops `__proto__` at every depth", () => {
+    const bad = JSON.parse('{"type":"zz.start","seq":2,"__proto__":{"a":1},"n":{"__proto__":{"b":2},"k":1}}') as JsonValue;
+    const stub = ingestAgEvent(bad) as unknown as Rec;
+    const raw = stub["raw"] as Rec;
+    const n = raw["n"] as Rec;
+    for (const o of [stub, raw, n]) {
+      expect(Object.getPrototypeOf(o)).toBe(Object.prototype);
+      expect(Object.prototype.hasOwnProperty.call(o, "__proto__")).toBe(false);
+    }
+    expect(raw).toEqual({ type: "zz.start", seq: 2, n: { k: 1 } });
+  });
+
+  it("control: a real seq gap still parks (the stub keeps slots, it does not invent them)", () => {
+    const evs = ingestAgEvents(stream({ type: "message.remove", seq: 7, id: "*" }));
+    expect(fold(evs).needsResync).toBe(true);
+  });
+
+  it("control: a non-envelope mid-stream advances nothing and is reported once", () => {
+    const rejects: AgIngestReject[] = [];
+    const s = stream({ type: "message.metadata", seq: 2, metadata: {} });
+    const evs = ingestAgEvents([...s.slice(0, 2), "junk", ...s.slice(2)], { onReject: (r) => void rejects.push(r) });
+    expect(rejects).toEqual([{ input: "junk", reason: "not-object" }]);
+    expect(evs.map((e) => e.seq)).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("never throws, even when onReject throws", () => {
+    const onReject = (): void => {
+      throw new Error("host bug");
+    };
+    expect(() => ingestAgEvents(["junk", { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" }], { onReject })).not.toThrow();
+    expect(ingestAgEvents(["junk", { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" }], { onReject })).toHaveLength(1);
   });
 });

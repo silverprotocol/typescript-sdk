@@ -415,7 +415,7 @@ export type AgBlock =
       structuredContent?: JsonValue; // MODEL-facing structured result (base MCP outputSchema; §2.1)
       uiData?: JsonValue; // surface/view, MODEL-HIDDEN (MCP Apps structuredContent / OpenAI Apps component data; §2.1)
       sideData?: JsonValue; // app-only side data (LangChain ToolMessage.artifact; §2.1)
-      errorText?: string; // free-form error message (Vercel tool-output-error); present iff outcome==="error"
+      errorText?: string; // free-form error message (Vercel tool-output-error); set only when outcome==="error", may be absent on an error (§2.2)
       errorCode?: string; // structured server-tool error code (Anthropic web_search_tool_result_error.error_code)
       toolMetadata?: AgMeta; // per-tool metadata bag (Vercel)
       dynamic?: boolean; // Vercel dynamic-vs-static tool distinction
@@ -651,6 +651,7 @@ export const AgTurnRecord = z.object({
   threadId: z.string(),
   outcome: AgOutcome.optional(),
   finishReason: AgFinishReason.optional(),
+  finishReasonRaw: z.string().optional(), // the native finish value verbatim, folded from turn.done (§2, draft.4)
   usage: AgUsage.optional(),
   safety: z.array(AgSafety).optional(),
   handoffs: z.array(AgHandoffRecord).optional(),
@@ -809,7 +810,7 @@ export type AgRunConfig = z.infer<typeof AgRunConfig>;
 
 // The spec version this SDK implements (SPEC.md status line + §12). Consumers
 // reject a MAJOR mismatch and accept any same-major version (§12 negotiation).
-export const AGJSON_VERSION = "1.0.0-draft.3";
+export const AGJSON_VERSION = "1.0.0-draft.4";
 
 const agjsonWireVersion = z
   .string()
@@ -1099,6 +1100,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     turnId: z.string(),
     outcome: AgOutcome,
     finishReason: AgFinishReason,
+    finishReasonRaw: z.string().optional(), // the native finish value verbatim, e.g. when finishReason is "other"/"unknown" (§4, draft.4)
     usage: AgUsage.optional(), // EXTENDED — per-turn usage (spec §4)
     safety: z.array(AgSafety).optional(), // EXTENDED — safety signals (spec §4)
     messageId: z.string().optional(),
