@@ -3004,10 +3004,121 @@ describe("INV-MSG E5: a block-finalizing event into a sealed message or a closed
 // tool-result typed `preliminary` + turn.done.messageId targeting (audit M20)
 // ─────────────────────────────────────────────────────────────────────────────
 
+describe("tool.done snapshot fold over a kept-open result (draft.4 §5; fold/flush P1)", () => {
+  const S = { cache: { hit: true } };
+  const U = { card: "weather" };
+  const M = { ui: { resourceUri: "ui://cards/weather" } };
+  const T = { "host/k": "v" };
+  const open = (): Reducer => {
+    const r = new Reducer();
+    r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    r.push({ type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    r.push({ type: "tool.start", seq: 2, toolCallId: "c1", name: "poll", turnId: "t1" });
+    return r;
+  };
+  const results = (r: Reducer) => r.result().messages.flatMap((m) => m.content).filter((b) => b.type === "tool-result");
+
+  it("§10 item 25 leg: an ok final over a kept-open error folds to exactly the ok snapshot", () => {
+    const r = open();
+    r.push({
+      type: "tool.done",
+      seq: 3,
+      toolCallId: "c1",
+      more: true,
+      content: [{ type: "text", text: "A" }],
+      outcome: "error",
+      isError: true,
+      errorText: "e",
+      structuredContent: S,
+      uiData: U,
+      _meta: M,
+      toolMetadata: T,
+      providerMetadata: { p: 1 },
+      turnId: "t1",
+    });
+    r.push({
+      type: "tool.done",
+      seq: 4,
+      toolCallId: "c1",
+      content: [{ type: "text", text: "B" }],
+      outcome: "ok",
+      providerMetadata: { q: 2 },
+      turnId: "t1",
+    });
+    expect(r.needsResync).toBe(false);
+    const blocks = results(r);
+    expect(blocks).toHaveLength(1);
+    const { uiData, ...rest } = blocks[0] as Record<string, unknown>;
+    expect(rest).toEqual({
+      type: "tool-result",
+      toolCallId: "c1",
+      content: [{ type: "text", text: "B" }],
+      outcome: "ok",
+      _meta: M,
+      toolMetadata: T,
+      providerMetadata: { p: 1, q: 2 },
+    });
+    for (const k of ["isError", "errorText", "structuredContent", "preliminary"]) expect(k in rest, k).toBe(false);
+    // uiData's group waits on the delta bar wf_93a30c7b-cd0: until the founder
+    // rules, it survives an omitting final (the item-25 vector clears it once
+    // uiData is ruled payload). This pin makes that flip deliberate.
+    expect(uiData).toEqual(U);
+  });
+
+  it("an error final over a kept-open structuredContent folds with no structuredContent", () => {
+    const r = open();
+    r.push({ type: "tool.done", seq: 3, toolCallId: "c1", more: true, content: [], outcome: "ok", structuredContent: S, turnId: "t1" });
+    r.push({
+      type: "tool.done",
+      seq: 4,
+      toolCallId: "c1",
+      content: [{ type: "text", text: "E" }],
+      outcome: "error",
+      isError: true,
+      errorText: "boom",
+      turnId: "t1",
+    });
+    const block = results(r)[0] as Record<string, unknown>;
+    expect(block).toMatchObject({ outcome: "error", isError: true, errorText: "boom", content: [{ type: "text", text: "E" }] });
+    expect("structuredContent" in block).toBe(false);
+    expect(r.needsResync).toBe(false);
+  });
+
+  it("a kept-open snapshot over a kept-open snapshot replaces the payload too (sideData, errorCode, pendingInput cleared)", () => {
+    const r = open();
+    r.push({
+      type: "tool.done",
+      seq: 3,
+      toolCallId: "c1",
+      more: true,
+      content: [{ type: "text", text: "1" }],
+      outcome: "input_required",
+      sideData: { log: 1 },
+      errorCode: "E1",
+      pendingInput: { requestState: "rs", inputKeys: ["k"] },
+      turnId: "t1",
+    });
+    r.push({ type: "tool.done", seq: 4, toolCallId: "c1", more: true, content: [{ type: "text", text: "2" }], outcome: "ok", turnId: "t1" });
+    const block = results(r)[0] as Record<string, unknown>;
+    expect(block).toMatchObject({ content: [{ type: "text", text: "2" }], outcome: "ok", preliminary: true });
+    for (const k of ["sideData", "errorCode", "pendingInput"]) expect(k in block, k).toBe(false);
+  });
+
+  it("a final that omits outcome clears the kept-open outcome (payload, not descriptor)", () => {
+    const r = open();
+    r.push({ type: "tool.done", seq: 3, toolCallId: "c1", more: true, content: [], outcome: "error", turnId: "t1" });
+    r.push({ type: "tool.done", seq: 4, toolCallId: "c1", content: [{ type: "text", text: "done" }], turnId: "t1" });
+    const block = results(r)[0] as Record<string, unknown>;
+    expect("outcome" in block).toBe(false);
+    expect(block["content"]).toEqual([{ type: "text", text: "done" }]);
+  });
+});
+
 describe("tool-result typed preliminary + turn.done.messageId targeting (audit M20)", () => {
   // SPEC.md:799: tool.done lands toolMetadata and dynamic. The CREATE path
   // always did; the MERGE path (a final tool.done over a more:true
-  // preliminary) dropped both. Same guarded per-field merge as its siblings.
+  // preliminary) dropped both. They are descriptors: replaced only when the
+  // later event carries them (draft.4 §5 snapshot fold).
   it("a final tool.done over a preliminary lands toolMetadata + dynamic; a final that omits them keeps the preliminary's", () => {
     const open = (): Reducer => {
       const r = new Reducer();
@@ -3078,7 +3189,7 @@ describe("tool-result typed preliminary + turn.done.messageId targeting (audit M
     const blocks = r.result().messages[0]?.content ?? [];
     const tr = blocks.find((b) => b.type === "tool-result");
     expect(tr?.type === "tool-result" && tr.preliminary).toBe(true);
-    // final result clears it (merge = REPLACE, code-canonical)
+    // the final result clears it (draft.4 §5 snapshot fold)
     r.push({
       type: "tool.done",
       seq: 4,

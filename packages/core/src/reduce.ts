@@ -61,6 +61,16 @@ function setProviderMeta(block: { providerMetadata?: AgProviderMeta }, incoming:
 
 
 /**
+ * Snapshot-fold one optional result field (draft.4 §5 tool.done): the later
+ * event's value, or no key at all when the later event omits it.
+ */
+function replaceOrClear<B extends object, K extends keyof B>(block: B, key: K, value: B[K] | undefined): void {
+  if (value === undefined) delete block[key];
+  else block[key] = value;
+}
+
+
+/**
  * Build the partition key for the open-message map.
  *
  * Spec §5: the partition key is `(turnId, candidateIndex)` — absent
@@ -550,9 +560,9 @@ export class Reducer {
         const existingPos = this.#blockPos.get(resultKey);
 
         if (existingPos !== undefined) {
-          // MERGE path: a preliminary tool-result block is already open for this
-          // toolCallId. Replace its content with the incoming (final or next-preliminary)
-          // content.
+          // MERGE path: a kept-open (more:true) tool-result block exists for this
+          // toolCallId; the incoming tool.done (final or next kept-open) folds onto it
+          // as a snapshot (draft.4 §5, below).
           const msg = this.#messages.get(existingPos.messageId);
           if (msg === undefined) break;
           const block = msg.content[existingPos.index];
@@ -567,29 +577,37 @@ export class Reducer {
             this.#resync = true;
             break;
           }
+          // Snapshot fold (draft.4 §5; fold/flush P1, bar wf_2231e194-e31): while a
+          // result is kept open, every tool.done carries the FULL current result, so
+          // a later one REPLACES the payload as a unit. content, outcome, isError,
+          // structuredContent, sideData, errorText, errorCode and pendingInput take
+          // the later event's values, and a field it omits is CLEARED: an ok final no
+          // longer keeps a kept-open error's isError/errorText, and an error final no
+          // longer keeps a kept-open structuredContent.
           block.content = ev.content;
-          if (ev.outcome !== undefined) block.outcome = ev.outcome;
-          if (ev.isError !== undefined) block.isError = ev.isError;
-          if (ev.structuredContent !== undefined) block.structuredContent = ev.structuredContent;
+          replaceOrClear(block, "outcome", ev.outcome);
+          replaceOrClear(block, "isError", ev.isError);
+          replaceOrClear(block, "structuredContent", ev.structuredContent);
+          replaceOrClear(block, "sideData", ev.sideData);
+          replaceOrClear(block, "errorText", ev.errorText);
+          replaceOrClear(block, "errorCode", ev.errorCode);
+          replaceOrClear(block, "pendingInput", ev.pendingInput);
+          // uiData: whether it is payload (cleared when omitted) or a descriptor
+          // (kept) waits on the delta bar wf_93a30c7b-cd0 and the founder's pick.
+          // Until then it keeps the draft.3 rule: replaced only when carried.
           if (ev.uiData !== undefined) block.uiData = ev.uiData;
-          if (ev.sideData !== undefined) block.sideData = ev.sideData;
-          if (ev.errorText !== undefined) block.errorText = ev.errorText;
-          if (ev.errorCode !== undefined) block.errorCode = ev.errorCode;
-          // SPEC.md:799: tool.done lands toolMetadata and dynamic (the create
-          // path always did); same guarded per-field merge as the rest.
+          // Descriptors are replaced only when the later event carries them:
+          // toolMetadata and dynamic (SPEC.md:799; as tool.args.assembled treats
+          // toolMetadata), and `_meta`, the §0.4 host side-channel, so a kept-open
+          // result's MCP-Apps/A2UI card bootstrap survives a final that omits its
+          // own (workspace#9). providerMetadata merges by key.
           if (ev.toolMetadata !== undefined) block.toolMetadata = ev.toolMetadata;
           if (ev.dynamic !== undefined) block.dynamic = ev.dynamic;
-          if (ev.pendingInput !== undefined) block.pendingInput = ev.pendingInput;
-          // workspace#9: the §0.4 host side-channel joins the merge like every
-          // other result field — guarded, so a preliminary's `_meta` (the
-          // MCP-Apps/A2UI card bootstrap) survives a final REPLACE that omits
-          // its own. Mirrors the text.start/reasoning.start carriage.
           if (ev._meta !== undefined) block._meta = ev._meta;
           setProviderMeta(block, ev.providerMetadata);
           // Typed preliminary flag mirrors the block's `more` state (audit M20):
-          // more:true keeps it set (partial, kept open); the final more-less tool.done
-          // REPLACES the result fields wholesale (merge = REPLACE, code-canonical) and
-          // clears it, closing (removing from open tracking).
+          // more:true keeps it set (kept open); the final more-less tool.done
+          // clears it and closes the result (removed from open tracking).
           if (ev.more) {
             block.preliminary = true;
           } else {
