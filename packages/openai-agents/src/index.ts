@@ -813,7 +813,11 @@ type OpenAIRunItemEvent =
  *  the `model` carrier. */
 interface OpenAIResponsesCreated {
   type: "response.created";
-  response: { id: string };
+  /** `model` (OA-12): openai-node `Response.model` — the model id the API
+   *  resolved for THIS response (live echo-gpt6sol: `"gpt-6-sol"`), known before
+   *  the message opens → `message.start.model`. Typed as the raw `JsonValue` it
+   *  is on this seam; string-guarded at the read. */
+  response: { id: string; model?: JsonValue };
 }
 /** openai-node `ResponseFunctionCallArgumentsDeltaEvent` — the per-fragment
  *  argument delta (snake_case `item_id`/`delta`). */
@@ -1532,8 +1536,10 @@ export function createOpenaiNormalizer(): Normalizer {
    * somehow absent (defensive — the spike confirms the id is always present at start).
    * Returns the close-once key (the real response.id, else the synthesized turnId),
    * or `undefined` when the response has already been closed (caller must no-op).
+   * `model` (OA-12) rides `message.start.model` — only the authoritative
+   * `response.created` open passes it; a defensive open never invents one.
    */
-  function ensureResponseOpen(respId?: string): string | undefined {
+  function ensureResponseOpen(respId?: string, model?: string): string | undefined {
     // Already closed → never reopen (the duplicate `response.completed` lands here).
     if (respId !== undefined && closedResponses.has(respId)) return undefined;
     if (turnId !== undefined) {
@@ -1548,7 +1554,7 @@ export function createOpenaiNormalizer(): Normalizer {
     // see the closure-state doc above.
     lastTopLevelTurnId = turnId;
     a.openTurn(turnId, threadId);
-    a.openMessage({ id: msgId, role: "assistant", turnId, threadId });
+    a.openMessage({ id: msgId, role: "assistant", turnId, threadId, ...(model !== undefined ? { model } : {}) });
     return responseId ?? turnId;
   }
 
@@ -1585,7 +1591,12 @@ export function createOpenaiNormalizer(): Normalizer {
     switch (ev.type) {
       case "response.created": {
         // Authoritative turn open — the real response.id is present at start.
-        ensureResponseOpen(ev.response.id);
+        // OA-12: so is the resolved model id (JsonValue boundary: string-guarded).
+        const rawModelId: unknown = ev.response.model;
+        ensureResponseOpen(
+          ev.response.id,
+          typeof rawModelId === "string" && rawModelId.length > 0 ? rawModelId : undefined,
+        );
         return;
       }
       case "response.output_text.delta": {

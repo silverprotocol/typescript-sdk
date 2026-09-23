@@ -2158,6 +2158,70 @@ describe("createOpenaiNormalizer — OA-11 reasoning sourced from the response.c
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// OA-12 — `message.start.model?` (SPEC:610) filled from `response.created`'s
+// `response.model` (live: echo-gpt6sol natives [1] `"model": "gpt-6-sol"`,
+// which arrives BEFORE the message opens). An existing optional slot, folded to
+// `AgMessage.model` (SPEC:585, reduce.ts); absent/non-string/empty ⇒ no key
+// (byte-identical to pre-OA-12). sp-rnd finding #1 (2026-09-23).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("createOpenaiNormalizer — OA-12 message.start.model from response.created", () => {
+  function run(stream: JsonValue[]): AgEvent[] {
+    const n = createOpenaiNormalizer();
+    return stream.flatMap((e) => n.push(e)).concat(n.flush());
+  }
+  const textRound = (id: string, created: { [k: string]: JsonValue }): JsonValue[] => [
+    rawModel({ type: "response.created", response: { id, ...created } }),
+    rawModel({ type: "response.output_text.delta", item_id: `msg_${id}`, delta: "hi" }),
+    rawModel({ type: "response.completed", response: { id, status: "completed" } }),
+  ];
+
+  it("response.created's model rides message.start.model and folds to AgMessage.model", () => {
+    const stream = textRound("resp_m1", { model: "gpt-6-sol" });
+    const evs = run(stream);
+    expect(evs.find((e) => e.type === "message.start")).toMatchObject({ model: "gpt-6-sol" });
+
+    const n = createOpenaiNormalizer();
+    const r = new Reducer();
+    for (const e of stream) for (const ev of n.push(e)) r.push(ev);
+    for (const ev of n.flush()) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages[0]).toMatchObject({ model: "gpt-6-sol" });
+    expect(() => AgReduceResult.parse(r.result())).not.toThrow();
+  });
+
+  it("each response's message carries ITS OWN model (e.g. a handoff to an agent on another model)", () => {
+    const evs = run([
+      ...textRound("resp_a", { model: "gpt-6-sol" }),
+      ...textRound("resp_b", { model: "gpt-6-luna" }),
+    ]);
+    const starts = evs.filter((e) => e.type === "message.start");
+    expect(starts).toHaveLength(2);
+    expect(starts[0]).toMatchObject({ model: "gpt-6-sol" });
+    expect(starts[1]).toMatchObject({ model: "gpt-6-luna" });
+  });
+
+  it("negative control: absent / non-string / empty model ⇒ no model key, byte-identical to a created event without it", () => {
+    const bare = run(textRound("resp_neg", {}));
+    expect(bare.find((e) => e.type === "message.start")).not.toHaveProperty("model");
+    expect(run(textRound("resp_neg", { model: null }))).toEqual(bare);
+    expect(run(textRound("resp_neg", { model: 42 }))).toEqual(bare);
+    expect(run(textRound("resp_neg", { model: "" }))).toEqual(bare);
+  });
+
+  it("a message opened defensively BEFORE any response.created carries no model (nothing invented)", () => {
+    const evs = run([
+      rawModel({ type: "response.output_text.delta", item_id: "msg_x", delta: "hi" }),
+      rawModel({ type: "response.created", response: { id: "resp_late_created", model: "gpt-6-sol" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_late_created", status: "completed" } }),
+    ]);
+    const starts = evs.filter((e) => e.type === "message.start");
+    expect(starts).toHaveLength(1);
+    expect(starts[0]).not.toHaveProperty("model");
+  });
+});
+
 // handoff_requested / handoff_occurred (Task 3, audit M48; corrected by the M48
 // REVIEW, Finding 1). Every run-item on this seam — these two included — arrives
 // AFTER its owning round's `response.completed` on the real wire (mirrors the
