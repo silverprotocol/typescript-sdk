@@ -2,7 +2,7 @@
   {
     "type": "system",
     "subtype": "init",
-    "cwd": "/Users/gustavo/Projects/silverprotocol/sdks/typescript/packages/e2e",
+    "cwd": "<redacted-path>",
     "session_id": "d6364b7d-7a5d-4e24-bcf1-b3fd5803581d",
     "tools": [
       "mcp__t__echo"
@@ -124,7 +124,7 @@
     "product_feedback_disabled": false,
     "uuid": "ed69c050-7166-4968-931e-4ec3d28b8d30",
     "memory_paths": {
-      "auto": "/Users/gustavo/.claude/projects/-Users-gustavo-Projects-silverprotocol/memory/"
+      "auto": "<redacted-path>"
     },
     "messaging_socket_path": "/tmp/cc-socks/82913.sock",
     "fast_mode_state": "off",
