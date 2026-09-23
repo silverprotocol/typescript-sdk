@@ -181,9 +181,9 @@ describe("withAtomicPush (per-native atomicity, the fleet guard; option B)", () 
     expect(fold(got).needsResync).toBe(false);
   });
 
-  it("the journal holds COPIES: a host mutating a pushed native later cannot skew a rebuild", () => {
+  it.each([{ normalize: true }, { normalize: false }])("the journal holds COPIES (%o): a host mutating a pushed JSON native later cannot skew a rebuild", (opts) => {
     const natives: Toy[] = structuredClone([...PREFIX]);
-    const wrapped = withAtomicPush(() => createToy());
+    const wrapped = withAtomicPush(() => createToy(), opts);
     const got: AgEvent[] = [];
     for (const n of natives) got.push(...wrapped.push(n));
     for (const n of natives) n["id"] = "MUTATED"; // host mutation after push

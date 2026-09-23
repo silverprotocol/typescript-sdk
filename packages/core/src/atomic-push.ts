@@ -20,7 +20,7 @@
  */
 import type { AgEvent, JsonValue } from "./agjson.js";
 import type { Normalizer } from "./stream-assembler.js";
-import { toJsonValue, toJsonValueSafe } from "./wire.js";
+import { isJsonValue, toJsonValue, toJsonValueSafe } from "./wire.js";
 
 /** The constant `message` of the guard's core `error` event. */
 export const NORMALIZER_ERROR_MESSAGE = "normalizer error";
@@ -40,8 +40,10 @@ export interface AtomicPushOptions {
   /** Run {@link toJsonValueSafe} on each native before the inner push (default
    *  true). With it the journal holds a JSON deep copy of what the inner saw,
    *  so a host mutating a pushed native later cannot skew a rebuild. With
-   *  `false` the journal holds the natives themselves, and the host MUST NOT
-   *  mutate a native after pushing it. */
+   *  `false` a native that is already plain JSON is still journaled as a deep
+   *  copy; any other native (a class instance, a Date, a cycle) is journaled
+   *  BY REFERENCE, so the caller must pass values it owns and never mutate one
+   *  after pushing it. */
   normalize?: boolean;
 }
 
@@ -162,7 +164,7 @@ export function withAtomicPush(createInner: () => Normalizer, opts: AtomicPushOp
       try {
         const n: unknown = normalize ? toJsonValueSafe(native) : native;
         const evs = inner.push(n);
-        journal.push(normalize ? toJsonValue(n as JsonValue) : n);
+        journal.push(normalize || isJsonValue(n) ? toJsonValue(n as JsonValue) : n);
         return deliver(evs);
       } catch (err) {
         rebuild();
