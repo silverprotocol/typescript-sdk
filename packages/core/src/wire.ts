@@ -135,10 +135,18 @@ export function isJsonValue(v: unknown): v is JsonValue {
  *   {@link JSON_SAFE_MAX_DEPTH_MARK}, so a pathological structure cannot
  *   overflow the stack.
  *
- * A `__proto__` key is kept as an ordinary data member (as `JSON.parse` does),
- * never as a prototype. A top-level value that JSON would drop (`undefined`, a
- * function, a symbol) returns `null`. To learn WHICH nodes degraded, use
- * {@link toJsonValueSafeWithIssues}.
+ * A `__proto__` key is kept as an ordinary own data member on BOTH paths (as
+ * `JSON.parse` does), never as a prototype. The helper does not strip it: a
+ * consumer that must drop it does so downstream (ingest's copy does, and the
+ * facets' scrub/allowlist paths skip it explicitly). A top-level value that
+ * JSON would drop (`undefined`, a function, a symbol) returns `null`. To learn
+ * WHICH nodes degraded, use {@link toJsonValueSafeWithIssues}.
+ *
+ * ALIASING: unlike `toJsonValue` (which always deep-copies through a JSON
+ * round-trip), plain input is returned BY REFERENCE, so its nodes can end up
+ * inside emitted events. A caller that needs isolation copies the result
+ * ({@link isJsonValue} is the cheap check). A facet must neither mutate the
+ * returned value nor retain it past the `push()` that produced it.
  */
 export function toJsonValueSafe(v: unknown): JsonValue {
   return toJsonValueSafeWithIssues(v).value;
