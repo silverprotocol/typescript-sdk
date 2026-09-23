@@ -765,8 +765,12 @@ function isAdkPauseEnd(event: AdkEvent): boolean {
   );
 }
 
-function turnKey(ev: AdkEvent): string {
-  return ev.invocationId && ev.invocationId.length > 0 ? ev.invocationId : ev.id ?? "adk";
+/** The event's own turn key: its invocationId, else its id. `undefined` when it
+ *  has neither; the normalizer then names the turn from its per-instance stem,
+ *  never a constant that would repeat across the invokes a host folds together. */
+function turnKey(ev: AdkEvent): string | undefined {
+  if (ev.invocationId && ev.invocationId.length > 0) return ev.invocationId;
+  return ev.id !== undefined && ev.id !== null && ev.id.length > 0 ? ev.id : undefined;
 }
 
 // ─── tool-call positional index (spec §8.2) ───────────────────────────────────
@@ -1706,8 +1710,8 @@ export const ADK_HOST_COMPLETE_TYPE = "__host_complete__";
 /**
  * SPEC §8.0 host obligation 1: when the ADK runtime THROWS instead of ending
  * the stream (e.g. its LLM-call limit), the host catches it and pushes
- * `{ type: "__host_error__", code, message, usage? }`. The open turn closes
- * `turn.error` with that code and message. The shape matches the OpenAI
+ * `{ type: "__host_error__", code, message, usage?, invocationId? }`. The
+ * open turn closes `turn.error` with that code and message. The shape matches the OpenAI
  * facet's sentinel. A host may build it from the caught Error itself
  * (`Object.assign(err, { type: "__host_error__", code })`): the sentinel is
  * read from the raw native, so the Error's own message is kept.
@@ -1718,6 +1722,9 @@ interface AdkHostError {
   code: string;
   message: string;
   usage?: AgUsage;
+  /** The invoke's ADK invocationId, when the host has it: used to name a
+   *  fresh terminal turn if the error arrives before any event. */
+  invocationId?: string;
 }
 
 /** The host-error sentinel, read from the RAW native (an Error's message is
@@ -1732,7 +1739,13 @@ function hostErrorOf(raw: unknown): AdkHostError | undefined {
     if (typeof code !== "string" || typeof message !== "string") return undefined;
     const usageRaw: unknown = Reflect.get(raw, "usage");
     const usage = usageRaw === undefined ? undefined : AgUsage.safeParse(toJsonValueSafe(usageRaw));
-    return { code, message, ...(usage?.success === true ? { usage: usage.data } : {}) };
+    const invocationId: unknown = Reflect.get(raw, "invocationId");
+    return {
+      code,
+      message,
+      ...(usage?.success === true ? { usage: usage.data } : {}),
+      ...(typeof invocationId === "string" && invocationId.length > 0 ? { invocationId } : {}),
+    };
   } catch {
     return undefined;
   }
@@ -1752,8 +1765,10 @@ function isHostCompleteNative(v: JsonValue): boolean {
  * - If mapping one native throws (an event whose envelope is valid but whose
  *   inner members have unexpected types), its partial batch is discarded
  *   without consuming seq, the inner is rebuilt by re-driving every native
- *   accepted so far (the facet never reads the clock or randomness; ids come
- *   from invocationId and per-invoke ordinals), and ONE core `error {message:
+ *   accepted so far (the inner never reads the clock or randomness; ids come
+ *   from invocationId and per-invoke ordinals, and the one random stem, for a
+ *   host error before any event, is drawn outside the inner and kept), and
+ *   ONE core `error {message:
  *   "normalizer error", code: <constructor name>}` takes the next seq, with no
  *   payload and no message text.
  * - flush() is guarded the same way; the wrapper closes what the consumer saw
@@ -1762,10 +1777,32 @@ function isHostCompleteNative(v: JsonValue): boolean {
  * message or block is open that never reached the wire.
  */
 export function createAdkNormalizer(options: AdkNormalizerOptions = {}): Normalizer {
-  return withAtomicPush(() => createInnerAdkNormalizer(options));
+  // A per-instance id stem, drawn lazily and only on the paths that need it (an
+  // event with neither invocationId nor id; a host error before any event,
+  // with no invocationId on the sentinel). It lives OUTSIDE the inner, so a
+  // rebuild re-drives to the same ids.
+  const stem: IdStem = {};
+  return withAtomicPush(() => createInnerAdkNormalizer(options, stem));
 }
 
-function createInnerAdkNormalizer(options: AdkNormalizerOptions): Normalizer {
+/** Holds the lazily drawn per-instance id stem across inner rebuilds. */
+interface IdStem {
+  value?: string;
+}
+
+/** A random per-instance stem; never called while a replay re-drives, since
+ *  the stem is drawn once and kept. */
+function drawIdStem(): string {
+  const cryptoObj: unknown = Reflect.get(globalThis, "crypto");
+  const randomUUID: unknown = cryptoObj !== undefined && cryptoObj !== null ? Reflect.get(cryptoObj, "randomUUID") : undefined;
+  if (typeof randomUUID === "function") {
+    const id: unknown = Reflect.apply(randomUUID, cryptoObj, []);
+    if (typeof id === "string") return id;
+  }
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+}
+
+function createInnerAdkNormalizer(options: AdkNormalizerOptions, stem: IdStem): Normalizer {
   const hostCompletion = options.hostCompletion === true;
   const a = new StreamAssembler();
   const threadId = "google";
@@ -2012,6 +2049,10 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions): Normalizer {
    *  complete. With no turn open, a fresh terminal turn carries the error, so
    *  it is never start-less. */
   let hostErrorTurns = 0;
+  // The first turn key this invoke drove (its ADK invocationId): the stem of a
+  // fresh terminal turn's id, so the id is unique across the invokes a host
+  // folds together, not only within this one.
+  let firstKey: string | undefined;
   function hostError(err: AdkHostError): void {
     let closed = 0;
     for (const turnId of [...openTurns].reverse()) {
@@ -2023,7 +2064,8 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions): Normalizer {
       closed++;
     }
     if (closed > 0) return;
-    const turnId = `turn_host_error_${hostErrorTurns++}`;
+    const base = firstKey ?? err.invocationId ?? (stem.value ??= drawIdStem());
+    const turnId = `turn_${base}_host_error_${hostErrorTurns++}`;
     const messageId = ensureOpen(turnId);
     closedTurns.add(turnId);
     a.closeMessage(messageId);
@@ -2035,7 +2077,8 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions): Normalizer {
   }
 
   function drive(event: AdkEvent): void {
-    const key = turnKey(event);
+    const key = turnKey(event) ?? `adk_${(stem.value ??= drawIdStem())}`;
+    firstKey ??= key;
     const turnId = `turn_${key}`;
     const messageId = ensureOpen(turnId);
     const parts = event.content?.parts ?? [];

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { AgEvent, AgReduceResult, JsonValue, Reducer, toJsonValue } from "@silverprotocol/core";
 import {
   ADK_HOST_ERROR_TYPE,
@@ -4029,6 +4029,82 @@ describe("createAdkNormalizer — the host-error sentinel (SPEC §8.0 host oblig
     ];
     expect(terminals(out)[0]).toMatchObject({ usage: { inputTokens: 9, outputTokens: 1 } });
     expect((terminals(out)[0] as { usage?: { totalTokens?: number } }).usage?.totalTokens).toBeUndefined();
+  });
+
+  it("a fresh terminal turn's id is unique across invokes: two invokes folded through ONE Reducer never share a turn id", () => {
+    const invoke = (inv: string) => {
+      const n = createAdkNormalizer();
+      return [
+        ...n.push(toJsonValue(event([{ text: "done" }], { invocationId: inv, turnComplete: true, finishReason: "STOP" }))),
+        ...n.push({ type: ADK_HOST_ERROR_TYPE, code: "runner_error", message: "late" }),
+        ...n.flush(),
+      ];
+    };
+    const first = invoke("inv_A");
+    const second = invoke("inv_B");
+    const errorTurns = [...first, ...second].filter((e) => e.type === "turn.error").map((e) => (e as { turnId: string }).turnId);
+    expect(errorTurns).toEqual(["turn_inv_A_host_error_0", "turn_inv_B_host_error_0"]);
+    const r = new Reducer();
+    for (const e of [...first, ...second]) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const starts = [...first, ...second].filter((e) => e.type === "turn.start").map((e) => (e as { turnId: string }).turnId);
+    expect(new Set(starts).size).toBe(starts.length);
+  });
+
+  it("an error before any event: the sentinel's invocationId names the turn; without one, a per-instance stem does, and two invokes still never collide", () => {
+    const only = (sentinel: JsonValue) => {
+      const n = createAdkNormalizer();
+      return [...n.push(sentinel), ...n.flush()];
+    };
+    const named = only({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m", invocationId: "inv_known" });
+    expect(terminals(named)[0]).toMatchObject({ turnId: "turn_inv_known_host_error_0" });
+    const a = only({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m" });
+    const b = only({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m" });
+    const ids = [...a, ...b].filter((e) => e.type === "turn.start").map((e) => (e as { turnId: string }).turnId);
+    expect(ids).toHaveLength(2);
+    expect(ids[0]).not.toBe(ids[1]);
+    const r = new Reducer();
+    for (const e of [...named, ...a, ...b]) r.push(e);
+    expect(r.needsResync).toBe(false);
+  });
+
+  it("the per-instance stem is drawn once and survives a rebuild: after a native that cannot be mapped, the next fresh terminal turn keeps the same stem", () => {
+    const draws = vi.spyOn(globalThis.crypto, "randomUUID");
+    try {
+      const n = createAdkNormalizer();
+      const out = [
+        ...n.push({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "first" }),
+        ...n.push({ invocationId: "inv_bad", content: { role: "model", parts: 1 } } as unknown as JsonValue),
+        ...n.push({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "second" }),
+        ...n.flush(),
+      ];
+      const ids = out.filter((e) => e.type === "turn.error").map((e) => (e as { turnId: string }).turnId);
+      expect(ids).toHaveLength(2);
+      const stemOf = (id: string) => id.replace(/_host_error_\d+$/, "");
+      expect(stemOf(ids[0]!)).toBe(stemOf(ids[1]!));
+      expect(ids.map((id) => id.slice(-2))).toEqual(["_0", "_1"]);
+      expect(draws).toHaveBeenCalledTimes(1);
+      expect(out.filter((e) => e.type === "error")).toHaveLength(1);
+    } finally {
+      draws.mockRestore();
+    }
+  });
+
+  it("an event with neither invocationId nor id takes the per-instance stem, so two invokes folded through ONE Reducer never share its turn id", () => {
+    const invoke = () => {
+      const n = createAdkNormalizer();
+      return [...n.push({ author: "agent", content: { role: "model", parts: [{ text: "hi" }] } }), ...n.flush()];
+    };
+    const first = invoke();
+    const second = invoke();
+    const ids = [...first, ...second].filter((e) => e.type === "turn.start").map((e) => (e as { turnId: string }).turnId);
+    expect(ids).toHaveLength(2);
+    expect(ids[0]).not.toBe(ids[1]);
+    expect(ids.every((id) => id.startsWith("turn_adk_"))).toBe(true);
+    const r = new Reducer();
+    for (const e of [...first, ...second]) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns).toHaveLength(2);
   });
 
   it("the sentinel's own usage is used when valid; an invalid one is dropped; a malformed sentinel is not one", () => {
