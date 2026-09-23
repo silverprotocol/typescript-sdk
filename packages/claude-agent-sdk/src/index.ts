@@ -1315,9 +1315,11 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // that out-of-order closes skew. So the facet's turn-scoped events name their
   // owner: messages and their blocks by turnId / messageId, top-level tool.done
   // by the open turn, a retraction's message.remove by the removed message's
-  // own turn. What still backfills: tool.args.* and ext.* (no turnId at all),
-  // and a top-level tool.done with NO turn open (pre-existing: it lands on the
-  // closed turn, as before B).
+  // own turn. What still backfills: tool.args.* and ext.* (no turnId at all).
+  // A top-level tool_result with NO turn open no longer lands on a closed turn:
+  // since B-resume (37185be) it opens its own turn, named by its frame uuid (see
+  // the user branch), and a nested one for a run this invoke never opened opens
+  // a fresh run the same way.
   //
   // B-STRICT NESTED TERMINALS (draft.4, the founder's nested-turn ruling Q1,
   // 2026-09-24; sp-protocol's package, sp-claude's leg). A nested turn opens
@@ -2632,14 +2634,14 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // was ever observed) — defensive; leg 3's never-opened-turn guard now
         // parks loudly on that label instead of fabricating a phantom turn.
         // Top-level: the OPEN top-level turn, explicitly (overlapping subagent
-        // runs make the assembler's last-turn backfill unreliable); undefined
-        // only with no turn open, which backfills as before.
+        // runs make the assembler's last-turn backfill unreliable). With no turn
+        // open, the frame opens one first (below), so this is never undefined.
         // Nested: the run's OPEN nested turn. A nested frame for a run that has
         // CLOSED (e.g. a background agent's tool_result after the parent's
-        // result) gets a fresh run, as nested assistant frames do, so nothing
-        // lands on a nested turn after its subagent.done. A run that NEVER
-        // opened (the stream started mid-run) keeps Task 8c leg 3's synthetic
-        // label, which parks loudly rather than fabricating a nested turn.
+        // result), or for one this invoke NEVER opened (the stream started
+        // mid-run), gets a fresh run named by its frame, as nested assistant
+        // frames do: nothing lands on a nested turn after its subagent.done, or
+        // on a turn nobody opened, and no id repeats across invokes.
         // INV-TURN (SPEC:743: a normalizer MUST synthesize turn.start before any
         // content event for a turn the stream has not opened; sp-protocol,
         // 2026-09-23): a TOP-LEVEL tool_result with NO turn open (a resumed
@@ -2662,11 +2664,18 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
           const run = openRuns.get(parentToolUseId);
           if (run !== undefined) {
             toolTurnId = run.turnId;
-          } else if (closedRuns.has(parentToolUseId)) {
+          } else {
+            // A run that CLOSED, or one this invoke never opened (the stream
+            // started mid-run: a background agent spanning invokes, a resume):
+            // open a fresh run named by this frame, so its tool.done lands in a
+            // turn that subagent.start opened (INV-TURN) and B-strict closes.
+            // Through 0.7.0's DC-10 fix the never-opened case named the synthetic
+            // `turn_<parent_tool_use_id>` label instead (Task 8c leg 3, "park
+            // loudly"): a turn nobody opened, whose id REPEATED across the
+            // invokes one Reducer folds (the rd-14 ids-across-invokes rule;
+            // sp-protocol's message.start bar, wf_140b3183-767), and it parked.
             toolTurnId = nestedTurnId(parentToolUseId, undefined, msg.uuid);
             openRun(parentToolUseId, toolTurnId, `turn_${parentToolUseId}`);
-          } else {
-            toolTurnId = subagentTurnByParentToolUseId.get(parentToolUseId) ?? `turn_${parentToolUseId}`;
           }
         } else {
           toolTurnId = openTopTurnId;

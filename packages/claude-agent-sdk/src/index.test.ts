@@ -1439,7 +1439,7 @@ describe("createClaudeNormalizer — B1b: structured_output", () => {
 });
 
 describe("createClaudeNormalizer — B1b: parent_tool_use_id on tool.done", () => {
-  it("sets tool.done.turnId from parent_tool_use_id on user message", () => {
+  it("a nested tool_result for a run this invoke never opened opens a run named by its frame (INV-TURN), never the synthetic parent label", () => {
     const content: UserContent = [
       {
         type: "tool_result",
@@ -1456,11 +1456,14 @@ describe("createClaudeNormalizer — B1b: parent_tool_use_id on tool.done", () =
       session_id: "sess_fixture",
     };
     const evs = run(msg);
-    expect(evs).toHaveLength(1);
-    expect(evs[0]).toMatchObject({
+    // subagent.start opens the run's turn, the tool.done lands in it, and flush
+    // closes it (B-strict: turn.abort, then subagent.done).
+    expect(evs.map((e) => e.type)).toEqual(["subagent.start", "tool.done", "turn.abort", "subagent.done"]);
+    expect(evs[0]).toMatchObject({ turnId: "turn_00000000-0000-0000-0000-000000000003", parentTurnId: "turn_toolu_parent_subagent_1" });
+    expect(evs[1]).toMatchObject({
       type: "tool.done",
       toolCallId: "toolu_fixture_1",
-      turnId: "turn_toolu_parent_subagent_1",
+      turnId: "turn_00000000-0000-0000-0000-000000000003",
       // SPEC §5 tool.done adoption (audit B10; Task 8b): the derived messageId
       // is independent of turnId routing — the subagent-routed result still
       // adopts its own dedicated ToolMessage rather than attaching in-place.
@@ -2834,7 +2837,7 @@ describe("Tenet-6 result-arm hardening", () => {
 // tool.done.turnId to turn_<parent_tool_use_id> (no implicit nesting inference).
 
 describe("subagent inner-tool-result routing contract", () => {
-  it("routes tool.done to the parent subagent turn when parent_tool_use_id is set", () => {
+  it("a nested tool.done with no frame uuid lands in a run opened under this invoke's fallback stem, parented by the spawning call's label", () => {
     const n = createClaudeNormalizer();
     // Plain JSON object literal — valid JsonValue, no cast required.
     const evs = n.push({
@@ -2848,8 +2851,9 @@ describe("subagent inner-tool-result routing contract", () => {
       },
     });
     const done = evs.find((e) => e.type === "tool.done");
-    expect(done).toBeDefined();
-    expect(done).toMatchObject({ turnId: "turn_toolu_parent" });
+    const start = evs.find((e) => e.type === "subagent.start");
+    expect(start).toMatchObject({ parentTurnId: "turn_toolu_parent", turnId: expect.stringMatching(/^turn_claude_[0-9a-f]{16}_frame_1$/) });
+    expect(done).toMatchObject({ turnId: start !== undefined && "turnId" in start ? start.turnId : "missing" });
   });
 });
 
@@ -7848,5 +7852,56 @@ describe("createClaudeNormalizer — verbatim carries drop provider credit token
   it("negative control: a model- or tool-authored payload is NOT stripped (a key named fallback_credit_token in tool input is user content)", () => {
     const evs = drive([asstWith([{ type: "tool_use", id: "toolu_user", name: "t", input: { fallback_credit_token: "user-data" } }])]);
     expect(evs.find((e) => e.type === "tool.args.assembled")).toMatchObject({ input: { fallback_credit_token: "user-data" } });
+  });
+});
+
+// ─── ids across invokes: a nested result for a run this invoke never opened ────
+// sp-protocol's message.start bar (wf_140b3183-767) restates rd-14's rule as a
+// §8.0 producer MUST: turn ids never repeat across the invokes one Reducer
+// folds. The top-level no-open-turn tool.done the bar cited already opens its
+// own uuid-named turn (B-resume 37185be). The nested case did not: it named the
+// synthetic `turn_<parent_tool_use_id>`, a turn nobody opened, repeated by every
+// invoke that started mid-run, and the one-Reducer fold parked.
+describe("createClaudeNormalizer — ids across invokes: no-open-turn results", () => {
+  const U = (n: number): string => `00000000-0000-0000-0000-${String(n).padStart(12, "0")}`;
+  const asstFrame = (id: string, content: unknown[], uuid: string): unknown => ({
+    ...Object.fromEntries(Object.entries(assistantMsg([]))),
+    message: { ...betaMessage([]), id, content },
+    uuid,
+  });
+  const toolResultFrame = (toolUseId: string, uuid: string, parent: string | null): unknown => ({
+    type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: toolUseId, content: [{ type: "text", text: "ok" }], is_error: false }] }, parent_tool_use_id: parent, uuid, session_id: "sess_fixture",
+  });
+  const namedTurns = (evs: AgEvent[]): Set<string> => {
+    const out = new Set<string>();
+    for (const e of evs) if ("turnId" in e && typeof e.turnId === "string") out.add(e.turnId);
+    return out;
+  };
+  const twoInvokes = (inv1: unknown[], inv2: unknown[]): { e1: AgEvent[]; e2: AgEvent[]; repeated: string[]; r: Reducer } => {
+    const e1 = drive(inv1);
+    const e2 = drive(inv2);
+    const first = namedTurns(e1);
+    const repeated = [...namedTurns(e2)].filter((t) => first.has(t));
+    return { e1, e2, repeated, r: fold([...e1, ...e2]) };
+  };
+
+  it("a background agent's nested result in a LATER invoke (its run never opened there): no turn id repeats, and one Reducer folds both invokes without a park", () => {
+    const { e2, repeated, r } = twoInvokes(
+      [asstFrame("msg_b1", [{ type: "tool_use", id: "toolu_bg", name: "Task", input: {} }], U(11)), toolResultFrame("toolu_x1", U(12), "toolu_bg"), { ...resultSuccess("end_turn"), uuid: U(13) }],
+      [toolResultFrame("toolu_x2", U(21), "toolu_bg"), asstFrame("msg_b2", [{ type: "text", text: "next", citations: null }], U(22)), { ...resultSuccess("end_turn"), uuid: U(23) }],
+    );
+    expect(repeated).toEqual([]);
+    expect(r.needsResync).toBe(false);
+    expect(e2.find((e) => e.type === "tool.done")).toMatchObject({ toolCallId: "toolu_x2", turnId: `turn_${U(21)}` });
+  });
+
+  it("the path the bar cited: a top-level tool_result with no turn open (a resumed invoke's first frame) opens its own uuid-named turn: no repeat, no park", () => {
+    const { e2, repeated, r } = twoInvokes(
+      [asstFrame("msg_a1", [{ type: "tool_use", id: "toolu_def", name: "t", input: {} }], U(1)), { ...resultSuccess("end_turn"), uuid: U(2) }],
+      [toolResultFrame("toolu_def", U(3), null), asstFrame("msg_a2", [{ type: "text", text: "done", citations: null }], U(4)), { ...resultSuccess("end_turn"), uuid: U(5) }],
+    );
+    expect(repeated).toEqual([]);
+    expect(r.needsResync).toBe(false);
+    expect(e2.find((e) => e.type === "tool.done")).toMatchObject({ turnId: `turn_${U(3)}` });
   });
 });
