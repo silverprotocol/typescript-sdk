@@ -368,7 +368,17 @@ export type AgBlock =
   | ({ type: "file"; source: AgSource; filename?: string } & BlockMeta)
   | ({ type: "document"; source: AgSource; title?: string } & BlockMeta)
   | { type: "resource"; resource: AgEmbeddedResource; annotations?: AgAnnotations; _meta?: AgMeta }
-  | { type: "resource-link"; uri: string; mimeType?: string; annotations?: AgAnnotations; _meta?: AgMeta }
+  | {
+      type: "resource-link";
+      uri: string;
+      name?: string;
+      title?: string;
+      description?: string;
+      mimeType?: string;
+      size?: number;
+      annotations?: AgAnnotations;
+      _meta?: AgMeta;
+    }
   | { type: "code"; language: string; code: string; annotations?: AgAnnotations; _meta?: AgMeta }
   | {
       type: "code-result";
@@ -451,6 +461,24 @@ const blockAnno = {
   _meta: AgMeta.optional(),
 };
 
+/**
+ * The resource-link block (draft.5, pkg-05): MCP's ResourceLink members,
+ * each optional beside the required `uri`. `size` is an integer, as ruled.
+ * It is exported so a normalizer can check each native member against
+ * core's own schema (`AgResourceLinkBlock.shape.<member>.safeParse(v)`), and
+ * route a member that fails to the residual provider-raw (§8.0 item 31).
+ */
+export const AgResourceLinkBlock = z.object({
+  ...blockAnno,
+  type: z.literal("resource-link"),
+  uri: z.string(),
+  name: z.string().optional(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  mimeType: z.string().optional(),
+  size: z.number().int().optional(),
+});
+
 export const AgBlock: z.ZodType<AgBlock> = z.lazy(() =>
   z.discriminatedUnion("type", [
     z.object({
@@ -465,7 +493,7 @@ export const AgBlock: z.ZodType<AgBlock> = z.lazy(() =>
     z.object({ ...blockMeta, type: z.literal("file"), source: AgSource, filename: z.string().optional() }),
     z.object({ ...blockMeta, type: z.literal("document"), source: AgSource, title: z.string().optional() }),
     z.object({ ...blockAnno, type: z.literal("resource"), resource: AgEmbeddedResource }),
-    z.object({ ...blockAnno, type: z.literal("resource-link"), uri: z.string(), mimeType: z.string().optional() }),
+    AgResourceLinkBlock,
     z.object({ ...blockAnno, type: z.literal("code"), language: z.string(), code: z.string() }),
     z.object({
       ...blockAnno,

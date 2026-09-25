@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   AgEvent,
   AgBlock,
+  AgResourceLinkBlock,
   AgOutcome,
   AgArtifact,
   AgTurnRecord,
@@ -235,6 +236,31 @@ describe("AgBlock (EXTENDED)", () => {
       const parsed = AgBlock.parse(s);
       expect(parsed.type).toBe(s.type);
     }
+  });
+
+  it("pkg-05 (draft.5): a resource-link carries MCP's name, title, description and size beside uri and mimeType", () => {
+    const full = {
+      type: "resource-link",
+      uri: "file:///docs/conformance-probe-resource-link.md",
+      name: "conformance-probe-resource-link.md",
+      title: "Conformance probe: resource link",
+      description: "A document the find_doc tool links to instead of inlining.",
+      mimeType: "text/markdown",
+      size: 2048,
+      annotations: { audience: ["user", "assistant"], priority: 0.7 },
+      _meta: { "host/k": "v" },
+    };
+    expect(AgBlock.parse(full)).toEqual(full);
+    expect(AgBlock.parse({ type: "resource-link", uri: "https://e.com/x" })).toEqual({ type: "resource-link", uri: "https://e.com/x" });
+    // each widened member is typed: a mistyped one fails the block
+    for (const [k, v] of [["name", 5], ["title", false], ["description", {}], ["size", 2048.5], ["size", "2048"]] as const) {
+      expect(AgBlock.safeParse({ type: "resource-link", uri: "u", [k]: v }).success, `${k}=${JSON.stringify(v)}`).toBe(false);
+    }
+    // the named export is the same arm, so a facet's per-member check agrees with core
+    expect(AgResourceLinkBlock.shape.size.safeParse(2048).success).toBe(true);
+    expect(AgResourceLinkBlock.shape.size.safeParse(2048.5).success).toBe(false);
+    expect(AgResourceLinkBlock.shape.name.safeParse(undefined).success).toBe(true);
+    expect(AgResourceLinkBlock.parse(full)).toEqual(full);
   });
 
   it("accepts citations + annotations + providerMetadata on a text block", () => {
