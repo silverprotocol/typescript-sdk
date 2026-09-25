@@ -85,6 +85,7 @@ import {
   type AgSafety,
   AgUsage,
   AgProviderMeta,
+  AgResourceLinkBlock,
   JsonValue,
   type Normalizer,
   StreamAssembler,
@@ -896,6 +897,87 @@ interface FunctionResponseToolDoneFields {
   structuredContent?: JsonValue;
   _meta?: AgMeta;
 }
+/** Sorted-key JSON: "does parsing change this value" compares members, not
+ *  the order a schema writes them in. */
+function canonicalJson(v: JsonValue): string {
+  if (Array.isArray(v)) return `[${v.map(canonicalJson).join(",")}]`;
+  if (!isJsonObject(v)) return JSON.stringify(v);
+  return `{${Object.keys(v)
+    .sort()
+    .map((k) => `${JSON.stringify(k)}:${canonicalJson(v[k] ?? null)}`)
+    .join(",")}}`;
+}
+
+/** A native member that fits the resource-link block: core's own schema for
+ *  that member accepts it AND leaves it unchanged, so the block carries it
+ *  verbatim. `undefined` when it does not fit (it then rides the residual). */
+function fitMember<T>(
+  parse: (v: unknown) => { success: true; data: T } | { success: false },
+  v: JsonValue | undefined,
+): T | undefined {
+  if (v === undefined) return undefined;
+  const r = parse(v);
+  if (!r.success || r.data === undefined) return undefined;
+  const back = JsonValue.safeParse(r.data);
+  return back.success && canonicalJson(back.data) === canonicalJson(v) ? r.data : undefined;
+}
+
+const RESOURCE_LINK_MEMBERS: ReadonlySet<string> = new Set(["name", "title", "description", "mimeType", "size", "annotations", "_meta"]);
+
+/**
+ * SPEC §8.0 item 31 (draft.5): an MCP `resource_link` content part of a tool
+ * result becomes ONE `resource-link` block carrying its native `uri`, `name`,
+ * `title`, `description`, `mimeType`, `size`, `annotations` and `_meta`
+ * verbatim where present, after item 28's reductions (applied as for a
+ * provider-raw carry; a `uri` is neither a credential object nor a
+ * credential-request response, so it passes unchanged, signed query included).
+ * The members the block cannot hold (a member it does not define, such as
+ * `icons`, or a defined one whose native value core's schema rejects or would
+ * alter) ride exactly one provider-raw block right after it, carrying only
+ * those members; with none, no such block is emitted.
+ *
+ * Item 31 binds MCP-schema-valid `resource_link` parts. A part without a string
+ * `uri` fails MCP's own schema (uri is required): it is an unmappable part, so
+ * §8.0's graceful degradation applies, and it stays one reduced provider-raw
+ * (`undefined` here), never dropped and never forced into a uri-less block.
+ */
+function resourceLinkBlocks(part: { readonly [k: string]: JsonValue }): AgBlock[] | undefined {
+  const reduced = reduceCarried(part);
+  if (!isJsonObject(reduced) || typeof reduced["uri"] !== "string") return undefined;
+  const S = AgResourceLinkBlock.shape;
+  const name = fitMember((v) => S.name.safeParse(v), reduced["name"]);
+  const title = fitMember((v) => S.title.safeParse(v), reduced["title"]);
+  const description = fitMember((v) => S.description.safeParse(v), reduced["description"]);
+  const mimeType = fitMember((v) => S.mimeType.safeParse(v), reduced["mimeType"]);
+  const size = fitMember((v) => S.size.safeParse(v), reduced["size"]);
+  const annotations = fitMember((v) => S.annotations.safeParse(v), reduced["annotations"]);
+  const meta = fitMember((v) => S._meta.safeParse(v), reduced["_meta"]);
+  const fitted: { readonly [k: string]: boolean } = {
+    name: name !== undefined,
+    title: title !== undefined,
+    description: description !== undefined,
+    mimeType: mimeType !== undefined,
+    size: size !== undefined,
+    annotations: annotations !== undefined,
+    _meta: meta !== undefined,
+  };
+  const block: AgBlock = {
+    type: "resource-link",
+    uri: reduced["uri"],
+    ...(name !== undefined ? { name } : {}),
+    ...(title !== undefined ? { title } : {}),
+    ...(description !== undefined ? { description } : {}),
+    ...(mimeType !== undefined ? { mimeType } : {}),
+    ...(size !== undefined ? { size } : {}),
+    ...(annotations !== undefined ? { annotations } : {}),
+    ...(meta !== undefined ? { _meta: meta } : {}),
+  };
+  const residual = Object.fromEntries(
+    Object.entries(reduced).filter(([k]) => k !== "type" && k !== "uri" && !(RESOURCE_LINK_MEMBERS.has(k) && fitted[k] === true)),
+  );
+  return Object.keys(residual).length > 0 ? [block, { type: "provider-raw", vendor: "google", raw: residual }] : [block];
+}
+
 function functionResponseToToolDoneFields(
   name: string,
   response: { [k: string]: JsonValue } | undefined,
@@ -912,8 +994,17 @@ function functionResponseToToolDoneFields(
           out.push({ type: "text", text: part["text"] });
           continue;
         }
+        if (t === "resource_link") {
+          const link = resourceLinkBlocks(part);
+          if (link !== undefined) {
+            out.push(...link);
+            continue;
+          }
+        }
       }
-      // Preserve any non-text MCP content part losslessly as a provider-raw block.
+      // Preserve any other non-text MCP content part losslessly as a provider-raw
+      // block (image, audio and embedded resource parts; a resource_link that
+      // is not MCP-schema-valid, see resourceLinkBlocks).
       out.push({ type: "provider-raw", vendor: "google", raw: reduceCarried(part) });
     }
     const meta = response["_meta"];

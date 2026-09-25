@@ -4399,3 +4399,96 @@ describe("createAdkNormalizer — a Live barge-in closes turn.abort after the ev
     expect(bothFlags.filter((e) => TERMINAL.has(e.type)).map((e) => (e as { reason?: string }).reason)).toEqual(["interrupted"]);
   });
 });
+
+// ─── SPEC §8.0 item 31 (draft.5): MCP resource links in tool results ─────────
+describe("createAdkNormalizer — an MCP resource_link part becomes one resource-link block, with a residual-only provider-raw", () => {
+  const toolDoneContent = (content: JsonValue[]): JsonValue[] => {
+    const n = createAdkNormalizer();
+    const out = [
+      ...n.push({ invocationId: "inv_rl", author: "user", content: { role: "user", parts: [{ functionResponse: { name: "find_doc", id: "c1", response: { content } } }] } }),
+      ...n.flush(),
+    ];
+    for (const e of out) expect(() => AgEvent.parse(e), JSON.stringify(e).slice(0, 120)).not.toThrow();
+    const done = out.find((e) => e.type === "tool.done") as { content?: JsonValue[] } | undefined;
+    return done?.content ?? [];
+  };
+  const noRawLinks = (blocks: JsonValue[]) =>
+    blocks.every((b) => !(b !== null && typeof b === "object" && !Array.isArray(b) && b["type"] === "provider-raw" && JSON.stringify(b["raw"]).includes('"type":"resource_link"')));
+  const full = {
+    type: "resource_link",
+    uri: "file:///docs/a.md",
+    name: "a.md",
+    title: "A",
+    description: "The doc.",
+    mimeType: "text/markdown",
+    size: 2048,
+    annotations: { audience: ["user", "assistant"], priority: 0.7 },
+    _meta: { "x/y": 1 },
+  };
+
+  it("§10 item 44: N links give N resource-link blocks in native order, members verbatim, a residual provider-raw only for icons or a mistyped size", () => {
+    const content = toolDoneContent([
+      { type: "text", text: "Found it." },
+      full,
+      { type: "resource_link", uri: "file:///b" },
+      { type: "resource_link", uri: "file:///c", name: "c", icons: [{ src: "https://example.com/i.png" }] },
+      { type: "resource_link", uri: "file:///d", name: "d", size: "2048" },
+    ]);
+    expect(content).toEqual([
+      { type: "text", text: "Found it." },
+      {
+        type: "resource-link",
+        uri: "file:///docs/a.md",
+        name: "a.md",
+        title: "A",
+        description: "The doc.",
+        mimeType: "text/markdown",
+        size: 2048,
+        annotations: { audience: ["user", "assistant"], priority: 0.7 },
+        _meta: { "x/y": 1 },
+      },
+      { type: "resource-link", uri: "file:///b" },
+      { type: "resource-link", uri: "file:///c", name: "c" },
+      { type: "provider-raw", vendor: "google", raw: { icons: [{ src: "https://example.com/i.png" }] } },
+      { type: "resource-link", uri: "file:///d", name: "d" },
+      { type: "provider-raw", vendor: "google", raw: { size: "2048" } },
+    ]);
+    expect(noRawLinks(content)).toBe(true);
+  });
+
+  it("a member core's schema rejects or would alter rides the residual verbatim: a non-integer size, annotations with a key the schema does not define", () => {
+    expect(toolDoneContent([{ type: "resource_link", uri: "file:///e", size: 2048.5 }])).toEqual([
+      { type: "resource-link", uri: "file:///e" },
+      { type: "provider-raw", vendor: "google", raw: { size: 2048.5 } },
+    ]);
+    expect(toolDoneContent([{ type: "resource_link", uri: "file:///f", annotations: { audience: ["user"], future: 1 } }])).toEqual([
+      { type: "resource-link", uri: "file:///f" },
+      { type: "provider-raw", vendor: "google", raw: { annotations: { audience: ["user"], future: 1 } } },
+    ]);
+  });
+
+  it("item 28's reductions apply inside the link: an ADK credential object in _meta is reduced to its non-secret members", () => {
+    const content = toolDoneContent([{ type: "resource_link", uri: "file:///g", _meta: { cred: { authType: "apiKey", apiKey: "SECRET_link" } } }]);
+    expect(content).toEqual([{ type: "resource-link", uri: "file:///g", _meta: { cred: { authType: "apiKey" } } }]);
+    expect(JSON.stringify(content)).not.toContain("SECRET_link");
+  });
+
+  it("a resource_link without a string uri fails MCP's schema, so it stays one reduced provider-raw (graceful degradation), never a resource-link", () => {
+    const invalid: JsonValue[] = [
+      { type: "resource_link", name: "no-uri" },
+      { type: "resource_link", uri: 42, name: "bad-uri" },
+    ];
+    for (const part of invalid) {
+      const content = toolDoneContent([part]);
+      expect(content, JSON.stringify(part)).toEqual([{ type: "provider-raw", vendor: "google", raw: part }]);
+    }
+  });
+
+  it("a signed uri passes byte-equal: the query is neither a credential object nor a credential-request response", () => {
+    const uri = "https://example.com/x?X-Amz-Signature=abc&sig=def";
+    const content = toolDoneContent([{ type: "resource_link", uri, name: "x" }]);
+    expect(content).toEqual([{ type: "resource-link", uri, name: "x" }]);
+    const block = content[0] as { uri?: string };
+    expect(block.uri === uri).toBe(true);
+  });
+});
