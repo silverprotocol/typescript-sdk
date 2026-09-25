@@ -562,7 +562,13 @@
     ],
     "outcome": "error",
     "isError": true,
-    "messageId": "toolu_01G16XaRLtp37uzrDbAZnv2w:result"
+    "messageId": "toolu_01G16XaRLtp37uzrDbAZnv2w:result",
+    "_meta": {
+      "anthropic/toolResultMeta": {
+        "id": "toolu_01G16XaRLtp37uzrDbAZnv2w",
+        "non_execution_kind": "cancelled"
+      }
+    }
   },
   {
     "type": "message.start",

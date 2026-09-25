@@ -29,7 +29,13 @@
       }
     ],
     "outcome": "denied",
-    "messageId": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK:result"
+    "messageId": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK:result",
+    "_meta": {
+      "anthropic/toolResultMeta": {
+        "id": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK",
+        "non_execution_kind": "permission-rule"
+      }
+    }
   },
   {
     "seq": 3,
@@ -146,7 +152,13 @@
       }
     ],
     "outcome": "denied",
-    "messageId": "toolu_01PJVmyct9fYViJerxicP94g:result"
+    "messageId": "toolu_01PJVmyct9fYViJerxicP94g:result",
+    "_meta": {
+      "anthropic/toolResultMeta": {
+        "id": "toolu_01PJVmyct9fYViJerxicP94g",
+        "non_execution_kind": "permission-rule"
+      }
+    }
   },
   {
     "seq": 15,
@@ -263,7 +275,13 @@
       }
     ],
     "outcome": "denied",
-    "messageId": "toolu_01KPeZiYEqgnJjRpREHuihWx:result"
+    "messageId": "toolu_01KPeZiYEqgnJjRpREHuihWx:result",
+    "_meta": {
+      "anthropic/toolResultMeta": {
+        "id": "toolu_01KPeZiYEqgnJjRpREHuihWx",
+        "non_execution_kind": "permission-rule"
+      }
+    }
   },
   {
     "type": "message.start",
