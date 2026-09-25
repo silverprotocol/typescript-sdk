@@ -1,0 +1,355 @@
+[
+  {
+    "type": "start"
+  },
+  {
+    "type": "start-step",
+    "request": {},
+    "warnings": []
+  },
+  {
+    "type": "tool-input-start",
+    "id": "call_UtEg8WnmigFBxVj6dCib5QrU",
+    "toolName": "fail",
+    "dynamic": true,
+    "toolMetadata": {
+      "clientName": "ai-sdk-mcp-client",
+      "toolName": "fail"
+    }
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_UtEg8WnmigFBxVj6dCib5QrU",
+    "delta": "{}"
+  },
+  {
+    "type": "tool-input-end",
+    "id": "call_UtEg8WnmigFBxVj6dCib5QrU"
+  },
+  {
+    "type": "tool-call",
+    "toolCallId": "call_UtEg8WnmigFBxVj6dCib5QrU",
+    "toolName": "fail",
+    "input": {},
+    "providerMetadata": {
+      "openai": {
+        "itemId": "fc_0bd53da6db549d5f006ab5fe40d49887d0a53203a017b32bb3"
+      }
+    },
+    "toolMetadata": {
+      "clientName": "ai-sdk-mcp-client",
+      "toolName": "fail"
+    },
+    "dynamic": true
+  },
+  {
+    "type": "tool-result",
+    "toolCallId": "call_UtEg8WnmigFBxVj6dCib5QrU",
+    "toolName": "fail",
+    "input": {},
+    "output": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"error\":{\"code\":\"E_MOCK\",\"message\":\"boom\"}}"
+        }
+      ],
+      "isError": true
+    },
+    "dynamic": true,
+    "providerMetadata": {
+      "openai": {
+        "itemId": "fc_0bd53da6db549d5f006ab5fe40d49887d0a53203a017b32bb3"
+      }
+    },
+    "toolMetadata": {
+      "clientName": "ai-sdk-mcp-client",
+      "toolName": "fail"
+    }
+  },
+  {
+    "type": "finish-step",
+    "finishReason": "tool-calls",
+    "usage": {
+      "inputTokens": 88,
+      "inputTokenDetails": {
+        "noCacheTokens": 88,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 13,
+      "outputTokenDetails": {
+        "textTokens": 13,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 101,
+      "raw": {
+        "input_tokens": 88,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 13,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 101
+      }
+    },
+    "performance": {
+      "stepTimeMs": 2573.7570410000008,
+      "toolExecutionMs": {
+        "call_UtEg8WnmigFBxVj6dCib5QrU": 10.511915999999474
+      },
+      "responseTimeMs": 2560.482,
+      "effectiveOutputTokensPerSecond": 5.07716906426212,
+      "outputTokensPerSecond": 45.97837336472822,
+      "inputTokensPerSecond": 38.63478075283274,
+      "effectiveTotalTokensPerSecond": 39.445698114651854,
+      "timeToFirstOutputMs": 2277.7403749999994,
+      "timeBetweenOutputChunksMs": {
+        "min": 66.24008400000093,
+        "p10": 66.24008400000093,
+        "median": 66.24008400000093,
+        "avg": 66.24008400000093,
+        "p90": 66.24008400000093,
+        "max": 66.24008400000093
+      }
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0bd53da6db549d5f006ab5fe3fc09087d0b9501df87d419ead",
+        "serviceTier": "default",
+        "reasoningContext": "all_turns"
+      }
+    },
+    "response": {
+      "id": "resp_0bd53da6db549d5f006ab5fe3fc09087d0b9501df87d419ead",
+      "timestamp": "2026-09-25T04:53:19.000Z",
+      "modelId": "gpt-6-sol",
+      "headers": {
+        "access-control-expose-headers": "X-Request-ID, CF-Ray, CF-Ray",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a4076ca97f8dd1ed-ICN",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream; charset=utf-8",
+        "date": "Fri, 25 Sep 2026 04:53:20 GMT",
+        "openai-organization": "<redacted>",
+        "openai-processing-ms": "567",
+        "openai-project": "<redacted>",
+        "openai-version": "2020-10-01",
+        "server": "cloudflare",
+        "set-cookie": "<redacted>",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "x-content-type-options": "nosniff",
+        "x-ratelimit-limit-requests": "10000",
+        "x-ratelimit-limit-tokens": "4000000",
+        "x-ratelimit-remaining-requests": "9999",
+        "x-ratelimit-remaining-tokens": "3999477",
+        "x-ratelimit-reset-requests": "6ms",
+        "x-ratelimit-reset-tokens": "7ms",
+        "x-request-id": "req_d7fb2de8de4a40468ffdf6a40da743b5"
+      }
+    }
+  },
+  {
+    "type": "start-step",
+    "request": {},
+    "warnings": []
+  },
+  {
+    "type": "text-start",
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+        "phase": "final_answer"
+      }
+    }
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "text": "Error"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "text": " code"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "text": ":"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "text": " `"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "text": "E"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "text": "_M"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "text": "OCK"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "text": "`"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "text": "  \n"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "text": "Message"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "text": ":"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "text": " `"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "text": "boom"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "text": "`"
+  },
+  {
+    "type": "text-end",
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+        "phase": "final_answer"
+      }
+    }
+  },
+  {
+    "type": "finish-step",
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 124,
+      "inputTokenDetails": {
+        "noCacheTokens": 124,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 18,
+      "outputTokenDetails": {
+        "textTokens": 18,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 142,
+      "raw": {
+        "input_tokens": 124,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 18,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 142
+      }
+    },
+    "performance": {
+      "stepTimeMs": 2057.6539159999993,
+      "toolExecutionMs": {},
+      "responseTimeMs": 1917.865667,
+      "effectiveOutputTokensPerSecond": 9.385433145667756,
+      "outputTokensPerSecond": 27.08859154561294,
+      "inputTokensPerSecond": 98.9325424406326,
+      "effectiveTotalTokensPerSecond": 74.04063926026785,
+      "timeToFirstOutputMs": 1253.3792919999996,
+      "timeBetweenOutputChunksMs": {
+        "min": 0.20587499999965075,
+        "p10": 0.22291699999914272,
+        "median": 6.173166000000492,
+        "avg": 20.039432692307646,
+        "p90": 59.374542000001384,
+        "max": 66.01508299999841
+      }
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0f00bb2dd03912f3006ab5fe418ca087d2af636bce1f718a1e",
+        "serviceTier": "default",
+        "reasoningContext": "all_turns"
+      }
+    },
+    "response": {
+      "id": "resp_0f00bb2dd03912f3006ab5fe418ca087d2af636bce1f718a1e",
+      "timestamp": "2026-09-25T04:53:21.000Z",
+      "modelId": "gpt-6-sol",
+      "headers": {
+        "access-control-expose-headers": "X-Request-ID, CF-Ray, CF-Ray",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a4076cb8b940d1ed-ICN",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream; charset=utf-8",
+        "date": "Fri, 25 Sep 2026 04:53:22 GMT",
+        "openai-organization": "<redacted>",
+        "openai-processing-ms": "592",
+        "openai-project": "<redacted>",
+        "openai-version": "2020-10-01",
+        "server": "cloudflare",
+        "set-cookie": "<redacted>",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "x-content-type-options": "nosniff",
+        "x-ratelimit-limit-requests": "10000",
+        "x-ratelimit-limit-tokens": "4000000",
+        "x-ratelimit-remaining-requests": "9999",
+        "x-ratelimit-remaining-tokens": "3999441",
+        "x-ratelimit-reset-requests": "6ms",
+        "x-ratelimit-reset-tokens": "8ms",
+        "x-request-id": "req_dd0e4f350c33473d9fa72db5ed1ff088"
+      }
+    }
+  },
+  {
+    "type": "finish",
+    "finishReason": "stop",
+    "totalUsage": {
+      "inputTokens": 212,
+      "inputTokenDetails": {
+        "noCacheTokens": 212,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 31,
+      "outputTokenDetails": {
+        "textTokens": 31,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 243
+    }
+  }
+]

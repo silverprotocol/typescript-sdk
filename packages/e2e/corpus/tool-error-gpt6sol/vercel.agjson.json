@@ -1,0 +1,296 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_vercel_1",
+    "threadId": "vercel"
+  },
+  {
+    "type": "step.start",
+    "id": "step_1",
+    "turnId": "turn_vercel_1",
+    "seq": 1
+  },
+  {
+    "type": "message.start",
+    "seq": 2,
+    "id": "msg_turn_vercel_1_s1",
+    "turnId": "turn_vercel_1",
+    "threadId": "vercel",
+    "role": "assistant",
+    "stepId": "step_1"
+  },
+  {
+    "type": "tool.start",
+    "seq": 3,
+    "turnId": "turn_vercel_1",
+    "toolCallId": "call_UtEg8WnmigFBxVj6dCib5QrU",
+    "name": "fail",
+    "messageId": "msg_turn_vercel_1_s1",
+    "dynamic": true
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 4,
+    "toolCallId": "call_UtEg8WnmigFBxVj6dCib5QrU",
+    "delta": "{}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 5,
+    "toolCallId": "call_UtEg8WnmigFBxVj6dCib5QrU",
+    "input": {}
+  },
+  {
+    "type": "tool.done",
+    "seq": 6,
+    "turnId": "turn_vercel_1",
+    "toolCallId": "call_UtEg8WnmigFBxVj6dCib5QrU",
+    "outcome": "error",
+    "isError": true,
+    "structuredContent": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"error\":{\"code\":\"E_MOCK\",\"message\":\"boom\"}}"
+        }
+      ],
+      "isError": true
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"content\":[{\"type\":\"text\",\"text\":\"{\\\"error\\\":{\\\"code\\\":\\\"E_MOCK\\\",\\\"message\\\":\\\"boom\\\"}}\"}],\"isError\":true}"
+      }
+    ],
+    "dynamic": true
+  },
+  {
+    "type": "message.metadata",
+    "messageId": "msg_turn_vercel_1_s1",
+    "metadata": {
+      "responseId": "resp_0bd53da6db549d5f006ab5fe3fc09087d0b9501df87d419ead",
+      "model": "gpt-6-sol"
+    },
+    "turnId": "turn_vercel_1",
+    "seq": 7
+  },
+  {
+    "type": "message.end",
+    "seq": 8,
+    "id": "msg_turn_vercel_1_s1",
+    "usage": {
+      "inputTokens": 88,
+      "outputTokens": 13,
+      "totalTokens": 101,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 0
+    }
+  },
+  {
+    "type": "step.done",
+    "id": "step_1",
+    "turnId": "turn_vercel_1",
+    "seq": 9
+  },
+  {
+    "type": "step.start",
+    "id": "step_2",
+    "turnId": "turn_vercel_1",
+    "seq": 10
+  },
+  {
+    "type": "message.start",
+    "seq": 11,
+    "id": "msg_turn_vercel_1_s2",
+    "turnId": "turn_vercel_1",
+    "threadId": "vercel",
+    "role": "assistant",
+    "stepId": "step_2"
+  },
+  {
+    "type": "text.start",
+    "seq": 12,
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "messageId": "msg_turn_vercel_1_s2",
+    "turnId": "turn_vercel_1",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+        "phase": "final_answer"
+      }
+    }
+  },
+  {
+    "type": "text.delta",
+    "seq": 13,
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "Error",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 14,
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": " code",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 15,
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": ":",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 16,
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": " `",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 17,
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "E",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 18,
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "_M",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 19,
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "OCK",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 20,
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "`",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 21,
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "  \n",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 22,
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "Message",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 23,
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": ":",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 24,
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": " `",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 25,
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "boom",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 26,
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "`",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.end",
+    "seq": 27,
+    "id": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+    "messageId": "msg_turn_vercel_1_s2",
+    "turnId": "turn_vercel_1",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0f00bb2dd03912f3006ab5fe42857c87d29022b3b0384d3c46",
+        "phase": "final_answer"
+      }
+    }
+  },
+  {
+    "type": "message.metadata",
+    "messageId": "msg_turn_vercel_1_s2",
+    "metadata": {
+      "responseId": "resp_0f00bb2dd03912f3006ab5fe418ca087d2af636bce1f718a1e",
+      "model": "gpt-6-sol"
+    },
+    "turnId": "turn_vercel_1",
+    "seq": 28
+  },
+  {
+    "type": "message.end",
+    "seq": 29,
+    "id": "msg_turn_vercel_1_s2",
+    "usage": {
+      "inputTokens": 124,
+      "outputTokens": 18,
+      "totalTokens": 142,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 0
+    }
+  },
+  {
+    "type": "step.done",
+    "id": "step_2",
+    "turnId": "turn_vercel_1",
+    "seq": 30
+  },
+  {
+    "type": "turn.done",
+    "seq": 31,
+    "turnId": "turn_vercel_1",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 212,
+      "outputTokens": 31,
+      "totalTokens": 243,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 0
+    }
+  }
+]

@@ -455,6 +455,14 @@ const VERCEL_SEEDS = [
   // as tool.done structuredContent (the resource_link fully structured) plus
   // one text block of the same JSON. Folds to one turn, needsResync false.
   "resource-link-gpt6sol",
+  // 2026-09-25 (vercel MCP finding, V1/V4 live legs): the error and MCP Apps
+  // mocks on vercel, gpt-6-sol @ ai 7.0.111 + @ai-sdk/mcp. The fail tool's
+  // CallToolResult {isError:true} arrives as an ordinary tool-result and folds
+  // as tool.done{outcome:"error", isError:true}; render_card's _meta.ui rides
+  // tool.done._meta unchanged. Both were captured before the fix and showed
+  // the defects live (outcome "ok"; no _meta).
+  "tool-error-gpt6sol",
+  "app-spec-gpt6sol",
 ] as const;
 
 /**
