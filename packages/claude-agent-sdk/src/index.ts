@@ -869,6 +869,28 @@ function toolResultText(content: unknown): string | undefined {
   return joined !== "" ? joined : undefined;
 }
 
+// The namespace of the facet's own harness keys on a tool.done `_meta` (the
+// subagent report's "anthropic/agentOutput", rd-15's "anthropic/toolResultMeta").
+const HARNESS_META_PREFIX = "anthropic/";
+
+// A tool.done's host-only `_meta`: the tool-authored MCP sibling `_meta` merged
+// with the facet's own harness keys. The harness namespace is RESERVED: every
+// sibling key under "anthropic/" is dropped before the harness keys are
+// written, so a tool (a malicious MCP server) can never present a forged
+// harness fact, such as an agent report or a remedy pointing a host at its URL,
+// even for a call the facet writes no harness key for (sp-cto's read of the
+// rd-15 carry; the CLI itself strips its own reserved `com.anthropic/` prefix
+// from server `_meta`). Every other sibling key is kept verbatim. undefined
+// when nothing remains.
+function mergeHarnessMeta(sibling: AgMeta | undefined, harness: { [k: string]: JsonValue }): AgMeta | undefined {
+  const out: AgMeta = {};
+  if (sibling !== undefined) {
+    for (const [k, v] of Object.entries(sibling)) if (!k.startsWith(HARNESS_META_PREFIX)) out[k] = v;
+  }
+  for (const [k, v] of Object.entries(harness)) out[k] = v;
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
 // A result's `terminal_reason` when it names why the turn ended other than a
 // normal completion (e.g. "tool_deferred_unavailable"); undefined otherwise. A
 // live API error's own value is "api_error", which is also the generic code, so
@@ -2846,12 +2868,16 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
                   ? { structuredContent: sc }
                   : {}),
               ...(applySibling && siblingHasUi && sc !== undefined ? { structuredContent: sc } : {}),
+              // The facet's harness keys ride the same `_meta`, MERGED into the MCP
+              // sibling's `_meta` (never replacing it), so they fold with the
+              // tool-result block. The "anthropic/" namespace is the harness's
+              // own: see `mergeHarnessMeta`.
               ...(() => {
-                const meta = applySibling ? siblingMeta : undefined;
                 const report = applySibling && agentCallIds.has(block.tool_use_id) ? agentOutput : undefined;
-                if (report === undefined) return meta !== undefined ? { _meta: meta } : {};
-                const merged: AgMeta = { ...(meta ?? {}), "anthropic/agentOutput": report };
-                return { _meta: merged };
+                const merged = mergeHarnessMeta(applySibling ? siblingMeta : undefined, {
+                  ...(report !== undefined ? { "anthropic/agentOutput": report } : {}),
+                });
+                return merged !== undefined ? { _meta: merged } : {};
               })(),
               ...(Object.keys(resultProviderFields).length > 0
                 ? { providerMetadata: AgProviderMeta.parse(resultProviderFields) }
