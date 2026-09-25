@@ -266,7 +266,7 @@ export async function replayCassette(
  * after reading the file). A trailing host-completion marker is split off
  * first; see {@link HOST_COMPLETE_MARKER}.
  */
-export async function replayNatives(recorded: JsonValue[], fw: Framework): Promise<ReplayResult> {
+export async function replayNatives(recorded: JsonValue[], fw: Framework, opts: { threadId?: string } = {}): Promise<ReplayResult> {
   const { native, hostCompleted } = splitHostCompleteMarker(recorded);
 
   // ── Drive the real facet normalizer: push each event, then flush. ──────────
@@ -286,7 +286,10 @@ export async function replayNatives(recorded: JsonValue[], fw: Framework): Promi
           createAdkNormalizer(hostCompleted ? { hostCompletion: true } : {})
         : fw === "vercel"
           ? createVercelNormalizer({ invokeId: "vercel" })
-          : createClaudeNormalizer({ invokeId: "claude" });
+          : // `opts.threadId` pins one thread across the invokes of a pair (c20:
+            // a deferred call and its forked resume carry different session
+            // ids, so without it each invoke folds on its own thread).
+            createClaudeNormalizer({ invokeId: "claude", ...(opts.threadId !== undefined ? { threadId: opts.threadId } : {}) });
   const agjson: JsonValue[] = [];
   for (const event of native) {
     for (const e of normalizer.push(event)) {

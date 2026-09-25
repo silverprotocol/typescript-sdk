@@ -101,15 +101,28 @@
     }
   },
   {
+    "type": "hitl.ask",
+    "turnId": "turn_msg_011CfLK5dwfLmigbYLwRsgAG",
+    "askId": "approval_toolu_01BREEQMQdDW8fsY1Gu1W1ZK",
+    "kind": "approval",
+    "toolCallId": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK",
+    "seq": 7
+  },
+  {
     "type": "turn.done",
-    "seq": 7,
+    "seq": 8,
     "turnId": "turn_msg_011CfLK5dwfLmigbYLwRsgAG",
     "outcome": {
-      "type": "success",
-      "result": ""
+      "type": "paused",
+      "asks": [
+        {
+          "askId": "approval_toolu_01BREEQMQdDW8fsY1Gu1W1ZK",
+          "kind": "approval",
+          "toolCallId": "toolu_01BREEQMQdDW8fsY1Gu1W1ZK"
+        }
+      ]
     },
-    "finishReason": "unknown",
-    "finishReasonRaw": "tool_deferred",
+    "finishReason": "paused",
     "usage": {
       "inputTokens": 2,
       "outputTokens": 60,

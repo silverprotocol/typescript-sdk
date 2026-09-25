@@ -187,17 +187,17 @@ const CLAUDE_SEEDS = [
   // connector_text mode (display unset), where narration blocks come back
   // EMPTY. So the Claude SHOULD can never fire with text on CLI 2.1.280.
   "narration-opus55",
-  // NOT YET ENROLLED (evidence for R&D candidate 20, 2026-09-23):
-  // defer-tool-sonnet5-resume-allow and -resume-deny, the two resume legs
-  // (resumeFrom defer-tool-sonnet5, forked; hook allow / deny). Both PARK
-  // at seq 1: the resumed invoke's FIRST frame is the deferred call's
-  // tool_result (before system init), which the facet maps to a bare
-  // tool.done before any turn.start, closing a tool opened in leg 1's
-  // invoke. The deny leg also re-emits permission_denials as
-  // tool.start + tool.done{denied} for ids this invoke already started and
-  // closed. They enroll once the claude facet and the spec settle the resumed
-  // closure mapping. Their committed coverage lists the census findings.
-  // Also unenrolled until the ruling (candidate-20 bar, package decision 6):
+  // 2026-09-25 (c20; §8.0 item 32, §10 item 47 pair-claude): the two resume
+  // legs of the deferred tool (resumeFrom defer-tool-sonnet5, forked; hook
+  // allow / deny). The resumed invoke's first frame is the deferred call's
+  // tool_result, before system init: the facet opens the invoke's own turn
+  // first and lands the result as a role:"tool" message "<toolCallId>:result"
+  // in it. Each leg folds clean on its own and after leg 1 through one Reducer
+  // with one threadId (defer-resume.test.ts); leg 1 closes paused with one
+  // approval ask.
+  "defer-tool-sonnet5-resume-allow",
+  "defer-tool-sonnet5-resume-deny",
+  // Still unenrolled (candidate-20 bar, package decision 6):
   // -resume-unavailable (no MCP server on resume, so the tool is gone). The
   // FIRST result (before init) has is_error:true and stop_reason /
   // terminal_reason "tool_deferred_unavailable", with the same
