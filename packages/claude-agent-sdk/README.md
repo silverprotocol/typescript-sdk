@@ -121,4 +121,4 @@ and subagent turns never carry it.
 
 Spec: [silverprotocol.io/AgJSON](https://silverprotocol.io/AgJSON) — canonical
 in [silverprotocol/AgJSON](https://github.com/silverprotocol/AgJSON); wire
-version `1.0.0-draft.4`.
+version `1.0.0-draft.5`.
