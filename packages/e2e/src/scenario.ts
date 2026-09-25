@@ -173,17 +173,19 @@ export const Scenario = z.object({
   // fails loud instead of silently capturing a single-target run. Use one of
   // the two knobs, not both.
   openaiHandoffs: z.array(HandoffTarget).min(2).optional(),
-  // Live (bidi) knob (google-adk only; cto's barge-in ask, 2026-09-25): the
-  // capture runs runner.runLive with a LiveRequestQueue (sp-google's live.ts).
-  // `prompt` is the first user content; `bargeIn` is sent ONCE as a second
-  // user content at the model's first output of that turn, while it is still
-  // generating. `responseModality` defaults to TEXT; AUDIO turns on output
-  // transcription (audio payloads are elided at capture, redact.ts). Needs a
-  // Live model (CAPTURE_MODEL, e.g. gemini-3.8-live: gemini-3.8-flash has no
+  // Live (bidi) knob (google-adk only, 2026-09-25): the capture runs
+  // runner.runLive with a LiveRequestQueue (agents/google-adk/live.ts).
+  // `prompt` is the first user content. `bargeIn` is one barge-in or a list:
+  // barge-in k is sent once, as a further user content, at the first model
+  // output of generation k, while it is still generating (generation 1 answers
+  // the prompt; each later one starts after the previous turnComplete).
+  // `responseModality` defaults to TEXT; AUDIO turns on output transcription
+  // (audio payloads are elided at capture, redact.ts). Needs a Live model
+  // (CAPTURE_MODEL, e.g. gemini-3.8-live: gemini-3.8-flash has no
   // bidiGenerateContent). Not combinable with adkWorkflow.
   adkLive: z
     .object({
-      bargeIn: z.string().min(1),
+      bargeIn: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]),
       responseModality: z.enum(["TEXT", "AUDIO"]).optional(),
     })
     .optional(),

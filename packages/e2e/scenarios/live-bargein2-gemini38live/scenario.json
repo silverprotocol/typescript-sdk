@@ -1,0 +1,12 @@
+{
+  "name": "live-bargein2-gemini38live",
+  "prompt": "Tell me a long, detailed story about a lighthouse keeper and a storm, in at least fifteen sentences.",
+  "steer": "You are a storyteller. Answer the user directly in plain text. If the user interrupts with a new request, follow the new request instead.",
+  "adkLive": {
+    "bargeIn": [
+      "Stop that story. Instead, tell me a long, detailed story about a ship's cook and a mutiny, in at least fifteen sentences.",
+      "Stop the story. Instead, reply with exactly one short sentence: the ship is fine."
+    ],
+    "responseModality": "AUDIO"
+  }
+}
