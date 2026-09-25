@@ -375,6 +375,40 @@ describe("toolStart / toolArgsDelta / toolArgsAssembled / toolDone shape", () =>
     expect(ev).toMatchObject({ signature: "sig123" });
   });
 
+  it("toolArgsAssembled carries an optional providerMetadata after signature, and omits the key when absent", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.toolStart({ toolCallId: "tc1", name: "t" });
+    a.drain();
+    const pm = { anthropic: { wire_input: { q: "raw" } } } as unknown as AgProviderMeta;
+    a.toolArgsAssembled("tc1", { q: 1 }, { signature: "sig", providerMetadata: pm });
+    const withPm = a.drain().find((e) => e.type === "tool.args.assembled");
+    expect(Object.keys(withPm as object)).toEqual(["type", "seq", "toolCallId", "input", "signature", "providerMetadata"]);
+    expect(withPm).toMatchObject({ providerMetadata: pm });
+    a.toolArgsAssembled("tc1", { q: 2 });
+    a.toolArgsAssembled("tc1", { q: 3 }, { signature: "s2" });
+    const [bare, sigOnly] = a.drain().filter((e) => e.type === "tool.args.assembled");
+    expect(Object.keys(bare as object)).toEqual(["type", "seq", "toolCallId", "input"]);
+    expect("providerMetadata" in (sigOnly as object)).toBe(false);
+  });
+
+  it("toolArgsAssembled's providerMetadata folds onto the tool-call block", () => {
+    const a = new StreamAssembler();
+    a.openTurn("t1", "th1");
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    a.toolStart({ toolCallId: "tc1", name: "t" });
+    a.toolArgsAssembled("tc1", { q: 1 }, { providerMetadata: { anthropic: { wire_input: { q: "raw" } } } as unknown as AgProviderMeta });
+    const r = new Reducer();
+    for (const ev of a.drain()) r.push(ev);
+    const out = { result: r.result(), needsResync: r.needsResync };
+    expect(out.needsResync).toBe(false);
+    expect(out.result.messages[0]?.content.find((b) => b.type === "tool-call")).toMatchObject({
+      toolCallId: "tc1",
+      input: { q: 1 },
+      providerMetadata: { anthropic: { wire_input: { q: "raw" } } },
+    });
+  });
+
   it("toolDone emits tool.done with content array", () => {
     const a = new StreamAssembler();
     a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });

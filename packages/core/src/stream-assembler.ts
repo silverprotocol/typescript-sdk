@@ -523,11 +523,16 @@ export class StreamAssembler {
     this.#emit(ev);
   }
 
-  /** Emit `tool.args.assembled` with the fully assembled input object. */
+  /**
+   * Emit `tool.args.assembled` with the fully assembled input object. An
+   * optional `providerMetadata` rides the event (the reducer merges it by key
+   * onto the tool-call block): the home for a replay-load-bearing vendor fact
+   * known only once the call is complete. Absent ⇒ no key, byte-identical.
+   */
   toolArgsAssembled(
     toolCallId: string,
     input: JsonValue,
-    fields?: { signature?: string },
+    fields?: { signature?: string; providerMetadata?: AgProviderMeta },
   ): void {
     const ev: ToolArgsAssembledEvent = {
       type: "tool.args.assembled",
@@ -535,6 +540,7 @@ export class StreamAssembler {
       toolCallId,
       input,
       ...(fields?.signature !== undefined ? { signature: fields.signature } : {}),
+      ...(fields?.providerMetadata !== undefined ? { providerMetadata: fields.providerMetadata } : {}),
     };
     this.#emit(ev);
   }
