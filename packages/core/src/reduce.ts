@@ -116,10 +116,6 @@ export class Reducer {
   #openMsg: Map<string, string> = new Map();
   // Message ids sealed by message.end.
   #sealed: Set<string> = new Set();
-  // Resolved turnIds closed by turn.done/turn.error/turn.abort (INV-MSG: no
-  // message of a closed turn — sealed or not, existing or not-yet-created —
-  // is ever a valid attach/adoption target).
-  #closedTurns: Set<string> = new Set();
   // turnIds legitimately opened via turn.start / subagent.start (or restored
   // by a messages.snapshot's turns?) — Task 8c leg 3 (guuey capstone finding
   // B). Distinguishes "a real turn genuinely exists" from "ensureTurn() would
@@ -253,7 +249,7 @@ export class Reducer {
       // ── MESSAGE lifecycle ──────────────────────────────────────────────────
       case "message.start": {
         // rd-14 INV-MSG: a message.start for a turn that already closed parks.
-        if (this.#closedTurns.has(this.#resolveTurnId(ev.turnId) ?? ev.turnId)) { this.#resync = true; break; }
+        if (this.#isClosedTurn(this.#resolveTurnId(ev.turnId) ?? ev.turnId)) { this.#resync = true; break; }
         const msg: AgMessage = {
           id: ev.id,
           role: ev.role,
@@ -581,7 +577,7 @@ export class Reducer {
           // #blockPos → messageId → message.turnId chain and park instead of mutating
           // (mirrors the adoption path's closed-turn/sealed guard above).
           const ownerTurnKey = msg.turnId ?? "unknown-turn";
-          if (this.#sealed.has(msg.id) || this.#closedTurns.has(ownerTurnKey)) {
+          if (this.#sealed.has(msg.id) || this.#isClosedTurn(ownerTurnKey)) {
             this.#resync = true;
             break;
           }
@@ -648,7 +644,7 @@ export class Reducer {
             // would happily fabricate a phantom turn stub instead of parking.
             if (
               this.#sealed.has(ev.messageId) ||
-              this.#closedTurns.has(targetTurnKey) ||
+              this.#isClosedTurn(targetTurnKey) ||
               !this.#openedTurns.has(targetTurnKey)
             ) {
               this.#resync = true;
@@ -1123,17 +1119,23 @@ export class Reducer {
           this.#memory = new Map([...nonThread, ...snapshotThread]);
         }
 
-        // Clear ALL transient scratch.
+        // Clear the transient scratch (draft.5 §5 messages.snapshot row): per-
+        // toolCallId arg scratch, reasoning signature scratch, open-message
+        // pointers, message seals and block positions; open/un-sealed blocks go
+        // with the #messages REPLACE above. INV-BLOCK's invoke-scoped id sets are
+        // NOT cleared (only a 0-restart resets them). Turn closure is not
+        // scratch: it follows the turn records this arm leaves in the fold
+        // (INV-MSG, #isClosedTurn), so carried turns bring their outcomes and a
+        // turns-omitting snapshot keeps every record, and with it every closure.
         this.#toolArgs = new Map();
         this.#opaque = new Map();
         this.#openMsg = new Map();
         this.#sealed = new Set();
-        this.#closedTurns = new Set();
         this.#blockPos = new Map();
         // Task 8c leg 3: a snapshot-restored turn counts as opened (guuey
         // capstone finding B) — reseed #openedTurns from the replaced turns in
-        // lockstep with #turns above; no turns replaced ⇒ no fresh legitimacy
-        // to assert (mirrors the unconditional #closedTurns reset above).
+        // lockstep with #turns above; a turns-omitting snapshot re-seeds it from
+        // the records it keeps.
         this.#openedTurns = ev.turns !== undefined
           ? new Set(ev.turns.map((t) => t.turnId))
           : new Set(this.#turns.keys());
@@ -1272,11 +1274,14 @@ export class Reducer {
     return this.#messages.get(msgId);
   }
 
-  /** Delete every open-message pointer belonging to a closed turn (INV-MSG). */
+  /**
+   * Delete every open-message pointer belonging to a closed turn (INV-MSG).
+   * Closure itself is the record's `outcome`, set by the terminal arm before
+   * this runs (#isClosedTurn); this only evicts the turn's open-message pointers.
+   */
   #closeTurnWindow(turnId: string | undefined): void {
     const resolved = this.#resolveTurnId(turnId);
     if (resolved === undefined) return;
-    this.#closedTurns.add(resolved);
     for (const [pk] of this.#openMsg) {
       if (pk.startsWith(`${resolved} `)) this.#openMsg.delete(pk);
     }
@@ -1310,8 +1315,21 @@ export class Reducer {
   /** INV-MSG: true when the message is sealed or its turn has closed (rd-14 closed-turn half). */
   #isClosedTarget(messageId: string): boolean {
     if (this.#sealed.has(messageId)) return true;
-    const turnId = this.#messages.get(messageId)?.turnId;
-    return turnId !== undefined && this.#closedTurns.has(turnId);
+    return this.#isClosedTurn(this.#messages.get(messageId)?.turnId);
+  }
+
+  /**
+   * INV-MSG (draft.5, CB-8 A′: closure follows the records): a turn is closed
+   * while the fold holds a turn record for it that carries an `outcome`. Only a
+   * folded turn.done / turn.error / turn.abort sets one, so a terminal that
+   * folds onto no record closes nothing; a messages.snapshot changes closure
+   * only through the records its §5 per-container rule leaves in the fold. No
+   * message of a closed turn (sealed or not, existing or not yet created) is a
+   * valid attach or adoption target. `key` is a resolved turnId or the
+   * "unknown-turn" stub key.
+   */
+  #isClosedTurn(key: string | undefined): boolean {
+    return key !== undefined && this.#turns.get(key)?.outcome !== undefined;
   }
 
   /** rd-14 INV-BLOCK: a block-creating id seen twice in one invoke parks; else records it. */

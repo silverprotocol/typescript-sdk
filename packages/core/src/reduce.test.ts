@@ -4032,3 +4032,93 @@ describe("providerMetadata: no explicit undefined key on blocks without metadata
     expect((text as { providerMetadata?: unknown }).providerMetadata).toEqual({ openai: { a: 1 } });
   });
 });
+
+describe("CB-8 A′ (draft.5 INV-MSG): turn closure follows the fold's turn records", () => {
+  const fold = (evs: AgEvent[]): Reducer => {
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    return r;
+  };
+  const ser = (r: Reducer) => JSON.stringify(r.result());
+  // E: turn t1 opens, message m1 carries one text block and seals, t1 closes success.
+  const E = [
+    { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+    { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+    { type: "text.start", seq: 2, id: "x1", turnId: "t1" },
+    { type: "text.delta", seq: 3, id: "x1", delta: "hi" },
+    { type: "text.end", seq: 4, id: "x1" },
+    { type: "message.end", seq: 5, id: "m1" },
+    { type: "turn.done", seq: 6, turnId: "t1", outcome: { type: "success" }, finishReason: "stop" },
+  ] as AgEvent[];
+  const folded = fold(E).result();
+  const snapshot = (turns?: AgReduceResult["turns"]): AgEvent =>
+    ({ type: "messages.snapshot", seq: 7, messages: folded.messages, ...(turns !== undefined ? { turns } : {}) }) as AgEvent;
+  const m2 = { type: "message.start", seq: 8, id: "m2", role: "assistant", turnId: "t1", threadId: "th1" } as AgEvent;
+  const hasM2 = (r: Reducer) => r.result().messages.some((m) => m.id === "m2");
+
+  it("precondition: the closed turn's record carries its outcome", () => {
+    expect(folded.turns).toEqual([expect.objectContaining({ turnId: "t1", outcome: { type: "success" } })]);
+  });
+
+  it("a snapshot that carries the turn WITH its outcome keeps it closed: a message.start naming it parks, the fold unchanged", () => {
+    const at = fold([...E, snapshot(folded.turns)]);
+    const r = fold([...E, snapshot(folded.turns), m2]);
+    expect(r.needsResync).toBe(true);
+    expect(ser(r)).toBe(ser(at));
+    expect(hasM2(r)).toBe(false);
+  });
+
+  it("a snapshot that omits `turns` keeps every record, so every closure: the same message.start parks", () => {
+    const r = fold([...E, snapshot(), m2]);
+    expect(r.needsResync).toBe(true);
+    expect(r.result().turns).toEqual([expect.objectContaining({ turnId: "t1", outcome: { type: "success" } })]);
+    expect(hasM2(r)).toBe(false);
+  });
+
+  it("a snapshot that carries the turn's record WITHOUT an outcome reopens it: the message.start folds", () => {
+    const r = fold([...E, snapshot([{ turnId: "t1", threadId: "th1" }]), m2]);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.find((m) => m.id === "m2")?.turnId).toBe("t1");
+  });
+
+  it("a snapshot that carries `turns: []` reopens it: the message.start folds", () => {
+    const r = fold([...E, snapshot([]), m2]);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.find((m) => m.id === "m2")?.turnId).toBe("t1");
+  });
+
+  it("no snapshot: a turnId-less turn.error with two records lands on the unknown-turn stub and closes it, so a message.start naming the stub parks (draft.4 folded it)", () => {
+    const pre = [
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      { type: "turn.start", seq: 1, threadId: "th1", turnId: "t2" },
+      { type: "turn.error", seq: 2, message: "boom" },
+    ] as AgEvent[];
+    const stub = fold(pre).result().turns.find((t) => t.turnId === "unknown-turn");
+    expect(stub?.outcome).toEqual({ type: "error", message: "boom" }); // the non-conformant stub (SPEC §4: turnId only omitted on single-turn streams)
+    const r = fold([...pre, { type: "message.start", seq: 3, id: "m1", role: "assistant", turnId: "unknown-turn", threadId: "th1" } as AgEvent]);
+    expect(r.needsResync).toBe(true);
+    expect(ser(r)).toBe(ser(fold(pre)));
+  });
+
+  it("CB-18, unchanged by A′ (queued for its own bar): across a snapshot a kept-open result's final tool.done naming its messageId appends a second tool-result; without messageId it parks", () => {
+    const open = [
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+      { type: "tool.start", seq: 2, toolCallId: "c1", name: "poll", turnId: "t1" },
+      { type: "tool.done", seq: 3, toolCallId: "c1", more: true, content: [{ type: "text", text: "A" }], outcome: "ok", turnId: "t1" },
+    ] as AgEvent[];
+    const snap = fold(open).result();
+    const results = (r: Reducer) => r.result().messages.flatMap((m) => m.content).filter((b) => b.type === "tool-result").length;
+    const final = (messageId?: string) =>
+      ({ type: "tool.done", seq: 5, toolCallId: "c1", content: [{ type: "text", text: "B" }], outcome: "ok", turnId: "t1", ...(messageId !== undefined ? { messageId } : {}) }) as AgEvent;
+    for (const turns of [snap.turns, undefined]) {
+      const s = { type: "messages.snapshot", seq: 4, messages: snap.messages, ...(turns !== undefined ? { turns } : {}) } as AgEvent;
+      const adopted = fold([...open, s, final("m1")]);
+      expect(adopted.needsResync).toBe(false);
+      expect(results(adopted)).toBe(2); // the duplicate CB-18 names (SPEC.md:239/:363/:817)
+      const bare = fold([...open, s, final()]);
+      expect(bare.needsResync).toBe(true);
+      expect(results(bare)).toBe(1);
+    }
+  });
+});
