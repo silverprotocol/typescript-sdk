@@ -141,7 +141,7 @@ Known limitation: when the model requests several handoffs in one response,
 the SDK runs only the first. What happens to the ignored calls depends on the
 `@openai/agents` version:
 - From 0.8.1, nothing about them reaches the stream. The SDK drops them from
-  the conversation history; only when the conversation is server-managed
+  the run's history; only when the conversation is server-managed
   (`conversationId` or `previousResponseId`) does it send the model a
   synthetic result for each. The ignored calls get no `tool.done`, so the
   source round is closed at `flush()` with `turn.abort` (`stream-truncated`),
