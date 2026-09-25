@@ -1452,15 +1452,8 @@ function driveAdkTopLevel(
     });
   }
 
-  // ── interrupted → turn.abort ──
-  // Mark the turn closed in the FACET's own bookkeeping too (audit M21): without
-  // this, `maybeCloseTurn`'s is_final_response path or `flush()` would later
-  // fabricate a success `turn.done` for a turn that already aborted — the
-  // self-contradiction the audit found.
-  if (event.interrupted === true) {
-    a.emit({ type: "turn.abort", reason: "interrupted" });
-    closedTurns.add(turnId);
-  }
+  // `interrupted` → turn.abort is closed in drive(), after this event's own
+  // content and carries (see closeInterrupted), never here mid-event.
 
   // ── promptFeedback → prompt.blocked ──
   if (event.promptFeedback?.blockReason !== undefined) {
@@ -1849,6 +1842,12 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, stem: IdStem): 
   // Host obligation 4 (opt-in): a success close stashed until the sentinel, and
   // the non-HITL long-running calls still unanswered, per turn.
   const deferredClose = new Map<string, AdkEvent>();
+  // Live barge-ins (`interrupted: true`, ADK's live aggregator) awaiting their
+  // close. An interrupt on a PARTIAL text event is followed by ADK's full-text
+  // aggregate of the same model turn (utils/live_connection_utils.js:175-178),
+  // so the close waits for the next non-partial event of the turn, or for
+  // flush() / host completion.
+  const interruptPending = new Set<string>();
   const pendingLongRunning = new Map<string, Set<string>>();
   const assembledToolCalls = new Set<string>(); // FC dedup across partial/aggregate (Task 3)
   // Null-id call mint state (audit M47) — per-invoke ordinal counter + the
@@ -1886,7 +1885,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, stem: IdStem): 
     if (accumulated !== undefined) usageByTurn.set(turnId, accumulated);
     const parts = event.content?.parts ?? [];
     const hasFunctionCall = parts.some((p) => p.functionCall !== undefined);
-    const interrupted = event.interrupted === true;
+    const interrupted = event.interrupted === true || interruptPending.has(turnId);
     // ── The pause close (R&D item 6, step 1) ──
     // SPEC §7 "the pause is the turn outcome" (SPEC.md:896): while an ask is
     // pending, the event with which ADK ENDS the pause (isAdkPauseEnd) closes
@@ -2027,6 +2026,10 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, stem: IdStem): 
   function hostComplete(): void {
     for (const turnId of openTurns) {
       if (closedTurns.has(turnId)) continue;
+      if (interruptPending.has(turnId)) {
+        closeInterrupted(turnId);
+        continue;
+      }
       const messageId = `msg_${turnId}`;
       const asks = pendingAsks.get(turnId);
       if (asks !== undefined && asks.length > 0) {
@@ -2224,7 +2227,23 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, stem: IdStem): 
 
     if (!isPartial) trackLongRunning(event, turnId);
     driveAdkTopLevel(a, event, messageId, turnId, closedTurns, pendingAsks, reserved); // standalone/content arms (Tasks 4–5)
+    // A turn gets ONE terminal: an interrupt on a turn that already closed
+    // (a second barge-in, or one after a success close) adds none.
+    if (event.interrupted === true && !closedTurns.has(turnId)) interruptPending.add(turnId);
     maybeCloseTurn(event, turnId, messageId, isPartial);
+    if (!isPartial && interruptPending.has(turnId)) closeInterrupted(turnId);
+  }
+
+  /** interrupted → turn.abort, after the event's own content and carries and
+   *  after its message.end (INV-MSG: nothing of the turn follows its terminal).
+   *  The turn is marked closed in the facet's own bookkeeping too (audit M21),
+   *  so neither maybeCloseTurn nor flush() fabricates a later success. The
+   *  message.end carries the turn's accumulated usage, as flush()'s does. */
+  function closeInterrupted(turnId: string): void {
+    interruptPending.delete(turnId);
+    closedTurns.add(turnId);
+    a.closeMessage(`msg_${turnId}`, mapUsage(usageByTurn.get(turnId)));
+    a.emit({ type: "turn.abort", turnId, reason: "interrupted" });
   }
 
   return {
@@ -2273,10 +2292,13 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, stem: IdStem): 
       // the tokens it spent. There is never a turn.done here, so the usage
       // appears only once.
       for (const turnId of openTurns) {
-        if (!closedTurns.has(turnId)) {
-          closedTurns.add(turnId);
-          a.closeMessage(`msg_${turnId}`, mapUsage(usageByTurn.get(turnId)));
+        if (closedTurns.has(turnId)) continue;
+        if (interruptPending.has(turnId)) {
+          closeInterrupted(turnId);
+          continue;
         }
+        closedTurns.add(turnId);
+        a.closeMessage(`msg_${turnId}`, mapUsage(usageByTurn.get(turnId)));
       }
       return a.flush();
     },

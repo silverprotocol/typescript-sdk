@@ -4259,3 +4259,132 @@ describe("createAdkNormalizer — push() is atomic: a native that cannot be mapp
     expect(r.needsResync).toBe(false);
   });
 });
+
+// ─── Live (bidi) barge-in: the interrupted close ─────────────────────────────
+// Shapes from @google/adk 2.1.0's own live pipeline (Runner.runLive → the
+// LlmAgent live receive loop → LiveResponseAggregator, driven offline by
+// synthetic Gemini Live server messages): every event of a live session shares
+// one invocationId, carries runLive's default `actions` maps and the
+// `modelVersion`, and an interrupt arrives as `interrupted: true` on a bare
+// event (audio) or on a partial text event followed by the full-text aggregate
+// (utils/live_connection_utils.js:37-186). Synthetic natives, not a capture.
+describe("createAdkNormalizer — a Live barge-in closes turn.abort after the event's own content and its message.end", () => {
+  const liveEvent = (inv: string, id: string, fields: { [k: string]: JsonValue }): JsonValue => ({
+    invocationId: inv,
+    author: "voice",
+    id,
+    actions: { stateDelta: {}, artifactDelta: {}, requestedAuthConfigs: {}, requestedToolConfirmations: {} },
+    longRunningToolIds: [],
+    modelVersion: "gemini-live-stub",
+    ...fields,
+  });
+  const audio = { role: "model", parts: [{ inlineData: { mimeType: "audio/pcm;rate=24000", data: "AAAA" } }] };
+  const text = (t: string) => ({ role: "model", parts: [{ text: t }] });
+  const drive = (natives: JsonValue[]): AgEvent[] => {
+    const n = createAdkNormalizer();
+    return [...natives.flatMap((x) => n.push(x)), ...n.flush()];
+  };
+  const TERMINAL = new Set(["turn.done", "turn.error", "turn.abort"]);
+  /** Every event after a turn's first terminal that still names that turn or its message. */
+  const afterTerminal = (out: AgEvent[]): string[] => {
+    const closed = new Map<string, number>();
+    const late: string[] = [];
+    out.forEach((e, i) => {
+      const rec = e as { turnId?: string; messageId?: string; id?: string };
+      const turn = rec.turnId ?? (rec.messageId ?? (e.type === "message.end" ? rec.id : undefined))?.replace(/^msg_/, "");
+      if (turn !== undefined && closed.has(turn)) late.push(`${e.seq}:${e.type}`);
+      if (TERMINAL.has(e.type) && rec.turnId !== undefined && !closed.has(rec.turnId)) closed.set(rec.turnId, i);
+    });
+    return late;
+  };
+  const folds = (out: AgEvent[]) => {
+    const r = new Reducer();
+    for (const e of out) r.push(e);
+    return r;
+  };
+
+  it("one barge-in (an audio chunk, then a bare interrupt): message.end then turn.abort close the turn, nothing of the turn follows, and it folds with no park", () => {
+    const out = drive([
+      liveEvent("inv_live", "a1", { content: audio }),
+      liveEvent("inv_live", "a2", { interrupted: true }),
+    ]);
+    const terminals = out.filter((e) => TERMINAL.has(e.type));
+    expect(terminals).toHaveLength(1);
+    expect(terminals[0]).toMatchObject({ type: "turn.abort", reason: "interrupted", turnId: "turn_inv_live" });
+    const endIdx = out.findIndex((e) => e.type === "message.end");
+    const abortIdx = out.findIndex((e) => e.type === "turn.abort");
+    expect(endIdx).toBeGreaterThanOrEqual(0);
+    expect(endIdx).toBeLessThan(abortIdx);
+    expect(afterTerminal(out)).toEqual([]);
+    expect(abortIdx).toBe(out.length - 1);
+    expect(folds(out).needsResync).toBe(false);
+  });
+
+  it("a text barge-in (the interrupt on a partial text event, then ADK's full-text aggregate): the close waits for the aggregate, and the turn keeps its text", () => {
+    const out = drive([
+      liveEvent("inv_text", "t1", { content: text("Hello "), partial: true }),
+      liveEvent("inv_text", "t2", { content: text("wor"), interrupted: true, partial: true }),
+      liveEvent("inv_text", "t3", { content: text("Hello wor") }),
+    ]);
+    expect(out.filter((e) => TERMINAL.has(e.type)).map((e) => [e.type, (e as { reason?: string }).reason])).toEqual([["turn.abort", "interrupted"]]);
+    expect(afterTerminal(out)).toEqual([]);
+    const r = folds(out);
+    expect(r.needsResync).toBe(false);
+    // The partial chunks ride as their own text blocks; ADK's aggregate repeats
+    // them and is not re-emitted, so the turn's text is exactly the stream's.
+    const texts = r.result().messages.flatMap((m) => m.content).filter((b): b is { type: "text"; text: string } => b.type === "text");
+    expect(texts.map((b) => b.text).join("")).toBe("Hello wor");
+  });
+
+  it("an interrupt on a partial event with no aggregate after it closes turn.abort{interrupted} at flush, not stream-truncated", () => {
+    const out = drive([liveEvent("inv_cut", "c1", { content: text("Hel"), interrupted: true, partial: true })]);
+    expect(out.filter((e) => TERMINAL.has(e.type)).map((e) => (e as { reason?: string }).reason)).toEqual(["interrupted"]);
+    expect(folds(out).needsResync).toBe(false);
+  });
+
+  it("a pending interrupt wins over a completion on the turn's next non-partial event, and over the host-completion event", () => {
+    const completed = drive([
+      liveEvent("inv_w", "w1", { content: text("Hel"), interrupted: true, partial: true }),
+      liveEvent("inv_w", "w2", { content: text("Hel"), turnComplete: true }),
+    ]);
+    expect(completed.filter((e) => TERMINAL.has(e.type)).map((e) => [e.type, (e as { reason?: string }).reason])).toEqual([["turn.abort", "interrupted"]]);
+    const n = createAdkNormalizer({ hostCompletion: true });
+    const hosted = [
+      ...n.push(liveEvent("inv_h", "h1", { content: text("Hel"), interrupted: true, partial: true })),
+      ...n.push({ type: "__host_complete__" }),
+      ...n.flush(),
+    ];
+    expect(hosted.filter((e) => TERMINAL.has(e.type)).map((e) => [e.type, (e as { reason?: string }).reason])).toEqual([["turn.abort", "interrupted"]]);
+    expect(folds(hosted).needsResync).toBe(false);
+  });
+
+  it("two live invokes, each with one barge-in, folded into ONE Reducer: two aborted turns, no park", () => {
+    const one = (inv: string) => drive([liveEvent(inv, `${inv}_1`, { content: audio }), liveEvent(inv, `${inv}_2`, { interrupted: true })]);
+    const r = folds([...one("inv_one"), ...one("inv_two")]);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns).toHaveLength(2);
+  });
+
+  it("a turn gets one terminal: a second interrupt, or an interrupt after a success close, adds none (the later content is a new-turn case for 0.8.0)", () => {
+    const twoInterrupts = drive([
+      liveEvent("inv_c", "c1", { content: audio }),
+      liveEvent("inv_c", "c2", { interrupted: true }),
+      liveEvent("inv_c", "c3", { content: audio }),
+      liveEvent("inv_c", "c4", { interrupted: true }),
+    ]);
+    expect(twoInterrupts.filter((e) => TERMINAL.has(e.type))).toHaveLength(1);
+    const afterSuccess = drive([
+      liveEvent("inv_a", "a1", { content: text("Hi there.") }),
+      liveEvent("inv_a", "a2", { turnComplete: true }),
+      liveEvent("inv_a", "a3", { content: audio }),
+      liveEvent("inv_a", "a4", { interrupted: true }),
+    ]);
+    expect(afterSuccess.filter((e) => TERMINAL.has(e.type)).map((e) => e.type)).toEqual(["turn.done"]);
+    const bothFlags = drive([
+      liveEvent("inv_b", "b1", { content: audio }),
+      liveEvent("inv_b", "b2", { turnComplete: true, interrupted: true }),
+      liveEvent("inv_b", "b3", { interrupted: true }),
+    ]);
+    expect(bothFlags.filter((e) => TERMINAL.has(e.type)).map((e) => (e as { reason?: string }).reason)).toEqual(["interrupted"]);
+  });
+});
