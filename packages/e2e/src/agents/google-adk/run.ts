@@ -79,6 +79,33 @@ export interface AdkCaptureInput extends CaptureRunInput {
    * harness data. `null` when the session is gone.
    */
   onSessionState?: (state: JsonValue) => void;
+  /**
+   * Called once, after the run completes normally, with the INITIAL state of
+   * two fresh sessions: one for the same user, and one for another user
+   * (`ADK_OTHER_USER_ID`). ADK's session services keep `user:` keys per
+   * (app, user) and `app:` keys per app across sessions, so this shows which
+   * of a run's writes a later session starts with. Kept out of the native
+   * stream, like onSessionState.
+   */
+  onCrossSessionState?: (states: { sameUser: JsonValue; otherUser: JsonValue }) => void;
+}
+
+/** The other user the cross-session read opens a session for, and the
+ *  harness's proof that this agent supports the cross-session knob. */
+export const ADK_OTHER_USER_ID = "user-2";
+
+/** The initial state of a fresh session for `userId` and one for
+ *  ADK_OTHER_USER_ID, as ADK's own session service starts them, as plain JSON. */
+export async function adkCrossSessionStates(
+  runner: InMemoryRunner,
+  userId: string,
+): Promise<{ sameUser: JsonValue; otherUser: JsonValue }> {
+  const same = await runner.sessionService.createSession({ appName: runner.appName, userId });
+  const other = await runner.sessionService.createSession({ appName: runner.appName, userId: ADK_OTHER_USER_ID });
+  return {
+    sameUser: await adkSessionState(runner, { userId, sessionId: same.id }),
+    otherUser: await adkSessionState(runner, { userId: ADK_OTHER_USER_ID, sessionId: other.id }),
+  };
 }
 
 /** Applies one scripted step to a state writer. Returns what the tool answers:
@@ -222,6 +249,11 @@ export async function* runAdkCapture(input: AdkCaptureInput): AsyncIterable<Json
     // returned normally. Reported through the callback, never yielded.
     if (input.onSessionState !== undefined) {
       input.onSessionState(await adkSessionState(runner, { userId: session.userId, sessionId: session.id }));
+    }
+    // Cross-session read: after the run's own state, two FRESH sessions' initial
+    // state (same user, another user). Never yielded.
+    if (input.onCrossSessionState !== undefined) {
+      input.onCrossSessionState(await adkCrossSessionStates(runner, session.userId));
     }
   } finally {
     await Promise.all(toolsets.map((toolset) => toolset.close()));

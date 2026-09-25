@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 import { BaseLlm, InMemoryRunner, LlmAgent, type LlmRequest, type LlmResponse } from "@google/adk";
 import { FinishReason } from "@google/genai";
 import { toJsonValue, type JsonValue } from "@silverprotocol/core";
-import { ADK_STATE_TOOL, adkSessionState, adkStateTool, applyAdkStateStep } from "./run.js";
+import { ADK_OTHER_USER_ID, ADK_STATE_TOOL, adkCrossSessionStates, adkSessionState, adkStateTool, applyAdkStateStep } from "./run.js";
 
 /** The script the seed uses: step 2 REPLACES cfg, and step 1 also writes a
  *  temp: key. */
@@ -89,6 +89,21 @@ describe("ADK capture agent: scripted session state (adkStateScript / onSessionS
       expect(applyAdkStateStep(SCRIPT, step, state)).toEqual({ applied: false, step, keys: [] });
     }
     expect(writes).toHaveLength(2);
+  });
+
+  it("the cross-session read: a new session for the same user starts with the user: and app: writes, another user's with the app: write only", async () => {
+    const script: Array<Record<string, JsonValue>> = [{ plain: 1, "user:pref": "dark", "app:flag": true, "temp:scratch": "x" }];
+    const agent = new LlmAgent({ name: "spike", model: new StepLlm(script.length), tools: [adkStateTool(script)] });
+    const runner = new InMemoryRunner({ agent });
+    const session = await runner.sessionService.createSession({ appName: runner.appName, userId: "user-1" });
+    for await (const _e of runner.runAsync({ userId: "user-1", sessionId: session.id, newMessage: { role: "user", parts: [{ text: "go" }] }, runConfig: { maxLlmCalls: 8 } })) {
+      // drain
+    }
+    expect(await adkSessionState(runner, { userId: "user-1", sessionId: session.id })).toEqual({ plain: 1, "user:pref": "dark", "app:flag": true });
+    const states = await adkCrossSessionStates(runner, "user-1");
+    expect(states.sameUser).toEqual({ "user:pref": "dark", "app:flag": true });
+    expect(states.otherUser).toEqual({ "app:flag": true });
+    expect(ADK_OTHER_USER_ID).not.toBe("user-1");
   });
 
   it("the tool is named by the exported capability proof", () => {
