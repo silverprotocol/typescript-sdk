@@ -5,7 +5,7 @@
 <h1 align="center">@silverprotocol/core</h1>
 
 <p align="center">
-  <b>AgJSON</b> — the open, neutral, typed transport for normalized agent-framework I/O.<br/>
+  <b>AgJSON</b> — the open, typed transport for normalized agent-framework I/O, unopinionated about storage and rendering.<br/>
   The core package: the typed schema, the <code>Normalizer</code> contract, and the normative <code>reduce()</code>.
 </p>
 

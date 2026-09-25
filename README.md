@@ -8,8 +8,8 @@
 [![richtext](https://img.shields.io/npm/v/%40silverprotocol%2Frichtext?label=richtext&color=0a7)](https://www.npmjs.com/package/@silverprotocol/richtext)
 [![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
-The TypeScript SDK for **AgJSON** — the open, neutral, typed transport for
-normalized agent-framework I/O. Open source (MIT).
+The TypeScript SDK for **AgJSON** — the open, typed transport for normalized
+agent-framework I/O, unopinionated about storage and rendering. Open source (MIT).
 
 ## Install
 
