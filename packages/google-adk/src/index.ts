@@ -2409,16 +2409,13 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     if (!isPartial && event.turnComplete === true && interruptPending.has(turnId)) closeInterrupted(turnId);
   }
 
-  /** interrupted → turn.abort, after the event's own content and carries and
-   *  after its message.end (INV-MSG: nothing of the turn follows its terminal).
-   *  The turn is marked closed in the facet's own bookkeeping too (audit M21),
-   *  so neither maybeCloseTurn nor flush() fabricates a later success. The
-   *  message.end carries the turn's accumulated usage, as flush()'s does. */
   /** Gemini Live prices per modality (text vs audio), so its usage reports'
    *  `promptTokensDetails` / `responseTokensDetails` ride the message's
    *  metadata (a `message.metadata` event, key `usageDetails`), one entry per report, verbatim and never
    *  summed. Each report re-emits the whole list (message metadata folds by
-   *  key, so the last emission holds every report). Live path only
+   *  key, so the last emission holds every report). The list is the TURN's,
+   *  like the turn-summed `usage`, and rides the turn's current message; a turn
+   *  with more than one message carries it on the later one. Live path only
    *  (`responseTokenCount` present): generateContent streams are unchanged. */
   function carryLiveUsageDetails(event: AdkEvent, turnId: string, messageId: string, isPartial: boolean): void {
     const um = event.usageMetadata;
@@ -2448,6 +2445,11 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     return `${base}_g${g + 1}`;
   }
 
+  /** interrupted → turn.abort, after the event's own content and carries and
+   *  after its message.end (INV-MSG: nothing of the turn follows its terminal).
+   *  The turn is marked closed in the facet's own bookkeeping too (audit M21),
+   *  so neither maybeCloseTurn nor flush() fabricates a later success. The
+   *  message.end carries the turn's accumulated usage, as flush()'s does. */
   function closeInterrupted(turnId: string): void {
     interruptPending.delete(turnId);
     interruptClosed.add(turnId);
