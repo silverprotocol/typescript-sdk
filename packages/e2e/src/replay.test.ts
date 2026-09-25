@@ -122,13 +122,13 @@ const CLAUDE_SEEDS = [
   "partials-opus55",
   "app-update-opus55",
   // 2026-09-23 (cohort 0.6.3): claude-opus-5 (GA 2026-07-24) had no corpus seed.
-  // Founder-approved 2026-09-15. It is also a Claude Code 2.1.280 refusal-
+  // Approved 2026-09-15. It is also a Claude Code 2.1.280 refusal-
   // fallback target (bio and frontier_llm refusals; cyber refusals go to
   // claude-opus-4-8), so Opus 5 frames can appear mid-session for consumers who
   // never chose it.
   "echo-opus5",
-  // 2026-09-23: the corpus's first MULTI-RESULT invoke (sp-claude B's live
-  // receipt, per sp-protocol: ≥2 results in ONE streaming-input invoke → ≥2
+  // 2026-09-23: the corpus's first MULTI-RESULT invoke (the claude facet's
+  // change B live receipt, per the spec: ≥2 results in ONE streaming-input invoke → ≥2
   // AgTurnRecords, each closed once). claude-sonnet-5 @0.3.280; the scenario's
   // `followUps` streams a second prompt into the same query() after the first
   // result. Live: 2 result frames with result_index 0 and 1 (the first live
@@ -136,6 +136,14 @@ const CLAUDE_SEEDS = [
   // user_message_uuid(s) (harness-minted prompt uuids). Folds to 2 turns with
   // distinct per-result turnIds, needsResync false.
   "multi-result-sonnet5",
+  // 2026-09-25 (R&D candidate 7, client correlation): the first STREAMED invoke
+  // with caller-minted prompt uuids. multi-result's `followUps` (streaming input,
+  // a harness-minted uuid per prompt) plus includePartialMessages;
+  // claude-sonnet-5 @0.3.280. Live: each prompt's first stream_event
+  // (message_start) carries user_message_uuid(s), carried as message.metadata;
+  // the first round's complete assistant frame repeats it, the post-tool round
+  // does not, and the result repeats it. Folds to 2 turns, needsResync false.
+  "partials-uuid-sonnet5",
   // 2026-09-23 (probe queue item 1): the FIRST error seed and the first
   // cassette with is_error:true. The scenario flag expectError keeps the
   // natives the SDK yielded before it threw (the throw is in provenance note).
@@ -144,12 +152,12 @@ const CLAUDE_SEEDS = [
   // frame with error:authentication_failed, then a success result with
   // is_error:true, api_error_status 401. It folds to
   // turn.error{authentication_failed, retriable:false}, and result-meta
-  // carries apiErrorStatus 401 + stopReason (sp-claude c54eb7f). Enrolled
-  // once sp-claude's six dispositions landed.
+  // carries apiErrorStatus 401 + stopReason (c54eb7f). Enrolled
+  // once the claude facet's six dispositions landed.
   "api-error-auth",
   // 2026-09-23 (R&D candidate 20, leg 1 of 3): the first DEFERRED tool call.
   // The scenario knob preToolUseDecision "defer" installs a PreToolUse hook
-  // (sp-claude a22d669), claude-sonnet-5 @0.3.280. The model calls
+  // (a22d669), claude-sonnet-5 @0.3.280. The model calls
   // mcp__t__echo, the hook defers it, and the run ends with no throw: result
   // stop_reason and terminal_reason "tool_deferred", deferred_tool_use
   // {id, name, input}. It folds to turn.done{success, finishReason
@@ -185,7 +193,7 @@ const CLAUDE_SEEDS = [
   // tool.done before any turn.start, closing a tool opened in leg 1's
   // invoke. The deny leg also re-emits permission_denials as
   // tool.start + tool.done{denied} for ids this invoke already started and
-  // closed. They enroll once sp-claude and sp-protocol settle the resumed
+  // closed. They enroll once the claude facet and the spec settle the resumed
   // closure mapping. Their committed coverage lists the census findings.
   // Also unenrolled until the ruling (candidate-20 bar, package decision 6):
   // -resume-unavailable (no MCP server on resume, so the tool is gone). The
@@ -260,8 +268,8 @@ const OPENAI_SEEDS = [
   // gpt-6-luna chose not to reason on the echo.
   "echo-gpt6sol",
   "echo-gpt6luna",
-  // 2026-09-23: the corpus's FIRST live `phase:"commentary"` (the founder's gate
-  // for rnd 13+17 stage 2, the draft.4 `phase` field). gpt-6-sol at
+  // 2026-09-23: the corpus's FIRST live `phase:"commentary"` (the gate
+  // for R&D 13+17 stage 2, the draft.4 `phase` field). gpt-6-sol at
   // @openai/agents 0.18.0, reasoningSummary "auto" (echoed back as "detailed",
   // effort medium), three DEPENDENT echo calls with a system-prompt preamble
   // rule: each call's response carries a commentary message before its
@@ -277,9 +285,9 @@ const OPENAI_SEEDS = [
   // 2026-09-24 (fold/flush, enrolled with the group): the openai tool-approval
   // legs (gpt-6-sol @ @openai/agents 0.18.0, live, real SDK order). Leg 1 is the
   // interrupt: the round's deferred close releases as turn.done{paused, asks:[the
-  // approval ask]} (sp-openai O1), never success. The two resume legs are fresh
+  // approval ask]} (openai facet O1), never success. The two resume legs are fresh
   // invokes from the saved RunState: the leading tool result opens its own turn
-  // (643e322) and folds without parking. Census per sp-openai's triage: request
+  // (643e322) and folds without parking. Census per the openai facet's triage: request
   // config echoes and the RunState key are allowlisted; the resumed invoke's tool
   // name joins leg 1's tool-call block by toolCallId.
   "approval-tool-gpt6sol",
@@ -289,7 +297,7 @@ const OPENAI_SEEDS = [
   // leg): the first live OpenAI handoff (gpt-6-sol @ @openai/agents 0.18.0).
   // The main agent transfers to "Echoer" (handoff_requested, handoff_occurred,
   // agent_updated_stream_event), which calls the mcp echo tool and answers. On
-  // sp-openai's handoff close (b5d8a98) the transfer call gets its tool.done,
+  // the openai facet's handoff close (b5d8a98) the transfer call gets its tool.done,
   // the nested handoff turn closes success before subagent.done, and the
   // source turn closes success; Echoer's rounds are top-level turns (a
   // transfer, not a sub-run).
@@ -361,7 +369,7 @@ const ADK_SEEDS = [
   // gemini-3.8-flash. A NEW scenario rather than a refresh of tool-error: ADK
   // registers MCP tools WITHOUT the mcp__<server>__ prefix, so tool-error's steer
   // ("mcp__errsrv__fail") names a tool that is not in the toolsDict - on 2.1.0
-  // that reaches the new hallucinated-tool envelope (#790), an OPEN founder
+  // that reaches the new hallucinated-tool envelope (#790), an OPEN
   // decision. This scenario steers the bare name and records the clean MCP
   // isError path. tool-error itself stays as the historical 2.5-flash record.
   "tool-error-gemini38",
@@ -372,13 +380,13 @@ const ADK_SEEDS = [
   // (transforms pin all eight leaves).
   "resource-link-gemini38",
   // 2026-09-24 (rnd, ADK shared-state fold): the corpus's first NON-EMPTY
-  // actions.stateDelta. The scenario knob adkStateScript drives sp-google's
+  // actions.stateDelta. The scenario knob adkStateScript drives the ADK capture agent's
   // scripted apply_state_step tool (5bc5351): step 1 writes cfg={a:1,b:2}
   // plus temp:scratch, step 2 writes cfg={a:5}. ADK's Runner trims temp: before
   // yielding, so the native deltas are {cfg:{a:1,b:2}} then {cfg:{a:5}}, carried
   // verbatim as state.delta patches. ADK's own session.state, read back into
   // adk.session-state.json, is {cfg:{a:5}}. draft.3's one-level merge folded
-  // the two patches to {cfg:{a:5,b:2}} (sp-rnd's finding); draft.4's per-key
+  // the two patches to {cfg:{a:5,b:2}} (an R&D finding); draft.4's per-key
   // replace (pkg-21) folds them to {cfg:{a:5}}, as ADK holds, and the
   // session-state suite below pins that fold == sidecar.
   "state-fold-gemini38",
@@ -873,6 +881,17 @@ const SURFACE_GUARDS: ReadonlyArray<{
       n.filter((f) => f !== null && typeof f === "object" && !Array.isArray(f) && f["type"] === "result").length - 1,
   },
   {
+    scenario: "partials-uuid-sonnet5",
+    framework: "claude",
+    surface: "a stream_event message_start stamped with user_message_uuid (the streamed client-correlation evidence)",
+    count: (n) =>
+      n.filter((f) => {
+        if (f === null || typeof f !== "object" || Array.isArray(f) || f["type"] !== "stream_event") return false;
+        const ev = f["event"];
+        return ev !== null && typeof ev === "object" && !Array.isArray(ev) && ev["type"] === "message_start" && typeof f["user_message_uuid"] === "string";
+      }).length,
+  },
+  {
     scenario: "thinking-fable51",
     framework: "claude",
     surface: "stream_event thinking_delta WITH summary text",
@@ -926,7 +945,7 @@ const SURFACE_GUARDS: ReadonlyArray<{
   {
     scenario: "commentary-gpt6sol",
     framework: "openai",
-    surface: 'a live phase:"commentary" message (the founder-gated evidence for the draft.4 phase field)',
+    surface: 'a live phase:"commentary" message (the gated evidence for the draft.4 phase field)',
     count: (n) => JSON.stringify(n).split('"phase":"commentary"').length - 1,
   },
   {

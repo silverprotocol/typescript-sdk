@@ -1,0 +1,12 @@
+{
+  "name": "partials-uuid-sonnet5",
+  "prompt": "Echo the message 'first-request' back to me using the available tool, then confirm what came back in one short sentence.",
+  "followUps": [
+    "Now echo the message 'second-request' back to me using the same tool, then confirm it in one short sentence."
+  ],
+  "mcpServers": [
+    { "key": "t", "kind": "text" }
+  ],
+  "steer": "You MUST call the tool mcp__t__echo once for each request, with exactly the message the user asks for. Do not answer from memory. Write one short sentence after each tool call.",
+  "includePartialMessages": true
+}

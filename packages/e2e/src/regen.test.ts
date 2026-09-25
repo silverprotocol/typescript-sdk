@@ -21,7 +21,7 @@ import { replayCassette } from "./replay.js";
 
 const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk" | "vercel" }> = [
   { scenario: "text-tool-turn", framework: "claude" },
-  // 2026-09-23 (sp-claude B, per-turn turnIds): complete-result's turnId moves
+  // 2026-09-23 (claude facet change B, per-turn turnIds): complete-result's turnId moves
   // (turn_<session> → turn_<its result uuid>); it was never on this list.
   { scenario: "complete-result", framework: "claude" },
   // 2026-09-23: the multi-result seed, enrolled at capture time (capture-time
@@ -173,7 +173,7 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "echo-gpt6luna", framework: "openai" },
   { scenario: "echo-gpt6sol", framework: "vercel" },
   { scenario: "echo-gpt6luna", framework: "vercel" },
-  // 2026-09-23: the founder-gated commentary seed, enrolled at capture time
+  // 2026-09-23: the gated commentary seed, enrolled at capture time
   // (capture-time coverage.json is computed against EMPTY guard maps).
   { scenario: "commentary-gpt6sol", framework: "openai" },
   // 2026-09-23 (rd-06 A.9 step 5): the live ADK workflow seeds, enrolled at
@@ -201,20 +201,23 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // 2026-09-24 (fold/flush Q2 evidence): the openai tool-approval legs.
   // Leg 1's capture-time coverage was computed against empty guard maps
   // (coverage kept honest); the two resume goldens are generated from their
-  // captured natives on sp-openai's resume-turn fix (643e322, c20 A.6).
+  // captured natives on the openai facet's resume-turn fix (643e322, c20 A.6).
   // Regenerated on O1 (leg 1's close → paused) and enrolled in OPENAI_SEEDS.
   { scenario: "approval-tool-gpt6sol", framework: "openai" },
   { scenario: "approval-tool-gpt6sol-resume-approve", framework: "openai" },
   { scenario: "approval-tool-gpt6sol-resume-reject", framework: "openai" },
   // 2026-09-24 (nested-turn capture ask): the first live OpenAI handoff,
-  // enrolled on sp-openai's handoff close (b5d8a98). The capture ran through
+  // enrolled on the openai facet's handoff close (b5d8a98). The capture ran through
   // the held openaiHandoff knob; replay needs only the committed native.
   { scenario: "handoff-gpt6sol", framework: "openai" },
   // 2026-09-25 (nested-turn capture ask): the first live Claude subagent runs,
-  // enrolled on sp-claude's subagent carries (f2c75d8 + bd4d414).
+  // enrolled on the claude facet's subagent carries (f2c75d8 + bd4d414).
   { scenario: "subagent-fg-sonnet5", framework: "claude" },
   { scenario: "subagent-bg-sonnet5", framework: "claude" },
   { scenario: "subagent-fail-sonnet5", framework: "claude" },
+  // 2026-09-25 (R&D candidate 7): the streamed client-correlation seed, enrolled
+  // at capture time (capture-time coverage.json is computed against EMPTY guard maps).
+  { scenario: "partials-uuid-sonnet5", framework: "claude" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {
