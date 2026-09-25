@@ -43,7 +43,7 @@ const FACTORY: Record<Exclude<Fw, "vercel">, () => Normalizer> = {
   // once at CONSTRUCTION (outside withAtomicPush's inner factory, DC-10), and B
   // poisons randomness to prove no facet push draws any.
   openai: () => createOpenaiNormalizer({ invokeId: "openai" }),
-  adk: () => createAdkNormalizer(),
+  adk: () => createAdkNormalizer({ invokeId: "adk" }),
 };
 const run = (n: Normalizer, xs: unknown[]): AgEvent[] => [...xs.flatMap((x) => n.push(x)), ...n.flush()];
 /** How many events the prefix's pushes emit (no flush: its INV-FLUSH closes are not in the full stream). */

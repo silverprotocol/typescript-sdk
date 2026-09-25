@@ -386,7 +386,7 @@ async function loadFrameworkDeps(
     // and feeds it to the facet through its opt-in, as replay.ts does with a
     // recorded marker. Every committed ADK golden replays byte-identically
     // with or without it (sp-google 613fd7f), so plain re-captures are safe.
-    createNormalizer: () => createAdkNormalizer({ hostCompletion: true }),
+    createNormalizer: () => createAdkNormalizer({ invokeId: "adk", hostCompletion: true }),
     hostCompletion: true,
   };
 }

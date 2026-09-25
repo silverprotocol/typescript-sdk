@@ -69,7 +69,7 @@ describe("createAdkNormalizer never throws on a malformed event with a valid env
           for (const bad of [...BAD, DEL]) {
             cases++;
             const mutated = evs.map((e, j) => (j === ei ? setAt(e, p, bad) : e));
-            const n = createAdkNormalizer();
+            const n = createAdkNormalizer({ invokeId: "adk" });
             const per: AgEvent[][] = [];
             try {
               for (const m of mutated) per.push(n.push(m as never));
@@ -85,7 +85,7 @@ describe("createAdkNormalizer never throws on a malformed event with a valid env
             if (per[ei]!.some((x) => x.type === "error")) {
               differential++;
               expect(per[ei]!.map((x) => x.type)).toEqual(["error"]);
-              const n2 = createAdkNormalizer();
+              const n2 = createAdkNormalizer({ invokeId: "adk" });
               const without: AgEvent[] = [];
               mutated.forEach((m, j) => {
                 if (j !== ei) without.push(...n2.push(m as never));

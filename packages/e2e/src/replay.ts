@@ -283,7 +283,7 @@ export async function replayNatives(recorded: JsonValue[], fw: Framework, opts: 
         ? // A recorded host-completion marker opts the google-adk facet into
           // SPEC §8.0 host obligation 4 and is fed to it after the natives
           // (below): its own opt-in, as HOST_COMPLETE_MARKER's doc promises.
-          createAdkNormalizer(hostCompleted ? { hostCompletion: true } : {})
+          createAdkNormalizer({ invokeId: "adk", ...(hostCompleted ? { hostCompletion: true } : {}) })
         : fw === "vercel"
           ? createVercelNormalizer({ invokeId: "vercel" })
           : // `opts.threadId` pins one thread across the invokes of a pair (c20:

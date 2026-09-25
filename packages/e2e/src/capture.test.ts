@@ -538,7 +538,7 @@ describe("runCapture — hostCompletion records the host-completion marker (adk)
       yield* WF_COMPLETE;
     },
     serveMock,
-    createNormalizer: () => createAdkNormalizer(hostCompletion ? { hostCompletion: true } : {}),
+    createNormalizer: () => createAdkNormalizer({ invokeId: "adk", ...(hostCompletion ? { hostCompletion: true } : {}) }),
     census,
     ...(hostCompletion ? { hostCompletion: true } : {}),
   });

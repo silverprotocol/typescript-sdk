@@ -32,7 +32,7 @@ function streams(): [string, JsonValue[]][] {
 }
 
 function run(natives: JsonValue[]): AgEvent[] {
-  const n = createAdkNormalizer();
+  const n = createAdkNormalizer({ invokeId: "adk" });
   const out: AgEvent[] = [];
   for (const x of natives) out.push(...n.push(x));
   out.push(...n.flush());

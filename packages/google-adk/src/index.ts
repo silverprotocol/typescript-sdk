@@ -49,13 +49,13 @@
  * `function_call`); a runtime adapter would map those before this seam. This
  * fixture contract is the camelCase wire projection.
  *
- * NOTE on turn ids across invokes: google-adk derives turn ids from ADK's
- * `invocationId`, which ADK-JS mints fresh on every `runAsync` (including a
- * resume), so they don't repeat across the invokes of a fold. ADK-Python's
- * resumable resume reuses `invocation_id`, and this facet also accepts events
- * serialized from Python: fed that resume, it would repeat `turn_${invocationId}`
- * (and the message id derived from it) across the fold. Supporting that path
- * needs a per-invoke stem, which this release does not have.
+ * NOTE on turn ids across invokes: a turn id is `turn_<invokeId>_<invocationId>`,
+ * and its message id `msg_<turnId>`. ADK's `invocationId` alone is not unique
+ * across the invokes a host folds together: ADK-JS mints a fresh one on every
+ * `runAsync`, but ADK-Python's resumable resume reuses `invocation_id`, and this
+ * facet also accepts events serialized from Python (SPEC §8.0 "Ids across
+ * invokes": a resumed-invocation id never satisfies the rule). The per-invoke
+ * stem makes the ids unique; see {@link AdkNormalizerOptions.invokeId}.
  *
  * NOTE on the Live (bidi) path: a barge-in (`interrupted: true`, from ADK's live
  * aggregator) closes the message, then the turn, as `turn.abort{interrupted}`,
@@ -792,8 +792,9 @@ function isAdkPauseEnd(event: AdkEvent): boolean {
 }
 
 /** The event's own turn key: its invocationId, else its id. `undefined` when it
- *  has neither; the normalizer then names the turn from its per-instance stem,
- *  never a constant that would repeat across the invokes a host folds together. */
+ *  has neither; the turn is then named from the per-invoke stem alone. The key
+ *  is never a turn id by itself: ADK-Python's resumable resume reuses
+ *  `invocation_id`, so every turn id carries the per-invoke stem too. */
 function turnKey(ev: AdkEvent): string | undefined {
   if (ev.invocationId && ev.invocationId.length > 0) return ev.invocationId;
   return ev.id !== undefined && ev.id !== null && ev.id.length > 0 ? ev.id : undefined;
@@ -1810,6 +1811,26 @@ export interface AdkNormalizerOptions {
    * else `success`. Default off: the step-1 behaviour.
    */
   hostCompletion?: boolean;
+  /**
+   * The stem this invoke's ids are minted from: a turn id is
+   * `turn_<invokeId>_<key>`, where `<key>` is the event's `invocationId`, else
+   * its `id`; an event with neither is `turn_<invokeId>`, and a host error with
+   * no turn open is `turn_<invokeId>_host_error_<n>`. Message ids are
+   * `msg_<turnId>`.
+   *
+   * Turn and message ids must be unique across every invoke folded into one
+   * reducer (SPEC §8.0 "Ids across invokes"; a repeated turn id re-opens a
+   * closed turn, which INV-MSG parks). ADK's `invocationId` is not enough on its
+   * own: ADK-Python's resumable resume reuses it. By default each normalizer
+   * draws a fresh `adk_<16 hex>` stem from `crypto.getRandomValues`, ONCE, at
+   * construction and outside the atomic inner factory, so a `withAtomicPush`
+   * rebuild mints the SAME ids.
+   *
+   * Pass one to make the output deterministic (replay, capture, tests). A host
+   * that passes one MUST keep it unique per invoke within a fold. This mirrors
+   * the vercel, openai and claude facets' `invokeId`.
+   */
+  invokeId?: string;
 }
 
 /** The facet-local host-completion native (§8.0 host obligation 4). */
@@ -1830,9 +1851,6 @@ interface AdkHostError {
   code: string;
   message: string;
   usage?: AgUsage;
-  /** The invoke's ADK invocationId, when the host has it: used to name a
-   *  fresh terminal turn if the error arrives before any event. */
-  invocationId?: string;
 }
 
 /** The host-error sentinel, read from the RAW native (an Error's message is
@@ -1847,12 +1865,10 @@ function hostErrorOf(raw: unknown): AdkHostError | undefined {
     if (typeof code !== "string" || typeof message !== "string") return undefined;
     const usageRaw: unknown = Reflect.get(raw, "usage");
     const usage = usageRaw === undefined ? undefined : AgUsage.safeParse(toJsonValueSafe(usageRaw));
-    const invocationId: unknown = Reflect.get(raw, "invocationId");
     return {
       code,
       message,
       ...(usage?.success === true ? { usage: usage.data } : {}),
-      ...(typeof invocationId === "string" && invocationId.length > 0 ? { invocationId } : {}),
     };
   } catch {
     return undefined;
@@ -1874,8 +1890,8 @@ function isHostCompleteNative(v: JsonValue): boolean {
  *   inner members have unexpected types), its partial batch is discarded
  *   without consuming seq, the inner is rebuilt by re-driving every native
  *   accepted so far (the inner never reads the clock or randomness; ids come
- *   from invocationId and per-invoke ordinals, and the one random stem, for a
- *   host error before any event, is drawn outside the inner and kept), and
+ *   from the per-invoke stem, invocationId and per-invoke ordinals, and the
+ *   stem is drawn once, outside the inner, and kept), and
  *   ONE core `error {message:
  *   "normalizer error", code: <constructor name>}` takes the next seq, with no
  *   payload and no message text.
@@ -1885,39 +1901,21 @@ function isHostCompleteNative(v: JsonValue): boolean {
  * message or block is open that never reached the wire.
  */
 export function createAdkNormalizer(options: AdkNormalizerOptions = {}): Normalizer {
-  // A per-instance id stem, drawn lazily and only on the paths that need it (an
-  // event with neither invocationId nor id; a host error before any event,
-  // with no invocationId on the sentinel). It lives OUTSIDE the inner, so a
-  // rebuild re-drives to the same ids.
-  const stem: IdStem = {};
-  return withAtomicPush(() => createInnerAdkNormalizer(options, stem));
+  // The per-invoke id stem, drawn ONCE here, OUTSIDE the inner, so a rebuild
+  // re-drives to the same ids and no push() reads randomness.
+  const invokeStem = options.invokeId ?? `adk_${mintInvokeNonce()}`;
+  return withAtomicPush(() => createInnerAdkNormalizer(options, invokeStem));
 }
 
-/** Holds the lazily drawn per-instance id stem across inner rebuilds. */
-interface IdStem {
-  value?: string;
+/** 64 random bits as 16 hex chars: the default per-invoke id stem (as the
+ *  vercel, openai and claude facets draw theirs). */
+function mintInvokeNonce(): string {
+  const bytes = new Uint8Array(8);
+  globalThis.crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** A random per-instance stem; never called while a replay re-drives, since
- *  the stem is drawn once and kept.
- *
- *  The `Date.now` + `Math.random` fallback runs only when `crypto.randomUUID`
- *  is absent, which cannot happen on Node >= 19 (a global `crypto`). It is the
- *  facet's one read of the clock or a random source, and it is safe for
- *  determinism: the stem is drawn outside the inner, once, and a
- *  withAtomicPush rebuild reuses it, so the corpus legs that poison the clock
- *  and randomness never reach this call. */
-function drawIdStem(): string {
-  const cryptoObj: unknown = Reflect.get(globalThis, "crypto");
-  const randomUUID: unknown = cryptoObj !== undefined && cryptoObj !== null ? Reflect.get(cryptoObj, "randomUUID") : undefined;
-  if (typeof randomUUID === "function") {
-    const id: unknown = Reflect.apply(randomUUID, cryptoObj, []);
-    if (typeof id === "string") return id;
-  }
-  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
-}
-
-function createInnerAdkNormalizer(options: AdkNormalizerOptions, stem: IdStem): Normalizer {
+function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: string): Normalizer {
   const hostCompletion = options.hostCompletion === true;
   const a = new StreamAssembler();
   const threadId = "google";
@@ -2174,10 +2172,6 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, stem: IdStem): 
    *  complete. With no turn open, a fresh terminal turn carries the error, so
    *  it is never start-less. */
   let hostErrorTurns = 0;
-  // The first turn key this invoke drove (its ADK invocationId): the stem of a
-  // fresh terminal turn's id, so the id is unique across the invokes a host
-  // folds together, not only within this one.
-  let firstKey: string | undefined;
   function hostError(err: AdkHostError): void {
     let closed = 0;
     for (const turnId of [...openTurns].reverse()) {
@@ -2189,8 +2183,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, stem: IdStem): 
       closed++;
     }
     if (closed > 0) return;
-    const base = firstKey ?? err.invocationId ?? (stem.value ??= drawIdStem());
-    const turnId = `turn_${base}_host_error_${hostErrorTurns++}`;
+    const turnId = `turn_${invokeStem}_host_error_${hostErrorTurns++}`;
     const messageId = ensureOpen(turnId);
     closedTurns.add(turnId);
     a.closeMessage(messageId);
@@ -2202,9 +2195,8 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, stem: IdStem): 
   }
 
   function drive(event: AdkEvent): void {
-    const key = turnKey(event) ?? `adk_${(stem.value ??= drawIdStem())}`;
-    firstKey ??= key;
-    const turnId = `turn_${key}`;
+    const key = turnKey(event);
+    const turnId = key !== undefined ? `turn_${invokeStem}_${key}` : `turn_${invokeStem}`;
     const messageId = ensureOpen(turnId);
     const parts = event.content?.parts ?? [];
     const isPartial = event.partial === true;
@@ -2254,7 +2246,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, stem: IdStem): 
     });
 
     // §8.3 — verbatim port of the legacy suppression, with e.push(...) → a.<primitive>.
-    const alreadyStreamed = streamedText.get(key) ?? "";
+    const alreadyStreamed = streamedText.get(turnId) ?? "";
     const isAggregate = !isPartial && alreadyStreamed.length > 0;
     const aggregateText = isAggregate
       ? parts
@@ -2315,8 +2307,8 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, stem: IdStem): 
       if (isPartial) accumulated += contributed;
     });
 
-    if (isPartial) streamedText.set(key, accumulated);
-    else if (isAggregate) streamedText.delete(key);
+    if (isPartial) streamedText.set(turnId, accumulated);
+    else if (isAggregate) streamedText.delete(turnId);
 
     // Round-3 review finding (regression on finding b): the resend window's
     // lifecycle is scoped PER CONTENT KEY, never per turn. `mintNullIdCallId`

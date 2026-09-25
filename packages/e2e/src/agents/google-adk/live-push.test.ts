@@ -68,7 +68,7 @@ function holds(v: unknown, pred: (x: unknown) => boolean, seen = new Set<object>
 }
 
 function normalize(natives: JsonValue[]): AgEvent[] {
-  const n = createAdkNormalizer();
+  const n = createAdkNormalizer({ invokeId: "adk" });
   const out: AgEvent[] = [];
   for (const native of natives) out.push(...n.push(native));
   out.push(...n.flush());

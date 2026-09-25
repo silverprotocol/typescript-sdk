@@ -2394,7 +2394,7 @@ describe("§10.40 — flush honesty (draft.4; §5.0 INV-FLUSH)", () => {
   const END_KEYS = new Set(["type", "seq", "id", "turnId", "threadId", "messageId", "provider", "citations", "phase", "providerMetadata"]);
   const make = (fw: string) =>
     fw === "openai" ? createOpenaiNormalizer({ invokeId: "openai" })
-    : fw === "adk" ? createAdkNormalizer()
+    : fw === "adk" ? createAdkNormalizer({ invokeId: "adk" })
     : fw === "vercel" ? createVercelNormalizer({ invokeId: "vercel" })
     : createClaudeNormalizer({ invokeId: "claude" });
 

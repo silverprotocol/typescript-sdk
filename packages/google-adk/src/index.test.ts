@@ -6,6 +6,7 @@ import {
   isLossyFinishReason,
   mapFinishReason,
   type AdkEvent,
+  type AdkNormalizerOptions,
   type AdkPart,
 } from "./index.js";
 
@@ -23,7 +24,7 @@ function toJson(e: AdkEvent): JsonValue {
 
 /** Drive a list of events through one normalizer instance, then flush. */
 function run(events: AdkEvent[]): AgEvent[] {
-  const n = createAdkNormalizer();
+  const n = createAdkNormalizer({ invokeId: "adk" });
   const out: AgEvent[] = [];
   for (const e of events) out.push(...n.push(toJson(e)));
   out.push(...n.flush());
@@ -67,7 +68,7 @@ describe("createAdkNormalizer — text turn lifecycle", () => {
     // truthfully aborts the still-open turn as stream-truncated — NEVER a
     // fabricated success close (audit M21). Assert neither is emitted by the
     // function-call event itself: drive it without flush.
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const driven = n.push(
       JSON.parse(
         JSON.stringify(
@@ -284,7 +285,7 @@ describe("createAdkNormalizer — block ids are a per-invoke ordinal per kind, n
   });
 
   it("ordinals are per INVOKE: a second turn in the same normalizer continues at text:1, never re-opens text:0 (P14 parks on a repeat)", () => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const a = n.push(
       toJsonValue(event([{ thought: true, text: "t1" }, { text: "one" }], { partial: false, turnComplete: true, finishReason: "STOP" })),
     );
@@ -340,7 +341,7 @@ describe("createAdkNormalizer — standalone arms via emit()", () => {
     // arrives — the ADK stream just stops mid-turn. flush() must close the
     // dangling message then truthfully abort the still-open turn, never
     // fabricate a success close.
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const pushed = n.push(toJson(event([{ text: "partial…" }], { partial: true })));
     const flushed = n.flush();
     const out = [...pushed, ...flushed];
@@ -1333,7 +1334,7 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
       JSON.parse('{"invocationId":"inv_fixture_1","author":"agent","content":{"role":"model","parts":[{"text":"ok"}]},"actions":{"stateDelta":{"__proto__":{"polluted":"SECRET_p"},"temp:k":"SECRET_temp","cart":3,"nested":{"__proto__":{"deep":"SECRET_p"},"b":2}}}}'),
     ];
     for (const native of natives) {
-      const n = createAdkNormalizer();
+      const n = createAdkNormalizer({ invokeId: "adk" });
       const out = [...n.push(native), ...n.flush()];
       expect(stateDeltaOf(out)).toEqual([{ cart: 3, nested: { b: 2 } }]);
       expect(ownProtoPaths(out)).toEqual([]);
@@ -1354,7 +1355,7 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
   });
 
   it("a rebuilt scope map carries no reserved key: an own __proto__ scope in a JSON-parsed credential answer never reaches the wire", () => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const out = [
       ...n.push(toJsonValue(event([{ functionCall: { name: "adk_request_credential", args: { functionCallId: "o" }, id: "adk-cred-1" } }], { longRunningToolIds: ["adk-cred-1"] }))),
       ...n.push(
@@ -1378,7 +1379,7 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
   });
 
   it("state.delta never throws on a credential-bearing live native: undefined members are dropped and a Date rides as its ISO string (JSON semantics)", () => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const liveCredential = { authType: "oauth2", oauth2: { accessToken: "SECRET_live_access", refreshToken: undefined, expiresAt: undefined } };
     const native = {
       invocationId: "inv_fixture_1",
@@ -1409,7 +1410,7 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
       "x",
     ];
     for (const stateDelta of maps) {
-      const n = createAdkNormalizer();
+      const n = createAdkNormalizer({ invokeId: "adk" });
       const out = [
         ...n.push({ invocationId: "inv_fixture_1", author: "agent", content: { role: "model", parts: [{ text: "ok" }] }, actions: { stateDelta } }),
         ...n.flush(),
@@ -1422,7 +1423,7 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
 
   it("state.delta: §8.0 item 28(b) holds for every patch shape", () => {
     const patchOf = (stateDelta: JsonValue): { out: AgEvent[]; patch: JsonValue } => {
-      const n = createAdkNormalizer();
+      const n = createAdkNormalizer({ invokeId: "adk" });
       const out = [
         ...n.push({ invocationId: "inv_fixture_1", author: "agent", content: { role: "model", parts: [{ text: "ok" }] }, actions: { stateDelta } }),
         ...n.flush(),
@@ -1552,7 +1553,7 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
   });
 
   it("node data never throws: a live value with undefined members is reduced; a cyclic value rides with \"[Circular]\" at the repeated node and is reduced too", () => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const live = { invocationId: "inv_fixture_1", author: "node", content: { role: "model", parts: [{ text: "x" }] }, output: { cred: { authType: "apiKey", apiKey: "SECRET_live", resourceRef: undefined }, note: undefined } };
     let out: AgEvent[] = [];
     expect(() => {
@@ -1561,7 +1562,7 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
     expect(carryOf(out, "output")).toEqual({ cred: { authType: "apiKey" } });
     const cyclic: { [k: string]: unknown } = { cred: { authType: "apiKey", apiKey: "SECRET_cyclic" } };
     cyclic["self"] = cyclic;
-    const n2 = createAdkNormalizer();
+    const n2 = createAdkNormalizer({ invokeId: "adk" });
     let out2: AgEvent[] = [];
     expect(() => {
       out2 = [...n2.push({ invocationId: "inv_fixture_1", author: "node", content: { role: "model", parts: [{ text: "y" }] }, output: cyclic, route: "r" } as unknown as JsonValue), ...n2.flush()];
@@ -1646,7 +1647,7 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
   const namedReply = { name: "adk_request_credential", id: "k", response: { token: "SECRET_widen_reply" } };
   /** Raw natives, off the hand-typed contract on purpose (a host may push any shape). */
   const runRaw = (natives: unknown[]): AgEvent[] => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const out: AgEvent[] = [];
     for (const x of natives) out.push(...n.push(x as JsonValue));
     out.push(...n.flush());
@@ -1954,7 +1955,7 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
   }
   /** Split push() output from flush() output for one stream. */
   function pushAndFlush(events: AdkEvent[]) {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const pushed = events.flatMap((e) => n.push(toJsonValue(e)));
     const flushed = n.flush();
     return { pushed, flushed, all: [...pushed, ...flushed] };
@@ -2230,7 +2231,7 @@ describe("createAdkNormalizer({ hostCompletion: true }) — the host-completion 
   const TERMINAL = new Set(["turn.done", "turn.error", "turn.abort"]);
 
   function drive(events: AdkEvent[], opts: { hostCompletion?: boolean; sentinel?: boolean }) {
-    const n = createAdkNormalizer(opts.hostCompletion === true ? { hostCompletion: true } : {});
+    const n = createAdkNormalizer({ invokeId: "adk", ...(opts.hostCompletion === true ? { hostCompletion: true } : {}) });
     const pushed = events.flatMap((e) => n.push(toJsonValue(e)));
     const onSentinel = opts.sentinel === true ? n.push(SENTINEL) : [];
     const flushed = n.flush();
@@ -2348,7 +2349,7 @@ describe("createAdkNormalizer({ hostCompletion: true }) — the host-completion 
   });
 
   it("option OFF: a stray sentinel is ignored (a host↔facet contract input, not a framework native) and changes nothing", () => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const pushed = plain().flatMap((e) => n.push(toJsonValue(e)));
     expect(n.push(SENTINEL)).toEqual([]);
     const withSentinel = [...pushed, ...n.flush()];
@@ -3297,7 +3298,7 @@ describe("createAdkNormalizer — genai-optional arm members ride provider-raw, 
 
   /** Push raw JSON (shapes the AdkPart projection does not admit, e.g. a null arm). */
   function runRaw(native: JsonValue): AgEvent[] {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     return [...n.push(native), ...n.flush()];
   }
 
@@ -3513,7 +3514,7 @@ describe("createAdkNormalizer — genai 2.24.0 Blob/FileData.displayName (existi
   });
 
   it("a JSON-null displayName is absent (null guard)", () => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const out = [
       ...n.push({
         content: {
@@ -3554,7 +3555,7 @@ describe("createAdkNormalizer — JSON-null guard: a null arm is carried, a null
     ...extra,
   });
   function runRaw(...natives: JsonValue[]): AgEvent[] {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     return [...natives.flatMap((v) => n.push(v)), ...n.flush()];
   }
   function expectValidAndFolds(out: AgEvent[]): void {
@@ -3882,7 +3883,7 @@ describe("createAdkNormalizer — push() reads a live native as plain JSON (SPEC
   const live = (extra: { [k: string]: unknown }): JsonValue =>
     ({ invocationId: "inv_fixture_1", author: "node", content: { role: "model", parts: [{ text: "ok" }] }, ...extra }) as unknown as JsonValue;
   const pushAll = (native: JsonValue): AgEvent[] => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     return [...n.push(native), ...n.flush()];
   };
   const raw = (out: AgEvent[], member: string): JsonValue | undefined =>
@@ -3973,7 +3974,7 @@ describe("createAdkNormalizer — push() reads a live native as plain JSON (SPEC
     const native = live({
       content: { role: "user", parts: [{ functionResponse: { name: "t", id: "c1", response: new Error("returned as a value") } }] },
     });
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const out = [
       ...n.push(live({ content: { role: "model", parts: [{ functionCall: { name: "t", id: "c1", args: {} } }] } })),
       ...n.push(native),
@@ -4007,14 +4008,14 @@ describe("createAdkNormalizer — the host-error sentinel (SPEC §8.0 host oblig
   };
 
   it("an open turn closes turn.error with the sentinel's code and message and the turn's accumulated usage; nothing aborts at flush", () => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const out = [
       ...n.push(toJsonValue(event([{ text: "working" }], { usageMetadata: { promptTokenCount: 3, candidatesTokenCount: 2, totalTokenCount: 5 } }))),
       ...n.push({ type: ADK_HOST_ERROR_TYPE, code: "max_llm_calls", message: "LLM call limit reached" }),
       ...n.flush(),
     ];
     expect(terminals(out)).toEqual([
-      expect.objectContaining({ type: "turn.error", turnId: "turn_inv_fixture_1", code: "max_llm_calls", message: "LLM call limit reached", usage: expect.objectContaining({ inputTokens: 3 }) }),
+      expect.objectContaining({ type: "turn.error", turnId: "turn_adk_inv_fixture_1", code: "max_llm_calls", message: "LLM call limit reached", usage: expect.objectContaining({ inputTokens: 3 }) }),
     ]);
     expect(out.filter((e) => e.type === "message.end")).toHaveLength(1);
     expect(out.some((e) => e.type === "ext.google.unparsed")).toBe(false);
@@ -4022,7 +4023,7 @@ describe("createAdkNormalizer — the host-error sentinel (SPEC §8.0 host oblig
   });
 
   it("a sentinel built from the caught Error keeps the Error's message", () => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const caught = Object.assign(new Error("LLM call limit reached"), { type: ADK_HOST_ERROR_TYPE, code: "max_llm_calls" });
     const out = [...n.push(toJsonValue(event([{ text: "working" }], {}))), ...n.push(caught as unknown as JsonValue), ...n.flush()];
     expect(terminals(out)).toEqual([expect.objectContaining({ type: "turn.error", code: "max_llm_calls", message: "LLM call limit reached" })]);
@@ -4031,14 +4032,14 @@ describe("createAdkNormalizer — the host-error sentinel (SPEC §8.0 host oblig
   });
 
   it("with no turn open, a fresh terminal turn carries the error (never start-less)", () => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const out = [...n.push({ type: ADK_HOST_ERROR_TYPE, code: "runner_error", message: "boom" }), ...n.flush()];
     expect(out.map((e) => e.type)).toEqual(["turn.start", "message.start", "message.end", "turn.error"]);
     folds(out);
   });
 
   it("after a turn already closed, the error takes a fresh terminal turn rather than a second terminal on the closed one", () => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const out = [
       ...n.push(toJsonValue(event([{ text: "done" }], { turnComplete: true, finishReason: "STOP" }))),
       ...n.push({ type: ADK_HOST_ERROR_TYPE, code: "runner_error", message: "late" }),
@@ -4051,7 +4052,7 @@ describe("createAdkNormalizer — the host-error sentinel (SPEC §8.0 host oblig
   });
 
   it("under the host-completion opt-in, a success close stashed for the signal is dropped: the run errored", () => {
-    const n = createAdkNormalizer({ hostCompletion: true });
+    const n = createAdkNormalizer({ invokeId: "adk", hostCompletion: true });
     const out = [
       ...n.push(toJsonValue(event([{ text: "answer" }], { turnComplete: true, finishReason: "STOP" }))),
       ...n.push({ type: ADK_HOST_ERROR_TYPE, code: "runner_error", message: "failed after the answer" }),
@@ -4063,7 +4064,7 @@ describe("createAdkNormalizer — the host-error sentinel (SPEC §8.0 host oblig
   });
 
   it("two turns open: they close innermost first (reverse opening order, INV-FLUSH), each turn.error with the sentinel's code", () => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const out = [
       ...n.push(toJsonValue(event([{ text: "outer" }], { invocationId: "inv_outer" }))),
       ...n.push(toJsonValue(event([{ text: "inner" }], { invocationId: "inv_inner" }))),
@@ -4072,14 +4073,14 @@ describe("createAdkNormalizer — the host-error sentinel (SPEC §8.0 host oblig
     ];
     const errs = terminals(out);
     expect(errs.map((e) => [e.type, (e as { turnId: string }).turnId, (e as { code?: string }).code])).toEqual([
-      ["turn.error", "turn_inv_inner", "max_llm_calls"],
-      ["turn.error", "turn_inv_outer", "max_llm_calls"],
+      ["turn.error", "turn_adk_inv_inner", "max_llm_calls"],
+      ["turn.error", "turn_adk_inv_outer", "max_llm_calls"],
     ]);
     folds(out);
   });
 
   it("with both a sentinel usage and accumulated turn usage, the sentinel's usage wins", () => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const out = [
       ...n.push(toJsonValue(event([{ text: "x" }], { usageMetadata: { promptTokenCount: 3, candidatesTokenCount: 2, totalTokenCount: 5 } }))),
       ...n.push({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m", usage: { inputTokens: 9, outputTokens: 1 } }),
@@ -4088,7 +4089,7 @@ describe("createAdkNormalizer — the host-error sentinel (SPEC §8.0 host oblig
     expect((terminals(out)[0] as { usage?: { totalTokens?: number } }).usage?.totalTokens).toBeUndefined();
   });
 
-  it("a fresh terminal turn's id is unique across invokes: two invokes folded through ONE Reducer never share a turn id", () => {
+  it("a fresh terminal turn is named from the per-invoke stem: two default invokes folded through ONE Reducer never share a turn id", () => {
     const invoke = (inv: string) => {
       const n = createAdkNormalizer();
       return [
@@ -4097,10 +4098,13 @@ describe("createAdkNormalizer — the host-error sentinel (SPEC §8.0 host oblig
         ...n.flush(),
       ];
     };
+    // The same invocationId twice, as ADK-Python's resumable resume reuses it.
     const first = invoke("inv_A");
-    const second = invoke("inv_B");
+    const second = invoke("inv_A");
     const errorTurns = [...first, ...second].filter((e) => e.type === "turn.error").map((e) => (e as { turnId: string }).turnId);
-    expect(errorTurns).toEqual(["turn_inv_A_host_error_0", "turn_inv_B_host_error_0"]);
+    expect(errorTurns).toHaveLength(2);
+    expect(errorTurns.every((id) => /^turn_adk_[0-9a-f]{16}_host_error_0$/.test(id))).toBe(true);
+    expect(errorTurns[0]).not.toBe(errorTurns[1]);
     const r = new Reducer();
     for (const e of [...first, ...second]) r.push(e);
     expect(r.needsResync).toBe(false);
@@ -4108,46 +4112,104 @@ describe("createAdkNormalizer — the host-error sentinel (SPEC §8.0 host oblig
     expect(new Set(starts).size).toBe(starts.length);
   });
 
-  it("an error before any event: the sentinel's invocationId names the turn; without one, a per-instance stem does, and two invokes still never collide", () => {
-    const only = (sentinel: JsonValue) => {
-      const n = createAdkNormalizer();
+  it("an error before any event: the turn is turn_<invokeId>_host_error_<n>; a sentinel's invocationId member no longer names it", () => {
+    const only = (sentinel: JsonValue, invokeId?: string) => {
+      const n = createAdkNormalizer(invokeId !== undefined ? { invokeId } : {});
       return [...n.push(sentinel), ...n.flush()];
     };
-    const named = only({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m", invocationId: "inv_known" });
-    expect(terminals(named)[0]).toMatchObject({ turnId: "turn_inv_known_host_error_0" });
-    const a = only({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m" });
-    const b = only({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m" });
+    const pinned = only({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m", invocationId: "inv_known" }, "inv-7");
+    expect(terminals(pinned)[0]).toMatchObject({ turnId: "turn_inv-7_host_error_0", code: "c", message: "m" });
+    const a = only({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m", invocationId: "inv_known" });
+    const b = only({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m", invocationId: "inv_known" });
     const ids = [...a, ...b].filter((e) => e.type === "turn.start").map((e) => (e as { turnId: string }).turnId);
     expect(ids).toHaveLength(2);
     expect(ids[0]).not.toBe(ids[1]);
     const r = new Reducer();
-    for (const e of [...named, ...a, ...b]) r.push(e);
+    for (const e of [...pinned, ...a, ...b]) r.push(e);
     expect(r.needsResync).toBe(false);
   });
 
-  it("the per-instance stem is drawn once and survives a rebuild: after a native that cannot be mapped, the next fresh terminal turn keeps the same stem", () => {
-    const draws = vi.spyOn(globalThis.crypto, "randomUUID");
+  it("the default stem is drawn once, at construction: no push() or flush() reads randomness, and a rebuild after an unmappable native keeps it", () => {
+    const draws = vi.spyOn(globalThis.crypto, "getRandomValues");
     try {
       const n = createAdkNormalizer();
+      expect(draws).toHaveBeenCalledTimes(1);
       const out = [
-        ...n.push({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "first" }),
+        ...n.push(toJsonValue(event([{ text: "a" }], { invocationId: "inv_1" }))),
         ...n.push({ invocationId: "inv_bad", content: { role: "model", parts: 1 } } as unknown as JsonValue),
-        ...n.push({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "second" }),
+        ...n.push(toJsonValue(event([{ text: "b" }], { invocationId: "inv_2" }))),
+        ...n.push({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m" }),
         ...n.flush(),
       ];
-      const ids = out.filter((e) => e.type === "turn.error").map((e) => (e as { turnId: string }).turnId);
-      expect(ids).toHaveLength(2);
-      const stemOf = (id: string) => id.replace(/_host_error_\d+$/, "");
-      expect(stemOf(ids[0]!)).toBe(stemOf(ids[1]!));
-      expect(ids.map((id) => id.slice(-2))).toEqual(["_0", "_1"]);
       expect(draws).toHaveBeenCalledTimes(1);
       expect(out.filter((e) => e.type === "error")).toHaveLength(1);
+      const starts = out.filter((e) => e.type === "turn.start").map((e) => (e as { turnId: string }).turnId);
+      const stem = starts[0]!.slice("turn_".length, "turn_".length + "adk_".length + 16);
+      expect(starts).toEqual([`turn_${stem}_inv_1`, `turn_${stem}_inv_2`]);
     } finally {
       draws.mockRestore();
     }
   });
 
-  it("an event with neither invocationId nor id takes the per-instance stem, so two invokes folded through ONE Reducer never share its turn id", () => {
+  it("ADK-Python's resumable resume reuses invocation_id: two default invokes with the SAME invocationId mint disjoint turn and message ids and fold as two turns with no park", () => {
+    // Invoke 1 pauses on a long-running call; invoke 2 is the resume, whose
+    // events carry the same invocationId (ADK-Python resumable apps reuse it).
+    const invoke1 = [
+      event([{ text: "working" }], { invocationId: "inv_py" }),
+      event([{ functionCall: { id: "call_1", name: "approve", args: {} } }], { invocationId: "inv_py", longRunningToolIds: ["call_1"] }),
+    ];
+    const invoke2 = [
+      event([{ functionResponse: { id: "call_1", name: "approve", response: { ok: true } } }], { invocationId: "inv_py", author: "user" }),
+      event([{ text: "done" }], { invocationId: "inv_py", turnComplete: true, finishReason: "STOP" }),
+    ];
+    const drive = (events: AdkEvent[], options: AdkNormalizerOptions = {}): AgEvent[] => {
+      const n = createAdkNormalizer(options);
+      return [...events.flatMap((e) => n.push(toJson(e))), ...n.flush()];
+    };
+    const idsOf = (out: AgEvent[], type: "turn.start" | "message.start", key: "turnId" | "id") =>
+      out.filter((e) => e.type === type).map((e) => (e as unknown as Record<string, string>)[key]!);
+    const first = drive(invoke1);
+    const second = drive(invoke2);
+    for (const [type, key] of [["turn.start", "turnId"], ["message.start", "id"]] as const) {
+      const a = idsOf(first, type, key);
+      const b = idsOf(second, type, key);
+      expect(a.length, `${type} in invoke 1 (non-vacuity)`).toBeGreaterThan(0);
+      expect(b.length, `${type} in invoke 2 (non-vacuity)`).toBeGreaterThan(0);
+      expect(b.filter((id) => a.includes(id)), `${key}s invoke 2 repeats`).toEqual([]);
+    }
+    const r = new Reducer();
+    for (const e of [...first, ...second]) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns).toHaveLength(idsOf(first, "turn.start", "turnId").length + idsOf(second, "turn.start", "turnId").length);
+    // The same fold with ONE pinned invokeId for both invokes is what a host must not do: it repeats.
+    expect(idsOf(drive(invoke2, { invokeId: "x" }), "turn.start", "turnId")).toEqual(idsOf(drive(invoke1, { invokeId: "x" }), "turn.start", "turnId"));
+  });
+
+  it("id shapes: turn_<invokeId>_<invocationId>, else turn_<invokeId>_<event id>, else turn_<invokeId>; msg_<turnId>; the same native with the same invokeId is identical", () => {
+    const natives: JsonValue[] = [
+      toJson(event([{ text: "a" }], { invocationId: "inv_1" })),
+      { id: "ev_9", author: "agent", content: { role: "model", parts: [{ text: "b" }] } },
+      { author: "agent", content: { role: "model", parts: [{ text: "c" }] } },
+    ];
+    const drive = (): AgEvent[] => {
+      const n = createAdkNormalizer({ invokeId: "inv-7" });
+      return [...natives.flatMap((x) => n.push(x)), ...n.flush()];
+    };
+    const out = drive();
+    expect(out.filter((e) => e.type === "turn.start").map((e) => (e as { turnId: string }).turnId)).toEqual([
+      "turn_inv-7_inv_1",
+      "turn_inv-7_ev_9",
+      "turn_inv-7",
+    ]);
+    expect(out.filter((e) => e.type === "message.start").map((e) => (e as { id: string }).id)).toEqual([
+      "msg_turn_inv-7_inv_1",
+      "msg_turn_inv-7_ev_9",
+      "msg_turn_inv-7",
+    ]);
+    expect(JSON.stringify(drive())).toBe(JSON.stringify(out));
+  });
+
+  it("an event with neither invocationId nor id is turn_<invokeId>, so two default invokes folded through ONE Reducer never share its turn id", () => {
     const invoke = () => {
       const n = createAdkNormalizer();
       return [...n.push({ author: "agent", content: { role: "model", parts: [{ text: "hi" }] } }), ...n.flush()];
@@ -4157,7 +4219,7 @@ describe("createAdkNormalizer — the host-error sentinel (SPEC §8.0 host oblig
     const ids = [...first, ...second].filter((e) => e.type === "turn.start").map((e) => (e as { turnId: string }).turnId);
     expect(ids).toHaveLength(2);
     expect(ids[0]).not.toBe(ids[1]);
-    expect(ids.every((id) => id.startsWith("turn_adk_"))).toBe(true);
+    expect(ids.every((id) => /^turn_adk_[0-9a-f]{16}$/.test(id))).toBe(true);
     const r = new Reducer();
     for (const e of [...first, ...second]) r.push(e);
     expect(r.needsResync).toBe(false);
@@ -4165,13 +4227,13 @@ describe("createAdkNormalizer — the host-error sentinel (SPEC §8.0 host oblig
   });
 
   it("the sentinel's own usage is used when valid; an invalid one is dropped; a malformed sentinel is not one", () => {
-    const withUsage = createAdkNormalizer();
+    const withUsage = createAdkNormalizer({ invokeId: "adk" });
     const a = [...withUsage.push(toJsonValue(event([{ text: "x" }], {}))), ...withUsage.push({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m", usage: { inputTokens: 9, outputTokens: 1 } })];
     expect(terminals(a)[0]).toMatchObject({ usage: { inputTokens: 9, outputTokens: 1 } });
-    const badUsage = createAdkNormalizer();
+    const badUsage = createAdkNormalizer({ invokeId: "adk" });
     const b = [...badUsage.push(toJsonValue(event([{ text: "x" }], {}))), ...badUsage.push({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m", usage: { inputTokens: "nine" } })];
     expect(JSON.stringify(terminals(b)[0])).not.toContain("nine");
-    const malformed = createAdkNormalizer();
+    const malformed = createAdkNormalizer({ invokeId: "adk" });
     const c = [...malformed.push({ type: ADK_HOST_ERROR_TYPE, code: "c" })];
     expect(c.map((e) => e.type)).toEqual(["ext.google.unparsed"]);
   });
@@ -4182,7 +4244,7 @@ describe("createAdkNormalizer — push() is atomic: a native that cannot be mapp
   const stripError = (out: AgEvent[]): AgEvent[] =>
     out.filter((e) => e.type !== "error").map((e, i) => ({ ...e, seq: i }));
   const runEach = (natives: JsonValue[]): AgEvent[][] => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const per = natives.map((x) => n.push(x));
     per.push(n.flush());
     return per;
@@ -4209,7 +4271,7 @@ describe("createAdkNormalizer — push() is atomic: a native that cannot be mapp
   });
 
   it("the report carries a fixed message and the error's name only: a marker in the thrown message, in a dropped block and in the native never reaches the wire", () => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const original = Array.prototype.forEach;
     let armed = true;
     let out: AgEvent[] = [];
@@ -4233,7 +4295,7 @@ describe("createAdkNormalizer — push() is atomic: a native that cannot be mapp
   });
 
   it("a state entry whose value is undefined (ADK allows state.set(k, undefined)) is not a failure: the entry is dropped at entry, the native is kept", () => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const native = { invocationId: "inv_fixture_1", author: "a", content: { role: "model", parts: [{ text: "kept" }] }, actions: { stateDelta: { k: undefined, cart: 3 } } };
     const out = [...n.push(native as unknown as JsonValue), ...n.flush()];
     expect(errors(out)).toEqual([]);
@@ -4242,7 +4304,7 @@ describe("createAdkNormalizer — push() is atomic: a native that cannot be mapp
   });
 
   it("flush() is guarded too: a failure while closing is reported once, and the open message and turn still close (bare, without usage)", () => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     const out: AgEvent[] = [...n.push(text("open", { usageMetadata: { promptTokenCount: 1 } }))];
     const original = Map.prototype.get;
     let armed = true;
@@ -4292,7 +4354,7 @@ describe("createAdkNormalizer — a Live barge-in closes turn.abort after the ev
   const audio = { role: "model", parts: [{ inlineData: { mimeType: "audio/pcm;rate=24000", data: "AAAA" } }] };
   const text = (t: string) => ({ role: "model", parts: [{ text: t }] });
   const drive = (natives: JsonValue[]): AgEvent[] => {
-    const n = createAdkNormalizer();
+    const n = createAdkNormalizer({ invokeId: "adk" });
     return [...natives.flatMap((x) => n.push(x)), ...n.flush()];
   };
   const TERMINAL = new Set(["turn.done", "turn.error", "turn.abort"]);
@@ -4321,7 +4383,7 @@ describe("createAdkNormalizer — a Live barge-in closes turn.abort after the ev
     ]);
     const terminals = out.filter((e) => TERMINAL.has(e.type));
     expect(terminals).toHaveLength(1);
-    expect(terminals[0]).toMatchObject({ type: "turn.abort", reason: "interrupted", turnId: "turn_inv_live" });
+    expect(terminals[0]).toMatchObject({ type: "turn.abort", reason: "interrupted", turnId: "turn_adk_inv_live" });
     const endIdx = out.findIndex((e) => e.type === "message.end");
     const abortIdx = out.findIndex((e) => e.type === "turn.abort");
     expect(endIdx).toBeGreaterThanOrEqual(0);
@@ -4359,7 +4421,7 @@ describe("createAdkNormalizer — a Live barge-in closes turn.abort after the ev
       liveEvent("inv_w", "w2", { content: text("Hel"), turnComplete: true }),
     ]);
     expect(completed.filter((e) => TERMINAL.has(e.type)).map((e) => [e.type, (e as { reason?: string }).reason])).toEqual([["turn.abort", "interrupted"]]);
-    const n = createAdkNormalizer({ hostCompletion: true });
+    const n = createAdkNormalizer({ invokeId: "adk", hostCompletion: true });
     const hosted = [
       ...n.push(liveEvent("inv_h", "h1", { content: text("Hel"), interrupted: true, partial: true })),
       ...n.push({ type: "__host_complete__" }),
