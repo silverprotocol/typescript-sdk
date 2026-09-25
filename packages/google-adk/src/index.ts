@@ -522,9 +522,10 @@ function isAdkEvent(v: unknown): v is AdkEvent {
  * computed, with ONE exception, the Gemini Live API (draft.5): Live reports its
  * output as `responseTokenCount`, and its `totalTokenCount` may leave thoughts
  * out (609 + 25 = 634 with 256 thoughts beside them), so thoughts always fold
- * into outputTokens there, `totalTokens` is derived as input + output +
- * toolUseInput over the turn's summed counters, and Google's own summed total
- * rides `totalTokensRaw` only where it differs. This facet recognises the Live
+ * into outputTokens there. Where Live reports a total, `totalTokens` is
+ * derived as input + output + toolUseInput over the turn's summed counters,
+ * and Google's own summed total rides `totalTokensRaw` only where it differs;
+ * with no reported total, neither is emitted. This facet recognises the Live
  * API by the field: `responseTokenCount` appears only on @google/genai's Live
  * UsageMetadata. A normalizer reading the raw Vertex Live wire decides by the
  * API, not by the field name. Known upstream gap: @google/adk's Interactions-API route synthesizes
@@ -563,7 +564,7 @@ function mapUsage(um: AdkEvent["usageMetadata"]): AgUsage | undefined {
   // On the Live path the total is derived, and Google's figure is kept beside
   // it only where it differs; elsewhere the provider's total is copied.
   const totalTokens =
-    response !== undefined
+    response !== undefined && um.totalTokenCount !== undefined
       ? (um.promptTokenCount ?? 0) + (outputTokens ?? 0) + (um.toolUsePromptTokenCount ?? 0)
       : um.totalTokenCount;
   const totalTokensRaw =

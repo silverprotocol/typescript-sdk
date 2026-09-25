@@ -4564,6 +4564,15 @@ describe("createAdkNormalizer — a Live barge-in closes turn.abort after the ev
     expect(usagesOf(mixed)).toContainEqual({ inputTokens: 6646, outputTokens: 1019, totalTokens: 7665, totalTokensRaw: 7409, reasoningTokens: 746, cumulative: false });
   });
 
+  it("Live usage without a reported totalTokenCount derives no totalTokens and carries no totalTokensRaw", () => {
+    const out = drive([
+      liveEvent("inv_nt", "n1", { content: audio }),
+      liveEvent("inv_nt", "n2", { usageMetadata: { promptTokenCount: 10, responseTokenCount: 2, thoughtsTokenCount: 3 } }),
+      liveEvent("inv_nt", "n3", { turnComplete: true }),
+    ]);
+    expect(usagesOf(out)).toContainEqual({ inputTokens: 10, outputTokens: 5, reasoningTokens: 3, cumulative: false });
+  });
+
   it("Live usage details: each report's promptTokensDetails / responseTokensDetails ride the message metadata's usageDetails verbatim, one entry per report, never summed; generateContent usage carries none", () => {
     const d1 = { promptTokenCount: 609, responseTokenCount: 25, thoughtsTokenCount: 256, totalTokenCount: 634, promptTokensDetails: [{ modality: "TEXT", tokenCount: 362 }, { modality: "AUDIO", tokenCount: 222 }], responseTokensDetails: [{ modality: "AUDIO", tokenCount: 25 }] };
     const d2 = { promptTokenCount: 668, responseTokenCount: 52, thoughtsTokenCount: 38, totalTokenCount: 720, promptTokensDetails: [{ modality: "TEXT", tokenCount: 384 }], responseTokensDetails: [{ modality: "AUDIO", tokenCount: 52 }] };
