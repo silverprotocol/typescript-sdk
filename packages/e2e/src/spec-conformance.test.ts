@@ -165,6 +165,21 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 42, leg: "vercel", title: "Kept-open results are snapshots (draft.4): yield/yield/return and yield/throw emit full snapshots; the error final carries E's message and no structuredContent", disposition: "COVERED-BY", citation: "vercel-ai/src/index.test.ts \"§10 item 42 — kept-open results are snapshots (yield/yield/return, yield/throw)\" (probe a84fd65)" },
   { n: 42, leg: "single-delivery", title: "Kept-open results are snapshots (draft.4): claude, openai and adk never emit more than one tool.done per call, so they satisfy the item trivially", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.42(single-delivery), a scan of every corpus/*/{claude,openai,adk}.agjson.json" },
   { n: 43, title: "Never-opened terminals (draft.4): a terminal for a turn not seen opened folds to no record without a resync; a snapshot carrying turns replaces what is seen, one omitting turns keeps it; a seen turn with no record takes its snapshot message's threadId or gets no record; no created record carries a threadId no event carried; on every replay golden each terminal follows its turn's opener in the invoke", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.43, reference reduce() + Reducer (probe D9 f3d5256 + the snapshot rework) and a scan of every corpus/*/*.agjson.json" },
+  { n: 44, leg: "adk", title: "MCP resource links (draft.5, §8.0 item 31): N resource_link parts → N resource-link blocks in native order, members verbatim and absent where absent; a residual provider-raw only for icons, a mistyped size or a member the schema would alter; a signed uri byte-equal; item 28 reductions inside the link; a uri-less part stays one reduced provider-raw", disposition: "COVERED-BY", citation: "google-adk/src/index.test.ts \"createAdkNormalizer — an MCP resource_link part becomes one resource-link block, with a residual-only provider-raw\" (the §10 item 44 case, the residual-verbatim case, the item-28 case, the uri-less case, the signed-uri case)" },
+  { n: 44, leg: "golden", title: "MCP resource links (draft.5): resource-link-gemini38/adk seq 7 holds exactly one resource-link whose members equal the native resource_link part's, and no provider-raw for that link", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.44(golden)" },
+  { n: 44, leg: "not-bound", title: "MCP resource links (draft.5): no claude, openai or vercel golden emits a resource-link block into tool.done.content (§8 applicability: none of the three emits an MCP link part into content today)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.44(not-bound), a scan of every corpus/*/{claude,openai,vercel}.agjson.json" },
+  { n: 44, leg: "claude", title: "MCP resource links (draft.5)", disposition: "N/A", citation: "§8.0 item 31 applicability: the claude-agent-sdk facet delivers an MCP link to the model as rendered text and carries the structured list as a host record (§2.1); it emits no link part into tool.done.content" },
+  { n: 44, leg: "openai", title: "MCP resource links (draft.5)", disposition: "N/A", citation: "§8.0 item 31 applicability: the openai-agents facet receives MCP output stringified and emits no link part into tool.done.content" },
+  { n: 44, leg: "vercel", title: "MCP resource links (draft.5)", disposition: "N/A", citation: "§8.0 item 31 applicability: the vercel-ai facet routes the whole CallToolResult to structuredContent and emits no link part into tool.done.content" },
+  { n: 45, leg: "scan", title: "Host records are side metadata (draft.5): on every claude-agent-sdk golden no event's providerMetadata has a top-level member named a host-record key (the wrapper keys, resourceLinks, the denial keys, the notice siblings)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.45(scan), a scan of every corpus/*/claude.agjson.json" },
+  { n: 45, leg: "resourceLinks", title: "Host records are side metadata (draft.5): resource-link-sonnet5's adopted tool.done carries _meta[\"anthropic/resourceLinks\"] deep-equal to the native tool_use_result.resourceLinks and no providerMetadata member", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.45(resourceLinks)" },
+  { n: 45, leg: "message-metadata", title: "Host records are side metadata (draft.5): multi-result-sonnet5's native user_message_uuid / user_message_uuids values each appear verbatim in the folded AgMessage.metadata of that frame's message (a tool-first frame lands them on a message.metadata event)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.45(message-metadata)" },
+  { n: 45, leg: "claude-host-record", title: "Host records are side metadata (draft.5, §2.1): subagent-fg-sonnet5's Agent tool.done carries _meta[\"anthropic/agentOutput\"] deep-equal to the native tool_use_result minus content and prompt, and no providerMetadata member agentOutput", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.45(claude-host-record)" },
+  { n: 45, leg: "reducer", title: "Host records are side metadata (draft.5): on every corpus golden, a fold with every _meta member and every message.metadata event removed yields turns[*].usage and messages[*].usage deep-equal to the full fold (a reducer never sums a host record's usage)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.45(reducer), reference reduce() over every corpus/*/*.agjson.json" },
+  { n: 45, leg: "synthetic", title: "Host records are side metadata (draft.5): one synthetic leg per key the corpus never shows (usage_report, context_usage, resume_reason, aborted, supersedes, the three denial keys, the three notice siblings), each on its _meta target and on no providerMetadata; the tool-first frame lands on message.metadata; resumed_from_incomplete_thinking stays on providerMetadata", disposition: "COVERED-BY", citation: "claude-agent-sdk/src/index.test.ts \"createClaudeNormalizer — §10 item 45: host records ride _meta, never providerMetadata (draft.5)\"" },
+  { n: 45, leg: "openai", title: "Host records are side metadata (draft.5)", disposition: "N/A", citation: "§8 applicability: the keys are the claude-agent-sdk facet's; the reducer leg binds every fold" },
+  { n: 45, leg: "adk", title: "Host records are side metadata (draft.5)", disposition: "N/A", citation: "§8 applicability: the keys are the claude-agent-sdk facet's; the reducer leg binds every fold" },
+  { n: 45, leg: "vercel", title: "Host records are side metadata (draft.5)", disposition: "N/A", citation: "§8 applicability: the keys are the claude-agent-sdk facet's; the reducer leg binds every fold" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -2646,3 +2661,136 @@ describe("§10.43 — never-opened terminals (draft.4; §5.0 INV-OWNER)", () => 
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.44 — MCP resource links (draft.5; §8.0 item 31). The synthetic legs live in
+// the bound reference normalizer's own suite (COVERED-BY); the golden leg and the
+// not-bound scan run here.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.44 — MCP resource links (draft.5; §8.0 item 31)", () => {
+  const corpus = new URL("../corpus/", import.meta.url);
+  const load = (dir: string, fw: string) => JSON.parse(readFileSync(new URL(`${dir}/${fw}.agjson.json`, corpus), "utf8")) as Array<Record<string, unknown>>;
+  const findLinkParts = (v: unknown, out: Array<Record<string, unknown>> = []): Array<Record<string, unknown>> => {
+    if (Array.isArray(v)) for (const x of v) findLinkParts(x, out);
+    else if (v !== null && typeof v === "object") {
+      const o = v as Record<string, unknown>;
+      if (o["type"] === "resource_link") out.push(o);
+      for (const x of Object.values(o)) findLinkParts(x, out);
+    }
+    return out;
+  };
+  it("(golden) resource-link-gemini38/adk: seq 7 holds exactly one resource-link whose members equal the native resource_link part's, and no provider-raw for that link", () => {
+    const ev = load("resource-link-gemini38", "adk").find((e) => e["seq"] === 7) as { type: string; content: Array<Record<string, unknown>> };
+    expect(ev.type).toBe("tool.done");
+    const links = ev.content.filter((b) => b["type"] === "resource-link");
+    expect(links).toHaveLength(1);
+    const parts = findLinkParts(JSON.parse(readFileSync(new URL("resource-link-gemini38/adk.native.json", corpus), "utf8")));
+    expect(parts).toHaveLength(1);
+    const { type: _t, ...members } = parts[0] as Record<string, unknown>;
+    expect(links[0]).toEqual({ type: "resource-link", ...members });
+    expect(ev.content.filter((b) => b["type"] === "provider-raw").some((b) => JSON.stringify(b).includes("resource_link"))).toBe(false);
+  });
+  it("(not-bound) no claude, openai or vercel golden emits a resource-link block into tool.done.content", () => {
+    const bad: string[] = [];
+    let files = 0;
+    for (const dir of readdirSync(corpus).sort()) {
+      for (const fw of ["claude", "openai", "vercel"]) {
+        if (!existsSync(new URL(`${dir}/${fw}.agjson.json`, corpus))) continue;
+        files++;
+        for (const e of load(dir, fw)) {
+          if (e["type"] !== "tool.done") continue;
+          if (((e["content"] as Array<Record<string, unknown>> | undefined) ?? []).some((b) => b["type"] === "resource-link")) bad.push(`${dir}/${fw} seq ${String(e["seq"])}`);
+        }
+      }
+    }
+    expect(files).toBeGreaterThan(0);
+    expect(bad).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.45 — Host records are side metadata (draft.5; §2.1 host records, §8.0
+// items 19/21/29). The producer legs read the claude-agent-sdk goldens; the
+// reducer leg folds every corpus golden with every host record removed.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.45 — host records are side metadata (draft.5; §2.1)", () => {
+  const corpus = new URL("../corpus/", import.meta.url);
+  const load = (dir: string, fw: string) => JSON.parse(readFileSync(new URL(`${dir}/${fw}.agjson.json`, corpus), "utf8")) as Array<Record<string, unknown>>;
+  const native = (dir: string, fw: string) => JSON.parse(readFileSync(new URL(`${dir}/${fw}.native.json`, corpus), "utf8")) as unknown[];
+  const KEYS = ["context_usage", "usage_report", "user_message_uuid", "user_message_uuids", "resume_reason", "aborted", "supersedes", "resourceLinks", "decisionReasonType", "decisionReasonCode", "decisionReason", "level", "preventContinuation", "toolUseId"];
+  const findObjects = (v: unknown, pred: (o: Record<string, unknown>) => boolean, out: Array<Record<string, unknown>> = []): Array<Record<string, unknown>> => {
+    if (Array.isArray(v)) for (const x of v) findObjects(x, pred, out);
+    else if (v !== null && typeof v === "object") {
+      const o = v as Record<string, unknown>;
+      if (pred(o)) out.push(o);
+      for (const x of Object.values(o)) findObjects(x, pred, out);
+    }
+    return out;
+  };
+  it("(scan) on every claude-agent-sdk golden, no event's providerMetadata has a top-level member named a host-record key", () => {
+    const bad: string[] = [];
+    let files = 0;
+    for (const dir of readdirSync(corpus).sort()) {
+      if (!existsSync(new URL(`${dir}/claude.agjson.json`, corpus))) continue;
+      files++;
+      for (const e of load(dir, "claude")) {
+        const pm = e["providerMetadata"];
+        if (pm === null || typeof pm !== "object") continue;
+        for (const k of KEYS) if (Object.prototype.hasOwnProperty.call(pm, k)) bad.push(`${dir} seq ${String(e["seq"])}: providerMetadata.${k}`);
+      }
+    }
+    expect(files).toBeGreaterThan(0);
+    expect(bad).toEqual([]);
+  });
+  it("(resourceLinks) resource-link-sonnet5: the adopted tool.done carries _meta[\"anthropic/resourceLinks\"] deep-equal to the native tool_use_result.resourceLinks, and no providerMetadata member", () => {
+    const nat = findObjects(native("resource-link-sonnet5", "claude"), (o) => Array.isArray(o["resourceLinks"]));
+    expect(nat).toHaveLength(1);
+    const dones = load("resource-link-sonnet5", "claude").filter((e) => e["type"] === "tool.done" && (e["_meta"] as Record<string, unknown> | undefined)?.["anthropic/resourceLinks"] !== undefined);
+    expect(dones).toHaveLength(1);
+    const done = dones[0] as Record<string, unknown>;
+    expect((done["_meta"] as Record<string, unknown>)["anthropic/resourceLinks"]).toEqual(nat[0]?.["resourceLinks"]);
+    expect(Object.keys((done["providerMetadata"] as Record<string, unknown> | undefined) ?? {})).not.toContain("resourceLinks");
+  });
+  it("(message-metadata) multi-result-sonnet5: each native user_message_uuid / user_message_uuids value appears verbatim in the folded AgMessage.metadata of that frame's message", () => {
+    const evs = load("multi-result-sonnet5", "claude");
+    const nativeUuids = new Set(findObjects(native("multi-result-sonnet5", "claude"), (o) => typeof o["user_message_uuid"] === "string").map((o) => o["user_message_uuid"] as string));
+    expect(nativeUuids.size).toBeGreaterThan(1);
+    const metas = evs.filter((e) => e["type"] === "message.metadata");
+    expect(metas.length).toBe(nativeUuids.size);
+    const folded = reduce(ingestAgEvents(evs as unknown as JsonValue[]));
+    expect(folded.needsResync).toBe(false);
+    for (const me of metas) {
+      const msg = folded.result.messages.find((m) => m.id === me["messageId"]) as { metadata?: Record<string, unknown> } | undefined;
+      const md = (me["metadata"] as Record<string, unknown>);
+      expect(nativeUuids.has(md["user_message_uuid"] as string)).toBe(true);
+      expect(md["user_message_uuids"]).toEqual([md["user_message_uuid"]]);
+      expect(msg?.metadata?.["user_message_uuid"]).toBe(md["user_message_uuid"]);
+      expect(msg?.metadata?.["user_message_uuids"]).toEqual(md["user_message_uuids"]);
+    }
+  });
+  it("(claude-host-record) subagent-fg-sonnet5: the Agent tool.done carries _meta[\"anthropic/agentOutput\"] deep-equal to the native tool_use_result minus content and prompt, and no providerMetadata member agentOutput", () => {
+    const nat = findObjects(native("subagent-fg-sonnet5", "claude"), (o) => typeof o["agentId"] === "string" && "usage" in o && "content" in o);
+    expect(nat).toHaveLength(1);
+    const { content: _c, prompt: _p, ...expected } = nat[0] as Record<string, unknown>;
+    const dones = load("subagent-fg-sonnet5", "claude").filter((e) => e["type"] === "tool.done" && (e["_meta"] as Record<string, unknown> | undefined)?.["anthropic/agentOutput"] !== undefined);
+    expect(dones).toHaveLength(1);
+    expect((dones[0]?.["_meta"] as Record<string, unknown>)["anthropic/agentOutput"]).toEqual(expected);
+    for (const e of load("subagent-fg-sonnet5", "claude")) expect(Object.keys((e["providerMetadata"] as Record<string, unknown> | undefined) ?? {})).not.toContain("agentOutput");
+  });
+  it("(reducer) on every corpus golden, a fold with every _meta member and every message.metadata event removed yields turns[*].usage and messages[*].usage deep-equal to the full fold", () => {
+    let files = 0;
+    for (const dir of readdirSync(corpus).sort()) {
+      for (const f of readdirSync(new URL(`${dir}/`, corpus)).filter((x) => x.endsWith(".agjson.json")).sort()) {
+        files++;
+        const evs = JSON.parse(readFileSync(new URL(`${dir}/${f}`, corpus), "utf8")) as Array<Record<string, unknown>>;
+        const full = reduce(ingestAgEvents(evs as unknown as JsonValue[]));
+        const stripped = evs.filter((e) => e["type"] !== "message.metadata").map(({ _meta: _m, ...rest }, i) => ({ ...rest, seq: i }));
+        const bare = reduce(ingestAgEvents(stripped as unknown as JsonValue[]));
+        expect(bare.result.turns.map((t) => t.usage), `${dir}/${f} turns`).toEqual(full.result.turns.map((t) => t.usage));
+        expect(bare.result.messages.map((m) => m.usage), `${dir}/${f} messages`).toEqual(full.result.messages.map((m) => m.usage));
+      }
+    }
+    expect(files).toBeGreaterThan(0);
+  });
+});
