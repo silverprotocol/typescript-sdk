@@ -99,6 +99,18 @@ Then fold the resulting `AgEvent`s into messages and turns with
 `@silverprotocol/core`'s `reduce()` — the same client code regardless of which
 framework produced the stream.
 
+### Deferred tools
+
+When a host's `PreToolUse` hook defers a tool call, the SDK's result names the
+parked call in `deferred_tool_use`, with `stop_reason: "tool_deferred"`. The
+normalizer then emits one `hitl.ask` (`kind: "approval"`, `toolCallId` = the
+parked call) and closes the turn with
+`turn.done {outcome: {type: "paused", asks}, finishReason: "paused"}`. The
+result's `deferred_tool_use` also rides `ext.anthropic.result-meta` verbatim.
+An error result is never a pause. The host answers through its own hook on a
+resumed session; the resumed invoke opens its own turn, and the call's result
+lands there as a `role: "tool"` message.
+
 ### Turn trigger
 
 When the frame that opens a top-level turn is an assistant message, a streamed

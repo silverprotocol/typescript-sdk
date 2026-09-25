@@ -4121,7 +4121,7 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
 describe("createClaudeNormalizer — deferred_tool_use rides ext.anthropic.result-meta", () => {
   const DEFERRED = { id: "toolu_deferred_1", name: "Bash", input: { command: "deploy --prod" } };
 
-  it("carries deferred_tool_use verbatim as result-meta.deferredToolUse, before the close, without touching the fold", () => {
+  it("a deferred_tool_use on a result whose stop_reason is NOT tool_deferred is carried on result-meta only; the turn still closes success", () => {
     const evs = run({ ...(resultSuccess("tool_use") as object), deferred_tool_use: DEFERRED } as unknown as SDKMessage);
     assertAllValid(evs);
     expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.done"]);
@@ -4130,6 +4130,12 @@ describe("createClaudeNormalizer — deferred_tool_use rides ext.anthropic.resul
     for (const e of evs) r.push(e);
     expect(r.needsResync).toBe(false);
     expect(r.result().turns[0]?.outcome).toMatchObject({ type: "success" });
+    // The same carry on a tool_deferred stop closes the turn paused (draft.5 §8.0 item 32).
+    const paused = run({ ...(resultSuccess("tool_deferred") as object), deferred_tool_use: DEFERRED } as unknown as SDKMessage);
+    assertAllValid(paused);
+    expect(paused.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "hitl.ask", "turn.done"]);
+    expect(paused[1]).toMatchObject({ deferredToolUse: DEFERRED });
+    expect(paused[3]).toMatchObject({ outcome: { type: "paused" }, finishReason: "paused" });
   });
 
   it("NEGATIVE CONTROL: absent or non-object deferred_tool_use emits nothing new (byte-identical)", () => {
@@ -8555,4 +8561,79 @@ describe("createClaudeNormalizer — turn trigger from the opener", () => {
       session_id: "sess_fixture",
     };
   }
+});
+
+// ─── draft.5 §8.0 item 32: a parked tool call closes the turn paused ──────────
+// A result that parks a tool call (`deferred_tool_use`, stop_reason
+// "tool_deferred", not an error) emits from push() one hitl.ask{kind:"approval"}
+// for the parked call, then closes the turn paused with that ask and
+// finishReason "paused", no finishReasonRaw. The frames follow the live leg-1
+// shape (defer-tool-sonnet5).
+describe("createClaudeNormalizer — a parked tool call closes the turn paused with an approval ask (§8.0 item 32)", () => {
+  const CALL = "toolu_01BREEQMQdDW8fsY1Gu1W1ZK";
+  const DEFERRED = { id: CALL, name: "mcp__t__echo", input: { message: "conformance-probe-defer" } };
+  const use = (): unknown => assistantMsg([{ type: "tool_use", id: CALL, name: "mcp__t__echo", input: { message: "conformance-probe-defer" } }], null, { stop_reason: "tool_use" });
+  const parked = (extra: { [k: string]: unknown } = {}): unknown => ({
+    ...Object.fromEntries(Object.entries(resultSuccess("end_turn"))),
+    stop_reason: "tool_deferred",
+    terminal_reason: "tool_deferred",
+    is_error: false,
+    result: "",
+    deferred_tool_use: DEFERRED,
+    ...extra,
+  });
+  const ASK = { askId: `approval_${CALL}`, kind: "approval", toolCallId: CALL };
+
+  it("the live leg-1 shape: result-meta keeps deferredToolUse, then ONE hitl.ask{approval}, then turn.done{paused, asks, finishReason 'paused'} with no finishReasonRaw; the fold records the pause", () => {
+    const evs = drive([use(), parked()]);
+    const tail = evs.slice(evs.findIndex((e) => e.type === "ext.anthropic.result-meta"));
+    expect(tail.map((e) => e.type)).toEqual(["ext.anthropic.result-meta", "hitl.ask", "turn.done"]);
+    expect(tail[0]).toMatchObject({ deferredToolUse: DEFERRED });
+    expect(tail[1]).toMatchObject({ type: "hitl.ask", ...ASK, turnId: TOP_TURN });
+    expect(tail[2]).toMatchObject({ type: "turn.done", turnId: TOP_TURN, outcome: { type: "paused", asks: [ASK] }, finishReason: "paused" });
+    expect(tail[2]).not.toHaveProperty("finishReasonRaw");
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns[0]).toMatchObject({ outcome: { type: "paused", asks: [ASK] }, finishReason: "paused" });
+  });
+
+  it("a parked result with no terminal_reason still pauses (stop_reason and deferred_tool_use decide, never terminal_reason)", () => {
+    const withoutTerminal = Object.fromEntries(Object.entries(parked() as { [k: string]: unknown }).filter(([k]) => k !== "terminal_reason"));
+    const done = drive([use(), withoutTerminal]).find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({ outcome: { type: "paused", asks: [ASK] }, finishReason: "paused" });
+    // terminal_reason "tool_deferred" alone, without the stop_reason, is not a pause.
+    const byTerminalOnly = drive([use(), parked({ stop_reason: "end_turn" })]);
+    expect(byTerminalOnly.some((e) => e.type === "hitl.ask")).toBe(false);
+  });
+
+  it("not a pause: an error close (is_error true, e.g. the deferred tool unavailable on resume), a non-deferred stop_reason, or a deferred_tool_use without a string id", () => {
+    const unavailable = drive([parked({ is_error: true, stop_reason: "tool_deferred_unavailable", terminal_reason: "tool_deferred_unavailable" })]);
+    expect(unavailable.some((e) => e.type === "hitl.ask")).toBe(false);
+    expect(turnCloses(unavailable)).toEqual([expect.objectContaining({ type: "turn.error", code: "tool_deferred_unavailable" })]);
+    const erroredDeferred = drive([use(), parked({ is_error: true })]);
+    expect(erroredDeferred.some((e) => e.type === "hitl.ask")).toBe(false);
+    expect(turnCloses(erroredDeferred)).toEqual([expect.objectContaining({ type: "turn.error" })]);
+    for (const extra of [{ stop_reason: "end_turn" }, { deferred_tool_use: { name: "x" } }, { deferred_tool_use: null }]) {
+      const evs = drive([use(), parked(extra)]);
+      expect(evs.some((e) => e.type === "hitl.ask"), JSON.stringify(extra)).toBe(false);
+      expect(evs.find((e) => e.type === "turn.done"), JSON.stringify(extra)).toMatchObject({ outcome: { type: "success" } });
+    }
+  });
+
+  it("INV-XINV: the parked invoke and the resumed invoke folded into ONE Reducer keep distinct turns (paused, then the resume's own turn), with no park", () => {
+    const leg1 = drive([use(), parked({ uuid: "00000000-0000-0000-0000-0000000000p1" })]);
+    const resumed = drive([
+      { type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: CALL, content: "echoed", is_error: false }] }, parent_tool_use_id: null, uuid: "00000000-0000-0000-0000-0000000000p2", session_id: "sess_fixture" },
+      { ...Object.fromEntries(Object.entries(assistantMsg([{ type: "text", text: "done", citations: null }]))), message: { ...betaMessage([{ type: "text", text: "done", citations: null }]), id: "msg_resumed" }, uuid: "00000000-0000-0000-0000-0000000000p3" },
+      { ...resultSuccess("end_turn"), uuid: "00000000-0000-0000-0000-0000000000p4" },
+    ]);
+    const r = fold([...leg1, ...resumed]);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.map((t) => [t.turnId, t.outcome?.type])).toEqual([
+      [TOP_TURN, "paused"],
+      ["turn_00000000-0000-0000-0000-0000000000p2", "success"],
+    ]);
+    const toolMessage = r.result().messages.find((m) => m.id === `${CALL}:result`);
+    expect(toolMessage?.role).toBe("tool");
+  });
 });

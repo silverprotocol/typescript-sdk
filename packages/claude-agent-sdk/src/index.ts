@@ -983,6 +983,13 @@ function jsonEqual(x: unknown, y: unknown): boolean {
   return false;
 }
 
+// The id of the tool call a result's `deferred_tool_use` parked, when it names
+// one (a string `id`); undefined otherwise. Read through the JSON boundary.
+function readDeferredCall(v: unknown): string | undefined {
+  const deferred = isJsonObject(v) ? v["deferred_tool_use"] : undefined;
+  return isJsonObject(deferred) && typeof deferred["id"] === "string" ? deferred["id"] : undefined;
+}
+
 // A result's `terminal_reason` when it names why the turn ended other than a
 // normal completion (e.g. "tool_deferred_unavailable"); undefined otherwise. A
 // live API error's own value is "api_error", which is also the generic code, so
@@ -1201,11 +1208,11 @@ function resultMetaPayload(msg: SDKResultMsg, closesAsError: boolean): { [k: str
   // `deferred_tool_use` (SUCCESS arm, declared `SDKDeferredToolUse {id, name,
   // input}`): the tool call a host's PreToolUse `defer` decision parked, which
   // the CLI resumes later ("Deferred tool resume"). CONTENT, not telemetry:
-  // the host needs it to act on the parked call. Through 0.6.4 the facet never
-  // read it (a silent drop). Carried WHOLE and verbatim (the `subagent_stats`
-  // precedent); whether it should instead map onto `turn.done.outcome.paused`
-  // (asks) is an open spec question. Fixture-only: no
-  // capture sets a defer hook.
+  // the host needs it to act on the parked call. Carried WHOLE and verbatim
+  // here (the `subagent_stats` precedent), and on a deferred close
+  // (stop_reason "tool_deferred") the turn ALSO closes paused with an approval
+  // ask for it (see the success arm, draft.5 §8.0 item 32). The live capture is
+  // defer-tool-sonnet5.
   const deferredToolUse =
     isJsonObject(raw) && isJsonObject(raw["deferred_tool_use"]) ? JsonValue.parse(raw["deferred_tool_use"]) : undefined;
   // `api_error_status` (SUCCESS arm, `number | null`): the HTTP status of the
@@ -3137,9 +3144,37 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         });
         return;
       }
-      const finishReasonRaw = stopReasonRaw(msg.stop_reason);
       const stopDetails = stopDetailsByTurn.get(turnId);
       stopDetailsByTurn.delete(turnId);
+      // draft.5 §8.0 item 32: a result that parks a tool call (`deferred_tool_use`
+      // present, stop_reason "tool_deferred", not an error) is a paused turn
+      // waiting on an approval. push() emits one hitl.ask{kind:"approval"} for the
+      // parked call (askId `approval_<call id>`, the form the openai facet mints
+      // for its approval asks), then closes the turn paused with that ask and
+      // finishReason "paused", with no finishReasonRaw (the native reason is
+      // exactly what "paused" names). The result-meta deferredToolUse carry stays.
+      // A later invoke that resumes the call opens its own turn, minted from its
+      // own frames (INV-XINV). Never keyed on terminal_reason. An is_error result
+      // never reaches here: it closed above as turn.error (CL-09), and so did a
+      // turn an API-error frame decided; the deferred tool found unavailable on
+      // resume ("tool_deferred_unavailable") is such an is_error close.
+      const deferredCall = readDeferredCall(msg);
+      const stop: unknown = msg.stop_reason;
+      if (deferredCall !== undefined && stop === "tool_deferred") {
+        const ask = { askId: `approval_${deferredCall}`, kind: "approval" as const, toolCallId: deferredCall };
+        a.emit({ type: "hitl.ask", turnId, ...ask });
+        a.closeTurnDone(turnId, {
+          outcome: { type: "paused", asks: [ask] },
+          finishReason: "paused",
+          ...(turnUsage !== undefined ? { usage: turnUsage } : {}),
+          safety,
+          ...(stopDetails !== undefined
+            ? { messageId: stopDetails.messageId, messageMetadata: { stop_details: stopDetails.value } }
+            : {}),
+        });
+        return;
+      }
+      const finishReasonRaw = stopReasonRaw(msg.stop_reason);
       a.closeTurnDone(turnId, {
         outcome: { type: "success", result: structuredOutput ?? msg.result },
         finishReason: mapStopReason(msg.stop_reason),
