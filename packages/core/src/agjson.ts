@@ -177,7 +177,9 @@ export interface AgUsage {
   reasoningTokens?: number;
   toolUseInputTokens?: number;
   totalTokens?: number;
+  totalTokensRaw?: number;            // the provider's own total, only when it differs from totalTokens (draft.5)
   costUsd?: number;
+  costScope?: string;                 // what `costUsd` covers when it is not this bag's own scope, e.g. "query" (draft.5)
   cumulative?: boolean;
   byModel?: Record<string, AgUsage>;  // per-model breakdown (self-recursive; A2-additive)
   serverToolRequests?: number;        // server-executed MCP tool-request count (A2-additive)
@@ -191,7 +193,9 @@ export const AgUsage: z.ZodType<AgUsage> = z.lazy(() =>
     reasoningTokens: z.number().optional(),
     toolUseInputTokens: z.number().optional(),
     totalTokens: z.number().optional(),
+    totalTokensRaw: z.number().optional(),
     costUsd: z.number().optional(),
+    costScope: z.string().optional(),
     cumulative: z.boolean().optional(),
     byModel: z.record(z.string(), AgUsage).optional(),
     serverToolRequests: z.number().optional(),

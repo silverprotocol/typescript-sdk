@@ -263,6 +263,20 @@ describe("AgBlock (EXTENDED)", () => {
     expect(AgResourceLinkBlock.parse(full)).toEqual(full);
   });
 
+  it("draft.5: AgUsage carries costScope and totalTokensRaw (pkg-11, Live usage), and ingest keeps them", () => {
+    const usage = { inputTokens: 245, outputTokens: 30, totalTokens: 275, totalTokensRaw: 634, costUsd: 0.01, costScope: "query", cumulative: false };
+    expect(AgUsage.parse(usage)).toEqual(usage);
+    // nested: a byModel entry keeps them too
+    const withModel = { ...usage, byModel: { "claude-sonnet-5": { inputTokens: 245, costUsd: 0.01, costScope: "query", cumulative: true } } };
+    expect(AgUsage.parse(withModel)).toEqual(withModel);
+    // typed: a mistyped member fails the bag
+    expect(AgUsage.safeParse({ costScope: 1 }).success).toBe(false);
+    expect(AgUsage.safeParse({ totalTokensRaw: "634" }).success).toBe(false);
+    // on the wire: a turn.done carrying them parses with the keys intact (zod would strip unknown keys)
+    const ev = AgEvent.parse({ type: "turn.done", seq: 0, turnId: "t", outcome: { type: "success" }, finishReason: "stop", usage });
+    expect(ev.type === "turn.done" && ev.usage).toEqual(usage);
+  });
+
   it("accepts citations + annotations + providerMetadata on a text block", () => {
     const b = AgBlock.parse({
       type: "text",
