@@ -1,0 +1,10 @@
+{
+  "name": "state-prefixes-gemini38",
+  "prompt": "Apply the configuration step, then reply with the single word: done.",
+  "mcpServers": [],
+  "steer": "You MUST call apply_state_step with step=1, exactly once. Then answer with the single word: done.",
+  "adkStateScript": [
+    { "plain": 1, "user:pref": "dark", "app:flag": true, "temp:scratch": "x" }
+  ],
+  "adkCrossSessionState": true
+}

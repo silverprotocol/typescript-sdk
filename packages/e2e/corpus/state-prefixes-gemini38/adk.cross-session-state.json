@@ -1,0 +1,9 @@
+{
+  "sameUser": {
+    "app:flag": true,
+    "user:pref": "dark"
+  },
+  "otherUser": {
+    "app:flag": true
+  }
+}

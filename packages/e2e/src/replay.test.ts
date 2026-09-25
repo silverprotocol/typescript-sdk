@@ -415,6 +415,13 @@ const ADK_SEEDS = [
   // nodeInfo, isolationScope, plus actions.agentState on the pause.
   "workflow-complete-gemini38",
   "workflow-pause-gemini38",
+  // 2026-09-25 (ADK state prefixes): one scripted apply_state_step writes a
+  // plain key, a `user:` key, an `app:` key and a `temp:` key. ADK trims
+  // `temp:` before yielding, so the native delta and the facet's thread
+  // state.delta carry the other three. The cross-session sidecar records what
+  // ADK carries into later sessions: the same user starts with the `user:` and
+  // `app:` writes, another user with the `app:` write only.
+  "state-prefixes-gemini38",
 ] as const;
 
 /**

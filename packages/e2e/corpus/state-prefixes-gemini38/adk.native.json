@@ -1,0 +1,121 @@
+[
+  {
+    "invocationId": "e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "author": "spike",
+    "id": "YovyLNNZ",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333952718,
+    "content": {
+      "parts": [
+        {
+          "functionCall": {
+            "name": "apply_state_step",
+            "args": {
+              "step": 1
+            },
+            "id": "call_945941"
+          },
+          "thoughtSignature": "Et8CCtwCAWkUfROvCV6zBZUvp6Rs3lXZpJIayylzGs5SxBIew3dO3078BoqzJmOllo37eajBbSbOR3Al1yjEQ/Uomk0YS6kOffIHk6Kz4+8HNzEWirk4zFLb36V8UOkrOlpjqO76opKe2NYfwyJXvpJ0esV7jEn/mIllberYpCzARpGah4iQEoLEZcuHhi9UVfU0Alng065ECIhWJXHd41WUvmdiQrKHCXUxqkYE/VbrFns3SX1VwOPcq7o+3Ln46zDGmhAYSmqcvGwgNARIhFzYg25j1CrePjQdWJdu9edSifCzm3WGVXP1PT2wu9Ndm83WJGr6lXXpUvQ7YuP6TiNQb0RlxbVMz2uwvg4IpZKVufOJc6jVxJFESKS8Z8movA8faNVT0F3oD5op9VOh20LewxjzqLpG7I7jIIpwXBlLCFWGAtivFytFYiHRaulbLqbIVUCnLoB01bmlWeMzZ48f"
+        }
+      ],
+      "role": "model"
+    },
+    "usageMetadata": {
+      "promptTokenCount": 185,
+      "candidatesTokenCount": 16,
+      "totalTokenCount": 267,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 185
+        }
+      ],
+      "thoughtsTokenCount": 66,
+      "serviceTier": "standard"
+    },
+    "finishReason": "STOP"
+  },
+  {
+    "invocationId": "e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "author": "spike",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "call_945941",
+            "name": "apply_state_step",
+            "response": {
+              "applied": true,
+              "step": 1,
+              "keys": [
+                "plain",
+                "user:pref",
+                "app:flag",
+                "temp:scratch"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "actions": {
+      "stateDelta": {
+        "plain": 1,
+        "user:pref": "dark",
+        "app:flag": true
+      },
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "hISX8N1Z",
+    "longRunningToolIds": [],
+    "timestamp": 1790333955035
+  },
+  {
+    "invocationId": "e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "author": "spike",
+    "id": "oHHVATbW",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333955035,
+    "content": {
+      "parts": [
+        {
+          "text": "done",
+          "thoughtSignature": "Eo0BCooBAWkUfRM4LSPABrB8mMseIQrteAuzKo+zw1n+HHQBbWtjz8VfDnw+tlb7cf54kB4N3mZq4yHw838i6QPdvP7CWpcBhHnABhpZbBF7njId6fXu4YbqHQ2lNpvAN3C6UvaQTNvusYOu0bDSCYWgnr1olhTp5JOYF4psZyFio3eoh21QgERWuGRABhfr"
+        }
+      ],
+      "role": "model"
+    },
+    "usageMetadata": {
+      "promptTokenCount": 309,
+      "candidatesTokenCount": 1,
+      "totalTokenCount": 319,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 309
+        }
+      ],
+      "thoughtsTokenCount": 9,
+      "serviceTier": "standard"
+    },
+    "finishReason": "STOP"
+  },
+  {
+    "type": "__host_complete__"
+  }
+]

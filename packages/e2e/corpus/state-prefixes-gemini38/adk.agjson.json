@@ -1,0 +1,176 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "threadId": "google"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "turnId": "turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "threadId": "google",
+    "role": "assistant"
+  },
+  {
+    "type": "tool.start",
+    "seq": 2,
+    "turnId": "turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "toolCallId": "call_945941",
+    "name": "apply_state_step",
+    "index": 0
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 3,
+    "toolCallId": "call_945941",
+    "delta": "{\"step\":1}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 4,
+    "toolCallId": "call_945941",
+    "input": {
+      "step": 1
+    },
+    "signature": "Et8CCtwCAWkUfROvCV6zBZUvp6Rs3lXZpJIayylzGs5SxBIew3dO3078BoqzJmOllo37eajBbSbOR3Al1yjEQ/Uomk0YS6kOffIHk6Kz4+8HNzEWirk4zFLb36V8UOkrOlpjqO76opKe2NYfwyJXvpJ0esV7jEn/mIllberYpCzARpGah4iQEoLEZcuHhi9UVfU0Alng065ECIhWJXHd41WUvmdiQrKHCXUxqkYE/VbrFns3SX1VwOPcq7o+3Ln46zDGmhAYSmqcvGwgNARIhFzYg25j1CrePjQdWJdu9edSifCzm3WGVXP1PT2wu9Ndm83WJGr6lXXpUvQ7YuP6TiNQb0RlxbVMz2uwvg4IpZKVufOJc6jVxJFESKS8Z8movA8faNVT0F3oD5op9VOh20LewxjzqLpG7I7jIIpwXBlLCFWGAtivFytFYiHRaulbLqbIVUCnLoB01bmlWeMzZ48f"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "seq": 5
+  },
+  {
+    "type": "content.block",
+    "seq": 6,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "turnId": "turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea"
+  },
+  {
+    "type": "tool.done",
+    "seq": 7,
+    "turnId": "turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "toolCallId": "call_945941",
+    "content": [
+      {
+        "type": "data",
+        "name": "apply_state_step",
+        "data": {
+          "applied": true,
+          "step": 1,
+          "keys": [
+            "plain",
+            "user:pref",
+            "app:flag",
+            "temp:scratch"
+          ]
+        }
+      }
+    ],
+    "outcome": "ok"
+  },
+  {
+    "type": "state.delta",
+    "patch": {
+      "plain": 1,
+      "user:pref": "dark",
+      "app:flag": true
+    },
+    "turnId": "turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "seq": 8
+  },
+  {
+    "type": "content.block",
+    "seq": 9,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "turnId": "turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea"
+  },
+  {
+    "type": "text.start",
+    "seq": 10,
+    "id": "text:0",
+    "messageId": "msg_turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "turnId": "turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "Eo0BCooBAWkUfRM4LSPABrB8mMseIQrteAuzKo+zw1n+HHQBbWtjz8VfDnw+tlb7cf54kB4N3mZq4yHw838i6QPdvP7CWpcBhHnABhpZbBF7njId6fXu4YbqHQ2lNpvAN3C6UvaQTNvusYOu0bDSCYWgnr1olhTp5JOYF4psZyFio3eoh21QgERWuGRABhfr"
+      }
+    }
+  },
+  {
+    "type": "text.delta",
+    "seq": 11,
+    "id": "text:0",
+    "messageId": "msg_turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "delta": "done",
+    "turnId": "turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea"
+  },
+  {
+    "type": "text.end",
+    "seq": 12,
+    "id": "text:0",
+    "messageId": "msg_turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "turnId": "turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "Eo0BCooBAWkUfRM4LSPABrB8mMseIQrteAuzKo+zw1n+HHQBbWtjz8VfDnw+tlb7cf54kB4N3mZq4yHw838i6QPdvP7CWpcBhHnABhpZbBF7njId6fXu4YbqHQ2lNpvAN3C6UvaQTNvusYOu0bDSCYWgnr1olhTp5JOYF4psZyFio3eoh21QgERWuGRABhfr"
+      }
+    }
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "seq": 13
+  },
+  {
+    "type": "content.block",
+    "seq": 14,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "turnId": "turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea"
+  },
+  {
+    "type": "message.end",
+    "seq": 15,
+    "id": "msg_turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea"
+  },
+  {
+    "type": "turn.done",
+    "seq": 16,
+    "turnId": "turn_adk_e-f40eed24-f075-4c9c-8d07-e76d4859e7ea",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 494,
+      "outputTokens": 92,
+      "totalTokens": 586,
+      "reasoningTokens": 75,
+      "cumulative": false
+    }
+  }
+]

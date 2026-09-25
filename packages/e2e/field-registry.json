@@ -1,7 +1,10 @@
 [
   "[*].actions.agentState.input",
+  "[*].actions.stateDelta.app:flag",
   "[*].actions.stateDelta.cfg.a",
   "[*].actions.stateDelta.cfg.b",
+  "[*].actions.stateDelta.plain",
+  "[*].actions.stateDelta.user:pref",
   "[*].agent.name",
   "[*].agents[*]",
   "[*].analytics_disabled",

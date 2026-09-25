@@ -227,6 +227,9 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // 2026-09-25 (vercel MCP finding): the V1/V4 live legs, generated on the fix.
   { scenario: "tool-error-gpt6sol", framework: "vercel" },
   { scenario: "app-spec-gpt6sol", framework: "vercel" },
+  // 2026-09-25: the ADK state-prefix seed (capture-time coverage was computed
+  // against empty guard maps).
+  { scenario: "state-prefixes-gemini38", framework: "adk" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {
