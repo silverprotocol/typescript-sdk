@@ -234,6 +234,10 @@ export async function runCaptureAndWrite(
     ...(cassette.sessionState !== undefined
       ? [writeFile(join(outDir, `${fw}.session-state.json`), JSON.stringify(cassette.sessionState, null, 2) + "\n", "utf8")]
       : []),
+    // Ground truth for a cross-session seed: two fresh sessions' initial state.
+    ...(cassette.crossSessionState !== undefined
+      ? [writeFile(join(outDir, `${fw}.cross-session-state.json`), JSON.stringify(cassette.crossSessionState, null, 2) + "\n", "utf8")]
+      : []),
   ]);
 
   return { outDir, cassette };
@@ -270,7 +274,7 @@ async function freePort(): Promise<number> {
  */
 export const KNOB_SUPPORT: Readonly<
   Record<
-    "preToolUseDecision" | "resumeFrom" | "toolApproval" | "adkWorkflow" | "adkStateScript" | "claudeSubagents" | "openaiHandoff" | "openaiHandoffs" | "adkLive",
+    "preToolUseDecision" | "resumeFrom" | "toolApproval" | "adkWorkflow" | "adkStateScript" | "adkCrossSessionState" | "claudeSubagents" | "openaiHandoff" | "openaiHandoffs" | "adkLive",
     { frameworks: readonly Framework[]; proof?: string | Partial<Record<Framework, string>> }
   >
 > = {
@@ -279,6 +283,7 @@ export const KNOB_SUPPORT: Readonly<
   toolApproval: { frameworks: ["openai"], proof: "openaiApprovalPlan" },
   adkWorkflow: { frameworks: ["adk"], proof: "runAdkWorkflowCapture" },
   adkStateScript: { frameworks: ["adk"], proof: "ADK_STATE_TOOL" },
+  adkCrossSessionState: { frameworks: ["adk"], proof: "ADK_OTHER_USER_ID" },
   // The nested-turn capture ask (2026-09-24): each agent proves the knob by
   // exporting the named symbol; until it does, a capture fails loud.
   claudeSubagents: { frameworks: ["claude"], proof: "claudeSubagentOptions" },
@@ -373,6 +378,9 @@ async function loadFrameworkDeps(
   const live = scenario.adkLive;
   if (shape !== undefined && live !== undefined) {
     throw new Error(`e2e:capture: scenario "${scenario.name}" sets both adkWorkflow and adkLive; pick one. No capture attempted.`);
+  }
+  if (scenario.adkCrossSessionState === true && scenario.adkStateScript === undefined) {
+    throw new Error(`e2e:capture: scenario "${scenario.name}" sets adkCrossSessionState without adkStateScript; the cross-session read needs the scripted state writes. No capture attempted.`);
   }
   return {
     runAgentCapture:

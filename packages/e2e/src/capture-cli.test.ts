@@ -583,6 +583,49 @@ describe("openai tool approval: the knob guard, the RunState location and the le
   });
 });
 
+describe("adkCrossSessionState: the knob guard and the cross-session-state sidecar", () => {
+  const scenario = Scenario.parse({ name: "state-prefixes", prompt: "x", adkStateScript: [{ "user:pref": "dark" }], adkCrossSessionState: true });
+
+  it("passes on an adk agent that exports ADK_OTHER_USER_ID, fails without it or off adk", () => {
+    const both = { ADK_STATE_TOOL: "apply_state_step", ADK_OTHER_USER_ID: "user-2" };
+    expect(() => assertKnobsHonored(scenario, "adk", both)).not.toThrow();
+    expect(() => assertKnobsHonored(scenario, "adk", { ADK_STATE_TOOL: "apply_state_step" })).toThrow(/does not export ADK_OTHER_USER_ID/);
+    expect(() => assertKnobsHonored(scenario, "claude", both)).toThrow(/only the adk capture agent honors/);
+  });
+
+  it("the scenario schema admits only `true`", () => {
+    expect(() => Scenario.parse({ name: "x", prompt: "x", adkCrossSessionState: false })).toThrow();
+  });
+
+  it("runCaptureAndWrite writes <fw>.cross-session-state.json when the agent reports it, and not otherwise", async () => {
+    const outDir = await mkdtemp(join(tmpdir(), "capture-cli-test-"));
+    try {
+      const states = { sameUser: { "user:pref": "dark" }, otherUser: {} };
+      const deps: CaptureDeps = {
+        async *runAgentCapture(input) {
+          yield* fakeNativeNoTools();
+          input.onSessionState?.({ "user:pref": "dark" });
+          input.onCrossSessionState?.(states);
+        },
+        serveMock,
+        createNormalizer: createClaudeNormalizer,
+        census,
+      };
+      await runCaptureAndWrite(scenario, deps, { ports: [], framework: "claude" }, outDir, { sdkVersion: null, model: null });
+      expect(await readJson(join(outDir, "claude.cross-session-state.json"))).toEqual(states);
+      expect(await readJson(join(outDir, "claude.session-state.json"))).toEqual({ "user:pref": "dark" });
+      const plainDir = join(outDir, "plain");
+      await runCaptureAndWrite(Scenario.parse({ name: "text-only", prompt: "x" }), makeDeps(), { ports: [], framework: "claude" }, plainDir, {
+        sdkVersion: null,
+        model: null,
+      });
+      await expect(readFile(join(plainDir, "claude.cross-session-state.json"), "utf8")).rejects.toThrow();
+    } finally {
+      await rm(outDir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("adkStateScript: the knob guard and the session-state sidecar", () => {
   const scenario = Scenario.parse({ name: "state-fold", prompt: "x", adkStateScript: [{ cfg: { a: 1 } }] });
 

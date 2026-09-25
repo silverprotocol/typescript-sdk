@@ -506,6 +506,32 @@ describe("runCapture", () => {
     expect("sessionState" in plainRun).toBe(false);
   });
 
+  it("with adkCrossSessionState, records the two fresh sessions' initial state the agent reports via onCrossSessionState; without it, passes no callback", async () => {
+    const states = { sameUser: { "user:pref": "dark", "app:flag": true }, otherUser: { "app:flag": true } };
+    let offered: unknown = "unset";
+    const deps: CaptureDeps = {
+      async *runAgentCapture(input) {
+        offered = input.onCrossSessionState;
+        yield* fakeNativeNoTools();
+        input.onSessionState?.({ plain: 1 });
+        input.onCrossSessionState?.(states);
+      },
+      serveMock,
+      createNormalizer: createClaudeNormalizer,
+      census,
+    };
+    const script = [{ plain: 1, "user:pref": "dark", "app:flag": true, "temp:scratch": "x" }];
+    const cassette = await runCapture(Scenario.parse({ name: "state-prefixes", prompt: "x", adkStateScript: script, adkCrossSessionState: true }), deps, {
+      ports: [],
+      framework: "claude",
+    });
+    expect(typeof offered).toBe("function");
+    expect(cassette.crossSessionState).toEqual(states);
+    const stateOnly = await runCapture(Scenario.parse({ name: "state-fold", prompt: "x", adkStateScript: script }), deps, { ports: [], framework: "claude" });
+    expect(offered).toBeUndefined();
+    expect("crossSessionState" in stateOnly).toBe(false);
+  });
+
   it("a resume leg skips the expectTools check (its tool call was made in the leg it resumes); a fresh run still enforces it", async () => {
     const scenario = Scenario.parse({
       name: "defer-tool-sonnet5-resume-allow",

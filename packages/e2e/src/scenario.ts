@@ -130,6 +130,13 @@ export const Scenario = z.object({
   // model. The capture also reads ADK's session.state back after the run into
   // a <fw>.session-state.json sidecar, as ground truth for the fold.
   adkStateScript: z.array(z.record(z.string(), JsonValue)).min(1).optional(),
+  // Cross-session knob (google-adk only, with adkStateScript; 2026-09-25). After
+  // the run the capture opens two fresh sessions, one for the capture's user and
+  // one for another user, and records their initial state in a
+  // <fw>.cross-session-state.json sidecar: ADK keeps `user:` keys per (app,
+  // user) and `app:` keys per app across sessions, so it shows which of the
+  // run's writes a later session starts with. Never replayed.
+  adkCrossSessionState: z.literal(true).optional(),
   // Subagent knob (claude-agent-sdk only; the nested-turn package's capture ask,
   // 2026-09-24). Each entry is a programmatic subagent the agent passes as the
   // query's options.agents, with the built-in Agent tool enabled and

@@ -47,6 +47,8 @@ export interface Cassette {
   runError?: string;
   /** The framework's own session state read back after the run (adkStateScript). */
   sessionState?: JsonValue;
+  /** Two fresh sessions' initial state after the run (adkCrossSessionState). */
+  crossSessionState?: { sameUser: JsonValue; otherUser: JsonValue };
 }
 
 /**
@@ -150,6 +152,8 @@ export async function runCapture(
     const native: JsonValue[] = [];
     // ADK's session.state read back after the run (adkStateScript scenarios).
     let sessionState: JsonValue | undefined;
+    // Two fresh sessions' initial state after the run (adkCrossSessionState).
+    let crossSessionState: { sameUser: JsonValue; otherUser: JsonValue } | undefined;
     const systemPrompt = opts.systemPrompt ?? scenario.steer;
 
     const agentInput: CaptureRunInput = {
@@ -171,6 +175,9 @@ export async function runCapture(
       ...(opts.onRunState !== undefined ? { onRunState: opts.onRunState } : {}),
       ...(scenario.adkStateScript !== undefined
         ? { adkStateScript: scenario.adkStateScript, onSessionState: (state: JsonValue) => { sessionState = state; } }
+        : {}),
+      ...(scenario.adkCrossSessionState === true
+        ? { onCrossSessionState: (states: { sameUser: JsonValue; otherUser: JsonValue }) => { crossSessionState = states; } }
         : {}),
       ...(scenario.claudeSubagents !== undefined ? { subagents: scenario.claudeSubagents } : {}),
       ...(scenario.openaiHandoff !== undefined ? { handoff: scenario.openaiHandoff } : {}),
@@ -250,6 +257,7 @@ export async function runCapture(
       coverage,
       ...(runError !== undefined ? { runError } : {}),
       ...(sessionState !== undefined ? { sessionState } : {}),
+      ...(crossSessionState !== undefined ? { crossSessionState } : {}),
     };
   } finally {
     // ── Cleanup: close all mock servers ────────────────────────────────────

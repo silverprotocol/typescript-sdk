@@ -9,7 +9,12 @@ which SDK version, model, and date produced the capture). A scenario that
 scripts framework shared state also carries a session-state sidecar
 (`<framework>.session-state.json`): the framework's own state, read back after
 the run. It is ground truth for the `reduce()` state fold and is never
-replayed; the replay gate checks that the fold of the golden equals it.
+replayed; the replay gate checks that the fold of the golden equals it. A scenario that also asks for a cross-session read carries a
+cross-session-state sidecar (`<framework>.cross-session-state.json`): the
+initial state of two fresh sessions opened after the run, one for the
+capture's user (`sameUser`) and one for another user (`otherUser`). It shows
+which of the run's writes the framework carries into a later session (ADK
+keeps `user:` keys per user and `app:` keys per app) and is never replayed.
 
 Downstream projects may consume these cassettes for testing. This document is
 the contract for doing that.

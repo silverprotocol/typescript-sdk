@@ -96,6 +96,11 @@ export interface CaptureRunInput {
   /** google-adk only: called once after a normal run with ADK's own
    *  session.state read back (never yielded as a native event). */
   onSessionState?: (state: JsonValue) => void;
+  /** google-adk only: called once after a normal run, after onSessionState,
+   *  with the initial state of two fresh sessions ADK's session service
+   *  starts: one for the capture's user and one for another user (never
+   *  yielded as a native event). */
+  onCrossSessionState?: (states: { sameUser: JsonValue; otherUser: JsonValue }) => void;
   /** claude-agent-sdk only: programmatic subagents for the query's
    *  options.agents, with the Agent tool enabled and auto-allowed; a
    *  background:true launch keeps the input open until its task_notification
