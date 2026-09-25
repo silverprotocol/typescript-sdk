@@ -294,7 +294,7 @@ describe("createClaudeNormalizer — result success", () => {
 });
 
 // ─── draft.4: turn.done.finishReasonRaw on a FALLBACK finishReason ──────────
-// SPEC §8.0 graceful degradation / §10 item 23 (89c57db): a
+// SPEC §8.0 graceful degradation / §10 item 23 (616fb4f): a
 // stop_reason the facet cannot map falls back to "unknown", and the native value
 // rides `finishReasonRaw` verbatim. Only on the fallback.
 describe("createClaudeNormalizer — finishReasonRaw (draft.4)", () => {
@@ -6232,7 +6232,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     const nestedAlone = drive([nested]);
     expect(turnCloses(nestedAlone).map((e) => [e.type, "turnId" in e ? e.turnId : undefined])).toEqual([["turn.error", API_ERROR_TURN]]);
     expect(nestedErrors(nestedAlone)).toEqual([{ turnId: API_ERROR_TURN, code: "rate_limit", retriable: true }]);
-    // Background subagent frames AFTER a result (review of b8ea926, MAJOR 1):
+    // Background subagent frames AFTER a result (review of 7751528, MAJOR 1):
     // the next turn is named by ITS first message and closes as it ended.
     const next = { ...(assistantMsg([{ type: "text", text: "turn two", citations: null }]) as object), message: { ...betaMessage([{ type: "text", text: "turn two", citations: null }]), id: "msg_turn_two" }, uuid: "00000000-0000-0000-0000-0000000000d7" };
     const after = drive([
@@ -6874,7 +6874,7 @@ describe("createClaudeNormalizer — decision_reason_code (CLI 2.1.280, undeclar
 //     Never inferred from the result text.
 //  D: a permission_denials entry whose id already has its final tool.done in
 //     this invoke is skipped; an id not yet closed still gets its carrier pair.
-// Live shape: defer-tool-sonnet5-resume-deny (d8cde06, not yet
+// Live shape: defer-tool-sonnet5-resume-deny (6c5eb03, not yet
 // enrolled): 3 PreToolUse-hook-blocked calls, each result stamped
 // "permission-rule", and the result's permission_denials naming all 3.
 describe("createClaudeNormalizer — non_execution_kind denials (C) and the closed-call denials skip (D)", () => {
@@ -7064,7 +7064,7 @@ describe("createClaudeNormalizer — non_execution_kind denials (C) and the clos
     expect(JSON.stringify(bare)).not.toContain("anthropic/permissionDenied");
   });
 
-  // Second key (after 6d980a5): a live permission_denied notice
+  // Second key (after 96719b9): a live permission_denied notice
   // seen before an UNSTAMPED is_error result marks it denied. 2.1.280 stamps no
   // kind on a frame with more than one tool_result, and an older CLI stamps none.
   function twoResultFrame(a: string, b: string): unknown {
@@ -7127,7 +7127,7 @@ describe("createClaudeNormalizer — non_execution_kind denials (C) and the clos
   });
 });
 
-// ─── the resume-unavailable leg (7c6880f): two census new-fields ─────────────
+// ─── the defer-tool-sonnet5-resume-unavailable leg: two census new-fields ─────────────
 // `message.diagnostics` rides the first block's host-only `_meta` (once per SDK
 // message id); a live user frame with no tool_result (the CLI's isSynthetic
 // nudge) rides `ext.anthropic.frame{kind:"user"}` verbatim.
@@ -7241,7 +7241,7 @@ describe("createClaudeNormalizer — message.diagnostics and CLI-added user fram
 // ─── result-only error close: code from a non-API terminal_reason (
 // facet-local, 2026-09-23) ────────────────────────────────────────────────────
 // The CLI sets is_error on a result that is NOT an API error: the
-// resume-unavailable leg (7c6880f), terminal_reason "tool_deferred_unavailable",
+// resume-unavailable leg (defer-tool-sonnet5-resume-unavailable), terminal_reason "tool_deferred_unavailable",
 // result "". code = api_error_code, else a terminal_reason other than
 // "completed" (a live API error's own is "api_error", the same code), else
 // "api_error"; message = the non-empty result, else the code.
@@ -7303,7 +7303,7 @@ describe("createClaudeNormalizer — the result-only error close names a non-API
 });
 
 // ─── SPEC:933 — push() never throws on a LIVE (not JSON round-tripped) frame ──
-// Found first on google-adk, reproduced here (bb319bf): a
+// Found first on google-adk, reproduced here (a55483a): a
 // host pushing an in-process object whose members are not JSON (an undefined
 // member, a Date, NaN, a function) made push() THROW (ZodError from a
 // JsonValue.parse site; `JSON.stringify(input)` for the args delta on a cycle).
@@ -7905,7 +7905,7 @@ describe("createClaudeNormalizer — verbatim carries drop provider credit token
 // The message.start review (wf_140b3183-767) restates rd-14's rule as a
 // §8.0 producer MUST: turn ids never repeat across the invokes one Reducer
 // folds. The top-level no-open-turn tool.done the bar cited already opens its
-// own uuid-named turn (B-resume 37185be). The nested case did not: it named the
+// own uuid-named turn (B-resume 9c46845). The nested case did not: it named the
 // synthetic `turn_<parent_tool_use_id>`, a turn nobody opened, repeated by every
 // invoke that started mid-run, and the one-Reducer fold parked.
 describe("createClaudeNormalizer — ids across invokes: no-open-turn results", () => {
@@ -8014,7 +8014,7 @@ describe("createClaudeNormalizer — C1: flush never mints content", () => {
   });
 });
 
-// ─── subagent carries (the subagent captures, 5ba11da): the Agent run
+// ─── subagent carries (the subagent captures): the Agent run
 // report on the Agent call's tool.done `_meta`, and a woken turn's `origin` ────
 describe("createClaudeNormalizer — subagent carries: AgentOutput and result origin", () => {
   const agentUse = (): unknown => assistantMsg([{ type: "tool_use", id: "toolu_agent", name: "Agent", input: { description: "d", prompt: "p", subagent_type: "echoer" } }]);

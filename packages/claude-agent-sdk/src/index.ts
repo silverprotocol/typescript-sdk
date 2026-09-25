@@ -1191,7 +1191,7 @@ function resultMetaPayload(msg: SDKResultMsg, closesAsError: boolean): { [k: str
   const raw: unknown = msg;
   // `origin` (SDKMessageOrigin, on the result arms): set on the result of a turn
   // the framework WOKE, not the user, e.g. {kind: "task-notification"} after a
-  // background subagent reported (the background capture, 5ba11da). turn.start's
+  // background subagent reported (the background capture). turn.start's
   // `trigger` is a frozen enum, so it rides here verbatim.
   const origin = isJsonObject(raw) && isJsonObject(raw["origin"]) ? carryVerbatim(raw["origin"]) : undefined;
   const subagentStats =
@@ -1464,7 +1464,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // by the open turn, a retraction's message.remove by the removed message's
   // own turn. What still backfills: tool.args.* and ext.* (no turnId at all).
   // A top-level tool_result with NO turn open no longer lands on a closed turn:
-  // since B-resume (37185be) it opens its own turn, named by its frame uuid (see
+  // since B-resume (9c46845) it opens its own turn, named by its frame uuid (see
   // the user branch), and a nested one for a run this invoke never opened opens
   // a fresh run the same way.
   //
@@ -1510,7 +1510,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // The ids of every Agent (or legacy Task) tool call seen in this invoke. Only
   // a result for one of these can carry an AgentOutput: a third-party tool whose
   // result happens to hold an `agentId` (a CRM, a ticketing system, any agent
-  // registry) is not Anthropic's Agent run report (a review of f2c75d8).
+  // registry) is not Anthropic's Agent run report (a review of 5e7561c).
   const agentCallIds = new Set<string>();
   function openRun(parentToolUseId: string, turnId: string, parentTurnId: string): void {
     if (openRuns.has(parentToolUseId)) return;
@@ -2399,7 +2399,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         wrapperMetaRaw["narration_block_indexes"] = narrationBlockIndexes;
       }
       // `message.diagnostics` (a Messages API response field, first seen live on
-      // the defer-tool-sonnet5-resume-unavailable capture, 7c6880f): per-response
+      // the defer-tool-sonnet5-resume-unavailable capture): per-response
       // diagnostics, there `{cache_miss_reason: {type: "tools_changed",
       // cache_missed_input_tokens: 3258}}`, i.e. why the prompt cache missed.
       // Response-only (never sent back on replay), so it rides host-only `_meta`
@@ -2819,7 +2819,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // come back only as isReplay acks, returned above). The live case: the
       // CLI's `isSynthetic: true` nudge "[Your previous response had no visible
       // output. …]" after an empty reply (the
-      // defer-tool-sonnet5-resume-unavailable, 7c6880f, the corpus's only such
+      // defer-tool-sonnet5-resume-unavailable, the corpus's only such
       // frame). This branch maps only tool_result blocks, so it had no event at
       // all, and the census could not see the text go (its path normalizes to
       // the assistant's). It rides the item-22 bulk carry verbatim, kind "user",
@@ -2859,7 +2859,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // invoke's first frame is the deferred call's tool_result, before
         // system/init; the defer-resume capture) opens the turn it lands
         // in, named by this frame's uuid. The resumed invoke's assistant frames
-        // then join it and its result closes it. Through c54eb7f its tool.done
+        // then join it and its result closes it. Through 11a4bb6 its tool.done
         // had no turn and reduce() parked from the first event. Where that result
         // folds relative to the PREVIOUS invoke's open tool block is candidate
         // 20's bar question, not decided here.
@@ -2919,7 +2919,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // minus `content` (already the tool.done content) and `prompt` (already
         // the tool input). Its `usage` is the subagent's own and stays out of
         // AgUsage (B-strict: the parent's accounting already includes it).
-        // The subagent captures (5ba11da) surfaced every one of these
+        // The subagent captures surfaced every one of these
         // fields as a census drop.
         const agentOutput =
           sibling !== undefined && typeof sibling["agentId"] === "string"
@@ -3128,9 +3128,9 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // accrued usage, as above.
         // The terminal_reason step (facet-local, 2026-09-23): the
         // CLI also sets is_error on a result that is NOT an API error. The
-        // resume-unavailable leg (7c6880f) is a resumed invoke whose deferred
+        // resume-unavailable leg (defer-tool-sonnet5-resume-unavailable) is a resumed invoke whose deferred
         // tool's MCP server is gone: terminal_reason "tool_deferred_unavailable",
-        // result "", no status, no api_error_code. Through b7dd7ff it closed
+        // result "", no status, no api_error_code. Through a5ac025 it closed
         // turn.error{message: "", code: "api_error"}, claiming an API failure
         // that never happened. `code` is free-form (SPEC :618), so this fills
         // existing fields from the frame's own value; a live API error
@@ -3418,8 +3418,8 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // A copy: `frame` IS the host's object when it was already JSON, and
         // this raw channel would otherwise emit it by reference. JsonValue.parse
         // copies and, like every other carry here, drops an own "__proto__"
-        // (2026-09-24, matching the openai facet's cf55e08 and the 0.6.6
-        // reserved-key rule 314a183: an emitted map carries no own __proto__).
+        // (2026-09-24, matching the openai facet's ddde89d and the 0.6.6
+        // reserved-key rule a76277c: an emitted map carries no own __proto__).
         a.emitExt("anthropic", "unparsed", { native: carryVerbatim(frame) });
         return a.drain();
       }
