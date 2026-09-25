@@ -62,6 +62,8 @@ facet's per-field dispositions, including its disclosed `silently-dropped` gaps)
 
 > **Search grounding (spec §13.3).** When Gemini grounds a reply with Google Search, the facet emits `display.required` carrying the Search Suggestions HTML (`groundingMetadata.searchEntryPoint.renderedContent`), which the reducer records on the turn. Rendering, storing and re-displaying it are governed by Google's grounding terms (SPEC §13.3). `toPersistable` from `@silverprotocol/core` gives a fold without it, for a host that stores the result.
 
+> **Escalation (spec §4).** ADK's `actions.escalate: true` becomes a bare `handoff{kind:"escalate"}`: the emitting agent escalated to its enclosing agent, with no target and no nested turn.
+
 ```ts
 import { LlmAgent, InMemoryRunner } from "@google/adk";
 import { createAdkNormalizer } from "@silverprotocol/google-adk";
