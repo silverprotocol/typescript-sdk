@@ -61,7 +61,8 @@ export function unredactedDrops(report: JsonValue): string[] {
   return drops.flatMap((d) => {
     const segs = d.path.split(/\.|\[\d+\]/).filter((s) => s !== "").map((s) => s.toLowerCase());
     if (segs.some((s) => REDACTED_KEYS.has(s))) return d.value === REDACTED && REDACTED_KEYS.has(segs.at(-1)!) ? [] : [d.path];
-    if (segs.some((s) => REDACTED_PATH_KEYS.has(s))) return typeof d.value !== "string" || d.value === REDACTED_PATH ? [] : [d.path];
+    // Every string leaf of the value, at any depth, must be REDACTED_PATH (as redactPathLeaves leaves a native).
+    if (segs.some((s) => REDACTED_PATH_KEYS.has(s))) return unredactedPathLeaves(d.value, d.path).length === 0 ? [] : [d.path];
     return [];
   });
 }
@@ -105,6 +106,9 @@ describe("the committed corpus carries no account-identifying value", () => {
     expect(unredactedDrops(drop("[3].response.headers.set-cookie", "__cf_bm=x"))).toEqual(["[3].response.headers.set-cookie"]);
     expect(unredactedDrops(drop("[0].memory_paths.auto", "/opt/x/memory/"))).toEqual(["[0].memory_paths.auto"]);
     expect(unredactedDrops(drop("[0].memory_paths.auto", REDACTED_PATH))).toEqual([]);
+    // an object value under a path key is walked: a raw string leaf at any depth is an offender
+    expect(unredactedDrops(drop("[0].memory_paths", { auto: "/opt/x/memory/" }))).toEqual(["[0].memory_paths"]);
+    expect(unredactedDrops(drop("[0].memory_paths", { auto: REDACTED_PATH, n: 1 }))).toEqual([]);
     expect(unredactedDrops(drop("[0].usageMetadata.totalTokenCount", 42))).toEqual([]);
   });
 
