@@ -1,0 +1,731 @@
+[
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "9hBpVWgT",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333014366,
+    "liveSessionResumptionUpdate": {
+      "newHandle": "<redacted>",
+      "resumable": true
+    }
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "mrnQTJFy",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333015652,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:13440 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "iqmg8lEX",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333015652,
+    "outputTranscription": {
+      "text": "Silas lived alone ",
+      "finished": false
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "1gsrOLG7",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333015700,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:25600 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "hkJ5XQEA",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333015736,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:12800 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "K0dZQbat",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333015736,
+    "outputTranscription": {
+      "text": "Silas lived alone ",
+      "finished": true
+    },
+    "partial": false
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "guI9LIvK",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333015736,
+    "interrupted": true,
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "b6ULSyL6",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333015889,
+    "usageMetadata": {
+      "promptTokenCount": 610,
+      "responseTokenCount": 25,
+      "totalTokenCount": 635,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 363
+        },
+        {
+          "modality": "AUDIO",
+          "tokenCount": 222
+        }
+      ],
+      "responseTokensDetails": [
+        {
+          "modality": "AUDIO",
+          "tokenCount": 25
+        }
+      ],
+      "thoughtsTokenCount": 256
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "czLmVu5K",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333015889,
+    "turnComplete": true,
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "htOHvMhT",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333016865,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:16640 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "sVZdKCmu",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333016865,
+    "outputTranscription": {
+      "text": "Barnaby, the ",
+      "finished": false
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "Ima8kWE5",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333016904,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:23040 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "w9AdATbI",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333016917,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:7680 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "sg5sN3cU",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333016942,
+    "outputTranscription": {
+      "text": "Barnaby, the ",
+      "finished": true
+    },
+    "partial": false
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "XGSjz2IZ",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333016942,
+    "interrupted": true,
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "mfjsmqbQ",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333017122,
+    "usageMetadata": {
+      "promptTokenCount": 682,
+      "responseTokenCount": 25,
+      "totalTokenCount": 707,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 398
+        },
+        {
+          "modality": "AUDIO",
+          "tokenCount": 247
+        }
+      ],
+      "responseTokensDetails": [
+        {
+          "modality": "AUDIO",
+          "tokenCount": 25
+        }
+      ],
+      "thoughtsTokenCount": 180
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "ce8BsPqO",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333017122,
+    "turnComplete": true,
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "LKiAtfWz",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333017517,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:4 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "QprhWAje",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333017517,
+    "outputTranscription": {
+      "text": "The ship ",
+      "finished": false
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "GxYIMOmw",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333017525,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:8320 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "oRQF5xbJ",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333017572,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:10240 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "AO7rw9vV",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333017615,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:15360 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "mfXsh13t",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333017642,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:10240 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "2Qj8YilR",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333017701,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:15360 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "w84LbaTz",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333017810,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:12800 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "nYYarDxI",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333017810,
+    "outputTranscription": {
+      "text": "is fine.",
+      "finished": false
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "ZTCmgDrb",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333017816,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:10240 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "Wq9EK7Vw",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333017822,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:10240 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "jjUP2Dkx",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333017837,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:7680 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "1xedlf9N",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333017838,
+    "outputTranscription": {
+      "text": "The ship is fine.",
+      "finished": true
+    },
+    "partial": false
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "IUdB4LVr",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333019092,
+    "usageMetadata": {
+      "promptTokenCount": 742,
+      "responseTokenCount": 45,
+      "totalTokenCount": 787,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 421
+        },
+        {
+          "modality": "AUDIO",
+          "tokenCount": 272
+        }
+      ],
+      "responseTokensDetails": [
+        {
+          "modality": "AUDIO",
+          "tokenCount": 45
+        }
+      ],
+      "thoughtsTokenCount": 35
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "author": "spike",
+    "id": "DVyQnX4H",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790333019092,
+    "turnComplete": true,
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "type": "__host_complete__"
+  }
+]

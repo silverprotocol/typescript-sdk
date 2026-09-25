@@ -233,6 +233,9 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // 2026-09-25: the live (bidi) barge-in capture, enrolled on per-generation
   // turns (its capture-time golden recorded the earlier fold, which parked).
   { scenario: "live-bargein-gemini38live", framework: "adk" },
+  // 2026-09-25: the two-barge-in live session (capture-time coverage was
+  // computed against empty guard maps).
+  { scenario: "live-bargein2-gemini38live", framework: "adk" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

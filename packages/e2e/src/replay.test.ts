@@ -431,6 +431,11 @@ const ADK_SEEDS = [
   // own turn (`<turnId>_g1`, success), so the fold never parks. Audio payloads
   // are elided at capture and the resumption handle is redacted.
   "live-bargein-gemini38live",
+  // 2026-09-25: the second live session, TWO barge-ins (the second goes out at
+  // the first output of generation 2, after generation 1's trailing usage and
+  // turnComplete): two interrupted generations, each closing
+  // turn.abort{interrupted} with its own usage, then the reply `_g2` succeeds.
+  "live-bargein2-gemini38live",
 ] as const;
 
 /**
