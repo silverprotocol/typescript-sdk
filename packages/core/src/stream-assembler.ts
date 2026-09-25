@@ -109,6 +109,7 @@ export interface AssemblerCheckpoint {
   readonly seq: number;
   readonly seenTurns: ReadonlySet<string>;
   readonly openTurns: ReadonlySet<string>;
+  readonly closedTurns: ReadonlySet<string>;
   readonly openMessages: ReadonlyMap<string, { turnId: string }>;
   readonly msgTurn: ReadonlyMap<string, string>;
   readonly lastTurn: string | undefined;
@@ -130,6 +131,13 @@ export class StreamAssembler {
   // EVERY turn-lifecycle event (sugar primitives + raw `emit()`) keeps it correct.
   // Drives `flush()`'s INV-FLUSH turn.abort closure (audit M21).
   #openTurns = new Set<string>();
+
+  // turnIds whose terminal (turn.done / turn.error / turn.abort, or a nested
+  // turn's subagent.done) has been emitted. A closed turn stays closed: a later
+  // merging turn.start or subagent.start naming it never puts it back in
+  // #openTurns (the reducer's INV-MSG rule: such a start merges fields and does
+  // not reopen the turn), so flush() can never emit a second terminal for it.
+  #closedTurns = new Set<string>();
 
   // Insertion-ordered map of open messageId → its owning turnId.
   // Used by flush() to close dangling messages in the order they were opened.
@@ -180,17 +188,21 @@ export class StreamAssembler {
     switch (ev.type) {
       case "turn.start":
       case "subagent.start":
-        this.#openTurns.add(ev.turnId);
+        if (!this.#closedTurns.has(ev.turnId)) this.#openTurns.add(ev.turnId);
         break;
       case "turn.done":
       case "turn.error":
       case "turn.abort": {
         const closed = ev.turnId ?? this.#lastTurn;
-        if (closed !== undefined) this.#openTurns.delete(closed);
+        if (closed !== undefined) {
+          this.#openTurns.delete(closed);
+          this.#closedTurns.add(closed);
+        }
         break;
       }
       case "subagent.done":
         this.#openTurns.delete(ev.turnId);
+        this.#closedTurns.add(ev.turnId);
         break;
       default:
         break;
@@ -252,7 +264,15 @@ export class StreamAssembler {
    * Delegates to `#ensureTurn` so the synthesis path lives in one place.
    */
   openTurn(turnId: string, threadId: string, opts?: { trigger?: AgTrigger }): void {
-    this.#ensureTurn(turnId, threadId, opts);
+    if (this.#seenTurns.has(turnId) && opts?.trigger !== undefined) {
+      // A trigger for a turn already introduced is not dropped: a later
+      // turn.start naming a seen turn merges its fields (INV-TURN), so the
+      // trigger reaches the turn record. A closed turn stays closed (#emit).
+      const ev: TurnStartEvent = { type: "turn.start", seq: this.#nextSeq(), turnId, threadId, trigger: opts.trigger };
+      this.#emit(ev);
+    } else {
+      this.#ensureTurn(turnId, threadId, opts);
+    }
     this.#lastTurn = turnId;
   }
 
@@ -682,6 +702,7 @@ export class StreamAssembler {
       seq: this.#seq,
       seenTurns: new Set(this.#seenTurns),
       openTurns: new Set(this.#openTurns),
+      closedTurns: new Set(this.#closedTurns),
       openMessages: new Map([...this.#openMessages].map(([k, v]) => [k, { ...v }])),
       msgTurn: new Map(this.#msgTurn),
       lastTurn: this.#lastTurn,
@@ -700,6 +721,7 @@ export class StreamAssembler {
     this.#seq = cp.seq;
     this.#seenTurns = new Set(cp.seenTurns);
     this.#openTurns = new Set(cp.openTurns);
+    this.#closedTurns = new Set(cp.closedTurns);
     this.#openMessages = new Map([...cp.openMessages].map(([k, v]) => [k, { ...v }]));
     this.#msgTurn = new Map(cp.msgTurn);
     this.#lastTurn = cp.lastTurn;

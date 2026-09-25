@@ -83,6 +83,61 @@ describe("INV-FLUSH turn closure (audit M21)", () => {
     expect(a.flush().filter((e) => e.type === "turn.abort")).toHaveLength(0);
   });
 
+  it("pkg-07 (i): a late merging turn.start or subagent.start for a closed turn reopens nothing, so flush() emits no second terminal", () => {
+    const a = new StreamAssembler();
+    a.openTurn("t1", "th1");
+    a.openTurn("t2", "th1");
+    a.closeTurnDone("t1", { outcome: { type: "success" }, finishReason: "stop" });
+    a.closeTurnError("t2", { message: "boom" });
+    a.subagentStart("s1", "t1");
+    a.emit({ type: "turn.abort", turnId: "s1", reason: "interrupted" });
+    a.emit({ type: "subagent.done", turnId: "s1", parentTurnId: "t1" });
+    a.openTurn("t3", "th1"); // control: still open at flush
+    // late merging starts for all three closed turns
+    a.emit({ type: "turn.start", turnId: "t1", threadId: "th1" });
+    a.emit({ type: "turn.start", turnId: "t2", threadId: "th1" });
+    a.emit({ type: "subagent.start", turnId: "s1", parentTurnId: "t1" });
+    const evs = [...a.drain(), ...a.flush()];
+    const terminals = (id: string) => evs.filter((e) => (e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort") && e.turnId === id).length;
+    expect([terminals("t1"), terminals("t2"), terminals("s1"), terminals("t3")]).toEqual([1, 1, 1, 1]);
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+  });
+
+  it("pkg-07 (i): rollback restores the closed set with the rest of the trackers", () => {
+    const a = new StreamAssembler();
+    a.openTurn("t1", "th1");
+    const cp = a.checkpoint();
+    a.closeTurnDone("t1", { outcome: { type: "success" }, finishReason: "stop" });
+    a.rollback(cp);
+    // the close was rolled back, so t1 is open again and flush aborts it
+    expect(a.flush().filter((e) => e.type === "turn.abort")).toHaveLength(1);
+    const b = new StreamAssembler();
+    b.openTurn("t1", "th1");
+    b.closeTurnDone("t1", { outcome: { type: "success" }, finishReason: "stop" });
+    const cp2 = b.checkpoint();
+    b.emit({ type: "turn.start", turnId: "t1", threadId: "th1" });
+    b.rollback(cp2);
+    b.emit({ type: "turn.start", turnId: "t1", threadId: "th1" });
+    expect(b.flush().filter((e) => e.type === "turn.abort")).toHaveLength(0);
+  });
+
+  it("pkg-07 (ii): openTurn with a trigger for a turn already seen emits a merging turn.start, and the trigger reaches the record", () => {
+    const a = new StreamAssembler();
+    a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" }); // synthesizes turn.start for t1
+    a.openTurn("t1", "th1", { trigger: { kind: "resume", ref: "a1" } });
+    a.openTurn("t1", "th1"); // no trigger: nothing new
+    const evs = [...a.drain(), ...a.flush()];
+    const starts = evs.filter((e) => e.type === "turn.start");
+    expect(starts).toHaveLength(2);
+    expect(starts[1]).toMatchObject({ turnId: "t1", trigger: { kind: "resume", ref: "a1" } });
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.find((t) => t.turnId === "t1")?.trigger).toEqual({ kind: "resume", ref: "a1" });
+  });
+
   it("nested dangling turns close innermost-first", () => {
     const a = new StreamAssembler();
     a.openTurn("t1", "th1");
@@ -645,7 +700,7 @@ describe("StreamAssembler.checkpoint / rollback (option A, used by vercel-ai)", 
     // test failing. Methods (`#name(`) are not state.
     const src = readFileSync(join(import.meta.dirname, "stream-assembler.ts"), "utf8");
     const fields = [...src.matchAll(/^  #(\w+)\s*[:=]/gm)].map((m) => m[1]!);
-    expect(fields).toEqual(["seq", "seenTurns", "openTurns", "openMessages", "msgTurn", "lastTurn", "turnStack", "cumulative", "buffer"]);
+    expect(fields).toEqual(["seq", "seenTurns", "openTurns", "closedTurns", "openMessages", "msgTurn", "lastTurn", "turnStack", "cumulative", "buffer"]);
     const body = (signature: string): string => {
       const i = src.indexOf(signature);
       expect(i, signature).toBeGreaterThan(0);
