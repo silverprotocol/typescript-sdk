@@ -196,7 +196,7 @@ function assertAllValid(evs: AgEvent[]): void {
 // monotonic. The nested-subagent turn is seeded by `subagent.start`, so it has
 // NO synthesized `turn.start`.
 
-// INV-TURN (per-turn ids, sp-protocol ruling B, 2026-09-23): a top-level turn
+// INV-TURN (per-turn ids, ruling B, 2026-09-23): a top-level turn
 // is named by the frame that OPENS it, never by the session. Most fixtures
 // open on `assistantMsg` (message id "msg_fixture_1"); a turn a result frame
 // opens by itself (no assistant frame first) is named by that result's uuid.
@@ -294,7 +294,7 @@ describe("createClaudeNormalizer — result success", () => {
 });
 
 // ─── draft.4: turn.done.finishReasonRaw on a FALLBACK finishReason ──────────
-// SPEC §8.0 graceful degradation / §10 item 23 (sp-protocol 89c57db): a
+// SPEC §8.0 graceful degradation / §10 item 23 (89c57db): a
 // stop_reason the facet cannot map falls back to "unknown", and the native value
 // rides `finishReasonRaw` verbatim. Only on the fallback.
 describe("createClaudeNormalizer — finishReasonRaw (draft.4)", () => {
@@ -319,7 +319,7 @@ describe("createClaudeNormalizer — finishReasonRaw (draft.4)", () => {
   });
 });
 
-// ─── INV-TURN: a RESULT-ONLY turn is opened, not only closed (sp-protocol) ───
+// ─── INV-TURN: a RESULT-ONLY turn is opened, not only closed ───
 // Through the B commit a result with no preceding assistant frame / notice /
 // stream emitted a lone terminal, and reduce() minted a stub record whose
 // threadId was the turnId. Every turn is now opened by exactly one turn.start.
@@ -332,7 +332,7 @@ describe("createClaudeNormalizer — result-only turns open with a turn.start (I
   }
 
   it("a RESUMED invoke's leading tool_result (the deferred call's, before init) opens the turn; the invoke's reply joins it; one close; no park", () => {
-    // Frame order from sp-probe's live defer-tool-sonnet5-resume-allow capture.
+    // Frame order from the live defer-tool-sonnet5-resume-allow capture.
     const leading: unknown = {
       type: "user",
       message: { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_deferred_leg1", content: [{ type: "text", text: "echoed" }] }] },
@@ -1266,7 +1266,7 @@ describe("createClaudeNormalizer — permission_denials on an error-subtype resu
 });
 
 // ─── Tenet 6: a result frame's usage never throws out of push() ─────────────
-// sp-protocol, writing §10.23's claude leg: a result whose `usage` lacks
+// Found writing §10.23's claude leg: a result whose `usage` lacks
 // `server_tool_use` threw a TypeError out of push() (`!== null` let `undefined`
 // through to a dereference). SPEC §8.0: a normalizer MUST NOT throw out of push().
 describe("createClaudeNormalizer — result usage is shape-guarded (Tenet 6, SPEC §8.0)", () => {
@@ -1630,7 +1630,7 @@ describe("createClaudeNormalizer — deferral c: assistant error → turn.error"
   });
 });
 
-// ─── INV-TURN: one turnId names exactly one turn (sp-protocol ruling B) ──────
+// ─── INV-TURN: one turnId names exactly one turn (ruling B) ──────
 // Through 0.6.4 every top-level turn was `turn_${session_id}`, so in a
 // multi-turn invoke the second turn's message.start and content landed on T
 // AFTER turn.done(T) (no second turn.start: the assembler's seen-turn set
@@ -1776,7 +1776,7 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
     expect(turnIds(evs, "turn.done")).toEqual(["turn_msg_streamed"]);
   });
 
-  // Nested INV-TURN (per-run bracket, sp-protocol ruling 2026-09-23): each
+  // Nested INV-TURN (per-run bracket, ruling of 2026-09-23): each
   // nested turn opens once (subagent.start) and closes once (subagent.done),
   // with none of its events after that close.
   function assertOneBracketPerRun(evs: AgEvent[], runs: number): void {
@@ -2079,7 +2079,7 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
 });
 
 // ─── draft.4 `phase:"interim"` from narration_block_indexes (§8.0 item 27) ───
-// rnd 13+17 stage 2, the claude leg (A.6; a SHOULD per the founder's A.10.5
+// rnd 13+17 stage 2, the claude leg (A.6; a SHOULD per the A.10.5
 // ruling). A `thinking` block listed in the frame-local narration_block_indexes
 // whose text is NON-EMPTY → phase "interim" on that reasoning block: on
 // reasoning.start when the frame is complete-form (known before the first
@@ -2220,7 +2220,7 @@ describe("createClaudeNormalizer — draft.4 phase:'interim' from narration_bloc
 });
 
 // ─── SDKUserMessageReplay (`isReplay: true`) emits no core event ─────────────
-// sp-rnd lead (2026-09-23). Two hazards, both confirmed on fixtures before the fix:
+// A lead of 2026-09-23. Two hazards, both confirmed on fixtures before the fix:
 //  - the realistic one: a replay ack landing MID-STREAM ran closePendingMessage()
 //    and split the streaming message (test in the stream_event describe below);
 //  - the defensive one: a replayed tool_result re-emitted `tool.done`, which after
@@ -2499,7 +2499,7 @@ describe("createClaudeNormalizer — refusal-fallback retraction (playbook 2026-
     expect(turnDone).toMatchObject({ usage: { cumulative: true } });
   });
 
-  // ─── X4 (sp-rnd re-cut, 2026-09-23): the rest of the frame rides the carry ──
+  // ─── X4 (the 2026-09-23 re-cut): the rest of the frame rides the carry ──
   // Through 0.6.3 only `retracted_message_uuids` was read; the switch itself
   // (models, direction, scope, refusal category/explanation, the edit-and-retry
   // uuid, `content`) was dropped. The whole frame now rides
@@ -3372,7 +3372,7 @@ describe("createClaudeNormalizer — uniform vendor-frame carry (ext.anthropic.f
 });
 
 // ─── runtime-only top-level frame types ride the uniform carry ───────────────
-// The frames below are VERBATIM from corpus/multi-result-sonnet5 (sp-probe's
+// The frames below are VERBATIM from corpus/multi-result-sonnet5 (the
 // live streaming-input capture, claude-sonnet-5 @0.3.280): `command_lifecycle`
 // is not a member of the 0.3.280 SDKMessage union, so no d.ts diff saw it, and
 // the facet dropped it silently until the unknown-type net.
@@ -4090,7 +4090,7 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
 
 // ─── SDKResultSuccess.deferred_tool_use → result-meta.deferredToolUse ────────
 // The tool call a host's PreToolUse `defer` decision parked (CLI "Deferred tool
-// resume"): content the host must act on, previously dropped (seat queue item
+// resume"): content the host must act on, previously dropped (queue item
 // 3's triage). Carried whole and verbatim on the existing result-meta bag.
 describe("createClaudeNormalizer — deferred_tool_use rides ext.anthropic.result-meta", () => {
   const DEFERRED = { id: "toolu_deferred_1", name: "Bash", input: { command: "deploy --prod" } };
@@ -4802,7 +4802,7 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
     // The CLI sends replay acks when it accepts stdin input and never holds them,
     // so an ack can land between partials. Before the isReplay guard the user
     // branch ran closePendingMessage() on it: the message split in two, and the
-    // complete frame re-opened a `:cont:` copy (sp-rnd lead, 2026-09-23).
+    // complete frame re-opened a `:cont:` copy (a lead of 2026-09-23).
     const ack: SDKMessage = {
       type: "user",
       message: { role: "user", content: "and also check the tests" },
@@ -6110,7 +6110,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     expect(atFlush[0]).not.toHaveProperty("usage");
   });
 
-  // sp-protocol ruling 1 (2026-09-23): a nested-origin error never closes the
+  // Ruling 1 (2026-09-23): a nested-origin error never closes the
   // parent; the parent closes as an error only when its OWN result says so. The
   // nested failure rides a non-terminal `error` event on the NESTED turn.
   const nestedErrors = (evs: AgEvent[]): unknown[] =>
@@ -6430,7 +6430,7 @@ const LIVE_RESULT_FRAME = {
 };
 
 // ─── result-meta: apiErrorStatus + an error close's stopReason ───────────────
-// The api-error-auth seed's census drops 5 and 6 (sp-probe): `api_error_status`
+// The api-error-auth seed's census drops 5 and 6: `api_error_status`
 // was read only for `retriable`, and `stop_reason` on a result that closes as
 // turn.error had no home (turn.error has no finishReason; finishReasonRaw is
 // turn.done-only). Both ride result-meta verbatim; stopReason ONLY on an error
@@ -6484,7 +6484,7 @@ describe("createClaudeNormalizer — CL-09 LIVE: the captured invalid-API-key fr
       queuedTurnCount: 0,
       resultIndex: 0,
     });
-    // The live 401 frame's own error facts ride result-meta too (sp-probe's
+    // The live 401 frame's own error facts ride result-meta too (the
     // api-error-auth seed): the HTTP status, and the stop_reason an error close
     // has no finishReason slot for.
     expect(evs[6]).toMatchObject({ apiErrorStatus: 401, stopReason: "stop_sequence" });
@@ -6823,7 +6823,7 @@ describe("createClaudeNormalizer — decision_reason_code (CLI 2.1.280, undeclar
 });
 
 // ─── C + D: a harness-stamped denial is `outcome:"denied"`, closed once ──────
-// sp-protocol (2026-09-23), conformance, ships in 0.7.0:
+// Ruling of 2026-09-23, conformance, ships in 0.7.0:
 //  C: the CLI stamps each is_error tool_result with `tool_result_meta[]
 //     .non_execution_kind` (runtime-only). user-rejected / permission-rule /
 //     automode-* → "denied" with NO isError / errorText (the native message stays
@@ -6831,7 +6831,7 @@ describe("createClaudeNormalizer — decision_reason_code (CLI 2.1.280, undeclar
 //     Never inferred from the result text.
 //  D: a permission_denials entry whose id already has its final tool.done in
 //     this invoke is skipped; an id not yet closed still gets its carrier pair.
-// Live shape: sp-probe's defer-tool-sonnet5-resume-deny (d8cde06, not yet
+// Live shape: defer-tool-sonnet5-resume-deny (d8cde06, not yet
 // enrolled): 3 PreToolUse-hook-blocked calls, each result stamped
 // "permission-rule", and the result's permission_denials naming all 3.
 describe("createClaudeNormalizer — non_execution_kind denials (C) and the closed-call denials skip (D)", () => {
@@ -7019,7 +7019,7 @@ describe("createClaudeNormalizer — non_execution_kind denials (C) and the clos
     expect(bare !== undefined && "providerMetadata" in bare).toBe(false);
   });
 
-  // Second key (sp-protocol, after 6d980a5): a live permission_denied notice
+  // Second key (after 6d980a5): a live permission_denied notice
   // seen before an UNSTAMPED is_error result marks it denied. 2.1.280 stamps no
   // kind on a frame with more than one tool_result, and an older CLI stamps none.
   function twoResultFrame(a: string, b: string): unknown {
@@ -7081,7 +7081,7 @@ describe("createClaudeNormalizer — non_execution_kind denials (C) and the clos
   });
 });
 
-// ─── sp-probe's resume-unavailable leg (7c6880f): two census new-fields ───────
+// ─── the resume-unavailable leg (7c6880f): two census new-fields ─────────────
 // `message.diagnostics` rides the first block's host-only `_meta` (once per SDK
 // message id); a live user frame with no tool_result (the CLI's isSynthetic
 // nudge) rides `ext.anthropic.frame{kind:"user"}` verbatim.
@@ -7192,9 +7192,9 @@ describe("createClaudeNormalizer — message.diagnostics and CLI-added user fram
   });
 });
 
-// ─── result-only error close: code from a non-API terminal_reason (sp-protocol,
+// ─── result-only error close: code from a non-API terminal_reason (
 // facet-local, 2026-09-23) ────────────────────────────────────────────────────
-// The CLI sets is_error on a result that is NOT an API error: sp-probe's
+// The CLI sets is_error on a result that is NOT an API error: the
 // resume-unavailable leg (7c6880f), terminal_reason "tool_deferred_unavailable",
 // result "". code = api_error_code, else a terminal_reason other than
 // "completed" (a live API error's own is "api_error", the same code), else
@@ -7257,7 +7257,7 @@ describe("createClaudeNormalizer — the result-only error close names a non-API
 });
 
 // ─── SPEC:933 — push() never throws on a LIVE (not JSON round-tripped) frame ──
-// sp-google found it on google-adk; sp-probe reproduced it here (bb319bf): a
+// Found first on google-adk, reproduced here (bb319bf): a
 // host pushing an in-process object whose members are not JSON (an undefined
 // member, a Date, NaN, a function) made push() THROW (ZodError from a
 // JsonValue.parse site; `JSON.stringify(input)` for the args delta on a cycle).
@@ -7287,7 +7287,7 @@ describe("createClaudeNormalizer — a live, non-JSON frame never throws out of 
     };
   }
 
-  it("RED-first (sp-probe's reproduction): tool_use.input {a: undefined, d: Date} folds exactly as its JSON form", () => {
+  it("RED-first (the reproduction): tool_use.input {a: undefined, d: Date} folds exactly as its JSON form", () => {
     const frames = [toolUseFrame({ a: undefined, d: new Date(0), keep: 1 })];
     expect(() => pushLive(frames)).not.toThrow();
     expect(JSON.stringify(pushLive(frames))).toBe(JSON.stringify(pushJson(frames)));
@@ -7422,7 +7422,7 @@ describe("createClaudeNormalizer — no emitted event shares an object with the 
     expect(aliasPaths([start])).toEqual([]);
   });
 
-  // The same three checks over every committed claude native (sp-probe's corpus,
+  // The same three checks over every committed claude native (the corpus,
   // all JSON: exactly the frames push() now hands through by reference).
   const corpusDir = fileURLToPath(new URL("../../e2e/corpus/", import.meta.url));
   function corpusSeeds(): Array<[string, string]> {
@@ -7493,7 +7493,7 @@ describe("createClaudeNormalizer — no emitted event shares an object with the 
 });
 
 // ─── DC-10: the positional fallback turn id is unique across invokes ──────────
-// sp-protocol's D3 bar / sp-probe's cross-invoke guard: guuey folds a whole
+// The D3 review / the cross-invoke guard: guuey folds a whole
 // conversation into ONE Reducer, and `turn_frame_<n>` (a result with no uuid)
 // depended only on wire position, so two invokes named the same turn. The
 // fold did NOT park: a silent id reuse, so ids are compared directly.
@@ -7509,7 +7509,7 @@ describe("createClaudeNormalizer — DC-10: fallback turn ids never repeat acros
   };
   const invoke = (n: ReturnType<typeof createClaudeNormalizer>): AgEvent[] => [...n.push(JsonValue.parse(noUuidResult())), ...n.flush()];
 
-  it("sp-probe's leg: two fresh normalizers, the same uuid-less result, folded into ONE Reducer: distinct turn ids, no park, two turns", () => {
+  it("cross-invoke leg: two fresh normalizers, the same uuid-less result, folded into ONE Reducer: distinct turn ids, no park, two turns", () => {
     const first = invoke(createClaudeNormalizer());
     const second = invoke(createClaudeNormalizer());
     expect(starts(first)).toHaveLength(1);
@@ -7541,7 +7541,7 @@ describe("createClaudeNormalizer — DC-10: fallback turn ids never repeat acros
   });
 });
 
-// ─── the atomic-push guard (core withAtomicPush; the fleet guard ruling) ──────
+// ─── the atomic-push guard (core withAtomicPush; the guard ruling) ──────
 // An envelope-valid but malformed frame throws inside the inner normalizer;
 // its partial batch and state are discarded (rebuild + re-drive), and one core
 // `error` takes the next seq.
@@ -7607,7 +7607,7 @@ describe("createClaudeNormalizer — withAtomicPush: a throwing frame leaves no 
   });
 });
 
-// ─── rd-15: defer the field, fix the carries (founder ruling 2026-09-24) ──────
+// ─── rd-15: defer the field, fix the carries (ruling of 2026-09-24) ─────
 // cto's conditions: every carry sits in a home that FOLDS (readable and durable),
 // never providerMetadata; zero golden moves (no committed native carries these).
 describe("createClaudeNormalizer — rd-15 carries: host-readable homes that fold", () => {
@@ -7681,8 +7681,8 @@ describe("createClaudeNormalizer — rd-15 carries: host-readable homes that fol
   });
 });
 
-// ─── B-strict nested terminals (draft.4; the founder's nested-turn ruling Q1) ──
-// sp-protocol's §10 item 22 statement, checked on every stream below: for every
+// ─── B-strict nested terminals (draft.4; the nested-turn ruling Q1) ──
+// The §10 item 22 statement, checked on every stream below: for every
 // subagent.start, exactly ONE turn.done | turn.error | turn.abort with that
 // turnId, carrying no usage, IMMEDIATELY followed by that turn's subagent.done;
 // no nested turnId equals a turn.start turnId; and folding the stream with its
@@ -7856,7 +7856,7 @@ describe("createClaudeNormalizer — verbatim carries drop provider credit token
 });
 
 // ─── ids across invokes: a nested result for a run this invoke never opened ────
-// sp-protocol's message.start bar (wf_140b3183-767) restates rd-14's rule as a
+// The message.start review (wf_140b3183-767) restates rd-14's rule as a
 // §8.0 producer MUST: turn ids never repeat across the invokes one Reducer
 // folds. The top-level no-open-turn tool.done the bar cited already opens its
 // own uuid-named turn (B-resume 37185be). The nested case did not: it named the
@@ -7907,7 +7907,7 @@ describe("createClaudeNormalizer — ids across invokes: no-open-turn results", 
 });
 
 // ─── C1: an honest flush (INV-FLUSH (3), draft.4; the fold/flush ruling) ──────
-// The founder's ruling: "snapshot fold + honest flush; opaque at flush
+// The ruling: "snapshot fold + honest flush; opaque at flush
 // FORBIDDEN". A flush lands no new content: only lifecycle closes (text.end with
 // already-received citations, reasoning.end, message.end, the turn/nested
 // closes). The open blocks' scratch is DROPPED: no tool.args.assembled minted
@@ -7968,7 +7968,7 @@ describe("createClaudeNormalizer — C1: flush never mints content", () => {
   });
 });
 
-// ─── subagent carries (sp-probe's subagent captures, 5ba11da): the Agent run
+// ─── subagent carries (the subagent captures, 5ba11da): the Agent run
 // report on the Agent call's tool.done `_meta`, and a woken turn's `origin` ────
 describe("createClaudeNormalizer — subagent carries: AgentOutput and result origin", () => {
   const agentUse = (): unknown => assistantMsg([{ type: "tool_use", id: "toolu_agent", name: "Agent", input: { description: "d", prompt: "p", subagent_type: "echoer" } }]);
@@ -8008,7 +8008,7 @@ describe("createClaudeNormalizer — subagent carries: AgentOutput and result or
     expect(doneOf(drive([agentUse(), agentResult(ack)]))?.["_meta"]).toEqual({ "anthropic/agentOutput": expected });
   });
 
-  it("sp-cto's false positive: a THIRD-PARTY tool whose result holds an agentId is not an Agent run report (no carry, nothing stripped)", () => {
+  it("a review's false positive: a THIRD-PARTY tool whose result holds an agentId is not an Agent run report (no carry, nothing stripped)", () => {
     const crmUse = assistantMsg([{ type: "tool_use", id: "toolu_x", name: "mcp__crm__lookup_agent", input: { q: "who" } }]);
     const crmResult = {
       type: "user",

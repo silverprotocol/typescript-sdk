@@ -136,7 +136,7 @@ function stopReasonRaw(stop: BetaStopReason | string | null): string | undefined
 // invoke the second turn's message.start and content landed on T AFTER
 // turn.done(T) (the assembler's seen-turn set suppressed a second
 // turn.start), breaking INV-TURN (SPEC:743), and reduce() merged every turn
-// of a session into one AgTurnRecord (sp-protocol, 2026-09-23).
+// of a session into one AgTurnRecord (2026-09-23).
 
 // ─── image source mapping (Anthropic → AgSource, spec §2) ─────────────────────
 function imageSource(source: ImageBlockSource): AgSource {
@@ -201,7 +201,7 @@ function mapModelUsage(mu: SDKModelUsage): AgUsage {
 // but a result frame is discriminant-validated only, so a leaner producer (a
 // proxy, an older CLI) can omit it or a member. Through 0.7.0's stack an ABSENT
 // member passed the `!== null` check and threw a TypeError out of push()
-// (Tenet 6 / SPEC §8.0 "MUST NOT throw"; found by sp-protocol writing §10.23),
+// (Tenet 6 / SPEC §8.0 "MUST NOT throw"; found while writing §10.23),
 // and a missing counter summed to NaN. Both counters numbers ⇒ their sum;
 // anything else ⇒ absent.
 function serverToolRequestCount(usage: unknown): number | undefined {
@@ -358,7 +358,7 @@ function mcpToolResultContentToAgBlocks(content: McpToolResultContent): AgBlock[
   return out;
 }
 
-// `tool_result_meta` (CLI 2.1.280, @internal, runtime-only; live on sp-probe's
+// `tool_result_meta` (CLI 2.1.280, @internal, runtime-only; live on the
 // defer resume-deny capture): per tool_result, keyed by tool_use_id. Its
 // `non_execution_kind` is "the harness-stamped reason an is_error:true result did
 // not carry the tool's own execution output (user-rejected / permission-rule /
@@ -379,7 +379,7 @@ function readNonExecutionKinds(frame: unknown): Map<string, string> {
   return out;
 }
 
-// rd-15 (founder ruling 2026-09-24, fix the carries): each `tool_result_meta`
+// rd-15 (ruling of 2026-09-24, fix the carries): each `tool_result_meta`
 // entry, keyed by its `id` (the tool_use_id), verbatim: {id, non_execution_kind?,
 // user_feedback?, remedy?} per the CLI's schema ("@internal Display metadata for
 // this message's tool_result blocks"). Read through the JSON boundary; an entry
@@ -397,7 +397,7 @@ function readToolResultMetaEntries(frame: unknown): Map<string, JsonValue> {
 
 // The non_execution_kinds that mean the call was NOT PERMITTED to run →
 // `outcome:"denied"` (SPEC :850: "denied is a distinct recorded outcome"; §8.0
-// item 15 routes Claude's permission denials to it; sp-protocol, 2026-09-23).
+// item 15 routes Claude's permission denials to it; 2026-09-23).
 // `interrupted`, `cancelled`, absent and any unknown value are not denials and
 // keep "error" (no guessing).
 function isDenialKind(kind: string | undefined): boolean {
@@ -706,7 +706,7 @@ function isSDKMessage(v: unknown): v is SDKMessage {
 // `message.remove` (§8 item 19) and the rest of the frame has no home. It is
 // NOT in the sets below either. Its dedicated branch does the retraction and
 // then emits the same `ext.anthropic.frame` carry itself (X4, 2026-09-23, on
-// sp-protocol's item-22 reading for half-mapped frames — see that branch).
+// the item-22 reading for half-mapped frames — see that branch).
 //
 // ONE uniform key — `ext.anthropic.frame{kind, frame}` (SPEC §8 item 22 /
 // §12) — not 15 distinct ext keys (ext-vocabulary sprawl, the standing
@@ -822,7 +822,7 @@ const HOST_ONLY_WRAPPER_KEYS: ReadonlySet<string> = new Set([
   "api_error",
   "api_error_params",
   "api_error_code",
-  // rd-15 (founder: defer the field, fix the carries): three more @internal
+  // rd-15 (defer the field, fix the carries): three more @internal
   // CLI assistant-wrapper strings, carried where the host can read them.
   "error_details",
   "advisor_model",
@@ -895,7 +895,7 @@ const HARNESS_META_PREFIX = "anthropic/";
 // sibling key under "anthropic/" is dropped before the harness keys are
 // written, so a tool (a malicious MCP server) can never present a forged
 // harness fact, such as an agent report or a remedy pointing a host at its URL,
-// even for a call the facet writes no harness key for (sp-cto's read of the
+// even for a call the facet writes no harness key for (a review of the
 // rd-15 carry; the CLI itself strips its own reserved `com.anthropic/` prefix
 // from server `_meta`). Every other sibling key is kept verbatim. undefined
 // when nothing remains.
@@ -909,7 +909,7 @@ function mergeHarnessMeta(sibling: AgMeta | undefined, harness: { [k: string]: J
 }
 
 // `wire_tool_inputs` (CLI 2.1.280, @internal, undeclared in sdk.d.ts; first seen
-// on sp-probe's subagent captures): "tool_use.input exactly as the API produced
+// on the subagent captures): "tool_use.input exactly as the API produced
 // it, keyed by tool_use id, for a message whose message.content carries the
 // client-normalized input. Round-tripped so a replayed history echoes each
 // earlier tool call back to the API as the API emitted it" (the CLI's own
@@ -1158,7 +1158,7 @@ function resultMetaPayload(msg: SDKResultMsg, closesAsError: boolean): { [k: str
   const raw: unknown = msg;
   // `origin` (SDKMessageOrigin, on the result arms): set on the result of a turn
   // the framework WOKE, not the user, e.g. {kind: "task-notification"} after a
-  // background subagent reported (sp-probe's bg capture, 5ba11da). turn.start's
+  // background subagent reported (the background capture, 5ba11da). turn.start's
   // `trigger` is a frozen enum, so it rides here verbatim.
   const origin = isJsonObject(raw) && isJsonObject(raw["origin"]) ? carryVerbatim(raw["origin"]) : undefined;
   const subagentStats =
@@ -1178,7 +1178,7 @@ function resultMetaPayload(msg: SDKResultMsg, closesAsError: boolean): { [k: str
   // the host needs it to act on the parked call. Through 0.6.4 the facet never
   // read it (a silent drop). Carried WHOLE and verbatim (the `subagent_stats`
   // precedent); whether it should instead map onto `turn.done.outcome.paused`
-  // (asks) is a question routed to sp-protocol / sp-rnd. Fixture-only: no
+  // (asks) is an open spec question. Fixture-only: no
   // capture sets a defer hook.
   const deferredToolUse =
     isJsonObject(raw) && isJsonObject(raw["deferred_tool_use"]) ? JsonValue.parse(raw["deferred_tool_use"]) : undefined;
@@ -1186,7 +1186,7 @@ function resultMetaPayload(msg: SDKResultMsg, closesAsError: boolean): { [k: str
   // API error that ended the turn. It already decides `retriable` on an
   // is_error close; it is now also CARRIED verbatim, beside `apiErrorCode`, as
   // the census allowlist's "carry candidate the first time an error seed
-  // surfaces it" (sp-probe's api-error-auth seed: 401). Absent or null ⇒ no key.
+  // surfaces it" (the api-error-auth seed: 401). Absent or null ⇒ no key.
   const apiErrorStatus =
     isJsonObject(raw) && typeof raw["api_error_status"] === "number" ? raw["api_error_status"] : undefined;
   // `stop_reason` on a result that closes as turn.error: turn.error has no
@@ -1270,7 +1270,7 @@ export interface ClaudeNormalizerOptions {
    * turn by its SDK message id or frame uuid, unique by construction). A host
    * folds every invoke of a conversation into ONE Reducer, so a stem that
    * restarted with each invoke repeated those ids across invokes (DC-10, from
-   * sp-protocol's D3 bar). Absent, each normalizer draws a random
+   * the D3 review). Absent, each normalizer draws a random
    * `claude_<16 hex>` stem at most once, lazily (only when a fallback id is
    * first needed, so the common path draws no randomness), and holds it
    * OUTSIDE the atomic-push rebuild, so a rebuild reproduces it. Pass a fixed
@@ -1310,7 +1310,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // tool_result (same non-null parent_tool_use_id) can route to it instead.
   const subagentTurnByParentToolUseId = new Map<string, string>();
 
-  // INV-TURN (SPEC:743; sp-protocol ruling B, 2026-09-23): ONE turnId names
+  // INV-TURN (SPEC:743; ruling B, 2026-09-23): ONE turnId names
   // exactly ONE turn. A top-level turn is `turn_` + the id of the frame that
   // OPENS it: the first assistant message's id (`m.id`, from a complete frame
   // or a stream `message_start`) in the ordinary case, or the frame's own
@@ -1359,7 +1359,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // startup-failure result, a local-command result) is OPENED here with an
   // explicit turn.start before anything else the result emits (INV-TURN,
   // SPEC:743: every turn is opened by exactly one turn.start and closed by
-  // exactly one terminal; sp-protocol, 2026-09-23). Through the B commit such a
+  // exactly one terminal; 2026-09-23). Through the B commit such a
   // turn was only closed, and reduce() minted a stub record whose threadId was
   // the turnId. An open turn already has its turn.start (openMessage).
   function closingTopTurnId(resultUuid: unknown, sessionId: string): string {
@@ -1397,7 +1397,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
     return minted;
   }
 
-  // ONE subagent bracket per RUN (sp-protocol ruling, 2026-09-23; INV-TURN,
+  // ONE subagent bracket per RUN (ruling of 2026-09-23; INV-TURN,
   // SPEC:743; SPEC:807 "subagent.done: Close the nested turn"). Through 0.7.0's
   // B commit the bracket was per MESSAGE: a run of N nested messages emitted N
   // subagent.start/subagent.done pairs on its one id, closing it N times with
@@ -1415,8 +1415,8 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // the user branch), and a nested one for a run this invoke never opened opens
   // a fresh run the same way.
   //
-  // B-STRICT NESTED TERMINALS (draft.4, the founder's nested-turn ruling Q1,
-  // 2026-09-24; sp-protocol's package, sp-claude's leg). A nested turn opens
+  // B-STRICT NESTED TERMINALS (draft.4, the nested-turn ruling Q1,
+  // 2026-09-24). A nested turn opens
   // with exactly one subagent.start and closes with exactly one turn.done |
   // turn.error | turn.abort carrying its turnId, IMMEDIATELY followed by its
   // subagent.done (a no-fold bracket close that restores the owner). The five
@@ -1457,7 +1457,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // The ids of every Agent (or legacy Task) tool call seen in this invoke. Only
   // a result for one of these can carry an AgentOutput: a third-party tool whose
   // result happens to hold an `agentId` (a CRM, a ticketing system, any agent
-  // registry) is not Anthropic's Agent run report (sp-cto's read of f2c75d8).
+  // registry) is not Anthropic's Agent run report (a review of f2c75d8).
   const agentCallIds = new Set<string>();
   function openRun(parentToolUseId: string, turnId: string, parentTurnId: string): void {
     if (openRuns.has(parentToolUseId)) return;
@@ -1770,8 +1770,8 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // streamed-citations carrier), reasoning.end + the replay-load-bearing opaque
   // (same end-then-opaque order as the complete arm), the MANDATORY
   // tool.args.assembled (spec §4/§8.1), or the buffered compaction block.
-  // `atFlush` (INV-FLUSH (3), draft.4; the founder's fold/flush ruling, "snapshot
-  // fold + honest flush; opaque at flush forbidden"; sp-claude's leg C1): the
+  // `atFlush` (INV-FLUSH (3), draft.4; the fold/flush ruling, "snapshot
+  // fold + honest flush; opaque at flush forbidden"; leg C1): the
   // stream ENDED with this block open, so the close lands NO new content. The
   // lifecycle closes stay (text.end with its already-received citations,
   // reasoning.end), and the block's scratch is DROPPED: no tool.args.assembled
@@ -2063,14 +2063,14 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // name kept; null kept: "no estimate yet" is a real value). Absent key ⇒
         // no bag, byte-identical.
         //
-        // X5 (sp-rnd, 2026-09-23): it rides the delta's host-only `_meta`, not
+        // X5 (2026-09-23): it rides the delta's host-only `_meta`, not
         // `providerMetadata`. The latter is REPLAY-LOAD-BEARING (SPEC §12: values
         // that must round-trip to the provider), and the Messages API never
         // consumes this CLI estimate. Consequence: `reduce()` folds `_meta` only
         // on start events, so the estimate is now LIVE-ONLY (it used to fold
         // last-value-wins onto the reasoning block) — the same standing as its
         // `system/thinking_tokens` twin, which rides `ext.anthropic.frame`. No
-        // consumer read the folded value (guuey/ggui checked via sp-team-main).
+        // consumer read the folded value (guuey/ggui checked).
         // `reasoningDelta`'s sugar has no `_meta` option; `a.emit()` is the base
         // primitive (the reasoning.start precedent in `emitAssistantBlock`), and
         // the sugar's only extra step, de-cumulation, is a pass-through for a
@@ -2336,7 +2336,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         wrapperMetaRaw["narration_block_indexes"] = narrationBlockIndexes;
       }
       // `message.diagnostics` (a Messages API response field, first seen live on
-      // sp-probe's defer-tool-sonnet5-resume-unavailable, 7c6880f): per-response
+      // the defer-tool-sonnet5-resume-unavailable capture, 7c6880f): per-response
       // diagnostics, there `{cache_miss_reason: {type: "tools_changed",
       // cache_missed_input_tokens: 3258}}`, i.e. why the prompt cache missed.
       // Response-only (never sent back on replay), so it rides host-only `_meta`
@@ -2388,7 +2388,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       if (assistantApiErrorCode !== undefined) {
         wrapperMetaRaw["api_error_code"] = assistantApiErrorCode;
       }
-      // rd-15 (founder ruling 2026-09-24: defer the neutral remedy field, fix the
+      // rd-15 (ruling of 2026-09-24: defer the neutral remedy field, fix the
       // vendor carries; a 0.7.0 carry with zero golden moves). Three more
       // @internal CLI 2.1.280 assistant-wrapper strings, UNDECLARED in sdk.d.ts
       // 0.3.280 (so read through the JSON boundary), carried verbatim under their
@@ -2509,7 +2509,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
           if (resumeReason !== undefined) wrapperMetaRaw["resume_reason"] = resumeReason;
         }
       }
-      // X5 (sp-rnd re-cut, 2026-09-23): the bag mixes two kinds of fact. SPEC
+      // X5 (the 2026-09-23 re-cut): the bag mixes two kinds of fact. SPEC
       // §12 makes `providerMetadata` REPLAY-LOAD-BEARING (values that must
       // round-trip to the provider) and `_meta` host-only side metadata.
       // `narration_block_indexes` and the API-error triad are CLI-wrapper facts
@@ -2520,7 +2520,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // `message.metadata` path below that uses it, stay byte-identical
       // (message.metadata is already `AgMeta`).
       //
-      // Consumer check (sp-team-main, 2026-09-23): ggui has none of these names.
+      // Consumer check (2026-09-23): ggui has none of these names.
       // No guuey code reads `providerMetadata`, and its #367/#1652 scrub keys on
       // the native frame. guuey asked that the triad move as ONE unit; the
       // result frame's `apiErrorCode` stays on `ext.anthropic.result-meta`.
@@ -2540,7 +2540,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // Everything below the block loop (wrapper carry via message.metadata,
       // usage, error close, uuid registration) still runs.
       const suppressed = open.streamed;
-      // draft.4 `phase` (§8.0 item 27, a SHOULD per the founder's A.10.5
+      // draft.4 `phase` (§8.0 item 27, a SHOULD per the A.10.5
       // ruling): a `thinking` block listed in `narration_block_indexes` whose
       // text is NON-EMPTY is interim narration → `phase:"interim"` on that
       // reasoning block. A listed empty block (display "omitted") gets none.
@@ -2663,7 +2663,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         const errCode: NonNullable<SDKAssistantError> = msg.error;
         const retriable = assistantErrorRetriable(errCode);
         if (msg.parent_tool_use_id !== null) {
-          // A NESTED error frame (sp-protocol ruling 1, 2026-09-23): the error is
+          // A NESTED error frame (ruling 1, 2026-09-23): the error is
           // owned by the NESTED turn (SPEC:97 a subagent is a full turn with its
           // own turnId; INV-OWNER, SPEC:753), so it never closes the parent. The
           // parent closes as an error only when its OWN result frame says so.
@@ -2674,7 +2674,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
           // failure rides the NON-terminal `error` event (SPEC:609) on the nested
           // turn: live-only but truthful and correctly owned, and inside the
           // run's still-open bracket, so before its subagent.done. The folded gap
-          // ("a nested turn has no failure outcome") is sp-protocol's to bar.
+          // ("a nested turn has no failure outcome") is an open spec question.
           a.emit({ type: "error", turnId, message: errCode, code: errCode, retriable });
           // B-strict: the nested turn now HAS a failure outcome. The FIRST error
           // frame's close is stashed and released as the nested turn.error when
@@ -2701,7 +2701,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
     if (msg.type === "user") {
       // SDKUserMessageReplay (`isReplay: true`, typed only on that arm; a
       // runtime `isReplay: false` also exists, so only `=== true` counts) emits
-      // NO core event and does NOT seal the open message (sp-rnd lead,
+      // NO core event and does NOT seal the open message (a lead of
       // 2026-09-23). The CLI 2.1.280 replay builders are the host's own-prompt
       // acks (sent on stdin accept, never held), queued-prompt merges, history
       // re-sends (filtered to `!toolUseResult`, so no tool_results), and
@@ -2748,7 +2748,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // the conversation itself (the SDKUserMessage doc; the host's own prompts
       // come back only as isReplay acks, returned above). The live case: the
       // CLI's `isSynthetic: true` nudge "[Your previous response had no visible
-      // output. …]" after an empty reply (sp-probe's
+      // output. …]" after an empty reply (the
       // defer-tool-sonnet5-resume-unavailable, 7c6880f, the corpus's only such
       // frame). This branch maps only tool_result blocks, so it had no event at
       // all, and the census could not see the text go (its path normalizes to
@@ -2784,10 +2784,10 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // frames do: nothing lands on a nested turn after its subagent.done, or
         // on a turn nobody opened, and no id repeats across invokes.
         // INV-TURN (SPEC:743: a normalizer MUST synthesize turn.start before any
-        // content event for a turn the stream has not opened; sp-protocol,
+        // content event for a turn the stream has not opened;
         // 2026-09-23): a TOP-LEVEL tool_result with NO turn open (a resumed
         // invoke's first frame is the deferred call's tool_result, before
-        // system/init; sp-probe's defer-resume capture) opens the turn it lands
+        // system/init; the defer-resume capture) opens the turn it lands
         // in, named by this frame's uuid. The resumed invoke's assistant frames
         // then join it and its result closes it. Through c54eb7f its tool.done
         // had no turn and reduce() parked from the first event. Where that result
@@ -2814,7 +2814,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
             // `turn_<parent_tool_use_id>` label instead (Task 8c leg 3, "park
             // loudly"): a turn nobody opened, whose id REPEATED across the
             // invokes one Reducer folds (the rd-14 ids-across-invokes rule;
-            // sp-protocol's message.start bar, wf_140b3183-767), and it parked.
+            // the message.start review, wf_140b3183-767), and it parked.
             toolTurnId = nestedTurnId(parentToolUseId, undefined, msg.uuid);
             openRun(parentToolUseId, toolTurnId, `turn_${parentToolUseId}`);
           }
@@ -2849,7 +2849,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // minus `content` (already the tool.done content) and `prompt` (already
         // the tool input). Its `usage` is the subagent's own and stays out of
         // AgUsage (B-strict: the parent's accounting already includes it).
-        // sp-probe's subagent captures (5ba11da) surfaced every one of these
+        // The subagent captures (5ba11da) surfaced every one of these
         // fields as a census drop.
         const agentOutput =
           sibling !== undefined && typeof sibling["agentId"] === "string"
@@ -2890,8 +2890,8 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
             // so the model-facing reason survives (§2.2 draft.4: isError and
             // errorText belong to outcome "error"). Before this, the same call
             // folded "error" here and then "denied" again from the result's
-            // permission_denials (sp-probe's resume-deny leg).
-            // Second key (sp-protocol, same basis): when no kind is stamped, a
+            // permission_denials (the resume-deny leg).
+            // Second key (same basis): when no kind is stamped, a
             // live `permission_denied` notice already seen for this id is the
             // harness's own denial record (the CLI emits it at decision time,
             // always before this result). No kind is stamped on a frame holding
@@ -3055,8 +3055,8 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // when that text is empty. retriable = the HTTP status says rate limit
         // or server failure (see `apiErrorStatusRetriable`); usage = the turn's
         // accrued usage, as above.
-        // The terminal_reason step (sp-protocol, facet-local, 2026-09-23): the
-        // CLI also sets is_error on a result that is NOT an API error. sp-probe's
+        // The terminal_reason step (facet-local, 2026-09-23): the
+        // CLI also sets is_error on a result that is NOT an API error. The
         // resume-unavailable leg (7c6880f) is a resumed invoke whose deferred
         // tool's MCP server is gone: terminal_reason "tool_deferred_unavailable",
         // result "", no status, no api_error_code. Through b7dd7ff it closed
@@ -3194,7 +3194,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       closePendingMessage();
       const uuids = Array.isArray(msg.retracted_message_uuids) ? msg.retracted_message_uuids : [];
       retractUuids(uuids);
-      // X4 (sp-rnd re-cut, 2026-09-23): only the retraction has a core home.
+      // X4 (the 2026-09-23 re-cut): only the retraction has a core home.
       // A notice yields 0..N `message.remove`s, so there is no single event to
       // hang the rest on. The rest of the frame is the switch itself: `trigger`, `direction`
       // ('retry'; 'revert'/'sticky' are "no longer emitted" per 0.3.280),
@@ -3205,11 +3205,11 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // rides the uniform carry beside its `model_refusal_no_fallback` sibling
       // (SPEC §8 item 22 / §12), the WHOLE frame verbatim, AFTER the removes
       // (the frame is itself "emitted AFTER the retraction"). Item 22 says a
-      // mapped frame goes to its home "instead" of the bulk carry. sp-protocol
-      // ruled on 2026-09-23 (SPEC blob bef014c) that the clause covers frames
+      // mapped frame goes to its home "instead" of the bulk carry. A ruling
+      // of 2026-09-23 (SPEC blob bef014c) holds that the clause covers frames
       // whose content that home already conveys, and `message.remove` conveys
       // only the retraction. So the residual fields fall under item 22's
-      // no-drop MUST, and the whole frame rides. (sp-protocol's clarifying
+      // no-drop MUST, and the whole frame rides. (A clarifying
       // line for item 22 is queued for the review bar.) `ext.*` is live-only
       // and non-folding, so the second copy of `retracted_message_uuids`
       // cannot double-fold (the M22 hazard). This is the only producer for R&D
@@ -3317,7 +3317,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // A copy: `frame` IS the host's object when it was already JSON, and
         // this raw channel would otherwise emit it by reference. JsonValue.parse
         // copies and, like every other carry here, drops an own "__proto__"
-        // (sp-main 2026-09-24, matching sp-openai cf55e08 and the 0.6.6
+        // (2026-09-24, matching the openai facet's cf55e08 and the 0.6.6
         // reserved-key rule 314a183: an emitted map carries no own __proto__).
         a.emitExt("anthropic", "unparsed", { native: carryVerbatim(frame) });
         return a.drain();
@@ -3349,7 +3349,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
 
 /**
  * Build the Claude-facet normalizer: the inner normalizer wrapped in core's
- * withAtomicPush (the fleet guard ruling, 2026-09-24, binding). push() never
+ * withAtomicPush (the guard ruling, 2026-09-24, binding). push() never
  * throws (SPEC:933):
  *  - each native is first read as plain JSON (core toJsonValueSafe): a host
  *    may hand in the in-process object, whose members need not be JSON (an
