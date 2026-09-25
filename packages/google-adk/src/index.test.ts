@@ -4719,3 +4719,46 @@ describe("createAdkNormalizer — an MCP resource_link part becomes one resource
     expect(block.uri === uri).toBe(true);
   });
 });
+
+describe("createAdkNormalizer — the threadId option", () => {
+  /** Every threadId the stream stamps, on turn.start and message.start. */
+  function stampedThreads(out: AgEvent[]): unknown[] {
+    return out.flatMap((e) => (e.type === "turn.start" || e.type === "message.start" ? [e.threadId] : []));
+  }
+
+  it("stamps the host's threadId on every turn and message opener, the host-error turn's included, and the fold carries it", () => {
+    const n = createAdkNormalizer({ invokeId: "adk", threadId: "thread_host_1" });
+    const out: AgEvent[] = [];
+    out.push(...n.push(toJson(event([{ text: "Hello" }], { partial: false, finishReason: "STOP" }))));
+    out.push(...n.push(toJson(event([{ text: "Again" }], { invocationId: "inv_fixture_2", partial: false, finishReason: "STOP" }))));
+    out.push(...n.push({ type: ADK_HOST_ERROR_TYPE, code: "Error", message: "boom" }));
+    out.push(...n.flush());
+    const threads = stampedThreads(out);
+    // Two ADK turns and the host-error turn, each a turn.start + message.start.
+    expect(threads).toHaveLength(6);
+    expect(new Set(threads)).toEqual(new Set(["thread_host_1"]));
+    const r = new Reducer();
+    for (const e of out) r.push(e);
+    const folded = r.result();
+    expect(r.needsResync).toBe(false);
+    expect(folded.turns.map((t) => t.threadId)).toEqual(["thread_host_1", "thread_host_1", "thread_host_1"]);
+    expect(folded.messages.every((m) => m.threadId === "thread_host_1")).toBe(true);
+  });
+
+  it("without the option stamps the fixed label \"google\", byte-identical to an explicit \"google\"", () => {
+    const events = [
+      event([{ text: "Hello" }], { partial: false, finishReason: "STOP" }),
+      event([{ text: "Again" }], { invocationId: "inv_fixture_2", partial: false, finishReason: "STOP" }),
+    ];
+    const drive = (options: AdkNormalizerOptions) => {
+      const n = createAdkNormalizer(options);
+      const out: AgEvent[] = [];
+      for (const e of events) out.push(...n.push(toJson(e)));
+      out.push(...n.flush());
+      return out;
+    };
+    const absent = drive({ invokeId: "adk" });
+    expect(new Set(stampedThreads(absent))).toEqual(new Set(["google"]));
+    expect(JSON.stringify(absent)).toBe(JSON.stringify(drive({ invokeId: "adk", threadId: "google" })));
+  });
+});

@@ -1869,6 +1869,14 @@ export interface AdkNormalizerOptions {
    */
   hostCompletion?: boolean;
   /**
+   * The host's thread id (SPEC §1.2, the partition root), stamped on every
+   * `turn.start` and assistant `message.start` of this invoke. An ADK `Event`
+   * carries no thread or session id, so without it the facet stamps the fixed
+   * label `"google"`, a facet-local placeholder, not a partition root. A host
+   * that persists by `threadId` supplies its own.
+   */
+  threadId?: string;
+  /**
    * The stem this invoke's ids are minted from: a turn id is
    * `turn_<invokeId>_<key>`, where `<key>` is the event's `invocationId`, else
    * its `id`; an event with neither is `turn_<invokeId>`, and a host error with
@@ -1976,7 +1984,7 @@ function mintInvokeNonce(): string {
 function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: string): Normalizer {
   const hostCompletion = options.hostCompletion === true;
   const a = new StreamAssembler();
-  const threadId = "google";
+  const threadId = options.threadId ?? "google";
   // §8.3 per-instance accumulator (replaces the module-level streamedText Map):
   const streamedText = new Map<string, string>();
   // Per turn and role: the transcription chunks streamed so far (see driveAdkTopLevel).
