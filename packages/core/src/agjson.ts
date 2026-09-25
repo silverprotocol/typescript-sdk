@@ -585,7 +585,8 @@ export const AgBlock: z.ZodType<AgBlock> = z.lazy(() =>
 // only and is NEVER reducer-invented (audit M29).
 export const AgOutcome = z.discriminatedUnion("type", [
   z.object({ type: z.literal("success"), result: JsonValue.optional() }),
-  z.object({ type: z.literal("error"), message: z.string(), code: z.string().optional() }),
+  // retriable (draft.5): the producer's judgement, recorded from turn.error; absent = unstated, not false.
+  z.object({ type: z.literal("error"), message: z.string(), code: z.string().optional(), retriable: z.boolean().optional() }),
   z.object({ type: z.literal("rejected"), reason: z.string().optional() }),
   z.object({ type: z.literal("aborted"), reason: z.string().optional() }),
   z.object({ type: z.literal("paused"), asks: z.array(AgPausedAsk), result: JsonValue.optional() }),

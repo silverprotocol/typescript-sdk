@@ -4544,3 +4544,29 @@ describe("turn.done.messageMetadata replaces the named message's messageMetadata
     expect(r.result().turns[0]!.usage).toEqual(U);
   });
 });
+
+describe("draft.5: turn.error's retriable is recorded on the error outcome; absent stays absent; the non-terminal error never folds it", () => {
+  type E = Record<string, unknown>;
+  const fold = (evs: E[]) => {
+    const r = new Reducer();
+    for (const e of evs) r.push(AgEvent.parse(e));
+    return r;
+  };
+  const start: E = { type: "turn.start", seq: 0, threadId: "th", turnId: "t" };
+  it("retriable:false and retriable:true are recorded verbatim beside message and code", () => {
+    for (const retriable of [false, true]) {
+      const r = fold([start, { type: "turn.error", seq: 1, turnId: "t", message: "m", code: "c", retriable }]);
+      expect(r.needsResync).toBe(false);
+      expect(r.result().turns[0]!.outcome).toEqual({ type: "error", message: "m", code: "c", retriable });
+    }
+  });
+  it("a turn.error without retriable records no retriable key (never coerced to false)", () => {
+    const outcome = fold([start, { type: "turn.error", seq: 1, turnId: "t", message: "m", code: "c" }]).result().turns[0]!.outcome!;
+    expect(outcome).toEqual({ type: "error", message: "m", code: "c" });
+    expect("retriable" in outcome).toBe(false);
+  });
+  it("a non-terminal error{retriable:true} before the terminal never folds: the outcome carries only turn.error's own fields", () => {
+    const outcome = fold([start, { type: "error", seq: 1, turnId: "t", message: "transient", retriable: true }, { type: "turn.error", seq: 2, turnId: "t", message: "m" }]).result().turns[0]!.outcome!;
+    expect(outcome).toEqual({ type: "error", message: "m" });
+  });
+});

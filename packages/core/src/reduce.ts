@@ -815,8 +815,9 @@ export class Reducer {
         if (ev.outcome.type === "paused") {
           turn.asks = ev.outcome.asks;
         }
-        // messageMetadata: REPLACE-merge onto the message named by turn.done.messageId
-        // when present, else the open message of this turn (audit M20).
+        // messageMetadata: REPLACE the whole messageMetadata bag of the message named
+        // by turn.done.messageId when present, else of the open message of this turn
+        // (audit M20; §5 turn.done row, §13.10). No per-key merge.
         // (Read happens BEFORE the binding window closes below.)
         if (ev.messageMetadata !== undefined) {
           const msg = ev.messageId !== undefined ? this.#messages.get(ev.messageId) : this.openMessage(ev.turnId, 0);
@@ -843,10 +844,14 @@ export class Reducer {
         }
         // draft.5 INV-MSG: a turn.error for a closed turn parks, writing nothing.
         if (!this.#terminalMayFold(turn, false)) break;
+        // draft.5: `code` and `retriable` are recorded when turn.error carries them.
+        // `retriable` is the producer's judgement; an absent one stays absent
+        // (unstated, never coerced to false). A non-terminal `error` never folds it.
         turn.outcome = {
           type: "error",
           message: ev.message,
           ...(ev.code !== undefined ? { code: ev.code } : {}),
+          ...(ev.retriable !== undefined ? { retriable: ev.retriable } : {}),
         };
         // Usage is recorded VERBATIM — NO de-cumulation (mirrors turn.done; normalizer duty).
         if (ev.usage !== undefined) turn.usage = ev.usage;

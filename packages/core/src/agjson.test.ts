@@ -335,6 +335,16 @@ describe("AgBlock (EXTENDED)", () => {
   });
 });
 
+describe("AgOutcome error arm: retriable (draft.5)", () => {
+  it("parses and keeps retriable true/false; an absent retriable stays absent", () => {
+    expect(AgOutcome.parse({ type: "error", message: "m", code: "c", retriable: false })).toEqual({ type: "error", message: "m", code: "c", retriable: false });
+    expect(AgOutcome.parse({ type: "error", message: "m", retriable: true })).toEqual({ type: "error", message: "m", retriable: true });
+    const absent = AgOutcome.parse({ type: "error", message: "m" });
+    expect("retriable" in absent).toBe(false);
+    expect(() => AgOutcome.parse({ type: "error", message: "m", retriable: "yes" })).toThrow();
+  });
+});
+
 describe("AgOutcome (EXTENDED paused arm)", () => {
   it("parses a paused outcome carrying asks[]", () => {
     const o = AgOutcome.parse({
