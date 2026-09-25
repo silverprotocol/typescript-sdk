@@ -55,19 +55,24 @@
  * resumable resume reuses `invocation_id`, and this facet also accepts events
  * serialized from Python: fed that resume, it would repeat `turn_${invocationId}`
  * (and the message id derived from it) across the fold. Supporting that path
- * needs a per-invoke stem; it is queued, not part of this release.
+ * needs a per-invoke stem, which this release does not have.
  *
  * NOTE on the Live (bidi) path: a barge-in (`interrupted: true`, from ADK's live
- * aggregator) closes the turn as `turn.abort{interrupted}` after the event's own
- * content and its message.end, so ONE barge-in per invoke folds cleanly. One
- * live session is one ADK invocation, and so one turn here: a second barge-in,
- * or model content after the turn has closed (a completed reply closes it,
- * unless `hostCompletion` defers that close), lands in a closed turn, and a
- * reducer parks on it. That lasts until turns are minted per generation, which
- * is queued with the per-invoke stem for 0.8.0. Separately, when text is
- * buffered at the interrupt, ADK yields only the text aggregate, without the
- * flag (utils/live_connection_utils.js, @google/adk 2.1.0), so this facet sees
- * no interrupt and the turn closes at flush as `stream-truncated`.
+ * aggregator) closes the message, then the turn, as `turn.abort{interrupted}`,
+ * after the event's own content, and a turn gets one terminal. That does NOT
+ * make a real barge-in session fold. One live session is one ADK invocation,
+ * and so one turn here, and ADK delivers the flag first: the interrupted
+ * generation's own `usageMetadata` and `turnComplete` follow it, then the
+ * reply generation. Those events land in the closed turn until the facet opens
+ * a turn per generation, and a reducer parks on them (probe's gemini-3.8-live
+ * capture `live-bargein-gemini38live`, @google/adk 2.1.0: the interrupt at
+ * native 6, then usage, turnComplete and the reply). A second barge-in, or
+ * model content after a completed reply closed the turn (unless
+ * `hostCompletion` defers that close), parks the same way. Separately, when
+ * text is buffered at the interrupt, ADK yields
+ * only the text aggregate, without the flag (utils/live_connection_utils.js,
+ * @google/adk 2.1.0), so this facet sees no interrupt and the turn closes at
+ * flush as `stream-truncated`.
  */
 import {
   type AgEvent,
