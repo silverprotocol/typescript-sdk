@@ -4524,7 +4524,13 @@ describe("createAdkNormalizer — a Live barge-in closes turn.abort after the ev
     expect(transcriptTexts(differs)).toEqual(["Hel", "Hello", "Only final"]);
   });
 
-  it("Live usage: responseTokenCount is the output counter and thoughts fold in (outputTokens = response + thoughts); the total is carried verbatim", () => {
+  const usagesOf = (out: AgEvent[]) =>
+    out
+      .filter((e) => e.type === "message.end" || TERMINAL.has(e.type))
+      .map((e) => (e as { usage?: object }).usage)
+      .filter((u) => u !== undefined);
+
+  it("Live usage: responseTokenCount is the output counter, thoughts fold in, totalTokens is derived (input + output + toolUse), and Google's total rides totalTokensRaw where it differs", () => {
     // The two usage objects of the capture live-bargein-gemini38live.
     const out = drive([
       liveEvent("inv_u", "u1", { content: audio }),
@@ -4535,13 +4541,27 @@ describe("createAdkNormalizer — a Live barge-in closes turn.abort after the ev
       liveEvent("inv_u", "u6", usage(668, 52, 38)),
       liveEvent("inv_u", "u7", { turnComplete: true }),
     ]);
-    const usages = out
-      .filter((e) => e.type === "message.end" || TERMINAL.has(e.type))
-      .map((e) => (e as { usage?: object }).usage)
-      .filter((u) => u !== undefined);
-    expect(usages).toContainEqual(expect.objectContaining({ inputTokens: 609, outputTokens: 281, reasoningTokens: 256, totalTokens: 634 }));
-    expect(usages).toContainEqual(expect.objectContaining({ inputTokens: 668, outputTokens: 90, reasoningTokens: 38, totalTokens: 720 }));
+    const usages = usagesOf(out);
+    expect(usages).toContainEqual({ inputTokens: 609, outputTokens: 281, totalTokens: 890, totalTokensRaw: 634, reasoningTokens: 256, cumulative: false });
+    expect(usages).toContainEqual({ inputTokens: 668, outputTokens: 90, totalTokens: 758, totalTokensRaw: 720, reasoningTokens: 38, cumulative: false });
     expect(folds(out).needsResync).toBe(false);
+  });
+
+  it("Live usage: an inclusive report (Google's total already counts thoughts) gives the same total and no totalTokensRaw; two reports in one turn sum before the total is derived", () => {
+    const live = (u: { [k: string]: number }) => ({ usageMetadata: u });
+    const inclusive = drive([
+      liveEvent("inv_i", "i1", { content: audio }),
+      liveEvent("inv_i", "i2", live({ promptTokenCount: 6037, responseTokenCount: 248, thoughtsTokenCount: 490, totalTokenCount: 6775 })),
+      liveEvent("inv_i", "i3", { turnComplete: true }),
+    ]);
+    expect(usagesOf(inclusive)).toContainEqual({ inputTokens: 6037, outputTokens: 738, totalTokens: 6775, reasoningTokens: 490, cumulative: false });
+    const mixed = drive([
+      liveEvent("inv_m", "m1", { content: audio }),
+      liveEvent("inv_m", "m2", live({ promptTokenCount: 609, responseTokenCount: 25, thoughtsTokenCount: 256, totalTokenCount: 634 })),
+      liveEvent("inv_m", "m3", live({ promptTokenCount: 6037, responseTokenCount: 248, thoughtsTokenCount: 490, totalTokenCount: 6775 })),
+      liveEvent("inv_m", "m4", { turnComplete: true }),
+    ]);
+    expect(usagesOf(mixed)).toContainEqual({ inputTokens: 6646, outputTokens: 1019, totalTokens: 7665, totalTokensRaw: 7409, reasoningTokens: 746, cumulative: false });
   });
 
   it("two live invokes, each with one barge-in, folded into ONE Reducer: two aborted turns, no park", () => {

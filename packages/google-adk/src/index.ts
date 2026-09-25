@@ -516,7 +516,15 @@ function isAdkEvent(v: unknown): v is AdkEvent {
  * inclusive on that endpoint — carry it as-is, never add twice. A thoughts-free
  * usageMetadata normalizes byte-identically to draft.2. `reasoningTokens` stays
  * the breakdown (`thoughtsTokenCount` verbatim); `totalTokens` is copied, never
- * computed. Known upstream gap: @google/adk's Interactions-API route synthesizes
+ * computed, with ONE exception, the Gemini Live API (draft.5): Live reports its
+ * output as `responseTokenCount`, and its `totalTokenCount` may leave thoughts
+ * out (609 + 25 = 634 with 256 thoughts beside them), so thoughts always fold
+ * into outputTokens there, `totalTokens` is derived as input + output +
+ * toolUseInput over the turn's summed counters, and Google's own summed total
+ * rides `totalTokensRaw` only where it differs. This facet recognises the Live
+ * API by the field: `responseTokenCount` appears only on @google/genai's Live
+ * UsageMetadata. A normalizer reading the raw Vertex Live wire decides by the
+ * API, not by the field name. Known upstream gap: @google/adk's Interactions-API route synthesizes
  * usageMetadata WITHOUT thoughts (candidates = total_output_tokens, total =
  * in + out), so on that route outputTokens is exclusive and reasoningTokens
  * absent — nothing the facet can recover (see README).
@@ -549,10 +557,21 @@ function mapUsage(um: AdkEvent["usageMetadata"]): AgUsage | undefined {
       : alreadyInclusive
         ? candidates
         : (generated ?? 0) + (thoughts ?? 0);
+  // On the Live path the total is derived, and Google's figure is kept beside
+  // it only where it differs; elsewhere the provider's total is copied.
+  const totalTokens =
+    response !== undefined
+      ? (um.promptTokenCount ?? 0) + (outputTokens ?? 0) + (um.toolUsePromptTokenCount ?? 0)
+      : um.totalTokenCount;
+  const totalTokensRaw =
+    response !== undefined && um.totalTokenCount !== undefined && um.totalTokenCount !== totalTokens
+      ? um.totalTokenCount
+      : undefined;
   return {
     ...(um.promptTokenCount !== undefined ? { inputTokens: um.promptTokenCount } : {}),
     ...(outputTokens !== undefined ? { outputTokens } : {}),
-    ...(um.totalTokenCount !== undefined ? { totalTokens: um.totalTokenCount } : {}),
+    ...(totalTokens !== undefined ? { totalTokens } : {}),
+    ...(totalTokensRaw !== undefined ? { totalTokensRaw } : {}),
     ...(um.cachedContentTokenCount !== undefined
       ? { cacheReadTokens: um.cachedContentTokenCount }
       : {}),
@@ -828,7 +847,7 @@ function turnKey(ev: AdkEvent): string | undefined {
 // restore name+position correlation when echoing functionResponse parts.
 
 // ─── functionResponse.response → tool.done outcome (SPEC §8.0 item 25, draft.4) ─
-// adk-10, founder-ruled 2026-09-23 ("Flip on error, approvals kept"). ADK
+// adk-10, ruled 2026-09-23 ("Flip on error, approvals kept"). ADK
 // answers a failed tool call with a response carrying Gemini's documented
 // `error` key: an unresolvable tool name (functions.js:264), a thrown tool
 // including a thrown MCP call (functions.js:282), several built-in tools.
@@ -1915,7 +1934,7 @@ function isHostCompleteNative(v: JsonValue): boolean {
 
 /**
  * The google-adk Normalizer: the inner, deterministic normalizer below wrapped
- * in core's withAtomicPush (the fleet guard ruling). Every push() is atomic:
+ * in core's withAtomicPush (the guard ruling). Every push() is atomic:
  * - The native is read once as plain JSON through core's toJsonValueSafe, so a
  *   host may push the live Event objects ADK yields (undefined members, a
  *   Date, an Error, a cycle) and they map exactly like the recorded corpus.
