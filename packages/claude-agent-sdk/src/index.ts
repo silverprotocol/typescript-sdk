@@ -384,14 +384,17 @@ function readNonExecutionKinds(frame: unknown): Map<string, string> {
 // entry, keyed by its `id` (the tool_use_id), verbatim: {id, non_execution_kind?,
 // user_feedback?, remedy?} per the CLI's schema ("@internal Display metadata for
 // this message's tool_result blocks"). Read through the JSON boundary; an entry
-// without a string id is skipped. It rides the matching tool.done's `_meta`.
+// without a string id is skipped. It rides the matching tool.done's `_meta`,
+// through `carryVerbatim`: a CLI-authored subtree like the other wrapper
+// carries, so a `fallback_credit_token` at any depth (a `remedy` can hold one)
+// is deleted before it is emitted.
 function readToolResultMetaEntries(frame: unknown): Map<string, JsonValue> {
   const out = new Map<string, JsonValue>();
   if (!isJsonObject(frame)) return out;
   const list = frame["tool_result_meta"];
   if (!Array.isArray(list)) return out;
   for (const entry of list) {
-    if (isJsonObject(entry) && typeof entry["id"] === "string") out.set(entry["id"], JsonValue.parse(entry));
+    if (isJsonObject(entry) && typeof entry["id"] === "string") out.set(entry["id"], carryVerbatim(entry));
   }
   return out;
 }
@@ -868,7 +871,8 @@ function readNarrationBlockIndexes(v: unknown): number[] | undefined {
 // depth (withoutCreditTokens). Every verbatim carrier of this facet goes
 // through it: the whole-frame ext.anthropic.frame / ext.anthropic.unparsed
 // carries, provider-raw blocks, and the CLI/API wrapper subtrees
-// (context_usage, usage_report, diagnostics, api_error_params, subagent_stats).
+// (context_usage, usage_report, diagnostics, api_error_params, subagent_stats,
+// the `tool_result_meta` entries).
 // Model- or tool-authored payloads (tool input, a deferred tool call, MCP
 // structuredContent / _meta / resourceLinks, structured_output) are NOT
 // stripped: a key there is user content, and the wire already carries the same
@@ -877,7 +881,7 @@ function carryVerbatim(v: unknown): JsonValue {
   return withoutCreditTokens(JsonValue.parse(v));
 }
 
-// rd-15 / SPEC §13.7 (queued): a provider credit or bearer token is never
+// rd-15 / SPEC §13.10: a provider credit or bearer token is never
 // emitted. Anthropic's refusal `stop_details` can hold `fallback_credit_token`
 // (top level and per fallback), so every key of that name is deleted at any
 // depth; everything else is kept verbatim.
@@ -2523,7 +2527,8 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       }
       const messageId = open.emittedId;
       // rd-15: a NON-NULL `stop_details` on a response (e.g. a refusal's
-      // {type, category, explanation, fallbacks?}) is carried verbatim on its
+      // {type: "refusal", category, explanation}, the shape @anthropic-ai/sdk
+      // 0.93.0 declares; any further member is kept too) is carried verbatim on its
       // turn's closing turn.done.messageMetadata, which folds onto the message it
       // names (SPEC §5 turn.done row). The CLOSING response's value only: a later
       // response of the turn without one clears it. Every `fallback_credit_token`,

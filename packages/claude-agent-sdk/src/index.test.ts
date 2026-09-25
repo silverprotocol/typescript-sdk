@@ -8140,6 +8140,20 @@ describe("createClaudeNormalizer — rd-15: the CLI's tool_result_meta entry rid
     expect(JSON.stringify(evs)).not.toContain("SPOOFED");
   });
 
+  it("a fallback_credit_token inside the entry (a remedy's, at any depth) is never emitted: the folded record is the entry less that key", () => {
+    const withToken = { id: "toolu_m", non_execution_kind: "permission-rule", remedy: { kind: "zz", fallback_credit_token: "TOKEN-SENTINEL", steps: [{ fallback_credit_token: "TOKEN-SENTINEL", n: 1 }] } };
+    const expected = { id: "toolu_m", non_execution_kind: "permission-rule", remedy: { kind: "zz", steps: [{ n: 1 }] } };
+    const evs = drive([use(), result({ tool_result_meta: [withToken] })]);
+    expect(done(evs)?.["_meta"]).toEqual({ "anthropic/toolResultMeta": expected });
+    expect(JSON.stringify(evs)).not.toContain("TOKEN-SENTINEL");
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    const block = r.result().messages.flatMap((m) => m.content).find((b) => "toolCallId" in b && b.toolCallId === "toolu_m" && "outcome" in b);
+    expect(block).toMatchObject({ _meta: { "anthropic/toolResultMeta": expected } });
+    // A copy: the host's frame keeps its own token (nothing is mutated in place).
+    expect(withToken.remedy.fallback_credit_token).toBe("TOKEN-SENTINEL");
+  });
+
   it("negative control: no tool_result_meta, or no entry for this id, leaves tool.done byte-identical", () => {
     const plain = drive([use(), result({})]);
     expect(JSON.stringify(drive([use(), result({ tool_result_meta: [{ id: "toolu_other" }] })]))).toBe(JSON.stringify(plain));
