@@ -23,7 +23,7 @@ import * as coreNs from "@silverprotocol/core";
 import { isDeepStrictEqual } from "node:util";
 import type { JsonValue } from "@silverprotocol/core";
 import { createAdkNormalizer, ADK_HOST_COMPLETE_TYPE } from "@silverprotocol/google-adk";
-import { replayNatives, HOST_COMPLETE_MARKER } from "./replay.js";
+import { replayNatives, HOST_COMPLETE_MARKER, splitHostCompleteMarker } from "./replay.js";
 import type { AdkEvent, AdkPart } from "@silverprotocol/google-adk";
 import { createOpenaiNormalizer } from "@silverprotocol/openai-agents";
 import { createClaudeNormalizer } from "@silverprotocol/claude-agent-sdk";
@@ -225,6 +225,10 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 54, leg: "openai", title: "Error-outcome retriable (draft.5)", disposition: "N/A", citation: "§8 applicability: no committed golden carries turn.error.retriable" },
   { n: 54, leg: "adk", title: "Error-outcome retriable (draft.5)", disposition: "N/A", citation: "§8 applicability: no committed golden carries turn.error.retriable" },
   { n: 54, leg: "vercel", title: "Error-outcome retriable (draft.5)", disposition: "N/A", citation: "§8 applicability: the facet maps isRetryable onto turn.error.retriable; no committed golden carries it" },
+  { n: 55, leg: "claude", title: "Host-supplied partition root (draft.5, §8.0 Partition root): createClaudeNormalizer({ threadId: T }) fed every replay golden's natives stamps T on every threadId-bearing event and on no turnId/parentTurnId; reduce() roots every turn, message and artifact at T with no resync; without the option the output equals the committed golden", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.55(claude) over every replay golden of the facet" },
+  { n: 55, leg: "openai", title: "Host-supplied partition root (draft.5, §8.0 Partition root): createOpenaiNormalizer({ threadId: T }) fed every replay golden's natives stamps T on every threadId-bearing event and on no turnId/parentTurnId; reduce() roots every turn, message and artifact at T with no resync; without the option the output equals the committed golden", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.55(openai) over every replay golden of the facet" },
+  { n: 55, leg: "adk", title: "Host-supplied partition root (draft.5, §8.0 Partition root): createAdkNormalizer({ threadId: T }) fed every replay golden's natives stamps T on every threadId-bearing event and on no turnId/parentTurnId; reduce() roots every turn, message and artifact at T with no resync; without the option the output equals the committed golden", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.55(adk) over every replay golden of the facet" },
+  { n: 55, leg: "vercel", title: "Host-supplied partition root (draft.5, §8.0 Partition root): createVercelNormalizer({ threadId: T }) fed every replay golden's natives stamps T on every threadId-bearing event and on no turnId/parentTurnId; reduce() roots every turn, message and artifact at T with no resync; without the option the output equals the committed golden", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.55(vercel) over every replay golden of the facet" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -1962,7 +1966,7 @@ describe("§10.28 — host-appended events (draft.4): every replay golden + a ho
         files++;
         const golden = JSON.parse(readFileSync(f, "utf8")) as Array<Record<string, unknown>>;
         const last = Math.max(...golden.map((e) => (typeof e["seq"] === "number" ? (e["seq"] as number) : -1)));
-        const threadId = (golden.find((e) => e["type"] === "turn.start")?.["threadId"] as string | undefined) ?? "th_host";
+        const threadId = (golden.find((e) => e["type"] === "turn.start")?.["threadId"] as string | undefined) ?? "th_host"; // a golden's own root is a facet placeholder: the corpus is captured with no host thread (SPEC §1.2)
         const turnId = `turn_host_${dir}`;
         const appended = [
           { type: "turn.start", seq: last + 1, threadId, turnId },
@@ -3737,4 +3741,46 @@ describe("§10.54 — error-outcome retriable (draft.5; §4 AgOutcome, §5 turn.
       expect((errored[0]!.outcome as Record<string, unknown>)["retriable"], d).toBe(false);
     }
   });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.55 — host-supplied partition root (draft.5; §8.0 Partition root, host obligation 6)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.55 — host-supplied partition root (draft.5; §8.0 Partition root)", () => {
+  const corpus = new URL("../corpus/", import.meta.url);
+  const FACETS = [
+    { fw: "claude", make: (t: string) => createClaudeNormalizer({ invokeId: "claude", threadId: t }) },
+    { fw: "openai", make: (t: string) => createOpenaiNormalizer({ invokeId: "openai", threadId: t }) },
+    { fw: "adk", make: (t: string, hostCompleted: boolean) => createAdkNormalizer({ invokeId: "adk", threadId: t, ...(hostCompleted ? { hostCompletion: true } : {}) }) },
+    { fw: "vercel", make: (t: string) => createVercelNormalizer({ invokeId: "vercel", threadId: t }) },
+  ] as const;
+  const goldensOf = (fw: string) => readdirSync(corpus).sort().filter((d) => existsSync(new URL(`${d}/${fw}.native.json`, corpus)) && existsSync(new URL(`${d}/${fw}.agjson.json`, corpus)));
+  for (const f of FACETS) {
+    it(`(${f.fw}) constructed with threadId T: every threadId-bearing event carries T, no turnId/parentTurnId is T, reduce() roots everything at T; without the option the output equals the golden`, async () => {
+      const dirs = goldensOf(f.fw);
+      expect(dirs.length, `${f.fw}: goldens`).toBeGreaterThan(0);
+      for (const d of dirs) {
+        const T = `th_host_${d}`;
+        const recorded = JSON.parse(readFileSync(new URL(`${d}/${f.fw}.native.json`, corpus), "utf8")) as JsonValue[];
+        const { native, hostCompleted } = splitHostCompleteMarker(recorded);
+        const n = f.make(T, hostCompleted);
+        const out: AgEvent[] = [];
+        for (const ev of native) out.push(...n.push(ev));
+        if (hostCompleted && f.fw === "adk") out.push(...n.push({ type: ADK_HOST_COMPLETE_TYPE } as unknown as JsonValue));
+        out.push(...n.flush());
+        const roots = new Set(out.flatMap((e) => (typeof (e as { threadId?: unknown }).threadId === "string" ? [(e as { threadId: string }).threadId] : [])));
+        expect([...roots], `${d}/${f.fw}: threadId set`).toEqual([T]);
+        expect(out.some((e) => (e as { turnId?: unknown }).turnId === T || (e as { parentTurnId?: unknown }).parentTurnId === T), `${d}/${f.fw}: T in an id slot`).toBe(false);
+        const r = reduce(out);
+        expect(r.needsResync, `${d}/${f.fw}: resync`).toBe(false);
+        expect(r.result.turns.every((t) => t.threadId === T), `${d}/${f.fw}: turns rooted`).toBe(true);
+        expect(r.result.messages.every((m) => m.threadId === T), `${d}/${f.fw}: messages rooted`).toBe(true);
+        expect(r.result.artifacts.every((a) => a.threadId === T), `${d}/${f.fw}: artifacts rooted`).toBe(true);
+        const golden = JSON.parse(readFileSync(new URL(`${d}/${f.fw}.agjson.json`, corpus), "utf8")) as JsonValue[];
+        const absent = await replayNatives(recorded, f.fw as "claude" | "openai" | "adk" | "vercel");
+        expect(absent.agjson, `${d}/${f.fw}: absent leg equals the golden`).toEqual(golden);
+      }
+    });
+  }
 });
