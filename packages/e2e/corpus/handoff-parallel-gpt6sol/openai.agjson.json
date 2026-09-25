@@ -126,6 +126,37 @@
   },
   {
     "seq": 16,
+    "type": "ext.openai.dropped-call",
+    "toolCallId": "call_xSdVnjJBP92mKDCV5HrtsOOz",
+    "name": "transfer_to_Shouter",
+    "forTurnId": "turn_resp_094d706e7a062347006ab5d7f76c9887d08a2c53dc930d28f5",
+    "reason": "no-run-item-at-handoff"
+  },
+  {
+    "type": "message.end",
+    "seq": 17,
+    "id": "msg_turn_resp_094d706e7a062347006ab5d7f76c9887d08a2c53dc930d28f5"
+  },
+  {
+    "type": "turn.done",
+    "seq": 18,
+    "turnId": "turn_resp_094d706e7a062347006ab5d7f76c9887d08a2c53dc930d28f5",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "cumulative": false,
+      "inputTokens": 193,
+      "outputTokens": 64,
+      "totalTokens": 257,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 14
+    }
+  },
+  {
+    "seq": 19,
     "type": "ext.openai.unparsed",
     "native": {
       "agent": {
@@ -136,13 +167,13 @@
   },
   {
     "type": "turn.start",
-    "seq": 17,
+    "seq": 20,
     "turnId": "turn_resp_094d706e7a062347006ab5d7f9677887d09b41203fcf8f0a7d",
     "threadId": "openai"
   },
   {
     "type": "message.start",
-    "seq": 18,
+    "seq": 21,
     "id": "msg_turn_resp_094d706e7a062347006ab5d7f9677887d09b41203fcf8f0a7d",
     "turnId": "turn_resp_094d706e7a062347006ab5d7f9677887d09b41203fcf8f0a7d",
     "threadId": "openai",
@@ -155,11 +186,11 @@
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7f9677887d09b41203fcf8f0a7d",
     "itemId": "rs_094d706e7a062347006ab5d7fa934c87d09b5ad300f8d06835",
     "turnId": "turn_resp_094d706e7a062347006ab5d7f9677887d09b41203fcf8f0a7d",
-    "seq": 19
+    "seq": 22
   },
   {
     "type": "tool.start",
-    "seq": 20,
+    "seq": 23,
     "turnId": "turn_resp_094d706e7a062347006ab5d7f9677887d09b41203fcf8f0a7d",
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
     "name": "echo",
@@ -168,217 +199,217 @@
   },
   {
     "type": "tool.args.delta",
-    "seq": 21,
+    "seq": 24,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
     "delta": "{\""
   },
   {
     "type": "tool.args.delta",
-    "seq": 22,
+    "seq": 25,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
     "delta": "message"
   },
   {
     "type": "tool.args.delta",
-    "seq": 23,
+    "seq": 26,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
     "delta": "\":\""
   },
   {
     "type": "tool.args.delta",
-    "seq": 24,
+    "seq": 27,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
     "delta": "Hand"
   },
   {
     "type": "tool.args.delta",
-    "seq": 25,
+    "seq": 28,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
     "delta": " this"
   },
   {
     "type": "tool.args.delta",
-    "seq": 26,
+    "seq": 29,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
     "delta": " request"
   },
   {
     "type": "tool.args.delta",
-    "seq": 27,
+    "seq": 30,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
     "delta": " to"
   },
   {
     "type": "tool.args.delta",
-    "seq": 28,
+    "seq": 31,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
     "delta": " BOTH"
   },
   {
     "type": "tool.args.delta",
-    "seq": 29,
-    "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": " the"
-  },
-  {
-    "type": "tool.args.delta",
-    "seq": 30,
-    "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": " Echo"
-  },
-  {
-    "type": "tool.args.delta",
-    "seq": 31,
-    "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": "er"
-  },
-  {
-    "type": "tool.args.delta",
     "seq": 32,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": " and"
+    "delta": " the"
   },
   {
     "type": "tool.args.delta",
     "seq": 33,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": " the"
+    "delta": " Echo"
   },
   {
     "type": "tool.args.delta",
     "seq": 34,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": " Sh"
+    "delta": "er"
   },
   {
     "type": "tool.args.delta",
     "seq": 35,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": "outer"
+    "delta": " and"
   },
   {
     "type": "tool.args.delta",
     "seq": 36,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": " in"
+    "delta": " the"
   },
   {
     "type": "tool.args.delta",
     "seq": 37,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": " the"
+    "delta": " Sh"
   },
   {
     "type": "tool.args.delta",
     "seq": 38,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": " same"
+    "delta": "outer"
   },
   {
     "type": "tool.args.delta",
     "seq": 39,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": " step"
+    "delta": " in"
   },
   {
     "type": "tool.args.delta",
     "seq": 40,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": ":"
+    "delta": " the"
   },
   {
     "type": "tool.args.delta",
     "seq": 41,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": " each"
+    "delta": " same"
   },
   {
     "type": "tool.args.delta",
     "seq": 42,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": " should"
+    "delta": " step"
   },
   {
     "type": "tool.args.delta",
     "seq": 43,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": " process"
+    "delta": ":"
   },
   {
     "type": "tool.args.delta",
     "seq": 44,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": " the"
+    "delta": " each"
   },
   {
     "type": "tool.args.delta",
     "seq": 45,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": " message"
+    "delta": " should"
   },
   {
     "type": "tool.args.delta",
     "seq": 46,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": " '"
+    "delta": " process"
   },
   {
     "type": "tool.args.delta",
     "seq": 47,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": "hando"
+    "delta": " the"
   },
   {
     "type": "tool.args.delta",
     "seq": 48,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": "ff"
+    "delta": " message"
   },
   {
     "type": "tool.args.delta",
     "seq": 49,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": "-par"
+    "delta": " '"
   },
   {
     "type": "tool.args.delta",
     "seq": 50,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": "allel"
+    "delta": "hando"
   },
   {
     "type": "tool.args.delta",
     "seq": 51,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": "-pro"
+    "delta": "ff"
   },
   {
     "type": "tool.args.delta",
     "seq": 52,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": "be"
+    "delta": "-par"
   },
   {
     "type": "tool.args.delta",
     "seq": 53,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": "'"
+    "delta": "allel"
   },
   {
     "type": "tool.args.delta",
     "seq": 54,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
-    "delta": ".\""
+    "delta": "-pro"
   },
   {
     "type": "tool.args.delta",
     "seq": 55,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
+    "delta": "be"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 56,
+    "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
+    "delta": "'"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 57,
+    "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
+    "delta": ".\""
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 58,
+    "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
     "delta": "}"
   },
   {
     "type": "tool.args.assembled",
-    "seq": 56,
+    "seq": 59,
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
     "input": {
       "message": "Hand this request to BOTH the Echoer and the Shouter in the same step: each should process the message 'handoff-parallel-probe'."
@@ -393,18 +424,18 @@
     "provider": "openai",
     "itemId": "rs_094d706e7a062347006ab5d7fa934c87d09b5ad300f8d06835",
     "turnId": "turn_resp_094d706e7a062347006ab5d7f9677887d09b41203fcf8f0a7d",
-    "seq": 57
+    "seq": 60
   },
   {
     "type": "reasoning.end",
-    "seq": 58,
+    "seq": 61,
     "id": "rs_094d706e7a062347006ab5d7fa934c87d09b5ad300f8d06835",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7f9677887d09b41203fcf8f0a7d",
     "turnId": "turn_resp_094d706e7a062347006ab5d7f9677887d09b41203fcf8f0a7d"
   },
   {
     "type": "tool.done",
-    "seq": 59,
+    "seq": 62,
     "turnId": "turn_resp_094d706e7a062347006ab5d7f9677887d09b41203fcf8f0a7d",
     "toolCallId": "call_eH77onArbyyKKxoGs25arNie",
     "content": [
@@ -421,12 +452,12 @@
   },
   {
     "type": "message.end",
-    "seq": 60,
+    "seq": 63,
     "id": "msg_turn_resp_094d706e7a062347006ab5d7f9677887d09b41203fcf8f0a7d"
   },
   {
     "type": "turn.done",
-    "seq": 61,
+    "seq": 64,
     "turnId": "turn_resp_094d706e7a062347006ab5d7f9677887d09b41203fcf8f0a7d",
     "outcome": {
       "type": "success"
@@ -444,13 +475,13 @@
   },
   {
     "type": "turn.start",
-    "seq": 62,
+    "seq": 65,
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
     "threadId": "openai"
   },
   {
     "type": "message.start",
-    "seq": 63,
+    "seq": 66,
     "id": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
     "threadId": "openai",
@@ -459,7 +490,7 @@
   },
   {
     "type": "text.start",
-    "seq": 64,
+    "seq": 67,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
@@ -470,7 +501,7 @@
   },
   {
     "type": "text.delta",
-    "seq": 65,
+    "seq": 68,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
     "delta": "Hand",
@@ -478,7 +509,7 @@
   },
   {
     "type": "text.delta",
-    "seq": 66,
+    "seq": 69,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
     "delta": " this",
@@ -486,7 +517,7 @@
   },
   {
     "type": "text.delta",
-    "seq": 67,
+    "seq": 70,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
     "delta": " request",
@@ -494,7 +525,7 @@
   },
   {
     "type": "text.delta",
-    "seq": 68,
+    "seq": 71,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
     "delta": " to",
@@ -502,7 +533,7 @@
   },
   {
     "type": "text.delta",
-    "seq": 69,
+    "seq": 72,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
     "delta": " BOTH",
@@ -510,34 +541,10 @@
   },
   {
     "type": "text.delta",
-    "seq": 70,
-    "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
-    "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": " the",
-    "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
-  },
-  {
-    "type": "text.delta",
-    "seq": 71,
-    "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
-    "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": " Echo",
-    "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
-  },
-  {
-    "type": "text.delta",
-    "seq": 72,
-    "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
-    "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": "er",
-    "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
-  },
-  {
-    "type": "text.delta",
     "seq": 73,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": " and",
+    "delta": " the",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -545,7 +552,7 @@
     "seq": 74,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": " the",
+    "delta": " Echo",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -553,7 +560,7 @@
     "seq": 75,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": " Sh",
+    "delta": "er",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -561,7 +568,7 @@
     "seq": 76,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": "outer",
+    "delta": " and",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -569,7 +576,7 @@
     "seq": 77,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": " in",
+    "delta": " the",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -577,7 +584,7 @@
     "seq": 78,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": " the",
+    "delta": " Sh",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -585,7 +592,7 @@
     "seq": 79,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": " same",
+    "delta": "outer",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -593,7 +600,7 @@
     "seq": 80,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": " step",
+    "delta": " in",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -601,7 +608,7 @@
     "seq": 81,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": ":",
+    "delta": " the",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -609,7 +616,7 @@
     "seq": 82,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": " each",
+    "delta": " same",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -617,7 +624,7 @@
     "seq": 83,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": " should",
+    "delta": " step",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -625,7 +632,7 @@
     "seq": 84,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": " process",
+    "delta": ":",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -633,7 +640,7 @@
     "seq": 85,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": " the",
+    "delta": " each",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -641,7 +648,7 @@
     "seq": 86,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": " message",
+    "delta": " should",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -649,7 +656,7 @@
     "seq": 87,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": " '",
+    "delta": " process",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -657,7 +664,7 @@
     "seq": 88,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": "hando",
+    "delta": " the",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -665,7 +672,7 @@
     "seq": 89,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": "ff",
+    "delta": " message",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -673,7 +680,7 @@
     "seq": 90,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": "-par",
+    "delta": " '",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -681,7 +688,7 @@
     "seq": 91,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": "allel",
+    "delta": "hando",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -689,7 +696,7 @@
     "seq": 92,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": "-pro",
+    "delta": "ff",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -697,7 +704,7 @@
     "seq": 93,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
-    "delta": "be",
+    "delta": "-par",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
@@ -705,24 +712,48 @@
     "seq": 94,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
+    "delta": "allel",
+    "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
+  },
+  {
+    "type": "text.delta",
+    "seq": 95,
+    "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+    "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
+    "delta": "-pro",
+    "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
+  },
+  {
+    "type": "text.delta",
+    "seq": 96,
+    "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+    "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
+    "delta": "be",
+    "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
+  },
+  {
+    "type": "text.delta",
+    "seq": 97,
+    "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+    "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
     "delta": "'.",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
     "type": "text.end",
-    "seq": 95,
+    "seq": 98,
     "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
     "messageId": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
     "type": "message.end",
-    "seq": 96,
+    "seq": 99,
     "id": "msg_turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7"
   },
   {
     "type": "turn.done",
-    "seq": 97,
+    "seq": 100,
     "turnId": "turn_resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
     "outcome": {
       "type": "success"
@@ -737,25 +768,5 @@
       "cacheWriteTokens": 0,
       "reasoningTokens": 0
     }
-  },
-  {
-    "type": "message.end",
-    "seq": 98,
-    "id": "msg_turn_resp_094d706e7a062347006ab5d7f76c9887d08a2c53dc930d28f5",
-    "usage": {
-      "cumulative": false,
-      "inputTokens": 193,
-      "outputTokens": 64,
-      "totalTokens": 257,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 0,
-      "reasoningTokens": 14
-    }
-  },
-  {
-    "type": "turn.abort",
-    "turnId": "turn_resp_094d706e7a062347006ab5d7f76c9887d08a2c53dc930d28f5",
-    "reason": "stream-truncated",
-    "seq": 99
   }
 ]

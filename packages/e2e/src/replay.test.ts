@@ -304,6 +304,14 @@ const OPENAI_SEEDS = [
   // source turn closes success; Echoer's rounds are top-level turns (a
   // transfer, not a sub-run).
   "handoff-gpt6sol",
+  // 2026-09-25 (handoff dropped call, A′, step P2′): the live parallel-handoff
+  // response (a832444; gpt-6-sol @ @openai/agents 0.18.0). The model calls
+  // two transfers; agents-core runs the first and drops the second from the
+  // run, so no run item ever names it. Under the per-call release (§8.0 item
+  // 14, draft.5) the dropped call stops being pending at handoff_occurred:
+  // ext.openai.dropped-call names it, and the source round closes
+  // turn.done{success} with its usage instead of flush's turn.abort.
+  "handoff-parallel-gpt6sol",
 ] as const;
 
 /**

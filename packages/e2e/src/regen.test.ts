@@ -210,9 +210,9 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // enrolled on the openai facet's handoff close (b5d8a98). The capture ran through
   // the held openaiHandoff knob; replay needs only the committed native.
   { scenario: "handoff-gpt6sol", framework: "openai" },
-  // 2026-09-25 (handoff dropped call, A′, step P′): the live parallel-handoff
-  // capture (a832444), regenerated with guard maps for its census triage. It
-  // enrols in OPENAI_SEEDS at step P2′, after the openai facet's per-call release.
+  // 2026-09-25 (handoff dropped call, A′): the live parallel-handoff capture
+  // (a832444). Its census triage came at step P′; step P2′ regenerated it on the
+  // openai facet's per-call release and enrolled it in OPENAI_SEEDS.
   { scenario: "handoff-parallel-gpt6sol", framework: "openai" },
   // 2026-09-25 (nested-turn capture ask): the first live Claude subagent runs,
   // enrolled on the claude facet's subagent carries (f2c75d8 + bd4d414).
