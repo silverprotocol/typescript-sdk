@@ -2285,3 +2285,62 @@ describe("emitted values are copies: a host mutating its part after push() chang
     expect(before).toContain('"r":{"b":[1]}');
   });
 });
+
+describe("MCP tool results (@ai-sdk/mcp): isError sets outcome error (V1); _meta.ui rides tool.done._meta (V4)", () => {
+  const MCP = { clientName: "ai-sdk-mcp-client", toolName: "t" };
+  const step = (calls: Array<{ id: string; output: unknown; toolMetadata?: unknown }>) => [
+    { type: "start" },
+    { type: "start-step", request: {}, warnings: [] },
+    ...calls.flatMap((c) => {
+      const tm = c.toolMetadata !== undefined ? { toolMetadata: c.toolMetadata } : {};
+      return [
+        { type: "tool-call", toolCallId: c.id, toolName: "t", input: {}, dynamic: true, ...tm },
+        { type: "tool-result", toolCallId: c.id, toolName: "t", input: {}, output: c.output, dynamic: true, ...tm },
+      ];
+    }),
+    { type: "finish-step", finishReason: "tool-calls", rawFinishReason: "tool-calls", usage: USAGE, response: RESPONSE_S1 },
+    { type: "finish", finishReason: "tool-calls", rawFinishReason: "tool-calls", totalUsage: USAGE },
+  ];
+  const done = (evs: AgEvent[], id: string) =>
+    evs.find((e) => e.type === "tool.done" && (e as { toolCallId?: string }).toolCallId === id) as Record<string, unknown>;
+  // The live shapes (tool-error-gpt6sol / app-spec-gpt6sol, ai 7.0.111 + @ai-sdk/mcp).
+  const ERR = { content: [{ type: "text", text: '{"error":{"code":"E_MOCK","message":"boom"}}' }], isError: true };
+  const UI = { resourceUri: "ui://mock/card", visibility: ["model"] };
+  const APP = { _meta: { ui: UI }, content: [{ type: "text", text: "{}" }], structuredContent: { title: "Hello" }, isError: false };
+
+  it("V1: each MCP isError result maps to outcome error + isError (two in one step), and an MCP ok result stays ok", () => {
+    const evs = run(step([{ id: "c1", output: ERR, toolMetadata: MCP }, { id: "c2", output: ERR, toolMetadata: MCP }, { id: "c3", output: { content: [], isError: false }, toolMetadata: MCP }]));
+    expectAllParse(evs);
+    for (const id of ["c1", "c2"]) expect(done(evs, id)).toMatchObject({ outcome: "error", isError: true });
+    expect(done(evs, "c3")["outcome"]).toBe("ok");
+    expect("isError" in done(evs, "c3")).toBe(false);
+    const results = reduce(evs).messages.flatMap((m) => m.content).filter((b) => b.type === "tool-result") as Array<{ toolCallId: string; isError?: boolean }>;
+    expect(results.filter((b) => b.isError === true).map((b) => b.toolCallId)).toEqual(["c1", "c2"]);
+  });
+
+  it("V1: without the @ai-sdk/mcp stamp an MCP-shaped isError output stays ok (the shape alone is never the key)", () => {
+    const d = done(run(step([{ id: "c1", output: ERR }])), "c1");
+    expect(d["outcome"]).toBe("ok");
+    expect("isError" in d).toBe(false);
+  });
+
+  it("V1: with the stamp but no CallToolResult shape (no content array) the result stays ok", () => {
+    const d = done(run(step([{ id: "c1", output: { isError: true }, toolMetadata: MCP }])), "c1");
+    expect(d["outcome"]).toBe("ok");
+  });
+
+  it("V4: MCP Apps _meta.ui rides tool.done._meta unchanged; structuredContent and content keep their shape", () => {
+    const evs = run(step([{ id: "c1", output: APP, toolMetadata: MCP }]));
+    expectAllParse(evs);
+    const d = done(evs, "c1");
+    expect(d["_meta"]).toEqual({ ui: UI });
+    expect(d["outcome"]).toBe("ok");
+    expect(d["structuredContent"]).toEqual(APP);
+    expect(d["content"]).toEqual([{ type: "text", text: JSON.stringify(APP) }]);
+  });
+
+  it("V4: no _meta without the stamp, and none for an MCP result that carries no _meta.ui", () => {
+    expect("_meta" in done(run(step([{ id: "c1", output: APP }])), "c1")).toBe(false);
+    expect("_meta" in done(run(step([{ id: "c1", output: { content: [], _meta: { other: 1 } }, toolMetadata: MCP }])), "c1")).toBe(false);
+  });
+});

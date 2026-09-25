@@ -144,6 +144,23 @@ function isVercelStreamPart(v: unknown): v is VercelStreamPart {
 }
 
 const str = (v: unknown): string | undefined => (typeof v === "string" ? v : undefined);
+
+/**
+ * The MCP members of an @ai-sdk/mcp tool result, or undefined for any other
+ * tool. The key is the framework's own stamp: @ai-sdk/mcp sets
+ * `toolMetadata.clientName` on every MCP tool part. The CallToolResult shape
+ * (a `content` array) only confirms it, because an ordinary tool can return an
+ * MCP-shaped object. `isError` is MCP's error flag (§2.2: outcome "error").
+ * `ui` is MCP Apps `_meta.ui`, which draft.4 §2.1 requires on tool.done._meta
+ * unchanged.
+ */
+function mcpToolResult(part: { [k: string]: unknown }, output: JsonValue): { isError: boolean; ui: JsonValue | undefined } | undefined {
+  if (typeof rec(part["toolMetadata"])?.["clientName"] !== "string") return undefined;
+  const result = rec(output);
+  if (result === undefined || !Array.isArray(result["content"])) return undefined;
+  const ui = rec(result["_meta"])?.["ui"];
+  return { isError: result["isError"] === true, ui: ui === undefined ? undefined : (ui as JsonValue) };
+}
 const num = (v: unknown): number | undefined => (typeof v === "number" ? v : undefined);
 const rec = (v: unknown): { [k: string]: unknown } | undefined =>
   typeof v === "object" && v !== null && !Array.isArray(v) ? (v as { [k: string]: unknown }) : undefined;
@@ -584,13 +601,21 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
         if (toolCallId === undefined) break;
         const output = safeJson(part["output"]);
         const preliminary = part["preliminary"] === true;
+        // An MCP tool's result (@ai-sdk/mcp returns an isError CallToolResult
+        // as the output instead of throwing): draft.4 §2.2 derives the outcome
+        // from MCP `isError`, and §2.1's view locator carries MCP Apps
+        // `_meta.ui` onto tool.done._meta. structuredContent and content keep
+        // their shape here.
+        const mcp = mcpToolResult(part, output);
         a.toolDone({
           toolCallId,
-          outcome: "ok",
+          outcome: mcp?.isError === true ? "error" : "ok",
+          ...(mcp?.isError === true ? { isError: true as const } : {}),
           structuredContent: output,
           content: [
             { type: "text", text: typeof output === "string" ? output : JSON.stringify(output) },
           ],
+          ...(mcp?.ui !== undefined ? { _meta: { ui: mcp.ui } } : {}),
           ...(preliminary ? { more: true, preliminary: true } : {}),
           ...(typeof part["dynamic"] === "boolean" ? { dynamic: part["dynamic"] } : {}),
         });
