@@ -471,6 +471,7 @@ function emitAssistantBlock(
   blockProviderMetadata?: AgProviderMeta,
   blockMeta?: AgMeta,
   phase?: string,
+  wireInput?: JsonValue,
 ): BlockAnchor {
   switch (block.type) {
     case "text": {
@@ -582,7 +583,7 @@ function emitAssistantBlock(
         ...(blockProviderMetadata !== undefined ? { providerMetadata: blockProviderMetadata } : {}),
       });
       a.toolArgsDelta(toolCallId, JSON.stringify(input));
-      a.toolArgsAssembled(toolCallId, input);
+      a.toolArgsAssembled(toolCallId, input, wireInputFields(wireInput));
       return { replay: true, host: false };
     }
     case "mcp_tool_result": {
@@ -905,6 +906,55 @@ function mergeHarnessMeta(sibling: AgMeta | undefined, harness: { [k: string]: J
   }
   for (const [k, v] of Object.entries(harness)) out[k] = v;
   return Object.keys(out).length > 0 ? out : undefined;
+}
+
+// `wire_tool_inputs` (CLI 2.1.280, @internal, undeclared in sdk.d.ts; first seen
+// on sp-probe's subagent captures): "tool_use.input exactly as the API produced
+// it, keyed by tool_use id, for a message whose message.content carries the
+// client-normalized input. Round-tripped so a replayed history echoes each
+// earlier tool call back to the API as the API emitted it" (the CLI's own
+// schema doc). REPLAY-LOAD-BEARING, so it rides the tool-call block's
+// providerMetadata (SPEC §12) as `wireInput`, on tool.args.assembled (the one
+// event both arms emit once the complete frame is known; the reducer merges its
+// providerMetadata by key). It is carried only when it DIFFERS from the input the
+// event already holds, key order aside: every capture so far has the two
+// identical, which stays byte-identical. Credit tokens are stripped
+// (carryVerbatim).
+function wireToolInput(frame: unknown, toolUseId: string): JsonValue | undefined {
+  const map = isJsonObject(frame) ? frame["wire_tool_inputs"] : undefined;
+  if (!isJsonObject(map)) return undefined;
+  const entry = map[toolUseId];
+  return entry === undefined ? undefined : carryVerbatim(entry);
+}
+
+// The complete arm: the wire input for a tool_use block, when it differs from
+// the block's own (client-normalized) content input.
+function wireInputFor(frame: unknown, toolUseId: string, contentInput: unknown): JsonValue | undefined {
+  const wire = wireToolInput(frame, toolUseId);
+  return wire !== undefined && !jsonEqual(wire, contentInput) ? wire : undefined;
+}
+
+function wireInputFields(wireInput: JsonValue | undefined): { providerMetadata: AgProviderMeta } | undefined {
+  return wireInput !== undefined ? { providerMetadata: AgProviderMeta.parse({ wireInput }) } : undefined;
+}
+
+function isToolUseBlock(block: BetaContentBlock): block is Extract<BetaContentBlock, { type: "tool_use" | "server_tool_use" | "mcp_tool_use" }> {
+  return block.type === "tool_use" || block.type === "server_tool_use" || block.type === "mcp_tool_use";
+}
+
+// Structural JSON equality, object key order ignored (a normalizer that only
+// reordered keys changed nothing a replay depends on).
+function jsonEqual(x: unknown, y: unknown): boolean {
+  if (x === y) return true;
+  if (Array.isArray(x) || Array.isArray(y)) {
+    return Array.isArray(x) && Array.isArray(y) && x.length === y.length && x.every((v, i) => jsonEqual(v, y[i]));
+  }
+  if (isJsonObject(x) && isJsonObject(y)) {
+    const kx = Object.keys(x);
+    const ky = Object.keys(y);
+    return kx.length === ky.length && kx.every((k) => Object.hasOwn(y, k) && jsonEqual(x[k], y[k]));
+  }
+  return false;
 }
 
 // A result's `terminal_reason` when it names why the turn ended other than a
@@ -1625,7 +1675,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         hasText: boolean;
         narration: boolean;
       }
-    | { kind: "tool"; toolCallId: string; json: string; startInput: JsonValue }
+    | { kind: "tool"; toolCallId: string; json: string; startInput: JsonValue; wireInput?: JsonValue }
     | { kind: "compaction"; content: string | null; encrypted: string | null }
     | { kind: "emitted" };
   let pending: PendingMessage | undefined;
@@ -1768,7 +1818,13 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
             input = b.startInput;
           }
         }
-        a.toolArgsAssembled(b.toolCallId, input);
+        // The stream's input IS the API's own (partial_json), so the wire input
+        // is carried only if it still differs from it (see wireInputFor).
+        a.toolArgsAssembled(
+          b.toolCallId,
+          input,
+          wireInputFields(b.wireInput !== undefined && !jsonEqual(b.wireInput, input) ? b.wireInput : undefined),
+        );
         return;
       }
       case "compaction":
@@ -2507,6 +2563,19 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
           if (frameBlock?.type === "thinking" && streamBlock?.kind === "reasoning") streamBlock.narration = true;
         }
       }
+      if (suppressed) {
+        // STREAMED: record each open tool block's `wire_tool_inputs` entry (the
+        // complete frame precedes the block's content_block_stop, CB-13); its
+        // tool.args.assembled carries it only if it differs from the streamed input.
+        for (let i = 0; i < m.content.length; i++) {
+          const frameBlock = m.content[i];
+          const streamBlock = open.streamBlocks.get(open.framedThrough + i);
+          if (frameBlock !== undefined && isToolUseBlock(frameBlock) && streamBlock?.kind === "tool") {
+            const wire = wireToolInput(msg, frameBlock.id);
+            if (wire !== undefined) streamBlock.wireInput = wire;
+          }
+        }
+      }
       if (!suppressed) {
         // A plain indexed loop, not `.forEach` — see `mcpToolResultContentToAgBlocks`'s
         // doc: `.forEach`'s callback parameter inference degrades to implicit `any`
@@ -2536,6 +2605,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
             i === 0 ? wrapperMeta : undefined,
             i === 0 ? hostMeta : undefined,
             interim,
+            isToolUseBlock(block) ? wireInputFor(msg, block.id, block.input) : undefined,
           );
           if (block.type === "mcp_tool_result") closedToolCallIds.add(block.tool_use_id);
           if (i === 0) anchored = landed;

@@ -8101,3 +8101,56 @@ describe("createClaudeNormalizer — rd-15: the CLI's tool_result_meta entry rid
     expect(done(plain) !== undefined && "_meta" in (done(plain) ?? {})).toBe(false);
   });
 });
+
+// ─── B1: `wire_tool_inputs` rides tool.args.assembled providerMetadata ────────
+// The CLI's @internal "tool_use.input exactly as the API produced it" for a
+// message whose content carries a client-normalized input: replay-load-bearing,
+// so providerMetadata.wireInput, and ONLY when it differs from the input the
+// event holds (key order aside). Every capture so far has the two identical.
+describe("createClaudeNormalizer — B1: the API's own tool input when the CLI normalized it", () => {
+  const WIRE = { command: "cd /repo && ls" };
+  const NORMALIZED = { command: "ls" };
+  const frame = (content: unknown, wire?: unknown, id = "msg_fixture_1"): unknown => ({
+    ...Object.fromEntries(Object.entries(assistantMsg([]))),
+    message: { ...betaMessage([]), id, content: [{ type: "tool_use", id: "toolu_w", name: "Bash", input: content }] },
+    ...(wire !== undefined ? { wire_tool_inputs: wire } : {}),
+  });
+  const assembled = (evs: AgEvent[]): { [k: string]: unknown } | undefined => {
+    const e = evs.find((x) => x.type === "tool.args.assembled");
+    return e === undefined ? undefined : Object.fromEntries(Object.entries(e));
+  };
+
+  it("complete arm: a differing wire input rides tool.args.assembled providerMetadata.wireInput and folds onto the tool-call block; tool.start is untouched", () => {
+    const evs = drive([frame(NORMALIZED, { toolu_w: WIRE })]);
+    expect(assembled(evs)).toMatchObject({ input: NORMALIZED, providerMetadata: { wireInput: WIRE } });
+    expect(evs.find((e) => e.type === "tool.start")).not.toHaveProperty("providerMetadata");
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages[0]?.content[0]).toMatchObject({ type: "tool-call", input: NORMALIZED, providerMetadata: { wireInput: WIRE } });
+  });
+
+  it("negative controls: an identical wire input (every capture so far), a key-order-only difference, no map, another id or a malformed map leave the stream byte-identical", () => {
+    const plain = JSON.stringify(drive([frame(NORMALIZED)]));
+    for (const wire of [{ toolu_w: NORMALIZED }, { toolu_w: { command: "ls" } }, { toolu_other: WIRE }, "junk", [WIRE]]) {
+      expect(JSON.stringify(drive([frame(NORMALIZED, wire)])), JSON.stringify(wire)).toBe(plain);
+    }
+    const two = { a: 1, b: { c: [1, 2] } };
+    const reordered = { b: { c: [1, 2] }, a: 1 };
+    expect(assembled(drive([frame(two, { toolu_w: reordered })]))).not.toHaveProperty("providerMetadata");
+  });
+
+  it("stream arm: the streamed input IS the API's, so an equal wire input carries nothing; one that still differs rides the assembled event at content_block_stop", () => {
+    const se = (event: unknown, uuid = "00000000-0000-0000-0000-0000000000w1"): unknown => ({ type: "stream_event", event, parent_tool_use_id: null, uuid, session_id: "sess_fixture" });
+    const streamed = (wire: unknown): AgEvent[] => drive([
+      se({ type: "message_start", message: { ...betaMessage([]), id: "msg_ws" } }),
+      se({ type: "content_block_start", index: 0, content_block: { type: "tool_use", id: "toolu_w", name: "Bash", input: {} } }),
+      se({ type: "content_block_delta", index: 0, delta: { type: "input_json_delta", partial_json: JSON.stringify(WIRE) } }),
+      frame(NORMALIZED, { toolu_w: wire }, "msg_ws"),
+      se({ type: "content_block_stop", index: 0 }),
+    ]);
+    const equal = assembled(streamed(WIRE));
+    expect(equal).toMatchObject({ input: WIRE });
+    expect(equal).not.toHaveProperty("providerMetadata");
+    expect(assembled(streamed({ command: "other" }))).toMatchObject({ input: WIRE, providerMetadata: { wireInput: { command: "other" } } });
+  });
+});
