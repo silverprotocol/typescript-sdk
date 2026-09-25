@@ -2,21 +2,21 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "threadId": "google"
   },
   {
     "type": "message.start",
     "seq": 1,
-    "id": "msg_turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "id": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "threadId": "google",
     "role": "assistant"
   },
   {
     "type": "tool.start",
     "seq": 2,
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "toolCallId": "call_30587",
     "name": "echo",
     "index": 0
@@ -39,7 +39,7 @@
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "seq": 5
   },
   {
@@ -52,13 +52,13 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
+    "messageId": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
   },
   {
     "type": "tool.done",
     "seq": 7,
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "toolCallId": "call_30587",
     "content": [
       {
@@ -71,7 +71,7 @@
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "seq": 8
   },
   {
@@ -84,13 +84,13 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
+    "messageId": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
   },
   {
     "type": "tool.start",
     "seq": 10,
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "toolCallId": "call_38561",
     "name": "echo",
     "index": 0
@@ -113,7 +113,7 @@
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "seq": 13
   },
   {
@@ -126,13 +126,13 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
+    "messageId": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
   },
   {
     "type": "tool.done",
     "seq": 15,
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "toolCallId": "call_38561",
     "content": [
       {
@@ -145,7 +145,7 @@
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "seq": 16
   },
   {
@@ -158,15 +158,15 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
+    "messageId": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
   },
   {
     "type": "text.start",
     "seq": 18,
     "id": "text:0",
-    "messageId": "msg_turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "messageId": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "providerMetadata": {
       "google": {
         "thoughtSignature": "ErcBCrQBAWkUfROeIhW62KJdRikQWsLxGXqh1JNOjatz1TEqAD7PPK1dOUiM7U/gzzXYW6w0Kd4Gv/L1dSdn4yxFfTLn6A5I3Q8Kz0hARlcUTQO8TDfuZLLhYhXK5RLhUC95QAeAGhHmzyhKFXDn3ZN1glsyB+/w/iiLFRoQxoexJynBh/uZKOs/jxJqnxSj+IS3Ym9SO0t88TXeD6aKu9sqZBm0UrB1OdLlEBZvr1ftL35T3uGXTdml"
@@ -177,16 +177,16 @@
     "type": "text.delta",
     "seq": 19,
     "id": "text:0",
-    "messageId": "msg_turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "messageId": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "delta": "Both tool calls have completed:\n\n1. **First call** (`message='turn-one'`): `turn-one`\n2. **Second call** (`message='turn-two'`): `turn-two`",
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
   },
   {
     "type": "text.end",
     "seq": 20,
     "id": "text:0",
-    "messageId": "msg_turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "messageId": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "providerMetadata": {
       "google": {
         "thoughtSignature": "ErcBCrQBAWkUfROeIhW62KJdRikQWsLxGXqh1JNOjatz1TEqAD7PPK1dOUiM7U/gzzXYW6w0Kd4Gv/L1dSdn4yxFfTLn6A5I3Q8Kz0hARlcUTQO8TDfuZLLhYhXK5RLhUC95QAeAGhHmzyhKFXDn3ZN1glsyB+/w/iiLFRoQxoexJynBh/uZKOs/jxJqnxSj+IS3Ym9SO0t88TXeD6aKu9sqZBm0UrB1OdLlEBZvr1ftL35T3uGXTdml"
@@ -196,7 +196,7 @@
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "seq": 21
   },
   {
@@ -209,18 +209,18 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
+    "messageId": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
   },
   {
     "type": "message.end",
     "seq": 23,
-    "id": "msg_turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
+    "id": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
   },
   {
     "type": "turn.done",
     "seq": 24,
-    "turnId": "turn_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
+    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "outcome": {
       "type": "success"
     },

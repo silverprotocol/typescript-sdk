@@ -2,21 +2,21 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_e-2290a102-02de-402e-80cb-a2243ac4332b",
+    "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
     "threadId": "google"
   },
   {
     "type": "message.start",
     "seq": 1,
-    "id": "msg_turn_e-2290a102-02de-402e-80cb-a2243ac4332b",
-    "turnId": "turn_e-2290a102-02de-402e-80cb-a2243ac4332b",
+    "id": "msg_turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
+    "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
     "threadId": "google",
     "role": "assistant"
   },
   {
     "type": "tool.start",
     "seq": 2,
-    "turnId": "turn_e-2290a102-02de-402e-80cb-a2243ac4332b",
+    "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
     "toolCallId": "a78c62GF",
     "name": "render_card",
     "index": 0
@@ -40,7 +40,7 @@
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_e-2290a102-02de-402e-80cb-a2243ac4332b",
+    "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
     "seq": 5
   },
   {
@@ -53,13 +53,13 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-2290a102-02de-402e-80cb-a2243ac4332b",
-    "turnId": "turn_e-2290a102-02de-402e-80cb-a2243ac4332b"
+    "messageId": "msg_turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
+    "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b"
   },
   {
     "type": "tool.done",
     "seq": 7,
-    "turnId": "turn_e-2290a102-02de-402e-80cb-a2243ac4332b",
+    "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
     "toolCallId": "a78c62GF",
     "content": [
       {
@@ -89,7 +89,7 @@
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_e-2290a102-02de-402e-80cb-a2243ac4332b",
+    "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
     "seq": 8
   },
   {
@@ -102,15 +102,15 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-2290a102-02de-402e-80cb-a2243ac4332b",
-    "turnId": "turn_e-2290a102-02de-402e-80cb-a2243ac4332b"
+    "messageId": "msg_turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
+    "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b"
   },
   {
     "type": "text.start",
     "seq": 10,
     "id": "text:0",
-    "messageId": "msg_turn_e-2290a102-02de-402e-80cb-a2243ac4332b",
-    "turnId": "turn_e-2290a102-02de-402e-80cb-a2243ac4332b",
+    "messageId": "msg_turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
+    "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
     "providerMetadata": {
       "google": {
         "thoughtSignature": "Et4BCtsBARFNMg/kVhJgMQ/Ph2LJBr+n5OdgbWFqYVahCN7+A2cEXoLLItf5NZ66OmNIYytGut20wWKkE9C6E4F9ilIQ4/DNbdwKmpfA5MFZ1cvUFdxbVkcoSDKd58X/YlppJsuxb3pBaFSesrpzVG38vMEVBHNvRc0pajlZaf5dg9SJgTi/S5NDLwALju+n7+DttthG8hFtZyv5Gh/aLKBOagnNla+NrLUM9UlYrwxOqHfIgDqoyPxfQJrjMtreNq0qbvwklg95hBjnu15pwAXSaaq7/sJzt+ftQaGwSGHp"
@@ -121,16 +121,16 @@
     "type": "text.delta",
     "seq": 11,
     "id": "text:0",
-    "messageId": "msg_turn_e-2290a102-02de-402e-80cb-a2243ac4332b",
+    "messageId": "msg_turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
     "delta": "I have called the `render_card` tool. Here is the structured payload returned by the tool:\n\n- **Title**: Hello\n- **Body**: World\n- **Cache**: Cold hit (`hit`: `false`, `kind`: `cold`, `llmCallsAvoided`: `0`)",
-    "turnId": "turn_e-2290a102-02de-402e-80cb-a2243ac4332b"
+    "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b"
   },
   {
     "type": "text.end",
     "seq": 12,
     "id": "text:0",
-    "messageId": "msg_turn_e-2290a102-02de-402e-80cb-a2243ac4332b",
-    "turnId": "turn_e-2290a102-02de-402e-80cb-a2243ac4332b",
+    "messageId": "msg_turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
+    "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
     "providerMetadata": {
       "google": {
         "thoughtSignature": "Et4BCtsBARFNMg/kVhJgMQ/Ph2LJBr+n5OdgbWFqYVahCN7+A2cEXoLLItf5NZ66OmNIYytGut20wWKkE9C6E4F9ilIQ4/DNbdwKmpfA5MFZ1cvUFdxbVkcoSDKd58X/YlppJsuxb3pBaFSesrpzVG38vMEVBHNvRc0pajlZaf5dg9SJgTi/S5NDLwALju+n7+DttthG8hFtZyv5Gh/aLKBOagnNla+NrLUM9UlYrwxOqHfIgDqoyPxfQJrjMtreNq0qbvwklg95hBjnu15pwAXSaaq7/sJzt+ftQaGwSGHp"
@@ -140,7 +140,7 @@
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_e-2290a102-02de-402e-80cb-a2243ac4332b",
+    "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
     "seq": 13
   },
   {
@@ -153,18 +153,18 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-2290a102-02de-402e-80cb-a2243ac4332b",
-    "turnId": "turn_e-2290a102-02de-402e-80cb-a2243ac4332b"
+    "messageId": "msg_turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
+    "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b"
   },
   {
     "type": "message.end",
     "seq": 15,
-    "id": "msg_turn_e-2290a102-02de-402e-80cb-a2243ac4332b"
+    "id": "msg_turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b"
   },
   {
     "type": "turn.done",
     "seq": 16,
-    "turnId": "turn_e-2290a102-02de-402e-80cb-a2243ac4332b",
+    "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
     "outcome": {
       "type": "success"
     },

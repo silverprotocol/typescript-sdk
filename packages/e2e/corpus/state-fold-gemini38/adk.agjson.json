@@ -2,21 +2,21 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "threadId": "google"
   },
   {
     "type": "message.start",
     "seq": 1,
-    "id": "msg_turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "id": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "threadId": "google",
     "role": "assistant"
   },
   {
     "type": "tool.start",
     "seq": 2,
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "toolCallId": "call_163246",
     "name": "apply_state_step",
     "index": 0
@@ -39,7 +39,7 @@
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "seq": 5
   },
   {
@@ -52,13 +52,13 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
+    "messageId": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
   },
   {
     "type": "tool.done",
     "seq": 7,
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "toolCallId": "call_163246",
     "content": [
       {
@@ -84,7 +84,7 @@
         "b": 2
       }
     },
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "seq": 8
   },
   {
@@ -97,13 +97,13 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
+    "messageId": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
   },
   {
     "type": "tool.start",
     "seq": 10,
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "toolCallId": "call_134506",
     "name": "apply_state_step",
     "index": 0
@@ -126,7 +126,7 @@
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "seq": 13
   },
   {
@@ -139,13 +139,13 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
+    "messageId": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
   },
   {
     "type": "tool.done",
     "seq": 15,
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "toolCallId": "call_134506",
     "content": [
       {
@@ -169,7 +169,7 @@
         "a": 5
       }
     },
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "seq": 16
   },
   {
@@ -182,15 +182,15 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
+    "messageId": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
   },
   {
     "type": "text.start",
     "seq": 18,
     "id": "text:0",
-    "messageId": "msg_turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "messageId": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "providerMetadata": {
       "google": {
         "thoughtSignature": "EqIBCp8BAWkUfRNiicLRaahaogeJtFL40MR6KVxHSmqep3yZlJym/EKMIEA2RsOatSiJNJUk8Vhq83durk1k7y0Ra0PgRO4Ub3VR1GMcA+Jzgw3Hig9wQSlKxOVg6avlxI2tJT5Iz+fh57rH/ru9aFMRB20ZAyN/VgIV/S0p7dXRjBWTsDaWOU4MlMoTmDO+8Cdc0u2EKWMdOAgi0DBuuOVNqxsd"
@@ -201,16 +201,16 @@
     "type": "text.delta",
     "seq": 19,
     "id": "text:0",
-    "messageId": "msg_turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "messageId": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "delta": "done",
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
   },
   {
     "type": "text.end",
     "seq": 20,
     "id": "text:0",
-    "messageId": "msg_turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "messageId": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "providerMetadata": {
       "google": {
         "thoughtSignature": "EqIBCp8BAWkUfRNiicLRaahaogeJtFL40MR6KVxHSmqep3yZlJym/EKMIEA2RsOatSiJNJUk8Vhq83durk1k7y0Ra0PgRO4Ub3VR1GMcA+Jzgw3Hig9wQSlKxOVg6avlxI2tJT5Iz+fh57rH/ru9aFMRB20ZAyN/VgIV/S0p7dXRjBWTsDaWOU4MlMoTmDO+8Cdc0u2EKWMdOAgi0DBuuOVNqxsd"
@@ -220,7 +220,7 @@
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "seq": 21
   },
   {
@@ -233,18 +233,18 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
+    "messageId": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
   },
   {
     "type": "message.end",
     "seq": 23,
-    "id": "msg_turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
+    "id": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
   },
   {
     "type": "turn.done",
     "seq": 24,
-    "turnId": "turn_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
+    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "outcome": {
       "type": "success"
     },

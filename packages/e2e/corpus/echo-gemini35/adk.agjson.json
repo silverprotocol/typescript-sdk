@@ -2,21 +2,21 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
+    "turnId": "turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
     "threadId": "google"
   },
   {
     "type": "message.start",
     "seq": 1,
-    "id": "msg_turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
-    "turnId": "turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
+    "id": "msg_turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
+    "turnId": "turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
     "threadId": "google",
     "role": "assistant"
   },
   {
     "type": "tool.start",
     "seq": 2,
-    "turnId": "turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
+    "turnId": "turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
     "toolCallId": "3a8u7ref",
     "name": "echo",
     "index": 0
@@ -39,7 +39,7 @@
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
+    "turnId": "turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
     "seq": 5
   },
   {
@@ -52,13 +52,13 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
-    "turnId": "turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93"
+    "messageId": "msg_turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
+    "turnId": "turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93"
   },
   {
     "type": "tool.done",
     "seq": 7,
-    "turnId": "turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
+    "turnId": "turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
     "toolCallId": "3a8u7ref",
     "content": [
       {
@@ -71,7 +71,7 @@
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
+    "turnId": "turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
     "seq": 8
   },
   {
@@ -84,15 +84,15 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
-    "turnId": "turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93"
+    "messageId": "msg_turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
+    "turnId": "turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93"
   },
   {
     "type": "text.start",
     "seq": 10,
     "id": "text:0",
-    "messageId": "msg_turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
-    "turnId": "turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
+    "messageId": "msg_turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
+    "turnId": "turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
     "providerMetadata": {
       "google": {
         "thoughtSignature": "EjQKMgERTTIPqeY+uOdPQybXR2A0beWTKYeKm5R8d4y/47AsS7sWxRzNNrB4/BKxTXC53hB5"
@@ -103,16 +103,16 @@
     "type": "text.delta",
     "seq": 11,
     "id": "text:0",
-    "messageId": "msg_turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
+    "messageId": "msg_turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
     "delta": "conformance-probe-gemini35",
-    "turnId": "turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93"
+    "turnId": "turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93"
   },
   {
     "type": "text.end",
     "seq": 12,
     "id": "text:0",
-    "messageId": "msg_turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
-    "turnId": "turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
+    "messageId": "msg_turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
+    "turnId": "turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
     "providerMetadata": {
       "google": {
         "thoughtSignature": "EjQKMgERTTIPqeY+uOdPQybXR2A0beWTKYeKm5R8d4y/47AsS7sWxRzNNrB4/BKxTXC53hB5"
@@ -122,7 +122,7 @@
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
+    "turnId": "turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
     "seq": 13
   },
   {
@@ -135,18 +135,18 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
-    "turnId": "turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93"
+    "messageId": "msg_turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
+    "turnId": "turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93"
   },
   {
     "type": "message.end",
     "seq": 15,
-    "id": "msg_turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93"
+    "id": "msg_turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93"
   },
   {
     "type": "turn.done",
     "seq": 16,
-    "turnId": "turn_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
+    "turnId": "turn_adk_e-43268a65-a9f8-4d38-9aea-5594693b6c93",
     "outcome": {
       "type": "success"
     },

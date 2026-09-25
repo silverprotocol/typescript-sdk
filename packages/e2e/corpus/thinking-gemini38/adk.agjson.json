@@ -2,14 +2,14 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "threadId": "google"
   },
   {
     "type": "message.start",
     "seq": 1,
-    "id": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "id": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "threadId": "google",
     "role": "assistant"
   },
@@ -17,29 +17,29 @@
     "type": "reasoning.start",
     "seq": 2,
     "id": "reasoning:0",
-    "messageId": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
+    "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
   },
   {
     "type": "reasoning.delta",
     "seq": 3,
     "id": "reasoning:0",
-    "messageId": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "delta": "Here's my thought process, distilled:\n\n**Executing a Simple Command**\n\nOkay, the user wants me to execute a command. Specifically, they want me to use the `echo` tool to output a specific string: 'thinking-probe-gemini38'. It's straightforward; the `echo` tool is defined with a `message` parameter of type string, which perfectly matches the instruction. The plan is clear: call the `echo` tool and pass it the message 'thinking-probe-gemini38'. Let's get to it. I'll execute `echo(message='thinking-probe-gemini38')` now.\n\n\n",
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
   },
   {
     "type": "reasoning.end",
     "seq": 4,
     "id": "reasoning:0",
-    "messageId": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "provider": "google"
   },
   {
     "type": "tool.start",
     "seq": 5,
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "toolCallId": "call_25597",
     "name": "echo",
     "index": 1
@@ -62,7 +62,7 @@
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "seq": 8
   },
   {
@@ -75,13 +75,13 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
+    "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
   },
   {
     "type": "tool.done",
     "seq": 10,
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "toolCallId": "call_25597",
     "content": [
       {
@@ -94,7 +94,7 @@
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "seq": 11
   },
   {
@@ -107,38 +107,38 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
+    "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
   },
   {
     "type": "reasoning.start",
     "seq": 13,
     "id": "reasoning:1",
-    "messageId": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
+    "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
   },
   {
     "type": "reasoning.delta",
     "seq": 14,
     "id": "reasoning:1",
-    "messageId": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "delta": "Okay, here's my interpretation of that thought process, tailored for an expert user:\n\n**Responding to the Echo**\n\nAlright, the tool is showing the expected echo. That's the signal, right? My internal systems are confirming the data. So, what's next? It’s time to move beyond the data acquisition phase. The user, with their depth of knowledge, needs the next layer of information and now I need to formulate a response to engage them further. There are parameters to this response, so I'll create a response now.\n\n\n",
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
   },
   {
     "type": "reasoning.end",
     "seq": 15,
     "id": "reasoning:1",
-    "messageId": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "provider": "google"
   },
   {
     "type": "text.start",
     "seq": 16,
     "id": "text:0",
-    "messageId": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "providerMetadata": {
       "google": {
         "thoughtSignature": "EpwBCpkBAWkUfROvx+FfBxUqqLmkfs3P8JITh05p8Kkw+7Vyb/9Qcotj7XKC3SRIop8/yS5APMSkowGACKJbTrPGIt8lwjIPcAbxv8aObN/h6LaDdfTgz7KlNsp0gvkNetqwoZ7Z+4QmVrXXXtZih6ocfO0m9kyqN8Ud7x2gdu2a0Fsc5ogoNFwQgfTSjhCEat7f51r501z46JjfsDV5"
@@ -149,16 +149,16 @@
     "type": "text.delta",
     "seq": 17,
     "id": "text:0",
-    "messageId": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "delta": "thinking-probe-gemini38",
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
   },
   {
     "type": "text.end",
     "seq": 18,
     "id": "text:0",
-    "messageId": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "providerMetadata": {
       "google": {
         "thoughtSignature": "EpwBCpkBAWkUfROvx+FfBxUqqLmkfs3P8JITh05p8Kkw+7Vyb/9Qcotj7XKC3SRIop8/yS5APMSkowGACKJbTrPGIt8lwjIPcAbxv8aObN/h6LaDdfTgz7KlNsp0gvkNetqwoZ7Z+4QmVrXXXtZih6ocfO0m9kyqN8Ud7x2gdu2a0Fsc5ogoNFwQgfTSjhCEat7f51r501z46JjfsDV5"
@@ -168,7 +168,7 @@
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "seq": 19
   },
   {
@@ -181,18 +181,18 @@
         "artifactDelta": {}
       }
     },
-    "messageId": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
+    "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
   },
   {
     "type": "message.end",
     "seq": 21,
-    "id": "msg_turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
+    "id": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
   },
   {
     "type": "turn.done",
     "seq": 22,
-    "turnId": "turn_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
+    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "outcome": {
       "type": "success"
     },

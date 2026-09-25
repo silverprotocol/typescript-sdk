@@ -2017,7 +2017,7 @@
   },
   {
     "path": "[*].id",
-    "reason": "adk: the per-event id \u2014 consumed ONLY as turnKey()'s fallback when invocationId is absent/empty (index.ts:350); every event in this cassette carries a non-empty invocationId, so id is never actually read here. No verbatim AgJSON home either way \u2014 the same pattern as claude's uuid precedent (\"derives turnId only when session_id is absent, otherwise no AgJSON home\").",
+    "reason": "adk: the per-event id \u2014 consumed ONLY as turnKey()'s fallback when invocationId is absent/empty (index.ts:797-800); every event in this cassette carries a non-empty invocationId, so id is never actually read here. No verbatim AgJSON home either way \u2014 the same pattern as claude's uuid precedent (\"derives turnId only when session_id is absent, otherwise no AgJSON home\").",
     "reviewed": "any",
     "frameworks": [
       "adk"
@@ -2025,7 +2025,7 @@
   },
   {
     "path": "[*].invocationId",
-    "reason": "adk: derives turnId (turn_<invocationId> via turnKey(), index.ts:349-351); the raw invocationId has no verbatim home (turnId is a derived rename) \u2014 the same pattern as claude's session_id precedent (\"derives turnId (turn_<session_id>) ... has no verbatim home\").",
+    "reason": "adk: derives turnId (turn_<invokeId>_<invocationId>: turnKey() at index.ts:797-800, minted at :2108); the raw invocationId has no verbatim home (turnId is a derived rename) \u2014 the same pattern as claude's session_id precedent (\"derives turnId (turn_<session_id>) ... has no verbatim home\").",
     "reviewed": "any",
     "frameworks": [
       "adk"

@@ -2,21 +2,21 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_e-text-tool-turn",
+    "turnId": "turn_adk_e-text-tool-turn",
     "threadId": "google"
   },
   {
     "type": "message.start",
     "seq": 1,
-    "id": "msg_turn_e-text-tool-turn",
-    "turnId": "turn_e-text-tool-turn",
+    "id": "msg_turn_adk_e-text-tool-turn",
+    "turnId": "turn_adk_e-text-tool-turn",
     "threadId": "google",
     "role": "assistant"
   },
   {
     "type": "tool.start",
     "seq": 2,
-    "turnId": "turn_e-text-tool-turn",
+    "turnId": "turn_adk_e-text-tool-turn",
     "toolCallId": "adk-tt-echo",
     "name": "echo",
     "index": 0
@@ -38,7 +38,7 @@
   {
     "type": "tool.done",
     "seq": 5,
-    "turnId": "turn_e-text-tool-turn",
+    "turnId": "turn_adk_e-text-tool-turn",
     "toolCallId": "adk-tt-echo",
     "content": [
       {
@@ -52,33 +52,33 @@
     "type": "text.start",
     "seq": 6,
     "id": "text:0",
-    "messageId": "msg_turn_e-text-tool-turn",
-    "turnId": "turn_e-text-tool-turn"
+    "messageId": "msg_turn_adk_e-text-tool-turn",
+    "turnId": "turn_adk_e-text-tool-turn"
   },
   {
     "type": "text.delta",
     "seq": 7,
     "id": "text:0",
-    "messageId": "msg_turn_e-text-tool-turn",
+    "messageId": "msg_turn_adk_e-text-tool-turn",
     "delta": "Done.",
-    "turnId": "turn_e-text-tool-turn"
+    "turnId": "turn_adk_e-text-tool-turn"
   },
   {
     "type": "text.end",
     "seq": 8,
     "id": "text:0",
-    "messageId": "msg_turn_e-text-tool-turn",
-    "turnId": "turn_e-text-tool-turn"
+    "messageId": "msg_turn_adk_e-text-tool-turn",
+    "turnId": "turn_adk_e-text-tool-turn"
   },
   {
     "type": "message.end",
     "seq": 9,
-    "id": "msg_turn_e-text-tool-turn"
+    "id": "msg_turn_adk_e-text-tool-turn"
   },
   {
     "type": "turn.done",
     "seq": 10,
-    "turnId": "turn_e-text-tool-turn",
+    "turnId": "turn_adk_e-text-tool-turn",
     "outcome": {
       "type": "success"
     },
