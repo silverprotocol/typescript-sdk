@@ -228,7 +228,9 @@ describe("createClaudeNormalizer — assistant text (assembled golden)", () => {
         type: "message.end",
         seq: 5,
         id: "msg_fixture_1",
-        usage: { inputTokens: 0, outputTokens: 0, cumulative: true },
+        // No partials: the assistant frame's output_tokens is the SDK's
+        // placeholder, so the seal omits outputTokens (draft.5 §8.0 item 4).
+        usage: { inputTokens: 0, cumulative: true },
       },
       { type: "turn.abort", seq: 6, turnId: TOP_TURN, reason: "stream-truncated" },
     ]);
@@ -752,8 +754,10 @@ describe("createClaudeNormalizer — split-frame id coalesce (guuey#26)", () => 
     const ends = evs.filter((e) => e.type === "message.end" && e.id === SPLIT_ID);
     expect(ends).toHaveLength(1);
     expect(ends[0]).toMatchObject({
-      usage: { inputTokens: 11, outputTokens: 22, cumulative: true },
+      usage: { inputTokens: 11, cumulative: true },
     });
+    // No partials: the placeholder outputTokens is omitted (draft.5 §8.0 item 4).
+    expect(ends[0]).not.toHaveProperty(["usage", "outputTokens"]);
   });
 
   it("a same-id frame arriving AFTER the lifecycle closed rides a derived carrier id — the sealed id is never re-opened", () => {
@@ -961,13 +965,16 @@ describe("createClaudeNormalizer — result success with usage", () => {
     expect(done).toMatchObject({
       type: "turn.done",
       usage: {
-        inputTokens: 100,
+        // draft.5 §4: cache-inclusive input, 100 + 20 read + 10 write.
+        inputTokens: 130,
         outputTokens: 50,
         cacheReadTokens: 20,
         cacheWriteTokens: 10,
         costUsd: 0.05,
-        cumulative: true,
-        byModel: { "claude-opus": { inputTokens: 100, outputTokens: 50 } },
+        costScope: "query",
+        // A turn terminal's counters are per turn (§8.0 item 4).
+        cumulative: false,
+        byModel: { "claude-opus": { inputTokens: 130, outputTokens: 50, cumulative: true } },
       },
     });
     assertAllValid(evs);
@@ -1289,7 +1296,7 @@ describe("createClaudeNormalizer — result usage is shape-guarded (Tenet 6, SPE
     }).not.toThrow();
     assertAllValid(evs);
     const done = evs.find((e) => e.type === "turn.done");
-    expect(done).toMatchObject({ usage: { inputTokens: 100, outputTokens: 50, cacheReadTokens: 20, cacheWriteTokens: 10, costUsd: 0.05 } });
+    expect(done).toMatchObject({ usage: { inputTokens: 130, outputTokens: 50, cacheReadTokens: 20, cacheWriteTokens: 10, costUsd: 0.05 } });
     // The key has always been written as `undefined` when there is no count
     // (as for a null server_tool_use); it drops out on the JSON wire.
     // (byModel entries keep their own per-model count from modelUsage.)
@@ -1327,7 +1334,7 @@ describe("createClaudeNormalizer — result usage is shape-guarded (Tenet 6, SPE
     }).not.toThrow();
     const closes = turnCloses(evs);
     expect(closes).toHaveLength(1);
-    expect(closes[0]).toMatchObject({ type: "turn.error", code: "rate_limit", usage: { inputTokens: 100, outputTokens: 50 } });
+    expect(closes[0]).toMatchObject({ type: "turn.error", code: "rate_limit", usage: { inputTokens: 130, outputTokens: 50 } });
   });
 
   it("NEGATIVE CONTROL: the full typed shape still sums both server-tool counters", () => {
@@ -1358,8 +1365,10 @@ describe("createClaudeNormalizer — message.end usage", () => {
     const msgEnd = evs.find((e) => e.type === "message.end");
     expect(msgEnd).toMatchObject({
       type: "message.end",
-      usage: { inputTokens: 10, outputTokens: 5, cumulative: true },
+      usage: { inputTokens: 10, cumulative: true },
     });
+    // No partials: the placeholder outputTokens is omitted (draft.5 §8.0 item 4).
+    expect(msgEnd).not.toHaveProperty(["usage", "outputTokens"]);
     assertAllValid(evs);
   });
 });
@@ -2483,12 +2492,13 @@ describe("createClaudeNormalizer — refusal-fallback retraction (playbook 2026-
     ).toBe(true);
   });
 
-  it("usage stays verbatim cumulative — the facet does not invent usage subtraction for the refused leg", () => {
-    // The turn's cumulative usage (mapTurnUsage/mapMessageUsage) is untouched by
-    // this adaptation: the SDK's own result.usage/modelUsage already accounts for
+  it("usage stays verbatim — the facet does not invent usage subtraction for the refused leg", () => {
+    // The turn's usage (mapTurnUsage/mapMessageUsage) is untouched by this
+    // adaptation: the SDK's own result.usage/modelUsage already accounts for
     // whatever billing the refusal-fallback retry accrued server-side (playbook
-    // brief's usage caution). Assert the existing verbatim/cumulative contract
-    // still holds unchanged in a retraction turn.
+    // brief's usage caution). Assert the verbatim contract still holds in a
+    // retraction turn: per-turn counters, the query-scoped cost, the per-model
+    // running totals.
     const n = createClaudeNormalizer();
     const events = [
       ...n.push(JsonValue.parse(refusedAssistant())),
@@ -2498,7 +2508,11 @@ describe("createClaudeNormalizer — refusal-fallback retraction (playbook 2026-
       ...n.flush(),
     ];
     const turnDone = events.find((e) => e.type === "turn.done");
-    expect(turnDone).toMatchObject({ usage: { cumulative: true } });
+    // The result's per-turn counters and query-scoped cost, verbatim (draft.5:
+    // a turn terminal's counters are per turn, its byModel entries running totals).
+    expect(turnDone).toMatchObject({
+      usage: { outputTokens: 50, costUsd: 0.05, costScope: "query", cumulative: false, byModel: { "claude-opus": { cumulative: true } } },
+    });
   });
 
   // ─── X4 (the 2026-09-23 re-cut): the rest of the frame rides the carry ──
@@ -4191,7 +4205,7 @@ describe("createClaudeNormalizer — 0.3.220 result-meta carry (fast_mode_disabl
     expect(evs[2]).toMatchObject({
       type: "turn.done",
       finishReason: "stop",
-      usage: { byModel: { "claude-opus": { inputTokens: 100, costUsd: 0.05 } } },
+      usage: { byModel: { "claude-opus": { inputTokens: 130, costUsd: 0.05 } } },
     });
     assertAllValid(evs);
   });
@@ -4301,7 +4315,7 @@ describe("createClaudeNormalizer — 0.3.258 result-meta additions (ModelUsage.c
     // turn.done's byModel still maps the token/cost fields, identity-free.
     expect(evs[2]).toMatchObject({
       type: "turn.done",
-      usage: { byModel: { "claude-opus": { inputTokens: 100, costUsd: 0.05 } } },
+      usage: { byModel: { "claude-opus": { inputTokens: 130, costUsd: 0.05 } } },
     });
     assertAllValid(evs);
   });
@@ -4608,7 +4622,7 @@ describe("createClaudeNormalizer — 0.3.257 thinking-token telemetry → reason
     const done = evs.find((e) => e.type === "turn.done");
     expect(done).toMatchObject({
       type: "turn.done",
-      usage: { inputTokens: 100, outputTokens: 50, reasoningTokens: 7, cumulative: true },
+      usage: { inputTokens: 130, outputTokens: 50, reasoningTokens: 7, cumulative: false },
     });
     assertAllValid(evs);
   });
@@ -4624,8 +4638,10 @@ describe("createClaudeNormalizer — 0.3.257 thinking-token telemetry → reason
     const end = evs.find((e) => e.type === "message.end");
     expect(end).toMatchObject({
       type: "message.end",
-      usage: { inputTokens: 0, outputTokens: 0, reasoningTokens: 3, cumulative: true },
+      usage: { inputTokens: 0, reasoningTokens: 3, cumulative: true },
     });
+    // No partials: the placeholder outputTokens is omitted (draft.5 §8.0 item 4).
+    expect(end).not.toHaveProperty(["usage", "outputTokens"]);
     assertAllValid(evs);
   });
 
@@ -4926,7 +4942,7 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
     }
   });
 
-  it("THE acceptance bar: reducer state after partials + suppressed-complete equals the complete-only state", () => {
+  it("THE acceptance bar: reducer state after partials + suppressed-complete equals the complete-only state, except the message's outputTokens, which only the stream reports", () => {
     const streamed = createClaudeNormalizer();
     const streamedEvs = [
       ...pushAll(streamed, [
@@ -4950,7 +4966,19 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
     for (const e of completeEvs) rc.push(e);
     expect(rs.needsResync).toBe(false);
     expect(rc.needsResync).toBe(false);
-    expect(rs.result()).toEqual(rc.result());
+    // draft.5 §8.0 item 4: the stream's message_delta reports the message's real
+    // output count; complete-only has only the SDK's placeholder, which is omitted.
+    const sRes = rs.result();
+    const cRes = rc.result();
+    const assistantUsage = (r: typeof sRes) => r.messages.find((m) => m.role === "assistant")?.usage;
+    expect(typeof assistantUsage(sRes)?.outputTokens).toBe("number");
+    expect(assistantUsage(cRes)).toBeDefined();
+    expect(assistantUsage(cRes)).not.toHaveProperty("outputTokens");
+    const dropOutput = (r: typeof sRes) => ({
+      ...r,
+      messages: r.messages.map((m) => (m.usage === undefined ? m : { ...m, usage: withoutKey(m.usage, "outputTokens") })),
+    });
+    expect(dropOutput(sRes)).toEqual(dropOutput(cRes));
   });
 
   it("streams thinking with a buffered signature — reasoning.opaque parity with the complete arm", () => {
@@ -5757,18 +5785,21 @@ function fold(evs: AgEvent[]): Reducer {
 }
 
 // The usage `mapTurnUsage` builds from `resultSuccess` (and so from
-// `apiErrorResultFrame`): the mapping turn.done has always carried.
+// `apiErrorResultFrame`). draft.5: cache-inclusive input (100 + 20 + 10), the
+// turn terminal's per-turn counters flagged false, its query-scoped cost
+// labelled; the per-model entry stays a running total.
 const RESULT_USAGE = {
-  inputTokens: 100,
+  inputTokens: 130,
   outputTokens: 50,
   cacheReadTokens: 20,
   cacheWriteTokens: 10,
   serverToolRequests: 0,
   costUsd: 0.05,
-  cumulative: true,
+  costScope: "query",
+  cumulative: false,
   byModel: {
     "claude-opus": {
-      inputTokens: 100,
+      inputTokens: 130,
       outputTokens: 50,
       cacheReadTokens: 20,
       cacheWriteTokens: 10,
@@ -6260,7 +6291,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
       code: "rate_limit_exceeded",
       retriable: true,
       // The same usage mapping turn.done carried before the fix.
-      usage: { inputTokens: 100, outputTokens: 50, costUsd: 0.05, cumulative: true },
+      usage: { inputTokens: 130, outputTokens: 50, costUsd: 0.05, costScope: "query", cumulative: false },
     });
     expect(turnCloses(evs)).toHaveLength(1);
   });
@@ -6319,11 +6350,13 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     // since: the per-turn ids (INV-TURN, B) name this result-only turn by the
     // result's uuid, not by the session.
     // And since the result-only turn.start (INV-TURN), a turn.start at seq 0.
+    // And since draft.5 (§4, §8.0 item 4): cache-inclusive inputTokens, the turn
+    // terminal's per-turn counters flagged false, and costScope "query".
     const GOLDEN =
       '[{"type":"turn.start","seq":0,"turnId":"turn_00000000-0000-0000-0000-000000000002","threadId":"sess_fixture"},' +
       '{"type":"turn.done","seq":1,"turnId":"turn_00000000-0000-0000-0000-000000000002","outcome":{"type":"success","result":"all done"},' +
-      '"finishReason":"stop","usage":{"inputTokens":100,"outputTokens":50,"cacheReadTokens":20,"cacheWriteTokens":10,' +
-      '"serverToolRequests":0,"costUsd":0.05,"cumulative":true,"byModel":{"claude-opus":{"inputTokens":100,' +
+      '"finishReason":"stop","usage":{"inputTokens":130,"outputTokens":50,"cacheReadTokens":20,"cacheWriteTokens":10,' +
+      '"serverToolRequests":0,"costUsd":0.05,"costScope":"query","cumulative":false,"byModel":{"claude-opus":{"inputTokens":130,' +
       '"outputTokens":50,"cacheReadTokens":20,"cacheWriteTokens":10,"costUsd":0.05,"serverToolRequests":0,' +
       '"cumulative":true}}}}]';
     expect(JSON.stringify(run(resultSuccess("end_turn")))).toBe(GOLDEN);
@@ -6543,7 +6576,8 @@ describe("createClaudeNormalizer — CL-09 LIVE: the captured invalid-API-key fr
           reasoningTokens: 0,
           serverToolRequests: 0,
           costUsd: 0,
-          cumulative: true,
+          costScope: "query",
+          cumulative: false,
         },
       },
     ]);
@@ -6559,7 +6593,7 @@ describe("createClaudeNormalizer — CL-09 LIVE: the captured invalid-API-key fr
       message: "authentication_failed",
       code: "authentication_failed",
     });
-    expect(turn?.usage).toMatchObject({ inputTokens: 0, outputTokens: 0, costUsd: 0, cumulative: true });
+    expect(turn?.usage).toMatchObject({ inputTokens: 0, outputTokens: 0, costUsd: 0, costScope: "query", cumulative: false });
   });
 });
 
@@ -8649,5 +8683,171 @@ describe("createClaudeNormalizer — a parked tool call closes the turn paused w
     ]);
     const toolMessage = r.result().messages.find((m) => m.id === `${CALL}:result`);
     expect(toolMessage?.role).toBe("tool");
+  });
+});
+
+// ─── draft.5 usage accounting (§4 input side, §8.0 item 4, costScope) ──────────
+// Anthropic's input_tokens EXCLUDES cache tokens, so every AgUsage the facet
+// emits adds both cache counters in (turn, message and byModel); a turn
+// terminal's counters are per turn (cumulative false) beside a query-scoped
+// running cost (costScope "query"); byModel entries and message-level usage are
+// running totals (cumulative true); without partials an assistant frame's
+// output_tokens is a placeholder, omitted at the seal.
+describe("createClaudeNormalizer — draft.5 usage accounting", () => {
+  const RESULT = {
+    type: "result",
+    subtype: "success",
+    is_error: false,
+    result: "done",
+    stop_reason: "end_turn",
+    session_id: "sess_fixture",
+    uuid: "00000000-0000-0000-0000-00000000a11a",
+    num_turns: 1,
+    duration_ms: 1,
+    duration_api_ms: 1,
+    total_cost_usd: 0.0166347,
+    usage: { input_tokens: 2, cache_read_input_tokens: 6858, cache_creation_input_tokens: 187, output_tokens: 73 },
+    modelUsage: {
+      "claude-sonnet-5": {
+        inputTokens: 6,
+        cacheReadInputTokens: 13716,
+        cacheCreationInputTokens: 4061,
+        outputTokens: 275,
+        costUSD: 0.0156577,
+        webSearchRequests: 0,
+      },
+    },
+    permission_denials: [],
+  };
+  // A type-guard filter narrows past the open-typed ext.* arm of AgEvent.
+  const terminalUsage = (evs: AgEvent[]) =>
+    evs.filter((e): e is Extract<AgEvent, { type: "turn.done" }> => e.type === "turn.done")[0]?.usage;
+
+  it("the pinned vector: turn usage 7047 = 2 + 6858 + 187, cumulative false, costScope query; byModel 17783 = 6 + 13716 + 4061, cumulative true", () => {
+    expect(2 + 6858 + 187).toBe(7047);
+    expect(6 + 13716 + 4061).toBe(17783);
+    const usage = terminalUsage(drive([RESULT]));
+    expect(usage).toMatchObject({
+      inputTokens: 7047,
+      cacheReadTokens: 6858,
+      cacheWriteTokens: 187,
+      outputTokens: 73,
+      costUsd: 0.0166347,
+      costScope: "query",
+    });
+    expect(usage?.cumulative).not.toBe(true);
+    expect(usage?.byModel?.["claude-sonnet-5"]).toEqual({
+      inputTokens: 17783,
+      cacheReadTokens: 13716,
+      cacheWriteTokens: 4061,
+      outputTokens: 275,
+      costUsd: 0.0156577,
+      serverToolRequests: 0,
+      cumulative: true,
+    });
+  });
+
+  it("both cache counters absent ⇒ inputTokens is input_tokens, and no cache key is invented; one absent counts 0", () => {
+    const bare = drive([{ ...RESULT, usage: { input_tokens: 2, output_tokens: 73 } }]);
+    const u = terminalUsage(bare);
+    expect(u).toMatchObject({ inputTokens: 2 });
+    // No key at all, in memory as on the wire (not a key holding undefined).
+    expect(u !== undefined && "cacheReadTokens" in u).toBe(false);
+    expect(u !== undefined && "cacheWriteTokens" in u).toBe(false);
+    const oneAbsent = terminalUsage(drive([{ ...RESULT, usage: { input_tokens: 2, cache_read_input_tokens: 6858, output_tokens: 73 } }]));
+    expect(oneAbsent).toMatchObject({ inputTokens: 6860 });
+  });
+
+  it("an error-subtype result: its usage (same per-turn flag, query-scoped cost) rides the turn.error only where an API-error frame decided the close", () => {
+    const stashed = drive([apiErrorAssistantFrame(), { ...RESULT, subtype: "error_during_execution", is_error: true, errors: ["x"] }]);
+    expect(stashed.find((e) => e.type === "turn.error")).toMatchObject({
+      usage: { inputTokens: 7047, costScope: "query", cumulative: false },
+    });
+    // The asymmetry: a plain error-subtype result closes its turn without usage.
+    const plain = drive([{ ...RESULT, subtype: "error_during_execution", is_error: true, errors: ["x"] }]);
+    const plainClose = plain.find((e) => e.type === "turn.error");
+    expect(plainClose).toBeDefined();
+    expect(plainClose).not.toHaveProperty("usage");
+  });
+
+  it("message level, no partials: cache-inclusive inputTokens, cumulative true, and the placeholder outputTokens omitted", () => {
+    const frame = assistantMsg([{ type: "text", text: "hi", citations: null }], null, {
+      usage: { ...betaMessage([]).usage, input_tokens: 2, cache_read_input_tokens: 1998, cache_creation_input_tokens: 197, output_tokens: 1 },
+    });
+    const end = drive([frame, resultSuccess("end_turn")]).find((e) => e.type === "message.end");
+    expect(end).toMatchObject({ usage: { inputTokens: 2197, cacheReadTokens: 1998, cacheWriteTokens: 197, cumulative: true } });
+    expect(end).not.toHaveProperty(["usage", "outputTokens"]);
+  });
+
+  it("message level, streamed: message_delta's real output count is kept and its input is cache-inclusive", () => {
+    const se = (event: unknown): unknown => ({
+      type: "stream_event",
+      event,
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-00000000a55e",
+      session_id: "sess_fixture",
+    });
+    const u0 = { ...betaMessage([]).usage, input_tokens: 2, cache_read_input_tokens: 0, cache_creation_input_tokens: 1998, output_tokens: 1 };
+    const evs = drive([
+      se({ type: "message_start", message: { ...betaMessage([]), usage: u0 } }),
+      se({ type: "content_block_start", index: 0, content_block: { type: "text", text: "", citations: null } }),
+      se({ type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "hi" } }),
+      assistantMsg([{ type: "text", text: "hi", citations: null }], null, { usage: u0 }),
+      se({ type: "content_block_stop", index: 0 }),
+      se({ type: "message_delta", delta: { stop_reason: "end_turn", stop_sequence: null }, usage: { input_tokens: 2, cache_read_input_tokens: 0, cache_creation_input_tokens: 1998, output_tokens: 143 } }),
+      se({ type: "message_stop" }),
+      resultSuccess("end_turn"),
+    ]);
+    expect(evs.find((e) => e.type === "message.end")).toMatchObject({
+      usage: { inputTokens: 2000, outputTokens: 143, cacheReadTokens: 0, cacheWriteTokens: 1998, cumulative: true },
+    });
+  });
+
+  it("a message_delta carrying only a cache counter re-derives inputTokens from the merged native trio (never a subtraction)", () => {
+    const se = (event: unknown): unknown => ({
+      type: "stream_event",
+      event,
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-00000000a55f",
+      session_id: "sess_fixture",
+    });
+    const u0 = { ...betaMessage([]).usage, input_tokens: 2, cache_read_input_tokens: 0, cache_creation_input_tokens: 1998, output_tokens: 1 };
+    const evs = drive([
+      se({ type: "message_start", message: { ...betaMessage([]), usage: u0 } }),
+      se({ type: "message_delta", delta: { stop_reason: "end_turn", stop_sequence: null }, usage: { output_tokens: 50, cache_read_input_tokens: 5000 } }),
+      se({ type: "message_stop" }),
+      resultSuccess("end_turn"),
+    ]);
+    const end = evs.find((e) => e.type === "message.end");
+    expect(end).toMatchObject({ usage: { inputTokens: 2 + 5000 + 1998, cacheReadTokens: 5000, cacheWriteTokens: 1998, outputTokens: 50 } });
+  });
+
+  it("multi-result-sonnet5 (live, two results in one invoke): per-turn outputTokens 59 and 59, costUsd non-decreasing, byModel non-decreasing, last byModel output 118 = 59 + 59", () => {
+    const native = JSON.parse(
+      readFileSync(fileURLToPath(new URL("../../e2e/corpus/multi-result-sonnet5/claude.native.json", import.meta.url)), "utf8"),
+    ) as unknown[];
+    const n = createClaudeNormalizer({ invokeId: "claude" });
+    const evs = [...native.flatMap((f) => n.push(JsonValue.parse(f))), ...n.flush()];
+    type Done = Extract<AgEvent, { type: "turn.done" }>;
+    const usages = evs
+      .filter((e): e is Done => e.type === "turn.done")
+      .flatMap((d) => (d.usage !== undefined ? [d.usage] : []));
+    expect(usages).toHaveLength(2);
+    const [first, last] = usages;
+    expect(first?.outputTokens).toBe(59);
+    expect(last?.outputTokens).toBe(59);
+    expect(first?.costUsd).toBe(0.0120596);
+    expect(last?.costUsd).toBe(0.0146522);
+    for (const u of usages) {
+      expect(u.cumulative).toBe(false);
+      expect(u.costScope).toBe("query");
+    }
+    const m0 = first?.byModel?.["claude-sonnet-5"];
+    const m1 = last?.byModel?.["claude-sonnet-5"];
+    for (const k of ["inputTokens", "outputTokens", "cacheReadTokens", "cacheWriteTokens", "costUsd"] as const) {
+      expect(m1?.[k] ?? 0).toBeGreaterThanOrEqual(m0?.[k] ?? 0);
+    }
+    expect(m1?.outputTokens).toBe(59 + 59);
+    expect(m1?.cumulative).toBe(true);
   });
 });

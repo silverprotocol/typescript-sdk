@@ -182,15 +182,61 @@ function readThinkingTokens(usage: unknown): number | undefined {
   return typeof thinking === "number" ? thinking : undefined;
 }
 
+// draft.5 §4 (input side): `inputTokens` counts EVERY input token the provider
+// processed, cache reads and writes included, and `cacheReadTokens` /
+// `cacheWriteTokens` are its breakdowns. Anthropic's `input_tokens` EXCLUDES
+// cache tokens, so the facet ADDS the two cache counters in, on every AgUsage
+// it emits (turn, message and `byModel` entries alike), the provider's own
+// definition of total input. On a running-total object the sum of three
+// co-scoped running totals is itself the running total, so nothing is
+// de-cumulated. A cache counter that is absent (or null) counts 0, so with
+// both absent the input counter is carried as is and no cache key is
+// invented. A non-numeric input counter yields no `inputTokens` (a malformed
+// frame never makes NaN). The facet never subtracts a cache counter out.
+function inclusiveInput(input: unknown, cacheRead: unknown, cacheWrite: unknown): number | undefined {
+  if (typeof input !== "number") return undefined;
+  return input + (typeof cacheRead === "number" ? cacheRead : 0) + (typeof cacheWrite === "number" ? cacheWrite : 0);
+}
+
+// The cache breakdown keys of an AgUsage: each present only when its native
+// counter is a number, so an absent (or null) counter invents no key, on the
+// wire or in memory (draft.5 §4: both absent ⇒ no cache key).
+function cacheBreakdown(cacheRead: unknown, cacheWrite: unknown): { cacheReadTokens?: number; cacheWriteTokens?: number } {
+  return {
+    ...(typeof cacheRead === "number" ? { cacheReadTokens: cacheRead } : {}),
+    ...(typeof cacheWrite === "number" ? { cacheWriteTokens: cacheWrite } : {}),
+  };
+}
+
+// A message's native input trio merged field-wise with a newer usage object
+// (only numeric counters overwrite), for the cache-inclusive `inputTokens` of a
+// message whose usage arrives in parts (see PendingMessage.rawInput).
+function nativeInput(
+  prev: { input?: number; cacheRead?: number; cacheWrite?: number },
+  usage: unknown,
+): { input?: number; cacheRead?: number; cacheWrite?: number } {
+  if (!isJsonObject(usage)) return prev;
+  const input = usage["input_tokens"];
+  const cacheRead = usage["cache_read_input_tokens"];
+  const cacheWrite = usage["cache_creation_input_tokens"];
+  return {
+    ...prev,
+    ...(typeof input === "number" ? { input } : {}),
+    ...(typeof cacheRead === "number" ? { cacheRead } : {}),
+    ...(typeof cacheWrite === "number" ? { cacheWrite } : {}),
+  };
+}
+
 // `thinkingTokens` (0.3.257) → `reasoningTokens`: the per-model twin of
 // `readThinkingTokens` above — same subset-of-outputTokens semantics (the SDK's
 // own doc: "already counted inside outputTokens"), same absent ⇒ no key rule.
+// A `modelUsage` entry is the SDK's per-model RUNNING TOTAL over the query, so
+// it keeps `cumulative: true` (the flag binds the object it sits on).
 function mapModelUsage(mu: SDKModelUsage): AgUsage {
   return {
-    inputTokens: mu.inputTokens,
+    inputTokens: inclusiveInput(mu.inputTokens, mu.cacheReadInputTokens, mu.cacheCreationInputTokens),
     outputTokens: mu.outputTokens,
-    cacheReadTokens: mu.cacheReadInputTokens,
-    cacheWriteTokens: mu.cacheCreationInputTokens,
+    ...cacheBreakdown(mu.cacheReadInputTokens, mu.cacheCreationInputTokens),
     ...(mu.thinkingTokens !== undefined ? { reasoningTokens: mu.thinkingTokens } : {}),
     costUsd: mu.costUSD,
     serverToolRequests: mu.webSearchRequests,
@@ -214,6 +260,17 @@ function serverToolRequestCount(usage: unknown): number | undefined {
   return typeof search === "number" && typeof fetch === "number" ? search + fetch : undefined;
 }
 
+// A result frame's usage → the turn terminal's usage. Its token counters are
+// PER TURN (a streaming-input invoke's second result reports that turn alone),
+// so the object is flagged `cumulative: false` (draft.5 §8.0 item 4; through
+// 0.7.x it read `true`, and a "running total" that went down from one terminal
+// to the next was the tell). `total_cost_usd` is different: the SDK's running
+// cost over the `query()` call, which continues from restored state on a
+// resumed or forked session and restarts on its reset commands. Its scope is
+// not the object's, so it carries `costScope: "query"` (§4): a consumer takes
+// the latest per scope, may subtract adjacent snapshots, and never sums them.
+// `byModel` entries are the SDK's per-model running totals and keep their own
+// `cumulative: true`.
 function mapTurnUsage(
   usage: SDKResultSuccessMsg["usage"],
   totalCostUsd: number,
@@ -225,28 +282,38 @@ function mapTurnUsage(
   }
   const reasoningTokens = readThinkingTokens(usage);
   return {
-    inputTokens: usage.input_tokens,
+    inputTokens: inclusiveInput(usage.input_tokens, usage.cache_read_input_tokens, usage.cache_creation_input_tokens),
     outputTokens: usage.output_tokens,
-    cacheReadTokens: usage.cache_read_input_tokens,
-    cacheWriteTokens: usage.cache_creation_input_tokens,
+    ...cacheBreakdown(usage.cache_read_input_tokens, usage.cache_creation_input_tokens),
     ...(reasoningTokens !== undefined ? { reasoningTokens } : {}),
     serverToolRequests: serverToolRequestCount(usage),
     costUsd: totalCostUsd,
-    cumulative: true,
+    // The scope labels the cost, so it rides only beside a numeric costUsd.
+    ...(typeof totalCostUsd === "number" ? { costScope: "query" } : {}),
+    cumulative: false,
     ...(Object.keys(byModel).length > 0 ? { byModel } : {}),
   };
 }
 
+// Message-level usage: the Anthropic message stream's RUNNING TOTALS, so
+// `cumulative: true`, with the cache-inclusive input add.
 function mapMessageUsage(usage: BetaMessageT["usage"]): AgUsage {
   const reasoningTokens = readThinkingTokens(usage);
   return {
-    inputTokens: usage.input_tokens,
+    inputTokens: inclusiveInput(usage.input_tokens, usage.cache_read_input_tokens, usage.cache_creation_input_tokens),
     outputTokens: usage.output_tokens,
-    cacheReadTokens: usage.cache_read_input_tokens ?? undefined,
-    cacheWriteTokens: usage.cache_creation_input_tokens ?? undefined,
+    ...cacheBreakdown(usage.cache_read_input_tokens, usage.cache_creation_input_tokens),
     ...(reasoningTokens !== undefined ? { reasoningTokens } : {}),
     cumulative: true,
   };
+}
+
+// A message usage without its `outputTokens` (the no-partials seal; see
+// PendingMessage.usageDelta). A copy: the pending usage is not mutated.
+function withoutOutputTokens(usage: AgUsage): AgUsage {
+  const out: AgUsage = {};
+  for (const [k, v] of Object.entries(usage)) if (k !== "outputTokens") Object.assign(out, { [k]: v });
+  return out;
 }
 
 // ─── citation mapping helpers ─────────────────────────────────────────────────
@@ -1715,6 +1782,21 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
      * frame carries again).
      */
     turnBindingCarried: boolean;
+    /**
+     * draft.5 §4: the latest NATIVE input trio (Anthropic's cache-exclusive
+     * `input_tokens` and the two cache counters, field-wise latest wins across
+     * message_start, complete frames and message_delta), from which the
+     * cache-inclusive `usage.inputTokens` is derived, so a partial update never
+     * needs a subtraction.
+     */
+    rawInput: { input?: number; cacheRead?: number; cacheWrite?: number };
+    /**
+     * True once a stream `message_delta` usage merged. Without one (no partial
+     * messages), an assistant frame's `output_tokens` is the SDK's placeholder
+     * for a count it reports on the result, so the seal omits `outputTokens`
+     * (draft.5 §8.0 item 4) and keeps the input and cache fields.
+     */
+    usageDelta: boolean;
   };
   // workspace#7 — per-block accumulation between content_block_start and its
   // content_block_stop. `emitted` marks blocks that arrive complete inside the
@@ -1761,7 +1843,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         finalizeStreamBlock(p, idx, atFlush);
       }
     }
-    a.closeMessage(p.emittedId, p.usage);
+    a.closeMessage(p.emittedId, p.usage !== undefined && !p.usageDelta ? withoutOutputTokens(p.usage) : p.usage);
     // The subagent bracket is per RUN now (see `openRun`), so sealing a nested
     // message no longer closes its nested turn.
   }
@@ -1951,6 +2033,8 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         parentTurnId,
         blockIndex: 0,
         usage: mapMessageUsage(m.usage),
+        rawInput: nativeInput({}, m.usage),
+        usageDelta: false,
         streamed: true,
         streamBlocks: new Map(),
         ttftCarried: false,
@@ -2194,9 +2278,20 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // does not declare `output_tokens_details`), subset of outputTokens; see
       // `readThinkingTokens`'s doc.
       const reasoningTokens = readThinkingTokens(u);
+      // draft.5 §4: the input side is re-derived from the merged native trio, so
+      // a delta carrying any one counter keeps `inputTokens` cache-inclusive.
+      const touchesInput =
+        typeof u.input_tokens === "number" ||
+        typeof u.cache_read_input_tokens === "number" ||
+        typeof u.cache_creation_input_tokens === "number";
+      p.rawInput = nativeInput(p.rawInput, u);
+      const inputTokens = touchesInput
+        ? inclusiveInput(p.rawInput.input, p.rawInput.cacheRead, p.rawInput.cacheWrite)
+        : undefined;
+      p.usageDelta = true;
       p.usage = {
         ...(p.usage ?? {}),
-        ...(typeof u.input_tokens === "number" ? { inputTokens: u.input_tokens } : {}),
+        ...(inputTokens !== undefined ? { inputTokens } : {}),
         ...(typeof u.output_tokens === "number" ? { outputTokens: u.output_tokens } : {}),
         ...(typeof u.cache_read_input_tokens === "number"
           ? { cacheReadTokens: u.cache_read_input_tokens }
@@ -2507,6 +2602,8 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
           parentTurnId,
           blockIndex: 0,
           usage: undefined,
+          rawInput: {},
+          usageDelta: false,
           streamed: false,
           streamBlocks: new Map(),
           ttftCarried: false,
@@ -2724,6 +2821,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // `output_tokens_details`, the CLI-assembled complete frame's usage does
       // not — without this merge the join would erase the streamed count.
       open.usage = { ...(open.usage ?? {}), ...mapMessageUsage(m.usage) };
+      open.rawInput = nativeInput(open.rawInput, m.usage);
 
       // If the assistant turn carries an error signal (rate_limit, billing_error, etc.),
       // the turn ends as a turn.error so consumers see the error rather than a

@@ -90,10 +90,11 @@ const response = query({
 ```
 
 No other change is needed. The complete assistant message the SDK still emits
-after the partials is deduplicated automatically (nothing is folded twice), the
-final reduced state is identical either way, and streams without partials
-produce byte-identical output to previous releases. Time-to-first-token rides
-`message.metadata` as `ttft_ms` when the SDK reports it.
+after the partials is deduplicated automatically (nothing is folded twice), and
+the final reduced state is identical either way except for the assistant
+message's `usage.outputTokens`, which only the stream reports (see
+[Usage](#usage)). Time-to-first-token rides `message.metadata` as `ttft_ms`
+when the SDK reports it.
 
 Then fold the resulting `AgEvent`s into messages and turns with
 `@silverprotocol/core`'s `reduce()` — the same client code regardless of which
@@ -110,6 +111,38 @@ result's `deferred_tool_use` also rides `ext.anthropic.result-meta` verbatim.
 An error result is never a pause. The host answers through its own hook on a
 resumed session; the resumed invoke opens its own turn, and the call's result
 lands there as a `role: "tool"` message.
+
+### Usage
+
+Usage follows the AgJSON draft.5 accounting rules (spec §4):
+
+- **`inputTokens` includes cache tokens** on every usage object the normalizer
+  emits: turn, message and `byModel` entries. Anthropic's `input_tokens`
+  excludes cache reads and writes, so the normalizer adds
+  `cache_read_input_tokens` and `cache_creation_input_tokens` in.
+  `cacheReadTokens` and `cacheWriteTokens` are breakdowns of `inputTokens`;
+  never add them to it.
+- **A turn terminal's token counters cover that turn**, so its `usage` carries
+  `cumulative: false`. Its `costUsd` is the SDK's `total_cost_usd`, a running
+  estimate over the whole `query()` call, and carries `costScope: "query"`:
+  take the latest value rather than summing across turns. Per the SDK's docs, a
+  resumed or forked session continues from the total its transcript saved, and
+  a mid-session `/clear` resets it. The cost covers every call the query made,
+  so it does not reconcile with one turn's token counters.
+- **`byModel` entries are the SDK's per-model running totals** over the same
+  `query()` call (`cumulative: true`). They cover every model call in the query
+  pipeline, subagents and internal calls such as compaction included, so they
+  can exceed the turn's own counters.
+- **Message-level usage** is the message stream's running total
+  (`cumulative: true`). Without partial messages, an assistant message's
+  `output_tokens` is a placeholder for a count the SDK reports on the result,
+  so `message.end.usage` omits `outputTokens`; the turn terminal carries the
+  turn's output count.
+- **Error results:** a success-subtype result carries its usage whether it
+  closes the turn as `turn.done` or, on an API error, as `turn.error`. An
+  error-subtype result (`error_max_turns`, `error_during_execution`, …) carries
+  its usage only when an API-error assistant message had already ended the
+  turn; otherwise its `turn.error` carries none.
 
 ### Turn trigger
 
