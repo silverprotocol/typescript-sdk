@@ -137,6 +137,12 @@ turn under the source round. At `handoff_occurred` it emits:
   SDK delivers only on `handoff_occurred`. This closes the source round with
   its own `turn.done`.
 
+A transfer whose call gets an ordinary tool result instead of
+`handoff_occurred` never ran (the SDK ignored it, up to 0.8.0; see below). Its
+nested turn closes at that result with `turn.abort` (no `reason`), then
+`subagent.done`, and the result lands as the call's `tool.done`. Brackets are
+matched to their transfer by call id.
+
 Known limitation: when the model requests several handoffs in one response,
 the SDK runs only the first. What happens to the ignored calls depends on the
 `@openai/agents` version:
@@ -149,5 +155,5 @@ the SDK runs only the first. What happens to the ignored calls depends on the
 - Up to 0.8.0, the SDK streams a result for each ignored call ("Multiple
   handoffs detected, ignoring this one."), which lands as that call's
   `tool.done`, and the source round closes normally. The ignored handoff's
-  nested turn, opened at its `handoff_requested`, gets no `handoff_occurred`
-  and is closed at `flush()` with `turn.abort` (`stream-truncated`).
+  nested turn, opened at its `handoff_requested`, closes at that result with
+  `turn.abort`, as above.
