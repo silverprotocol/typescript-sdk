@@ -39,7 +39,11 @@
     "type": "turn.start",
     "seq": 3,
     "turnId": "turn_msg_011CfPXQ8w65s4z5bwzAekRM",
-    "threadId": "8bcf5b35-6304-406d-9fa5-034b3560610a"
+    "threadId": "8bcf5b35-6304-406d-9fa5-034b3560610a",
+    "trigger": {
+      "kind": "user",
+      "ref": "3b62cff7-974f-4599-b296-cc1f7fa3a630"
+    }
   },
   {
     "type": "message.start",
@@ -364,7 +368,11 @@
     "type": "turn.start",
     "seq": 32,
     "turnId": "turn_msg_011CfPXQM65VgP6NZATB4fr3",
-    "threadId": "8bcf5b35-6304-406d-9fa5-034b3560610a"
+    "threadId": "8bcf5b35-6304-406d-9fa5-034b3560610a",
+    "trigger": {
+      "kind": "user",
+      "ref": "6f9ed773-1ba3-456e-8dac-02ec69c46f40"
+    }
   },
   {
     "type": "message.start",

@@ -27,7 +27,11 @@
     "type": "turn.start",
     "seq": 2,
     "turnId": "turn_msg_011CfM8SU8NGQnBs7n8JoUr3",
-    "threadId": "84757e79-4bd4-4e7e-9203-ef3ed7dbd1ad"
+    "threadId": "84757e79-4bd4-4e7e-9203-ef3ed7dbd1ad",
+    "trigger": {
+      "kind": "user",
+      "ref": "0aae6c58-a26d-4b8a-9af4-76b0ef61516d"
+    }
   },
   {
     "type": "message.start",
