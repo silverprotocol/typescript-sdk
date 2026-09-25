@@ -120,11 +120,25 @@ stem, so ids stay unique when a host folds every invoke of a conversation into
 one reducer:
 - a response with no `response.created`, or a host error with no turn open,
   gets a fallback turn `turn_<stem>_<n>`;
-- a handoff gets a subagent turn `turn_<stem>_handoff_<n>`.
+- a handoff gets a subagent turn `turn_<stem>_handoff_<n>`;
+- a handoff that arrives before any turn of the invoke has opened (a resumed
+  invoke can stream one first) gets the parent label
+  `turn_<stem>_handoff_parent`.
 
 By default the stem is a random `openai_<16 hex>` drawn once per normalizer.
 Pass `createOpenaiNormalizer({ invokeId })` to make the output deterministic
 (replay, tests). An `invokeId` you pass must be unique per invoke within a fold.
+
+### Thread id
+
+Pass the host's own thread id as `createOpenaiNormalizer({ threadId })`. The
+normalizer stamps it as the `threadId` of every turn and message it opens,
+handoff turns included, and never places it in a turn id: it is the partition
+root a key-value store writes each unit under (spec §1.2). The OpenAI stream
+carries no host thread id (`conversationId` and `previousResponseId` are run
+options the host holds), so with no `threadId` option the facet stamps the
+fixed label `"openai"` as a facet-local placeholder, not a partition root; a
+host that persists by `threadId` supplies its own.
 
 ## Handoffs
 

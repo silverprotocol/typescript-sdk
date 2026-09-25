@@ -1458,6 +1458,16 @@ export interface OpenaiNormalizerOptions {
    * the vercel facet's e900d03.
    */
   invokeId?: string;
+  /**
+   * The thread the host assigned this invoke to: its partition root (SPEC §8.0
+   * Partition root; §1.2). It is stamped on every `turn.start` and
+   * `message.start` of the invoke, nested (handoff) turns included, and never
+   * placed in a `turnId` or `parentTurnId`. With no `threadId` the facet stamps
+   * the fixed label `"openai"` as a facet-local placeholder, not a partition
+   * root; a host that persists, routes or folds across invokes by `threadId`
+   * supplies its own.
+   */
+  threadId?: string;
 }
 
 /** 64 random bits as 16 hex chars: the default per-invoke id stem. */
@@ -1469,15 +1479,16 @@ function mintInvokeNonce(): string {
 
 export function createOpenaiNormalizer(options: OpenaiNormalizerOptions = {}): Normalizer {
   const invokeStem = options.invokeId ?? `openai_${mintInvokeNonce()}`;
-  return withAtomicPush(() => createInnerOpenaiNormalizer(invokeStem));
+  const threadId = options.threadId ?? "openai";
+  return withAtomicPush(() => createInnerOpenaiNormalizer(invokeStem, threadId));
 }
 
-function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
+function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Normalizer {
   const a = new StreamAssembler();
-  // OpenAI's native stream carries no thread/session id (unlike Claude's
-  // `session_id`), so the threadId is a fixed facet label. The Router rebases
-  // ids downstream.
-  const threadId = "openai";
+  // OpenAI's native stream carries no host thread id (conversationId /
+  // previousResponseId are run options the host holds); with no `threadId`
+  // option this facet stamps a fixed placeholder label, not a partition root
+  // (SPEC §8.0 Partition root).
 
   // Per-response anchoring state (one open response at a time on this seam).
   let turnCounter = 0;
@@ -3142,7 +3153,10 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
           // `subagentDone` in the `handoff_occurred` case below.
           const ordinal = ++handoffOrdinal;
           const handoffTurnId = `turn_${invokeStem}_handoff_${ordinal}`;
-          const parentTurnId = lastTopLevelTurnId ?? threadId;
+          // A handoff_requested before any turn of this invoke opened (a resumed
+          // invoke can stream one first) gets a facet-local, invoke-unique parent
+          // label: never the host thread, which is a partition root, not a turn.
+          const parentTurnId = lastTopLevelTurnId ?? `turn_${invokeStem}_handoff_parent`;
           openHandoffs.push({ turnId: handoffTurnId, parentTurnId, callId: event.item.rawItem.callId });
           a.subagentStart(handoffTurnId, parentTurnId);
           return;

@@ -3193,6 +3193,115 @@ describe("createOpenaiNormalizer — HO-P handoff round release (§8.0 item 14)"
   });
 });
 
+// pkg-07b — the host-supplied partition root. `threadId` is the host's: a
+// normalizer constructed with one stamps it on every turn.start and
+// message.start (nested turns included) and never places it in a turnId or
+// parentTurnId; constructed with none it stamps the placeholder label
+// "openai", which is not a partition root.
+describe("createOpenaiNormalizer — options.threadId (pkg-07b partition root)", () => {
+  const T = "th_host_pkg07b";
+  const U = { input_tokens: 9, output_tokens: 3, total_tokens: 12 };
+  const fcItem = (callId: string, name: string): JsonValue =>
+    rawModel({ type: "response.output_item.added", item: { id: `fc_${callId}`, type: "function_call", call_id: callId, name, arguments: "" } });
+  // Two rounds with a handoff between them (a nested turn), a fallback round
+  // with no response.created, and a failed response with a misalignment notice.
+  const HANDOFF: JsonValue[] = [
+    rawModel({ type: "response.created", response: { id: "resp_t1" } }),
+    fcItem("call_t", "transfer_to_Echoer"),
+    rawModel({ type: "response.completed", response: { id: "resp_t1", status: "completed", usage: U } }),
+    runItem("handoff_requested", {
+      type: "handoff_call_item",
+      rawItem: { type: "function_call", name: "transfer_to_Echoer", callId: "call_t", status: "completed", arguments: "{}" },
+      agent: { name: "spike" },
+    }),
+    runItem("handoff_occurred", {
+      type: "handoff_output_item",
+      rawItem: { type: "function_call_result", name: "transfer_to_Echoer", callId: "call_t", status: "completed", output: { type: "text", text: "{}" } },
+      sourceAgent: { name: "spike" },
+      targetAgent: { name: "Echoer" },
+    }),
+    rawModel({ type: "response.created", response: { id: "resp_t2" } }),
+    rawModel({ type: "response.output_text.delta", item_id: "m_t2", delta: "hi" }),
+    rawModel({ type: "response.completed", response: { id: "resp_t2", status: "completed", usage: U } }),
+  ];
+  const FALLBACK: JsonValue[] = [rawModel({ type: "response.output_text.delta", item_id: "m_fb", delta: "no created" })];
+  const RESUMED: JsonValue[] = [
+    runItem("tool_output", {
+      type: "tool_call_output_item",
+      rawItem: { type: "function_call_result", name: "echo", callId: "call_r", status: "completed", output: "ok" },
+      output: "ok",
+    }),
+    rawModel({ type: "response.created", response: { id: "resp_r" } }),
+    rawModel({ type: "response.output_text.delta", item_id: "m_r", delta: "done" }),
+    rawModel({ type: "response.completed", response: { id: "resp_r", status: "completed" } }),
+  ];
+  const FAILED: JsonValue[] = [
+    rawModel({ type: "response.created", response: { id: "resp_f" } }),
+    rawModel({
+      type: "response.failed",
+      response: { id: "resp_f", status: "failed", error: { code: "misaligned", message: "stopped", misalignment: { detailed_explanation: "why" } } },
+    }),
+  ];
+  const STREAMS: [string, JsonValue[]][] = [["handoff", HANDOFF], ["fallback", FALLBACK], ["resumed", RESUMED], ["failed", FAILED]];
+  function run(s: JsonValue[], options?: { threadId?: string }): AgEvent[] {
+    const n = createOpenaiNormalizer({ invokeId: "inv1", ...(options ?? {}) });
+    return s.flatMap((e) => n.push(e)).concat(n.flush());
+  }
+  const threadIdsOf = (evs: AgEvent[]): unknown[] => evs.filter((e) => "threadId" in e).map((e) => Reflect.get(e, "threadId"));
+
+  for (const [label, stream] of STREAMS) {
+    it(`${label}: with threadId T, every stamped threadId is T, no turnId or parentTurnId is T, and the fold roots every turn and message at T`, () => {
+      const evs = run(stream, { threadId: T });
+      const ids = threadIdsOf(evs);
+      expect(ids.length).toBeGreaterThan(0);
+      expect(new Set(ids)).toEqual(new Set([T]));
+      expect(evs.some((e) => Reflect.get(e, "turnId") === T || Reflect.get(e, "parentTurnId") === T)).toBe(false);
+      const r = new Reducer();
+      for (const e of evs) r.push(e);
+      expect(r.needsResync).toBe(false);
+      const res = r.result();
+      expect(res.turns.length).toBeGreaterThan(0);
+      expect(res.turns.every((t) => t.threadId === T)).toBe(true);
+      expect(res.messages.every((m) => m.threadId === T)).toBe(true);
+    });
+
+    it(`${label}: with no threadId option the placeholder label "openai" is stamped, as before`, () => {
+      const ids = threadIdsOf(run(stream));
+      expect(ids.length).toBeGreaterThan(0);
+      expect(new Set(ids)).toEqual(new Set(["openai"]));
+    });
+  }
+
+  it("the nested (handoff) turn is rooted at T too", () => {
+    const r = new Reducer();
+    for (const e of run(HANDOFF, { threadId: T })) r.push(e);
+    const nested = r.result().turns.find((t) => t.turnId === "turn_inv1_handoff_1");
+    expect(nested).toMatchObject({ threadId: T, parentTurnId: "turn_resp_t1" });
+  });
+
+  it("a handoff_requested before any turn of the invoke has opened never names the host thread as its parent", () => {
+    const evs = run(
+      [
+        runItem("handoff_requested", {
+          type: "handoff_call_item",
+          rawItem: { type: "function_call", name: "transfer_to_Echoer", callId: "call_early", status: "completed", arguments: "{}" },
+          agent: { name: "spike" },
+        }),
+      ],
+      { threadId: T },
+    );
+    const start = evs.find((e) => e.type === "subagent.start");
+    expect(start).toBeDefined();
+    expect(Reflect.get(start ?? {}, "parentTurnId")).not.toBe(T);
+    expect(Reflect.get(start ?? {}, "parentTurnId")).toBe("turn_inv1_handoff_parent");
+  });
+
+  it("the ext.openai.* vendor segment is unchanged by a threadId", () => {
+    const evs = run([{ type: "some_future_envelope" }], { threadId: T });
+    expect(evs.some((e) => e.type === "ext.openai.unparsed")).toBe(true);
+  });
+});
+
 describe("createOpenaiNormalizer — compaction_item_created (0.14.3)", () => {
   it("⇒ content.block{type:'compaction'} with the ciphertext opaque — converging with the claude facet's compaction vocabulary", () => {
     const n = createOpenaiNormalizer();
