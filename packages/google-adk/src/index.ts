@@ -66,7 +66,8 @@
  * `turnComplete` (or at flush), with its usage on its message.end, and the next
  * generation opens a new turn, `turn_<invokeId>_<invocationId>_g<n>`. ADK's bare
  * `{interrupted}` re-yield, after a message that carried both flags, adds
- * nothing and is not emitted. Two limits remain. A generation that follows a
+ * nothing and is not emitted, and neither is ADK's `finished` transcription
+ * when it repeats the chunks already streamed for the turn. Two limits remain. A generation that follows a
  * completed reply, with no barge-in, lands in the closed turn and parks a
  * reducer, unless `hostCompletion` defers that close. And when text is buffered
  * at the interrupt, ADK yields only the text aggregate, without the flag
@@ -338,9 +339,9 @@ export interface AdkEvent {
   /** ISO timestamp of the event. */
   timestamp?: string;
   /** Speech-to-text transcription of the user's audio input. */
-  inputTranscription?: { text?: string };
+  inputTranscription?: { text?: string; finished?: boolean };
   /** Text-to-speech transcription of the model's audio output. */
-  outputTranscription?: { text?: string };
+  outputTranscription?: { text?: string; finished?: boolean };
   /** Opaque per-event custom metadata bag. */
   customMetadata?: { [k: string]: JsonValue };
   /** Index of the candidate response (meaningful when the request's
@@ -1546,22 +1547,33 @@ function driveAdkTopLevel(
   messageId: string,
   turnId: string,
   pendingAsks: Map<string, AgPausedAsk[]>,
-  reserved: ReservedAskState
+  reserved: ReservedAskState,
+  streamedTranscription: Map<string, string>
 ): void {
+  // Transcriptions (Live): ADK streams chunks (`finished: false`), then yields
+  // a `finished: true` transcription whose text is the chunks joined
+  // (utils/live_connection_utils.js, @google/adk 2.1.0). That aggregate is not
+  // re-emitted when it repeats this turn's streamed chunks exactly, so the
+  // turn's transcription reads once; one that differs rides as its own block.
   // typeof: a JSON-null transcription text is absent (null guard; it rode the
   // text block as `null`, which the schema rejects).
-  if (typeof event.inputTranscription?.text === "string") {
+  for (const [role, t] of [
+    ["input", event.inputTranscription],
+    ["output", event.outputTranscription],
+  ] as const) {
+    if (typeof t?.text !== "string") continue;
+    const key = `${turnId}\u0000${role}`;
+    if (t.finished === true) {
+      const streamed = streamedTranscription.get(key);
+      streamedTranscription.delete(key);
+      if (streamed === t.text) continue;
+    } else {
+      streamedTranscription.set(key, (streamedTranscription.get(key) ?? "") + t.text);
+    }
     a.contentBlock(messageId, {
       type: "text",
-      text: event.inputTranscription.text,
-      _meta: { "agjson/transcription": { role: "input", kind: "transcription" } },
-    });
-  }
-  if (typeof event.outputTranscription?.text === "string") {
-    a.contentBlock(messageId, {
-      type: "text",
-      text: event.outputTranscription.text,
-      _meta: { "agjson/transcription": { role: "output", kind: "transcription" } },
+      text: t.text,
+      _meta: { "agjson/transcription": { role, kind: "transcription" } },
     });
   }
 
@@ -1927,6 +1939,8 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
   const threadId = "google";
   // §8.3 per-instance accumulator (replaces the module-level streamedText Map):
   const streamedText = new Map<string, string>();
+  // Per turn and role: the transcription chunks streamed so far (see driveAdkTopLevel).
+  const streamedTranscription = new Map<string, string>();
   const openTurns = new Set<string>();
   const closedTurns = new Set<string>();
   // Per-turn usageMetadata accumulator (2026-07-13, echo-gemini35 live-capture
@@ -2344,7 +2358,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // per-invoke.
 
     if (!isPartial) trackLongRunning(event, turnId);
-    driveAdkTopLevel(a, event, messageId, turnId, pendingAsks, reserved); // standalone/content arms (Tasks 4–5)
+    driveAdkTopLevel(a, event, messageId, turnId, pendingAsks, reserved, streamedTranscription); // standalone/content arms (Tasks 4–5)
     // A turn gets ONE terminal: an interrupt on a turn that already closed
     // (a second barge-in, or one after a success close) adds none.
     if (event.interrupted === true && !closedTurns.has(turnId)) interruptPending.add(turnId);

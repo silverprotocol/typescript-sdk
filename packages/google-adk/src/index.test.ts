@@ -4497,6 +4497,29 @@ describe("createAdkNormalizer — a Live barge-in closes turn.abort after the ev
     expect(folds(out).needsResync).toBe(false);
   });
 
+  it("transcriptions: ADK's finished aggregate that repeats the streamed chunks is not re-emitted, so the turn reads once; a differing or chunk-less one is kept", () => {
+    const transcriptTexts = (out: AgEvent[]) =>
+      folds(out).result().messages.flatMap((m) => m.content).filter((b): b is { type: "text"; text: string } => b.type === "text").map((b) => b.text);
+    const out = drive([
+      liveEvent("inv_t", "t1", { content: audio }),
+      liveEvent("inv_t", "t2", { outputTranscription: { text: "The lighthouse ", finished: false }, partial: true }),
+      liveEvent("inv_t", "t3", { outputTranscription: { text: "is fine.", finished: false }, partial: true }),
+      liveEvent("inv_t", "t4", { outputTranscription: { text: "The lighthouse is fine.", finished: true } }),
+      liveEvent("inv_t", "t5", { inputTranscription: { text: "Stop", finished: false }, partial: true }),
+      liveEvent("inv_t", "t6", { inputTranscription: { text: "Stop", finished: true } }),
+      liveEvent("inv_t", "t7", { turnComplete: true }),
+    ]);
+    expect(transcriptTexts(out)).toEqual(["The lighthouse ", "is fine.", "Stop"]);
+    expect(folds(out).needsResync).toBe(false);
+    const differs = drive([
+      liveEvent("inv_d", "d1", { outputTranscription: { text: "Hel", finished: false }, partial: true }),
+      liveEvent("inv_d", "d2", { outputTranscription: { text: "Hello", finished: true } }),
+      liveEvent("inv_d", "d3", { outputTranscription: { text: "Only final", finished: true } }),
+      liveEvent("inv_d", "d4", { turnComplete: true }),
+    ]);
+    expect(transcriptTexts(differs)).toEqual(["Hel", "Hello", "Only final"]);
+  });
+
   it("two live invokes, each with one barge-in, folded into ONE Reducer: two aborted turns, no park", () => {
     const one = (inv: string) => drive([liveEvent(inv, `${inv}_1`, { content: audio }), liveEvent(inv, `${inv}_2`, { interrupted: true })]);
     const r = folds([...one("inv_one"), ...one("inv_two")]);
