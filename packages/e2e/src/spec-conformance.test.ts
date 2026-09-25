@@ -113,26 +113,26 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 21, leg: "live-mixed", title: "Reasoning-inclusive usage identity (draft.5, Gemini Live): the exclusive and inclusive reports summed into one turn fold to {6646, 1019, 746, totalTokens 7665, totalTokensRaw 7409}", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.21(live-mixed), a two-event ADK feed with one turnId" },
   { n: 21, leg: "no-raw-on-candidates", title: "Reasoning-inclusive usage identity (draft.5): none of the draft.3 candidatesTokenCount vectors yields totalTokensRaw", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.21(no-raw-on-candidates)" },
   { n: 22, title: "Forward-compatible ingest (draft.4): an ignored well-formed event occupies its seq slot, is reported in place, and the fold is unchanged", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.22, reference ingest (ingestAgEvents) → reduce" },
-  { n: 23, leg: "adk", title: "Unmapped native value (draft.4): an ADK finish reason with no AgJSON target → finishReason other|unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(adk) via createAdkNormalizer (sp-google a0c5dcf)" },
-  { n: 23, leg: "openai", title: "Unmapped native value (draft.4): an OpenAI incomplete_details.reason with no AgJSON target → finishReason unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(openai) via createOpenaiNormalizer (sp-openai OA-15 abd73cf)" },
-  { n: 23, leg: "claude", title: "Unmapped native value (draft.4): an unmapped Claude stop_reason → finishReason unknown + finishReasonRaw verbatim; mapped and null stop_reasons carry no finishReasonRaw", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(claude) via createClaudeNormalizer (sp-claude 44938c2 / main's edb4cb5)" },
-  { n: 23, leg: "vercel", title: "Unmapped native value (draft.4): a vercel finish whose unified reason falls back (other/unknown) carries the native rawFinishReason as finishReasonRaw", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(vercel) via createVercelNormalizer (probe c524ece)" },
+  { n: 23, leg: "adk", title: "Unmapped native value (draft.4): an ADK finish reason with no AgJSON target → finishReason other|unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(adk) via createAdkNormalizer (e59e976)" },
+  { n: 23, leg: "openai", title: "Unmapped native value (draft.4): an OpenAI incomplete_details.reason with no AgJSON target → finishReason unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(openai) via createOpenaiNormalizer (OA-15 ff358b6)" },
+  { n: 23, leg: "claude", title: "Unmapped native value (draft.4): an unmapped Claude stop_reason → finishReason unknown + finishReasonRaw verbatim; mapped and null stop_reasons carry no finishReasonRaw", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(claude) via createClaudeNormalizer (fe87254)" },
+  { n: 23, leg: "vercel", title: "Unmapped native value (draft.4): a vercel finish whose unified reason falls back (other/unknown) carries the native rawFinishReason as finishReasonRaw", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(vercel) via createVercelNormalizer (probe f2937f9)" },
   { n: 24, leg: "scan", title: "Tool-result errorText scoping (draft.4): no replay golden carries errorText on a non-error result", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.24(scan), a scan of every corpus/*/*.agjson.json" },
-  { n: 24, leg: "adk", title: "ADK failure envelope (draft.4, §8.0 item 25): the error/denied/placeholder/negative vectors", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.24(adk) via createAdkNormalizer (sp-google 877f37f)" },
+  { n: 24, leg: "adk", title: "ADK failure envelope (draft.4, §8.0 item 25): the error/denied/placeholder/negative vectors", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.24(adk) via createAdkNormalizer (4fa8ba4)" },
   { n: 25, leg: "fold", title: "Framework pause and completion closure (draft.4): pauses close paused from push(), completed-without-signal and cut-short invokes close turn.abort from flush(), never success, no park", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(fold) over the engine-built fixtures/adk-pause natives (probe P-RED 3c82c3a); step-1 scope mirrored by adk-pause.test.ts" },
-  { n: 25, leg: "answer-id", title: "Framework pause and completion closure (draft.4): each ask's toolCallId is the adk_request_* call id (the answering id), one ask per pending request, kind per §8.0 item 26", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(answer-id) over fixtures/adk-pause (sp-google step 2 613fd7f)" },
-  { n: 25, leg: "host-completion", title: "Framework pause and completion closure (draft.4): with the §8.0 obligation-4 host-completion event fed, a completed invoke closes turn.done success from push(); a pause still closes paused from push()", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(host-completion), createAdkNormalizer({ hostCompletion: true }) + ADK_HOST_COMPLETE_TYPE (sp-google step 2 613fd7f)" },
-  { n: 25, leg: "replay", title: "Framework pause and completion closure (draft.4): a golden the normalizer closes on the framework's own events folds unchanged with and without the host-completion event; one it does not closes as obligation 4 directs with it and turn.abort from flush() without it", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(replay) over every corpus/*/adk golden, including the live Workflow seeds (probe b407060)" },
-  { n: 26, leg: "fold", title: "Interim-narration marker (draft.4): phase folds set-if-present on text/reasoning start and end (end REPLACES, absent keeps), undocumented values verbatim, no-phase streams byte-identical to draft.3, INV-FOLD", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.26(fold), reference reduce() + Reducer (probe P-phase b52b8eb)" },
-  { n: 26, leg: "vercel", title: "Interim-narration marker (draft.4): an OpenAI commentary text part opens phase 'interim'; final_answer / unknown / no bag → no phase; providerMetadata.phase kept verbatim", disposition: "COVERED-BY", citation: "vercel-ai/src/index.test.ts:1809-1840 'draft.4 phase' (commentary → text.start{phase:'interim'}; final_answer/unknown/no bag → no phase key) + :430-515 (commentary and final answer stay separate blocks, each bag verbatim) (probe b52b8eb)" },
-  { n: 26, leg: "openai", title: "Interim-narration marker (draft.4): a commentary + final_answer response yields phase 'interim' on the first item's text.start only; null/\"\" yield neither phase nor providerMetadata.phase", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.26(openai) via createOpenaiNormalizer (sp-openai PH-2 d8d04ca)" },
+  { n: 25, leg: "answer-id", title: "Framework pause and completion closure (draft.4): each ask's toolCallId is the adk_request_* call id (the answering id), one ask per pending request, kind per §8.0 item 26", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(answer-id) over fixtures/adk-pause (step 2, 352850a)" },
+  { n: 25, leg: "host-completion", title: "Framework pause and completion closure (draft.4): with the §8.0 obligation-4 host-completion event fed, a completed invoke closes turn.done success from push(); a pause still closes paused from push()", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(host-completion), createAdkNormalizer({ hostCompletion: true }) + ADK_HOST_COMPLETE_TYPE (step 2, 352850a)" },
+  { n: 25, leg: "replay", title: "Framework pause and completion closure (draft.4): a golden the normalizer closes on the framework's own events folds unchanged with and without the host-completion event; one it does not closes as obligation 4 directs with it and turn.abort from flush() without it", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(replay) over every corpus/*/adk golden, including the live Workflow seeds (probe 371a02c)" },
+  { n: 26, leg: "fold", title: "Interim-narration marker (draft.4): phase folds set-if-present on text/reasoning start and end (end REPLACES, absent keeps), undocumented values verbatim, no-phase streams byte-identical to draft.3, INV-FOLD", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.26(fold), reference reduce() + Reducer (probe P-phase 2abe30b)" },
+  { n: 26, leg: "vercel", title: "Interim-narration marker (draft.4): an OpenAI commentary text part opens phase 'interim'; final_answer / unknown / no bag → no phase; providerMetadata.phase kept verbatim", disposition: "COVERED-BY", citation: "vercel-ai/src/index.test.ts:1809-1840 'draft.4 phase' (commentary → text.start{phase:'interim'}; final_answer/unknown/no bag → no phase key) + :430-515 (commentary and final answer stay separate blocks, each bag verbatim) (probe 2abe30b)" },
+  { n: 26, leg: "openai", title: "Interim-narration marker (draft.4): a commentary + final_answer response yields phase 'interim' on the first item's text.start only; null/\"\" yield neither phase nor providerMetadata.phase", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.26(openai) via createOpenaiNormalizer (PH-2 347d550)" },
   { n: 26, leg: "emit", title: "Interim-narration marker (draft.4): no phase in a native re-input payload", disposition: "N/A", citation: "§10 preamble emit/re-input carve-out: no facet in this repo ships an AgJSON→native emit surface" },
   { n: 27, leg: "fold", title: "Re-delivery never folds twice (draft.4; draft.5 terminals): a second terminal for a closed turn parks whatever its outcome except the paused refresh after a re-sent turn.start (v-g–v-l); re-delivered seq, duplicate *.start id, delta/start into a sealed message or a closed turn, message.start into a closed turn (also across invokes; closure survives a 0-restart and follows the turn records across a messages.snapshot: a carried outcome or an omitted `turns` keeps it, a carried record without an outcome or `turns: []` reopens — draft.5), second final tool.done → resync with the fold unchanged; a later invoke's 0-restart reusing a block id folds; a same-type paused re-close with refreshed asks folds onto the one record (v-g); a forward gap still parks", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.27(fold) (i)-(viii), (v-a)-(v-d), (v-f), (v-g), (s-i)-(s-vii), reference Reducer + reduce() (probe P14; the message.start guard reduce.ts 'a message.start for a turn that already closed parks')" },
   { n: 27, leg: "goldens", title: "Re-delivery never folds twice (draft.4): on every replay golden, block-creating *.start ids are unique within each invoke", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.27(goldens), a scan of every corpus/*/*.agjson.json" },
   { n: 27, leg: "producers", title: "Re-delivery never folds twice (draft.4): on every replay golden no message.start follows its turn's terminal, or a messages.snapshot carrying the turn with an outcome (draft.5); on every committed resume pair no turn or message id recurs across the two invokes, and the pair folds without a resync; no turnId carries more than one terminal (draft.5)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.27(producers), a scan of every corpus golden and every <scenario>-resume-<leg> pair" },
   { n: 28, title: "Host-appended events (draft.4): every replay golden plus a host-appended paused hitl.ask turn from lastSeq+1 folds with needsResync false and the turn in turns (§8.0 host obligation 5)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.28 over every corpus/*/*.agjson.json via ingestAgEvents → reduce" },
-  { n: 29, leg: "a", title: "Forward-compatible records: a stored AgMessage/AgMemoryRecord reader omits an unreadable content element or record, reports it with its index and verbatim value, never coerces, and the reports reconstruct the stored value", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.29(a) via core readStoredAgMessage(s)/readStoredAgMemoryRecords (probe P3 2bd1abf; unit legs core/src/record.test.ts)" },
-  { n: 29, leg: "b", title: "Forward-compatible inputs: an input that fails the schema other than by an unknown field is rejected whole with one class and one path — protocol first, then version (major-mismatch), then the rest; malformed beats unknown-value; unknown fields pass intact", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.29(b) via core checkAgInput (probe P3 2bd1abf; unit legs core/src/input-check.test.ts)" },
+  { n: 29, leg: "a", title: "Forward-compatible records: a stored AgMessage/AgMemoryRecord reader omits an unreadable content element or record, reports it with its index and verbatim value, never coerces, and the reports reconstruct the stored value", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.29(a) via core readStoredAgMessage(s)/readStoredAgMemoryRecords (probe P3 ce5952a; unit legs core/src/record.test.ts)" },
+  { n: 29, leg: "b", title: "Forward-compatible inputs: an input that fails the schema other than by an unknown field is rejected whole with one class and one path — protocol first, then version (major-mismatch), then the rest; malformed beats unknown-value; unknown fields pass intact", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.29(b) via core checkAgInput (probe P3 ce5952a; unit legs core/src/input-check.test.ts)" },
   { n: 30, leg: "adk", title: "No credential material in authentication requests (draft.4): an ADK-generated OAuth2 request (state + nonce + PKCE in the authorization URI; client secret, tokens, verifier, auth code, standalone state/nonce seeded) emits no seeded secret at any depth, raw or JSON-escaped; state/nonce appear only inside the byte-equal ADK-issued authorization URI", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.30(adk) over fixtures/adk-pause/plain-credential-authuri (engine-built by ADK 2.1.0 generateAuthUri; probe)" },
   { n: 30, leg: "claude", title: "No credential material in authentication requests (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
   { n: 30, leg: "openai", title: "No credential material in authentication requests (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
@@ -141,8 +141,8 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 31, leg: "claude", title: "Credential objects omitted from shared state (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
   { n: 31, leg: "openai", title: "Credential objects omitted from shared state (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
   { n: 31, leg: "vercel", title: "Credential objects omitted from shared state (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
-  { n: 32, leg: "adk", title: "Credential material off provider-raw carries (draft.4): a typed ADK auth configuration as agentState.input, as output with its rendering, at output.result with its rendering and in customMetadata, and an untyped reply inside a response named adk_request_credential, leave no secret leaf raw or JSON-escaped; non-secret members byte-identical to the native; no text block from a rendering part; strict parse, no throw, no resync", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.32(adk) (unit legs google-adk/src/index.test.ts \"node data: …\", \"rendering: …\", \"every provider-raw carry reduces …\"; the full-carry reduction 46ee052)" },
-  { n: 32, leg: "adk-goldens", title: "Credential material off provider-raw carries (draft.4): on every replay golden the rule changes no byte of the serialized stream", disposition: "COVERED-BY", citation: "probe serialized old-vs-new dumps over every corpus native + fixtures/adk-pause, with and without the host-completion marker: 92/92 byte-identical at 46ee052; §10.25(replay) keeps every ADK golden byte-equal" },
+  { n: 32, leg: "adk", title: "Credential material off provider-raw carries (draft.4): a typed ADK auth configuration as agentState.input, as output with its rendering, at output.result with its rendering and in customMetadata, and an untyped reply inside a response named adk_request_credential, leave no secret leaf raw or JSON-escaped; non-secret members byte-identical to the native; no text block from a rendering part; strict parse, no throw, no resync", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.32(adk) (unit legs google-adk/src/index.test.ts \"node data: …\", \"rendering: …\", \"every provider-raw carry reduces …\"; the full-carry reduction 63eb8c2)" },
+  { n: 32, leg: "adk-goldens", title: "Credential material off provider-raw carries (draft.4): on every replay golden the rule changes no byte of the serialized stream", disposition: "COVERED-BY", citation: "probe serialized old-vs-new dumps over every corpus native + fixtures/adk-pause, with and without the host-completion marker: 92/92 byte-identical at 63eb8c2; §10.25(replay) keeps every ADK golden byte-equal" },
   { n: 32, leg: "claude", title: "Credential material off provider-raw carries (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
   { n: 32, leg: "openai", title: "Credential material off provider-raw carries (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
   { n: 32, leg: "vercel", title: "Credential material off provider-raw carries (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
@@ -153,7 +153,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 34, leg: "openai", title: "Partial-frame carry (draft.4)", disposition: "N/A", citation: "§8 item 22 applicability: the openai facet has no frame that maps only in part and rides ext.openai.frame" },
   { n: 34, leg: "adk", title: "Partial-frame carry (draft.4)", disposition: "N/A", citation: "§8 item 22 applicability: the google-adk facet has no frame that maps only in part and rides ext.google.frame" },
   { n: 34, leg: "vercel", title: "Partial-frame carry (draft.4)", disposition: "N/A", citation: "§8 item 22 applicability: the vercel-ai facet has no frame that maps only in part and rides ext.vercel.frame" },
-  { n: 35, title: "Sealed-message finalizers and merges (draft.4): text.end / reasoning.end / reasoning.opaque / tool.args.assembled into a sealed message or any message of a closed turn park with the fold equal to the fold before them; the same events fold before the seal / terminal; message.metadata and turn.done{messageId, messageMetadata} naming a sealed message merge without parking", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.35 (reference reducer guard 648cecb; delta and block-creating legs: §10.27)" },
+  { n: 35, title: "Sealed-message finalizers and merges (draft.4): text.end / reasoning.end / reasoning.opaque / tool.args.assembled into a sealed message or any message of a closed turn park with the fold equal to the fold before them; the same events fold before the seal / terminal; message.metadata and turn.done{messageId, messageMetadata} naming a sealed message merge without parking", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.35 (reference reducer guard 803ce13; delta and block-creating legs: §10.27)" },
   { n: 36, leg: "claude", title: "Nested-turn closure (draft.4): for every subagent.start, exactly one turn.done|turn.error|turn.abort with that turnId, no usage, immediately before its subagent.done; no nested turnId equals a turn.start turnId; the fold without subagent.done is structurally identical", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.36 over every corpus golden with subagent.start (claude B-strict 7f315e2 + regen 5cdade3)" },
   { n: 36, leg: "openai", title: "Nested-turn closure (draft.4): a handoff's nested turn closes at handoff_occurred with turn.done{success, finishReason unknown, no usage} immediately before its subagent.done; the fold without subagent.done is structurally identical", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.36 over every corpus golden with subagent.start (openai: handoff-gpt6sol, enrolled 450ece8); unit legs openai-agents/src/index.test.ts \"createOpenaiNormalizer — HO handoff close (the transfer result + the nested terminal)\"" },
   { n: 36, leg: "adk", title: "Nested-turn closure (draft.4)", disposition: "N/A", citation: "§8.0 applicability: this facet emits no subagent.* (no nested turns)" },
@@ -163,12 +163,12 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 38, leg: "claude", title: "ADK shared-state fixture (draft.4)", disposition: "N/A", citation: "§10 item 38: the Claude Agent SDK has no key-addressed shared state" },
   { n: 38, leg: "openai", title: "ADK shared-state fixture (draft.4)", disposition: "N/A", citation: "§10 item 38: the OpenAI Agents SDK has no key-addressed shared state" },
   { n: 38, leg: "vercel", title: "ADK shared-state fixture (draft.4)", disposition: "N/A", citation: "§10 item 38: the Vercel AI SDK has no key-addressed shared state" },
-  { n: 39, title: "Kept-open tool-result snapshot fold (draft.4): a later tool.done replaces the payload as a unit (omitted payload fields clear, uiData and structuredContent included), _meta/toolMetadata kept unless re-sent, providerMetadata merged by key, preliminary cleared; an error final clears an earlier structuredContent; a carried uiData:null is stored present", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.39, reference reduce() + Reducer (probe P1 6debaf1 + uiData flip c2ddfd2)" },
+  { n: 39, title: "Kept-open tool-result snapshot fold (draft.4): a later tool.done replaces the payload as a unit (omitted payload fields clear, uiData and structuredContent included), _meta/toolMetadata kept unless re-sent, providerMetadata merged by key, preliminary cleared; an error final clears an earlier structuredContent; a carried uiData:null is stored present", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.39, reference reduce() + Reducer (probe P1 f2ba05d + uiData flip 22c8084)" },
   { n: 40, leg: "sweep", title: "Flush honesty (draft.4): every prefix of every corpus native, flushed by its reference normalizer, emits only lifecycle closes, message.end, non-success terminals and ext carries (the carries before the terminals), never a success turn.done or content, and every opened turn folds to an outcome", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.40(sweep) over every corpus/*/<fw>.native.json via the four reference normalizers" },
   { n: 40, leg: "claude", title: "Flush honesty (draft.4): a Claude stream cut mid-turn with open text, reasoning and a partial tool call flushes content-free lifecycle closes only", disposition: "COVERED-BY", citation: "claude-agent-sdk/src/index.test.ts \"createClaudeNormalizer — C1: flush never mints content\" › \"leg (a): every flush() event is a content-free lifecycle close; …\"" },
   { n: 40, leg: "openai", title: "Flush honesty (draft.4): the approval interruption flushes exactly one turn.done{paused, asks:[approval_<callId>], usage U}; without the approval, turn.abort{stream-truncated} and a message.end carrying U", disposition: "COVERED-BY", citation: "openai-agents/src/index.test.ts \"createOpenaiNormalizer — O1 honest flush (fold/flush option 1)\" › the two \"§10.26 leg: …\" cases (the item's pre-landing number)" },
   { n: 41, title: "MCP Apps view locator carry (draft.4): every native tool result's MCP Apps _meta.ui reaches its tool.done's _meta.ui deep-equal", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.41: every corpus native carrying _meta.ui, replayed through its reference normalizer (claude, openai, adk)" },
-  { n: 42, leg: "vercel", title: "Kept-open results are snapshots (draft.4): yield/yield/return and yield/throw emit full snapshots; the error final carries E's message and no structuredContent", disposition: "COVERED-BY", citation: "vercel-ai/src/index.test.ts \"§10 item 42 — kept-open results are snapshots (yield/yield/return, yield/throw)\" (probe a84fd65)" },
+  { n: 42, leg: "vercel", title: "Kept-open results are snapshots (draft.4): yield/yield/return and yield/throw emit full snapshots; the error final carries E's message and no structuredContent", disposition: "COVERED-BY", citation: "vercel-ai/src/index.test.ts \"§10 item 42 — kept-open results are snapshots (yield/yield/return, yield/throw)\" (probe bec1308)" },
   { n: 42, leg: "single-delivery", title: "Kept-open results are snapshots (draft.4): claude, openai and adk never emit more than one tool.done per call, so they satisfy the item trivially", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.42(single-delivery), a scan of every corpus/*/{claude,openai,adk}.agjson.json" },
   { n: 43, title: "Never-opened terminals (draft.4): a terminal for a turn not seen opened folds to no record without a resync; a snapshot carrying turns replaces what is seen, one omitting turns keeps it; a seen turn with no record takes its snapshot message's threadId or gets no record; no created record carries a threadId no event carried; on every replay golden each terminal follows its turn's opener in the invoke", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.43, reference reduce() + Reducer (probe D9 f3d5256 + the snapshot rework) and a scan of every corpus/*/*.agjson.json" },
   { n: 44, leg: "adk", title: "MCP resource links (draft.5, §8.0 item 31): N resource_link parts → N resource-link blocks in native order, members verbatim and absent where absent; a residual provider-raw only for icons, a mistyped size or a member the schema would alter; a signed uri byte-equal; item 28 reductions inside the link; a uri-less part stays one reduced provider-raw", disposition: "COVERED-BY", citation: "google-adk/src/index.test.ts \"createAdkNormalizer — an MCP resource_link part becomes one resource-link block, with a residual-only provider-raw\" (the §10 item 44 case, the residual-verbatim case, the item-28 case, the uri-less case, the signed-uri case)" },
@@ -900,7 +900,7 @@ describe("§10.20 — malformed input at a trust boundary (draft.4): a non-envel
     expect(ignored).toHaveLength(1);
     expect(ignored[0]).toMatchObject({ seq: 2, ignoredType: "message.remove", raw: malformed });
     // The report is itself a well-formed event: a consumer that re-validates
-    // ingest output strictly meets the stub first (sp-cto, P2 second read).
+    // ingest output strictly meets the stub first (P2 second read).
     expect(AgEvent.safeParse(ignored[0]).success).toBe(true);
 
     const a = reduce(withIt);
@@ -940,7 +940,7 @@ describe("§10.20 — malformed input at a trust boundary (draft.4): a non-envel
     expect(result.messages[0]?.content).toEqual([expect.objectContaining({ type: "text", text: "kept" })]);
   });
 
-  it("unknown fields pass through at EVERY depth, not only the top level (SPEC.md:27 'pass unknown fields through untouched'; core fix 4070b81, workspace#20 stage 1): nested unknown keys survive ingest into the fold", () => {
+  it("unknown fields pass through at EVERY depth, not only the top level (SPEC.md:27 'pass unknown fields through untouched'; core fix 9bd3100, workspace#20 stage 1): nested unknown keys survive ingest into the fold", () => {
     const wire = JSON.parse(
       "[" +
         '{"type":"turn.start","seq":0,"threadId":"th1","turnId":"t1"},' +
@@ -1053,7 +1053,7 @@ describe("§10.21 — reasoning-inclusive usage identity (draft.3)", () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // §5.0 INV-MSG — a straggler delta into a sealed message parks (SPEC.md:745)
-// Contract case for core 7853259 (conformance, no bar). Scope is the literal
+// Contract case for core 31f7bab (conformance, no bar). Scope is the literal
 // text: "a block-creating or delta event targeting a sealed message ... is a
 // reduce()-error → snapshot-resync, never a silent attach". The four
 // block-finalizing events (text.end, reasoning.end, reasoning.opaque,
@@ -1165,7 +1165,7 @@ describe("§10.24 — tool-result errorText scoping (draft.4): on every replay g
 // §10.25 — Framework pause and completion closure (draft.4; §8.0 item 26 +
 // host obligation 4). The fold leg is RUNNABLE at google-adk step-1 scope over
 // the REAL-engine fixtures (probe P-RED); the answer-id, host-completion and
-// replay legs are N/A-pending sp-google's step 2 (manifest rows above).
+// replay legs are N/A-pending the google-adk step 2 (manifest rows above).
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("§10.25 — framework pause and completion closure (draft.4): a pause closes paused from push(), an invoke without the completion signal or cut short closes turn.abort from flush(), never success; no park", () => {
@@ -1338,7 +1338,7 @@ describe("§10.25 — framework pause and completion closure (draft.4): a pause 
       }
     }
     expect(inBand).toBeGreaterThan(0);
-    expect(markerClosed).toBeGreaterThan(0); // the live Workflow seeds (probe b407060) exercise the no-in-band case
+    expect(markerClosed).toBeGreaterThan(0); // the live Workflow seeds (probe 371a02c) exercise the no-in-band case
   });
 });
 
@@ -1401,7 +1401,7 @@ describe("§10.26 — interim-narration marker (draft.4): phase folds set-if-pre
 
 // ─────────────────────────────────────────────────────────────────────────────
 // §10.24 leg (b) and §10.23 ADK leg — driven through the reference ADK
-// normalizer with the SPEC's own vectors (sp-google 877f37f / a0c5dcf).
+// normalizer with the SPEC's own vectors (4fa8ba4 / e59e976).
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("§10.24(adk) + §10.23(adk) — the ADK failure envelope and the unmapped finish reason (draft.4)", () => {
@@ -1475,7 +1475,7 @@ describe("§10.24(adk) + §10.23(adk) — the ADK failure envelope and the unmap
 
 // ─────────────────────────────────────────────────────────────────────────────
 // §10.26 openai leg — the SPEC's own two-item vector through the reference
-// OpenAI Agents normalizer (sp-openai PH-2 d8d04ca; §8.0 item 27).
+// OpenAI Agents normalizer (PH-2, 347d550; §8.0 item 27).
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("§10.26(openai) — commentary → phase 'interim' on text.start only; final_answer / null / \"\" / unknown → no phase", () => {
@@ -1529,7 +1529,7 @@ describe("§10.26(openai) — commentary → phase 'interim' on text.start only;
   });
 });
 
-describe("§10.23(openai) — an unmapped OpenAI finish reason → fallback + finishReasonRaw byte for byte (sp-openai OA-15)", () => {
+describe("§10.23(openai) — an unmapped OpenAI finish reason → fallback + finishReasonRaw byte for byte", () => {
   const rawModel = (event: Record<string, unknown>) => ({ type: "raw_model_stream_event", data: { type: "model", event } }) as unknown as JsonValue;
   for (const raw of ["zz", "Max_Messages—v2 ✓"]) {
     it(`incomplete_details.reason ${JSON.stringify(raw)} → turn.done finishReason "unknown" + finishReasonRaw ${JSON.stringify(raw)}`, () => {
@@ -1647,7 +1647,7 @@ describe("§10.27 — re-delivery never folds twice (draft.4)", () => {
     expect(dups).toEqual([]);
   });
 
-  // draft.4 message.start rule (bar wf_140b3183-767, founder path 1): a message.start naming a closed turn parks,
+  // draft.4 message.start rule (bar wf_140b3183-767, ruled path 1): a message.start naming a closed turn parks,
   // within an invoke and across invokes; closure survives a 0-restart and, since draft.5 (CB-8 A′), follows the
   // fold's turn records across a messages.snapshot.
   const TERMS = [
@@ -1699,7 +1699,7 @@ describe("§10.27 — re-delivery never folds twice (draft.4)", () => {
     expect(f.needsResync).toBe(false);
     expect((f.result.messages.find((m) => m.id === "m1") as { metadata?: Record<string, unknown> } | undefined)?.metadata).toMatchObject({ k: 1 });
   });
-  // draft.5 (CB-8 A′, bar wf_c7592535-af3, founder 2026-09-25): closure follows the fold's turn records —
+  // draft.5 (CB-8 A′, bar wf_c7592535-af3, ruled 2026-09-25): closure follows the fold's turn records —
   // a turn is closed while its record carries an `outcome` — so a messages.snapshot changes closure only
   // through the `turns` it leaves in the fold. (s-iv) replaces draft.4's (v-e) control.
   const E = [...S, ...END, ...DONE];
@@ -2388,7 +2388,7 @@ describe("§10.36 — nested-turn closure (draft.4; §5.0 INV-TURN, §8.0 item 2
   });
 });
 
-describe("§10.23(claude) — an unmapped Claude stop_reason → fallback + finishReasonRaw byte for byte; only on the fallback (sp-claude 44938c2)", () => {
+describe("§10.23(claude) — an unmapped Claude stop_reason → fallback + finishReasonRaw byte for byte; only on the fallback (fe87254)", () => {
   const result = (stop_reason: string | null) => ({
     type: "result", subtype: "success", result: "all done", stop_reason, is_error: false,
     duration_ms: 0, duration_api_ms: 0, num_turns: 1, total_cost_usd: 0.05,
@@ -2418,7 +2418,7 @@ describe("§10.23(claude) — an unmapped Claude stop_reason → fallback + fini
   }
 });
 
-describe("§10.23(vercel) — a vercel finish with no AgJSON target → fallback + finishReasonRaw byte for byte (probe c524ece)", () => {
+describe("§10.23(vercel) — a vercel finish with no AgJSON target → fallback + finishReasonRaw byte for byte (probe f2937f9)", () => {
   const USAGE = { inputTokens: 5, inputTokenDetails: { noCacheTokens: 3, cacheReadTokens: 2, cacheWriteTokens: 0 }, outputTokens: 7, outputTokenDetails: { textTokens: 4, reasoningTokens: 3 }, totalTokens: 12 };
   const stream = (finish: Record<string, unknown>) => [
     { type: "start" },
