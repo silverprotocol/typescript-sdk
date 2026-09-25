@@ -64,15 +64,19 @@
  * gemini-3.8-live capture `live-bargein-gemini38live`, @google/adk 2.1.0). So
  * the interrupted generation closes as `turn.abort{interrupted}` on its own
  * `turnComplete` (or at flush), with its usage on its message.end, and the next
- * generation opens a new turn, `turn_<invokeId>_<invocationId>_g<n>`. ADK's bare
- * `{interrupted}` re-yield, after a message that carried both flags, adds
+ * generation opens a new turn, `turn_<invokeId>_<invocationId>_g<n>`. That
+ * relies on the wire's order, where a generation's usage and turnComplete
+ * arrive before the next generation's first event. An event that arrived after
+ * the interrupted generation closed, even a usage-only one, would open the next
+ * turn early and carry its usage there; the capture shows no such event. ADK's
+ * bare `{interrupted}` re-yield, after a message that carried both flags, adds
  * nothing and is not emitted, and neither is ADK's `finished` transcription
- * when it repeats the chunks already streamed for the turn. Two limits remain. A generation that follows a
- * completed reply, with no barge-in, lands in the closed turn and parks a
- * reducer, unless `hostCompletion` defers that close. And when text is buffered
- * at the interrupt, ADK yields only the text aggregate, without the flag
- * (utils/live_connection_utils.js), so this facet sees no interrupt and the
- * turn closes at flush as `stream-truncated`.
+ * when it repeats the chunks already streamed for the turn. Two limits remain.
+ * A generation that follows a completed reply, with no barge-in, lands in the
+ * closed turn and parks a reducer, unless `hostCompletion` defers that close.
+ * And when text is buffered at the interrupt, ADK yields only the text
+ * aggregate, without the flag (utils/live_connection_utils.js), so this facet
+ * sees no interrupt and the turn closes at flush as `stream-truncated`.
  */
 import {
   type AgEvent,
