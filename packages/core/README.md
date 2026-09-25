@@ -77,7 +77,7 @@ for a gap. `raw` is for live inspection only; don't persist it. Input that is no
 an event at all (not an object, no string `type`, no number `seq`) returns
 nothing and goes to the optional `onReject` callback. `Reducer` folds the
 validated stream into the normative snapshot; `AGJSON_VERSION` is the wire
-version this build implements (`1.0.0-draft.4`).
+version this build implements (`1.0.0-draft.5`).
 
 ### Stored records and inputs
 

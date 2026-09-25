@@ -850,7 +850,7 @@ export type AgRunConfig = z.infer<typeof AgRunConfig>;
 
 // The spec version this SDK implements (SPEC.md status line + §12). Consumers
 // reject a MAJOR mismatch and accept any same-major version (§12 negotiation).
-export const AGJSON_VERSION = "1.0.0-draft.4";
+export const AGJSON_VERSION = "1.0.0-draft.5";
 
 const agjsonWireVersion = z
   .string()
