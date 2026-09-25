@@ -149,7 +149,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 34, leg: "vercel", title: "Partial-frame carry (draft.4)", disposition: "N/A", citation: "§8 item 22 applicability: the vercel-ai facet has no frame that maps only in part and rides ext.vercel.frame" },
   { n: 35, title: "Sealed-message finalizers and merges (draft.4): text.end / reasoning.end / reasoning.opaque / tool.args.assembled into a sealed message or any message of a closed turn park with the fold equal to the fold before them; the same events fold before the seal / terminal; message.metadata and turn.done{messageId, messageMetadata} naming a sealed message merge without parking", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.35 (reference reducer guard 648cecb; delta and block-creating legs: §10.27)" },
   { n: 36, leg: "claude", title: "Nested-turn closure (draft.4): for every subagent.start, exactly one turn.done|turn.error|turn.abort with that turnId, no usage, immediately before its subagent.done; no nested turnId equals a turn.start turnId; the fold without subagent.done is structurally identical", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.36 over every corpus golden with subagent.start (claude B-strict 7f315e2 + regen 5cdade3)" },
-  { n: 36, leg: "openai", title: "Nested-turn closure (draft.4): a handoff's nested turn closes at handoff_occurred with turn.done{success, finishReason unknown, no usage} immediately before its subagent.done; a bracket still open at flush aborts; the fold without subagent.done is structurally identical", disposition: "COVERED-BY", citation: "openai-agents/src/index.test.ts \"createOpenaiNormalizer — HO handoff close (the transfer result + the nested terminal)\" › \"wire order at handoff_occurred: …\", \"§10 item 36: folding with the subagent.done events removed …\", \"a bracket still open at flush …\" (sp-openai b5d8a98)" },
+  { n: 36, leg: "openai", title: "Nested-turn closure (draft.4): a handoff's nested turn closes at handoff_occurred with turn.done{success, finishReason unknown, no usage} immediately before its subagent.done; the fold without subagent.done is structurally identical", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.36 over every corpus golden with subagent.start (openai: handoff-gpt6sol, enrolled 450ece8); unit legs openai-agents/src/index.test.ts \"createOpenaiNormalizer — HO handoff close (the transfer result + the nested terminal)\"" },
   { n: 36, leg: "adk", title: "Nested-turn closure (draft.4)", disposition: "N/A", citation: "§8.0 applicability: this facet emits no subagent.* (no nested turns)" },
   { n: 36, leg: "vercel", title: "Nested-turn closure (draft.4)", disposition: "N/A", citation: "§8.0 applicability: this facet emits no subagent.* (no nested turns)" },
   { n: 37, title: "Shared-state fold (draft.4): an object patch replaces each top-level key whole ({cfg:{a:1,b:2}} then {cfg:{a:5}} → {cfg:{a:5}}); a null member is stored present; a scalar patch is a no-op without a resync; a JSON Patch array against no working copy sets needsResync", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.37, reference reduce() + Reducer (probe pkg-21 6e69589)" },
@@ -2040,6 +2040,7 @@ describe("§10.36 — nested-turn closure (draft.4; §5.0 INV-TURN, §8.0 item 2
     const TERMINALS = new Set(["turn.done", "turn.error", "turn.abort"]);
     const bad: string[] = [];
     let nested = 0;
+    const frameworks = new Set<string>();
     for (const d of readdirSync(corpus)) {
       for (const fw of ["claude", "openai", "adk", "vercel"]) {
         const f = new URL(`${d}/${fw}.agjson.json`, corpus);
@@ -2048,6 +2049,7 @@ describe("§10.36 — nested-turn closure (draft.4; §5.0 INV-TURN, §8.0 item 2
         const topLevel = new Set(ev.filter((e) => e["type"] === "turn.start").map((e) => e["turnId"]));
         const subs = ev.filter((e) => e["type"] === "subagent.start");
         if (subs.length === 0) continue;
+        frameworks.add(fw);
         for (const s of subs) {
           nested++;
           const tid = s["turnId"];
@@ -2074,6 +2076,8 @@ describe("§10.36 — nested-turn closure (draft.4; §5.0 INV-TURN, §8.0 item 2
       }
     }
     expect(nested).toBeGreaterThan(0);
+    // Non-vacuity per leg: the claude and openai goldens that emit subagent.* are both swept.
+    expect([...frameworks].sort()).toEqual(expect.arrayContaining(["claude", "openai"]));
     expect(bad).toEqual([]);
   });
 });
