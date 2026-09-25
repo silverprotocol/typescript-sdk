@@ -4564,6 +4564,29 @@ describe("createAdkNormalizer — a Live barge-in closes turn.abort after the ev
     expect(usagesOf(mixed)).toContainEqual({ inputTokens: 6646, outputTokens: 1019, totalTokens: 7665, totalTokensRaw: 7409, reasoningTokens: 746, cumulative: false });
   });
 
+  it("Live usage details: each report's promptTokensDetails / responseTokensDetails ride the message metadata's usageDetails verbatim, one entry per report, never summed; generateContent usage carries none", () => {
+    const d1 = { promptTokenCount: 609, responseTokenCount: 25, thoughtsTokenCount: 256, totalTokenCount: 634, promptTokensDetails: [{ modality: "TEXT", tokenCount: 362 }, { modality: "AUDIO", tokenCount: 222 }], responseTokensDetails: [{ modality: "AUDIO", tokenCount: 25 }] };
+    const d2 = { promptTokenCount: 668, responseTokenCount: 52, thoughtsTokenCount: 38, totalTokenCount: 720, promptTokensDetails: [{ modality: "TEXT", tokenCount: 384 }], responseTokensDetails: [{ modality: "AUDIO", tokenCount: 52 }] };
+    const out = drive([
+      liveEvent("inv_ud", "d1", { content: audio }),
+      liveEvent("inv_ud", "d2", { usageMetadata: d1 }),
+      liveEvent("inv_ud", "d3", { usageMetadata: d2 }),
+      liveEvent("inv_ud", "d4", { turnComplete: true }),
+    ]);
+    const r = folds(out);
+    expect(r.needsResync).toBe(false);
+    const meta = r.result().messages[0]?.metadata as { usageDetails?: JsonValue } | undefined;
+    expect(meta?.usageDetails).toEqual([
+      { promptTokensDetails: d1.promptTokensDetails, responseTokensDetails: d1.responseTokensDetails },
+      { promptTokensDetails: d2.promptTokensDetails, responseTokensDetails: d2.responseTokensDetails },
+    ]);
+    const gc = drive([
+      liveEvent("inv_gc", "g1", { content: text("hi") }),
+      liveEvent("inv_gc", "g2", { usageMetadata: { promptTokenCount: 109, candidatesTokenCount: 22, totalTokenCount: 131, promptTokensDetails: [{ modality: "TEXT", tokenCount: 109 }] }, turnComplete: true }),
+    ]);
+    expect(gc.some((e) => e.type === "message.metadata")).toBe(false);
+  });
+
   it("two live invokes, each with one barge-in, folded into ONE Reducer: two aborted turns, no park", () => {
     const one = (inv: string) => drive([liveEvent(inv, `${inv}_1`, { content: audio }), liveEvent(inv, `${inv}_2`, { interrupted: true })]);
     const r = folds([...one("inv_one"), ...one("inv_two")]);

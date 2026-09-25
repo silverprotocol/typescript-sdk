@@ -299,6 +299,9 @@ export interface AdkEvent {
     toolUsePromptTokenCount?: number;
     /** Gemini Live's output counter, in place of `candidatesTokenCount`. */
     responseTokenCount?: number;
+    /** Per-modality token counts (carried verbatim on the Live path only). */
+    promptTokensDetails?: JsonValue;
+    responseTokensDetails?: JsonValue;
   };
   /** Per-part safety ratings from the Gemini Candidate. */
   safetyRatings?: Array<{
@@ -1975,6 +1978,8 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
   const streamedText = new Map<string, string>();
   // Per turn and role: the transcription chunks streamed so far (see driveAdkTopLevel).
   const streamedTranscription = new Map<string, string>();
+  // Per turn: the Live usage reports' modality details, one entry per report.
+  const usageDetailsByTurn = new Map<string, JsonValue[]>();
   const openTurns = new Set<string>();
   const closedTurns = new Set<string>();
   // Per-turn usageMetadata accumulator (2026-07-13, echo-gemini35 live-capture
@@ -2396,6 +2401,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // A turn gets ONE terminal: an interrupt on a turn that already closed
     // (a second barge-in, or one after a success close) adds none.
     if (event.interrupted === true && !closedTurns.has(turnId)) interruptPending.add(turnId);
+    carryLiveUsageDetails(event, turnId, messageId, isPartial);
     maybeCloseTurn(event, turnId, messageId, isPartial);
     // The interrupted generation closes on its own turnComplete (its trailing
     // usageMetadata arrives before it), or at flush() / host completion.
@@ -2407,6 +2413,25 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
    *  The turn is marked closed in the facet's own bookkeeping too (audit M21),
    *  so neither maybeCloseTurn nor flush() fabricates a later success. The
    *  message.end carries the turn's accumulated usage, as flush()'s does. */
+  /** Gemini Live prices per modality (text vs audio), so its usage reports'
+   *  `promptTokensDetails` / `responseTokensDetails` ride the message's
+   *  metadata (a `message.metadata` event, key `usageDetails`), one entry per report, verbatim and never
+   *  summed. Each report re-emits the whole list (message metadata folds by
+   *  key, so the last emission holds every report). Live path only
+   *  (`responseTokenCount` present): generateContent streams are unchanged. */
+  function carryLiveUsageDetails(event: AdkEvent, turnId: string, messageId: string, isPartial: boolean): void {
+    const um = event.usageMetadata;
+    if (isPartial || um === undefined || um.responseTokenCount === undefined || um.candidatesTokenCount !== undefined) return;
+    const entry: { [k: string]: JsonValue } = {
+      ...(um.promptTokensDetails !== undefined ? { promptTokensDetails: um.promptTokensDetails } : {}),
+      ...(um.responseTokensDetails !== undefined ? { responseTokensDetails: um.responseTokensDetails } : {}),
+    };
+    if (Object.keys(entry).length === 0) return;
+    const list = [...(usageDetailsByTurn.get(turnId) ?? []), entry];
+    usageDetailsByTurn.set(turnId, list);
+    a.emit({ type: "message.metadata", messageId, metadata: { usageDetails: list } });
+  }
+
   /** The turn an event belongs to: `turn_<stem>_<key>` (or `turn_<stem>` with no
    *  key), with `_g<n>` for the n-th generation after a barge-in closed the
    *  previous one. `undefined` for ADK's bare `{interrupted}` re-yield on a
