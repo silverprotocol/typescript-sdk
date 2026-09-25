@@ -1,0 +1,4190 @@
+[
+  {
+    "data": {
+      "type": "response_started",
+      "providerData": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_094d706e7a062347006ab5d7f76c9887d08a2c53dc930d28f5",
+          "object": "response",
+          "created_at": 1790302199,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST hand the request off to BOTH the Echoer and the Shouter, calling both transfer tools in the same response. Do not call the echo tool yourself and do not answer yourself.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            },
+            {
+              "type": "function",
+              "description": "Handoff to the Echoer agent to handle the request. Echoes a message with the echo tool.",
+              "name": "transfer_to_Echoer",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "strict": true
+            },
+            {
+              "type": "function",
+              "description": "Handoff to the Shouter agent to handle the request. Echoes a message in uppercase with the echo tool.",
+              "name": "transfer_to_Shouter",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "strict": true
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_094d706e7a062347006ab5d7f76c9887d08a2c53dc930d28f5",
+          "object": "response",
+          "created_at": 1790302199,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST hand the request off to BOTH the Echoer and the Shouter, calling both transfer tools in the same response. Do not call the echo tool yourself and do not answer yourself.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            },
+            {
+              "type": "function",
+              "description": "Handoff to the Echoer agent to handle the request. Echoes a message with the echo tool.",
+              "name": "transfer_to_Echoer",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "strict": true
+            },
+            {
+              "type": "function",
+              "description": "Handoff to the Shouter agent to handle the request. Echoes a message in uppercase with the echo tool.",
+              "name": "transfer_to_Shouter",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "strict": true
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.in_progress",
+        "response": {
+          "id": "resp_094d706e7a062347006ab5d7f76c9887d08a2c53dc930d28f5",
+          "object": "response",
+          "created_at": 1790302199,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST hand the request off to BOTH the Echoer and the Shouter, calling both transfer tools in the same response. Do not call the echo tool yourself and do not answer yourself.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            },
+            {
+              "type": "function",
+              "description": "Handoff to the Echoer agent to handle the request. Echoes a message with the echo tool.",
+              "name": "transfer_to_Echoer",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "strict": true
+            },
+            {
+              "type": "function",
+              "description": "Handoff to the Shouter agent to handle the request. Echoes a message in uppercase with the echo tool.",
+              "name": "transfer_to_Shouter",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "strict": true
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 1
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "rs_094d706e7a062347006ab5d7f8453887d0b78f8a4be6d4bb21",
+          "type": "reasoning",
+          "content": [],
+          "encrypted_content": "gAAAAABqtdf4qMLnz4huNmh28ssm7ga8RBRZnmJQpkCdpkYgsJBtArOlRNyuCfUvG_CtFY0VyRuaj3NF1-WNm4AUpOG-YqjaF6h14hjfB_eaiIyu9WVPQng1Ko1suiWogIxrgY84-Z0BY_0A7t6oKaJLIVWonuCU-Xq0iF-MyM8BeoiSa5KiYaAicgSook5q-XATpXoAW1mYg2VvppYVb5pr8QnBd63Ahy7InMxBX-m58P2XWNbY2a-BITDE30qMQOpI1fDVi36DtsecLuYbE4OkOgZWnwWkDa1ugluBsyX8_EA2B3CE3NXTFLYWPEjUsmdTgfer_CPNWnm8dy74ivCmpWhaAs0bEEmV2qBbSIQEUAhQGwqBqNBqfOGbcVdcmlghBakwN8pbP2cR-CAJpuHR4paJi7lYtW6VEw0JvUbuulfG8bd9TnhO1hgZpCBL_rmdXQEXE5l-DFi1ZIXC8N0HoDwxdQQrkPX_mt_lkl4pEwiIGn5nFJq9DmEj7F4H4Iqy4XJ4oCdJ-sk9jDsL2YPidk7TRPJ4pzZVspawmyzuqQIG4M55b9iTRc8njHn7gxbXjCUDabFb-iWFgEwvvmoaNfuVPeOnRwVGNqXaIDdDs-6X3ogWkvxOkCP90n8xvU7OTzOxKeah85wfiT-GSjD8tgyBAQSMn64kOVy6_3NF3CEPqeLL93jhyfOBCP-CplqUw2Dz-dpt64Z74cTuE5fnOIVqQyaf1Lrgt_6zRoxmTC2AFNfq5FfDTrDi_ZpB_2KwUIOagtUU10c3GUKmZi9fuc07WRuNjfE8Jjzpl0NwNm9MAExw-e5NFOVX3ZSVmzV70ZDnI0nX_6iJUvIe7CR0J8rXA3HleCT6fAp81kbOsoz49qD6KT0qOR3_xFzrvqhv2dXIvib3Koe67ymkEx1DlfBeO5dYEIa1AQWrpkEXAV69_Vn-Agv7aKRsG4r2HWvnjEi9ZCOsUFsY61ON9mgmSP-mgm0u-noLX9d8rIX0Lg42scEsd-H1V_mUGZkKO2rafTD5HY3MeHvXGujV7uyTSK7xWYZ5W7swwVDWH0yZawduqBQpPUy7YqttXfVVAX59cDrSMGLFzRTifgzlet7o-4fgXdPhRAoJTrcssavY60mdr-xjWTXD4JUlJaYRjHyMPdZjEG7Jd4RT5ddhpYyUdPNH4o0FtQ==",
+          "summary": []
+        },
+        "output_index": 0,
+        "sequence_number": 2
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "rs_094d706e7a062347006ab5d7f8453887d0b78f8a4be6d4bb21",
+          "type": "reasoning",
+          "content": [],
+          "encrypted_content": "gAAAAABqtdf4YvjK0Ev8eY86sogB1ZQAcGavxs1wr-BbZVcfZmNu5PdsQvWb-vN41EGee2tu9y2ahS4wSLSrs3E_KrFMmJZK3bxaNuqp-nclU3pkVYp5zdAZQt_aItkBmfnldPwC8YTq47aVSULhh3VHA4f5LRLIoQH6RoLO7x_ilMoMRchI20SnHiOyBvGB-N3-PQQD2tD3pp9wBzyiw_JYJQzZPuxt3ASwi0b4Etv5BAZXlxmmOnb20isDIYi1sFhSBweIlnH0bszvBpJqes1u3yged5PCcHfFoUo_a83dfYHQdBsN_bUaQyCw0TBm4qqfd_SfptfIsbEh8efsgdBxqBWAk609JMZ2BYNgI9qw09QRESpU5jXjk9p16UyyXLQPVGOhsdjVL1PMT5dAZxJ3UAFh4dFMkA2biemDeQ0D9p3OQapccZ5h66Dgs7Z_WQ74ZrN65jhvbDq-vje2vtT2GqH715FnROTbEQrZfAdLWUEyuxTTSQG39rhO7VID0ru062Cya3PD3l6mOaoDAyxUdTC0Wu1PbKGtNVlii433qPqJr0BbCeXxvilGnSB8qHBlVyskG-zplXBlmgQSIHaqB9VBRiMyed48lSbkrrH6iP-lWqTFNa_JScBCboFBYM5NTxjpB7WM62S3F9OslQO-dQY5WM7QXsRQ_G7F_2ROiPks5VPPovu7ly50-CkXvNEvBA4i0GZD_twQ_s47UKSqUH5GppO9BRPC-Qwn3UX5AjOPB1X_XT0VBnbIhPYxL_KqqRP0NaMtF3-FqPX9fc38Ip7QgElfz4BMUu9qJKJkgrJpRMEs-9mbFqi6RF4LjFwe3U5Z-d-DghO_S134sTc27_yBk7EpP_xLBs8KJc5kNB_J8X6Q1BfOk7cV8LFSFaZf9daZvjCkl8W7J1QPVtUQEtTTzaSrpMyzj78d0BReqXhsJTkVelfRPs8_A-c_6W57iQSOXPTI6Ak5z2D6r7rQ5h_Et72s_k88ClKRovmlCzKaQxuCTj2-EnW7-v2PJidvbuFWrlvsR6L2hlww0fNpgyBKmlKr33PXDMn_dPQMiHY9sTX8jdB_nn5gtoJfqLDmT3EgPs_vD-3UCIQs4H2uLVW4ooY5jkOAYfPHDMrUYCo0_S5C3tMnlRhBPaBNIUaE9Np-IWVQBmSrugOhcfmD4NbGgMMPR6SPTu4kGtdsrOcBSOXxE28XDX3nP01ZT_OOsdrzlBZDKGszMVY7Mv8zw5NZ56CzuQ==",
+          "summary": []
+        },
+        "output_index": 0,
+        "sequence_number": 3
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "fc_094d706e7a062347006ab5d7f8d87887d0b307b9c490464530",
+          "type": "function_call",
+          "status": "in_progress",
+          "arguments": "",
+          "call_id": "call_uub5bbRRW4XJ2ZJXjtJXS9u5",
+          "name": "transfer_to_Echoer"
+        },
+        "output_index": 1,
+        "sequence_number": 4
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "{}",
+        "item_id": "fc_094d706e7a062347006ab5d7f8d87887d0b307b9c490464530",
+        "obfuscation": "dKjAEnELPM5W1G",
+        "output_index": 1,
+        "sequence_number": 5
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.done",
+        "arguments": "{}",
+        "item_id": "fc_094d706e7a062347006ab5d7f8d87887d0b307b9c490464530",
+        "output_index": 1,
+        "sequence_number": 6
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "fc_094d706e7a062347006ab5d7f8d87887d0b307b9c490464530",
+          "type": "function_call",
+          "status": "completed",
+          "arguments": "{}",
+          "call_id": "call_uub5bbRRW4XJ2ZJXjtJXS9u5",
+          "name": "transfer_to_Echoer"
+        },
+        "output_index": 1,
+        "sequence_number": 7
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "fc_094d706e7a062347006ab5d7f8d88c87d0b81ac22620a5be84",
+          "type": "function_call",
+          "status": "in_progress",
+          "arguments": "",
+          "call_id": "call_xSdVnjJBP92mKDCV5HrtsOOz",
+          "name": "transfer_to_Shouter"
+        },
+        "output_index": 2,
+        "sequence_number": 8
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "{}",
+        "item_id": "fc_094d706e7a062347006ab5d7f8d88c87d0b81ac22620a5be84",
+        "obfuscation": "CEPvnl02veH52M",
+        "output_index": 2,
+        "sequence_number": 9
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.done",
+        "arguments": "{}",
+        "item_id": "fc_094d706e7a062347006ab5d7f8d88c87d0b81ac22620a5be84",
+        "output_index": 2,
+        "sequence_number": 10
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "fc_094d706e7a062347006ab5d7f8d88c87d0b81ac22620a5be84",
+          "type": "function_call",
+          "status": "completed",
+          "arguments": "{}",
+          "call_id": "call_xSdVnjJBP92mKDCV5HrtsOOz",
+          "name": "transfer_to_Shouter"
+        },
+        "output_index": 2,
+        "sequence_number": 11
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_done",
+      "response": {
+        "id": "resp_094d706e7a062347006ab5d7f76c9887d08a2c53dc930d28f5",
+        "requestId": "req_e9908c220ca8489fb12a3789fb97a9bb",
+        "output": [
+          {
+            "type": "reasoning",
+            "id": "rs_094d706e7a062347006ab5d7f8453887d0b78f8a4be6d4bb21",
+            "content": [],
+            "providerData": {
+              "id": "rs_094d706e7a062347006ab5d7f8453887d0b78f8a4be6d4bb21",
+              "type": "reasoning",
+              "content": [],
+              "encrypted_content": "gAAAAABqtdf45FDxpy7BAexuSggwoK3TBc165lnTCtxWwMRq6lRbu0rwsrjMnTo9aism4yAyecnd7mK_nFgODfTRNL93d7omDNN7guOkadTcxVEgeHhDoPse4wqUajFOurC9bEJUEtUJk9pURwZzK44_1sBQIG-QTabWC5u5GnlqX540VIcAzFzuCE7ubQ0AQ317-V2DenFcrKHjmtTHTkJ4KNAUwaPFcbKqUg8cyvAZnsqiQ397cFevqsLvo3nPwWInD1QhtYowoUm-ZmeFeMOu0ck-UmJevgUVD4mKtimWxTJsvNOsVEX-u-8621ji3_JHaBqt0lN9TU2hRDmetT4EWfYAum2HD2vVLzpljYXK0w-hlVizvFLE0EuTHWU2T18uzZ1JlApd7rP7x-g25Zt0ATV9zf2hnyZpj1UBAleftjBBth6w01_PklB97RoBu1uhvJrbecrmM7W6DjM9vopq1rssGaL_YgzOyx6rePd-wqmxWrhKCeOwzXiwqtvCHN1BTsJMEomcvsYt8erXXe6H2DGktQ3fkQKadDWgVimchoV4L4AwhEjeVSC-3fIU9H1XgWKACRJHfjQNMRR37an5dEd7p5di-76WSRODNLSxcH3NwjEzIL1phEjpjcix3H0woglL3ipOUS7BU9YFlrRRdKZLU2QTJdHC5FuiKyuoKYanYdZFkYyz3CrouRsacW5sWzBvj8HjMKF_5O6QiabvBOANyc7YrmS1nsuulVUoRZNM2aISzhRE67aZvco14FpCBoDSPUw5uz3cV53f-oP4R8pXin3oF0Gmzy9xXKLt0Wq34XDfyb2gcg03dktqx0CTmRMDx-aFHOnoEdYANLN5bzBFU4viCNTevsCnrouJyLpCz1GLKJG2Lo2gHDEOi6g5NItmR_KucVaoMQAdOIYQ97K42bgSp2SjxtcFhwbVr96GNYX37NPXZ1Iv_pgW0HO7Ejq0x4Bs8niZ1iW2r8ufOHEO2nNz9la4L2k1Mi76Hznh69oE6GfUl0bE6oHR8Ilfl7lNTLQMfNSZ4mx08mtuB7FpbqF0MSHqqqsCn5VYoeghCijTfKEnIzrOFzMaCpVvlRN2uUYpCyn5U7YqUghsh-oXraf4u7J36HX4csrkWSgInOzTsTWcqb2jZ1UWnniSORgKy1faYmJZQUaNQfd6EC3AFq99cpYP3E3gVugJONDf5q0yPxuq1bPnj6A9Vft1GsDNaZcWdzaqfSgmYeutsx2bYX-15w=="
+            }
+          },
+          {
+            "type": "function_call",
+            "id": "fc_094d706e7a062347006ab5d7f8d87887d0b307b9c490464530",
+            "callId": "call_uub5bbRRW4XJ2ZJXjtJXS9u5",
+            "name": "transfer_to_Echoer",
+            "status": "completed",
+            "arguments": "{}",
+            "providerData": {
+              "id": "fc_094d706e7a062347006ab5d7f8d87887d0b307b9c490464530",
+              "type": "function_call"
+            }
+          },
+          {
+            "type": "function_call",
+            "id": "fc_094d706e7a062347006ab5d7f8d88c87d0b81ac22620a5be84",
+            "callId": "call_xSdVnjJBP92mKDCV5HrtsOOz",
+            "name": "transfer_to_Shouter",
+            "status": "completed",
+            "arguments": "{}",
+            "providerData": {
+              "id": "fc_094d706e7a062347006ab5d7f8d88c87d0b81ac22620a5be84",
+              "type": "function_call"
+            }
+          }
+        ],
+        "usage": {
+          "inputTokens": 193,
+          "outputTokens": 64,
+          "totalTokens": 257,
+          "inputTokensDetails": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "outputTokensDetails": {
+            "reasoning_tokens": 14
+          },
+          "requestUsageEntries": [
+            {
+              "inputTokens": 193,
+              "outputTokens": 64,
+              "totalTokens": 257,
+              "inputTokensDetails": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0
+              },
+              "outputTokensDetails": {
+                "reasoning_tokens": 14
+              },
+              "endpoint": "responses.create"
+            }
+          ]
+        },
+        "providerData": {
+          "object": "response",
+          "created_at": 1790302199,
+          "status": "completed",
+          "access_programs": null,
+          "background": false,
+          "completed_at": 1790302200,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST hand the request off to BOTH the Echoer and the Shouter, calling both transfer tools in the same response. Do not call the echo tool yourself and do not answer yourself.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            },
+            {
+              "type": "function",
+              "description": "Handoff to the Echoer agent to handle the request. Echoes a message with the echo tool.",
+              "name": "transfer_to_Echoer",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "strict": true
+            },
+            {
+              "type": "function",
+              "description": "Handoff to the Shouter agent to handle the request. Echoes a message in uppercase with the echo tool.",
+              "name": "transfer_to_Shouter",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "strict": true
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "user": null,
+          "metadata": {}
+        }
+      },
+      "providerData": {
+        "type": "response.completed",
+        "sequence_number": 12
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_094d706e7a062347006ab5d7f76c9887d08a2c53dc930d28f5",
+          "object": "response",
+          "created_at": 1790302199,
+          "status": "completed",
+          "access_programs": null,
+          "background": false,
+          "completed_at": 1790302200,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You MUST hand the request off to BOTH the Echoer and the Shouter, calling both transfer tools in the same response. Do not call the echo tool yourself and do not answer yourself.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [
+            {
+              "id": "rs_094d706e7a062347006ab5d7f8453887d0b78f8a4be6d4bb21",
+              "type": "reasoning",
+              "content": [],
+              "encrypted_content": "gAAAAABqtdf45FDxpy7BAexuSggwoK3TBc165lnTCtxWwMRq6lRbu0rwsrjMnTo9aism4yAyecnd7mK_nFgODfTRNL93d7omDNN7guOkadTcxVEgeHhDoPse4wqUajFOurC9bEJUEtUJk9pURwZzK44_1sBQIG-QTabWC5u5GnlqX540VIcAzFzuCE7ubQ0AQ317-V2DenFcrKHjmtTHTkJ4KNAUwaPFcbKqUg8cyvAZnsqiQ397cFevqsLvo3nPwWInD1QhtYowoUm-ZmeFeMOu0ck-UmJevgUVD4mKtimWxTJsvNOsVEX-u-8621ji3_JHaBqt0lN9TU2hRDmetT4EWfYAum2HD2vVLzpljYXK0w-hlVizvFLE0EuTHWU2T18uzZ1JlApd7rP7x-g25Zt0ATV9zf2hnyZpj1UBAleftjBBth6w01_PklB97RoBu1uhvJrbecrmM7W6DjM9vopq1rssGaL_YgzOyx6rePd-wqmxWrhKCeOwzXiwqtvCHN1BTsJMEomcvsYt8erXXe6H2DGktQ3fkQKadDWgVimchoV4L4AwhEjeVSC-3fIU9H1XgWKACRJHfjQNMRR37an5dEd7p5di-76WSRODNLSxcH3NwjEzIL1phEjpjcix3H0woglL3ipOUS7BU9YFlrRRdKZLU2QTJdHC5FuiKyuoKYanYdZFkYyz3CrouRsacW5sWzBvj8HjMKF_5O6QiabvBOANyc7YrmS1nsuulVUoRZNM2aISzhRE67aZvco14FpCBoDSPUw5uz3cV53f-oP4R8pXin3oF0Gmzy9xXKLt0Wq34XDfyb2gcg03dktqx0CTmRMDx-aFHOnoEdYANLN5bzBFU4viCNTevsCnrouJyLpCz1GLKJG2Lo2gHDEOi6g5NItmR_KucVaoMQAdOIYQ97K42bgSp2SjxtcFhwbVr96GNYX37NPXZ1Iv_pgW0HO7Ejq0x4Bs8niZ1iW2r8ufOHEO2nNz9la4L2k1Mi76Hznh69oE6GfUl0bE6oHR8Ilfl7lNTLQMfNSZ4mx08mtuB7FpbqF0MSHqqqsCn5VYoeghCijTfKEnIzrOFzMaCpVvlRN2uUYpCyn5U7YqUghsh-oXraf4u7J36HX4csrkWSgInOzTsTWcqb2jZ1UWnniSORgKy1faYmJZQUaNQfd6EC3AFq99cpYP3E3gVugJONDf5q0yPxuq1bPnj6A9Vft1GsDNaZcWdzaqfSgmYeutsx2bYX-15w==",
+              "summary": []
+            },
+            {
+              "id": "fc_094d706e7a062347006ab5d7f8d87887d0b307b9c490464530",
+              "type": "function_call",
+              "status": "completed",
+              "arguments": "{}",
+              "call_id": "call_uub5bbRRW4XJ2ZJXjtJXS9u5",
+              "name": "transfer_to_Echoer"
+            },
+            {
+              "id": "fc_094d706e7a062347006ab5d7f8d88c87d0b81ac22620a5be84",
+              "type": "function_call",
+              "status": "completed",
+              "arguments": "{}",
+              "call_id": "call_xSdVnjJBP92mKDCV5HrtsOOz",
+              "name": "transfer_to_Shouter"
+            }
+          ],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            },
+            {
+              "type": "function",
+              "description": "Handoff to the Echoer agent to handle the request. Echoes a message with the echo tool.",
+              "name": "transfer_to_Echoer",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "strict": true
+            },
+            {
+              "type": "function",
+              "description": "Handoff to the Shouter agent to handle the request. Echoes a message in uppercase with the echo tool.",
+              "name": "transfer_to_Shouter",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "strict": true
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": {
+            "input_tokens": 193,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 64,
+            "output_tokens_details": {
+              "reasoning_tokens": 14
+            },
+            "total_tokens": 257
+          },
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 12
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "name": "reasoning_item_created",
+    "item": {
+      "type": "reasoning_item",
+      "rawItem": {
+        "providerData": {
+          "id": "rs_094d706e7a062347006ab5d7f8453887d0b78f8a4be6d4bb21",
+          "type": "reasoning",
+          "content": [],
+          "encrypted_content": "gAAAAABqtdf45FDxpy7BAexuSggwoK3TBc165lnTCtxWwMRq6lRbu0rwsrjMnTo9aism4yAyecnd7mK_nFgODfTRNL93d7omDNN7guOkadTcxVEgeHhDoPse4wqUajFOurC9bEJUEtUJk9pURwZzK44_1sBQIG-QTabWC5u5GnlqX540VIcAzFzuCE7ubQ0AQ317-V2DenFcrKHjmtTHTkJ4KNAUwaPFcbKqUg8cyvAZnsqiQ397cFevqsLvo3nPwWInD1QhtYowoUm-ZmeFeMOu0ck-UmJevgUVD4mKtimWxTJsvNOsVEX-u-8621ji3_JHaBqt0lN9TU2hRDmetT4EWfYAum2HD2vVLzpljYXK0w-hlVizvFLE0EuTHWU2T18uzZ1JlApd7rP7x-g25Zt0ATV9zf2hnyZpj1UBAleftjBBth6w01_PklB97RoBu1uhvJrbecrmM7W6DjM9vopq1rssGaL_YgzOyx6rePd-wqmxWrhKCeOwzXiwqtvCHN1BTsJMEomcvsYt8erXXe6H2DGktQ3fkQKadDWgVimchoV4L4AwhEjeVSC-3fIU9H1XgWKACRJHfjQNMRR37an5dEd7p5di-76WSRODNLSxcH3NwjEzIL1phEjpjcix3H0woglL3ipOUS7BU9YFlrRRdKZLU2QTJdHC5FuiKyuoKYanYdZFkYyz3CrouRsacW5sWzBvj8HjMKF_5O6QiabvBOANyc7YrmS1nsuulVUoRZNM2aISzhRE67aZvco14FpCBoDSPUw5uz3cV53f-oP4R8pXin3oF0Gmzy9xXKLt0Wq34XDfyb2gcg03dktqx0CTmRMDx-aFHOnoEdYANLN5bzBFU4viCNTevsCnrouJyLpCz1GLKJG2Lo2gHDEOi6g5NItmR_KucVaoMQAdOIYQ97K42bgSp2SjxtcFhwbVr96GNYX37NPXZ1Iv_pgW0HO7Ejq0x4Bs8niZ1iW2r8ufOHEO2nNz9la4L2k1Mi76Hznh69oE6GfUl0bE6oHR8Ilfl7lNTLQMfNSZ4mx08mtuB7FpbqF0MSHqqqsCn5VYoeghCijTfKEnIzrOFzMaCpVvlRN2uUYpCyn5U7YqUghsh-oXraf4u7J36HX4csrkWSgInOzTsTWcqb2jZ1UWnniSORgKy1faYmJZQUaNQfd6EC3AFq99cpYP3E3gVugJONDf5q0yPxuq1bPnj6A9Vft1GsDNaZcWdzaqfSgmYeutsx2bYX-15w=="
+        },
+        "id": "rs_094d706e7a062347006ab5d7f8453887d0b78f8a4be6d4bb21",
+        "type": "reasoning",
+        "content": []
+      },
+      "agent": {
+        "name": "spike"
+      }
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "name": "handoff_requested",
+    "item": {
+      "type": "handoff_call_item",
+      "rawItem": {
+        "providerData": {
+          "id": "fc_094d706e7a062347006ab5d7f8d87887d0b307b9c490464530",
+          "type": "function_call"
+        },
+        "id": "fc_094d706e7a062347006ab5d7f8d87887d0b307b9c490464530",
+        "type": "function_call",
+        "callId": "call_uub5bbRRW4XJ2ZJXjtJXS9u5",
+        "name": "transfer_to_Echoer",
+        "status": "completed",
+        "arguments": "{}"
+      },
+      "agent": {
+        "name": "spike"
+      }
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "name": "handoff_occurred",
+    "item": {
+      "type": "handoff_output_item",
+      "rawItem": {
+        "type": "function_call_result",
+        "name": "transfer_to_Echoer",
+        "callId": "call_uub5bbRRW4XJ2ZJXjtJXS9u5",
+        "status": "completed",
+        "output": {
+          "type": "text",
+          "text": "{\"assistant\":\"Echoer\"}"
+        }
+      },
+      "sourceAgent": {
+        "name": "spike"
+      },
+      "targetAgent": {
+        "name": "Echoer"
+      }
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "agent": {
+      "name": "Echoer"
+    },
+    "type": "agent_updated_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_started",
+      "providerData": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_094d706e7a062347006ab5d7f9677887d09b41203fcf8f0a7d",
+          "object": "response",
+          "created_at": 1790302201,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You echo messages. Call the echo tool with the exact message you are given, then reply with the tool's result and nothing else.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_094d706e7a062347006ab5d7f9677887d09b41203fcf8f0a7d",
+          "object": "response",
+          "created_at": 1790302201,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You echo messages. Call the echo tool with the exact message you are given, then reply with the tool's result and nothing else.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.in_progress",
+        "response": {
+          "id": "resp_094d706e7a062347006ab5d7f9677887d09b41203fcf8f0a7d",
+          "object": "response",
+          "created_at": 1790302201,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You echo messages. Call the echo tool with the exact message you are given, then reply with the tool's result and nothing else.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 1
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "rs_094d706e7a062347006ab5d7fa934c87d09b5ad300f8d06835",
+          "type": "reasoning",
+          "content": [],
+          "encrypted_content": "gAAAAABqtdf6Db5dbreu8-WEEdll9y0pt6OBDG6gndv8W736cliRK6sQ_4Ndr9QoHTkwcF24rhkcS7Cfqut3s2QKni9PMGSa-lIb_Odh6dSEzhGXDH9wY2ORUclZO-_b8LXV-eMaxlspJYtBShDHiF3cJZyKsHl-44aTlqUXmSYOUhNdcYwVubiunuipqQVdPnD15Y4rGkqCaFRcSB8IwMeScvW2zXMaEAzEkLyg1iQ4u3vYFGXEEwfpzBS7rmFk8RuM68SJUVWfreSRn5HFCbbx73ZBnesysu3isSIyd5vATAxYLzSGTxO0q2u0Qhx0lMwOzyN20OFbel8zWReWvOO6X9e3ZwIsEzEuaRTgIKurg2lizmHgbkKczvF28Z4k5bQlZE-Rg_xI-gIdXJNoQfREH8X6aZZqNEJWvaV-6EJbcWW1lfnOqP9ZCkx6Q0mzc14LVktJLlEQ7d2kGcTviL2gdlphQU8NgAKvhvWZ5Pn5i6cr51UUKu5JkiN20PtkDkuFGFX7jOLJb0gn7H5S_iT6IOBuaWaAyMwQ9qU4nn8nqc4yk3OuHHgPyRZwdJIYI5QIxexNWKqKPGFr--J4Rhyaw9BNIkialR0wBArabWcvnGnIzLwhMeTOO9kqqlP0-i0ASJW0NHLhWZUJcPKVcmCLvH0VzwQwsHL9kUr_aU8FygdH_nGmTYPhc_mhd6SVXJ1qo7TJkgot4PPlQk35gX6KNi9UH8WpREPDpb5Q1s7fK08Y0UU3JbITIl71eT10M96CPrd8E0KzIFGbwbfySIxh0ELquqvohedPlS_hwAq-VZMi0yVNDM_sZdYqvbGr9f2s5OucyPpB7KuN0l-SuynvsMXFdNaUMwc-se81b2BOU07JE4ruLbuvalh3vzb_pl8j9csq-5tVs6bI3LLsN8npm-aGt1aRp5oJpEu2nCZKs6k2mwq0cjO_hToPTi6mGBh3jZU995u1zfMwMWSSI_MY9kSZs2_mGiWFQEmvSVzc8cdT_hy5am6__qfHkj9NBCI-Eqo7Vf8Bbtavc3w3GM1C5Spu3_GMtD9GbJSGMdshw5jtCRGNQSxVngWc8Z7diPPscmtT7NEgbobnR04fNis2ylInQRjb4E4591WUz9oU8ZjxyAxHBv1y90ZAsGSTcEH8Wo8sgoHMaXMZhBgl-dNsGmQ6fUQ50g==",
+          "summary": []
+        },
+        "output_index": 0,
+        "sequence_number": 2
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "rs_094d706e7a062347006ab5d7fa934c87d09b5ad300f8d06835",
+          "type": "reasoning",
+          "content": [],
+          "encrypted_content": "gAAAAABqtdf6LCaZZwpk7N_pq915VZMVWdEfwAps2Tpa92-RLxZxMEow9jt62pQKo597Mfs5L_Ft8-TjZ36HR250LMxy--jjAsYz96XB5-zpxUjlVA8nhDeM8KYyNB_srxjrHVE8jIOADxrCh1UwVmoXCXHPtOhf7LaBZPSkbHUSpymVLhbRtcOVJCwiLyItFis3MgvBiENMs7bRjrTMOWq93rgQDebCXQXlF1l-piWxrIQTk1I94QYg0iHblBGAMUWwdKmjeWDUoL1VL9ESUcScsF0atqIPAzjhmA_qFu_1DGpkSFFTRqKDkRHUNS_k4rFPicrth03daban2rw4eTjo8jrUXIIchhDVMM1K5AzBF9dRFgJkmzsDMw9W6uUfBK57GxMrU_qw-zE_eAu2f4x2BR2yorr2efsypOyLPCxaxbASWFaJze2ZFl8c5d3mY1su64KbqCykPpLZROJjj7yLdM5xZMpDFS3sonhHzPy75GetDARuaBqnLK9Lrwo9-nUJ8TPAeOyAX-j05nXcnUOOhAbEU59r0T1cEuWXBHNrwDxt9e68N1UnTGiOuEgNfcEtYuKg_vZz51KwRvbzvT7BCRwHlm-U0xdzQYh5wrSrK2voqn1G42F9rZfpBjcY9eseixrOeMBGlnHekpAj8jHLUXYxRUGFIUc55OrpLiwYXFJTFMPJEqlI3Y1Y5frHp-3_XSNwipITYq38YAbGFjxhoaYst6dw7Z7mux5vP1aryzTOnqYhy-uuK5fsbDXqN8z0wdb2UUJ1ANTc0G2Dekuy0jFvOT_g2vOFq6mVqI0u_nk4oBL96yNXFm73MbuNHGW7S-EgtPhDZ03KVhq5A19Z3z1aL9rsMShOudQvS86Gn-c_i8noqXE-n-TKCZdobGyMD5YUq3Iq23CMJPVm8q3Sgtc_ETMkrFamXCUSq4NNOk9p_cmYU2PWvbc-TFsYjIcM9_rHOFMDJcmbrnNjmNovjvt662QjEUWEbPbViHiY47kr0tieefmuUb616PIcE377YXVXy4V6m3lr1-DhyA07JRMRJD0ukT59cWb7GuRtGkPxgSOjotBqwqRtv27U-orzAHX1mMhWduS-Himv4x5i85znN6S2r7dFLO5hv7_Ni4YEv_tBgK7b4pM1O51eGixr10Dj8abRO4m23-wATlIe99ri7cOvJLSx-gLma7ci6wxpdn6jgSfH9HA3KmDION6Ywhht-Dspo1Ze1I0FBEf9_tQfCU_zLB6TROq2Ksku3ZlIVe6WgnBrUTLs0h0MwwLamMvo-BxQ5012Ii6WLqp4SEzUtqHLjQ==",
+          "summary": []
+        },
+        "output_index": 0,
+        "sequence_number": 3
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+          "type": "function_call",
+          "status": "in_progress",
+          "arguments": "",
+          "call_id": "call_eH77onArbyyKKxoGs25arNie",
+          "name": "echo"
+        },
+        "output_index": 1,
+        "sequence_number": 4
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "{\"",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "A3AhtyXFfHMBRI",
+        "output_index": 1,
+        "sequence_number": 5
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "message",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "F2x0HGa7D",
+        "output_index": 1,
+        "sequence_number": 6
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "\":\"",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "66JEb4pAGSJeZ",
+        "output_index": 1,
+        "sequence_number": 7
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "Hand",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "uXeBxjqReZdp",
+        "output_index": 1,
+        "sequence_number": 8
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " this",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "3xMZYcUosB9",
+        "output_index": 1,
+        "sequence_number": 9
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " request",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "fu4dXKUb",
+        "output_index": 1,
+        "sequence_number": 10
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " to",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "BppFL8TWXFc9b",
+        "output_index": 1,
+        "sequence_number": 11
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " BOTH",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "VYs2RPvZQLk",
+        "output_index": 1,
+        "sequence_number": 12
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " the",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "UMh1azSVudu5",
+        "output_index": 1,
+        "sequence_number": 13
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " Echo",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "wu3WamjUP60",
+        "output_index": 1,
+        "sequence_number": 14
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "er",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "RM1LOppBYmQGDF",
+        "output_index": 1,
+        "sequence_number": 15
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " and",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "6n3fnVrA7DNu",
+        "output_index": 1,
+        "sequence_number": 16
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " the",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "VcwYru6OoBI8",
+        "output_index": 1,
+        "sequence_number": 17
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " Sh",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "wIsBFKcEtRNQ9",
+        "output_index": 1,
+        "sequence_number": 18
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "outer",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "ZzuWCGyKZL4",
+        "output_index": 1,
+        "sequence_number": 19
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " in",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "Q8VuOtCkoTzDD",
+        "output_index": 1,
+        "sequence_number": 20
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " the",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "jW0jwMaSlTll",
+        "output_index": 1,
+        "sequence_number": 21
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " same",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "2zo38XB7FA4",
+        "output_index": 1,
+        "sequence_number": 22
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " step",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "WpnGBOpYdD8",
+        "output_index": 1,
+        "sequence_number": 23
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": ":",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "RCIiJ611RQXY4rW",
+        "output_index": 1,
+        "sequence_number": 24
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " each",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "zcRzAwwam9o",
+        "output_index": 1,
+        "sequence_number": 25
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " should",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "g9cZrC40R",
+        "output_index": 1,
+        "sequence_number": 26
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " process",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "oiNJ6GTi",
+        "output_index": 1,
+        "sequence_number": 27
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " the",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "a8nwGmIYZSKc",
+        "output_index": 1,
+        "sequence_number": 28
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " message",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "janYHWW3",
+        "output_index": 1,
+        "sequence_number": 29
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": " '",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "2Ek1uExPC8IwLb",
+        "output_index": 1,
+        "sequence_number": 30
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "hando",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "frtVSZFXtH0",
+        "output_index": 1,
+        "sequence_number": 31
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "ff",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "yCCObIdDy4dE4w",
+        "output_index": 1,
+        "sequence_number": 32
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "-par",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "EwyyWqyMs8UU",
+        "output_index": 1,
+        "sequence_number": 33
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "allel",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "wH9SbrAkAYD",
+        "output_index": 1,
+        "sequence_number": 34
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "-pro",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "qwgQVLFP0x0v",
+        "output_index": 1,
+        "sequence_number": 35
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "be",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "1lhndqLczNCAfu",
+        "output_index": 1,
+        "sequence_number": 36
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "'",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "9NR7o9hJ6Ryk68B",
+        "output_index": 1,
+        "sequence_number": 37
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": ".\"",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "zKAseJItF0jG6h",
+        "output_index": 1,
+        "sequence_number": 38
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.delta",
+        "delta": "}",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "obfuscation": "WfKqCFe70YhFKkE",
+        "output_index": 1,
+        "sequence_number": 39
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.function_call_arguments.done",
+        "arguments": "{\"message\":\"Hand this request to BOTH the Echoer and the Shouter in the same step: each should process the message 'handoff-parallel-probe'.\"}",
+        "item_id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "output_index": 1,
+        "sequence_number": 40
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+          "type": "function_call",
+          "status": "completed",
+          "arguments": "{\"message\":\"Hand this request to BOTH the Echoer and the Shouter in the same step: each should process the message 'handoff-parallel-probe'.\"}",
+          "call_id": "call_eH77onArbyyKKxoGs25arNie",
+          "name": "echo"
+        },
+        "output_index": 1,
+        "sequence_number": 41
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_done",
+      "response": {
+        "id": "resp_094d706e7a062347006ab5d7f9677887d09b41203fcf8f0a7d",
+        "requestId": "req_dc0e7f79af57411b983f10af03fa3934",
+        "output": [
+          {
+            "type": "reasoning",
+            "id": "rs_094d706e7a062347006ab5d7fa934c87d09b5ad300f8d06835",
+            "content": [],
+            "providerData": {
+              "id": "rs_094d706e7a062347006ab5d7fa934c87d09b5ad300f8d06835",
+              "type": "reasoning",
+              "content": [],
+              "encrypted_content": "gAAAAABqtdf7Vt1MILI8dhOVxnGC1vkFzE481bU1y6erp5RV454l0XZHPLieS52ljD2dQCf14Gn1zHWW84oOdpgbpxeS-SVc5dnLWcVT503gXKlBl3CVFGTudRUh0aQ--Zaw0OLEYbRjjH8EJ-fs8y-O8V5Y-IG4DWW93rXQWWlc_W07O48xP2wTbbMoyDRrStq0UH1JfzMDUlRQT3WKcAeeGiqAlNTVrBV4jOzLpxMGljbcP3K17Zl3s4AuacnMtCXYH3yCyRLuhmxLbJVjiU3U8eKWrKYYfSWSfVXhXhoG9Y4-XLLubjy_dJ2n0ikdnd-Ksifg3AmeTxWEBA-WEii8IJp_DE9WC5tQ0c23Tm7QF6NwIW_fYM8dhE12-9rlIcggGmdKOXHS37Z56ngwyCtzvVJFINNCLzFbOW1E1HGZ9MRb4v3KS-06slaAWEi9-6pBM3ZVnBXtL4J9xrKUUZHXKJ_wwNymB72JwqatTqDJ8xJR8zbNlqI5Slxm6b-tmx7lxh4T7LoPm88TrG4VLMP71NArbbY_UzDjz_favvUtJ7Asg_EsmrJ2GrcWjjZ6TpSG8QnfSsRysMgFmcmM-gw8FgzXHfHx9Rv66bHK4g9wUiwNjEAjEsa0ifC9GHAkfguevNRlrIRMmJYt0aHXQgV0Csja8aD_GJyw3Sf9hxSDiyD-U6l2-sbiwkeIrdrZDcvvz0fY4tYzd59PnXGR_5wG3Wx9z2RytHXoUarlslE61V6z_Rh3tmGf7ja_VTeHQqpLiWj9W9ITLT2w43WJDbmWiA56jKSPJpF6iqX1WCy6-lqLlEWuMSX3p8QGCKmvF1LscFHZEEy8l1-r93rINKEpe82ylx3_IHlfk8D01INIXTWaBpGukX2XSbpnhbYOCJP8DMU8v_rIbnuIjUdN-hjs6KlcluTH45TnweE3jFwirrUI_acH4bdc7bLcfeM6W0N-Vt8YpFLW0xT_YCIe0c4Pj15VrsSLlSCPLHIu-D7kVu9Rq4qVr6t9mocGu9TzWrt59B7sieiTdw5yFyHnLwwbbJl0q5gHWPyjrEx1geyobiI7gBWBgyv3K6uZ_JxBI8mj877dRJOho6fjKWFUVU4JIrnGEdrdW4PEc-02_LpKhgOAie-zj69HNbPDz8FG4lsPN9v_5-snKGoZU8Za8R6yw36oB7-Zait_SjMF9WcWWLUf54MxGkTCHnVpBHjx4YQvEJnzKZorgRj8UCHNzQ9HWTbGMROTGlI1609tAbpiMw9zXPxywEbrkCsrtcxb3D8vFhjDh7r3a7WIe8js7mm-X5fSanoAqQ=="
+            }
+          },
+          {
+            "type": "function_call",
+            "id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+            "callId": "call_eH77onArbyyKKxoGs25arNie",
+            "name": "echo",
+            "status": "completed",
+            "arguments": "{\"message\":\"Hand this request to BOTH the Echoer and the Shouter in the same step: each should process the message 'handoff-parallel-probe'.\"}",
+            "providerData": {
+              "id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+              "type": "function_call"
+            }
+          }
+        ],
+        "usage": {
+          "inputTokens": 170,
+          "outputTokens": 71,
+          "totalTokens": 241,
+          "inputTokensDetails": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "outputTokensDetails": {
+            "reasoning_tokens": 22
+          },
+          "requestUsageEntries": [
+            {
+              "inputTokens": 170,
+              "outputTokens": 71,
+              "totalTokens": 241,
+              "inputTokensDetails": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0
+              },
+              "outputTokensDetails": {
+                "reasoning_tokens": 22
+              },
+              "endpoint": "responses.create"
+            }
+          ]
+        },
+        "providerData": {
+          "object": "response",
+          "created_at": 1790302201,
+          "status": "completed",
+          "access_programs": null,
+          "background": false,
+          "completed_at": 1790302203,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You echo messages. Call the echo tool with the exact message you are given, then reply with the tool's result and nothing else.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "user": null,
+          "metadata": {}
+        }
+      },
+      "providerData": {
+        "type": "response.completed",
+        "sequence_number": 42
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_094d706e7a062347006ab5d7f9677887d09b41203fcf8f0a7d",
+          "object": "response",
+          "created_at": 1790302201,
+          "status": "completed",
+          "access_programs": null,
+          "background": false,
+          "completed_at": 1790302203,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You echo messages. Call the echo tool with the exact message you are given, then reply with the tool's result and nothing else.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [
+            {
+              "id": "rs_094d706e7a062347006ab5d7fa934c87d09b5ad300f8d06835",
+              "type": "reasoning",
+              "content": [],
+              "encrypted_content": "gAAAAABqtdf7Vt1MILI8dhOVxnGC1vkFzE481bU1y6erp5RV454l0XZHPLieS52ljD2dQCf14Gn1zHWW84oOdpgbpxeS-SVc5dnLWcVT503gXKlBl3CVFGTudRUh0aQ--Zaw0OLEYbRjjH8EJ-fs8y-O8V5Y-IG4DWW93rXQWWlc_W07O48xP2wTbbMoyDRrStq0UH1JfzMDUlRQT3WKcAeeGiqAlNTVrBV4jOzLpxMGljbcP3K17Zl3s4AuacnMtCXYH3yCyRLuhmxLbJVjiU3U8eKWrKYYfSWSfVXhXhoG9Y4-XLLubjy_dJ2n0ikdnd-Ksifg3AmeTxWEBA-WEii8IJp_DE9WC5tQ0c23Tm7QF6NwIW_fYM8dhE12-9rlIcggGmdKOXHS37Z56ngwyCtzvVJFINNCLzFbOW1E1HGZ9MRb4v3KS-06slaAWEi9-6pBM3ZVnBXtL4J9xrKUUZHXKJ_wwNymB72JwqatTqDJ8xJR8zbNlqI5Slxm6b-tmx7lxh4T7LoPm88TrG4VLMP71NArbbY_UzDjz_favvUtJ7Asg_EsmrJ2GrcWjjZ6TpSG8QnfSsRysMgFmcmM-gw8FgzXHfHx9Rv66bHK4g9wUiwNjEAjEsa0ifC9GHAkfguevNRlrIRMmJYt0aHXQgV0Csja8aD_GJyw3Sf9hxSDiyD-U6l2-sbiwkeIrdrZDcvvz0fY4tYzd59PnXGR_5wG3Wx9z2RytHXoUarlslE61V6z_Rh3tmGf7ja_VTeHQqpLiWj9W9ITLT2w43WJDbmWiA56jKSPJpF6iqX1WCy6-lqLlEWuMSX3p8QGCKmvF1LscFHZEEy8l1-r93rINKEpe82ylx3_IHlfk8D01INIXTWaBpGukX2XSbpnhbYOCJP8DMU8v_rIbnuIjUdN-hjs6KlcluTH45TnweE3jFwirrUI_acH4bdc7bLcfeM6W0N-Vt8YpFLW0xT_YCIe0c4Pj15VrsSLlSCPLHIu-D7kVu9Rq4qVr6t9mocGu9TzWrt59B7sieiTdw5yFyHnLwwbbJl0q5gHWPyjrEx1geyobiI7gBWBgyv3K6uZ_JxBI8mj877dRJOho6fjKWFUVU4JIrnGEdrdW4PEc-02_LpKhgOAie-zj69HNbPDz8FG4lsPN9v_5-snKGoZU8Za8R6yw36oB7-Zait_SjMF9WcWWLUf54MxGkTCHnVpBHjx4YQvEJnzKZorgRj8UCHNzQ9HWTbGMROTGlI1609tAbpiMw9zXPxywEbrkCsrtcxb3D8vFhjDh7r3a7WIe8js7mm-X5fSanoAqQ==",
+              "summary": []
+            },
+            {
+              "id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+              "type": "function_call",
+              "status": "completed",
+              "arguments": "{\"message\":\"Hand this request to BOTH the Echoer and the Shouter in the same step: each should process the message 'handoff-parallel-probe'.\"}",
+              "call_id": "call_eH77onArbyyKKxoGs25arNie",
+              "name": "echo"
+            }
+          ],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": {
+            "input_tokens": 170,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 71,
+            "output_tokens_details": {
+              "reasoning_tokens": 22
+            },
+            "total_tokens": 241
+          },
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 42
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "name": "reasoning_item_created",
+    "item": {
+      "type": "reasoning_item",
+      "rawItem": {
+        "providerData": {
+          "id": "rs_094d706e7a062347006ab5d7fa934c87d09b5ad300f8d06835",
+          "type": "reasoning",
+          "content": [],
+          "encrypted_content": "gAAAAABqtdf7Vt1MILI8dhOVxnGC1vkFzE481bU1y6erp5RV454l0XZHPLieS52ljD2dQCf14Gn1zHWW84oOdpgbpxeS-SVc5dnLWcVT503gXKlBl3CVFGTudRUh0aQ--Zaw0OLEYbRjjH8EJ-fs8y-O8V5Y-IG4DWW93rXQWWlc_W07O48xP2wTbbMoyDRrStq0UH1JfzMDUlRQT3WKcAeeGiqAlNTVrBV4jOzLpxMGljbcP3K17Zl3s4AuacnMtCXYH3yCyRLuhmxLbJVjiU3U8eKWrKYYfSWSfVXhXhoG9Y4-XLLubjy_dJ2n0ikdnd-Ksifg3AmeTxWEBA-WEii8IJp_DE9WC5tQ0c23Tm7QF6NwIW_fYM8dhE12-9rlIcggGmdKOXHS37Z56ngwyCtzvVJFINNCLzFbOW1E1HGZ9MRb4v3KS-06slaAWEi9-6pBM3ZVnBXtL4J9xrKUUZHXKJ_wwNymB72JwqatTqDJ8xJR8zbNlqI5Slxm6b-tmx7lxh4T7LoPm88TrG4VLMP71NArbbY_UzDjz_favvUtJ7Asg_EsmrJ2GrcWjjZ6TpSG8QnfSsRysMgFmcmM-gw8FgzXHfHx9Rv66bHK4g9wUiwNjEAjEsa0ifC9GHAkfguevNRlrIRMmJYt0aHXQgV0Csja8aD_GJyw3Sf9hxSDiyD-U6l2-sbiwkeIrdrZDcvvz0fY4tYzd59PnXGR_5wG3Wx9z2RytHXoUarlslE61V6z_Rh3tmGf7ja_VTeHQqpLiWj9W9ITLT2w43WJDbmWiA56jKSPJpF6iqX1WCy6-lqLlEWuMSX3p8QGCKmvF1LscFHZEEy8l1-r93rINKEpe82ylx3_IHlfk8D01INIXTWaBpGukX2XSbpnhbYOCJP8DMU8v_rIbnuIjUdN-hjs6KlcluTH45TnweE3jFwirrUI_acH4bdc7bLcfeM6W0N-Vt8YpFLW0xT_YCIe0c4Pj15VrsSLlSCPLHIu-D7kVu9Rq4qVr6t9mocGu9TzWrt59B7sieiTdw5yFyHnLwwbbJl0q5gHWPyjrEx1geyobiI7gBWBgyv3K6uZ_JxBI8mj877dRJOho6fjKWFUVU4JIrnGEdrdW4PEc-02_LpKhgOAie-zj69HNbPDz8FG4lsPN9v_5-snKGoZU8Za8R6yw36oB7-Zait_SjMF9WcWWLUf54MxGkTCHnVpBHjx4YQvEJnzKZorgRj8UCHNzQ9HWTbGMROTGlI1609tAbpiMw9zXPxywEbrkCsrtcxb3D8vFhjDh7r3a7WIe8js7mm-X5fSanoAqQ=="
+        },
+        "id": "rs_094d706e7a062347006ab5d7fa934c87d09b5ad300f8d06835",
+        "type": "reasoning",
+        "content": []
+      },
+      "agent": {
+        "name": "Echoer"
+      }
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "name": "tool_called",
+    "item": {
+      "type": "tool_call_item",
+      "rawItem": {
+        "providerData": {
+          "id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+          "type": "function_call"
+        },
+        "id": "fc_094d706e7a062347006ab5d7faff2c87d0b0bf77e997fdcc50",
+        "type": "function_call",
+        "callId": "call_eH77onArbyyKKxoGs25arNie",
+        "name": "echo",
+        "status": "completed",
+        "arguments": "{\"message\":\"Hand this request to BOTH the Echoer and the Shouter in the same step: each should process the message 'handoff-parallel-probe'.\"}"
+      },
+      "agent": {
+        "name": "Echoer"
+      }
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "name": "tool_output",
+    "item": {
+      "type": "tool_call_output_item",
+      "rawItem": {
+        "type": "function_call_result",
+        "name": "echo",
+        "callId": "call_eH77onArbyyKKxoGs25arNie",
+        "status": "completed",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "Hand this request to BOTH the Echoer and the Shouter in the same step: each should process the message 'handoff-parallel-probe'."
+          }
+        ]
+      },
+      "agent": {
+        "name": "Echoer"
+      },
+      "output": "{\"type\":\"text\",\"text\":\"Hand this request to BOTH the Echoer and the Shouter in the same step: each should process the message 'handoff-parallel-probe'.\"}",
+      "executionStatus": "executed"
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_started",
+      "providerData": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
+          "object": "response",
+          "created_at": 1790302204,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You echo messages. Call the echo tool with the exact message you are given, then reply with the tool's result and nothing else.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
+          "object": "response",
+          "created_at": 1790302204,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You echo messages. Call the echo tool with the exact message you are given, then reply with the tool's result and nothing else.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 0
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.in_progress",
+        "response": {
+          "id": "resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
+          "object": "response",
+          "created_at": 1790302204,
+          "status": "in_progress",
+          "access_programs": null,
+          "background": false,
+          "completed_at": null,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You echo messages. Call the echo tool with the exact message you are given, then reply with the tool's result and nothing else.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "auto",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": null,
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 1
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+          "type": "message",
+          "status": "in_progress",
+          "content": [],
+          "phase": "final_answer",
+          "role": "assistant"
+        },
+        "output_index": 0,
+        "sequence_number": 2
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.content_part.added",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "output_index": 0,
+        "part": {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": ""
+        },
+        "sequence_number": 3
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "Hand",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "UVD25pbdf9VT",
+        "output_index": 0,
+        "sequence_number": 4
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "Hand",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "UVD25pbdf9VT",
+        "output_index": 0,
+        "sequence_number": 4
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " this",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "b3HAT2M4sVi",
+        "output_index": 0,
+        "sequence_number": 5
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " this",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "b3HAT2M4sVi",
+        "output_index": 0,
+        "sequence_number": 5
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " request",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "VXcfddxP",
+        "output_index": 0,
+        "sequence_number": 6
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " request",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "VXcfddxP",
+        "output_index": 0,
+        "sequence_number": 6
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " to",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "jxAortUuY07pQ",
+        "output_index": 0,
+        "sequence_number": 7
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " to",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "jxAortUuY07pQ",
+        "output_index": 0,
+        "sequence_number": 7
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " BOTH",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "iyHr6FiDqa7",
+        "output_index": 0,
+        "sequence_number": 8
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " BOTH",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "iyHr6FiDqa7",
+        "output_index": 0,
+        "sequence_number": 8
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " the",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "0NBVnXiz9sEY",
+        "output_index": 0,
+        "sequence_number": 9
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " the",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "0NBVnXiz9sEY",
+        "output_index": 0,
+        "sequence_number": 9
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " Echo",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "9s65ssrGMSr",
+        "output_index": 0,
+        "sequence_number": 10
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " Echo",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "9s65ssrGMSr",
+        "output_index": 0,
+        "sequence_number": 10
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "er",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "LBTF89gmr79RQJ",
+        "output_index": 0,
+        "sequence_number": 11
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "er",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "LBTF89gmr79RQJ",
+        "output_index": 0,
+        "sequence_number": 11
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " and",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "aFTpEcaE7Usb",
+        "output_index": 0,
+        "sequence_number": 12
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " and",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "aFTpEcaE7Usb",
+        "output_index": 0,
+        "sequence_number": 12
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " the",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "0w9H4wpzpSlI",
+        "output_index": 0,
+        "sequence_number": 13
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " the",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "0w9H4wpzpSlI",
+        "output_index": 0,
+        "sequence_number": 13
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " Sh",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "2C1PwuoaNHPGo",
+        "output_index": 0,
+        "sequence_number": 14
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " Sh",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "2C1PwuoaNHPGo",
+        "output_index": 0,
+        "sequence_number": 14
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "outer",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "NazulMLgxhu",
+        "output_index": 0,
+        "sequence_number": 15
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "outer",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "NazulMLgxhu",
+        "output_index": 0,
+        "sequence_number": 15
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " in",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "KB00MvsEwqqaj",
+        "output_index": 0,
+        "sequence_number": 16
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " in",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "KB00MvsEwqqaj",
+        "output_index": 0,
+        "sequence_number": 16
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " the",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "7vKUz1ifokJn",
+        "output_index": 0,
+        "sequence_number": 17
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " the",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "7vKUz1ifokJn",
+        "output_index": 0,
+        "sequence_number": 17
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " same",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "GsNlMuYHoX0",
+        "output_index": 0,
+        "sequence_number": 18
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " same",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "GsNlMuYHoX0",
+        "output_index": 0,
+        "sequence_number": 18
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " step",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "O7vugrLe0ln",
+        "output_index": 0,
+        "sequence_number": 19
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " step",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "O7vugrLe0ln",
+        "output_index": 0,
+        "sequence_number": 19
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": ":",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "gT13K0jgVPoBk41",
+        "output_index": 0,
+        "sequence_number": 20
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": ":",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "gT13K0jgVPoBk41",
+        "output_index": 0,
+        "sequence_number": 20
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " each",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "LQ0a3lN4I5O",
+        "output_index": 0,
+        "sequence_number": 21
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " each",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "LQ0a3lN4I5O",
+        "output_index": 0,
+        "sequence_number": 21
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " should",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "QLNqeHezA",
+        "output_index": 0,
+        "sequence_number": 22
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " should",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "QLNqeHezA",
+        "output_index": 0,
+        "sequence_number": 22
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " process",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "gdieZOdX",
+        "output_index": 0,
+        "sequence_number": 23
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " process",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "gdieZOdX",
+        "output_index": 0,
+        "sequence_number": 23
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " the",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "dEjvZH4fdx6A",
+        "output_index": 0,
+        "sequence_number": 24
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " the",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "dEjvZH4fdx6A",
+        "output_index": 0,
+        "sequence_number": 24
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " message",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "9mIemVhd",
+        "output_index": 0,
+        "sequence_number": 25
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " message",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "9mIemVhd",
+        "output_index": 0,
+        "sequence_number": 25
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": " '",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "nXnalYq4XQK2T4",
+        "output_index": 0,
+        "sequence_number": 26
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": " '",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "nXnalYq4XQK2T4",
+        "output_index": 0,
+        "sequence_number": 26
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "hando",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "3P1prRnS83b",
+        "output_index": 0,
+        "sequence_number": 27
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "hando",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "3P1prRnS83b",
+        "output_index": 0,
+        "sequence_number": 27
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "ff",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "3ImG6CvpxQD4Nf",
+        "output_index": 0,
+        "sequence_number": 28
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "ff",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "3ImG6CvpxQD4Nf",
+        "output_index": 0,
+        "sequence_number": 28
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "-par",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "MzC4lPZLgfHn",
+        "output_index": 0,
+        "sequence_number": 29
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "-par",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "MzC4lPZLgfHn",
+        "output_index": 0,
+        "sequence_number": 29
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "allel",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "8iHmWQMBzJk",
+        "output_index": 0,
+        "sequence_number": 30
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "allel",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "8iHmWQMBzJk",
+        "output_index": 0,
+        "sequence_number": 30
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "-pro",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "7qAiydrB3Ymx",
+        "output_index": 0,
+        "sequence_number": 31
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "-pro",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "7qAiydrB3Ymx",
+        "output_index": 0,
+        "sequence_number": 31
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "be",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "k2UH5iEF5Wzm9q",
+        "output_index": 0,
+        "sequence_number": 32
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "be",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "k2UH5iEF5Wzm9q",
+        "output_index": 0,
+        "sequence_number": 32
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "'.",
+      "itemId": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+      "providerData": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "ZeO81YnuJJbLjM",
+        "output_index": 0,
+        "sequence_number": 33
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "content_index": 0,
+        "delta": "'.",
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "obfuscation": "ZeO81YnuJJbLjM",
+        "output_index": 0,
+        "sequence_number": 33
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.done",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "logprobs": [],
+        "output_index": 0,
+        "sequence_number": 34,
+        "text": "Hand this request to BOTH the Echoer and the Shouter in the same step: each should process the message 'handoff-parallel-probe'."
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.content_part.done",
+        "content_index": 0,
+        "item_id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "output_index": 0,
+        "part": {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "Hand this request to BOTH the Echoer and the Shouter in the same step: each should process the message 'handoff-parallel-probe'."
+        },
+        "sequence_number": 35
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+          "type": "message",
+          "status": "completed",
+          "content": [
+            {
+              "type": "output_text",
+              "annotations": [],
+              "logprobs": [],
+              "text": "Hand this request to BOTH the Echoer and the Shouter in the same step: each should process the message 'handoff-parallel-probe'."
+            }
+          ],
+          "phase": "final_answer",
+          "role": "assistant"
+        },
+        "output_index": 0,
+        "sequence_number": 36
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_done",
+      "response": {
+        "id": "resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
+        "requestId": "req_539f2f99a3f743dc8d2c90dfe7413dfc",
+        "output": [
+          {
+            "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "Hand this request to BOTH the Echoer and the Shouter in the same step: each should process the message 'handoff-parallel-probe'.",
+                "providerData": {
+                  "annotations": [],
+                  "logprobs": []
+                }
+              }
+            ],
+            "status": "completed",
+            "phase": "final_answer",
+            "providerData": {
+              "phase": "final_answer"
+            }
+          }
+        ],
+        "usage": {
+          "inputTokens": 281,
+          "outputTokens": 34,
+          "totalTokens": 315,
+          "inputTokensDetails": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "outputTokensDetails": {
+            "reasoning_tokens": 0
+          },
+          "requestUsageEntries": [
+            {
+              "inputTokens": 281,
+              "outputTokens": 34,
+              "totalTokens": 315,
+              "inputTokensDetails": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0
+              },
+              "outputTokensDetails": {
+                "reasoning_tokens": 0
+              },
+              "endpoint": "responses.create"
+            }
+          ]
+        },
+        "providerData": {
+          "object": "response",
+          "created_at": 1790302204,
+          "status": "completed",
+          "access_programs": null,
+          "background": false,
+          "completed_at": 1790302205,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You echo messages. Call the echo tool with the exact message you are given, then reply with the tool's result and nothing else.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "user": null,
+          "metadata": {}
+        }
+      },
+      "providerData": {
+        "type": "response.completed",
+        "sequence_number": 37
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_094d706e7a062347006ab5d7fbe23887d095e60a85fff903e7",
+          "object": "response",
+          "created_at": 1790302204,
+          "status": "completed",
+          "access_programs": null,
+          "background": false,
+          "completed_at": 1790302205,
+          "error": null,
+          "frequency_penalty": 0,
+          "incomplete_details": null,
+          "instructions": "You echo messages. Call the echo tool with the exact message you are given, then reply with the tool's result and nothing else.",
+          "max_output_tokens": null,
+          "max_tool_calls": null,
+          "model": "gpt-6-sol",
+          "moderation": null,
+          "output": [
+            {
+              "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+              "type": "message",
+              "status": "completed",
+              "content": [
+                {
+                  "type": "output_text",
+                  "annotations": [],
+                  "logprobs": [],
+                  "text": "Hand this request to BOTH the Echoer and the Shouter in the same step: each should process the message 'handoff-parallel-probe'."
+                }
+              ],
+              "phase": "final_answer",
+              "role": "assistant"
+            }
+          ],
+          "parallel_tool_calls": true,
+          "presence_penalty": 0,
+          "previous_response_id": null,
+          "prompt_cache_key": null,
+          "prompt_cache_retention": "24h",
+          "reasoning": {
+            "context": "all_turns",
+            "effort": "medium",
+            "mode": "standard",
+            "summary": null
+          },
+          "safety_identifier": null,
+          "service_tier": "default",
+          "store": true,
+          "temperature": 1,
+          "text": {
+            "format": {
+              "type": "text"
+            },
+            "verbosity": "low"
+          },
+          "tool_choice": "auto",
+          "tool_usage": {
+            "image_gen": {
+              "input_tokens": 0,
+              "input_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "output_tokens": 0,
+              "output_tokens_details": {
+                "image_tokens": 0,
+                "text_tokens": 0
+              },
+              "total_tokens": 0
+            },
+            "web_search": {
+              "num_requests": 0
+            }
+          },
+          "tools": [
+            {
+              "type": "function",
+              "description": "Echoes the input message back as text.",
+              "name": "echo",
+              "output_schema": null,
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "The text to echo",
+                    "type": "string"
+                  }
+                },
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "required": [],
+                "additionalProperties": true
+              },
+              "strict": false
+            }
+          ],
+          "top_logprobs": 0,
+          "top_p": 0.98,
+          "truncation": "disabled",
+          "usage": {
+            "input_tokens": 281,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens": 34,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            },
+            "total_tokens": 315
+          },
+          "user": null,
+          "metadata": {}
+        },
+        "sequence_number": 37
+      },
+      "providerData": {
+        "rawModelEventSource": "openai-responses"
+      }
+    },
+    "source": "openai-responses",
+    "type": "raw_model_stream_event"
+  },
+  {
+    "name": "message_output_created",
+    "item": {
+      "type": "message_output_item",
+      "rawItem": {
+        "providerData": {
+          "phase": "final_answer"
+        },
+        "id": "msg_094d706e7a062347006ab5d7fd7d0087d0be80011400030fa1",
+        "type": "message",
+        "role": "assistant",
+        "phase": "final_answer",
+        "status": "completed",
+        "content": [
+          {
+            "providerData": {
+              "annotations": [],
+              "logprobs": []
+            },
+            "type": "output_text",
+            "text": "Hand this request to BOTH the Echoer and the Shouter in the same step: each should process the message 'handoff-parallel-probe'."
+          }
+        ]
+      },
+      "agent": {
+        "name": "Echoer"
+      }
+    },
+    "type": "run_item_stream_event"
+  }
+]
