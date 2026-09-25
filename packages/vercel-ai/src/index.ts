@@ -21,8 +21,9 @@
  *    `rawFinishReason` (the `{unified, raw}` object form exists only on the
  *    model-spec chunk grammar).
  *
- * Anchoring (D1-final): one `streamText` invocation = ONE turn (threadId fixed
- * `"vercel"`; no wire thread id — openai-facet precedent). One message PER
+ * Anchoring (D1-final): one `streamText` invocation = ONE turn. The threadId is
+ * the host's `threadId` option, else the fixed placeholder `"vercel"` (the
+ * fullStream carries no thread id). One message PER
  * STEP: opened at `start-step`, sealed at `finish-step` with that step's
  * `usage`; `turn.done.usage` = `finish.totalUsage` VERBATIM (never summed,
  * `cumulative` absent). `step.start`/`step.done` ride as fold-neutral live
@@ -324,13 +325,14 @@ function fallbackFinishReasonRaw(
 
 // ─── factory ──────────────────────────────────────────────────────────────────
 
+/** The facet-local placeholder threadId stamped when the host passes none. */
 const THREAD_ID = "vercel";
 
 /**
  * The `ext.<vendor>.*` segment this facet emits under. Deliberately NOT
- * THREAD_ID: the other facets pass a vendor literal, and a thread id may one
- * day be host-supplied, which must never re-key the ext namespace. Same value
- * today, so the wire is unchanged. Whether SPEC reserves `vercel` alongside
+ * the threadId: the other facets pass a vendor literal, and the thread id can
+ * be host-supplied (the `threadId` option), which must never re-key the ext
+ * namespace. Its default equals this value, so the default wire is unchanged. Whether SPEC reserves `vercel` alongside
  * anthropic/google/openai/langgraph is sp-protocol's call.
  */
 const EXT_VENDOR = "vercel";
@@ -351,6 +353,18 @@ export interface VercelNormalizerOptions {
    * passes it MUST keep it unique per invoke within a fold.
    */
   invokeId?: string;
+  /**
+   * The partition-root `threadId` stamped on every entity this normalizer
+   * emits (SPEC §1.2, the partition root, and §8.0 host obligation 6: the root
+   * each unit carries so a key-value persistence layer can write it knowing
+   * only its own id, its parent, and the partition root). The fullStream has no thread concept, so with this option ABSENT
+   * the facet stamps the fixed label `"vercel"`: a facet-local placeholder,
+   * not a partition root. It is fine for self-contained streams but leaks
+   * into any consumer that persists events under its own thread identity. A
+   * host that persists by `threadId` passes its own here: one id everywhere,
+   * stamped at construction. The `ext.vercel.*` namespace never follows it.
+   */
+  threadId?: string;
 }
 
 /** 64 random bits as 16 hex chars: the default per-invoke id stem. */
@@ -369,6 +383,7 @@ function mintInvokeNonce(): string {
 export function createVercelNormalizer(options: VercelNormalizerOptions = {}): Normalizer {
   const a = new StreamAssembler();
 
+  const threadId = options.threadId ?? THREAD_ID;
   const turnStem = `turn_${options.invokeId ?? `vercel_${mintInvokeNonce()}`}`;
   let turnCounter = 0;
   let turnId: string | undefined; // current open turn
@@ -398,7 +413,7 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
     if (turnId === undefined || turnClosed) {
       turnId = `${turnStem}_${++turnCounter}`;
       turnClosed = false;
-      a.openTurn(turnId, THREAD_ID);
+      a.openTurn(turnId, threadId);
     }
     return turnId;
   }
@@ -411,7 +426,7 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
       stepId = `step_${stepIndex}`;
       a.emit({ type: "step.start", id: stepId, turnId: t });
       msgId = `msg_${t}_s${stepIndex}`;
-      a.openMessage({ id: msgId, role: "assistant", turnId: t, threadId: THREAD_ID, stepId });
+      a.openMessage({ id: msgId, role: "assistant", turnId: t, threadId, stepId });
     }
     return msgId;
   }
@@ -451,7 +466,7 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
         stepId = `step_${stepIndex}`;
         a.emit({ type: "step.start", id: stepId, turnId: t });
         msgId = `msg_${t}_s${stepIndex}`;
-        a.openMessage({ id: msgId, role: "assistant", turnId: t, threadId: THREAD_ID, stepId });
+        a.openMessage({ id: msgId, role: "assistant", turnId: t, threadId, stepId });
         const warnings = part["warnings"];
         if (Array.isArray(warnings) && warnings.length > 0) {
           a.emitExt(EXT_VENDOR, "warnings", { stepId, warnings: safeJson(warnings) });

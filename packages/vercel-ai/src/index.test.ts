@@ -2429,3 +2429,52 @@ describe("Anthropic stop details (@ai-sdk/anthropic finish-step providerMetadata
     }
   });
 });
+
+describe("threadId option (partition root): the host's id everywhere, else the placeholder \"vercel\"", () => {
+  const toolRun = [
+    { type: "start" },
+    { type: "start-step", request: {}, warnings: [{ type: "other", message: "w" }] },
+    { type: "tool-input-start", id: "call_1", toolName: "echo", dynamic: false },
+    { type: "tool-input-end", id: "call_1" },
+    { type: "tool-call", toolCallId: "call_1", toolName: "echo", input: { text: "hi" } },
+    { type: "tool-result", toolCallId: "call_1", toolName: "echo", input: { text: "hi" }, output: { result: "echo: hi" }, dynamic: false },
+    { type: "finish-step", finishReason: "tool-calls", rawFinishReason: "tool-calls", usage: USAGE, response: { id: "r1", timestamp: "1970-01-01T00:00:00.000Z", modelId: "m" } },
+    { type: "start-step", request: {}, warnings: [] },
+    { type: "text-start", id: "t1" },
+    { type: "text-delta", id: "t1", text: "echo: hi" },
+    { type: "text-end", id: "t1" },
+    { type: "finish-step", finishReason: "stop", rawFinishReason: "stop", usage: USAGE, response: { id: "r2", timestamp: "1970-01-01T00:00:00.000Z", modelId: "m" } },
+    { type: "finish", finishReason: "stop", rawFinishReason: "stop", totalUsage: USAGE },
+  ];
+  const runWith = (opts: { threadId?: string }) => {
+    const n = createVercelNormalizer({ invokeId: "vercel", ...opts });
+    const out: AgEvent[] = [];
+    for (const p of toolRun) out.push(...n.push(p));
+    out.push(...n.flush());
+    return out;
+  };
+  const threadIds = (v: unknown, acc: string[] = []): string[] => {
+    if (Array.isArray(v)) for (const x of v) threadIds(x, acc);
+    else if (v !== null && typeof v === "object") for (const [k, x] of Object.entries(v)) (k === "threadId" && typeof x === "string" ? acc.push(x) : threadIds(x, acc));
+    return acc;
+  };
+
+  it("with threadId, every threadId on the wire and in the fold is the host's, and the ext namespace stays ext.vercel", () => {
+    const evs = runWith({ threadId: "conv-42" });
+    expectAllParse(evs);
+    const wire = threadIds(evs);
+    expect(wire.length).toBeGreaterThan(0);
+    expect(new Set(wire)).toEqual(new Set(["conv-42"]));
+    const folded = reduce(evs);
+    expect(new Set(threadIds(folded))).toEqual(new Set(["conv-42"]));
+    expect(folded.messages.length).toBeGreaterThanOrEqual(2);
+    expect(evs.some((e) => e.type === "ext.vercel.warnings")).toBe(true);
+    expect(evs.filter((e) => e.type.startsWith("ext.")).every((e) => e.type.startsWith("ext.vercel."))).toBe(true);
+  });
+
+  it("without threadId, every threadId is the placeholder \"vercel\" and the output is byte-identical to before the option existed", () => {
+    const evs = runWith({});
+    expect(new Set(threadIds(evs))).toEqual(new Set(["vercel"]));
+    expect(JSON.stringify(runWith({ threadId: undefined }))).toBe(JSON.stringify(evs));
+  });
+});

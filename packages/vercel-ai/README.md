@@ -85,6 +85,13 @@ For deterministic ids (tests, replaying captured parts), pass
 `createVercelNormalizer({ invokeId })`; keep the value unique per run within a
 fold, or the reducer parks on the repeated turn.
 
+Pass the host's own thread id as `createVercelNormalizer({ threadId })`. The
+normalizer stamps it as the `threadId` of every turn and message it opens: the
+partition root a key-value store writes each unit under (spec §1.2). The AI
+SDK's fullStream has no thread concept, so with no `threadId` option the facet
+stamps the fixed label `"vercel"` as a facet-local placeholder, not a partition
+root; a host that persists by `threadId` supplies its own.
+
 Then fold the resulting `AgEvent`s into messages and turns with
 `@silverprotocol/core`'s `reduce()` — the same client code regardless of which
 framework produced the stream.
