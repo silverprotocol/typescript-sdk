@@ -1653,26 +1653,28 @@ describe("reduce — D9: a terminal for a never-opened turn folds onto no record
     expect(acc.needsResync).toBe(false);
   });
 
-  it("a stub a non-terminal arm minted is not 'seen': a turns-omitted snapshot then its terminal leaves it with no outcome", () => {
+  it("draft.5 (CB-7): a record event for an unopened turn is held, not a stub: a turns-omitted snapshot then its terminal leave no record", () => {
     const acc = fold([
       { type: "source", seq: 0, turnId: "tq", sourceId: "s1", source: { url: "https://example.com" } },
       { type: "messages.snapshot", seq: 1, messages: [] },
       { type: "turn.done", seq: 2, turnId: "tq", outcome: { type: "success" } },
     ] as AgEvent[]);
-    const tq = acc.result().turns.find((t) => t.turnId === "tq");
-    expect(tq).toBeDefined(); // the source arm's stub, as before
-    expect(tq?.outcome).toBeUndefined();
+    // draft.4 minted a stub record {turnId:"tq", threadId:"tq"} here; draft.5
+    // holds the landing until tq's thread is known, and result() omits it.
+    expect(acc.result().turns.find((t) => t.turnId === "tq")).toBeUndefined();
     expect(acc.needsResync).toBe(false);
   });
 
-  it("after a turns:[] snapshot, a message.start then a terminal for the dropped turn fold onto no record", () => {
+  it("draft.5 (CB-7): after a turns:[] snapshot, a message.start makes the dropped turn seen, so its terminal folds onto a record on the message's thread", () => {
     const acc = fold([
       { type: "turn.start", seq: 0, turnId: "t1", threadId: "th1" },
       { type: "messages.snapshot", seq: 1, messages: [], turns: [] },
       { type: "message.start", seq: 2, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
       { type: "turn.done", seq: 3, turnId: "t1", outcome: { type: "success" } },
     ]);
-    expect(acc.result().turns).toEqual([]);
+    // draft.4 folded this terminal onto no record (the message.start did not
+    // count as seen); draft.5's INV-OWNER seen-opened sentence adds it.
+    expect(acc.result().turns).toEqual([{ turnId: "t1", threadId: "th1", outcome: { type: "success" } }]);
   });
 
   it("after a turns:[] snapshot, a paused terminal for the dropped turn folds onto no record", () => {
@@ -1722,6 +1724,19 @@ describe("reduce — D9: a terminal for a never-opened turn folds onto no record
         { type: "messages.snapshot", seq: 2, messages: [{ id: "m2", role: "assistant", content: [], turnId: "t2" }] },
         { type: "turn.done", seq: 3, turnId: "t2", outcome: { type: "success" } },
       ],
+      // draft.5 (CB-7): each of the six record events naming an unopened turn,
+      // alone and before its terminal, writes no placeholder-thread record.
+      ...([
+        { type: "source", turnId: "tR", sourceId: "s1", source: { url: "https://example.com" } },
+        { type: "handoff", turnId: "tR", kind: "transfer", toAgentName: "A" },
+        { type: "prompt.blocked", turnId: "tR", reason: "safety" },
+        { type: "guardrail.result", turnId: "tR", target: "input", passed: false },
+        { type: "display.required", turnId: "tR", provider: "google", html: "<div>s</div>" },
+        { type: "agent.capabilities", turnId: "tR", capabilities: { pushNotifications: false } },
+      ].flatMap((e) => [
+        [{ ...e, seq: 0 }],
+        [{ ...e, seq: 0 }, { type: "turn.done", seq: 1, turnId: "tR", outcome: { type: "success" } }],
+      ]) as AgEvent[][]),
     ] as AgEvent[][];
     for (const [i, evs] of streams.entries()) {
       for (const t of fold(evs).result().turns) expect(t.threadId, `stream ${i} turn ${t.turnId}`).not.toBe(t.turnId);
@@ -4087,16 +4102,14 @@ describe("CB-8 A′ (draft.5 INV-MSG): turn closure follows the fold's turn reco
     expect(r.result().messages.find((m) => m.id === "m2")?.turnId).toBe("t1");
   });
 
-  it("no snapshot: a turnId-less turn.error with two records lands on the unknown-turn stub and closes it, so a message.start naming the stub parks (draft.4 folded it)", () => {
+  it("no snapshot: a turnId-less turn.error with two open turns has an unresolvable owner: it parks, and no record is created (CB-7 supersedes the draft.4 stub)", () => {
     const pre = [
       { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
       { type: "turn.start", seq: 1, threadId: "th1", turnId: "t2" },
-      { type: "turn.error", seq: 2, message: "boom" },
     ] as AgEvent[];
-    const stub = fold(pre).result().turns.find((t) => t.turnId === "unknown-turn");
-    expect(stub?.outcome).toEqual({ type: "error", message: "boom" }); // the non-conformant stub (SPEC §4: turnId only omitted on single-turn streams)
-    const r = fold([...pre, { type: "message.start", seq: 3, id: "m1", role: "assistant", turnId: "unknown-turn", threadId: "th1" } as AgEvent]);
+    const r = fold([...pre, { type: "turn.error", seq: 2, message: "boom" } as AgEvent]);
     expect(r.needsResync).toBe(true);
+    expect(r.result().turns.find((t) => t.turnId === "unknown-turn")).toBeUndefined();
     expect(ser(r)).toBe(ser(fold(pre)));
   });
 
@@ -4120,5 +4133,241 @@ describe("CB-8 A′ (draft.5 INV-MSG): turn closure follows the fold's turn reco
       expect(bare.needsResync).toBe(true);
       expect(results(bare)).toBe(1);
     }
+  });
+});
+
+describe("CB-7 (draft.5 §5.0 INV-OWNER): a record event for a turn whose thread is not known is held, and lands on that turn's thread", () => {
+  const fold = (evs: AgEvent[]): Reducer => {
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    return r;
+  };
+  type Kind = "source" | "handoff" | "prompt.blocked" | "guardrail.result" | "display.required" | "agent.capabilities";
+  const KINDS: Kind[] = ["source", "handoff", "prompt.blocked", "guardrail.result", "display.required", "agent.capabilities"];
+  const rec = (kind: Kind, seq: number, turnId?: string): AgEvent => {
+    const t = turnId !== undefined ? { turnId } : {};
+    const body: Record<Kind, Record<string, unknown>> = {
+      source: { sourceId: "s1", source: { url: "https://example.com" } },
+      handoff: { kind: "transfer", toAgentName: "A" },
+      "prompt.blocked": { reason: "safety" },
+      "guardrail.result": { target: "input", passed: false },
+      "display.required": { provider: "google", html: "<div>s</div>" },
+      "agent.capabilities": { capabilities: { pushNotifications: false } },
+    };
+    return AgEvent.parse({ type: kind, seq, ...t, ...body[kind] });
+  };
+  type Rec = AgReduceResult["turns"][number];
+  const landed = (kind: Kind, r: Rec | undefined): boolean =>
+    ({
+      source: r?.sources?.length === 1,
+      handoff: r?.handoffs?.length === 1,
+      "prompt.blocked": r?.promptBlocked?.reason === "safety",
+      "guardrail.result": r?.guardrails?.length === 1,
+      "display.required": r?.displayRequired?.length === 1,
+      "agent.capabilities": r?.capabilities?.pushNotifications === false,
+    })[kind];
+  const recs = (r: Reducer, id: string) => r.result().turns.filter((t) => t.turnId === id);
+  const ev = (e: Record<string, unknown>): AgEvent => AgEvent.parse(e);
+  // Every vector below is also checked by (h) at the end.
+  const VECTORS: AgEvent[][] = [];
+  const run = (evs: AgEvent[]): Reducer => {
+    VECTORS.push(evs);
+    const r = fold(evs);
+    // batch reduce() and incremental push()+result() agree
+    const b = reduce(evs);
+    expect(JSON.stringify(b.result)).toBe(JSON.stringify(r.result()));
+    expect(b.needsResync).toBe(r.needsResync);
+    return r;
+  };
+
+  for (const k of KINDS) {
+    describe(k, () => {
+      it("(a) alone, naming an unopened turn: no record, no park", () => {
+        const r = run([rec(k, 0, "X")]);
+        expect(recs(r, "X")).toEqual([]);
+        expect(r.needsResync).toBe(false);
+      });
+      it("(b) then turn.start{X,T}, then turn.done: exactly one record on T, carrying the landing, success", () => {
+        const r = run([rec(k, 0, "X"), ev({ type: "turn.start", seq: 1, turnId: "X", threadId: "T" }), ev({ type: "turn.done", seq: 2, turnId: "X", outcome: { type: "success" }, finishReason: "stop" })]);
+        const got = recs(r, "X");
+        expect(got).toHaveLength(1);
+        expect(got[0]!.threadId).toBe("T");
+        expect(landed(k, got[0])).toBe(true);
+        expect(got[0]!.outcome).toEqual({ type: "success" });
+        expect(r.needsResync).toBe(false);
+      });
+      it("(c) after a turns-less snapshot whose message names X on T: E then turn.done give one record on T", () => {
+        const r = run([
+          ev({ type: "messages.snapshot", seq: 0, messages: [{ id: "m1", role: "assistant", content: [], turnId: "X", threadId: "T" }] }),
+          rec(k, 1, "X"),
+          ev({ type: "turn.done", seq: 2, turnId: "X", outcome: { type: "success" }, finishReason: "stop" }),
+        ]);
+        const got = recs(r, "X");
+        expect(got).toHaveLength(1);
+        expect(got[0]!.threadId).toBe("T");
+        expect(landed(k, got[0])).toBe(true);
+      });
+      it("(e) then a turns-less empty snapshot, then tool.done{X, messageId M}: parks, and no message M (a held record is never an adoption target)", () => {
+        const r = run([
+          rec(k, 0, "X"),
+          ev({ type: "messages.snapshot", seq: 1, messages: [] }),
+          ev({ type: "tool.done", seq: 2, toolCallId: "c1", turnId: "X", messageId: "M", outcome: "ok", content: [] }),
+        ]);
+        expect(r.needsResync).toBe(true);
+        expect(r.result().messages.find((m) => m.id === "M")).toBeUndefined();
+      });
+    });
+  }
+
+  it("(d) message.start{X,T} with no turn.start, then display.required{X}: one record on T with the entry", () => {
+    const r = run([
+      ev({ type: "message.start", seq: 0, id: "m1", role: "assistant", turnId: "X", threadId: "T" }),
+      rec("display.required", 1, "X"),
+    ]);
+    const got = recs(r, "X");
+    expect(got).toHaveLength(1);
+    expect(got[0]!.threadId).toBe("T");
+    expect(got[0]!.displayRequired).toHaveLength(1);
+  });
+
+  it("(d′) a record event held before a message.start is adopted onto the message's thread", () => {
+    const r = run([rec("display.required", 0, "X"), ev({ type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "X", threadId: "T" })]);
+    const got = recs(r, "X");
+    expect(got).toHaveLength(1);
+    expect(got[0]!.threadId).toBe("T");
+    expect(got[0]!.displayRequired).toHaveLength(1);
+  });
+
+  it("(f) after turn X closes with usage U, a turnId-less turn.error parks and leaves X's usage and outcome as they were", () => {
+    const U = { inputTokens: 3, outputTokens: 5 };
+    const r = run([
+      ev({ type: "turn.start", seq: 0, turnId: "t1", threadId: "T" }),
+      ev({ type: "turn.done", seq: 1, turnId: "t1", outcome: { type: "success" }, finishReason: "stop", usage: U }),
+      ev({ type: "turn.error", seq: 2, message: "boom" }),
+    ]);
+    expect(r.needsResync).toBe(true);
+    const t1 = recs(r, "t1")[0]!;
+    expect(t1.usage).toEqual(U);
+    expect(t1.outcome?.type).toBe("success");
+  });
+
+  it("(g) handoff{c} before subagent.start{c, parentTurnId p}: record c carries parentTurnId p and p's thread", () => {
+    const r = run([
+      ev({ type: "turn.start", seq: 0, turnId: "p", threadId: "T" }),
+      rec("handoff", 1, "c"),
+      ev({ type: "subagent.start", seq: 2, turnId: "c", parentTurnId: "p" }),
+      ev({ type: "turn.done", seq: 3, turnId: "c", outcome: { type: "success" }, finishReason: "stop" }),
+      ev({ type: "subagent.done", seq: 4, turnId: "c", parentTurnId: "p" }),
+    ]);
+    const c = recs(r, "c");
+    expect(c).toHaveLength(1);
+    expect(c[0]).toMatchObject({ turnId: "c", parentTurnId: "p", threadId: "T", outcome: { type: "success" } });
+    expect(c[0]!.handoffs).toHaveLength(1);
+  });
+
+  it("billing B1: display.required(tX), then turn.start{tX, th1}, then turn.done{usage}: the billed record is on th1, not a placeholder", () => {
+    const r = run([
+      rec("display.required", 0, "tX"),
+      ev({ type: "turn.start", seq: 1, turnId: "tX", threadId: "th1" }),
+      ev({ type: "turn.done", seq: 2, turnId: "tX", outcome: { type: "success" }, finishReason: "stop", usage: { inputTokens: 100, outputTokens: 100 } }),
+    ]);
+    expect(recs(r, "tX")).toEqual([
+      expect.objectContaining({ turnId: "tX", threadId: "th1", usage: { inputTokens: 100, outputTokens: 100 }, displayRequired: [{ provider: "google", html: "<div>s</div>" }] }),
+    ]);
+  });
+
+  it("billing B2: two turnId-less turn.errors (usage 7, then 9) with two open turns: the first parks, no stub record, no usage lost silently", () => {
+    const pre = [ev({ type: "turn.start", seq: 0, turnId: "t1", threadId: "T" }), ev({ type: "turn.start", seq: 1, turnId: "t2", threadId: "T" })];
+    const r = run([...pre, ev({ type: "turn.error", seq: 2, message: "a", usage: { outputTokens: 7 } }), ev({ type: "turn.error", seq: 3, message: "b", usage: { outputTokens: 9 } })]);
+    expect(r.needsResync).toBe(true);
+    expect(r.result().turns.map((t) => t.turnId)).toEqual(["t1", "t2"]);
+    expect(r.result().turns.every((t) => t.usage === undefined && t.outcome === undefined)).toBe(true);
+  });
+
+  it("billing B3: t1 closed with usage 50, then a turnId-less guardrail.result and turn.error{usage 7}: parks, t1 keeps 50 and success", () => {
+    const r = run([
+      ev({ type: "turn.start", seq: 0, turnId: "t1", threadId: "T" }),
+      ev({ type: "turn.done", seq: 1, turnId: "t1", outcome: { type: "success" }, finishReason: "stop", usage: { outputTokens: 50 } }),
+      rec("guardrail.result", 2),
+      ev({ type: "turn.error", seq: 3, message: "tripwire", usage: { outputTokens: 7 } }),
+    ]);
+    expect(r.needsResync).toBe(true);
+    const t1 = recs(r, "t1")[0]!;
+    expect(t1.usage).toEqual({ outputTokens: 50 });
+    expect(t1.outcome).toEqual({ type: "success" });
+    expect(t1.guardrails).toBeUndefined();
+  });
+
+  it("control: a turnId-less record event with exactly one open turn lands on it (the sole open turn)", () => {
+    const r = run([ev({ type: "turn.start", seq: 0, turnId: "t1", threadId: "T" }), rec("source", 1)]);
+    expect(r.needsResync).toBe(false);
+    expect(recs(r, "t1")[0]!.sources).toHaveLength(1);
+  });
+
+  it("a turn.start gives the thread (INV-TURN merge): a record created on a message's thread takes the later turn.start's", () => {
+    const r = run([
+      ev({ type: "message.start", seq: 0, id: "m1", role: "assistant", turnId: "X", threadId: "Tm" }),
+      rec("source", 1, "X"),
+      ev({ type: "turn.start", seq: 2, turnId: "X", threadId: "Tt" }),
+    ]);
+    expect(recs(r, "X")).toEqual([expect.objectContaining({ threadId: "Tt" })]);
+  });
+
+  it("a turns-carrying snapshot drops held landings; a turns-less one adopts those whose thread its messages teach", () => {
+    const dropped = run([
+      rec("source", 0, "X"),
+      ev({ type: "messages.snapshot", seq: 1, messages: [{ id: "m1", role: "assistant", content: [], turnId: "X", threadId: "T" }], turns: [] }),
+      ev({ type: "turn.start", seq: 2, turnId: "X", threadId: "T" }),
+    ]);
+    expect(recs(dropped, "X")[0]!.sources).toBeUndefined();
+    const adopted = run([
+      rec("source", 0, "X"),
+      ev({ type: "messages.snapshot", seq: 1, messages: [{ id: "m1", role: "assistant", content: [], turnId: "X", threadId: "T" }] }),
+    ]);
+    expect(recs(adopted, "X")).toEqual([expect.objectContaining({ threadId: "T", sources: [expect.objectContaining({ sourceId: "s1" })] })]);
+  });
+
+  it("implementation bound (not normative): past 64 held turns, or 1024 held landings, the fold parks instead of holding", () => {
+    const turns = Array.from({ length: 65 }, (_, i) => rec("source", i, `u${i}`));
+    const r1 = fold(turns.slice(0, 64));
+    expect(r1.needsResync).toBe(false);
+    const r2 = fold(turns);
+    expect(r2.needsResync).toBe(true);
+    const many = Array.from({ length: 1025 }, (_, i) => rec("source", i, "one"));
+    expect(fold(many.slice(0, 1024)).needsResync).toBe(false);
+    expect(fold(many).needsResync).toBe(true);
+    // adopting releases the budget
+    const r3 = fold([...many.slice(0, 1024), ev({ type: "turn.start", seq: 1024, turnId: "one", threadId: "T" }), rec("source", 1025, "two")]);
+    expect(r3.needsResync).toBe(false);
+    expect(recs(r3, "one")[0]!.sources).toHaveLength(1024);
+  });
+
+  it("(h) in every vector above, each turn record's threadId, and each message's, is a thread an event carried for that turn", () => {
+    const carried = (evs: AgEvent[]): Map<string, Set<string>> => {
+      const m = new Map<string, Set<string>>();
+      const add = (turnId: string | undefined, threadId: string | undefined) => {
+        if (turnId === undefined || threadId === undefined) return;
+        if (!m.has(turnId)) m.set(turnId, new Set());
+        m.get(turnId)!.add(threadId);
+      };
+      for (const e of evs as Array<Record<string, any>>) {
+        if (e["type"] === "turn.start" || e["type"] === "message.start") add(e["turnId"], e["threadId"]);
+        if (e["type"] === "messages.snapshot") {
+          for (const t of e["turns"] ?? []) add(t.turnId, t.threadId);
+          for (const msg of e["messages"] ?? []) add(msg.turnId, msg.threadId);
+        }
+        if (e["type"] === "subagent.start") for (const th of m.get(e["parentTurnId"]) ?? []) add(e["turnId"], th);
+      }
+      return m;
+    };
+    expect(VECTORS.length).toBeGreaterThanOrEqual(35);
+    const bad: string[] = [];
+    for (const [i, evs] of VECTORS.entries()) {
+      const c = carried(evs);
+      const res = fold(evs).result();
+      for (const t of res.turns) if (!c.get(t.turnId)?.has(t.threadId)) bad.push(`vector ${i}: turn ${t.turnId} on ${t.threadId}`);
+      for (const msg of res.messages) if (msg.turnId !== undefined && !c.get(msg.turnId)?.has(msg.threadId ?? "")) bad.push(`vector ${i}: message ${msg.id} on ${msg.threadId}`);
+    }
+    expect(bad).toEqual([]);
   });
 });

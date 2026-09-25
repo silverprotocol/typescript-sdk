@@ -98,6 +98,16 @@ function isClosedEvent(ev: AgEvent): ev is AgClosedEventType {
   return !ev.type.startsWith("ext.");
 }
 
+/**
+ * Implementation bound on held landings (CB-7; cto's note, not normative). No
+ * reference producer emits a record event before its turn's opener, so a
+ * conformant stream holds nothing; the bound only stops a hostile or broken
+ * stream from growing state result() never shows. Past either cap the landing
+ * is not held and the fold parks (needsResync): the loud degradation.
+ */
+const HELD_TURNS_CAP = 64;
+const HELD_LANDINGS_CAP = 1024;
+
 export class Reducer {
   // ── keyed accumulators ──────────────────────────────────────────────────────
   // Messages, keyed by message id (insertion-ordered).
@@ -118,10 +128,9 @@ export class Reducer {
   #sealed: Set<string> = new Set();
   // turnIds legitimately opened via turn.start / subagent.start (or restored
   // by a messages.snapshot's turns?) — Task 8c leg 3 (guuey capstone finding
-  // B). Distinguishes "a real turn genuinely exists" from "ensureTurn() would
-  // happily fabricate a stub for this key" so the tool.done adoption CREATE
-  // path can degrade loudly (resync) instead of silently minting a phantom
-  // turn for a key that was never actually opened.
+  // B). Distinguishes "a real turn genuinely exists" from a turn the fold only
+  // knows by name, so the tool.done adoption CREATE path degrades loudly
+  // (resync) instead of creating a message for a turn that was never opened.
   #openedTurns: Set<string> = new Set();
   // D9 (draft.4 §5.0 INV-OWNER; bar wf_08cf78ac-c30, A tightened): every
   // turnId the fold has seen opened — by turn.start, by subagent.start, or by a
@@ -133,6 +142,15 @@ export class Reducer {
   // #openedTurns (tool.done adoption) and never rebuilt from #turns, whose
   // records non-terminal arms may have minted as stubs.
   #seenOpened: Map<string, string | undefined> = new Map();
+  // CB-7 (draft.5 §5.0 INV-OWNER, "same-turn thread, hold"): the landings of
+  // the six record events (source, handoff, prompt.blocked, guardrail.result,
+  // display.required, agent.capabilities) for a turn whose thread the fold does
+  // not know yet. Each is a turn record result() never shows; it moves into
+  // #turns on the turn's thread once a turn.start, subagent.start, message.start
+  // or messages.snapshot makes that thread known (#adoptHeld). `landings` counts
+  // the events held on it, for the implementation bound below.
+  #held: Map<string, { record: AgTurnRecord; landings: number }> = new Map();
+  #heldLandings = 0;
   // block/tool-call id → position in its owning message's content[], for REPLACE.
   #blockPos: Map<string, { messageId: string; index: number }> = new Map();
 
@@ -229,8 +247,9 @@ export class Reducer {
         // Task 8c leg 3: a turn.start always counts as a legitimately opened turn.
         this.#openedTurns.add(ev.turnId);
         this.#seenOpened.set(ev.turnId, ev.threadId);
-        // Idempotent: if the turn already exists, merge defined fields only.
-        const existing = this.#turns.get(ev.turnId);
+        // Idempotent: if the turn already exists, merge defined fields only. A
+        // record held for this turn (CB-7) is adopted onto this thread first.
+        const existing = this.#turns.get(ev.turnId) ?? this.#adoptHeld(ev.turnId, ev.threadId);
         if (existing === undefined) {
           this.#turns.set(ev.turnId, {
             turnId: ev.turnId,
@@ -238,7 +257,9 @@ export class Reducer {
             ...(ev.trigger !== undefined ? { trigger: ev.trigger } : {}),
           });
         } else {
-          // Merge — only overwrite with defined values (idempotent re-delivery).
+          // Merge (INV-TURN) — a turn.start gives the thread; other fields only
+          // overwrite with defined values (idempotent re-delivery).
+          existing.threadId = ev.threadId;
           if (ev.trigger !== undefined) {
             existing.trigger = ev.trigger;
           }
@@ -250,6 +271,12 @@ export class Reducer {
       case "message.start": {
         // rd-14 INV-MSG: a message.start for a turn that already closed parks.
         if (this.#isClosedTurn(this.#resolveTurnId(ev.turnId) ?? ev.turnId)) { this.#resync = true; break; }
+        // CB-7 (draft.5 INV-OWNER): a live message.start makes its turn's thread
+        // known and joins D9's seen-opened set (a turn.start's thread wins; else
+        // the first one folded), and a record held for the turn is adopted onto it.
+        if (this.#seenOpened.get(ev.turnId) === undefined) this.#seenOpened.set(ev.turnId, ev.threadId);
+        const knownThread = this.#seenOpened.get(ev.turnId);
+        if (knownThread !== undefined) this.#adoptHeld(ev.turnId, knownThread);
         const msg: AgMessage = {
           id: ev.id,
           role: ev.role,
@@ -311,18 +338,22 @@ export class Reducer {
           // Every entity in a fold shares one root threadId (SPEC §1.2), so
           // fall back to any ALREADY-OPENED real turn's threadId instead of
           // adopting the unresolvable label as this subagent's own threadId.
-          // A "real" turn is identified by threadId !== turnId — a defensive
-          // ensureTurn() stub uses its own turnId as a threadId placeholder
-          // and must never be picked here. `ev.parentTurnId` remains the last
-          // resort when no real turn exists yet.
+          // A "real" turn is identified by threadId !== turnId: through draft.4
+          // a defensive stub used its own turnId as a placeholder thread. draft.5
+          // retires the stubs (CB-7), and the check stays as a guard.
+          // `ev.parentTurnId` remains the last resort when no real turn exists yet.
           const realTurn = [...this.#turns.values()].find((t) => t.threadId !== t.turnId);
           threadId = realTurn?.threadId ?? ev.parentTurnId;
         }
-        this.#turns.set(ev.turnId, {
-          turnId: ev.turnId,
-          parentTurnId: ev.parentTurnId,
-          threadId,
-        });
+        // A record held for this nested turn (CB-7) takes the thread and the
+        // parentTurnId here; otherwise a new record opens.
+        if (this.#adoptHeld(ev.turnId, threadId, ev.parentTurnId) === undefined) {
+          this.#turns.set(ev.turnId, {
+            turnId: ev.turnId,
+            parentTurnId: ev.parentTurnId,
+            threadId,
+          });
+        }
         this.#seenOpened.set(ev.turnId, threadId);
         break;
       }
@@ -629,10 +660,11 @@ export class Reducer {
             // INV-MSG enforcement: a sealed message, or ANY message of a closed
             // turn — including one that would need to be freshly created — is
             // never a valid adoption target. Resolve the turn this adoption
-            // would land in (the existing message's own turnId, or the turnId
-            // ensureTurn() would assign a new message) BEFORE either sub-path
-            // runs, and park instead of silently attaching/creating past the
-            // seal or the turn's binding window.
+            // would land in (the existing message's own turnId, or the turn a
+            // new message would take) BEFORE either sub-path runs, and park
+            // instead of silently attaching/creating past the seal or the
+            // turn's binding window. "unknown-turn" is only a key that names no
+            // record, so an unresolvable owner parks below.
             const targetTurnKey =
               existing !== undefined
                 ? (existing.turnId ?? "unknown-turn")
@@ -640,8 +672,7 @@ export class Reducer {
             // Task 8c leg 3 (guuey capstone finding B): a turn that was never
             // legitimately opened (turn.start / subagent.start / a snapshot's
             // turns?) is just as invalid an adoption target as a sealed
-            // message or a closed turn — without this, ensureTurn() below
-            // would happily fabricate a phantom turn stub instead of parking.
+            // message or a closed turn: park rather than create a message for it.
             if (
               this.#sealed.has(ev.messageId) ||
               this.#isClosedTurn(targetTurnKey) ||
@@ -653,7 +684,13 @@ export class Reducer {
             if (existing !== undefined) {
               msg = existing;
             } else {
-              const turn = this.ensureTurn(ev.turnId);
+              // An opened turn always has its record (turn.start / subagent.start /
+              // a snapshot's turns); a held record is never an adoption target.
+              const turn = this.#turns.get(targetTurnKey);
+              if (turn === undefined) {
+                this.#resync = true;
+                break;
+              }
               // Create new tool-result message with the adopted messageId.
               msg = {
                 id: ev.messageId,
@@ -783,11 +820,15 @@ export class Reducer {
 
       case "turn.error": {
         // Non-folding into content; sets outcome={type:"error",...} on the turn record.
-        // D9, as turn.done; only for a NAMED turnId (a turnId-less terminal keeps
-        // the INV-OWNER backfill below).
+        // D9, as turn.done, for a NAMED turnId. A turnId-less terminal resolves to
+        // the sole OPEN turn, never a closed one; with none or several open its
+        // owner is unresolvable and the fold parks (INV-OWNER, draft.5 CB-7).
         if (ev.turnId !== undefined && !this.#seenOpened.has(ev.turnId)) break;
-        const turn = ev.turnId !== undefined ? this.#seenTurnRecord(ev.turnId) : this.ensureTurn(ev.turnId);
-        if (turn === undefined) break;
+        const turn = ev.turnId !== undefined ? this.#seenTurnRecord(ev.turnId) : this.#soleOpenRecord();
+        if (turn === undefined) {
+          if (ev.turnId === undefined) this.#resync = true;
+          break;
+        }
         turn.outcome = {
           type: "error",
           message: ev.message,
@@ -796,8 +837,8 @@ export class Reducer {
         // Usage is recorded VERBATIM — NO de-cumulation (mirrors turn.done; normalizer duty).
         if (ev.usage !== undefined) turn.usage = ev.usage;
         // INV-MSG binding window: no blocks attach to a closed turn's messages.
-        this.#closeTurnWindow(ev.turnId);
-        this.#evictTurnScratch(ev.turnId);
+        this.#closeTurnWindow(turn.turnId);
+        this.#evictTurnScratch(turn.turnId);
         break;
       }
 
@@ -805,15 +846,19 @@ export class Reducer {
         // Non-folding into content; sets a dedicated aborted outcome on the turn record
         // (symmetric with turn.error). taskState is verbatim-A2A only and is NEVER
         // reducer-invented (audit M29) — it stays whatever a prior turn.done left it as.
-        // D9, as turn.done; only for a NAMED turnId (a turnId-less terminal keeps
-        // the INV-OWNER backfill below).
+        // D9, as turn.done, for a NAMED turnId. A turnId-less terminal resolves to
+        // the sole OPEN turn, never a closed one; with none or several open its
+        // owner is unresolvable and the fold parks (INV-OWNER, draft.5 CB-7).
         if (ev.turnId !== undefined && !this.#seenOpened.has(ev.turnId)) break;
-        const turn = ev.turnId !== undefined ? this.#seenTurnRecord(ev.turnId) : this.ensureTurn(ev.turnId);
-        if (turn === undefined) break;
+        const turn = ev.turnId !== undefined ? this.#seenTurnRecord(ev.turnId) : this.#soleOpenRecord();
+        if (turn === undefined) {
+          if (ev.turnId === undefined) this.#resync = true;
+          break;
+        }
         turn.outcome = { type: "aborted", ...(ev.reason !== undefined ? { reason: ev.reason } : {}) };
         // INV-MSG binding window: no blocks attach to a closed turn's messages.
-        this.#closeTurnWindow(ev.turnId);
-        this.#evictTurnScratch(ev.turnId);
+        this.#closeTurnWindow(turn.turnId);
+        this.#evictTurnScratch(turn.turnId);
         break;
       }
 
@@ -821,7 +866,8 @@ export class Reducer {
         // Append sourceId to the turn's sourceIds[] in order (preserve groundingChunks order),
         // AND land the FULL record (payload/chunkIndex/providerMetadata) on sources[] so
         // citations can resolve post-fold (audit M23) — sourceIds[] stays as the derived index.
-        const turn = this.ensureTurn(ev.turnId);
+        const turn = this.#landingRecord(ev.turnId);
+        if (turn === undefined) break;
         if (turn.sourceIds === undefined) {
           turn.sourceIds = [];
         }
@@ -840,7 +886,8 @@ export class Reducer {
 
       case "handoff": {
         // Push an AgHandoffRecord onto the turn's handoffs[].
-        const turn = this.ensureTurn(ev.turnId);
+        const turn = this.#landingRecord(ev.turnId);
+        if (turn === undefined) break;
         if (turn.handoffs === undefined) {
           turn.handoffs = [];
         }
@@ -859,7 +906,8 @@ export class Reducer {
         // land the dedicated promptBlocked record {reason, safety?} so the REQUIRED reason
         // and the blockedness itself survive the fold — a bare-reason block used to fold to
         // ZERO trace (audit M28).
-        const turn = this.ensureTurn(ev.turnId);
+        const turn = this.#landingRecord(ev.turnId);
+        if (turn === undefined) break;
         if (ev.safety !== undefined) {
           if (turn.safety === undefined) {
             turn.safety = [...ev.safety];
@@ -876,7 +924,8 @@ export class Reducer {
 
       case "guardrail.result": {
         // Push a guardrail evaluation record onto the turn's guardrails[].
-        const turn = this.ensureTurn(ev.turnId);
+        const turn = this.#landingRecord(ev.turnId);
+        if (turn === undefined) break;
         if (turn.guardrails === undefined) {
           turn.guardrails = [];
         }
@@ -893,7 +942,8 @@ export class Reducer {
 
       case "display.required": {
         // MUST NOT drop (ToS). Push {provider, html} onto turn's displayRequired[].
-        const turn = this.ensureTurn(ev.turnId);
+        const turn = this.#landingRecord(ev.turnId);
+        if (turn === undefined) break;
         if (turn.displayRequired === undefined) {
           turn.displayRequired = [];
         }
@@ -905,7 +955,8 @@ export class Reducer {
       case "agent.capabilities": {
         // SPEC §5: "Record the agent's AgCapabilities on the turn (first-turn negotiation)."
         // Fold ev.capabilities onto the AgTurnRecord for the owning turn.
-        const turn = this.ensureTurn(ev.turnId);
+        const turn = this.#landingRecord(ev.turnId);
+        if (turn === undefined) break;
         turn.capabilities = ev.capabilities;
         break;
       }
@@ -1097,6 +1148,9 @@ export class Reducer {
         // CONDITIONALLY replace #turns (only if turns? present in event).
         if (ev.turns !== undefined) {
           this.#turns = new Map(structuredClone(ev.turns).map((t) => [t.turnId, t]));
+          // The snapshot's turns are authoritative: a landing held before it goes too.
+          this.#held = new Map();
+          this.#heldLandings = 0;
         }
 
         // CONDITIONALLY replace #artifacts (only if artifacts? present in event).
@@ -1155,6 +1209,13 @@ export class Reducer {
           if (messageThread.get(m.turnId) === undefined) messageThread.set(m.turnId, m.threadId);
         }
         for (const [turnId, threadId] of messageThread) this.#seenOpened.set(turnId, threadId);
+        // CB-7: a held record whose thread this snapshot taught is adopted onto
+        // it. #openedTurns was seeded above from records with a known thread
+        // only, so an adopted record is not an adoption target by this snapshot.
+        for (const turnId of [...this.#held.keys()]) {
+          const threadId = this.#seenOpened.get(turnId);
+          if (threadId !== undefined) this.#adoptHeld(turnId, threadId);
+        }
 
         // Un-park.
         this.#resync = false;
@@ -1325,8 +1386,8 @@ export class Reducer {
    * folds onto no record closes nothing; a messages.snapshot changes closure
    * only through the records its §5 per-container rule leaves in the fold. No
    * message of a closed turn (sealed or not, existing or not yet created) is a
-   * valid attach or adoption target. `key` is a resolved turnId or the
-   * "unknown-turn" stub key.
+   * valid attach or adoption target. `key` is a resolved turnId, or the
+   * "unknown-turn" key of a message with no turnId, which names no record.
    */
   #isClosedTurn(key: string | undefined): boolean {
     return key !== undefined && this.#turns.get(key)?.outcome !== undefined;
@@ -1344,30 +1405,77 @@ export class Reducer {
 
   #resolveTurnId(turnId: string | undefined): string | undefined {
     if (turnId !== undefined) return turnId;
-    // Single-turn default: if exactly one turn exists, use it.
-    if (this.#turns.size === 1) {
-      // Map.keys() iterator — noUncheckedIndexedAccess-safe via for..of.
-      for (const key of this.#turns.keys()) {
-        return key;
-      }
+    // §4 per-turn routing / INV-OWNER (draft.5, CB-7): an omitted turnId
+    // resolves to the sole OPEN turn, never to a closed one (through draft.4
+    // this counted records, so a lone closed turn or a stub could be picked).
+    return this.#soleOpenRecord()?.turnId;
+  }
+
+  /** The sole OPEN turn record (no `outcome` yet), or undefined when none or several are open. */
+  #soleOpenRecord(): AgTurnRecord | undefined {
+    let found: AgTurnRecord | undefined;
+    for (const t of this.#turns.values()) {
+      if (t.outcome !== undefined) continue;
+      if (found !== undefined) return undefined;
+      found = t;
     }
-    return undefined;
+    return found;
   }
 
   /**
-   * Defensive turn lookup: get an existing `AgTurnRecord` by turnId, or create a
-   * minimal stub if the record-on-turn event arrives before its `turn.start`.
-   *
-   * Record-on-turn events (turn.done, turn.error, turn.abort, source, handoff,
-   * prompt.blocked, guardrail.result, display.required) all carry `turnId` (optional
-   * in the base schema). When turnId is undefined, fall back to the sole open turn
-   * (single-turn-stream default). If still ambiguous, create a fallback record keyed
-   * on "unknown-turn" — the stub will be visible in turns[] but can be reconciled on
-   * a subsequent messages.snapshot resync.
-   *
-   * AgTurnRecord requires `threadId`; when creating a defensive stub we use the
-   * turnId itself as a placeholder (no threadId is available without turn.start).
+   * Where a record event lands (CB-7, draft.5 INV-OWNER). A named turn with a
+   * record lands on it; one whose thread is known gets a new record on that
+   * thread; one whose thread is not known yet is held (a record result() omits),
+   * or, past the implementation bound, parks the fold. A turnId-less record
+   * event lands on the sole open turn's record, else its owner is unresolvable
+   * and the fold parks.
    */
+  #landingRecord(turnId: string | undefined): AgTurnRecord | undefined {
+    if (turnId === undefined) {
+      const sole = this.#soleOpenRecord();
+      if (sole === undefined) this.#resync = true;
+      return sole;
+    }
+    const existing = this.#turns.get(turnId);
+    if (existing !== undefined) return existing;
+    const threadId = this.#seenOpened.get(turnId);
+    if (threadId !== undefined) return this.#seenTurnRecord(turnId);
+    let held = this.#held.get(turnId);
+    if ((held === undefined && this.#held.size >= HELD_TURNS_CAP) || this.#heldLandings >= HELD_LANDINGS_CAP) {
+      this.#resync = true; // degrade loudly past the bound
+      return undefined;
+    }
+    if (held === undefined) {
+      // threadId is set on adoption; a held record is never emitted.
+      held = { record: { turnId, threadId: "" }, landings: 0 };
+      this.#held.set(turnId, held);
+    }
+    held.landings++;
+    this.#heldLandings++;
+    return held.record;
+  }
+
+  /**
+   * Move the record held for `turnId` (CB-7) into #turns on the thread that is
+   * now known, with `parentTurnId` when a subagent.start opened it. Returns the
+   * adopted record, or undefined when nothing was held for the turn.
+   */
+  #adoptHeld(turnId: string, threadId: string, parentTurnId?: string): AgTurnRecord | undefined {
+    const held = this.#held.get(turnId);
+    if (held === undefined) return undefined;
+    this.#held.delete(turnId);
+    this.#heldLandings -= held.landings;
+    const { turnId: _turnId, threadId: _placeholder, ...landings } = held.record;
+    const record: AgTurnRecord = {
+      turnId,
+      ...(parentTurnId !== undefined ? { parentTurnId } : {}),
+      threadId,
+      ...landings,
+    };
+    this.#turns.set(turnId, record);
+    return record;
+  }
+
   /**
    * D9: the record a terminal for a SEEN turn folds onto — the existing one,
    * else one created on the thread the fold saw the turn opened on. With no
@@ -1381,20 +1489,11 @@ export class Reducer {
     if (existing !== undefined) return existing;
     const threadId = this.#seenOpened.get(turnId);
     if (threadId === undefined) return undefined;
+    const adopted = this.#adoptHeld(turnId, threadId);
+    if (adopted !== undefined) return adopted;
     const record: AgTurnRecord = { turnId, threadId };
     this.#turns.set(turnId, record);
     return record;
-  }
-
-  ensureTurn(turnId: string | undefined): AgTurnRecord {
-    const resolved = this.#resolveTurnId(turnId) ?? turnId;
-    const key = resolved ?? "unknown-turn";
-    const existing = this.#turns.get(key);
-    if (existing !== undefined) return existing;
-    // Defensive stub: threadId is required on AgTurnRecord; use key as placeholder.
-    const stub: AgTurnRecord = { turnId: key, threadId: key };
-    this.#turns.set(key, stub);
-    return stub;
   }
 
   /**
