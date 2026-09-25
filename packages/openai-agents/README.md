@@ -52,6 +52,8 @@ facet's per-field dispositions, including its disclosed `silently-dropped` gaps)
 
 ## Usage
 
+> **Usage semantics (spec draft.5).** `usage.inputTokens` is OpenAI's `input_tokens`, which includes cached input: `cacheReadTokens` (`input_tokens_details.cached_tokens`) and `cacheWriteTokens` (`input_tokens_details.cache_write_tokens`) are breakdowns of it, so never add them to `inputTokens`. This follows OpenAI's documentation of those fields as a detailed breakdown of the input tokens; every capture in this package's corpus reports zero cached tokens. Likewise `outputTokens` includes reasoning, and `reasoningTokens` is its breakdown. Usage is reported per response, on the round's `turn.done` (`cumulative: false`), so a provider-reported cost such as OpenRouter's `usage.cost`, carried as `costUsd`, is per response and sums across turns; `costScope` is not set. A round closed at `flush()` with `turn.abort` carries that usage, cost included, on its `message.end`.
+
 ```ts
 import { Agent, run } from "@openai/agents";
 import { createOpenaiNormalizer } from "@silverprotocol/openai-agents";
