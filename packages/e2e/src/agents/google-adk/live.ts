@@ -7,11 +7,15 @@
  * 2. At the first model output of that turn (a text or audio chunk, or an
  *    output transcription, while the model is still generating), the agent
  *    sends `adkLive.bargeIn` as a second user content: the barge-in. The server
- *    is expected to answer with `interrupted: true`.
- * 3. The queue closes when the barge-in's reply completes: the first
+ *    is expected to answer with `interrupted: true`. With a list of barge-ins,
+ *    barge-in k goes out at the first model output of generation k: generation
+ *    1 answers the prompt, and each later generation starts at the first
+ *    output after the previous generation's `turnComplete`.
+ * 3. The queue closes when the LAST barge-in's reply completes: the first
  *    `turnComplete` after an `interrupted` event and after model output that
  *    follows it. If the server never interrupts, the second `turnComplete`
- *    after the barge-in closes it instead (the first turn completed on its own).
+ *    after the last barge-in closes it instead (that generation completed on
+ *    its own).
  *    Closing the queue makes ADK close the live connection, which ends the
  *    stream (agents/llm_agent.js runSendLoop, @google/adk 2.1.0).
  * 4. A cap (default 60 s) closes the queue regardless, so a stuck session still
@@ -20,7 +24,7 @@
  *
  * Every native event is yielded verbatim (`toJsonValue`, no filtering). Audio
  * arrives as `content.parts[].inlineData` (`mimeType: "audio/pcm;rate=24000"`
- * from Gemini Live); probe's capture-time redaction elides it.
+ * from Gemini Live); the capture harness's redaction elides it.
  *
  * OPERATOR-GATED: needs `GOOGLE_API_KEY` (or `CaptureRunInput.apiKey`) and a
  * Live-capable model (`CAPTURE_MODEL`, e.g. `gemini-3.8-live`); DEFAULT_MODEL.adk
@@ -34,8 +38,9 @@ import type { CaptureRunInput } from "../types.js";
 
 /** The `adkLive` scenario knob. */
 export interface AdkLiveOptions {
-  /** The user content sent as the barge-in, while the model's first turn is still generating. */
-  bargeIn: string;
+  /** The barge-in: the user content sent while the model's first generation is
+   *  still generating. A list sends one barge-in per generation, in order. */
+  bargeIn: string | readonly string[];
   /** The response modality to request. Default "TEXT"; a Live model that serves only
    *  audio rejects it, and then "AUDIO" (with output transcription on) is the knob to set. */
   responseModality?: "TEXT" | "AUDIO";
@@ -50,7 +55,8 @@ export interface LiveBargeInOptions {
   model: string | BaseLlm;
   instruction: string;
   prompt: string;
-  bargeIn: string;
+  /** One barge-in, or one per generation in order (see the module doc). */
+  bargeIn: string | readonly string[];
   responseModality: "TEXT" | "AUDIO";
   /** The cap after which the queue closes regardless. Default 60 000 ms. */
   capMs?: number;
@@ -96,8 +102,14 @@ export async function* runLiveBargeIn(opts: LiveBargeInOptions): AsyncIterable<J
   }, opts.capMs ?? 60_000);
 
   const audio = opts.responseModality === "AUDIO";
+  const bargeIns: readonly string[] = typeof opts.bargeIn === "string" ? [opts.bargeIn] : opts.bargeIn;
+  if (bargeIns.length === 0) throw new Error("adkLive.bargeIn is an empty list: give at least one barge-in");
   queue.sendContent(userContent(opts.prompt));
-  let bargedIn = false;
+  // `sent` barge-ins are out. While more remain, the next one waits for the
+  // first model output of the next generation (`armed`); the generation that
+  // took the previous barge-in re-arms it with its turnComplete.
+  let sent = 0;
+  let armed = true;
   let interruptSeen = false;
   let outputAfterInterrupt = false;
   let completesAfterBargeIn = 0;
@@ -115,10 +127,13 @@ export async function* runLiveBargeIn(opts: LiveBargeInOptions): AsyncIterable<J
     for await (const event of stream) {
       yield toJsonValue(event);
       const output = isModelOutput(event);
-      if (!bargedIn) {
-        if (output && event.turnComplete !== true) {
-          queue.sendContent(userContent(opts.bargeIn));
-          bargedIn = true;
+      if (sent < bargeIns.length) {
+        if (armed && output && event.turnComplete !== true) {
+          queue.sendContent(userContent(bargeIns[sent] ?? ""));
+          sent++;
+          armed = false;
+        } else if (!armed && event.turnComplete === true) {
+          armed = true;
         }
         continue;
       }

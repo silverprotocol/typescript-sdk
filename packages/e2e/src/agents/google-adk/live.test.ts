@@ -10,7 +10,7 @@ import { BaseLlm, type BaseLlmConnection, type LlmResponse } from "@google/adk";
 import type { JsonValue } from "@silverprotocol/core";
 import { runLiveBargeIn } from "./live.js";
 
-type Behaviour = "interrupts" | "finishes-first" | "never-completes";
+type Behaviour = "interrupts" | "finishes-first" | "never-completes" | "interrupts-twice";
 const text = (t: string) => ({ role: "model", parts: [{ text: t }] });
 
 class ScriptedLive extends BaseLlm {
@@ -42,6 +42,11 @@ class ScriptedLive extends BaseLlm {
         if (contents === 1) push({ content: text("Once upon "), partial: true });
         else if (contents === 2 && behaviour === "interrupts")
           push({ interrupted: true }, { content: text("Sure."), partial: true }, { content: text("Sure.") }, { turnComplete: true });
+        else if (contents === 2 && behaviour === "interrupts-twice")
+          // The first generation keeps talking briefly before the interrupt lands.
+          push({ content: text("a time "), partial: true }, { interrupted: true }, { turnComplete: true }, { content: text("Well, "), partial: true });
+        else if (contents === 3 && behaviour === "interrupts-twice")
+          push({ interrupted: true }, { turnComplete: true }, { content: text("Noon."), partial: true }, { content: text("Noon.") }, { turnComplete: true });
         else if (contents === 2 && behaviour === "finishes-first")
           push({ content: text("Once upon a time.") }, { turnComplete: true }, { content: text("Sure."), partial: true }, { content: text("Sure.") }, { turnComplete: true });
       },
@@ -66,11 +71,11 @@ class ScriptedLive extends BaseLlm {
   }
 }
 
-async function drive(behaviour: Behaviour, capMs: number) {
+async function drive(behaviour: Behaviour, capMs: number, bargeIn: string | readonly string[] = "Stop — what time is it?") {
   const model = new ScriptedLive(behaviour);
   const events: JsonValue[] = [];
   const started = Date.now();
-  for await (const e of runLiveBargeIn({ model, instruction: "Tell a story.", prompt: "Tell me a long story.", bargeIn: "Stop — what time is it?", responseModality: "TEXT", capMs, graceMs: 500 }))
+  for await (const e of runLiveBargeIn({ model, instruction: "Tell a story.", prompt: "Tell me a long story.", bargeIn, responseModality: "TEXT", capMs, graceMs: 500 }))
     events.push(e);
   return { events, log: model.log, elapsed: Date.now() - started };
 }
@@ -94,6 +99,26 @@ describe("runLiveBargeIn — the Live barge-in capture, offline (real runLive, s
     expect(completes).toHaveLength(2);
     expect(log.indexOf("close")).toBeGreaterThan(completes[1]!);
     expect(elapsed).toBeLessThan(4000);
+  });
+
+  it("two barge-ins: the second goes out at the first output of the generation after the first one's turnComplete, and the queue closes when the last reply completes", async () => {
+    const { log, elapsed } = await drive("interrupts-twice", 5000, ["Stop — what time is it?", "And the date?"]);
+    expect(log.filter((l) => l.startsWith("recv:"))).toEqual(["recv:Tell me a long story.", "recv:Stop — what time is it?", "recv:And the date?"]);
+    const second = log.indexOf("recv:And the date?");
+    const firstComplete = log.indexOf("emit:turnComplete");
+    expect(firstComplete).toBeGreaterThan(log.indexOf("recv:Stop — what time is it?"));
+    expect(second).toBeGreaterThan(firstComplete);
+    expect(log[second - 1]).toBe("emit:partial");
+    expect(log.indexOf("close")).toBeGreaterThan(log.lastIndexOf("emit:turnComplete"));
+    expect(elapsed).toBeLessThan(4000);
+  });
+
+  it("a single barge-in given as a one-item list behaves exactly like the string", async () => {
+    const asString = await drive("interrupts", 5000, "Stop — what time is it?");
+    const asList = await drive("interrupts", 5000, ["Stop — what time is it?"]);
+    expect(JSON.stringify(asList.log)).toBe(JSON.stringify(asString.log));
+    const strip = (es: JsonValue[]) => JSON.stringify(es, (k, v) => (k === "id" || k === "timestamp" || k === "invocationId" ? undefined : v));
+    expect(strip(asList.events)).toBe(strip(asString.events));
   });
 
   it("a reply that never completes: the cap closes the queue and the stream ends", async () => {
