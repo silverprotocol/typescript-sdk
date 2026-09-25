@@ -83,8 +83,7 @@
     "seq": 8,
     "id": "msg_011CfLC24cJ8pDnfSNhsdBkt",
     "usage": {
-      "inputTokens": 2,
-      "outputTokens": 24,
+      "inputTokens": 3790,
       "cacheReadTokens": 0,
       "cacheWriteTokens": 3788,
       "cumulative": true
@@ -141,8 +140,7 @@
     "seq": 14,
     "id": "msg_011CfLC2Cfyj9Stng1VLKcSs",
     "usage": {
-      "inputTokens": 2,
-      "outputTokens": 1,
+      "inputTokens": 3892,
       "cacheReadTokens": 3788,
       "cacheWriteTokens": 102,
       "cumulative": true
@@ -205,14 +203,15 @@
     },
     "finishReason": "stop",
     "usage": {
-      "inputTokens": 4,
+      "inputTokens": 7682,
       "outputTokens": 59,
       "cacheReadTokens": 3788,
       "cacheWriteTokens": 3890,
       "reasoningTokens": 0,
       "serverToolRequests": 0,
       "costUsd": 0.0120596,
-      "cumulative": true,
+      "costScope": "query",
+      "cumulative": false,
       "byModel": {
         "claude-haiku-4-5-20251001": {
           "inputTokens": 909,
@@ -225,7 +224,7 @@
           "cumulative": true
         },
         "claude-sonnet-5": {
-          "inputTokens": 4,
+          "inputTokens": 7682,
           "outputTokens": 59,
           "cacheReadTokens": 3788,
           "cacheWriteTokens": 3890,
@@ -333,8 +332,7 @@
     "seq": 26,
     "id": "msg_011CfLC2HPVYLvowc7uSFXCr",
     "usage": {
-      "inputTokens": 2,
-      "outputTokens": 24,
+      "inputTokens": 3960,
       "cacheReadTokens": 3890,
       "cacheWriteTokens": 68,
       "cumulative": true
@@ -391,8 +389,7 @@
     "seq": 32,
     "id": "msg_011CfLC2QAHNc3oJx7ACoqGF",
     "usage": {
-      "inputTokens": 2,
-      "outputTokens": 1,
+      "inputTokens": 4062,
       "cacheReadTokens": 3958,
       "cacheWriteTokens": 102,
       "cumulative": true
@@ -455,14 +452,15 @@
     },
     "finishReason": "stop",
     "usage": {
-      "inputTokens": 4,
+      "inputTokens": 8022,
       "outputTokens": 59,
       "cacheReadTokens": 7848,
       "cacheWriteTokens": 170,
       "reasoningTokens": 0,
       "serverToolRequests": 0,
       "costUsd": 0.0146522,
-      "cumulative": true,
+      "costScope": "query",
+      "cumulative": false,
       "byModel": {
         "claude-haiku-4-5-20251001": {
           "inputTokens": 909,
@@ -475,7 +473,7 @@
           "cumulative": true
         },
         "claude-sonnet-5": {
-          "inputTokens": 8,
+          "inputTokens": 15704,
           "outputTokens": 118,
           "cacheReadTokens": 11636,
           "cacheWriteTokens": 4060,

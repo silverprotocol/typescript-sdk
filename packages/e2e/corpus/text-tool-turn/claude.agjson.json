@@ -97,7 +97,6 @@
     "id": "msg_top_1",
     "usage": {
       "inputTokens": 10,
-      "outputTokens": 5,
       "cumulative": true
     }
   },
@@ -176,7 +175,6 @@
     "id": "msg_top_2",
     "usage": {
       "inputTokens": 10,
-      "outputTokens": 5,
       "cumulative": true
     }
   },
@@ -223,7 +221,6 @@
     "id": "msg_sub_1",
     "usage": {
       "inputTokens": 10,
-      "outputTokens": 5,
       "cumulative": true
     }
   },
@@ -267,16 +264,17 @@
     },
     "finishReason": "stop",
     "usage": {
-      "inputTokens": 200,
+      "inputTokens": 245,
       "outputTokens": 80,
       "cacheReadTokens": 30,
       "cacheWriteTokens": 15,
       "serverToolRequests": 0,
       "costUsd": 0.12,
-      "cumulative": true,
+      "costScope": "query",
+      "cumulative": false,
       "byModel": {
         "claude-sonnet-4-6": {
-          "inputTokens": 200,
+          "inputTokens": 245,
           "outputTokens": 80,
           "cacheReadTokens": 30,
           "cacheWriteTokens": 15,

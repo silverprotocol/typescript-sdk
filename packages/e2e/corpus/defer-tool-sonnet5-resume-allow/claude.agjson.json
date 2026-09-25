@@ -126,8 +126,7 @@
     "seq": 13,
     "id": "msg_011CfLKL2sCMAn8wm3zDdFhJ",
     "usage": {
-      "inputTokens": 2,
-      "outputTokens": 4,
+      "inputTokens": 6860,
       "cacheReadTokens": 6858,
       "cacheWriteTokens": 0,
       "cumulative": true
@@ -181,14 +180,15 @@
     },
     "finishReason": "stop",
     "usage": {
-      "inputTokens": 2,
+      "inputTokens": 6860,
       "outputTokens": 142,
       "cacheReadTokens": 6858,
       "cacheWriteTokens": 0,
       "reasoningTokens": 75,
       "serverToolRequests": 0,
       "costUsd": 0.0140616,
-      "cumulative": true,
+      "costScope": "query",
+      "cumulative": false,
       "byModel": {
         "claude-haiku-4-5-20251001": {
           "inputTokens": 912,
@@ -201,7 +201,7 @@
           "cumulative": true
         },
         "claude-sonnet-5": {
-          "inputTokens": 4,
+          "inputTokens": 10736,
           "outputTokens": 202,
           "cacheReadTokens": 6858,
           "cacheWriteTokens": 3874,
@@ -267,8 +267,7 @@
     "seq": 22,
     "id": "msg_011CfLKLPwDK1nYL115xu3j8",
     "usage": {
-      "inputTokens": 2,
-      "outputTokens": 1,
+      "inputTokens": 7047,
       "cacheReadTokens": 6858,
       "cacheWriteTokens": 187,
       "cumulative": true
@@ -322,14 +321,15 @@
     },
     "finishReason": "stop",
     "usage": {
-      "inputTokens": 2,
+      "inputTokens": 7047,
       "outputTokens": 73,
       "cacheReadTokens": 6858,
       "cacheWriteTokens": 187,
       "reasoningTokens": 0,
       "serverToolRequests": 0,
       "costUsd": 0.016634700000000002,
-      "cumulative": true,
+      "costScope": "query",
+      "cumulative": false,
       "byModel": {
         "claude-haiku-4-5-20251001": {
           "inputTokens": 912,
@@ -342,7 +342,7 @@
           "cumulative": true
         },
         "claude-sonnet-5": {
-          "inputTokens": 6,
+          "inputTokens": 17783,
           "outputTokens": 275,
           "cacheReadTokens": 13716,
           "cacheWriteTokens": 4061,

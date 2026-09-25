@@ -552,7 +552,76 @@ function assertUsageIdentity(agjson: JsonValue[]): void {
     if (reasoning !== undefined && output !== undefined) {
       expect({ where, reasoningWithinOutput: reasoning <= output }).toEqual({ where, reasoningWithinOutput: true });
     }
+    // draft.5 (Live usage): a provider's own total rides totalTokensRaw only
+    // where it differs from totalTokens, so raw present ⇒ total present and ≠ raw.
+    const raw = num("totalTokensRaw");
+    if (raw !== undefined) {
+      expect({ where, rawBesideADifferentTotal: total !== undefined && total !== raw }).toEqual({ where, rawBesideADifferentTotal: true });
+    }
   }
+}
+
+/**
+ * draft.5 usage inclusion (pkg-11's replay leg). On every golden, every usage
+ * bag at any depth (top-level and byModel) that carries cacheReadTokens or
+ * cacheWriteTokens has inputTokens >= their sum: inputTokens is the
+ * cache-inclusive total. On a Claude golden, against its native cassette:
+ * - each message.end's inputTokens equals its assistant frame's
+ *   input_tokens + cache_read_input_tokens + cache_creation_input_tokens;
+ * - each top-level turn terminal's inputTokens equals its result frame's
+ *   (absent counters count as 0);
+ * - no turn terminal is cumulative:true, and a terminal carrying costUsd
+ *   carries costScope "query";
+ * - every byModel entry is cumulative:true;
+ * - a cassette with no stream_event frames has no message.end outputTokens
+ *   (the no-partials placeholder is omitted);
+ * - on partials-sonnet5 the message.end outputTokens sum to the turn.done's.
+ */
+function assertUsageInclusion(fw: string, scn: string, agjson: JsonValue[], native: JsonValue[]): void {
+  type Obj = Record<string, JsonValue>;
+  const obj = (v: JsonValue | undefined): Obj | undefined => (v !== null && v !== undefined && typeof v === "object" && !Array.isArray(v) ? (v as Obj) : undefined);
+  const n = (u: Obj | undefined, k: string): number | undefined => (u !== undefined && typeof u[k] === "number" ? (u[k] as number) : undefined);
+  const evs = agjson.map((e) => obj(e)).filter((e): e is Obj => e !== undefined);
+  const bad: string[] = [];
+  for (const [i, e] of evs.entries()) {
+    const top = obj(e["usage"]);
+    if (top === undefined) continue;
+    const bags: Array<[string, Obj]> = [[`[${i}].usage`, top]];
+    for (const [m, mu] of Object.entries(obj(top["byModel"]) ?? {})) { const b = obj(mu); if (b !== undefined) bags.push([`[${i}].usage.byModel.${m}`, b]); }
+    for (const [where, u] of bags) {
+      const cr = n(u, "cacheReadTokens"), cw = n(u, "cacheWriteTokens"), inp = n(u, "inputTokens");
+      if ((cr !== undefined || cw !== undefined) && !(inp !== undefined && inp >= (cr ?? 0) + (cw ?? 0))) bad.push(`${where}: inputTokens ${inp} < cacheRead ${cr} + cacheWrite ${cw}`);
+    }
+  }
+  if (fw === "claude") {
+    const nat = native.map((e) => obj(e)).filter((e): e is Obj => e !== undefined);
+    const sum = (u: Obj | undefined) => (n(u, "input_tokens") ?? 0) + (n(u, "cache_read_input_tokens") ?? 0) + (n(u, "cache_creation_input_tokens") ?? 0);
+    const byMsg = new Map<string, number>();
+    for (const f of nat) if (f["type"] === "assistant") { const m = obj(f["message"]); const id = m?.["id"]; if (typeof id === "string" && obj(m?.["usage"]) !== undefined) byMsg.set(id, sum(obj(m?.["usage"]))); }
+    for (const e of evs) if (e["type"] === "message.end" && typeof e["id"] === "string" && byMsg.has(e["id"])) {
+      const got = n(obj(e["usage"]), "inputTokens");
+      if (got !== undefined && got !== byMsg.get(e["id"])) bad.push(`message.end ${e["id"]}: inputTokens ${got} ≠ ${byMsg.get(e["id"])}`);
+    }
+    const results = nat.filter((f) => f["type"] === "result" && obj(f["usage"]) !== undefined).map((f) => sum(obj(f["usage"])));
+    const terminals = evs.filter((e) => (e["type"] === "turn.done" || e["type"] === "turn.error") && obj(e["usage"]) !== undefined);
+    const termInputs = terminals.map((e) => n(obj(e["usage"]), "inputTokens") ?? null);
+    if (JSON.stringify(termInputs) !== JSON.stringify(results)) bad.push(`turn terminals inputTokens ${JSON.stringify(termInputs)} ≠ results ${JSON.stringify(results)}`);
+    for (const e of terminals) {
+      const u = obj(e["usage"])!;
+      if (u["cumulative"] === true) bad.push(`${String(e["type"])} ${String(e["turnId"])}: cumulative:true on a turn terminal`);
+      if (u["costUsd"] !== undefined && u["costScope"] !== "query") bad.push(`${String(e["type"])} ${String(e["turnId"])}: costUsd without costScope "query"`);
+    }
+    for (const e of evs) for (const [m, mu] of Object.entries(obj(obj(e["usage"])?.["byModel"]) ?? {})) if (obj(mu)?.["cumulative"] !== true) bad.push(`byModel ${m}: not cumulative:true`);
+    if (!nat.some((f) => f["type"] === "stream_event")) {
+      for (const e of evs) if (e["type"] === "message.end" && n(obj(e["usage"]), "outputTokens") !== undefined) bad.push(`message.end ${String(e["id"])}: outputTokens without partials`);
+    }
+    if (scn === "partials-sonnet5") {
+      const msgOut = evs.filter((e) => e["type"] === "message.end").reduce((a, e) => a + (n(obj(e["usage"]), "outputTokens") ?? 0), 0);
+      const turnOut = evs.filter((e) => e["type"] === "turn.done").map((e) => n(obj(e["usage"]), "outputTokens"));
+      if (JSON.stringify([msgOut]) !== JSON.stringify(turnOut)) bad.push(`partials-sonnet5: message.end outputTokens ${msgOut} ≠ turn.done ${JSON.stringify(turnOut)}`);
+    }
+  }
+  expect(bad).toEqual([]);
 }
 
 describe("replay CI gate — Claude seed corpus (machinery/snapshot self-consistency)", () => {
@@ -573,6 +642,12 @@ describe("replay CI gate — Claude seed corpus (machinery/snapshot self-consist
       it("usage obeys the draft.3 inclusion identity (input + output (+ toolUseInput) == total; reasoning <= output)", async () => {
         const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "claude.native.json"));
         assertUsageIdentity(agjson);
+      });
+
+      it("usage obeys the draft.5 inclusion rules (cache-inclusive inputTokens; the claude flags, costScope and exact native sums)", async () => {
+        const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "claude.native.json"));
+        const native = JSON.parse(await readFile(join(CORPUS_ROOT, scn, "claude.native.json"), "utf8")) as JsonValue[];
+        assertUsageInclusion("claude", scn, agjson, native);
       });
 
       // guuey#26. A cassette can be snapshot-stable AND census-clean and still
@@ -612,6 +687,12 @@ describe("replay CI gate — OpenAI seed corpus (machinery/snapshot self-consist
         assertUsageIdentity(agjson);
       });
 
+      it("usage obeys the draft.5 inclusion rules (cache-inclusive inputTokens; the claude flags, costScope and exact native sums)", async () => {
+        const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "openai.native.json"));
+        const native = JSON.parse(await readFile(join(CORPUS_ROOT, scn, "openai.native.json"), "utf8")) as JsonValue[];
+        assertUsageInclusion("openai", scn, agjson, native);
+      });
+
       // guuey#26 ride-along. The Claude facet's per-frame open/seal parked the
       // Reducer whenever one API message spanned multiple frames (a live
       // production incident — see the Claude suite's comment above). This is
@@ -649,6 +730,12 @@ describe("replay CI gate — ADK seed corpus (machinery/snapshot self-consistenc
       it("usage obeys the draft.3 inclusion identity (input + output (+ toolUseInput) == total; reasoning <= output)", async () => {
         const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "adk.native.json"));
         assertUsageIdentity(agjson);
+      });
+
+      it("usage obeys the draft.5 inclusion rules (cache-inclusive inputTokens; the claude flags, costScope and exact native sums)", async () => {
+        const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "adk.native.json"));
+        const native = JSON.parse(await readFile(join(CORPUS_ROOT, scn, "adk.native.json"), "utf8")) as JsonValue[];
+        assertUsageInclusion("adk", scn, agjson, native);
       });
 
       // guuey#26 ride-along (see the OpenAI suite's comment above for the full
@@ -710,6 +797,12 @@ describe("replay CI gate — Vercel seed corpus (machinery/snapshot self-consist
       it("usage obeys the draft.3 inclusion identity (input + output (+ toolUseInput) == total; reasoning <= output)", async () => {
         const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "vercel.native.json"));
         assertUsageIdentity(agjson);
+      });
+
+      it("usage obeys the draft.5 inclusion rules (cache-inclusive inputTokens; the claude flags, costScope and exact native sums)", async () => {
+        const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "vercel.native.json"));
+        const native = JSON.parse(await readFile(join(CORPUS_ROOT, scn, "vercel.native.json"), "utf8")) as JsonValue[];
+        assertUsageInclusion("vercel", scn, agjson, native);
       });
 
       // guuey#26 ride-along, fourth facet: same INV-MSG fold gate as the

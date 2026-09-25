@@ -3441,5 +3441,21 @@
     "frameworks": [
       "adk"
     ]
+  },
+  {
+    "path": "[*].message.usage.output_tokens",
+    "reason": "claude (draft.5 pkg-11): the assistant frame's output_tokens. With no partials streamed it is a placeholder, so message.end carries no outputTokens (the no-partials placeholder omission); in a streamed run message.end's outputTokens comes from the stream's message_delta, and the turn terminal carries the result's real count. Through 0.7.x this leaf was transformed onto usage.outputTokens.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].usage.iterations[*].input_tokens",
+    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage, the sibling of the allowlisted [*].usage.iterations[*] members (cache_*, output_tokens, type, model); no AgJSON usage home. Masked until draft.5 by a value collision with the non-inclusive inputTokens; pkg-11's cache-inclusive inputTokens removed the collision.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
   }
 ]

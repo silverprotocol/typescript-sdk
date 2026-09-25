@@ -122,7 +122,7 @@
     "seq": 13,
     "id": "msg_011CfPXQ8w65s4z5bwzAekRM",
     "usage": {
-      "inputTokens": 2,
+      "inputTokens": 1103,
       "outputTokens": 54,
       "cacheReadTokens": 0,
       "cacheWriteTokens": 1101,
@@ -234,7 +234,7 @@
     "seq": 25,
     "id": "msg_011CfPXQFgtaM9NY6v13kb5V",
     "usage": {
-      "inputTokens": 2,
+      "inputTokens": 1205,
       "outputTokens": 21,
       "cacheReadTokens": 1101,
       "cacheWriteTokens": 102,
@@ -294,17 +294,18 @@
     },
     "finishReason": "stop",
     "usage": {
-      "inputTokens": 4,
+      "inputTokens": 2308,
       "outputTokens": 75,
       "cacheReadTokens": 1101,
       "cacheWriteTokens": 1203,
       "reasoningTokens": 0,
       "serverToolRequests": 0,
       "costUsd": 0.0039857,
-      "cumulative": true,
+      "costScope": "query",
+      "cumulative": false,
       "byModel": {
         "claude-sonnet-5": {
-          "inputTokens": 4,
+          "inputTokens": 2308,
           "outputTokens": 75,
           "cacheReadTokens": 1101,
           "cacheWriteTokens": 1203,
@@ -445,7 +446,7 @@
     "seq": 41,
     "id": "msg_011CfPXQM65VgP6NZATB4fr3",
     "usage": {
-      "inputTokens": 2,
+      "inputTokens": 1301,
       "outputTokens": 54,
       "cacheReadTokens": 1203,
       "cacheWriteTokens": 96,
@@ -541,7 +542,7 @@
     "seq": 51,
     "id": "msg_011CfPXQSdTVEg6XhJXWMkqe",
     "usage": {
-      "inputTokens": 2,
+      "inputTokens": 1403,
       "outputTokens": 21,
       "cacheReadTokens": 1299,
       "cacheWriteTokens": 102,
@@ -601,17 +602,18 @@
     },
     "finishReason": "stop",
     "usage": {
-      "inputTokens": 4,
+      "inputTokens": 2704,
       "outputTokens": 75,
       "cacheReadTokens": 2502,
       "cacheWriteTokens": 198,
       "reasoningTokens": 0,
       "serverToolRequests": 0,
       "costUsd": 0.0057391000000000005,
-      "cumulative": true,
+      "costScope": "query",
+      "cumulative": false,
       "byModel": {
         "claude-sonnet-5": {
-          "inputTokens": 8,
+          "inputTokens": 5012,
           "outputTokens": 150,
           "cacheReadTokens": 3603,
           "cacheWriteTokens": 1401,

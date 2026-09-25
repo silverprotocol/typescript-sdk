@@ -48,6 +48,14 @@ new model validation, facet changes). Across refreshes:
 If your test asserts on the incidental tier, it will break on every refresh for
 reasons that have nothing to do with your code.
 
+Usage *numbers* are incidental, but their *meaning* follows the spec version
+the goldens were regenerated under. From draft.5 (SDK 0.8.0), every Claude
+usage bag's `inputTokens` is cache-inclusive (input + cache read + cache
+creation, as on the other frameworks). Claude turn terminals are per-turn
+(`cumulative: false`) and carry `costScope: "query"` beside `costUsd`, and
+`byModel` entries stay running totals (`cumulative: true`). The 0.8.0 regen
+moved every Claude golden inside `usage` only.
+
 ## Read-only, refreshed only here
 
 Consumers treat cassettes as **read-only**. Refresh happens exclusively through

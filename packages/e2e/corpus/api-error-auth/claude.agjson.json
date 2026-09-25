@@ -42,7 +42,6 @@
     "id": "eb7d54d3-933b-4ab0-9387-a7b7e9a40be8",
     "usage": {
       "inputTokens": 0,
-      "outputTokens": 0,
       "cacheReadTokens": 0,
       "cacheWriteTokens": 0,
       "cumulative": true
@@ -96,7 +95,8 @@
       "reasoningTokens": 0,
       "serverToolRequests": 0,
       "costUsd": 0,
-      "cumulative": true
+      "costScope": "query",
+      "cumulative": false
     }
   }
 ]

@@ -43,7 +43,6 @@
     "id": "msg_echo_1",
     "usage": {
       "inputTokens": 20,
-      "outputTokens": 8,
       "cumulative": true
     }
   },
@@ -99,7 +98,6 @@
     "id": "msg_echo_2",
     "usage": {
       "inputTokens": 30,
-      "outputTokens": 5,
       "cumulative": true
     }
   },
@@ -119,7 +117,8 @@
       "cacheWriteTokens": 0,
       "serverToolRequests": 0,
       "costUsd": 0.01,
-      "cumulative": true,
+      "costScope": "query",
+      "cumulative": false,
       "byModel": {
         "claude-sonnet-4-6": {
           "inputTokens": 50,

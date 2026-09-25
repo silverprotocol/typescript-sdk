@@ -66,8 +66,7 @@
     "seq": 8,
     "id": "msg_011Cf4PnzetTFSDXvoP8779R",
     "usage": {
-      "inputTokens": 2,
-      "outputTokens": 1,
+      "inputTokens": 2181,
       "cacheReadTokens": 0,
       "cacheWriteTokens": 2179,
       "cumulative": true
@@ -178,8 +177,7 @@
     "seq": 18,
     "id": "msg_011Cf4PoxWwMThwanv9dFKTW",
     "usage": {
-      "inputTokens": 32,
-      "outputTokens": 49,
+      "inputTokens": 2363,
       "cacheReadTokens": 2179,
       "cacheWriteTokens": 152,
       "cumulative": true
@@ -308,8 +306,7 @@
     "seq": 30,
     "id": "msg_011Cf4PpwuVbvmaHv4PF9RNG",
     "usage": {
-      "inputTokens": 32,
-      "outputTokens": 5,
+      "inputTokens": 2522,
       "cacheReadTokens": 2331,
       "cacheWriteTokens": 159,
       "cumulative": true
@@ -368,14 +365,15 @@
     },
     "finishReason": "stop",
     "usage": {
-      "inputTokens": 66,
+      "inputTokens": 7066,
       "outputTokens": 376,
       "cacheReadTokens": 4510,
       "cacheWriteTokens": 2490,
       "reasoningTokens": 90,
       "serverToolRequests": 0,
       "costUsd": 0.0527005,
-      "cumulative": true,
+      "costScope": "query",
+      "cumulative": false,
       "byModel": {
         "claude-haiku-4-5-20251001": {
           "inputTokens": 923,
@@ -388,7 +386,7 @@
           "cumulative": true
         },
         "claude-fable-5-1": {
-          "inputTokens": 66,
+          "inputTokens": 7066,
           "outputTokens": 376,
           "cacheReadTokens": 4510,
           "cacheWriteTokens": 2490,
