@@ -1,0 +1,408 @@
+[
+  {
+    "type": "system",
+    "subtype": "init",
+    "cwd": "<redacted-path>",
+    "session_id": "ecce8696-df87-4610-9394-20574e16568e",
+    "tools": [
+      "Task"
+    ],
+    "mcp_servers": [],
+    "model": "claude-sonnet-5",
+    "permissionMode": "default",
+    "slash_commands": [
+      "deep-research",
+      "design",
+      "design-sync",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator",
+      "advisor",
+      "agents",
+      "auto-mode-setup",
+      "autocompact",
+      "clear",
+      "color",
+      "compact",
+      "config",
+      "output-style",
+      "context",
+      "effort",
+      "fast",
+      "heapdump",
+      "init",
+      "mcp",
+      "import",
+      "model",
+      "__remote-workflow",
+      "workflow-launch-exec",
+      "reload-plugins",
+      "reload-skills",
+      "rename",
+      "security-review",
+      "usage",
+      "insights",
+      "recap",
+      "skill-doctor",
+      "goal",
+      "design-consent",
+      "design-revoke",
+      "list-agents",
+      "team-onboarding"
+    ],
+    "terminal_slash_commands": [
+      "doctor",
+      "color",
+      "reload-plugins"
+    ],
+    "apiKeySource": "ANTHROPIC_API_KEY",
+    "claude_code_version": "2.1.280",
+    "output_style": "default",
+    "agents": [
+      "checker",
+      "claude",
+      "Explore",
+      "general-purpose",
+      "Plan",
+      "statusline-setup"
+    ],
+    "skills": [
+      "deep-research",
+      "design",
+      "design-sync",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator"
+    ],
+    "plugins": [
+      {
+        "name": "agents-md",
+        "path": "builtin",
+        "source": "agents-md@builtin"
+      },
+      {
+        "name": "telemetry",
+        "path": "builtin",
+        "source": "telemetry@builtin"
+      }
+    ],
+    "capabilities": [
+      "interrupt_receipt_v1",
+      "interrupt_cancel_queued_v1",
+      "msg_lifecycle_v1",
+      "mcp_read_resource_v1",
+      "mcp_tool_ui_meta_v1"
+    ],
+    "analytics_disabled": false,
+    "product_feedback_disabled": false,
+    "uuid": "6d8e3c8f-9649-43af-8c17-d0fc1e18accb",
+    "messaging_socket_path": "/tmp/cc-socks/16560.sock",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-sonnet-5",
+      "id": "msg_011CfM8TSsyYZhz8uUxgorHt",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_01RAd37zdqGdGedvqZiPjJno",
+          "name": "Agent",
+          "input": {
+            "description": "Ask checker to reply ok",
+            "prompt": "Reply 'ok'.",
+            "subagent_type": "checker",
+            "run_in_background": false
+          },
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 1308,
+        "cache_read_input_tokens": 3161,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 1308,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 20,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "ecce8696-df87-4610-9394-20574e16568e",
+    "uuid": "1f0445f8-4da8-489b-813b-5ef29a4e8195",
+    "timestamp": "2026-09-23T22:05:07.087Z",
+    "request_id": "req_011CfM8TSZP34NBhneXxd27f",
+    "wire_tool_inputs": {
+      "toolu_01RAd37zdqGdGedvqZiPjJno": {
+        "description": "Ask checker to reply ok",
+        "prompt": "Reply 'ok'.",
+        "subagent_type": "checker",
+        "run_in_background": false
+      }
+    }
+  },
+  {
+    "type": "system",
+    "subtype": "task_started",
+    "task_id": "acae1a313acffe965",
+    "tool_use_id": "toolu_01RAd37zdqGdGedvqZiPjJno",
+    "description": "Ask checker to reply ok",
+    "subagent_type": "checker",
+    "is_backgrounded": false,
+    "spawn_depth": 1,
+    "task_type": "local_agent",
+    "prompt": "Reply 'ok'.",
+    "uuid": "0ce0bd96-aba3-4cbf-a711-16ce27534c5e",
+    "session_id": "ecce8696-df87-4610-9394-20574e16568e"
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Reply 'ok'."
+        }
+      ]
+    },
+    "parent_tool_use_id": "toolu_01RAd37zdqGdGedvqZiPjJno",
+    "session_id": "ecce8696-df87-4610-9394-20574e16568e",
+    "uuid": "15953fa2-ebdc-4427-9713-8b94b53e1684",
+    "timestamp": "2026-09-23T22:05:07.095Z",
+    "subagent_type": "checker",
+    "task_description": "Ask checker to reply ok"
+  },
+  {
+    "type": "system",
+    "subtype": "task_updated",
+    "task_id": "acae1a313acffe965",
+    "patch": {
+      "status": "failed",
+      "end_time": 1790201107796,
+      "error": "Agent terminated early due to an API error: There's an issue with the selected model (claude-nonexistent-0). It may not exist or you may not have access to it. (error type model_not_found, HTTP 404, request id req_011CfM8TeYD8afMYNiCByEgr, model sent to the API: claude-nonexistent-0)"
+    },
+    "uuid": "b7e4ea23-3186-4b48-8b7d-8bb11ae073ce",
+    "session_id": "ecce8696-df87-4610-9394-20574e16568e"
+  },
+  {
+    "type": "system",
+    "subtype": "task_notification",
+    "task_id": "acae1a313acffe965",
+    "tool_use_id": "toolu_01RAd37zdqGdGedvqZiPjJno",
+    "status": "failed",
+    "output_file": "<redacted-path>",
+    "summary": "Agent terminated early due to an API error: There's an issue with the selected model (claude-nonexistent-0). It may not exist or you may not have access to it. (error type model_not_found, HTTP 404, request id req_011CfM8TeYD8afMYNiCByEgr, model sent to the API: claude-nonexistent-0)",
+    "uuid": "52e6fdf9-1d36-4d84-a6b6-8df0819cc313",
+    "session_id": "ecce8696-df87-4610-9394-20574e16568e"
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "content": "Agent terminated early due to an API error: There's an issue with the selected model (claude-nonexistent-0). It may not exist or you may not have access to it. (error type model_not_found, HTTP 404, request id req_011CfM8TeYD8afMYNiCByEgr, model sent to the API: claude-nonexistent-0)",
+          "is_error": true,
+          "tool_use_id": "toolu_01RAd37zdqGdGedvqZiPjJno"
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "session_id": "ecce8696-df87-4610-9394-20574e16568e",
+    "uuid": "44c9f4da-6e74-4d3e-a206-9ce36ac232b5",
+    "timestamp": "2026-09-23T22:05:07.797Z",
+    "tool_use_result": "Error: Agent terminated early due to an API error: There's an issue with the selected model (claude-nonexistent-0). It may not exist or you may not have access to it. (error type model_not_found, HTTP 404, request id req_011CfM8TeYD8afMYNiCByEgr, model sent to the API: claude-nonexistent-0)"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-sonnet-5",
+      "id": "msg_011CfM8TgBfyxk5CA4dKWcne",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "The checker subagent call failed — it didn't reply \"ok\". The invocation errored out with an API error: the model configured for that agent (`claude-nonexistent-0`) doesn't exist / isn't accessible (HTTP 404, model_not_found). So the task wasn't completed due to a misconfiguration on the agent's model setting, not something I can retry around."
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 297,
+        "cache_read_input_tokens": 4469,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 297,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 1,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "ecce8696-df87-4610-9394-20574e16568e",
+    "uuid": "7a8047da-3665-4b8d-ab4a-303dff6709ea",
+    "timestamp": "2026-09-23T22:05:09.917Z",
+    "request_id": "req_011CfM8Tfs5JA62dc2nCrGi8"
+  },
+  {
+    "duration_api_ms": 5932,
+    "stop_reason": "end_turn",
+    "session_id": "ecce8696-df87-4610-9394-20574e16568e",
+    "total_cost_usd": 0.0090865,
+    "usage": {
+      "input_tokens": 4,
+      "cache_creation_input_tokens": 1605,
+      "cache_read_input_tokens": 7630,
+      "output_tokens": 256,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 1605
+      },
+      "inference_geo": "global",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 118,
+          "cache_read_input_tokens": 4469,
+          "cache_creation_input_tokens": 297,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 297,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-haiku-4-5-20251001": {
+        "inputTokens": 910,
+        "outputTokens": 14,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0,
+        "webSearchRequests": 0,
+        "costUSD": 0.00098,
+        "contextWindow": 200000,
+        "maxOutputTokens": 32000,
+        "thinkingTokens": 0,
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-sonnet-5": {
+        "inputTokens": 4,
+        "outputTokens": 256,
+        "cacheReadInputTokens": 7630,
+        "cacheCreationInputTokens": 1605,
+        "webSearchRequests": 0,
+        "costUSD": 0.008106499999999999,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000,
+        "thinkingTokens": 0,
+        "canonicalModel": "claude-sonnet-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required",
+    "subagent_stats": {
+      "spawned": 1,
+      "requested": {
+        "background": 0,
+        "foreground": 1,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 1,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 1,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {
+        "checker": 1
+      }
+    },
+    "is_error": false,
+    "num_turns": 2,
+    "subtype": "success",
+    "api_error_status": null,
+    "result": "The checker subagent call failed — it didn't reply \"ok\". The invocation errored out with an API error: the model configured for that agent (`claude-nonexistent-0`) doesn't exist / isn't accessible (HTTP 404, model_not_found). So the task wasn't completed due to a misconfiguration on the agent's model setting, not something I can retry around.",
+    "ttft_ms": 2494,
+    "type": "result",
+    "duration_ms": 5377,
+    "uuid": "8f18a8e0-d274-44d8-91bd-55b337da5db5",
+    "ttft_stream_ms": 1642,
+    "time_to_request_ms": 80,
+    "first_content_frame_ms": 1642,
+    "queued_turn_count": 0,
+    "result_index": 0
+  }
+]

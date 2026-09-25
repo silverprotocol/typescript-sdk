@@ -210,6 +210,11 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // enrolled on sp-openai's handoff close (b5d8a98). The capture ran through
   // the held openaiHandoff knob; replay needs only the committed native.
   { scenario: "handoff-gpt6sol", framework: "openai" },
+  // 2026-09-25 (nested-turn capture ask): the first live Claude subagent runs,
+  // enrolled on sp-claude's subagent carries (f2c75d8 + bd4d414).
+  { scenario: "subagent-fg-sonnet5", framework: "claude" },
+  { scenario: "subagent-bg-sonnet5", framework: "claude" },
+  { scenario: "subagent-fail-sonnet5", framework: "claude" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

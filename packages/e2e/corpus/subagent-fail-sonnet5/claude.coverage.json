@@ -1,0 +1,43 @@
+{
+  "drops": [
+    {
+      "path": "[1].message.content[0].input.run_in_background",
+      "norm": "[*].message.content[*].input.run_in_background",
+      "value": false
+    },
+    {
+      "path": "[1].wire_tool_inputs.toolu_01RAd37zdqGdGedvqZiPjJno.run_in_background",
+      "norm": "[*].wire_tool_inputs.{id}.run_in_background",
+      "value": false
+    },
+    {
+      "path": "[2].is_backgrounded",
+      "norm": "[*].is_backgrounded",
+      "value": false
+    }
+  ],
+  "newFields": [
+    "[*].message.content[*].input.description",
+    "[*].message.content[*].input.subagent_type",
+    "[*].message.content[*].input.run_in_background",
+    "[*].wire_tool_inputs.{id}.description",
+    "[*].wire_tool_inputs.{id}.prompt",
+    "[*].wire_tool_inputs.{id}.subagent_type",
+    "[*].wire_tool_inputs.{id}.run_in_background",
+    "[*].task_id",
+    "[*].tool_use_id",
+    "[*].description",
+    "[*].subagent_type",
+    "[*].is_backgrounded",
+    "[*].spawn_depth",
+    "[*].task_type",
+    "[*].prompt",
+    "[*].task_description",
+    "[*].patch.status",
+    "[*].patch.end_time",
+    "[*].patch.error",
+    "[*].output_file",
+    "[*].summary",
+    "[*].subagent_stats.by_type.checker"
+  ]
+}

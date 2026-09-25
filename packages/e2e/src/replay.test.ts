@@ -193,6 +193,19 @@ const CLAUDE_SEEDS = [
   // terminal_reason "tool_deferred_unavailable", with the same
   // deferred_tool_use and an empty result. It folds as a turn.error close,
   // then the prompt's own success turn.
+
+  // 2026-09-25 (nested-turn capture ask): the first live Claude subagent runs
+  // (claude-sonnet-5 @ claude-agent-sdk 0.3.280, captured with auto-memory off
+  // and Agent isolation stripped). fg: the nested run closes success before
+  // subagent.done, and the Agent run report rides tool.done _meta
+  // ["anthropic/agentOutput"]. bg: async_launched keeps the nested run open past
+  // its parent's close; a task_notification closes it success and wakes a turn
+  // whose result carries origin. fail: a subagent model the API rejects closes
+  // the nested turn turn.error{code "failed"}. Ambient values the census cannot
+  // value-match are transforms onto where they are carried.
+  "subagent-fg-sonnet5",
+  "subagent-bg-sonnet5",
+  "subagent-fail-sonnet5",
 ] as const;
 
 /**

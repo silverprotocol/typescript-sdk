@@ -1,0 +1,295 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_msg_011CfM8TSsyYZhz8uUxgorHt",
+    "threadId": "ecce8696-df87-4610-9394-20574e16568e"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_011CfM8TSsyYZhz8uUxgorHt",
+    "turnId": "turn_msg_011CfM8TSsyYZhz8uUxgorHt",
+    "threadId": "ecce8696-df87-4610-9394-20574e16568e",
+    "role": "assistant",
+    "model": "claude-sonnet-5"
+  },
+  {
+    "type": "tool.start",
+    "seq": 2,
+    "turnId": "turn_msg_011CfM8TSsyYZhz8uUxgorHt",
+    "toolCallId": "toolu_01RAd37zdqGdGedvqZiPjJno",
+    "name": "Agent",
+    "index": 0,
+    "messageId": "msg_011CfM8TSsyYZhz8uUxgorHt",
+    "providerExecuted": false
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 3,
+    "toolCallId": "toolu_01RAd37zdqGdGedvqZiPjJno",
+    "delta": "{\"description\":\"Ask checker to reply ok\",\"prompt\":\"Reply 'ok'.\",\"subagent_type\":\"checker\",\"run_in_background\":false}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 4,
+    "toolCallId": "toolu_01RAd37zdqGdGedvqZiPjJno",
+    "input": {
+      "description": "Ask checker to reply ok",
+      "prompt": "Reply 'ok'.",
+      "subagent_type": "checker",
+      "run_in_background": false
+    }
+  },
+  {
+    "seq": 5,
+    "type": "ext.anthropic.frame",
+    "kind": "task_started",
+    "frame": {
+      "type": "system",
+      "subtype": "task_started",
+      "task_id": "acae1a313acffe965",
+      "tool_use_id": "toolu_01RAd37zdqGdGedvqZiPjJno",
+      "description": "Ask checker to reply ok",
+      "subagent_type": "checker",
+      "is_backgrounded": false,
+      "spawn_depth": 1,
+      "task_type": "local_agent",
+      "prompt": "Reply 'ok'.",
+      "uuid": "0ce0bd96-aba3-4cbf-a711-16ce27534c5e",
+      "session_id": "ecce8696-df87-4610-9394-20574e16568e"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 6,
+    "id": "msg_011CfM8TSsyYZhz8uUxgorHt",
+    "usage": {
+      "inputTokens": 2,
+      "outputTokens": 20,
+      "cacheReadTokens": 3161,
+      "cacheWriteTokens": 1308,
+      "cumulative": true
+    }
+  },
+  {
+    "seq": 7,
+    "type": "ext.anthropic.frame",
+    "kind": "user",
+    "frame": {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Reply 'ok'."
+          }
+        ]
+      },
+      "parent_tool_use_id": "toolu_01RAd37zdqGdGedvqZiPjJno",
+      "session_id": "ecce8696-df87-4610-9394-20574e16568e",
+      "uuid": "15953fa2-ebdc-4427-9713-8b94b53e1684",
+      "timestamp": "2026-09-23T22:05:07.095Z",
+      "subagent_type": "checker",
+      "task_description": "Ask checker to reply ok"
+    }
+  },
+  {
+    "type": "subagent.start",
+    "seq": 8,
+    "turnId": "turn_15953fa2-ebdc-4427-9713-8b94b53e1684",
+    "parentTurnId": "turn_toolu_01RAd37zdqGdGedvqZiPjJno"
+  },
+  {
+    "seq": 9,
+    "type": "ext.anthropic.frame",
+    "kind": "task_updated",
+    "frame": {
+      "type": "system",
+      "subtype": "task_updated",
+      "task_id": "acae1a313acffe965",
+      "patch": {
+        "status": "failed",
+        "end_time": 1790201107796,
+        "error": "Agent terminated early due to an API error: There's an issue with the selected model (claude-nonexistent-0). It may not exist or you may not have access to it. (error type model_not_found, HTTP 404, request id req_011CfM8TeYD8afMYNiCByEgr, model sent to the API: claude-nonexistent-0)"
+      },
+      "uuid": "b7e4ea23-3186-4b48-8b7d-8bb11ae073ce",
+      "session_id": "ecce8696-df87-4610-9394-20574e16568e"
+    }
+  },
+  {
+    "seq": 10,
+    "type": "ext.anthropic.frame",
+    "kind": "task_notification",
+    "frame": {
+      "type": "system",
+      "subtype": "task_notification",
+      "task_id": "acae1a313acffe965",
+      "tool_use_id": "toolu_01RAd37zdqGdGedvqZiPjJno",
+      "status": "failed",
+      "output_file": "<redacted-path>",
+      "summary": "Agent terminated early due to an API error: There's an issue with the selected model (claude-nonexistent-0). It may not exist or you may not have access to it. (error type model_not_found, HTTP 404, request id req_011CfM8TeYD8afMYNiCByEgr, model sent to the API: claude-nonexistent-0)",
+      "uuid": "52e6fdf9-1d36-4d84-a6b6-8df0819cc313",
+      "session_id": "ecce8696-df87-4610-9394-20574e16568e"
+    }
+  },
+  {
+    "type": "turn.error",
+    "seq": 11,
+    "turnId": "turn_15953fa2-ebdc-4427-9713-8b94b53e1684",
+    "message": "Agent terminated early due to an API error: There's an issue with the selected model (claude-nonexistent-0). It may not exist or you may not have access to it. (error type model_not_found, HTTP 404, request id req_011CfM8TeYD8afMYNiCByEgr, model sent to the API: claude-nonexistent-0)",
+    "code": "failed"
+  },
+  {
+    "type": "subagent.done",
+    "seq": 12,
+    "turnId": "turn_15953fa2-ebdc-4427-9713-8b94b53e1684",
+    "parentTurnId": "turn_toolu_01RAd37zdqGdGedvqZiPjJno"
+  },
+  {
+    "type": "tool.done",
+    "seq": 13,
+    "turnId": "turn_msg_011CfM8TSsyYZhz8uUxgorHt",
+    "toolCallId": "toolu_01RAd37zdqGdGedvqZiPjJno",
+    "content": [
+      {
+        "type": "text",
+        "text": "Agent terminated early due to an API error: There's an issue with the selected model (claude-nonexistent-0). It may not exist or you may not have access to it. (error type model_not_found, HTTP 404, request id req_011CfM8TeYD8afMYNiCByEgr, model sent to the API: claude-nonexistent-0)"
+      }
+    ],
+    "outcome": "error",
+    "isError": true,
+    "messageId": "toolu_01RAd37zdqGdGedvqZiPjJno:result"
+  },
+  {
+    "type": "message.start",
+    "seq": 14,
+    "id": "msg_011CfM8TgBfyxk5CA4dKWcne",
+    "turnId": "turn_msg_011CfM8TSsyYZhz8uUxgorHt",
+    "threadId": "ecce8696-df87-4610-9394-20574e16568e",
+    "role": "assistant",
+    "model": "claude-sonnet-5"
+  },
+  {
+    "type": "text.start",
+    "seq": 15,
+    "id": "msg_011CfM8TgBfyxk5CA4dKWcne:text:0",
+    "messageId": "msg_011CfM8TgBfyxk5CA4dKWcne",
+    "turnId": "turn_msg_011CfM8TSsyYZhz8uUxgorHt"
+  },
+  {
+    "type": "text.delta",
+    "seq": 16,
+    "id": "msg_011CfM8TgBfyxk5CA4dKWcne:text:0",
+    "messageId": "msg_011CfM8TgBfyxk5CA4dKWcne",
+    "delta": "The checker subagent call failed — it didn't reply \"ok\". The invocation errored out with an API error: the model configured for that agent (`claude-nonexistent-0`) doesn't exist / isn't accessible (HTTP 404, model_not_found). So the task wasn't completed due to a misconfiguration on the agent's model setting, not something I can retry around.",
+    "turnId": "turn_msg_011CfM8TSsyYZhz8uUxgorHt"
+  },
+  {
+    "type": "text.end",
+    "seq": 17,
+    "id": "msg_011CfM8TgBfyxk5CA4dKWcne:text:0",
+    "messageId": "msg_011CfM8TgBfyxk5CA4dKWcne",
+    "turnId": "turn_msg_011CfM8TSsyYZhz8uUxgorHt"
+  },
+  {
+    "type": "message.end",
+    "seq": 18,
+    "id": "msg_011CfM8TgBfyxk5CA4dKWcne",
+    "usage": {
+      "inputTokens": 2,
+      "outputTokens": 1,
+      "cacheReadTokens": 4469,
+      "cacheWriteTokens": 297,
+      "cumulative": true
+    }
+  },
+  {
+    "seq": 19,
+    "type": "ext.anthropic.result-meta",
+    "fastModeDisabledReason": "sdk_opt_in_required",
+    "queuedTurnCount": 0,
+    "resultIndex": 0,
+    "subagentStats": {
+      "spawned": 1,
+      "requested": {
+        "background": 0,
+        "foreground": 1,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 1,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 1,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {
+        "checker": 1
+      }
+    },
+    "modelUsage": {
+      "claude-haiku-4-5-20251001": {
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-sonnet-5": {
+        "canonicalModel": "claude-sonnet-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    }
+  },
+  {
+    "type": "turn.done",
+    "seq": 20,
+    "turnId": "turn_msg_011CfM8TSsyYZhz8uUxgorHt",
+    "outcome": {
+      "type": "success",
+      "result": "The checker subagent call failed — it didn't reply \"ok\". The invocation errored out with an API error: the model configured for that agent (`claude-nonexistent-0`) doesn't exist / isn't accessible (HTTP 404, model_not_found). So the task wasn't completed due to a misconfiguration on the agent's model setting, not something I can retry around."
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 4,
+      "outputTokens": 256,
+      "cacheReadTokens": 7630,
+      "cacheWriteTokens": 1605,
+      "reasoningTokens": 0,
+      "serverToolRequests": 0,
+      "costUsd": 0.0090865,
+      "cumulative": true,
+      "byModel": {
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 910,
+          "outputTokens": 14,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "costUsd": 0.00098,
+          "serverToolRequests": 0,
+          "cumulative": true
+        },
+        "claude-sonnet-5": {
+          "inputTokens": 4,
+          "outputTokens": 256,
+          "cacheReadTokens": 7630,
+          "cacheWriteTokens": 1605,
+          "reasoningTokens": 0,
+          "costUsd": 0.008106499999999999,
+          "serverToolRequests": 0,
+          "cumulative": true
+        }
+      }
+    }
+  }
+]
