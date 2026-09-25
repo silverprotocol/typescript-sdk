@@ -2665,6 +2665,235 @@ describe("createOpenaiNormalizer — HO handoff close (the transfer result + the
   });
 });
 
+// HO-2 — handoff brackets that never get handoff_occurred (the handoff-drop
+// review's PS-4 finding). agents-core <=0.8.0 streams a
+// handoff_requested for EVERY transfer the model calls but runs only the
+// first: each ignored one gets a tool_output "Multiple handoffs detected,
+// ignoring this one." (0.8.0 toolExecution.mjs:750-755) and no
+// handoff_occurred. (agents-core 0.18.0 builds an `aborted` result per handoff
+// call when the run's signal aborts, but its cancelled stream drops it
+// (result.mjs #cancelStream): that shape is pinned here as a defensive leg,
+// not a wire the streamed SDK produces.) A tool_output
+// for a call whose bracket is open means that handoff never ran: its nested
+// turn closes there with turn.abort + subagent.done (§8.0 item 29: stopped ⇒
+// aborted), and brackets are matched by callId, not FIFO.
+describe("createOpenaiNormalizer — HO-2 handoff brackets closed by a tool_output (<=0.8.0 peers)", () => {
+  function fc(callId: string, name: string): JsonValue[] {
+    return [
+      rawModel({ type: "response.output_item.added", item: { id: `fc_${callId}`, type: "function_call", status: "in_progress", arguments: "", call_id: callId, name } }),
+      rawModel({ type: "response.function_call_arguments.done", item_id: `fc_${callId}`, arguments: "{}" }),
+    ];
+  }
+  const requested = (callId: string, name: string): JsonValue =>
+    runItem("handoff_requested", {
+      type: "handoff_call_item",
+      rawItem: { type: "function_call", name, callId, status: "completed", arguments: "{}" },
+      agent: { name: "spike" },
+    });
+  const occurred = (callId: string, name: string, target: string): JsonValue =>
+    runItem("handoff_occurred", {
+      type: "handoff_output_item",
+      rawItem: { type: "function_call_result", name, callId, status: "completed", output: { type: "text", text: `{"assistant":"${target}"}` } },
+      sourceAgent: { name: "spike" },
+      targetAgent: { name: target },
+    });
+  const IGNORED = "Multiple handoffs detected, ignoring this one.";
+  const ignoredOutput = (callId: string, name: string): JsonValue =>
+    runItem("tool_output", {
+      type: "tool_call_output_item",
+      rawItem: { type: "function_call_result", name, callId, status: "completed", output: IGNORED },
+      output: IGNORED,
+    });
+  const abortedOutput = (callId: string, name: string): JsonValue =>
+    runItem("tool_output", {
+      type: "tool_call_output_item",
+      rawItem: { type: "function_call_result", name, callId, status: "incomplete", output: { type: "text", text: "aborted" } },
+      output: "aborted",
+    });
+  const src = (id: string, calls: [string, string][]): JsonValue[] => [
+    rawModel({ type: "response.created", response: { id } }),
+    ...calls.flatMap(([c, n]) => fc(c, n)),
+    rawModel({ type: "response.completed", response: { id, status: "completed" } }),
+  ];
+  const echoRound: JsonValue[] = [
+    rawModel({ type: "response.created", response: { id: "resp_ho2_echo" } }),
+    rawModel({ type: "response.output_text.delta", item_id: "m_echo", delta: "x" }),
+    rawModel({ type: "response.completed", response: { id: "resp_ho2_echo", status: "completed" } }),
+  ];
+  function run(s: JsonValue[]): AgEvent[] {
+    const n = createOpenaiNormalizer({ invokeId: "inv1" });
+    return s.flatMap((e) => n.push(e)).concat(n.flush());
+  }
+  function fold(evs: AgEvent[]): Reducer {
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    return r;
+  }
+  const terminalsOf = (evs: AgEvent[], tid: string): AgEvent[] =>
+    evs.filter((e) => (e.type === "turn.done" || e.type === "turn.abort" || e.type === "turn.error") && e.turnId === tid);
+  /** §10 item 36 per nested turn: exactly one terminal, subagent.done right after it, no usage. */
+  function expectClosedBracket(evs: AgEvent[], tid: string, type: "turn.done" | "turn.abort"): void {
+    const terms = terminalsOf(evs, tid);
+    expect(terms).toHaveLength(1);
+    expect(terms[0]?.type).toBe(type);
+    expect(terms[0]).not.toHaveProperty("usage");
+    const i = evs.findIndex((e) => e === terms[0]);
+    expect(evs[i + 1]).toMatchObject({ type: "subagent.done", turnId: tid });
+  }
+
+  // agents-core <=0.8.0, two transfers: A runs, B is ignored.
+  const OLD_TWO: JsonValue[] = [
+    ...src("resp_ho2_src", [["call_a", "transfer_to_Echoer"], ["call_b", "transfer_to_Shouter"]]),
+    requested("call_a", "transfer_to_Echoer"),
+    requested("call_b", "transfer_to_Shouter"),
+    ignoredOutput("call_b", "transfer_to_Shouter"),
+    occurred("call_a", "transfer_to_Echoer", "Echoer"),
+    ...echoRound,
+  ];
+
+  it("<=0.8.0, two transfers: the ignored one's bracket closes AT its tool_output (turn.abort, then subagent.done), before its tool.done; nothing is left for flush", () => {
+    const n = createOpenaiNormalizer({ invokeId: "inv1" });
+    const isIgnored = (e: JsonValue): boolean =>
+      typeof e === "object" && e !== null && !Array.isArray(e) && e["name"] === "tool_output";
+    for (const e of OLD_TWO.slice(0, OLD_TWO.findIndex(isIgnored))) n.push(e);
+    const batch = n.push(ignoredOutput("call_b", "transfer_to_Shouter"));
+    expect(batch.map((e) => [e.type, "turnId" in e ? e.turnId : undefined])).toEqual([
+      ["turn.abort", "turn_inv1_handoff_2"],
+      ["subagent.done", "turn_inv1_handoff_2"],
+      ["tool.done", "turn_resp_ho2_src"],
+    ]);
+    // An existing optional field left absent: no reason value is invented.
+    expect(batch[0]).not.toHaveProperty("reason");
+    expect(batch[2]).toMatchObject({ toolCallId: "call_b", content: [{ type: "text", text: IGNORED }], outcome: "ok" });
+  });
+
+  it("<=0.8.0, two transfers, whole stream: each nested turn has exactly one terminal (the run one success, the ignored one aborted); handoff owned by the SOURCE turn; source success; no park; §10.36 fold identical", () => {
+    const evs = run(OLD_TWO);
+    expectClosedBracket(evs, "turn_inv1_handoff_1", "turn.done");
+    expectClosedBracket(evs, "turn_inv1_handoff_2", "turn.abort");
+    expect(evs.find((e) => e.type === "handoff")).toMatchObject({ turnId: "turn_resp_ho2_src", toAgentName: "Echoer" });
+    expect(evs.find((e) => e.type === "turn.done" && e.turnId === "turn_resp_ho2_src")).toMatchObject({ outcome: { type: "success" } });
+    // Nothing is closed at flush: every abort happened in push().
+    expect(evs.filter((e) => e.type === "turn.abort")).toHaveLength(1);
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    expect(res.turns.find((t) => t.turnId === "turn_inv1_handoff_2")?.outcome).toMatchObject({ type: "aborted" });
+    expect(res.turns.find((t) => t.turnId === "turn_resp_ho2_src")?.handoffs).toMatchObject([{ toAgentName: "Echoer" }]);
+    expect(res.turns.find((t) => t.turnId === "turn_inv1_handoff_1")).not.toHaveProperty("handoffs");
+    const without = evs.filter((e) => e.type !== "subagent.done").map((e, seq) => ({ ...e, seq }));
+    expect(fold(without).result()).toEqual(res);
+  });
+
+  it("<=0.8.0, THREE transfers (two ignored): each ignored bracket closes at its own tool_output, distinct nested turns, no flush close", () => {
+    const evs = run([
+      ...src("resp_ho2_three", [["call_a", "transfer_to_Echoer"], ["call_b", "transfer_to_Shouter"], ["call_c", "transfer_to_Whisperer"]]),
+      requested("call_a", "transfer_to_Echoer"),
+      requested("call_b", "transfer_to_Shouter"),
+      requested("call_c", "transfer_to_Whisperer"),
+      ignoredOutput("call_b", "transfer_to_Shouter"),
+      ignoredOutput("call_c", "transfer_to_Whisperer"),
+      occurred("call_a", "transfer_to_Echoer", "Echoer"),
+    ]);
+    expectClosedBracket(evs, "turn_inv1_handoff_1", "turn.done");
+    expectClosedBracket(evs, "turn_inv1_handoff_2", "turn.abort");
+    expectClosedBracket(evs, "turn_inv1_handoff_3", "turn.abort");
+    expect(evs.filter((e) => e.type === "turn.abort").map((e) => ("turnId" in e ? e.turnId : undefined))).toEqual([
+      "turn_inv1_handoff_2",
+      "turn_inv1_handoff_3",
+    ]);
+    expect(evs.find((e) => e.type === "turn.done" && e.turnId === "turn_resp_ho2_three")).toMatchObject({ outcome: { type: "success" } });
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("defensive (not a streamed 0.18.0 wire: its cancelled stream drops these), two transfers each with an `aborted` tool_output: both brackets abort, both tool.done are errors, no handoff event; the drain releases the source round's close", () => {
+    const evs = run([
+      ...src("resp_ho2_abort", [["call_a", "transfer_to_Echoer"], ["call_b", "transfer_to_Shouter"]]),
+      requested("call_a", "transfer_to_Echoer"),
+      requested("call_b", "transfer_to_Shouter"),
+      abortedOutput("call_a", "transfer_to_Echoer"),
+      abortedOutput("call_b", "transfer_to_Shouter"),
+    ]);
+    expectClosedBracket(evs, "turn_inv1_handoff_1", "turn.abort");
+    expectClosedBracket(evs, "turn_inv1_handoff_2", "turn.abort");
+    expect(evs.some((e) => e.type === "handoff")).toBe(false);
+    expect(evs.filter((e) => e.type === "tool.done").map((e) => [Reflect.get(e, "toolCallId"), Reflect.get(e, "outcome")])).toEqual([
+      ["call_a", "error"],
+      ["call_b", "error"],
+    ]);
+    // Only the two nested aborts: the source round closed in push(), not at flush.
+    expect(evs.filter((e) => e.type === "turn.abort")).toHaveLength(2);
+    expect(terminalsOf(evs, "turn_resp_ho2_abort")).toHaveLength(1);
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("brackets are matched by callId, not FIFO: handoff_occurred for the SECOND requested call closes the second bracket", () => {
+    const evs = run([
+      ...src("resp_ho2_order", [["call_a", "transfer_to_Echoer"], ["call_b", "transfer_to_Shouter"]]),
+      requested("call_a", "transfer_to_Echoer"),
+      requested("call_b", "transfer_to_Shouter"),
+      ignoredOutput("call_a", "transfer_to_Echoer"),
+      occurred("call_b", "transfer_to_Shouter", "Shouter"),
+    ]);
+    expectClosedBracket(evs, "turn_inv1_handoff_1", "turn.abort");
+    expectClosedBracket(evs, "turn_inv1_handoff_2", "turn.done");
+    expect(terminalsOf(evs, "turn_inv1_handoff_2")[0]).toMatchObject({ outcome: { type: "success" } });
+  });
+
+  it("a handoff_occurred naming NO open bracket is an orphan: it closes nothing, though other brackets are open", () => {
+    const evs = run([
+      ...src("resp_ho2_orphan", [["call_a", "transfer_to_Echoer"]]),
+      requested("call_a", "transfer_to_Echoer"),
+      occurred("call_zz", "transfer_to_Echoer", "Echoer"),
+    ]);
+    expect(evs.filter((e) => e.type === "subagent.done")).toHaveLength(0);
+    // The still-open bracket is closed by the flush (INV-FLUSH), never success.
+    expect(terminalsOf(evs, "turn_inv1_handoff_1")).toMatchObject([{ type: "turn.abort", reason: "stream-truncated" }]);
+  });
+
+  it("handoff_occurred while ANOTHER bracket is still open: the handoff is owned by the source turn, not the last-restored nested turn", () => {
+    const evs = run([
+      ...src("resp_ho2_open", [["call_a", "transfer_to_Echoer"], ["call_b", "transfer_to_Shouter"]]),
+      requested("call_a", "transfer_to_Echoer"),
+      requested("call_b", "transfer_to_Shouter"),
+      occurred("call_a", "transfer_to_Echoer", "Echoer"),
+      ignoredOutput("call_b", "transfer_to_Shouter"),
+    ]);
+    expect(evs.find((e) => e.type === "handoff")).toMatchObject({ turnId: "turn_resp_ho2_open" });
+    expectClosedBracket(evs, "turn_inv1_handoff_1", "turn.done");
+    expectClosedBracket(evs, "turn_inv1_handoff_2", "turn.abort");
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.find((t) => t.turnId === "turn_resp_ho2_open")?.handoffs).toMatchObject([{ toAgentName: "Echoer" }]);
+  });
+
+  it("a bracket closes once: a second result for the same transfer call closes nothing more", () => {
+    const evs = run([
+      ...src("resp_ho2_twice", [["call_a", "transfer_to_Echoer"], ["call_b", "transfer_to_Shouter"]]),
+      requested("call_a", "transfer_to_Echoer"),
+      requested("call_b", "transfer_to_Shouter"),
+      abortedOutput("call_b", "transfer_to_Shouter"),
+      abortedOutput("call_b", "transfer_to_Shouter"),
+      occurred("call_a", "transfer_to_Echoer", "Echoer"),
+    ]);
+    expect(terminalsOf(evs, "turn_inv1_handoff_2")).toHaveLength(1);
+    expect(evs.filter((e) => e.type === "subagent.done" && e.turnId === "turn_inv1_handoff_2")).toHaveLength(1);
+  });
+
+  it("negative control: a tool_output for an ordinary function call (no bracket) emits no turn.abort and no subagent.done", () => {
+    const evs = run([
+      ...src("resp_ho2_plain", [["call_p", "echo"]]),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "function_call_result", name: "echo", callId: "call_p", status: "completed", output: "hi" },
+        output: "hi",
+      }),
+    ]);
+    expect(evs.some((e) => e.type === "turn.abort" || e.type === "subagent.done")).toBe(false);
+    expect(evs.find((e) => e.type === "turn.done")).toMatchObject({ outcome: { type: "success" } });
+  });
+});
+
 describe("createOpenaiNormalizer — compaction_item_created (0.14.3)", () => {
   it("⇒ content.block{type:'compaction'} with the ciphertext opaque — converging with the claude facet's compaction vocabulary", () => {
     const n = createOpenaiNormalizer();

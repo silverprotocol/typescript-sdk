@@ -1537,14 +1537,24 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
   let lastTopLevelTurnId: string | undefined;
   // Per-invoke ordinal for the synthetic subagent turnId (`turn_handoff_<n>`).
   let handoffOrdinal = 0;
-  // FIFO queue of open handoff brackets awaiting their matching
-  // `handoff_occurred` (paired turnId + the SAME parentTurnId `subagentStart`
-  // used — `subagentDone` must replay it verbatim, mirroring the
-  // claude-agent-sdk facet's paired start/done convention). Only one handoff
-  // genuinely executes per round on the real wire (`executeHandoffCalls`
-  // rejects the rest), so in practice at most one entry is ever open — FIFO
-  // is the defensively-correct match rule regardless.
-  const openHandoffs: { turnId: string; parentTurnId: string }[] = [];
+  // Open handoff brackets, keyed by the transfer call's callId (paired turnId
+  // + the SAME parentTurnId `subagentStart` used — `subagentDone` must replay
+  // it verbatim, mirroring the claude-agent-sdk facet's paired start/done
+  // convention). HO-2 (the handoff-drop review, PS-4): matched by callId,
+  // not FIFO, because agents-core <=0.8.0 opens a bracket for EVERY transfer
+  // the model calls but runs only the first: a bracket closes at
+  // `handoff_occurred` for its own call, or at that call's `tool_output` (the
+  // handoff never ran).
+  const openHandoffs: { turnId: string; parentTurnId: string; callId: string }[] = [];
+
+  /** HO-2: remove and return the open bracket for `callId`, if any. */
+  function takeOpenHandoff(callId: string): { turnId: string; parentTurnId: string; callId: string } | undefined {
+    const i = openHandoffs.findIndex((h) => h.callId === callId);
+    if (i === -1) return undefined;
+    const open = openHandoffs[i];
+    openHandoffs.splice(i, 1);
+    return open;
+  }
 
   // Per-instance tool state (T5b — replaces the module-level statics for the factory path).
   // fc_… item id → model call_id correlation, populated by response.output_item.added
@@ -2943,6 +2953,26 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
           // could misattribute it) and pass it through so toolDone binds to the
           // correct — possibly already-closed-pending-this-result — turn.
           const doneTurnId = resolvePendingTurnId(rawItem.callId);
+          // HO-2 (the handoff-drop review, PS-4): a result for a transfer call
+          // whose bracket is still open means that handoff never ran —
+          // agents-core <=0.8.0's "Multiple handoffs detected, ignoring this
+          // one." (0.8.0 toolExecution.mjs:750-755), the one streamed producer.
+          // (agents-core 0.18.0 also builds an `aborted` result per handoff call
+          // when the run's signal aborts, turnResolution.mjs:1039-1044, but the
+          // aborted stream is cancelled first and drops every later item,
+          // result.mjs #cancelStream / _addItem, so on a stream that shape is
+          // defensive only.) The sub-run was
+          // stopped, so its nested turn closes here with turn.abort (§8.0 item
+          // 29), carrying no reason (no existing value names it), then
+          // subagent.done; the result itself lands as the call's tool.done.
+          // "Stopped" is read from the item TYPE — a tool result arrived where
+          // this transfer's handoff output was due — never from the result's
+          // text: no string is matched.
+          const unrun = takeOpenHandoff(rawItem.callId);
+          if (unrun !== undefined) {
+            a.emit({ type: "turn.abort", turnId: unrun.turnId });
+            a.subagentDone(unrun.turnId, unrun.parentTurnId);
+          }
           // Caller provenance (0.14.0) — the result item's own optional field,
           // distinct from the call-side carry on tool.start — and the 0.15.0
           // wrapper-level `executionStatus` marker (see the projection's doc):
@@ -3013,7 +3043,8 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
           // 0.2.1 peer dep's `events.d.ts` — `RunItemStreamEventName` includes
           // `'handoff_occurred'`). So the nested-turn lifecycle IS determinable:
           // bracket the transfer with `subagentStart` now / `subagentDone` at the
-          // matching `handoff_occurred` below (FIFO via `openHandoffs`).
+          // matching `handoff_occurred` below (by callId via `openHandoffs`; or at
+          // the call's `tool_output` when the handoff never ran — HO-2).
           //
           // `item.agent` (real d.ts naming) is the SOURCE agent — the one whose
           // LLM call produced this handoff call — NOT the transfer target (see
@@ -3031,7 +3062,7 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
           const ordinal = ++handoffOrdinal;
           const handoffTurnId = `turn_${invokeStem}_handoff_${ordinal}`;
           const parentTurnId = lastTopLevelTurnId ?? threadId;
-          openHandoffs.push({ turnId: handoffTurnId, parentTurnId });
+          openHandoffs.push({ turnId: handoffTurnId, parentTurnId, callId: event.item.rawItem.callId });
           a.subagentStart(handoffTurnId, parentTurnId);
           return;
         }
@@ -3045,7 +3076,7 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
           // never fabricated from a name (no agent-id concept exists anywhere on
           // this seam, unlike google-adk's per-message agentId/agentName).
           const item = event.item;
-          const open = openHandoffs.shift(); // FIFO — see openHandoffs' doc.
+          const open = takeOpenHandoff(item.rawItem.callId); // by callId — see openHandoffs' doc.
           if (open !== undefined) {
             // draft.4 nested-run closure (§8.0 item 29, §10 item 36; sp-protocol's
             // nested-turn package A.6): the bracket closes with its own terminal,
@@ -3075,10 +3106,16 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
           // still emit the `handoff` event losslessly rather than dropping the
           // now-known identity (Tenet 6) — it just doesn't close anything. It
           // precedes the tool.done, which may close the source round.
+          // HO-2: the handoff is owned by the SOURCE turn, explicitly. With two
+          // brackets open (agents-core <=0.8.0) the engine's backfill would pick
+          // the last-restored nested turn; on every single-bracket stream this is
+          // the value the backfill gave.
+          const handoffOwner = doneTurnId ?? ("turnId" in owner ? owner.turnId : undefined) ?? open?.parentTurnId;
           a.emit({
             type: "handoff",
             kind: "transfer",
             toAgentName: item.targetAgent.name,
+            ...(handoffOwner !== undefined ? { turnId: handoffOwner } : {}),
           });
           a.toolDone({
             toolCallId: result.callId,
