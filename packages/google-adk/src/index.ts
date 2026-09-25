@@ -56,6 +56,18 @@
  * serialized from Python: fed that resume, it would repeat `turn_${invocationId}`
  * (and the message id derived from it) across the fold. Supporting that path
  * needs a per-invoke stem; it is queued, not part of this release.
+ *
+ * NOTE on the Live (bidi) path: a barge-in (`interrupted: true`, from ADK's live
+ * aggregator) closes the turn as `turn.abort{interrupted}` after the event's own
+ * content and its message.end, so ONE barge-in per invoke folds cleanly. One
+ * live session is one ADK invocation, and so one turn here: a second barge-in,
+ * or model content after the turn has closed (a completed reply closes it,
+ * unless `hostCompletion` defers that close), lands in a closed turn, and a
+ * reducer parks on it. That lasts until turns are minted per generation, which
+ * is queued with the per-invoke stem for 0.8.0. Separately, when text is
+ * buffered at the interrupt, ADK yields only the text aggregate, without the
+ * flag (utils/live_connection_utils.js, @google/adk 2.1.0), so this facet sees
+ * no interrupt and the turn closes at flush as `stream-truncated`.
  */
 import {
   type AgEvent,
@@ -1431,7 +1443,6 @@ function driveAdkTopLevel(
   event: AdkEvent,
   messageId: string,
   turnId: string,
-  closedTurns: Set<string>,
   pendingAsks: Map<string, AgPausedAsk[]>,
   reserved: ReservedAskState
 ): void {
@@ -2226,7 +2237,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, stem: IdStem): 
     // per-invoke.
 
     if (!isPartial) trackLongRunning(event, turnId);
-    driveAdkTopLevel(a, event, messageId, turnId, closedTurns, pendingAsks, reserved); // standalone/content arms (Tasks 4–5)
+    driveAdkTopLevel(a, event, messageId, turnId, pendingAsks, reserved); // standalone/content arms (Tasks 4–5)
     // A turn gets ONE terminal: an interrupt on a turn that already closed
     // (a second barge-in, or one after a success close) adds none.
     if (event.interrupted === true && !closedTurns.has(turnId)) interruptPending.add(turnId);
