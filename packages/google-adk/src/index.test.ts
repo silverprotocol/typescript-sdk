@@ -1437,6 +1437,8 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
       { authType: "apiKey", apiKey: "SECRET_fake_api_key" },
       { auth_type: "apiKey", api_key: "SECRET_fake_api_key_snake" },
       { authType: "apiKey", apiKey: "SECRET_fake_api_key", cart: 3 },
+      { auth_type: "apiKey", api_key: "SECRET_s", cart: 3 },
+      { auth_type: "oauth2", oauth2: { client_secret: "SECRET_cs", access_token: "SECRET_at" }, cart: 3 },
       httpBearer,
       oauth2Exchanged,
     ];
@@ -1444,6 +1446,15 @@ describe("createAdkNormalizer — ADK auth objects are carried through an allowl
       const { out, patch } = patchOf(stateDelta);
       expect(patch, JSON.stringify(stateDelta)).toEqual({});
       expect(foldedState(out), JSON.stringify(stateDelta)).toEqual({});
+      expectNoSecretAnywhere(out);
+    }
+    // After an ordinary patch, an emptied one leaves the earlier state as it was.
+    {
+      const n = createAdkNormalizer();
+      const ev = (stateDelta: JsonValue) => ({ invocationId: "inv_fixture_1", author: "agent", content: { role: "model", parts: [{ text: "ok" }] }, actions: { stateDelta } });
+      const out = [...n.push(ev({ cart: 2 })), ...n.push(ev({ authType: "apiKey", apiKey: "SECRET_e", cart: 3 })), ...n.flush()];
+      expect(stateDeltaOf(out)).toEqual([{ cart: 2 }, {}]);
+      expect(foldedState(out)).toEqual({ cart: 2 });
       expectNoSecretAnywhere(out);
     }
     // The same object as one entry: that entry is omitted, the rest rides.
