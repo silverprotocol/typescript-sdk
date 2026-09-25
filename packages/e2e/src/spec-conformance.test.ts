@@ -185,6 +185,13 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 46, leg: "claude", title: "OpenAI handoff round release (draft.5)", disposition: "N/A", citation: "§8.0 item 14 applicability: the release binds OpenAI-Agents-targeting normalizers" },
   { n: 46, leg: "adk", title: "OpenAI handoff round release (draft.5)", disposition: "N/A", citation: "§8.0 item 14 applicability: the release binds OpenAI-Agents-targeting normalizers" },
   { n: 46, leg: "vercel", title: "OpenAI handoff round release (draft.5)", disposition: "N/A", citation: "§8.0 item 14 applicability: the release binds OpenAI-Agents-targeting normalizers" },
+  { n: 47, leg: "reducer", title: "Cross-invoke tool result (draft.5, §5.0 INV-XINV): a paused invoke then a 0-restart invoke landing tool.done {turnId, messageId:\"x:result\"} folds with no resync, the result in a role:\"tool\" message of the second turn; one tool-call and one tool-result for the id in different turns", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.47(reducer), reference Reducer + reduce()" },
+  { n: 47, leg: "reducer-reuse", title: "Cross-invoke tool result (draft.5): four invokes reusing toolCallId x, each landing invoke's turnId unique and its messageId \"<turnId>:x:result\", fold with no resync into two role:\"tool\" messages, each in its landing invoke's turn", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.47(reducer-reuse)" },
+  { n: 47, leg: "pair-openai", title: "Cross-invoke tool result (draft.5): approval-tool-gpt6sol with its resume-approve and resume-reject goldens — each invoke and the pair through one Reducer fold with no resync; the resume has no tool.start and exactly one tool.done for the carried callId, in its own turn, on a messageId the earlier invoke never used, as a role:\"tool\" message; the earlier turn record unchanged", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.47(pair-openai) over the enrolled goldens" },
+  { n: 47, leg: "pair-claude", title: "Cross-invoke tool result (draft.5): defer-tool-sonnet5 with its resume-allow and resume-deny goldens — the same id and fold assertions; the allowed resume lands outcome ok and the denied resume outcome denied with neither errorText nor isError", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.47(pair-claude) over the committed goldens (the resume legs are enrolled in replay at the cohort's regen)" },
+  { n: 47, leg: "pair-claude-paused-close", title: "Claude deferred pause (draft.5, §8.0 item 32): the deferring invoke's last terminal is turn.done{paused, finishReason paused, no finishReasonRaw} from push() with exactly one approval ask naming the deferred id, preceded by a hitl.ask with the same askId", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.47(pair-claude-paused-close) over the defer-tool-sonnet5 golden (red until the cohort's claude-agent-sdk change and its regen land)" },
+  { n: 47, leg: "pair-vercel", title: "Cross-invoke tool result (draft.5): a streamText call whose initial pass settles a prior call's approval, as a synthetic pair — the prior-call result lands as a role:\"tool\" message on messageId \"<toolCallId>:result\" with no resync", disposition: "COVERED-BY", citation: "PENDING the vercel-ai prior-call messageId flip (probe, this cohort): until it lands, vercel-ai/src/index.test.ts:1579-1581 asserts NO messageId and :1586 pins the park (the 0.7.x KNOWN GAP), so this row cites no test yet; the flip's push replaces this citation with the flipped arms" },
+  { n: 47, leg: "adk", title: "Cross-invoke tool result (draft.5)", disposition: "N/A", citation: "§8 applicability: no committed ADK two-invoke pair; ADK's confirmation reply opens a new invocation and is a later leg" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -2829,5 +2836,121 @@ describe("§10.46 — OpenAI handoff round release (draft.5; §8.0 item 14)", ()
     expect(end?.["usage"]).toBeUndefined();
     expect(folded.result.turns.find((t) => t.turnId === sourceTurn)?.outcome?.type).toBe("success");
     expect(folded.result.turns.every((t) => t.outcome?.type === "success")).toBe(true);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.47 — Cross-invoke tool result and the Claude deferred pause (draft.5;
+// §5.0 INV-XINV, §8.0 item 32). Reducer legs on both reducers; producer legs
+// over the committed two-invoke goldens.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.47 — cross-invoke tool result and the Claude deferred pause (draft.5; §5.0 INV-XINV)", () => {
+  const P = (evs: Array<Record<string, unknown>>) => evs.map((e) => AgEvent.parse(e));
+  const both = (evs: AgEvent[]) => {
+    const live = new Reducer();
+    for (const e of evs) live.push(e);
+    const batch = reduce(evs);
+    expect(live.needsResync).toBe(batch.needsResync);
+    expect(live.result()).toEqual(batch.result);
+    return batch;
+  };
+  const corpus = new URL("../corpus/", import.meta.url);
+  const load = (dir: string, fw: string) => JSON.parse(readFileSync(new URL(`${dir}/${fw}.agjson.json`, corpus), "utf8")) as Array<Record<string, unknown>>;
+  const ask = { askId: "a1", kind: "approval", toolCallId: "x" };
+  const pausedInvoke = (turnId: string) => P([
+    { type: "turn.start", seq: 0, threadId: "T", turnId },
+    { type: "message.start", seq: 1, id: `m_${turnId}`, role: "assistant", turnId, threadId: "T" },
+    { type: "tool.start", seq: 2, toolCallId: "x", name: "lookup", turnId, messageId: `m_${turnId}` },
+    { type: "message.end", seq: 3, id: `m_${turnId}` },
+    { type: "hitl.ask", seq: 4, turnId, ...ask },
+    { type: "turn.done", seq: 5, turnId, outcome: { type: "paused", asks: [ask] }, finishReason: "paused" },
+  ]);
+  const landingInvoke = (turnId: string, messageId: string) => P([
+    { type: "turn.start", seq: 0, threadId: "T", turnId },
+    { type: "tool.done", seq: 1, toolCallId: "x", turnId, messageId, content: [{ type: "text", text: "r" }], outcome: "ok" },
+    { type: "turn.done", seq: 2, turnId, outcome: { type: "success" }, finishReason: "stop" },
+  ]);
+  const toolMsgs = (r: ReturnType<typeof reduce>, turnId: string) => r.result.messages.filter((m) => m.role === "tool" && m.turnId === turnId);
+  const blocksFor = (r: ReturnType<typeof reduce>, id: string, type: string) => r.result.messages.flatMap((m) => (m.content as Array<Record<string, unknown>>).filter((b) => b["type"] === type && b["toolCallId"] === id).map((b) => ({ turnId: m.turnId })));
+
+  it("(reducer) a paused invoke, then a 0-restart invoke landing tool.done{turnId, messageId:\"x:result\"}: no resync; the result in a role:\"tool\" message of the second turn; one tool-call and one tool-result for x in different turns", () => {
+    const r = both([...pausedInvoke("t1"), ...landingInvoke("t2", "x:result")]);
+    expect(r.needsResync).toBe(false);
+    expect(toolMsgs(r, "t2").map((m) => m.id)).toEqual(["x:result"]);
+    expect(blocksFor(r, "x", "tool-call")).toEqual([{ turnId: "t1" }]);
+    expect(blocksFor(r, "x", "tool-result")).toEqual([{ turnId: "t2" }]);
+  });
+  it("(reducer-reuse) four invokes reusing x, each landing on messageId \"<turnId>:x:result\": no resync; two role:\"tool\" messages, each in its landing invoke's turn", () => {
+    const r = both([...pausedInvoke("t1"), ...landingInvoke("t2", "t2:x:result"), ...pausedInvoke("t3"), ...landingInvoke("t4", "t4:x:result")]);
+    expect(r.needsResync).toBe(false);
+    expect(toolMsgs(r, "t2").map((m) => m.id)).toEqual(["t2:x:result"]);
+    expect(toolMsgs(r, "t4").map((m) => m.id)).toEqual(["t4:x:result"]);
+    expect(blocksFor(r, "x", "tool-result").map((b) => b.turnId).sort()).toEqual(["t2", "t4"]);
+  });
+  const pairAssertions = (first: Array<Record<string, unknown>>, second: Array<Record<string, unknown>>, label: string) => {
+    const carried = new Set(first.filter((e) => e["type"] === "tool.start").map((e) => e["toolCallId"] as string));
+    const results = second.filter((e) => e["type"] === "tool.done" && carried.has(e["toolCallId"] as string));
+    expect(results.length, `${label}: carried results`).toBeGreaterThan(0);
+    const firstTurns = new Set(first.filter((e) => e["type"] === "turn.start").map((e) => e["turnId"]));
+    const firstMsgs = new Set(first.filter((e) => e["type"] === "message.start").map((e) => e["id"]));
+    const secondTurnStarts = second.filter((e) => e["type"] === "turn.start").map((e) => e["turnId"]);
+    for (const td of results) {
+      expect(second.some((e) => e["type"] === "tool.start" && e["toolCallId"] === td["toolCallId"]), `${label}: no tool.start for the carried id`).toBe(false);
+      expect(second.filter((e) => e["type"] === "tool.done" && e["toolCallId"] === td["toolCallId"]).length, `${label}: exactly one tool.done`).toBe(1);
+      expect(td["more"]).not.toBe(true);
+      expect(secondTurnStarts.includes(td["turnId"]) && !firstTurns.has(td["turnId"]), `${label}: turn ${String(td["turnId"])} is the resume's own`).toBe(true);
+      expect(firstMsgs.has(td["messageId"]), `${label}: messageId reused`).toBe(false);
+    }
+    const one = reduce(ingestAgEvents(first as unknown as JsonValue[]));
+    const two = reduce(ingestAgEvents(second as unknown as JsonValue[]));
+    expect(one.needsResync, `${label}: first alone`).toBe(false);
+    expect(two.needsResync, `${label}: second alone`).toBe(false);
+    const pair = new Reducer();
+    for (const e of ingestAgEvents([...first, ...second] as unknown as JsonValue[])) pair.push(e);
+    expect(pair.needsResync, `${label}: pair`).toBe(false);
+    const folded = pair.result();
+    for (const td of results) {
+      const id = td["toolCallId"] as string;
+      const calls = folded.messages.flatMap((m) => (m.content as Array<Record<string, unknown>>).filter((b) => b["type"] === "tool-call" && b["toolCallId"] === id).map(() => m.turnId));
+      const res = folded.messages.flatMap((m) => (m.content as Array<Record<string, unknown>>).filter((b) => b["type"] === "tool-result" && b["toolCallId"] === id).map(() => ({ turnId: m.turnId, role: m.role })));
+      expect(calls, `${label}: one tool-call`).toHaveLength(1);
+      expect(res, `${label}: one tool-result`).toHaveLength(1);
+      expect(res[0]?.role).toBe("tool");
+      expect(res[0]?.turnId).not.toBe(calls[0]);
+    }
+    const firstTurnIds = [...firstTurns];
+    for (const tid of firstTurnIds) expect(folded.turns.find((t) => t.turnId === tid), `${label}: earlier turn record`).toEqual(one.result.turns.find((t) => t.turnId === tid));
+    return { results, folded };
+  };
+  it("(pair-openai) approval-tool-gpt6sol → resume-approve and → resume-reject: the id and fold assertions hold", () => {
+    const first = load("approval-tool-gpt6sol", "openai");
+    for (const leg of ["approve", "reject"]) pairAssertions(first, load(`approval-tool-gpt6sol-resume-${leg}`, "openai"), `openai ${leg}`);
+  });
+  it("(pair-claude) defer-tool-sonnet5 → resume-allow and → resume-deny: the id and fold assertions hold; allowed lands outcome ok, denied lands outcome denied with neither errorText nor isError", () => {
+    const first = load("defer-tool-sonnet5", "claude");
+    const allow = pairAssertions(first, load("defer-tool-sonnet5-resume-allow", "claude"), "claude allow");
+    expect(allow.results.every((td) => td["outcome"] === "ok")).toBe(true);
+    const deny = pairAssertions(first, load("defer-tool-sonnet5-resume-deny", "claude"), "claude deny");
+    for (const td of deny.results) {
+      expect(td["outcome"]).toBe("denied");
+      expect(td["errorText"]).toBeUndefined();
+      expect(td["isError"]).toBeUndefined();
+    }
+  });
+  it("(pair-claude-paused-close) defer-tool-sonnet5: the deferring invoke's last terminal is turn.done{paused, finishReason paused, no finishReasonRaw} with exactly one approval ask naming the deferred id, preceded by a hitl.ask with the same askId", () => {
+    const first = load("defer-tool-sonnet5", "claude");
+    const deferred = first.filter((e) => e["type"] === "tool.start").map((e) => e["toolCallId"] as string);
+    const terminals = first.filter((e) => ["turn.done", "turn.error", "turn.abort"].includes(e["type"] as string));
+    const last = terminals.at(-1) as Record<string, unknown>;
+    expect(last["type"]).toBe("turn.done");
+    expect((last["outcome"] as { type?: string })?.type).toBe("paused");
+    expect(last["finishReason"]).toBe("paused");
+    expect(last["finishReasonRaw"]).toBeUndefined();
+    const asks = (last["outcome"] as { asks?: Array<Record<string, unknown>> })?.asks ?? [];
+    expect(asks).toHaveLength(1);
+    expect(asks[0]?.["kind"]).toBe("approval");
+    expect(deferred).toContain(asks[0]?.["toolCallId"]);
+    expect(first.some((e) => e["type"] === "hitl.ask" && e["askId"] === asks[0]?.["askId"])).toBe(true);
   });
 });
