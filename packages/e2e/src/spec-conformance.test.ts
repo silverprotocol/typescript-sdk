@@ -180,6 +180,11 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 45, leg: "openai", title: "Host records are side metadata (draft.5)", disposition: "N/A", citation: "§8 applicability: the keys are the claude-agent-sdk facet's; the reducer leg binds every fold" },
   { n: 45, leg: "adk", title: "Host records are side metadata (draft.5)", disposition: "N/A", citation: "§8 applicability: the keys are the claude-agent-sdk facet's; the reducer leg binds every fold" },
   { n: 45, leg: "vercel", title: "Host records are side metadata (draft.5)", disposition: "N/A", citation: "§8 applicability: the keys are the claude-agent-sdk facet's; the reducer leg binds every fold" },
+  { n: 46, leg: "openai", title: "OpenAI handoff round release (draft.5, §8.0 item 14): legs a–e (the two-transfer stream releases the source round at handoff_occurred with its deferred outcome and usage; a late c2 output rides ext, never a tool.done; an early c2 output drains the round; a pending program call keeps it deferred), f′ (an acknowledged call keeps the round deferred; flush → message.end{U} then turn.abort), g (f's late output drains to turn.done{success, U}, with and without c2), h (an approval-pending call → turn.done{paused} naming only f's ask) and i (an unmapped run-item counts as a run-item)", disposition: "COVERED-BY", citation: "openai-agents/src/index.test.ts \"createOpenaiNormalizer — HO-P handoff round release (§8.0 item 14)\" (its \"§10.44 leg …\" cases carry the item's pre-landing number)" },
+  { n: 46, leg: "golden", title: "OpenAI handoff round release (draft.5): handoff-parallel-gpt6sol folds with no resync and no turn.abort; the source turn closes success with usage on its turn.done and none on its message.end; the ignored transfer keeps a tool.start with no tool.done and one ext.openai.dropped-call before the source terminal", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.46(golden)" },
+  { n: 46, leg: "claude", title: "OpenAI handoff round release (draft.5)", disposition: "N/A", citation: "§8.0 item 14 applicability: the release binds OpenAI-Agents-targeting normalizers" },
+  { n: 46, leg: "adk", title: "OpenAI handoff round release (draft.5)", disposition: "N/A", citation: "§8.0 item 14 applicability: the release binds OpenAI-Agents-targeting normalizers" },
+  { n: 46, leg: "vercel", title: "OpenAI handoff round release (draft.5)", disposition: "N/A", citation: "§8.0 item 14 applicability: the release binds OpenAI-Agents-targeting normalizers" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -2792,5 +2797,37 @@ describe("§10.45 — host records are side metadata (draft.5; §2.1)", () => {
       }
     }
     expect(files).toBeGreaterThan(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.46 — OpenAI handoff round release (draft.5; §8.0 item 14). The synthetic
+// legs a–i live in the openai-agents suite (COVERED-BY); the golden leg runs here.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.46 — OpenAI handoff round release (draft.5; §8.0 item 14)", () => {
+  it("(golden) handoff-parallel-gpt6sol: no resync, no turn.abort; the source turn closes success with usage on its turn.done and none on its message.end; the ignored transfer keeps a tool.start with no tool.done and one ext.openai.dropped-call before the source terminal", () => {
+    const evs = JSON.parse(readFileSync(new URL("../corpus/handoff-parallel-gpt6sol/openai.agjson.json", import.meta.url), "utf8")) as Array<Record<string, unknown>>;
+    expect(evs.some((e) => e["type"] === "turn.abort")).toBe(false);
+    const folded = reduce(ingestAgEvents(evs as unknown as JsonValue[]));
+    expect(folded.needsResync).toBe(false);
+    const starts = evs.filter((e) => e["type"] === "tool.start");
+    const dones = new Set(evs.filter((e) => e["type"] === "tool.done").map((e) => e["toolCallId"]));
+    const dropped = starts.filter((e) => !dones.has(e["toolCallId"]));
+    expect(dropped).toHaveLength(1);
+    const call = dropped[0] as Record<string, unknown>;
+    const sourceTurn = call["turnId"] as string;
+    const carries = evs.filter((e) => e["type"] === "ext.openai.dropped-call");
+    expect(carries).toHaveLength(1);
+    expect(carries[0]?.["toolCallId"]).toBe(call["toolCallId"]);
+    const terminal = evs.find((e) => e["type"] === "turn.done" && e["turnId"] === sourceTurn) as Record<string, unknown> | undefined;
+    expect(terminal).toBeDefined();
+    expect((terminal?.["outcome"] as { type?: string })?.type).toBe("success");
+    expect(terminal?.["usage"]).toBeDefined();
+    expect((carries[0]?.["seq"] as number) < (terminal?.["seq"] as number)).toBe(true);
+    const end = evs.filter((e) => e["type"] === "message.end" && (e["seq"] as number) < (terminal?.["seq"] as number)).at(-1) as Record<string, unknown> | undefined;
+    expect(end?.["usage"]).toBeUndefined();
+    expect(folded.result.turns.find((t) => t.turnId === sourceTurn)?.outcome?.type).toBe("success");
+    expect(folded.result.turns.every((t) => t.outcome?.type === "success")).toBe(true);
   });
 });
