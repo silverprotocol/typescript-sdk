@@ -5883,7 +5883,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     const r = fold(drive([apiErrorAssistantFrame(), apiErrorResultFrame()]));
     expect(r.needsResync).toBe(false);
     const turn = r.result().turns.find((t) => t.turnId === API_ERROR_TURN);
-    expect(turn?.outcome).toEqual({ type: "error", message: "rate_limit", code: "rate_limit" });
+    expect(turn?.outcome).toEqual({ type: "error", message: "rate_limit", code: "rate_limit", retriable: true });
     expect(turn?.usage).toEqual(RESULT_USAGE);
   });
 
@@ -5986,7 +5986,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     const carrier = r.result().messages.find((m) => m.id === `${API_ERROR_TURN}:denials`);
     expect(carrier?.content.filter((b) => b.type === "tool-result" && b.outcome === "denied")).toHaveLength(2);
     const turn = r.result().turns.find((t) => t.turnId === API_ERROR_TURN);
-    expect(turn?.outcome).toEqual({ type: "error", message: "rate_limit", code: "rate_limit" });
+    expect(turn?.outcome).toEqual({ type: "error", message: "rate_limit", code: "rate_limit", retriable: true });
     expect(turn?.usage).toEqual(RESULT_USAGE);
   });
 
@@ -6071,7 +6071,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
     const r = fold(evs);
     expect(r.needsResync).toBe(false);
     const turn = r.result().turns.find((t) => t.turnId === API_ERROR_TURN);
-    expect(turn?.outcome).toEqual({ type: "error", message: "rate_limit", code: "rate_limit" });
+    expect(turn?.outcome).toEqual({ type: "error", message: "rate_limit", code: "rate_limit", retriable: true });
     expect(turn?.usage).toEqual(RESULT_USAGE);
 
     // Without a stash the error arm is unchanged: its own fields, no usage key.
@@ -6148,6 +6148,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
       type: "error",
       message: "rate_limit",
       code: "rate_limit",
+      retriable: true,
     });
   });
 
@@ -6592,6 +6593,7 @@ describe("createClaudeNormalizer — CL-09 LIVE: the captured invalid-API-key fr
       type: "error",
       message: "authentication_failed",
       code: "authentication_failed",
+      retriable: false,
     });
     expect(turn?.usage).toMatchObject({ inputTokens: 0, outputTokens: 0, costUsd: 0, costScope: "query", cumulative: false });
   });
