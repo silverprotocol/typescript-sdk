@@ -4508,3 +4508,39 @@ describe("draft.5 (§5.0 INV-MSG, INV-TURN): a second terminal for a closed turn
     expect(r.result()).toEqual(fold(prefix).result());
   });
 });
+
+describe("turn.done.messageMetadata replaces the named message's messageMetadata bag whole (SPEC §5 turn.done row, §13.10)", () => {
+  type E = Record<string, unknown>;
+  const fold = (evs: E[]) => {
+    const r = new Reducer();
+    for (const e of evs) r.push(AgEvent.parse(e));
+    return r;
+  };
+  const start = (seq: number): E => ({ type: "turn.start", seq, threadId: "th", turnId: "T" });
+  const msgStart: E = { type: "message.start", seq: 1, id: "m", role: "assistant", turnId: "T", threadId: "th" };
+
+  it("a message restored holding messageMetadata {a:1} takes turn.done{messageId, messageMetadata:{b:2}} as {b:2}, and its per-key `metadata` is untouched", () => {
+    const r = fold([
+      { type: "messages.snapshot", seq: 0, messages: [{ id: "m", role: "assistant", content: [], turnId: "T", threadId: "th", messageMetadata: { a: 1 }, metadata: { k: 1 } }], turns: [{ turnId: "T", threadId: "th" }] },
+      { type: "message.metadata", seq: 1, messageId: "m", metadata: { j: 2 } },
+      { type: "turn.done", seq: 2, turnId: "T", messageId: "m", outcome: { type: "success" }, finishReason: "stop", messageMetadata: { b: 2 } },
+    ]);
+    expect(r.needsResync).toBe(false);
+    const m = r.result().messages.find((x) => x.id === "m")!;
+    expect(m.messageMetadata).toEqual({ b: 2 });
+    expect(m.metadata).toEqual({ k: 1, j: 2 }); // the message.metadata event merges per key into a different field
+  });
+
+  it("the paused refresh replaces the bag too: {a:1} then {b:2} folds to {b:2}, while the turn record keeps the usage the refresh omits", () => {
+    const U = { inputTokens: 1, outputTokens: 1, totalTokens: 2 };
+    const paused = (seq: number, id: string, mm: unknown, usage?: unknown): E => ({
+      type: "turn.done", seq, turnId: "T", messageId: "m",
+      outcome: { type: "paused", asks: [{ askId: id, kind: "approval" }] }, finishReason: "paused", messageMetadata: mm,
+      ...(usage !== undefined ? { usage } : {}),
+    });
+    const r = fold([start(0), msgStart, { type: "message.end", seq: 2, id: "m" }, paused(3, "a1", { a: 1 }, U), start(0), paused(1, "a2", { b: 2 })]);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.find((x) => x.id === "m")!.messageMetadata).toEqual({ b: 2 });
+    expect(r.result().turns[0]!.usage).toEqual(U);
+  });
+});
