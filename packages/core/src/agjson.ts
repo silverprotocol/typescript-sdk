@@ -177,9 +177,9 @@ export interface AgUsage {
   reasoningTokens?: number;
   toolUseInputTokens?: number;
   totalTokens?: number;
-  totalTokensRaw?: number;            // the provider's own total, only when it differs from totalTokens (draft.5)
+  totalTokensRaw?: number;            // the provider's own reported total, verbatim; present only where totalTokens differs from it (§4 inclusion note)
   costUsd?: number;
-  costScope?: string;                 // what `costUsd` covers when it is not this bag's own scope, e.g. "query" (draft.5)
+  costScope?: string;                 // the accounting scope of costUsd where it is a running total over a scope other than this object's own (e.g. "query"); absent = costUsd has the scope this object's cumulative flag declares (§4 costUsd note)
   cumulative?: boolean;
   byModel?: Record<string, AgUsage>;  // per-model breakdown (self-recursive; A2-additive)
   serverToolRequests?: number;        // server-executed MCP tool-request count (A2-additive)
