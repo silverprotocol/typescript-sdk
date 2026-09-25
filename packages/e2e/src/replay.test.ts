@@ -434,6 +434,13 @@ const VERCEL_SEEDS = [
   // resource_link shape: the whole MCP result lands on tool.done
   // structuredContent (transforms pin the eight resource_link leaves).
   "parallel-tools-gpt6sol",
+  // 2026-09-25 (R&D capture ask, the resource_link vercel leg): the same
+  // resource-link-gpt6sol scenario the claude, adk and openai legs recorded, now
+  // on vercel (gpt-6-sol @ ai 7.0.111): ONE find_doc call. @ai-sdk/mcp passes the
+  // MCP CallToolResult through whole on tool-result.output; the facet carries it
+  // as tool.done structuredContent (the resource_link fully structured) plus
+  // one text block of the same JSON. Folds to one turn, needsResync false.
+  "resource-link-gpt6sol",
 ] as const;
 
 /**

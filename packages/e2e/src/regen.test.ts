@@ -218,6 +218,8 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // 2026-09-25 (R&D candidate 7): the streamed client-correlation seed, enrolled
   // at capture time (capture-time coverage.json is computed against EMPTY guard maps).
   { scenario: "partials-uuid-sonnet5", framework: "claude" },
+  // 2026-09-25 (R&D capture ask): the vercel resource_link leg, enrolled at capture time.
+  { scenario: "resource-link-gpt6sol", framework: "vercel" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

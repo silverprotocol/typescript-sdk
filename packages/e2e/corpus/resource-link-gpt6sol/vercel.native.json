@@ -1,0 +1,400 @@
+[
+  {
+    "type": "start"
+  },
+  {
+    "type": "start-step",
+    "request": {},
+    "warnings": []
+  },
+  {
+    "type": "tool-input-start",
+    "id": "call_aldTyqZhGroidY98XdBbymc9",
+    "toolName": "find_doc",
+    "dynamic": true,
+    "toolMetadata": {
+      "clientName": "ai-sdk-mcp-client",
+      "toolName": "find_doc"
+    }
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_aldTyqZhGroidY98XdBbymc9",
+    "delta": "{\""
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_aldTyqZhGroidY98XdBbymc9",
+    "delta": "topic"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_aldTyqZhGroidY98XdBbymc9",
+    "delta": "\":\""
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_aldTyqZhGroidY98XdBbymc9",
+    "delta": "con"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_aldTyqZhGroidY98XdBbymc9",
+    "delta": "formance"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_aldTyqZhGroidY98XdBbymc9",
+    "delta": " probes"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_aldTyqZhGroidY98XdBbymc9",
+    "delta": "\"}"
+  },
+  {
+    "type": "tool-input-end",
+    "id": "call_aldTyqZhGroidY98XdBbymc9"
+  },
+  {
+    "type": "tool-call",
+    "toolCallId": "call_aldTyqZhGroidY98XdBbymc9",
+    "toolName": "find_doc",
+    "input": {
+      "topic": "conformance probes"
+    },
+    "providerMetadata": {
+      "openai": {
+        "itemId": "fc_005a6c60433cabf4006ab5faa1b24487d094b23da1d1b2a12c"
+      }
+    },
+    "toolMetadata": {
+      "clientName": "ai-sdk-mcp-client",
+      "toolName": "find_doc"
+    },
+    "dynamic": true
+  },
+  {
+    "type": "tool-result",
+    "toolCallId": "call_aldTyqZhGroidY98XdBbymc9",
+    "toolName": "find_doc",
+    "input": {
+      "topic": "conformance probes"
+    },
+    "output": {
+      "content": [
+        {
+          "type": "text",
+          "text": "Found one document for \"conformance probes\"."
+        },
+        {
+          "type": "resource_link",
+          "uri": "file:///docs/conformance-probe-resource-link.md",
+          "name": "conformance-probe-resource-link.md",
+          "description": "A document the find_doc tool links to instead of inlining.",
+          "mimeType": "text/markdown",
+          "title": "Conformance probe: resource link",
+          "size": 2048,
+          "annotations": {
+            "audience": [
+              "user",
+              "assistant"
+            ],
+            "priority": 0.7
+          }
+        }
+      ],
+      "isError": false
+    },
+    "dynamic": true,
+    "providerMetadata": {
+      "openai": {
+        "itemId": "fc_005a6c60433cabf4006ab5faa1b24487d094b23da1d1b2a12c"
+      }
+    },
+    "toolMetadata": {
+      "clientName": "ai-sdk-mcp-client",
+      "toolName": "find_doc"
+    }
+  },
+  {
+    "type": "finish-step",
+    "finishReason": "tool-calls",
+    "usage": {
+      "inputTokens": 103,
+      "inputTokenDetails": {
+        "noCacheTokens": 103,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 20,
+      "outputTokenDetails": {
+        "textTokens": 20,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 123,
+      "raw": {
+        "input_tokens": 103,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 20,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 123
+      }
+    },
+    "performance": {
+      "stepTimeMs": 3061.432208,
+      "toolExecutionMs": {
+        "call_aldTyqZhGroidY98XdBbymc9": 9.130292000001646
+      },
+      "responseTimeMs": 3045.5157499999996,
+      "effectiveOutputTokensPerSecond": 6.567032201360313,
+      "outputTokensPerSecond": 44.68836426179269,
+      "inputTokensPerSecond": 39.646309377139175,
+      "effectiveTotalTokensPerSecond": 40.38724803836592,
+      "timeToFirstOutputMs": 2597.971957999999,
+      "timeBetweenOutputChunksMs": {
+        "min": 0.2001250000012078,
+        "p10": 0.2001250000012078,
+        "median": 5.3417499999995925,
+        "avg": 21.35384528571428,
+        "p90": 98.19549999999981,
+        "max": 98.19549999999981
+      }
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_005a6c60433cabf4006ab5faa02f3887d08f3ba4ce627c8472",
+        "serviceTier": "default",
+        "reasoningContext": "all_turns"
+      }
+    },
+    "response": {
+      "id": "resp_005a6c60433cabf4006ab5faa02f3887d08f3ba4ce627c8472",
+      "timestamp": "2026-09-25T04:37:52.000Z",
+      "modelId": "gpt-6-sol",
+      "headers": {
+        "access-control-expose-headers": "X-Request-ID, CF-Ray, CF-Ray",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a40756036e1ba865-ICN",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream; charset=utf-8",
+        "date": "Fri, 25 Sep 2026 04:37:53 GMT",
+        "openai-organization": "<redacted>",
+        "openai-processing-ms": "1015",
+        "openai-project": "<redacted>",
+        "openai-version": "2020-10-01",
+        "server": "cloudflare",
+        "set-cookie": "<redacted>",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "x-content-type-options": "nosniff",
+        "x-ratelimit-limit-requests": "10000",
+        "x-ratelimit-limit-tokens": "4000000",
+        "x-ratelimit-remaining-requests": "9999",
+        "x-ratelimit-remaining-tokens": "3999462",
+        "x-ratelimit-reset-requests": "6ms",
+        "x-ratelimit-reset-tokens": "8ms",
+        "x-request-id": "req_3ca6a6a4abe4449f9cad1f306516cdd7"
+      }
+    }
+  },
+  {
+    "type": "start-step",
+    "request": {},
+    "warnings": []
+  },
+  {
+    "type": "text-start",
+    "id": "msg_0540619ae55a7568006ab5faa462f087d0af9de276b3cc2d46",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0540619ae55a7568006ab5faa462f087d0af9de276b3cc2d46",
+        "phase": "final_answer"
+      }
+    }
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0540619ae55a7568006ab5faa462f087d0af9de276b3cc2d46",
+    "text": "The"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0540619ae55a7568006ab5faa462f087d0af9de276b3cc2d46",
+    "text": " document"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0540619ae55a7568006ab5faa462f087d0af9de276b3cc2d46",
+    "text": " is"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0540619ae55a7568006ab5faa462f087d0af9de276b3cc2d46",
+    "text": " **"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0540619ae55a7568006ab5faa462f087d0af9de276b3cc2d46",
+    "text": "“"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0540619ae55a7568006ab5faa462f087d0af9de276b3cc2d46",
+    "text": "Con"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0540619ae55a7568006ab5faa462f087d0af9de276b3cc2d46",
+    "text": "formance"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0540619ae55a7568006ab5faa462f087d0af9de276b3cc2d46",
+    "text": " probe"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0540619ae55a7568006ab5faa462f087d0af9de276b3cc2d46",
+    "text": ":"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0540619ae55a7568006ab5faa462f087d0af9de276b3cc2d46",
+    "text": " resource"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0540619ae55a7568006ab5faa462f087d0af9de276b3cc2d46",
+    "text": " link"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0540619ae55a7568006ab5faa462f087d0af9de276b3cc2d46",
+    "text": ".”"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_0540619ae55a7568006ab5faa462f087d0af9de276b3cc2d46",
+    "text": "**"
+  },
+  {
+    "type": "text-end",
+    "id": "msg_0540619ae55a7568006ab5faa462f087d0af9de276b3cc2d46",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0540619ae55a7568006ab5faa462f087d0af9de276b3cc2d46",
+        "phase": "final_answer"
+      }
+    }
+  },
+  {
+    "type": "finish-step",
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 224,
+      "inputTokenDetails": {
+        "noCacheTokens": 224,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 17,
+      "outputTokenDetails": {
+        "textTokens": 17,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 241,
+      "raw": {
+        "input_tokens": 224,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 17,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 241
+      }
+    },
+    "performance": {
+      "stepTimeMs": 2602.3306250000005,
+      "toolExecutionMs": {},
+      "responseTimeMs": 2600.4269999999997,
+      "effectiveOutputTokensPerSecond": 6.537387898218255,
+      "outputTokensPerSecond": 45.78495614070531,
+      "inputTokensPerSecond": 100.48781450667211,
+      "effectiveTotalTokensPerSecond": 92.67708726297644,
+      "timeToFirstOutputMs": 2229.126,
+      "timeBetweenOutputChunksMs": {
+        "min": 0.16716699999960838,
+        "p10": 0.17716599999948812,
+        "median": 0.3961250000011205,
+        "avg": 11.45656599999999,
+        "p90": 60.16054200000144,
+        "max": 60.2049590000006
+      }
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0540619ae55a7568006ab5faa26fc087d0817c8dcb35af386b",
+        "serviceTier": "default",
+        "reasoningContext": "all_turns"
+      }
+    },
+    "response": {
+      "id": "resp_0540619ae55a7568006ab5faa26fc087d0817c8dcb35af386b",
+      "timestamp": "2026-09-25T04:37:54.000Z",
+      "modelId": "gpt-6-sol",
+      "headers": {
+        "access-control-expose-headers": "X-Request-ID, CF-Ray, CF-Ray",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a40756162ca0a865-ICN",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream; charset=utf-8",
+        "date": "Fri, 25 Sep 2026 04:37:55 GMT",
+        "openai-organization": "<redacted>",
+        "openai-processing-ms": "731",
+        "openai-project": "<redacted>",
+        "openai-version": "2020-10-01",
+        "server": "cloudflare",
+        "set-cookie": "<redacted>",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "x-content-type-options": "nosniff",
+        "x-ratelimit-limit-requests": "10000",
+        "x-ratelimit-limit-tokens": "4000000",
+        "x-ratelimit-remaining-requests": "9999",
+        "x-ratelimit-remaining-tokens": "3999340",
+        "x-ratelimit-reset-requests": "6ms",
+        "x-ratelimit-reset-tokens": "9ms",
+        "x-request-id": "req_3d97455852db41c3b23b8b41c46ad115"
+      }
+    }
+  },
+  {
+    "type": "finish",
+    "finishReason": "stop",
+    "totalUsage": {
+      "inputTokens": 327,
+      "inputTokenDetails": {
+        "noCacheTokens": 327,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 37,
+      "outputTokenDetails": {
+        "textTokens": 37,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 364
+    }
+  }
+]
