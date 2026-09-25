@@ -165,6 +165,25 @@ function mcpToolResult(part: { [k: string]: unknown }, output: JsonValue): { isE
   return { isError: result["isError"] === true, ui: ui === undefined ? undefined : (ui as JsonValue) };
 }
 const num = (v: unknown): number | undefined => (typeof v === "number" ? v : undefined);
+/** The provider credit-token keys (either spelling) a verbatim carry deletes. */
+const CREDIT_TOKEN_KEYS = new Set(["fallback_credit_token", "fallbackCreditToken"]);
+
+/**
+ * `v` with every provider credit-token key deleted at any depth; everything
+ * else is kept verbatim (SPEC §13.10: a provider credit token is never
+ * emitted). Anthropic's refusal stop details can hold one, in the API's
+ * snake_case or a provider's camelCase spelling.
+ */
+function withoutCreditTokens(v: JsonValue): JsonValue {
+  if (Array.isArray(v)) return v.map(withoutCreditTokens);
+  if (typeof v === "object" && v !== null) {
+    const out: { [k: string]: JsonValue } = {};
+    for (const [k, x] of Object.entries(v)) if (!CREDIT_TOKEN_KEYS.has(k)) out[k] = withoutCreditTokens(x);
+    return out;
+  }
+  return v;
+}
+
 const rec = (v: unknown): { [k: string]: unknown } | undefined =>
   typeof v === "object" && v !== null && !Array.isArray(v) ? (v as { [k: string]: unknown }) : undefined;
 
@@ -692,16 +711,25 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
 
       case "finish-step": {
         const response = rec(part["response"]);
-        if (msgId !== undefined && response !== undefined) {
+        if (msgId !== undefined) {
           // The step's response identity only surfaces HERE (verified) —
           // land it as message metadata before sealing.
           const metadata: { [k: string]: JsonValue } = {};
-          const responseId = str(response["id"]);
-          const modelId = str(response["modelId"]);
-          const rawFinish = str(part["rawFinishReason"]);
-          if (responseId !== undefined) metadata["responseId"] = responseId;
-          if (modelId !== undefined) metadata["model"] = modelId;
-          if (rawFinish !== undefined) metadata["rawFinishReason"] = rawFinish;
+          if (response !== undefined) {
+            const responseId = str(response["id"]);
+            const modelId = str(response["modelId"]);
+            const rawFinish = str(part["rawFinishReason"]);
+            if (responseId !== undefined) metadata["responseId"] = responseId;
+            if (modelId !== undefined) metadata["model"] = modelId;
+            if (rawFinish !== undefined) metadata["rawFinishReason"] = rawFinish;
+          }
+          // Anthropic's stop details (@ai-sdk/anthropic: a refusal's {type,
+          // category?, explanation?, recommendedModel?} on the finish-step's
+          // providerMetadata.anthropic.stopDetails) ride beside rawFinishReason,
+          // verbatim, less every provider credit token at any depth (SPEC
+          // §13.10: a provider credit token is never emitted). Only when present.
+          const stopDetails = rec(rec(part["providerMetadata"])?.["anthropic"])?.["stopDetails"];
+          if (rec(stopDetails) !== undefined) metadata["stopDetails"] = withoutCreditTokens(safeJson(stopDetails));
           if (Object.keys(metadata).length > 0) {
             a.emit({ type: "message.metadata", messageId: msgId, metadata });
           }

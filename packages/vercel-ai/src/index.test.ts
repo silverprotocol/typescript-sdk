@@ -2376,3 +2376,56 @@ describe("MCP tool results (@ai-sdk/mcp): isError sets outcome error (V1); _meta
     expect("_meta" in done(run(step([{ id: "c1", output: { content: [], _meta: { other: 1 } }, toolMetadata: MCP }])), "c1")).toBe(false);
   });
 });
+
+describe("Anthropic stop details (@ai-sdk/anthropic finish-step providerMetadata.anthropic.stopDetails): carried beside rawFinishReason, never a credit token", () => {
+  const SENTINEL = "TOKEN-SENTINEL";
+  const refusal = (stopDetails: unknown, withText = false) => [
+    { type: "start" },
+    { type: "start-step", request: {}, warnings: [] },
+    ...(withText ? [{ type: "text-start", id: "t0" }, { type: "text-delta", id: "t0", text: "I can't" }, { type: "text-end", id: "t0" }] : []),
+    {
+      type: "finish-step",
+      response: { id: "msg_r1", modelId: "claude-sonnet-5", timestamp: new Date(0) },
+      usage: { inputTokens: 4, outputTokens: 0, totalTokens: 4 },
+      finishReason: "content-filter",
+      rawFinishReason: "refusal",
+      providerMetadata: { anthropic: { usage: {}, stopDetails } },
+    },
+    { type: "finish", finishReason: "content-filter", rawFinishReason: "refusal", totalUsage: { inputTokens: 4, outputTokens: 0, totalTokens: 4 } },
+  ];
+  const metadataOf = (evs: AgEvent[]) => (evs.find((e) => e.type === "message.metadata") as { metadata: Record<string, unknown> } | undefined)?.metadata;
+
+  it("carries the provider's stopDetails verbatim onto the step's message metadata, beside rawFinishReason, and it folds onto that message", () => {
+    const sd = { type: "refusal", category: "bio", explanation: "p", recommendedModel: "m" };
+    for (const withText of [false, true]) {
+      const evs = run(refusal(sd, withText));
+      expect(metadataOf(evs)).toEqual({ responseId: "msg_r1", model: "claude-sonnet-5", rawFinishReason: "refusal", stopDetails: sd });
+      const folded = foldBatch(evs);
+      expect(folded.needsResync).toBe(false);
+      expect(folded.result.messages[0]!.metadata).toEqual({ responseId: "msg_r1", model: "claude-sonnet-5", rawFinishReason: "refusal", stopDetails: sd });
+    }
+  });
+
+  it("never emits a provider credit token, in either spelling, at any depth, while keeping everything else verbatim", () => {
+    const sd = {
+      type: "refusal",
+      recommendedModel: "m",
+      fallback_credit_token: SENTINEL,
+      fallbackCreditToken: SENTINEL,
+      deep: { fallback_credit_token: SENTINEL, list: [{ fallbackCreditToken: SENTINEL, keep: 1 }] },
+    };
+    const evs = run(refusal(sd));
+    expect(JSON.stringify(evs)).not.toContain(SENTINEL);
+    expect(JSON.stringify(foldBatch(evs).result)).not.toContain(SENTINEL);
+    expect(metadataOf(evs)!["stopDetails"]).toEqual({ type: "refusal", recommendedModel: "m", deep: { list: [{ keep: 1 }] } });
+  });
+
+  it("emits no stopDetails key when the provider reports none (every other finish-step is unchanged)", () => {
+    for (const pm of [undefined, { anthropic: { usage: {} } }, { anthropic: { stopDetails: null } }, { openai: { responseId: "x" } }]) {
+      const parts = refusal(undefined).map((p) => (p.type === "finish-step" ? { ...p, providerMetadata: pm } : p));
+      const meta = metadataOf(run(parts))!;
+      expect("stopDetails" in meta).toBe(false);
+      expect(meta["rawFinishReason"]).toBe("refusal");
+    }
+  });
+});
