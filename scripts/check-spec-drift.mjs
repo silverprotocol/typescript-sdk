@@ -29,6 +29,15 @@
  *    and, when present, contribute one shared sentinel token to both sets so
  *    a side that quietly drops its open-extension support is caught like
  *    any other set-membership drift.
+ * 4. **AgUsage field set** — every `name?:` member of SPEC.md §4's
+ *    `interface AgUsage { … }` block, versus agjson.ts's `export interface
+ *    AgUsage { … }` members and its `AgUsage` zod object's keys. The interface
+ *    and the zod object must carry the same keys (a hand-synced pair, both
+ *    ways), and every interface key must be defined in SPEC.md (a field the
+ *    reference carries but the spec does not define is drift); a field SPEC.md
+ *    defines that the reference does not carry yet is reported as advisory,
+ *    not drift (the spec text may land ahead of its schema half).
+ *
  * 3. **AgInput `kind` literals** — every quoted `kind: "…"` discriminant
  *    inside SPEC.md §3's `type AgInput = …;` union block, versus every
  *    `kind: z.literal("…")` arm inside agjson.ts's `AgInput`
@@ -217,22 +226,42 @@ function extractSchemaInputKinds(tsText) {
 // Comparison
 // -----------------------------------------------------------------------------
 
+/** `name?:` members of the first `interface AgUsage { … }` block in `text`. */
+function extractUsageInterfaceFields(text, label) {
+  const start = text.indexOf("interface AgUsage {");
+  if (start < 0) throw new Error(`${label}: \`interface AgUsage { … }\` block not found`);
+  const end = text.indexOf("\n}", start);
+  const body = text.slice(start, end < 0 ? undefined : end);
+  return [...body.matchAll(/\b([a-zA-Z_][a-zA-Z0-9_]*)\?:/g)].map((m) => m[1]);
+}
+
+/** Keys of the `z.object({ … })` inside agjson.ts's `export const AgUsage` statement. */
+function extractUsageZodFields(tsText) {
+  const stmt = extractStatement(tsText, "export const AgUsage");
+  if (!stmt) throw new Error("agjson.ts: `export const AgUsage` statement not found");
+  const open = stmt.indexOf("z.object({");
+  if (open < 0) throw new Error("agjson.ts: `z.object({` not found inside `export const AgUsage`");
+  const body = stmt.slice(open + "z.object({".length);
+  return [...body.matchAll(/(?:^|[\s{,])([a-zA-Z_][a-zA-Z0-9_]*):\s*z\./g)].map((m) => m[1]);
+}
+
 /**
  * Compare two literal sets both directions. Returns a list of finding lines
  * (empty = clean).
  */
-function compareSets(label, specValues, schemaValues) {
+function compareSets(label, specValues, schemaValues, sides = ["SPEC.md", "agjson.ts"]) {
   const findings = [];
+  const [left, right] = sides;
   const missingFromSchema = setMinus(specValues, schemaValues);
   const missingFromSpec = setMinus(schemaValues, specValues);
   if (missingFromSchema.length > 0) {
     findings.push(
-      `  ${label}: in SPEC.md but missing from agjson.ts: ${missingFromSchema.join(", ")}`,
+      `  ${label}: in ${left} but missing from ${right}: ${missingFromSchema.join(", ")}`,
     );
   }
   if (missingFromSpec.length > 0) {
     findings.push(
-      `  ${label}: in agjson.ts but missing from SPEC.md: ${missingFromSpec.join(", ")}`,
+      `  ${label}: in ${right} but missing from ${left}: ${missingFromSpec.join(", ")}`,
     );
   }
   return findings;
@@ -254,13 +283,27 @@ function runCheck(sources) {
   const schemaInputKinds = extractSchemaInputKinds(sources.ts);
   findings.push(...compareSets("AgInput.kind", specInputKinds, schemaInputKinds));
 
+  // 4. AgUsage field set: interface == zod (both ways); interface ⊆ SPEC.
+  const specUsage = extractUsageInterfaceFields(sources.spec, "SPEC.md");
+  const tsUsage = extractUsageInterfaceFields(sources.ts, "agjson.ts");
+  const zodUsage = extractUsageZodFields(sources.ts);
+  findings.push(...compareSets("AgUsage", tsUsage, zodUsage, ["the agjson.ts interface", "its zod object"]));
+  const undefinedInSpec = setMinus(tsUsage, specUsage);
+  if (undefinedInSpec.length > 0) {
+    findings.push(`  AgUsage: in agjson.ts but not defined in SPEC.md §4: ${undefinedInSpec.join(", ")}`);
+  }
+  const advisory = setMinus(specUsage, tsUsage);
+
   return {
     findings,
+    advisory,
     checked: {
       specEventTypes: specEventTypes.length,
       schemaEventTypes: schemaEventTypes.length,
       specInputKinds: specInputKinds.length,
       schemaInputKinds: schemaInputKinds.length,
+      specUsageFields: specUsage.length,
+      schemaUsageFields: tsUsage.length,
     },
   };
 }
@@ -281,18 +324,21 @@ async function main() {
 
   const sources = await loadRealSources();
 
-  const { findings, checked } = runCheck(sources);
+  const { findings, advisory, checked } = runCheck(sources);
   if (findings.length > 0) {
     console.error(`\n✖ SPEC ↔ agjson.ts wire-type drift detected (${findings.length} issue(s)):\n`);
     for (const line of findings) console.error(line);
     console.error(
-      "\nFix: add/remove the literal on whichever side lags — SPEC.md §3/§4 or agjson.ts's AgClosedEvent/AgInput unions.",
+      "\nFix: add/remove the literal or field on whichever side lags — SPEC.md §3/§4 or agjson.ts's AgClosedEvent/AgInput unions and its AgUsage interface + zod object.",
     );
     process.exit(1);
   }
   console.log(
-    `✓ SPEC ↔ agjson.ts wire types in sync (${checked.specEventTypes} AgEvent.type literal(s), ${checked.specInputKinds} AgInput.kind literal(s) checked)`,
+    `✓ SPEC ↔ agjson.ts wire types in sync (${checked.specEventTypes} AgEvent.type literal(s), ${checked.specInputKinds} AgInput.kind literal(s), ${checked.schemaUsageFields} AgUsage field(s) checked)`,
   );
+  if (advisory.length > 0) {
+    console.log(`  advisory: SPEC.md §4 defines AgUsage field(s) the reference does not carry yet: ${advisory.join(", ")}`);
+  }
 
   if (selfTest) {
     // Negative pass — rename one real AgEvent arm's type literal in an
@@ -324,6 +370,29 @@ async function main() {
     }
     console.log("\n✓ --self-test: negative case produced the expected drift:");
     for (const line of negFindings) console.log(line);
+
+    // Negative pass 2 — rename one AgUsage interface member in an in-memory
+    // copy of agjson.ts (the zod object untouched) and confirm the detector
+    // reports the phantom on the interface/zod comparison AND as undefined
+    // in SPEC.md.
+    const mutatedTs = {
+      spec: sources.spec,
+      ts: sources.ts.replace(/(export interface AgUsage \{[^}]*?)\bcostUsd\?:/, "$1costPhantomInjectedBySelfTest?:"),
+    };
+    if (mutatedTs.ts === sources.ts) {
+      console.error("\n✖ --self-test: could not apply the AgUsage seed mutation (agjson.ts had no `costUsd?:` inside `export interface AgUsage`)");
+      process.exit(1);
+    }
+    const { findings: usageFindings } = runCheck(mutatedTs);
+    const phantomVsZod = usageFindings.some((f) => f.includes("its zod object") && f.includes("costPhantomInjectedBySelfTest"));
+    const phantomVsSpec = usageFindings.some((f) => f.includes("not defined in SPEC.md") && f.includes("costPhantomInjectedBySelfTest"));
+    if (!phantomVsZod || !phantomVsSpec) {
+      console.error("\n✖ --self-test: the AgUsage negative case did not surface the expected drift.");
+      for (const line of usageFindings) console.error(line);
+      process.exit(1);
+    }
+    console.log("\n✓ --self-test: AgUsage negative case produced the expected drift:");
+    for (const line of usageFindings) console.log(line);
   }
 }
 

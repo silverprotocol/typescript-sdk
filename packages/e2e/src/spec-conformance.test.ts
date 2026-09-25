@@ -91,6 +91,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 6, title: "Mandatory display (display.required not dropped)", disposition: "COVERED-BY", citation: "reduce.test.ts:1065 \"(h) display.required appends…\"" },
   { n: 7, title: "safety_blocked category", disposition: "COVERED-BY", citation: "openai-agents/src/index.test.ts:816 \"content_filter incomplete…\"" },
   { n: 8, title: "Cumulative-usage verbatim fold (INV-DELTA)", disposition: "COVERED-BY", citation: "reduce.test.ts:791-826 (a) + :91 (b2)" },
+  { n: 8, leg: "turn-terminal", title: "Cumulative-usage verbatim fold (draft.5): a Claude turn terminal's per-turn counters fold with cumulative false and its costUsd, costScope and byModel verbatim; nothing subtracts", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.8(turn-terminal), reduce-level through the consumer ingest" },
   { n: 9, title: "ADK aggregate suppression", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.9, facet-driven via createAdkNormalizer" },
   { n: 10, title: "Index→id re-key (LangChain/Pydantic)", disposition: "N/A", citation: "no LangChain/Pydantic-AI facet in this repo" },
   { n: 11, title: "LangGraph positional pause", disposition: "N/A", citation: "no LangGraph facet in this repo" },
@@ -105,7 +106,11 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 19, title: "A2UI component streaming", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.19, wire round-trip" },
   { n: 20, title: "Malformed input at a trust boundary", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.20" },
   { n: 21, leg: "fold", title: "Reasoning-inclusive usage identity — the Gemini fold (thoughts added; absent ⇒ draft.2 bytes; already-inclusive not double-added)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.21(fold), facet-driven via createAdkNormalizer" },
-  { n: 21, leg: "replay", title: "Reasoning-inclusive usage identity — input + output (+ toolUseInput) == total on every replay golden with a provider total", disposition: "COVERED-BY", citation: "replay.test.ts:331 assertUsageIdentity, run by all four replay suites (:380 claude, :417 openai, :456 adk, :491 vercel)" },
+  { n: 21, leg: "replay", title: "Reasoning-inclusive usage identity — input + output (+ toolUseInput) == total on every replay golden with a provider total; a totalTokensRaw beside a totalTokens that differs from it (draft.5)", disposition: "COVERED-BY", citation: "replay.test.ts:511 assertUsageIdentity, run by all four replay suites (:560 claude, :597 openai, :636 adk, :697 vercel); its raw-present ⇒ total-present-and-different check is PENDING probe (this cohort)" },
+  { n: 21, leg: "live-fold", title: "Reasoning-inclusive usage identity (draft.5, Gemini Live): {609, responseTokenCount 25, thoughts 256, total 634} folds to {609, 281, 256, totalTokens 890, totalTokensRaw 634}", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.21(live-fold), facet-driven via createAdkNormalizer" },
+  { n: 21, leg: "live-inclusive", title: "Reasoning-inclusive usage identity (draft.5, Gemini Live): a report whose total already counts thoughts {6037, 248, 490, 6775} derives totalTokens 6775 and carries no totalTokensRaw", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.21(live-inclusive), facet-driven via createAdkNormalizer" },
+  { n: 21, leg: "live-mixed", title: "Reasoning-inclusive usage identity (draft.5, Gemini Live): the exclusive and inclusive reports summed into one turn fold to {6646, 1019, 746, totalTokens 7665, totalTokensRaw 7409}", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.21(live-mixed), a two-event ADK feed with one turnId" },
+  { n: 21, leg: "no-raw-on-candidates", title: "Reasoning-inclusive usage identity (draft.5): none of the draft.3 candidatesTokenCount vectors yields totalTokensRaw", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.21(no-raw-on-candidates)" },
   { n: 22, title: "Forward-compatible ingest (draft.4): an ignored well-formed event occupies its seq slot, is reported in place, and the fold is unchanged", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.22, reference ingest (ingestAgEvents) → reduce" },
   { n: 23, leg: "adk", title: "Unmapped native value (draft.4): an ADK finish reason with no AgJSON target → finishReason other|unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(adk) via createAdkNormalizer (sp-google a0c5dcf)" },
   { n: 23, leg: "openai", title: "Unmapped native value (draft.4): an OpenAI incomplete_details.reason with no AgJSON target → finishReason unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(openai) via createOpenaiNormalizer (sp-openai OA-15 abd73cf)" },
@@ -192,6 +197,13 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 47, leg: "pair-claude-paused-close", title: "Claude deferred pause (draft.5, §8.0 item 32): the deferring invoke's last terminal is turn.done{paused, finishReason paused, no finishReasonRaw} from push() with exactly one approval ask naming the deferred id, preceded by a hitl.ask with the same askId", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.47(pair-claude-paused-close) over the defer-tool-sonnet5 golden (red until the cohort's claude-agent-sdk change and its regen land)" },
   { n: 47, leg: "pair-vercel", title: "Cross-invoke tool result (draft.5): a streamText call whose initial pass settles a prior call's approval, as a synthetic pair — the prior-call result lands as a role:\"tool\" message on messageId \"<toolCallId>:result\" with no resync", disposition: "COVERED-BY", citation: "PENDING the vercel-ai prior-call messageId flip (probe, this cohort): until it lands, vercel-ai/src/index.test.ts:1579-1581 asserts NO messageId and :1586 pins the park (the 0.7.x KNOWN GAP), so this row cites no test yet; the flip's push replaces this citation with the flipped arms" },
   { n: 47, leg: "adk", title: "Cross-invoke tool result (draft.5)", disposition: "N/A", citation: "§8 applicability: no committed ADK two-invoke pair; ADK's confirmation reply opens a new invocation and is a later leg" },
+  { n: 50, leg: "fold", title: "Cache-inclusive inputTokens and per-object usage scope (draft.5): an Anthropic result frame usage {2, 6858, 187, 73}, cost 0.0166347, modelUsage {6, 13716, 4061, 275, 0.0156577} → a turn terminal usage {7047, 6858, 187, 73, costUsd 0.0166347, costScope query}, cumulative not true, byModel {17783, 13716, 4061, 275, 0.0156577, cumulative true}; both cache counters absent → inputTokens 2 and no cache key", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.50(fold), facet-driven via createClaudeNormalizer" },
+  { n: 50, leg: "replay", title: "Cache-inclusive inputTokens and per-object usage scope (draft.5): on every replay golden every AgUsage at any depth carrying a cache counter satisfies inputTokens >= cacheRead + cacheWrite; on every Claude golden the exact native equality, no cumulative:true on a turn terminal, costScope query beside costUsd, cumulative:true on every byModel entry, no placeholder message.end outputTokens without stream events, partials-sonnet5 143 + 45 == 188", disposition: "COVERED-BY", citation: "PENDING replay.test.ts assertUsageInclusion (probe, this cohort, beside assertUsageIdentity :511, run by all four suites) for the corpus scans; the placeholder omission and the streamed twin are pinned in claude-agent-sdk/src/index.test.ts, describe \"createClaudeNormalizer — draft.5 usage accounting\" (\"message level, no partials: … the placeholder outputTokens omitted\", \"message level, streamed: message_delta's real output count is kept …\") and the acceptance-bar test of describe \"stream_event partials (workspace#7)\"" },
+  { n: 50, leg: "scope", title: "Cache-inclusive inputTokens and per-object usage scope (draft.5): over multi-result-sonnet5's two terminals the top-level outputTokens are 59 and 59, costUsd is non-decreasing, every byModel counter is non-decreasing, and the last byModel outputTokens equals 59 + 59", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.50(scope), the cassette driven through createClaudeNormalizer" },
+  { n: 50, leg: "consumer", title: "Cache-inclusive inputTokens and per-object usage scope (draft.5): a turn.done usage carrying costScope, a cumulative:true byModel entry and a totalTokensRaw beside its totalTokens survives ingestAgEvents + reduce() verbatim into turns[0].usage, and AgEvent.parse keeps both keys", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.50(consumer), beside the nested pass-through case" },
+  { n: 50, leg: "openai", title: "Cache-inclusive inputTokens and per-object usage scope (draft.5)", disposition: "N/A", citation: "§8 applicability: the exact-equality, flag, costScope and placeholder legs are the claude-agent-sdk facet's; the depth-any >= scan binds this producer's goldens through the replay leg" },
+  { n: 50, leg: "adk", title: "Cache-inclusive inputTokens and per-object usage scope (draft.5)", disposition: "N/A", citation: "§8 applicability: the exact-equality, flag, costScope and placeholder legs are the claude-agent-sdk facet's; the depth-any >= scan binds this producer's goldens through the replay leg" },
+  { n: 50, leg: "vercel", title: "Cache-inclusive inputTokens and per-object usage scope (draft.5)", disposition: "N/A", citation: "§8 applicability: the exact-equality, flag, costScope and placeholder legs are the claude-agent-sdk facet's; the depth-any >= scan binds this producer's goldens through the replay leg" },
   { n: 48, title: "Record events on unopened turns (draft.5, §5.0 INV-OWNER): for each of the six record events — alone: no record, no resync; before its turn.start: one record with the opener's thread and the landing; after a turns-less snapshot naming the turn by message: one record with that thread; message.start alone gives display.required its record; a tool.done into a held turn parks and creates no message; a turnId-less turn.error after a closed turn parks and leaves usage/outcome; no record or message carries a thread no event carried (vectors + every corpus golden)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.48 (a)-(h), reference Reducer + reduce(); the hold/adopt/cap unit vectors incl. B1-B3 in core reduce.test.ts \"record events on a turn whose thread is not known\"" },
   { n: 49, title: "Opener first for record events (draft.5): on every replay golden, each prompt.blocked / guardrail.result / agent.capabilities / source / handoff / display.required names, or resolves by messageId to, a turn a turn.start or subagent.start opened earlier in that invoke (types with no corpus instance pass vacuously and are counted)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.49(producers), a scan of every corpus/*/*.agjson.json" },
 ];
@@ -513,6 +525,17 @@ describe("§10.8 — cumulative-usage verbatim fold: a cumulative Anthropic usag
     ]).result;
     // VERBATIM — nothing in the pipeline subtracts or de-cumulates.
     expect(r.turns[0]?.usage).toEqual({ inputTokens: 500, outputTokens: 200, cumulative: true });
+  });
+
+  it("(turn-terminal, draft.5) a Claude turn terminal's per-turn counters fold with cumulative false and its costUsd, costScope and byModel verbatim", () => {
+    const usage = {
+      inputTokens: 7047, cacheReadTokens: 6858, cacheWriteTokens: 187, outputTokens: 73,
+      costUsd: 0.0166347, costScope: "query", cumulative: false,
+      byModel: { "claude-sonnet-5": { inputTokens: 17783, cacheReadTokens: 13716, cacheWriteTokens: 4061, outputTokens: 275, costUsd: 0.0156577, cumulative: true } },
+    };
+    const wire = [TURN_START, { type: "turn.done", seq: 1, turnId: "t1", outcome: { type: "success" }, finishReason: "stop", usage }];
+    const r = reduce(ingestAgEvents(wire as unknown as JsonValue[])).result;
+    expect(r.turns[0]?.usage).toEqual(usage);
   });
 });
 
@@ -960,11 +983,57 @@ describe("§10.21 — reasoning-inclusive usage identity (draft.3)", () => {
     expect(usage).toMatchObject({ inputTokens: 100, outputTokens: 50, reasoningTokens: 30, totalTokens: 150 });
   });
 
-  it("(replay) COVERED-BY replay.test.ts:331 assertUsageIdentity on every replay golden (all four suites: :380, :417, :456, :491); thin confirming re-assertion of the identity on the folded example", () => {
+  it("(replay) COVERED-BY replay.test.ts:511 assertUsageIdentity on every replay golden (all four suites: :560, :597, :636, :697); thin confirming re-assertion of the identity on the folded example", () => {
     const usage = adkUsageTurn({ promptTokenCount: 109, candidatesTokenCount: 22, thoughtsTokenCount: 125, totalTokenCount: 256 });
     const num = (k: string): number => (typeof usage?.[k] === "number" ? (usage[k] as number) : Number.NaN);
     const toolUse = typeof usage?.["toolUseInputTokens"] === "number" ? (usage["toolUseInputTokens"] as number) : 0;
     expect(num("inputTokens") + num("outputTokens") + toolUse).toBe(num("totalTokens"));
+  });
+
+  // draft.5 — the Gemini Live API (§4 inclusion note, §8.0 item 24): the output
+  // counter is `responseTokenCount` and excludes reasoning, so the sibling
+  // always folds; totalTokens is derived and a differing provider total rides
+  // totalTokensRaw. Fed at the JSON boundary: the Live counter is not on this
+  // tree's AdkEvent type until the google-adk facet's Live commit lands.
+  type LiveUsage = { promptTokenCount: number; responseTokenCount: number; thoughtsTokenCount: number; totalTokenCount: number };
+  const live = (u: LiveUsage) => adkUsageTurn(u as unknown as NonNullable<AdkEvent["usageMetadata"]>);
+  const EXCLUSIVE: LiveUsage = { promptTokenCount: 609, responseTokenCount: 25, thoughtsTokenCount: 256, totalTokenCount: 634 };
+  const INCLUSIVE: LiveUsage = { promptTokenCount: 6037, responseTokenCount: 248, thoughtsTokenCount: 490, totalTokenCount: 6775 };
+
+  it("(live-fold) {609, responseTokenCount 25, thoughts 256, total 634} folds the sibling unconditionally and derives the total: {609, 281, 256, totalTokens 890, totalTokensRaw 634}", () => {
+    const usage = live(EXCLUSIVE);
+    expect(usage).toMatchObject({ inputTokens: 609, outputTokens: 281, reasoningTokens: 256, totalTokens: 890, totalTokensRaw: 634 });
+    expect(609 + 281).toBe(890);
+    expect(usage?.["cumulative"]).not.toBe(true);
+  });
+
+  it("(live-inclusive) a Live report whose total already counts thoughts {6037, 248, 490, 6775} derives to itself and carries no totalTokensRaw", () => {
+    const usage = live(INCLUSIVE);
+    expect(usage).toMatchObject({ inputTokens: 6037, outputTokens: 738, reasoningTokens: 490, totalTokens: 6775 });
+    expect(usage !== undefined && "totalTokensRaw" in usage).toBe(false);
+  });
+
+  it("(live-mixed) the exclusive and inclusive reports summed into one turn fold to {6646, 1019, 746, totalTokens 7665, totalTokensRaw 7409}", () => {
+    const n = createAdkNormalizer();
+    const first = adkEvent([{ text: "a" }], { usageMetadata: EXCLUSIVE as unknown as NonNullable<AdkEvent["usageMetadata"]> });
+    const second = adkEvent([{ text: "b" }], { finishReason: "STOP", usageMetadata: INCLUSIVE as unknown as NonNullable<AdkEvent["usageMetadata"]> });
+    const out = [...n.push(toJsonValue(first)), ...n.push(toJsonValue(second)), ...n.flush()];
+    const dones = out.filter((e) => e.type === "turn.done");
+    expect(dones).toHaveLength(1);
+    const usage = dones[0]?.type === "turn.done" ? (dones[0].usage as Record<string, unknown> | undefined) : undefined;
+    expect(usage).toMatchObject({ inputTokens: 6646, outputTokens: 1019, reasoningTokens: 746, totalTokens: 7665, totalTokensRaw: 7409 });
+    expect(634 + 6775).toBe(7409);
+  });
+
+  it("(no-raw-on-candidates) none of the draft.3 candidatesTokenCount vectors yields totalTokensRaw", () => {
+    for (const u of [
+      { promptTokenCount: 109, candidatesTokenCount: 22, thoughtsTokenCount: 125, totalTokenCount: 256 },
+      { promptTokenCount: 109, candidatesTokenCount: 22, totalTokenCount: 131 },
+      { promptTokenCount: 100, candidatesTokenCount: 50, thoughtsTokenCount: 30, totalTokenCount: 150 },
+    ]) {
+      const usage = adkUsageTurn(u);
+      expect(usage !== undefined && "totalTokensRaw" in usage).toBe(false);
+    }
   });
 });
 
@@ -3127,5 +3196,87 @@ describe("§10.49 — opener first for record events (draft.5)", () => {
     }
     expect(bad).toEqual([]);
     expect(seen["handoff"]).toBeGreaterThan(0); // the corpus carries handoffs (openai); the other five are counted, vacuous when 0
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.50 — cache-inclusive inputTokens and per-object usage scope (draft.5; §4)
+// fold + scope legs are facet-driven (createClaudeNormalizer); the consumer leg
+// is reduce-level through the consumer ingest; the replay leg is COVERED-BY
+// replay.test.ts assertUsageInclusion (pending, manifest row above).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.50 — cache-inclusive inputTokens and per-object usage scope (draft.5; §4 input side, costUsd scope)", () => {
+  const corpus = new URL("../corpus/", import.meta.url);
+  const SESSION = "sess_s10_50";
+  const assistantFrame = () => ({
+    type: "assistant",
+    message: {
+      id: "msg_s10_50", type: "message", role: "assistant", model: "claude-test",
+      content: [{ type: "text", text: "hi", citations: null }],
+      stop_reason: "end_turn", stop_sequence: null, container: null, context_management: null, stop_details: null,
+      usage: { input_tokens: 0, output_tokens: 0, cache_creation: null, cache_creation_input_tokens: null, cache_read_input_tokens: null, inference_geo: null, iterations: null, server_tool_use: null, service_tier: null, speed: null },
+    },
+    parent_tool_use_id: null, uuid: "00000000-0000-0000-0000-00000000a500", session_id: SESSION,
+  });
+  const resultFrame = (usage: Record<string, unknown>) => ({
+    type: "result", subtype: "success", result: "done", stop_reason: "end_turn", is_error: false,
+    duration_ms: 0, duration_api_ms: 0, num_turns: 1, total_cost_usd: 0.0166347,
+    usage: { ...usage, cache_creation: { ephemeral_1h_input_tokens: 0, ephemeral_5m_input_tokens: 0 }, inference_geo: "unknown", iterations: [], server_tool_use: { web_fetch_requests: 0, web_search_requests: 0 }, service_tier: "standard", speed: "standard" },
+    modelUsage: { "claude-sonnet-5": { inputTokens: 6, outputTokens: 275, cacheReadInputTokens: 13716, cacheCreationInputTokens: 4061, webSearchRequests: 0, costUSD: 0.0156577, contextWindow: 200000, maxOutputTokens: 8192 } },
+    permission_denials: [], uuid: "00000000-0000-0000-0000-00000000a501", session_id: SESSION,
+  });
+  const drive = (frames: unknown[]): AgEvent[] => {
+    const n = createClaudeNormalizer();
+    return [...frames.flatMap((f) => n.push(f as JsonValue)), ...n.flush()];
+  };
+  const terminalUsage = (evs: AgEvent[]): Array<Record<string, unknown>> =>
+    evs.filter((e) => e.type === "turn.done" || e.type === "turn.error").map((e) => ((e as { usage?: unknown }).usage ?? {}) as Record<string, unknown>);
+
+  it("(fold) the spec's vector: usage {2, 6858, 187, 73} + cost 0.0166347 + modelUsage {6, 13716, 4061, 275, 0.0156577} → {7047, 6858, 187, 73, costUsd 0.0166347, costScope query}, cumulative not true, byModel {17783, 13716, 4061, 275, 0.0156577, cumulative true}", () => {
+    const [usage] = terminalUsage(drive([assistantFrame(), resultFrame({ input_tokens: 2, output_tokens: 73, cache_read_input_tokens: 6858, cache_creation_input_tokens: 187 })]));
+    expect(usage).toMatchObject({ inputTokens: 7047, cacheReadTokens: 6858, cacheWriteTokens: 187, outputTokens: 73, costUsd: 0.0166347, costScope: "query" });
+    expect(usage?.["cumulative"]).not.toBe(true);
+    expect((usage?.["byModel"] as Record<string, unknown>)["claude-sonnet-5"]).toMatchObject({ inputTokens: 17783, cacheReadTokens: 13716, cacheWriteTokens: 4061, outputTokens: 275, costUsd: 0.0156577, cumulative: true });
+    expect(2 + 6858 + 187).toBe(7047);
+    expect(6 + 13716 + 4061).toBe(17783);
+  });
+
+  it("(fold) the same frame with both cache counters absent folds with inputTokens 2 and no cache key", () => {
+    const [usage] = terminalUsage(drive([assistantFrame(), resultFrame({ input_tokens: 2, output_tokens: 73 })]));
+    expect(usage).toMatchObject({ inputTokens: 2, outputTokens: 73 });
+    expect(usage !== undefined && "cacheReadTokens" in usage).toBe(false);
+    expect(usage !== undefined && "cacheWriteTokens" in usage).toBe(false);
+  });
+
+  it("(scope) multi-result-sonnet5: two terminals with top-level outputTokens 59 and 59, costUsd non-decreasing, every byModel counter non-decreasing, the last byModel outputTokens == 59 + 59", () => {
+    const natives = JSON.parse(readFileSync(new URL("multi-result-sonnet5/claude.native.json", corpus), "utf8")) as unknown[];
+    const usages = terminalUsage(drive(natives)).filter((u) => Object.keys(u).length > 0);
+    expect(usages).toHaveLength(2);
+    const [a, b] = usages as [Record<string, unknown>, Record<string, unknown>];
+    expect([a["outputTokens"], b["outputTokens"]]).toEqual([59, 59]);
+    expect(b["costUsd"] as number).toBeGreaterThanOrEqual(a["costUsd"] as number);
+    const ma = a["byModel"] as Record<string, Record<string, unknown>>;
+    const mb = b["byModel"] as Record<string, Record<string, unknown>>;
+    for (const model of Object.keys(ma)) {
+      for (const k of ["inputTokens", "cacheReadTokens", "cacheWriteTokens", "outputTokens", "costUsd"]) {
+        const x = ma[model]?.[k];
+        const y = mb[model]?.[k];
+        if (typeof x === "number" && typeof y === "number") expect(y, `${model}.${k}`).toBeGreaterThanOrEqual(x);
+      }
+    }
+    expect(mb["claude-sonnet-5"]?.["outputTokens"]).toBe(59 + 59);
+  });
+
+  it("(consumer) a turn.done usage carrying costScope, a cumulative:true byModel entry and a totalTokensRaw beside its totalTokens survives ingestAgEvents + reduce() verbatim, and AgEvent.parse keeps both keys", () => {
+    const usage = { inputTokens: 609, outputTokens: 281, reasoningTokens: 256, totalTokens: 890, totalTokensRaw: 634, costUsd: 0.0166347, costScope: "query", cumulative: false, byModel: { m: { inputTokens: 17783, outputTokens: 275, costUsd: 0.0156577, cumulative: true } } };
+    const tail = S_TAIL(2);
+    (tail[4] as Record<string, unknown>)["usage"] = usage;
+    const r = reduce(ingestAgEvents([...S_HEAD, ...tail] as unknown as JsonValue[]));
+    expect(r.needsResync).toBe(false);
+    expect(r.result.turns[0]?.usage).toEqual(usage);
+    const parsed = AgEvent.parse(tail[4]) as { usage?: Record<string, unknown> };
+    expect(parsed.usage?.["costScope"]).toBe("query");
+    expect(parsed.usage?.["totalTokensRaw"]).toBe(634);
   });
 });
