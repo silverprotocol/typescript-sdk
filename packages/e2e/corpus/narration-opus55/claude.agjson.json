@@ -293,8 +293,8 @@
     "outcome": "ok",
     "isError": false,
     "messageId": "toolu_013mumJ5EZhGJUVhHfoR1VJg:result",
-    "providerMetadata": {
-      "resourceLinks": [
+    "_meta": {
+      "anthropic/resourceLinks": [
         {
           "uri": "file:///docs/conformance-probe-resource-link.md",
           "name": "conformance-probe-resource-link.md",

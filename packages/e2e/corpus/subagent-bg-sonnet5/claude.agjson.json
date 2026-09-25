@@ -42,7 +42,7 @@
     "type": "reasoning.start",
     "id": "msg_011CfM8SU8NGQnBs7n8JoUr3:reasoning:0",
     "messageId": "msg_011CfM8SU8NGQnBs7n8JoUr3",
-    "providerMetadata": {
+    "_meta": {
       "user_message_uuid": "0aae6c58-a26d-4b8a-9af4-76b0ef61516d",
       "user_message_uuids": [
         "0aae6c58-a26d-4b8a-9af4-76b0ef61516d"

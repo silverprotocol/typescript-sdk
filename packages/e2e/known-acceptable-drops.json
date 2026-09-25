@@ -3433,5 +3433,13 @@
     "frameworks": [
       "openai"
     ]
+  },
+  {
+    "path": "[*].content.parts[*].functionResponse.response.content[*].type",
+    "reason": "adk (draft.5 \u00a78.0 item 31; google-adk maps an MCP resource_link part to one resource-link block): the MCP content part's `type` discriminator. A resource_link part's value `resource_link` becomes the AgJSON block type `resource-link` \u2014 a rename, which value match cannot see (every other member of the link is pinned by a transform to the block: `[*].content[*].<member>`). A text part's `text` matches as-is, and the other MCP parts (image, audio, resource) still ride provider-raw verbatim, where their `type` matches raw.type. First observed on resource-link-gemini38 at the item-31 regen (pkg-05).",
+    "reviewed": "any",
+    "frameworks": [
+      "adk"
+    ]
   }
 ]

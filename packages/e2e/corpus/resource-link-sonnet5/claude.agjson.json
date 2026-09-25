@@ -68,8 +68,8 @@
     "outcome": "ok",
     "isError": false,
     "messageId": "toolu_01CmJhQs333Z4LRr8kxK4eMZ:result",
-    "providerMetadata": {
-      "resourceLinks": [
+    "_meta": {
+      "anthropic/resourceLinks": [
         {
           "uri": "file:///docs/conformance-probe-resource-link.md",
           "name": "conformance-probe-resource-link.md",

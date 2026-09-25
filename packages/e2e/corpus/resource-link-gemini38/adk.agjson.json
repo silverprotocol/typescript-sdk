@@ -66,23 +66,19 @@
         "text": "Found one document for \"conformance probes\"."
       },
       {
-        "type": "provider-raw",
-        "vendor": "google",
-        "raw": {
-          "name": "conformance-probe-resource-link.md",
-          "title": "Conformance probe: resource link",
-          "uri": "file:///docs/conformance-probe-resource-link.md",
-          "description": "A document the find_doc tool links to instead of inlining.",
-          "mimeType": "text/markdown",
-          "size": 2048,
-          "annotations": {
-            "audience": [
-              "user",
-              "assistant"
-            ],
-            "priority": 0.7
-          },
-          "type": "resource_link"
+        "type": "resource-link",
+        "uri": "file:///docs/conformance-probe-resource-link.md",
+        "name": "conformance-probe-resource-link.md",
+        "title": "Conformance probe: resource link",
+        "description": "A document the find_doc tool links to instead of inlining.",
+        "mimeType": "text/markdown",
+        "size": 2048,
+        "annotations": {
+          "audience": [
+            "user",
+            "assistant"
+          ],
+          "priority": 0.7
         }
       }
     ],

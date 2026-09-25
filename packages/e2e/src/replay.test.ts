@@ -170,10 +170,12 @@ const CLAUDE_SEEDS = [
   // (find_doc returns a text block + one fully populated resource_link).
   // claude-sonnet-5 @0.3.280. The CLI flattens the link into a text block
   // "[Resource link: <name>] <uri> (<description>)" in the tool_result
-  // content and keeps the structured copy in tool_use_result.resourceLinks,
-  // which the facet carries as tool.done providerMetadata.resourceLinks (all
-  // eight leaves, pinned by transforms: the flattened text repeats
-  // uri/name/description, so value-match alone could not prove the carry).
+  // content and keeps the structured copy in tool_use_result.resourceLinks.
+  // Since draft.5 (pkg-05) the facet carries that list as a host record on the
+  // tool.done's `_meta["anthropic/resourceLinks"]` (through 0.7.x it rode
+  // providerMetadata.resourceLinks). All eight leaves are pinned by transforms:
+  // the flattened text repeats uri/name/description, so value-match alone
+  // could not prove the carry.
   "resource-link-sonnet5",
   // 2026-09-23 (rnd #4, rnd 13+17 Claude leg): Opus 5.5 @0.3.280 with
   // includePartialMessages + thinkingDisplay "summarized", two sequential MCP
@@ -375,9 +377,13 @@ const ADK_SEEDS = [
   "tool-error-gemini38",
   // 2026-09-23 (rnd capture #1): the resource_link leg on ADK (gemini-3.8-flash
   // @2.1.0). MCPToolset hands the MCP content through as
-  // functionResponse.response.content[*], and the facet keeps the
-  // resource_link whole as a provider-raw block in tool.done.content
-  // (transforms pin all eight leaves).
+  // functionResponse.response.content[*]. Since draft.5 (§8.0 item 31,
+  // pkg-05) the facet maps the resource_link part to ONE resource-link block
+  // carrying uri, name, title, description, mimeType, size and annotations (no
+  // residual provider-raw: the link has no icons); through 0.7.x it rode whole
+  // as a provider-raw block. Transforms pin the seven member leaves to the
+  // block; the part's `type` (resource_link → resource-link) is an allowlisted
+  // rename.
   "resource-link-gemini38",
   // 2026-09-24 (rnd, ADK shared-state fold): the corpus's first NON-EMPTY
   // actions.stateDelta. The scenario knob adkStateScript drives the ADK capture agent's

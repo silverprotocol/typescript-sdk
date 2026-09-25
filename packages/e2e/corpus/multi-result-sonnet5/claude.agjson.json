@@ -46,13 +46,7 @@
     "name": "mcp__t__echo",
     "index": 0,
     "messageId": "msg_011CfLC24cJ8pDnfSNhsdBkt",
-    "providerExecuted": false,
-    "providerMetadata": {
-      "user_message_uuid": "39a0ff85-af78-4b53-add6-a2a9cbd21c57",
-      "user_message_uuids": [
-        "39a0ff85-af78-4b53-add6-a2a9cbd21c57"
-      ]
-    }
+    "providerExecuted": false
   },
   {
     "type": "tool.args.delta",
@@ -69,8 +63,20 @@
     }
   },
   {
+    "type": "message.metadata",
+    "messageId": "msg_011CfLC24cJ8pDnfSNhsdBkt",
+    "metadata": {
+      "user_message_uuid": "39a0ff85-af78-4b53-add6-a2a9cbd21c57",
+      "user_message_uuids": [
+        "39a0ff85-af78-4b53-add6-a2a9cbd21c57"
+      ]
+    },
+    "turnId": "turn_msg_011CfLC24cJ8pDnfSNhsdBkt",
+    "seq": 7
+  },
+  {
     "type": "message.end",
-    "seq": 7,
+    "seq": 8,
     "id": "msg_011CfLC24cJ8pDnfSNhsdBkt",
     "usage": {
       "inputTokens": 2,
@@ -82,7 +88,7 @@
   },
   {
     "type": "tool.done",
-    "seq": 8,
+    "seq": 9,
     "turnId": "turn_msg_011CfLC24cJ8pDnfSNhsdBkt",
     "toolCallId": "toolu_01AhgFTEoA8EtyMaRXi75kaB",
     "content": [
@@ -97,7 +103,7 @@
   },
   {
     "type": "message.start",
-    "seq": 9,
+    "seq": 10,
     "id": "msg_011CfLC2Cfyj9Stng1VLKcSs",
     "turnId": "turn_msg_011CfLC24cJ8pDnfSNhsdBkt",
     "threadId": "17edf6d0-c55c-47c1-a79c-a2941b3b8432",
@@ -106,14 +112,14 @@
   },
   {
     "type": "text.start",
-    "seq": 10,
+    "seq": 11,
     "id": "msg_011CfLC2Cfyj9Stng1VLKcSs:text:0",
     "messageId": "msg_011CfLC2Cfyj9Stng1VLKcSs",
     "turnId": "turn_msg_011CfLC24cJ8pDnfSNhsdBkt"
   },
   {
     "type": "text.delta",
-    "seq": 11,
+    "seq": 12,
     "id": "msg_011CfLC2Cfyj9Stng1VLKcSs:text:0",
     "messageId": "msg_011CfLC2Cfyj9Stng1VLKcSs",
     "delta": "first-request",
@@ -121,14 +127,14 @@
   },
   {
     "type": "text.end",
-    "seq": 12,
+    "seq": 13,
     "id": "msg_011CfLC2Cfyj9Stng1VLKcSs:text:0",
     "messageId": "msg_011CfLC2Cfyj9Stng1VLKcSs",
     "turnId": "turn_msg_011CfLC24cJ8pDnfSNhsdBkt"
   },
   {
     "type": "message.end",
-    "seq": 13,
+    "seq": 14,
     "id": "msg_011CfLC2Cfyj9Stng1VLKcSs",
     "usage": {
       "inputTokens": 2,
@@ -139,7 +145,7 @@
     }
   },
   {
-    "seq": 14,
+    "seq": 15,
     "type": "ext.anthropic.result-meta",
     "fastModeDisabledReason": "sdk_opt_in_required",
     "userMessageUuid": "39a0ff85-af78-4b53-add6-a2a9cbd21c57",
@@ -187,7 +193,7 @@
   },
   {
     "type": "turn.done",
-    "seq": 15,
+    "seq": 16,
     "turnId": "turn_msg_011CfLC24cJ8pDnfSNhsdBkt",
     "outcome": {
       "type": "success",
@@ -228,7 +234,7 @@
     }
   },
   {
-    "seq": 16,
+    "seq": 17,
     "type": "ext.anthropic.frame",
     "kind": "command_lifecycle",
     "frame": {
@@ -240,7 +246,7 @@
     }
   },
   {
-    "seq": 17,
+    "seq": 18,
     "type": "ext.anthropic.frame",
     "kind": "command_lifecycle",
     "frame": {
@@ -252,7 +258,7 @@
     }
   },
   {
-    "seq": 18,
+    "seq": 19,
     "type": "ext.anthropic.frame",
     "kind": "command_lifecycle",
     "frame": {
@@ -265,13 +271,13 @@
   },
   {
     "type": "turn.start",
-    "seq": 19,
+    "seq": 20,
     "turnId": "turn_msg_011CfLC2HPVYLvowc7uSFXCr",
     "threadId": "17edf6d0-c55c-47c1-a79c-a2941b3b8432"
   },
   {
     "type": "message.start",
-    "seq": 20,
+    "seq": 21,
     "id": "msg_011CfLC2HPVYLvowc7uSFXCr",
     "turnId": "turn_msg_011CfLC2HPVYLvowc7uSFXCr",
     "threadId": "17edf6d0-c55c-47c1-a79c-a2941b3b8432",
@@ -280,37 +286,43 @@
   },
   {
     "type": "tool.start",
-    "seq": 21,
+    "seq": 22,
     "turnId": "turn_msg_011CfLC2HPVYLvowc7uSFXCr",
     "toolCallId": "toolu_01VxQbXhUFHm1bDjw2JoxVpH",
     "name": "mcp__t__echo",
     "index": 0,
     "messageId": "msg_011CfLC2HPVYLvowc7uSFXCr",
-    "providerExecuted": false,
-    "providerMetadata": {
-      "user_message_uuid": "79baf6ab-5677-4b1b-a381-d77aafc4b22c",
-      "user_message_uuids": [
-        "79baf6ab-5677-4b1b-a381-d77aafc4b22c"
-      ]
-    }
+    "providerExecuted": false
   },
   {
     "type": "tool.args.delta",
-    "seq": 22,
+    "seq": 23,
     "toolCallId": "toolu_01VxQbXhUFHm1bDjw2JoxVpH",
     "delta": "{\"message\":\"second-request\"}"
   },
   {
     "type": "tool.args.assembled",
-    "seq": 23,
+    "seq": 24,
     "toolCallId": "toolu_01VxQbXhUFHm1bDjw2JoxVpH",
     "input": {
       "message": "second-request"
     }
   },
   {
+    "type": "message.metadata",
+    "messageId": "msg_011CfLC2HPVYLvowc7uSFXCr",
+    "metadata": {
+      "user_message_uuid": "79baf6ab-5677-4b1b-a381-d77aafc4b22c",
+      "user_message_uuids": [
+        "79baf6ab-5677-4b1b-a381-d77aafc4b22c"
+      ]
+    },
+    "turnId": "turn_msg_011CfLC2HPVYLvowc7uSFXCr",
+    "seq": 25
+  },
+  {
     "type": "message.end",
-    "seq": 24,
+    "seq": 26,
     "id": "msg_011CfLC2HPVYLvowc7uSFXCr",
     "usage": {
       "inputTokens": 2,
@@ -322,7 +334,7 @@
   },
   {
     "type": "tool.done",
-    "seq": 25,
+    "seq": 27,
     "turnId": "turn_msg_011CfLC2HPVYLvowc7uSFXCr",
     "toolCallId": "toolu_01VxQbXhUFHm1bDjw2JoxVpH",
     "content": [
@@ -337,7 +349,7 @@
   },
   {
     "type": "message.start",
-    "seq": 26,
+    "seq": 28,
     "id": "msg_011CfLC2QAHNc3oJx7ACoqGF",
     "turnId": "turn_msg_011CfLC2HPVYLvowc7uSFXCr",
     "threadId": "17edf6d0-c55c-47c1-a79c-a2941b3b8432",
@@ -346,14 +358,14 @@
   },
   {
     "type": "text.start",
-    "seq": 27,
+    "seq": 29,
     "id": "msg_011CfLC2QAHNc3oJx7ACoqGF:text:0",
     "messageId": "msg_011CfLC2QAHNc3oJx7ACoqGF",
     "turnId": "turn_msg_011CfLC2HPVYLvowc7uSFXCr"
   },
   {
     "type": "text.delta",
-    "seq": 28,
+    "seq": 30,
     "id": "msg_011CfLC2QAHNc3oJx7ACoqGF:text:0",
     "messageId": "msg_011CfLC2QAHNc3oJx7ACoqGF",
     "delta": "second-request",
@@ -361,14 +373,14 @@
   },
   {
     "type": "text.end",
-    "seq": 29,
+    "seq": 31,
     "id": "msg_011CfLC2QAHNc3oJx7ACoqGF:text:0",
     "messageId": "msg_011CfLC2QAHNc3oJx7ACoqGF",
     "turnId": "turn_msg_011CfLC2HPVYLvowc7uSFXCr"
   },
   {
     "type": "message.end",
-    "seq": 30,
+    "seq": 32,
     "id": "msg_011CfLC2QAHNc3oJx7ACoqGF",
     "usage": {
       "inputTokens": 2,
@@ -379,7 +391,7 @@
     }
   },
   {
-    "seq": 31,
+    "seq": 33,
     "type": "ext.anthropic.result-meta",
     "fastModeDisabledReason": "sdk_opt_in_required",
     "userMessageUuid": "79baf6ab-5677-4b1b-a381-d77aafc4b22c",
@@ -427,7 +439,7 @@
   },
   {
     "type": "turn.done",
-    "seq": 32,
+    "seq": 34,
     "turnId": "turn_msg_011CfLC2HPVYLvowc7uSFXCr",
     "outcome": {
       "type": "success",
@@ -468,7 +480,7 @@
     }
   },
   {
-    "seq": 33,
+    "seq": 35,
     "type": "ext.anthropic.frame",
     "kind": "command_lifecycle",
     "frame": {
