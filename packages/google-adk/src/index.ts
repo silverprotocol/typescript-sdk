@@ -255,7 +255,9 @@ export interface AdkEvent {
     skipSummarization?: boolean;
     /** Transfer control to another named agent. */
     transferToAgent?: string;
-    /** Escalate to a human or supervisor. */
+    /** "The agent is escalating to a higher level agent" (ADK's declaration,
+     *  events/event_actions.d.ts): the exit_loop tool sets it, and a LoopAgent
+     *  stops iterating on it. */
     escalate?: boolean;
     /** Request OAuth/auth configs from the caller. ADK serializes this as a
      * dict keyed by the function-call-id (`dict[str, AuthConfig]`); the value
