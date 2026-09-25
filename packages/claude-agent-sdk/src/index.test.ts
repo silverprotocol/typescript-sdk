@@ -1238,8 +1238,9 @@ describe("createClaudeNormalizer — permission_denials on an error-subtype resu
     expect(done).toMatchObject({
       outcome: "denied",
       content: [{ type: "text", text: "This command was blocked by a deny rule (no destructive filesystem operations)." }],
-      providerMetadata: { decisionReasonType: "rule", decisionReason: "matches deny-rule" },
+      _meta: { "anthropic/permissionDenied": { decisionReasonType: "rule", decisionReason: "matches deny-rule" } },
     });
+    expect(done).not.toHaveProperty("providerMetadata");
   });
 
   it("with a STASHED close (assistant error frame first), the carrier still precedes that one turn.error", () => {
@@ -2394,7 +2395,7 @@ describe("createClaudeNormalizer — refusal-fallback retraction (playbook 2026-
     };
   }
 
-  it("carries the raw uuid list as providerMetadata on the fallback message's first block", () => {
+  it("carries the raw uuid list as host-only _meta on the fallback message's first block (§8.0 item 19, draft.5), never providerMetadata", () => {
     const n = createClaudeNormalizer();
     const evs = [
       ...n.push(JsonValue.parse(refusedAssistant())),
@@ -2405,7 +2406,8 @@ describe("createClaudeNormalizer — refusal-fallback retraction (playbook 2026-
     const fallbackTextStart = evs.find(
       (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_fallback",
     );
-    expect(fallbackTextStart).toMatchObject({ providerMetadata: { supersedes: [REFUSED_UUID] } });
+    expect(fallbackTextStart).toMatchObject({ _meta: { supersedes: [REFUSED_UUID] } });
+    expect(fallbackTextStart).not.toHaveProperty("providerMetadata");
   });
 
   it("supersedes evicts the refused leg via message.remove 'on arrival'", () => {
@@ -2675,7 +2677,7 @@ describe("createClaudeNormalizer — SDKInformationalMessage → notice message 
     };
   }
 
-  it("emits a full notice message: role notice, noticeSource framework, content verbatim on a text block, level on its providerMetadata", () => {
+  it("emits a full notice message: role notice, noticeSource framework, content verbatim on a text block, level on its host-only _meta (§8.0 item 21, draft.5)", () => {
     const n = createClaudeNormalizer();
     const evs = [...n.push(JsonValue.parse(informationalMsg())), ...n.flush()];
     assertAllValid(evs);
@@ -2690,9 +2692,10 @@ describe("createClaudeNormalizer — SDKInformationalMessage → notice message 
       block: {
         type: "text",
         text: "Context window is getting full — consider /compact.",
-        providerMetadata: { level: "notice" },
+        _meta: { level: "notice" },
       },
     });
+    expect(block).not.toHaveProperty(["block", "providerMetadata"]);
     expect(evs.some((e) => e.type === "message.end")).toBe(true);
   });
 
@@ -2710,19 +2713,18 @@ describe("createClaudeNormalizer — SDKInformationalMessage → notice message 
     const block = evs.find((e) => e.type === "content.block");
     expect(block).toMatchObject({
       block: {
-        providerMetadata: { level: "warning", preventContinuation: true, toolUseId: "toolu_notice_1" },
+        _meta: { level: "warning", preventContinuation: true, toolUseId: "toolu_notice_1" },
       },
     });
+    expect(block).not.toHaveProperty(["block", "providerMetadata"]);
   });
 
   it("omits absent wrapper siblings (no fabricated fields)", () => {
     const n = createClaudeNormalizer();
     const evs = [...n.push(JsonValue.parse(informationalMsg())), ...n.flush()];
-    const block = evs.find((e) => e.type === "content.block") as {
-      block?: { providerMetadata?: { preventContinuation?: unknown; toolUseId?: unknown } };
-    };
-    expect(block.block?.providerMetadata?.preventContinuation).toBeUndefined();
-    expect(block.block?.providerMetadata?.toolUseId).toBeUndefined();
+    const block = evs.find((e) => e.type === "content.block") as { block?: { _meta?: unknown } };
+    // Exactly `level` (always present, so the carrier is non-vacuous), nothing fabricated.
+    expect(block.block?._meta).toEqual({ level: "notice" });
   });
 
   it("the ext.anthropic.informational carry is RETIRED — never emitted alongside the notice (one carrier per concept)", () => {
@@ -3011,12 +3013,13 @@ describe("tool_use_result sibling mapping (audit B7)", () => {
     { uri: "file:///tmp/notes.md", name: "notes.md" },
   ];
 
-  it("carries the sibling's resourceLinks (0.3.257) verbatim as providerMetadata on the adopted tool.done — content stays model-faithful", () => {
+  it("carries the sibling's resourceLinks (0.3.257) verbatim as the host record _meta[\"anthropic/resourceLinks\"] on the adopted tool.done (draft.5) — content stays model-faithful", () => {
     const n = createClaudeNormalizer();
     const evs = n.push(userMsgWith({ structuredContent: { answer: 42 }, resourceLinks: RESOURCE_LINKS }));
     assertAllValid(evs);
     const done = evs.find((e) => e.type === "tool.done");
-    expect(done?.type === "tool.done" && done.providerMetadata).toEqual({ resourceLinks: RESOURCE_LINKS });
+    expect(done?.type === "tool.done" && done._meta).toEqual({ "anthropic/resourceLinks": RESOURCE_LINKS });
+    expect(done?.type === "tool.done" && done.providerMetadata).toBeUndefined();
     // The block's own content (the text the model read) is untouched, and the
     // sibling's other fields still route as before.
     expect(done?.type === "tool.done" && done.content).toEqual([]);
@@ -3029,18 +3032,23 @@ describe("tool_use_result sibling mapping (audit B7)", () => {
       .push(userMsgWith({ resourceLinks: RESOURCE_LINKS }, twoToolResults))
       .filter((e) => e.type === "tool.done");
     expect(dones).toHaveLength(2);
-    for (const d of dones) expect(d.type === "tool.done" && d.providerMetadata).toBeUndefined();
+    for (const d of dones) {
+      expect(d.type === "tool.done" && d.providerMetadata).toBeUndefined();
+      expect(d.type === "tool.done" && d._meta).toBeUndefined();
+    }
   });
 
-  it("emits NO providerMetadata when the sibling carries no resourceLinks (negative control — pre-0.3.257 output unchanged)", () => {
+  it("emits NO resourceLinks record (and no providerMetadata) when the sibling carries none (negative control — pre-0.3.257 output unchanged)", () => {
     const n = createClaudeNormalizer();
     const evs = n.push(userMsgWith({ structuredContent: { answer: 42 } }));
     const done = evs.find((e) => e.type === "tool.done");
     expect(done?.type === "tool.done" && done.providerMetadata).toBeUndefined();
+    expect(done?.type === "tool.done" && done._meta).toBeUndefined();
     // A non-array `resourceLinks` (malformed) is likewise ignored, never thrown on.
     const malformed = createClaudeNormalizer().push(userMsgWith({ resourceLinks: "nope" }));
     const doneM = malformed.find((e) => e.type === "tool.done");
     expect(doneM?.type === "tool.done" && doneM.providerMetadata).toBeUndefined();
+    expect(doneM?.type === "tool.done" && doneM._meta).toBeUndefined();
   });
 });
 
@@ -3470,7 +3478,7 @@ describe("createClaudeNormalizer — SDKPermissionDeniedMessage enriches the W1 
     expect(evs).toHaveLength(0);
   });
 
-  it("enriches the aggregate denial's tool.done with the live rejection message + decision-reason providerMetadata", () => {
+  it("enriches the aggregate denial's tool.done with the live rejection message + the decision-reason host record on _meta (draft.5)", () => {
     const n = createClaudeNormalizer();
     const evs = [
       ...n.push(
@@ -3500,21 +3508,25 @@ describe("createClaudeNormalizer — SDKPermissionDeniedMessage enriches the W1 
     expect(toolDones[0]).toMatchObject({
       outcome: "denied",
       content: [{ type: "text", text: "This command was blocked by a deny rule (no destructive filesystem operations)." }],
-      providerMetadata: {
-        decisionReasonType: "rule",
-        decisionReason: "matches deny-rule 'no rm -rf'",
-        agentId: "agent_1",
+      _meta: {
+        "anthropic/permissionDenied": {
+          decisionReasonType: "rule",
+          decisionReason: "matches deny-rule 'no rm -rf'",
+          agentId: "agent_1",
+        },
       },
     });
+    expect(toolDones[0]).not.toHaveProperty("providerMetadata");
   });
 
-  it("falls back to empty content + no providerMetadata when no live frame preceded the aggregate (pre-existing behavior unchanged)", () => {
+  it("falls back to empty content + no record when no live frame preceded the aggregate (pre-existing behavior unchanged)", () => {
     const evs = run(resultWithDenial());
     const toolDone = evs.find(
       (e): e is Extract<AgEvent, { type: "tool.done" }> => e.type === "tool.done",
     );
     expect(toolDone).toMatchObject({ outcome: "denied", content: [] });
     expect(toolDone?.providerMetadata).toBeUndefined();
+    expect(toolDone?._meta).toBeUndefined();
   });
 
   it("fold: the enriched denial carrier folds clean through Reducer — needsResync===false", () => {
@@ -3543,10 +3555,11 @@ interface SdkSurfaceManifest {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 0.3.217 wrapper-level assistant carries (bump-audit gap closure): the
-// `resumed_from_incomplete_thinking` (replay-load-bearing per its own doc) and
-// `aborted` (interrupt-truncation signal) wrapper siblings join the supersedes
-// first-block providerMetadata carrier (§8 item 8); a BLOCK-LESS aborted frame
-// rides message.metadata instead (no block to anchor).
+// `resumed_from_incomplete_thinking` flag (replay-load-bearing per its own doc)
+// rides the first block's providerMetadata (§8 item 8); `aborted` (the
+// interrupt-truncation signal) rides its host-only `_meta` beside `supersedes`
+// (draft.5, §10 item 45); a BLOCK-LESS aborted frame rides message.metadata
+// instead (no block to anchor).
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from_incomplete_thinking / aborted)", () => {
@@ -3581,7 +3594,7 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     });
   });
 
-  it("carries aborted:true the same way, merged with supersedes when both present", () => {
+  it("carries aborted:true on the first block's host-only _meta, merged with supersedes when both present (draft.5)", () => {
     const n = createClaudeNormalizer();
     const evs = [
       ...n.push(
@@ -3599,11 +3612,12 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
       (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
     );
     expect(firstBlock).toMatchObject({
-      providerMetadata: {
+      _meta: {
         aborted: true,
         supersedes: ["018f0000-0000-7000-8000-00000000bbbb"],
       },
     });
+    expect(firstBlock).not.toHaveProperty("providerMetadata");
   });
 
   it("BLOCK-LESS aborted frame: the carry rides a message.metadata event (no block to anchor)", () => {
@@ -3620,8 +3634,9 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     assertAllValid(evs);
     const firstBlock = evs.find(
       (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
-    ) as { providerMetadata?: unknown };
+    ) as { providerMetadata?: unknown; _meta?: unknown };
     expect(firstBlock.providerMetadata).toBeUndefined();
+    expect(firstBlock._meta).toBeUndefined();
     expect(evs.some((e) => e.type === "message.metadata")).toBe(false);
   });
 
@@ -3639,7 +3654,7 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     agents: [{ agent_type: "Explore", source: "built-in", tokens: 900 }],
   };
 
-  it("carries context_usage verbatim as providerMetadata on the first block (0.3.230)", () => {
+  it("carries context_usage verbatim on the first block's host-only _meta (0.3.230; draft.5)", () => {
     const n = createClaudeNormalizer();
     const evs = [
       ...n.push(JsonValue.parse(wrapperAssistant({ context_usage: CONTEXT_USAGE }))),
@@ -3649,7 +3664,8 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     const firstBlock = evs.find(
       (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
     );
-    expect(firstBlock).toMatchObject({ providerMetadata: { context_usage: CONTEXT_USAGE } });
+    expect(firstBlock).toMatchObject({ _meta: { context_usage: CONTEXT_USAGE } });
+    expect(firstBlock).not.toHaveProperty("providerMetadata");
   });
 
   it("fold: a context_usage carrier folds clean through Reducer — needsResync===false", () => {
@@ -3669,7 +3685,7 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
   // Joins the same first-block carrier, wire name verbatim. ──
   const USER_MESSAGE_UUID = "018f0000-0000-7000-8000-00000000d002";
 
-  it("carries user_message_uuid verbatim as providerMetadata on the first block (0.3.258)", () => {
+  it("carries user_message_uuid verbatim on the first block's host-only _meta (0.3.258; draft.5)", () => {
     const n = createClaudeNormalizer();
     const evs = [
       ...n.push(JsonValue.parse(wrapperAssistant({ user_message_uuid: USER_MESSAGE_UUID }))),
@@ -3679,7 +3695,8 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     const firstBlock = evs.find(
       (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
     );
-    expect(firstBlock).toMatchObject({ providerMetadata: { user_message_uuid: USER_MESSAGE_UUID } });
+    expect(firstBlock).toMatchObject({ _meta: { user_message_uuid: USER_MESSAGE_UUID } });
+    expect(firstBlock).not.toHaveProperty("providerMetadata");
     // Complete-only mode: the first-block carrier is the ONLY channel — no
     // message.metadata twin.
     expect(evs.some((e) => e.type === "message.metadata")).toBe(false);
@@ -3705,9 +3722,9 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     assertAllValid(evs);
     const firstBlock = evs.find(
       (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
-    ) as { providerMetadata?: { user_message_uuid?: unknown } };
-    expect(firstBlock).toMatchObject({ providerMetadata: { aborted: true } });
-    expect(firstBlock.providerMetadata?.user_message_uuid).toBeUndefined();
+    ) as { _meta?: { user_message_uuid?: unknown } };
+    expect(firstBlock).toMatchObject({ _meta: { aborted: true } });
+    expect(firstBlock._meta?.user_message_uuid).toBeUndefined();
   });
 
   // ── 0.3.259 plural companion: `user_message_uuids` — every client uuid whose
@@ -3718,7 +3735,7 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
   const USER_MESSAGE_UUID_FIRST = "018f0000-0000-7000-8000-00000000d001";
   const USER_MESSAGE_UUIDS = [USER_MESSAGE_UUID_FIRST, USER_MESSAGE_UUID];
 
-  it("carries user_message_uuids verbatim beside user_message_uuid in the first-block providerMetadata (0.3.259)", () => {
+  it("carries user_message_uuids verbatim beside user_message_uuid on the first block's host-only _meta (0.3.259; draft.5)", () => {
     const n = createClaudeNormalizer();
     const evs = [
       ...n.push(
@@ -3731,9 +3748,10 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     assertAllValid(evs);
     const firstBlock = evs.find(
       (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
-    ) as { providerMetadata?: unknown };
+    ) as { providerMetadata?: unknown; _meta?: unknown };
     // Exact bag: both members, order preserved, nothing else fabricated.
-    expect(firstBlock.providerMetadata).toEqual({
+    expect(firstBlock.providerMetadata).toBeUndefined();
+    expect(firstBlock._meta).toEqual({
       user_message_uuid: USER_MESSAGE_UUID,
       user_message_uuids: USER_MESSAGE_UUIDS,
     });
@@ -3773,8 +3791,9 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     assertAllValid(evs);
     const firstBlock = evs.find(
       (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
-    ) as { providerMetadata?: unknown };
-    expect(firstBlock.providerMetadata).toEqual({ user_message_uuid: USER_MESSAGE_UUID });
+    ) as { providerMetadata?: unknown; _meta?: unknown };
+    expect(firstBlock.providerMetadata).toBeUndefined();
+    expect(firstBlock._meta).toEqual({ user_message_uuid: USER_MESSAGE_UUID });
 
     // Malformed list (a non-string member) — shape-guarded out; the singular still rides.
     const m = createClaudeNormalizer();
@@ -3789,8 +3808,9 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     assertAllValid(evsM);
     const firstBlockM = evsM.find(
       (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
-    ) as { providerMetadata?: unknown };
-    expect(firstBlockM.providerMetadata).toEqual({ user_message_uuid: USER_MESSAGE_UUID });
+    ) as { providerMetadata?: unknown; _meta?: unknown };
+    expect(firstBlockM.providerMetadata).toBeUndefined();
+    expect(firstBlockM._meta).toEqual({ user_message_uuid: USER_MESSAGE_UUID });
   });
 
   // ── 0.3.268 (0.3.272 bump): `resume_reason` — the THIRD leg of the turn-
@@ -3800,7 +3820,7 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
   // SAME once-per-message flag, wire name verbatim. ──
   const RESUME_REASON = "host_draining";
 
-  it("carries resume_reason verbatim beside the uuid family in the first-block providerMetadata (0.3.268)", () => {
+  it("carries resume_reason verbatim beside the uuid family on the first block's host-only _meta (0.3.268; draft.5)", () => {
     const n = createClaudeNormalizer();
     const evs = [
       ...n.push(
@@ -3817,8 +3837,9 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     assertAllValid(evs);
     const firstBlock = evs.find(
       (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
-    ) as { providerMetadata?: unknown };
-    expect(firstBlock.providerMetadata).toEqual({
+    ) as { providerMetadata?: unknown; _meta?: unknown };
+    expect(firstBlock.providerMetadata).toBeUndefined();
+    expect(firstBlock._meta).toEqual({
       user_message_uuid: USER_MESSAGE_UUID,
       user_message_uuids: USER_MESSAGE_UUIDS,
       resume_reason: RESUME_REASON,
@@ -3834,8 +3855,9 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     assertAllValid(evs);
     const firstBlock = evs.find(
       (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
-    ) as { providerMetadata?: unknown };
-    expect(firstBlock.providerMetadata).toEqual({ resume_reason: "interrupted_turn" });
+    ) as { providerMetadata?: unknown; _meta?: unknown };
+    expect(firstBlock.providerMetadata).toBeUndefined();
+    expect(firstBlock._meta).toEqual({ resume_reason: "interrupted_turn" });
   });
 
   // -- 0.3.272: `narration_block_indexes` -- which of THIS frame's content blocks
@@ -3882,10 +3904,9 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     const firstBlock = evs.find(
       (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
     ) as { providerMetadata?: unknown; _meta?: unknown };
-    // X5: the bag splits by key — the turn-binding uuid stays replay-side, the
-    // narration list goes host-side.
-    expect(firstBlock.providerMetadata).toEqual({ user_message_uuid: USER_MESSAGE_UUID });
-    expect(firstBlock._meta).toEqual({ narration_block_indexes: [0, 2] });
+    // Both are host-only since draft.5: ONE `_meta` bag on the first block.
+    expect(firstBlock.providerMetadata).toBeUndefined();
+    expect(firstBlock._meta).toEqual({ narration_block_indexes: [0, 2], user_message_uuid: USER_MESSAGE_UUID });
   });
 
   it("X5 fallback: a TOOL-first frame (tool.start folds no _meta) routes the host-only half through message.metadata, which folds", () => {
@@ -3919,11 +3940,12 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     expect(r.result().messages.find((m) => m.id === "msg_fixture_1")?.metadata).toEqual({ narration_block_indexes: [1] });
   });
 
-  it("X5 fallback, MIXED bag on a tool-first frame: the replay half stays on tool.start.providerMetadata, only the host half moves", () => {
+  it("X5 fallback, MIXED bag on a tool-first frame: the replay half stays on tool.start.providerMetadata, the host half (draft.5: aborted too) moves to message.metadata", () => {
     const mixed = {
       ...assistantMsg([{ type: "tool_use", id: "toolu_x5m", name: "Read", input: { path: "a" } }], null, {
         stop_reason: "tool_use",
       }),
+      resumed_from_incomplete_thinking: true,
       aborted: true,
       narration_block_indexes: [0],
     };
@@ -3932,12 +3954,11 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     assertAllValid(evs);
     const toolStart = evs.find((e) => e.type === "tool.start");
     expect(toolStart).toBeDefined();
-    expect(toolStart).toMatchObject({ providerMetadata: { aborted: true } });
-    expect((toolStart as { providerMetadata?: unknown }).providerMetadata).toEqual({ aborted: true });
+    expect((toolStart as { providerMetadata?: unknown }).providerMetadata).toEqual({ resumed_from_incomplete_thinking: true });
     expect(toolStart !== undefined && "_meta" in toolStart).toBe(false);
     const meta = evs.filter((e) => e.type === "message.metadata");
     expect(meta).toHaveLength(1);
-    expect((meta[0] as { metadata?: unknown }).metadata).toEqual({ narration_block_indexes: [0] });
+    expect((meta[0] as { metadata?: unknown }).metadata).toEqual({ aborted: true, narration_block_indexes: [0] });
   });
 
   // First blocks with NO providerMetadata slot (compaction, a content.block)
@@ -4000,12 +4021,14 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
   it("NEGATIVE CONTROL: a text-first frame still anchors both halves on text.start and emits no message.metadata", () => {
     const n = createClaudeNormalizer();
     const evs = [
-      ...n.push(JsonValue.parse(wrapperAssistant({ aborted: true, narration_block_indexes: [0] }))),
+      ...n.push(JsonValue.parse(wrapperAssistant({ resumed_from_incomplete_thinking: true, aborted: true, narration_block_indexes: [0] }))),
       ...n.flush(),
     ];
     assertAllValid(evs);
     expect(evs.some((e) => e.type === "message.metadata")).toBe(false);
-    expect(evs.find((e) => e.type === "text.start")).toMatchObject({ providerMetadata: { aborted: true }, _meta: { narration_block_indexes: [0] } });
+    const start = evs.find((e) => e.type === "text.start") as { providerMetadata?: unknown; _meta?: unknown };
+    expect(start.providerMetadata).toEqual({ resumed_from_incomplete_thinking: true });
+    expect(start._meta).toEqual({ aborted: true, narration_block_indexes: [0] });
   });
 
   it("NEGATIVE CONTROL: absent or malformed narration_block_indexes leaves the stream byte-identical (nothing new is carried)", () => {
@@ -4061,8 +4084,9 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     assertAllValid(evs);
     const firstBlock = evs.find(
       (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
-    ) as { providerMetadata?: unknown };
-    expect(firstBlock.providerMetadata).toEqual({
+    ) as { providerMetadata?: unknown; _meta?: unknown };
+    expect(firstBlock.providerMetadata).toBeUndefined();
+    expect(firstBlock._meta).toEqual({
       user_message_uuid: USER_MESSAGE_UUID,
       user_message_uuids: USER_MESSAGE_UUIDS,
     });
@@ -4071,8 +4095,9 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     const bare = [...createClaudeNormalizer().push(JsonValue.parse(wrapperAssistant({})))];
     const bareBlock = bare.find(
       (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
-    ) as { providerMetadata?: unknown };
+    ) as { providerMetadata?: unknown; _meta?: unknown };
     expect(bareBlock.providerMetadata).toBeUndefined();
+    expect(bareBlock._meta).toBeUndefined();
 
     // Non-string resume_reason — guarded out; the uuid still rides, nothing throws.
     const m = createClaudeNormalizer();
@@ -4083,8 +4108,9 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     assertAllValid(evsM);
     const firstBlockM = evsM.find(
       (e) => e.type === "text.start" && (e as { messageId?: string }).messageId === "msg_wrapper",
-    ) as { providerMetadata?: unknown };
-    expect(firstBlockM.providerMetadata).toEqual({ user_message_uuid: USER_MESSAGE_UUID });
+    ) as { providerMetadata?: unknown; _meta?: unknown };
+    expect(firstBlockM.providerMetadata).toBeUndefined();
+    expect(firstBlockM._meta).toEqual({ user_message_uuid: USER_MESSAGE_UUID });
   });
 });
 
@@ -5890,14 +5916,18 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
       toolCallId: "toolu_denied_1",
       outcome: "denied",
       content: [{ type: "text", text: "This command was blocked by a deny rule (no destructive filesystem operations)." }],
-      providerMetadata: {
-        decisionReasonType: "rule",
-        decisionReasonCode: "outside_reads_blocked",
-        decisionReason: "matches deny-rule 'no rm -rf'",
+      _meta: {
+        "anthropic/permissionDenied": {
+          decisionReasonType: "rule",
+          decisionReasonCode: "outside_reads_blocked",
+          decisionReason: "matches deny-rule 'no rm -rf'",
+        },
       },
     });
+    expect(dones[0]).not.toHaveProperty("providerMetadata");
     expect(dones[1]).toMatchObject({ toolCallId: "toolu_denied_2", outcome: "denied", content: [] });
     expect(dones[1]).not.toHaveProperty("providerMetadata");
+    expect(dones[1]).not.toHaveProperty("_meta");
     // result-meta carries only resultMetaPayload's keys — never the denials.
     const meta = evs.find((e) => e.type === "ext.anthropic.result-meta");
     expect(meta).toMatchObject({ resultIndex: 0 });
@@ -6578,9 +6608,9 @@ describe("createClaudeNormalizer — the API-error triad (api_error / api_error_
     const uuid = "018f0000-0000-7000-8000-00000000e0e0";
     const evs = drive([apiErrorAssistantFrame({ ...TRIAD, user_message_uuid: uuid })]);
     const first = evs.find((e) => e.type === "text.start");
-    // X5: split by key — the turn-binding uuid replay-side, the triad host-side.
-    expect((first as { providerMetadata?: unknown }).providerMetadata).toEqual({ user_message_uuid: uuid });
-    expect((first as { _meta?: unknown })._meta).toEqual(TRIAD);
+    // Both host-only since draft.5: ONE `_meta` bag, no providerMetadata.
+    expect("providerMetadata" in (first as object)).toBe(false);
+    expect((first as { _meta?: unknown })._meta).toEqual({ ...TRIAD, user_message_uuid: uuid });
 
     // The discriminating case: a CONTINUATION frame of the same message, after
     // an earlier frame already consumed the turn-binding flag. The triad must
@@ -6593,8 +6623,8 @@ describe("createClaudeNormalizer — the API-error triad (api_error / api_error_
     const cont = drive([earlier, apiErrorAssistantFrame({ ...TRIAD, user_message_uuid: uuid })]);
     const starts = cont.filter((e) => e.type === "text.start");
     expect(starts).toHaveLength(2);
-    expect((starts[0] as { providerMetadata?: unknown }).providerMetadata).toEqual({ user_message_uuid: uuid });
-    expect("_meta" in (starts[0] as object)).toBe(false);
+    expect((starts[0] as { _meta?: unknown })._meta).toEqual({ user_message_uuid: uuid });
+    expect("providerMetadata" in (starts[0] as object)).toBe(false);
     expect((starts[1] as { _meta?: unknown })._meta).toEqual(TRIAD);
     expect("providerMetadata" in (starts[1] as object)).toBe(false);
     expect(cont.filter((e) => e.type === "message.start")).toHaveLength(1);
@@ -6672,7 +6702,8 @@ describe("createClaudeNormalizer — usage_report (0.3.273, fixture-only: claude
   it("carries usage_report whole and verbatim (ambient zeros / nulls / false included) on the first block", () => {
     const evs = drive([usageFrame({ usage_report: USAGE_REPORT })]);
     const first = evs.find((e) => e.type === "text.start");
-    expect((first as { providerMetadata?: unknown }).providerMetadata).toEqual({ usage_report: USAGE_REPORT });
+    expect((first as { _meta?: unknown })._meta).toEqual({ usage_report: USAGE_REPORT });
+    expect("providerMetadata" in (first as object)).toBe(false);
     expect(fold(evs).needsResync).toBe(false);
   });
 
@@ -6680,11 +6711,12 @@ describe("createClaudeNormalizer — usage_report (0.3.273, fixture-only: claude
     const ctx = { model: "claude-opus", total_tokens: 1, raw_max_tokens: 2, percentage: 50, categories: [] };
     const evs = drive([usageFrame({ usage_report: USAGE_REPORT, context_usage: ctx, aborted: true })]);
     const first = evs.find((e) => e.type === "text.start");
-    expect((first as { providerMetadata?: unknown }).providerMetadata).toEqual({
+    expect((first as { _meta?: unknown })._meta).toEqual({
       aborted: true,
       context_usage: ctx,
       usage_report: USAGE_REPORT,
     });
+    expect("providerMetadata" in (first as object)).toBe(false);
   });
 
   it("sits OUTSIDE the turn-binding guard: a continuation frame after the flag was consumed still carries it", () => {
@@ -6692,8 +6724,9 @@ describe("createClaudeNormalizer — usage_report (0.3.273, fixture-only: claude
     const evs = drive([usageFrame({ user_message_uuid: uuid }), usageFrame({ usage_report: USAGE_REPORT })]);
     const starts = evs.filter((e) => e.type === "text.start");
     expect(starts).toHaveLength(2);
-    expect((starts[0] as { providerMetadata?: unknown }).providerMetadata).toEqual({ user_message_uuid: uuid });
-    expect((starts[1] as { providerMetadata?: unknown }).providerMetadata).toEqual({ usage_report: USAGE_REPORT });
+    expect((starts[0] as { _meta?: unknown })._meta).toEqual({ user_message_uuid: uuid });
+    expect((starts[1] as { _meta?: unknown })._meta).toEqual({ usage_report: USAGE_REPORT });
+    expect(starts.some((e) => "providerMetadata" in e)).toBe(false);
   });
 
   it("BLOCK-LESS frame: usage_report rides message.metadata", () => {
@@ -6704,10 +6737,11 @@ describe("createClaudeNormalizer — usage_report (0.3.273, fixture-only: claude
     });
   });
 
-  it("NEGATIVE CONTROL: no usage_report ⇒ no providerMetadata, no message.metadata", () => {
+  it("NEGATIVE CONTROL: no usage_report ⇒ no providerMetadata, no _meta, no message.metadata", () => {
     const evs = drive([usageFrame({})]);
     const first = evs.find((e) => e.type === "text.start");
     expect((first as { providerMetadata?: unknown }).providerMetadata).toBeUndefined();
+    expect((first as { _meta?: unknown })._meta).toBeUndefined();
     expect(evs.some((e) => e.type === "message.metadata")).toBe(false);
   });
 });
@@ -6785,40 +6819,43 @@ describe("createClaudeNormalizer — startup_failure_reason (0.3.274, SDKResultE
 });
 
 describe("createClaudeNormalizer — decision_reason_code (CLI 2.1.280, undeclared) on the live permission_denied frame", () => {
-  it("enriches the denial carrier's providerMetadata with decisionReasonCode beside decisionReasonType", () => {
+  it("enriches the denial carrier's host record (_meta, draft.5) with decisionReasonCode beside decisionReasonType", () => {
     const live: unknown = {
       ...permissionDeniedMsg({ decision_reason_type: "rule", decision_reason: "outside the working directory" }),
       decision_reason_code: "outside_reads_blocked",
     };
     const evs = drive([live, resultWithDenial()]);
     const done = evs.find((e) => e.type === "tool.done");
-    expect((done as { providerMetadata?: unknown }).providerMetadata).toEqual({
-      decisionReasonType: "rule",
-      decisionReasonCode: "outside_reads_blocked",
-      decisionReason: "outside the working directory",
+    expect((done as { _meta?: unknown })._meta).toEqual({
+      "anthropic/permissionDenied": {
+        decisionReasonType: "rule",
+        decisionReasonCode: "outside_reads_blocked",
+        decisionReason: "outside the working directory",
+      },
     });
+    expect(done).not.toHaveProperty("providerMetadata");
     expect(fold(evs).needsResync).toBe(false);
   });
 
-  it("the code alone still produces the bag (it is a real reason a host can act on)", () => {
+  it("the code alone still produces the record (it is a real reason a host can act on)", () => {
     const live: unknown = { ...permissionDeniedMsg(), decision_reason_code: "memory_paused" };
     const done = drive([live, resultWithDenial()]).find((e) => e.type === "tool.done");
-    expect((done as { providerMetadata?: unknown }).providerMetadata).toEqual({ decisionReasonCode: "memory_paused" });
+    expect((done as { _meta?: unknown })._meta).toEqual({ "anthropic/permissionDenied": { decisionReasonCode: "memory_paused" } });
   });
 
   it("NEGATIVE CONTROL: absent or non-string code leaves the enriched pair byte-identical", () => {
     const base = permissionDeniedMsg({ agent_id: "agent_1", decision_reason_type: "classifier" });
     const without = drive([base, resultWithDenial()]);
     const done = without.find((e) => e.type === "tool.done");
-    expect((done as { providerMetadata?: unknown }).providerMetadata).toEqual({
-      decisionReasonType: "classifier",
-      agentId: "agent_1",
+    expect((done as { _meta?: unknown })._meta).toEqual({
+      "anthropic/permissionDenied": { decisionReasonType: "classifier", agentId: "agent_1" },
     });
     const malformed = drive([{ ...base, decision_reason_code: ["memory_paused"] }, resultWithDenial()]);
     expect(malformed).toEqual(without);
-    // No live code, no live fields: still no bag at all (pre-existing behavior).
+    // No live code, no live fields: still no record at all (pre-existing behavior).
     const bare = drive([permissionDeniedMsg(), resultWithDenial()]).find((e) => e.type === "tool.done");
     expect((bare as { providerMetadata?: unknown }).providerMetadata).toBeUndefined();
+    expect((bare as { _meta?: unknown })._meta).toBeUndefined();
   });
 });
 
@@ -7011,12 +7048,14 @@ describe("createClaudeNormalizer — non_execution_kind denials (C) and the clos
     expect(done[0]).toMatchObject({
       toolCallId: "toolu_denied_1",
       outcome: "denied",
-      providerMetadata: { decisionReasonType: "rule", decisionReason: "deny rule", agentId: "agent_1" },
+      _meta: { "anthropic/permissionDenied": { decisionReasonType: "rule", decisionReason: "deny rule", agentId: "agent_1" } },
     });
+    expect(done[0]).not.toHaveProperty("providerMetadata");
     expect(denialCarrier(evs)).toEqual([]);
-    // Negative control: with no live notice, the closing tool.done has no bag.
+    // Negative control: with no live notice, the closing tool.done has no record.
     const bare = dones(drive([useFrame("msg_c1", "toolu_c1", "00000000-0000-0000-0000-0000000000c1"), resultFrame("toolu_c1", "00000000-0000-0000-0000-0000000000c2", "permission-rule")]))[0];
     expect(bare !== undefined && "providerMetadata" in bare).toBe(false);
+    expect(JSON.stringify(bare)).not.toContain("anthropic/permissionDenied");
   });
 
   // Second key (after 6d980a5): a live permission_denied notice
@@ -7047,7 +7086,8 @@ describe("createClaudeNormalizer — non_execution_kind denials (C) and the clos
     ]);
     const done = dones(evs);
     expect(done).toHaveLength(1);
-    expect(done[0]).toMatchObject({ toolCallId: "toolu_denied_1", outcome: "denied", providerMetadata: { decisionReasonType: "rule" } });
+    expect(done[0]).toMatchObject({ toolCallId: "toolu_denied_1", outcome: "denied", _meta: { "anthropic/permissionDenied": { decisionReasonType: "rule" } } });
+    expect(done[0]).not.toHaveProperty("providerMetadata");
     expect(done[0] !== undefined && "isError" in done[0]).toBe(false);
     expect(denialCarrier(evs)).toEqual([]);
     expect(fold(evs).needsResync).toBe(false);
@@ -8152,5 +8192,168 @@ describe("createClaudeNormalizer — B1: the API's own tool input when the CLI n
     expect(equal).toMatchObject({ input: WIRE });
     expect(equal).not.toHaveProperty("providerMetadata");
     expect(assembled(streamed({ command: "other" }))).toMatchObject({ input: WIRE, providerMetadata: { wireInput: { command: "other" } } });
+  });
+});
+
+// ─── §10 item 45 (draft.5): host records are side metadata ────────────────────
+// The Claude facet's host-only facts ride `_meta` (or `message.metadata` where no
+// block anchors them), never `providerMetadata`, which §12 reserves for values
+// that round-trip to the provider. The corpus scan in spec-conformance covers
+// the keys a capture shows; these synthetic legs cover the eleven keys no
+// capture carries, one leg each: feed the native frame that carries the key,
+// find it on no emitted `providerMetadata` (top-level member, any event, any
+// depth), and find it on its target.
+describe("createClaudeNormalizer — §10 item 45: host records ride _meta, never providerMetadata (draft.5)", () => {
+  // Every top-level member name of every `providerMetadata` in the stream.
+  function providerMetadataMembers(evs: AgEvent[]): Set<string> {
+    const out = new Set<string>();
+    const walk = (v: unknown): void => {
+      if (Array.isArray(v)) {
+        for (const x of v) walk(x);
+        return;
+      }
+      if (typeof v !== "object" || v === null) return;
+      for (const [k, x] of Object.entries(v)) {
+        if (k === "providerMetadata" && typeof x === "object" && x !== null && !Array.isArray(x)) {
+          for (const m of Object.keys(x)) out.add(m);
+        }
+        walk(x);
+      }
+    };
+    walk(evs);
+    return out;
+  }
+  // A nested member by path, through plain objects only; undefined when absent.
+  function member(v: unknown, ...path: string[]): unknown {
+    let cur: unknown = v;
+    for (const p of path) {
+      if (typeof cur !== "object" || cur === null || Array.isArray(cur)) return undefined;
+      cur = Object.entries(cur).find(([k]) => k === p)?.[1];
+    }
+    return cur;
+  }
+
+  const TEXT = [{ type: "text" as const, text: "hi", citations: null }];
+  const WRAPPER_LEGS: Array<[string, unknown]> = [
+    ["usage_report", { session: { total_cost_usd: 0, model_usage: {} }, rate_limits: { limits: [] } }],
+    ["context_usage", { model: "claude-opus", total_tokens: 1, raw_max_tokens: 2, percentage: 50, categories: [] }],
+    ["resume_reason", "host_draining"],
+    ["aborted", true],
+    ["supersedes", ["018f0000-0000-7000-8000-0000000045aa"]],
+  ];
+  for (const [key, value] of WRAPPER_LEGS) {
+    it(`${key}: on the first block's _meta, on no providerMetadata`, () => {
+      const evs = drive([{ ...assistantMsg(TEXT), [key]: value }]);
+      expect(providerMetadataMembers(evs).has(key)).toBe(false);
+      expect(member(evs.find((e) => e.type === "text.start"), "_meta", key)).toEqual(value);
+      expect(fold(evs).needsResync).toBe(false);
+    });
+  }
+
+  const DENIAL_LEGS: Array<[string, string, string]> = [
+    ["decisionReasonType", "decision_reason_type", "rule"],
+    ["decisionReasonCode", "decision_reason_code", "outside_reads_blocked"],
+    ["decisionReason", "decision_reason", "matches deny-rule"],
+  ];
+  for (const [key, wire, value] of DENIAL_LEGS) {
+    it(`${key}: on the denied call's tool.done _meta["anthropic/permissionDenied"], on no providerMetadata`, () => {
+      const evs = drive([{ ...permissionDeniedMsg(), [wire]: value }, resultWithDenial()]);
+      expect(providerMetadataMembers(evs).has(key)).toBe(false);
+      expect(member(evs.find((e) => e.type === "tool.done"), "_meta", "anthropic/permissionDenied", key)).toBe(value);
+      expect(fold(evs).needsResync).toBe(false);
+    });
+  }
+
+  it("the closing tool_result path carries the same record: all three denial keys, on no providerMetadata", () => {
+    const live = {
+      ...permissionDeniedMsg(),
+      decision_reason_type: "rule",
+      decision_reason_code: "outside_reads_blocked",
+      decision_reason: "matches deny-rule",
+    };
+    const denied = {
+      type: "user",
+      message: {
+        role: "user",
+        content: [{ type: "tool_result", content: "denied by rule", is_error: true, tool_use_id: "toolu_denied_1" }],
+      },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000045d2",
+      session_id: "sess_fixture",
+    };
+    const evs = drive([
+      assistantMsg([{ type: "tool_use", id: "toolu_denied_1", name: "bash", input: { command: "rm -rf" } }]),
+      live,
+      denied,
+      resultWithDenial(),
+    ]);
+    const dones = evs.filter((e) => e.type === "tool.done");
+    expect(dones).toHaveLength(1);
+    expect(member(dones[0], "_meta", "anthropic/permissionDenied")).toEqual({
+      decisionReasonType: "rule",
+      decisionReasonCode: "outside_reads_blocked",
+      decisionReason: "matches deny-rule",
+    });
+    for (const [key] of DENIAL_LEGS) expect(providerMetadataMembers(evs).has(key)).toBe(false);
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  function noticeFrame(extra: { [k: string]: unknown }): unknown {
+    return {
+      type: "system",
+      subtype: "informational",
+      content: "Heads up.",
+      level: "warning",
+      uuid: "00000000-0000-0000-0000-0000000045f1",
+      session_id: "sess_fixture",
+      ...extra,
+    };
+  }
+  const NOTICE_LEGS: Array<[string, { [k: string]: unknown }, unknown]> = [
+    ["level", {}, "warning"],
+    ["preventContinuation", { prevent_continuation: true }, true],
+    ["toolUseId", { tool_use_id: "toolu_notice_45" }, "toolu_notice_45"],
+  ];
+  for (const [key, extra, value] of NOTICE_LEGS) {
+    it(`${key}: on the notice text block's _meta (§8.0 item 21), on no providerMetadata`, () => {
+      const evs = drive([noticeFrame(extra)]);
+      expect(providerMetadataMembers(evs).has(key)).toBe(false);
+      expect(member(evs.find((e) => e.type === "content.block"), "block", "_meta", key)).toEqual(value);
+      const notice = fold(evs).result().messages.find((m) => m.role === "notice");
+      expect(member(notice?.content[0], "_meta", key)).toEqual(value);
+    });
+  }
+
+  it("the turn-binding family on a TOOL-first frame arrives on a message.metadata event that folds onto the message (the multi-result-sonnet5 shape)", () => {
+    const uuid = "018f0000-0000-7000-8000-0000000045c1";
+    const frame = {
+      ...assistantMsg([{ type: "tool_use", id: "toolu_45c", name: "Read", input: { path: "a" } }], null, {
+        stop_reason: "tool_use",
+      }),
+      user_message_uuid: uuid,
+      user_message_uuids: [uuid],
+    };
+    const evs = drive([frame]);
+    expect(providerMetadataMembers(evs).has("user_message_uuid")).toBe(false);
+    expect(providerMetadataMembers(evs).has("user_message_uuids")).toBe(false);
+    const metas = evs.filter((e) => e.type === "message.metadata");
+    expect(metas).toHaveLength(1);
+    expect(member(metas[0], "metadata")).toEqual({ user_message_uuid: uuid, user_message_uuids: [uuid] });
+    const types = evs.map((e) => e.type);
+    expect(types.indexOf("tool.start")).toBeLessThan(types.indexOf("message.metadata"));
+    expect(types.indexOf("message.metadata")).toBeLessThan(types.indexOf("message.end"));
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.find((m) => m.id === "msg_fixture_1")?.metadata).toEqual({
+      user_message_uuid: uuid,
+      user_message_uuids: [uuid],
+    });
+  });
+
+  it("NEGATIVE CONTROL: resumed_from_incomplete_thinking stays replay-side (R2 deferred) — on providerMetadata, never on _meta", () => {
+    const evs = drive([{ ...assistantMsg(TEXT), resumed_from_incomplete_thinking: true }]);
+    const start = evs.find((e) => e.type === "text.start");
+    expect(member(start, "providerMetadata", "resumed_from_incomplete_thinking")).toBe(true);
+    expect(member(start, "_meta")).toBeUndefined();
   });
 });

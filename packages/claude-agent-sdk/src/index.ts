@@ -436,9 +436,8 @@ function assistantErrorRetriable(errCode: NonNullable<SDKAssistantError>): boole
 // open message named by `messageId`. The caller passes the frame's wrapper
 // carry ONLY for blockIndex 0, mirroring the "signature on first block"
 // precedent (§8 item 8, Gemini thoughtSignature), in two bags:
-//  - `blockProviderMetadata`: the REPLAY-side wrapper facts (`supersedes`,
-//    `resumed_from_incomplete_thinking`, `aborted`, `context_usage`,
-//    `usage_report`, the turn-binding family). `text` / `thinking` /
+//  - `blockProviderMetadata`: the REPLAY-side wrapper facts (since draft.5,
+//    only `resumed_from_incomplete_thinking`). `text` / `thinking` /
 //    `redacted_thinking` and the `tool_use` family land it on their *.start
 //    event. The rarer block-0 shapes (mcp_tool_result / compaction / the
 //    default content.block) never apply it, so those facts drop there (a
@@ -827,6 +826,22 @@ const HOST_ONLY_WRAPPER_KEYS: ReadonlySet<string> = new Set([
   "error_details",
   "advisor_model",
   "attribution_agent",
+  // draft.5 (§10 item 45; §8.0 item 19 for `supersedes`): the rest of the
+  // wrapper bag. Each is host-only by its own sdk.d.ts doc (never inside
+  // `message.content`, not replayed to the model): the /context and /usage
+  // twins, the turn-binding family, the interrupt-truncation flag, and the
+  // refusal-fallback supersede list, whose eviction already runs as
+  // `message.remove` (the list is an audit copy). Through 0.7.x they rode
+  // `providerMetadata`. `resumed_from_incomplete_thinking` is the one wrapper
+  // key NOT here: its doc makes it a flag a history replayed through the
+  // bridge must carry back, so it stays replay-side.
+  "context_usage",
+  "usage_report",
+  "user_message_uuid",
+  "user_message_uuids",
+  "resume_reason",
+  "aborted",
+  "supersedes",
 ]);
 
 // `narration_block_indexes` (0.3.272) — which of THIS frame's content blocks are
@@ -887,8 +902,18 @@ function toolResultText(content: unknown): string | undefined {
 }
 
 // The namespace of the facet's own harness keys on a tool.done `_meta` (the
-// subagent report's "anthropic/agentOutput", rd-15's "anthropic/toolResultMeta").
+// subagent report's "anthropic/agentOutput", rd-15's "anthropic/toolResultMeta",
+// and since draft.5 the two host records below). SPEC §2.1 *Host records*: a
+// producer carries such a record under a key in a namespace it owns.
 const HARNESS_META_PREFIX = "anthropic/";
+// draft.5 (§2.1 Host records, §10 item 45): the SDK's verbatim
+// `tool_use_result.resourceLinks` list (through 0.7.x on the tool.done's
+// `providerMetadata.resourceLinks`).
+const RESOURCE_LINKS_META_KEY = `${HARNESS_META_PREFIX}resourceLinks`;
+// draft.5 (§10 item 45): the live `permission_denied` notice's decision context
+// ({decisionReasonType?, decisionReasonCode?, decisionReason?, agentId?}; through
+// 0.7.x those four rode the denied call's tool.done `providerMetadata` flat).
+const PERMISSION_DENIED_META_KEY = `${HARNESS_META_PREFIX}permissionDenied`;
 
 // A tool.done's host-only `_meta`: the tool-authored MCP sibling `_meta` merged
 // with the facet's own harness keys. The harness namespace is RESERVED: every
@@ -1530,9 +1555,10 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // tokens stripped) and the message it describes, emitted on that turn's turn.done.
   const stopDetailsByTurn = new Map<string, { readonly messageId: string; readonly value: JsonValue }>();
 
-  // The live denial's diagnostic fields, camelCased — the providerMetadata bag
-  // on the enriched `<turnId>:denials` tool.done. undefined when the live
-  // frame carried none of them (no empty bag).
+  // The live denial's diagnostic fields, camelCased — the record under
+  // PERMISSION_DENIED_META_KEY on the denied call's tool.done `_meta` (the
+  // enriched `<turnId>:denials` carrier, or the tool_result that closes the
+  // call). undefined when the live frame carried none of them (no empty record).
   function liveDenialMeta(live: LiveDenial | undefined): { [k: string]: JsonValue } | undefined {
     if (
       live === undefined ||
@@ -2219,14 +2245,14 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // itself (see the dedicated `permission_denied` branch below).
         const live = deniedLiveByToolUseId.get(denial.tool_use_id);
         const liveFields = liveDenialMeta(live);
-        const liveMeta: AgProviderMeta | undefined =
-          liveFields !== undefined ? AgProviderMeta.parse(liveFields) : undefined;
+        const denialMeta =
+          liveFields !== undefined ? mergeHarnessMeta(undefined, { [PERMISSION_DENIED_META_KEY]: liveFields }) : undefined;
         a.toolStart({ toolCallId: denial.tool_use_id, name: denial.tool_name });
         a.toolDone({
           toolCallId: denial.tool_use_id,
           content: live !== undefined ? [{ type: "text", text: live.message }] : [],
           outcome: "denied",
-          ...(liveMeta !== undefined ? { providerMetadata: liveMeta } : {}),
+          ...(denialMeta !== undefined ? { _meta: denialMeta } : {}),
         });
       }
       a.closeMessage(denialMsgId);
@@ -2263,10 +2289,11 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       if (msg.supersedes !== undefined && msg.supersedes.length > 0) {
         retractUuids(msg.supersedes);
       }
-      // The raw uuid list is ALSO carried losslessly as `providerMetadata` on
-      // this message's first content block (mirrors the "signature on first
-      // block" precedent, §8 item 8) — an audit trail independent of whether
-      // every targeted uuid was resolvable above.
+      // The raw uuid list is ALSO carried losslessly as host-only `_meta` on
+      // this message's first content block, or on `message.metadata` where no
+      // block anchors it (§8.0 item 19, draft.5; through 0.7.x it rode
+      // `providerMetadata`) — an audit trail independent of whether every
+      // targeted uuid was resolvable above.
       //
       // 0.3.217 wrapper-level siblings join the SAME first-block carrier
       // (closing the two disclosed gaps from the 0.3.217 bump audit), wire
@@ -2512,13 +2539,17 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // X5 (the 2026-09-23 re-cut): the bag mixes two kinds of fact. SPEC
       // §12 makes `providerMetadata` REPLAY-LOAD-BEARING (values that must
       // round-trip to the provider) and `_meta` host-only side metadata.
-      // `narration_block_indexes` and the API-error triad are CLI-wrapper facts
-      // the Messages API never consumes, so where the bag anchors on a BLOCK they
-      // ride that block's start event `_meta` (`reduce()` folds it onto
-      // `block._meta`, keeping the per-frame anchoring). The rest keeps
-      // `providerMetadata`. The split is by key, so the combined bag, and the
-      // `message.metadata` path below that uses it, stay byte-identical
-      // (message.metadata is already `AgMeta`).
+      // Every key in HOST_ONLY_WRAPPER_KEYS is a CLI-wrapper fact the Messages
+      // API never consumes, so where the bag anchors on a BLOCK it rides that
+      // block's start event `_meta` (`reduce()` folds it onto `block._meta`,
+      // keeping the per-frame anchoring). Since draft.5 (§10 item 45) the only
+      // key left for `providerMetadata` is `resumed_from_incomplete_thinking`.
+      // The split is by key, so the combined bag, and the `message.metadata`
+      // path below that uses it, stay byte-identical (message.metadata is
+      // already `AgMeta`). A frame whose first block is a tool call anchors no
+      // host half (tool.start folds no `_meta`), so its host keys arrive on a
+      // `message.metadata` event after the block (the streamed path already
+      // carries the turn-binding family there).
       //
       // Consumer check (2026-09-23): ggui has none of these names.
       // No guuey code reads `providerMetadata`, and its #367/#1652 scrub keys on
@@ -2863,9 +2894,11 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // renders the text the model reads. `tool_use_result` is typed `unknown`
         // (runtime-only shape, like structuredContent above), so the array is
         // validated at the opaque boundary by JsonValue.parse — no cast. The
-        // tool.done `content` stays model-faithful (the rendered text); the links
-        // ride the adopted tool.done's providerMetadata, key verbatim, under the
-        // same single-result attribution rule as the sibling's other fields.
+        // tool.done `content` stays model-faithful (the rendered text, and no
+        // resource-link block: §8.0 item 31's rendering-only case); the list
+        // rides the adopted tool.done's host-only `_meta` as a host record
+        // (RESOURCE_LINKS_META_KEY, SPEC §2.1), verbatim, under the same
+        // single-result attribution rule as the sibling's other fields.
         const siblingResourceLinks =
           sibling !== undefined && Array.isArray(sibling["resourceLinks"])
             ? JsonValue.parse(sibling["resourceLinks"])
@@ -2922,12 +2955,8 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
             // carrier skips it. The live `permission_denied` notice for the id
             // (the CLI emits it from its canUseTool wrapper at decision time,
             // always before this tool_result) rides here instead, the same
-            // providerMetadata the carrier gave it, so D drops nothing.
+            // `_meta` record the carrier gives it, so D drops nothing.
             const liveFields = liveDenialMeta(deniedLiveByToolUseId.get(block.tool_use_id));
-            const resultProviderFields: { [k: string]: JsonValue } = {
-              ...(applySibling && siblingResourceLinks !== undefined ? { resourceLinks: siblingResourceLinks } : {}),
-              ...(liveFields ?? {}),
-            };
             a.toolDone({
               toolCallId: block.tool_use_id,
               content: toolContent,
@@ -2955,23 +2984,26 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
                   ? { structuredContent: sc }
                   : {}),
               ...(applySibling && siblingHasUi && sc !== undefined ? { structuredContent: sc } : {}),
-              // The facet's harness keys, the Agent run report ("anthropic/agentOutput")
-              // and rd-15's CLI `tool_result_meta` entry ("anthropic/toolResultMeta"),
-              // ride the same `_meta`, MERGED into the MCP sibling's `_meta` (never
-              // replacing it), so they fold with the tool-result block. The
-              // "anthropic/" namespace is the harness's own: see `mergeHarnessMeta`.
+              // The facet's harness keys ride the same `_meta`, MERGED into the MCP
+              // sibling's `_meta` (never replacing it), so they fold with the
+              // tool-result block: the Agent run report ("anthropic/agentOutput"),
+              // rd-15's CLI `tool_result_meta` entry ("anthropic/toolResultMeta"),
+              // and the draft.5 host records, the MCP `resourceLinks` list and the
+              // live denial's context. The "anthropic/" namespace is the
+              // harness's own: see `mergeHarnessMeta`. This tool.done carries no
+              // `providerMetadata`: nothing on it round-trips to the provider.
               ...(() => {
                 const report = applySibling && agentCallIds.has(block.tool_use_id) ? agentOutput : undefined;
                 const entry = toolResultMetaById.get(block.tool_use_id);
+                const links = applySibling ? siblingResourceLinks : undefined;
                 const merged = mergeHarnessMeta(applySibling ? siblingMeta : undefined, {
                   ...(report !== undefined ? { "anthropic/agentOutput": report } : {}),
                   ...(entry !== undefined ? { "anthropic/toolResultMeta": entry } : {}),
+                  ...(links !== undefined ? { [RESOURCE_LINKS_META_KEY]: links } : {}),
+                  ...(liveFields !== undefined ? { [PERMISSION_DENIED_META_KEY]: liveFields } : {}),
                 });
                 return merged !== undefined ? { _meta: merged } : {};
               })(),
-              ...(Object.keys(resultProviderFields).length > 0
-                ? { providerMetadata: AgProviderMeta.parse(resultProviderFields) }
-                : {}),
             });
           }
         }
@@ -3166,18 +3198,20 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // carry is RETIRED (superseded, not layered — one carrier per concept,
       // §0.6); note `tool_use_id` was NOT carried by that route, so this
       // promotion is strictly more lossless. Wrapper siblings ride the text
-      // block's providerMetadata (camelCased per the facet's carry
-      // convention, mirroring the 0.3.217 first-block precedent).
+      // block's host-only `_meta` (camelCased per the facet's carry
+      // convention; draft.5 §8.0 item 21 — draft.2 through draft.4 placed them
+      // in `providerMetadata`, which §12 reserves for values that round-trip to
+      // the provider, and a notice is never model input).
       // The open turn, or (between turns) the one this notice opens; the next
       // assistant frame then joins it and its result closes it.
       const turnId = topTurnId(msg.uuid, undefined);
-      const noticeMeta = AgProviderMeta.parse({
+      const noticeMeta = AgMeta.parse({
         level: msg.level,
         ...(msg.prevent_continuation !== undefined ? { preventContinuation: msg.prevent_continuation } : {}),
         ...(msg.tool_use_id !== undefined ? { toolUseId: msg.tool_use_id } : {}),
       });
       a.openMessage({ id: msg.uuid, role: "notice", turnId, threadId: options.threadId ?? msg.session_id, noticeSource: "framework" });
-      a.contentBlock(msg.uuid, { type: "text", text: msg.content, providerMetadata: noticeMeta });
+      a.contentBlock(msg.uuid, { type: "text", text: msg.content, _meta: noticeMeta });
       a.closeMessage(msg.uuid);
       return;
     }
