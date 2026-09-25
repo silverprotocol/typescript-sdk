@@ -270,7 +270,7 @@ async function freePort(): Promise<number> {
  */
 export const KNOB_SUPPORT: Readonly<
   Record<
-    "preToolUseDecision" | "resumeFrom" | "toolApproval" | "adkWorkflow" | "adkStateScript" | "claudeSubagents" | "openaiHandoff" | "openaiHandoffs",
+    "preToolUseDecision" | "resumeFrom" | "toolApproval" | "adkWorkflow" | "adkStateScript" | "claudeSubagents" | "openaiHandoff" | "openaiHandoffs" | "adkLive",
     { frameworks: readonly Framework[]; proof?: string | Partial<Record<Framework, string>> }
   >
 > = {
@@ -284,6 +284,7 @@ export const KNOB_SUPPORT: Readonly<
   claudeSubagents: { frameworks: ["claude"], proof: "claudeSubagentOptions" },
   openaiHandoff: { frameworks: ["openai"], proof: "openaiHandoffAgent" },
   openaiHandoffs: { frameworks: ["openai"], proof: "openaiHandoffAgents" },
+  adkLive: { frameworks: ["adk"], proof: "runAdkLiveCapture" },
 };
 
 /**
@@ -356,18 +357,30 @@ async function loadFrameworkDeps(
     // agjson equals its replay; the facet's default stem is random.
     return { runAgentCapture: runVercelCapture, createNormalizer: () => createVercelNormalizer({ invokeId: "vercel" }) };
   }
-  const [adkAgent, workflowAgent, { createAdkNormalizer }] = await Promise.all([
+  const [adkAgent, workflowAgent, liveAgent, { createAdkNormalizer }] = await Promise.all([
     import("./agents/google-adk/run.js"),
     import("./agents/google-adk/workflow.js"),
+    import("./agents/google-adk/live.js"),
     import("@silverprotocol/google-adk"),
   ]);
-  // Both adk agent modules together prove the knobs (runAdkWorkflowCapture, ADK_STATE_TOOL).
-  assertKnobsHonored(scenario, framework, { ...adkAgent, ...workflowAgent });
+  // The adk agent modules together prove the knobs (runAdkWorkflowCapture,
+  // ADK_STATE_TOOL, runAdkLiveCapture).
+  assertKnobsHonored(scenario, framework, { ...adkAgent, ...workflowAgent, ...liveAgent });
   const { runAdkCapture } = adkAgent;
   const { runAdkWorkflowCapture } = workflowAgent;
+  const { runAdkLiveCapture } = liveAgent;
   const shape = scenario.adkWorkflow;
+  const live = scenario.adkLive;
+  if (shape !== undefined && live !== undefined) {
+    throw new Error(`e2e:capture: scenario "${scenario.name}" sets both adkWorkflow and adkLive; pick one. No capture attempted.`);
+  }
   return {
-    runAgentCapture: shape !== undefined ? (input) => runAdkWorkflowCapture(input, shape) : runAdkCapture,
+    runAgentCapture:
+      live !== undefined
+        ? (input) => runAdkLiveCapture({ ...input, adkLive: live })
+        : shape !== undefined
+          ? (input) => runAdkWorkflowCapture(input, shape)
+          : runAdkCapture,
     // SPEC §8.0 host obligation 4: adk-js has no in-band run terminal, so the
     // capture (the host) records the completion marker after a normal return
     // and feeds it to the facet through its opt-in, as replay.ts does with a

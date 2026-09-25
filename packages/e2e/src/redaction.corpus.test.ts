@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import type { JsonValue } from "@silverprotocol/core";
-import { REDACTED, REDACTED_KEYS, REDACTED_PATH, REDACTED_PATH_KEYS } from "./redact.js";
+import { AUDIO_ELIDED_PREFIX, REDACTED, REDACTED_KEYS, REDACTED_PATH, REDACTED_PATH_KEYS } from "./redact.js";
 
 const E2E = join(import.meta.dirname, "..");
 
@@ -38,6 +38,34 @@ export function unredactedPaths(v: JsonValue, path = "$"): string[] {
   );
 }
 
+/** Every audio payload (mimeType audio/*) whose string `data` was not elided. */
+export function unelidedAudio(v: JsonValue, path = "$"): string[] {
+  if (Array.isArray(v)) return v.flatMap((x, i) => unelidedAudio(x, `${path}[${i}]`));
+  if (v === null || typeof v !== "object") return [];
+  const here =
+    typeof v["mimeType"] === "string" && /^audio\//i.test(v["mimeType"]) && typeof v["data"] === "string" && !v["data"].startsWith(AUDIO_ELIDED_PREFIX)
+      ? [`${path}.data`]
+      : [];
+  return [...here, ...Object.entries(v).flatMap(([k, x]) => unelidedAudio(x, `${path}.${k}`))];
+}
+
+/**
+ * Every drop in a coverage sidecar whose census path runs through a redacted
+ * key but whose recorded value is not the redacted form. A drop records the
+ * key inside its `path` string, so the key-based walk above cannot see it:
+ * a native redacted after capture keeps the raw value in its capture-time
+ * sidecar unless the sidecar is redacted too.
+ */
+export function unredactedDrops(report: JsonValue): string[] {
+  const drops = ((report as { drops?: unknown }).drops ?? []) as { path: string; value: JsonValue }[];
+  return drops.flatMap((d) => {
+    const segs = d.path.split(/\.|\[\d+\]/).filter((s) => s !== "").map((s) => s.toLowerCase());
+    if (segs.some((s) => REDACTED_KEYS.has(s))) return d.value === REDACTED && REDACTED_KEYS.has(segs.at(-1)!) ? [] : [d.path];
+    if (segs.some((s) => REDACTED_PATH_KEYS.has(s))) return typeof d.value !== "string" || d.value === REDACTED_PATH ? [] : [d.path];
+    return [];
+  });
+}
+
 /** An absolute home-directory path (macOS /Users/<name>, Linux /home/<name>) or its CLI slug form. */
 const HOME_PATH = /\/(?:Users|home)\/[^/"\\]+|-Users-[A-Za-z0-9._]+-/;
 
@@ -55,6 +83,29 @@ describe("the committed corpus carries no account-identifying value", () => {
     expect(files.length).toBeGreaterThan(200);
     const offenders = files.flatMap((f) => unredactedPaths(JSON.parse(readFileSync(f, "utf8")) as JsonValue).map((p) => `${relative(E2E, f)} ${p}`));
     expect(offenders).toEqual([]);
+  });
+
+  it("no committed corpus or fixture file carries raw audio bytes (every audio/* payload is elided)", () => {
+    const offenders = files.flatMap((f) => unelidedAudio(JSON.parse(readFileSync(f, "utf8")) as JsonValue).map((p) => `${relative(E2E, f)} ${p}`));
+    expect(offenders).toEqual([]);
+    // the gate bites on a live payload, and passes an elided one
+    expect(unelidedAudio({ inlineData: { mimeType: "audio/pcm", data: "AAEC" } })).toEqual(["$.inlineData.data"]);
+    expect(unelidedAudio({ inlineData: { mimeType: "audio/pcm", data: `${AUDIO_ELIDED_PREFIX}4 chars>` } })).toEqual([]);
+  });
+
+  it("no coverage sidecar records a raw value under a redacted key (a drop's path names the key)", () => {
+    const sidecars = files.filter((f) => f.endsWith(".coverage.json"));
+    expect(sidecars.length).toBeGreaterThan(60);
+    const offenders = sidecars.flatMap((f) => unredactedDrops(JSON.parse(readFileSync(f, "utf8")) as JsonValue).map((p) => `${relative(E2E, f)} ${p}`));
+    expect(offenders).toEqual([]);
+    // the leg bites on a raw token or local path in a drop, and passes the redacted forms
+    const drop = (path: string, value: JsonValue) => ({ drops: [{ path, norm: path, value }] });
+    expect(unredactedDrops(drop("[0].liveSessionResumptionUpdate.newHandle", "tok-live"))).toEqual(["[0].liveSessionResumptionUpdate.newHandle"]);
+    expect(unredactedDrops(drop("[0].liveSessionResumptionUpdate.newHandle", REDACTED))).toEqual([]);
+    expect(unredactedDrops(drop("[3].response.headers.set-cookie", "__cf_bm=x"))).toEqual(["[3].response.headers.set-cookie"]);
+    expect(unredactedDrops(drop("[0].memory_paths.auto", "/opt/x/memory/"))).toEqual(["[0].memory_paths.auto"]);
+    expect(unredactedDrops(drop("[0].memory_paths.auto", REDACTED_PATH))).toEqual([]);
+    expect(unredactedDrops(drop("[0].usageMetadata.totalTokenCount", 42))).toEqual([]);
   });
 
   it("no committed corpus or fixture file carries a home-directory path, anywhere (model text included)", () => {

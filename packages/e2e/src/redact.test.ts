@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { JsonValue } from "@silverprotocol/core";
-import { REDACTED, REDACTED_PATH, redactNative } from "./redact.js";
+import { AUDIO_ELIDED_PREFIX, REDACTED, REDACTED_PATH, redactNative } from "./redact.js";
 
 describe("redactNative", () => {
   const headers = {
@@ -57,6 +57,28 @@ describe("redactNative", () => {
     const result: JsonValue = { type: "user", tool_use_result: { status: "async_launched", outputFile: "/private/tmp/x/tasks/a2", isAsync: true } };
     expect(redactNative(result)).toEqual({ type: "user", tool_use_result: { status: "async_launched", outputFile: REDACTED_PATH, isAsync: true } });
     expect(redactNative(redactNative(init))).toEqual(redactNative(init));
+  });
+
+  it("redacts a Gemini Live session resumption handle", () => {
+    const ev: JsonValue = { liveSessionResumptionUpdate: { newHandle: "Cj4KNzBh-session-token", resumable: true } };
+    expect(redactNative(ev)).toEqual({ liveSessionResumptionUpdate: { newHandle: REDACTED, resumable: true } });
+  });
+
+  it("elides an audio payload's bytes (keeps its size and mimeType), and leaves text and non-audio inlineData alone", () => {
+    const ev: JsonValue = {
+      content: {
+        parts: [
+          { inlineData: { mimeType: "audio/pcm;rate=24000", data: "AAECAwQF" } },
+          { inlineData: { mimeType: "image/png", data: "iVBORw0K" } },
+          { text: "hello" },
+        ],
+      },
+      outputTranscription: { text: "hello" },
+    };
+    const out = redactNative(ev) as { content: { parts: Array<{ inlineData?: { mimeType: string; data: string } }> } };
+    expect(out.content.parts[0]?.inlineData).toEqual({ mimeType: "audio/pcm;rate=24000", data: `${AUDIO_ELIDED_PREFIX}8 chars>` });
+    expect(out.content.parts[1]?.inlineData?.data).toBe("iVBORw0K");
+    expect(JSON.stringify(redactNative(ev))).toBe(JSON.stringify(redactNative(redactNative(ev)))); // idempotent
   });
 
   it("leaves scalars and non-matching trees byte-identical", () => {

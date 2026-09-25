@@ -32,6 +32,9 @@ export const REDACTED_KEYS: ReadonlySet<string> = new Set([
   "proxy-authorization",
   "x-api-key",
   "x-goog-api-key",
+  // Gemini Live's liveSessionResumptionUpdate.newHandle: a token that resumes
+  // the live session (with the account's key), so it never reaches the corpus.
+  "newhandle",
 ]);
 
 /** What every string under a REDACTED_PATH_KEYS key becomes. */
@@ -48,6 +51,17 @@ export const REDACTED_PATH = "<redacted-path>";
  * string leaf).
  */
 export const REDACTED_PATH_KEYS: ReadonlySet<string> = new Set(["cwd", "memory_paths", "output_file", "outputfile"]);
+
+/**
+ * An audio payload (an object whose `mimeType` is audio/*, e.g. Gemini Live's
+ * `inlineData {mimeType: "audio/pcm;rate=24000", data}`) keeps its size but
+ * never its bytes: its string `data` becomes `<audio-elided:N chars>`. Raw
+ * audio is the user's or the model's voice; the corpus carries transcriptions
+ * (text), never the audio itself.
+ */
+export const AUDIO_ELIDED_PREFIX = "<audio-elided:";
+const isAudioPayload = (o: { [k: string]: JsonValue }): boolean =>
+  typeof o["mimeType"] === "string" && /^audio\//i.test(o["mimeType"]) && typeof o["data"] === "string";
 
 /** Every string leaf of `v` becomes REDACTED_PATH; structure and other values stay. */
 function redactPathLeaves(v: JsonValue): JsonValue {
@@ -73,13 +87,16 @@ export function redactNative(value: JsonValue): JsonValue {
   if (Array.isArray(value)) return value.map(redactNative);
   if (value === null || typeof value !== "object") return value;
   const out: { [k: string]: JsonValue } = {};
+  const audio = isAudioPayload(value);
   for (const [k, v] of Object.entries(value)) {
     Object.defineProperty(out, k, {
       value: REDACTED_KEYS.has(k.toLowerCase())
         ? REDACTED
         : REDACTED_PATH_KEYS.has(k.toLowerCase())
           ? redactPathLeaves(v)
-          : redactNative(v),
+          : audio && k === "data" && typeof v === "string" && !v.startsWith(AUDIO_ELIDED_PREFIX)
+            ? `${AUDIO_ELIDED_PREFIX}${v.length} chars>`
+            : redactNative(v),
       enumerable: true,
       writable: true,
       configurable: true,

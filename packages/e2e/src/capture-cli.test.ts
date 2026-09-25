@@ -661,3 +661,22 @@ describe("claudeSubagents and openaiHandoff: the knob guards (nested-turn captur
     expect(() => withKnobs({ openaiHandoff: { name: "" , instructions: "i" } })).toThrow();
   });
 });
+
+describe("adkLive: the knob guard (cto's Live barge-in ask)", () => {
+  const withKnobs = (extra: Record<string, unknown>) => Scenario.parse({ name: "live-probe", prompt: "x", ...extra });
+  const live = { bargeIn: "Stop. Say ok." };
+
+  it("passes only on an adk agent that exports runAdkLiveCapture, and never on another framework", () => {
+    expect(() => assertKnobsHonored(withKnobs({ adkLive: live }), "adk", { runAdkLiveCapture: () => undefined })).not.toThrow();
+    expect(() => assertKnobsHonored(withKnobs({ adkLive: live }), "adk", { runAdkCapture: () => undefined })).toThrow(/does not export runAdkLiveCapture/);
+    expect(() => assertKnobsHonored(withKnobs({ adkLive: live }), "claude", { runAdkLiveCapture: () => undefined })).toThrow(
+      /only the adk capture agent honors/,
+    );
+  });
+
+  it("the schema needs a non-empty bargeIn and accepts only TEXT or AUDIO", () => {
+    expect(withKnobs({ adkLive: { bargeIn: "b", responseModality: "AUDIO" } }).adkLive).toEqual({ bargeIn: "b", responseModality: "AUDIO" });
+    expect(() => withKnobs({ adkLive: { bargeIn: "" } })).toThrow();
+    expect(() => withKnobs({ adkLive: { bargeIn: "b", responseModality: "VIDEO" } })).toThrow();
+  });
+});
