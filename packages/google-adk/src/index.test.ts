@@ -4434,7 +4434,11 @@ describe("createAdkNormalizer — a Live barge-in closes turn.abort after the ev
   // The order Gemini Live really uses (a gemini-3.8-live capture
   // `live-bargein-gemini38live`): the flag first, then the interrupted
   // generation's usage and turnComplete, then the reply generation.
-  const usage = (i: number, o: number) => ({ usageMetadata: { promptTokenCount: i, candidatesTokenCount: o, totalTokenCount: i + o } });
+  // Gemini Live's usage shape: `responseTokenCount` is the output counter, and
+  // the total is prompt + response, excluding thoughts.
+  const usage = (i: number, o: number, thoughts = 0) => ({
+    usageMetadata: { promptTokenCount: i, responseTokenCount: o, totalTokenCount: i + o, ...(thoughts > 0 ? { thoughtsTokenCount: thoughts } : {}) },
+  });
   const realBargeIn = (inv: string): JsonValue[] => [
     liveEvent(inv, "r1", { content: audio }),
     liveEvent(inv, "r2", { interrupted: true }),
@@ -4518,6 +4522,26 @@ describe("createAdkNormalizer — a Live barge-in closes turn.abort after the ev
       liveEvent("inv_d", "d4", { turnComplete: true }),
     ]);
     expect(transcriptTexts(differs)).toEqual(["Hel", "Hello", "Only final"]);
+  });
+
+  it("Live usage: responseTokenCount is the output counter and thoughts fold in (outputTokens = response + thoughts); the total is carried verbatim", () => {
+    // The two usage objects of the capture live-bargein-gemini38live.
+    const out = drive([
+      liveEvent("inv_u", "u1", { content: audio }),
+      liveEvent("inv_u", "u2", { interrupted: true }),
+      liveEvent("inv_u", "u3", usage(609, 25, 256)),
+      liveEvent("inv_u", "u4", { turnComplete: true }),
+      liveEvent("inv_u", "u5", { content: audio }),
+      liveEvent("inv_u", "u6", usage(668, 52, 38)),
+      liveEvent("inv_u", "u7", { turnComplete: true }),
+    ]);
+    const usages = out
+      .filter((e) => e.type === "message.end" || TERMINAL.has(e.type))
+      .map((e) => (e as { usage?: object }).usage)
+      .filter((u) => u !== undefined);
+    expect(usages).toContainEqual(expect.objectContaining({ inputTokens: 609, outputTokens: 281, reasoningTokens: 256, totalTokens: 634 }));
+    expect(usages).toContainEqual(expect.objectContaining({ inputTokens: 668, outputTokens: 90, reasoningTokens: 38, totalTokens: 720 }));
+    expect(folds(out).needsResync).toBe(false);
   });
 
   it("two live invokes, each with one barge-in, folded into ONE Reducer: two aborted turns, no park", () => {

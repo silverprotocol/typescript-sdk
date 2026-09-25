@@ -293,6 +293,8 @@ export interface AdkEvent {
     cachedContentTokenCount?: number;
     thoughtsTokenCount?: number;
     toolUsePromptTokenCount?: number;
+    /** Gemini Live's output counter, in place of `candidatesTokenCount`. */
+    responseTokenCount?: number;
   };
   /** Per-part safety ratings from the Gemini Candidate. */
   safetyRatings?: Array<{
@@ -522,7 +524,15 @@ function mapUsage(um: AdkEvent["usageMetadata"]): AgUsage | undefined {
   if (um === undefined) return undefined;
   const candidates = um.candidatesTokenCount;
   const thoughts = um.thoughtsTokenCount;
+  // Gemini Live reports its output as `responseTokenCount`, and its total is
+  // prompt + response, EXCLUDING thoughts (the capture
+  // live-bargein-gemini38live: 609 + 25 = 634, with 256 thoughts beside them).
+  // So on Live the total cannot show whether thoughts are included, and they
+  // always fold in: outputTokens = response + thoughts (SPEC §4 inclusion).
+  const response = candidates === undefined ? um.responseTokenCount : undefined;
+  const generated = candidates ?? response;
   const alreadyInclusive =
+    response === undefined &&
     candidates !== undefined &&
     thoughts !== undefined &&
     thoughts > 0 &&
@@ -530,11 +540,11 @@ function mapUsage(um: AdkEvent["usageMetadata"]): AgUsage | undefined {
     um.promptTokenCount !== undefined &&
     um.promptTokenCount + (candidates ?? 0) + (um.toolUsePromptTokenCount ?? 0) === um.totalTokenCount;
   const outputTokens =
-    candidates === undefined && thoughts === undefined
+    generated === undefined && thoughts === undefined
       ? undefined
       : alreadyInclusive
         ? candidates
-        : (candidates ?? 0) + (thoughts ?? 0);
+        : (generated ?? 0) + (thoughts ?? 0);
   return {
     ...(um.promptTokenCount !== undefined ? { inputTokens: um.promptTokenCount } : {}),
     ...(outputTokens !== undefined ? { outputTokens } : {}),
@@ -559,6 +569,7 @@ const USAGE_SUM_FIELDS = [
   "cachedContentTokenCount",
   "thoughtsTokenCount",
   "toolUsePromptTokenCount",
+  "responseTokenCount",
 ] as const;
 
 /** Fold one event's usageMetadata into a turn's running accumulator
