@@ -56,7 +56,8 @@
  *     `response.completed`/`response.incomplete` (`response.incomplete_details.reason`),
  *     `response.failed` (`response.error.{message,code}` + openai-node ≥7.10.0's
  *      `error.misalignment` block, landed as an adapter notice message whose
- *      text block `_meta["openai/misalignment"]` holds it verbatim — rd-15),
+ *      text block `_meta["openai/misalignment"]` holds it verbatim — SPEC §13.10,
+ *      §8.0 item 33),
  *     and the reasoning item `rs_…` + `encrypted_content` stateless-replay payload
  *     (the `reasoning.encrypted_content` include; rides `ReasoningItem.providerData`).
  *
@@ -1793,7 +1794,7 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
     return undefined;
   }
 
-  /** rd-15: the misalignment notice (see the `response.failed` arm). */
+  /** The misalignment notice (SPEC §13.10, §8.0 item 33; see the `response.failed` arm). */
   function emitMisalignmentNotice(
     responseIdForNotice: string,
     tid: string,
@@ -2111,19 +2112,24 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
         endOpenStreamsAndCloseMessage();
         const err = ev.response.error;
         // openai-node ≥7.10.0: `error.misalignment` (classification + public
-        // explanation + `steer.message` continuation instruction). `turn.error`
-        // carries only message/code/usage (spec §4), so rd-15 (sp-protocol's
-        // package A.6; founder: rides 0.7.0; sp-cto: the carry must sit in a
-        // home that FOLDS) lands it as an adapter NOTICE message immediately
-        // BEFORE the closing turn.error, in this turn:
+        // explanation + `steer.message` continuation instruction) is
+        // remedy-shaped vendor data (SPEC §13.10) that the framework reports
+        // without waiting: the response ends. `turn.error` carries only
+        // message/code/usage (§4), so per §8.0 item 33 it rides verbatim in a
+        // carrier the §5 table folds, never as remedy data on the terminal: an
+        // adapter NOTICE message immediately BEFORE the closing turn.error, in
+        // this turn (rd-15):
         //   message.start {role:"notice", noticeSource:"adapter"} →
         //   one text block, text = `detailed_explanation` verbatim (else
         //   error.message), text.start `_meta["openai/misalignment"]` = the
         //   WHOLE object verbatim (wire names, steer, unknown keys) →
         //   message.end.
         // It folds (a notice row + its block `_meta`), so it is readable and
-        // durable. The former live-only ext.openai.misalignment carry is
-        // RETIRED (the item-21 one-carrier precedent; no consumer read it).
+        // durable. A host treats it as untrusted advisory input (§13.10,
+        // §13.6): it acts on the steer text only on an explicit user or
+        // operator step. The former live-only
+        // ext.openai.misalignment carry is RETIRED (the item-21 one-carrier
+        // precedent; no consumer read it).
         // Absent or non-object ⇒ nothing new (byte-identical to the pre-7.10.0
         // output); the isJsonObject guard keeps a malformed wire value away
         // from JsonValue.parse.
