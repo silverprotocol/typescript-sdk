@@ -1172,11 +1172,18 @@ describe("§10.25 — framework pause and completion closure (draft.4): a pause 
   // replay leg: a golden whose run ends on an in-band terminal folds unchanged with and without the
   // completion event; a golden whose run has none (a live Workflow) closes turn.done from push() with
   // the event and turn.abort from flush() without it. "In-band" is read mechanically: replayed without
-  // the event, the run's close is not the flush abort.
+  // the event, the run's close is not the flush abort. The flush abort is INV-TURN's
+  // `turn.abort` (reason: stream-truncated). Any other abort closed its turn in band (a Live
+  // barge-in's `interrupted`, probe's live-bargein-gemini38live), and only the run's last turn can
+  // be left to flush, so the event touches that close alone.
   it("(replay) every corpus/*/adk golden: in-band close → unchanged with and without the event; no in-band terminal → done with it, abort without it", async () => {
     const corpus = new URL("../corpus/", import.meta.url);
+    const FLUSH_ABORT = "abort:stream-truncated";
+    type Ev = { type: string; outcome?: { type: string }; reason?: string; toolCallId?: string; usage?: unknown };
+    const terminals = (agjson: JsonValue[]) =>
+      (agjson as Ev[]).map((e, i) => ({ e, i })).filter(({ e }) => TERMINALS.has(e.type));
     const closes = (agjson: JsonValue[]) =>
-      (agjson as Array<{ type: string; outcome?: { type: string } }>).filter((e) => TERMINALS.has(e.type)).map((e) => (e.type === "turn.done" ? `done:${e.outcome?.type}` : e.type));
+      terminals(agjson).map(({ e }) => (e.type === "turn.done" ? `done:${e.outcome?.type}` : e.type === "turn.abort" ? `abort:${e.reason}` : e.type));
     let inBand = 0;
     let markerClosed = 0;
     for (const dir of readdirSync(corpus)) {
@@ -1187,26 +1194,35 @@ describe("§10.25 — framework pause and completion closure (draft.4): a pause 
       const bare = last?.type === HOST_COMPLETE_MARKER ? recorded.slice(0, -1) : recorded;
       const plain = await replayNatives(bare, "adk");
       const marked = await replayNatives([...bare, { type: HOST_COMPLETE_MARKER } as JsonValue], "adk");
-      if (!closes(plain.agjson).includes("turn.abort")) {
+      const plainCloses = closes(plain.agjson);
+      if (!plainCloses.includes(FLUSH_ABORT)) {
         inBand++;
         expect(JSON.stringify(marked.agjson), dir).toBe(JSON.stringify(plain.agjson));
       } else {
         markerClosed++;
-        expect(closes(plain.agjson), dir).toEqual(["turn.abort"]);
+        // Exactly one flush abort, the run's last close; every earlier close is in band and the same
+        // with the event fed.
+        expect(plainCloses.filter((c) => c === FLUSH_ABORT), dir).toEqual([FLUSH_ABORT]);
+        expect(plainCloses.at(-1), dir).toBe(FLUSH_ABORT);
+        const markedTerms = terminals(marked.agjson);
+        const markedCloses = closes(marked.agjson);
+        expect(markedCloses.slice(0, -1), dir).toEqual(plainCloses.slice(0, -1));
         // Obligation 4's three branches with the event fed: paused (an ask pending) or success (nothing
         // pending) close turn.done from push(); a pending long-running call leaves the turn to flush().
-        // The third branch is accepted only when a call really is pending: a tool.start with no tool.done.
-        const markedClose = closes(marked.agjson)[0];
-        if (markedClose === "turn.abort") {
-          const evs = marked.agjson as Array<{ type: string; toolCallId?: string }>;
+        // The third branch is accepted only when a call of the last turn really is pending: a tool.start
+        // after the previous close with no tool.done.
+        const markedClose = markedCloses.at(-1);
+        if (markedClose === FLUSH_ABORT) {
+          const from = markedTerms.length > 1 ? markedTerms[markedTerms.length - 2]!.i + 1 : 0;
+          const evs = (marked.agjson as Ev[]).slice(from);
           const done = new Set(evs.filter((e) => e.type === "tool.done").map((e) => e.toolCallId));
           expect(evs.some((e) => e.type === "tool.start" && !done.has(e.toolCallId)), `${dir}: left to flush with no pending call`).toBe(true);
         } else {
           expect(markedClose, dir).toMatch(/^done:/);
         }
         // a marker-closed success keeps the run's usage (live receipt: workflow-complete-gemini38)
-        const done = (marked.agjson as Array<Record<string, unknown>>).find((e) => e["type"] === "turn.done");
-        if ((done?.["outcome"] as { type?: string } | undefined)?.type === "success") expect(done?.["usage"], dir).toBeDefined();
+        const lastClose = markedTerms.at(-1)?.e;
+        if (lastClose?.type === "turn.done" && lastClose.outcome?.type === "success") expect(lastClose.usage, dir).toBeDefined();
       }
     }
     expect(inBand).toBeGreaterThan(0);
