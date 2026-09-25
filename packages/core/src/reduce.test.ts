@@ -4451,6 +4451,17 @@ describe("draft.5 (§5.0 INV-MSG, INV-TURN): a second terminal for a closed turn
     r.push(AgEvent.parse({ type: "turn.done", seq: 3, turnId: "T", outcome: { type: "paused", asks: asks("a3") }, finishReason: "paused" }));
     expect(r.needsResync).toBe(true);
     expect(r.result().turns[0]!.outcome).toEqual({ type: "paused", asks: asks("a2") });
+    // A refresh split by a reconnect: the turn.start before a messages.snapshot
+    // (carrying T closed paused) still opens it, since a snapshot folds no terminal.
+    const split = fold([
+      start(0), { type: "turn.done", seq: 1, turnId: "T", outcome: { type: "paused", asks: asks("a1") }, finishReason: "paused" },
+      start(0),
+      { type: "messages.snapshot", seq: 1, messages: [], turns: [{ turnId: "T", threadId: "th", outcome: { type: "paused", asks: asks("a1") }, asks: asks("a1") }] },
+      ask("a2", 2), { type: "turn.done", seq: 3, turnId: "T", outcome: { type: "paused", asks: asks("a2") }, finishReason: "paused" },
+    ]);
+    expect(split.needsResync).toBe(false);
+    expect(split.result().turns[0]!.outcome).toEqual({ type: "paused", asks: asks("a2") });
+    expect(split.result().turns[0]!.asks).toEqual(asks("a2"));
     // A re-sent turn.start opens the refresh only for a turn closed PAUSED.
     const s = fold([start(0), TERMINALS[0]!.ev(1), start(0), { type: "turn.done", seq: 1, turnId: "T", outcome: { type: "paused", asks: asks("x") }, finishReason: "paused" }]);
     expect(s.needsResync).toBe(true);

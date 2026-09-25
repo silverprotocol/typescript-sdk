@@ -153,8 +153,10 @@ export class Reducer {
   #heldLandings = 0;
   // draft.5 §5.0 INV-MSG (the paused refresh): closed turns a turn.start has
   // named since their last terminal folded. Only such a turn, closed paused,
-  // takes a turn.done{paused}; every terminal that folds removes its id, and a
-  // messages.snapshot clears the set.
+  // takes a turn.done{paused}; every terminal that folds removes its id. A
+  // messages.snapshot folds no terminal, so the set survives it (a refresh
+  // split by a reconnect still folds); whether the turn is closed paused is
+  // read from the records the snapshot leaves (CB-8).
   #restartedSinceClose: Set<string> = new Set();
   // block/tool-call id → position in its owning message's content[], for REPLACE.
   #blockPos: Map<string, { messageId: string; index: number }> = new Map();
@@ -1200,8 +1202,7 @@ export class Reducer {
         this.#openMsg = new Map();
         this.#sealed = new Set();
         this.#blockPos = new Map();
-        // The paused refresh needs a turn.start after the snapshot (draft.5 INV-MSG).
-        this.#restartedSinceClose = new Set();
+        // #restartedSinceClose is NOT cleared: a snapshot folds no terminal (draft.5 INV-MSG).
         // Task 8c leg 3: a snapshot-restored turn counts as opened (guuey
         // capstone finding B) — reseed #openedTurns from the replaced turns in
         // lockstep with #turns above; a turns-omitting snapshot re-seeds it from
