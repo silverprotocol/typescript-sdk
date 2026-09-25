@@ -151,6 +151,11 @@ export class Reducer {
   // the events held on it, for the implementation bound below.
   #held: Map<string, { record: AgTurnRecord; landings: number }> = new Map();
   #heldLandings = 0;
+  // draft.5 §5.0 INV-MSG (the paused refresh): closed turns a turn.start has
+  // named since their last terminal folded. Only such a turn, closed paused,
+  // takes a turn.done{paused}; every terminal that folds removes its id, and a
+  // messages.snapshot clears the set.
+  #restartedSinceClose: Set<string> = new Set();
   // block/tool-call id → position in its owning message's content[], for REPLACE.
   #blockPos: Map<string, { messageId: string; index: number }> = new Map();
 
@@ -244,6 +249,8 @@ export class Reducer {
     switch (ev.type) {
       // ── TURN lifecycle ─────────────────────────────────────────────────────
       case "turn.start": {
+        // draft.5 INV-MSG: a turn.start naming a closed turn opens its paused refresh.
+        if (this.#isClosedTurn(ev.turnId)) this.#restartedSinceClose.add(ev.turnId);
         // Task 8c leg 3: a turn.start always counts as a legitimately opened turn.
         this.#openedTurns.add(ev.turnId);
         this.#seenOpened.set(ev.turnId, ev.threadId);
@@ -791,6 +798,9 @@ export class Reducer {
         if (!this.#seenOpened.has(ev.turnId)) break;
         const turn = this.#seenTurnRecord(ev.turnId);
         if (turn === undefined) break;
+        // draft.5 INV-MSG: a turn.done for a closed turn parks, writing nothing,
+        // unless it is the paused refresh.
+        if (!this.#terminalMayFold(turn, ev.outcome.type === "paused")) break;
         turn.finishReason = ev.finishReason;
         // draft.4: the native finish value, verbatim, beside its mapped reason.
         if (ev.finishReasonRaw !== undefined) turn.finishReasonRaw = ev.finishReasonRaw;
@@ -829,6 +839,8 @@ export class Reducer {
           if (ev.turnId === undefined) this.#resync = true;
           break;
         }
+        // draft.5 INV-MSG: a turn.error for a closed turn parks, writing nothing.
+        if (!this.#terminalMayFold(turn, false)) break;
         turn.outcome = {
           type: "error",
           message: ev.message,
@@ -855,6 +867,8 @@ export class Reducer {
           if (ev.turnId === undefined) this.#resync = true;
           break;
         }
+        // draft.5 INV-MSG: a turn.abort for a closed turn parks, writing nothing.
+        if (!this.#terminalMayFold(turn, false)) break;
         turn.outcome = { type: "aborted", ...(ev.reason !== undefined ? { reason: ev.reason } : {}) };
         // INV-MSG binding window: no blocks attach to a closed turn's messages.
         this.#closeTurnWindow(turn.turnId);
@@ -1186,6 +1200,8 @@ export class Reducer {
         this.#openMsg = new Map();
         this.#sealed = new Set();
         this.#blockPos = new Map();
+        // The paused refresh needs a turn.start after the snapshot (draft.5 INV-MSG).
+        this.#restartedSinceClose = new Set();
         // Task 8c leg 3: a snapshot-restored turn counts as opened (guuey
         // capstone finding B) — reseed #openedTurns from the replaced turns in
         // lockstep with #turns above; a turns-omitting snapshot re-seeds it from
@@ -1391,6 +1407,30 @@ export class Reducer {
    */
   #isClosedTurn(key: string | undefined): boolean {
     return key !== undefined && this.#turns.get(key)?.outcome !== undefined;
+  }
+
+  /**
+   * draft.5 §5.0 INV-MSG / INV-TURN: may a terminal fold onto `turn`? A turn
+   * whose record carries an outcome is closed (#isClosedTurn), and a
+   * turn.done, turn.error or turn.abort for it is a reduce()-error: the fold
+   * parks and nothing is written, whatever the outcome and whether or not it
+   * repeats the recorded one. The one exception is the paused refresh: a
+   * turn.done{paused} (`pausedDone`) for a turn whose recorded outcome is
+   * paused and which a turn.start has named since its last terminal folded. It
+   * folds through the arm's ordinary writes (outcome and asks replace; a field
+   * it omits keeps its recorded value), and the turn stays closed. A terminal
+   * that folds consumes that turn.start.
+   */
+  #terminalMayFold(turn: AgTurnRecord, pausedDone: boolean): boolean {
+    if (turn.outcome !== undefined) {
+      const refresh = pausedDone && turn.outcome.type === "paused" && this.#restartedSinceClose.has(turn.turnId);
+      if (!refresh) {
+        this.#resync = true;
+        return false;
+      }
+    }
+    this.#restartedSinceClose.delete(turn.turnId);
+    return true;
   }
 
   /** rd-14 INV-BLOCK: a block-creating id seen twice in one invoke parks; else records it. */

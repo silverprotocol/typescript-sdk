@@ -4371,3 +4371,129 @@ describe("CB-7 (draft.5 §5.0 INV-OWNER): a record event for a turn whose thread
     expect(bad).toEqual([]);
   });
 });
+
+describe("draft.5 (§5.0 INV-MSG, INV-TURN): a second terminal for a closed turn parks, the paused refresh excepted", () => {
+  type E = Record<string, unknown>;
+  const fold = (evs: E[]) => {
+    const r = new Reducer();
+    for (const e of evs) r.push(AgEvent.parse(e));
+    return r;
+  };
+  const start = (seq: number): E => ({ type: "turn.start", seq, threadId: "th", turnId: "T" });
+  const ask = (askId: string, seq: number): E => ({ type: "hitl.ask", seq, turnId: "T", askId, kind: "approval" });
+  const asks = (id: string) => [{ askId: id, kind: "approval" }];
+  const U1 = { inputTokens: 3, outputTokens: 2, totalTokens: 5 };
+  // Each first/second terminal, named by the outcome type it records.
+  const TERMINALS: Array<{ name: string; recorded: string; ev: (seq: number) => E }> = [
+    { name: "turn.done success", recorded: "success", ev: (seq) => ({ type: "turn.done", seq, turnId: "T", outcome: { type: "success" }, finishReason: "stop", usage: U1 }) },
+    { name: "turn.done paused", recorded: "paused", ev: (seq) => ({ type: "turn.done", seq, turnId: "T", outcome: { type: "paused", asks: asks("a") }, finishReason: "paused" }) },
+    { name: "turn.done outcome error", recorded: "error", ev: (seq) => ({ type: "turn.done", seq, turnId: "T", outcome: { type: "error", message: "first" }, finishReason: "other" }) },
+    { name: "turn.done outcome rejected", recorded: "rejected", ev: (seq) => ({ type: "turn.done", seq, turnId: "T", outcome: { type: "rejected" }, finishReason: "rejected" }) },
+    { name: "turn.error", recorded: "error", ev: (seq) => ({ type: "turn.error", seq, turnId: "T", message: "boom", code: "E1", usage: U1 }) },
+    { name: "turn.abort", recorded: "aborted", ev: (seq) => ({ type: "turn.abort", seq, turnId: "T", reason: "cancelled" }) },
+  ];
+  const pairs = TERMINALS.flatMap((x) => TERMINALS.map((y) => ({ x, y }))).filter(({ x, y }) => !(x.recorded === "paused" && y.recorded === "paused"));
+
+  it("(v-h) a second terminal of another outcome type parks, and the fold equals the fold before it", () => {
+    const rows = pairs.filter(({ x, y }) => x.recorded !== y.recorded);
+    expect(rows.length).toBe(28);
+    for (const { x, y } of rows) {
+      const prefix = [start(0), x.ev(1)];
+      const r = fold([...prefix, y.ev(2)]);
+      expect(r.needsResync, `${x.name} then ${y.name}`).toBe(true);
+      expect(r.result(), `${x.name} then ${y.name}`).toEqual(fold(prefix).result());
+    }
+  });
+
+  it("(v-i) a same-type re-close parks within one invoke, across a seq-0 restart, and after a re-sent turn.start; the first terminal's fields stay", () => {
+    const rows = pairs.filter(({ x, y }) => x.recorded === y.recorded);
+    expect(rows.length).toBe(7);
+    for (const { x, y } of rows) {
+      for (const [label, prefix, tail] of [
+        ["one invoke", [start(0), x.ev(1)], [y.ev(2)]],
+        ["seq-0 restart", [start(0), x.ev(1)], [y.ev(0)]],
+        ["re-sent turn.start", [start(0), x.ev(1), start(0)], [y.ev(1)]],
+      ] as Array<[string, E[], E[]]>) {
+        const r = fold([...prefix, ...tail]);
+        expect(r.needsResync, `${x.name} then ${y.name}, ${label}`).toBe(true);
+        expect(r.result(), `${x.name} then ${y.name}, ${label}`).toEqual(fold(prefix).result());
+      }
+    }
+    // The first terminal's usage and error message are the ones recorded.
+    const t = fold([start(0), TERMINALS[4]!.ev(1), { type: "turn.error", seq: 2, turnId: "T", message: "second", usage: { inputTokens: 9, outputTokens: 9, totalTokens: 18 } }]).result().turns[0]!;
+    expect(t.outcome).toEqual({ type: "error", message: "boom", code: "E1" });
+    expect(t.usage).toEqual(U1);
+  });
+
+  it("(v-j) a paused re-close with no turn.start since the terminal parks, and the recorded asks stay", () => {
+    const paused = (seq: number, id: string): E => ({ type: "turn.done", seq, turnId: "T", outcome: { type: "paused", asks: asks(id) }, finishReason: "paused" });
+    const r = fold([start(0), paused(1, "a"), paused(2, "b")]);
+    expect(r.needsResync).toBe(true);
+    expect(r.result().turns[0]!.outcome).toEqual({ type: "paused", asks: asks("a") });
+    // Across a seq-0 restart without a turn.start, likewise.
+    const r2 = fold([start(0), paused(1, "a"), paused(0, "b")]);
+    expect(r2.needsResync).toBe(true);
+    expect(r2.result().turns[0]!.outcome).toEqual({ type: "paused", asks: asks("a") });
+  });
+
+  it("(v-g) the paused refresh: a re-sent turn.start plus turn.done{paused} replaces outcome and asks, keeps omitted fields, one record, no park", () => {
+    const r = fold([
+      start(0), ask("a1", 1), { type: "turn.done", seq: 2, turnId: "T", outcome: { type: "paused", asks: asks("a1") }, finishReason: "paused", usage: U1 },
+      start(0), ask("a2", 1), { type: "turn.done", seq: 2, turnId: "T", outcome: { type: "paused", asks: asks("a2") }, finishReason: "paused" },
+    ]);
+    expect(r.needsResync).toBe(false);
+    const turns = r.result().turns;
+    expect(turns).toHaveLength(1);
+    expect(turns[0]!.outcome).toEqual({ type: "paused", asks: asks("a2") });
+    expect(turns[0]!.asks).toEqual(asks("a2"));
+    expect(turns[0]!.usage).toEqual(U1);
+    // The refresh consumes its turn.start: a third paused close with no new turn.start parks.
+    r.push(AgEvent.parse({ type: "turn.done", seq: 3, turnId: "T", outcome: { type: "paused", asks: asks("a3") }, finishReason: "paused" }));
+    expect(r.needsResync).toBe(true);
+    expect(r.result().turns[0]!.outcome).toEqual({ type: "paused", asks: asks("a2") });
+    // A re-sent turn.start opens the refresh only for a turn closed PAUSED.
+    const s = fold([start(0), TERMINALS[0]!.ev(1), start(0), { type: "turn.done", seq: 1, turnId: "T", outcome: { type: "paused", asks: asks("x") }, finishReason: "paused" }]);
+    expect(s.needsResync).toBe(true);
+    expect(s.result().turns[0]!.outcome).toEqual({ type: "success" });
+  });
+
+  it("(v-k) a turnId-less turn.error or turn.abort never resolves to a closed turn: with none open it parks and the fold is unchanged", () => {
+    for (const tail of [{ type: "turn.error", seq: 2, message: "late" }, { type: "turn.abort", seq: 2 }] as E[]) {
+      const prefix = [start(0), TERMINALS[0]!.ev(1)];
+      const r = fold([...prefix, tail]);
+      expect(r.needsResync, String(tail["type"])).toBe(true);
+      expect(r.result(), String(tail["type"])).toEqual(fold(prefix).result());
+      expect(r.result().turns[0]!.outcome).toEqual({ type: "success" });
+    }
+    // With one closed and one open turn it lands on the open one, never the closed one.
+    const r = fold([start(0), TERMINALS[0]!.ev(1), { type: "turn.start", seq: 2, threadId: "th", turnId: "U" }, { type: "turn.abort", seq: 3 }]);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.map((t) => [t.turnId, t.outcome?.type])).toEqual([["T", "success"], ["U", "aborted"]]);
+  });
+
+  it("(v-l) after a messages.snapshot, closure follows the carried records (CB-8): a carried closed turn parks a later terminal, a carried open one folds it", () => {
+    const paused = { type: "turn.done", seq: 1, turnId: "T", outcome: { type: "paused", asks: asks("a") }, finishReason: "paused" };
+    const done = { type: "turn.done", seq: 1, turnId: "T", outcome: { type: "success" }, finishReason: "stop" };
+    const closed = fold([start(0), paused, { type: "messages.snapshot", seq: 0, messages: [], turns: [{ turnId: "T", threadId: "th", outcome: { type: "paused", asks: asks("a") } }] }]);
+    expect(closed.needsResync).toBe(false);
+    closed.push(AgEvent.parse(done));
+    expect(closed.needsResync).toBe(true);
+    expect(closed.result().turns[0]!.outcome?.type).toBe("paused");
+    const open = fold([start(0), paused, { type: "messages.snapshot", seq: 0, messages: [], turns: [{ turnId: "T", threadId: "th" }] }]);
+    open.push(AgEvent.parse(done));
+    expect(open.needsResync).toBe(false);
+    expect(open.result().turns[0]!.outcome).toEqual({ type: "success" });
+    // A turns-omitting snapshot keeps every record, and with it every closure.
+    const kept = fold([start(0), done, { type: "messages.snapshot", seq: 0, messages: [] }]);
+    kept.push(AgEvent.parse({ type: "turn.abort", seq: 1, turnId: "T" }));
+    expect(kept.needsResync).toBe(true);
+    expect(kept.result().turns[0]!.outcome).toEqual({ type: "success" });
+  });
+
+  it("a parked second terminal merges nothing: turn.done's messageMetadata is not written onto the closed turn's message", () => {
+    const prefix: E[] = [start(0), { type: "message.start", seq: 1, id: "m", role: "assistant", turnId: "T", threadId: "th" }, { type: "message.end", seq: 2, id: "m" }, TERMINALS[0]!.ev(3)];
+    const r = fold([...prefix, { type: "turn.done", seq: 4, turnId: "T", messageId: "m", outcome: { type: "success" }, finishReason: "stop", messageMetadata: { late: true } }]);
+    expect(r.needsResync).toBe(true);
+    expect(r.result()).toEqual(fold(prefix).result());
+  });
+});

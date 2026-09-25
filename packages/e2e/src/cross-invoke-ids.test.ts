@@ -1,6 +1,6 @@
 /**
  * cross-invoke-ids.test.ts — turn ids never repeat across the invokes of one
- * fold (sp-protocol's D3 bar, DC-10; rd-14's "ids unique across invokes").
+ * fold (the D3 review bar, DC-10; rd-14's "ids unique across invokes").
  *
  * guuey folds a whole conversation into ONE Reducer, one invoke after another,
  * each from a fresh normalizer (SPEC §8.0 Lifetime). An id minted from the
@@ -8,8 +8,10 @@
  * construction; a FALLBACK id minted when the native has none must be unique
  * too, or two invokes name the same turn. Each leg drives a facet's fallback
  * path twice, with two fresh normalizers built the way a host builds them,
- * folds both into one Reducer, and asserts no turnId repeats. A repeated
- * closed turn does not always park the reducer, so the ids are compared
+ * folds both into one Reducer, and asserts no turnId repeats. Since draft.5 a
+ * second terminal for a repeated closed turn parks the reducer (INV-MSG), but
+ * a repeat shaped as the paused refresh (a turn.start, then turn.done{paused}
+ * for a turn closed paused) folds without parking, so the ids are compared
  * directly; the fold's needsResync is asserted too.
  */
 import { describe, expect, it } from "vitest";
