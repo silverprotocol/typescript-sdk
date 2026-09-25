@@ -174,6 +174,7 @@ export async function runCapture(
         : {}),
       ...(scenario.claudeSubagents !== undefined ? { subagents: scenario.claudeSubagents } : {}),
       ...(scenario.openaiHandoff !== undefined ? { handoff: scenario.openaiHandoff } : {}),
+      ...(scenario.openaiHandoffs !== undefined ? { handoffs: scenario.openaiHandoffs } : {}),
     };
 
     let runError: string | undefined;

@@ -15,6 +15,13 @@ import type { Framework } from "./census.js";
 
 // ─── Scenario schema ──────────────────────────────────────────────────────────
 
+/** One handoff target the openai capture agent builds (same model and MCP servers as the main agent). */
+const HandoffTarget = z.object({
+  name: z.string().min(1),
+  instructions: z.string().min(1),
+  handoffDescription: z.string().min(1).optional(),
+});
+
 export const Scenario = z.object({
   name: z.string(),
   prompt: z.string(),
@@ -150,13 +157,15 @@ export const Scenario = z.object({
   // it in the main agent's `handoffs`; the steer tells the main agent to hand
   // off, so the native stream carries handoff_requested / handoff_occurred and
   // the second agent's turn.
-  openaiHandoff: z
-    .object({
-      name: z.string().min(1),
-      instructions: z.string().min(1),
-      handoffDescription: z.string().min(1).optional(),
-    })
-    .optional(),
+  openaiHandoff: HandoffTarget.optional(),
+  // Parallel-handoff knob (openai-agents only; cto's review of the handoff
+  // close, 2026-09-25): SEVERAL handoff targets on the main agent, so a model
+  // can emit more than one transfer_to_* call in one response (the Responses
+  // API defaults parallel_tool_calls on). A separate knob from openaiHandoff,
+  // with its own KNOB_SUPPORT proof, so an agent that only knows one target
+  // fails loud instead of silently capturing a single-target run. Use one of
+  // the two knobs, not both.
+  openaiHandoffs: z.array(HandoffTarget).min(2).optional(),
 });
 
 export type Scenario = z.infer<typeof Scenario>;

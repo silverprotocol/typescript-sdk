@@ -116,6 +116,10 @@ export interface CaptureRunInput {
   /** openai-agents only: a second agent the main agent can hand off to (same
    *  model and MCP servers). See scenario.ts `openaiHandoff`. */
   handoff?: { name: string; instructions: string; handoffDescription?: string };
+  /** openai-agents only: several handoff targets on the main agent (≥2), so
+   *  one response can carry more than one transfer. See scenario.ts
+   *  `openaiHandoffs`. */
+  handoffs?: ReadonlyArray<{ name: string; instructions: string; handoffDescription?: string }>;
 }
 
 /** The LLM/process boundary contract every capture agent implements. */

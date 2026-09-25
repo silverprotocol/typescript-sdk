@@ -466,7 +466,18 @@ describe("runCapture", () => {
     expect((openai.input() as { handoff?: unknown }).handoff).toEqual(handoff);
     const plain = makeInputCapturingDeps();
     await runCapture(Scenario.parse({ name: "text-only", prompt: "x" }), plain.deps, { ports: [], framework: "claude" });
-    for (const k of ["subagents", "handoff"]) expect(k in (plain.input() as object)).toBe(false);
+    for (const k of ["subagents", "handoff", "handoffs"]) expect(k in (plain.input() as object)).toBe(false);
+  });
+
+  it("forwards scenario.openaiHandoffs as handoffs (several targets), leaving handoff unset", async () => {
+    const targets = [
+      { name: "Echoer", instructions: "Echo." },
+      { name: "Shouter", instructions: "Shout.", handoffDescription: "shouts" },
+    ];
+    const deps = makeInputCapturingDeps();
+    await runCapture(Scenario.parse({ name: "handoff-parallel", prompt: "x", openaiHandoffs: targets }), deps.deps, { ports: [], framework: "openai" });
+    expect((deps.input() as { handoffs?: unknown }).handoffs).toEqual(targets);
+    expect("handoff" in (deps.input() as object)).toBe(false);
   });
 
   it("forwards scenario.adkStateScript and records the session state the agent reports via onSessionState", async () => {

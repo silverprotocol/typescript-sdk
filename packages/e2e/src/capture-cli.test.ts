@@ -643,6 +643,18 @@ describe("claudeSubagents and openaiHandoff: the knob guards (nested-turn captur
     );
   });
 
+  it("openaiHandoffs needs its own proof (openaiHandoffAgents): a one-target agent fails loud instead of capturing one target", () => {
+    const targets = [{ name: "A", instructions: "a" }, { name: "B", instructions: "b" }];
+    expect(() => assertKnobsHonored(withKnobs({ openaiHandoffs: targets }), "openai", { openaiHandoffAgent: () => undefined, openaiHandoffAgents: () => [] })).not.toThrow();
+    expect(() => assertKnobsHonored(withKnobs({ openaiHandoffs: targets }), "openai", { openaiHandoffAgent: () => undefined })).toThrow(
+      /does not export openaiHandoffAgents/,
+    );
+    expect(() => assertKnobsHonored(withKnobs({ openaiHandoffs: targets }), "claude", { openaiHandoffAgents: () => [] })).toThrow(
+      /only the openai capture agent honors/,
+    );
+    expect(() => withKnobs({ openaiHandoffs: [{ name: "A", instructions: "a" }] })).toThrow(); // ≥2 targets
+  });
+
   it("the scenario schema rejects an empty agent map and a definition without a prompt", () => {
     expect(() => withKnobs({ claudeSubagents: {} })).toThrow();
     expect(() => withKnobs({ claudeSubagents: { helper: { description: "d" } } })).toThrow();

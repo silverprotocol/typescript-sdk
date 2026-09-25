@@ -270,7 +270,7 @@ async function freePort(): Promise<number> {
  */
 export const KNOB_SUPPORT: Readonly<
   Record<
-    "preToolUseDecision" | "resumeFrom" | "toolApproval" | "adkWorkflow" | "adkStateScript" | "claudeSubagents" | "openaiHandoff",
+    "preToolUseDecision" | "resumeFrom" | "toolApproval" | "adkWorkflow" | "adkStateScript" | "claudeSubagents" | "openaiHandoff" | "openaiHandoffs",
     { frameworks: readonly Framework[]; proof?: string | Partial<Record<Framework, string>> }
   >
 > = {
@@ -283,6 +283,7 @@ export const KNOB_SUPPORT: Readonly<
   // exporting the named symbol; until it does, a capture fails loud.
   claudeSubagents: { frameworks: ["claude"], proof: "claudeSubagentOptions" },
   openaiHandoff: { frameworks: ["openai"], proof: "openaiHandoffAgent" },
+  openaiHandoffs: { frameworks: ["openai"], proof: "openaiHandoffAgents" },
 };
 
 /**

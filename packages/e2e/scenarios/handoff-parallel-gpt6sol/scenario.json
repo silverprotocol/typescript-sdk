@@ -1,0 +1,23 @@
+{
+  "name": "handoff-parallel-gpt6sol",
+  "prompt": "Hand this request to BOTH the Echoer and the Shouter in the same step: each should process the message 'handoff-parallel-probe'.",
+  "mcpServers": [
+    {
+      "key": "t",
+      "kind": "text"
+    }
+  ],
+  "steer": "You MUST hand the request off to BOTH the Echoer and the Shouter, calling both transfer tools in the same response. Do not call the echo tool yourself and do not answer yourself.",
+  "openaiHandoffs": [
+    {
+      "name": "Echoer",
+      "instructions": "You echo messages. Call the echo tool with the exact message you are given, then reply with the tool's result and nothing else.",
+      "handoffDescription": "Echoes a message with the echo tool."
+    },
+    {
+      "name": "Shouter",
+      "instructions": "You shout messages. Call the echo tool with the message you are given in UPPERCASE, then reply with the tool's result and nothing else.",
+      "handoffDescription": "Echoes a message in uppercase with the echo tool."
+    }
+  ]
+}
