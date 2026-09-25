@@ -109,6 +109,8 @@ agEvents.push(...n.flush());        // seal anything still open
 
 > **Credential material (spec §8.0 item 28).** ADK credential material is the one exception to the compatibility table's "carried losslessly". In an `adk_request_credential` call and its reply, the facet carries only the auth-config members it knows to be non-secret. In `state.delta` it omits every entry that holds an ADK credential object, and every `temp:` entry. A patch that is itself an ADK credential object is emitted as `{}`, other keys in that patch included. Inside a `provider-raw` carry it reduces each ADK credential object, and each response to `adk_request_credential`, to its non-secret members; when that reduces a node's output, the text part ADK renders from that output is skipped too. A credential an application keeps in a shape of its own is not recognised, and rides unchanged.
 
+> **Cross-session state.** ADK's `user:` and `app:` state entries ride `state.delta` under their prefixed keys (SPEC §8.0 item 30) and a thread `state.snapshot` replaces them. The working copy holds the value ADK yielded — a point-in-time copy of the per-user / per-application store ADK re-merges on every session read — so a host that renders or restores the working copy across threads may show a value another session has since replaced. A mapping of these two prefixes onto `memory.write` (`user:` → scope `user`, `app:` → scope `agent`) is not part of this facet's output.
+
 Then fold the resulting `AgEvent`s into messages and turns with
 `@silverprotocol/core`'s `reduce()` — the same client code regardless of which
 framework produced the stream.
