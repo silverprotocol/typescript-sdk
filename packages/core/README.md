@@ -122,11 +122,14 @@ if (!checked.ok) return reply(400, { code: checked.code, path: checked.path }); 
 ### Persisting a fold
 
 A turn record's `displayRequired[]` carries grounding UI that the provider
-requires a display to render (for example Google Search Suggestions; the render
-duty is SPEC §13.3), and the provider's terms may not allow storing it. Persist
-`toPersistable(result)`, the same fold with every turn record's
-`displayRequired` omitted and nothing else changed, unless the grounding
-provider's terms permit storing `displayRequired`.
+requires a display to render (for example Google Search Suggestions), and the
+provider's terms may not allow storing it. Persist `toPersistable(result)`, the
+same fold with every turn record's `displayRequired` omitted and nothing else
+changed, unless the grounding provider's terms permit storing
+`displayRequired` (SPEC §13.3, "Grounding records and the host"). Those terms
+can also limit how long a turn's `sources[]` and grounded content are kept and
+who they are re-displayed to; `toPersistable` leaves them in the fold, so apply
+the terms to them yourself.
 
 ```ts
 import { toPersistable } from "@silverprotocol/core";
