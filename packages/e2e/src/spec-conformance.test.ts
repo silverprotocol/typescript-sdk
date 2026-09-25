@@ -153,12 +153,12 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 34, leg: "openai", title: "Partial-frame carry (draft.4)", disposition: "N/A", citation: "§8 item 22 applicability: the openai facet has no frame that maps only in part and rides ext.openai.frame" },
   { n: 34, leg: "adk", title: "Partial-frame carry (draft.4)", disposition: "N/A", citation: "§8 item 22 applicability: the google-adk facet has no frame that maps only in part and rides ext.google.frame" },
   { n: 34, leg: "vercel", title: "Partial-frame carry (draft.4)", disposition: "N/A", citation: "§8 item 22 applicability: the vercel-ai facet has no frame that maps only in part and rides ext.vercel.frame" },
-  { n: 35, title: "Sealed-message finalizers and merges (draft.4): text.end / reasoning.end / reasoning.opaque / tool.args.assembled into a sealed message or any message of a closed turn park with the fold equal to the fold before them; the same events fold before the seal / terminal; message.metadata and turn.done{messageId, messageMetadata} naming a sealed message merge without parking", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.35 (reference reducer guard 803ce13; delta and block-creating legs: §10.27)" },
+  { n: 35, title: "Sealed-message finalizers and merges (draft.4; draft.5 whole-bag messageMetadata): text.end / reasoning.end / reasoning.opaque / tool.args.assembled into a sealed message or any message of a closed turn park with the fold equal to the fold before them; the same events fold before the seal / terminal; message.metadata and turn.done{messageId, messageMetadata} naming a sealed message merge without parking", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.35 (reference reducer guard 803ce13; delta and block-creating legs: §10.27)" },
   { n: 36, leg: "claude", title: "Nested-turn closure (draft.4): for every subagent.start, exactly one turn.done|turn.error|turn.abort with that turnId, no usage, immediately before its subagent.done; no nested turnId equals a turn.start turnId; the fold without subagent.done is structurally identical", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.36 over every corpus golden with subagent.start (claude B-strict 7f315e2 + regen 5cdade3)" },
-  { n: 36, leg: "openai", title: "Nested-turn closure (draft.4): a handoff's nested turn closes at handoff_occurred with turn.done{success, finishReason unknown, no usage} immediately before its subagent.done; the fold without subagent.done is structurally identical", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.36 over every corpus golden with subagent.start (openai: handoff-gpt6sol, enrolled 450ece8); unit legs openai-agents/src/index.test.ts \"createOpenaiNormalizer — HO handoff close (the transfer result + the nested terminal)\"" },
-  { n: 36, leg: "adk", title: "Nested-turn closure (draft.4)", disposition: "N/A", citation: "§8.0 applicability: this facet emits no subagent.* (no nested turns)" },
+  { n: 36, leg: "openai", title: "Nested-turn closure (draft.4): a handoff's nested turn closes at handoff_occurred with turn.done{success, finishReason unknown, no usage} immediately before its subagent.done; the fold without subagent.done is structurally identical; the handoff event follows the bracket's subagent.done on the source turn and carries kind transfer (draft.5 §8.0 item 29)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.36 over every corpus golden with subagent.start (openai: handoff-gpt6sol, enrolled 450ece8); unit legs openai-agents/src/index.test.ts \"createOpenaiNormalizer — HO handoff close (the transfer result + the nested terminal)\"" },
+  { n: 36, leg: "adk", title: "Nested-turn closure (draft.4; draft.5 escalate): an ADK event with actions.escalate yields exactly one handoff{kind:escalate} with no toAgentName and no subagent.start (§8.0 item 29)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.36(adk-escalate), createAdkNormalizer fixture (no committed escalate capture)" },
   { n: 36, leg: "vercel", title: "Nested-turn closure (draft.4)", disposition: "N/A", citation: "§8.0 applicability: this facet emits no subagent.* (no nested turns)" },
-  { n: 37, title: "Shared-state fold (draft.4): an object patch replaces each top-level key whole ({cfg:{a:1,b:2}} then {cfg:{a:5}} → {cfg:{a:5}}); a null member is stored present; a scalar patch is a no-op without a resync; a JSON Patch array against no working copy sets needsResync", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.37, reference reduce() + Reducer (probe pkg-21 6e69589)" },
+  { n: 37, title: "Shared-state fold (draft.4): an object patch replaces each top-level key whole ({cfg:{a:1,b:2}} then {cfg:{a:5}} → {cfg:{a:5}}); a null member is stored present; a scalar patch is a no-op without a resync; a JSON Patch array against no working copy sets needsResync; a sibling member survives a key-replace patch and only a state.snapshot removes it (draft.5)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.37, reference reduce() + Reducer (probe pkg-21 6e69589)" },
   { n: 38, leg: "adk", title: "ADK shared-state fixture (draft.4): the golden whose native stream rewrites part of an object-valued key folds to ADK's own session state, without a resync", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.38(adk): state-fold-gemini38, the committed golden and a fresh createAdkNormalizer replay of its native, vs adk.session-state.json (probe 7f3bce9; every sidecar also gated by replay.test.ts 'session-state sidecars')" },
   { n: 38, leg: "claude", title: "ADK shared-state fixture (draft.4)", disposition: "N/A", citation: "§10 item 38: the Claude Agent SDK has no key-addressed shared state" },
   { n: 38, leg: "openai", title: "ADK shared-state fixture (draft.4)", disposition: "N/A", citation: "§10 item 38: the OpenAI Agents SDK has no key-addressed shared state" },
@@ -220,6 +220,11 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 53, leg: "f", title: "Reported-fix carriage and durability (draft.5): (f) a tool result whose structuredContent and own _meta carry a remedy-shaped object with a URL, with no CLI entry, yields no key under the reserved anthropic/ prefix and that URL in no harness carrier (reserved-prefix _meta, message.metadata, ext.*); the tool's own _meta rides as tool content", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.53(f), facet-driven via createClaudeNormalizer" },
   { n: 53, leg: "g", title: "Reported-fix carriage and durability (draft.5): (g) for each of (a)–(d), a fresh reducer fed a messages.snapshot built from the first fold's result yields a structurally equal result with no resync (INV-FOLD)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.53(g), reduce-level" },
   { n: 53, leg: "vercel", title: "Reported-fix carriage and durability (draft.5)", disposition: "N/A", citation: "no remedy or stopDetails carry at this version; §10 preamble applicability" },
+  { n: 54, leg: "reducer", title: "Error-outcome retriable (draft.5): turn.error{retriable:false} folds outcome.retriable false on both reducers; an absent retriable stays absent (never coerced to false); a non-terminal error{retriable:true} before the turn.error never folds", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.54(reducer), reference Reducer + reduce()" },
+  { n: 54, leg: "claude", title: "Error-outcome retriable (draft.5): the two committed Claude API-error goldens each fold exactly one errored turn with outcome.retriable false", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.54(claude) over corpus api-error-auth and defer-tool-sonnet5-resume-unavailable" },
+  { n: 54, leg: "openai", title: "Error-outcome retriable (draft.5)", disposition: "N/A", citation: "§8 applicability: no committed golden carries turn.error.retriable" },
+  { n: 54, leg: "adk", title: "Error-outcome retriable (draft.5)", disposition: "N/A", citation: "§8 applicability: no committed golden carries turn.error.retriable" },
+  { n: 54, leg: "vercel", title: "Error-outcome retriable (draft.5)", disposition: "N/A", citation: "§8 applicability: the facet maps isRetryable onto turn.error.retriable; no committed golden carries it" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -2338,6 +2343,39 @@ describe("§10.35 — sealed-message finalizers and merges (draft.4; §5.0 INV-M
     expect(r2.needsResync).toBe(false);
     expect(JSON.stringify(r2.result.messages.find((m) => m.id === "m1"))).toContain("\"usage\":3");
   });
+  // draft.5 (§5 turn.done row, §13.10): turn.done.messageMetadata replaces the named message's messageMetadata WHOLE;
+  // the message.metadata event merges per key into a different field. Both reducers (INV-FOLD).
+  const both = (evs: Record<string, unknown>[]) => {
+    const parsed = evs.map((e) => AgEvent.parse(e));
+    const live = new Reducer();
+    for (const e of parsed) live.push(e);
+    const batch = reduce(parsed);
+    expect(live.needsResync).toBe(batch.needsResync);
+    expect(live.result()).toEqual(batch.result);
+    return batch;
+  };
+  it("(whole-bag) a message restored holding messageMetadata {a:1} takes turn.done{messageId, messageMetadata:{b:2}} as {b:2}; its per-key metadata is untouched", () => {
+    const r = both([
+      { type: "messages.snapshot", seq: 0, messages: [{ id: "m", role: "assistant", content: [], turnId: "T", threadId: "th", messageMetadata: { a: 1 }, metadata: { k: 1 } }], turns: [{ turnId: "T", threadId: "th" }] },
+      { type: "message.metadata", seq: 1, messageId: "m", metadata: { j: 2 } },
+      { type: "turn.done", seq: 2, turnId: "T", messageId: "m", outcome: { type: "success" }, finishReason: "stop", messageMetadata: { b: 2 } },
+    ]);
+    expect(r.needsResync).toBe(false);
+    const m = r.result.messages.find((x) => x.id === "m")!;
+    expect(m.messageMetadata).toEqual({ b: 2 });
+    expect(m.metadata).toEqual({ k: 1, j: 2 });
+  });
+  it("(whole-bag) the paused refresh replaces the bag too: {a:1} then {b:2} folds to {b:2}, while the turn record keeps the usage the refresh omits", () => {
+    const U = { inputTokens: 1, outputTokens: 1, totalTokens: 2 };
+    const paused = (seq: number, id: string, mm: unknown, usage?: unknown): Record<string, unknown> => ({
+      type: "turn.done", seq, turnId: "T", messageId: "m", outcome: { type: "paused", asks: [{ askId: id, kind: "approval" }] }, finishReason: "paused", messageMetadata: mm, ...(usage !== undefined ? { usage } : {}),
+    });
+    const start = (seq: number) => ({ type: "turn.start", seq, threadId: "th", turnId: "T" });
+    const r = both([start(0), { type: "message.start", seq: 1, id: "m", role: "assistant", turnId: "T", threadId: "th" }, { type: "message.end", seq: 2, id: "m" }, paused(3, "a1", { a: 1 }, U), start(0), paused(1, "a2", { b: 2 })]);
+    expect(r.needsResync).toBe(false);
+    expect(r.result.messages.find((x) => x.id === "m")!.messageMetadata).toEqual({ b: 2 });
+    expect(r.result.turns[0]!.usage).toEqual(U);
+  });
 });
 
 describe("§10.36 — nested-turn closure (draft.4; §5.0 INV-TURN, §8.0 item 29)", () => {
@@ -2441,6 +2479,39 @@ describe("§10.23(vercel) — a vercel finish with no AgJSON target → fallback
   it("an unrecognized unified value with a raw → \"unknown\" + finishReasonRaw equal to the raw", () => {
     expect(drive(stream({ finishReason: "zz-future", rawFinishReason: "provider_zz" })).find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "unknown", finishReasonRaw: "provider_zz" });
   });
+  it("(openai) on every golden carrying a handoff: kind is transfer, its turn is top-level, and it follows the bracket's subagent.done on that turn (draft.5 §8.0 item 29)", () => {
+    const corpus = new URL("../corpus/", import.meta.url);
+    let seen = 0;
+    for (const d of readdirSync(corpus)) {
+      const f = new URL(`${d}/openai.agjson.json`, corpus);
+      if (!existsSync(f)) continue;
+      const ev = JSON.parse(readFileSync(f, "utf8")) as Array<Record<string, unknown>>;
+      const handoffs = ev.filter((e) => e["type"] === "handoff");
+      if (handoffs.length === 0) continue;
+      const topLevel = new Set(ev.filter((e) => e["type"] === "turn.start" && e["parentTurnId"] === undefined).map((e) => e["turnId"]));
+      for (const h of handoffs) {
+        seen++;
+        expect(h["kind"], `${d}: kind`).toBe("transfer");
+        expect(topLevel.has(h["turnId"]), `${d}: handoff on a top-level turn`).toBe(true);
+        const brackets = ev.filter((e) => e["type"] === "subagent.start" && e["parentTurnId"] === h["turnId"] && (e["seq"] as number) < (h["seq"] as number));
+        expect(brackets.length, `${d}: a bracket precedes the handoff`).toBeGreaterThan(0);
+        for (const b of brackets) {
+          const done = ev.find((e) => e["type"] === "subagent.done" && e["turnId"] === b["turnId"]);
+          expect(done !== undefined && (done["seq"] as number) < (h["seq"] as number), `${d}: subagent.done ${String(b["turnId"])} before the handoff`).toBe(true);
+        }
+      }
+    }
+    expect(seen).toBeGreaterThan(1); // both openai handoff goldens
+  });
+  it("(adk-escalate) an ADK event with actions.escalate yields exactly one handoff{kind:escalate} with no toAgentName and no subagent.start (§8.0 item 29)", () => {
+    const out = createAdkNormalizer().push(toJsonValue(adkEvent([], { actions: { escalate: true } })));
+    const handoffs = out.filter((e) => e.type === "handoff");
+    expect(handoffs).toHaveLength(1);
+    expect(handoffs[0]).toMatchObject({ type: "handoff", kind: "escalate" });
+    expect((handoffs[0] as Record<string, unknown>)["toAgentName"]).toBeUndefined();
+    expect(out.some((e) => e.type === "subagent.start")).toBe(false);
+    for (const e of out) expect(() => AgEvent.parse(e)).not.toThrow();
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2484,6 +2555,15 @@ describe("§10.37 — shared-state fold (draft.4; §5 state.delta)", () => {
     const r = fold([TS, delta(1, [{ op: "add", path: "/a", value: 1 }])]);
     expect(r.needsResync).toBe(true);
     expect(r.result.state).toBeUndefined();
+  });
+
+  it("a key-replace patch never removes a sibling member: {a:1,b:1} then {a:2} fold to {a:2,b:1}; a state.snapshot {c:1} is the removal path", () => {
+    const kept = fold([TS, delta(1, { a: 1, b: 1 }), delta(2, { a: 2 })]);
+    expect(kept.needsResync).toBe(false);
+    expect(kept.result.state).toEqual({ a: 2, b: 1 });
+    const snap = fold([TS, delta(1, { a: 1, b: 1 }), delta(2, { a: 2 }), { type: "state.snapshot", seq: 3, snapshot: { c: 1 } } as AgEvent]);
+    expect(snap.needsResync).toBe(false);
+    expect(snap.result.state).toEqual({ c: 1 });
   });
 });
 
@@ -3618,5 +3698,43 @@ describe("§10.53 — reported-fix carriage and durability (draft.5; §8.0 item,
   });
   it("(g) for each of (a)–(d), a fresh reducer fed a messages.snapshot built from the first fold's result yields a structurally equal result with no resync", () => {
     for (const evs of [legA(), legB([{ type: "text", text: "API Error", citations: null }]), legC(), legD(MIS)]) rRoundTrip(rFold(evs));
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.54 — error-outcome retriable (draft.5; §4 AgOutcome, §5 turn.error row)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.54 — error-outcome retriable (draft.5; §4 AgOutcome, §5 turn.error row)", () => {
+  const both = (evs: Record<string, unknown>[]) => {
+    const parsed = evs.map((e) => AgEvent.parse(e));
+    const live = new Reducer();
+    for (const e of parsed) live.push(e);
+    const batch = reduce(parsed);
+    expect(live.needsResync).toBe(batch.needsResync);
+    expect(live.result()).toEqual(batch.result);
+    return batch;
+  };
+  const start = { type: "turn.start", seq: 0, threadId: "th", turnId: "t" };
+  it("(reducer) turn.error{retriable:false} folds outcome {type:error, message, code, retriable:false}; without retriable the outcome has no such key; a non-terminal error{retriable:true} before it never folds", () => {
+    const r1 = both([start, { type: "turn.error", seq: 1, turnId: "t", message: "m", code: "c", retriable: false }]);
+    expect(r1.needsResync).toBe(false);
+    expect(r1.result.turns[0]!.outcome).toEqual({ type: "error", message: "m", code: "c", retriable: false });
+    const r2 = both([start, { type: "turn.error", seq: 1, turnId: "t", message: "m", code: "c" }]);
+    expect(r2.result.turns[0]!.outcome).toEqual({ type: "error", message: "m", code: "c" });
+    expect("retriable" in (r2.result.turns[0]!.outcome as Record<string, unknown>)).toBe(false);
+    const r3 = both([start, { type: "error", seq: 1, turnId: "t", message: "transient", retriable: true }, { type: "turn.error", seq: 2, turnId: "t", message: "m", code: "c", retriable: false }]);
+    expect(r3.needsResync).toBe(false);
+    expect((r3.result.turns[0]!.outcome as Record<string, unknown>)["retriable"]).toBe(false);
+  });
+  it("(claude) the two committed Claude API-error goldens each fold exactly one errored turn with outcome.retriable false", () => {
+    const corpus = new URL("../corpus/", import.meta.url);
+    for (const d of ["api-error-auth", "defer-tool-sonnet5-resume-unavailable"]) {
+      const ev = JSON.parse(readFileSync(new URL(`${d}/claude.agjson.json`, corpus), "utf8")) as Array<Record<string, unknown>>;
+      const r = reduce(ingestAgEvents(ev as unknown as JsonValue[]));
+      const errored = r.result.turns.filter((t) => t.outcome?.type === "error");
+      expect(errored, d).toHaveLength(1);
+      expect((errored[0]!.outcome as Record<string, unknown>)["retriable"], d).toBe(false);
+    }
   });
 });
