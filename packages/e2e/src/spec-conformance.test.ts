@@ -19,6 +19,7 @@ import {
   checkAgInput,
 } from "@silverprotocol/core";
 import type { AgRecordReport } from "@silverprotocol/core";
+import * as coreNs from "@silverprotocol/core";
 import { isDeepStrictEqual } from "node:util";
 import type { JsonValue } from "@silverprotocol/core";
 import { createAdkNormalizer, ADK_HOST_COMPLETE_TYPE } from "@silverprotocol/google-adk";
@@ -206,6 +207,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 50, leg: "vercel", title: "Cache-inclusive inputTokens and per-object usage scope (draft.5)", disposition: "N/A", citation: "§8 applicability: the exact-equality, flag, costScope and placeholder legs are the claude-agent-sdk facet's; the depth-any >= scan binds this producer's goldens through the replay leg" },
   { n: 48, title: "Record events on unopened turns (draft.5, §5.0 INV-OWNER): for each of the six record events — alone: no record, no resync; before its turn.start: one record with the opener's thread and the landing; after a turns-less snapshot naming the turn by message: one record with that thread; message.start alone gives display.required its record; a tool.done into a held turn parks and creates no message; a turnId-less turn.error after a closed turn parks and leaves usage/outcome; no record or message carries a thread no event carried (vectors + every corpus golden)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.48 (a)-(h), reference Reducer + reduce(); the hold/adopt/cap unit vectors incl. B1-B3 in core reduce.test.ts \"record events on a turn whose thread is not known\"" },
   { n: 49, title: "Opener first for record events (draft.5): on every replay golden, each prompt.blocked / guardrail.result / agent.capabilities / source / handoff / display.required names, or resolves by messageId to, a turn a turn.start or subagent.start opened earlier in that invoke (types with no corpus instance pass vacuously and are counted)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.49(producers), a scan of every corpus/*/*.agjson.json" },
+  { n: 51, title: "Persistable projection (draft.5): toPersistable omits every turn's displayRequired[] and changes nothing else; the fold is not mutated; identity on every replay golden (no golden carries the field)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.51, reduce-level; PENDING probe's core toPersistable (red until it lands)" }
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -3278,5 +3280,58 @@ describe("§10.50 — cache-inclusive inputTokens and per-object usage scope (dr
     const parsed = AgEvent.parse(tail[4]) as { usage?: Record<string, unknown> };
     expect(parsed.usage?.["costScope"]).toBe("query");
     expect(parsed.usage?.["totalTokensRaw"]).toBe(634);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.51 — persistable projection (draft.5; §13.3, §5.0 INV-FOLD carve-out).
+// Reduce-level. The helper is core's; until it lands the first assertion is red
+// by design (a named window), and tsc stays green through the namespace import.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.51 — persistable projection (draft.5): toPersistable omits every turn's displayRequired[] and nothing else", () => {
+  const toPersistable = (coreNs as unknown as Record<string, unknown>)["toPersistable"] as ((r: AgReduceResult) => AgReduceResult) | undefined;
+  const P = (evs: Array<Record<string, unknown>>) => evs.map((e) => AgEvent.parse(e));
+  const fold = () => reduce(P([
+    { type: "turn.start", seq: 0, threadId: "th51", turnId: "t1" },
+    { type: "display.required", seq: 1, turnId: "t1", provider: "google", html: "<p>x</p>" },
+    { type: "source", seq: 2, turnId: "t1", sourceId: "s1", source: { url: "https://example.test/51" } },
+    { type: "turn.done", seq: 3, turnId: "t1", outcome: { type: "success" }, finishReason: "stop" },
+  ])).result;
+
+  it("(reducer) the projection's turn has no displayRequired key, keeps sources, equals the fold minus that key, and does not mutate the fold", () => {
+    expect(typeof toPersistable, "core exports toPersistable").toBe("function");
+    const F = fold();
+    const Pr = toPersistable!(F);
+    expect(Pr.turns[0] !== undefined && "displayRequired" in (Pr.turns[0] as object)).toBe(false);
+    expect(Pr.turns[0]?.sources).toEqual(F.turns[0]?.sources);
+    const expected = structuredClone(F) as AgReduceResult;
+    delete (expected.turns[0] as Record<string, unknown>)["displayRequired"];
+    expect(Pr).toEqual(expected);
+    expect(F.turns[0]?.displayRequired).toEqual([{ provider: "google", html: "<p>x</p>" }]);
+  });
+
+  it("(reducer) a fold with no displayRequired projects to itself", () => {
+    expect(typeof toPersistable).toBe("function");
+    const F = reduce(P([
+      { type: "turn.start", seq: 0, threadId: "th51", turnId: "t1" },
+      { type: "turn.done", seq: 1, turnId: "t1", outcome: { type: "success" }, finishReason: "stop" },
+    ])).result;
+    expect(toPersistable!(F)).toEqual(F);
+  });
+
+  it("(corpus) for every replay golden the projection equals the fold (no committed golden carries displayRequired)", () => {
+    expect(typeof toPersistable).toBe("function");
+    const corpus = new URL("../corpus/", import.meta.url);
+    let files = 0;
+    for (const dir of readdirSync(corpus).sort()) {
+      for (const f of readdirSync(new URL(`${dir}/`, corpus)).filter((x) => x.endsWith(".agjson.json")).sort()) {
+        files++;
+        const evs = JSON.parse(readFileSync(new URL(`${dir}/${f}`, corpus), "utf8")) as unknown as JsonValue[];
+        const F = reduce(ingestAgEvents(evs)).result;
+        expect(toPersistable!(F), `${dir}/${f}`).toEqual(F);
+      }
+    }
+    expect(files).toBeGreaterThan(0);
   });
 });
