@@ -88,7 +88,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 4, leg: "c", title: "Gemini signature loop — Google-Search-grounded turn", disposition: "N/A", citation: "§10 preamble emit/re-input carve-out; no built-in-tool-step signature carrier in google-adk" },
   { n: 4, leg: "openai", title: "OpenAI stateless reasoning loop (rs_/encrypted_content)", disposition: "N/A", citation: "§10 preamble emit/re-input carve-out (ingest-capture sub-claim already COVERED by openai-agents/src/index.test.ts:1694-1872 (reasoning_item_created) + :1893-2159 (OA-11, reasoning sourced from response.completed; the §10.4 stateless-replay fold order at :2042))" },
   { n: 5, title: "Source round-trips (MCP base64 + Anthropic url/file)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.5" },
-  { n: 6, title: "Mandatory display (display.required not dropped)", disposition: "COVERED-BY", citation: "reduce.test.ts:1049 \"(h) display.required appends…\"" },
+  { n: 6, title: "Mandatory display (display.required not dropped)", disposition: "COVERED-BY", citation: "reduce.test.ts:1065 \"(h) display.required appends…\"" },
   { n: 7, title: "safety_blocked category", disposition: "COVERED-BY", citation: "openai-agents/src/index.test.ts:816 \"content_filter incomplete…\"" },
   { n: 8, title: "Cumulative-usage verbatim fold (INV-DELTA)", disposition: "COVERED-BY", citation: "reduce.test.ts:791-826 (a) + :91 (b2)" },
   { n: 9, title: "ADK aggregate suppression", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.9, facet-driven via createAdkNormalizer" },
@@ -192,6 +192,8 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 47, leg: "pair-claude-paused-close", title: "Claude deferred pause (draft.5, §8.0 item 32): the deferring invoke's last terminal is turn.done{paused, finishReason paused, no finishReasonRaw} from push() with exactly one approval ask naming the deferred id, preceded by a hitl.ask with the same askId", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.47(pair-claude-paused-close) over the defer-tool-sonnet5 golden (red until the cohort's claude-agent-sdk change and its regen land)" },
   { n: 47, leg: "pair-vercel", title: "Cross-invoke tool result (draft.5): a streamText call whose initial pass settles a prior call's approval, as a synthetic pair — the prior-call result lands as a role:\"tool\" message on messageId \"<toolCallId>:result\" with no resync", disposition: "COVERED-BY", citation: "PENDING the vercel-ai prior-call messageId flip (probe, this cohort): until it lands, vercel-ai/src/index.test.ts:1579-1581 asserts NO messageId and :1586 pins the park (the 0.7.x KNOWN GAP), so this row cites no test yet; the flip's push replaces this citation with the flipped arms" },
   { n: 47, leg: "adk", title: "Cross-invoke tool result (draft.5)", disposition: "N/A", citation: "§8 applicability: no committed ADK two-invoke pair; ADK's confirmation reply opens a new invocation and is a later leg" },
+  { n: 48, title: "Record events on unopened turns (draft.5, §5.0 INV-OWNER): for each of the six record events — alone: no record, no resync; before its turn.start: one record with the opener's thread and the landing; after a turns-less snapshot naming the turn by message: one record with that thread; message.start alone gives display.required its record; a tool.done into a held turn parks and creates no message; a turnId-less turn.error after a closed turn parks and leaves usage/outcome; no record or message carries a thread no event carried (vectors + every corpus golden)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.48 (a)-(h), reference Reducer + reduce(); the hold/adopt/cap unit vectors incl. B1-B3 in core reduce.test.ts \"record events on a turn whose thread is not known\"" },
+  { n: 49, title: "Opener first for record events (draft.5): on every replay golden, each prompt.blocked / guardrail.result / agent.capabilities / source / handoff / display.required names, or resolves by messageId to, a turn a turn.start or subagent.start opened earlier in that invoke (types with no corpus instance pass vacuously and are counted)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.49(producers), a scan of every corpus/*/*.agjson.json" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -453,7 +455,7 @@ describe("§10.5 — source round-trips: MCP base64 and Anthropic url/file both 
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("§10.6 — Mandatory display: a display.required event is not dropped (ToS)", () => {
-  it("COVERED-BY reduce.test.ts:1049 \"(h) display.required appends to AgTurnRecord.displayRequired[]\"; thin confirming re-assertion", () => {
+  it("COVERED-BY reduce.test.ts:1065 \"(h) display.required appends to AgTurnRecord.displayRequired[]\"; thin confirming re-assertion", () => {
     const r = reduce([
       TURN_START,
       { type: "display.required", seq: 1, turnId: "t1", provider: "google", html: "<p>Required notice</p>" },
@@ -2638,10 +2640,23 @@ describe("§10.43 — never-opened terminals (draft.4; §5.0 INV-OWNER)", () => 
     for (const rec of recs(r, "tq")) expect(rec.outcome).toBeUndefined();
   });
 
-  it("(h) no record a terminal created carries a threadId that no event carried", () => {
-    for (const evs of [B(), E(), F(), C()]) {
-      const ids = carried(evs);
-      for (const t of reduce(evs).result.turns) expect({ turnId: t.turnId, threadId: t.threadId, carried: ids.has(t.threadId) }).toEqual({ turnId: t.turnId, threadId: t.threadId, carried: true });
+  it("(h) no record a terminal created carries a threadId that no event carried — bare, and prefixed with a record event naming the same turn (draft.5, CB-7)", () => {
+    const TERMS = new Set(["turn.done", "turn.error", "turn.abort"]);
+    const prefixed = (evs: AgEvent[]): AgEvent[][] => {
+      const term = (evs as unknown as Array<Record<string, unknown>>).find((e) => TERMS.has(e["type"] as string)) as Record<string, unknown>;
+      const tid = term["turnId"] as string;
+      const shift = (evs as unknown as Array<Record<string, unknown>>).map((e) => ({ ...e, seq: (e["seq"] as number) + 1 }));
+      return [
+        P([{ type: "source", seq: 0, turnId: tid, sourceId: "s-h", source: { url: "https://example.test/h" } }, ...shift]),
+        P([{ type: "display.required", seq: 0, turnId: tid, provider: "google", html: "<b>h</b>" }, ...shift]),
+      ];
+    };
+    for (const base of [B(), E(), F(), C()]) {
+      for (const evs of [base, ...prefixed(base)]) {
+        const ids = carried(evs);
+        const r = fold(evs);
+        for (const t of r.result.turns) expect({ turnId: t.turnId, threadId: t.threadId, carried: ids.has(t.threadId) }).toEqual({ turnId: t.turnId, threadId: t.threadId, carried: true });
+      }
     }
   });
 
@@ -2952,5 +2967,165 @@ describe("§10.47 — cross-invoke tool result and the Claude deferred pause (dr
     expect(asks[0]?.["kind"]).toBe("approval");
     expect(deferred).toContain(asks[0]?.["toolCallId"]);
     expect(first.some((e) => e["type"] === "hitl.ask" && e["askId"] === asks[0]?.["askId"])).toBe(true);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.48 — Record events on unopened turns (draft.5; §5.0 INV-OWNER). Every
+// vector runs on the incremental Reducer AND the batch reduce(), which must agree.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.48 — record events on unopened turns (draft.5; §5.0 INV-OWNER)", () => {
+  const P = (evs: Array<Record<string, unknown>>) => evs.map((e) => AgEvent.parse(e));
+  const fold = (evs: AgEvent[]) => {
+    const batch = reduce(evs);
+    const acc = new Reducer();
+    for (const e of evs) acc.push(e);
+    expect(acc.result()).toEqual(batch.result);
+    expect(acc.needsResync).toBe(batch.needsResync);
+    return batch;
+  };
+  const recs = (r: ReturnType<typeof reduce>, id: string) => r.result.turns.filter((t) => t.turnId === id);
+  // The six record events, each with a marker the folded record must carry.
+  const RECORD_EVENTS: Array<{ ev: (turnId: string, seq: number) => Record<string, unknown>; marker: string }> = [
+    { ev: (turnId, seq) => ({ type: "source", seq, turnId, sourceId: "s-51", source: { url: "https://example.test/51", title: "src-51" } }), marker: "s-51" },
+    { ev: (turnId, seq) => ({ type: "handoff", seq, turnId, kind: "transfer", toAgentName: "agent-51" }), marker: "agent-51" },
+    { ev: (turnId, seq) => ({ type: "prompt.blocked", seq, turnId, reason: "prohibited" }), marker: "prohibited" },
+    { ev: (turnId, seq) => ({ type: "guardrail.result", seq, turnId, target: "input", passed: true, guardrailName: "g-51" }), marker: "g-51" },
+    { ev: (turnId, seq) => ({ type: "display.required", seq, turnId, provider: "google", html: "<b>dr-51</b>" }), marker: "dr-51" },
+    { ev: (turnId, seq) => ({ type: "agent.capabilities", seq, turnId, capabilities: { extensions: ["urn:x:cap-51"] } }), marker: "cap-51" },
+  ];
+  const msg = (turnId: string, threadId: string) => ({ id: `m_${turnId}`, role: "assistant", turnId, threadId, content: [{ type: "text", text: "hi" }] });
+  const DONE = (turnId: string, seq: number, extra: Record<string, unknown> = {}) => ({ type: "turn.done", seq, turnId, outcome: { type: "success" }, finishReason: "stop", ...extra });
+  const carried = (evs: AgEvent[]) => {
+    const out = new Set<unknown>();
+    for (const e of evs as unknown as Array<Record<string, unknown>>) {
+      if (e["threadId"] !== undefined) out.add(e["threadId"]);
+      for (const m of (e["messages"] as Array<Record<string, unknown>> | undefined) ?? []) if (m["threadId"] !== undefined) out.add(m["threadId"]);
+      for (const t of (e["turns"] as Array<Record<string, unknown>> | undefined) ?? []) if (t["threadId"] !== undefined) out.add(t["threadId"]);
+    }
+    return out;
+  };
+
+  it("(a) a record event naming a turn no event opened folds to no record for it, with no resync", () => {
+    for (const { ev } of RECORD_EVENTS) {
+      const r = fold(P([ev("X", 0)]));
+      expect(r.needsResync).toBe(false);
+      expect(recs(r, "X")).toHaveLength(0);
+    }
+  });
+  it("(b) a record event, then its turn.start{X, T}, then turn.done X: exactly one record for X with threadId T, carrying the landing, outcome success", () => {
+    for (const { ev, marker } of RECORD_EVENTS) {
+      const r = fold(P([ev("X", 0), { type: "turn.start", seq: 1, threadId: "T", turnId: "X" }, DONE("X", 2)]));
+      expect(r.needsResync).toBe(false);
+      expect(recs(r, "X")).toHaveLength(1);
+      expect(recs(r, "X")[0]?.threadId).toBe("T");
+      expect(recs(r, "X")[0]?.outcome?.type).toBe("success");
+      expect(JSON.stringify(recs(r, "X")[0]), marker).toContain(marker);
+    }
+  });
+  it("(c) after a turns-less snapshot whose message names X with threadId T, a record event then turn.done X fold onto one record for X with threadId T", () => {
+    for (const { ev, marker } of RECORD_EVENTS) {
+      const r = fold(P([{ type: "messages.snapshot", seq: 0, messages: [msg("X", "T")] }, ev("X", 1), DONE("X", 2)]));
+      expect(r.needsResync).toBe(false);
+      expect(recs(r, "X")).toHaveLength(1);
+      expect(recs(r, "X")[0]?.threadId).toBe("T");
+      expect(JSON.stringify(recs(r, "X")[0]), marker).toContain(marker);
+    }
+  });
+  it("(d) message.start{X, T} with no turn.start, then display.required X: one record for X with threadId T and one displayRequired entry", () => {
+    const r = fold(P([
+      { type: "message.start", seq: 0, id: "m1", role: "assistant", turnId: "X", threadId: "T" },
+      { type: "display.required", seq: 1, turnId: "X", provider: "google", html: "<b>d</b>" },
+    ]));
+    expect(r.needsResync).toBe(false);
+    expect(recs(r, "X")).toHaveLength(1);
+    expect(recs(r, "X")[0]?.threadId).toBe("T");
+    expect(recs(r, "X")[0]?.displayRequired).toHaveLength(1);
+  });
+  it("(e) a record event, then a turns-less snapshot with no messages, then a tool.done adopting into the held turn: resync, and no message is created", () => {
+    for (const { ev } of RECORD_EVENTS) {
+      const r = fold(P([ev("X", 0), { type: "messages.snapshot", seq: 1, messages: [] }, { type: "tool.done", seq: 2, turnId: "X", messageId: "M", toolCallId: "c1", content: [], outcome: "ok" }]));
+      expect(r.needsResync).toBe(true);
+      expect(r.result.messages.some((m) => m.id === "M")).toBe(false);
+    }
+  });
+  it("(f) after turn.start and turn.done{usage U} of t1, a turnId-less turn.error parks and leaves t1's usage and outcome", () => {
+    const U = { inputTokens: 3, outputTokens: 4, totalTokens: 7 };
+    const r = fold(P([{ type: "turn.start", seq: 0, threadId: "T", turnId: "t1" }, DONE("t1", 1, { usage: U }), { type: "turn.error", seq: 2, message: "late" }]));
+    expect(r.needsResync).toBe(true);
+    expect(recs(r, "t1")).toHaveLength(1);
+    expect(recs(r, "t1")[0]?.usage).toEqual(U);
+    expect(recs(r, "t1")[0]?.outcome?.type).toBe("success");
+  });
+  it("(g) a handoff naming a nested turn before its subagent.start: the record takes the parent's thread and its parentTurnId once opened", () => {
+    const r = fold(P([
+      { type: "turn.start", seq: 0, threadId: "T", turnId: "p" },
+      { type: "handoff", seq: 1, turnId: "c", kind: "transfer", toAgentName: "agent-g" },
+      { type: "subagent.start", seq: 2, turnId: "c", parentTurnId: "p" },
+      { type: "turn.done", seq: 3, turnId: "c", outcome: { type: "success" }, finishReason: "unknown" },
+      { type: "subagent.done", seq: 4, turnId: "c", parentTurnId: "p" },
+    ]));
+    expect(r.needsResync).toBe(false);
+    expect(recs(r, "c")).toHaveLength(1);
+    expect(recs(r, "c")[0]?.parentTurnId).toBe("p");
+    expect(recs(r, "c")[0]?.threadId).toBe("T");
+    expect(JSON.stringify(recs(r, "c")[0])).toContain("agent-g");
+  });
+  it("(h) across every vector above and every corpus golden, each turn record's and each message's threadId is one an event carried for that turn", () => {
+    const vectors: AgEvent[][] = [];
+    for (const { ev } of RECORD_EVENTS) {
+      vectors.push(P([ev("X", 0)]));
+      vectors.push(P([ev("X", 0), { type: "turn.start", seq: 1, threadId: "T", turnId: "X" }, DONE("X", 2)]));
+      vectors.push(P([{ type: "messages.snapshot", seq: 0, messages: [msg("X", "T")] }, ev("X", 1), DONE("X", 2)]));
+    }
+    const corpus = new URL("../corpus/", import.meta.url);
+    for (const dir of readdirSync(corpus).sort()) {
+      for (const f of readdirSync(new URL(`${dir}/`, corpus)).filter((x) => x.endsWith(".agjson.json")).sort()) {
+        const raw = JSON.parse(readFileSync(new URL(`${dir}/${f}`, corpus), "utf8")) as Array<Record<string, unknown>>;
+        vectors.push(ingestAgEvents(raw as unknown as JsonValue[]));
+      }
+    }
+    expect(vectors.length).toBeGreaterThan(18);
+    for (const evs of vectors) {
+      const ids = carried(evs);
+      const r = reduce(evs);
+      for (const t of r.result.turns) expect({ turnId: t.turnId, threadId: t.threadId, carried: ids.has(t.threadId) }).toEqual({ turnId: t.turnId, threadId: t.threadId, carried: true });
+      for (const m of r.result.messages) if (m.threadId !== undefined) expect({ id: m.id, threadId: m.threadId, carried: ids.has(m.threadId) }).toEqual({ id: m.id, threadId: m.threadId, carried: true });
+    }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.49 — Opener first for record events (draft.5; §5.0 INV-TURN, §8.0).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.49 — opener first for record events (draft.5)", () => {
+  it("(producers) on every replay golden, each of the six record events names, or resolves by messageId to, a turn opened earlier in its invoke; types with no corpus instance pass vacuously", () => {
+    const corpus = new URL("../corpus/", import.meta.url);
+    const RECORDS = ["prompt.blocked", "guardrail.result", "agent.capabilities", "source", "handoff", "display.required"];
+    const bad: string[] = [];
+    const seen: Record<string, number> = Object.fromEntries(RECORDS.map((t) => [t, 0]));
+    for (const dir of readdirSync(corpus).sort()) {
+      for (const f of readdirSync(new URL(`${dir}/`, corpus)).filter((x) => x.endsWith(".agjson.json")).sort()) {
+        let opened = new Set<unknown>();
+        const msgTurn = new Map<unknown, unknown>();
+        let lastSeq = -1;
+        for (const e of JSON.parse(readFileSync(new URL(`${dir}/${f}`, corpus), "utf8")) as Array<Record<string, unknown>>) {
+          const seq = e["seq"] as number;
+          if (seq === 0 && lastSeq >= 0) { opened = new Set(); msgTurn.clear(); }
+          lastSeq = seq;
+          if (e["type"] === "turn.start" || e["type"] === "subagent.start") opened.add(e["turnId"]);
+          if (e["type"] === "message.start") msgTurn.set(e["id"], e["turnId"]);
+          if (RECORDS.includes(e["type"] as string)) {
+            seen[e["type"] as string] = (seen[e["type"] as string] ?? 0) + 1;
+            const tid = e["turnId"] ?? msgTurn.get(e["messageId"]);
+            if (!opened.has(tid)) bad.push(`${dir}/${f}: ${String(e["type"])} seq ${String(seq)} names ${String(tid)} with no opener in its invoke`);
+          }
+        }
+      }
+    }
+    expect(bad).toEqual([]);
+    expect(seen["handoff"]).toBeGreaterThan(0); // the corpus carries handoffs (openai); the other five are counted, vacuous when 0
   });
 });
