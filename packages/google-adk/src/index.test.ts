@@ -4431,6 +4431,72 @@ describe("createAdkNormalizer — a Live barge-in closes turn.abort after the ev
     expect(folds(hosted).needsResync).toBe(false);
   });
 
+  // The order Gemini Live really uses (a gemini-3.8-live capture
+  // `live-bargein-gemini38live`): the flag first, then the interrupted
+  // generation's usage and turnComplete, then the reply generation.
+  const usage = (i: number, o: number) => ({ usageMetadata: { promptTokenCount: i, candidatesTokenCount: o, totalTokenCount: i + o } });
+  const realBargeIn = (inv: string): JsonValue[] => [
+    liveEvent(inv, "r1", { content: audio }),
+    liveEvent(inv, "r2", { interrupted: true }),
+    liveEvent(inv, "r3", usage(600, 40)),
+    liveEvent(inv, "r4", { turnComplete: true }),
+    liveEvent(inv, "r5", { content: audio }),
+    liveEvent(inv, "r6", usage(660, 20)),
+    liveEvent(inv, "r7", { turnComplete: true }),
+  ];
+  const turnsOf = (out: AgEvent[]) => out.filter((e) => e.type === "turn.start").map((e) => (e as { turnId: string }).turnId);
+  const closes = (out: AgEvent[]) =>
+    out.filter((e) => TERMINAL.has(e.type)).map((e) => [(e as { turnId: string }).turnId, e.type === "turn.abort" ? `abort:${(e as { reason?: string }).reason}` : `${e.type}:${(e as { outcome?: { type?: string } }).outcome?.type}`]);
+
+  it("a real barge-in: the interrupted generation closes on its own turnComplete with its usage, and the reply opens the next turn (_g1); it folds with no park", () => {
+    const out = drive(realBargeIn("inv_r"));
+    expect(turnsOf(out)).toEqual(["turn_adk_inv_r", "turn_adk_inv_r_g1"]);
+    expect(closes(out)).toEqual([["turn_adk_inv_r", "abort:interrupted"], ["turn_adk_inv_r_g1", "turn.done:success"]]);
+    const end0 = out.find((e) => e.type === "message.end" && (e as { id: string }).id === "msg_turn_adk_inv_r") as { usage?: { inputTokens?: number } } | undefined;
+    expect(end0?.usage?.inputTokens).toBe(600);
+    expect(afterTerminal(out)).toEqual([]);
+    const r = folds(out);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns).toHaveLength(2);
+  });
+
+  it("two barge-ins in one session: each interrupted generation aborts, and the final reply is the third turn (_g2)", () => {
+    const out = drive([
+      liveEvent("inv_2", "s1", { content: audio }),
+      liveEvent("inv_2", "s2", { interrupted: true }),
+      liveEvent("inv_2", "s3", { turnComplete: true }),
+      liveEvent("inv_2", "s4", { content: audio }),
+      liveEvent("inv_2", "s5", { interrupted: true }),
+      liveEvent("inv_2", "s6", { turnComplete: true }),
+      liveEvent("inv_2", "s7", { content: audio }),
+      liveEvent("inv_2", "s8", { turnComplete: true }),
+    ]);
+    expect(turnsOf(out)).toEqual(["turn_adk_inv_2", "turn_adk_inv_2_g1", "turn_adk_inv_2_g2"]);
+    expect(closes(out).map(([, c]) => c)).toEqual(["abort:interrupted", "abort:interrupted", "turn.done:success"]);
+    expect(folds(out).needsResync).toBe(false);
+  });
+
+  it("both flags in one server message: ADK's trailing bare {interrupted} re-yield opens no turn and adds no terminal; the reply opens the next turn", () => {
+    const out = drive([
+      liveEvent("inv_bf", "b1", { content: audio }),
+      liveEvent("inv_bf", "b2", { turnComplete: true, interrupted: true }),
+      liveEvent("inv_bf", "b3", { interrupted: true }),
+      liveEvent("inv_bf", "b4", { content: audio }),
+      liveEvent("inv_bf", "b5", { turnComplete: true }),
+    ]);
+    expect(turnsOf(out)).toEqual(["turn_adk_inv_bf", "turn_adk_inv_bf_g1"]);
+    expect(closes(out).map(([, c]) => c)).toEqual(["abort:interrupted", "turn.done:success"]);
+    expect(afterTerminal(out)).toEqual([]);
+    expect(folds(out).needsResync).toBe(false);
+  });
+
+  it("with hostCompletion, the reply's success waits for the host-completion event; the interrupted generation still closes on its own turnComplete", () => {
+    const n = createAdkNormalizer({ invokeId: "adk", hostCompletion: true });
+    const out = [...realBargeIn("inv_hc").flatMap((x) => n.push(x)), ...n.push({ type: "__host_complete__" }), ...n.flush()];
+    expect(closes(out)).toEqual([["turn_adk_inv_hc", "abort:interrupted"], ["turn_adk_inv_hc_g1", "turn.done:success"]]);
+    expect(folds(out).needsResync).toBe(false);
+  });
+
   it("two live invokes, each with one barge-in, folded into ONE Reducer: two aborted turns, no park", () => {
     const one = (inv: string) => drive([liveEvent(inv, `${inv}_1`, { content: audio }), liveEvent(inv, `${inv}_2`, { interrupted: true })]);
     const r = folds([...one("inv_one"), ...one("inv_two")]);
@@ -4438,7 +4504,7 @@ describe("createAdkNormalizer — a Live barge-in closes turn.abort after the ev
     expect(r.result().turns).toHaveLength(2);
   });
 
-  it("a turn gets one terminal: a second interrupt, or an interrupt after a success close, adds none (the later content is a new-turn case for 0.8.0)", () => {
+  it("a turn gets one terminal: a second interrupt before the generation completes, or an interrupt after a success close, adds none", () => {
     const twoInterrupts = drive([
       liveEvent("inv_c", "c1", { content: audio }),
       liveEvent("inv_c", "c2", { interrupted: true }),

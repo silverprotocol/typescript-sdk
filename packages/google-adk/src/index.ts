@@ -57,22 +57,21 @@
  * invokes": a resumed-invocation id never satisfies the rule). The per-invoke
  * stem makes the ids unique; see {@link AdkNormalizerOptions.invokeId}.
  *
- * NOTE on the Live (bidi) path: a barge-in (`interrupted: true`, from ADK's live
- * aggregator) closes the message, then the turn, as `turn.abort{interrupted}`,
- * after the event's own content, and a turn gets one terminal. That does NOT
- * make a real barge-in session fold. One live session is one ADK invocation,
- * and so one turn here, and ADK delivers the flag first: the interrupted
- * generation's own `usageMetadata` and `turnComplete` follow it, then the
- * reply generation. Those events land in the closed turn until the facet opens
- * a turn per generation, and a reducer parks on them (probe's gemini-3.8-live
- * capture `live-bargein-gemini38live`, @google/adk 2.1.0: the interrupt at
- * native 6, then usage, turnComplete and the reply). A second barge-in, or
- * model content after a completed reply closed the turn (unless
- * `hostCompletion` defers that close), parks the same way. Separately, when
- * text is buffered at the interrupt, ADK yields
- * only the text aggregate, without the flag (utils/live_connection_utils.js,
- * @google/adk 2.1.0), so this facet sees no interrupt and the turn closes at
- * flush as `stream-truncated`.
+ * NOTE on the Live (bidi) path: one live session is one ADK invocation, and it
+ * can hold several model generations. ADK delivers a barge-in's flag
+ * (`interrupted: true`) first, then the interrupted generation's own
+ * `usageMetadata` and `turnComplete`, then the reply generation (a
+ * gemini-3.8-live capture `live-bargein-gemini38live`, @google/adk 2.1.0). So
+ * the interrupted generation closes as `turn.abort{interrupted}` on its own
+ * `turnComplete` (or at flush), with its usage on its message.end, and the next
+ * generation opens a new turn, `turn_<invokeId>_<invocationId>_g<n>`. ADK's bare
+ * `{interrupted}` re-yield, after a message that carried both flags, adds
+ * nothing and is not emitted. Two limits remain. A generation that follows a
+ * completed reply, with no barge-in, lands in the closed turn and parks a
+ * reducer, unless `hostCompletion` defers that close. And when text is buffered
+ * at the interrupt, ADK yields only the text aggregate, without the flag
+ * (utils/live_connection_utils.js), so this facet sees no interrupt and the
+ * turn closes at flush as `stream-truncated`.
  */
 import {
   type AgEvent,
@@ -789,6 +788,12 @@ function isAdkPauseEnd(event: AdkEvent): boolean {
     !path.includes(".") &&
     (event.longRunningToolIds?.length ?? 0) > 0
   );
+}
+
+/** Whether an event carries any content of a generation: a part, or an input
+ *  or output transcription. */
+function hasLiveContent(ev: AdkEvent): boolean {
+  return (ev.content?.parts?.length ?? 0) > 0 || ev.inputTranscription !== undefined || ev.outputTranscription !== undefined;
 }
 
 /** The event's own turn key: its invocationId, else its id. `undefined` when it
@@ -1815,7 +1820,8 @@ export interface AdkNormalizerOptions {
    * The stem this invoke's ids are minted from: a turn id is
    * `turn_<invokeId>_<key>`, where `<key>` is the event's `invocationId`, else
    * its `id`; an event with neither is `turn_<invokeId>`, and a host error with
-   * no turn open is `turn_<invokeId>_host_error_<n>`. Message ids are
+   * no turn open is `turn_<invokeId>_host_error_<n>`. On the Live path, the
+   * n-th generation after a barge-in adds `_g<n>`. Message ids are
    * `msg_<turnId>`.
    *
    * Turn and message ids must be unique across every invoke folded into one
@@ -1953,6 +1959,15 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
   // so the close waits for the next non-partial event of the turn, or for
   // flush() / host completion.
   const interruptPending = new Set<string>();
+  // Live generations. One live session is one ADK invocation, so one turn key
+  // spans every model generation of the session. ADK delivers a barge-in's
+  // flag FIRST, then the interrupted generation's own usageMetadata and
+  // turnComplete, then the reply generation (a gemini-3.8-live capture
+  // `live-bargein-gemini38live`). So an interrupted generation closes on its own
+  // turnComplete (closeInterrupted), and the next generation after a barge-in
+  // opens a new turn, `<turn>_g<n>`, instead of landing in the closed one.
+  const generationOf = new Map<string, number>();
+  const interruptClosed = new Set<string>();
   const pendingLongRunning = new Map<string, Set<string>>();
   const assembledToolCalls = new Set<string>(); // FC dedup across partial/aggregate (Task 3)
   // Null-id call mint state (audit M47) — per-invoke ordinal counter + the
@@ -2195,8 +2210,12 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
   }
 
   function drive(event: AdkEvent): void {
-    const key = turnKey(event);
-    const turnId = key !== undefined ? `turn_${invokeStem}_${key}` : `turn_${invokeStem}`;
+    const turnId = liveTurnFor(event);
+    // ADK re-yields a bare `{interrupted}` after a message that carried both
+    // turnComplete and interrupted (utils/live_connection_utils.js, @google/adk
+    // 2.1.0). For a generation the barge-in already closed, it adds nothing:
+    // no new turn and no second terminal, so the facet emits nothing for it.
+    if (turnId === undefined) return;
     const messageId = ensureOpen(turnId);
     const parts = event.content?.parts ?? [];
     const isPartial = event.partial === true;
@@ -2330,7 +2349,9 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // (a second barge-in, or one after a success close) adds none.
     if (event.interrupted === true && !closedTurns.has(turnId)) interruptPending.add(turnId);
     maybeCloseTurn(event, turnId, messageId, isPartial);
-    if (!isPartial && interruptPending.has(turnId)) closeInterrupted(turnId);
+    // The interrupted generation closes on its own turnComplete (its trailing
+    // usageMetadata arrives before it), or at flush() / host completion.
+    if (!isPartial && event.turnComplete === true && interruptPending.has(turnId)) closeInterrupted(turnId);
   }
 
   /** interrupted → turn.abort, after the event's own content and carries and
@@ -2338,8 +2359,24 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
    *  The turn is marked closed in the facet's own bookkeeping too (audit M21),
    *  so neither maybeCloseTurn nor flush() fabricates a later success. The
    *  message.end carries the turn's accumulated usage, as flush()'s does. */
+  /** The turn an event belongs to: `turn_<stem>_<key>` (or `turn_<stem>` with no
+   *  key), with `_g<n>` for the n-th generation after a barge-in closed the
+   *  previous one. `undefined` for ADK's bare `{interrupted}` re-yield on a
+   *  generation a barge-in already closed. */
+  function liveTurnFor(event: AdkEvent): string | undefined {
+    const key = turnKey(event);
+    const base = key !== undefined ? `turn_${invokeStem}_${key}` : `turn_${invokeStem}`;
+    const g = generationOf.get(base) ?? 0;
+    const current = g === 0 ? base : `${base}_g${g}`;
+    if (!interruptClosed.has(current)) return current;
+    if (event.interrupted === true && !hasLiveContent(event)) return undefined;
+    generationOf.set(base, g + 1);
+    return `${base}_g${g + 1}`;
+  }
+
   function closeInterrupted(turnId: string): void {
     interruptPending.delete(turnId);
+    interruptClosed.add(turnId);
     closedTurns.add(turnId);
     a.closeMessage(`msg_${turnId}`, mapUsage(usageByTurn.get(turnId)));
     a.emit({ type: "turn.abort", turnId, reason: "interrupted" });
