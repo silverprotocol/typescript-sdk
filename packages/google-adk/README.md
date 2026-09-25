@@ -60,6 +60,8 @@ facet's per-field dispositions, including its disclosed `silently-dropped` gaps)
 
 > **Tool outcomes (spec draft.4, §8.0 item 25).** ADK reports a failed tool call as a `functionResponse` whose `response` carries Gemini's `error` key. The facet maps it to `tool.done` `outcome:"error"` with `isError:true`, plus `errorText` when `error` is a string and `errorCode` from `error_code`/`errorCode`. This covers an unresolvable tool name, a thrown tool (including a thrown MCP call) and several built-in tools. An MCP result with `isError:true` also reads `"error"` with `isError:true`. A declined approval (a FunctionTool or SecurityPlugin rejection, a policy-engine DENY, `CONFIRMATION_REJECTED`) reads `"denied"`. ADK's pending-confirmation placeholder stays `"ok"`; the pause rides `hitl.ask`. The response always stays verbatim in `content`. So a tool of yours that returns `{error: …}` as ordinary data now reads as a failure.
 
+> **Search grounding (spec §13.3).** When Gemini grounds a reply with Google Search, the facet emits `display.required` carrying the Search Suggestions HTML (`groundingMetadata.searchEntryPoint.renderedContent`), which the reducer records on the turn. Rendering, storing and re-displaying it are governed by Google's grounding terms (SPEC §13.3). `toPersistable` from `@silverprotocol/core` gives a fold without it, for a host that stores the result.
+
 ```ts
 import { LlmAgent, InMemoryRunner } from "@google/adk";
 import { createAdkNormalizer } from "@silverprotocol/google-adk";
