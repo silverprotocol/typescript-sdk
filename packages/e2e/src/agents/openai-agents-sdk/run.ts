@@ -181,17 +181,74 @@ export type OpenaiToolSource = { mcpServers: MCPServer[] } | { tools: Tool[] };
  */
 export function openaiHandoffAgent(
   input: Pick<CaptureRunInput, "handoff">,
-  shared: { model: string; modelSettings?: ModelSettings; toolSource: OpenaiToolSource },
+  shared: OpenaiHandoffShared,
 ): Agent | undefined {
   const h = input.handoff;
   if (h === undefined) return undefined;
+  return buildHandoffAgent(h, shared);
+}
+
+/** What every handoff target shares with the main agent. */
+type OpenaiHandoffShared = { model: string; modelSettings?: ModelSettings; toolSource: OpenaiToolSource };
+
+function buildHandoffAgent(
+  t: { name: string; instructions: string; handoffDescription?: string },
+  shared: OpenaiHandoffShared,
+): Agent {
   return new Agent({
-    name: h.name,
-    instructions: h.instructions,
-    ...(h.handoffDescription !== undefined ? { handoffDescription: h.handoffDescription } : {}),
+    name: t.name,
+    instructions: t.instructions,
+    ...(t.handoffDescription !== undefined ? { handoffDescription: t.handoffDescription } : {}),
     model: shared.model,
     ...shared.toolSource,
     ...(shared.modelSettings !== undefined ? { modelSettings: shared.modelSettings } : {}),
+  });
+}
+
+/**
+ * The main agent's handoff list, from EITHER handoff knob: `openaiHandoffs`
+ * (`input.handoffs`, several targets: the parallel-handoff capture, sp-cto's
+ * ask on the disclosed residual, where the model may emit two `transfer_to_*`
+ * calls in one response and agents-core 0.18.0 runs only the first), else
+ * `openaiHandoff` (`input.handoff`, one target, built exactly as
+ * {@link openaiHandoffAgent} builds it). One Agent per target, in knob order,
+ * each on the SAME model, model settings and tool source as the main agent.
+ * `undefined` when neither knob is set. Both knobs set is a scenario error,
+ * and it throws: silently capturing only one of them is the failure the
+ * separate knob exists to prevent. The `openaiHandoffs` KNOB_SUPPORT proof
+ * export (capture-cli.ts).
+ */
+export function openaiHandoffAgents(
+  input: Pick<CaptureRunInput, "handoff" | "handoffs">,
+  shared: OpenaiHandoffShared,
+): Agent[] | undefined {
+  if (input.handoff !== undefined && input.handoffs !== undefined) {
+    throw new Error("openai capture agent: a scenario sets openaiHandoff OR openaiHandoffs, not both");
+  }
+  const targets = input.handoffs ?? (input.handoff !== undefined ? [input.handoff] : []);
+  if (targets.length === 0) return undefined;
+  return targets.map((t) => buildHandoffAgent(t, shared));
+}
+
+/**
+ * The main agent ("spike"): the scenario's system prompt on the capture's
+ * model, model settings and tool source, handing off to every target of
+ * {@link openaiHandoffAgents}. With no handoff knob it gets no `handoffs` key,
+ * as before the knobs existed. Pure, so the whole wiring is tested keyless
+ * (run.handoff.test.ts); `runOpenaiCapture` only calls it.
+ */
+export function openaiMainAgent(
+  input: Pick<CaptureRunInput, "systemPrompt" | "handoff" | "handoffs">,
+  shared: OpenaiHandoffShared,
+): Agent {
+  const handoffs = openaiHandoffAgents(input, shared);
+  return new Agent({
+    name: "spike",
+    instructions: input.systemPrompt ?? "You are a helpful assistant.",
+    model: shared.model,
+    ...shared.toolSource,
+    ...(shared.modelSettings !== undefined ? { modelSettings: shared.modelSettings } : {}),
+    ...(handoffs !== undefined ? { handoffs } : {}),
   });
 }
 
@@ -284,20 +341,11 @@ export async function* runOpenaiCapture(input: OpenaiCaptureRunInput): AsyncIter
     const model = input.model ?? "gpt-4o-mini";
     const toolSource: OpenaiToolSource =
       approval === undefined ? { mcpServers } : { tools: withRequiredApproval(await getAllMcpTools(mcpServers)) };
-    // The handoff knob: a second agent on the same model and tool source; the
-    // main agent may hand off to it. Absent ⇒ no `handoffs` key at all.
-    const handoffAgent = openaiHandoffAgent(input, {
+    // The main agent, handing off to the handoff knob's targets (if any).
+    const agent = openaiMainAgent(input, {
       model,
       toolSource,
       ...(modelSettings !== undefined ? { modelSettings } : {}),
-    });
-    const agent = new Agent({
-      name: "spike",
-      instructions: input.systemPrompt ?? "You are a helpful assistant.",
-      model,
-      ...toolSource,
-      ...(modelSettings !== undefined ? { modelSettings } : {}),
-      ...(handoffAgent !== undefined ? { handoffs: [handoffAgent] } : {}),
     });
 
     let runInput: string | RunState<unknown, typeof agent> = input.prompt;
