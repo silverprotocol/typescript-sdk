@@ -7,6 +7,11 @@
  * tool.done's `_meta` unchanged (§2.1 view locator). §10.41 also checks the
  * `_meta.ui` half across every framework; this test adds the outcome half for
  * vercel, which no §10 leg pins.
+ *
+ * It reads the COMMITTED goldens, so it pins the goldens' shape. It does not
+ * replay: the replay deep-equal (replay.test.ts) pins the facet to those
+ * goldens. A facet mutation shows up there and in §10.41, while this test
+ * stays green until the goldens move.
  */
 import { describe, expect, it } from "vitest";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
