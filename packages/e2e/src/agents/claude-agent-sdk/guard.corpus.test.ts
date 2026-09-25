@@ -2,7 +2,7 @@
  * The claude facet's last-resort push() guard (core withAtomicPush's non-terminal
  * `error` event `{message: "normalizer error", code}`, claude-agent-sdk/src/index.ts
  * `createClaudeNormalizer`) must fire ZERO times over every committed claude
- * native (the fleet guard ruling, sp-main / sp-cto, 2026-09-24).
+ * native.
  *
  * The guard exists so a facet bug on a malformed frame degrades visibly instead
  * of throwing out of push() (SPEC.md:933). A guard that fired on real wire would
@@ -48,7 +48,7 @@ describe("claude last-resort push() guard — fires 0 times over the committed c
   });
 });
 
-// Determinism (sp-main's precondition for withAtomicPush): a throw rebuilds the
+// Determinism (withAtomicPush's precondition): a throw rebuilds the
 // inner normalizer by re-driving the journal, so the rebuilt state must equal
 // the original exactly. Inject one throwing frame, envelope-valid but malformed
 // (an assistant frame whose second content block is null: it opens its turn,

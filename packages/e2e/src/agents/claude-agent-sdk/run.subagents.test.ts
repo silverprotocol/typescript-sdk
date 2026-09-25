@@ -1,5 +1,5 @@
 /**
- * The nested-turn capture knobs (sp-probe's `claudeSubagents`): the query
+ * The nested-turn capture knobs (`claudeSubagents`): the query
  * options behind `subagents`, the background-launch tracker, and the
  * end-of-input gate that holds a streaming-input capture open until every
  * background sub-run has reported. All pure: no SDK, no network.
@@ -143,7 +143,7 @@ describe("gatedPromptStream with an end gate", () => {
   });
 });
 
-describe("capture isolation: never write outside the capture's tree, never load the fleet's memory", () => {
+describe("capture isolation: never write outside the capture's tree, never load the local project's memory", () => {
   it("every capture turns Claude's auto-memory OFF by both documented switches (env var and flag setting)", () => {
     expect(captureIsolationOptions()).toEqual({ env: { CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1" }, settings: { autoMemoryEnabled: false } });
   });

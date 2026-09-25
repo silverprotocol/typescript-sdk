@@ -91,7 +91,7 @@ export interface CaptureRunInput {
   resumeSessionId?: string;
   /**
    * Programmatic subagents (the SDK's `options.agents`), for the nested-turn
-   * captures (sp-probe's `claudeSubagents` scenario knob). Set ⇒ the built-in
+   * captures (the `claudeSubagents` scenario knob). Set ⇒ the built-in
    * Agent tool is enabled and auto-allowed (see `claudeSubagentOptions`), and a
    * `background: true` subagent runs the query in streaming-input mode that
    * stays open until every background launch has reported (see
@@ -153,9 +153,9 @@ export function claudeSubagentOptions(input: Pick<CaptureRunInput, "subagents" |
 /**
  * A capture must never write outside its own tree. The Agent tool's
  * `isolation: "worktree"` makes the CLI create a git worktree under
- * `.claude/worktrees` at the repository root, which for a seat worktree is the
- * MAIN checkout (sp-probe saw the model set it unprompted in the background
- * capture, and the CLI create that directory there). `"remote"` launches a
+ * `.claude/worktrees` at the repository root, which for a git worktree is the
+ * main checkout (a background capture was seen setting it unprompted, and the
+ * CLI created that directory there). `"remote"` launches a
  * cloud run. So this PreToolUse hook (matched to Agent) rewrites any Agent call
  * that sets `isolation` to the same call without it (`updatedInput`; the CLI
  * validates it against the tool's schema). A call without it gets no output.
@@ -176,10 +176,10 @@ export async function stripAgentIsolation(hookInput: unknown): Promise<
  * default regardless of `settingSources: []` (its gate reads only the
  * CLAUDE_CODE_DISABLE_AUTO_MEMORY env var, CLAUDE_CODE_SIMPLE, and the
  * `autoMemoryEnabled` setting), and resolves the directory from the repository
- * root, so a seat's capture session loaded the FLEET's memory index into its
+ * root, so a capture session loaded the local project's memory index into its
  * prompt, with write access to that directory (init advertised
- * `memory_paths.auto` = the silverprotocol project memory; sp-probe's question,
- * 2026-09-24). The corpus is public and that memory holds fleet-internal facts.
+ * `memory_paths.auto`). The corpus is public, so captures run with auto-memory
+ * off and no local state reaches it.
  * Both documented switches are set: the env var, and the flag-settings layer's
  * `autoMemoryEnabled: false` ("Claude will not read from or write to the
  * auto-memory directory").
