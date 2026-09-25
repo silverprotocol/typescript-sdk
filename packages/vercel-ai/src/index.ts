@@ -84,10 +84,13 @@
  * one. streamText's initial pass also emits `tool-output-denied` for approvals
  * denied in a PREVIOUS call; that id has no tool.start in this turn, and it
  * settles as a bare tool.done exactly like the initial pass's prior-call
- * `tool-result` / `tool-error`. KNOWN GAP shared by all three: that bare
- * tool.done arrives before the first start-step, with no open message, so the
- * Reducer parks it (needsResync). Any fix belongs on all three arms together.
- * Fixture-only: the capture agent sets no `toolApproval`.
+ * `tool-result` / `tool-error`. All three settle a PRIOR-CALL id (one with no
+ * tool.start in this invoke) the same way (draft.5, the c20 leg, §10 item 47): the
+ * tool.done names its own message, `messageId: "<toolCallId>:result"`, and the
+ * invoke's own turn, so the result folds into a role:"tool" message of this
+ * turn even though it arrives before the first start-step. Through 0.7.x it
+ * had no messageId and the Reducer parked it. Fixture-only: the capture agent
+ * sets no `toolApproval`.
  *
  * Lossless posture (Tenet 6): `push()` never throws. Unknown part types ride
  * `ext.vercel.frame{kind, frame}` (v7 adds `custom`, `reasoning-file`,
@@ -357,10 +360,18 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
   const openTextIds = new Set<string>();
   const openReasoningIds = new Set<string>();
   const pendingToolIds = new Set<string>(); // tool-input-start seen, tool-call not yet
+  const startedToolIds = new Set<string>(); // every call this invoke opened a tool.start for
   // toolCallId → `reason` of a DENYING tool-approval-response, read by the
   // following tool-output-denied (ai>=7.0.102). Empty unless approvals run.
   const deniedReasons = new Map<string, string>();
   let stashedError: ErrorFields | undefined; // last in-band error fields (arms A/B)
+
+  /** A PRIOR-CALL result (no tool.start in this invoke; streamText's initial
+   *  pass) names its own role:"tool" message and this invoke's turn (c20). A
+   *  call opened in this invoke gets nothing extra: it rides the open message. */
+  function priorCall(toolCallId: string): { messageId: string; turnId: string } | Record<string, never> {
+    return startedToolIds.has(toolCallId) ? {} : { messageId: `${toolCallId}:result`, turnId: ensureTurn() };
+  }
 
   /** Mint + open the run's turn if not already open (defensive: arms other
    *  than `start` can arrive first on a hostile/truncated wire). */
@@ -546,6 +557,7 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
         const name = str(part["toolName"]);
         if (id === undefined || name === undefined) break;
         pendingToolIds.add(id);
+        startedToolIds.add(id);
         a.toolStart({
           toolCallId: id,
           name,
@@ -587,6 +599,7 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
           a.toolArgsDelta(toolCallId, JSON.stringify(input), { cumulative: false });
         }
         pendingToolIds.delete(toolCallId);
+        startedToolIds.add(toolCallId);
         a.toolArgsAssembled(toolCallId, input);
         if (part["invalid"] === true) {
           a.emitExt(EXT_VENDOR, "invalid-tool-call", {
@@ -609,6 +622,7 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
         const mcp = mcpToolResult(part, output);
         a.toolDone({
           toolCallId,
+          ...priorCall(toolCallId),
           outcome: mcp?.isError === true ? "error" : "ok",
           ...(mcp?.isError === true ? { isError: true as const } : {}),
           structuredContent: output,
@@ -627,6 +641,7 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
         const message = errText(part["error"]);
         a.toolDone({
           toolCallId,
+          ...priorCall(toolCallId),
           outcome: "error",
           isError: true,
           errorText: message,
@@ -658,15 +673,17 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
         // isError alias (SPEC Pattern 4, claude permission_denials
         // precedent). One arm serves both producers. The in-step id already
         // has its tool.start (tool-input-start or the synthesized tool-call
-        // path). The prior-call id gets a bare tool.done, the same as the
-        // initial pass's `tool-result` / `tool-error` for prior-call ids, so
-        // every prior-call id is handled one way.
+        // path). The prior-call id names its own role:"tool" message
+        // (priorCall), the same as the initial pass's `tool-result` /
+        // `tool-error` for prior-call ids, so every prior-call id is handled
+        // one way.
         const toolCallId = str(part["toolCallId"]);
         if (toolCallId === undefined) break;
         const reason = deniedReasons.get(toolCallId);
         deniedReasons.delete(toolCallId);
         a.toolDone({
           toolCallId,
+          ...priorCall(toolCallId),
           outcome: "denied",
           content: reason !== undefined ? [{ type: "text", text: reason }] : [],
         });
@@ -797,6 +814,7 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
       openTextIds: [...openTextIds],
       openReasoningIds: [...openReasoningIds],
       pendingToolIds: [...pendingToolIds],
+      startedToolIds: [...startedToolIds],
       deniedReasons: [...deniedReasons],
       stashedError,
     };
@@ -814,6 +832,8 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
     for (const id of s.openReasoningIds) openReasoningIds.add(id);
     pendingToolIds.clear();
     for (const id of s.pendingToolIds) pendingToolIds.add(id);
+    startedToolIds.clear();
+    for (const id of s.startedToolIds) startedToolIds.add(id);
     deniedReasons.clear();
     for (const [k, v] of s.deniedReasons) deniedReasons.set(k, v);
     stashedError = s.stashedError;

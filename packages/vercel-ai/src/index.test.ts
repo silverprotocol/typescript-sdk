@@ -1551,7 +1551,7 @@ describe("tool-output-denied — PRIOR-CALL id from streamText's initial pass (n
     { type: "finish", finishReason: "stop", rawFinishReason: "stop", totalUsage: USAGE },
   ];
 
-  it("emits a BARE tool.done right after turn.start — settled one way with the initial pass's prior-call tool-result", () => {
+  it("emits a prior-call tool.done right after turn.start, naming its own <id>:result message — settled one way with the initial pass's prior-call tool-result", () => {
     const out = run(parts);
     expect(types(out)).toEqual([
       "turn.start",
@@ -1573,37 +1573,69 @@ describe("tool-output-denied — PRIOR-CALL id from streamText's initial pass (n
       seq: 1,
       turnId: "turn_vercel_1",
       toolCallId: "old1",
+      messageId: "old1:result",
       outcome: "denied",
       content: [], // the initial pass's denial carries no reason on the wire
     });
-    // same envelope as the prior-call tool-result: no messageId, turnId from the open turn
-    expect("messageId" in out[1]!).toBe(false);
-    expect("messageId" in out[2]!).toBe(false);
-    expect(out[2]).toMatchObject({ seq: 2, turnId: "turn_vercel_1", toolCallId: "old2", outcome: "ok" });
+    // same envelope as the prior-call tool-result: its own <id>:result message, turnId from the invoke's turn
+    expect(out[2]).toMatchObject({ seq: 2, turnId: "turn_vercel_1", toolCallId: "old2", messageId: "old2:result", outcome: "ok" });
     expectAllParse(out);
   });
 
-  it("KNOWN GAP, pinned: both prior-call results park the Reducer the SAME way (bare tool.done with no open message)", () => {
-    // Pre-existing for the initial pass's tool-result / tool-error: a bare
-    // tool.done that arrives before the first start-step has no message to
-    // land in, so the Reducer parks (needsResync). The prior-call denial now
-    // shares that path by design. A fix (e.g. the claude facet's dedicated
-    // carrier message) must cover all three initial-pass arms together. This
-    // pin stops the denial arm from drifting apart from the tool-result arm
-    // until then.
-    const parkedAt = (ps: unknown[]) => {
-      const r = new Reducer();
-      const flags: boolean[] = [];
-      for (const e of run(ps)) {
-        r.push(e);
-        flags.push(r.needsResync);
-      }
-      return flags;
-    };
-    const deniedOnly = parkedAt(parts.filter((p) => p.type !== "tool-result"));
-    const resultOnly = parkedAt(parts.filter((p) => p.type !== "tool-output-denied"));
-    expect(deniedOnly).toStrictEqual(resultOnly); // identical fold behaviour
-    expect(deniedOnly.indexOf(true)).toBe(1); // parks at the orphan tool.done itself
+  it("§10 item 47 leg pair-vercel (c20; flipped from the 0.7.x KNOWN GAP): after a prior invoke that opened the calls, both prior-call results fold into role:'tool' messages of this invoke's turn, through one Reducer, without parking", () => {
+    // The prior invoke: the model called old1 and old2 and the run paused on their approvals.
+    const prior = createVercelNormalizer({ invokeId: "vercel_prior" });
+    const priorParts = [
+      { type: "start" },
+      { type: "start-step", request: {}, warnings: [] },
+      { type: "tool-call", toolCallId: "old1", toolName: "echo", input: {} },
+      { type: "tool-call", toolCallId: "old2", toolName: "lookup", input: { q: "x" } },
+      { type: "finish-step", finishReason: "tool-calls", rawFinishReason: "tool-calls", usage: USAGE, response: RESPONSE_S1 },
+      { type: "finish", finishReason: "tool-calls", rawFinishReason: "tool-calls", totalUsage: USAGE },
+    ];
+    const first: AgEvent[] = [];
+    for (const p of priorParts) first.push(...prior.push(p));
+    first.push(...prior.flush());
+    const second = run(parts); // this invoke: seq restarts at 0
+    const r = new Reducer();
+    for (const e of [...first, ...second]) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const thisTurn = (second.find((e) => e.type === "turn.start") as { turnId: string }).turnId;
+    for (const id of ["old1", "old2"]) {
+      const dones = second.filter((e) => e.type === "tool.done" && (e as { toolCallId?: string }).toolCallId === id) as Array<Record<string, unknown>>;
+      expect(dones).toHaveLength(1);
+      expect(dones[0]).toMatchObject({ messageId: `${id}:result`, turnId: thisTurn });
+      expect("more" in dones[0]!).toBe(false);
+      expect(second.some((e) => e.type === "tool.start" && (e as { toolCallId?: string }).toolCallId === id)).toBe(false);
+      const msg = r.result().messages.find((m) => m.id === `${id}:result`);
+      expect(msg).toMatchObject({ role: "tool", turnId: thisTurn });
+      expect(msg!.content.filter((b) => b.type === "tool-result")).toHaveLength(1);
+      // exactly one tool-call and one tool-result for the id across the fold, in different turns
+      const all = r.result().messages.flatMap((m) => m.content.map((b) => ({ m, b })));
+      expect(all.filter(({ b }) => b.type === "tool-call" && (b as { toolCallId?: string }).toolCallId === id)).toHaveLength(1);
+      expect(all.filter(({ b }) => b.type === "tool-result" && (b as { toolCallId?: string }).toolCallId === id)).toHaveLength(1);
+    }
+    const denied = r.result().messages.find((m) => m.id === "old1:result")!.content[0] as { outcome?: string };
+    expect(denied.outcome).toBe("denied");
+  });
+
+  it("a prior-call tool-error names its own <id>:result message too; a call opened in this invoke gets no messageId", () => {
+    const out = run([
+      { type: "start" },
+      { type: "tool-error", toolCallId: "old3", toolName: "echo", input: {}, error: "boom" },
+      { type: "start-step", request: {}, warnings: [] },
+      { type: "tool-call", toolCallId: "new1", toolName: "echo", input: {} },
+      { type: "tool-result", toolCallId: "new1", toolName: "echo", input: {}, output: { ok: 1 } },
+      { type: "finish-step", finishReason: "tool-calls", rawFinishReason: "tool-calls", usage: USAGE, response: RESPONSE_S1 },
+      { type: "finish", finishReason: "tool-calls", rawFinishReason: "tool-calls", totalUsage: USAGE },
+    ]);
+    expectAllParse(out);
+    const done = (id: string) => out.find((e) => e.type === "tool.done" && (e as { toolCallId?: string }).toolCallId === id) as Record<string, unknown>;
+    expect(done("old3")).toMatchObject({ messageId: "old3:result", outcome: "error", isError: true });
+    expect("messageId" in done("new1")).toBe(false);
+    const r = new Reducer();
+    for (const e of out) r.push(e);
+    expect(r.needsResync).toBe(false);
   });
 });
 
@@ -2121,7 +2153,7 @@ describe("per-native guard: a throw mid-part discards that part's batch, emits o
     const containers = [...factory.matchAll(/^  const (\w+)(?::[^=]+)? = new (?:Set|Map)\b/gm)].map((m) => m[1]!);
     const locals = [...lets, ...containers];
     expect(locals.sort()).toEqual(
-      ["deniedReasons", "msgId", "openReasoningIds", "openTextIds", "pendingToolIds", "stashedError", "stepId", "stepIndex", "turnClosed", "turnCounter", "turnId"],
+      ["deniedReasons", "msgId", "openReasoningIds", "openTextIds", "pendingToolIds", "startedToolIds", "stashedError", "stepId", "stepIndex", "turnClosed", "turnCounter", "turnId"],
     );
     const body = (signature: string): string => {
       const i = factory.indexOf(signature);
