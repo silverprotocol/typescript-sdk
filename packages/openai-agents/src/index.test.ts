@@ -2806,24 +2806,23 @@ describe("createOpenaiNormalizer — HO-2 handoff brackets closed by a tool_outp
     expect(fold(evs).needsResync).toBe(false);
   });
 
-  it("defensive (not a streamed 0.18.0 wire: its cancelled stream drops these), two transfers each with an `aborted` tool_output: both brackets abort, both tool.done are errors, no handoff event; the drain releases the source round's close", () => {
+  it("defensive (not a streamed 0.18.0 wire: its cancelled stream drops these), two transfers each with an `aborted` tool_output: only the primary has a bracket (0.18.0 streams handoff_requested for the primary only); it aborts, both tool.done are errors, no handoff event; the drain releases the source round's close", () => {
     const evs = run([
       ...src("resp_ho2_abort", [["call_a", "transfer_to_Echoer"], ["call_b", "transfer_to_Shouter"]]),
       requested("call_a", "transfer_to_Echoer"),
-      requested("call_b", "transfer_to_Shouter"),
       abortedOutput("call_a", "transfer_to_Echoer"),
       abortedOutput("call_b", "transfer_to_Shouter"),
     ]);
     expectClosedBracket(evs, "turn_inv1_handoff_1", "turn.abort");
-    expectClosedBracket(evs, "turn_inv1_handoff_2", "turn.abort");
+    expect(evs.filter((e) => e.type === "subagent.start")).toHaveLength(1);
     expect(evs.some((e) => e.type === "handoff")).toBe(false);
     expect(evs.filter((e) => e.type === "tool.done").map((e) => [Reflect.get(e, "toolCallId"), Reflect.get(e, "outcome")])).toEqual([
       ["call_a", "error"],
       ["call_b", "error"],
     ]);
-    // Only the two nested aborts: the source round closed in push(), not at flush.
-    expect(evs.filter((e) => e.type === "turn.abort")).toHaveLength(2);
-    expect(terminalsOf(evs, "turn_resp_ho2_abort")).toHaveLength(1);
+    // Only the nested abort: the source round closed in push(), not at flush.
+    expect(evs.filter((e) => e.type === "turn.abort")).toHaveLength(1);
+    expect(terminalsOf(evs, "turn_resp_ho2_abort")).toMatchObject([{ type: "turn.done" }]);
     expect(fold(evs).needsResync).toBe(false);
   });
 
@@ -2891,6 +2890,306 @@ describe("createOpenaiNormalizer — HO-2 handoff brackets closed by a tool_outp
     ]);
     expect(evs.some((e) => e.type === "turn.abort" || e.type === "subagent.done")).toBe(false);
     expect(evs.find((e) => e.type === "turn.done")).toMatchObject({ outcome: { type: "success" } });
+  });
+});
+
+// HO-P — the handoff round release (§8.0 item 14, draft.5; the A′ per-call
+// rule). Live evidence: handoff-parallel-gpt6sol, one response with two
+// transfer function_calls; agents-core 0.18.0 runs the first and filters the
+// other out of the step, so no run-item ever names it. At handoff_occurred,
+// each call of the source round still without a result that is a
+// function_call this invoke started and has had NO run-item streamed for it
+// stops being pending: it is carried as ext.openai.dropped-call (never a
+// tool.done), and the round's deferred close is released once nothing of the
+// round is still pending. A later result for such a call rides the same carry.
+describe("createOpenaiNormalizer — HO-P handoff round release (§8.0 item 14)", () => {
+  const U = { input_tokens: 90, output_tokens: 12, total_tokens: 102 };
+  function fc(callId: string, name: string): JsonValue[] {
+    return [
+      rawModel({ type: "response.output_item.added", item: { id: `fc_${callId}`, type: "function_call", status: "in_progress", arguments: "", call_id: callId, name } }),
+      rawModel({ type: "response.function_call_arguments.done", item_id: `fc_${callId}`, arguments: "{}" }),
+    ];
+  }
+  const requested = (callId: string, name: string): JsonValue =>
+    runItem("handoff_requested", {
+      type: "handoff_call_item",
+      rawItem: { type: "function_call", name, callId, status: "completed", arguments: "{}" },
+      agent: { name: "spike" },
+    });
+  const occurred = (callId: string, name: string, target: string): JsonValue =>
+    runItem("handoff_occurred", {
+      type: "handoff_output_item",
+      rawItem: { type: "function_call_result", name, callId, status: "completed", output: { type: "text", text: `{"assistant":"${target}"}` } },
+      sourceAgent: { name: "spike" },
+      targetAgent: { name: target },
+    });
+  const echoerRound: JsonValue[] = [
+    rawModel({ type: "response.created", response: { id: "resp_p_echo" } }),
+    rawModel({ type: "response.output_text.delta", item_id: "msg_p_echo", delta: "handoff-parallel-probe" }),
+    rawModel({ type: "response.completed", response: { id: "resp_p_echo", status: "completed", usage: U } }),
+  ];
+  const PARALLEL: JsonValue[] = [
+    rawModel({ type: "response.created", response: { id: "resp_p_src" } }),
+    ...fc("call_ec", "transfer_to_Echoer"),
+    ...fc("call_sh", "transfer_to_Shouter"),
+    rawModel({ type: "response.completed", response: { id: "resp_p_src", status: "completed", usage: U } }),
+    requested("call_ec", "transfer_to_Echoer"),
+    occurred("call_ec", "transfer_to_Echoer", "Echoer"),
+    { type: "agent_updated_stream_event", agent: { name: "Echoer" } },
+    ...echoerRound,
+  ];
+  function run(s: JsonValue[]): AgEvent[] {
+    const n = createOpenaiNormalizer({ invokeId: "inv1" });
+    return s.flatMap((e) => n.push(e)).concat(n.flush());
+  }
+  function fold(evs: AgEvent[]): Reducer {
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    return r;
+  }
+
+  it("the source round closes SUCCESS at handoff_occurred: the ignored call is carried as ext.openai.dropped-call, never a tool.done; no turn.abort", () => {
+    const n = createOpenaiNormalizer({ invokeId: "inv1" });
+    const isRequested = (e: JsonValue): boolean =>
+      typeof e === "object" && e !== null && !Array.isArray(e) && e["name"] === "handoff_requested";
+    // Everything up to and including handoff_requested; then handoff_occurred's own batch.
+    for (const e of PARALLEL.slice(0, PARALLEL.findIndex(isRequested) + 1)) n.push(e);
+    const batch = n.push(occurred("call_ec", "transfer_to_Echoer", "Echoer"));
+    const owner = (e: AgEvent): string | undefined => (e.type === "message.end" ? e.id : "turnId" in e ? e.turnId : undefined);
+    expect(batch.map((e) => [e.type, owner(e)])).toEqual([
+      ["turn.done", "turn_inv1_handoff_1"],
+      ["subagent.done", "turn_inv1_handoff_1"],
+      ["handoff", "turn_resp_p_src"],
+      ["tool.done", "turn_resp_p_src"],
+      // An ext event carries no turnId (a reserved ext key); its owner is the
+      // last-opened turn at fold time — the source turn, which subagent.done
+      // just restored (INV-OWNER).
+      ["ext.openai.dropped-call", undefined],
+      ["message.end", "msg_turn_resp_p_src"],
+      ["turn.done", "turn_resp_p_src"],
+    ]);
+    expect(batch.find((e) => e.type === "tool.done")).toMatchObject({ toolCallId: "call_ec" });
+    expect(batch.find((e) => e.type === "ext.openai.dropped-call")).toMatchObject({
+      toolCallId: "call_sh",
+      name: "transfer_to_Shouter",
+      forTurnId: "turn_resp_p_src",
+      reason: "no-run-item-at-handoff",
+    });
+    expect(batch.at(-1)).toMatchObject({ outcome: { type: "success" }, usage: { inputTokens: 90, outputTokens: 12 } });
+  });
+
+  it("whole stream: no tool.done for the dropped call, no turn.abort, no park; the fold keeps its tool-call block with no result", () => {
+    const evs = run(PARALLEL);
+    expect(evs.some((e) => e.type === "turn.abort")).toBe(false);
+    expect(evs.some((e) => e.type === "tool.done" && e.toolCallId === "call_sh")).toBe(false);
+    expect(evs.filter((e) => e.type === "ext.openai.dropped-call")).toHaveLength(1);
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    expect(res.turns.find((t) => t.turnId === "turn_resp_p_src")?.outcome).toMatchObject({ type: "success" });
+    const blocks = res.messages.flatMap((m) => m.content);
+    expect(blocks.some((b) => b.type === "tool-call" && b.toolCallId === "call_sh")).toBe(true);
+    expect(blocks.some((b) => b.type === "tool-result" && b.toolCallId === "call_sh")).toBe(false);
+    expect(() => AgReduceResult.parse(res)).not.toThrow();
+  });
+
+  it("guard (a slow but legitimate result): a pending call that DID get a run item (tool_called) is not dropped — the round stays deferred, as today", () => {
+    const evs = run([
+      rawModel({ type: "response.created", response: { id: "resp_p_slow" } }),
+      ...fc("call_ec2", "transfer_to_Echoer"),
+      ...fc("call_slow", "echo"),
+      rawModel({ type: "response.completed", response: { id: "resp_p_slow", status: "completed", usage: U } }),
+      runItem("tool_called", { type: "tool_call_item", rawItem: { type: "function_call", name: "echo", callId: "call_slow", status: "completed", arguments: "{}" } }),
+      requested("call_ec2", "transfer_to_Echoer"),
+      occurred("call_ec2", "transfer_to_Echoer", "Echoer"),
+    ]);
+    expect(evs.some((e) => e.type === "ext.openai.dropped-call")).toBe(false);
+    // Nothing released it at the handoff: the flush does, honestly (O1).
+    expect(evs.find((e) => e.type === "turn.abort")).toMatchObject({ turnId: "turn_resp_p_slow", reason: "stream-truncated" });
+  });
+
+  it("a LATER result for a released call (not produced by 0.18.0) is carried as ext.openai.dropped-call{reason:'result-after-release'}, never a tool.done; no park", () => {
+    const evs = run([
+      ...PARALLEL,
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "function_call_result", name: "transfer_to_Shouter", callId: "call_sh", status: "completed", output: "Multiple handoffs detected, ignoring this one." },
+        output: "Multiple handoffs detected, ignoring this one.",
+      }),
+    ]);
+    expect(evs.some((e) => e.type === "tool.done" && e.toolCallId === "call_sh")).toBe(false);
+    const late = evs.filter((e) => e.type === "ext.openai.dropped-call").at(-1);
+    expect(late).toMatchObject({ toolCallId: "call_sh", forTurnId: "turn_resp_p_src", reason: "result-after-release" });
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("only the handoff's SOURCE round is released: a no-run-item call pending in an OLDER round is left to the flush", () => {
+    const evs = run([
+      rawModel({ type: "response.created", response: { id: "resp_p_old" } }),
+      ...fc("call_orphan", "echo"),
+      rawModel({ type: "response.completed", response: { id: "resp_p_old", status: "completed", usage: U } }),
+      ...PARALLEL,
+    ]);
+    expect(evs.filter((e) => e.type === "ext.openai.dropped-call").map((e) => Reflect.get(e, "toolCallId"))).toEqual(["call_sh"]);
+    expect(evs.find((e) => e.type === "turn.abort")).toMatchObject({ turnId: "turn_resp_p_old" });
+    expect(evs.find((e) => e.type === "turn.done" && e.turnId === "turn_resp_p_src")).toMatchObject({ outcome: { type: "success" } });
+  });
+
+  // §10 item 44 legs f′, g, h, i (draft.5). Stream: transfers c1 and c2 and a
+  // non-transfer call f in one source round (usage U), then f's run-item, then
+  // handoff_requested/handoff_occurred for c1, then one target round.
+  const legU = { input_tokens: 90, output_tokens: 12, total_tokens: 102 };
+  function legStream(fItem: JsonValue | undefined, opts: { c2?: boolean; fOutput?: boolean } = {}): JsonValue[] {
+    const c2 = opts.c2 ?? true;
+    return [
+      rawModel({ type: "response.created", response: { id: "resp_leg" } }),
+      ...fc("c1", "transfer_to_X"),
+      ...(c2 ? fc("c2", "transfer_to_Y") : []),
+      ...fc("f", "lookup"),
+      rawModel({ type: "response.completed", response: { id: "resp_leg", status: "completed", usage: legU } }),
+      ...(fItem !== undefined ? [fItem] : []),
+      requested("c1", "transfer_to_X"),
+      occurred("c1", "transfer_to_X", "X"),
+      ...(opts.fOutput === true
+        ? [
+            runItem("tool_output", {
+              type: "tool_call_output_item",
+              rawItem: { type: "function_call_result", name: "lookup", callId: "f", status: "completed", output: "found" },
+              output: "found",
+            }),
+          ]
+        : []),
+      ...echoerRound,
+    ];
+  }
+  const toolCalledF = runItem("tool_called", {
+    type: "tool_call_item",
+    rawItem: { type: "function_call", name: "lookup", callId: "f", status: "completed", arguments: "{}" },
+  });
+  const legOwner = (e: AgEvent): string | undefined => (e.type === "message.end" ? e.id : "turnId" in e ? e.turnId : undefined);
+  function pushes(s: JsonValue[]): { batches: AgEvent[][]; flushed: AgEvent[] } {
+    const n = createOpenaiNormalizer({ invokeId: "inv1" });
+    const batches = s.map((e) => n.push(e));
+    return { batches, flushed: n.flush() };
+  }
+  const isNative = (name: string) => (e: JsonValue): boolean =>
+    typeof e === "object" && e !== null && !Array.isArray(e) && e["name"] === name;
+  const SRC = "turn_resp_leg";
+  const SRC_MSG = "msg_turn_resp_leg";
+
+  it("§10.44 leg f′: an acknowledged call (tool_called f) keeps the round deferred at the handoff; c2 stops being pending; flush releases message.end{U} then turn.abort", () => {
+    const s = legStream(toolCalledF);
+    const { batches, flushed } = pushes(s);
+    const atHandoff = batches[s.findIndex(isNative("handoff_occurred"))] ?? [];
+    expect(atHandoff.some((e) => e.type === "tool.done" && e.toolCallId === "c1")).toBe(true);
+    // Apart from c1's tool.done, the handoff event (its owner is the source turn)
+    // and ext.* carries, nothing in that batch names the source turn.
+    expect(
+      atHandoff.filter(
+        (e) => legOwner(e) === SRC || legOwner(e) === SRC_MSG,
+      ).filter((e) => !(e.type === "tool.done" && e.toolCallId === "c1") && e.type !== "handoff" && !e.type.startsWith("ext.")),
+    ).toEqual([]);
+    const all = [...batches.flat(), ...flushed];
+    expect(all.filter((e) => e.type === "tool.done" && (e.toolCallId === "c2" || e.toolCallId === "f"))).toEqual([]);
+    const iEnd = flushed.findIndex((e) => e.type === "message.end" && e.id === SRC_MSG);
+    const iAbort = flushed.findIndex((e) => e.type === "turn.abort" && e.turnId === SRC);
+    expect(flushed[iEnd]).toMatchObject({ usage: { inputTokens: 90, outputTokens: 12 } });
+    expect(iAbort).toBeGreaterThan(iEnd);
+    expect(flushed[iAbort]).toMatchObject({ reason: "stream-truncated" });
+    expect(all.filter((e) => e.type === "turn.abort" && e.turnId === SRC)).toHaveLength(1);
+    expect(all.filter((e) => e.type === "turn.done" && e.turnId === SRC)).toHaveLength(0);
+    expect(fold(all).needsResync).toBe(false);
+  });
+
+  for (const withC2 of [true, false]) {
+    it(`§10.44 leg g${withC2 ? "" : " (no c2)"}: f's result after the handoff drains the round — f's tool.done, message.end without usage, one turn.done{success, U}; ${withC2 ? "c2 never gets a tool.done" : "nothing is released at the handoff"}`, () => {
+      const s = legStream(toolCalledF, { c2: withC2, fOutput: true });
+      const { batches, flushed } = pushes(s);
+      const atHandoff = batches[s.findIndex(isNative("handoff_occurred"))] ?? [];
+      expect(atHandoff.some((e) => (e.type === "message.end" && e.id === SRC_MSG) || ((e.type === "turn.done" || e.type === "turn.abort") && e.turnId === SRC))).toBe(false);
+      const atF = batches[s.findIndex(isNative("tool_output"))] ?? [];
+      const iF = atF.findIndex((e) => e.type === "tool.done" && e.toolCallId === "f");
+      const iEnd = atF.findIndex((e) => e.type === "message.end" && e.id === SRC_MSG);
+      const iDone = atF.findIndex((e) => e.type === "turn.done" && e.turnId === SRC);
+      expect(iF).toBeGreaterThanOrEqual(0);
+      expect(iEnd).toBeGreaterThan(iF);
+      expect(iDone).toBeGreaterThan(iEnd);
+      expect(atF[iEnd]).not.toHaveProperty("usage");
+      expect(atF[iDone]).toMatchObject({ outcome: { type: "success" }, usage: { inputTokens: 90, outputTokens: 12 } });
+      const all = [...batches.flat(), ...flushed];
+      expect(all.filter((e) => e.type === "turn.done" && e.turnId === SRC)).toHaveLength(1);
+      expect(all.some((e) => e.type === "tool.done" && e.toolCallId === "c2")).toBe(false);
+      expect(flushed.some((e) => legOwner(e) === SRC || legOwner(e) === SRC_MSG)).toBe(false);
+      const r = fold(all);
+      expect(r.needsResync).toBe(false);
+      const res = r.result();
+      expect(res.turns.find((t) => t.turnId === SRC)?.outcome).toMatchObject({ type: "success" });
+      const blocks = res.messages.flatMap((m) => m.content);
+      expect(blocks.some((b) => b.type === "tool-result" && b.toolCallId === "f")).toBe(true);
+      expect(blocks.some((b) => b.type === "tool-result" && b.toolCallId === "c2")).toBe(false);
+    });
+  }
+
+  it("§10.44 leg h: an approval-pending call (tool_approval_requested f) keeps the round deferred; flush releases turn.done{paused} naming only f's ask, with U", () => {
+    const approval = runItem("tool_approval_requested", {
+      type: "tool_approval_item",
+      rawItem: { type: "function_call", name: "lookup", callId: "f", status: "completed", arguments: "{}" },
+    });
+    const s = legStream(approval);
+    const { batches, flushed } = pushes(s);
+    const all = [...batches.flat(), ...flushed];
+    expect(all.some((e) => e.type === "hitl.ask" && e.toolCallId === "f")).toBe(true);
+    const atHandoff = batches[s.findIndex(isNative("handoff_occurred"))] ?? [];
+    expect(atHandoff.some((e) => (e.type === "message.end" && e.id === SRC_MSG) || ((e.type === "turn.done" || e.type === "turn.abort") && e.turnId === SRC))).toBe(false);
+    const done = flushed.filter((e) => e.type === "turn.done" && e.turnId === SRC);
+    expect(done).toHaveLength(1);
+    expect(done[0]).toMatchObject({
+      outcome: { type: "paused", asks: [{ askId: "approval_f", kind: "approval", toolCallId: "f" }] },
+      usage: { inputTokens: 90, outputTokens: 12 },
+    });
+    expect(Reflect.get(Reflect.get(done[0] ?? {}, "outcome") ?? {}, "asks")).toHaveLength(1);
+    expect(all.some((e) => e.type === "turn.abort" && e.turnId === SRC)).toBe(false);
+  });
+
+  it("§10.44 leg i: f's only run-item carries a name the normalizer does not map — it counts as a run-item, so the output equals leg f′'s (seq stripped, ext.* excluded)", () => {
+    const unmapped = runItem("future_tool_event", {
+      type: "future_item",
+      rawItem: { type: "function_call", name: "lookup", callId: "f", status: "completed", arguments: "{}" },
+    });
+    const view = (s: JsonValue[]): unknown[] => {
+      const { batches, flushed } = pushes(s);
+      return [...batches.flat(), ...flushed]
+        .filter((e) => !e.type.startsWith("ext."))
+        .map((e) => Object.fromEntries(Object.entries(e).filter(([k]) => k !== "seq")));
+    };
+    const iOut = view(legStream(unmapped));
+    expect(iOut).toEqual(view(legStream(toolCalledF)));
+    const { batches, flushed } = pushes(legStream(unmapped));
+    const all = [...batches.flat(), ...flushed];
+    expect(all.some((e) => e.type === "tool.done" && e.toolCallId === "f")).toBe(false);
+    expect(flushed.filter((e) => e.type === "turn.abort" && e.turnId === SRC)).toMatchObject([{ reason: "stream-truncated" }]);
+  });
+
+  it("an unmapped run-item naming an id that is NOT an awaited call clears nothing: c2 is still released at the handoff", () => {
+    const stray = runItem("future_tool_event", {
+      type: "future_item",
+      rawItem: { type: "function_call", name: "other", callId: "not_a_call_here", status: "completed", arguments: "{}" },
+    });
+    const evs = run([...PARALLEL.slice(0, 6), stray, ...PARALLEL.slice(6)]);
+    expect(evs.filter((e) => e.type === "ext.openai.dropped-call")).toMatchObject([{ toolCallId: "call_sh", reason: "no-run-item-at-handoff" }]);
+    expect(evs.find((e) => e.type === "turn.done" && e.turnId === "turn_resp_p_src")).toMatchObject({ outcome: { type: "success" } });
+  });
+
+  it("a single handoff is untouched: no ext.openai.dropped-call", () => {
+    const evs = run([
+      rawModel({ type: "response.created", response: { id: "resp_p_one" } }),
+      ...fc("call_one", "transfer_to_Echoer"),
+      rawModel({ type: "response.completed", response: { id: "resp_p_one", status: "completed", usage: U } }),
+      requested("call_one", "transfer_to_Echoer"),
+      occurred("call_one", "transfer_to_Echoer", "Echoer"),
+    ]);
+    expect(evs.some((e) => e.type === "ext.openai.dropped-call")).toBe(false);
+    expect(evs.find((e) => e.type === "turn.done" && e.turnId === "turn_resp_p_one")).toMatchObject({ outcome: { type: "success" } });
   });
 });
 

@@ -143,17 +143,33 @@ nested turn closes at that result with `turn.abort` (no `reason`), then
 `subagent.done`, and the result lands as the call's `tool.done`. Brackets are
 matched to their transfer by call id.
 
-Known limitation: when the model requests several handoffs in one response,
-the SDK runs only the first. What happens to the ignored calls depends on the
-`@openai/agents` version:
+When the model requests several handoffs in one response, the SDK runs only
+the first. What happens to the others depends on the `@openai/agents` version:
 - From 0.8.1, nothing about them reaches the stream. The SDK drops them from
   the run's history; only when the conversation is server-managed
   (`conversationId` or `previousResponseId`) does it send the model a
-  synthetic result for each. The ignored calls get no `tool.done`, so the
-  source round is closed at `flush()` with `turn.abort` (`stream-truncated`),
-  not `success`.
+  synthetic result for each. At `handoff_occurred`, each call of the source
+  round that still has no result, is a function call, and has had no run-item
+  naming it stops being pending: it gets no `tool.done` and is carried as
+  `ext.openai.dropped-call` (`reason: "no-run-item-at-handoff"`), and the
+  source round closes with its own `turn.done` in the same batch. A call the
+  SDK acknowledged (a `tool_called`, an approval request, or any run-item
+  naming it) stays pending, and the round closes when its result lands. A
+  result that still arrives for a released call is carried the same way
+  (`reason: "result-after-release"`), never as a `tool.done`.
 - Up to 0.8.0, the SDK streams a result for each ignored call ("Multiple
   handoffs detected, ignoring this one."), which lands as that call's
   `tool.done`, and the source round closes normally. The ignored handoff's
   nested turn, opened at its `handoff_requested`, closes at that result with
   `turn.abort`, as above.
+
+The source round is still closed at `flush()` when:
+- a handoff input filter removes `handoff_occurred` or the round's tool
+  results from the stream (for example `removeAllTools`): `turn.abort`
+  (`stream-truncated`);
+- an approval is pending beside the transfer (reachable on 0.8.x): `turn.done`
+  (`paused`), naming that approval;
+- a program, hosted-shell or tool-search call of the round is still pending.
+
+A call replayed on a resumed invoke gets no `tool.start` from the facet, so it
+is never released this way.

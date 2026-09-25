@@ -1510,6 +1510,22 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
   // emitted for it. A deferred round whose still-pending call has one flushes
   // as `paused` naming that ask (INV-FLUSH (2)).
   const askedApprovals = new Map<string, string>();
+  // HO-P, the handoff round release (§8.0 item 14, draft.5): function calls
+  // started from the raw stream (`tool.start` this invoke) that no run-item has
+  // yet named, with their names. A run-item names a call when its `rawItem`
+  // carries that call's `callId`, whatever the run-item's name. Also the calls
+  // released at a handoff, mapped to the round they were released from.
+  const awaitingRunItem = new Map<string, string>();
+  const droppedCalls = new Map<string, string>();
+
+  /** HO-P: the `callId` a run-item's `rawItem` carries, if any. */
+  function runItemCallId(item: unknown): string | undefined {
+    if (typeof item !== "object" || item === null || !("rawItem" in item)) return undefined;
+    const raw = item.rawItem;
+    if (typeof raw !== "object" || raw === null || !("callId" in raw)) return undefined;
+    const callId = raw.callId;
+    return typeof callId === "string" ? callId : undefined;
+  }
   // Close-once guard: the SDK emits `response.completed` TWICE per response. Once a
   // response.id (or a synthesized turnId) has been closed, any further terminal event
   // for it is a no-op — it must NOT reopen a fresh message/turn.
@@ -1936,6 +1952,7 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
           // Task 4b: this call is now pending a tool.done under the current turn
           // (ensureResponseOpen() above guarantees `turnId` is defined here).
           registerPendingTool(callId);
+          awaitingRunItem.set(callId, ev.item.name);
         }
         return;
       }
@@ -2499,6 +2516,46 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
    * the `function_call` `tool_output` arm and the built-in Shell/Apply-Patch
    * `tool_output` arm (playbook 2026-07-03 SDK-bump adaptation, Finding #1).
    */
+  /**
+   * HO-P, the handoff round release (§8.0 item 14, draft.5). Called at
+   * `handoff_occurred`, after the executed transfer's `tool.done` drained, with
+   * that transfer's round (the handoff's SOURCE round). Each call of that round
+   * still without a result that is a `function_call` this invoke started and
+   * that no run-item has named stops being pending: it is carried as
+   * `ext.openai.dropped-call {toolCallId, name, forTurnId,
+   * reason:"no-run-item-at-handoff"}`, never as a `tool.done`. When nothing of
+   * the round is then pending, the deferred close is released here (a
+   * `message.end`, then the deferred `turn.done`), so the carry sits inside the
+   * source turn, before its terminal. Otherwise the close stays deferred until
+   * the remaining results land, a host-fed error, or flush (INV-FLUSH (2)). A
+   * call a run-item named (e.g. `tool_called`, `tool_approval_requested`) and a
+   * pending call of any other kind stay pending. agents-core 0.18.0 streams a
+   * `tool_called` for every function call it accepts before any tool runs,
+   * resolves a handoff only after every function tool of its step returned,
+   * and streams no run-item for a transfer call it ignores; a handoff input
+   * filter can remove or reorder what streams, and the release follows the
+   * stream.
+   */
+  function releaseDroppedCalls(sourceTurnId: string | undefined): void {
+    if (sourceTurnId === undefined) return;
+    const pending = pendingToolsByTurn.get(sourceTurnId);
+    if (pending === undefined || pending.size === 0) return;
+    for (const callId of [...pending]) {
+      const name = awaitingRunItem.get(callId);
+      if (name === undefined) continue;
+      a.emitExt("openai", "dropped-call", { toolCallId: callId, name, forTurnId: sourceTurnId, reason: "no-run-item-at-handoff" });
+      awaitingRunItem.delete(callId);
+      droppedCalls.set(callId, sourceTurnId);
+      pending.delete(callId);
+      turnIdByToolCallId.delete(callId);
+    }
+    if (pending.size > 0) return;
+    const stashed = stashedCloseByTurn.get(sourceTurnId);
+    if (stashed === undefined) return;
+    stashedCloseByTurn.delete(sourceTurnId);
+    emitRoundClose(sourceTurnId, stashed.msgId, stashed.openTextStreamIds, stashed.fields);
+  }
+
   function drainPendingTool(callId: string, doneTurnId: string | undefined): void {
     if (doneTurnId === undefined) return;
     turnIdByToolCallId.delete(callId);
@@ -2911,6 +2968,11 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
       // Widened reference for the switch's `default` arm — see OpenAIRunItemEvent's
       // docstring (Task 3, audit M48).
       const runItemEvent: OpenAIRunItemEvent = event;
+      // HO-P: ANY run-item whose rawItem carries an awaited call's callId names
+      // that call, whatever its name (a mapped arm or the unparsed default).
+      // Only an awaited function call's id clears anything.
+      const namedCallId = runItemCallId(runItemEvent.item);
+      if (namedCallId !== undefined) awaitingRunItem.delete(namedCallId);
       switch (event.name) {
         case "tool_output": {
           const rawItem = event.item.rawItem;
@@ -2927,6 +2989,19 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
             rawItem.type === "program_output"
           ) {
             driveBuiltinToolOutput(rawItem);
+            return;
+          }
+          const releasedFrom = droppedCalls.get(rawItem.callId);
+          if (releasedFrom !== undefined) {
+            // HO-P: a result for a call released at a handoff never becomes a
+            // tool.done (its round is closed); it rides the same ext carry,
+            // after the round's terminal (an ext event, not a block event).
+            a.emitExt("openai", "dropped-call", {
+              toolCallId: rawItem.callId,
+              forTurnId: releasedFrom,
+              reason: "result-after-release",
+              result: JsonValue.parse(rawItem),
+            });
             return;
           }
           // Authoritative tool-result source (canonical model, A1). Drives toolDone
@@ -3125,6 +3200,7 @@ function createInnerOpenaiNormalizer(invokeStem: string): Normalizer {
             ...owner,
           });
           drainPendingTool(result.callId, doneTurnId);
+          releaseDroppedCalls(doneTurnId);
           return;
         }
         case "compaction_item_created": {
