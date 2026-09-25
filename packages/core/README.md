@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/@silverprotocol/core"><img src="https://img.shields.io/npm/v/%40silverprotocol%2Fcore?color=0a7"></a>
   <a href="https://github.com/silverprotocol/AgJSON/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue"></a>
-  <a href="https://silverprotocol.io/AgJSON"><img src="https://img.shields.io/badge/spec-1.0.0--draft.4-6ee7ff"></a>
+  <a href="https://silverprotocol.io/AgJSON"><img src="https://img.shields.io/badge/spec-1.0.0--draft.5-6ee7ff"></a>
 </p>
 
 ---
