@@ -76,6 +76,17 @@ events.push(...n.flush());        // seal anything still open at end-of-stream
 Malformed input never throws — it routes through the lossless
 `ext.anthropic.unparsed` channel instead.
 
+### Thread id
+
+Pass the host's own thread id as `createClaudeNormalizer({ threadId })`. The
+normalizer stamps it as the `threadId` of every turn and message it opens,
+subagent turns included: the partition root a key-value store writes each unit
+under (spec §1.2). The Claude Agent SDK wire has no thread concept, only
+`session_id`, so with no `threadId` option the facet stamps the SDK's
+`session_id` (or, on a frame that carries none, the turn's own id) as a
+facet-local placeholder, not a partition root; a host that persists by
+`threadId` supplies its own.
+
 ### Token streaming
 
 Pass `includePartialMessages: true` to `query()` and the normalizer emits

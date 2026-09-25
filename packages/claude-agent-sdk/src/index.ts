@@ -1353,12 +1353,13 @@ function guardedTurnUsage(msg: SDKResultMsg): AgUsage | undefined {
 export interface ClaudeNormalizerOptions {
   /**
    * The partition-root `threadId` stamped on every entity this normalizer
-   * emits (SPEC §3: the root each unit carries so a key-value persistence
-   * layer can write it knowing only its own id, its parent, and the
-   * partition root). The Claude Agent SDK wire has no thread concept — only
-   * `session_id` — so with this option ABSENT the adapter relabels
-   * `session_id` as the threadId, a placeholder in the same spirit as the
-   * openai/vercel facets' fixed labels. That placeholder is fine for
+   * emits (SPEC §1.2, the partition root, and §8.0 host obligation 6: the root
+   * each unit carries so a key-value persistence layer can write it knowing
+   * only its own id, its parent, and the partition root). The Claude Agent SDK
+   * wire has no thread concept — only `session_id` — so with this option ABSENT
+   * the adapter relabels `session_id` as the threadId (or, on a leading
+   * tool_result frame that carries none, the turn's own id), a placeholder in
+   * the same spirit as the openai/vercel facets' fixed labels. That placeholder is fine for
    * self-contained streams but LEAKS into any consumer that persists
    * events verbatim under its own thread identity (guuey#415: mid-stream
    * events carried the session id while the runtime's session records
