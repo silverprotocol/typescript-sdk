@@ -684,6 +684,9 @@ export const AgCapabilities = z.object({
   extensions: z.array(z.string()).optional(), // foreign A2A active-extension URIs
   uiCatalogs: z.array(z.string()).optional(),
   profile: z.enum(["CORE", "EXTENDED", "ADVANCED"]).optional(),
+  // draft.6: the non-thread memory scopes the host persists (§8.0 host obligation 7);
+  // absent declares none. Folded onto the turn by the agent.capabilities row.
+  memoryScopes: z.array(z.enum(["agent", "user", "skill"])).optional(),
 });
 export type AgCapabilities = z.infer<typeof AgCapabilities>;
 

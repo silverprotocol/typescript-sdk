@@ -4570,3 +4570,14 @@ describe("draft.5: turn.error's retriable is recorded on the error outcome; abse
     expect(outcome).toEqual({ type: "error", message: "m" });
   });
 });
+
+describe("draft.6: an agent.capabilities event carrying memoryScopes lands on the turn record verbatim", () => {
+  it("turns[].capabilities.memoryScopes equals the declared list (no reducer change: the existing row folds AgCapabilities whole)", () => {
+    const r = new Reducer();
+    for (const e of [
+      { type: "turn.start", seq: 0, turnId: "t", threadId: "th" },
+      { type: "agent.capabilities", seq: 1, turnId: "t", capabilities: { profile: "EXTENDED", memoryScopes: ["user"] } },
+    ]) r.push(AgEvent.parse(e));
+    expect(r.result().turns[0]!.capabilities).toEqual({ profile: "EXTENDED", memoryScopes: ["user"] });
+  });
+});

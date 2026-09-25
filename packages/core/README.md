@@ -137,6 +137,24 @@ import { toPersistable } from "@silverprotocol/core";
 await store.save(toPersistable(reducer.result()));
 ```
 
+Memory records follow the same rule. A `memory.write` of scope `agent`, `user`
+or `skill` records a write to the producer's own cross-thread store, not a
+promise that you keep it. `toPersistable` keeps scope `thread` memory and
+omits every other record unless you declare the non-thread scopes you persist
+(SPEC §8.0 host obligation 7), and each omission is reported to you by
+`toPersistableWithReport`; `toPersistable` returns the projection alone:
+
+```ts
+import { toPersistableWithReport } from "@silverprotocol/core";
+
+const { result, omitted } = toPersistableWithReport(reducer.result(), { memoryScopes: ["user"] });
+for (const o of omitted) log.info("memory not persisted", o.scope, o.key);
+await store.save(result);
+```
+
+If you emit `agent.capabilities`, declare the same list there as
+`memoryScopes`.
+
 ## Produce AgJSON
 
 Turn a framework's native stream into AgJSON with its normalizer — the output is

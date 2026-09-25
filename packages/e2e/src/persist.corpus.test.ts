@@ -1,8 +1,8 @@
 /**
  * persist.corpus.test.ts — toPersistable over the recorded corpus: for every
  * committed golden, the persistable projection of its fold deep-equals the
- * fold with every turn record's `displayRequired` omitted, and the fold itself
- * is left untouched. A golden with no `displayRequired` projects to itself.
+ * fold with every turn record's `displayRequired` and every non-thread memory
+ * record omitted (no scope declared), and the fold itself is left untouched.
  */
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -24,6 +24,8 @@ describe("toPersistable over the recorded corpus", () => {
         const before = JSON.stringify(result);
         const expected = {
           ...result,
+          // No memoryScopes declared: only scope `thread` memory is kept (draft.6).
+          memory: result.memory.filter((m) => m.scope === "thread"),
           turns: result.turns.map((t) => {
             const { displayRequired, ...rest } = t;
             if (displayRequired !== undefined) withDisplay++;

@@ -335,6 +335,20 @@ describe("AgBlock (EXTENDED)", () => {
   });
 });
 
+describe("AgCapabilities.memoryScopes (draft.6)", () => {
+  it("parses with and without memoryScopes; an unknown scope is rejected at its path", () => {
+    expect(AgCapabilities.parse({ memoryScopes: ["agent", "user"] })).toEqual({ memoryScopes: ["agent", "user"] });
+    expect("memoryScopes" in AgCapabilities.parse({ profile: "CORE" })).toBe(false);
+    const bad = AgCapabilities.safeParse({ memoryScopes: ["zz"] });
+    expect(bad.success).toBe(false);
+    expect(bad.error!.issues.map((i) => i.path)).toContainEqual(["memoryScopes", 0]);
+    // The agent.capabilities event carrying it is rejected too (a union failure reports at `type`).
+    expect(AgEvent.safeParse({ type: "agent.capabilities", seq: 0, turnId: "t", capabilities: { memoryScopes: ["zz"] } }).success).toBe(false);
+    // "thread" is not a declarable scope: it is always persisted.
+    expect(AgCapabilities.safeParse({ memoryScopes: ["thread"] }).success).toBe(false);
+  });
+});
+
 describe("AgOutcome error arm: retriable (draft.5)", () => {
   it("parses and keeps retriable true/false; an absent retriable stays absent", () => {
     expect(AgOutcome.parse({ type: "error", message: "m", code: "c", retriable: false })).toEqual({ type: "error", message: "m", code: "c", retriable: false });
