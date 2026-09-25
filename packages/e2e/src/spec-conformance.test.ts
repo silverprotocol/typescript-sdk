@@ -127,9 +127,9 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 26, leg: "vercel", title: "Interim-narration marker (draft.4): an OpenAI commentary text part opens phase 'interim'; final_answer / unknown / no bag → no phase; providerMetadata.phase kept verbatim", disposition: "COVERED-BY", citation: "vercel-ai/src/index.test.ts:1809-1840 'draft.4 phase' (commentary → text.start{phase:'interim'}; final_answer/unknown/no bag → no phase key) + :430-515 (commentary and final answer stay separate blocks, each bag verbatim) (probe b52b8eb)" },
   { n: 26, leg: "openai", title: "Interim-narration marker (draft.4): a commentary + final_answer response yields phase 'interim' on the first item's text.start only; null/\"\" yield neither phase nor providerMetadata.phase", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.26(openai) via createOpenaiNormalizer (sp-openai PH-2 d8d04ca)" },
   { n: 26, leg: "emit", title: "Interim-narration marker (draft.4): no phase in a native re-input payload", disposition: "N/A", citation: "§10 preamble emit/re-input carve-out: no facet in this repo ships an AgJSON→native emit surface" },
-  { n: 27, leg: "fold", title: "Re-delivery never folds twice (draft.4): re-delivered seq, duplicate *.start id, delta/start into a sealed message or a closed turn, message.start into a closed turn (also across invokes; closure survives a 0-restart and follows the turn records across a messages.snapshot: a carried outcome or an omitted `turns` keeps it, a carried record without an outcome or `turns: []` reopens — draft.5), second final tool.done → resync with the fold unchanged; a later invoke's 0-restart reusing a block id folds; a same-type paused re-close with refreshed asks folds onto the one record (v-g); a forward gap still parks", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.27(fold) (i)-(viii), (v-a)-(v-d), (v-f), (v-g), (s-i)-(s-vii), reference Reducer + reduce() (probe P14; the message.start guard reduce.ts 'a message.start for a turn that already closed parks')" },
+  { n: 27, leg: "fold", title: "Re-delivery never folds twice (draft.4; draft.5 terminals): a second terminal for a closed turn parks whatever its outcome except the paused refresh after a re-sent turn.start (v-g–v-l); re-delivered seq, duplicate *.start id, delta/start into a sealed message or a closed turn, message.start into a closed turn (also across invokes; closure survives a 0-restart and follows the turn records across a messages.snapshot: a carried outcome or an omitted `turns` keeps it, a carried record without an outcome or `turns: []` reopens — draft.5), second final tool.done → resync with the fold unchanged; a later invoke's 0-restart reusing a block id folds; a same-type paused re-close with refreshed asks folds onto the one record (v-g); a forward gap still parks", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.27(fold) (i)-(viii), (v-a)-(v-d), (v-f), (v-g), (s-i)-(s-vii), reference Reducer + reduce() (probe P14; the message.start guard reduce.ts 'a message.start for a turn that already closed parks')" },
   { n: 27, leg: "goldens", title: "Re-delivery never folds twice (draft.4): on every replay golden, block-creating *.start ids are unique within each invoke", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.27(goldens), a scan of every corpus/*/*.agjson.json" },
-  { n: 27, leg: "producers", title: "Re-delivery never folds twice (draft.4): on every replay golden no message.start follows its turn's terminal, or a messages.snapshot carrying the turn with an outcome (draft.5); on every committed resume pair no turn or message id recurs across the two invokes, and the pair folds without a resync", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.27(producers), a scan of every corpus golden and every <scenario>-resume-<leg> pair" },
+  { n: 27, leg: "producers", title: "Re-delivery never folds twice (draft.4): on every replay golden no message.start follows its turn's terminal, or a messages.snapshot carrying the turn with an outcome (draft.5); on every committed resume pair no turn or message id recurs across the two invokes, and the pair folds without a resync; no turnId carries more than one terminal (draft.5)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.27(producers), a scan of every corpus golden and every <scenario>-resume-<leg> pair" },
   { n: 28, title: "Host-appended events (draft.4): every replay golden plus a host-appended paused hitl.ask turn from lastSeq+1 folds with needsResync false and the turn in turns (§8.0 host obligation 5)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.28 over every corpus/*/*.agjson.json via ingestAgEvents → reduce" },
   { n: 29, leg: "a", title: "Forward-compatible records: a stored AgMessage/AgMemoryRecord reader omits an unreadable content element or record, reports it with its index and verbatim value, never coerces, and the reports reconstruct the stored value", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.29(a) via core readStoredAgMessage(s)/readStoredAgMemoryRecords (probe P3 2bd1abf; unit legs core/src/record.test.ts)" },
   { n: 29, leg: "b", title: "Forward-compatible inputs: an input that fails the schema other than by an unknown field is rejected whole with one class and one path — protocol first, then version (major-mismatch), then the rest; malformed beats unknown-value; unknown fields pass intact", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.29(b) via core checkAgInput (probe P3 2bd1abf; unit legs core/src/input-check.test.ts)" },
@@ -1783,6 +1783,104 @@ describe("§10.27 — re-delivery never folds twice (draft.4)", () => {
     const later = (second[2] as unknown as { outcome: { asks: unknown[] } }).outcome.asks;
     expect((recs[0]?.outcome as { asks?: unknown } | undefined)?.asks).toEqual(later);
     expect(JSON.stringify(later)).toContain("state=s2");
+    // draft.5 (#29): the refresh replaces outcome and asks; a field it omits keeps its recorded value.
+    const U1 = { inputTokens: 11, outputTokens: 7 };
+    const withUsage = P([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "X" },
+      { type: "hitl.ask", seq: 1, turnId: "X", ...ask("u1") },
+      { type: "turn.done", seq: 2, turnId: "X", outcome: { type: "paused", asks: [ask("u1")] }, finishReason: "paused", usage: U1 },
+    ]);
+    const g = both([...withUsage, ...invoke("u2")]);
+    expect(g.needsResync).toBe(false);
+    const rec = g.result.turns.filter((t) => t.turnId === "X");
+    expect(rec).toHaveLength(1);
+    expect(rec[0]?.usage).toEqual(U1);
+    expect((rec[0]?.outcome as { asks?: unknown } | undefined)?.asks).toEqual([ask("u2")]);
+    expect((rec[0] as { asks?: unknown }).asks).toEqual([ask("u2")]);
+    // A refresh split by a reconnect: the re-sent turn.start precedes a messages.snapshot that carries the
+    // paused record; the turn.done{paused} after it is still the refresh (no terminal folded in between).
+    const paused = both(withUsage).result.turns[0]!;
+    const split = both([
+      ...withUsage,
+      ...P([
+        { type: "turn.start", seq: 0, threadId: "th1", turnId: "X" },
+        { type: "messages.snapshot", seq: 1, messages: [], turns: [paused] },
+        { type: "hitl.ask", seq: 2, turnId: "X", ...ask("u3") },
+        { type: "turn.done", seq: 3, turnId: "X", outcome: { type: "paused", asks: [ask("u3")] }, finishReason: "paused" },
+      ]),
+    ]);
+    expect(split.needsResync).toBe(false);
+    expect((split.result.turns.find((t) => t.turnId === "X")?.outcome as { asks?: unknown } | undefined)?.asks).toEqual([ask("u3")]);
+  });
+
+  // draft.5 (#29, B-strict): a second terminal for a closed turn parks, whatever its outcome,
+  // except the paused refresh above. Closure follows the fold's turn records (CB-8), so a
+  // snapshot that carries the turn with its outcome keeps it closed and a later terminal parks too.
+  const T = "T";
+  const open = (seq = 0) => ({ type: "turn.start", seq, threadId: "th1", turnId: T });
+  const TERM_ROWS: Array<[string, Record<string, unknown>]> = [
+    ["turn.done success", { type: "turn.done", turnId: T, outcome: { type: "success" }, finishReason: "stop" }],
+    ["turn.done paused", { type: "turn.done", turnId: T, outcome: { type: "paused", asks: [{ askId: "a", kind: "text" }] }, finishReason: "paused" }],
+    ["turn.done error", { type: "turn.done", turnId: T, outcome: { type: "error", message: "e" }, finishReason: "other" }],
+    ["turn.done rejected", { type: "turn.done", turnId: T, outcome: { type: "rejected", reason: "r" }, finishReason: "stop" }],
+    ["turn.error", { type: "turn.error", turnId: T, message: "boom", code: "x" }],
+    ["turn.abort", { type: "turn.abort", turnId: T, reason: "stream-truncated" }],
+  ];
+  const outcomeType = (t: Record<string, unknown>) => t["type"] === "turn.error" ? "error" : t["type"] === "turn.abort" ? "aborted" : (t["outcome"] as { type: string }).type;
+  const parks = (evs: AgEvent[], prefix: AgEvent[], label: string) => {
+    const r = both(evs);
+    expect(r.needsResync, label).toBe(true);
+    expect(r.result, label).toEqual(both(prefix).result);
+  };
+  it("(v-h) a second terminal of another outcome type for a closed turn parks, table-driven over every (first, second) pair, and leaves the fold at the prefix", () => {
+    let rows = 0;
+    for (const [nx, X] of TERM_ROWS) for (const [ny, Y] of TERM_ROWS) {
+      if (outcomeType(X) === outcomeType(Y)) continue;
+      const prefix = P([open(), { ...X, seq: 1 }]);
+      parks(P([open(), { ...X, seq: 1 }, { ...Y, seq: 2 }]), prefix, `${nx} then ${ny}`);
+      rows++;
+    }
+    expect(rows).toBeGreaterThan(20);
+  });
+  it("(v-i) a same-type non-paused re-close parks (success/success, error/error, abort/abort), within one invoke and across a seq-0 restart; usage and the error stay the first terminal's", () => {
+    const pairs: Array<[Record<string, unknown>, Record<string, unknown>]> = [
+      [{ type: "turn.done", turnId: T, outcome: { type: "success" }, finishReason: "stop", usage: { inputTokens: 1, outputTokens: 2 } }, { type: "turn.done", turnId: T, outcome: { type: "success" }, finishReason: "stop", usage: { inputTokens: 9, outputTokens: 9 } }],
+      [{ type: "turn.error", turnId: T, message: "first", code: "c1" }, { type: "turn.error", turnId: T, message: "second", code: "c2" }],
+      [{ type: "turn.abort", turnId: T, reason: "stream-truncated" }, { type: "turn.abort", turnId: T, reason: "cancelled" }],
+    ];
+    for (const [X, Y] of pairs) {
+      const prefix = P([open(), { ...X, seq: 1 }]);
+      parks(P([open(), { ...X, seq: 1 }, { ...Y, seq: 2 }]), prefix, `${String(X["type"])} same invoke`);
+      parks(P([open(), { ...X, seq: 1 }, { ...Y, seq: 0 }]), prefix, `${String(X["type"])} across a 0-restart`);
+    }
+  });
+  it("(v-j) a paused re-close with no re-sent turn.start parks; the record keeps the first asks", () => {
+    const a = { askId: "a", kind: "text" }, b = { askId: "b", kind: "text" };
+    const prefix = P([open(), { type: "turn.done", seq: 1, turnId: T, outcome: { type: "paused", asks: [a] }, finishReason: "paused" }]);
+    const r = both([...prefix, ...P([{ type: "turn.done", seq: 2, turnId: T, outcome: { type: "paused", asks: [b] }, finishReason: "paused" }])]);
+    expect(r.needsResync).toBe(true);
+    expect((r.result.turns[0]?.outcome as { asks?: unknown }).asks).toEqual([a]);
+  });
+  it("(v-k) a turnId-less turn.error or turn.abort with no open turn parks under INV-OWNER (no sole open turn resolves it); the closed turn keeps outcome success", () => {
+    const lates: Array<Record<string, unknown>> = [{ type: "turn.error", seq: 2, message: "late", code: "l" }, { type: "turn.abort", seq: 2, reason: "cancelled" }];
+    for (const late of lates) {
+      const prefix = P([open(), { type: "turn.done", seq: 1, turnId: T, outcome: { type: "success" }, finishReason: "stop" }]);
+      const r = both([...prefix, ...P([late])]);
+      expect(r.needsResync, String(late["type"])).toBe(true);
+      expect(r.result.turns[0]?.outcome).toEqual({ type: "success" });
+    }
+  });
+  it("(v-l) closure follows the records across a messages.snapshot (CB-8): a snapshot carrying T with its paused outcome keeps T closed, so a later turn.done{success} parks; one carrying T without an outcome leaves T open, so it folds", () => {
+    const paused = P([open(), { type: "turn.done", seq: 1, turnId: T, outcome: { type: "paused", asks: [{ askId: "a", kind: "text" }] }, finishReason: "paused" }]);
+    const rec = both(paused).result.turns[0]!;
+    const closedSnap = P([{ type: "messages.snapshot", seq: 2, messages: [], turns: [rec] }]);
+    const closed = both([...paused, ...closedSnap, ...P([{ type: "turn.done", seq: 3, turnId: T, outcome: { type: "success" }, finishReason: "stop" }])]);
+    expect(closed.needsResync).toBe(true);
+    const { outcome: _o, asks: _a, ...openRec } = rec as Record<string, unknown>;
+    const openSnap = P([{ type: "messages.snapshot", seq: 2, messages: [], turns: [openRec] }]);
+    const reopened = both([...paused, ...openSnap, ...P([{ type: "turn.done", seq: 3, turnId: T, outcome: { type: "success" }, finishReason: "stop" }])]);
+    expect(reopened.needsResync).toBe(false);
+    expect(reopened.result.turns[0]?.outcome).toEqual({ type: "success" });
   });
   it("(producers) on every replay golden no message.start follows the terminal of the turn it names, or a messages.snapshot carrying that turn with an outcome; on every committed resume pair no turn or message id of one invoke recurs in the other, and the pair folds without a resync", () => {
     const corpus = new URL("../corpus/", import.meta.url);
@@ -1798,8 +1896,12 @@ describe("§10.27 — re-delivery never folds twice (draft.4)", () => {
         const evs = load(dir, fw);
         const closed = new Set<unknown>();
         const only = evs.filter((e) => e["type"] === "turn.start").map((e) => e["turnId"]);
+        const terminalsPer = new Map<unknown, number>();
         for (const e of evs) {
-          if (TERMINALS.has(e["type"] as string)) closed.add(e["turnId"]);
+          if (TERMINALS.has(e["type"] as string)) {
+            closed.add(e["turnId"]);
+            terminalsPer.set(e["turnId"], (terminalsPer.get(e["turnId"]) ?? 0) + 1);
+          }
           // draft.5 (CB-8 A′): a snapshot that carries a turn with an outcome closes it for the producer rule too
           if (e["type"] === "messages.snapshot" && Array.isArray(e["turns"])) {
             for (const t of e["turns"] as Array<Record<string, unknown>>) if (t["outcome"] !== undefined) closed.add(t["turnId"]);
@@ -1809,6 +1911,7 @@ describe("§10.27 — re-delivery never folds twice (draft.4)", () => {
             if (closed.has(tid)) bad.push(`${dir}/${fw}: message.start ${String(e["id"])} after ${String(tid)}'s terminal`);
           }
         }
+        for (const [tid, n] of terminalsPer) if (n > 1) bad.push(`${dir}/${fw}: ${String(tid)} carries ${n} terminals`);
         const m = /^(.*)-resume-[^/]+$/.exec(dir);
         if (!m || !existsSync(new URL(`${m[1]}/${fw}.agjson.json`, corpus))) continue;
         pairs++;
