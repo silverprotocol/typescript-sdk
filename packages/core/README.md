@@ -119,6 +119,21 @@ if (!checked.ok) return reply(400, { code: checked.code, path: checked.path }); 
 - `validateHitlAnswer` rejects an answer whose `status` is not a defined one
   (`unknown-status`), so an unrecognized status is never read as a grant.
 
+### Persisting a fold
+
+A turn record's `displayRequired[]` carries grounding UI that the provider
+requires a display to render (for example Google Search Suggestions; the render
+duty is SPEC §13.3), and the provider's terms may not allow storing it. Persist
+`toPersistable(result)`, the same fold with every turn record's
+`displayRequired` omitted and nothing else changed, unless the grounding
+provider's terms permit storing `displayRequired`.
+
+```ts
+import { toPersistable } from "@silverprotocol/core";
+
+await store.save(toPersistable(reducer.result()));
+```
+
 ## Produce AgJSON
 
 Turn a framework's native stream into AgJSON with its normalizer — the output is

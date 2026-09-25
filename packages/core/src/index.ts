@@ -6,3 +6,4 @@ export * from "./wire.js";
 export * from "./atomic-push.js";
 export * from "./record.js";
 export * from "./input-check.js";
+export * from "./persist.js";
