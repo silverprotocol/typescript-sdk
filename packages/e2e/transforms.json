@@ -190,6 +190,13 @@
   "[*].usageMetadata.promptTokenCount": "[*].usage.inputTokens",
   "[*].usageMetadata.thoughtsTokenCount": "[*].usage.reasoningTokens",
   "[*].usageMetadata.totalTokenCount": "[*].usage.totalTokens",
+  "[*].usageMetadata.responseTokenCount": "[*].usage.outputTokens",
+  "[*].interrupted": "[*].reason",
+  "[*].turnComplete": [
+    "[*].outcome.type",
+    "[*].reason"
+  ],
+  "[*].outputTranscription.text": "[*].block._meta.agjson/transcription.kind",
   "[*].user_message_uuid": "[*].userMessageUuid",
   "[*].user_message_uuids[*]": "[*].userMessageUuids[*]",
   "[*].message.content[*].input.run_in_background": "[*].input.run_in_background",

@@ -3457,5 +3457,29 @@
     "frameworks": [
       "claude"
     ]
+  },
+  {
+    "path": "[*].liveSessionResumptionUpdate.newHandle",
+    "reason": "adk: the Gemini Live API's session-resumption handle (a resume credential for the transport session). It is redacted at capture and deliberately never carried: a wire copy would put a resume credential on the event stream. First observed live: live-bargein-gemini38live (gemini-3.8-live, 2026-09-25).",
+    "reviewed": "any",
+    "frameworks": [
+      "adk"
+    ]
+  },
+  {
+    "path": "[*].liveSessionResumptionUpdate.resumable",
+    "reason": "adk: the Live transport's resumability flag beside the handle above; transport state with no AgJSON home. First observed live: live-bargein-gemini38live.",
+    "reviewed": "any",
+    "frameworks": [
+      "adk"
+    ]
+  },
+  {
+    "path": "[*].outputTranscription.finished",
+    "reason": "adk: the Live transcription's end-of-utterance flag. The facet consumes it (a finished aggregate that repeats the streamed chunks is not re-emitted; the text itself is guarded by the [*].outputTranscription.text transform); it has no wire field of its own. First observed live: live-bargein-gemini38live.",
+    "reviewed": "any",
+    "frameworks": [
+      "adk"
+    ]
   }
 ]

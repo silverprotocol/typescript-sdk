@@ -422,6 +422,15 @@ const ADK_SEEDS = [
   // ADK carries into later sessions: the same user starts with the `user:` and
   // `app:` writes, another user with the `app:` write only.
   "state-prefixes-gemini38",
+  // 2026-09-25: the FIRST live (bidi) ADK capture, one runLive session on
+  // gemini-3.8-live (AUDIO modality; the barge-in is sent at the model's first
+  // output). ADK sends the interrupted generation's usage and turnComplete
+  // AFTER the `interrupted` flag, then the reply generation, in one invoke. On
+  // per-generation turns (draft.5) the interrupted generation closes
+  // turn.abort{interrupted} on its own turnComplete and the reply folds as its
+  // own turn (`<turnId>_g1`, success), so the fold never parks. Audio payloads
+  // are elided at capture and the resumption handle is redacted.
+  "live-bargein-gemini38live",
 ] as const;
 
 /**
@@ -619,6 +628,47 @@ function assertUsageInclusion(fw: string, scn: string, agjson: JsonValue[], nati
       const msgOut = evs.filter((e) => e["type"] === "message.end").reduce((a, e) => a + (n(obj(e["usage"]), "outputTokens") ?? 0), 0);
       const turnOut = evs.filter((e) => e["type"] === "turn.done").map((e) => n(obj(e["usage"]), "outputTokens"));
       if (JSON.stringify([msgOut]) !== JSON.stringify(turnOut)) bad.push(`partials-sonnet5: message.end outputTokens ${msgOut} ≠ turn.done ${JSON.stringify(turnOut)}`);
+    }
+  }
+  if (fw === "adk") {
+    // Gemini Live (a usageMetadata carrying responseTokenCount; draft.5): each
+    // generation's usage folds thoughts into outputTokens, derives totalTokens,
+    // and keeps Google's own total in totalTokensRaw where it differs. Summed
+    // over the invoke, the per-turn usage equals the native reports' sums
+    // exactly. A value check: the census transforms only prove presence, and
+    // a derived total keeps the inclusion identity even when thoughts go missing.
+    const reports = native.map((e) => obj(obj(e)?.["usageMetadata"])).filter((u): u is Obj => u !== undefined);
+    if (reports.some((u) => n(u, "responseTokenCount") !== undefined)) {
+      const nativeSum = (k: string) => reports.reduce((a, u) => a + (n(u, k) ?? 0), 0);
+      const turnOfMessage = new Map<string, string>();
+      for (const e of evs) if (e["type"] === "message.start" && typeof e["id"] === "string" && typeof e["turnId"] === "string") turnOfMessage.set(e["id"], e["turnId"]);
+      // One usage bag per turn: the turn terminal's, else its message.end's
+      // (an interrupted generation closes turn.abort, which carries none).
+      const perTurn = new Map<string, Obj>();
+      for (const e of evs) {
+        const u = obj(e["usage"]);
+        if (u === undefined) continue;
+        if (e["type"] === "message.end" && typeof e["id"] === "string") {
+          const t = turnOfMessage.get(e["id"]);
+          if (t !== undefined && !perTurn.has(t)) perTurn.set(t, u);
+        }
+        if ((e["type"] === "turn.done" || e["type"] === "turn.error") && typeof e["turnId"] === "string") perTurn.set(e["turnId"], u);
+      }
+      const bags = [...perTurn.values()];
+      const wireSum = (f: (u: Obj) => number | undefined) => bags.reduce((a, u) => a + (f(u) ?? 0), 0);
+      const want = {
+        inputTokens: nativeSum("promptTokenCount"),
+        outputTokens: nativeSum("responseTokenCount") + nativeSum("thoughtsTokenCount"),
+        reasoningTokens: nativeSum("thoughtsTokenCount"),
+        providerTotal: nativeSum("totalTokenCount"),
+      };
+      const got = {
+        inputTokens: wireSum((u) => n(u, "inputTokens")),
+        outputTokens: wireSum((u) => n(u, "outputTokens")),
+        reasoningTokens: wireSum((u) => n(u, "reasoningTokens")),
+        providerTotal: wireSum((u) => n(u, "totalTokensRaw") ?? n(u, "totalTokens")),
+      };
+      if (JSON.stringify(got) !== JSON.stringify(want)) bad.push(`adk Live usage: per-turn sums ${JSON.stringify(got)} ≠ native sums ${JSON.stringify(want)}`);
     }
   }
   expect(bad).toEqual([]);

@@ -1,0 +1,1047 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "threadId": "google"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "threadId": "google",
+    "role": "assistant"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "seq": 2
+  },
+  {
+    "type": "content.block",
+    "seq": 3,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "content.block",
+    "seq": 4,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:17280 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "seq": 5
+  },
+  {
+    "type": "content.block",
+    "seq": 6,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "content.block",
+    "seq": 7,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "content.block",
+    "seq": 8,
+    "block": {
+      "type": "text",
+      "text": "Old Elias had ",
+      "_meta": {
+        "agjson/transcription": {
+          "role": "output",
+          "kind": "transcription"
+        }
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "seq": 9
+  },
+  {
+    "type": "content.block",
+    "seq": 10,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "content.block",
+    "seq": 11,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:20480 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "seq": 12
+  },
+  {
+    "type": "content.block",
+    "seq": 13,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "content.block",
+    "seq": 14,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "content.block",
+    "seq": 15,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:10240 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "seq": 16
+  },
+  {
+    "type": "content.block",
+    "seq": 17,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "content.block",
+    "seq": 18,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "seq": 19
+  },
+  {
+    "type": "content.block",
+    "seq": 20,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "seq": 21
+  },
+  {
+    "type": "content.block",
+    "seq": 22,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "content.block",
+    "seq": 23,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "seq": 24
+  },
+  {
+    "type": "content.block",
+    "seq": 25,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "content.block",
+    "seq": 26,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "message.metadata",
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "metadata": {
+      "usageDetails": [
+        {
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 362
+            },
+            {
+              "modality": "AUDIO",
+              "tokenCount": 222
+            }
+          ],
+          "responseTokensDetails": [
+            {
+              "modality": "AUDIO",
+              "tokenCount": 25
+            }
+          ]
+        }
+      ]
+    },
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "seq": 27
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "seq": 28
+  },
+  {
+    "type": "content.block",
+    "seq": 29,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "content.block",
+    "seq": 30,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2"
+  },
+  {
+    "type": "message.end",
+    "seq": 31,
+    "id": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "usage": {
+      "inputTokens": 609,
+      "outputTokens": 281,
+      "totalTokens": 890,
+      "totalTokensRaw": 634,
+      "reasoningTokens": 256,
+      "cumulative": false
+    }
+  },
+  {
+    "type": "turn.abort",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2",
+    "reason": "interrupted",
+    "seq": 32
+  },
+  {
+    "type": "turn.start",
+    "seq": 33,
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "threadId": "google"
+  },
+  {
+    "type": "message.start",
+    "seq": 34,
+    "id": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "threadId": "google",
+    "role": "assistant"
+  },
+  {
+    "type": "content.block",
+    "seq": 35,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:6400 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "seq": 36
+  },
+  {
+    "type": "content.block",
+    "seq": 37,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 38,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 39,
+    "block": {
+      "type": "text",
+      "text": "The lighthouse ",
+      "_meta": {
+        "agjson/transcription": {
+          "role": "output",
+          "kind": "transcription"
+        }
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "seq": 40
+  },
+  {
+    "type": "content.block",
+    "seq": 41,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 42,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:12800 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "seq": 43
+  },
+  {
+    "type": "content.block",
+    "seq": 44,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 45,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 46,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:10240 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "seq": 47
+  },
+  {
+    "type": "content.block",
+    "seq": 48,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 49,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 50,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:10240 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "seq": 51
+  },
+  {
+    "type": "content.block",
+    "seq": 52,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 53,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 54,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:10240 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "seq": 55
+  },
+  {
+    "type": "content.block",
+    "seq": 56,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 57,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 58,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:17920 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "seq": 59
+  },
+  {
+    "type": "content.block",
+    "seq": 60,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 61,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 62,
+    "block": {
+      "type": "text",
+      "text": "is fine.",
+      "_meta": {
+        "agjson/transcription": {
+          "role": "output",
+          "kind": "transcription"
+        }
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "seq": 63
+  },
+  {
+    "type": "content.block",
+    "seq": 64,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 65,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:20480 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "seq": 66
+  },
+  {
+    "type": "content.block",
+    "seq": 67,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 68,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 69,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:10240 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "seq": 70
+  },
+  {
+    "type": "content.block",
+    "seq": 71,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 72,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 73,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:15360 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "seq": 74
+  },
+  {
+    "type": "content.block",
+    "seq": 75,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 76,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 77,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:5120 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "seq": 78
+  },
+  {
+    "type": "content.block",
+    "seq": 79,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 80,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "seq": 81
+  },
+  {
+    "type": "content.block",
+    "seq": 82,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "seq": 83
+  },
+  {
+    "type": "content.block",
+    "seq": 84,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 85,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "message.metadata",
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "metadata": {
+      "usageDetails": [
+        {
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 384
+            },
+            {
+              "modality": "AUDIO",
+              "tokenCount": 247
+            }
+          ],
+          "responseTokensDetails": [
+            {
+              "modality": "AUDIO",
+              "tokenCount": 52
+            }
+          ]
+        }
+      ]
+    },
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "seq": 86
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "seq": 87
+  },
+  {
+    "type": "content.block",
+    "seq": 88,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "artifactDelta": {}
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "content.block",
+    "seq": 89,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "message.end",
+    "seq": 90,
+    "id": "msg_turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1"
+  },
+  {
+    "type": "turn.done",
+    "seq": 91,
+    "turnId": "turn_adk_e-13887a7e-693e-4025-aa4a-23c3a8a58de2_g1",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 668,
+      "outputTokens": 90,
+      "totalTokens": 758,
+      "totalTokensRaw": 720,
+      "reasoningTokens": 38,
+      "cumulative": false
+    }
+  }
+]
