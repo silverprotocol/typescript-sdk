@@ -8357,3 +8357,202 @@ describe("createClaudeNormalizer — §10 item 45: host records ride _meta, neve
     expect(member(start, "_meta")).toBeUndefined();
   });
 });
+
+// ─── turn trigger from the opener (0.8.0) ─────────────────────────────────────
+// The CLI's `user_message_uuid` echo fills the existing turn.start.trigger
+// {kind: "user", ref}, ONCE, from the frame that opens a top-level turn: a
+// stream message_start, a complete assistant frame, or a success result that
+// opens a result-only turn. Never from an error result, a nested frame, a
+// notice or tool_result opener, a later frame, or `user_message_uuids`; and
+// turn.start is never re-sent to add one.
+describe("createClaudeNormalizer — turn trigger from the opener", () => {
+  const U = "018f0000-0000-7000-8000-0000000007a1";
+  const U2 = "018f0000-0000-7000-8000-0000000007a2";
+  const TEXT = [{ type: "text" as const, text: "hi", citations: null }];
+  const starts = (evs: AgEvent[]) => evs.filter((e) => e.type === "turn.start");
+  const stamped = (frame: object, extra: { [k: string]: unknown }): unknown => ({ ...frame, ...extra });
+  // A complete assistant text frame with its own message id (and nesting).
+  const asstId = (id: string, parent: string | null = null): object => ({
+    type: "assistant",
+    message: { ...betaMessage(TEXT), id },
+    parent_tool_use_id: parent,
+    uuid: `00000000-0000-0000-0000-0000000007${id.length.toString(16).padStart(2, "0")}`,
+    session_id: "sess_fixture",
+  });
+  const se = (event: unknown, extra: { [k: string]: unknown } = {}): unknown => ({
+    type: "stream_event",
+    event,
+    parent_tool_use_id: null,
+    uuid: "00000000-0000-0000-0000-0000000007e0",
+    session_id: "sess_fixture",
+    ...extra,
+  });
+  function assertOneStartOneTerminal(evs: AgEvent[]): void {
+    const opened = new Map<string, number>();
+    const closed = new Map<string, number>();
+    for (const e of evs) {
+      if (e.type === "turn.start" && e.turnId !== undefined) opened.set(e.turnId, (opened.get(e.turnId) ?? 0) + 1);
+      if ((e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort") && e.turnId !== undefined) {
+        closed.set(e.turnId, (closed.get(e.turnId) ?? 0) + 1);
+      }
+    }
+    for (const [, c] of opened) expect(c).toBe(1);
+    for (const [, c] of closed) expect(c).toBe(1);
+  }
+
+  it("F1 (complete assistant opener): the turn's one turn.start carries {kind:'user', ref}, and the fold records it", () => {
+    const evs = drive([stamped(assistantMsg(TEXT), { user_message_uuid: U }), resultSuccess("end_turn")]);
+    expect(starts(evs)).toHaveLength(1);
+    expect(starts(evs)[0]).toMatchObject({ trigger: { kind: "user", ref: U } });
+    expect(evs[0]?.type).toBe("turn.start");
+    assertOneStartOneTerminal(evs);
+    expect(fold(evs).result().turns[0]?.trigger).toEqual({ kind: "user", ref: U });
+  });
+
+  it("F1 (streamed message_start opener): the trigger rides the one turn.start; the stamped complete frame that follows adds nothing", () => {
+    const evs = drive([
+      se({ type: "message_start", message: { ...betaMessage([]), id: "msg_fixture_1" } }, { user_message_uuid: U }),
+      se({ type: "content_block_start", index: 0, content_block: { type: "text", text: "", citations: null } }),
+      se({ type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "hi" } }),
+      stamped(assistantMsg(TEXT), { user_message_uuid: U }),
+      se({ type: "content_block_stop", index: 0 }),
+      se({ type: "message_stop" }),
+      resultSuccess("end_turn"),
+    ]);
+    expect(starts(evs)).toHaveLength(1);
+    expect(starts(evs)[0]).toMatchObject({ trigger: { kind: "user", ref: U } });
+    assertOneStartOneTerminal(evs);
+    expect(fold(evs).result().turns[0]?.trigger).toEqual({ kind: "user", ref: U });
+  });
+
+  it("two turns, two sends: each turn carries its own opener's ref (the multi-result shape)", () => {
+    const evs = drive([
+      stamped(assistantMsg(TEXT), { user_message_uuid: U }),
+      resultSuccess("end_turn"),
+      stamped(asstId("msg_fixture_2"), { user_message_uuid: U2 }),
+      { ...resultSuccess("end_turn"), uuid: "00000000-0000-0000-0000-0000000007f2" },
+    ]);
+    expect(starts(evs).map((e) => (e.type === "turn.start" ? e.trigger : undefined))).toEqual([
+      { kind: "user", ref: U },
+      { kind: "user", ref: U2 },
+    ]);
+    assertOneStartOneTerminal(evs);
+  });
+
+  it("F2: no uuid on the opener, U on a LATER frame of the turn ⇒ one turn.start with no trigger key, and no second turn.start or terminal", () => {
+    const evs = drive([
+      assistantMsg([{ type: "tool_use", id: "toolu_f2", name: "Read", input: { path: "a" } }], null, { stop_reason: "tool_use" }),
+      user_([{ type: "tool_result", tool_use_id: "toolu_f2", is_error: false, content: "ok" }]),
+      stamped(asstId("msg_fixture_2"), { user_message_uuid: U }),
+      resultSuccess("end_turn"),
+    ]);
+    expect(starts(evs)).toHaveLength(1);
+    expect("trigger" in (starts(evs)[0] ?? {})).toBe(false);
+    assertOneStartOneTerminal(evs);
+  });
+
+  it("F2 (streamed): an unstamped message_start opens the turn; the stamped complete frame after it adds no trigger", () => {
+    const evs = drive([
+      se({ type: "message_start", message: { ...betaMessage([]), id: "msg_fixture_1" } }),
+      stamped(assistantMsg(TEXT), { user_message_uuid: U }),
+      se({ type: "message_stop" }),
+      resultSuccess("end_turn"),
+    ]);
+    expect(starts(evs)).toHaveLength(1);
+    expect("trigger" in (starts(evs)[0] ?? {})).toBe(false);
+    assertOneStartOneTerminal(evs);
+  });
+
+  it("a later message_start of the SAME turn carrying another uuid (a meta turn folding in a queued send) leaves the opener's ref", () => {
+    const evs = drive([
+      se({ type: "message_start", message: { ...betaMessage([]), id: "msg_fixture_1" } }, { user_message_uuid: U }),
+      stamped(assistantMsg([{ type: "tool_use", id: "toolu_m", name: "Read", input: { path: "a" } }], null, { stop_reason: "tool_use" }), {}),
+      se({ type: "message_stop" }),
+      user_([{ type: "tool_result", tool_use_id: "toolu_m", is_error: false, content: "ok" }]),
+      se({ type: "message_start", message: { ...betaMessage([]), id: "msg_fixture_2" } }, { user_message_uuid: U2 }),
+      stamped(asstId("msg_fixture_2"), {}),
+      se({ type: "message_stop" }),
+      resultSuccess("end_turn"),
+    ]);
+    expect(starts(evs)).toHaveLength(1);
+    expect(starts(evs)[0]).toMatchObject({ trigger: { kind: "user", ref: U } });
+    expect(fold(evs).result().turns[0]?.trigger).toEqual({ kind: "user", ref: U });
+    assertOneStartOneTerminal(evs);
+  });
+
+  it("F3: a NESTED frame carrying a uuid gives no subagent.start and no turn.start a trigger", () => {
+    const evs = drive([
+      assistantMsg([{ type: "tool_use", id: "toolu_ag", name: "Agent", input: { prompt: "p" } }], null, { stop_reason: "tool_use" }),
+      stamped(asstId("msg_nested_1", "toolu_ag"), { user_message_uuid: U }),
+    ]);
+    expect(evs.some((e) => e.type === "subagent.start")).toBe(true);
+    expect(JSON.stringify(evs)).not.toContain('"trigger"');
+  });
+
+  it("F3b: a BACKGROUND subagent's nested frame after its parent's result closed the top-level turn carries a uuid: still no trigger, and no turn.start for the nested turn", () => {
+    const evs = drive([
+      assistantMsg([{ type: "tool_use", id: "toolu_bg", name: "Agent", input: { prompt: "p" } }], null, { stop_reason: "tool_use" }),
+      user_([{ type: "tool_result", tool_use_id: "toolu_bg", is_error: false, content: "Launched in the background." }]),
+      stamped(asstId("msg_fixture_2"), {}),
+      resultSuccess("end_turn"),
+      stamped(asstId("msg_bg_nested", "toolu_bg"), { user_message_uuid: U }),
+    ]);
+    expect(starts(evs)).toHaveLength(1);
+    expect(JSON.stringify(evs)).not.toContain('"trigger"');
+    expect(evs.some((e) => e.type === "subagent.start")).toBe(true);
+  });
+
+  it("F4: a success result that OPENS a result-only turn carries the trigger; an error result and a uuid-less result do not", () => {
+    const ok = drive([{ ...resultSuccess("end_turn"), user_message_uuid: U }]);
+    expect(starts(ok)).toHaveLength(1);
+    expect(starts(ok)[0]).toMatchObject({ trigger: { kind: "user", ref: U } });
+    assertOneStartOneTerminal(ok);
+    const err = drive([{ ...resultError("error_during_execution"), user_message_uuid: U }]);
+    expect(starts(err)).toHaveLength(1);
+    expect("trigger" in (starts(err)[0] ?? {})).toBe(false);
+    const bare = drive([resultSuccess("end_turn")]);
+    expect("trigger" in (starts(bare)[0] ?? {})).toBe(false);
+  });
+
+  it("F4: a success result that CLOSES a turn an unstamped frame opened adds no trigger (turn.start is never re-sent)", () => {
+    const evs = drive([assistantMsg(TEXT), { ...resultSuccess("end_turn"), user_message_uuid: U }]);
+    expect(starts(evs)).toHaveLength(1);
+    expect("trigger" in (starts(evs)[0] ?? {})).toBe(false);
+    assertOneStartOneTerminal(evs);
+  });
+
+  it("NEGATIVE CONTROLS: a notice or a tool_result opener, and user_message_uuids alone, carry no trigger", () => {
+    const notice: unknown = {
+      type: "system",
+      subtype: "informational",
+      content: "Heads up.",
+      level: "info",
+      uuid: "00000000-0000-0000-0000-0000000007c1",
+      session_id: "sess_fixture",
+    };
+    const byNotice = drive([notice, stamped(assistantMsg(TEXT), { user_message_uuid: U }), resultSuccess("end_turn")]);
+    expect(starts(byNotice)).toHaveLength(1);
+    expect("trigger" in (starts(byNotice)[0] ?? {})).toBe(false);
+    const byToolResult = drive([
+      user_([{ type: "tool_result", tool_use_id: "toolu_prev", is_error: false, content: "late" }]),
+      stamped(assistantMsg(TEXT), { user_message_uuid: U }),
+      resultSuccess("end_turn"),
+    ]);
+    expect(starts(byToolResult)).toHaveLength(1);
+    expect("trigger" in (starts(byToolResult)[0] ?? {})).toBe(false);
+    const pluralOnly = drive([stamped(assistantMsg(TEXT), { user_message_uuids: [U] }), resultSuccess("end_turn")]);
+    expect("trigger" in (starts(pluralOnly)[0] ?? {})).toBe(false);
+    const empty = drive([stamped(assistantMsg(TEXT), { user_message_uuid: "" }), resultSuccess("end_turn")]);
+    expect("trigger" in (starts(empty)[0] ?? {})).toBe(false);
+  });
+
+  function user_(content: unknown[]): unknown {
+    return {
+      type: "user",
+      message: { role: "user", content },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000007b1",
+      session_id: "sess_fixture",
+    };
+  }
+});

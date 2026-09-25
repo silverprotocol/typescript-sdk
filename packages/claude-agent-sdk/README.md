@@ -99,6 +99,26 @@ Then fold the resulting `AgEvent`s into messages and turns with
 `@silverprotocol/core`'s `reduce()` — the same client code regardless of which
 framework produced the stream.
 
+### Turn trigger
+
+When the frame that opens a top-level turn is an assistant message, a streamed
+`stream_event` whose `event.type` is `message_start`, or a success result, and
+it carries `user_message_uuid`, that turn's `turn.start` carries
+`trigger: {kind: "user", ref: <that uuid>}`, and the folded
+`AgTurnRecord.trigger` equals it. The SDK echoes a uuid when the host set
+`uuid` on the `SDKUserMessage` it sent in streaming input, and also for a meta
+turn the host vouches for. `kind: "user"` means a user-role message submitted
+with that uuid; it does not claim that a human typed it. Provenance, where the
+SDK reports it, stays on `ext.anthropic.result-meta.origin`. `ref` names one
+send: for a batch the host merged into one turn, it is the batch's last
+member, and the full list stays in `user_message_uuids`. Two turns in one fold
+can carry the same `ref`. The facet sets `trigger` only from the frame that
+opens the turn and never re-sends `turn.start` to add one. So a turn opened by
+a notice, a tool result or an error result carries no `trigger`, and neither
+does a turn whose uuid first appears on a later frame. A missing `trigger`
+does not mean the turn answers no send of yours. Turns the CLI starts itself
+and subagent turns never carry it.
+
 Spec: [silverprotocol.io/AgJSON](https://silverprotocol.io/AgJSON) — canonical
 in [silverprotocol/AgJSON](https://github.com/silverprotocol/AgJSON); wire
 version `1.0.0-draft.4`.

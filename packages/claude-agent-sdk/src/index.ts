@@ -42,6 +42,7 @@ import {
   AgProviderMeta,
   type AgSafety,
   type AgSource,
+  type AgTrigger,
   type AgUsage,
   type AgEvent,
   JsonValue,
@@ -1378,6 +1379,23 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
     }
     return openTopTurnId;
   }
+  // The turn's trigger (AgTrigger, folded onto AgTurnRecord.trigger): the CLI's
+  // `user_message_uuid` echo, read ONLY from the frame that OPENS a top-level
+  // turn. The three stamped openers are a stream `message_start`, a complete
+  // assistant frame and a success result that opens a result-only turn; each
+  // caller checks `openTopTurnId === undefined` and `parent_tool_use_id === null`
+  // before it mints the turn id, and passes the result to `a.openTurn` BEFORE
+  // anything else of the turn is emitted, so the turn's one turn.start carries
+  // it. turn.start is never re-sent to add one: a turn opened by a notice, a
+  // tool_result or an error result, and a turn whose uuid first appears on a
+  // later frame, carry no trigger. An error result is never an opener here,
+  // because its echo can be a client-minted queue key (sdk.d.ts 0.3.280, the
+  // delivery-failure case). `kind: "user"` means a user-role send the host
+  // submitted with that uuid, not human authorship; `user_message_uuids` and
+  // thinking_tokens frames are never read for it.
+  function openerTrigger(uuid: unknown): { trigger: AgTrigger } | undefined {
+    return typeof uuid === "string" && uuid.length > 0 ? { trigger: { kind: "user", ref: uuid } } : undefined;
+  }
   // The result frame closes the open turn (or, for a result-only turn, the one
   // it opens itself) and clears it. A RESULT-ONLY turn (no assistant frame,
   // notice or stream opened it: the CL-09 result-only API-error path, a
@@ -1387,11 +1405,14 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // exactly one terminal; 2026-09-23). Through the B commit such a
   // turn was only closed, and reduce() minted a stub record whose threadId was
   // the turnId. An open turn already has its turn.start (openMessage).
-  function closingTopTurnId(resultUuid: unknown, sessionId: string): string {
+  // `openerUuid`: the success result's `user_message_uuid`, which becomes the
+  // trigger when this result OPENS its turn (see `openerTrigger`). The error
+  // arm passes none.
+  function closingTopTurnId(resultUuid: unknown, sessionId: string, openerUuid?: unknown): string {
     let turnId = openTopTurnId;
     if (turnId === undefined) {
       turnId = topTurnId(resultUuid, undefined);
-      a.openTurn(turnId, options.threadId ?? sessionId);
+      a.openTurn(turnId, options.threadId ?? sessionId, openerTrigger(openerUuid));
     }
     openTopTurnId = undefined;
     closedTopTurnIds.add(turnId);
@@ -1880,6 +1901,8 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
 
     if (ev.type === "message_start") {
       const m = ev.message;
+      // Read BEFORE topTurnId mints: does this frame OPEN a top-level turn?
+      const opensTopTurn = msg.parent_tool_use_id === null && openTopTurnId === undefined;
       const turnId =
         msg.parent_tool_use_id !== null
           ? nestedTurnId(msg.parent_tool_use_id, m.id, msg.uuid)
@@ -1924,6 +1947,10 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         turnBindingCarried: false,
       };
       pending = open;
+      // The turn's trigger rides its turn.start, so the turn opens explicitly
+      // before openMessage would synthesize a trigger-less one.
+      const trigger = opensTopTurn ? openerTrigger(msg.user_message_uuid) : undefined;
+      if (trigger !== undefined) a.openTurn(turnId, options.threadId ?? msg.session_id, trigger);
       a.openMessage({
         id: open.emittedId,
         role: "assistant",
@@ -2262,6 +2289,8 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   function drive(msg: SDKMessage): void {
     if (msg.type === "assistant") {
       const m = msg.message;
+      // Read BEFORE topTurnId mints: does this frame OPEN a top-level turn?
+      const opensTopTurn = msg.parent_tool_use_id === null && openTopTurnId === undefined;
       const turnId =
         msg.parent_tool_use_id !== null
           ? nestedTurnId(msg.parent_tool_use_id, m.id, msg.uuid)
@@ -2474,6 +2503,9 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
           turnBindingCarried: false,
         };
         pending = open;
+        // The turn's trigger rides its turn.start (see `openerTrigger`).
+        const trigger = opensTopTurn ? openerTrigger(msg.user_message_uuid) : undefined;
+        if (trigger !== undefined) a.openTurn(turnId, options.threadId ?? msg.session_id, trigger);
         a.openMessage({
           id: open.emittedId,
           role: "assistant",
@@ -3021,7 +3053,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // B-strict: a subagent run still open (a background or unreported sub-run)
       // is NOT closed by its parent's result; it closes when the framework
       // reports it, or at flush.
-      const turnId = closingTopTurnId(msg.uuid, msg.session_id);
+      const turnId = closingTopTurnId(msg.uuid, msg.session_id, msg.user_message_uuid);
       // CL-09 (0.3.280 sweep): `subtype: "success"` does NOT mean the turn
       // succeeded. Upstream's SDKResultMessage doc: "subtype "success" carries
       // the final assistant text in result — or, with is_error true, the error
