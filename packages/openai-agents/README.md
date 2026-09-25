@@ -138,6 +138,16 @@ turn under the source round. At `handoff_occurred` it emits:
   its own `turn.done`.
 
 Known limitation: when the model requests several handoffs in one response,
-the SDK runs the first and sends the ignored calls' results to the model only,
-never to the stream. Those calls get no `tool.done`, so the source round is
-closed at `flush()` with `turn.abort` (`stream-truncated`), not `success`.
+the SDK runs only the first. What happens to the ignored calls depends on the
+`@openai/agents` version:
+- From 0.8.1, nothing about them reaches the stream. The SDK drops them from
+  the conversation history; only when the conversation is server-managed
+  (`conversationId` or `previousResponseId`) does it send the model a
+  synthetic result for each. The ignored calls get no `tool.done`, so the
+  source round is closed at `flush()` with `turn.abort` (`stream-truncated`),
+  not `success`.
+- Up to 0.8.0, the SDK streams a result for each ignored call ("Multiple
+  handoffs detected, ignoring this one."), which lands as that call's
+  `tool.done`, and the source round closes normally. The ignored handoff's
+  nested turn, opened at its `handoff_requested`, gets no `handoff_occurred`
+  and is closed at `flush()` with `turn.abort` (`stream-truncated`).
