@@ -30,6 +30,17 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const ts = createRequire(join(root, "package.json"))("typescript");
 const PACKAGES = ["core", "richtext", "claude-agent-sdk", "openai-agents", "google-adk", "vercel-ai"];
 const SNAP_DIR = join(root, "api-surface");
+// Cross-package imports resolve to each package's src through the root typecheck
+// config's `paths`, never through a built dist/: the snapshot must not depend on
+// whether a build ran first (CI runs this gate before any build).
+const rootConfig = ts.getParsedCommandLineOfConfigFile(join(root, "tsconfig.json"), {}, {
+  ...ts.sys,
+  onUnRecoverableConfigFileDiagnostic: (d) => {
+    throw new Error(ts.flattenDiagnosticMessageText(d.messageText, "\n"));
+  },
+});
+const SRC_PATHS = rootConfig.options.paths ?? {};
+if (Object.keys(SRC_PATHS).length === 0) throw new Error("tsconfig.json declares no `paths` for the @silverprotocol packages");
 const write = process.argv.includes("--write");
 
 /** { name: { module, tag, decl: [text] } } for one package's entry exports. */
@@ -54,15 +65,18 @@ function surfaceOf(pkg) {
     tsBuildInfoFile: undefined,
     skipLibCheck: true,
     outDir: join(pkgDir, "dist"),
-    rootDir: join(pkgDir, "src"),
+    rootDir: join(root, "packages"),
+    baseUrl: root,
+    paths: SRC_PATHS,
   };
   const program = ts.createProgram(files, options);
   const checker = program.getTypeChecker();
   const dts = new Map(); // module basename → emitted d.ts text
   const emitted = program.emit(
     undefined,
-    (fileName, text) => {
-      if (fileName.endsWith(".d.ts")) dts.set(basename(fileName, ".d.ts"), text);
+    (fileName, text, _bom, _onError, sources) => {
+      const own = (sources ?? []).some((s) => s.fileName.startsWith(join(pkgDir, "src")));
+      if (fileName.endsWith(".d.ts") && own) dts.set(basename(fileName, ".d.ts"), text);
     },
     undefined,
     true,
@@ -97,14 +111,16 @@ function surfaceOf(pkg) {
     const name = exported.getName();
     const target = exported.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(exported) : exported;
     const decls = target.declarations ?? [];
-    if (decls.length === 0) continue;
+    if (decls.length === 0) throw new Error(`${pkg}: export ${name} resolves to no declaration (an unresolved import?)`);
     const tags = new Set(decls.flatMap((d) => ts.getJSDocTags(d).map((t) => t.tagName.text)));
     const tag = tags.has("internal") ? "internal" : tags.has("beta") ? "beta" : "public";
     const sourceFile = decls[0].getSourceFile().fileName;
     if (!sourceFile.startsWith(join(pkgDir, "src"))) {
       // A re-export from another package (e.g. a facet re-exporting a core type):
       // its shape is governed by that package's own snapshot; record the edge.
-      const from = /node_modules\/(@[^/]+\/[^/]+|[^/]+)\//.exec(sourceFile)?.[1] ?? "@silverprotocol/core";
+      const sibling = /\/packages\/([^/]+)\/src\//.exec(sourceFile)?.[1];
+      const from = sibling !== undefined ? `@silverprotocol/${sibling}` : /node_modules\/(@[^/]+\/[^/]+|[^/]+)\//.exec(sourceFile)?.[1];
+      if (from === undefined) throw new Error(`${pkg}: cannot name the package that declares ${name} (${sourceFile})`);
       surface[name] = { module: from, tag, decl: [`export { ${target.getName()} } from "${from}"`] };
       continue;
     }
