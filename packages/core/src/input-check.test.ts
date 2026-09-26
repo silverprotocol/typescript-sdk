@@ -22,7 +22,9 @@ describe("checkAgInput — draft.4 §0.2, workspace#20 decision 6 (§10 item N, 
 
   it("(3) an undefined reasoning mode → unknown-value at its path; effort is an open string and passes", () => {
     expect(reject(start({ run: { reasoning: { mode: "xhigh" } } }))).toEqual({ code: "unknown-value", path: ["run", "reasoning", "mode"] });
-    expect(checkAgInput(start({ run: { reasoning: { mode: "enabled", effort: "xhigh" } } })).ok).toBe(true);
+    const passed = checkAgInput(start({ run: { reasoning: { mode: "enabled", effort: "xhigh" } } }));
+    expect(passed.ok).toBe(true);
+    expect(passed.ok ? (JSON.parse(JSON.stringify(passed.input)) as { run: { reasoning: { effort: string } } }).run.reasoning.effort : undefined).toBe("xhigh");
   });
 
   it("(4) an undefined AgBlock type inside messages, run.system, run.context or results[].content → unknown-value at that type", () => {
