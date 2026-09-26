@@ -12,7 +12,15 @@ import { z } from "zod";
 import type { JsonValue } from "@silverprotocol/core";
 import { runLiveBargeIn } from "./live.js";
 
-type Behaviour = "interrupts" | "finishes-first" | "never-completes" | "interrupts-twice" | "tool" | "tool-belated-complete" | "answers";
+type Behaviour =
+  | "interrupts"
+  | "finishes-first"
+  | "never-completes"
+  | "interrupts-twice"
+  | "tool"
+  | "tool-belated-complete"
+  | "tool-early-complete"
+  | "answers";
 const text = (t: string) => ({ role: "model", parts: [{ text: t }] });
 const lookupCall = { role: "model", parts: [{ functionCall: { name: "lookup", args: { city: "Seoul" }, id: "fc-1" } }] };
 
@@ -52,7 +60,13 @@ class ScriptedLive extends BaseLlm {
           // The call's generation completes after the response, and the reply follows later.
           push({ turnComplete: true });
           setTimeout(() => push({ content: text("Sunny."), partial: true }, { content: text("Sunny.") }, { turnComplete: true }), 50);
-        } else if (contents === 1 && behaviour === "answers")
+        } else if (contents === 1 && behaviour === "tool-early-complete")
+          // ADK's aggregator on a model whose name has no "-flash-live" flushes the buffered call and then an
+          // immediate { turnComplete: true }, before the tool runs (utils/live_connection_utils.js:155-165).
+          push({ content: text("Let me check."), partial: true }, { content: lookupCall }, { turnComplete: true });
+        else if (contents === 2 && behaviour === "tool-early-complete")
+          push({ content: text("Sunny."), partial: true }, { content: text("Sunny.") }, { turnComplete: true });
+        else if (contents === 1 && behaviour === "answers")
           push({ content: text("Hello."), partial: true }, { content: text("Hello.") }, { turnComplete: true });
         else if (contents === 1) push({ content: text("Once upon "), partial: true });
         else if (contents === 2 && behaviour === "interrupts")
@@ -189,6 +203,17 @@ describe("runLiveBargeIn — no barge-in: a prompt answered through a tool call,
   it("a turnComplete between the tool response and the reply does not close the queue: it closes after the reply", async () => {
     const { events, log, elapsed } = await driveNoBargeIn("tool-belated-complete", 5000);
     expect(log.filter((l) => l === "emit:turnComplete")).toHaveLength(2);
+    expect(JSON.stringify(events)).toContain('"text":"Sunny."');
+    expect(log.indexOf("close")).toBeGreaterThan(log.lastIndexOf("emit:turnComplete"));
+    expect(elapsed).toBeLessThan(4000);
+  });
+
+  it("a turnComplete right after the buffered call is consumed after the tool response: the reply and its turnComplete arrive before the queue closes", async () => {
+    const { events, log, executed, elapsed } = await driveNoBargeIn("tool-early-complete", 5000);
+    expect(executed).toBe(1);
+    expect(log.filter((l) => l.startsWith("recv:"))).toEqual(["recv:What is the weather in Seoul?", "recv:response:lookup"]);
+    // The tool ran (its response went out) before the early turnComplete was consumed.
+    expect(log.indexOf("recv:response:lookup")).toBeLessThan(log.indexOf("emit:turnComplete"));
     expect(JSON.stringify(events)).toContain('"text":"Sunny."');
     expect(log.indexOf("close")).toBeGreaterThan(log.lastIndexOf("emit:turnComplete"));
     expect(elapsed).toBeLessThan(4000);

@@ -35,7 +35,12 @@
  * follows model output after the last function response (the reply), so a
  * `turnComplete` between a response and its reply does not close it; a run in
  * which the model calls no tool closes at the first `turnComplete` after its
- * output. The cap applies as above.
+ * output. The cap applies as above. The rule relies on ADK's serialization: a
+ * `turnComplete` ADK yields right after a buffered call (utils/
+ * live_connection_utils.js:155-165, on a model whose name has no
+ * `-flash-live`) is consumed only after the tool ran and its response event was
+ * yielded (agents/llm_agent.js:728-736, :823). A long-running tool (a null
+ * result) would break this, and the capture binds none.
  *
  * Every native event is yielded verbatim (`toJsonValue`, no filtering). Audio
  * arrives as `content.parts[].inlineData` (`mimeType: "audio/pcm;rate=24000"`
@@ -221,6 +226,7 @@ export async function* runAdkLiveCapture(input: AdkLiveCaptureInput): AsyncItera
       ...(input.abortSignal !== undefined ? { abortSignal: input.abortSignal } : {}),
     });
   } finally {
-    await Promise.all(toolsets.map((toolset) => toolset.close()));
+    // allSettled: a toolset that fails to close never masks the run's own error.
+    await Promise.allSettled(toolsets.map((toolset) => toolset.close()));
   }
 }
