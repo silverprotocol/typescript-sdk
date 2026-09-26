@@ -21,7 +21,7 @@
  * is outside the promise (it stays visible at every cut). `@internal` symbols are
  * listed so an accidental export shows, and treated like `@beta`.
  */
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join, resolve, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
@@ -41,6 +41,12 @@ const rootConfig = ts.getParsedCommandLineOfConfigFile(join(root, "tsconfig.json
 });
 const SRC_PATHS = rootConfig.options.paths ?? {};
 if (Object.keys(SRC_PATHS).length === 0) throw new Error("tsconfig.json declares no `paths` for the @silverprotocol packages");
+// A package missing from either list would resolve through node_modules to a
+// possibly stale dist/ (or not be checked at all), so both must name every one.
+for (const dir of readdirSync(join(root, "packages")).filter((d) => d !== "e2e" && existsSync(join(root, "packages", d, "package.json")))) {
+  if (!PACKAGES.includes(dir)) throw new Error(`packages/${dir} is not in check-api-surface's PACKAGES list`);
+  if (SRC_PATHS[`@silverprotocol/${dir}`] === undefined) throw new Error(`tsconfig.json has no \`paths\` entry for @silverprotocol/${dir}`);
+}
 const write = process.argv.includes("--write");
 
 /** { name: { module, tag, decl: [text] } } for one package's entry exports. */
@@ -119,7 +125,7 @@ function surfaceOf(pkg) {
       // A re-export from another package (e.g. a facet re-exporting a core type):
       // its shape is governed by that package's own snapshot; record the edge.
       const sibling = /\/packages\/([^/]+)\/src\//.exec(sourceFile)?.[1];
-      const from = sibling !== undefined ? `@silverprotocol/${sibling}` : /node_modules\/(@[^/]+\/[^/]+|[^/]+)\//.exec(sourceFile)?.[1];
+      const from = sibling !== undefined ? `@silverprotocol/${sibling}` : /.*node_modules\/(@[^/]+\/[^/]+|[^/]+)\//.exec(sourceFile)?.[1];
       if (from === undefined) throw new Error(`${pkg}: cannot name the package that declares ${name} (${sourceFile})`);
       surface[name] = { module: from, tag, decl: [`export { ${target.getName()} } from "${from}"`] };
       continue;
