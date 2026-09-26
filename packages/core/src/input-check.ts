@@ -11,7 +11,7 @@
  * - `major-mismatch`, at `["version"]`: `version` differs in MAJOR (§12);
  * - `unknown-value`: the value at the path is a STRING that the closed set
  *   there does not define (an `AgInput.kind`, an `AgHitlAnswer.status`, a
- *   reasoning `effort`, an `AgBlock` `type`, …). zod's codes alone cannot
+ *   reasoning `mode`, an `AgBlock` `type`, …). zod's codes alone cannot
  *   tell this from malformed, so the rule reads the raw value (bar CB-6);
  * - `malformed`: every other failure — a missing value, a value of the wrong
  *   JSON type, a value that breaks a stated constraint, a non-JSON input, or

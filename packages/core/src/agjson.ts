@@ -796,7 +796,7 @@ export type AgClientCapabilities = z.infer<typeof AgClientCapabilities>;
 // + Anthropic/Gemini thinking `budgetTokens`.
 export const AgReasoningConfig = z.object({
   mode: z.enum(["enabled", "disabled"]),
-  effort: z.enum(["minimal", "low", "medium", "high"]).optional(),
+  effort: z.string().optional(), // an open string (§3, §12 draft.8): "minimal" | "low" | "medium" | "high" are documented; any other value passes
   budgetTokens: z.number().optional(),
 });
 export type AgReasoningConfig = z.infer<typeof AgReasoningConfig>;

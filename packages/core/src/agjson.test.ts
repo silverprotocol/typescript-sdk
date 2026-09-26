@@ -1027,9 +1027,16 @@ describe("AgInput §3 config helpers", () => {
     expect(AgReasoningConfig.parse({ mode: "disabled" }).mode).toBe("disabled");
   });
 
-  it("AgReasoningConfig rejects an unknown mode / effort", () => {
+  it("AgReasoningConfig rejects an unknown mode", () => {
     expect(() => AgReasoningConfig.parse({ mode: "auto" })).toThrow();
-    expect(() => AgReasoningConfig.parse({ mode: "enabled", effort: "max" })).toThrow();
+  });
+
+  it("AgReasoningConfig effort is an open string: an undocumented value passes verbatim, the documented four round-trip", () => {
+    expect(AgReasoningConfig.parse({ mode: "enabled", effort: "xhigh" })).toEqual({ mode: "enabled", effort: "xhigh" });
+    for (const effort of ["minimal", "low", "medium", "high"]) {
+      expect(AgReasoningConfig.parse({ mode: "enabled", effort })).toEqual({ mode: "enabled", effort });
+    }
+    expect(() => AgReasoningConfig.parse({ mode: "enabled", effort: 3 })).toThrow();
   });
 
   it("AgToolDef parses each source variant + uiVisibility scope", () => {

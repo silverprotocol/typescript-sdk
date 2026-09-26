@@ -20,8 +20,9 @@ describe("checkAgInput — draft.4 §0.2, workspace#20 decision 6 (§10 item N, 
     expect(reject({ ...ENV, kind: "zz" })).toEqual({ code: "unknown-value", path: ["kind"] });
   });
 
-  it("(3) an undefined reasoning effort → unknown-value at its path", () => {
-    expect(reject(start({ run: { reasoning: { mode: "enabled", effort: "xhigh" } } }))).toEqual({ code: "unknown-value", path: ["run", "reasoning", "effort"] });
+  it("(3) an undefined reasoning mode → unknown-value at its path; effort is an open string and passes", () => {
+    expect(reject(start({ run: { reasoning: { mode: "xhigh" } } }))).toEqual({ code: "unknown-value", path: ["run", "reasoning", "mode"] });
+    expect(checkAgInput(start({ run: { reasoning: { mode: "enabled", effort: "xhigh" } } })).ok).toBe(true);
   });
 
   it("(4) an undefined AgBlock type inside messages, run.system, run.context or results[].content → unknown-value at that type", () => {
