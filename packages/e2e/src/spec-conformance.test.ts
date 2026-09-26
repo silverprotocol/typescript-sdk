@@ -112,8 +112,9 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 21, leg: "live-inclusive", title: "Reasoning-inclusive usage identity (draft.5, Gemini Live): a report whose total already counts thoughts {6037, 248, 490, 6775} derives totalTokens 6775 and carries no totalTokensRaw", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.21(live-inclusive), facet-driven via createAdkNormalizer" },
   { n: 21, leg: "live-mixed", title: "Reasoning-inclusive usage identity (draft.5, Gemini Live): the exclusive and inclusive reports summed into one turn fold to {6646, 1019, 746, totalTokens 7665, totalTokensRaw 7409}", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.21(live-mixed), a two-event ADK feed with one turnId" },
   { n: 21, leg: "no-raw-on-candidates", title: "Reasoning-inclusive usage identity (draft.5): none of the draft.3 candidatesTokenCount vectors yields totalTokensRaw", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.21(no-raw-on-candidates)" },
-  { n: 22, title: "Forward-compatible ingest (draft.4): an ignored well-formed event occupies its seq slot, is reported in place, and the fold is unchanged", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.22, reference ingest (ingestAgEvents) → reduce" },
+  { n: 22, title: "Forward-compatible ingest (draft.4; draft.8 legs f–g): an ignored well-formed event occupies its seq slot, is reported in place, and the fold is unchanged; an unknown block type nested in a carrier event and an undefined closed-set value inside a terminal stub the whole event", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.22, reference ingest (ingestAgEvents) → reduce" },
   { n: 23, leg: "adk", title: "Unmapped native value (draft.4): an ADK finish reason with no AgJSON target → finishReason other|unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(adk) via createAdkNormalizer (e59e976)" },
+  { n: 23, leg: "adk-blocked", title: "Unmapped native value (draft.8): an ADK promptFeedback.blockReason with no AgJSON target → prompt.blocked reason other + reasonRaw verbatim; a mapped block reason carries no reasonRaw", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(adk-blocked) via createAdkNormalizer over a synthetic promptFeedback native (ADK 2.1.0 builds no promptFeedback event of its own — a prompt block closes the turn as turn.error or turn.done{safety_blocked}; the arm serves other producers of that shape); the facet leg google-adk/src/index.test.ts \"an unmapped promptFeedback.blockReason emits prompt.blocked with reason … and reasonRaw verbatim; a mapped reason carries no reasonRaw\"" },
   { n: 23, leg: "openai", title: "Unmapped native value (draft.4): an OpenAI incomplete_details.reason with no AgJSON target → finishReason unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(openai) via createOpenaiNormalizer (OA-15 ff358b6)" },
   { n: 23, leg: "claude", title: "Unmapped native value (draft.4): an unmapped Claude stop_reason → finishReason unknown + finishReasonRaw verbatim; mapped and null stop_reasons carry no finishReasonRaw", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(claude) via createClaudeNormalizer (fe87254)" },
   { n: 23, leg: "vercel", title: "Unmapped native value (draft.4): a vercel finish whose unified reason falls back (other/unknown) carries the native rawFinishReason as finishReasonRaw", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(vercel) via createVercelNormalizer (probe f2937f9)" },
@@ -134,7 +135,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 27, leg: "producers", title: "Re-delivery never folds twice (draft.4): on every replay golden no message.start follows its turn's terminal, or a messages.snapshot carrying the turn with an outcome (draft.5); on every committed resume pair no turn or message id recurs across the two invokes, and the pair folds without a resync; no turnId carries more than one terminal (draft.5)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.27(producers), a scan of every corpus golden and every <scenario>-resume-<leg> pair" },
   { n: 28, title: "Host-appended events (draft.4): every replay golden plus a host-appended paused hitl.ask turn from lastSeq+1 folds with needsResync false and the turn in turns (§8.0 host obligation 5)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.28 over every corpus/*/*.agjson.json via ingestAgEvents → reduce" },
   { n: 29, leg: "a", title: "Forward-compatible records: a stored AgMessage/AgMemoryRecord reader omits an unreadable content element or record, reports it with its index and verbatim value, never coerces, and the reports reconstruct the stored value", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.29(a) via core readStoredAgMessage(s)/readStoredAgMemoryRecords (probe P3 ce5952a; unit legs core/src/record.test.ts)" },
-  { n: 29, leg: "b", title: "Forward-compatible inputs: an input that fails the schema other than by an unknown field is rejected whole with one class and one path — protocol first, then version (major-mismatch), then the rest; malformed beats unknown-value; unknown fields pass intact", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.29(b) via core checkAgInput (probe P3 ce5952a; unit legs core/src/input-check.test.ts)" },
+  { n: 29, leg: "b", title: "Forward-compatible inputs: an input that fails the schema other than by an unknown field is rejected whole with one class and one path — protocol first, then version (major-mismatch), then the rest; malformed beats unknown-value; unknown fields pass intact — any same-major prerelease tag accepted, a different major rejected whatever its tag, a missing version malformed (draft.8)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.29(b) via core checkAgInput (probe P3 ce5952a; unit legs core/src/input-check.test.ts)" },
   { n: 30, leg: "adk", title: "No credential material in authentication requests (draft.4): an ADK-generated OAuth2 request (state + nonce + PKCE in the authorization URI; client secret, tokens, verifier, auth code, standalone state/nonce seeded) emits no seeded secret at any depth, raw or JSON-escaped; state/nonce appear only inside the byte-equal ADK-issued authorization URI", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.30(adk) over fixtures/adk-pause/plain-credential-authuri (engine-built by ADK 2.1.0 generateAuthUri; probe)" },
   { n: 30, leg: "claude", title: "No credential material in authentication requests (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
   { n: 30, leg: "openai", title: "No credential material in authentication requests (draft.4)", disposition: "N/A", citation: "§10 preamble / §8.0 applicability: item 28 defines no framework credential object for this framework" },
@@ -1124,6 +1125,39 @@ describe("§10.22 — forward-compatible ingest (draft.4): an ignored well-forme
     });
   }
 
+  // (f) an unknown block type nested in a known carrier stubs the whole carrier (§12: a new block type reaches only a
+  // client that declares it; a consumer below that stubs the event and keeps its seq slot).
+  it("(f) a tool.done whose content holds an unknown block type is stubbed whole: one ext.agjson.ignored at its seq, the call has no outcome, no resync", () => {
+    const start = { type: "tool.start", seq: 2, turnId: "t1", toolCallId: "c1", name: "t" };
+    const done = { type: "tool.done", seq: 3, turnId: "t1", toolCallId: "c1", content: [{ type: "zz" }], outcome: "ok" };
+    const out = ingestAgEvents([...S_HEAD, start, done, ...S_TAIL(4)] as unknown as JsonValue[]);
+    const ignored = out.filter((e) => e.type === "ext.agjson.ignored") as unknown as Array<Record<string, unknown>>;
+    expect(ignored).toHaveLength(1);
+    expect(ignored[0]).toMatchObject({ seq: 3, ignoredType: "tool.done" });
+    expect(ignored[0]?.["raw"]).toEqual(done);
+    const r = reduce(out);
+    expect(r.needsResync).toBe(false);
+    const blocks = r.result.messages.flatMap((m) => m.content as Array<Record<string, unknown>>);
+    const call = blocks.find((b) => b["type"] === "tool-call" && b["toolCallId"] === "c1") as Record<string, unknown> | undefined;
+    expect(call, "the call opened").toBeDefined();
+    expect(blocks.some((b) => b["type"] === "tool-result" && b["toolCallId"] === "c1"), "no result landed").toBe(false);
+  });
+  // (g) an undefined value in a closed set nested in the terminal stubs the terminal; the turn does not close.
+  it("(g) a turn.done whose paused ask carries an undefined kind is stubbed and the turn stays open, no resync", () => {
+    const tail = S_TAIL(2);
+    const done = tail[tail.length - 1] as Record<string, unknown>;
+    expect(done["type"]).toBe("turn.done");
+    done["outcome"] = { type: "paused", asks: [{ askId: "a1", kind: "zz", toolCallId: "c9" }] };
+    done["finishReason"] = "paused";
+    const out = ingestAgEvents([...S_HEAD, ...tail] as unknown as JsonValue[]);
+    const ignored = out.filter((e) => e.type === "ext.agjson.ignored") as unknown as Array<Record<string, unknown>>;
+    expect(ignored).toHaveLength(1);
+    expect(ignored[0]).toMatchObject({ ignoredType: "turn.done" });
+    const r = reduce(out);
+    expect(r.needsResync).toBe(false);
+    expect(r.result.turns[0]?.outcome, "the turn did not close").toBeUndefined();
+  });
+
   it("nested pass-through: an unknown key inside turn.done.usage survives into the fold", () => {
     const tail = S_TAIL(2);
     (tail[4] as Record<string, unknown>)["usage"] = { inputTokens: 1, outputTokens: 2, zzCounter: 7 };
@@ -1570,6 +1604,20 @@ describe("§10.24(adk) + §10.23(adk) — the ADK failure envelope and the unmap
       expect("errorText" in d).toBe(false);
     });
   }
+
+  // §10.23 ADK leg (draft.8, decision 4): a native block reason with no AgJSON target carries reasonRaw; a mapped one does not.
+  for (const raw of ["SOME_FUTURE_BLOCK_REASON", "Other\u2014v2 \u2713"]) {
+    it(`§10.23(adk-blocked): promptFeedback.blockReason ${JSON.stringify(raw)} → prompt.blocked reason "other" + reasonRaw byte for byte`, () => {
+      const out = drive([{ invocationId: "inv1", author: "agent", content: { role: "model", parts: [] }, partial: false, turnComplete: true, promptFeedback: { blockReason: raw } } as unknown as AdkEvent]);
+      expect(out.find((e) => e.type === "prompt.blocked")).toMatchObject({ reason: "other", reasonRaw: raw });
+    });
+  }
+  it("§10.23(adk-blocked): a mapped blockReason (SAFETY) folds to reason \"safety\" and carries no reasonRaw", () => {
+    const out = drive([{ invocationId: "inv1", author: "agent", content: { role: "model", parts: [] }, partial: false, turnComplete: true, promptFeedback: { blockReason: "SAFETY" } } as unknown as AdkEvent]);
+    const blocked = out.find((e) => e.type === "prompt.blocked") as unknown as Record<string, unknown> | undefined;
+    expect(blocked).toMatchObject({ reason: "safety" });
+    expect(blocked !== undefined && "reasonRaw" in blocked).toBe(false);
+  });
 
   // §10.23 ADK leg: a native finish reason with no AgJSON target.
   for (const [raw, fallback] of [["TOO_MANY_TOOL_CALLS", "other"], ["SOME_FUTURE_REASON", "unknown"]] as const) {
@@ -2170,7 +2218,7 @@ describe("§10.29 — forward-compatible records and inputs (draft.4; §0.2 stor
   it("(b1-b4) an undefined closed-set value rejects the whole input with unknown-value at its path", () => {
     expect(reject({ ...ENV, kind: "resume", answers: [{ askId: "a", status: "resolved" }, { askId: "b", status: "zz" }] })).toEqual({ code: "unknown-value", path: ["answers", 1, "status"] });
     expect(reject({ ...ENV, kind: "zz" })).toEqual({ code: "unknown-value", path: ["kind"] });
-    expect(reject(start({ run: { reasoning: { mode: "enabled", effort: "xhigh" } } }))).toEqual({ code: "unknown-value", path: ["run", "reasoning", "effort"] });
+    expect(reject(start({ run: { reasoning: { mode: "zz" } } }))).toEqual({ code: "unknown-value", path: ["run", "reasoning", "mode"] }); // effort is an open string since draft.8
     expect(reject(start({ messages: [{ id: "u1", role: "user", content: [{ type: "text", text: "hi" }, { type: "zz" }] }] }))).toEqual({ code: "unknown-value", path: ["messages", 0, "content", 1, "type"] });
   });
 
@@ -2180,6 +2228,17 @@ describe("§10.29 — forward-compatible records and inputs (draft.4; §0.2 stor
     expect(reject(start({ capabilities: { hitl: { grantModes: {} } } }))).toEqual({ code: "malformed", path: ["capabilities", "hitl", "grantModes"] });
     // draft.4 §3/§6: viewMessageTurns is a boolean; an MCP-shaped modalities object where it belongs is malformed at the member
     expect(reject(start({ capabilities: { uiResources: { viewMessageTurns: { text: {} } } } }))).toEqual({ code: "malformed", path: ["capabilities", "uiResources", "viewMessageTurns"] });
+  });
+  it("(b8) any same-major prerelease tag is accepted; a different major is rejected whatever its tag; a missing version is malformed", () => {
+    for (const version of ["1.0.0-rc.1", "1.0.0-beta.1", "1.0.0-draft.2", "1.0.0"]) {
+      expect(reject(start({ version })), version).toEqual({ ok: true });
+      expect(AgInput.safeParse(start({ version })).success, `schema: ${version}`).toBe(true);
+    }
+    expect(reject(start({ version: "2.0.0-rc.1" }))).toEqual({ code: "major-mismatch", path: ["version"] });
+    expect(AgInput.safeParse(start({ version: "2.0.0-rc.1" })).success).toBe(false);
+    const noVersion = start({}) as Record<string, unknown>;
+    delete noVersion["version"];
+    expect(reject(noVersion)).toEqual({ code: "malformed", path: ["version"] });
   });
 
   it("(b8) a different major version is major-mismatch", () => {
