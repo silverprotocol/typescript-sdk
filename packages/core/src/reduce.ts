@@ -938,6 +938,7 @@ export class Reducer {
         }
         turn.promptBlocked = {
           reason: ev.reason,
+          ...(ev.reasonRaw !== undefined ? { reasonRaw: ev.reasonRaw } : {}),
           ...(ev.safety !== undefined ? { safety: ev.safety } : {}),
         };
         break;

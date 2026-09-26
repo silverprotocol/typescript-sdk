@@ -711,6 +711,7 @@ export const AgTurnRecord = z.object({
   })).optional(), // grounding sources folded from source events (audit M23); sourceIds stays as the derived index
   promptBlocked: z.object({
     reason: z.enum(["safety", "blocklist", "prohibited", "other"]), // mirrors the §4 prompt.blocked reason enum exactly
+    reasonRaw: z.string().optional(), // folded from prompt.blocked.reasonRaw verbatim (draft.8)
     safety: z.array(AgSafety).optional(),
   }).optional(), // audit M28
   asks: z.array(AgPausedAsk).optional(),
@@ -1375,6 +1376,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     ...base,
     type: z.literal("prompt.blocked"),
     reason: z.enum(["safety", "blocklist", "prohibited", "other"]),
+    reasonRaw: z.string().optional(), // the native block reason verbatim, e.g. when reason is "other" (§4, draft.8)
     safety: z.array(AgSafety).optional(),
   }),
   // ── MESSAGE OPERATIONS ──

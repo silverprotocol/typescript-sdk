@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { reduce, Reducer } from "./reduce.js";
-import { AgEvent } from "./agjson.js";
+import { AgEvent, AgTurnRecord } from "./agjson.js";
 import { AgReduceResult } from "./agjson.js";
 
 // Shared event helpers for R2 tests
@@ -4579,5 +4579,25 @@ describe("draft.6: an agent.capabilities event carrying memoryScopes lands on th
       { type: "agent.capabilities", seq: 1, turnId: "t", capabilities: { profile: "EXTENDED", memoryScopes: ["user"] } },
     ]) r.push(AgEvent.parse(e));
     expect(r.result().turns[0]!.capabilities).toEqual({ profile: "EXTENDED", memoryScopes: ["user"] });
+  });
+});
+
+describe("reduce — prompt.blocked carries its reasonRaw companion onto the turn record", () => {
+  const block = (reasonRaw?: string) => [
+    AgEvent.parse({ type: "turn.start", seq: 0, turnId: "t", threadId: "th" }),
+    AgEvent.parse({ type: "prompt.blocked", seq: 1, turnId: "t", reason: "other", ...(reasonRaw !== undefined ? { reasonRaw } : {}) }),
+  ];
+
+  it("a present reasonRaw lands verbatim beside reason; an absent one stays absent", () => {
+    expect(reduce(block("BLOCKED_REASON_UNSPECIFIED")).result.turns[0]!.promptBlocked).toEqual({ reason: "other", reasonRaw: "BLOCKED_REASON_UNSPECIFIED" });
+    expect(reduce(block()).result.turns[0]!.promptBlocked).toEqual({ reason: "other" });
+  });
+
+  it("incremental equals batch, and the record type declares the member", () => {
+    const events = block("JAILBREAK");
+    const r = new Reducer();
+    for (const e of events) r.push(e);
+    expect(r.result()).toEqual(reduce(events).result);
+    expect(AgTurnRecord.parse(r.result().turns[0]).promptBlocked).toEqual({ reason: "other", reasonRaw: "JAILBREAK" });
   });
 });
