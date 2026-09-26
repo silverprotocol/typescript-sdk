@@ -1442,7 +1442,7 @@ describe("reduce — R8 shared-state snapshot + delta", () => {
       expect(out.needsResync).toBe(true);
       expect("state" in out.result).toBe(false);
     });
-    it("DC-6: two writes to one key keep only the second, never an object assembled from both", () => {
+    it("two writes to one key keep only the second, never an object assembled from both", () => {
       const out = fold([
         { type: "state.delta", seq: 0, patch: { obj: { kind: "a" } } },
         { type: "state.delta", seq: 1, patch: { obj: { value: "v" } } },
@@ -1656,7 +1656,7 @@ describe("reduce — D9: a terminal for a never-opened turn folds onto no record
     expect(acc.needsResync).toBe(false);
   });
 
-  it("draft.5 (CB-7): a record event for an unopened turn is held, not a stub: a turns-omitted snapshot then its terminal leave no record", () => {
+  it("draft.5: a record event for an unopened turn is held, not a stub: a turns-omitted snapshot then its terminal leave no record", () => {
     const acc = fold([
       { type: "source", seq: 0, turnId: "tq", sourceId: "s1", source: { url: "https://example.com" } },
       { type: "messages.snapshot", seq: 1, messages: [] },
@@ -1668,7 +1668,7 @@ describe("reduce — D9: a terminal for a never-opened turn folds onto no record
     expect(acc.needsResync).toBe(false);
   });
 
-  it("draft.5 (CB-7): after a turns:[] snapshot, a message.start makes the dropped turn seen, so its terminal folds onto a record on the message's thread", () => {
+  it("draft.5: after a turns:[] snapshot, a message.start makes the dropped turn seen, so its terminal folds onto a record on the message's thread", () => {
     const acc = fold([
       { type: "turn.start", seq: 0, turnId: "t1", threadId: "th1" },
       { type: "messages.snapshot", seq: 1, messages: [], turns: [] },
@@ -1727,7 +1727,7 @@ describe("reduce — D9: a terminal for a never-opened turn folds onto no record
         { type: "messages.snapshot", seq: 2, messages: [{ id: "m2", role: "assistant", content: [], turnId: "t2" }] },
         { type: "turn.done", seq: 3, turnId: "t2", outcome: { type: "success" } },
       ],
-      // draft.5 (CB-7): each of the six record events naming an unopened turn,
+      // draft.5: each of the six record events naming an unopened turn,
       // alone and before its terminal, writes no placeholder-thread record.
       ...([
         { type: "source", turnId: "tR", sourceId: "s1", source: { url: "https://example.com" } },
@@ -4051,7 +4051,7 @@ describe("providerMetadata: no explicit undefined key on blocks without metadata
   });
 });
 
-describe("CB-8 A′ (draft.5 INV-MSG): turn closure follows the fold's turn records", () => {
+describe("draft.5 INV-MSG: turn closure follows the fold's turn records", () => {
   const fold = (evs: AgEvent[]): Reducer => {
     const r = new Reducer();
     for (const e of evs) r.push(e);
@@ -4105,7 +4105,7 @@ describe("CB-8 A′ (draft.5 INV-MSG): turn closure follows the fold's turn reco
     expect(r.result().messages.find((m) => m.id === "m2")?.turnId).toBe("t1");
   });
 
-  it("no snapshot: a turnId-less turn.error with two open turns has an unresolvable owner: it parks, and no record is created (CB-7 supersedes the draft.4 stub)", () => {
+  it("no snapshot: a turnId-less turn.error with two open turns has an unresolvable owner: it parks, and no record is created (draft.5 replaces the draft.4 stub)", () => {
     const pre = [
       { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
       { type: "turn.start", seq: 1, threadId: "th1", turnId: "t2" },
@@ -4116,7 +4116,7 @@ describe("CB-8 A′ (draft.5 INV-MSG): turn closure follows the fold's turn reco
     expect(ser(r)).toBe(ser(fold(pre)));
   });
 
-  it("CB-18, unchanged by A′ (queued for its own bar): across a snapshot a kept-open result's final tool.done naming its messageId appends a second tool-result; without messageId it parks", () => {
+  it("across a snapshot a kept-open result's final tool.done naming its messageId appends a second tool-result; without messageId it parks (unchanged by the draft.5 closure rule)", () => {
     const open = [
       { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
       { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
@@ -4131,7 +4131,7 @@ describe("CB-8 A′ (draft.5 INV-MSG): turn closure follows the fold's turn reco
       const s = { type: "messages.snapshot", seq: 4, messages: snap.messages, ...(turns !== undefined ? { turns } : {}) } as AgEvent;
       const adopted = fold([...open, s, final("m1")]);
       expect(adopted.needsResync).toBe(false);
-      expect(results(adopted)).toBe(2); // the duplicate CB-18 names (SPEC.md:239/:363/:817)
+      expect(results(adopted)).toBe(2); // the duplicate SPEC.md:239/:363/:817 names
       const bare = fold([...open, s, final()]);
       expect(bare.needsResync).toBe(true);
       expect(results(bare)).toBe(1);
@@ -4139,7 +4139,7 @@ describe("CB-8 A′ (draft.5 INV-MSG): turn closure follows the fold's turn reco
   });
 });
 
-describe("CB-7 (draft.5 §5.0 INV-OWNER): a record event for a turn whose thread is not known is held, and lands on that turn's thread", () => {
+describe("draft.5 §5.0 INV-OWNER: a record event for a turn whose thread is not known is held, and lands on that turn's thread", () => {
   const fold = (evs: AgEvent[]): Reducer => {
     const r = new Reducer();
     for (const e of evs) r.push(e);
@@ -4485,7 +4485,7 @@ describe("draft.5 (§5.0 INV-MSG, INV-TURN): a second terminal for a closed turn
     expect(r.result().turns.map((t) => [t.turnId, t.outcome?.type])).toEqual([["T", "success"], ["U", "aborted"]]);
   });
 
-  it("(v-l) after a messages.snapshot, closure follows the carried records (CB-8): a carried closed turn parks a later terminal, a carried open one folds it", () => {
+  it("(v-l) after a messages.snapshot, closure follows the carried records: a carried closed turn parks a later terminal, a carried open one folds it", () => {
     const paused = { type: "turn.done", seq: 1, turnId: "T", outcome: { type: "paused", asks: asks("a") }, finishReason: "paused" };
     const done = { type: "turn.done", seq: 1, turnId: "T", outcome: { type: "success" }, finishReason: "stop" };
     const closed = fold([start(0), paused, { type: "messages.snapshot", seq: 0, messages: [], turns: [{ turnId: "T", threadId: "th", outcome: { type: "paused", asks: asks("a") } }] }]);
