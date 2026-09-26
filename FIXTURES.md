@@ -56,6 +56,23 @@ creation, as on the other frameworks). Claude turn terminals are per-turn
 `byModel` entries stay running totals (`cumulative: true`). The 0.8.0 regen
 moved every Claude golden inside `usage` only.
 
+### Measuring a stability window
+
+`packages/e2e/src/stability-window.test.ts` measures whether the corpus's
+serialized replay held still across a window. It never runs in the gate. With
+`STABILITY=record` it writes a baseline: the git ref, and for every native
+cassette the hash of its natives and of its replay (the AgEvent stream, the
+reference fold, its `toPersistable` storage projection and `needsResync`), on
+the recorded path and, for a cassette that records the host-completion marker,
+on the marker-less path too. With `STABILITY=check` it replays each baseline
+stream's natives, read at the baseline ref, through the current code and fails
+on any change, naming the first differing event, and on any stream that parks
+on either path. A re-captured cassette is judged by its old natives, and
+cassettes added since the baseline are listed, not judged. Record the baseline
+at a commit every checkout has (a release commit), since the check reads the
+natives there. Inputs (`AgInput`) are out of scope: they have no corpus, and
+check-spec-drift gates their kinds.
+
 ## Read-only, refreshed only here
 
 Consumers treat cassettes as **read-only**. Refresh happens exclusively through
