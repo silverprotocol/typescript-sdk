@@ -119,10 +119,12 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 23, leg: "vercel", title: "Unmapped native value (draft.4): a vercel finish whose unified reason falls back (other/unknown) carries the native rawFinishReason as finishReasonRaw", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.23(vercel) via createVercelNormalizer (probe f2937f9)" },
   { n: 24, leg: "scan", title: "Tool-result errorText scoping (draft.4): no replay golden carries errorText on a non-error result", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.24(scan), a scan of every corpus/*/*.agjson.json" },
   { n: 24, leg: "adk", title: "ADK failure envelope (draft.4, §8.0 item 25): the error/denied/placeholder/negative vectors", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.24(adk) via createAdkNormalizer (4fa8ba4)" },
-  { n: 25, leg: "fold", title: "Framework pause and completion closure (draft.4): pauses close paused from push(), completed-without-signal and cut-short invokes close turn.abort from flush(), never success, no park", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(fold) over the engine-built fixtures/adk-pause natives (probe P-RED 3c82c3a); step-1 scope mirrored by adk-pause.test.ts" },
+  { n: 25, leg: "fold", title: "Framework pause and completion closure (draft.4; the paused close at the invocation's end, draft.7): a pause closes paused as the turn's last event — from push() on the completion signal, else from flush() — an invocation that emits after the pause signal folds without a resync in both modes, completed-without-signal and cut-short invokes close turn.abort from flush(), never success, no park", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(fold) over the engine-built fixtures/adk-pause natives (probe P-RED 3c82c3a); step-1 scope mirrored by adk-pause.test.ts" },
   { n: 25, leg: "answer-id", title: "Framework pause and completion closure (draft.4): each ask's toolCallId is the adk_request_* call id (the answering id), one ask per pending request, kind per §8.0 item 26", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(answer-id) over fixtures/adk-pause (step 2, 352850a)" },
-  { n: 25, leg: "host-completion", title: "Framework pause and completion closure (draft.4): with the §8.0 obligation-4 host-completion event fed, a completed invoke closes turn.done success from push(); a pause still closes paused from push()", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(host-completion), createAdkNormalizer({ hostCompletion: true }) + ADK_HOST_COMPLETE_TYPE (step 2, 352850a)" },
+  { n: 25, leg: "host-completion", title: "Framework pause and completion closure (draft.4): with the §8.0 obligation-4 host-completion event fed, a completed invoke closes turn.done success from push(); a pause closes paused from push() on it, the turn's last event", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(host-completion), createAdkNormalizer({ hostCompletion: true }) + ADK_HOST_COMPLETE_TYPE (step 2, 352850a)" },
   { n: 25, leg: "replay", title: "Framework pause and completion closure (draft.4): a golden the normalizer closes on the framework's own events folds unchanged with and without the host-completion event; one it does not closes as obligation 4 directs with it and turn.abort from flush() without it", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(replay) over every corpus/*/adk golden, including the live Workflow seeds (probe 371a02c)" },
+  { n: 25, leg: "no-pause-signal", title: "Framework pause and completion closure (draft.7): a stream cut after the adk_request_* call with no pause signal closes turn.abort from flush() and never turn.done, bare and with hostCompletion configured but no completion event fed (INV-FLUSH (2)'s truncation rule)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(no-pause-signal) over fixtures/adk-pause/after-pause-usage-tail cut after the reserved call" },
+  { n: 25, leg: "usage", title: "Framework pause and completion closure (draft.7; stub usage): the paused close carries the invocation's usage — the field-wise sum of every non-partial ADK usageMetadata — and no message.end of the turn carries usage; the SSE-aggregator fixture is asserted to carry usage only (its sum is §8.0 item 24's known overcount)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25(stub usage) over the six after-pause fixtures × 2 modes" },
   { n: 26, leg: "fold", title: "Interim-narration marker (draft.4): phase folds set-if-present on text/reasoning start and end (end REPLACES, absent keeps), undocumented values verbatim, no-phase streams byte-identical to draft.3, INV-FOLD", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.26(fold), reference reduce() + Reducer (probe P-phase 2abe30b)" },
   { n: 26, leg: "vercel", title: "Interim-narration marker (draft.4): an OpenAI commentary text part opens phase 'interim'; final_answer / unknown / no bag → no phase; providerMetadata.phase kept verbatim", disposition: "COVERED-BY", citation: "vercel-ai/src/index.test.ts:1809-1840 'draft.4 phase' (commentary → text.start{phase:'interim'}; final_answer/unknown/no bag → no phase key) + :430-515 (commentary and final answer stay separate blocks, each bag verbatim) (probe 2abe30b)" },
   { n: 26, leg: "openai", title: "Interim-narration marker (draft.4): a commentary + final_answer response yields phase 'interim' on the first item's text.start only; null/\"\" yield neither phase nor providerMetadata.phase", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.26(openai) via createOpenaiNormalizer (PH-2 347d550)" },
@@ -167,6 +169,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 40, leg: "sweep", title: "Flush honesty (draft.4): every prefix of every corpus native, flushed by its reference normalizer, emits only lifecycle closes, message.end, non-success terminals and ext carries (the carries before the terminals), never a success turn.done or content, and every opened turn folds to an outcome", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.40(sweep) over every corpus/*/<fw>.native.json via the four reference normalizers" },
   { n: 40, leg: "claude", title: "Flush honesty (draft.4): a Claude stream cut mid-turn with open text, reasoning and a partial tool call flushes content-free lifecycle closes only", disposition: "COVERED-BY", citation: "claude-agent-sdk/src/index.test.ts \"createClaudeNormalizer — C1: flush never mints content\" › \"leg (a): every flush() event is a content-free lifecycle close; …\"" },
   { n: 40, leg: "openai", title: "Flush honesty (draft.4): the approval interruption flushes exactly one turn.done{paused, asks:[approval_<callId>], usage U}; without the approval, turn.abort{stream-truncated} and a message.end carrying U", disposition: "COVERED-BY", citation: "openai-agents/src/index.test.ts \"createOpenaiNormalizer — O1 honest flush (fold/flush option 1)\" › the two \"§10.26 leg: …\" cases (the item's pre-landing number)" },
+  { n: 40, leg: "adk", title: "Flush honesty (draft.7): an ADK stream cut mid-turn after a pause signal flushes exactly one paused turn.done, the turn's last event, and no turn.abort for that turn — INV-FLUSH (2)'s paused release is the only turn.done a flush emits", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.25 (§10.40 adk) over fixtures/adk-pause/after-pause-callback cut after the pause signal" },
   { n: 41, title: "MCP Apps view locator carry (draft.4): every native tool result's MCP Apps _meta.ui reaches its tool.done's _meta.ui deep-equal", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.41: every corpus native carrying _meta.ui, replayed through its reference normalizer (claude, openai, adk)" },
   { n: 42, leg: "vercel", title: "Kept-open results are snapshots (draft.4): yield/yield/return and yield/throw emit full snapshots; the error final carries E's message and no structuredContent", disposition: "COVERED-BY", citation: "vercel-ai/src/index.test.ts \"§10 item 42 — kept-open results are snapshots (yield/yield/return, yield/throw)\" (probe bec1308)" },
   { n: 42, leg: "single-delivery", title: "Kept-open results are snapshots (draft.4): claude, openai and adk never emit more than one tool.done per call, so they satisfy the item trivially", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.42(single-delivery), a scan of every corpus/*/{claude,openai,adk}.agjson.json" },
@@ -1177,7 +1180,7 @@ describe("§10.24 — tool-result errorText scoping (draft.4): on every replay g
 // replay legs are N/A-pending the google-adk step 2 (manifest rows above).
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("§10.25 — framework pause and completion closure (draft.4): a pause closes paused from push(), an invoke without the completion signal or cut short closes turn.abort from flush(), never success; no park", () => {
+describe("§10.25 — framework pause and completion closure: a pause closes paused at the invocation's end (from push() on the completion signal, else from flush()), an invoke without the completion signal or cut short closes turn.abort from flush(), never success; no park", () => {
   const DIR = new URL("../fixtures/adk-pause/", import.meta.url);
   const TERMINALS = new Set(["turn.done", "turn.error", "turn.abort"]);
   type Tagged = { ev: AgEvent; from: "push" | "flush" };
@@ -1217,10 +1220,11 @@ describe("§10.25 — framework pause and completion closure (draft.4): a pause 
   const PAUSE = ["wf-pause", "plain-confirmation", "plain-credential", "plain-request-input", "wf-functionnode-credential"];
   const COMPLETED = ["wf-complete", "wf-terminal-llm", "wf-functionnode-only"];
   for (const name of PAUSE) {
-    it(`${name}: turn.done {outcome:"paused", finishReason:"paused"} from push(), one ask per pending request`, () => {
+    it(`${name}: turn.done {outcome:"paused", finishReason:"paused"} from flush() without the completion signal, one ask per pending request`, () => {
       const tagged = run(name);
       const [term] = assertClosure(tagged);
-      expect(term).toMatchObject({ from: "push", ev: { type: "turn.done", finishReason: "paused", outcome: { type: "paused" } } });
+      expect(term).toMatchObject({ from: "flush", ev: { type: "turn.done", finishReason: "paused", outcome: { type: "paused" } } });
+      expect(tagged[tagged.length - 1], "the paused close is the turn's last event").toBe(term);
       const asks = (term!.ev as { outcome: { asks?: unknown[] } }).outcome.asks ?? [];
       expect(asks).toHaveLength(tagged.filter((t) => t.ev.type === "hitl.ask").length);
       expect(asks.length).toBeGreaterThan(0);
@@ -1236,10 +1240,102 @@ describe("§10.25 — framework pause and completion closure (draft.4): a pause 
     });
   }
 
+  // A pause the invocation outlives: an ADK event follows the pause end in the
+  // same invocation and carries state and content. With or without the
+  // completion signal, one paused terminal closes the turn as the stream's last
+  // event, and the fold does not park.
+  const AFTER_PAUSE = ["after-pause-usage-tail", "after-pause-callback", "after-pause-sequential", "after-pause-input-callback", "after-pause-sequential-confirmation", "after-pause-sse-credential"];
+  for (const name of AFTER_PAUSE) {
+    for (const completed of [false, true]) {
+      it(`${name}${completed ? " (host-completion)" : ""}: one paused terminal, the stream's last event, no park`, () => {
+        const tagged = completed ? runCompleted(name) : run(name);
+        const [term] = assertClosure(tagged);
+        expect(term).toMatchObject({ from: completed ? "push" : "flush", ev: { type: "turn.done", outcome: { type: "paused" } } });
+        expect(tagged[tagged.length - 1]).toBe(term);
+      });
+    }
+  }
+
+  // The M26 carve-out (§8.0 item 26; INV-FLUSH (2)): a stream cut after the adk_request_* call, before any pause
+  // signal, closes turn.abort from flush() and never turn.done — bare, and with hostCompletion configured but no
+  // completion event fed (an abnormal end).
+  const runNatives = (ns: JsonValue[], hostCompletion: boolean): Tagged[] => {
+    const out: Tagged[] = [];
+    const n = createAdkNormalizer(hostCompletion ? { hostCompletion: true } : {});
+    for (const f of ns) for (const ev of n.push(f as unknown as AdkEvent)) out.push({ ev, from: "push" });
+    for (const ev of n.flush()) out.push({ ev, from: "flush" });
+    return out;
+  };
+  const cutAfter = (name: string, pred: (e: JsonValue) => boolean): JsonValue[] => {
+    const ns = natives(name);
+    const i = ns.findIndex(pred);
+    expect(i, `${name}: cut point`).toBeGreaterThan(-1);
+    return ns.slice(0, i + 1);
+  };
+  const isReservedCall = (e: JsonValue) => JSON.stringify(e).includes('"adk_request_');
+  const isPauseSignal = (e: JsonValue) => {
+    const a = ((e as { actions?: Record<string, unknown> }).actions ?? {}) as Record<string, unknown>;
+    const nonEmpty = (v: unknown) => (Array.isArray(v) ? v.length > 0 : v !== null && typeof v === "object" && Object.keys(v as object).length > 0);
+    return nonEmpty(a["requestedAuthConfigs"]) || nonEmpty(a["requestedToolConfirmations"]) || a["skipSummarization"] === true;
+  };
+  for (const hostCompletion of [false, true]) {
+    it(`(no-pause-signal) after-pause-usage-tail cut after the adk_request_credential call${hostCompletion ? ", hostCompletion configured and no completion event fed" : ""}: turn.abort from flush(), never turn.done`, () => {
+      const tagged = runNatives(cutAfter("after-pause-usage-tail", isReservedCall), hostCompletion);
+      expect(tagged.some((t) => t.ev.type === "hitl.ask"), "the ask is on the wire before the cut").toBe(true);
+      expect(tagged.some((t) => t.ev.type === "turn.done")).toBe(false);
+      const aborts = tagged.filter((t) => t.ev.type === "turn.abort");
+      expect(aborts).toHaveLength(1);
+      expect(aborts[0]).toMatchObject({ from: "flush", ev: { type: "turn.abort", reason: "stream-truncated" } });
+      expect(reduce(tagged.map((t) => t.ev)).needsResync).toBe(false);
+    });
+  }
+
+  // Stub usage (the engine fixtures run a stub model): the paused close carries the invocation's usage — the
+  // field-wise sum of every non-partial ADK event's usageMetadata — and no message.end of that turn carries
+  // usage. after-pause-sse-credential is excluded from the equality: ADK's StreamingResponseAggregator
+  // re-surfaces the closed stream's usage on its usage-only tail, so the sum double-counts the first model
+  // call (§8.0 item 24's pending dedupe, its own bar); it is asserted only to carry usage on the terminal.
+  const usageSum = (name: string): { inputTokens: number; outputTokens: number; totalTokens: number } | undefined => {
+    let seen = false; const sum = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+    for (const e of natives(name) as Array<{ partial?: boolean; usageMetadata?: Record<string, number> }>) {
+      const u = e.usageMetadata;
+      if (e.partial === true || !u || Object.keys(u).length === 0) continue;
+      seen = true;
+      sum.inputTokens += u["promptTokenCount"] ?? 0; sum.outputTokens += u["candidatesTokenCount"] ?? 0; sum.totalTokens += u["totalTokenCount"] ?? 0;
+    }
+    return seen ? sum : undefined;
+  };
+  for (const name of AFTER_PAUSE) {
+    for (const completed of [false, true]) {
+      it(`(stub usage) ${name}${completed ? " (host-completion)" : ""}: the paused close carries the invocation's usage; no message.end of the turn carries usage`, () => {
+        const tagged = completed ? runCompleted(name) : run(name);
+        const [term] = assertClosure(tagged);
+        const usage = (term!.ev as { usage?: Record<string, number> }).usage;
+        const expected = usageSum(name);
+        if (expected === undefined) expect(usage, "a fixture with no usageMetadata closes without usage").toBeUndefined();
+        else if (name === "after-pause-sse-credential") expect(usage, "carries usage (the sum is item 24's known overcount)").toBeDefined();
+        else expect(usage).toMatchObject(expected);
+        const turnId = turnOf(term!.ev);
+        for (const t of tagged) if (t.ev.type === "message.end" && turnOf(t.ev) === turnId) expect((t.ev as { usage?: unknown }).usage, "message.end carries no usage").toBeUndefined();
+      });
+    }
+  }
+
+  // §10 item 40 (adk leg): a stream cut mid-turn AFTER a pause signal flushes exactly one paused turn.done and
+  // no turn.abort for that turn — INV-FLUSH (2)'s paused release is the only turn.done a flush may emit.
+  it("(§10.40 adk) after-pause-callback cut after the pause signal, before the callback: flush() emits exactly one paused turn.done, the turn's last event, and no turn.abort", () => {
+    const tagged = runNatives(cutAfter("after-pause-callback", isPauseSignal), false);
+    const [term] = assertClosure(tagged);
+    expect(term).toMatchObject({ from: "flush", ev: { type: "turn.done", finishReason: "paused", outcome: { type: "paused" } } });
+    expect(tagged.filter((t) => t.ev.type === "turn.done")).toHaveLength(1);
+    expect(tagged.some((t) => t.ev.type === "turn.abort")).toBe(false);
+    expect(tagged[tagged.length - 1]).toBe(term);
+  });
+
   it("the pause and its resume (two invokes, one Normalizer each) fold together without a park; the resume is its own turn", () => {
     const tagged = run("wf-pause-resume.invoke1", "wf-pause-resume.invoke2");
     const terms = assertClosure(tagged);
-    expect(terms.map((t) => [t.ev.type, t.from])).toEqual([["turn.done", "push"], ["turn.abort", "flush"]]);
+    expect(terms.map((t) => [t.ev.type, t.from])).toEqual([["turn.done", "flush"], ["turn.abort", "flush"]]);
     expect(new Set(terms.map((t) => turnOf(t.ev))).size).toBe(2);
   });
 
@@ -1276,9 +1372,11 @@ describe("§10.25 — framework pause and completion closure (draft.4): a pause 
 
   // host-completion leg (§8.0 host obligation 4): with the completion event fed after the natives and before flush().
   for (const name of PAUSE) {
-    it(`(host-completion) ${name}: with the completion event fed, a pause still closes paused from push()`, () => {
-      const [term] = assertClosure(runCompleted(name));
+    it(`(host-completion) ${name}: with the completion event fed, a pause closes paused from push() on it, the turn's last event`, () => {
+      const tagged = runCompleted(name);
+      const [term] = assertClosure(tagged);
       expect(term).toMatchObject({ from: "push", ev: { type: "turn.done", finishReason: "paused", outcome: { type: "paused" } } });
+      expect(tagged[tagged.length - 1]).toBe(term);
     });
   }
   for (const name of COMPLETED) {
