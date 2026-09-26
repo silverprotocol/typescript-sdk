@@ -1,0 +1,65 @@
+{
+  "RichTextBlock": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export type RichTextBlock = {\n    type: \"paragraph\";\n    children: RichTextInline[];\n} | {\n    type: \"heading\";\n    level: 1 | 2 | 3 | 4 | 5 | 6;\n    children: RichTextInline[];\n} | {\n    type: \"code-fence\";\n    code: string;\n    lang: string | undefined;\n    closed: boolean;\n} | {\n    type: \"list\";\n    ordered: boolean;\n    start: number | undefined;\n    items: RichTextListItem[];\n} | {\n    type: \"table\";\n    align: (RichTextTableAlign | undefined)[];\n    header: RichTextTableRow;\n    rows: RichTextTableRow[];\n};"
+    ]
+  },
+  "RichTextInline": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export type RichTextInline = {\n    type: \"text\";\n    text: string;\n} | {\n    type: \"break\";\n} | {\n    type: \"strong\";\n    children: RichTextInline[];\n    closed: boolean;\n} | {\n    type: \"em\";\n    children: RichTextInline[];\n    closed: boolean;\n} | {\n    type: \"code\";\n    code: string;\n    closed: boolean;\n} | {\n    type: \"link\";\n    children: RichTextInline[];\n    href: string | undefined;\n    rawHref: string;\n    closed: boolean;\n};"
+    ]
+  },
+  "RichTextListItem": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export type RichTextListItem = {\n    children: RichTextInline[];\n};"
+    ]
+  },
+  "RichTextTableAlign": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export type RichTextTableAlign = \"left\" | \"center\" | \"right\";"
+    ]
+  },
+  "RichTextTableCell": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export type RichTextTableCell = {\n    children: RichTextInline[];\n};"
+    ]
+  },
+  "RichTextTableRow": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export type RichTextTableRow = {\n    cells: RichTextTableCell[];\n};"
+    ]
+  },
+  "default": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export declare function parseRichText(text: string): RichTextBlock[];"
+    ]
+  },
+  "parseInlineRichText": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export declare function parseInlineRichText(text: string): RichTextInline[];"
+    ]
+  },
+  "parseRichText": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export declare function parseRichText(text: string): RichTextBlock[];"
+    ]
+  }
+}

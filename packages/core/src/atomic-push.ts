@@ -22,11 +22,18 @@ import type { AgEvent, JsonValue } from "./agjson.js";
 import type { Normalizer } from "./stream-assembler.js";
 import { isJsonValue, toJsonValue, toJsonValueSafe } from "./wire.js";
 
-/** The constant `message` of the guard's core `error` event. */
+/**
+ * The constant `message` of the guard's core `error` event.
+ *
+ * @beta
+ */
 export const NORMALIZER_ERROR_MESSAGE = "normalizer error";
 
 /** The guard's `code`: the thrown value's constructor NAME only, never its
- *  message (a SyntaxError quotes its input) and never the native. */
+ *  message (a SyntaxError quotes its input) and never the native.
+ *
+ * @beta
+ */
 export function normalizerErrorCode(err: unknown): string {
   try {
     if (err instanceof Error) return err.constructor.name || "Error";
@@ -36,6 +43,11 @@ export function normalizerErrorCode(err: unknown): string {
   return "NonError";
 }
 
+/**
+ * Options for {@link withAtomicPush}.
+ *
+ * @beta
+ */
 export interface AtomicPushOptions {
   /** Run {@link toJsonValueSafe} on each native before the inner push (default
    *  true). With it the journal holds a JSON deep copy of what the inner saw,
@@ -79,6 +91,8 @@ export interface AtomicPushOptions {
  *   invoke (§8.0 obligation 3).
  * - Time: O(bad × prefix). Each throw re-drives the invoke so far, output
  *   dropped. Nothing is paid when nothing throws, beyond the copy.
+ *
+ * @beta
  */
 export function withAtomicPush(createInner: () => Normalizer, opts: AtomicPushOptions = {}): Normalizer {
   const normalize = opts.normalize ?? true;

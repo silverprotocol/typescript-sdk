@@ -1,0 +1,247 @@
+{
+  "OpenAIAgentRef": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIAgentRef {\n    name: string;\n}"
+    ]
+  },
+  "OpenAIAnnotation": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export type OpenAIAnnotation = OpenAIUrlCitationAnnotation | OpenAIFileCitationAnnotation;"
+    ]
+  },
+  "OpenAIApplyPatchCallItem": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIApplyPatchCallItem {\n    type: \"apply_patch_call\";\n    callId: string;\n    status: \"in_progress\" | \"completed\";\n    operation: OpenAIApplyPatchOperation;\n    id?: string;\n    caller?: OpenAIToolCaller;\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
+    ]
+  },
+  "OpenAIApplyPatchCallResultItem": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIApplyPatchCallResultItem {\n    type: \"apply_patch_call_output\";\n    callId: string;\n    status: \"completed\" | \"failed\";\n    output?: string;\n    id?: string;\n    caller?: OpenAIToolCaller;\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
+    ]
+  },
+  "OpenAIApplyPatchOperation": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIApplyPatchOperation {\n    type: \"create_file\" | \"update_file\" | \"delete_file\";\n    path: string;\n    diff?: string;\n    moveTo?: string;\n}"
+    ]
+  },
+  "OpenAIAssistantMessageItem": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIAssistantMessageItem {\n    type?: \"message\";\n    role: \"assistant\";\n    phase?: \"commentary\" | \"final_answer\";\n    status: \"in_progress\" | \"completed\" | \"incomplete\";\n    content: OpenAIContentPart[];\n    id?: string;\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
+    ]
+  },
+  "OpenAIComputerCallItem": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIComputerCallItem {\n    type: \"computer_call\";\n    callId: string;\n    status: \"in_progress\" | \"completed\" | \"incomplete\";\n    action?: JsonValue;\n    actions?: JsonValue;\n    id?: string;\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
+    ]
+  },
+  "OpenAIComputerCallResultItem": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIComputerCallResultItem {\n    type: \"computer_call_result\";\n    callId: string;\n    output: {\n        type: \"computer_screenshot\";\n        data: string;\n    };\n    id?: string;\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
+    ]
+  },
+  "OpenAIContentPart": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export type OpenAIContentPart = OpenAIOutputText | OpenAIRefusal;"
+    ]
+  },
+  "OpenAIFileCitationAnnotation": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIFileCitationAnnotation {\n    type: \"file_citation\";\n    file_id?: string;\n    filename?: string;\n    index?: number;\n}"
+    ]
+  },
+  "OpenAIFunctionCallItem": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIFunctionCallItem {\n    type: \"function_call\";\n    callId: string;\n    name: string;\n    arguments: string;\n    status?: \"in_progress\" | \"completed\" | \"incomplete\";\n    id?: string;\n    caller?: OpenAIToolCaller;\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
+    ]
+  },
+  "OpenAIFunctionCallResultItem": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIFunctionCallResultItem {\n    type: \"function_call_result\";\n    name: string;\n    callId: string;\n    status: \"in_progress\" | \"completed\" | \"incomplete\";\n    output: string | OpenAIToolOutputText | OpenAIToolOutputInputText[];\n    caller?: OpenAIToolCaller;\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
+    ]
+  },
+  "OpenAIHostError": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIHostError {\n    type: \"__host_error__\";\n    code: string;\n    message: string;\n    usage?: AgUsage;\n}"
+    ]
+  },
+  "OpenAIHostedToolCallItem": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIHostedToolCallItem {\n    type: \"hosted_tool_call\";\n    id?: string;\n    name: string;\n    arguments?: string;\n    status?: string;\n    output?: string;\n    caller?: OpenAIToolCaller;\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
+    ]
+  },
+  "OpenAIOutputText": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIOutputText {\n    type: \"output_text\";\n    text: string;\n    annotations?: OpenAIAnnotation[];\n}"
+    ]
+  },
+  "OpenAIProgramCallItem": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIProgramCallItem {\n    type: \"program\";\n    callId: string;\n    code: string;\n    fingerprint: string;\n    id?: string;\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
+    ]
+  },
+  "OpenAIProgramCallResultItem": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIProgramCallResultItem {\n    type: \"program_output\";\n    callId: string;\n    output: string;\n    status: \"completed\" | \"incomplete\";\n    id?: string;\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
+    ]
+  },
+  "OpenAIReasoningItem": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIReasoningItem {\n    type: \"reasoning\";\n    id?: string;\n    content: OpenAIReasoningTextPart[];\n    providerData?: {\n        encrypted_content?: string;\n        [k: string]: JsonValue | undefined;\n    };\n}"
+    ]
+  },
+  "OpenAIReasoningTextPart": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIReasoningTextPart {\n    type: \"input_text\";\n    text: string;\n}"
+    ]
+  },
+  "OpenAIRefusal": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIRefusal {\n    type: \"refusal\";\n    refusal: string;\n}"
+    ]
+  },
+  "OpenAIShellAction": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIShellAction {\n    commands: string[];\n    timeoutMs?: number;\n    maxOutputLength?: number;\n}"
+    ]
+  },
+  "OpenAIShellCallItem": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIShellCallItem {\n    type: \"shell_call\";\n    callId: string;\n    status?: \"in_progress\" | \"completed\" | \"incomplete\";\n    action: OpenAIShellAction;\n    id?: string;\n    caller?: OpenAIToolCaller;\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
+    ]
+  },
+  "OpenAIShellCallOutcome": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIShellCallOutcome {\n    type: \"timeout\" | \"exit\";\n    exitCode?: number | null;\n}"
+    ]
+  },
+  "OpenAIShellCallOutputContent": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIShellCallOutputContent {\n    stdout: string;\n    stderr: string;\n    outcome: OpenAIShellCallOutcome;\n}"
+    ]
+  },
+  "OpenAIShellCallResultItem": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIShellCallResultItem {\n    type: \"shell_call_output\";\n    callId: string;\n    status?: \"in_progress\" | \"completed\" | \"incomplete\";\n    maxOutputLength?: number;\n    output: OpenAIShellCallOutputContent[];\n    id?: string;\n    caller?: OpenAIToolCaller;\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
+    ]
+  },
+  "OpenAIStreamEvent": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export type OpenAIStreamEvent = OpenAIMessageOutputEvent | OpenAIToolCalledEvent | OpenAIToolOutputEvent | OpenAIToolSearchCalledEvent | OpenAIToolSearchOutputCreatedEvent | OpenAIReasoningEvent | OpenAIHandoffRequestedEvent | OpenAIHandoffOccurredEvent | OpenAIToolApprovalRequestedEvent | OpenAICompactionItemCreatedEvent | OpenAIRawModelStreamEvent | OpenAIHostError;"
+    ]
+  },
+  "OpenAIToolCaller": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export type OpenAIToolCaller = {\n    type: \"direct\";\n} | {\n    type: \"program\";\n    callerId: string;\n};"
+    ]
+  },
+  "OpenAIToolOutputInputText": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIToolOutputInputText {\n    type: \"input_text\";\n    text: string;\n}"
+    ]
+  },
+  "OpenAIToolOutputText": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIToolOutputText {\n    type: \"text\";\n    text: string;\n}"
+    ]
+  },
+  "OpenAIToolSearchCallItem": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIToolSearchCallItem {\n    type: \"tool_search_call\";\n    id?: string;\n    call_id?: string | null;\n    callId?: string | null;\n    execution?: \"client\" | \"server\";\n    arguments?: JsonValue;\n    status?: string;\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
+    ]
+  },
+  "OpenAIToolSearchOutputItem": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIToolSearchOutputItem {\n    type: \"tool_search_output\";\n    id?: string;\n    toolSearchAgentName?: string;\n    call_id?: string | null;\n    callId?: string | null;\n    execution?: \"client\" | \"server\";\n    status?: string;\n    tools: {\n        [k: string]: JsonValue;\n    }[];\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
+    ]
+  },
+  "OpenAIUrlCitationAnnotation": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenAIUrlCitationAnnotation {\n    type: \"url_citation\";\n    url: string;\n    title?: string;\n    start_index?: number;\n    end_index?: number;\n}"
+    ]
+  },
+  "OpenaiNormalizerOptions": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface OpenaiNormalizerOptions {\n    invokeId?: string;\n    threadId?: string;\n}"
+    ]
+  },
+  "createOpenaiNormalizer": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export declare function createOpenaiNormalizer(options?: OpenaiNormalizerOptions): Normalizer;"
+    ]
+  },
+  "mapFinishReason": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export declare function mapFinishReason(reason: string | undefined | null): AgFinishReason;"
+    ]
+  }
+}

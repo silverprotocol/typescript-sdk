@@ -14,6 +14,7 @@
     "e2e:capture": "vitest run packages/e2e/src/capture-cli.test.ts",
     "pack:smoke": "node scripts/pack-smoke.mjs",
     "spec-drift": "node scripts/check-spec-drift.mjs",
+    "api-surface": "node scripts/check-api-surface.mjs",
     "fixture-drift": "node scripts/check-fixture-drift.mjs"
   },
   "devDependencies": {

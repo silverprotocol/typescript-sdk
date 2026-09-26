@@ -1,0 +1,51 @@
+{
+  "AgEvent": {
+    "module": "@silverprotocol/core",
+    "tag": "public",
+    "decl": [
+      "export { AgEvent } from \"@silverprotocol/core\""
+    ]
+  },
+  "JsonValue": {
+    "module": "@silverprotocol/core",
+    "tag": "public",
+    "decl": [
+      "export { JsonValue } from \"@silverprotocol/core\""
+    ]
+  },
+  "VERCEL_HOST_ERROR": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export declare const VERCEL_HOST_ERROR = \"__host_error__\";"
+    ]
+  },
+  "VercelNormalizerOptions": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface VercelNormalizerOptions {\n    invokeId?: string;\n    threadId?: string;\n}"
+    ]
+  },
+  "VercelStreamPart": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface VercelStreamPart {\n    type: string;\n    [k: string]: unknown;\n}"
+    ]
+  },
+  "createVercelNormalizer": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export declare function createVercelNormalizer(options?: VercelNormalizerOptions): Normalizer;"
+    ]
+  },
+  "default": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export declare function createVercelNormalizer(options?: VercelNormalizerOptions): Normalizer;"
+    ]
+  }
+}

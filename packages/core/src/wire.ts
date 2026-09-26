@@ -13,19 +13,40 @@ export function toWire(e: AgEvent): JsonValue {
   return w;
 }
 
+/**
+ * A JSON round-trip of `v` (throws where `JSON.stringify` throws; see {@link toJsonValueSafe}).
+ *
+ * @beta
+ */
 export function toJsonValue(v: unknown): JsonValue {
   const w: JsonValue = JSON.parse(JSON.stringify(v));
   return w;
 }
 
-/** The value a cycle is replaced with by {@link toJsonValueSafe} (at the repeated node only). */
+/**
+ * The value a cycle is replaced with by {@link toJsonValueSafe} (at the repeated node only).
+ *
+ * @beta
+ */
 export const JSON_SAFE_CIRCULAR = "[Circular]";
-/** The value a node nested deeper than {@link JSON_SAFE_MAX_DEPTH} is replaced with. */
+/**
+ * The value a node nested deeper than {@link JSON_SAFE_MAX_DEPTH} is replaced with.
+ *
+ * @beta
+ */
 export const JSON_SAFE_MAX_DEPTH_MARK = "[MaxDepth]";
-/** The nesting depth past which the helpers stop descending (never reached by real data). */
+/**
+ * The nesting depth past which the helpers stop descending (never reached by real data).
+ *
+ * @beta
+ */
 export const JSON_SAFE_MAX_DEPTH = 1000;
 
-/** Why {@link toJsonValueSafe} had to degrade a node that `JSON.stringify` would have thrown on. */
+/**
+ * Why {@link toJsonValueSafe} had to degrade a node that `JSON.stringify` would have thrown on.
+ *
+ * @beta
+ */
 export type JsonSafeIssueKind =
   | "bigint" // converted to its decimal string
   | "circular" // replaced with JSON_SAFE_CIRCULAR
@@ -34,7 +55,11 @@ export type JsonSafeIssueKind =
   | "throwing-keys" // the node's keys could not be enumerated: node omitted
   | "max-depth"; // replaced with JSON_SAFE_MAX_DEPTH_MARK
 
-/** One degraded node: `path` is `$` for the top, then `.key` / `[index]` segments. */
+/**
+ * One degraded node: `path` is `$` for the top, then `.key` / `[index]` segments.
+ *
+ * @beta
+ */
 export interface JsonSafeIssue {
   path: string;
   kind: JsonSafeIssueKind;
@@ -48,6 +73,8 @@ export interface JsonSafeIssue {
  * shallower than {@link JSON_SAFE_MAX_DEPTH}. Never throws (a throwing getter
  * or proxy trap answers `false`). The walk allocates nothing per node beyond
  * an ancestor stack, so a facet can afford it on every native event.
+ *
+ * @beta
  */
 export function isJsonValue(v: unknown): v is JsonValue {
   const ancestors: object[] = [];
@@ -155,6 +182,8 @@ export function isJsonValue(v: unknown): v is JsonValue {
  * inside emitted events. A caller that needs isolation copies the result
  * ({@link isJsonValue} is the cheap check). A facet must neither mutate the
  * returned value nor retain it past the `push()` that produced it.
+ *
+ * @beta
  */
 export function toJsonValueSafe(v: unknown): JsonValue {
   return toJsonValueSafeWithIssues(v).value;
@@ -175,6 +204,8 @@ function isErrorObject(o: object): boolean {
  * {@link toJsonValueSafe}, plus the list of nodes it had to degrade (empty when
  * the input was JSON-able). A consumer that must not forward an invented value
  * can branch on `issues.length > 0` instead of using `value`.
+ *
+ * @beta
  */
 export function toJsonValueSafeWithIssues(v: unknown): { value: JsonValue; issues: readonly JsonSafeIssue[] } {
   if (isJsonValue(v)) return { value: v, issues: [] };

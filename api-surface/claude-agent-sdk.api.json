@@ -1,0 +1,30 @@
+{
+  "ClaudeNormalizerOptions": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface ClaudeNormalizerOptions {\n    threadId?: string;\n    invokeId?: string;\n}"
+    ]
+  },
+  "createClaudeNormalizer": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export declare function createClaudeNormalizer(options?: ClaudeNormalizerOptions): Normalizer;"
+    ]
+  },
+  "default": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export declare function createClaudeNormalizer(options?: ClaudeNormalizerOptions): Normalizer;"
+    ]
+  },
+  "mapStopReason": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "declare function mapStopReason(stop: BetaStopReason | string | null): AgFinishReason;"
+    ]
+  }
+}

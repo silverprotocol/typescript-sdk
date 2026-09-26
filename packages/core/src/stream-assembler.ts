@@ -52,19 +52,33 @@ type DistributiveOmit<T, K extends keyof never> = T extends unknown ? Omit<T, K>
  * `AgClosedEventType` arm spreads `...base`, which already carries both), but
  * `DistributiveOmit` over the union does not surface them uniformly to callers
  * (e.g. `emit()`'s `ev.turnId` read) without this alias-level annotation.
+ *
+ * @beta
  */
 export type SeqlessEvent = DistributiveOmit<AgClosedEventType, "seq"> & {
   turnId?: string;
   messageId?: string;
 };
 
-/** Fields for `toolStart`: the tool.start arm minus base envelope fields. */
+/**
+ * Fields for `toolStart`: the tool.start arm minus base envelope fields.
+ *
+ * @beta
+ */
 export type ToolStartFields = Omit<ToolStartEvent, "type" | "seq" | "turnId">;
 
-/** Fields for `toolDone`: the tool.done arm minus base envelope fields + optional turnId for backfill. */
+/**
+ * Fields for `toolDone`: the tool.done arm minus base envelope fields + optional turnId for backfill.
+ *
+ * @beta
+ */
 export type ToolDoneFields = Omit<ToolDoneEvent, "type" | "seq"> & { turnId?: string };
 
-/** Fields required by `openMessage`. Mirrors the load-bearing fields on `message.start`. */
+/**
+ * Fields required by `openMessage`. Mirrors the load-bearing fields on `message.start`.
+ *
+ * @beta
+ */
 export interface OpenMessageFields {
   id: string;
   role: AgRole;
@@ -78,7 +92,11 @@ export interface OpenMessageFields {
   model?: string;
 }
 
-/** Fields required by `closeTurnDone`. */
+/**
+ * Fields required by `closeTurnDone`.
+ *
+ * @beta
+ */
 export type TurnDoneFields = Omit<TurnDoneEvent, "type" | "seq" | "turnId">;
 
 /** Stateful push/flush interface implemented by concrete Normalizer facets. */
@@ -104,7 +122,11 @@ const RESERVED_EXT_KEYS = new Set<string>([
   "_meta",
 ]);
 
-/** An opaque {@link StreamAssembler.checkpoint} value: restore it with {@link StreamAssembler.rollback}. */
+/**
+ * An opaque {@link StreamAssembler.checkpoint} value: restore it with {@link StreamAssembler.rollback}.
+ *
+ * @beta
+ */
 export interface AssemblerCheckpoint {
   readonly seq: number;
   readonly seenTurns: ReadonlySet<string>;
@@ -118,6 +140,11 @@ export interface AssemblerCheckpoint {
   readonly bufferLength: number;
 }
 
+/**
+ * The seq, turn and message bookkeeping a normalizer emits through: it stamps `seq`, opens and closes turns and messages, and backfills ids.
+ *
+ * @beta
+ */
 export class StreamAssembler {
   // Turn-scoped monotonic sequence counter (never calls Date.now/Math.random).
   #seq = 0;

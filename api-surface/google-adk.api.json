@@ -1,0 +1,65 @@
+{
+  "ADK_HOST_COMPLETE_TYPE": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export declare const ADK_HOST_COMPLETE_TYPE = \"__host_complete__\";"
+    ]
+  },
+  "ADK_HOST_ERROR_TYPE": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export declare const ADK_HOST_ERROR_TYPE = \"__host_error__\";"
+    ]
+  },
+  "AdkContent": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface AdkContent {\n    role?: string;\n    parts?: AdkPart[];\n}"
+    ]
+  },
+  "AdkEvent": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface AdkEvent {\n    content?: AdkContent;\n    partial?: boolean;\n    turnComplete?: boolean;\n    finishReason?: string;\n    errorCode?: string;\n    errorMessage?: string;\n    id?: string;\n    invocationId?: string;\n    author?: string;\n    actions?: {\n        skipSummarization?: boolean;\n        transferToAgent?: string;\n        escalate?: boolean;\n        requestedAuthConfigs?: {\n            [callId: string]: JsonValue;\n        };\n        requestedToolConfirmations?: {\n            [callId: string]: {\n                hint?: string;\n                confirmed?: boolean;\n                payload?: JsonValue;\n            };\n        };\n        stateDelta?: {\n            [k: string]: JsonValue;\n        };\n        artifactDelta?: {\n            [k: string]: JsonValue;\n        };\n        renderUiWidgets?: Array<{\n            name?: string;\n            code?: string;\n        }>;\n        agentState?: JsonValue;\n        endOfAgent?: boolean;\n    };\n    usageMetadata?: {\n        promptTokenCount?: number;\n        candidatesTokenCount?: number;\n        totalTokenCount?: number;\n        cachedContentTokenCount?: number;\n        thoughtsTokenCount?: number;\n        toolUsePromptTokenCount?: number;\n        responseTokenCount?: number;\n        promptTokensDetails?: JsonValue;\n        responseTokensDetails?: JsonValue;\n    };\n    safetyRatings?: Array<{\n        category?: string;\n        probability?: string;\n        score?: number;\n        blocked?: boolean;\n    }>;\n    promptFeedback?: {\n        blockReason?: string;\n        safetyRatings?: Array<{\n            category?: string;\n            probability?: string;\n            score?: number;\n            blocked?: boolean;\n        }>;\n    };\n    groundingMetadata?: {\n        groundingChunks?: Array<{\n            web?: {\n                uri?: string;\n                title?: string;\n            };\n        }>;\n        groundingSupports?: Array<{\n            groundingChunkIndices?: number[];\n            confidenceScores?: number[];\n            segment?: {\n                startIndex?: number;\n                endIndex?: number;\n                text?: string;\n            };\n        }>;\n        searchEntryPoint?: {\n            renderedContent?: string;\n        };\n    };\n    citationMetadata?: {\n        citations?: Array<{\n            uri?: string;\n            title?: string;\n            startIndex?: number;\n            endIndex?: number;\n        }>;\n    };\n    interrupted?: boolean;\n    longRunningToolIds?: string[];\n    branch?: string;\n    timestamp?: string;\n    inputTranscription?: {\n        text?: string;\n        finished?: boolean;\n    };\n    outputTranscription?: {\n        text?: string;\n        finished?: boolean;\n    };\n    customMetadata?: {\n        [k: string]: JsonValue;\n    };\n    candidateIndex?: number;\n    modelVersion?: string;\n    interactionId?: string;\n    isCompacted?: boolean;\n    startTime?: number;\n    endTime?: number;\n    compactedContent?: string;\n    isScratchpad?: boolean;\n    output?: JsonValue;\n    route?: JsonValue;\n    nodeInfo?: {\n        path?: string;\n        outputFor?: string[];\n        messageAsOutput?: boolean;\n    };\n    isolationScope?: string;\n}"
+    ]
+  },
+  "AdkNormalizerOptions": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface AdkNormalizerOptions {\n    hostCompletion?: boolean;\n    threadId?: string;\n    invokeId?: string;\n}"
+    ]
+  },
+  "AdkPart": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export interface AdkPart {\n    text?: string;\n    thought?: boolean;\n    thoughtSignature?: string;\n    functionCall?: {\n        name: string;\n        args?: {\n            [k: string]: JsonValue;\n        };\n        id?: string | null;\n    };\n    functionResponse?: {\n        name: string;\n        response?: {\n            [k: string]: JsonValue;\n        };\n        id?: string | null;\n        thoughtSignature?: string;\n    };\n    inlineData?: {\n        mimeType?: string;\n        data?: string;\n        displayName?: string;\n    };\n    executableCode?: {\n        language?: string;\n        code?: string;\n    };\n    codeExecutionResult?: {\n        outcome?: string;\n        output?: string;\n    };\n    fileData?: {\n        mimeType?: string;\n        fileUri?: string;\n        displayName?: string;\n    };\n    mediaResolution?: JsonValue;\n    videoMetadata?: JsonValue;\n    toolCall?: JsonValue;\n    toolResponse?: JsonValue;\n    partMetadata?: JsonValue;\n    audioTranscription?: JsonValue;\n    mediaProcessing?: JsonValue;\n    speechMetadata?: JsonValue;\n}"
+    ]
+  },
+  "createAdkNormalizer": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export declare function createAdkNormalizer(options?: AdkNormalizerOptions): Normalizer;"
+    ]
+  },
+  "isLossyFinishReason": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export declare function isLossyFinishReason(reason: string): boolean;"
+    ]
+  },
+  "mapFinishReason": {
+    "module": "index",
+    "tag": "public",
+    "decl": [
+      "export declare function mapFinishReason(reason: string | undefined | null): AgFinishReason;"
+    ]
+  }
+}
