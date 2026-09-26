@@ -207,7 +207,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 50, leg: "vercel", title: "Cache-inclusive inputTokens and per-object usage scope (draft.5)", disposition: "N/A", citation: "§8 applicability: the exact-equality, flag, costScope and placeholder legs are the claude-agent-sdk facet's; the depth-any >= scan binds this producer's goldens through the replay leg" },
   { n: 48, title: "Record events on unopened turns (draft.5, §5.0 INV-OWNER): for each of the six record events — alone: no record, no resync; before its turn.start: one record with the opener's thread and the landing; after a turns-less snapshot naming the turn by message: one record with that thread; message.start alone gives display.required its record; a tool.done into a held turn parks and creates no message; a turnId-less turn.error after a closed turn parks and leaves usage/outcome; no record or message carries a thread no event carried (vectors + every corpus golden)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.48 (a)-(h), reference Reducer + reduce(); the hold/adopt/cap unit vectors incl. B1-B3 in core reduce.test.ts \"record events on a turn whose thread is not known\"" },
   { n: 49, title: "Opener first for record events (draft.5): on every replay golden, each prompt.blocked / guardrail.result / agent.capabilities / source / handoff / display.required names, or resolves by messageId to, a turn a turn.start or subagent.start opened earlier in that invoke (types with no corpus instance pass vacuously and are counted)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.49(producers), a scan of every corpus/*/*.agjson.json" },
-  { n: 51, title: "Persistable projection (draft.5): toPersistable omits every turn's displayRequired[] and changes nothing else; the fold is not mutated; identity on every replay golden (no golden carries the field)", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.51, reduce-level; PENDING probe's core toPersistable (red until it lands)" },
+  { n: 51, title: "Persistable projection (draft.5; memory scopes draft.6): toPersistable omits every turn's displayRequired[] and every memory record whose scope is neither thread nor declared (absent = none), toPersistableWithReport reports each omitted record by (scope, key) in fold order, and changes nothing else; the fold is not mutated; on every replay golden the projection equals the fold with displayRequired and every non-thread memory record omitted, and the report is empty", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.51, reduce-level" },
   { n: 52, leg: "claude", title: "No provider credit token (draft.5, §13.10): a complete assistant frame whose stop_details holds fallback_credit_token at the top and at depth, a tool_result_meta remedy holding the same key, and a tool call whose input holds it as user content → no occurrence of the token value in the events or the fold; stop_details carried less every token with recommended_model verbatim; the tool_result block's _meta entry less the key; the tool call's input keeps the user-authored key", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.52(claude), facet-driven via createClaudeNormalizer + Reducer; PENDING the claude tool_result_meta carryVerbatim patch for the remedy leg" },
   { n: 52, leg: "vercel", title: "No provider credit token (draft.5): a finish step whose providerMetadata.anthropic.stopDetails holds fallback_credit_token / fallbackCreditToken at the top and at depth → no occurrence in the events or the fold; the step's folded message metadata.stopDetails carries the object less every token with recommendedModel verbatim", disposition: "RUNNABLE", citation: "spec-conformance.test.ts §10.52(vercel), facet-driven via createVercelNormalizer" },
   { n: 52, leg: "openai", title: "No provider credit token (draft.5)", disposition: "N/A", citation: "§8 applicability: no Anthropic stop_details surface on the openai-agents wire" },
@@ -3488,8 +3488,11 @@ describe("§10.50 — cache-inclusive inputTokens and per-object usage scope (dr
 // by design (a named window), and tsc stays green through the namespace import.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("§10.51 — persistable projection (draft.5): toPersistable omits every turn's displayRequired[] and nothing else", () => {
-  const toPersistable = (coreNs as unknown as Record<string, unknown>)["toPersistable"] as ((r: AgReduceResult) => AgReduceResult) | undefined;
+describe("§10.51 — persistable projection (draft.5; memory scopes draft.6): toPersistable omits every turn's displayRequired[] and every undeclared non-thread memory record, and nothing else", () => {
+  type PersistOpts = { memoryScopes?: Array<"agent" | "user" | "skill"> };
+  type Omitted = { scope: string; key?: string };
+  const toPersistable = (coreNs as unknown as Record<string, unknown>)["toPersistable"] as ((r: AgReduceResult, o?: PersistOpts) => AgReduceResult) | undefined;
+  const toPersistableWithReport = (coreNs as unknown as Record<string, unknown>)["toPersistableWithReport"] as ((r: AgReduceResult, o?: PersistOpts) => { result: AgReduceResult; omitted: Omitted[] }) | undefined;
   const P = (evs: Array<Record<string, unknown>>) => evs.map((e) => AgEvent.parse(e));
   const fold = () => reduce(P([
     { type: "turn.start", seq: 0, threadId: "th51", turnId: "t1" },
@@ -3519,7 +3522,7 @@ describe("§10.51 — persistable projection (draft.5): toPersistable omits ever
     expect(toPersistable!(F)).toEqual(F);
   });
 
-  it("(corpus) for every replay golden the projection equals the fold (no committed golden carries displayRequired)", () => {
+  it("(corpus) for every replay golden the projection equals the fold with displayRequired and every non-thread memory record omitted, and the report lists exactly those records (empty for every committed golden)", () => {
     expect(typeof toPersistable).toBe("function");
     const corpus = new URL("../corpus/", import.meta.url);
     let files = 0;
@@ -3528,10 +3531,50 @@ describe("§10.51 — persistable projection (draft.5): toPersistable omits ever
         files++;
         const evs = JSON.parse(readFileSync(new URL(`${dir}/${f}`, corpus), "utf8")) as unknown as JsonValue[];
         const F = reduce(ingestAgEvents(evs)).result;
-        expect(toPersistable!(F), `${dir}/${f}`).toEqual(F);
+        const expected = structuredClone(F) as AgReduceResult;
+        for (const t of expected.turns) delete (t as Record<string, unknown>)["displayRequired"];
+        expected.memory = expected.memory.filter((m) => m.scope === "thread");
+        const nonThread = F.memory.filter((m) => m.scope !== "thread").map(({ scope, key }) => (key === undefined ? { scope } : { scope, key }));
+        expect(toPersistable!(F), `${dir}/${f}`).toEqual(expected);
+        expect(toPersistableWithReport!(F).omitted, `${dir}/${f}: the report lists exactly the omitted records`).toEqual(nonThread);
+        expect(nonThread, `${dir}/${f}: empty for every committed golden`).toEqual([]);
       }
     }
     expect(files).toBeGreaterThan(0);
+  });
+
+  // memory scopes (draft.6; §13.11, host obligation 7): the projection omits every memory record whose scope is
+  // neither `thread` nor declared — absent = none — and the reporting form lists each omission by (scope, key).
+  const memFold = () => reduce(P([
+    { type: "turn.start", seq: 0, threadId: "th51", turnId: "t1" },
+    { type: "display.required", seq: 1, turnId: "t1", provider: "google", html: "<p>x</p>" },
+    { type: "memory.write", seq: 2, turnId: "t1", scope: "agent", key: "ka", value: 1 },
+    { type: "memory.write", seq: 3, turnId: "t1", scope: "user", key: "ku", value: 2 },
+    { type: "memory.write", seq: 4, turnId: "t1", scope: "skill", key: "ks", value: 3 },
+    { type: "memory.write", seq: 5, turnId: "t1", scope: "thread", key: "kt", value: 4 },
+    { type: "turn.done", seq: 6, turnId: "t1", outcome: { type: "success" }, finishReason: "stop" },
+  ])).result;
+  const scopes = (r: AgReduceResult) => r.memory.map((m) => m.scope);
+  it("(reducer) called with no memoryScopes — which declares none — the projection keeps exactly the thread record and the report lists agent, user and skill by (scope, key) in the fold's order", () => {
+    expect(typeof toPersistableWithReport, "core exports toPersistableWithReport").toBe("function");
+    const F = memFold();
+    expect(scopes(F)).toEqual(["agent", "user", "skill", "thread"]);
+    const before = structuredClone(F);
+    for (const opts of [undefined, { memoryScopes: [] as Array<"agent" | "user" | "skill"> }]) {
+      const { result, omitted } = toPersistableWithReport!(F, opts);
+      expect(scopes(result)).toEqual(["thread"]);
+      expect(result.turns[0] !== undefined && "displayRequired" in (result.turns[0] as object)).toBe(false);
+      expect(omitted).toEqual([{ scope: "agent", key: "ka" }, { scope: "user", key: "ku" }, { scope: "skill", key: "ks" }]);
+      expect(toPersistable!(F, opts)).toEqual(result); // the plain form is the same projection without the report
+    }
+    expect(F).toEqual(before); // never mutated
+  });
+  it("(reducer) memoryScopes [\"user\"] keeps the user and thread records in the fold's order and reports the other two", () => {
+    const F = memFold();
+    const { result, omitted } = toPersistableWithReport!(F, { memoryScopes: ["user"] });
+    expect(scopes(result)).toEqual(["user", "thread"]);
+    expect(omitted).toEqual([{ scope: "agent", key: "ka" }, { scope: "skill", key: "ks" }]);
+    expect(toPersistable!(F, { memoryScopes: ["user"] })).toEqual(result);
   });
 });
 
