@@ -4891,3 +4891,29 @@ describe("createAdkNormalizer — with hostCompletion, a paused close waits for 
     expect(out.findIndex((e) => e.type === "text.delta")).toBeGreaterThan(done);
   });
 });
+
+describe("createAdkNormalizer — with hostCompletion, a paused run that ends without the host-completion event loses its pause", () => {
+  const authConfig = { authScheme: { type: "apiKey", in: "header", name: "X-Key" }, credentialKey: "mail-key" };
+  const pause: AdkEvent[] = [
+    event([{ functionCall: { name: "read_mail", args: {}, id: "fc-1" } }]),
+    event([{ functionCall: { name: "adk_request_credential", args: { functionCallId: "fc-1", authConfig }, id: "adk-cred-1" } }], { longRunningToolIds: ["adk-cred-1"] }),
+    {
+      invocationId: "inv_fixture_1",
+      content: { role: "user", parts: [{ functionResponse: { name: "read_mail", id: "fc-1", response: { status: "authorization requested" } } }] },
+      actions: { requestedAuthConfigs: { "fc-1": authConfig } },
+    },
+  ];
+  const terminalOf = (tail: JsonValue[]) => {
+    const n = createAdkNormalizer({ invokeId: "adk", hostCompletion: true });
+    const out = [...pause.flatMap((e) => n.push(toJson(e))), ...tail.flatMap((x) => n.push(x)), ...n.flush()];
+    return out.filter((e) => e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort");
+  };
+
+  it("a cancel or an abort signal (no event fed): turn.abort (stream-truncated) at flush", () => {
+    expect(terminalOf([])).toEqual([expect.objectContaining({ type: "turn.abort", reason: "stream-truncated" })]);
+  });
+
+  it("a thrown error the host feeds: turn.error", () => {
+    expect(terminalOf([{ type: ADK_HOST_ERROR_TYPE, code: "Error", message: "boom" }])).toEqual([expect.objectContaining({ type: "turn.error" })]);
+  });
+});
