@@ -4762,3 +4762,88 @@ describe("createAdkNormalizer — the threadId option", () => {
     expect(JSON.stringify(absent)).toBe(JSON.stringify(drive({ invokeId: "adk", threadId: "google" })));
   });
 });
+
+describe("createAdkNormalizer — a Live turnComplete right after a tool response is not the turn's end", () => {
+  const inv = { invocationId: "inv_live_tool" };
+  const usage = (prompt: number, response: number, total: number): AdkEvent => ({
+    ...inv,
+    usageMetadata: { promptTokenCount: prompt, responseTokenCount: response, totalTokenCount: total },
+  });
+  // The wire order of a real Live tool call with no barge-in (gemini-3.8-live
+  // over ADK 2.1.0): the call generation's usage, the call, ADK's function
+  // response, the call generation's turnComplete, then the reply generation,
+  // its usage and its own turnComplete.
+  const callThenReply: AdkEvent[] = [
+    usage(666, 15, 681),
+    event([{ functionCall: { name: "echo", args: { message: "probe" }, id: "fc-1" } }], inv),
+    { ...inv, content: { role: "user", parts: [{ functionResponse: { name: "echo", id: "fc-1", response: { result: "probe" } } }] } },
+    { ...inv, turnComplete: true },
+    event([{ text: "The tool " }], { ...inv, partial: true }),
+    event([{ text: "The tool returned probe." }], inv),
+    usage(709, 74, 783),
+    { ...inv, turnComplete: true },
+  ];
+
+  it("keeps the turn open for the reply and closes it once, on the reply's turnComplete; the fold does not park", () => {
+    const n = createAdkNormalizer({ invokeId: "adk" });
+    const pushed = callThenReply.flatMap((e) => n.push(toJson(e)));
+    const flushed = n.flush();
+    const out = [...pushed, ...flushed];
+    const terminals = out.filter((e) => e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort");
+    expect(terminals).toHaveLength(1);
+    expect(terminals[0]).toMatchObject({ type: "turn.done", outcome: { type: "success" } });
+    // In-band: the close comes from push(), after the reply's text.
+    expect(pushed).toContain(terminals[0]);
+    const lastText = out.map((e) => e.type).lastIndexOf("text.delta");
+    expect(out.indexOf(terminals[0]!)).toBeGreaterThan(lastText);
+    expect(out.filter((e) => e.type === "turn.start")).toHaveLength(1);
+    const r = new Reducer();
+    for (const e of out) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const folded = r.result();
+    expect(folded.turns).toHaveLength(1);
+    expect(folded.turns[0]?.outcome).toMatchObject({ type: "success" });
+    const replyText = folded.messages
+      .flatMap((m) => m.content)
+      .flatMap((b) => (b.type === "text" ? [b.text] : []))
+      .join("");
+    expect(replyText).toBe("The tool returned probe.");
+  });
+
+  it("a Live turnComplete after the reply's output closes in-band, as before", () => {
+    const out = run([
+      event([{ functionCall: { name: "echo", args: { message: "probe" }, id: "fc-1" } }], inv),
+      { ...inv, content: { role: "user", parts: [{ functionResponse: { name: "echo", id: "fc-1", response: { result: "probe" } } }] } },
+      event([{ text: "Done." }], inv),
+      { ...inv, turnComplete: true },
+    ]);
+    const done = out.findIndex((e) => e.type === "turn.done");
+    expect(done).toBeGreaterThan(out.map((e) => e.type).lastIndexOf("text.delta"));
+    expect(out.filter((e) => e.type === "turn.done")).toHaveLength(1);
+  });
+
+  const called: AdkEvent[] = [
+    event([{ functionCall: { name: "echo", args: { message: "probe" }, id: "fc-1" } }], inv),
+    { ...inv, content: { role: "user", parts: [{ functionResponse: { name: "echo", id: "fc-1", response: { result: "probe" } } }] } },
+  ];
+  /** The terminals push() emits, by type, in order. */
+  const inBandTerminals = (events: AdkEvent[]) => {
+    const n = createAdkNormalizer({ invokeId: "adk" });
+    return events
+      .flatMap((e) => n.push(toJson(e)))
+      .filter((e) => e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort")
+      .map((e) => e.type);
+  };
+
+  it("an error after a tool response still closes the turn at once", () => {
+    expect(inBandTerminals([...called, { ...inv, errorCode: "UNAVAILABLE", errorMessage: "live session dropped" }])).toEqual(["turn.error"]);
+  });
+
+  it("a reply carried only by output transcription ends the wait", () => {
+    expect(inBandTerminals([...called, { ...inv, outputTranscription: { text: "Done.", finished: true } }, { ...inv, turnComplete: true }])).toEqual(["turn.done"]);
+  });
+
+  it("user-role content after a tool response is not the reply", () => {
+    expect(inBandTerminals([...called, { ...inv, content: { role: "user", parts: [{ text: "hello?" }] } }, { ...inv, turnComplete: true }])).toEqual([]);
+  });
+});

@@ -71,9 +71,14 @@
  * turn early and carry its usage there; the capture shows no such event. ADK's
  * bare `{interrupted}` re-yield, after a message that carried both flags, adds
  * nothing and is not emitted, and neither is ADK's `finished` transcription
- * when it repeats the chunks already streamed for the turn. Two limits remain.
- * A generation that follows a completed reply, with no barge-in, lands in the
- * closed turn and parks a reducer, unless `hostCompletion` defers that close.
+ * when it repeats the chunks already streamed for the turn. A tool call and
+ * the model's reply share one turn: ADK yields the call generation's
+ * turnComplete after the function response and before the reply (a
+ * gemini-3.8-live capture `live-tool-gemini38live`), so a turnComplete with no
+ * model output since the last function response does not close the turn. Two
+ * limits remain. A generation that follows a completed generation with no
+ * pending tool exchange, and with no barge-in, lands in the closed turn and
+ * parks a reducer, unless `hostCompletion` defers that close.
  * And when text is buffered at the interrupt, ADK yields only the text
  * aggregate, without the flag (utils/live_connection_utils.js), so this facet
  * sees no interrupt and the turn closes at flush as `stream-truncated`.
@@ -835,6 +840,14 @@ function isAdkPauseEnd(event: AdkEvent): boolean {
  *  or output transcription. */
 function hasLiveContent(ev: AdkEvent): boolean {
   return (ev.content?.parts?.length ?? 0) > 0 || ev.inputTranscription !== undefined || ev.outputTranscription !== undefined;
+}
+
+/** Whether an event carries model output: a part of `model`-role content, or
+ *  output-transcription text. ADK's function response is `user`-role. */
+function hasModelOutput(ev: AdkEvent): boolean {
+  if (ev.content?.role === "model" && (ev.content.parts?.length ?? 0) > 0) return true;
+  const transcribed = ev.outputTranscription?.text;
+  return typeof transcribed === "string" && transcribed.length > 0;
 }
 
 /** The event's own turn key: its invocationId, else its id. `undefined` when it
@@ -2032,6 +2045,12 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
   // opens a new turn, `<turn>_g<n>`, instead of landing in the closed one.
   const generationOf = new Map<string, number>();
   const interruptClosed = new Set<string>();
+  // Turns whose last function response has no model output after it yet. On
+  // the Live path the model always answers a tool result with a reply
+  // generation, and ADK can yield the call generation's turnComplete between
+  // the response and that reply (a gemini-3.8-live capture,
+  // `live-tool-gemini38live`), so that turnComplete does not end the turn.
+  const awaitingReply = new Set<string>();
   const pendingLongRunning = new Map<string, Set<string>>();
   const assembledToolCalls = new Set<string>(); // FC dedup across partial/aggregate (Task 3)
   // Null-id call mint state (audit M47) — per-invoke ordinal counter + the
@@ -2095,6 +2114,9 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
       event.errorCode !== undefined;
     // is_final_response: a non-partial event with no pending function call and not interrupted.
     if (hasFunctionCall || interrupted || !hasCompletion) return;
+    // A bare Live turnComplete between a function response and the model's
+    // reply ends the call generation, not the turn (see awaitingReply).
+    if (event.finishReason === undefined && event.errorCode === undefined && awaitingReply.has(turnId)) return;
     // The error-close predicate, spelled ONCE: both errorCode AND errorMessage
     // present ⇒ turn.error (values captured here so the close below needs no
     // re-narrowing).
@@ -2413,6 +2435,8 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // (a second barge-in, or one after a success close) adds none.
     if (event.interrupted === true && !closedTurns.has(turnId)) interruptPending.add(turnId);
     carryLiveUsageDetails(event, turnId, messageId, isPartial);
+    if (parts.some((p) => p.functionResponse !== undefined)) awaitingReply.add(turnId);
+    else if (hasModelOutput(event)) awaitingReply.delete(turnId);
     maybeCloseTurn(event, turnId, messageId, isPartial);
     // The interrupted generation closes on its own turnComplete (its trailing
     // usageMetadata arrives before it), or at flush() / host completion.
