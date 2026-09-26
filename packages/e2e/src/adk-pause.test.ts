@@ -104,11 +104,15 @@ const TRUNCATED = ["truncated-after-classify", "truncated-after-spike-final"] as
 const ABORT_AT_FLUSH = [...COMPLETED, ...TRUNCATED] as const;
 const SUCCESS = ["nodetool-in-llmagent"] as const;
 const KNOWN_GAPS = ["known-gap-sequential-root", "known-gap-after-agent-callback"] as const;
+/** Pauses the invocation outlives: an ADK event follows the pause end in the
+ *  same invocation and carries state and content (adk-pause-fixtures.gen.test.ts,
+ *  GEN_ADK_PAUSE_FOLLOW). */
+const AFTER_PAUSE = ["after-pause-usage-tail", "after-pause-callback", "after-pause-sequential", "after-pause-input-callback"] as const;
 
 describe("rd-06 P-RED: ADK pause / completion closure (§10 item 25, step-1 scope)", () => {
   it("the fixture set is complete (non-vacuity)", () => {
     const have = readdirSync(DIR).filter((f) => f.endsWith(".native.json")).map((f) => f.replace(".native.json", "")).sort();
-    const want = [...PAUSE, ...ABORT_AT_FLUSH, ...SUCCESS, ...KNOWN_GAPS, "wf-pause-resume.invoke1", "wf-pause-resume.invoke2"].sort();
+    const want = [...PAUSE, ...ABORT_AT_FLUSH, ...SUCCESS, ...KNOWN_GAPS, ...AFTER_PAUSE, "wf-pause-resume.invoke1", "wf-pause-resume.invoke2"].sort();
     expect(have).toEqual(want);
   });
 
@@ -201,6 +205,35 @@ describe("rd-06 P-RED: ADK pause / completion closure (§10 item 25, step-1 scop
       const [term] = terminals(tagged);
       expect(term?.from).toBe("push");
       expect(outcomeOf(term!.ev).type).toBe("success");
+    });
+  }
+});
+
+describe("pauses the invocation outlives (§8.0 item 26: the paused close at the latest on the host-completion event)", () => {
+  for (const name of AFTER_PAUSE) {
+    it(`KNOWN GAP on the legacy path: ${name} parks without the host-completion opt-in (the paused close precedes the invocation's later events)`, () => {
+      const { r, tagged } = fold(load(name));
+      expect(r.needsResync).toBe(true);
+      const [term] = terminals(tagged);
+      expect(term?.from).toBe("push");
+      expect(outcomeOf(term!.ev).type).toBe("paused");
+      expect(tagged.indexOf(term!)).toBeLessThan(tagged.length - 1);
+    });
+
+    it(`${name}: with the sentinel fed, the paused close waits for it — one paused terminal, the stream's last event, no park`, () => {
+      const { r, tagged } = foldWith(true, load(name));
+      expect(r.needsResync).toBe(false);
+      expectOneTerminalAndNothingAfter(tagged);
+      const terms = terminals(tagged);
+      expect(terms).toHaveLength(1);
+      expect(terms[0]!.from).toBe("push");
+      expect(tagged[tagged.length - 1]).toBe(terms[0]);
+      expect(outcomeOf(terms[0]!.ev).type).toBe("paused");
+      expect((terms[0]!.ev as { finishReason?: string }).finishReason).toBe("paused");
+      expect(outcomeOf(terms[0]!.ev).asks).toHaveLength(1);
+      // The invocation's later content lands inside the paused turn.
+      const closeAt = tagged.indexOf(terms[0]!);
+      expect(tagged.slice(0, closeAt).some((t) => t.ev.type === "text.delta")).toBe(true);
     });
   }
 });

@@ -349,3 +349,86 @@ describe.runIf(process.env["GEN_ADK_AUTH_URI"] === "1")("an OAuth2 credential re
     writeFileSync(join(ADK_PAUSE_DIR, "plain-credential-authuri.native.json"), JSON.stringify(events, null, 2) + "\n");
   }, 120_000);
 });
+
+/**
+ * Pauses that the invocation outlives: an ADK event follows the pause end in the
+ * same invocation and carries state and content. ADK 2.1.0 ends the invocation
+ * at a confirmation (agents/llm_agent.js postprocess sets `endInvocation`) but
+ * not at a credential request or a request-input call, so:
+ *  - after-pause-usage-tail: the pausing agent's model stream ends with a
+ *    usage-only chunk; the step loop does not stop on a final response when the
+ *    step's last event is such an empty metadata event after tool calls
+ *    (agents/llm_agent.js:458), so the model runs again in the same invocation;
+ *  - after-pause-callback / after-pause-input-callback: an after-agent callback
+ *    on the pausing agent (agents/base_agent.js runAsync skips it only on
+ *    `endInvocation`);
+ *  - after-pause-sequential: the next sub-agent of a SequentialAgent root
+ *    (agents/sequential_agent.js runs every sub-agent).
+ *
+ * Its own gate, so regenerating these never rewrites the other fixtures:
+ *   GEN_ADK_PAUSE_FOLLOW=1 npx vitest run --config ../../vitest.config.ts src/adk-pause-fixtures.gen.test.ts
+ */
+describe.runIf(process.env["GEN_ADK_PAUSE_FOLLOW"] === "1")("pauses the invocation outlives (real @google/adk, stub model)", () => {
+  /** StubModel, plus a trailing usage-only chunk after each response. */
+  class UsageTailModel extends StubModel {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    override async *generateContentAsync(req: any): AsyncGenerator<any, void> {
+      yield* super.generateContentAsync(req);
+      yield { usageMetadata: { promptTokenCount: 12, candidatesTokenCount: 3, totalTokenCount: 15 } };
+    }
+  }
+  const credentialTool = (): FunctionTool =>
+    new FunctionTool({
+      name: "read_mail",
+      description: "Read mail.",
+      parameters: z.object({}),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      execute: async (_a: unknown, toolContext: any) => {
+        toolContext.requestCredential({ authScheme: { type: "apiKey", in: "header", name: "X-Key" }, credentialKey: "mail-key" });
+        return { status: "authorization requested" };
+      },
+    });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const noteAfterAgent = (ctx: any) => {
+    ctx.state.set("follow_up", "noted");
+    return { role: "model", parts: [{ text: "Noted." }] };
+  };
+
+  it("writes the after-pause-* fixtures", async () => {
+    const out: Record<string, JsonValue[]> = {};
+    out["after-pause-usage-tail"] = await runOnce(
+      new LlmAgent({ name: "agent", model: new UsageTailModel({ name: "read_mail", args: {} }), instruction: "Read the mail.", tools: [credentialTool()] }),
+    );
+    out["after-pause-callback"] = await runOnce(
+      new LlmAgent({
+        name: "agent",
+        model: new StubModel({ name: "read_mail", args: {} }),
+        instruction: "Read the mail.",
+        tools: [credentialTool()],
+        afterAgentCallback: noteAfterAgent,
+      }),
+    );
+    out["after-pause-sequential"] = await runOnce(
+      new SequentialAgent({
+        name: "root",
+        subAgents: [
+          new LlmAgent({ name: "agent", model: new StubModel({ name: "read_mail", args: {} }), instruction: "Read the mail.", tools: [credentialTool()] }),
+          new LlmAgent({ name: "next", model: new StubModel(undefined), instruction: "Say done." }),
+        ],
+      }),
+    );
+    out["after-pause-input-callback"] = await runOnce(
+      new LlmAgent({
+        name: "agent",
+        model: new StubModel({ name: requestInputTool.name, args: { message: "Which city?" } }),
+        instruction: "Ask for a city.",
+        tools: [requestInputTool],
+        afterAgentCallback: noteAfterAgent,
+      }),
+    );
+    mkdirSync(ADK_PAUSE_DIR, { recursive: true });
+    for (const [name, events] of Object.entries(out)) {
+      writeFileSync(join(ADK_PAUSE_DIR, `${name}.native.json`), JSON.stringify(events, null, 2) + "\n");
+    }
+  }, 120_000);
+});

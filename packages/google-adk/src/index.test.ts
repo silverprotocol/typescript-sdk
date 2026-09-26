@@ -4847,3 +4847,47 @@ describe("createAdkNormalizer — a Live turnComplete right after a tool respons
     expect(inBandTerminals([...called, { ...inv, content: { role: "user", parts: [{ text: "hello?" }] } }, { ...inv, turnComplete: true }])).toEqual([]);
   });
 });
+
+describe("createAdkNormalizer — with hostCompletion, a paused close waits for the host-completion event", () => {
+  const authConfig = { authScheme: { type: "apiKey", in: "header", name: "X-Key" }, credentialKey: "mail-key" };
+  // A credential pause, then an ADK event that follows the pause end in the
+  // same invocation: here the model's own reply, with a blocked safety rating.
+  const pauseThenReply: AdkEvent[] = [
+    event([{ functionCall: { name: "read_mail", args: {}, id: "fc-1" } }]),
+    event([{ functionCall: { name: "adk_request_credential", args: { functionCallId: "fc-1", authConfig }, id: "adk-cred-1" } }], { longRunningToolIds: ["adk-cred-1"] }),
+    {
+      invocationId: "inv_fixture_1",
+      content: { role: "user", parts: [{ functionResponse: { name: "read_mail", id: "fc-1", response: { status: "authorization requested" } } }] },
+      actions: { requestedAuthConfigs: { "fc-1": authConfig } },
+    },
+    event([{ text: "Please sign in." }], {
+      finishReason: "STOP",
+      safetyRatings: [{ category: "HARM_CATEGORY_HARASSMENT", probability: "HIGH", blocked: true }],
+    }),
+  ];
+
+  it("the reply lands inside the paused turn, and the one paused terminal closes it on the marker with the reply's safety", () => {
+    const n = createAdkNormalizer({ invokeId: "adk", hostCompletion: true });
+    const out = [...pauseThenReply.flatMap((e) => n.push(toJson(e))), ...n.push({ type: "__host_complete__" }), ...n.flush()];
+    const terminals = out.filter((e) => e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort");
+    expect(terminals).toHaveLength(1);
+    expect(out[out.length - 1]).toBe(terminals[0]);
+    expect(terminals[0]).toMatchObject({
+      type: "turn.done",
+      outcome: { type: "paused" },
+      finishReason: "paused",
+      safety: [{ category: "HARM_CATEGORY_HARASSMENT", blocked: true }],
+    });
+    expect(out.findIndex((e) => e.type === "text.delta")).toBeLessThan(out.indexOf(terminals[0]!));
+    const r = new Reducer();
+    for (const e of out) r.push(e);
+    expect(r.needsResync).toBe(false);
+  });
+
+  it("without the opt-in the paused close stays on the pause end", () => {
+    const out = run(pauseThenReply);
+    const done = out.findIndex((e) => e.type === "turn.done");
+    expect(out[done]).toMatchObject({ outcome: { type: "paused" } });
+    expect(out.findIndex((e) => e.type === "text.delta")).toBeGreaterThan(done);
+  });
+});

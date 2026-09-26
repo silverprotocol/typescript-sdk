@@ -1,0 +1,160 @@
+[
+  {
+    "invocationId": "e-b4be1f4f-c526-493f-8e17-8b8e9714c398",
+    "author": "agent",
+    "id": "4iXxGp9E",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790392980622,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "name": "read_mail",
+            "args": {},
+            "id": "adk-3bd688cf-89a5-4f84-872a-75747717eed6"
+          }
+        }
+      ]
+    },
+    "turnComplete": true
+  },
+  {
+    "invocationId": "e-b4be1f4f-c526-493f-8e17-8b8e9714c398",
+    "author": "agent",
+    "content": {
+      "parts": [
+        {
+          "functionCall": {
+            "name": "adk_request_credential",
+            "args": {
+              "function_call_id": "adk-3bd688cf-89a5-4f84-872a-75747717eed6",
+              "auth_config": {
+                "authScheme": {
+                  "type": "apiKey",
+                  "in": "header",
+                  "name": "X-Key"
+                },
+                "credentialKey": "mail-key"
+              }
+            },
+            "id": "adk-91e3339e-d910-4d81-b155-74c24ee02084"
+          }
+        }
+      ],
+      "role": "user"
+    },
+    "longRunningToolIds": [
+      "adk-91e3339e-d910-4d81-b155-74c24ee02084"
+    ],
+    "id": "Rlu8N3Tt",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "timestamp": 1790392980626
+  },
+  {
+    "invocationId": "e-b4be1f4f-c526-493f-8e17-8b8e9714c398",
+    "author": "agent",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "adk-3bd688cf-89a5-4f84-872a-75747717eed6",
+            "name": "read_mail",
+            "response": {
+              "status": "authorization requested"
+            }
+          }
+        }
+      ]
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {
+        "adk-3bd688cf-89a5-4f84-872a-75747717eed6": {
+          "authScheme": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "X-Key"
+          },
+          "credentialKey": "mail-key"
+        }
+      },
+      "requestedToolConfirmations": {}
+    },
+    "id": "MMkkAj4G",
+    "longRunningToolIds": [],
+    "timestamp": 1790392980626
+  },
+  {
+    "invocationId": "e-b4be1f4f-c526-493f-8e17-8b8e9714c398",
+    "author": "agent",
+    "id": "dv89CXT3",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790392980626,
+    "usageMetadata": {
+      "promptTokenCount": 12,
+      "candidatesTokenCount": 3,
+      "totalTokenCount": 15
+    }
+  },
+  {
+    "invocationId": "e-b4be1f4f-c526-493f-8e17-8b8e9714c398",
+    "author": "agent",
+    "id": "ODlQTdbK",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790392980628,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Done."
+        }
+      ]
+    },
+    "turnComplete": true,
+    "finishReason": "STOP"
+  },
+  {
+    "invocationId": "e-b4be1f4f-c526-493f-8e17-8b8e9714c398",
+    "author": "agent",
+    "id": "K3IjVIau",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790392980628,
+    "usageMetadata": {
+      "promptTokenCount": 12,
+      "candidatesTokenCount": 3,
+      "totalTokenCount": 15
+    }
+  }
+]

@@ -1,0 +1,124 @@
+[
+  {
+    "invocationId": "e-d9f9d7c5-66f6-4482-900c-f78403180a71",
+    "author": "agent",
+    "id": "csbSBTRB",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790392980629,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "name": "read_mail",
+            "args": {},
+            "id": "adk-93c0e7ca-21e1-488d-9ef3-505fe82a1c02"
+          }
+        }
+      ]
+    },
+    "turnComplete": true
+  },
+  {
+    "invocationId": "e-d9f9d7c5-66f6-4482-900c-f78403180a71",
+    "author": "agent",
+    "content": {
+      "parts": [
+        {
+          "functionCall": {
+            "name": "adk_request_credential",
+            "args": {
+              "function_call_id": "adk-93c0e7ca-21e1-488d-9ef3-505fe82a1c02",
+              "auth_config": {
+                "authScheme": {
+                  "type": "apiKey",
+                  "in": "header",
+                  "name": "X-Key"
+                },
+                "credentialKey": "mail-key"
+              }
+            },
+            "id": "adk-b0e9e3d0-0290-4245-a6b7-3222287e3740"
+          }
+        }
+      ],
+      "role": "user"
+    },
+    "longRunningToolIds": [
+      "adk-b0e9e3d0-0290-4245-a6b7-3222287e3740"
+    ],
+    "id": "aCEOYcNi",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "timestamp": 1790392980629
+  },
+  {
+    "invocationId": "e-d9f9d7c5-66f6-4482-900c-f78403180a71",
+    "author": "agent",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "adk-93c0e7ca-21e1-488d-9ef3-505fe82a1c02",
+            "name": "read_mail",
+            "response": {
+              "status": "authorization requested"
+            }
+          }
+        }
+      ]
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {
+        "adk-93c0e7ca-21e1-488d-9ef3-505fe82a1c02": {
+          "authScheme": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "X-Key"
+          },
+          "credentialKey": "mail-key"
+        }
+      },
+      "requestedToolConfirmations": {}
+    },
+    "id": "VXL6m1RY",
+    "longRunningToolIds": [],
+    "timestamp": 1790392980629
+  },
+  {
+    "invocationId": "e-d9f9d7c5-66f6-4482-900c-f78403180a71",
+    "author": "agent",
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Noted."
+        }
+      ]
+    },
+    "actions": {
+      "stateDelta": {
+        "follow_up": "noted"
+      },
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "FEd2yRw3",
+    "longRunningToolIds": [],
+    "timestamp": 1790392980629
+  }
+]

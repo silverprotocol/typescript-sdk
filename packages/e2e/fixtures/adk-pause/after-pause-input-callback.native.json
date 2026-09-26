@@ -1,0 +1,69 @@
+[
+  {
+    "invocationId": "e-2d3b3476-b5c3-4d92-acb2-90ee9bb601e7",
+    "author": "agent",
+    "id": "e4EHinph",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [
+      "adk-395d6bd5-3e4b-4d32-aa15-7fd48182d8ee"
+    ],
+    "timestamp": 1790392980631,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "name": "adk_request_input",
+            "args": {
+              "message": "Which city?"
+            },
+            "id": "adk-395d6bd5-3e4b-4d32-aa15-7fd48182d8ee"
+          }
+        }
+      ]
+    },
+    "turnComplete": true
+  },
+  {
+    "invocationId": "e-2d3b3476-b5c3-4d92-acb2-90ee9bb601e7",
+    "author": "agent",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "skipSummarization": true
+    },
+    "id": "DmqhbXH3",
+    "longRunningToolIds": [],
+    "timestamp": 1790392980632
+  },
+  {
+    "invocationId": "e-2d3b3476-b5c3-4d92-acb2-90ee9bb601e7",
+    "author": "agent",
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Noted."
+        }
+      ]
+    },
+    "actions": {
+      "stateDelta": {
+        "follow_up": "noted"
+      },
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "uCF0Ixdn",
+    "longRunningToolIds": [],
+    "timestamp": 1790392980632
+  }
+]

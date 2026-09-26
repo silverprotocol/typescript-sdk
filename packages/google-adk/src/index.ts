@@ -2098,6 +2098,16 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // before, their close never fired and the turn flushed as an abort.
     const pending = pendingAsks.get(turnId);
     if (!interrupted && pending !== undefined && pending.length > 0 && isAdkPauseEnd(event)) {
+      // With the host-completion opt-in, the paused close waits for the
+      // host-completion event (item 26: "at the latest, on the host-completion
+      // event"; hostComplete() closes a turn whose asks are pending as paused).
+      // ADK ends the invocation at a confirmation but not at a credential
+      // request or a request-input call, so an ADK event can follow the pause
+      // end in the same invocation and carry state and content: the model run
+      // again when its stream ended with a usage-only chunk
+      // (agents/llm_agent.js:458), an after-agent callback, the next sub-agent
+      // of a SequentialAgent root. Without the opt-in the close stays here.
+      if (hostCompletion) return;
       closedTurns.add(turnId);
       const usage = mapUsage(usageByTurn.get(turnId) ?? event.usageMetadata);
       a.closeMessage(messageId);
@@ -2135,12 +2145,13 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // event (the `hostCompletion` opt-in, §8.0 host obligation 4); without it,
     // it flushes turn.abort.
     if (errorClose === undefined && event.nodeInfo !== undefined) return;
-    // Host obligation 4 (opt-in): a SUCCESS close waits for the host-completion
-    // event, because the run may not be over (a SequentialAgent's next agent,
-    // after-agent callback content). The final response is stashed and closed
+    // Host obligation 4 (opt-in): a success or paused close waits for the
+    // host-completion event, because the run may not be over (a
+    // SequentialAgent's next agent, after-agent callback content, the model
+    // run again after a pause). The final response is stashed and closed
     // unchanged on the sentinel, so a stream ending here is byte-identical.
-    // Error and paused closes stay immediate.
-    if (hostCompletion && errorClose === undefined && !((pendingAsks.get(turnId)?.length ?? 0) > 0)) {
+    // Error closes stay immediate.
+    if (hostCompletion && errorClose === undefined) {
       deferredClose.set(turnId, event);
       return;
     }
@@ -2239,6 +2250,13 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
       const messageId = `msg_${turnId}`;
       const asks = pendingAsks.get(turnId);
       if (asks !== undefined && asks.length > 0) {
+        // A final response stashed while the asks were pending closes as it
+        // would have on arrival (paused, with its safety and lossy-finish carries).
+        const stashedPaused = deferredClose.get(turnId);
+        if (stashedPaused !== undefined) {
+          closeOnFinalResponse(stashedPaused, turnId, messageId, undefined);
+          continue;
+        }
         closedTurns.add(turnId);
         const usage = mapUsage(usageByTurn.get(turnId));
         a.closeMessage(messageId);
