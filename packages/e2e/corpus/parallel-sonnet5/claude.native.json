@@ -1,0 +1,485 @@
+[
+  {
+    "type": "system",
+    "subtype": "init",
+    "cwd": "<redacted-path>",
+    "session_id": "b7459511-89d2-4f53-9249-3ff1f34e071d",
+    "tools": [
+      "mcp__d__find_doc",
+      "mcp__t__echo"
+    ],
+    "mcp_servers": [
+      {
+        "name": "d",
+        "status": "connected",
+        "source": "dynamic"
+      },
+      {
+        "name": "t",
+        "status": "connected",
+        "source": "dynamic"
+      }
+    ],
+    "model": "claude-sonnet-5",
+    "permissionMode": "default",
+    "slash_commands": [
+      "deep-research",
+      "design",
+      "design-sync",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator",
+      "advisor",
+      "agents",
+      "auto-mode-setup",
+      "autocompact",
+      "clear",
+      "color",
+      "compact",
+      "config",
+      "output-style",
+      "context",
+      "effort",
+      "fast",
+      "heapdump",
+      "init",
+      "mcp",
+      "import",
+      "model",
+      "__remote-workflow",
+      "workflow-launch-exec",
+      "reload-plugins",
+      "reload-skills",
+      "rename",
+      "security-review",
+      "usage",
+      "insights",
+      "recap",
+      "skill-doctor",
+      "goal",
+      "design-consent",
+      "design-revoke",
+      "list-agents",
+      "team-onboarding"
+    ],
+    "terminal_slash_commands": [
+      "doctor",
+      "color",
+      "reload-plugins"
+    ],
+    "apiKeySource": "ANTHROPIC_API_KEY",
+    "claude_code_version": "2.1.280",
+    "output_style": "default",
+    "agents": [
+      "claude",
+      "Explore",
+      "general-purpose",
+      "Plan",
+      "statusline-setup"
+    ],
+    "skills": [
+      "deep-research",
+      "design",
+      "design-sync",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator"
+    ],
+    "plugins": [
+      {
+        "name": "agents-md",
+        "path": "builtin",
+        "source": "agents-md@builtin"
+      },
+      {
+        "name": "telemetry",
+        "path": "builtin",
+        "source": "telemetry@builtin"
+      }
+    ],
+    "capabilities": [
+      "interrupt_receipt_v1",
+      "interrupt_cancel_queued_v1",
+      "msg_lifecycle_v1",
+      "mcp_read_resource_v1",
+      "mcp_tool_ui_meta_v1"
+    ],
+    "analytics_disabled": false,
+    "product_feedback_disabled": false,
+    "uuid": "e6148f0d-81f5-45b4-aa9e-b3aec07e541a",
+    "messaging_socket_path": "/tmp/cc-socks/3843.sock",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-sonnet-5",
+      "id": "msg_011CfRPRX7BfPT1MHWrhYygs",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_017uAopAMwHvhpnuoLouqxnW",
+          "name": "mcp__d__find_doc",
+          "input": {
+            "topic": "parallel probes"
+          },
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1293,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 25,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "b7459511-89d2-4f53-9249-3ff1f34e071d",
+    "uuid": "7c463def-a021-4b1c-8174-b8cfff8dbb6a",
+    "timestamp": "2026-09-26T04:03:44.716Z",
+    "request_id": "req_011CfRPRWr4BPeP6MbDWVZ2w",
+    "wire_tool_inputs": {
+      "toolu_017uAopAMwHvhpnuoLouqxnW": {
+        "topic": "parallel probes"
+      }
+    },
+    "tool_use_meta": [
+      {
+        "id": "toolu_017uAopAMwHvhpnuoLouqxnW",
+        "display_name": "Find Doc",
+        "server_display_name": "mock-resource-link"
+      }
+    ]
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "tool_use_id": "toolu_017uAopAMwHvhpnuoLouqxnW",
+          "type": "tool_result",
+          "content": [
+            {
+              "type": "text",
+              "text": "Found one document for \"parallel probes\"."
+            },
+            {
+              "type": "text",
+              "text": "[Resource link: conformance-probe-resource-link.md] file:///docs/conformance-probe-resource-link.md (A document the find_doc tool links to instead of inlining.)"
+            }
+          ]
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "session_id": "b7459511-89d2-4f53-9249-3ff1f34e071d",
+    "uuid": "ce689597-d7ff-4ad9-bf41-d58a39698dfc",
+    "timestamp": "2026-09-26T04:03:44.733Z",
+    "tool_use_result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "Found one document for \"parallel probes\"."
+        },
+        {
+          "type": "text",
+          "text": "[Resource link: conformance-probe-resource-link.md] file:///docs/conformance-probe-resource-link.md (A document the find_doc tool links to instead of inlining.)"
+        }
+      ],
+      "resourceLinks": [
+        {
+          "uri": "file:///docs/conformance-probe-resource-link.md",
+          "name": "conformance-probe-resource-link.md",
+          "title": "Conformance probe: resource link",
+          "description": "A document the find_doc tool links to instead of inlining.",
+          "mimeType": "text/markdown",
+          "size": 2048,
+          "annotations": {
+            "audience": [
+              "user",
+              "assistant"
+            ],
+            "priority": 0.7
+          }
+        }
+      ]
+    }
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-sonnet-5",
+      "id": "msg_011CfRPRX7BfPT1MHWrhYygs",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_01H2cFf4FJ2VeaMwsNDXETke",
+          "name": "mcp__t__echo",
+          "input": {
+            "message": "A streaming protocol keeps parallel tool calls distinct by assigning each invocation a unique identifier the moment it begins, then tagging every subsequent chunk of output with that same ID. As the model emits interleaved tokens for multiple concurrent calls, the client demultiplexes the stream by routing each fragment to its corresponding buffer based on its tag, rather than assuming a single linear sequence. Structural markers denote the start and end of each call's arguments, so partial JSON can be reassembled correctly even when chunks from different calls arrive in alternating order. Ordering guarantees within a single call's ID are preserved, while no ordering is assumed across different IDs. This lets consumers safely accumulate, parse, and dispatch each tool call independently, avoiding cross-contamination of arguments and enabling true parallel execution without race conditions or corrupted payloads."
+          },
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1293,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 25,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "b7459511-89d2-4f53-9249-3ff1f34e071d",
+    "uuid": "57410139-60da-48da-bfe5-33ef97d045da",
+    "timestamp": "2026-09-26T04:03:47.791Z",
+    "request_id": "req_011CfRPRWr4BPeP6MbDWVZ2w",
+    "wire_tool_inputs": {
+      "toolu_01H2cFf4FJ2VeaMwsNDXETke": {
+        "message": "A streaming protocol keeps parallel tool calls distinct by assigning each invocation a unique identifier the moment it begins, then tagging every subsequent chunk of output with that same ID. As the model emits interleaved tokens for multiple concurrent calls, the client demultiplexes the stream by routing each fragment to its corresponding buffer based on its tag, rather than assuming a single linear sequence. Structural markers denote the start and end of each call's arguments, so partial JSON can be reassembled correctly even when chunks from different calls arrive in alternating order. Ordering guarantees within a single call's ID are preserved, while no ordering is assumed across different IDs. This lets consumers safely accumulate, parse, and dispatch each tool call independently, avoiding cross-contamination of arguments and enabling true parallel execution without race conditions or corrupted payloads."
+      }
+    },
+    "tool_use_meta": [
+      {
+        "id": "toolu_01H2cFf4FJ2VeaMwsNDXETke",
+        "display_name": "Echo",
+        "server_display_name": "mock-text"
+      }
+    ]
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "tool_use_id": "toolu_01H2cFf4FJ2VeaMwsNDXETke",
+          "type": "tool_result",
+          "content": [
+            {
+              "type": "text",
+              "text": "A streaming protocol keeps parallel tool calls distinct by assigning each invocation a unique identifier the moment it begins, then tagging every subsequent chunk of output with that same ID. As the model emits interleaved tokens for multiple concurrent calls, the client demultiplexes the stream by routing each fragment to its corresponding buffer based on its tag, rather than assuming a single linear sequence. Structural markers denote the start and end of each call's arguments, so partial JSON can be reassembled correctly even when chunks from different calls arrive in alternating order. Ordering guarantees within a single call's ID are preserved, while no ordering is assumed across different IDs. This lets consumers safely accumulate, parse, and dispatch each tool call independently, avoiding cross-contamination of arguments and enabling true parallel execution without race conditions or corrupted payloads."
+            }
+          ]
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "session_id": "b7459511-89d2-4f53-9249-3ff1f34e071d",
+    "uuid": "bc09a34a-78e5-4980-82ae-355429c1be63",
+    "timestamp": "2026-09-26T04:03:47.802Z",
+    "tool_use_result": [
+      {
+        "type": "text",
+        "text": "A streaming protocol keeps parallel tool calls distinct by assigning each invocation a unique identifier the moment it begins, then tagging every subsequent chunk of output with that same ID. As the model emits interleaved tokens for multiple concurrent calls, the client demultiplexes the stream by routing each fragment to its corresponding buffer based on its tag, rather than assuming a single linear sequence. Structural markers denote the start and end of each call's arguments, so partial JSON can be reassembled correctly even when chunks from different calls arrive in alternating order. Ordering guarantees within a single call's ID are preserved, while no ordering is assumed across different IDs. This lets consumers safely accumulate, parse, and dispatch each tool call independently, avoiding cross-contamination of arguments and enabling true parallel execution without race conditions or corrupted payloads."
+      }
+    ]
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-sonnet-5",
+      "id": "msg_011CfRPRqbBE15gApKLLhqnE",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Here are both results:\n\n**1. Document search (\"parallel probes\")**\nFound: a resource link (not inlined content) — `conformance-probe-resource-link.md` at `file:///docs/conformance-probe-resource-link.md`. It's described as \"A document the find_doc tool links to instead of inlining,\" so you'd need to open that link to view its actual contents.\n\n**2. Echoed paragraph on streaming protocols and parallel tool calls**\n> A streaming protocol keeps parallel tool calls distinct by assigning each invocation a unique identifier the moment it begins, then tagging every subsequent chunk of output with that same ID. As the model emits interleaved tokens for multiple concurrent calls, the client demultiplexes the stream by routing each fragment to its corresponding buffer based on its tag, rather than assuming a single linear sequence. Structural markers denote the start and end of each call's arguments, so partial JSON can be reassembled correctly even when chunks from different calls arrive in alternating order. Ordering guarantees within a single call's ID are preserved, while no ordering is assumed across different IDs. This lets consumers safely accumulate, parse, and dispatch each tool call independently, avoiding cross-contamination of arguments and enabling true parallel execution without race conditions or corrupted payloads."
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 861,
+        "cache_read_input_tokens": 1293,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 861,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 3,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "b7459511-89d2-4f53-9249-3ff1f34e071d",
+    "uuid": "fab44688-0a6d-46f0-b170-02645e29e593",
+    "timestamp": "2026-09-26T04:03:51.354Z",
+    "request_id": "req_011CfRPRqMnfLwWhVCpSHaoP"
+  },
+  {
+    "duration_api_ms": 8821,
+    "stop_reason": "end_turn",
+    "session_id": "b7459511-89d2-4f53-9249-3ff1f34e071d",
+    "total_cost_usd": 0.0119217,
+    "usage": {
+      "input_tokens": 4,
+      "cache_creation_input_tokens": 861,
+      "cache_read_input_tokens": 2586,
+      "output_tokens": 823,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 861
+      },
+      "inference_geo": "global",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 432,
+          "cache_read_input_tokens": 1293,
+          "cache_creation_input_tokens": 861,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 861,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-haiku-4-5-20251001": {
+        "inputTokens": 939,
+        "outputTokens": 15,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0,
+        "webSearchRequests": 0,
+        "costUSD": 0.001014,
+        "contextWindow": 200000,
+        "maxOutputTokens": 32000,
+        "thinkingTokens": 0,
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-sonnet-5": {
+        "inputTokens": 4,
+        "outputTokens": 823,
+        "cacheReadInputTokens": 2586,
+        "cacheCreationInputTokens": 861,
+        "webSearchRequests": 0,
+        "costUSD": 0.0109077,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000,
+        "thinkingTokens": 0,
+        "canonicalModel": "claude-sonnet-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required",
+    "subagent_stats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "is_error": false,
+    "num_turns": 3,
+    "subtype": "success",
+    "api_error_status": null,
+    "result": "Here are both results:\n\n**1. Document search (\"parallel probes\")**\nFound: a resource link (not inlined content) — `conformance-probe-resource-link.md` at `file:///docs/conformance-probe-resource-link.md`. It's described as \"A document the find_doc tool links to instead of inlining,\" so you'd need to open that link to view its actual contents.\n\n**2. Echoed paragraph on streaming protocols and parallel tool calls**\n> A streaming protocol keeps parallel tool calls distinct by assigning each invocation a unique identifier the moment it begins, then tagging every subsequent chunk of output with that same ID. As the model emits interleaved tokens for multiple concurrent calls, the client demultiplexes the stream by routing each fragment to its corresponding buffer based on its tag, rather than assuming a single linear sequence. Structural markers denote the start and end of each call's arguments, so partial JSON can be reassembled correctly even when chunks from different calls arrive in alternating order. Ordering guarantees within a single call's ID are preserved, while no ordering is assumed across different IDs. This lets consumers safely accumulate, parse, and dispatch each tool call independently, avoiding cross-contamination of arguments and enabling true parallel execution without race conditions or corrupted payloads.",
+    "ttft_ms": 1469,
+    "type": "result",
+    "duration_ms": 8163,
+    "uuid": "c57444b8-5952-4015-91c2-384ea04b9cb5",
+    "ttft_stream_ms": 1132,
+    "time_to_request_ms": 193,
+    "first_content_frame_ms": 1132,
+    "queued_turn_count": 0,
+    "result_index": 0
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "name": "parallel-partials-thinking-sonnet5",
+  "prompt": "Think briefly, then do two things at once: find the document about 'streamed tool execution', and echo back a paragraph of about 120 words that you write about why a tool result can arrive before the next tool call finishes streaming. Then tell me both results.",
+  "mcpServers": [
+    { "key": "d", "kind": "resource-link" },
+    { "key": "t", "kind": "text" }
+  ],
+  "steer": "You MUST call BOTH tools in the SAME assistant message, in parallel, in this order: first mcp__d__find_doc with topic='streamed tool execution', then mcp__t__echo with message set to your ~120-word paragraph. Do not wait for the first result before the second call. Do not answer from memory.",
+  "includePartialMessages": true,
+  "thinkingDisplay": "summarized"
+}

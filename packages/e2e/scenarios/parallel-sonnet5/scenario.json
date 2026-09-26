@@ -1,0 +1,15 @@
+{
+  "name": "parallel-sonnet5",
+  "prompt": "Do two things at once: find the document about 'parallel probes', and echo back a paragraph of about 120 words that you write about how a streaming protocol keeps parallel tool calls apart. Then tell me both results.",
+  "mcpServers": [
+    {
+      "key": "d",
+      "kind": "resource-link"
+    },
+    {
+      "key": "t",
+      "kind": "text"
+    }
+  ],
+  "steer": "You MUST call BOTH tools in the SAME assistant message, in parallel, in this order: first mcp__d__find_doc with topic='parallel probes', then mcp__t__echo with message set to your ~120-word paragraph. Do not wait for the first result before the second call. Do not answer from memory."
+}

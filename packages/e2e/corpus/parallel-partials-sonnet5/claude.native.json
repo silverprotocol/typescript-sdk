@@ -1,0 +1,2557 @@
+[
+  {
+    "type": "system",
+    "subtype": "init",
+    "cwd": "<redacted-path>",
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "tools": [
+      "mcp__d__find_doc",
+      "mcp__t__echo"
+    ],
+    "mcp_servers": [
+      {
+        "name": "d",
+        "status": "connected",
+        "source": "dynamic"
+      },
+      {
+        "name": "t",
+        "status": "connected",
+        "source": "dynamic"
+      }
+    ],
+    "model": "claude-sonnet-5",
+    "permissionMode": "default",
+    "slash_commands": [
+      "deep-research",
+      "design",
+      "design-sync",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator",
+      "advisor",
+      "agents",
+      "auto-mode-setup",
+      "autocompact",
+      "clear",
+      "color",
+      "compact",
+      "config",
+      "output-style",
+      "context",
+      "effort",
+      "fast",
+      "heapdump",
+      "init",
+      "mcp",
+      "import",
+      "model",
+      "__remote-workflow",
+      "workflow-launch-exec",
+      "reload-plugins",
+      "reload-skills",
+      "rename",
+      "security-review",
+      "usage",
+      "insights",
+      "recap",
+      "skill-doctor",
+      "goal",
+      "design-consent",
+      "design-revoke",
+      "list-agents",
+      "team-onboarding"
+    ],
+    "terminal_slash_commands": [
+      "doctor",
+      "color",
+      "reload-plugins"
+    ],
+    "apiKeySource": "ANTHROPIC_API_KEY",
+    "claude_code_version": "2.1.280",
+    "output_style": "default",
+    "agents": [
+      "claude",
+      "Explore",
+      "general-purpose",
+      "Plan",
+      "statusline-setup"
+    ],
+    "skills": [
+      "deep-research",
+      "design",
+      "design-sync",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator"
+    ],
+    "plugins": [
+      {
+        "name": "agents-md",
+        "path": "builtin",
+        "source": "agents-md@builtin"
+      },
+      {
+        "name": "telemetry",
+        "path": "builtin",
+        "source": "telemetry@builtin"
+      }
+    ],
+    "capabilities": [
+      "interrupt_receipt_v1",
+      "interrupt_cancel_queued_v1",
+      "msg_lifecycle_v1",
+      "mcp_read_resource_v1",
+      "mcp_tool_ui_meta_v1"
+    ],
+    "analytics_disabled": false,
+    "product_feedback_disabled": false,
+    "uuid": "19a7ec1e-37af-41c3-b664-d472281900a6",
+    "messaging_socket_path": "/tmp/cc-socks/76459.sock",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required"
+  },
+  {
+    "type": "system",
+    "subtype": "status",
+    "status": "requesting",
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "uuid": "9a810780-1a1a-4c1b-a586-ee8f81f9ee7b"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_start",
+      "message": {
+        "model": "claude-sonnet-5",
+        "id": "msg_011CfRPFWmKkyh6RqaWVkRKs",
+        "type": "message",
+        "role": "assistant",
+        "content": [],
+        "container": null,
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 1293,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 1293,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 25,
+          "service_tier": "standard",
+          "inference_geo": "global"
+        },
+        "input_transformations": [],
+        "diagnostics": null,
+        "context_management": null
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "7c6483d3-f661-442b-b4f8-626bf2cfcaa0",
+    "ttft_ms": 990
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_start",
+      "index": 0,
+      "content_block": {
+        "type": "tool_use",
+        "id": "toolu_016PRqgugk47ThcT6aKSdx2e",
+        "name": "mcp__d__find_doc",
+        "input": {},
+        "caller": {
+          "type": "direct"
+        }
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "8496a5ed-692f-412e-8edc-4d29629a1836"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": ""
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "e0e688d7-f5c2-41a7-8572-1df7095f2fd3"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "{\"topic\": \"parallel probes"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "68d78e7f-8924-43b4-9008-abdd440935ba"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "\"}"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "dabeb8e8-bfa1-4fe3-aaa7-bd0f1225aa57"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-sonnet-5",
+      "id": "msg_011CfRPFWmKkyh6RqaWVkRKs",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_016PRqgugk47ThcT6aKSdx2e",
+          "name": "mcp__d__find_doc",
+          "input": {
+            "topic": "parallel probes"
+          },
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 1293,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 1293,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 25,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "uuid": "1cc90148-7dcf-42d9-9795-820863fba72f",
+    "timestamp": "2026-09-26T04:01:29.002Z",
+    "request_id": "req_011CfRPFWPzJgPdzaGwxk8YX",
+    "wire_tool_inputs": {
+      "toolu_016PRqgugk47ThcT6aKSdx2e": {
+        "topic": "parallel probes"
+      }
+    },
+    "tool_use_meta": [
+      {
+        "id": "toolu_016PRqgugk47ThcT6aKSdx2e",
+        "display_name": "Find Doc",
+        "server_display_name": "mock-resource-link"
+      }
+    ]
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_stop",
+      "index": 0
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "5d47628c-6d41-497b-a245-27335a8a47a7"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_start",
+      "index": 1,
+      "content_block": {
+        "type": "tool_use",
+        "id": "toolu_01Pzo3d3wccoMxBjTRbH9NvX",
+        "name": "mcp__t__echo",
+        "input": {},
+        "caller": {
+          "type": "direct"
+        }
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "dca5998b-87df-421f-9d46-e107ace8981b"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": ""
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "4f81b9f1-c1c7-4fb8-8d50-37b852450f5b"
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "tool_use_id": "toolu_016PRqgugk47ThcT6aKSdx2e",
+          "type": "tool_result",
+          "content": [
+            {
+              "type": "text",
+              "text": "Found one document for \"parallel probes\"."
+            },
+            {
+              "type": "text",
+              "text": "[Resource link: conformance-probe-resource-link.md] file:///docs/conformance-probe-resource-link.md (A document the find_doc tool links to instead of inlining.)"
+            }
+          ]
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "uuid": "9d6e2d11-b7f0-4a97-a793-0b5588128a36",
+    "timestamp": "2026-09-26T04:01:29.013Z",
+    "tool_use_result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "Found one document for \"parallel probes\"."
+        },
+        {
+          "type": "text",
+          "text": "[Resource link: conformance-probe-resource-link.md] file:///docs/conformance-probe-resource-link.md (A document the find_doc tool links to instead of inlining.)"
+        }
+      ],
+      "resourceLinks": [
+        {
+          "uri": "file:///docs/conformance-probe-resource-link.md",
+          "name": "conformance-probe-resource-link.md",
+          "title": "Conformance probe: resource link",
+          "description": "A document the find_doc tool links to instead of inlining.",
+          "mimeType": "text/markdown",
+          "size": 2048,
+          "annotations": {
+            "audience": [
+              "user",
+              "assistant"
+            ],
+            "priority": 0.7
+          }
+        }
+      ]
+    }
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "{\"message\": \"A"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "68344efa-ee9c-4963-80d2-2f9c5f66435c"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " streaming protocol kee"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "403d64ec-9498-4607-99ba-034125765497"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ps parallel tool calls"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "932d8a35-0059-49a4-94d8-3e60d87ea367"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " apart prim"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "b97412bb-6f74-4ab4-889e-b77af0cfb406"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "arily through"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "74969c4a-3290-4c94-8231-60ff20f79264"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " un"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "05fc3f35-5877-4eee-855e-2fd565e8c545"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ique identifiers att"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "1a3c5d51-bf6a-4490-b18b-3c1f581562a7"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ached to every"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "664b84c7-47f1-477e-a0db-7ce2ae1bd45f"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " message ch"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "b8847cc4-a990-48b8-928f-1273b42d5753"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "unk. When"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "92859cfd-d8b8-4827-8574-d1fd92b3c91e"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " a"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "30ce486f-686a-4983-aafa-40d83f5265ce"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " model"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "f80c0f26-733b-4724-8118-976adb94e923"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " iss"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "867c781d-78bf-4072-9ed6-6ae3ab556f31"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ues multiple tool invoc"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "2cd21670-f30c-4dd8-911f-0b1de607b515"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ations conc"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "27559f81-d232-4bdd-947a-38da9641f8fa"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "urrently, each call"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "286f6999-c816-4096-9183-9547308c778b"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " is"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "b40c6b4e-82ba-42e8-be77-f1006df41974"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " assigned a distinct "
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "d59f6fc0-0f23-4138-8d7c-0f5e01f8da4c"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ID at"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "caccb952-9bf6-4b5d-a510-35c3228c15d5"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " the mo"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "453bd3ed-1c36-4a68-ba5d-5ffec9d616b7"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ment it op"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "c86180da-6b2c-46eb-98a7-16fe3eff0d46"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ens, and every"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "755df62a-ee41-4088-9a67-4589808b5704"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " subsequent del"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "2e9e5314-5eee-4090-b8cb-45dcd0e15966"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ta—"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "04adcbd3-6ea2-4378-8c0c-315e402a9be5"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ar"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "7a376712-78d6-4b98-ad3d-b93af3eec597"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "guments, part"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "8e831d0c-29e2-45fc-85a3-7df755d971a0"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ial J"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "1f21ea47-511b-4227-9944-dbbc306884a1"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "SON, or output"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "1cb84d12-5b4f-4f98-b98b-c71b0583a2f7"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " t"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "6ea10a6e-6b8f-490a-befc-ee7ee0c6855c"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "okens—car"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "eb0f3e77-6da3-4bda-b256-9039545130c6"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ries that same"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "f37e7cab-c6cc-4141-8b95-fffcf33664f5"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " ID as"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "5439c143-40e8-44e9-9d46-949ded5964e2"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " a tag. The client"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "9169b61a-637f-48c1-b6eb-1de067d3e309"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "-"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "993f68ad-f0d9-44f4-9f8a-b2b2644ee2cc"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "side par"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "6c384119-8e5c-4e99-966e-5e90408d3985"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ser dem"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "7543b4da-8dbe-437b-b1a9-514772fe0249"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ultiplexes the inc"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "f21c1e05-788a-4816-9a3f-080976da461b"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "oming stream by"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "4598ae50-52df-4284-b992-8bc04980fea8"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " gr"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "b92094d9-20fa-4d0a-b869-59b965c205da"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ouping ch"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "f84e4b49-f677-45f8-904f-44402b6ca258"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "unks according"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "f17e45af-aff4-433c-b060-ef3be672e219"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " to their ID rather than their"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "c0497d2c-0f76-42bb-b4fd-5091b9897807"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " arrival order, allowing"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "cdd4945d-aba4-445c-b16e-c26e88417766"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " interleaved f"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "bb2fe1c3-42d2-4756-8101-ea685775b8ec"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ragments from different calls to be"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "2eeb6fea-ffbe-4f75-b212-0fb2de858177"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " reassembled corre"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "7af2b7a4-7b84-4652-8e05-e39447eeda3a"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ctly even"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "bf7af171-fd7e-4da2-9239-f2297c1d145e"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " though b"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "cebe84b9-caa5-47c6-b6ad-210f6b3470c9"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ytes from"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "8ec17e51-e184-45ec-9379-4c0dd7e1e9fd"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " separate calls may"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "aa9c2bdc-c269-41a6-a475-2b9feb86d572"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " phys"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "597322be-769b-478f-8ad3-98f8bf29c859"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ically interleave on"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "762df2b5-15d3-43aa-963c-9276766c04ff"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " the wire. Expl"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "f0d870cf-96c9-4697-a4f6-13bf4dc4771a"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "icit start"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "d6c4ec56-1efa-4395-8d37-cd32c59a4b36"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " and"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "1c7736f7-36be-4bec-9bf7-aae25a270c9c"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " end events b"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "bebe6d02-fbb6-474b-ba2c-a6de1669b0f2"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ound each call's lifec"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "cc62a9ad-0360-4931-b934-40d921d24fa8"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ycle, so"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "903e9adf-d921-4cf3-9ac5-fb74d6c7f5d5"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " consumers know"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "050e4ce6-03ea-44fb-8fa9-e639a05c5d84"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " when a given"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "fd87fb4c-7b01-40bc-9bd1-f16e6efa1b65"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " t"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "017795bf-2a44-468d-a74f-c864071af59a"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ool call"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "8469c54b-e3f5-4baf-af3a-aab9d247e6d1"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "'s arg"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "dd367210-0f2c-4edb-b3a2-14eed068e7c5"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ument stream is complete and"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "2df7fac1-8473-4df9-b2c7-ca51df7594dd"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " ready to exec"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "a3cf24e1-6bd6-4a73-9ef7-dc2d0d582d50"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ute, independ"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "b09f488b-0ab0-4526-a368-4205bf293fbe"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ent of how"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "3aa75081-1fcf-44b0-af6a-20b611ce6f96"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " other"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "e5355f03-c6bf-4de3-8eb2-1cfd2643ae6c"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": " conc"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "5aae2ff8-bf94-415a-aca8-aeb7e86cdb18"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "urrent calls are progress"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "3b842f1e-264f-480f-b225-1179a5223f11"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "ing."
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "a420cec8-c177-40e6-8f64-11e26b363483"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 1,
+      "delta": {
+        "type": "input_json_delta",
+        "partial_json": "\"}"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "749e704d-37ca-4026-baa2-c78bfb8f74ba"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-sonnet-5",
+      "id": "msg_011CfRPFWmKkyh6RqaWVkRKs",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_01Pzo3d3wccoMxBjTRbH9NvX",
+          "name": "mcp__t__echo",
+          "input": {
+            "message": "A streaming protocol keeps parallel tool calls apart primarily through unique identifiers attached to every message chunk. When a model issues multiple tool invocations concurrently, each call is assigned a distinct ID at the moment it opens, and every subsequent delta—arguments, partial JSON, or output tokens—carries that same ID as a tag. The client-side parser demultiplexes the incoming stream by grouping chunks according to their ID rather than their arrival order, allowing interleaved fragments from different calls to be reassembled correctly even though bytes from separate calls may physically interleave on the wire. Explicit start and end events bound each call's lifecycle, so consumers know when a given tool call's argument stream is complete and ready to execute, independent of how other concurrent calls are progressing."
+          },
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 1293,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 1293,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 25,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "uuid": "0074bf1f-6a00-43c1-a753-0b633726a172",
+    "timestamp": "2026-09-26T04:01:32.344Z",
+    "request_id": "req_011CfRPFWPzJgPdzaGwxk8YX",
+    "wire_tool_inputs": {
+      "toolu_01Pzo3d3wccoMxBjTRbH9NvX": {
+        "message": "A streaming protocol keeps parallel tool calls apart primarily through unique identifiers attached to every message chunk. When a model issues multiple tool invocations concurrently, each call is assigned a distinct ID at the moment it opens, and every subsequent delta—arguments, partial JSON, or output tokens—carries that same ID as a tag. The client-side parser demultiplexes the incoming stream by grouping chunks according to their ID rather than their arrival order, allowing interleaved fragments from different calls to be reassembled correctly even though bytes from separate calls may physically interleave on the wire. Explicit start and end events bound each call's lifecycle, so consumers know when a given tool call's argument stream is complete and ready to execute, independent of how other concurrent calls are progressing."
+      }
+    },
+    "tool_use_meta": [
+      {
+        "id": "toolu_01Pzo3d3wccoMxBjTRbH9NvX",
+        "display_name": "Echo",
+        "server_display_name": "mock-text"
+      }
+    ]
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_stop",
+      "index": 1
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "ffd741f5-7739-461b-9e8c-c9b7be3160d0"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_delta",
+      "delta": {
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "stop_details": null,
+        "container": null
+      },
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 1293,
+        "cache_read_input_tokens": 0,
+        "output_tokens": 363,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "iterations": [
+          {
+            "input_tokens": 2,
+            "output_tokens": 363,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 1293,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 1293,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "type": "message"
+          }
+        ]
+      },
+      "context_management": {
+        "applied_edits": []
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "22381b77-d5ac-458f-bc85-32541353f168"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_stop"
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "b577cf0c-53ea-41e4-a7e3-c2e8ff0f1fa1"
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "tool_use_id": "toolu_01Pzo3d3wccoMxBjTRbH9NvX",
+          "type": "tool_result",
+          "content": [
+            {
+              "type": "text",
+              "text": "A streaming protocol keeps parallel tool calls apart primarily through unique identifiers attached to every message chunk. When a model issues multiple tool invocations concurrently, each call is assigned a distinct ID at the moment it opens, and every subsequent delta—arguments, partial JSON, or output tokens—carries that same ID as a tag. The client-side parser demultiplexes the incoming stream by grouping chunks according to their ID rather than their arrival order, allowing interleaved fragments from different calls to be reassembled correctly even though bytes from separate calls may physically interleave on the wire. Explicit start and end events bound each call's lifecycle, so consumers know when a given tool call's argument stream is complete and ready to execute, independent of how other concurrent calls are progressing."
+            }
+          ]
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "uuid": "0fb3ccbd-7afa-4fae-9b65-e927d4a26129",
+    "timestamp": "2026-09-26T04:01:32.385Z",
+    "tool_use_result": [
+      {
+        "type": "text",
+        "text": "A streaming protocol keeps parallel tool calls apart primarily through unique identifiers attached to every message chunk. When a model issues multiple tool invocations concurrently, each call is assigned a distinct ID at the moment it opens, and every subsequent delta—arguments, partial JSON, or output tokens—carries that same ID as a tag. The client-side parser demultiplexes the incoming stream by grouping chunks according to their ID rather than their arrival order, allowing interleaved fragments from different calls to be reassembled correctly even though bytes from separate calls may physically interleave on the wire. Explicit start and end events bound each call's lifecycle, so consumers know when a given tool call's argument stream is complete and ready to execute, independent of how other concurrent calls are progressing."
+      }
+    ]
+  },
+  {
+    "type": "system",
+    "subtype": "status",
+    "status": "requesting",
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "uuid": "2c801236-7961-4b49-bfc1-fb07a0142ee6"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_start",
+      "message": {
+        "model": "claude-sonnet-5",
+        "id": "msg_011CfRPFrgPjJYoDAwELCtA6",
+        "type": "message",
+        "role": "assistant",
+        "content": [],
+        "container": null,
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 805,
+          "cache_read_input_tokens": 1293,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 805,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 3,
+          "service_tier": "standard",
+          "inference_geo": "global"
+        },
+        "input_transformations": [],
+        "diagnostics": null,
+        "context_management": null
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "1426eeb1-4c66-4396-beee-c50df148a9f3",
+    "ttft_ms": 924
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_start",
+      "index": 0,
+      "content_block": {
+        "type": "text",
+        "text": ""
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "b10c41f9-7420-4861-9e95-5822ba658bd1"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "Here are"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "fc06ccc9-6c84-4a51-b68c-2ce35ffaa9b0"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " both results:\n\n**1"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "d5d50f48-9c5c-4b63-8d47-52c18f43cda5"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": ". Document search —"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "3761c966-fed1-4e79-84ae-bd3c85d2c4d0"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " \"parallel probes\":**"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "bcc6ab09-c564-4b9c-aae2-d79583f38902"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "\nFound one document — it"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "059b86d6-bd22-465e-8f83-15fffa022268"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "'s a res"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "a75dfdca-1285-4170-a922-979ef89a7831"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "ource link (not inlined content"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "80af3a56-94ce-441b-94a6-531dc38b4b87"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "):\n`"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "ad9cc9ec-a21e-4435-ae6e-62c1d7209211"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "file"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "1acae094-7934-4dc0-a33b-1aeb84fa50f4"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": ":///docs/conformance"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "9f76d263-9d6e-4f8f-be81-bd50b3f59ec0"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "-probe-resource-link"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "1f5eaf5d-fc9c-4e62-b89c-4a198e665485"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": ".md` — \"A document the"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "b342cd36-0b5a-4adc-943e-41c088ba1c1d"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " find_doc tool links to"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "de662973-797f-4412-bd64-d49d82b8f589"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " instead of inlining.\""
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "59fae9cd-d856-4682-bdae-362e490c9c7b"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "\n\n**"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "5bc43cb5-2eb9-4278-bdc8-3580578d017a"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "2. Echoed parag"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "ce84373a-a3d0-4220-8bc6-3a8642624a47"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "raph**"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "4ea1b86a-df47-4506-aaad-f5d7fb53064f"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " on how"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "6882e057-0d89-426d-95bb-31cf35397420"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " a streaming protocol ke"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "2e00712a-e277-4f79-b4ff-644be34afdc3"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "eps parallel tool cal"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "16879444-3b21-41f1-82ae-4f3386a099cc"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "ls apart:\n\n>"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "5d050219-a244-4e34-b76b-2ec4c3682d38"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " A streaming protocol ke"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "9ceda3df-8509-4999-af3d-69267c94fa50"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "eps parallel tool cal"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "e7774596-a0e2-4a0b-ad48-c7129b44b13d"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "ls apart primarily through un"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "0c6b48dd-dd28-440c-a942-6293c5193bbc"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "ique identifiers attached to"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "9f7961db-d605-47ad-b8b5-0de0f522b9bc"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " every message chunk. When a"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "9ff864fc-782b-4f0b-af97-e49dd490b169"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " model issues multiple tool"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "2b2ae456-2f93-4cc3-b2f0-e42b6642601c"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " invocations concurrently,"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "6c54050d-fc67-4158-81dd-1aa2a41de97a"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " each call is assigned a dist"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "4d74ab9c-a755-4410-b07a-13e4c9380cce"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "inct ID at the moment"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "674adee3-2fd7-47ea-a075-4640193d1e56"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " it opens, and every subs"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "a63253a1-1e2a-4465-9d36-61a828a2f559"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "equent delta—arguments"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "7f79418b-142f-48e7-8c8c-5c18598bf4c4"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": ", partial JSON, or"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "5edb5eed-82c5-4672-9eca-236f03565d2f"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " output tokens—carries that"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "38b71749-820b-4548-9a0e-f542749e178d"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " same ID as a tag."
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "17709381-722b-4554-9359-6177d842152c"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " The client-side parser demult"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "ca026f92-5f28-456e-9688-c3ac7cde953c"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "iplexes the incoming"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "d7f4007c-a664-42d2-990a-e31bb74bc488"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " stream by grouping chun"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "806519de-51cc-4937-9c69-6b6579ba0938"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "ks according to their ID rather"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "dd17116b-4db2-4012-a864-53dc36c7a402"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " than their arrival order, all"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "0c5918db-fd29-484f-9a30-81f87c5ac7f8"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "owing interleaved frag"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "514e12be-0534-4525-a4f1-1b5b63fbf1d8"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "ments from different calls to be re"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "d156090d-493f-4cac-a7a0-54c28c5b3316"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "assembled correctly even though"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "17fe83f8-50f8-4bf2-bdb6-6aea35136ac9"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " bytes from separate calls"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "4267c77e-a58a-4cd3-8bf2-ccb8ee9af2a6"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " may physically interleave on the"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "0f8e9842-5331-4bdb-9b08-116e01ad11c8"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " wire. Explicit start"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "205b0b8c-5b39-4698-8338-4666ed649337"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " and end events bound each call's"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "49495943-5a37-4457-892c-f97f37226847"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " lifecycle, so cons"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "788d1245-cfe6-4f04-b86f-d563722ab77d"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "umers know when a given tool"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "686455a8-398e-4f7e-9d5b-689ebb6133bc"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " call's argument stream is compl"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "a50a90be-b05f-473f-8710-9e18d0da658e"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "ete and ready to execute,"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "4625401f-1326-4273-9a0d-119183861766"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": " independent of how other concurr"
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "55ce9c1f-9f2e-4a2a-ac5a-f2324de69985"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_delta",
+      "index": 0,
+      "delta": {
+        "type": "text_delta",
+        "text": "ent calls are progressing."
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "ff8e1135-b3f8-4beb-b4ed-a676c208b686"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-sonnet-5",
+      "id": "msg_011CfRPFrgPjJYoDAwELCtA6",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Here are both results:\n\n**1. Document search — \"parallel probes\":**\nFound one document — it's a resource link (not inlined content):\n`file:///docs/conformance-probe-resource-link.md` — \"A document the find_doc tool links to instead of inlining.\"\n\n**2. Echoed paragraph** on how a streaming protocol keeps parallel tool calls apart:\n\n> A streaming protocol keeps parallel tool calls apart primarily through unique identifiers attached to every message chunk. When a model issues multiple tool invocations concurrently, each call is assigned a distinct ID at the moment it opens, and every subsequent delta—arguments, partial JSON, or output tokens—carries that same ID as a tag. The client-side parser demultiplexes the incoming stream by grouping chunks according to their ID rather than their arrival order, allowing interleaved fragments from different calls to be reassembled correctly even though bytes from separate calls may physically interleave on the wire. Explicit start and end events bound each call's lifecycle, so consumers know when a given tool call's argument stream is complete and ready to execute, independent of how other concurrent calls are progressing."
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 805,
+        "cache_read_input_tokens": 1293,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 805,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 3,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "uuid": "bfa1a72d-e2e6-404b-a5eb-134e4a3e50c8",
+    "timestamp": "2026-09-26T04:01:35.793Z",
+    "request_id": "req_011CfRPFrNmnNkoZ9fG6UQao"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "content_block_stop",
+      "index": 0
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "2931bd98-f998-4a5f-abe2-fda9ab30fabf"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_delta",
+      "delta": {
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "stop_details": null,
+        "container": null
+      },
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 805,
+        "cache_read_input_tokens": 1293,
+        "output_tokens": 378,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "iterations": [
+          {
+            "input_tokens": 2,
+            "output_tokens": 378,
+            "cache_read_input_tokens": 1293,
+            "cache_creation_input_tokens": 805,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 805,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "type": "message"
+          }
+        ]
+      },
+      "context_management": {
+        "applied_edits": []
+      }
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "70f1bac7-63b6-48aa-bd54-20157254af6c"
+  },
+  {
+    "type": "stream_event",
+    "event": {
+      "type": "message_stop"
+    },
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "parent_tool_use_id": null,
+    "uuid": "7393ca2e-39be-4508-b782-cbf31ea7adb1"
+  },
+  {
+    "duration_api_ms": 9443,
+    "stop_reason": "end_turn",
+    "session_id": "8f5df38f-450a-43dc-a3c4-3fe411ce99d5",
+    "total_cost_usd": 0.013935600000000001,
+    "usage": {
+      "input_tokens": 4,
+      "cache_creation_input_tokens": 2098,
+      "cache_read_input_tokens": 1293,
+      "output_tokens": 741,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 2098
+      },
+      "inference_geo": "global",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 378,
+          "cache_read_input_tokens": 1293,
+          "cache_creation_input_tokens": 805,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 805,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "modelUsage": {
+      "claude-haiku-4-5-20251001": {
+        "inputTokens": 939,
+        "outputTokens": 15,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0,
+        "webSearchRequests": 0,
+        "costUSD": 0.001014,
+        "contextWindow": 200000,
+        "maxOutputTokens": 32000,
+        "thinkingTokens": 0,
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-sonnet-5": {
+        "inputTokens": 4,
+        "outputTokens": 741,
+        "cacheReadInputTokens": 1293,
+        "cacheCreationInputTokens": 2098,
+        "webSearchRequests": 0,
+        "costUSD": 0.012921600000000002,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000,
+        "thinkingTokens": 0,
+        "canonicalModel": "claude-sonnet-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required",
+    "subagent_stats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "is_error": false,
+    "num_turns": 3,
+    "subtype": "success",
+    "api_error_status": null,
+    "result": "Here are both results:\n\n**1. Document search — \"parallel probes\":**\nFound one document — it's a resource link (not inlined content):\n`file:///docs/conformance-probe-resource-link.md` — \"A document the find_doc tool links to instead of inlining.\"\n\n**2. Echoed paragraph** on how a streaming protocol keeps parallel tool calls apart:\n\n> A streaming protocol keeps parallel tool calls apart primarily through unique identifiers attached to every message chunk. When a model issues multiple tool invocations concurrently, each call is assigned a distinct ID at the moment it opens, and every subsequent delta—arguments, partial JSON, or output tokens—carries that same ID as a tag. The client-side parser demultiplexes the incoming stream by grouping chunks according to their ID rather than their arrival order, allowing interleaved fragments from different calls to be reassembled correctly even though bytes from separate calls may physically interleave on the wire. Explicit start and end events bound each call's lifecycle, so consumers know when a given tool call's argument stream is complete and ready to execute, independent of how other concurrent calls are progressing.",
+    "ttft_ms": 1490,
+    "type": "result",
+    "duration_ms": 8331,
+    "uuid": "7c0ff39e-1b07-437a-b880-84e17d974aa1",
+    "ttft_stream_ms": 1167,
+    "time_to_request_ms": 176,
+    "first_content_frame_ms": 1167,
+    "queued_turn_count": 0,
+    "result_index": 0
+  }
+]

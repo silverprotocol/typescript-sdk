@@ -249,6 +249,11 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "partials-sonnet5", framework: "claude" },
   { scenario: "partials-uuid-sonnet5", framework: "claude" },
   { scenario: "thinking-fable51", framework: "claude" },
+  // 2026-09-26: the partials × parallel-calls axis, enrolled at capture time
+  // (capture-time coverage was computed against empty guard maps).
+  { scenario: "parallel-partials-sonnet5", framework: "claude" },
+  { scenario: "parallel-partials-thinking-sonnet5", framework: "claude" },
+  { scenario: "parallel-sonnet5", framework: "claude" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

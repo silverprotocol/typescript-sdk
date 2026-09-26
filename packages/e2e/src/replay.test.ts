@@ -216,6 +216,15 @@ const CLAUDE_SEEDS = [
   "subagent-fg-sonnet5",
   "subagent-bg-sonnet5",
   "subagent-fail-sonnet5",
+  // 2026-09-26: the partials × parallel-calls axis. Two MCP calls in ONE
+  // assistant message, with partial messages on (the first two) and off (the
+  // third). With partials on, the CLI runs the first call as soon as its block
+  // completes, so its tool_result lands while the second call's input is still
+  // streaming. Before this, no claude seed combined partials with parallel
+  // calls. See the "streamed tool execution" block below.
+  "parallel-partials-sonnet5",
+  "parallel-partials-thinking-sonnet5",
+  "parallel-sonnet5",
 ] as const;
 
 /**
@@ -1152,6 +1161,25 @@ const SURFACE_GUARDS: ReadonlyArray<{
     surface: "item.customData.structuredContent (the only live proof of that channel)",
     count: (n) => JSON.stringify(n).split('"customData":{"structuredContent"').length - 1,
   },
+  {
+    scenario: "parallel-partials-sonnet5",
+    framework: "claude",
+    surface: "a tool_result landing while another call's input is still streaming",
+    count: (n) => midStreamResults(n).length,
+  },
+  {
+    scenario: "parallel-partials-thinking-sonnet5",
+    framework: "claude",
+    surface: "a tool_result landing while another call's input is still streaming, after a thinking block",
+    count: (n) =>
+      JSON.stringify(n).includes('"content_block":{"type":"thinking"') ? midStreamResults(n).length : 0,
+  },
+  {
+    scenario: "parallel-sonnet5",
+    framework: "claude",
+    surface: "a tool_result between two tool_use frames of one message id (partials off)",
+    count: (n) => resultsBetweenFramesOfOneMessage(n),
+  },
 ];
 
 describe("surface guard — a seed keeps the surface it exists for", () => {
@@ -1163,4 +1191,151 @@ describe("surface guard — a seed keeps the surface it exists for", () => {
       expect(g.count(native), `${g.scenario} lost its reason to exist: no ${g.surface}. Re-capture until a run carries it, or hold the previous cassette.`).toBeGreaterThan(0);
     });
   }
+});
+
+// ─── Streamed tool execution (partials × parallel calls) ─────────────────────
+
+type NativeRecord = { [key: string]: JsonValue };
+function isRecord(v: JsonValue | undefined): v is NativeRecord {
+  return v !== null && v !== undefined && typeof v === "object" && !Array.isArray(v);
+}
+
+/** Each top-level tool_result that lands while another tool call's input is still streaming. */
+function midStreamResults(native: JsonValue[]): Array<{ result: string; streaming: string[] }> {
+  const out: Array<{ result: string; streaming: string[] }> = [];
+  const open = new Map<number, string>();
+  for (const f of native) {
+    if (!isRecord(f) || f["parent_tool_use_id"] !== null) continue;
+    if (f["type"] === "stream_event") {
+      const ev = f["event"];
+      if (!isRecord(ev)) continue;
+      const block = ev["content_block"];
+      if (ev["type"] === "content_block_start" && isRecord(block) && block["type"] === "tool_use" && typeof ev["index"] === "number" && typeof block["id"] === "string") {
+        open.set(ev["index"], block["id"]);
+      } else if (ev["type"] === "content_block_stop" && typeof ev["index"] === "number") {
+        open.delete(ev["index"]);
+      } else if (ev["type"] === "message_stop") {
+        open.clear();
+      }
+    } else if (f["type"] === "user" && open.size > 0) {
+      const msg = f["message"];
+      const content = isRecord(msg) ? msg["content"] : undefined;
+      if (!Array.isArray(content)) continue;
+      const streaming = [...open.values()];
+      for (const b of content) {
+        if (isRecord(b) && b["type"] === "tool_result" && typeof b["tool_use_id"] === "string" && !streaming.includes(b["tool_use_id"])) {
+          out.push({ result: b["tool_use_id"], streaming });
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/** Top-level tool_result frames that sit between two assistant frames of the same message id. */
+function resultsBetweenFramesOfOneMessage(native: JsonValue[]): number {
+  let count = 0;
+  let lastAssistantId: string | undefined;
+  let resultsSince = 0;
+  for (const f of native) {
+    if (!isRecord(f) || f["parent_tool_use_id"] !== null) continue;
+    if (f["type"] === "assistant" && isRecord(f["message"]) && typeof f["message"]["id"] === "string") {
+      if (f["message"]["id"] === lastAssistantId) count += resultsSince;
+      lastAssistantId = f["message"]["id"];
+      resultsSince = 0;
+    } else if (f["type"] === "user" && isRecord(f["message"]) && Array.isArray(f["message"]["content"])) {
+      resultsSince += f["message"]["content"].filter((b) => isRecord(b) && b["type"] === "tool_result").length;
+    }
+  }
+  return count;
+}
+
+/** The input of every top-level tool_use in the cassette's complete assistant frames, by call id. */
+function frameToolInputs(native: JsonValue[]): Map<string, JsonValue> {
+  const inputs = new Map<string, JsonValue>();
+  for (const f of native) {
+    if (!isRecord(f) || f["type"] !== "assistant" || f["parent_tool_use_id"] !== null || !isRecord(f["message"])) continue;
+    const content = f["message"]["content"];
+    if (!Array.isArray(content)) continue;
+    for (const b of content) {
+      if (isRecord(b) && b["type"] === "tool_use" && typeof b["id"] === "string") inputs.set(b["id"], b["input"] ?? null);
+    }
+  }
+  return inputs;
+}
+
+/** One tool.start per call, and one tool.args.assembled per call carrying the call's complete-frame input. */
+function expectOneStartAndCompleteInput(events: NativeRecord[], native: JsonValue[]): void {
+  const starts = new Map<string, number>();
+  for (const e of events) {
+    if (e["type"] === "tool.start" && typeof e["toolCallId"] === "string") starts.set(e["toolCallId"], (starts.get(e["toolCallId"]) ?? 0) + 1);
+  }
+  expect(starts.size, "the cassette's calls").toBeGreaterThanOrEqual(2);
+  expect([...starts].filter(([, n]) => n !== 1), "calls with more than one tool.start").toEqual([]);
+  const inputs = frameToolInputs(native);
+  for (const id of starts.keys()) {
+    const assembled = events.filter((e) => e["type"] === "tool.args.assembled" && e["toolCallId"] === id);
+    expect(assembled.length, `${id}: tool.args.assembled count`).toBe(1);
+    expect(assembled[0]?.["input"], `${id}: the assembled input is the call's complete input`).toEqual(inputs.get(id));
+  }
+}
+
+// With partial messages on, the CLI runs a tool as soon as its tool_use block
+// completes, so a parallel call's tool_result can land while the next call's
+// input is still streaming. The producer keeps the streaming message whole:
+// one tool.start per call, each assembled input is the call's complete input,
+// no streamed delta falls back to a raw ext carry, one assistant message holds
+// every parallel call, and the early result lands in its own `<id>:result`
+// message before that assistant message ends. Until this was fixed, the early
+// result sealed the streaming message: the late call's input was assembled
+// from its first delta only, and its complete frame re-opened a `:cont:` copy
+// with a second tool.start, where every reducer from core 0.7.0 on parked.
+describe("streamed tool execution — a tool_result landing mid-stream keeps the streaming message whole", () => {
+  for (const scn of ["parallel-partials-sonnet5", "parallel-partials-thinking-sonnet5"] as const) {
+    it(`${scn}: one start and a complete input per call, no demoted deltas, the early result before the message ends, no park`, async () => {
+      const nativePath = join(CORPUS_ROOT, scn, "claude.native.json");
+      const native = JSON.parse(await readFile(nativePath, "utf8")) as JsonValue[];
+      const early = midStreamResults(native);
+      expect(early.length, `${scn} no longer carries a mid-stream tool_result`).toBeGreaterThan(0);
+      const { agjson } = await replayCassette(nativePath);
+      const events = agjson.filter(isRecord);
+      expectOneStartAndCompleteInput(events, native);
+      const demoted = events.filter((e) => {
+        const frame = e["frame"];
+        if (e["type"] !== "ext.anthropic.frame" || !isRecord(frame) || frame["type"] !== "stream_event") return false;
+        const ev = frame["event"];
+        return isRecord(ev) && ev["type"] === "content_block_delta";
+      });
+      expect(demoted.length, "streamed deltas carried as ext.anthropic.frame").toBe(0);
+      expect(
+        events.filter((e) => e["type"] === "message.start" && typeof e["id"] === "string" && e["id"].includes(":cont:")).map((e) => e["id"]),
+        "continuation copies of the streaming message",
+      ).toEqual([]);
+      for (const { result, streaming } of early) {
+        const done = events.find((e) => e["type"] === "tool.done" && e["toolCallId"] === result);
+        expect(done?.["messageId"], `${result}: the early result's message`).toBe(`${result}:result`);
+        for (const id of streaming) {
+          const start = events.find((e) => e["type"] === "tool.start" && e["toolCallId"] === id);
+          const end = events.find((e) => e["type"] === "message.end" && e["id"] === start?.["messageId"]);
+          const doneSeq = done?.["seq"];
+          const endSeq = end?.["seq"];
+          expect(typeof doneSeq === "number" && typeof endSeq === "number" && doneSeq < endSeq, `${result}'s result lands before ${String(start?.["messageId"])} ends`).toBe(true);
+        }
+      }
+      expect(foldThroughReducer(agjson).reducer.needsResync).toBe(false);
+    });
+  }
+
+  // The partials-off leg of the axis: the same two calls arrive as complete
+  // frames with the first result between them. Pinned: one start and a complete
+  // input per call, and no park. How the two frames group into messages is the
+  // golden's to pin, not this leg's.
+  it("parallel-sonnet5 (partials off): one start and a complete input per call, no park", async () => {
+    const nativePath = join(CORPUS_ROOT, "parallel-sonnet5", "claude.native.json");
+    const native = JSON.parse(await readFile(nativePath, "utf8")) as JsonValue[];
+    expect(resultsBetweenFramesOfOneMessage(native)).toBeGreaterThan(0);
+    const { agjson } = await replayCassette(nativePath);
+    expectOneStartAndCompleteInput(agjson.filter(isRecord), native);
+    expect(foldThroughReducer(agjson).reducer.needsResync).toBe(false);
+  });
 });
