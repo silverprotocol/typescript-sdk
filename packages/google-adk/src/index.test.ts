@@ -1926,9 +1926,27 @@ describe("createAdkNormalizer — HITL pauses fold as outcome:paused at the real
     expect(out.some((e) => e.type === "turn.done")).toBe(false);
     expect(out.find((e) => e.type === "turn.abort")).toBeDefined();
   });
+
+  it("the same truncated stream with the hostCompletion opt-in and no host-completion event (an abnormal end) also aborts at flush — no pause signal, no paused close", () => {
+    const n = createAdkNormalizer({ invokeId: "adk", hostCompletion: true });
+    const out = [
+      ...n.push(
+        toJson(
+          event([{ functionCall: { name: "adk_request_input", args: { message: "Which city?" }, id: "adk-in-1" } }], {
+            turnComplete: true,
+            longRunningToolIds: ["adk-in-1"],
+          }),
+        ),
+      ),
+      ...n.flush(),
+    ];
+    expect(out.some((e) => e.type === "hitl.ask")).toBe(true);
+    expect(out.some((e) => e.type === "turn.done")).toBe(false);
+    expect(out.find((e) => e.type === "turn.abort")).toMatchObject({ reason: "stream-truncated" });
+  });
 });
 
-describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D item 6, step 1: no park, pauses close paused from push)", () => {
+describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D item 6: no park; a pause closes paused at the invocation's end)", () => {
   // Fixtures mirror event sequences observed on the REAL @google/adk 2.1.0
   // engine (offline, stub model; authors, roles, reserved calls, actions,
   // longRunningToolIds and nodeInfo as ADK built them). Every stream is one
@@ -1990,7 +2008,7 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
     }),
   ];
 
-  it("(a) workflow pause: the LLM node's final text does NOT close; the root's input record closes paused from push()", () => {
+  it("(a) workflow pause: the LLM node's final text does NOT close; the root's input record ends the pause, closed paused at the invocation's end (flush() without the opt-in)", () => {
     const { pushed, flushed, all } = pushAndFlush([
       ...workflowHead(),
       ev({
@@ -2008,8 +2026,8 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
       }),
     ]);
     const t = fold(all);
-    expect(pushed).toContain(t);
-    expect(flushed.some((e) => e.type.startsWith("turn."))).toBe(false);
+    expect(flushed).toContain(t);
+    expect(pushed.some((e) => e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort")).toBe(false);
     expect(t).toMatchObject({
       type: "turn.done",
       finishReason: "paused",
@@ -2052,7 +2070,7 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
   });
 
   it("(d) plain requireConfirmation: the confirmation-request event closes paused with ONE approval ask keyed by the reserved call (item 26)", () => {
-    const { pushed, all } = pushAndFlush([
+    const { flushed, all } = pushAndFlush([
       ev({
         author: "agent",
         content: { role: "model", parts: [{ functionCall: { name: "delete_file", args: { path: "/x" }, id: "adk-orig" } }] },
@@ -2067,7 +2085,7 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
       }),
     ]);
     const t = fold(all);
-    expect(pushed).toContain(t);
+    expect(flushed).toContain(t);
     expect(t).toMatchObject({
       type: "turn.done",
       finishReason: "paused",
@@ -2090,7 +2108,7 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
   });
 
   it("(e) plain credential: the functionResponse carrying requestedAuthConfigs closes paused with ONE auth ask keyed by the reserved call (item 26)", () => {
-    const { pushed, all } = pushAndFlush([
+    const { flushed, all } = pushAndFlush([
       ev({
         author: "agent",
         content: { role: "model", parts: [{ functionCall: { name: "read_mail", args: {}, id: "adk-orig" } }] },
@@ -2108,7 +2126,7 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
       }),
     ]);
     const t = fold(all);
-    expect(pushed).toContain(t);
+    expect(flushed).toContain(t);
     expect(t).toMatchObject({
       type: "turn.done",
       finishReason: "paused",
@@ -2130,7 +2148,7 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
   });
 
   it("(f) plain requestInputTool: text ask, closed paused by the content-less skipSummarization event", () => {
-    const { pushed, all } = pushAndFlush([
+    const { flushed, all } = pushAndFlush([
       ev({
         author: "agent",
         content: { role: "model", parts: [{ functionCall: { name: "adk_request_input", args: { message: "Which city?" }, id: "adk-in" } }] },
@@ -2140,7 +2158,7 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
       ev({ author: "agent", actions: { ...emptyActions, skipSummarization: true } }),
     ]);
     const t = fold(all);
-    expect(pushed).toContain(t);
+    expect(flushed).toContain(t);
     expect(t).toMatchObject({
       type: "turn.done",
       finishReason: "paused",
@@ -2164,7 +2182,7 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
   });
 
   it("(g) workflow FunctionNode credential: the reserved call yields an auth ask and the root record closes paused (item 26)", () => {
-    const { pushed, all } = pushAndFlush([
+    const { flushed, all } = pushAndFlush([
         ev({
           author: "fetch",
           content: { role: "model", parts: [{ functionCall: { name: "adk_request_credential", args: {}, id: "k2" } }] },
@@ -2175,7 +2193,7 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
         ev({ author: "cred_wf", longRunningToolIds: ["k2"], actions: { ...emptyActions, agentState: { input: "x" } }, ...node("cred_wf") }),
       ]);
     const t = fold(all);
-    expect(pushed).toContain(t);
+    expect(flushed).toContain(t);
     expect(t).toMatchObject({
       type: "turn.done",
       finishReason: "paused",
@@ -4848,7 +4866,7 @@ describe("createAdkNormalizer — a Live turnComplete right after a tool respons
   });
 });
 
-describe("createAdkNormalizer — with hostCompletion, a paused close waits for the host-completion event", () => {
+describe("createAdkNormalizer — a paused close waits for the invocation's end (the host-completion event, else flush())", () => {
   const authConfig = { authScheme: { type: "apiKey", in: "header", name: "X-Key" }, credentialKey: "mail-key" };
   // A credential pause, then an ADK event that follows the pause end in the
   // same invocation: here the model's own reply, with a blocked safety rating.
@@ -4884,15 +4902,20 @@ describe("createAdkNormalizer — with hostCompletion, a paused close waits for 
     expect(r.needsResync).toBe(false);
   });
 
-  it("without the opt-in the paused close stays on the pause end", () => {
-    const out = run(pauseThenReply);
-    const done = out.findIndex((e) => e.type === "turn.done");
-    expect(out[done]).toMatchObject({ outcome: { type: "paused" } });
-    expect(out.findIndex((e) => e.type === "text.delta")).toBeGreaterThan(done);
+  it("without the opt-in the paused close waits for flush(): the reply lands inside the paused turn", () => {
+    const n = createAdkNormalizer({ invokeId: "adk" });
+    const pushed = pauseThenReply.flatMap((e) => n.push(toJson(e)));
+    const flushed = n.flush();
+    expect(pushed.some((e) => e.type === "turn.done")).toBe(false);
+    const done = flushed.find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({ outcome: { type: "paused" }, finishReason: "paused", safety: [{ category: "HARM_CATEGORY_HARASSMENT", blocked: true }] });
+    const r = new Reducer();
+    for (const e of [...pushed, ...flushed]) r.push(e);
+    expect(r.needsResync).toBe(false);
   });
 });
 
-describe("createAdkNormalizer — with hostCompletion, a paused run that ends without the host-completion event loses its pause", () => {
+describe("createAdkNormalizer — with hostCompletion, a paused run that ends without the host-completion event", () => {
   const authConfig = { authScheme: { type: "apiKey", in: "header", name: "X-Key" }, credentialKey: "mail-key" };
   const pause: AdkEvent[] = [
     event([{ functionCall: { name: "read_mail", args: {}, id: "fc-1" } }]),
@@ -4909,8 +4932,8 @@ describe("createAdkNormalizer — with hostCompletion, a paused run that ends wi
     return out.filter((e) => e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort");
   };
 
-  it("a cancel or an abort signal (no event fed): turn.abort (stream-truncated) at flush", () => {
-    expect(terminalOf([])).toEqual([expect.objectContaining({ type: "turn.abort", reason: "stream-truncated" })]);
+  it("a cancel or an abort signal (no event fed): the pause it saw end closes paused at flush", () => {
+    expect(terminalOf([])).toEqual([expect.objectContaining({ type: "turn.done", outcome: expect.objectContaining({ type: "paused" }) })]);
   });
 
   it("a thrown error the host feeds: turn.error", () => {

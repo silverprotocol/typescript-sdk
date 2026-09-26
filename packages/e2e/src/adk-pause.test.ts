@@ -8,7 +8,8 @@
  *
  * Step-1 classes (sp-google fa23c5c → e7cb467, 0.6.6):
  *  - PAUSE: the turn closes `turn.done {outcome:"paused", finishReason:"paused"}`
- *    from push(), with one ask per pending request.
+ *    with one ask per pending request, at the invocation's end: from push() on
+ *    the host-completion event, else from flush() (SPEC §8.0 item 26).
  *  - ABORT_AT_FLUSH: a completed Workflow or a truncated stream closes
  *    `turn.abort` from flush(), NEVER success. (A completed Workflow flushing
  *    abort is step 1's disclosed known gap; the host-completion signal of
@@ -24,8 +25,9 @@
  *  - the sentinel-fed close: with `createAdkNormalizer({ hostCompletion: true })`
  *    and `{type:"__host_complete__"}` after the natives, a completed run closes
  *    success from push(), and the two plain-plane parks fold clean.
- * The KNOWN GAPS stay pinned on the legacy path (option off), where they still
- * park: rd-06 PS-2.
+ * Two success-close engine shapes remain host-completion-only
+ * (SUCCESS_CLOSE_SHAPES): without the opt-in they still park (rd-06 PS-2). They
+ * are a success-close class, not a pause class.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -103,7 +105,10 @@ const COMPLETED = ["wf-complete", "wf-terminal-llm", "wf-functionnode-only"] as 
 const TRUNCATED = ["truncated-after-classify", "truncated-after-spike-final"] as const;
 const ABORT_AT_FLUSH = [...COMPLETED, ...TRUNCATED] as const;
 const SUCCESS = ["nodetool-in-llmagent"] as const;
-const KNOWN_GAPS = ["known-gap-sequential-root", "known-gap-after-agent-callback"] as const;
+/** Success-close engine shapes that remain host-completion-only: a success
+ *  close precedes more of the invocation (a SequentialAgent root's next agent,
+ *  after-agent callback content). Not a pause class. */
+const SUCCESS_CLOSE_SHAPES = ["known-gap-sequential-root", "known-gap-after-agent-callback"] as const;
 /** Pauses the invocation outlives: an ADK event follows the pause end in the
  *  same invocation and carries state and content (adk-pause-fixtures.gen.test.ts,
  *  GEN_ADK_PAUSE_FOLLOW). */
@@ -121,18 +126,18 @@ const AFTER_PAUSE = [
 describe("rd-06 P-RED: ADK pause / completion closure (§10 item 25, step-1 scope)", () => {
   it("the fixture set is complete (non-vacuity)", () => {
     const have = readdirSync(DIR).filter((f) => f.endsWith(".native.json")).map((f) => f.replace(".native.json", "")).sort();
-    const want = [...PAUSE, ...ABORT_AT_FLUSH, ...SUCCESS, ...KNOWN_GAPS, ...AFTER_PAUSE, "wf-pause-resume.invoke1", "wf-pause-resume.invoke2"].sort();
+    const want = [...PAUSE, ...ABORT_AT_FLUSH, ...SUCCESS, ...SUCCESS_CLOSE_SHAPES, ...AFTER_PAUSE, "wf-pause-resume.invoke1", "wf-pause-resume.invoke2"].sort();
     expect(have).toEqual(want);
   });
 
   for (const name of PAUSE) {
-    it(`${name}: closes paused from push(), one ask per pending request, no park`, () => {
+    it(`${name}: closes paused at the invocation's end (flush() without the opt-in), one ask per pending request, no park`, () => {
       const { r, tagged } = fold(load(name));
       expect(r.needsResync).toBe(false);
       expectOneTerminalAndNothingAfter(tagged);
       const [term] = terminals(tagged);
       expect(term?.ev.type).toBe("turn.done");
-      expect(term?.from).toBe("push");
+      expect(term?.from).toBe("flush");
       expect(outcomeOf(term!.ev).type).toBe("paused");
       expect((term!.ev as { finishReason?: string }).finishReason).toBe("paused");
       expect(outcomeOf(term!.ev).asks).toHaveLength(1);
@@ -142,7 +147,7 @@ describe("rd-06 P-RED: ADK pause / completion closure (§10 item 25, step-1 scop
       const ids = reservedCallIds(natives);
       expect(ids).toHaveLength(1);
       expect((outcomeOf(term!.ev).asks?.[0] as { toolCallId?: string }).toolCallId).toBe(ids[0]);
-      // With the sentinel fed the pause still closes paused from push(), exactly once.
+      // With the sentinel fed the pause closes paused from push() on it, exactly once.
       const hc = foldWith(true, natives);
       expect(hc.r.needsResync).toBe(false);
       expectOneTerminalAndNothingAfter(hc.tagged);
@@ -191,15 +196,15 @@ describe("rd-06 P-RED: ADK pause / completion closure (§10 item 25, step-1 scop
     expectOneTerminalAndNothingAfter(tagged);
     const terms = terminals(tagged);
     expect(terms.map((t) => [t.invoke, t.ev.type, t.from])).toEqual([
-      [0, "turn.done", "push"],
+      [0, "turn.done", "flush"],
       [1, "turn.abort", "flush"],
     ]);
     expect(outcomeOf(terms[0]!.ev).type).toBe("paused");
     expect(r.result().turns).toHaveLength(2);
   });
 
-  for (const name of KNOWN_GAPS) {
-    it(`KNOWN GAP on the legacy path (rd-06 PS-2): ${name} still parks without the host-completion opt-in`, () => {
+  for (const name of SUCCESS_CLOSE_SHAPES) {
+    it(`success-close shape, host-completion-only (rd-06 PS-2): ${name} parks without the opt-in`, () => {
       const { r, tagged } = fold(load(name));
       expect(r.needsResync).toBe(true);
       const [term] = terminals(tagged);
@@ -207,7 +212,7 @@ describe("rd-06 P-RED: ADK pause / completion closure (§10 item 25, step-1 scop
       expect(term?.from).toBe("push");
     });
 
-    it(`${name}: FIXED on the opt-in path — with the sentinel fed it folds clean and closes success from push()`, () => {
+    it(`${name}: success-close shape — with the sentinel fed it folds clean and closes success from push()`, () => {
       const { r, tagged } = foldWith(true, load(name));
       expect(r.needsResync).toBe(false);
       expectOneTerminalAndNothingAfter(tagged);
@@ -218,15 +223,25 @@ describe("rd-06 P-RED: ADK pause / completion closure (§10 item 25, step-1 scop
   }
 });
 
-describe("pauses the invocation outlives (§8.0 item 26: the paused close at the latest on the host-completion event)", () => {
+describe("pauses the invocation outlives (§8.0 item 26: the paused close at the invocation's end)", () => {
+  it("after-pause-usage-tail without the opt-in: the paused close carries the invocation's usage, both usage-only reports (natives #3 and #5)", () => {
+    const { r, tagged } = fold(load("after-pause-usage-tail"));
+    expect(r.needsResync).toBe(false);
+    const [term] = terminals(tagged);
+    expect(term?.from).toBe("flush");
+    expect((term!.ev as { usage?: unknown }).usage).toMatchObject({ inputTokens: 24, outputTokens: 6, totalTokens: 30 });
+  });
+
   for (const name of AFTER_PAUSE) {
-    it(`KNOWN GAP on the legacy path: ${name} parks without the host-completion opt-in (the paused close precedes the invocation's later events)`, () => {
+    it(`${name}: without the opt-in, the paused close comes from flush() — one paused terminal, the stream's last event, no park`, () => {
       const { r, tagged } = fold(load(name));
-      expect(r.needsResync).toBe(true);
-      const [term] = terminals(tagged);
-      expect(term?.from).toBe("push");
-      expect(outcomeOf(term!.ev).type).toBe("paused");
-      expect(tagged.indexOf(term!)).toBeLessThan(tagged.length - 1);
+      expect(r.needsResync).toBe(false);
+      expectOneTerminalAndNothingAfter(tagged);
+      const terms = terminals(tagged);
+      expect(terms).toHaveLength(1);
+      expect(terms[0]!.from).toBe("flush");
+      expect(tagged[tagged.length - 1]).toBe(terms[0]);
+      expect(outcomeOf(terms[0]!.ev).type).toBe("paused");
     });
 
     it(`${name}: with the sentinel fed, the paused close waits for it — one paused terminal, the stream's last event, no park`, () => {

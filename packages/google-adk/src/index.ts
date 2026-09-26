@@ -2051,6 +2051,9 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
   // the response and that reply (a gemini-3.8-live capture,
   // `live-tool-gemini38live`), so that turnComplete does not end the turn.
   const awaitingReply = new Set<string>();
+  // Turns whose pause ended (isAdkPauseEnd with an ask pending): their paused
+  // close waits for the invocation's end (maybeCloseTurn).
+  const pauseEnded = new Set<string>();
   const pendingLongRunning = new Map<string, Set<string>>();
   const assembledToolCalls = new Set<string>(); // FC dedup across partial/aggregate (Task 3)
   // Null-id call mint state (audit M47) — per-invoke ordinal counter + the
@@ -2098,24 +2101,16 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // before, their close never fired and the turn flushed as an abort.
     const pending = pendingAsks.get(turnId);
     if (!interrupted && pending !== undefined && pending.length > 0 && isAdkPauseEnd(event)) {
-      // With the host-completion opt-in, the paused close waits for the
-      // host-completion event (item 26: "at the latest, on the host-completion
-      // event"; hostComplete() closes a turn whose asks are pending as paused).
+      // The paused close waits for the invocation's end (SPEC §8.0 item 26).
       // ADK ends the invocation at a confirmation but not at a credential
       // request or a request-input call, so an ADK event can follow the pause
       // end in the same invocation and carry state and content: the model run
       // again when its stream ended with a usage-only chunk
       // (agents/llm_agent.js:458), an after-agent callback, the next sub-agent
-      // of a SequentialAgent root. Without the opt-in the close stays here.
-      if (hostCompletion) return;
-      closedTurns.add(turnId);
-      const usage = mapUsage(usageByTurn.get(turnId) ?? event.usageMetadata);
-      a.closeMessage(messageId);
-      a.closeTurnDone(turnId, {
-        outcome: { type: "paused", asks: pending },
-        finishReason: "paused",
-        ...(usage !== undefined ? { usage } : {}),
-      });
+      // of a SequentialAgent root. The close comes on the host-completion
+      // event (hostComplete()) or from flush(), which closes a turn whose pause
+      // end it saw (pauseEnded) as paused.
+      pauseEnded.add(turnId);
       return;
     }
     const hasCompletion =
@@ -2145,17 +2140,37 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // event (the `hostCompletion` opt-in, §8.0 host obligation 4); without it,
     // it flushes turn.abort.
     if (errorClose === undefined && event.nodeInfo !== undefined) return;
-    // Host obligation 4 (opt-in): a success or paused close waits for the
+    // Host obligation 4 (opt-in): a success close waits for the
     // host-completion event, because the run may not be over (a
-    // SequentialAgent's next agent, after-agent callback content, the model
-    // run again after a pause). The final response is stashed and closed
-    // unchanged on the sentinel, so a stream ending here is byte-identical.
-    // Error closes stay immediate.
-    if (hostCompletion && errorClose === undefined) {
+    // SequentialAgent's next agent, after-agent callback content). A close
+    // while an ask is pending waits on every host (item 26: the invocation's
+    // end, the host-completion event or flush()), because the model may run
+    // again after a pause. The final response is stashed and closed unchanged,
+    // so a stream ending here is byte-identical. Error closes stay immediate.
+    if (errorClose === undefined && (hostCompletion || (pendingAsks.get(turnId)?.length ?? 0) > 0)) {
       deferredClose.set(turnId, event);
       return;
     }
     closeOnFinalResponse(event, turnId, messageId, errorClose);
+  }
+
+  /** The paused close at the invocation's end. A final response stashed while
+   *  the asks were pending closes as it would have on arrival (paused, with its
+   *  safety and lossy-finish carries); otherwise a plain paused close. */
+  function closePaused(turnId: string, messageId: string, asks: AgPausedAsk[]): void {
+    const stashed = deferredClose.get(turnId);
+    if (stashed !== undefined) {
+      closeOnFinalResponse(stashed, turnId, messageId, undefined);
+      return;
+    }
+    closedTurns.add(turnId);
+    const usage = mapUsage(usageByTurn.get(turnId));
+    a.closeMessage(messageId);
+    a.closeTurnDone(turnId, {
+      outcome: { type: "paused", asks },
+      finishReason: "paused",
+      ...(usage !== undefined ? { usage } : {}),
+    });
   }
 
   /** The close on a final response: lossy-finish metadata, message.end, then
@@ -2250,21 +2265,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
       const messageId = `msg_${turnId}`;
       const asks = pendingAsks.get(turnId);
       if (asks !== undefined && asks.length > 0) {
-        // A final response stashed while the asks were pending closes as it
-        // would have on arrival (paused, with its safety and lossy-finish carries).
-        const stashedPaused = deferredClose.get(turnId);
-        if (stashedPaused !== undefined) {
-          closeOnFinalResponse(stashedPaused, turnId, messageId, undefined);
-          continue;
-        }
-        closedTurns.add(turnId);
-        const usage = mapUsage(usageByTurn.get(turnId));
-        a.closeMessage(messageId);
-        a.closeTurnDone(turnId, {
-          outcome: { type: "paused", asks },
-          finishReason: "paused",
-          ...(usage !== undefined ? { usage } : {}),
-        });
+        closePaused(turnId, messageId, asks);
         continue;
       }
       if ((pendingLongRunning.get(turnId)?.size ?? 0) > 0) continue;
@@ -2559,6 +2560,15 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
         if (closedTurns.has(turnId)) continue;
         if (interruptPending.has(turnId)) {
           closeInterrupted(turnId);
+          continue;
+        }
+        // A pause the stream saw end (its pause-end event, or a final response
+        // while an ask was pending) is a resolved pause, not a truncation: it
+        // closes paused here (SPEC §8.0 item 26). Asks with neither stay a
+        // truncation, as above.
+        const asks = pendingAsks.get(turnId);
+        if (asks !== undefined && asks.length > 0 && (pauseEnded.has(turnId) || deferredClose.has(turnId))) {
+          closePaused(turnId, `msg_${turnId}`, asks);
           continue;
         }
         closedTurns.add(turnId);
