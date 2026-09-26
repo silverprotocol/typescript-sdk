@@ -1405,7 +1405,7 @@ describe("AGJSON_VERSION + wire-version validation (audit B17)", () => {
   };
 
   it("exports the spec version literal", () => {
-    expect(AGJSON_VERSION).toBe("1.0.0-draft.6");
+    expect(AGJSON_VERSION).toBe("1.0.0-draft.7");
   });
 
   it("accepts the current version and any same-major version", () => {

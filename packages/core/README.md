@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/@silverprotocol/core"><img src="https://img.shields.io/npm/v/%40silverprotocol%2Fcore?color=0a7"></a>
   <a href="https://github.com/silverprotocol/AgJSON/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue"></a>
-  <a href="https://silverprotocol.io/AgJSON"><img src="https://img.shields.io/badge/spec-1.0.0--draft.6-6ee7ff"></a>
+  <a href="https://silverprotocol.io/AgJSON"><img src="https://img.shields.io/badge/spec-1.0.0--draft.7-6ee7ff"></a>
 </p>
 
 ---
@@ -77,7 +77,7 @@ for a gap. `raw` is for live inspection only; don't persist it. Input that is no
 an event at all (not an object, no string `type`, no number `seq`) returns
 nothing and goes to the optional `onReject` callback. `Reducer` folds the
 validated stream into the normative snapshot; `AGJSON_VERSION` is the wire
-version this build implements (`1.0.0-draft.6`).
+version this build implements (`1.0.0-draft.7`).
 
 ### Stored records and inputs
 
