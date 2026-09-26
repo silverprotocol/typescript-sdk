@@ -127,7 +127,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 21, leg: "live-inclusive", title: "Reasoning-inclusive usage identity (draft.5, Gemini Live): a report whose total already counts thoughts {6037, 248, 490, 6775} derives totalTokens 6775 and carries no totalTokensRaw", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.21(live-inclusive), facet-driven via createAdkNormalizer" },
   { n: 21, leg: "live-mixed", title: "Reasoning-inclusive usage identity (draft.5, Gemini Live): the exclusive and inclusive reports summed into one turn fold to {6646, 1019, 746, totalTokens 7665, totalTokensRaw 7409}", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.21(live-mixed), a two-event ADK feed with one turnId" },
   { n: 21, leg: "no-raw-on-candidates", title: "Reasoning-inclusive usage identity (draft.5): none of the draft.3 candidatesTokenCount vectors yields totalTokensRaw", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.21(no-raw-on-candidates)" },
-  { n: 22, title: "Forward-compatible ingest (draft.4; draft.8 legs f–g): an ignored well-formed event occupies its seq slot, is reported in place, and the fold is unchanged; an unknown block type nested in a carrier event and an undefined closed-set value inside a terminal stub the whole event", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.22, reference ingest (ingestAgEvents) → reduce" },
+  { n: 22, title: "Forward-compatible ingest (draft.4; draft.8 legs f–g + the built-record clause): an ignored well-formed event occupies its seq slot, is reported in place, and the fold is unchanged; an unknown block type nested in a carrier event and an undefined closed-set value inside a terminal stub the whole event; an unknown top-level member of a record-building event reaches no built record, block or turn while a snapshot-carried member survives", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.22, reference ingest (ingestAgEvents) → reduce" },
   { n: 23, leg: "adk", title: "Unmapped native value (draft.4): an ADK finish reason with no AgJSON target → finishReason other|unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.23(adk) via createAdkNormalizer (e59e976)" },
   { n: 23, leg: "adk-blocked", title: "Unmapped native value (draft.8): an ADK promptFeedback.blockReason with no AgJSON target → prompt.blocked reason other + reasonRaw verbatim; a mapped block reason carries no reasonRaw", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.23(adk-blocked) via createAdkNormalizer over a synthetic promptFeedback native (ADK 2.1.0 builds no promptFeedback event of its own — a prompt block closes the turn as turn.error or turn.done{safety_blocked}; the arm serves other producers of that shape); the facet leg google-adk/src/index.test.ts \"an unmapped promptFeedback.blockReason emits prompt.blocked with reason … and reasonRaw verbatim; a mapped reason carries no reasonRaw\"" },
   { n: 23, leg: "openai", title: "Unmapped native value (draft.4): an OpenAI incomplete_details.reason with no AgJSON target → finishReason unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.23(openai) via createOpenaiNormalizer (OA-15 ff358b6)" },
@@ -248,6 +248,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 55, leg: "openai", title: "Host-supplied partition root (draft.5, §8.0 Partition root): createOpenaiNormalizer({ threadId: T }) fed every replay golden's natives stamps T on every threadId-bearing event and on no turnId/parentTurnId; reduce() roots every turn, message and artifact at T with no resync; without the option the output equals the committed golden", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.55(openai) over every replay golden of the facet" },
   { n: 55, leg: "adk", title: "Host-supplied partition root (draft.5, §8.0 Partition root): createAdkNormalizer({ threadId: T }) fed every replay golden's natives stamps T on every threadId-bearing event and on no turnId/parentTurnId; reduce() roots every turn, message and artifact at T with no resync; without the option the output equals the committed golden", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.55(adk) over every replay golden of the facet" },
   { n: 55, leg: "vercel", title: "Host-supplied partition root (draft.5, §8.0 Partition root): createVercelNormalizer({ threadId: T }) fed every replay golden's natives stamps T on every threadId-bearing event and on no turnId/parentTurnId; reduce() roots every turn, message and artifact at T with no resync; without the option the output equals the committed golden", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.55(vercel) over every replay golden of the facet" },
+  { n: 56, title: "Memory record metadata (draft.8): memory.write._meta lands on the AgMemoryRecord (value replaces whole, patch replaces _meta only when carried); an undeclared top-level member never reaches the record; incremental == batch; the persistable projection and the stored-record reader keep _meta", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.56, reference reduce() + Reducer + toPersistable + readStoredAgMemoryRecords (probe's core pair: AgMemoryRecord._meta + the memory.write SET/PATCH arms)" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -1241,6 +1242,29 @@ describe("§10.22 — forward-compatible ingest (draft.4): an ignored well-forme
     const r = reduce(out);
     expect(r.needsResync).toBe(false);
     expect(r.result.turns[0]?.outcome, "the turn did not close").toBeUndefined();
+  });
+
+  // §5 "What a built record carries": an unknown TOP-LEVEL member of a record-building event reaches no record, block or
+  // turn the fold builds; the same member inside a whole-carried messages.snapshot memory record survives.
+  it("built-record rule: zzEvt on every event of S reaches no record, block or turn; zzTop inside a snapshot memory record survives", () => {
+    const withZz = [...S_HEAD, ...S_TAIL(2)].map((e) => ({ ...(e as Record<string, unknown>), zzEvt: 1 }));
+    const r = reduce(ingestAgEvents(withZz as unknown as JsonValue[]));
+    expect(r.needsResync).toBe(false);
+    const seen: string[] = [];
+    const walk = (v: unknown, path: string): void => {
+      if (Array.isArray(v)) v.forEach((x, i) => walk(x, `${path}[${i}]`));
+      else if (v !== null && typeof v === "object") for (const [k, x] of Object.entries(v as Record<string, unknown>)) { if (k === "zzEvt") seen.push(path); walk(x, `${path}.${k}`); }
+    };
+    walk(r.result, "result");
+    expect(seen, "no built record, block or turn carries zzEvt").toEqual([]);
+    const snap = [
+      { type: "turn.start", seq: 0, threadId: "th22", turnId: "t1" },
+      { type: "messages.snapshot", seq: 1, turnId: "t1", messages: [], memory: [{ scope: "thread", key: "k", value: 1, zzTop: 7 }] },
+      { type: "turn.done", seq: 2, turnId: "t1", outcome: { type: "success" }, finishReason: "stop" },
+    ];
+    const rs = reduce(ingestAgEvents(snap as unknown as JsonValue[]));
+    expect(rs.needsResync).toBe(false);
+    expect((rs.result.memory[0] as unknown as Record<string, unknown>)["zzTop"], "a whole-carried snapshot record keeps its unknown member").toBe(7);
   });
 
   it("nested pass-through: an unknown key inside turn.done.usage survives into the fold", () => {
@@ -4068,4 +4092,37 @@ describe("§10.55 — host-supplied partition root (draft.5; §8.0 Partition roo
       }
     });
   }
+});
+
+describe("§10.56 — memory record metadata (draft.8): memory.write._meta lands on the record — value replaces the record whole (_meta included), patch replaces _meta only when carried; an undeclared top-level member never reaches the record; incremental == batch; the projection and the stored reader keep _meta", () => {
+  const P = (evs: Array<Record<string, unknown>>) => evs.map((e) => AgEvent.parse(e));
+  const S56 = [
+    { type: "turn.start", seq: 0, threadId: "th56", turnId: "t1" },
+    { type: "memory.write", seq: 1, turnId: "t1", scope: "thread", key: "k", value: { a: 1 }, _meta: { provenance: { source: "user" } }, zzTop: 1 },
+    { type: "memory.write", seq: 2, turnId: "t1", scope: "thread", key: "k", patch: [{ op: "replace", path: "/a", value: 2 }] },
+    { type: "memory.write", seq: 3, turnId: "t1", scope: "thread", key: "k", patch: [{ op: "replace", path: "/a", value: 3 }], _meta: { x: 1 } },
+    { type: "memory.write", seq: 4, turnId: "t1", scope: "thread", key: "k", value: { a: 4 } },
+    { type: "turn.done", seq: 5, turnId: "t1", outcome: { type: "success" }, finishReason: "stop" },
+  ];
+  const foldTo = (n: number) => reduce(ingestAgEvents(S56.slice(0, n + 1) as unknown as JsonValue[]));
+  it("after seq 3 exactly one record {scope,key,value:{a:3},turnId,_meta:{x:1}}: zzTop absent, the seq-1 _meta kept through the seq-2 patch and replaced whole by seq 3", () => {
+    const r = foldTo(3);
+    expect(r.needsResync).toBe(false);
+    expect(r.result.memory).toHaveLength(1);
+    expect(r.result.memory[0]).toEqual({ scope: "thread", key: "k", value: { a: 3 }, turnId: "t1", _meta: { x: 1 } });
+    const r2 = foldTo(2);
+    expect((r2.result.memory[0] as unknown as Record<string, unknown>)["_meta"]).toEqual({ provenance: { source: "user" } });
+  });
+  it("after seq 4 the record carries no _meta (value replaced the record whole); incremental == batch; toPersistable keeps _meta and readStoredAgMemoryRecords reads it back with no report", () => {
+    const r = foldTo(4);
+    expect(r.result.memory[0]).toEqual({ scope: "thread", key: "k", value: { a: 4 }, turnId: "t1" });
+    const live = new Reducer(); for (const ev of ingestAgEvents(S56.slice(0, 4) as unknown as JsonValue[])) live.push(ev);
+    expect(live.result()).toEqual(foldTo(3).result);
+    const F = foldTo(3).result;
+    const persisted = (coreNs as unknown as Record<string, unknown>)["toPersistable"] as ((r: AgReduceResult) => AgReduceResult);
+    expect((persisted(F).memory[0] as unknown as Record<string, unknown>)["_meta"]).toEqual({ x: 1 });
+    const read = readStoredAgMemoryRecords(structuredClone(F.memory) as unknown as readonly unknown[]);
+    expect(read.reports).toEqual([]);
+    expect((read.value[0] as unknown as Record<string, unknown>)["_meta"]).toEqual({ x: 1 });
+  });
 });
