@@ -1,8 +1,16 @@
 /**
  * The google-adk Live (bidi) capture agent: one `Runner.runLive` session with a
- * real barge-in, for the Live-path corpus (the facet has no live coverage).
+ * real barge-in, or a prompt answered through a tool call, for the Live-path
+ * corpus (the facet has no live coverage).
  *
- * The run:
+ * Tools: the agent binds the capture's MCP toolsets (`CaptureRunInput.mcpServers`,
+ * built as `runAdkCapture` builds them), and none when the scenario declares no
+ * server. ADK's live loop runs a model's function call, yields the call event
+ * and then the function-response event, and sends the response back over the
+ * connection (agents/llm_agent.js postprocessLive / runReceiveLoop,
+ * @google/adk 2.1.0).
+ *
+ * The run with a barge-in:
  * 1. `input.prompt` goes in as the first user content of a `LiveRequestQueue`.
  * 2. At the first model output of that turn (a text or audio chunk, or an
  *    output transcription, while the model is still generating), the agent
@@ -22,6 +30,13 @@
  *    ends and the normalizer's flush tells the truth about it. A second, short
  *    grace after the cap aborts the run if the stream still hasn't ended.
  *
+ * The run with no barge-in (`adkLive.bargeIn` absent): `input.prompt` goes in
+ * and nothing else is sent. The queue closes at the first `turnComplete` that
+ * follows model output after the last function response (the reply), so a
+ * `turnComplete` between a response and its reply does not close it; a run in
+ * which the model calls no tool closes at the first `turnComplete` after its
+ * output. The cap applies as above.
+ *
  * Every native event is yielded verbatim (`toJsonValue`, no filtering). Audio
  * arrives as `content.parts[].inlineData` (`mimeType: "audio/pcm;rate=24000"`
  * from Gemini Live); the capture harness's redaction elides it.
@@ -30,17 +45,23 @@
  * Live-capable model (`CAPTURE_MODEL`, e.g. `gemini-3.8-live`); DEFAULT_MODEL.adk
  * has no `bidiGenerateContent`.
  */
-import { InMemoryRunner, LiveRequestQueue, LlmAgent, type BaseLlm, type Event } from "@google/adk";
+import { InMemoryRunner, LiveRequestQueue, LlmAgent, type BaseLlm, type Event, type ToolUnion } from "@google/adk";
 import { Modality } from "@google/genai";
 import type { JsonValue } from "@silverprotocol/core";
 import { toJsonValue } from "@silverprotocol/core";
 import type { CaptureRunInput } from "../types.js";
+import { adkMcpToolsets } from "./run.js";
+
+/** Where the Live agent's tools come from, and the harness's proof that the
+ *  Live agent binds the capture's tools (its knob guard, KNOB_SUPPORT). */
+export const ADK_LIVE_TOOLS = "mcpServers";
 
 /** The `adkLive` scenario knob. */
 export interface AdkLiveOptions {
   /** The barge-in: the user content sent while the model's first generation is
-   *  still generating. A list sends one barge-in per generation, in order. */
-  bargeIn: string | readonly string[];
+   *  still generating. A list sends one barge-in per generation, in order.
+   *  Absent: no barge-in, for a prompt answered through a tool call. */
+  bargeIn?: string | readonly string[];
   /** The response modality to request. Default "TEXT"; a Live model that serves only
    *  audio rejects it, and then "AUDIO" (with output transcription on) is the knob to set. */
   responseModality?: "TEXT" | "AUDIO";
@@ -55,8 +76,10 @@ export interface LiveBargeInOptions {
   model: string | BaseLlm;
   instruction: string;
   prompt: string;
-  /** One barge-in, or one per generation in order (see the module doc). */
-  bargeIn: string | readonly string[];
+  /** One barge-in, or one per generation in order; absent for none (see the module doc). */
+  bargeIn?: string | readonly string[];
+  /** The tools the agent binds. Absent or empty: none. */
+  tools?: readonly ToolUnion[];
   responseModality: "TEXT" | "AUDIO";
   /** The cap after which the queue closes regardless. Default 60 000 ms. */
   capMs?: number;
@@ -76,12 +99,21 @@ function isModelOutput(e: Event): boolean {
 
 const userContent = (text: string) => ({ role: "user", parts: [{ text }] });
 
+/** An event that carries a function response. */
+const answersTool = (e: Event): boolean => (e.content?.parts ?? []).some((p) => p.functionResponse !== undefined);
+
 /**
  * Runs one Live session with a barge-in (see the module doc) and yields every
  * native event as plain JSON. No key handling here: `runAdkLiveCapture` does it.
  */
 export async function* runLiveBargeIn(opts: LiveBargeInOptions): AsyncIterable<JsonValue> {
-  const agent = new LlmAgent({ name: "spike", model: opts.model, instruction: opts.instruction });
+  const tools = opts.tools ?? [];
+  const agent = new LlmAgent({
+    name: "spike",
+    model: opts.model,
+    instruction: opts.instruction,
+    ...(tools.length > 0 ? { tools: [...tools] } : {}),
+  });
   const runner = new InMemoryRunner({ agent });
   const session = await runner.sessionService.createSession({ appName: runner.appName, userId: "user-1" });
   const queue = new LiveRequestQueue();
@@ -102,8 +134,10 @@ export async function* runLiveBargeIn(opts: LiveBargeInOptions): AsyncIterable<J
   }, opts.capMs ?? 60_000);
 
   const audio = opts.responseModality === "AUDIO";
-  const bargeIns: readonly string[] = typeof opts.bargeIn === "string" ? [opts.bargeIn] : opts.bargeIn;
-  if (bargeIns.length === 0) throw new Error("adkLive.bargeIn is an empty list: give at least one barge-in");
+  const bargeIns: readonly string[] = opts.bargeIn === undefined ? [] : typeof opts.bargeIn === "string" ? [opts.bargeIn] : opts.bargeIn;
+  if (opts.bargeIn !== undefined && bargeIns.length === 0) {
+    throw new Error("adkLive.bargeIn is an empty list: give at least one barge-in, or omit it");
+  }
   queue.sendContent(userContent(opts.prompt));
   // `sent` barge-ins are out. While more remain, the next one waits for the
   // first model output of the next generation (`armed`); the generation that
@@ -113,6 +147,8 @@ export async function* runLiveBargeIn(opts: LiveBargeInOptions): AsyncIterable<J
   let interruptSeen = false;
   let outputAfterInterrupt = false;
   let completesAfterBargeIn = 0;
+  // No barge-in: whether model output followed the last function response.
+  let outputSinceResponse = false;
   try {
     const stream = runner.runLive({
       userId: session.userId,
@@ -127,6 +163,12 @@ export async function* runLiveBargeIn(opts: LiveBargeInOptions): AsyncIterable<J
     for await (const event of stream) {
       yield toJsonValue(event);
       const output = isModelOutput(event);
+      if (bargeIns.length === 0) {
+        if (answersTool(event)) outputSinceResponse = false;
+        else if (output) outputSinceResponse = true;
+        if (event.turnComplete === true && outputSinceResponse) closeQueue();
+        continue;
+      }
       if (sent < bargeIns.length) {
         if (armed && output && event.turnComplete !== true) {
           queue.sendContent(userContent(bargeIns[sent] ?? ""));
@@ -154,7 +196,8 @@ export async function* runLiveBargeIn(opts: LiveBargeInOptions): AsyncIterable<J
 
 /**
  * The capture entry point (KNOB_SUPPORT proof for `adkLive`). Yields the RAW
- * native `@google/adk` `Event` stream of one Live session with a barge-in.
+ * native `@google/adk` `Event` stream of one Live session, with the capture's
+ * MCP toolsets bound (closed when the run ends).
  */
 export async function* runAdkLiveCapture(input: AdkLiveCaptureInput): AsyncIterable<JsonValue> {
   const apiKey = input.apiKey ?? process.env["GOOGLE_API_KEY"];
@@ -166,12 +209,18 @@ export async function* runAdkLiveCapture(input: AdkLiveCaptureInput): AsyncItera
   if (input.model === undefined) {
     throw new Error("adkLive needs a Live-capable model: set CAPTURE_MODEL (e.g. gemini-3.8-live)");
   }
-  yield* runLiveBargeIn({
-    model: input.model,
-    instruction: input.systemPrompt ?? "You are a helpful assistant. Answer at length.",
-    prompt: input.prompt,
-    bargeIn: input.adkLive.bargeIn,
-    responseModality: input.adkLive.responseModality ?? "TEXT",
-    ...(input.abortSignal !== undefined ? { abortSignal: input.abortSignal } : {}),
-  });
+  const toolsets = adkMcpToolsets(input.mcpServers);
+  try {
+    yield* runLiveBargeIn({
+      model: input.model,
+      instruction: input.systemPrompt ?? "You are a helpful assistant. Answer at length.",
+      prompt: input.prompt,
+      ...(input.adkLive.bargeIn !== undefined ? { bargeIn: input.adkLive.bargeIn } : {}),
+      ...(toolsets.length > 0 ? { tools: toolsets } : {}),
+      responseModality: input.adkLive.responseModality ?? "TEXT",
+      ...(input.abortSignal !== undefined ? { abortSignal: input.abortSignal } : {}),
+    });
+  } finally {
+    await Promise.all(toolsets.map((toolset) => toolset.close()));
+  }
 }

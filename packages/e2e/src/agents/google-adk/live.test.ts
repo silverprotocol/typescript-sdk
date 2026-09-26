@@ -3,15 +3,18 @@
  * `Runner.runLive` and LlmAgent live loop, with a scripted live connection in
  * place of Gemini Live (no key, no network). The stub reacts to what the agent
  * sends: the prompt starts a first turn; the barge-in either interrupts it, or
- * arrives after it finished, or is never answered.
+ * arrives after it finished, or is never answered. With no barge-in, the prompt
+ * is answered directly or through a tool call.
  */
 import { describe, expect, it } from "vitest";
-import { BaseLlm, type BaseLlmConnection, type LlmResponse } from "@google/adk";
+import { BaseLlm, FunctionTool, type BaseLlmConnection, type LlmResponse } from "@google/adk";
+import { z } from "zod";
 import type { JsonValue } from "@silverprotocol/core";
 import { runLiveBargeIn } from "./live.js";
 
-type Behaviour = "interrupts" | "finishes-first" | "never-completes" | "interrupts-twice";
+type Behaviour = "interrupts" | "finishes-first" | "never-completes" | "interrupts-twice" | "tool" | "tool-belated-complete" | "answers";
 const text = (t: string) => ({ role: "model", parts: [{ text: t }] });
+const lookupCall = { role: "model", parts: [{ functionCall: { name: "lookup", args: { city: "Seoul" }, id: "fc-1" } }] };
 
 class ScriptedLive extends BaseLlm {
   readonly log: string[] = [];
@@ -38,8 +41,20 @@ class ScriptedLive extends BaseLlm {
       async sendRealtime() {},
       async sendContent(content) {
         contents++;
-        log.push(`recv:${content.parts?.[0]?.text ?? ""}`);
-        if (contents === 1) push({ content: text("Once upon "), partial: true });
+        const response = content.parts?.[0]?.functionResponse;
+        log.push(response !== undefined ? `recv:response:${response.name ?? ""}` : `recv:${content.parts?.[0]?.text ?? ""}`);
+        if (contents === 1 && behaviour === "tool") push({ content: lookupCall });
+        else if (contents === 2 && behaviour === "tool")
+          push({ content: text("Sunny."), partial: true }, { content: text("Sunny.") }, { turnComplete: true });
+        else if (contents === 1 && behaviour === "tool-belated-complete")
+          push({ content: text("Let me check."), partial: true }, { content: lookupCall });
+        else if (contents === 2 && behaviour === "tool-belated-complete") {
+          // The call's generation completes after the response, and the reply follows later.
+          push({ turnComplete: true });
+          setTimeout(() => push({ content: text("Sunny."), partial: true }, { content: text("Sunny.") }, { turnComplete: true }), 50);
+        } else if (contents === 1 && behaviour === "answers")
+          push({ content: text("Hello."), partial: true }, { content: text("Hello.") }, { turnComplete: true });
+        else if (contents === 1) push({ content: text("Once upon "), partial: true });
         else if (contents === 2 && behaviour === "interrupts")
           push({ interrupted: true }, { content: text("Sure."), partial: true }, { content: text("Sure.") }, { turnComplete: true });
         else if (contents === 2 && behaviour === "interrupts-twice")
@@ -79,6 +94,34 @@ async function drive(behaviour: Behaviour, capMs: number, bargeIn: string | read
     events.push(e);
   return { events, log: model.log, elapsed: Date.now() - started };
 }
+/** A run with no barge-in and one tool, `lookup`, that counts its calls. */
+async function driveNoBargeIn(behaviour: Behaviour, capMs: number) {
+  const model = new ScriptedLive(behaviour);
+  let executed = 0;
+  const lookup = new FunctionTool({
+    name: "lookup",
+    description: "Look up the weather for a city.",
+    parameters: z.object({ city: z.string() }),
+    execute: () => {
+      executed++;
+      return { weather: "sunny" };
+    },
+  });
+  const events: JsonValue[] = [];
+  const started = Date.now();
+  for await (const e of runLiveBargeIn({ model, instruction: "Answer with the tool.", prompt: "What is the weather in Seoul?", tools: [lookup], responseModality: "TEXT", capMs, graceMs: 500 }))
+    events.push(e);
+  return { events, log: model.log, executed, elapsed: Date.now() - started };
+}
+/** The part kinds each event carries, in stream order. */
+const partKinds = (events: JsonValue[]) =>
+  events.flatMap((e) => {
+    if (e === null || typeof e !== "object" || Array.isArray(e)) return [];
+    const content = e["content"];
+    if (content === null || typeof content !== "object" || Array.isArray(content)) return [];
+    const parts = content["parts"];
+    return Array.isArray(parts) ? parts.flatMap((p) => (p !== null && typeof p === "object" && !Array.isArray(p) ? Object.keys(p) : [])) : [];
+  });
 const has = (events: JsonValue[], key: string) => events.some((e) => e !== null && typeof e === "object" && !Array.isArray(e) && e[key] === true);
 
 describe("runLiveBargeIn — the Live barge-in capture, offline (real runLive, scripted live connection)", () => {
@@ -126,6 +169,36 @@ describe("runLiveBargeIn — the Live barge-in capture, offline (real runLive, s
     expect(events.length).toBeGreaterThan(0);
     expect(log).toContain("close");
     expect(elapsed).toBeGreaterThanOrEqual(300);
+    expect(elapsed).toBeLessThan(3000);
+  });
+});
+
+describe("runLiveBargeIn — no barge-in: a prompt answered through a tool call, offline", () => {
+  it("runs the tool once, sends its response back, and closes when the reply's turnComplete arrives", async () => {
+    const { events, log, executed, elapsed } = await driveNoBargeIn("tool", 5000);
+    expect(executed).toBe(1);
+    expect(log.filter((l) => l.startsWith("recv:"))).toEqual(["recv:What is the weather in Seoul?", "recv:response:lookup"]);
+    const kinds = partKinds(events);
+    expect(kinds.indexOf("functionCall")).toBeGreaterThanOrEqual(0);
+    expect(kinds.indexOf("functionResponse")).toBeGreaterThan(kinds.indexOf("functionCall"));
+    expect(kinds.lastIndexOf("text")).toBeGreaterThan(kinds.indexOf("functionResponse"));
+    expect(log.indexOf("close")).toBeGreaterThan(log.lastIndexOf("emit:turnComplete"));
+    expect(elapsed).toBeLessThan(4000);
+  });
+
+  it("a turnComplete between the tool response and the reply does not close the queue: it closes after the reply", async () => {
+    const { events, log, elapsed } = await driveNoBargeIn("tool-belated-complete", 5000);
+    expect(log.filter((l) => l === "emit:turnComplete")).toHaveLength(2);
+    expect(JSON.stringify(events)).toContain('"text":"Sunny."');
+    expect(log.indexOf("close")).toBeGreaterThan(log.lastIndexOf("emit:turnComplete"));
+    expect(elapsed).toBeLessThan(4000);
+  });
+
+  it("a model that calls no tool closes at its first turnComplete, before the cap", async () => {
+    const { executed, log, elapsed } = await driveNoBargeIn("answers", 5000);
+    expect(executed).toBe(0);
+    expect(log.filter((l) => l.startsWith("recv:"))).toEqual(["recv:What is the weather in Seoul?"]);
+    expect(log.indexOf("close")).toBeGreaterThan(log.indexOf("emit:turnComplete"));
     expect(elapsed).toBeLessThan(3000);
   });
 });

@@ -177,6 +177,26 @@ export function adkGenerateContentConfig(
 }
 
 /**
+ * One MCPToolset per configured mock server — the official Streamable-HTTP
+ * client. The bearer rides `transportOptions.requestInit.headers` (the
+ * non-deprecated channel; the legacy `header` field is ignored whenever
+ * transportOptions is present, per mcp_session_manager.d.ts). Shared with
+ * `live.ts`; the caller closes each toolset when its run ends.
+ */
+export function adkMcpToolsets(mcpServers: CaptureRunInput["mcpServers"]): MCPToolset[] {
+  return Object.values(mcpServers).map(
+    (cfg) =>
+      new MCPToolset({
+        type: "StreamableHTTPConnectionParams",
+        url: cfg.url,
+        transportOptions: {
+          requestInit: { headers: { Authorization: `Bearer ${cfg.bearer}` } },
+        },
+      }),
+  );
+}
+
+/**
  * Yields the RAW native `@google/adk` `Event` stream, unnormalized, each item
  * materialized as a plain `JsonValue` via `toJsonValue` (audit D5-a's
  * native-ingestion boundary — the whole event, no per-field cast).
@@ -194,20 +214,7 @@ export async function* runAdkCapture(input: AdkCaptureInput): AsyncIterable<Json
   // closely as the SDK allows.
   process.env["GOOGLE_API_KEY"] = apiKey;
 
-  // One MCPToolset per configured mock server — the official Streamable-HTTP
-  // client. The bearer rides `transportOptions.requestInit.headers` (the
-  // non-deprecated channel; the legacy `header` field is ignored whenever
-  // transportOptions is present, per mcp_session_manager.d.ts).
-  const toolsets = Object.values(input.mcpServers).map(
-    (cfg) =>
-      new MCPToolset({
-        type: "StreamableHTTPConnectionParams",
-        url: cfg.url,
-        transportOptions: {
-          requestInit: { headers: { Authorization: `Bearer ${cfg.bearer}` } },
-        },
-      }),
-  );
+  const toolsets = adkMcpToolsets(input.mcpServers);
 
   try {
     // Thinking knob (scenario.thinkingLevel → CaptureRunInput); see
