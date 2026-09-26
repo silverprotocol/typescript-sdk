@@ -2895,10 +2895,28 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // `ext.anthropic.frame{kind:"user"}`. The replay's `tool_use_result`
       // sibling, read here for live frames, is no longer read on replays.
       if ("isReplay" in msg && msg.isReplay === true) return;
-      // guuey#26: a tool_result binds to the fold — seal the open assistant
-      // message first, exactly as the per-frame close used to (spec §5 tool.done
-      // adoption below depends on this ordering).
-      closePendingMessage();
+      // guuey#26: a tool_result binds to the fold, and a COMPLETE-mode message
+      // is sealed first, exactly as the per-frame close used to. A STREAMED
+      // message is never sealed by a live user frame: its native boundary is its
+      // own stream (message_stop, with the complete assistant frames that join
+      // the lifecycle), and with partial messages on the CLI runs each tool as
+      // soon as its tool_use block completes, so a tool_result arrives while the
+      // message is still streaming. Sealing there split the message: with
+      // parallel calls a later call's tool.args.assembled closed on a partial
+      // input, its remaining deltas had no lifecycle to join and became ext
+      // carries, and its complete frame re-opened a `:cont:` copy that started
+      // the call a second time (a second tool.start, which parks the fold); and a
+      // result arriving before the message_delta stranded the message's final
+      // usage the same way. The result's tool.done adopts its own
+      // `<tool_use_id>:result` message (spec §5), which needs no seal: adoption
+      // parks only on a sealed target id or a closed / unopened turn, never on
+      // another open message. (This comment's earlier premise, that adoption
+      // depends on the seal, predates the explicit `:result` id.) The streamed
+      // message is sealed by the next message's start, the turn's result, or
+      // flush; message_stop still never seals, since a complete frame may follow.
+      if (!(pending !== undefined && pending.streamed)) {
+        closePendingMessage();
+      }
       // A tool_result answering a Task call ENDS that subagent run, by what it
       // reports (B-strict, see `openRun`): its nested terminal and bracket close
       // come before the result's own tool.done. A result for any other tool

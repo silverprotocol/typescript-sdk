@@ -105,7 +105,12 @@ after the partials is deduplicated automatically (nothing is folded twice), and
 the final reduced state is identical either way except for the assistant
 message's `usage.outputTokens`, which only the stream reports (see
 [Usage](#usage)). Time-to-first-token rides `message.metadata` as `ttft_ms`
-when the SDK reports it.
+when the SDK reports it. With parallel tool calls the SDK can deliver one
+call's result while a later call's input is still streaming; the normalizer
+lands that result in its own tool message and never seals the streamed
+assistant message on a tool result: the message closes with the next message
+or the turn's close, so each call is started once and carries its complete
+input, and the message keeps its output count.
 
 Then fold the resulting `AgEvent`s into messages and turns with
 `@silverprotocol/core`'s `reduce()` — the same client code regardless of which

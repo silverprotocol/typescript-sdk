@@ -8036,8 +8036,11 @@ describe("createClaudeNormalizer — C1: flush never mints content", () => {
     for (const t of r.result().turns) expect(t.outcome, t.turnId).toBeDefined();
   });
 
-  it("negative control: a binding frame that seals the message MID-stream (not a flush) still finalizes the open tool call as its content_block_stop would", () => {
-    const sealing = { type: "user", message: { role: "user", content: [{ type: "text", text: "interrupt" }] }, parent_tool_use_id: null, uuid: "00000000-0000-0000-0000-0000000000f9", session_id: "sess_fixture" };
+  it("negative control: a frame that seals the message MID-stream (not a flush) still finalizes the open tool call as its content_block_stop would", () => {
+    // The turn's result arriving while a block is still open seals the message
+    // (a live user frame no longer does while a stream block is open: see the
+    // parallel-tool-calls describe below).
+    const sealing = resultSuccess("end_turn");
     const frames = [
       se({ type: "message_start", message: { ...betaMessage([]), id: "msg_mid" } }),
       se({ type: "content_block_start", index: 0, content_block: { type: "tool_use", id: "toolu_mid", name: "get_weather", input: {} } }),
@@ -8851,5 +8854,118 @@ describe("createClaudeNormalizer — draft.5 usage accounting", () => {
     }
     expect(m1?.outputTokens).toBe(59 + 59);
     expect(m1?.cumulative).toBe(true);
+  });
+});
+
+// ─── parallel tool calls with partials: a result mid-stream never splits the message ──
+// With includePartialMessages the CLI runs each tool as soon as its tool_use
+// block completes, so with two parallel calls the first call's tool_result
+// frame arrives while the second call's input is still streaming (live shape,
+// Read ∥ Write on claude-sonnet-5). The streamed message must not be sealed
+// there: the open call's input keeps streaming into its own lifecycle, its
+// complete frame joins, and each call is started exactly once.
+describe("createClaudeNormalizer — parallel tool calls: a tool_result that arrives mid-stream", () => {
+  const A = "toolu_ga8_a";
+  const B = "toolu_ga8_b";
+  const se = (event: unknown): unknown => ({ type: "stream_event", event, parent_tool_use_id: null, uuid: "00000000-0000-0000-0000-0000000008a0", session_id: "sess_fixture" });
+  const toolUse = (id: string, input: unknown) => ({ type: "tool_use" as const, id, name: id === A ? "Read" : "Write", input });
+  const resultFrame = (id: string, text: string, uuid: string): unknown => ({
+    type: "user",
+    message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: text, is_error: false }] },
+    parent_tool_use_id: null,
+    uuid,
+    session_id: "sess_fixture",
+  });
+  const INPUT_B = { file_path: "/tmp/out.txt", content: "a long body" };
+  function frames(): unknown[] {
+    return [
+      se({ type: "message_start", message: { ...betaMessage([]), id: "msg_ga8" } }),
+      se({ type: "content_block_start", index: 0, content_block: { type: "tool_use", id: A, name: "Read", input: {} } }),
+      se({ type: "content_block_delta", index: 0, delta: { type: "input_json_delta", partial_json: '{"file_path":"/tmp/in.txt"}' } }),
+      se({ type: "content_block_stop", index: 0 }),
+      se({ type: "content_block_start", index: 1, content_block: { type: "tool_use", id: B, name: "Write", input: {} } }),
+      se({ type: "content_block_delta", index: 1, delta: { type: "input_json_delta", partial_json: '{"file_path":"/tmp/out.txt",' } }),
+      // A ran as soon as its block completed; its result lands mid-stream.
+      resultFrame(A, "in-file text", "00000000-0000-0000-0000-0000000008a1"),
+      se({ type: "content_block_delta", index: 1, delta: { type: "input_json_delta", partial_json: '"content":"a long body"}' } }),
+      { ...assistantMsg([toolUse(A, { file_path: "/tmp/in.txt" }), toolUse(B, INPUT_B)], null, { stop_reason: "tool_use" }), message: { ...betaMessage([toolUse(A, { file_path: "/tmp/in.txt" }), toolUse(B, INPUT_B)], { stop_reason: "tool_use" }), id: "msg_ga8" } },
+      se({ type: "content_block_stop", index: 1 }),
+      se({ type: "message_delta", delta: { stop_reason: "tool_use", stop_sequence: null }, usage: { output_tokens: 40 } }),
+      resultFrame(B, "written", "00000000-0000-0000-0000-0000000008a2"),
+      se({ type: "message_stop" }),
+      resultSuccess("end_turn"),
+    ];
+  }
+
+  it("each call starts once, the open call's input completes in its own lifecycle, no delta is stranded, and the fold is clean", () => {
+    const evs = drive(frames());
+    const starts = evs.filter((e) => e.type === "tool.start").map((e) => (e.type === "tool.start" ? e.toolCallId : ""));
+    expect(starts).toEqual([A, B]);
+    const assembledB = evs.filter((e) => e.type === "tool.args.assembled" && e.toolCallId === B);
+    expect(assembledB).toHaveLength(1);
+    expect(assembledB[0]).toMatchObject({ input: INPUT_B });
+    expect(evs.filter((e) => e.type === "ext.anthropic.frame")).toHaveLength(0);
+    // One assistant message (no `:cont:` copy), plus the two adopted result messages.
+    expect(evs.filter((e) => e.type === "message.start").map((e) => (e.type === "message.start" ? e.id : ""))).toEqual(["msg_ga8"]);
+    const doneIds = evs.filter((e) => e.type === "tool.done").map((e) => (e.type === "tool.done" ? e.toolCallId : ""));
+    expect(doneIds).toEqual([A, B]);
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    const ids = r.result().messages.map((m) => [m.id, m.role]);
+    expect(ids).toEqual([["msg_ga8", "assistant"], [`${A}:result`, "tool"], [`${B}:result`, "tool"]]);
+  });
+
+  it("the last result arriving BEFORE the message_delta does not seal either: the usage refresh merges into message.end instead of riding an ext carry", () => {
+    const f = frames();
+    // Move B's result ahead of the message_delta (the live P1 order).
+    const bResult = f.findIndex((x) => (x as { uuid?: string }).uuid === "00000000-0000-0000-0000-0000000008a2");
+    const delta = f.findIndex((x) => (x as { event?: { type?: string } }).event?.type === "message_delta");
+    const [moved] = f.splice(bResult, 1);
+    f.splice(delta, 0, moved);
+    const evs = drive(f);
+    expect(evs.filter((e) => e.type === "ext.anthropic.frame")).toHaveLength(0);
+    expect(evs.find((e) => e.type === "message.end" && e.id === "msg_ga8")).toMatchObject({ usage: { outputTokens: 40 } });
+    expect(evs.filter((e) => e.type === "tool.start")).toHaveLength(2);
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("a streamed message is sealed by the turn's result, never by a live tool_result: both results land first, the seal comes before the turn's close", () => {
+    const evs = drive(frames());
+    const types = evs.map((e) => e.type);
+    const aDone = evs.findIndex((e) => e.type === "tool.done" && e.toolCallId === A);
+    const bDone = evs.findIndex((e) => e.type === "tool.done" && e.toolCallId === B);
+    const end = evs.findIndex((e) => e.type === "message.end" && e.id === "msg_ga8");
+    expect(aDone).toBeLessThan(end);
+    expect(bDone).toBeLessThan(end);
+    expect(end).toBeLessThan(types.indexOf("turn.done"));
+  });
+
+  it("a complete frame that arrives AFTER the message_delta and after a result still joins the lifecycle (no seal at any live tool_result, whatever the timing)", () => {
+    const f = frames();
+    // Move the complete frame after B's result, which itself follows the message_delta.
+    const complete = f.findIndex((x) => (x as { type?: string }).type === "assistant");
+    const [cf] = f.splice(complete, 1);
+    const bResult = f.findIndex((x) => (x as { uuid?: string }).uuid === "00000000-0000-0000-0000-0000000008a2");
+    f.splice(bResult + 1, 0, cf);
+    const evs = drive(f);
+    expect(evs.filter((e) => e.type === "tool.start")).toHaveLength(2);
+    expect(evs.filter((e) => e.type === "message.start").map((e) => (e.type === "message.start" ? e.id : ""))).toEqual(["msg_ga8"]);
+    expect(evs.filter((e) => e.type === "ext.anthropic.frame")).toHaveLength(0);
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("the race between the two blocks: A's result after A's content_block_stop and BEFORE B's content_block_start still starts B once, in the same message", () => {
+    const f = frames();
+    // Move A's result ahead of B's content_block_start.
+    const aResult = f.findIndex((x) => (x as { uuid?: string }).uuid === "00000000-0000-0000-0000-0000000008a1");
+    const bStart = f.findIndex((x) => { const ev = (x as { event?: { type?: string; index?: number } }).event; return ev?.type === "content_block_start" && ev.index === 1; });
+    const [moved] = f.splice(aResult, 1);
+    f.splice(bStart, 0, moved);
+    const evs = drive(f);
+    expect(evs.filter((e) => e.type === "tool.start").map((e) => (e.type === "tool.start" ? e.toolCallId : ""))).toEqual([A, B]);
+    expect(evs.filter((e) => e.type === "tool.args.assembled" && e.toolCallId === B)).toEqual([expect.objectContaining({ input: INPUT_B })]);
+    expect(evs.filter((e) => e.type === "ext.anthropic.frame")).toHaveLength(0);
+    expect(evs.filter((e) => e.type === "message.start").map((e) => (e.type === "message.start" ? e.id : ""))).toEqual(["msg_ga8"]);
+    expect(fold(evs).needsResync).toBe(false);
   });
 });
