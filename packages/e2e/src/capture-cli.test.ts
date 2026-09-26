@@ -42,6 +42,7 @@ import {
   resolveModel,
   resolveSdkVersion,
   assertKnobsHonored,
+  assertLiveToolsHonored,
   resumeSessionFrom,
   resumeRunStateFrom,
   runStatePath,
@@ -721,5 +722,20 @@ describe("adkLive: the knob guard (cto's Live barge-in ask)", () => {
     expect(withKnobs({ adkLive: { bargeIn: "b", responseModality: "AUDIO" } }).adkLive).toEqual({ bargeIn: "b", responseModality: "AUDIO" });
     expect(() => withKnobs({ adkLive: { bargeIn: "" } })).toThrow();
     expect(() => withKnobs({ adkLive: { bargeIn: "b", responseModality: "VIDEO" } })).toThrow();
+  });
+});
+
+describe("adkLive with tools: the ADK_LIVE_TOOLS guard", () => {
+  const withTools = Scenario.parse({ name: "live-tool", prompt: "x", mcpServers: [{ key: "t", kind: "text" }], adkLive: { responseModality: "AUDIO" } });
+  it("an adkLive scenario may omit bargeIn", () => {
+    expect(withTools.adkLive).toEqual({ responseModality: "AUDIO" });
+  });
+  it("passes when the Live agent exports ADK_LIVE_TOOLS, fails without it", () => {
+    expect(() => assertLiveToolsHonored(withTools, { ADK_LIVE_TOOLS: "mcpServers" })).not.toThrow();
+    expect(() => assertLiveToolsHonored(withTools, {})).toThrow(/does not export ADK_LIVE_TOOLS/);
+  });
+  it("does not apply without mcpServers or without adkLive", () => {
+    expect(() => assertLiveToolsHonored(Scenario.parse({ name: "b", prompt: "x", adkLive: { bargeIn: "stop" } }), {})).not.toThrow();
+    expect(() => assertLiveToolsHonored(Scenario.parse({ name: "e", prompt: "x", mcpServers: [{ key: "t", kind: "text" }] }), {})).not.toThrow();
   });
 });

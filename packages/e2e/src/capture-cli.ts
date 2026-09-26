@@ -297,6 +297,22 @@ export const KNOB_SUPPORT: Readonly<
  * honor, or that the loaded `agentModule` cannot prove it implements.
  * Exported for unit testing.
  */
+/**
+ * Throws if an `adkLive` scenario declares `mcpServers` but the loaded Live
+ * agent cannot prove it binds them (no ADK_LIVE_TOOLS export): an older agent
+ * would run the session with no tools and record a tool-less capture under a
+ * tool seed's name. Exported for unit testing.
+ */
+export function assertLiveToolsHonored(scenario: Scenario, liveAgentModule: object): void {
+  if (scenario.adkLive === undefined || (scenario.mcpServers?.length ?? 0) === 0) return;
+  if (!("ADK_LIVE_TOOLS" in liveAgentModule)) {
+    throw new Error(
+      `e2e:capture: scenario "${scenario.name}" sets adkLive with mcpServers, but this tree's Live capture agent does not ` +
+        `export ADK_LIVE_TOOLS, so it would run the session without tools. No capture attempted.`,
+    );
+  }
+}
+
 export function assertKnobsHonored(scenario: Scenario, framework: Framework, agentModule: object): void {
   for (const [knob, support] of Object.entries(KNOB_SUPPORT)) {
     if ((scenario as Record<string, unknown>)[knob] === undefined) continue;
@@ -379,6 +395,7 @@ async function loadFrameworkDeps(
   if (shape !== undefined && live !== undefined) {
     throw new Error(`e2e:capture: scenario "${scenario.name}" sets both adkWorkflow and adkLive; pick one. No capture attempted.`);
   }
+  assertLiveToolsHonored(scenario, liveAgent);
   if (scenario.adkCrossSessionState === true && scenario.adkStateScript === undefined) {
     throw new Error(`e2e:capture: scenario "${scenario.name}" sets adkCrossSessionState without adkStateScript; the cross-session read needs the scripted state writes. No capture attempted.`);
   }

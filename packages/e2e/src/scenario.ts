@@ -182,10 +182,13 @@ export const Scenario = z.object({
   // `responseModality` defaults to TEXT; AUDIO turns on output transcription
   // (audio payloads are elided at capture, redact.ts). Needs a Live model
   // (CAPTURE_MODEL, e.g. gemini-3.8-live: gemini-3.8-flash has no
-  // bidiGenerateContent). Not combinable with adkWorkflow.
+  // bidiGenerateContent). Not combinable with adkWorkflow. `bargeIn` is
+  // optional: without one only the prompt goes in. The scenario's
+  // `mcpServers` are bound as the live agent's tools (the capture refuses them
+  // unless the agent exports ADK_LIVE_TOOLS).
   adkLive: z
     .object({
-      bargeIn: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]),
+      bargeIn: z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]).optional(),
       responseModality: z.enum(["TEXT", "AUDIO"]).optional(),
     })
     .optional(),
