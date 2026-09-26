@@ -826,6 +826,24 @@ describe("createAdkNormalizer — promptFeedback.blockReason → prompt.blocked"
     expect((blocked as { safety?: unknown } | undefined)?.safety).toBeUndefined();
     for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
   });
+
+  it('an unmapped promptFeedback.blockReason emits prompt.blocked with reason "other" and reasonRaw verbatim; a mapped reason carries no reasonRaw', () => {
+    // genai 2.24.0 BlockedReason: the facet maps SAFETY, BLOCKLIST and
+    // PROHIBITED_CONTENT; every other value (and any future one) is "other",
+    // and only then does the native value ride reasonRaw (draft.8).
+    for (const raw of ["OTHER", "IMAGE_SAFETY", "MODEL_ARMOR", "BLOCKED_REASON_UNSPECIFIED", "SOME_FUTURE_REASON"]) {
+      const out = run([event([], { promptFeedback: { blockReason: raw } })]);
+      const blocked = out.find((e) => e.type === "prompt.blocked");
+      expect(blocked, raw).toMatchObject({ type: "prompt.blocked", reason: "other", reasonRaw: raw });
+      for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+    }
+    for (const [raw, reason] of [["SAFETY", "safety"], ["BLOCKLIST", "blocklist"], ["PROHIBITED_CONTENT", "prohibited"]] as const) {
+      const out = run([event([], { promptFeedback: { blockReason: raw } })]);
+      const blocked = out.find((e) => e.type === "prompt.blocked");
+      expect(blocked, raw).toMatchObject({ type: "prompt.blocked", reason });
+      expect(blocked !== undefined && "reasonRaw" in blocked, raw).toBe(false);
+    }
+  });
 });
 
 describe("createAdkNormalizer — actions.requestedAuthConfigs → hitl.ask (kind auth)", () => {

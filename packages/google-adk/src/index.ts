@@ -1635,7 +1635,8 @@ function driveAdkTopLevel(
 
   // ── promptFeedback → prompt.blocked ──
   if (event.promptFeedback?.blockReason !== undefined) {
-    const reason = mapBlockReason(event.promptFeedback.blockReason);
+    const blockReason = event.promptFeedback.blockReason;
+    const reason = mapBlockReason(blockReason);
     const safety =
       event.promptFeedback.safetyRatings !== undefined
         ? event.promptFeedback.safetyRatings
@@ -1647,7 +1648,18 @@ function driveAdkTopLevel(
               blocked: r.blocked,
             }))
         : undefined;
-    a.emit({ type: "prompt.blocked", reason, ...(safety !== undefined ? { safety } : {}) });
+    // draft.8 (§4): an unmapped block reason (reason "other") carries the
+    // native value verbatim in reasonRaw; a mapped reason carries none, as a
+    // lossless finishReason takes no finishReasonRaw (§10 item 23). On
+    // @google/adk 2.1.0 no ADK-built event carries promptFeedback: its
+    // createLlmResponse turns a prompt block into errorCode/errorMessage
+    // (models/llm_response.js), so this arm serves events built elsewhere.
+    a.emit({
+      type: "prompt.blocked",
+      reason,
+      ...(reason === "other" ? { reasonRaw: blockReason } : {}),
+      ...(safety !== undefined ? { safety } : {}),
+    });
   }
 
   // ── groundingMetadata → source + display.required ──────────────────────────
