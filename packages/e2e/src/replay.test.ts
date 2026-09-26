@@ -436,6 +436,14 @@ const ADK_SEEDS = [
   // turnComplete): two interrupted generations, each closing
   // turn.abort{interrupted} with its own usage, then the reply `_g2` succeeds.
   "live-bargein2-gemini38live",
+  // 2026-09-26: the first live (bidi) ADK tool call, gemini-3.8-live (AUDIO, no
+  // barge-in; the Live agent binds the echo MCP tool). The call's usage report
+  // arrives before the functionCall, the functionResponse before the first
+  // turnComplete, then the reply generation. With no barge-in the call, its
+  // result and the reply fold as ONE turn that closes success; its usage sums
+  // both reports. Neither report carries toolUsePromptTokenCount: the tool
+  // result is counted in the next report's promptTokenCount.
+  "live-tool-gemini38live",
 ] as const;
 
 /**

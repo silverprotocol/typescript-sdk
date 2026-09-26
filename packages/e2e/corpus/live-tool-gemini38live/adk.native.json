@@ -1,0 +1,507 @@
+[
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "XzFx8gc7",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384665120,
+    "liveSessionResumptionUpdate": {
+      "newHandle": "<redacted>",
+      "resumable": true
+    }
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "P1ZH49XS",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384665812,
+    "usageMetadata": {
+      "promptTokenCount": 666,
+      "responseTokenCount": 15,
+      "totalTokenCount": 681,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 395
+        },
+        {
+          "modality": "AUDIO",
+          "tokenCount": 222
+        }
+      ],
+      "thoughtsTokenCount": 70
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "iBn3rWWf",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384665812,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "name": "echo",
+            "args": {
+              "message": "conformance-probe-live"
+            },
+            "id": "call_285686"
+          }
+        }
+      ]
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "call_285686",
+            "name": "echo",
+            "response": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "conformance-probe-live"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "rIXNmuyV",
+    "longRunningToolIds": [],
+    "timestamp": 1790384665819
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "qGuXeWRF",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384665819,
+    "turnComplete": true,
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "cuRRLokA",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384666348,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:4 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "357fDemy",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384666348,
+    "outputTranscription": {
+      "text": "The tool ",
+      "finished": false
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "eVl1mq74",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384666370,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:16000 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "LL21Nuug",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384666427,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:15360 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "Cj0Gb9dQ",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384666481,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:15360 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "tzLso3PL",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384666536,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:15360 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "zlReFqAc",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384666641,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:10240 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "4fs48QlR",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384666641,
+    "outputTranscription": {
+      "text": "returned conformance-probe-live.",
+      "finished": false
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "GuHmYPXX",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384666663,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:20480 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "GCOicRGL",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384666741,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:23040 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "uRVcHevW",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384666859,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:30720 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "Q9DIxNE0",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384666972,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:25600 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "204a62hB",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384666973,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:2560 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "Gnu4dr77",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384666973,
+    "outputTranscription": {
+      "text": "The tool returned conformance-probe-live.",
+      "finished": true
+    },
+    "partial": false
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "4UhLaaQ2",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384669090,
+    "usageMetadata": {
+      "promptTokenCount": 709,
+      "responseTokenCount": 74,
+      "totalTokenCount": 783,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 414
+        },
+        {
+          "modality": "AUDIO",
+          "tokenCount": 222
+        }
+      ],
+      "responseTokensDetails": [
+        {
+          "modality": "AUDIO",
+          "tokenCount": 74
+        }
+      ],
+      "thoughtsTokenCount": 56
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "author": "spike",
+    "id": "GaaRSRK3",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790384669091,
+    "turnComplete": true,
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "type": "__host_complete__"
+  }
+]
