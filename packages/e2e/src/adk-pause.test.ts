@@ -107,7 +107,16 @@ const KNOWN_GAPS = ["known-gap-sequential-root", "known-gap-after-agent-callback
 /** Pauses the invocation outlives: an ADK event follows the pause end in the
  *  same invocation and carries state and content (adk-pause-fixtures.gen.test.ts,
  *  GEN_ADK_PAUSE_FOLLOW). */
-const AFTER_PAUSE = ["after-pause-usage-tail", "after-pause-callback", "after-pause-sequential", "after-pause-input-callback"] as const;
+const AFTER_PAUSE = [
+  "after-pause-usage-tail",
+  "after-pause-callback",
+  "after-pause-sequential",
+  "after-pause-input-callback",
+  // A confirmation in a non-last SequentialAgent sub-agent, and a credential
+  // request under streamingMode "sse" through ADK's own streaming aggregator.
+  "after-pause-sequential-confirmation",
+  "after-pause-sse-credential",
+] as const;
 
 describe("rd-06 P-RED: ADK pause / completion closure (§10 item 25, step-1 scope)", () => {
   it("the fixture set is complete (non-vacuity)", () => {

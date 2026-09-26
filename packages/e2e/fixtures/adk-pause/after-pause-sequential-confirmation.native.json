@@ -1,0 +1,98 @@
+[
+  {
+    "invocationId": "e-371bbbd4-f19b-4d60-8b9f-f7fd45b351c7",
+    "author": "agent",
+    "id": "RY8WcjTm",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790416591137,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "name": "delete_file",
+            "args": {
+              "path": "/tmp/x"
+            },
+            "id": "adk-f056aaf5-75f1-4a13-b553-3656a8b2e345"
+          }
+        }
+      ]
+    },
+    "turnComplete": true
+  },
+  {
+    "invocationId": "e-371bbbd4-f19b-4d60-8b9f-f7fd45b351c7",
+    "author": "agent",
+    "content": {
+      "parts": [
+        {
+          "functionCall": {
+            "name": "adk_request_confirmation",
+            "args": {
+              "originalFunctionCall": {
+                "name": "delete_file",
+                "args": {
+                  "path": "/tmp/x"
+                },
+                "id": "adk-f056aaf5-75f1-4a13-b553-3656a8b2e345"
+              },
+              "toolConfirmation": {
+                "hint": "Please approve or reject the tool call delete_file() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
+                "confirmed": false
+              }
+            },
+            "id": "adk-d897712b-0b25-4061-b5c1-261e670e414a"
+          }
+        }
+      ],
+      "role": "user"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {
+        "adk-f056aaf5-75f1-4a13-b553-3656a8b2e345": {
+          "hint": "Please approve or reject the tool call delete_file() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
+          "confirmed": false
+        }
+      },
+      "skipSummarization": true
+    },
+    "longRunningToolIds": [
+      "adk-d897712b-0b25-4061-b5c1-261e670e414a"
+    ],
+    "id": "dE0oxAe6",
+    "timestamp": 1790416591139
+  },
+  {
+    "invocationId": "e-371bbbd4-f19b-4d60-8b9f-f7fd45b351c7",
+    "author": "next",
+    "id": "FZoMlKAm",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790416591140,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Done."
+        }
+      ]
+    },
+    "turnComplete": true,
+    "finishReason": "STOP"
+  }
+]

@@ -21,6 +21,8 @@ import { describe, it } from "vitest";
 import {
   BaseLlm,
   DEFAULT_ROUTE,
+  Gemini,
+  StreamingMode,
   FunctionNode,
   FunctionTool,
   InMemoryRunner,
@@ -32,6 +34,7 @@ import {
   createEvent,
   requestInputTool,
 } from "@google/adk";
+import { GenerateContentResponse } from "@google/genai";
 import { z } from "zod";
 import type { JsonValue } from "@silverprotocol/core";
 import { buildCaptureWorkflow } from "./agents/google-adk/workflow.js";
@@ -71,13 +74,16 @@ const echoTool = (): FunctionTool =>
 
 const plain = (value: unknown): JsonValue => JSON.parse(JSON.stringify(value)) as JsonValue;
 
+type RunConfig = { maxLlmCalls?: number; streamingMode?: StreamingMode };
+
 async function invoke(
   runner: InMemoryRunner,
   sessionId: string,
   newMessage: { role: "user"; parts: Array<Record<string, unknown>> },
+  runConfig: RunConfig = { maxLlmCalls: 8 },
 ): Promise<JsonValue[]> {
   const out: JsonValue[] = [];
-  for await (const ev of runner.runAsync({ userId: "user-1", sessionId, newMessage, runConfig: { maxLlmCalls: 8 } })) {
+  for await (const ev of runner.runAsync({ userId: "user-1", sessionId, newMessage, runConfig })) {
     out.push(plain(ev));
   }
   return out;
@@ -85,10 +91,10 @@ async function invoke(
 
 type RunnerAgent = ConstructorParameters<typeof InMemoryRunner>[0]["agent"];
 
-async function runOnce(agent: RunnerAgent, prompt = "Echo wf-probe"): Promise<JsonValue[]> {
+async function runOnce(agent: RunnerAgent, prompt = "Echo wf-probe", runConfig?: RunConfig): Promise<JsonValue[]> {
   const runner = new InMemoryRunner({ agent });
   const s = await runner.sessionService.createSession({ appName: runner.appName, userId: "user-1" });
-  return invoke(runner, s.id, { role: "user", parts: [{ text: prompt }] });
+  return invoke(runner, s.id, { role: "user", parts: [{ text: prompt }] }, runConfig);
 }
 
 const workflow = (shape: "pause" | "complete"): Workflow =>
@@ -425,6 +431,99 @@ describe.runIf(process.env["GEN_ADK_PAUSE_FOLLOW"] === "1")("pauses the invocati
         tools: [requestInputTool],
         afterAgentCallback: noteAfterAgent,
       }),
+    );
+    mkdirSync(ADK_PAUSE_DIR, { recursive: true });
+    for (const [name, events] of Object.entries(out)) {
+      writeFileSync(join(ADK_PAUSE_DIR, `${name}.native.json`), JSON.stringify(events, null, 2) + "\n");
+    }
+  }, 120_000);
+
+  /**
+   * ADK's own Gemini model class with its transport replaced (no key, no
+   * network): each call's chunks go through the real StreamingResponseAggregator
+   * (models/google_llm.js streaming branch), so under runConfig.streamingMode
+   * "sse" the usage-only tail after a function call is the aggregator's own
+   * `close()` output, not a stub model's. First call: one function-call chunk
+   * carrying finishReason STOP and usageMetadata; after a functionResponse: a
+   * text partial, then a final text chunk with STOP and usage.
+   */
+  class SseTransportGemini extends Gemini {
+    constructor(call: { name: string; args: Record<string, unknown> }) {
+      super({ model: "gemini-stub", apiKey: "stub-not-a-key" });
+      const chunk = (value: Record<string, unknown>) => Object.assign(new GenerateContentResponse(), value);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (this as any)._apiClient = {
+        models: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          generateContentStream: async (req: any) => {
+            const answered = (req.contents ?? []).some((c: { parts?: Array<{ functionResponse?: unknown }> }) =>
+              (c.parts ?? []).some((p) => p.functionResponse !== undefined),
+            );
+            const chunks = answered
+              ? [
+                  chunk({ candidates: [{ content: { role: "model", parts: [{ text: "Waiting for " }] } }] }),
+                  chunk({
+                    candidates: [{ content: { role: "model", parts: [{ text: "authorization." }] }, finishReason: "STOP" }],
+                    usageMetadata: { promptTokenCount: 20, candidatesTokenCount: 4, totalTokenCount: 24 },
+                  }),
+                ]
+              : [
+                  chunk({
+                    candidates: [{ content: { role: "model", parts: [{ functionCall: call }] }, finishReason: "STOP" }],
+                    usageMetadata: { promptTokenCount: 12, candidatesTokenCount: 3, totalTokenCount: 15 },
+                  }),
+                ];
+            return (async function* () {
+              yield* chunks;
+            })();
+          },
+          generateContent: async () => {
+            throw new Error("SseTransportGemini: only the streaming path is stubbed");
+          },
+        },
+      };
+    }
+  }
+
+  /**
+   * Generated on their own (`-t "sequential-confirmation"`) so the four fixtures
+   * above are not rewritten:
+   *  - after-pause-sequential-confirmation: a confirmation in a NON-last
+   *    SequentialAgent sub-agent. The confirmation ends the pausing agent's
+   *    run, and the next sub-agent's text still follows in the same invocation.
+   *  - after-pause-sse-credential: a credential request under
+   *    streamingMode "sse" through ADK's real aggregator. The aggregator's
+   *    usage-only tail makes the step loop run the model again in the same
+   *    invocation.
+   */
+  it("writes after-pause-sequential-confirmation and after-pause-sse-credential", async () => {
+    const out: Record<string, JsonValue[]> = {};
+    out["after-pause-sequential-confirmation"] = await runOnce(
+      new SequentialAgent({
+        name: "root",
+        subAgents: [
+          new LlmAgent({
+            name: "agent",
+            model: new StubModel({ name: "delete_file", args: { path: "/tmp/x" } }),
+            instruction: "Delete the file.",
+            tools: [
+              new FunctionTool({
+                name: "delete_file",
+                description: "Delete a file.",
+                parameters: z.object({ path: z.string() }),
+                requireConfirmation: true,
+                execute: async () => ({ deleted: true }),
+              }),
+            ],
+          }),
+          new LlmAgent({ name: "next", model: new StubModel(undefined), instruction: "Say done." }),
+        ],
+      }),
+    );
+    out["after-pause-sse-credential"] = await runOnce(
+      new LlmAgent({ name: "agent", model: new SseTransportGemini({ name: "read_mail", args: {} }), instruction: "Read the mail.", tools: [credentialTool()] }),
+      "Read my mail",
+      { maxLlmCalls: 8, streamingMode: StreamingMode.SSE },
     );
     mkdirSync(ADK_PAUSE_DIR, { recursive: true });
     for (const [name, events] of Object.entries(out)) {
