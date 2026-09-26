@@ -239,6 +239,16 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // 2026-09-26: the Live tool-call session (capture-time coverage was computed
   // against empty guard maps).
   { scenario: "live-tool-gemini38live", framework: "adk" },
+  // 2026-09-26: a Claude assistant message ends at its own complete frame,
+  // not at a tool result. Each partials tool round's message.end moves past the
+  // round's tool.done; in narration-opus55 the round's streamed message_delta
+  // usage now lands on message.end instead of a raw carry.
+  { scenario: "narration-opus55", framework: "claude" },
+  { scenario: "partials-fable51", framework: "claude" },
+  { scenario: "partials-opus55", framework: "claude" },
+  { scenario: "partials-sonnet5", framework: "claude" },
+  { scenario: "partials-uuid-sonnet5", framework: "claude" },
+  { scenario: "thinking-fable51", framework: "claude" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

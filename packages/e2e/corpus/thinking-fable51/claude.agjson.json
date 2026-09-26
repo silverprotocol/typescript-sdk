@@ -218,21 +218,8 @@
     }
   },
   {
-    "type": "message.end",
-    "seq": 28,
-    "id": "msg_011CfK6VC73jJkA3hWYLBpgi",
-    "usage": {
-      "inputTokens": 1972,
-      "outputTokens": 124,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 1970,
-      "cumulative": true,
-      "reasoningTokens": 0
-    }
-  },
-  {
     "type": "tool.done",
-    "seq": 29,
+    "seq": 28,
     "turnId": "turn_msg_011CfK6VC73jJkA3hWYLBpgi",
     "toolCallId": "toolu_0168mgaCAbAJJj9gEWC1e35Z",
     "content": [
@@ -246,7 +233,7 @@
     "messageId": "toolu_0168mgaCAbAJJj9gEWC1e35Z:result"
   },
   {
-    "seq": 30,
+    "seq": 29,
     "type": "ext.anthropic.frame",
     "kind": "status",
     "frame": {
@@ -255,6 +242,19 @@
       "status": "requesting",
       "session_id": "cbf43222-39d5-460d-b4e0-d9e1ea602f11",
       "uuid": "334ca26d-c7e7-4ddb-9966-c881a17eb4a5"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 30,
+    "id": "msg_011CfK6VC73jJkA3hWYLBpgi",
+    "usage": {
+      "inputTokens": 1972,
+      "outputTokens": 124,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 1970,
+      "cumulative": true,
+      "reasoningTokens": 0
     }
   },
   {

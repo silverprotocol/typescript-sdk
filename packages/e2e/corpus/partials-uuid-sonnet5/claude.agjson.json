@@ -118,21 +118,8 @@
     }
   },
   {
-    "type": "message.end",
-    "seq": 13,
-    "id": "msg_011CfPXQ8w65s4z5bwzAekRM",
-    "usage": {
-      "inputTokens": 1103,
-      "outputTokens": 54,
-      "cacheReadTokens": 0,
-      "cacheWriteTokens": 1101,
-      "cumulative": true,
-      "reasoningTokens": 0
-    }
-  },
-  {
     "type": "tool.done",
-    "seq": 14,
+    "seq": 13,
     "turnId": "turn_msg_011CfPXQ8w65s4z5bwzAekRM",
     "toolCallId": "toolu_01N1794tHti28cSirDEtjGr1",
     "content": [
@@ -146,7 +133,7 @@
     "messageId": "toolu_01N1794tHti28cSirDEtjGr1:result"
   },
   {
-    "seq": 15,
+    "seq": 14,
     "type": "ext.anthropic.frame",
     "kind": "status",
     "frame": {
@@ -155,6 +142,19 @@
       "status": "requesting",
       "session_id": "8bcf5b35-6304-406d-9fa5-034b3560610a",
       "uuid": "ceed680c-fac3-4fa1-90aa-4c9f2e2906ec"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 15,
+    "id": "msg_011CfPXQ8w65s4z5bwzAekRM",
+    "usage": {
+      "inputTokens": 1103,
+      "outputTokens": 54,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 1101,
+      "cumulative": true,
+      "reasoningTokens": 0
     }
   },
   {
@@ -442,21 +442,8 @@
     }
   },
   {
-    "type": "message.end",
-    "seq": 41,
-    "id": "msg_011CfPXQM65VgP6NZATB4fr3",
-    "usage": {
-      "inputTokens": 1301,
-      "outputTokens": 54,
-      "cacheReadTokens": 1203,
-      "cacheWriteTokens": 96,
-      "cumulative": true,
-      "reasoningTokens": 0
-    }
-  },
-  {
     "type": "tool.done",
-    "seq": 42,
+    "seq": 41,
     "turnId": "turn_msg_011CfPXQM65VgP6NZATB4fr3",
     "toolCallId": "toolu_01BQ5jef91c8y54nr6idw3HL",
     "content": [
@@ -470,7 +457,7 @@
     "messageId": "toolu_01BQ5jef91c8y54nr6idw3HL:result"
   },
   {
-    "seq": 43,
+    "seq": 42,
     "type": "ext.anthropic.frame",
     "kind": "status",
     "frame": {
@@ -479,6 +466,19 @@
       "status": "requesting",
       "session_id": "8bcf5b35-6304-406d-9fa5-034b3560610a",
       "uuid": "c17ae039-3588-4cc3-adf0-f81adda265d9"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 43,
+    "id": "msg_011CfPXQM65VgP6NZATB4fr3",
+    "usage": {
+      "inputTokens": 1301,
+      "outputTokens": 54,
+      "cacheReadTokens": 1203,
+      "cacheWriteTokens": 96,
+      "cumulative": true,
+      "reasoningTokens": 0
     }
   },
   {
