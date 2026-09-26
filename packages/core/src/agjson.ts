@@ -743,6 +743,7 @@ export const AgMemoryRecord = z.object({
   durable: z.boolean().optional(),
   turnId: z.string().optional(),
   threadId: z.string().optional(),
+  _meta: AgMeta.optional(),   // the setting write's _meta (§5): a value write replaces it, a patch only when it carries one
 });
 export type AgMemoryRecord = z.infer<typeof AgMemoryRecord>;
 

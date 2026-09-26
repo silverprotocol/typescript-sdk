@@ -1110,6 +1110,7 @@ export class Reducer {
             ...(ev.reason !== undefined ? { reason: ev.reason } : {}),
             ...(ev.durable !== undefined ? { durable: ev.durable } : {}),
             ...(ev.turnId !== undefined ? { turnId: ev.turnId } : {}),
+            ...(ev._meta !== undefined ? { _meta: ev._meta } : {}),
           };
           this.#memory.set(memKey, record);
         } else if (ev.patch !== undefined) {
@@ -1130,6 +1131,7 @@ export class Reducer {
           existing.value = result.value;
           if (ev.reason !== undefined) existing.reason = ev.reason;
           if (ev.durable !== undefined) existing.durable = ev.durable;
+          if (ev._meta !== undefined) existing._meta = ev._meta;
         }
         break;
       }

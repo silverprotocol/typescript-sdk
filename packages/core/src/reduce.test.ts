@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { reduce, Reducer } from "./reduce.js";
 import { AgEvent, AgTurnRecord } from "./agjson.js";
+import { ingestAgEvents } from "./ingest.js";
+import { toPersistable } from "./persist.js";
+import type { JsonValue } from "./agjson.js";
 import { AgReduceResult } from "./agjson.js";
 
 // Shared event helpers for R2 tests
@@ -4599,5 +4602,39 @@ describe("reduce — prompt.blocked carries its reasonRaw companion onto the tur
     for (const e of events) r.push(e);
     expect(r.result()).toEqual(reduce(events).result);
     expect(AgTurnRecord.parse(r.result().turns[0]).promptBlocked).toEqual({ reason: "other", reasonRaw: "JAILBREAK" });
+  });
+});
+
+describe("reduce — a memory record carries its write's _meta", () => {
+  // value replaces the record whole (its _meta included); a patch replaces _meta
+  // only when the write carries one; an undeclared write member is never carried.
+  const stream: JsonValue[] = [
+    { seq: 0, type: "turn.start", turnId: "t", threadId: "th" },
+    { seq: 1, type: "memory.write", turnId: "t", scope: "thread", key: "k", value: { a: 1 }, _meta: { provenance: { source: "user" } }, zzTop: 1 },
+    { seq: 2, type: "memory.write", turnId: "t", scope: "thread", key: "k", patch: [{ op: "replace", path: "/a", value: 2 }] },
+    { seq: 3, type: "memory.write", turnId: "t", scope: "thread", key: "k", patch: [{ op: "replace", path: "/a", value: 3 }], _meta: { x: 1 } },
+    { seq: 4, type: "memory.write", turnId: "t", scope: "thread", key: "k", value: { a: 4 } },
+    { seq: 5, type: "turn.done", turnId: "t", outcome: { type: "success" }, finishReason: "stop" },
+  ];
+  const events = ingestAgEvents(stream);
+
+  it("value sets _meta, a patch without one keeps it, a patch with one replaces it whole, a later value clears it", () => {
+    expect(events).toHaveLength(stream.length);
+    const r = new Reducer();
+    const after: unknown[] = [];
+    for (const e of events) { r.push(e); after.push(structuredClone(r.result().memory)); }
+    expect(after[1]).toEqual([{ scope: "thread", key: "k", value: { a: 1 }, turnId: "t", _meta: { provenance: { source: "user" } } }]);
+    expect(after[2]).toEqual([{ scope: "thread", key: "k", value: { a: 2 }, turnId: "t", _meta: { provenance: { source: "user" } } }]);
+    expect(after[3]).toEqual([{ scope: "thread", key: "k", value: { a: 3 }, turnId: "t", _meta: { x: 1 } }]);
+    expect(after[4]).toEqual([{ scope: "thread", key: "k", value: { a: 4 }, turnId: "t" }]);
+    expect(JSON.stringify(r.result())).not.toContain("zzTop");
+    expect(r.needsResync).toBe(false);
+  });
+
+  it("incremental equals batch, and the persistable projection keeps _meta", () => {
+    const r = new Reducer();
+    for (const e of events.slice(0, 4)) r.push(e);
+    expect(reduce(events.slice(0, 4)).result).toEqual(r.result());
+    expect(toPersistable(r.result()).memory).toEqual([{ scope: "thread", key: "k", value: { a: 3 }, turnId: "t", _meta: { x: 1 } }]);
   });
 });

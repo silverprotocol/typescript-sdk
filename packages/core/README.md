@@ -155,6 +155,11 @@ await store.save(result);
 If you emit `agent.capabilities`, declare the same list there as
 `memoryScopes`.
 
+A memory record carries the `_meta` of the write that set it. A `value` write
+replaces the record whole, `_meta` included, and a `patch` replaces `_meta`
+only when the write carries one. A member of the write that the record does
+not declare is not carried.
+
 ## Produce AgJSON
 
 Turn a framework's native stream into AgJSON with its normalizer — the output is
