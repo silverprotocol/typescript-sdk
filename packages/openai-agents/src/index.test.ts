@@ -1205,6 +1205,162 @@ describe("createOpenaiNormalizer — refusal arm (T5c)", () => {
     expect(done).toBeDefined();
     expect(done?.finishReason).toBe("refusal");
   });
+
+  // The recorded order: on the live wire every message_output_created run-item
+  // lands AFTER its response's response.completed / response.incomplete (all
+  // recorded instances). The round's terminal therefore reads the refusal from
+  // the terminal event's own `response.output`, and a late run-item's refusal
+  // never carries into the next round.
+  const RU = { input_tokens: 20, output_tokens: 6, total_tokens: 26 };
+  const refusalMessage = (id: string) => ({
+    type: "message",
+    id,
+    role: "assistant",
+    status: "completed",
+    content: [{ type: "refusal", refusal: "I cannot help with that." }],
+  });
+  const lateRefusalItem = (id: string): JsonValue =>
+    runItem("message_output_created", { type: "message_output_item", rawItem: refusalMessage(id) });
+  function runRecorded(s: JsonValue[]): AgEvent[] {
+    const n = createOpenaiNormalizer({ invokeId: "inv1" });
+    return s.flatMap((e) => n.push(e)).concat(n.flush());
+  }
+  const terminals = (evs: AgEvent[], turnId: string): AgEvent[] =>
+    evs.filter((e) => (e.type === "turn.done" || e.type === "turn.abort" || e.type === "turn.error") && Reflect.get(e, "turnId") === turnId);
+
+  it("recorded order: a refusal round closes once, turn.done success with finishReason refusal, read from the response.completed output", () => {
+    const evs = runRecorded([
+      rawModel({ type: "response.created", response: { id: "resp_rr_1" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_rr_1", status: "completed", output: [refusalMessage("msg_rr_1")], usage: RU } }),
+      lateRefusalItem("msg_rr_1"),
+    ]);
+    const t = terminals(evs, "turn_resp_rr_1");
+    expect(t).toHaveLength(1);
+    expect(t[0]).toMatchObject({ type: "turn.done", outcome: { type: "success" }, finishReason: "refusal" });
+  });
+
+  it("recorded order: after a refusal round, the next plain round closes with finishReason stop (the refusal does not leak)", () => {
+    const evs = runRecorded([
+      rawModel({ type: "response.created", response: { id: "resp_rr_2a" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_rr_2a", status: "completed", output: [refusalMessage("msg_rr_2a")] } }),
+      lateRefusalItem("msg_rr_2a"),
+      rawModel({ type: "response.created", response: { id: "resp_rr_2b" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_rr_2b", delta: "fine" }),
+      // A realistic terminal output: a message whose only part is output_text is no refusal.
+      rawModel({
+        type: "response.completed",
+        response: {
+          id: "resp_rr_2b",
+          status: "completed",
+          output: [{ type: "message", id: "msg_rr_2b", role: "assistant", status: "completed", content: [{ type: "output_text", text: "fine", annotations: [] }] }],
+        },
+      }),
+    ]);
+    expect(terminals(evs, "turn_resp_rr_2a")).toMatchObject([{ type: "turn.done", finishReason: "refusal" }]);
+    expect(terminals(evs, "turn_resp_rr_2b")).toMatchObject([{ type: "turn.done", outcome: { type: "success" }, finishReason: "stop" }]);
+  });
+
+  it("recorded order: a content_filter round closes once, turn.done error with finishReason safety_blocked and the safety signal", () => {
+    const evs = runRecorded([
+      rawModel({ type: "response.created", response: { id: "resp_rr_3" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_rr_3", delta: "partial" }),
+      rawModel({ type: "response.incomplete", response: { id: "resp_rr_3", status: "incomplete", incomplete_details: { reason: "content_filter" }, usage: RU } }),
+      runItem("message_output_created", {
+        type: "message_output_item",
+        rawItem: { type: "message", id: "msg_rr_3", role: "assistant", status: "incomplete", content: [{ type: "output_text", text: "partial", annotations: [] }] },
+      }),
+    ]);
+    const t = terminals(evs, "turn_resp_rr_3");
+    expect(t).toHaveLength(1);
+    expect(t[0]).toMatchObject({
+      type: "turn.done",
+      outcome: { type: "error" },
+      finishReason: "safety_blocked",
+      safety: [{ category: "content_filter", blocked: true }],
+    });
+  });
+
+  it("recorded order: a content_filter round deferred behind a pending call is released after that call's tool.done as its error turn.done", () => {
+    const evs = runRecorded([
+      rawModel({ type: "response.created", response: { id: "resp_rr_4" } }),
+      rawModel({ type: "response.output_item.added", item: { id: "fc_rr_4", type: "function_call", call_id: "call_rr_4", name: "echo", arguments: "" } }),
+      rawModel({ type: "response.incomplete", response: { id: "resp_rr_4", status: "incomplete", incomplete_details: { reason: "content_filter" }, usage: RU } }),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "function_call_result", name: "echo", callId: "call_rr_4", status: "completed", output: "ok" },
+        output: "ok",
+      }),
+    ]);
+    const iTool = evs.findIndex((e) => e.type === "tool.done" && Reflect.get(e, "toolCallId") === "call_rr_4");
+    const t = terminals(evs, "turn_resp_rr_4");
+    expect(t).toHaveLength(1);
+    expect(t[0]).toMatchObject({ type: "turn.done", outcome: { type: "error" }, finishReason: "safety_blocked" });
+    expect(evs.indexOf(t[0] as AgEvent)).toBeGreaterThan(iTool);
+  });
+
+  it("recorded order: a refusal round deferred behind a pending call closes after that call's tool.done as turn.done success with finishReason refusal, and the next round closes stop", () => {
+    const evs = runRecorded([
+      rawModel({ type: "response.created", response: { id: "resp_rr_6a" } }),
+      rawModel({ type: "response.output_item.added", item: { id: "fc_rr_6", type: "function_call", call_id: "call_rr_6", name: "echo", arguments: "" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_rr_6a", status: "completed", output: [refusalMessage("msg_rr_6a")], usage: RU } }),
+      lateRefusalItem("msg_rr_6a"),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "function_call_result", name: "echo", callId: "call_rr_6", status: "completed", output: "ok" },
+        output: "ok",
+      }),
+      rawModel({ type: "response.created", response: { id: "resp_rr_6b" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_rr_6b", delta: "fine" }),
+      rawModel({
+        type: "response.completed",
+        response: {
+          id: "resp_rr_6b",
+          status: "completed",
+          output: [{ type: "message", id: "msg_rr_6b", role: "assistant", status: "completed", content: [{ type: "output_text", text: "fine", annotations: [] }] }],
+        },
+      }),
+    ]);
+    const iTool = evs.findIndex((e) => e.type === "tool.done" && Reflect.get(e, "toolCallId") === "call_rr_6");
+    expect(iTool).toBeGreaterThanOrEqual(0);
+    const t = terminals(evs, "turn_resp_rr_6a");
+    expect(t).toMatchObject([{ type: "turn.done", outcome: { type: "success" }, finishReason: "refusal" }]);
+    expect(evs.indexOf(t[0] as AgEvent)).toBeGreaterThan(iTool);
+    expect(terminals(evs, "turn_resp_rr_6b")).toMatchObject([{ type: "turn.done", outcome: { type: "success" }, finishReason: "stop" }]);
+  });
+
+  it("recorded order: a refusal in any message of the response.completed output closes the round as a refusal, not only in the last", () => {
+    const evs = runRecorded([
+      rawModel({ type: "response.created", response: { id: "resp_rr_7" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_rr_7b", delta: "fine" }),
+      rawModel({
+        type: "response.completed",
+        response: {
+          id: "resp_rr_7",
+          status: "completed",
+          output: [
+            refusalMessage("msg_rr_7a"),
+            { type: "message", id: "msg_rr_7b", role: "assistant", status: "completed", content: [{ type: "output_text", text: "fine", annotations: [] }] },
+          ],
+          usage: RU,
+        },
+      }),
+      lateRefusalItem("msg_rr_7a"),
+    ]);
+    expect(terminals(evs, "turn_resp_rr_7")).toMatchObject([{ type: "turn.done", outcome: { type: "success" }, finishReason: "refusal" }]);
+  });
+
+  it("recorded order: a flush releases a deferred refusal round that never gets its tool result as turn.abort stream-truncated, as it does any deferred success round, its usage on message.end", () => {
+    const evs = runRecorded([
+      rawModel({ type: "response.created", response: { id: "resp_rr_5" } }),
+      rawModel({ type: "response.output_item.added", item: { id: "fc_rr_5", type: "function_call", call_id: "call_rr_5", name: "echo", arguments: "" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_rr_5", status: "completed", output: [refusalMessage("msg_rr_5")], usage: RU } }),
+      lateRefusalItem("msg_rr_5"),
+    ]);
+    expect(terminals(evs, "turn_resp_rr_5")).toMatchObject([{ type: "turn.abort", reason: "stream-truncated" }]);
+    expect(evs.find((e) => e.type === "message.end" && Reflect.get(e, "id") === "msg_turn_resp_rr_5")).toMatchObject({
+      usage: { inputTokens: 20, outputTokens: 6 },
+    });
+  });
 });
 
 describe("createOpenaiNormalizer — __host_error__ sentinel (T5c)", () => {

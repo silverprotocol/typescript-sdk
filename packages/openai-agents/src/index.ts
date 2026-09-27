@@ -963,6 +963,26 @@ interface TerminalReasoningItem {
 }
 
 /**
+ * Did the model refuse in this response? True when any `message` member of a
+ * terminal event's `response.output` carries a `refusal` content part. On the
+ * live wire the `message_output_created` run-item lands AFTER the terminal
+ * event, so the terminal output is where the round's own refusal is known when
+ * the round closes. Absent/non-array output, or no refusal part, ⇒ false.
+ */
+function terminalHasRefusal(output: JsonValue | undefined): boolean {
+  if (!Array.isArray(output)) return false;
+  for (const member of output) {
+    if (!isJsonObject(member) || member.type !== "message") continue;
+    const content = member.content;
+    if (!Array.isArray(content)) continue;
+    for (const part of content) {
+      if (isJsonObject(part) && part.type === "refusal") return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Reasoning from the terminal output: extract the reasoning items from a terminal event's `response.output`.
  * This — not `response.output_item.done` — is the replayable source: OpenAI
  * re-encrypts `encrypted_content` per stage (live, echo-gpt6sol natives [4] vs
@@ -1654,11 +1674,13 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   // string so argBuffers is primarily for the fallback path.
   const instanceArgBuffers = new Map<string, string>();
 
-  // Refusal tracking (T5c — instance state mirroring the old module-level
-  // `pendingRefusal`). Set when a `message_output_created` run-item carries a
-  // `refusal` content part; the downstream `response.completed` arm then closes
-  // the turn with `finishReason:"refusal"`. Cleared on every response close so it
-  // never leaks across turns.
+  // Refusal tracking (T5c). Set when a `message_output_created` run-item carries
+  // a `refusal` content part BEFORE its response's terminal event (a synthetic
+  // order); the terminal arm also reads the refusal from its own
+  // `response.output` (`terminalHasRefusal`), which is the live order: the
+  // run-item lands after the close. Cleared on every response close and at
+  // every `response.created`, so a late run-item's refusal never reaches the
+  // next round.
   let pendingRefusal = false;
 
   // ── Task 4b: defer a round's close past its pending tool results ───────────
@@ -1922,6 +1944,9 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   function driveRawResponsesEvent(ev: OpenAIRawResponsesEvent): void {
     switch (ev.type) {
       case "response.created": {
+        // A new response: a refusal recorded by a late run-item belongs to the
+        // response before it, never to this one.
+        pendingRefusal = false;
         // Authoritative turn open — the real response.id is present at start.
         // So is the resolved model id (JsonValue boundary: string-guarded).
         const rawModelId: unknown = ev.response.model;
@@ -2102,7 +2127,8 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         const unsuccessfulStatus =
           typeof rawStatus === "string" && UNSUCCESSFUL_RESPONSE_STATUSES.has(rawStatus) ? rawStatus : undefined;
         // Decision tree (mirrors the canonical model, A1):
-        //   refusal recorded         → closeTurnDone success, finishReason:"refusal"
+        //   refusal (in the terminal
+        //     output, or recorded)   → closeTurnDone success, finishReason:"refusal"
         //   content_filter           → closeTurnDone error-outcome + safety signal
         //   any other incomplete     → closeTurnError{code:reason, usage}
         //   completed, status failed/
@@ -2113,7 +2139,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         // ENTIRE close (message + turn) instead of emitting (INV-MSG).
         // closeTurnError does NOT defer (an errored round's pending results are
         // moot, by design) — it still closes the message immediately here.
-        if (pendingRefusal) {
+        if (pendingRefusal || terminalHasRefusal(ev.response.output)) {
           finishOrDeferRound(currentTurnId, currentMsgId, textStreamIds, {
             outcome: { type: "success" },
             finishReason: "refusal",
@@ -2270,8 +2296,10 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * `response.output_text.done`), so THIS is where the matching open text stream
    * actually closes: `a.textEnd(id, msgId, { citations })`, citations attached
    * directly to the streamed block (never a duplicate id-less supplement). A
-   * `refusal` part sets `pendingRefusal` so the downstream `response.completed`
-   * arm closes with `finishReason:"refusal"` (no text stream to close for it).
+   * `refusal` part sets `pendingRefusal`, which counts only when the run-item
+   * lands before its response's terminal event (a synthetic order). On the
+   * live wire it lands after the close, and the terminal arm reads the round's
+   * refusal from its own `response.output` (`terminalHasRefusal`).
    *
    * Correlation (id FIRST, FIFO fallback; the narration-phase rule, stage
    * 1): on the direct OpenAI wire the raw delta's `item_id` and the
