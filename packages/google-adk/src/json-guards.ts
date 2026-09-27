@@ -9,7 +9,7 @@ export function isJsonObject(v: unknown): v is { readonly [k: string]: JsonValue
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-// ─── genai-optional arm members (adk-13 hardening) ───────────────────────────
+// ─── genai-optional arm members (hardening) ───────────────────────────────────
 // A Part arm's member when it is a string, else undefined. Read through
 // `unknown` + `isJsonObject` so a JSON-null arm (a snake_case serializer that
 // keeps None) is guarded too, never dereferenced.

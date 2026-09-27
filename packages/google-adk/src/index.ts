@@ -732,7 +732,7 @@ function codeOutcome(outcome: string | undefined): "ok" | "failed" | "deadline_e
 }
 
 // ─── ADK pause family: the event with which ADK ENDS a pause (R&D item 6) ────
-// Package rd-06 (sp-protocol bar wf_6973f170-9d0), step 1. Observed on the
+// The pause close's first step (SPEC §8.0 item 26). Observed on the
 // real @google/adk 2.1.0 engine (offline, stub model), each pause's LAST event:
 //   - requireConfirmation: the confirmation-request event, which carries
 //     actions.requestedToolConfirmations (plus a user-role adk_request_confirmation
@@ -878,7 +878,7 @@ function turnKey(ev: AdkEvent): string | undefined {
 // restore name+position correlation when echoing functionResponse parts.
 
 // ─── functionResponse.response → tool.done outcome (SPEC §8.0 item 25, draft.4) ─
-// adk-10, ruled 2026-09-23 ("Flip on error, approvals kept"). ADK
+// Ruled 2026-09-23 ("Flip on error, approvals kept"). ADK
 // answers a failed tool call with a response carrying Gemini's documented
 // `error` key: an unresolvable tool name (functions.js:264), a thrown tool
 // including a thrown MCP call (functions.js:282), several built-in tools.
@@ -1286,8 +1286,8 @@ function consumeMintedCallId(
 // blocks across the WHOLE normalizer (one invoke, §8.0 obligation 3). The id
 // carries no turnId, so the counter must not reset per turn. A per-turn count
 // re-opened text:0 in a second turn of the same invoke (a workflow-node turn
-// then a plain turn), and the draft.4 reducer parks on that (rd-14 P14:
-// invoke-scoped INV-BLOCK, reset at the seq-0 restart). The old
+// then a plain turn), and the draft.4 reducer parks on that (INV-BLOCK is
+// invoke-scoped, reset at the seq-0 restart). The old
 // `${kind}:${partIndex}` repeated across events: two thought events in one
 // invoke both opened reasoning:0 (thinking-gemini37/38, R&D item 14
 // prerequisite). A one-turn invoke's ids are unchanged, and every committed
@@ -1494,7 +1494,7 @@ function driveAdkPart(
     a.toolDone({
       toolCallId,
       ...functionResponseToToolDoneFields(fr.name, carried),
-      // adk-10 / SPEC §8.0 item 25: see classifyFunctionResponse.
+      // SPEC §8.0 item 25: see classifyFunctionResponse.
       ...classifyFunctionResponse(carried, toolCallId, event.actions),
       turnId,
       providerMetadata:

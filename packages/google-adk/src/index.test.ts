@@ -16,7 +16,7 @@ function event(parts: AdkPart[], extra: Partial<AdkEvent> = {}): AdkEvent {
 }
 
 /** Serialize an AdkEvent to JsonValue — the cassette/wire boundary the normalizer
- *  consumes. Wire projection (audit D5-a): toJsonValue materializes the native
+ *  consumes. Wire projection: toJsonValue materializes the native
  *  event as plain JsonValue. */
 function toJson(e: AdkEvent): JsonValue {
   return toJsonValue(e);
@@ -238,7 +238,7 @@ describe("createAdkNormalizer — reasoning + content blocks", () => {
   });
 });
 
-describe("createAdkNormalizer — block ids are a per-invoke ordinal per kind, never the part index (SPEC.md INV-BLOCK; R&D item 14 prerequisite + P14)", () => {
+describe("createAdkNormalizer — block ids are a per-invoke ordinal per kind, never the part index (SPEC.md INV-BLOCK)", () => {
   const starts = (out: AgEvent[]) =>
     out
       .filter((e) => e.type === "text.start" || e.type === "reasoning.start")
@@ -284,7 +284,7 @@ describe("createAdkNormalizer — block ids are a per-invoke ordinal per kind, n
     expectUniqueAndFolds(out);
   });
 
-  it("ordinals are per INVOKE: a second turn in the same normalizer continues at text:1, never re-opens text:0 (P14 parks on a repeat)", () => {
+  it("ordinals are per INVOKE: a second turn in the same normalizer continues at text:1, never re-opens text:0 (a reducer parks on a repeated block id, INV-BLOCK)", () => {
     const n = createAdkNormalizer({ invokeId: "adk" });
     const a = n.push(
       toJsonValue(event([{ thought: true, text: "t1" }, { text: "one" }], { partial: false, turnComplete: true, finishReason: "STOP" })),
@@ -3262,7 +3262,7 @@ function typedBlocks(out: AgEvent[]): Array<Record<string, unknown>> {
     .map((e) => (e as { block: Record<string, unknown> }).block);
 }
 
-describe("createAdkNormalizer — genai 2.24.0 Part.speechMetadata → provider-raw carry (adk-01)", () => {
+describe("createAdkNormalizer — genai 2.24.0 Part.speechMetadata → provider-raw carry", () => {
   // The ONE new genai `Part` field 2.22.0 -> 2.24.0 (Part 16 -> 17 members):
   // "Extra metadata associated with the part for speech synthesis, such as
   // speaker and style. Only valid when `Part.data` is set to `text`." —
@@ -3359,7 +3359,7 @@ describe("createAdkNormalizer — genai 2.24.0 Part.speechMetadata → provider-
   });
 });
 
-describe("createAdkNormalizer — genai-optional arm members ride provider-raw, never crash or emit a schema-invalid block (adk-13)", () => {
+describe("createAdkNormalizer — genai-optional arm members ride provider-raw, never crash or emit a schema-invalid block", () => {
   // genai types Blob `mimeType?`/`data?`, ExecutableCode `code?` and FileData
   // `fileUri?` as OPTIONAL (doc-"Required" only; upstream adk #868 fixed the
   // same assumption for code). A missing member the AgBlock arm REQUIRES
@@ -3722,7 +3722,7 @@ describe("createAdkNormalizer — JSON-null guard: a null arm is carried, a null
     });
   });
 
-  describe("a null ARM rides provider-raw verbatim (adk-13 precedent), never dereferenced", () => {
+  describe("a null ARM rides provider-raw verbatim (as a genai-optional arm member does), never dereferenced", () => {
     for (const field of ["codeExecutionResult", "functionCall", "functionResponse"]) {
       it(`${field}: null`, () => {
         let out: AgEvent[] = [];
@@ -3759,8 +3759,8 @@ describe("createAdkNormalizer — JSON-null guard: a null arm is carried, a null
   });
 });
 
-describe("createAdkNormalizer — ADK tool-failure envelope → tool.done outcome (adk-10, SPEC §8.0 item 25, draft.4)", () => {
-  // adk-10, ruled 2026-09-23: "Flip on error, approvals kept". ADK
+describe("createAdkNormalizer — ADK tool-failure envelope → tool.done outcome (SPEC §8.0 item 25, draft.4)", () => {
+  // Ruled 2026-09-23: "Flip on error, approvals kept". ADK
   // answers a failed tool call with a functionResponse whose response carries
   // Gemini's documented `error` key: an unresolvable tool name
   // (answerUnresolvableCall, functions.js 2.1.0:264), a thrown tool including

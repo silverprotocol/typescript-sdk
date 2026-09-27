@@ -237,8 +237,8 @@ export function adkMcpToolsets(mcpServers: CaptureRunInput["mcpServers"]): MCPTo
 
 /**
  * Yields the RAW native `@google/adk` `Event` stream, unnormalized, each item
- * materialized as a plain `JsonValue` via `toJsonValue` (audit D5-a's
- * native-ingestion boundary — the whole event, no per-field cast).
+ * materialized as a plain `JsonValue` via `toJsonValue` (the native-ingestion
+ * boundary: the whole event, no per-field cast).
  */
 export async function* runAdkCapture(input: AdkCaptureInput): AsyncIterable<JsonValue> {
   const apiKey = input.apiKey ?? process.env["GOOGLE_API_KEY"];
@@ -283,7 +283,7 @@ export async function* runAdkCapture(input: AdkCaptureInput): AsyncIterable<Json
     });
 
     for await (const event of stream) {
-      // Wire projection (audit D5-a) — toJsonValue materializes the WHOLE raw
+      // Wire projection: toJsonValue materializes the WHOLE raw
       // event into plain JsonValue with no per-field cast.
       yield toJsonValue(event);
     }
