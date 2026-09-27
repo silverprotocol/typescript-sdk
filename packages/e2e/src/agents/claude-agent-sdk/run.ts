@@ -5,9 +5,9 @@
  * stream as `JsonValue` items — unnormalized. The harness captures this stream
  * directly and pipes it through the normalizer under test in a separate step.
  *
- * This module is ALSO the de-ggui'd replacement for the silverprotocol example
+ * This module is ALSO the standalone replacement for the silverprotocol example
  * agent (two birds, one stone):
- *   - ZERO `@ggui-ai/*` imports
+ *   - ZERO imports from a reference client's packages
  *   - NO module-load CLI resolution (`resolveClaudeCliPath` / `spawnClaudeCli` /
  *     `pathToClaudeCodeExecutable` are deliberately absent — SDK 0.2.141 ships a
  *     native binary and self-resolves it at run time, not at import time)
@@ -418,7 +418,7 @@ export async function* runClaudeCapture(input: CaptureRunInput): AsyncIterable<J
   }
 
   // Translate the harness-friendly mcpServers map into the SDK's McpHttpServerConfig
-  // shape (lifted from the ggui sample agent.ts L226-236, minus the @ggui-ai/* deps).
+  // shape (lifted from a reference client's sample agent, minus its package deps).
   const sdkMcpServers: Record<
     string,
     { type: "http"; url: string; headers: { Authorization: string }; alwaysLoad: true }
@@ -490,7 +490,7 @@ export async function* runClaudeCapture(input: CaptureRunInput): AsyncIterable<J
 
   try {
     for await (const msg of response) {
-      // Wire projection (audit D5-a) — toJsonValue materializes the WHOLE raw
+      // Wire projection — toJsonValue materializes the WHOLE raw
       // message (including fields typed as `unknown` by the SDK) into plain JsonValue.
       yield toJsonValue(msg);
       if (background !== undefined) {

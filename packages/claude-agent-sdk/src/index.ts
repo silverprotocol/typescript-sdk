@@ -1,8 +1,8 @@
 /**
  * `@silverprotocol/claude-agent-sdk` — the LIVE-path normalizer (stateful facet).
  *
- * Translates the public Claude Agent SDK `SDKMessage` union (the run-seam yields
- * these; see guuey `backend/services/nocode-runtime/src/code-worker.ts`) into
+ * Translates the public Claude Agent SDK `SDKMessage` union (the frames a host's
+ * run seam yields from `query()`) into
  * AgJSON events (`AgEvent[]`, spec §4) by driving a shared {@link StreamAssembler}
  * via primitive calls. Claude's assistant turn is a COMPLETE-message structure —
  * `message.content[]` is the whole turn's content, not a stream of deltas — so the
@@ -12,7 +12,7 @@
  * block, then tool_use block), so the message lifecycle is keyed on `message.id`
  * and its seal is deferred across contiguous same-id frames: one
  * `message.start`/`message.end` pair per id, never a re-open of a sealed id
- * (INV-MSG — see `PendingMessage` in `createClaudeNormalizer`, guuey#26).
+ * (INV-MSG — see `PendingMessage` in `createClaudeNormalizer`).
  *
  * With `includePartialMessages: true` (workspace#7) the seam ALSO interleaves
  * `stream_event` frames — the raw Anthropic streaming vocabulary — before each
@@ -447,7 +447,7 @@ function readNonExecutionKinds(frame: unknown): Map<string, string> {
   return out;
 }
 
-// rd-15 (ruling of 2026-09-24, fix the carries): each `tool_result_meta`
+// Ruled 2026-09-24 (no neutral remedy field; fix the carries): each `tool_result_meta`
 // entry, keyed by its `id` (the tool_use_id), verbatim: {id, non_execution_kind?,
 // user_feedback?, remedy?} per the CLI's schema ("@internal Display metadata for
 // this message's tool_result blocks"). Read through the JSON boundary; an entry
@@ -475,8 +475,8 @@ function isDenialKind(kind: string | undefined): boolean {
   return kind === "user-rejected" || kind === "permission-rule" || (kind !== undefined && kind.startsWith("automode-"));
 }
 
-// Which assistant `error` codes are transient (retriable). CL-09's stashed
-// top-level close and a nested frame's non-terminal `error` share it.
+// Which assistant `error` codes are transient (retriable). An API-error turn's
+// stashed top-level close and a nested frame's non-terminal `error` share it.
 // Finding #2 (minor): `overloaded` (transient capacity error, a first
 // cousin of rate_limit/server_error) joins the retriable set.
 // `model_not_found` (a permanent misconfiguration — e.g. a stale/
@@ -805,7 +805,7 @@ const CARRIED_SYSTEM_SUBTYPES = new Set<string>([
   // system/status ping — status:'compacting'|'requesting'|null (+ optional
   // compact_result/compact_error). GENUINE consumer-facing agent-state signal
   // (exactly the ready/thinking/responding vocabulary chat surfaces render —
-  // loqu-co/guuey#91's status-states half) with no AgJSON home; previously
+  // a reference host's status-states request) with no AgJSON home; previously
   // router-plane'd. Carried whole-frame, which also closes the manifest's
   // disclosed `compact_error` residual gap.
   "status",
@@ -877,7 +877,7 @@ function anthropicFrameKind(msg: SDKMessage): string | undefined {
 // A COPY, never the frame's own array: the value is emitted unparsed
 // (result-meta, message.metadata), core's StreamAssembler does not copy, and
 // push() hands a JSON frame through by reference, so returning `v` would let an
-// emitted event share the host's live array (cto's aliasing audit).
+// emitted event share the host's live array (found by an aliasing audit).
 function readUserMessageUuids(v: unknown): string[] | undefined {
   return Array.isArray(v) && v.every((s): s is string => typeof s === "string") ? [...v] : undefined;
 }
@@ -892,7 +892,7 @@ const HOST_ONLY_WRAPPER_KEYS: ReadonlySet<string> = new Set([
   "api_error",
   "api_error_params",
   "api_error_code",
-  // rd-15 (defer the field, fix the carries): three more @internal
+  // Ruled 2026-09-24 (defer the field, fix the carries): three more @internal
   // CLI assistant-wrapper strings, carried where the host can read them.
   "error_details",
   "advisor_model",
@@ -948,7 +948,7 @@ function carryVerbatim(v: unknown): JsonValue {
   return withoutCreditTokens(JsonValue.parse(v));
 }
 
-// rd-15 / SPEC §13.10: a provider credit or bearer token is never
+// SPEC §13.10: a provider credit or bearer token is never
 // emitted. Anthropic's refusal `stop_details` can hold `fallback_credit_token`
 // (top level and per fallback), so every key of that name is deleted at any
 // depth; everything else is kept verbatim.
@@ -974,7 +974,7 @@ function toolResultText(content: unknown): string | undefined {
 }
 
 // The namespace of the facet's own harness keys on a tool.done `_meta` (the
-// subagent report's "anthropic/agentOutput", rd-15's "anthropic/toolResultMeta",
+// subagent report's "anthropic/agentOutput", the CLI's "anthropic/toolResultMeta",
 // and since draft.5 the two host records below). SPEC §2.1 *Host records*: a
 // producer carries such a record under a key in a namespace it owns.
 const HARNESS_META_PREFIX = "anthropic/";
@@ -993,7 +993,7 @@ const PERMISSION_DENIED_META_KEY = `${HARNESS_META_PREFIX}permissionDenied`;
 // written, so a tool (a malicious MCP server) can never present a forged
 // harness fact, such as an agent report or a remedy pointing a host at its URL,
 // even for a call the facet writes no harness key for (a review of the
-// rd-15 carry; the CLI itself strips its own reserved `com.anthropic/` prefix
+// tool_result_meta carry; the CLI itself strips its own reserved `com.anthropic/` prefix
 // from server `_meta`). Every other sibling key is kept verbatim. undefined
 // when nothing remains.
 function mergeHarnessMeta(sibling: AgMeta | undefined, harness: { [k: string]: JsonValue }): AgMeta | undefined {
@@ -1361,8 +1361,8 @@ export interface ClaudeNormalizerOptions {
    * tool_result frame that carries none, the turn's own id), a placeholder in
    * the same spirit as the openai/vercel facets' fixed labels. That placeholder is fine for
    * self-contained streams but LEAKS into any consumer that persists
-   * events verbatim under its own thread identity (guuey#415: mid-stream
-   * events carried the session id while the runtime's session records
+   * events verbatim under its own thread identity (in a reference host,
+   * mid-stream events carried the session id while the runtime's session records
    * carried the real thread id). A runtime that owns the real thread
    * identity should always pass it here — one id everywhere, stamped at
    * construction.
@@ -1374,8 +1374,8 @@ export interface ClaudeNormalizerOptions {
    * whose frame carries no usable message id or uuid (the normal path names a
    * turn by its SDK message id or frame uuid, unique by construction). A host
    * folds every invoke of a conversation into ONE Reducer, so a stem that
-   * restarted with each invoke repeated those ids across invokes (DC-10, from
-   * the D3 review). Absent, each normalizer draws a random
+   * restarted with each invoke repeated those ids across invokes (§8.0 "Ids
+   * across invokes"). Absent, each normalizer draws a random
    * `claude_<16 hex>` stem at most once, lazily (only when a fallback id is
    * first needed, so the common path draws no randomness), and holds it
    * OUTSIDE the atomic-push rebuild, so a rebuild reproduces it. Pass a fixed
@@ -1405,10 +1405,10 @@ function mintInvokeNonce(): string {
 function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeStem: () => string): Normalizer {
   const a = new StreamAssembler();
 
-  // Task 8c leg 4 (guuey capstone finding A): the wire-visible `parentTurnId`
+  // A reference host's fold-identity check: the wire-visible `parentTurnId`
   // label passed to subagent.start/.done (`turn_${parent_tool_use_id}`) is a
   // synthetic cross-ref that was never opened as a real turn — it must stay on
-  // the wire (the guuey capstone asserts `parentTurnId === 'turn_<toolCallId>'`)
+  // the wire (a reference host asserts `parentTurnId === 'turn_<toolCallId>'`)
   // but must NOT be reused to route an INNER tool_result's turnId. Track the
   // REAL subagent turnId per spawning parent_tool_use_id, derived from the
   // sub-session's own assistant arm at subagent.start time, so a later inner
@@ -1434,7 +1434,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   //    message id opens its turn under its own frame uuid instead;
   //  - `isSDKMessage` validates only discriminants, so a missing or non-string
   //    id/uuid falls back to a positional `turn_<stem>_frame_<n>` rather than a
-  //    shared `turn_undefined`. The stem is per invoke (DC-10: a bare
+  //    shared `turn_undefined`. The stem is per invoke (§8.0 ids across invokes: a bare
   //    `turn_frame_<n>` repeated across the invokes one Reducer folds), and the
   //    counter is deterministic from the wire, so an atomic-push rebuild
   //    reproduces every delivered id.
@@ -1477,7 +1477,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   }
   // The result frame closes the open turn (or, for a result-only turn, the one
   // it opens itself) and clears it. A RESULT-ONLY turn (no assistant frame,
-  // notice or stream opened it: the CL-09 result-only API-error path, a
+  // notice or stream opened it: the result-only API-error path, a
   // startup-failure result, a local-command result) is OPENED here with an
   // explicit turn.start before anything else the result emits (INV-TURN,
   // SPEC:743: every turn is opened by exactly one turn.start and closed by
@@ -1503,7 +1503,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // session into one nested turn (and, if a subagent's frames carry the
   // parent's session_id, collided with the top-level turn itself). It must
   // never equal the synthetic `parentTurnId` label `turn_${parent_tool_use_id}`
-  // (guuey capstone finding A), and a message id never does.
+  // (a reference host's fold-identity check), and a message id never does.
   function nestedTurnId(parentToolUseId: string, firstMessageId: unknown, frameUuid: unknown): string {
     const known = subagentTurnByParentToolUseId.get(parentToolUseId);
     if (known !== undefined && !closedRuns.has(parentToolUseId)) return known;
@@ -1646,12 +1646,12 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // Every toolCallId that already got its FINAL tool.done in this invoke. The
   // result's permission_denials aggregate skips these: re-emitting tool.start +
   // tool.done{denied} for a call already closed is a duplicate start and a second
-  // final tool.done (INV-BLOCK; rd-14 P14 parks it; the M22 double-fold hazard).
+  // final tool.done (INV-BLOCK: the reducer parks it as a double fold).
   const closedToolCallIds = new Set<string>();
   // SDK message id → the `diagnostics` value already carried for it (see the
   // assistant branch): one carry per response, not one per frame.
   const diagnosticsCarried = new Map<string, string>();
-  // rd-15: top-level turnId → the closing response's non-null stop_details (credit
+  // Top-level turnId → the closing response's non-null stop_details (credit
   // tokens stripped) and the message it describes, emitted on that turn's turn.done.
   const stopDetailsByTurn = new Map<string, { readonly messageId: string; readonly value: JsonValue }>();
 
@@ -1677,7 +1677,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
     };
   }
 
-  // CL-09 (0.3.280 sweep): the turn.error close an API-error assistant frame
+  // Since 0.6.3: the turn.error close an API-error assistant frame
   // (`error` set) decided for its turn, STASHED until the turn's result frame
   // (the vercel facet's `stashedError` pattern). An API-error turn reaches this
   // facet as TWO frames: the synthetic assistant message carrying `error`, and
@@ -1703,14 +1703,14 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   type StashedTurnError = { readonly message: string; readonly code: string; readonly retriable: boolean };
   const stashedTurnErrors = new Map<string, StashedTurnError>();
 
-  /** Remove and return the stashed error close for `turnId`, if any (CL-09). */
+  /** Remove and return the stashed error close for `turnId`, if any. */
   function takeStashedTurnError(turnId: string): StashedTurnError | undefined {
     const stashed = stashedTurnErrors.get(turnId);
     stashedTurnErrors.delete(turnId);
     return stashed;
   }
 
-  // guuey#26 — ONE message id ⇒ ONE message lifecycle.
+  // INV-MSG — ONE message id ⇒ ONE message lifecycle.
   //
   // The Claude Agent SDK splits ONE API assistant message across MULTIPLE
   // `assistant` frames whenever it has several content blocks: the thinking
@@ -1812,7 +1812,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         redacted: string | undefined;
         // draft.4 `phase` (§8.0 item 27): whether any non-empty thinking text
         // streamed, and whether the complete frame listed this block in
-        // `narration_block_indexes` while it was still open (CB-13).
+        // `narration_block_indexes` while it was still open.
         hasText: boolean;
         narration: boolean;
       }
@@ -1987,7 +1987,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
 
   // The stream arm proper. Partials map onto the SAME lifecycles the complete
   // arm produces: message_start opens the SAME PendingMessage the complete
-  // frame later joins (guuey#26 continuation test), and block ids reuse the
+  // frame later joins (the split-frame continuation test), and block ids reuse the
   // stream's own content `index` — which equals the complete arm's cross-frame
   // `blockIndex` arithmetic, so ids are identical either way.
   function driveStreamEvent(msg: SDKPartial): void {
@@ -2063,7 +2063,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
     }
 
     if (ev.type === "message_stop") {
-      // The seal stays DEFERRED (guuey#26 / INV-MSG) while the lifecycle is
+      // The seal stays DEFERRED (INV-MSG) while the lifecycle is
       // open: the complete assistant frame for this id follows and joins it,
       // and tool_results may still bind. And when the lifecycle is ALREADY
       // sealed — the live wire delivers the tool_result BEFORE the tool-round
@@ -2219,7 +2219,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // on start events, so the estimate is now LIVE-ONLY (it used to fold
         // last-value-wins onto the reasoning block) — the same standing as its
         // `system/thinking_tokens` twin, which rides `ext.anthropic.frame`. No
-        // consumer read the folded value (guuey/ggui checked).
+        // consumer read the folded value (both reference consumers checked).
         // `reasoningDelta`'s sugar has no `_meta` option; `a.emit()` is the base
         // primitive (the reasoning.start precedent in `emitAssistantBlock`), and
         // the sugar's only extra step, de-cumulation, is a pass-through for a
@@ -2405,7 +2405,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       const parentTurnId =
         msg.parent_tool_use_id !== null ? `turn_${msg.parent_tool_use_id}` : undefined;
 
-      // guuey#26: does this frame CONTINUE the message left open by the previous
+      // INV-MSG: does this frame CONTINUE the message left open by the previous
       // frame? Same SDK message id, same turn, same nesting — anything else is a
       // new message and seals the open one first (unchanged emission order).
       const continued: PendingMessage | undefined =
@@ -2551,7 +2551,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       if (assistantApiErrorCode !== undefined) {
         wrapperMetaRaw["api_error_code"] = assistantApiErrorCode;
       }
-      // rd-15 (ruling of 2026-09-24: defer the neutral remedy field, fix the
+      // Ruled 2026-09-24 (defer the neutral remedy field, fix the
       // vendor carries; a 0.7.0 carry with zero golden moves). Three more
       // @internal CLI 2.1.280 assistant-wrapper strings, UNDECLARED in sdk.d.ts
       // 0.3.280 (so read through the JSON boundary), carried verbatim under their
@@ -2579,7 +2579,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // A non-null parent_tool_use_id ⇒ this assistant message belongs to a
       // NESTED turn (subagent run). subagent.start is the SOLE nested-turn opener
       // (spec §4/§5), emitted once per run by `openRun`, and seeds the turn so
-      // openMessage does NOT synthesize a duplicate turn.start. guuey#26: a
+      // openMessage does NOT synthesize a duplicate turn.start. INV-MSG: a
       // CONTINUATION frame joins the message the previous frame opened — no
       // second message.start.
       let open: PendingMessage;
@@ -2624,7 +2624,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         });
       }
       const messageId = open.emittedId;
-      // rd-15: a NON-NULL `stop_details` on a response (e.g. a refusal's
+      // A NON-NULL `stop_details` on a response (e.g. a refusal's
       // {type: "refusal", category, explanation}, the shape @anthropic-ai/sdk
       // 0.93.0 declares; any further member is kept too) is carried verbatim on its
       // turn's closing turn.done.messageMetadata, which folds onto the message it
@@ -2693,9 +2693,9 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // `message.metadata` event after the block (the streamed path already
       // carries the turn-binding family there).
       //
-      // Consumer check (2026-09-23): ggui has none of these names.
-      // No guuey code reads `providerMetadata`, and its #367/#1652 scrub keys on
-      // the native frame. guuey asked that the triad move as ONE unit; the
+      // Consumer check (2026-09-23): a reference client has none of these
+      // names; a reference host reads no `providerMetadata`, and its scrub keys
+      // on the native frame. That host asked that the triad move as ONE unit; the
       // result frame's `apiErrorCode` stays on `ext.anthropic.result-meta`.
       const replayRaw: { [k: string]: JsonValue } = {};
       const hostRaw: { [k: string]: JsonValue } = {};
@@ -2723,7 +2723,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       const narrationIndexes = new Set(narrationBlockIndexes ?? []);
       if (suppressed && narrationIndexes.size > 0) {
         // STREAMED: the complete frame precedes its blocks' content_block_stop
-        // (CB-13; thinking-fable51 frames [62] signature → [63] frame → [64]
+        // (thinking-fable51 frames [62] signature → [63] frame → [64]
         // stop), so each listed frame-local index names stream block
         // `framedThrough + idx` (the frame covers the next blocks after those
         // earlier frames covered). It is marked only while it is still OPEN;
@@ -2738,7 +2738,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       }
       if (suppressed) {
         // STREAMED: record each open tool block's `wire_tool_inputs` entry (the
-        // complete frame precedes the block's content_block_stop, CB-13); its
+        // complete frame precedes the block's content_block_stop); its
         // tool.args.assembled carries it only if it differs from the streamed input.
         for (let i = 0; i < m.content.length; i++) {
           const frameBlock = m.content[i];
@@ -2811,7 +2811,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
           a.emit({ type: "message.metadata", messageId, metadata: unanchored });
         }
       }
-      // The seal is DEFERRED (guuey#26) — the next frame may continue this same
+      // The seal is DEFERRED (INV-MSG) — the next frame may continue this same
       // message id. Usage is message-level and repeated per frame, so the newest
       // frame's copy is the one that rides the eventual `message.end` — field by
       // field: `mapMessageUsage` names every field it maps explicitly (absent ⇒
@@ -2826,7 +2826,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
 
       // If the assistant turn carries an error signal (rate_limit, billing_error, etc.),
       // the turn ends as a turn.error so consumers see the error rather than a
-      // silent empty turn. CL-09: the close is STASHED, not emitted here — the
+      // silent empty turn. The close is STASHED, not emitted here — the
       // turn's result frame (which carries the turn's usage) emits it, or
       // `flush()` does if no result ever arrives (see `stashedTurnErrors`).
       if (msg.error !== undefined) {
@@ -2856,13 +2856,13 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
           if (!nestedStashedErrors.has(turnId)) nestedStashedErrors.set(turnId, { message: errCode, code: errCode, retriable });
         } else if (!stashedTurnErrors.has(turnId)) {
           // First error frame wins: a turn already carrying a stashed close keeps
-          // it (before CL-09's stash, the first error frame closed the turn).
+          // it (through 0.6.2, before the stash, the first error frame closed the turn).
           stashedTurnErrors.set(turnId, { message: errCode, code: errCode, retriable });
         }
       }
 
       // `subagent.done` is NOT emitted here: it brackets the RUN (see `openRun`),
-      // and this message's seal is deferred (guuey#26) until nothing can continue it.
+      // and this message's seal is deferred (INV-MSG) until nothing can continue it.
 
       // Record this frame's own uuid → the messageId it produced, so a LATER
       // retraction naming this uuid can translate it (Finding #1). The EMITTED
@@ -2895,7 +2895,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // `ext.anthropic.frame{kind:"user"}`. The replay's `tool_use_result`
       // sibling, read here for live frames, is no longer read on replays.
       if ("isReplay" in msg && msg.isReplay === true) return;
-      // guuey#26: a tool_result binds to the fold, and a COMPLETE-mode message
+      // INV-MSG: a tool_result binds to the fold, and a COMPLETE-mode message
       // is sealed first, exactly as the per-frame close used to. A STREAMED
       // message is never sealed by a live user frame: its native boundary is its
       // own stream (message_stop, with the complete assistant frames that join
@@ -3002,18 +3002,18 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
             // started mid-run: a background agent spanning invokes, a resume):
             // open a fresh run named by this frame, so its tool.done lands in a
             // turn that subagent.start opened (INV-TURN) and B-strict closes.
-            // Through 0.7.0's DC-10 fix the never-opened case named the synthetic
-            // `turn_<parent_tool_use_id>` label instead (Task 8c leg 3, "park
-            // loudly"): a turn nobody opened, whose id REPEATED across the
-            // invokes one Reducer folds (the rd-14 ids-across-invokes rule;
-            // the message.start review, wf_140b3183-767), and it parked.
+            // Through 0.7.0 (whose cross-invoke fix covered the fallback stem
+            // only) the never-opened case named the synthetic
+            // `turn_<parent_tool_use_id>` label instead ("park loudly"): a turn
+            // nobody opened, whose id REPEATED across the invokes one Reducer
+            // folds (§8.0 "Ids across invokes"), and it parked.
             toolTurnId = nestedTurnId(parentToolUseId, undefined, msg.uuid);
             openRun(parentToolUseId, toolTurnId, `turn_${parentToolUseId}`);
           }
         } else {
           toolTurnId = openTopTurnId;
         }
-        // tool_use_result sibling (SDK-injected rich MCP result; audit B7): carries
+        // tool_use_result sibling (SDK-injected rich MCP result): carries
         // structuredContent (incl. render-cache markers) + _meta.ui the block-level
         // arm never sees. Applies only when the message has exactly ONE tool_result
         // block (the sibling is message-level; multi-result attribution is ambiguous —
@@ -3124,10 +3124,10 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
               outcome,
               ...(denied ? {} : { isError: block.is_error === true }),
               turnId: toolTurnId,
-              // SPEC §5 tool.done adoption (audit B10; Task 8b): the Claude SDK
+              // SPEC §5 tool.done adoption: the Claude SDK
               // closes the assistant message (message.end) BEFORE this tool_result
               // arrives, so a messageId-less toolDone here has no open message to
-              // attach to and parks the fold (guuey fold-identity capstone caught
+              // attach to and parks the fold (a reference host's fold-identity check caught
               // this on a real claude tool conversation). A stable derived
               // messageId engages the reducer's adoption path instead: the result
               // lands in its OWN dedicated role:"tool" message.
@@ -3148,7 +3148,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
               // The facet's harness keys ride the same `_meta`, MERGED into the MCP
               // sibling's `_meta` (never replacing it), so they fold with the
               // tool-result block: the Agent run report ("anthropic/agentOutput"),
-              // rd-15's CLI `tool_result_meta` entry ("anthropic/toolResultMeta"),
+              // the CLI's `tool_result_meta` entry ("anthropic/toolResultMeta"),
               // and the draft.5 host records, the MCP `resourceLinks` list and the
               // live denial's context. The "anthropic/" namespace is the
               // harness's own: see `mergeHarnessMeta`. This tool.done carries no
@@ -3176,14 +3176,14 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
     }
 
     if (msg.type === "result" && msg.subtype === "success") {
-      // guuey#26: the turn is closing — seal the open assistant message first
+      // INV-MSG: the turn is closing — seal the open assistant message first
       // (message.end has always preceded the turn close).
       closePendingMessage();
       // B-strict: a subagent run still open (a background or unreported sub-run)
       // is NOT closed by its parent's result; it closes when the framework
       // reports it, or at flush.
       const turnId = closingTopTurnId(msg.uuid, msg.session_id, msg.user_message_uuid);
-      // CL-09 (0.3.280 sweep): `subtype: "success"` does NOT mean the turn
+      // Since 0.6.3 (claude-agent-sdk 0.3.280): `subtype: "success"` does NOT mean the turn
       // succeeded. Upstream's SDKResultMessage doc: "subtype "success" carries
       // the final assistant text in result — or, with is_error true, the error
       // text when the turn ended on an API error". The CLI sets is_error from
@@ -3213,14 +3213,14 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         msg.structured_output !== undefined ? JsonValue.parse(msg.structured_output) : undefined;
       // Emit permission_denials as tool.start + tool.done denied pairs, inside a
       // dedicated carrier message: the assistant message is already sealed, and
-      // INV-MSG (audit M19) forbids attaching to sealed messages / closed turns.
-      // CL-09: an API-error turn's denials take this same carrier, at the same
+      // INV-MSG forbids attaching to sealed messages / closed turns.
+      // An API-error turn's denials take this same carrier, at the same
       // point — its close is deferred to this frame (below), so the turn is
       // still open here, like every other turn.
       emitDenialsCarrier(turnId, msg.permission_denials, msg.session_id);
       // 0.3.220: fast_mode_disabled_reason + per-model canonicalModel/provider
       // ride `ext.anthropic.result-meta` before the close (no core home on
-      // turn.done — see resultMetaPayload's doc). CL-09: it is emitted on an
+      // turn.done — see resultMetaPayload's doc). It is emitted on an
       // API-error turn too, before its close like on every other turn.
       const resultMeta = resultMetaPayload(msg, stashedError !== undefined || apiErrorTurn);
       if (resultMeta !== undefined) {
@@ -3277,7 +3277,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // exactly what "paused" names). The result-meta deferredToolUse carry stays.
       // A later invoke that resumes the call opens its own turn, minted from its
       // own frames (INV-XINV). Never keyed on terminal_reason. An is_error result
-      // never reaches here: it closed above as turn.error (CL-09), and so did a
+      // never reaches here: it closed above as turn.error, and so did a
       // turn an API-error frame decided; the deferred tool found unavailable on
       // resume ("tool_deferred_unavailable") is such an is_error close.
       const deferredCall = readDeferredCall(msg);
@@ -3312,10 +3312,10 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
 
     if (msg.type === "result") {
       // At this point msg.subtype can only be an error variant (success handled above).
-      // guuey#26: seal the open assistant message before the turn close.
+      // INV-MSG: seal the open assistant message before the turn close.
       closePendingMessage();
       const turnId = closingTopTurnId(msg.uuid, msg.session_id);
-      // CL-09: consume any stashed assistant-error close for this turnId — this
+      // Consume any stashed assistant-error close for this turnId — this
       // frame emits it (below). Each turn has its own id now, so an entry can
       // only ever be this turn's.
       const stashedError = takeStashedTurnError(turnId);
@@ -3325,7 +3325,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // not throw (Tenet 6: graceful, never throws).
       const errors = Array.isArray(msg.errors) ? msg.errors : [];
       const subtype = typeof msg.subtype === "string" ? msg.subtype : "error_unknown";
-      // CL-04 (0.3.274): a known startup failure says why the CLI refused to
+      // Since claude-agent-sdk 0.3.274: a known startup failure says why the CLI refused to
       // start, and upstream frames it as "offer the fix instead of a retry" —
       // so a PRESENT reason decides retriable (false, except the values upstream
       // itself calls retriable; see `startupFailureRetriable`). An ABSENT reason
@@ -3355,7 +3355,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         a.emitExt("anthropic", "result-meta", resultMeta);
       }
       if (stashedError !== undefined) {
-        // CL-09: an assistant error frame already decided this turn's close —
+        // An assistant error frame already decided this turn's close —
         // emit THAT one (the first error that ended the turn), once, never a
         // second turn.error for the same turnId (INV-TURN), with this frame's
         // usage (the success arm's mapping). This arm is only
@@ -3412,7 +3412,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // `retractUuids`'s doc); also the ONLY retraction path when a consumer
       // never observed (or a normalizer instance never processed) the
       // superseding assistant frame's own `supersedes` field directly.
-      // guuey#26: a retraction can name the still-open message — seal it first so
+      // INV-MSG: a retraction can name the still-open message — seal it first so
       // `message.end` never trails its own `message.remove`.
       closePendingMessage();
       const uuids = Array.isArray(msg.retracted_message_uuids) ? msg.retracted_message_uuids : [];
@@ -3549,7 +3549,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       return a.drain();
     },
     flush(): AgEvent[] {
-      // guuey#26: nothing can continue the deferred message now — seal it with
+      // INV-MSG: nothing can continue the deferred message now — seal it with
       // its real usage rather than leaving INV-FLUSH to synthesize a bare
       // `message.end`. At flush: no content is minted (INV-FLUSH (3), C1).
       closePendingMessage(true);
@@ -3557,7 +3557,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // terminal (turn.abort{stream-truncated}, or its stashed API error) and
       // its subagent.done, innermost first.
       abortOpenRuns();
-      // CL-09: a turn whose assistant error frame stashed its close but whose
+      // A turn whose assistant error frame stashed its close but whose
       // result frame never arrived still closes as that turn.error (no usage:
       // only a result carries the turn's), never as INV-FLUSH's synthesized
       // turn.abort — the outcome the frame's own close used to produce.

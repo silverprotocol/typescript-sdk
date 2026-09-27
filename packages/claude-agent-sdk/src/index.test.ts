@@ -414,12 +414,12 @@ describe("createClaudeNormalizer — tool_use", () => {
           id: "toolu_mcp_1",
           name: "search",
           input: { q: "x" },
-          server_name: "mcp.ggui.ai",
+          server_name: "mcp.example.com",
         },
       ]),
     );
     const start = evs.find((e) => e.type === "tool.start");
-    expect(start).toMatchObject({ toolCallId: "toolu_mcp_1", name: "search", serverName: "mcp.ggui.ai" });
+    expect(start).toMatchObject({ toolCallId: "toolu_mcp_1", name: "search", serverName: "mcp.example.com" });
     assertAllValid(evs);
   });
 });
@@ -493,12 +493,12 @@ describe("createClaudeNormalizer — tool_result", () => {
 // failed) to attach to the assistant message's already-cleared open pointer and
 // PARKED the fold (needsResync=true) — everything after the first tool call in
 // any claude tool conversation was lost. Nothing in the submodule suites folds
-// a REAL claude tool conversation, so this was caught by guuey's blast-radius
-// fold-identity capstone. The fix: the facet derives a stable
+// a REAL claude tool conversation, so this was caught by a reference host's
+// fold-identity check. The fix: the facet derives a stable
 // `${toolCallId}:result` messageId, engaging the reducer's SPEC §5 adoption
 // path (Task 5) — a DEDICATED role:"tool" message, not an attach to the
 // assistant message.
-describe("createClaudeNormalizer — tool.done.messageId adoption (audit B10 / guuey fold-identity capstone; Task 8b)", () => {
+describe("createClaudeNormalizer — tool.done.messageId adoption (SPEC §5)", () => {
   it("standard tool round-trip (tool_use → message.end → tool_result) folds without park: the result lands in its own ToolMessage, not the sealed assistant message", () => {
     const n = createClaudeNormalizer();
     const toolCallId = "toolu_fixture_1"; // matches toolResultMsg()'s tool_use_id
@@ -529,7 +529,7 @@ describe("createClaudeNormalizer — tool.done.messageId adoption (audit B10 / g
   });
 });
 
-// ─── guuey#26 — ONE message id ⇒ ONE message lifecycle ────────────────────────
+// ─── INV-MSG — ONE message id ⇒ ONE message lifecycle ─────────────────────────
 // The Claude Agent SDK delivers ONE assistant message id across MULTIPLE
 // `assistant` frames whenever that API message has several content blocks: a
 // thinking block arrives as its own complete frame, then the tool_use block
@@ -537,7 +537,7 @@ describe("createClaudeNormalizer — tool.done.messageId adoption (audit B10 / g
 // an open/seal pair per FRAME therefore re-opens an id the consumer has already
 // sealed — exactly what INV-MSG forbids: `reduce()` refuses a sealed message as
 // an attach target, sets `needsResync`, and the whole tail of the turn is
-// discarded (guuey#26: a production capture parks at the first tool.start,
+// discarded (a reference host's production capture parks at the first tool.start,
 // seq 8 of 65 — the render tool result 40 events later never folds).
 //
 // The invariant these tests pin: within one normalizer lifetime, a message id
@@ -547,7 +547,7 @@ describe("createClaudeNormalizer — tool.done.messageId adoption (audit B10 / g
 // (a live claude-sonnet-5 @0.3.217 capture) is a thinking-then-tool_use split
 // on `msg_011CdMAmb6dKtbrbtGX4QPnE`, and the corpus-wide fold gate in
 // `packages/e2e/src/replay.test.ts` pins the same invariant against it.
-describe("createClaudeNormalizer — split-frame id coalesce (guuey#26)", () => {
+describe("createClaudeNormalizer — split-frame id coalesce (INV-MSG)", () => {
   const SPLIT_ID = "msg_split_1";
   const SPLIT_TOOL_ID = "toolu_split_1";
 
@@ -705,7 +705,7 @@ describe("createClaudeNormalizer — split-frame id coalesce (guuey#26)", () => 
 
     const r = new Reducer();
     for (const e of evs) r.push(e);
-    // THE guuey#26 assertion: the fold never parks…
+    // THE INV-MSG assertion: the fold never parks…
     expect(r.needsResync).toBe(false);
     const result = r.result();
     // …the reasoning AND the tool call live on the ONE coalesced message…
@@ -826,8 +826,8 @@ describe("createClaudeNormalizer — nested subagent turn (assembled golden)", (
   });
 });
 
-// ─── Task 8c leg 4: inner tool-results route to the SUBAGENT's real turn ──────
-// Guuey capstone finding A: the wire-visible `subagent.start.parentTurnId`
+// ─── inner tool-results route to the SUBAGENT's real turn ─────────────────────
+// A reference host's fold-identity check: the wire-visible `subagent.start.parentTurnId`
 // label (e.g. `turn_${TASK_TOOL_ID}`) is a synthetic cross-ref, never opened
 // as a real turn. Before this fix, an INNER tool_result belonging to the
 // subagent's own session (a `user` message whose `parent_tool_use_id` matches
@@ -2070,7 +2070,7 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
     const noUuid = (): unknown => withoutKey(resultSuccess("end_turn"), "uuid");
     const evs = events([noUuid(), noUuid()]);
     const ids = turnIds(evs, "turn.done");
-    // DC-10: the positional fallback carries this invoke's random stem.
+    // Ids across invokes: the positional fallback carries this invoke's random stem.
     expect(ids).toEqual([expect.stringMatching(/^turn_claude_[0-9a-f]{16}_frame_1$/), expect.stringMatching(/^turn_claude_[0-9a-f]{16}_frame_2$/)]);
     expect(ids.some((id) => typeof id === "string" && id.includes("undefined"))).toBe(false);
   });
@@ -2094,7 +2094,7 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
 // whose text is NON-EMPTY → phase "interim" on that reasoning block: on
 // reasoning.start when the frame is complete-form (known before the first
 // delta), on reasoning.end when it streamed (the complete frame precedes the
-// block's content_block_stop, CB-13). A listed empty block gets no phase.
+// block's content_block_stop). A listed empty block gets no phase.
 describe("createClaudeNormalizer — draft.4 phase:'interim' from narration_block_indexes", () => {
   const SIG = "sig_fixture";
   function frame(id: string, content: unknown[], nbi?: number[]): unknown {
@@ -2221,7 +2221,7 @@ describe("createClaudeNormalizer — draft.4 phase:'interim' from narration_bloc
       }).not.toThrow();
     });
 
-    it("a complete frame arriving AFTER the block's stop (CB-13 violated) leaves phase absent — never a post-seal event", () => {
+    it("a complete frame arriving AFTER the block's stop (out of the observed order) leaves phase absent — never a post-seal event", () => {
       const evs = drive([start, cbStart, delta("late marker"), sigDelta, stop, frame("msg_s1", [thinking("late marker")], [0])]);
       expect(evs.some((e) => "phase" in e)).toBe(false);
       expect(evs.filter((e) => e.type === "reasoning.end")).toHaveLength(1);
@@ -2325,7 +2325,7 @@ describe("createClaudeNormalizer — replayed user frames (isReplay) re-emit not
   });
 
   it("a replay interleaved between two frames of ONE assistant message does not split it", () => {
-    // guuey#26 continuation: two frames sharing an SDK message id fold as one
+    // INV-MSG continuation: two frames sharing an SDK message id fold as one
     // message. The replay returns before `closePendingMessage()`, so it cannot
     // seal the first frame early.
     const part1 = asst("msg_split", [{ type: "text", text: "part one", citations: null }], null, "00000000-0000-0000-0000-0000000000c5");
@@ -2951,7 +2951,7 @@ describe("createClaudeNormalizer — text block with citations omitted (real SDK
   });
 });
 
-// ── tool_use_result sibling mapping (audit B7) ────────────────────────────────
+// ── tool_use_result sibling mapping ───────────────────────────────────────────
 // The Claude Agent SDK attaches a message-level `tool_use_result` sibling to the
 // user message carrying the tool_result block(s) — the SDK's own rich MCP result
 // (structuredContent incl. render-cache markers, plus `_meta.ui` for MCP Apps),
@@ -2960,7 +2960,7 @@ describe("createClaudeNormalizer — text block with citations omitted (real SDK
 // (model-facing). The sibling's `_meta` rides verbatim on the event's `_meta`.
 // Multi-result messages are ambiguous (the sibling is message-level, not
 // per-block) and are skipped rather than misattributed.
-describe("tool_use_result sibling mapping (audit B7)", () => {
+describe("tool_use_result sibling mapping", () => {
   const oneToolResult: JsonValue[] = [
     { type: "tool_result", tool_use_id: "c1", content: [] },
   ];
@@ -5167,7 +5167,7 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
     expect(evs.filter((e) => e.type === "text.delta")).toHaveLength(1);
   });
 
-  it("a carried ext frame BETWEEN stream events never splits the streamed message (guuey#26 parity)", () => {
+  it("a carried ext frame BETWEEN stream events never splits the streamed message (INV-MSG parity)", () => {
     const n = createClaudeNormalizer();
     const hookFrame: SDKMessage = JSON.parse(
       JSON.stringify({
@@ -5548,12 +5548,12 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
 });
 
 // ─── ClaudeNormalizerOptions.threadId — caller-owned partition root ───────────
-// guuey#415: the four construction sites relabeled the SDK `session_id` as
+// Found by a reference host: the four construction sites relabeled the SDK `session_id` as
 // `threadId`, and the placeholder leaked into consumers that persist events
 // verbatim under their own thread identity. The runtime that knows the real
 // thread id passes it at construction; absent, the legacy relabeling stands
 // (cassette-stable default).
-describe("createClaudeNormalizer — options.threadId (guuey#415)", () => {
+describe("createClaudeNormalizer — options.threadId (caller-owned partition root)", () => {
   const textContent: BetaMessage["content"] = [{ type: "text", text: "hello", citations: null }];
 
   function threadIdsOf(evs: AgEvent[]): string[] {
@@ -5833,7 +5833,7 @@ function secondApiErrorAssistantFrame(error: NonNullable<SDKAssistantError>): un
   });
 }
 
-describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.error, never as success", () => {
+describe("createClaudeNormalizer — an API-error turn closes as turn.error, never as success", () => {
   it("the two-frame sequence (assistant `error` frame, then success result with is_error:true) closes the turn exactly ONCE, as turn.error carrying the result's usage", () => {
     const evs = drive([apiErrorAssistantFrame(), apiErrorResultFrame()]);
     // result-meta carries the error close's api_error_status + stop_reason.
@@ -6347,7 +6347,7 @@ describe("createClaudeNormalizer — CL-09: an API-error turn closes as turn.err
 
   it("NEGATIVE CONTROL: with no assistant error frame, is_error false or absent keeps the success path byte-for-byte", () => {
     // The frozen success fixture's exact wire bytes, pinned from the facet
-    // before CL-09 (identical at HEAD and before the stash). The one change
+    // before the 0.6.3 API-error fix (identical at HEAD and before the stash). The one change
     // since: the per-turn ids (INV-TURN, B) name this result-only turn by the
     // result's uuid, not by the session.
     // And since the result-only turn.start (INV-TURN), a turn.start at seq 0.
@@ -6533,7 +6533,7 @@ describe("createClaudeNormalizer — result-meta apiErrorStatus / error-close st
   });
 });
 
-describe("createClaudeNormalizer — CL-09 LIVE: the captured invalid-API-key frames (401)", () => {
+describe("createClaudeNormalizer — API-error turn LIVE: the captured invalid-API-key frames (401)", () => {
   // INV-TURN (B): named by the live error frame's message id, not the session.
   const LIVE_TURN = "turn_00000000-0000-4000-8000-0000000c1091";
 
@@ -7432,7 +7432,7 @@ describe("createClaudeNormalizer — a live, non-JSON frame never throws out of 
   });
 });
 
-// ─── no emitted event aliases the pushed frame (cto, on the live-JSON swap) ───
+// ─── no emitted event aliases the pushed frame (the live-JSON swap) ───────────
 // toJsonValueSafe hands a JSON frame back BY REFERENCE, and core's
 // StreamAssembler does not copy, so any native value the facet puts into an
 // event without a zod parse (which copies) is shared with the host's live
@@ -7574,12 +7574,12 @@ describe("createClaudeNormalizer — no emitted event shares an object with the 
   });
 });
 
-// ─── DC-10: the positional fallback turn id is unique across invokes ──────────
-// The D3 review / the cross-invoke guard: guuey folds a whole
+// ─── the positional fallback turn id is unique across invokes ─────────────────
+// The cross-invoke guard: a reference host folds a whole
 // conversation into ONE Reducer, and `turn_frame_<n>` (a result with no uuid)
 // depended only on wire position, so two invokes named the same turn. The
 // fold did NOT park: a silent id reuse, so ids are compared directly.
-describe("createClaudeNormalizer — DC-10: fallback turn ids never repeat across invokes", () => {
+describe("createClaudeNormalizer — fallback turn ids never repeat across invokes", () => {
   const noUuidResult = (): unknown => ({
     type: "result", subtype: "success", is_error: false, result: "hi", session_id: "s", num_turns: 1,
     duration_ms: 1, duration_api_ms: 1, total_cost_usd: 0, usage: {}, modelUsage: {}, permission_denials: [],
@@ -7689,10 +7689,10 @@ describe("createClaudeNormalizer — withAtomicPush: a throwing frame leaves no 
   });
 });
 
-// ─── rd-15: defer the field, fix the carries (ruling of 2026-09-24) ─────
-// cto's conditions: every carry sits in a home that FOLDS (readable and durable),
+// ─── defer the field, fix the carries (ruled 2026-09-24) ────────────────
+// The ruled conditions: every carry sits in a home that FOLDS (readable and durable),
 // never providerMetadata; zero golden moves (no committed native carries these).
-describe("createClaudeNormalizer — rd-15 carries: host-readable homes that fold", () => {
+describe("createClaudeNormalizer — remedy carries: host-readable homes that fold", () => {
   function frameWith(extra: { [k: string]: unknown }, message: { [k: string]: unknown } = {}): { [k: string]: unknown } {
     return {
       ...Object.fromEntries(Object.entries(assistantMsg([{ type: "text", text: "hi", citations: null }]))),
@@ -7891,7 +7891,7 @@ describe("createClaudeNormalizer — B-strict nested terminals", () => {
 
 // ─── every verbatim carrier drops provider credit tokens at any depth ─────────
 // "A normalizer MUST NOT emit a provider credit or bearer token in any event"
-// (rd-15 / §13.7 queued) holds on EVERY path that forwards a native subtree
+// (§13.10) holds on EVERY path that forwards a native subtree
 // whole, not only the stop_details carry. Each case injects, at depth, a subtree
 // {keep, deep:[{fallback_credit_token, other}]} into one carrier: KEEP_<n> must
 // reach the wire (the path really carried it), the token must not.
@@ -7938,7 +7938,7 @@ describe("createClaudeNormalizer — verbatim carries drop provider credit token
 });
 
 // ─── ids across invokes: a nested result for a run this invoke never opened ────
-// The message.start review (wf_140b3183-767) restates rd-14's rule as a
+// A review of message.start restated the ids-across-invokes rule as a
 // §8.0 producer MUST: turn ids never repeat across the invokes one Reducer
 // folds. The top-level no-open-turn tool.done the bar cited already opens its
 // own uuid-named turn (B-resume 9c46845). The nested case did not: it named the
@@ -7993,7 +7993,7 @@ describe("createClaudeNormalizer — ids across invokes: no-open-turn results", 
 // FORBIDDEN". A flush lands no new content: only lifecycle closes (text.end with
 // already-received citations, reasoning.end, message.end, the turn/nested
 // closes). The open blocks' scratch is DROPPED: no tool.args.assembled minted
-// from a truncated partial_json (CB-12), no reasoning.opaque, no compaction
+// from a truncated partial_json, no reasoning.opaque, no compaction
 // content.block. §10 item 26 leg (a), claude's share.
 describe("createClaudeNormalizer — C1: flush never mints content", () => {
   const se = (event: unknown, uuid = "00000000-0000-0000-0000-0000000000f0"): unknown => ({
@@ -8141,8 +8141,8 @@ describe("createClaudeNormalizer — subagent carries: AgentOutput and result or
   });
 });
 
-// ─── rd-15: tool_result_meta rides tool.done._meta (deferred past 0.7.0) ─────
-describe("createClaudeNormalizer — rd-15: the CLI's tool_result_meta entry rides its tool.done _meta", () => {
+// ─── tool_result_meta rides tool.done._meta (deferred past 0.7.0) ────────────
+describe("createClaudeNormalizer — the CLI's tool_result_meta entry rides its tool.done _meta", () => {
   const use = (): unknown => ({ ...Object.fromEntries(Object.entries(assistantMsg([{ type: "tool_use", id: "toolu_m", name: "mcp__t__echo", input: {} }]))) });
   const result = (extra: { [k: string]: unknown }): unknown => ({
     type: "user",
@@ -8201,12 +8201,12 @@ describe("createClaudeNormalizer — rd-15: the CLI's tool_result_meta entry rid
   });
 });
 
-// ─── B1: `wire_tool_inputs` rides tool.args.assembled providerMetadata ────────
+// ─── `wire_tool_inputs` rides tool.args.assembled providerMetadata ────────────
 // The CLI's @internal "tool_use.input exactly as the API produced it" for a
 // message whose content carries a client-normalized input: replay-load-bearing,
 // so providerMetadata.wireInput, and ONLY when it differs from the input the
 // event holds (key order aside). Every capture so far has the two identical.
-describe("createClaudeNormalizer — B1: the API's own tool input when the CLI normalized it", () => {
+describe("createClaudeNormalizer — the API's own tool input when the CLI normalized it", () => {
   const WIRE = { command: "cd /repo && ls" };
   const NORMALIZED = { command: "ls" };
   const frame = (content: unknown, wire?: unknown, id = "msg_fixture_1"): unknown => ({
@@ -8917,7 +8917,7 @@ describe("createClaudeNormalizer — parallel tool calls: a tool_result that arr
 
   it("the last result arriving BEFORE the message_delta does not seal either: the usage refresh merges into message.end instead of riding an ext carry", () => {
     const f = frames();
-    // Move B's result ahead of the message_delta (the live P1 order).
+    // Move B's result ahead of the message_delta (the order a live capture showed).
     const bResult = f.findIndex((x) => (x as { uuid?: string }).uuid === "00000000-0000-0000-0000-0000000008a2");
     const delta = f.findIndex((x) => (x as { event?: { type?: string } }).event?.type === "message_delta");
     const [moved] = f.splice(bResult, 1);

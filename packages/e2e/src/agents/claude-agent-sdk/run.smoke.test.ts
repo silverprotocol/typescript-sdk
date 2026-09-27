@@ -16,7 +16,7 @@ describe("runClaudeCapture — module-load smoke", () => {
   it("importing the module does NOT throw (no module-load CLI resolution)", () => {
     // The critical invariant: 0.2.141 ships a native binary and self-resolves
     // it at run time, NOT at import time. If resolveClaudeCliPath / spawnClaudeCli
-    // were lifted from the ../ggui sample they would throw here.
+    // were lifted from a reference client's sample they would throw here.
     expect(typeof runModule.runClaudeCapture).toBe("function");
   });
 
