@@ -182,7 +182,9 @@ describe("runLiveBargeIn — the Live barge-in capture, offline (real runLive, s
     const { events, log, elapsed } = await drive("never-completes", 300);
     expect(events.length).toBeGreaterThan(0);
     expect(log).toContain("close");
-    expect(elapsed).toBeGreaterThanOrEqual(300);
+    // The cap ended it: a Node timer can fire a millisecond early against
+    // Date.now(), so allow a few milliseconds under the 300 ms cap.
+    expect(elapsed).toBeGreaterThanOrEqual(295);
     expect(elapsed).toBeLessThan(3000);
   });
 });
