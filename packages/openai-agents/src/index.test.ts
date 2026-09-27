@@ -4389,8 +4389,23 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
     expect(terminalsOf(evs, "turn_resp_n5")).toMatchObject([{ type: "turn.done", outcome: { type: "success" } }]);
   });
 
+  it("an id-less message's annotations under providerData ride ext.openai.late-citations with its late-message text", () => {
+    const ann = [{ type: "url_citation", url: "https://example.com/i", title: "I", start_index: 0, end_index: 2 }];
+    const idless = { type: "message", role: "assistant", status: "completed", content: [{ type: "output_text", text: "fallback", providerData: { annotations: ann } }] };
+    const { evs } = run([
+      rawModel({ type: "response.created", response: { id: "resp_il", model: "gpt-6-sol" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_il", status: "completed", output: [], usage: U } }),
+      runItem("message_output_created", { type: "message_output_item", rawItem: idless }),
+    ]);
+    expect(evs.filter((e) => e.type === "ext.openai.late-message")).toMatchObject([{ text: "fallback" }]);
+    expect(evs.filter((e) => e.type === "ext.openai.late-citations")).toMatchObject([{ annotations: ann }]);
+  });
+
   it("a message whose round's close was already released keeps its citations on ext.openai.late-citations", () => {
-    const ann = [{ type: "url_citation", url: "https://example.com/p", title: "P", start_index: 0, end_index: 2 }];
+    const ann: JsonValue[] = [
+      { type: "url_citation", url: "https://example.com/p", title: "P", start_index: 0, end_index: 2 },
+      { type: "file_citation", file_id: "file_p", filename: "p.md", index: 1 },
+    ];
     const cited = citedMessage("msg_n3", "hi", ann);
     const { evs, r } = run([
       rawModel({ type: "response.created", response: { id: "resp_n3", model: "gpt-6-sol" } }),
@@ -4399,7 +4414,7 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
       runItem("message_output_created", { type: "message_output_item", rawItem: cited.converted }),
     ]);
     expect(r.needsResync).toBe(false);
-    expect(evs.filter((e) => e.type === "ext.openai.late-citations")).toMatchObject([{ itemId: "msg_n3" }]);
+    expect(evs.filter((e) => e.type === "ext.openai.late-citations")).toMatchObject([{ itemId: "msg_n3", annotations: ann }]);
   });
 
   it("in the order the SDK streams it, a resumed invoke's leading approval answers open its turn with each answer in its own call message, and the resumed response's message.start (not an answer's) keeps its model; the pair folds clean", () => {
@@ -4473,7 +4488,8 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
   it("in the order the SDK streams it, a held round's url citations ride its text.end, and its other annotations ride ext.openai.late-citations", () => {
     const url = { type: "url_citation", url: "https://example.com/u", title: "U", start_index: 0, end_index: 4 };
     const file = { type: "file_citation", file_id: "file_1", filename: "notes.md", index: 2 };
-    const cited = citedMessage("msg_mf", "done", [url, file]);
+    const container = { type: "container_file_citation", container_id: "cntr_1", file_id: "cfile_1", filename: "out.csv", start_index: 0, end_index: 4 };
+    const cited = citedMessage("msg_mf", "done", [url, file, container]);
     const { evs, r } = run([
       ...rawRound("resp_mf", [WS, cited.raw], { id: "msg_mf", delta: "done" }),
       calledWs,
@@ -4481,7 +4497,7 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
     ]);
     expect(r.needsResync).toBe(false);
     expect(evs.find((e) => e.type === "text.end" && Reflect.get(e, "id") === "msg_mf")).toMatchObject({ citations: [{ url: "https://example.com/u" }] });
-    expect(evs.filter((e) => e.type === "ext.openai.late-citations")).toMatchObject([{ itemId: "msg_mf", annotations: [file] }]);
+    expect(evs.filter((e) => e.type === "ext.openai.late-citations")).toMatchObject([{ itemId: "msg_mf", annotations: [file, container] }]);
   });
 
   it("a message run-item that lands while its response is open puts its url citations on text.end and its other annotations on ext.openai.late-citations", () => {
@@ -4613,7 +4629,7 @@ describe("createOpenaiNormalizer — hosted call inputs and results", () => {
       isError: true,
       errorText: "server unreachable",
       errorCode: "mcp_protocol_error",
-      providerMetadata: { error: protocolError },
+      providerMetadata: { status: "failed", error: protocolError },
     });
     const execError = { type: "mcp_tool_execution_error", content: [{ type: "text", text: "bad arguments" }] };
     const errored = hostedRound({ ...MCP_RAW, error: execError }, mcpItem({ error: execError, output: null }));
@@ -4649,9 +4665,9 @@ describe("createOpenaiNormalizer — hosted call inputs and results", () => {
       { type: "file_search_call", id: "fs_9", status: "incomplete", queries: ["x"] },
       { type: "hosted_tool_call", id: "fs_9", name: "file_search_call", status: "incomplete", providerData: { type: "file_search_call", id: "fs_9", queries: ["x"] } },
     );
-    expect(first(fs, "tool.done")).toMatchObject({ outcome: "error", isError: true });
+    expect(first(fs, "tool.done")).toMatchObject({ outcome: "error", isError: true, providerMetadata: { status: "incomplete" } });
     const mcp = hostedRound({ ...MCP_RAW, status: "incomplete" }, mcpItem({ status: "incomplete", output: null }));
-    expect(first(mcp, "tool.done")).toMatchObject({ outcome: "error", isError: true });
+    expect(first(mcp, "tool.done")).toMatchObject({ outcome: "error", isError: true, providerMetadata: { status: "incomplete" } });
   });
 
   it("a hosted call whose native status is failed closes with outcome error", () => {
@@ -4791,8 +4807,8 @@ describe("createOpenaiNormalizer — default run-item arm (Task 3, audit M48)", 
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Finding #1 (critical, playbook 2026-07-03 SDK-bump adaptation, @openai/agents
-// 0.2.1 → 0.12.0): Shell / Apply-Patch / Hosted-tool built-in calls reuse the
+// The 2026-07-03 SDK-bump adaptation (@openai/agents 0.2.1 → 0.12.0):
+// Shell / Apply-Patch / Hosted-tool built-in calls reuse the
 // EXISTING `tool_called`/`tool_output` run-item names with NEW `rawItem`
 // shapes the facet's authoritative `response.output_item.added`-only tool-start
 // path never recognized — before this fix, `tool_output` WOULD still fire a
@@ -5101,7 +5117,7 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: hosted_tool_call (
 });
 
 // ─── computer_call / computer_call_result (fixture-drift ratchet finding, ────
-// 2026-07-03) — the SAME orphan-tool.done bug class Finding #1 fixed for
+// 2026-07-03) — the SAME orphan-tool.done bug class the 2026-07-03 adaptation fixed for
 // shell_call/apply_patch_call, confirmed still present for OpenAI's
 // Computer-Use built-in tool (which rides the exact SAME `tool_called`/
 // `tool_output` event names). `ComputerUseCallItem` carries NO `name` field

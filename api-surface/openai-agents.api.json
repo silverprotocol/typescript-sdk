@@ -101,7 +101,7 @@
     "module": "index",
     "tag": "beta",
     "decl": [
-      "export interface OpenAIOutputText {\n    type: \"output_text\";\n    text: string;\n    annotations?: OpenAIAnnotation[];\n}"
+      "export interface OpenAIOutputText {\n    type: \"output_text\";\n    text: string;\n    annotations?: OpenAIAnnotation[];\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
     ]
   },
   "OpenAIProgramCallItem": {

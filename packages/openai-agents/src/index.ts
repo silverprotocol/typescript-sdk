@@ -122,8 +122,13 @@ import {
 export interface OpenAIOutputText {
   type: "output_text";
   text: string;
-  /** url_citation and file_citation annotations on the text part. */
+  /** url_citation and file_citation annotations on the text part (a fixture
+   *  shape; the run-item wire carries them under `providerData`). */
   annotations?: OpenAIAnnotation[];
+  /** Every part field but `type` and `text`, as agents-openai's converter
+   *  nests them (`annotations`, `logprobs`; openaiResponsesConverter.mjs
+   *  `convertToMessageContentItem`). */
+  providerData?: { [k: string]: JsonValue };
 }
 
 /** url_citation annotation on an output_text part (openai-node `ResponseCitationAnnotation`).
@@ -265,8 +270,8 @@ export interface OpenAIFunctionCallResultItem {
   providerData?: { [k: string]: JsonValue };
 }
 
-// ── OpenAI native BUILT-IN tool call shapes (playbook 2026-07-03 SDK-bump
-// adaptation, Finding #1 — @openai/agents-core 0.2.1 → 0.12.0). Shell /
+// ── OpenAI native BUILT-IN tool call shapes (the 2026-07-03 SDK-bump
+// adaptation, @openai/agents-core 0.2.1 → 0.12.0). Shell /
 // Apply-Patch / Hosted-tool calls carry NO dedicated RunItemStreamEventName —
 // they reuse the pre-existing `tool_called`/`tool_output` names with NEW
 // `rawItem` shapes (verified against @openai/agents-core 0.12.0's
@@ -465,7 +470,7 @@ export interface OpenAIProgramCallResultItem {
 // ── OpenAI native Computer-Use built-in tool shapes (fixture-drift ratchet
 // finding, 2026-07-03 — Task 6's `sdk-surface.json` inventory surfaced that
 // `computer_call`/`computer_call_result` ride the SAME `tool_called`/
-// `tool_output` event names Finding #1 already fixed for shell/apply-patch,
+// `tool_output` event names the 2026-07-03 adaptation already fixed for shell/apply-patch,
 // but were left uncovered by that fix. Verified against
 // @openai/agents-core 0.12.0's `dist/types/protocol.d.ts`: `ComputerUseCallItem`
 // / `ComputerCallResultItem`.)
@@ -638,7 +643,7 @@ interface OpenAIMessageOutputEvent {
 interface OpenAIToolCalledEvent {
   type: "run_item_stream_event";
   name: "tool_called";
-  // Widened (playbook 2026-07-03 SDK-bump adaptation, Finding #1 + the
+  // Widened (the 2026-07-03 SDK-bump adaptation + the
   // fixture-drift ratchet's computer_call finding + the 0.14.0 programmatic-
   // tool-calling carry): Shell / Apply-Patch / Computer-Use / Hosted-tool /
   // Program built-ins reuse this SAME event name with a DIFFERENT `rawItem`
@@ -658,7 +663,7 @@ interface OpenAIToolOutputEvent {
   type: "run_item_stream_event";
   name: "tool_output";
   // `item.rawItem` carries the protocol FunctionCallResultItem (callId, output, status)
-  // — OR, widened (Finding #1 + the fixture-drift ratchet's computer_call_result
+  // — OR, widened (the 2026-07-03 adaptation + the fixture-drift ratchet's computer_call_result
   // finding), a Shell/Apply-Patch/Computer-Use result (DIFFERENT `output`
   // shape per discriminant; `hosted_tool_call` never reaches this event, see its
   // own doc).
@@ -1403,7 +1408,7 @@ function mapUsage(usage: OpenAIResponseUsage | undefined): AgUsage | undefined {
 // ─── output_text annotations → AgCitation ──────────────────────────────────
 // In `splitAnnotations`, `partText` is the source output_text part's text
 // string, used to extract the cited substring from the char-offset indices
-// carried by the annotation (Fix 3).
+// carried by the annotation.
 /**
  * An output_text part's annotations, raw. agents-openai 0.18.0's converter
  * nests every part field but `type` and `text` under `providerData`
@@ -1414,7 +1419,7 @@ function mapUsage(usage: OpenAIResponseUsage | undefined): AgUsage | undefined {
  */
 function partAnnotations(part: OpenAIOutputText): JsonValue[] {
   const top: unknown = part.annotations;
-  const nested: unknown = "providerData" in part && isJsonObject(part.providerData) ? part.providerData.annotations : undefined;
+  const nested: unknown = part.providerData?.annotations;
   const raw = Array.isArray(top) ? top : Array.isArray(nested) ? nested : undefined;
   if (raw === undefined) return [];
   const parsed = JsonValue.parse(raw);
@@ -1437,7 +1442,7 @@ function splitAnnotations(raw: readonly JsonValue[], partText: string): { citati
       continue;
     }
     // Extract the cited substring from the part text when both offsets are present
-    // and valid (Fix 3). Fall back to "" when any guard condition fails.
+    // and valid. Fall back to "" when any guard condition fails.
     const startIdx = typeof ann.start_index === "number" ? ann.start_index : undefined;
     const endIdx = typeof ann.end_index === "number" ? ann.end_index : undefined;
     const citedText =
@@ -1638,7 +1643,7 @@ function isOpenAIStreamEvent(v: unknown): v is OpenAIStreamEvent {
  *                 id `<item_id>:refusal`); with no refusal event in the round,
  *                 the terminal output's refusal part (see "Refusal text")
  *  - text end   ← the `message_output_created` run-item (authoritative close +
- *                 citations carrier, audit M22 — `response.output_text.done` is a
+ *                 citations carrier — `response.output_text.done` is a
  *                 no-op; text streams left open by it fall to the defensive
  *                 close-any-dangling-stream fallback in `closeResponse()` /
  *                 `endOpenStreamsAndCloseMessage()` / `emitRoundClose()`)
@@ -1951,7 +1956,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * Register `callId` as pending a `tool.done` under the CURRENT open turn
    * (Task 4b). Shared by the raw `response.output_item.added` function_call
    * path and the built-in Shell/Apply-Patch `tool_called` synthesis path
-   * (playbook 2026-07-03 SDK-bump adaptation, Finding #1) — both start a call
+   * (the 2026-07-03 SDK-bump adaptation) — both start a call
    * whose result arrives via a LATER `tool_output` run-item. No-ops if no turn
    * is open (defensive; every caller already calls `ensureResponseOpen()` first).
    */
@@ -2367,7 +2372,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         return;
       }
       case "response.output_text.done": {
-        // NO-OP (audit M22): the citations carrier — `message_output_created` — is
+        // NO-OP: the citations carrier — `message_output_created` — is
         // the authoritative text-end source (it also reports refusal parts and
         // arrives with the annotated part, so closing here would emit `text.end`
         // BEFORE citations are known). The stream stays in `openTextStreams`;
@@ -2696,7 +2701,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         return;
       }
       // Duplicate raw families IGNORED per the canonical model:
-      //   response.output_text.done is its own no-op arm above (audit M22);
+      //   response.output_text.done is its own no-op arm above;
       //   response.output_item.done, response.in_progress, content_part.* are not
       //   authoritative sources.
       default:
@@ -2754,7 +2759,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
 
   /**
    * Map a `message_output_created` run-item: the AUTHORITATIVE text-end +
-   * citations source (audit M22). The text itself already streamed from the raw
+   * citations source. The text itself already streamed from the raw
    * `response.output_text.delta` path — this MUST NOT re-emit it — but the
    * `output_text` part's annotations are only known here (they are not present on
    * `response.output_text.done`), so THIS is where the matching open text stream
@@ -2785,7 +2790,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * annotations, though, they are NOT yet lost anywhere else — silently dropping
    * them here would violate Tenet 6. Route them losslessly through the facet's
    * existing unparsed/ext convention instead: `ext.openai.late-citations` carrying
-   * the run-item id + the raw annotations array verbatim (review finding on M22).
+   * the run-item id + the raw annotations array verbatim.
    * A part with no annotations has nothing to lose — the plain `continue` stays.
    *
    * ID-LESS SYNTHESIZED MESSAGE (agents-core ≥0.13.2): `errorHandlers.
@@ -3055,8 +3060,8 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * never got opened, so `reasoning.start`/`.delta`/`.end` staying unemitted is the
    * correct degrade), but the `rs_`/`encrypted_content` ZDR blob (spec §8.2/§10.4)
    * is exactly the kind of payload Tenet 6 exists for — silently dropping it here
-   * was a genuine loss (review finding on M48). Mirrors `ext.openai.late-citations`
-   * (M22) exactly: route it through the lossless vendor channel instead of the bare
+   * was a genuine loss. Mirrors `ext.openai.late-citations` exactly: route it
+   * through the lossless vendor channel instead of the bare
    * return.
    */
   function driveReasoningItemCreated(item: OpenAIReasoningItem): void {
@@ -3119,7 +3124,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * pending bookkeeping and — if the turn's pending set just drained to empty
    * — replay any stashed deferred round-close (Task 4b, INV-MSG). Shared by
    * the `function_call` `tool_output` arm and the built-in Shell/Apply-Patch
-   * `tool_output` arm (playbook 2026-07-03 SDK-bump adaptation, Finding #1).
+   * `tool_output` arm (the 2026-07-03 SDK-bump adaptation).
    */
   /**
    * HO-P, the handoff round release (§8.0 item 14, draft.5). Called at
@@ -3183,7 +3188,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
 
   /**
    * Map a `tool_output` run-item whose `rawItem` is a Shell, Apply-Patch, or
-   * Computer-Use result (playbook 2026-07-03 SDK-bump adaptation, Finding #1;
+   * Computer-Use result (the 2026-07-03 SDK-bump adaptation;
    * `computer_call_result` added by the fixture-drift ratchet finding, same
    * date). These do NOT share `OpenAIFunctionCallResultItem`'s `output` shape
    * (a bare string / content-part union) — `shell_call_output.output` is an
@@ -3305,7 +3310,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   /**
    * Map a `tool_called` run-item whose `rawItem` is one of OpenAI's native
    * built-in tool call shapes (Shell / Apply-Patch / Computer-Use / Hosted-tool
-   * — playbook 2026-07-03 SDK-bump adaptation, Finding #1; `computer_call`
+   * — the 2026-07-03 SDK-bump adaptation; `computer_call`
    * added by the fixture-drift ratchet finding, same date). Unlike
    * `function_call` (whose tool-start rides the raw `response.output_item.
    * added` stream — the authoritative source, canonical model A1), this
@@ -3779,7 +3784,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       switch (event.name) {
         case "tool_output": {
           const rawItem = event.item.rawItem;
-          // Finding #1 (critical) + the fixture-drift ratchet's
+          // The 2026-07-03 SDK-bump adaptation + the fixture-drift ratchet's
           // computer_call_result finding + the 0.14.0 program_output carry:
           // Shell/Apply-Patch/Computer-Use/Program results do NOT share
           // `OpenAIFunctionCallResultItem.output`'s shape — see
@@ -3888,7 +3893,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
             // ignoring the wrapper copy here loses nothing.
             return;
           }
-          // Finding #1 (critical): Shell / Apply-Patch / Hosted-tool /
+          // The 2026-07-03 SDK-bump adaptation: Shell / Apply-Patch / Hosted-tool /
           // Program built-ins — this run-item wrapper (not the raw stream) is
           // the SOLE tool-start source for these (see `driveBuiltinToolCalled`'s
           // doc).
