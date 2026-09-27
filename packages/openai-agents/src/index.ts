@@ -116,7 +116,9 @@ import {
 // the underlying OpenAI Responses streaming events the runtime would emit.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Assistant message content part (protocol `OutputText`). */
+/** Assistant message content part (protocol `OutputText`).
+ * @beta
+ */
 export interface OpenAIOutputText {
   type: "output_text";
   text: string;
@@ -124,7 +126,9 @@ export interface OpenAIOutputText {
   annotations?: OpenAIAnnotation[];
 }
 
-/** url_citation annotation on an output_text part (openai-node `ResponseCitationAnnotation`). */
+/** url_citation annotation on an output_text part (openai-node `ResponseCitationAnnotation`).
+ * @beta
+ */
 export interface OpenAIUrlCitationAnnotation {
   type: "url_citation";
   url: string;
@@ -133,7 +137,9 @@ export interface OpenAIUrlCitationAnnotation {
   end_index?: number;
 }
 
-/** file_citation annotation on an output_text part. */
+/** file_citation annotation on an output_text part.
+ * @beta
+ */
 export interface OpenAIFileCitationAnnotation {
   type: "file_citation";
   file_id?: string;
@@ -141,19 +147,27 @@ export interface OpenAIFileCitationAnnotation {
   index?: number;
 }
 
-/** The subset of annotations that the normalizer handles. */
+/** The subset of annotations that the normalizer handles.
+ * @beta
+ */
 export type OpenAIAnnotation = OpenAIUrlCitationAnnotation | OpenAIFileCitationAnnotation;
 
-/** `Refusal` content part — the model refused to answer (openai-node `ResponseOutputRefusal`). */
+/** `Refusal` content part — the model refused to answer (openai-node `ResponseOutputRefusal`).
+ * @beta
+ */
 export interface OpenAIRefusal {
   type: "refusal";
   refusal: string;
 }
 
-/** Union of assistant message content parts the normalizer handles. */
+/** Union of assistant message content parts the normalizer handles.
+ * @beta
+ */
 export type OpenAIContentPart = OpenAIOutputText | OpenAIRefusal;
 
-/** protocol `AssistantMessageItem` (the `rawItem` of a message_output_item). */
+/** protocol `AssistantMessageItem` (the `rawItem` of a message_output_item).
+ * @beta
+ */
 export interface OpenAIAssistantMessageItem {
   type?: "message";
   role: "assistant";
@@ -179,11 +193,15 @@ export interface OpenAIAssistantMessageItem {
  *  items (verified against 0.14.0's `dist/types/protocol.d.ts` — NOT the
  *  computer_call/computer_call_result or tool_search items). Carried on
  *  `tool.start`/`tool.done` `providerMetadata` (wire names verbatim, the
- *  claude facet's wrapper-carry precedent); absent caller ⇒ no metadata key. */
+ *  claude facet's wrapper-carry precedent); absent caller ⇒ no metadata key.
+ * @beta
+ */
 export type OpenAIToolCaller = { type: "direct" } | { type: "program"; callerId: string };
 
 /** protocol `FunctionCallItem` (the `rawItem` of a tool_call_item). `callId` is
- *  the model's call_id; `id` is the Responses `fc_…` item id (DISTINCT). */
+ *  the model's call_id; `id` is the Responses `fc_…` item id (DISTINCT).
+ * @beta
+ */
 export interface OpenAIFunctionCallItem {
   type: "function_call";
   callId: string;
@@ -196,7 +214,9 @@ export interface OpenAIFunctionCallItem {
 }
 
 /** protocol `ToolOutputText` — the BARE-OBJECT arm of `FunctionCallResultItem.
- *  output` (`output: {type:"text", text}`, not wrapped in an array). */
+ *  output` (`output: {type:"text", text}`, not wrapped in an array).
+ * @beta
+ */
 export interface OpenAIToolOutputText {
   type: "text";
   text: string;
@@ -222,6 +242,7 @@ export interface OpenAIToolOutputText {
  * modeled/handled here, matching the PRE-EXISTING scope of the bare-object
  * arm (which also only maps `type:"text"`, never `type:"image"`/`"file"`) —
  * `input_image`/`input_file` array elements remain intentionally unhandled.
+ * @beta
  */
 export interface OpenAIToolOutputInputText {
   type: "input_text";
@@ -231,7 +252,9 @@ export interface OpenAIToolOutputInputText {
 /** protocol `FunctionCallResultItem` (the `rawItem` of a tool_call_output_item).
  *  `output` is a string, a bare content object ({@link OpenAIToolOutputText}),
  *  or a content-part ARRAY ({@link OpenAIToolOutputInputText}[]) — the wrapper's
- *  own `output` field carries the stringified primary output. */
+ *  own `output` field carries the stringified primary output.
+ * @beta
+ */
 export interface OpenAIFunctionCallResultItem {
   type: "function_call_result";
   name: string;
@@ -250,7 +273,9 @@ export interface OpenAIFunctionCallResultItem {
 // `types/protocol.ts`: `ShellCallItem` / `ShellCallResultItem` /
 // `ApplyPatchCallItem` / `ApplyPatchCallResultItem` / `HostedToolCallItem`).
 
-/** protocol `ShellAction` — the shell tool's per-call command spec. */
+/** protocol `ShellAction` — the shell tool's per-call command spec.
+ * @beta
+ */
 export interface OpenAIShellAction {
   commands: string[];
   timeoutMs?: number;
@@ -263,7 +288,9 @@ export interface OpenAIShellAction {
  *  Unlike `function_call`, there is no per-fragment argument-delta stream for
  *  this shape on this seam — the whole `action` arrives complete on this ONE
  *  wrapper, so this run-item (not the raw stream) is the sole tool-start
- *  source for it. */
+ *  source for it.
+ * @beta
+ */
 export interface OpenAIShellCallItem {
   type: "shell_call";
   callId: string;
@@ -274,13 +301,17 @@ export interface OpenAIShellCallItem {
   providerData?: { [k: string]: JsonValue };
 }
 
-/** protocol `ShellCallOutcome` (per-command exit signal). */
+/** protocol `ShellCallOutcome` (per-command exit signal).
+ * @beta
+ */
 export interface OpenAIShellCallOutcome {
   type: "timeout" | "exit";
   exitCode?: number | null;
 }
 
-/** protocol `ShellCallOutputContent` (one command's stdout/stderr/outcome). */
+/** protocol `ShellCallOutputContent` (one command's stdout/stderr/outcome).
+ * @beta
+ */
 export interface OpenAIShellCallOutputContent {
   stdout: string;
   stderr: string;
@@ -292,7 +323,9 @@ export interface OpenAIShellCallOutputContent {
  *  DIFFERENT shape from `OpenAIFunctionCallResultItem.output` (a bare string /
  *  content-part union); the two must NOT be handled by the same generic path
  *  (that was the orphan-hazard: shape-compatible-enough field NAMES let a
- *  `tool.done` fire with silently-empty content). */
+ *  `tool.done` fire with silently-empty content).
+ * @beta
+ */
 export interface OpenAIShellCallResultItem {
   type: "shell_call_output";
   callId: string;
@@ -309,7 +342,9 @@ export interface OpenAIShellCallResultItem {
   providerData?: { [k: string]: JsonValue };
 }
 
-/** protocol `ApplyPatchOperation` (one file edit — create/update/delete). */
+/** protocol `ApplyPatchOperation` (one file edit — create/update/delete).
+ * @beta
+ */
 export interface OpenAIApplyPatchOperation {
   type: "create_file" | "update_file" | "delete_file";
   path: string;
@@ -320,7 +355,9 @@ export interface OpenAIApplyPatchOperation {
 /** protocol `ApplyPatchCallItem` (a `tool_called` rawItem for OpenAI's native
  *  apply-patch built-in tool). Carries NO `name` field; the facet synthesizes
  *  `name:"builtin:apply_patch"` (§8 quirk). Same single-wrapper-is-authoritative
- *  rationale as {@link OpenAIShellCallItem}. */
+ *  rationale as {@link OpenAIShellCallItem}.
+ * @beta
+ */
 export interface OpenAIApplyPatchCallItem {
   type: "apply_patch_call";
   callId: string;
@@ -332,7 +369,9 @@ export interface OpenAIApplyPatchCallItem {
 }
 
 /** protocol `ApplyPatchCallResultItem` (the `rawItem` of a `tool_output`
- *  run-item for a completed apply-patch call). */
+ *  run-item for a completed apply-patch call).
+ * @beta
+ */
 export interface OpenAIApplyPatchCallResultItem {
   type: "apply_patch_call_output";
   callId: string;
@@ -357,7 +396,9 @@ export interface OpenAIApplyPatchCallResultItem {
  *  against @openai/agents-core 0.12.0's `runner/modelOutputs.mjs`: a
  *  `hosted_tool_call` output item is pushed as a single `RunToolCallItem`,
  *  never paired with a `RunToolCallOutputItem`). The facet emits
- *  `tool.start` + `tool.done` TOGETHER from this one event. */
+ *  `tool.start` + `tool.done` TOGETHER from this one event.
+ * @beta
+ */
 export interface OpenAIHostedToolCallItem {
   type: "hosted_tool_call";
   id?: string;
@@ -391,7 +432,9 @@ export interface OpenAIHostedToolCallItem {
  *  precedent). Same single-wrapper-is-authoritative rationale as
  *  {@link OpenAIShellCallItem}: no per-fragment argument-delta stream exists
  *  for this shape on this seam, and the raw `output_item.added` carrier
- *  no-ops on the (function_call-only) raw path. */
+ *  no-ops on the (function_call-only) raw path.
+ * @beta
+ */
 export interface OpenAIProgramCallItem {
   type: "program";
   callId: string;
@@ -407,7 +450,9 @@ export interface OpenAIProgramCallItem {
  *  `'completed'|'incomplete'` enum — `incomplete` maps to `outcome:"error"`
  *  (the same rule as `function_call_result`'s incomplete arm: a truncated
  *  program run must never fold as success). Carries NO `caller` field
- *  (the program is the caller, not the callee). */
+ *  (the program is the caller, not the callee).
+ * @beta
+ */
 export interface OpenAIProgramCallResultItem {
   type: "program_output";
   callId: string;
@@ -435,7 +480,9 @@ export interface OpenAIProgramCallResultItem {
  *  (fixture discipline: type only what is consumed — the facet never branches on a
  *  specific action kind). Same single-wrapper-is-authoritative rationale as
  *  {@link OpenAIShellCallItem}: no per-fragment argument-delta stream exists for this
- *  shape on this seam. The normalizer MUST mirror the SDK's precedence: `actions ?? action ?? {}`. */
+ *  shape on this seam. The normalizer MUST mirror the SDK's precedence: `actions ?? action ?? {}`.
+ * @beta
+ */
 export interface OpenAIComputerCallItem {
   type: "computer_call";
   callId: string;
@@ -450,7 +497,9 @@ export interface OpenAIComputerCallItem {
  *  for a completed Computer-Use call). `output` is ALWAYS the
  *  `computer_screenshot` shape (a base64-encoded PNG screenshot) — NO
  *  `status`/error discriminant exists on this wire arm (unlike shell/apply-
- *  patch results), so the facet maps every occurrence to `outcome:"ok"`. */
+ *  patch results), so the facet maps every occurrence to `outcome:"ok"`.
+ * @beta
+ */
 export interface OpenAIComputerCallResultItem {
   type: "computer_call_result";
   callId: string;
@@ -501,7 +550,9 @@ export interface OpenAIComputerCallResultItem {
  *  arguments`) — provider-defined (`{paths, query}` for the built-in hosted
  *  loader; a custom shape for a registered `toolSearchTool`) — carried
  *  through verbatim like `computer_call`'s `action`/`actions`, never
- *  JSON.parsed. */
+ *  JSON.parsed.
+ * @beta
+ */
 export interface OpenAIToolSearchCallItem {
   type: "tool_search_call";
   id?: string;
@@ -529,7 +580,9 @@ export interface OpenAIToolSearchCallItem {
  *  string (unlike shell/apply-patch's closed `'in_progress'|'completed'|
  *  'incomplete'` enum) — no documented error discriminant exists on this
  *  wire arm, so — mirroring `computer_call_result`'s identical precedent —
- *  every occurrence maps to `outcome:"ok"`. */
+ *  every occurrence maps to `outcome:"ok"`.
+ * @beta
+ */
 export interface OpenAIToolSearchOutputItem {
   type: "tool_search_output";
   id?: string;
@@ -556,7 +609,9 @@ export interface OpenAIToolSearchOutputItem {
   providerData?: { [k: string]: JsonValue };
 }
 
-/** protocol `InputText` (the visible reasoning content part). */
+/** protocol `InputText` (the visible reasoning content part).
+ * @beta
+ */
 export interface OpenAIReasoningTextPart {
   type: "input_text";
   text: string;
@@ -564,7 +619,9 @@ export interface OpenAIReasoningTextPart {
 
 /** protocol `ReasoningItem` (the `rawItem` of a reasoning_item). The `rs_…` id +
  *  the `encrypted_content` (under `providerData`, the Responses stateless-replay
- *  payload) are replay-load-bearing (spec §8.2/§10.4). */
+ *  payload) are replay-load-bearing (spec §8.2/§10.4).
+ * @beta
+ */
 export interface OpenAIReasoningItem {
   type: "reasoning";
   id?: string; // rs_… Responses reasoning item id
@@ -703,7 +760,9 @@ interface OpenAICompactionItemCreatedEvent {
  *  consumed anywhere on this seam (fixture discipline: type ONLY what you
  *  consume). Rides on `handoff_requested`'s wrapper (`agent`, the SOURCE
  *  agent) and `handoff_occurred`'s wrapper (`sourceAgent`/`targetAgent`) —
- *  audit M48 review, Finding 1. */
+ *  audit M48 review, Finding 1.
+ * @beta
+ */
 export interface OpenAIAgentRef {
   name: string;
 }
@@ -1081,7 +1140,9 @@ export interface OpenAIHostError {
   usage?: AgUsage;
 }
 
-/** The fixture-contract input union (verified shapes; see file header). */
+/** The fixture-contract input union (verified shapes; see file header).
+ * @beta
+ */
 export type OpenAIStreamEvent =
   | OpenAIMessageOutputEvent
   | OpenAIToolCalledEvent
