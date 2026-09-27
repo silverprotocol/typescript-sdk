@@ -107,7 +107,7 @@
       "members": {
         "message_output_created": {
           "disposition": "handled",
-          "note": "driveMessageOutputCreated() \u2014 the authoritative text-end + citations source (audit M22). A refusal part sets pendingRefusal; its text is a single-source fallback (driveRunItemRefusal): the round's refusal text block comes from the raw response.refusal.delta/.done events when any arrive (they stream before the round closes); otherwise whichever arrives first of the terminal output and this run-item (while the round is open) supplies it, and a later one adds no copy; after the close with no copy it rides ext.openai.late-message {partType: \"refusal\"}."
+          "note": "driveMessageOutputCreated() \u2014 the authoritative text-end + citations source (audit M22). A refusal part sets pendingRefusal; its text is a single-source fallback (driveRunItemRefusal): the round's refusal text block comes from the raw response.refusal.delta/.done events when any arrive (they stream before the round closes); otherwise whichever arrives first of the terminal output and this run-item (while the round is open) supplies it, and a later one adds no copy; after the close with no copy it rides ext.openai.late-message {partType: \"refusal\"}. 2026-09-28: while the round's close is stashed (deferred for tool results or built-in calls), an output_text part's url_citation annotations ride the stashed text.end as citations; ext.openai.late-citations stays for a message that lands after its round's close was released. A round that lists a built-in call also lists its messages, so it waits for their message_output_created."
         },
         "tool_called": {
           "disposition": "handled",

@@ -202,7 +202,11 @@ computer, program and tool-search calls. The facet keeps each call in the
 turn of the model round that produced it:
 - A round whose final `response.output` lists a built-in call holds its
   `message.end` and `turn.done` until each listed call's run-item, and any
-  result the call waits for, has arrived.
+  result the call waits for, has arrived. It also waits for its messages'
+  `message_output_created`, so an answer's `url_citation` annotations land as
+  `citations` on its text block. (A message that arrives while any round's
+  close is held, for a tool result too, gets the same; one that arrives after
+  its round closed carries them as `ext.openai.late-citations`.)
 - The next `response.created` releases a round that still waits only on calls
   whose run-item never arrived, so the next round keeps its own turn.
 - A last round still waiting at the end of the stream closes with

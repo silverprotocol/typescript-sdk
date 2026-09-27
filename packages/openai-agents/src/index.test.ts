@@ -4281,6 +4281,81 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
     expect(terminalsOf(evs, "turn_resp_e1")).toMatchObject([{ type: "turn.done", outcome: { type: "success" } }]);
   });
 
+  it("in the order the SDK streams it, a web-search round's url_citation annotations ride the answer's text.end, not ext.openai.late-citations", () => {
+    const ann = [{ type: "url_citation", url: "https://example.com/w", title: "W", start_index: 0, end_index: 4 }];
+    const CITED = { ...MSG, content: [{ type: "output_text", text: "done", annotations: ann }] };
+    const { evs, r } = run([
+      ...rawRound("resp_n1", [WS, CITED], { id: "msg_b1", delta: "done" }),
+      calledWs,
+      runItem("message_output_created", { type: "message_output_item", rawItem: CITED }),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(evs.filter((e) => e.type === "ext.openai.late-citations")).toEqual([]);
+    expect(idx(evs, "text.end", "id", "msg_b1")).toBeLessThan(idx(evs, "turn.done", "turnId", "turn_resp_n1"));
+    const text = r.result().messages.find((m) => m.id === "msg_turn_resp_n1")?.content.find((b) => b.type === "text");
+    expect(text).toMatchObject({ text: "done", citations: [{ url: "https://example.com/w" }] });
+  });
+
+  it("a function-call-deferred round's citations ride the answer's text.end when its message run-item lands before the tool result", () => {
+    const ann = [{ type: "url_citation", url: "https://example.com/f", title: "F", start_index: 0, end_index: 2 }];
+    const FC = { type: "function_call", id: "fc_n2", call_id: "call_n2", name: "echo", arguments: "{}", status: "completed" };
+    const CITED = { type: "message", id: "msg_n2", role: "assistant", status: "completed", content: [{ type: "output_text", text: "ok", annotations: ann }] };
+    const { evs, r } = run([
+      rawModel({ type: "response.created", response: { id: "resp_n2", model: "gpt-6-sol" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_n2", delta: "ok" }),
+      rawModel({ type: "response.output_item.added", item: { ...FC, arguments: "" }, output_index: 1 }),
+      rawModel({ type: "response.completed", response: { id: "resp_n2", status: "completed", output: [CITED, FC], usage: U } }),
+      runItem("message_output_created", { type: "message_output_item", rawItem: CITED }),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "function_call_result", name: "echo", callId: "call_n2", status: "completed", output: "ok" },
+        output: "ok",
+      }),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(evs.filter((e) => e.type === "ext.openai.late-citations")).toEqual([]);
+    const text = r.result().messages.find((m) => m.id === "msg_turn_resp_n2")?.content.find((b) => b.type === "text");
+    expect(text).toMatchObject({ citations: [{ url: "https://example.com/f" }] });
+  });
+
+  it("a stashed text block's late phase marker and its citations both ride its text.end", () => {
+    const ann = [{ type: "url_citation", url: "https://example.com/q", title: "Q", start_index: 0, end_index: 4 }];
+    const RAW = { type: "message", id: "msg_n4", role: "assistant", status: "completed", content: [{ type: "output_text", text: "done", annotations: ann }] };
+    const LATE = { ...RAW, phase: "final_answer" };
+    const { evs, r } = run([...rawRound("resp_n4", [WS, RAW], { id: "msg_n4", delta: "done" }), calledWs, runItem("message_output_created", { type: "message_output_item", rawItem: LATE })]);
+    expect(r.needsResync).toBe(false);
+    expect(evs.find((e) => e.type === "text.end" && Reflect.get(e, "id") === "msg_n4")).toMatchObject({
+      citations: [{ url: "https://example.com/q" }],
+      providerMetadata: { phase: "final_answer" },
+    });
+    expect(evs.filter((e) => e.type === "ext.openai.late-citations" || e.type === "ext.openai.late-phase")).toEqual([]);
+  });
+
+  it("a message run-item that lands while its response is open is not waited for again when the terminal lists it beside a built-in call", () => {
+    const { evs, r } = run([
+      rawModel({ type: "response.created", response: { id: "resp_n5", model: "gpt-6-sol" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_b1", delta: "done" }),
+      runItem("message_output_created", { type: "message_output_item", rawItem: MSG }),
+      rawModel({ type: "response.completed", response: { id: "resp_n5", status: "completed", output: [WS, MSG], usage: U } }),
+      calledWs,
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(terminalsOf(evs, "turn_resp_n5")).toMatchObject([{ type: "turn.done", outcome: { type: "success" } }]);
+  });
+
+  it("a message whose round's close was already released keeps its citations on ext.openai.late-citations", () => {
+    const ann = [{ type: "url_citation", url: "https://example.com/p", title: "P", start_index: 0, end_index: 2 }];
+    const CITED = { type: "message", id: "msg_n3", role: "assistant", status: "completed", content: [{ type: "output_text", text: "hi", annotations: ann }] };
+    const { evs, r } = run([
+      rawModel({ type: "response.created", response: { id: "resp_n3", model: "gpt-6-sol" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_n3", delta: "hi" }),
+      rawModel({ type: "response.completed", response: { id: "resp_n3", status: "completed", output: [CITED], usage: U } }),
+      runItem("message_output_created", { type: "message_output_item", rawItem: CITED }),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(evs.filter((e) => e.type === "ext.openai.late-citations")).toMatchObject([{ itemId: "msg_n3" }]);
+  });
+
   it("a late hosted call streamed after the same round's handoff_requested closes in its own round, not the transfer's nested turn", () => {
     const TR = { type: "function_call", id: "fc_h1", call_id: "call_h1", name: "transfer_to_billing", arguments: "{}", status: "completed" };
     const { evs } = run([

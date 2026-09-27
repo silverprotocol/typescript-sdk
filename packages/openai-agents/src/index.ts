@@ -1109,6 +1109,20 @@ function terminalBuiltinItems(output: JsonValue | undefined): TerminalBuiltinIte
   return out;
 }
 
+/** The ids of the `message` items a terminal event's `response.output` lists,
+ *  in wire order (a non-object member or a member with no non-empty string
+ *  id is skipped). */
+function terminalMessageIds(output: JsonValue | undefined): string[] {
+  const out: string[] = [];
+  if (!Array.isArray(output)) return out;
+  for (const member of output) {
+    if (!isJsonObject(member) || member.type !== "message") continue;
+    const id = member.id;
+    if (typeof id === "string" && id.length > 0) out.push(id);
+  }
+  return out;
+}
+
 /**
  * Reasoning from the terminal output: extract the reasoning items from a terminal event's `response.output`.
  * This — not `response.output_item.done` — is the replayable source: OpenAI
@@ -1730,7 +1744,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   // `text.end` fields learned for a round close that is STASHED (deferred until
   // its tool results land) — consumed by `emitRoundClose`.
   const interimAtStart = new Set<string>();
-  const stashedEndFields = new Map<string, { phase?: string; providerMetadata?: AgProviderMeta }>();
+  const stashedEndFields = new Map<string, { phase?: string; providerMetadata?: AgProviderMeta; citations?: AgCitation[] }>();
   // O1 (fold/flush option 1): callId → the askId of the `hitl.ask{approval}`
   // emitted for it. A deferred round whose still-pending call has one flushes
   // as `paused` naming that ask (INV-FLUSH (2)).
@@ -1964,7 +1978,11 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   const seenBuiltinItemIds = new Set<string>();
 
   /** List round `tid`'s built-in calls (those whose run-item has not landed). */
-  function listBuiltins(tid: string, items: readonly TerminalBuiltinItem[]): string[] {
+  /** List round `tid`'s built-in calls whose run-item has not landed. When
+   *  it lists any, the round's `message` items are listed too, so their
+   *  `message_output_created` (and the citations it carries) lands while the
+   *  round's close is still deferred. */
+  function listBuiltins(tid: string, items: readonly TerminalBuiltinItem[], messageIds: readonly string[]): string[] {
     const ids: string[] = [];
     for (const item of items) {
       if (seenBuiltinItemIds.has(item.id)) continue;
@@ -1972,7 +1990,13 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       builtinTurnByItemId.set(item.id, tid);
       if (item.type === "mcp_approval_request") approvalRequestIds.add(item.id);
     }
-    if (ids.length > 0) listedBuiltinsByTurn.set(tid, new Set(ids));
+    if (ids.length === 0) return ids;
+    for (const id of messageIds) {
+      if (seenBuiltinItemIds.has(id)) continue;
+      ids.push(id);
+      builtinTurnByItemId.set(id, tid);
+    }
+    listedBuiltinsByTurn.set(tid, new Set(ids));
     return ids;
   }
 
@@ -2061,10 +2085,21 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
 
   function endStashedTextStreams(mId: string, textStreamIds: readonly string[]): void {
     for (const streamId of textStreamIds) {
-      // A phase learned while this close sat stashed rides its text.end.
-      const endFields = stashedEndFields.get(streamId);
+      // Citations and a phase learned while this close sat stashed ride its
+      // text.end, in the live path's field order.
+      const f = stashedEndFields.get(streamId);
       stashedEndFields.delete(streamId);
-      a.textEnd(streamId, mId, endFields);
+      a.textEnd(
+        streamId,
+        mId,
+        f === undefined
+          ? undefined
+          : {
+              ...(f.citations !== undefined ? { citations: f.citations } : {}),
+              ...(f.providerMetadata !== undefined ? { providerMetadata: f.providerMetadata } : {}),
+              ...(f.phase !== undefined ? { phase: f.phase } : {}),
+            },
+      );
     }
   }
 
@@ -2128,9 +2163,9 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     mId: string,
     textStreamIds: readonly string[],
     fields: TurnDoneFields,
-    builtins: readonly TerminalBuiltinItem[] = [],
+    listing: { builtins: readonly TerminalBuiltinItem[]; messageIds: readonly string[] } = { builtins: [], messageIds: [] },
   ): void {
-    const listed = listBuiltins(tid, builtins);
+    const listed = listBuiltins(tid, listing.builtins, listing.messageIds);
     const pending = pendingToolsByTurn.get(tid);
     if ((pending !== undefined && pending.size > 0) || listed.length > 0) {
       stashedCloseByTurn.set(tid, { msgId: mId, openTextStreamIds: [...textStreamIds], fields });
@@ -2478,9 +2513,10 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         const textStreamIds = Array.from(openTextStreams);
         const reason = ev.response.incomplete_details?.reason;
         const usage = mapUsage(ev.response.usage);
-        // The built-in calls this response lists, whose run-items land after
-        // this event (see "Built-in round attach").
-        const builtins = terminalBuiltinItems(ev.response.output);
+        // The built-in calls (and, with them, the messages) this response
+        // lists, whose run-items land after this event (see "Built-in round
+        // attach").
+        const listing = { builtins: terminalBuiltinItems(ev.response.output), messageIds: terminalMessageIds(ev.response.output) };
         // `status` is OPTIONAL upstream and its enum is OPEN ("clients must
         // accept additional values"), so it is read through `unknown` + a typeof
         // guard rather than trusted through the declared union — this is the
@@ -2509,7 +2545,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
             outcome: { type: "success" },
             finishReason: "refusal",
             ...(usage !== undefined ? { usage } : {}),
-          }, builtins);
+          }, listing);
         } else if (reason === "content_filter") {
           const safety: AgSafety[] = [{ category: "content_filter", blocked: true }];
           finishOrDeferRound(currentTurnId, currentMsgId, textStreamIds, {
@@ -2517,7 +2553,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
             ...finishReasonFields(reason),
             safety,
             ...(usage !== undefined ? { usage } : {}),
-          }, builtins);
+          }, listing);
         } else if (ev.type === "response.incomplete") {
           endOpenStreamsAndCloseMessage();
           a.closeTurnError(currentTurnId, {
@@ -2563,7 +2599,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
             // An unmapped native reason also carries finishReasonRaw.
             ...finishReasonFields(reason),
             ...(usage !== undefined ? { usage } : {}),
-          }, builtins);
+          }, listing);
         }
         resetResponseState();
         return;
@@ -2755,6 +2791,15 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * never a duplicated or corrupted core stream.
    */
   function driveMessageOutputCreated(item: OpenAIAssistantMessageItem): void {
+    if (item.id !== undefined) seenBuiltinItemIds.add(item.id);
+    driveMessageParts(item);
+    // A listed message has landed; its round may now close (see "Built-in
+    // round attach"), with any citations stashed above on its text.end.
+    drainListedBuiltin(item.id);
+  }
+
+  /** The per-part body of {@link driveMessageOutputCreated} (see its doc). */
+  function driveMessageParts(item: OpenAIAssistantMessageItem): void {
     for (const part of item.content) {
       if (part.type === "refusal") {
         pendingRefusal = true;
@@ -2790,12 +2835,21 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
           continue;
         }
         if (msgId === undefined) {
-          // response already closed — see doc above.
+          // response already closed — see doc above. While the round's close
+          // is STASHED (deferred for its tool results or built-in calls), this
+          // block's text.end is not out yet, so its citations ride it (the
+          // phase marker's case (ii) below); only a message that lands after
+          // the close was released takes the ext carry.
           if (part.annotations !== undefined && part.annotations.length > 0) {
-            a.emitExt("openai", "late-citations", {
-              itemId: item.id,
-              annotations: JsonValue.parse(part.annotations),
-            });
+            const stashedCitations = isStashedTextStream(item.id) ? mapAnnotationsToCitations(part.annotations, part.text) : undefined;
+            if (stashedCitations !== undefined) {
+              stashedEndFields.set(item.id, { ...stashedEndFields.get(item.id), citations: stashedCitations });
+            } else {
+              a.emitExt("openai", "late-citations", {
+                itemId: item.id,
+                annotations: JsonValue.parse(part.annotations),
+              });
+            }
           }
           // phase (0.14.0): the live wire delivers the FINAL round's
           // message_output_created AFTER response_done has closed the message
@@ -2819,6 +2873,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
               const interim = interimAtStart.has(item.id) ? undefined : interimPhase(lateItemPhase);
               const endMeta = openaiProviderMeta({ phase: lateItemPhase });
               stashedEndFields.set(item.id, {
+                ...stashedEndFields.get(item.id),
                 ...(endMeta !== undefined ? { providerMetadata: endMeta } : {}),
                 ...(interim !== undefined ? { phase: interim } : {}),
               });
