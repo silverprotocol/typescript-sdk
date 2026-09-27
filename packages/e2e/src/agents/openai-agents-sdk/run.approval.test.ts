@@ -1,6 +1,6 @@
 /**
  * Keyless unit tests for the openai capture agent's approval / resume path
- * (sp-main work order, 2026-09-24: the OpenAI approval-resume capture,
+ * (2026-09-24: the OpenAI approval-resume capture,
  * evidence for the fold/flush package's Q2). No API key, no network, no MCP
  * server: every helper is pure. The one SDK round-trip, a real RunState through
  * toString / fromString, needs no model call.

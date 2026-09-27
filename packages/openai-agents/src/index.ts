@@ -663,7 +663,7 @@ interface OpenAIToolOutputEvent {
   // shape per discriminant; `hosted_tool_call` never reaches this event, see its
   // own doc).
   //
-  // structuredContent (the ggui cache marker, spec §2.1/§4) has TWO
+  // structuredContent (a reference client's cache marker, spec §2.1/§4) has TWO
   // peer-supported homes on this wrapper (playbook 2026-07-03 follow-up,
   // `extractStructuredContent`'s doc has the full wire-truth citations):
   //  - `item.customData` — populated ONLY when the caller's `MCPServer`
@@ -876,7 +876,7 @@ type OpenAIRunItemEvent =
  *  the `model` carrier. */
 interface OpenAIResponsesCreated {
   type: "response.created";
-  /** `model` (OA-12): openai-node `Response.model` — the model id the API
+  /** `model` (the per-message model): openai-node `Response.model` — the model id the API
    *  resolved for THIS response (live echo-gpt6sol: `"gpt-6-sol"`), known before
    *  the message opens → `message.start.model`. Typed as the raw `JsonValue` it
    *  is on this seam; string-guarded at the read. */
@@ -944,7 +944,7 @@ interface OpenAIResponsesCompleted {
     incomplete_details?: { reason?: string };
     usage?: OpenAIResponseUsage;
     /** openai-node `Response.output: ResponseOutputItem[]` — consumed ONLY for its
-     *  `type:"reasoning"` members (OA-11; see `terminalReasoningItems`). Typed as
+     *  `type:"reasoning"` members (reasoning from the terminal output; see `terminalReasoningItems`). Typed as
      *  the raw `JsonValue` it is on this seam and narrowed item-by-item there:
      *  the outer guard (`isOpenAIStreamEvent`) validates the envelope only. */
     output?: JsonValue;
@@ -963,7 +963,7 @@ interface TerminalReasoningItem {
 }
 
 /**
- * OA-11: extract the reasoning items from a terminal event's `response.output`.
+ * Reasoning from the terminal output: extract the reasoning items from a terminal event's `response.output`.
  * This — not `response.output_item.done` — is the replayable source: OpenAI
  * re-encrypts `encrypted_content` per stage (live, echo-gpt6sol natives [4] vs
  * [21]: two different blobs for one `rs_`), and only the terminal blob is the
@@ -975,7 +975,7 @@ interface TerminalReasoningItem {
  * Deserialization boundary: a non-array `output`, a non-object member, a member
  * with no string `id`, and a non-string summary `text` are all skipped (an
  * id-less reasoning item stays with the run-item path, which already degrades
- * it losslessly). Absent/empty output ⇒ `[]` ⇒ byte-identical to pre-OA-11.
+ * it losslessly). Absent/empty output ⇒ `[]` ⇒ nothing is emitted from it (byte-identical).
  */
 function terminalReasoningItems(output: JsonValue | undefined): TerminalReasoningItem[] {
   if (!Array.isArray(output)) return [];
@@ -1034,7 +1034,7 @@ interface OpenAIResponsesOutputItemAdded {
     // AUTHORITATIVE tool.start source for function_call, so caller provenance
     // must ride HERE — the run-item wrapper occurrence stays ignored.
     caller?: { type: "direct" } | { type: "program"; caller_id: string } | null;
-    // OA-14: openai-node `ResponseOutputMessage.phase` (`'commentary' |
+    // The phase read at the raw add: openai-node `ResponseOutputMessage.phase` (`'commentary' |
     // 'final_answer' | null`) — present on a `type:"message"` item AT ADD time
     // (6/8 live openai seeds). Raw `JsonValue`; string-guarded at the read.
     phase?: JsonValue;
@@ -1178,7 +1178,7 @@ export function mapFinishReason(reason: string | undefined | null): AgFinishReas
 }
 
 /**
- * OA-15 (draft.4 — SPEC.md §8.0 graceful degradation, §10 item 23; spec
+ * The finish-reason raw companion (draft.4 — SPEC.md §8.0 graceful degradation, §10 item 23; spec
  * 89c57db): the `turn.done` finish fields for a native reason. `finishReason`
  * is `mapFinishReason(reason)`; `finishReasonRaw` — the native value byte for
  * byte — rides along ONLY when that mapping fell back ("other"/"unknown") AND a
@@ -1276,7 +1276,7 @@ function mapAnnotationsToCitations(
 // Wire names ride verbatim at the top level (the claude facet's wrapper-carry
 // precedent — AgProviderMeta imposes no key namespacing). Drops undefined
 // values; an ALL-absent input yields undefined, never an empty metadata object.
-/** PH-2 / OA-14: an OpenAI message `phase` as a vendor MARKER — a non-empty
+/** The phase marker: an OpenAI message `phase` as a vendor MARKER — a non-empty
  *  string, verbatim — or `undefined`. openai-node types it
  *  `'commentary' | 'final_answer' | null`; null and "" carry no marker, so they
  *  yield neither a `providerMetadata.phase` carry nor an ext.openai.late-phase
@@ -1286,7 +1286,7 @@ function vendorPhase(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
-/** PH-2 (draft.4, SPEC §8.0 item 27): the first-class `phase` for an OpenAI
+/** SPEC §8.0 item 27 (draft.4): the first-class `phase` for an OpenAI
  *  vendor marker — `"commentary"` → `"interim"`; "final_answer", absent and
  *  every other value → `undefined` (a vendor spelling is never copied into
  *  `phase`; it stays verbatim in `providerMetadata`). */
@@ -1326,7 +1326,7 @@ function isJsonObject(v: unknown): v is { readonly [k: string]: JsonValue } {
 }
 
 /**
- * Extract `structuredContent` (the ggui cache-marker channel, spec §2.1/§4)
+ * Extract `structuredContent` (a reference client's cache-marker channel, spec §2.1/§4)
  * from a `tool_output` run-item's wrapper fields. Playbook 2026-07-03
  * follow-up — the ORIGINAL extraction (feat 0969469) assumed `wrapperOutput`
  * would be an object keyed by `.structuredContent`; a live capture
@@ -1400,11 +1400,11 @@ function extractStructuredContent(
 }
 
 /**
- * workspace#21 (guuey#981): the MCP tool result's `_meta`, riding the same
+ * workspace#21 (a reference host's ask): the MCP tool result's `_meta`, riding the same
  * host-convention `customData` channel as `structuredContent` (SPEC.md:340) —
  * agents-core 0.18.0 hands it to `MCPServer.customDataExtractor` as
  * `context.resultMeta` (`dist/mcpUtil.d.ts`:41, `result._meta ?? content._meta`
- * at `dist/mcp.mjs`:700); guuey's worker and this repo's capture agent return it
+ * at `dist/mcp.mjs`:700); a reference host's worker and this repo's capture agent return it
  * as `customData._meta`. It is a host/protocol annotation (MCP-Apps `ui.*`), so
  * it rides the tool-result block's own `_meta` VERBATIM (SPEC.md:338; §8.0
  * no-drop). Ruled option A on 2026-09-23. A non-object `_meta`
@@ -1455,7 +1455,7 @@ function isOpenAIStreamEvent(v: unknown): v is OpenAIStreamEvent {
  *                 `endOpenStreamsAndCloseMessage()` / `emitRoundClose()`)
  *  - reasoning  ← opens at `model:response.output_item.added{reasoning}` (wire
  *                 position), filled from the `model:response.completed` /
- *                 `.incomplete` `response.output` (OA-11 — the final, replayable
+ *                 `.incomplete` `response.output` (reasoning from the terminal output — the final, replayable
  *                 `encrypted_content`); `reasoning_item_created` is the fallback
  *  - turn close ← `model:response.completed` (guard close-once)
  *
@@ -1504,10 +1504,10 @@ export interface OpenaiNormalizerOptions {
    * `turn_<invokeId>_handoff_<n>`.
    *
    * These ids must be unique across every invoke folded into one reducer. The
-   * rnd-14 ruling and INV-BLOCK's collision-free derived ids require it: guuey
+   * delivery-integrity rule and INV-BLOCK's collision-free derived ids require it: a reference host
    * folds a whole conversation into ONE Reducer, and a repeated turn id
    * re-opens a closed turn, which parks INV-TURN / INV-MSG consumers.
-   * The D3 review (finding DC-10) found the old per-normalizer
+   * A review of the minted ids found the old per-normalizer
    * counters (`turn_openai_<n>`, `turn_handoff_<n>`) repeating across invokes.
    *
    * By default each normalizer draws a fresh `openai_<16 hex>` stem from
@@ -1558,7 +1558,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   let responseId: string | undefined; // real response.id once known
   // Open text streams keyed by Responses item_id (textStart once per id).
   const openTextStreams = new Set<string>();
-  // OA-11 reasoning-block state. `openReasoning`: rs_ id → the message id its
+  // Reasoning-block state (reasoning from the terminal output). `openReasoning`: rs_ id → the message id its
   // block opened in (at `output_item.added{reasoning}`), awaiting its fill from
   // the terminal output; per-response (cleared by `resetResponseState`).
   // `filledReasoning`: every rs_ id whose block has been filled — normalizer-
@@ -1566,14 +1566,14 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   // response closed and must dedupe against it (single source per rs_ id).
   const openReasoning = new Map<string, string>();
   const filledReasoning = new Set<string>();
-  // OA-14 phase state. `pendingPhase`: message item id → the phase its raw
+  // Phase state (the phase read at the raw add). `pendingPhase`: message item id → the phase its raw
   // `output_item.added` announced, awaiting that item's `text.start`
   // (per-response). `carriedPhase`: item id → the phase that rode its
   // `text.start` — normalizer-lifetime, because the run-item it retires
   // `ext.openai.late-phase` against lands AFTER the response closed.
   const pendingPhase = new Map<string, string>();
   const carriedPhase = new Map<string, string>();
-  // PH-2 (draft.4 stage 2): text stream ids whose `text.start` already set the
+  // The first-class phase (draft.4): text stream ids whose `text.start` already set the
   // first-class `phase:"interim"` (so no `*.end` repeats it), and per-stream
   // `text.end` fields learned for a round close that is STASHED (deferred until
   // its tool results land) — consumed by `emitRoundClose`.
@@ -1629,14 +1629,14 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   // Open handoff brackets, keyed by the transfer call's callId (paired turnId
   // + the SAME parentTurnId `subagentStart` used — `subagentDone` must replay
   // it verbatim, mirroring the claude-agent-sdk facet's paired start/done
-  // convention). HO-2 (the handoff-drop review, PS-4): matched by callId,
+  // convention). Matched by callId,
   // not FIFO, because agents-core <=0.8.0 opens a bracket for EVERY transfer
   // the model calls but runs only the first: a bracket closes at
   // `handoff_occurred` for its own call, or at that call's `tool_output` (the
   // handoff never ran).
   const openHandoffs: { turnId: string; parentTurnId: string; callId: string }[] = [];
 
-  /** HO-2: remove and return the open bracket for `callId`, if any. */
+  /** Remove and return the open bracket for `callId`, if any. */
   function takeOpenHandoff(callId: string): { turnId: string; parentTurnId: string; callId: string } | undefined {
     const i = openHandoffs.findIndex((h) => h.callId === callId);
     if (i === -1) return undefined;
@@ -1720,7 +1720,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * whichever values are live right now (immediate path) or were captured at
    * defer time (drain path) — same three calls either way.
    */
-  /** PH-2: is `streamId`'s text.end still pending in a STASHED round close
+  /** Is `streamId`'s text.end still pending in a STASHED round close
    *  (a deferred tool round), i.e. not yet emitted? */
   function isStashedTextStream(streamId: string): boolean {
     for (const stashed of stashedCloseByTurn.values()) {
@@ -1731,7 +1731,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
 
   function endStashedTextStreams(mId: string, textStreamIds: readonly string[]): void {
     for (const streamId of textStreamIds) {
-      // PH-2: a phase learned while this close sat stashed rides its text.end.
+      // A phase learned while this close sat stashed rides its text.end.
       const endFields = stashedEndFields.get(streamId);
       stashedEndFields.delete(streamId);
       a.textEnd(streamId, mId, endFields);
@@ -1806,7 +1806,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * somehow absent (defensive — the spike confirms the id is always present at start).
    * Returns the close-once key (the real response.id, else the synthesized turnId),
    * or `undefined` when the response has already been closed (caller must no-op).
-   * `model` (OA-12) rides `message.start.model` — only the authoritative
+   * `model` (the per-message model) rides `message.start.model` — only the authoritative
    * `response.created` open passes it; a defensive open never invents one.
    */
   function ensureResponseOpen(respId?: string, model?: string): string | undefined {
@@ -1857,7 +1857,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       a.openTurn(opened, threadId);
       return { turnId: opened, messageId: `${callId}:result` };
     }
-    // Approve-all (the D3 pin, 2026-09-24): the resuming invoke can
+    // Approve-all (pinned 2026-09-24): the resuming invoke can
     // replay SEVERAL results before its response. While the resume turn is
     // open with no assistant message yet (turnId set, msgId unset — a state
     // only this helper creates), each further result joins THAT turn as its
@@ -1894,7 +1894,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     const key = responseId ?? turnId;
     if (key !== undefined) closedResponses.add(key);
     openTextStreams.clear();
-    // OA-11: an rs_ block opened but never filled (e.g. `response.failed`) stays
+    // An rs_ block opened but never filled (e.g. `response.failed`) stays
     // as the spec's own unsealed-block outcome (INV-FLUSH (3)); forget it so a
     // late run-item for it takes the existing `late-reasoning` degrade.
     openReasoning.clear();
@@ -1923,7 +1923,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     switch (ev.type) {
       case "response.created": {
         // Authoritative turn open — the real response.id is present at start.
-        // OA-12: so is the resolved model id (JsonValue boundary: string-guarded).
+        // So is the resolved model id (JsonValue boundary: string-guarded).
         const rawModelId: unknown = ev.response.model;
         ensureResponseOpen(
           ev.response.id,
@@ -1936,11 +1936,11 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         if (msgId === undefined) return; // unreachable post-ensure; satisfies the narrowing
         if (!openTextStreams.has(ev.item_id)) {
           openTextStreams.add(ev.item_id);
-          // OA-14: the phase announced at output_item.added rides text.start
+          // The phase announced at output_item.added rides text.start
           // (R&D items 13+17, stage 1, ruled 2026-09-23; vercel parity c4f5981).
           const phase = pendingPhase.get(ev.item_id);
           const startMeta = openaiProviderMeta({ phase });
-          // PH-2 (draft.4, SPEC §8.0 item 27 + §5 "phase timing"): known before
+          // The first-class phase (draft.4, SPEC §8.0 item 27 + §5 "phase timing"): known before
           // the first delta ⇒ the first-class `phase` goes on text.start.
           const interim = interimPhase(phase);
           a.textStart(ev.item_id, msgId, {
@@ -1969,7 +1969,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         return;
       }
       case "response.output_item.added": {
-        // OA-11: a reasoning item OPENS its block here — id only, the added event
+        // A reasoning item OPENS its block here — id only, the added event
         // carries no replayable content — so the block takes its wire position
         // ahead of the `fc_` it precedes (§5 block insertion order, SPEC:763;
         // §10 item 4's stateless loop replays `rs_` before its `fc_`). It is
@@ -1981,7 +1981,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
           if (typeof rsId === "string") openReasoningBlock(rsId);
           return;
         }
-        // OA-14: a message item announces its `phase` here, BEFORE its first
+        // A message item announces its `phase` here, BEFORE its first
         // text delta — record it for that item's `text.start`. Record only: no
         // response open, no emit, so an absent/null/non-string/empty phase is
         // byte-identical to a stream without this event.
@@ -2079,7 +2079,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         if (ensureResponseOpen(ev.response.id) === undefined) return;
         if (turnId === undefined) return; // unreachable post-ensure; satisfies narrowing
         if (msgId === undefined) return; // unreachable post-ensure; satisfies narrowing
-        // OA-11: fill every reasoning block from THIS output (the replayable blob)
+        // Fill every reasoning block from THIS output (the replayable blob)
         // FIRST — before any branch below can emit message.end / turn.* (INV-MSG:
         // a reasoning.* event must never target a sealed message; core's reduce()
         // does not check that for reasoning.*, so the order is this facet's job).
@@ -2169,7 +2169,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         } else {
           finishOrDeferRound(currentTurnId, currentMsgId, textStreamIds, {
             outcome: { type: "success" },
-            // OA-15: an unmapped native reason also carries finishReasonRaw.
+            // An unmapped native reason also carries finishReasonRaw.
             ...finishReasonFields(reason),
             ...(usage !== undefined ? { usage } : {}),
           });
@@ -2190,7 +2190,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         // message/code/usage (§4), so per §8.0 item 33 it rides verbatim in a
         // carrier the §5 table folds, never as remedy data on the terminal: an
         // adapter NOTICE message immediately BEFORE the closing turn.error, in
-        // this turn (rd-15):
+        // this turn (remedy-shaped vendor data):
         //   message.start {role:"notice", noticeSource:"adapter"} →
         //   one text block, text = `detailed_explanation` verbatim (else
         //   error.message), text.start `_meta["openai/misalignment"]` = the
@@ -2273,8 +2273,8 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * `refusal` part sets `pendingRefusal` so the downstream `response.completed`
    * arm closes with `finishReason:"refusal"` (no text stream to close for it).
    *
-   * Correlation (OA-14 — id FIRST, FIFO fallback; protocol package rd-13-17
-   * §2 stage 1): on the direct OpenAI wire the raw delta's `item_id` and the
+   * Correlation (id FIRST, FIFO fallback; the narration-phase rule, stage
+   * 1): on the direct OpenAI wire the raw delta's `item_id` and the
    * run-item's `rawItem.id` are the SAME id (all 8 openai corpus seeds), so the
    * stream is matched by id — a completion can no longer land on an earlier
    * part's stream when two are open. Only when the id is unknown to
@@ -2366,15 +2366,15 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
           // (deferred-close) messages ever reach it. Same post-close degrade
           // convention as late-citations: a dedicated itemId-keyed vendor
           // carry, one per phase-bearing part.
-          // OA-14: RETIRED when this id's SAME phase already rode its text.start
+          // RETIRED when this id's SAME phase already rode its text.start
           // (the live case); kept — lossless — when only the run-item knows it,
           // or knows a different value.
-          // PH-2: null/"" is no marker at all (spec ruling (a)) — neither
+          // A null/"" phase is no marker at all (spec ruling (a)) — neither
           // a carry nor a late-phase ext.
           const lateItemPhase = vendorPhase(item.phase);
           if (lateItemPhase !== undefined && carriedPhase.get(item.id) !== lateItemPhase) {
             if (isStashedTextStream(item.id)) {
-              // PH-2 case (ii): the round close is STASHED (a deferred tool
+              // Case (ii): the round close is STASHED (a deferred tool
               // round), so this block's text.end is NOT yet emitted — the §5
               // timing rule makes the end the phase's home (ruled
               // 2026-09-23). The marker has a first-class home, so no late-phase.
@@ -2392,7 +2392,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
           }
           continue;
         }
-        // OA-14: id first, FIFO fallback — see "Correlation" in the doc above.
+        // Id first, FIFO fallback — see "Correlation" in the doc above.
         const streamId =
           item.id !== undefined && openTextStreams.has(item.id) ? item.id : openTextStreams.values().next().value;
         if (streamId === undefined) continue; // defensive: no matching open stream
@@ -2405,7 +2405,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         // merge would clobber (see OpenAIAssistantMessageItem.phase's doc).
         const itemPhase = vendorPhase(item.phase);
         const phaseMeta = openaiProviderMeta({ phase: itemPhase });
-        // PH-2 case (i): known before this block's text.end ⇒ the end carries
+        // Case (i): known before this block's text.end ⇒ the end carries
         // the first-class phase, unless text.start already did.
         const endInterim = interimAtStart.has(streamId) ? undefined : interimPhase(itemPhase);
         a.textEnd(
@@ -2424,7 +2424,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   }
 
   /**
-   * OA-11: open the reasoning block for `rsId` in the current message — once per
+   * Open the reasoning block for `rsId` in the current message — once per
    * id (a re-announce, or an id already filled, is a no-op). `id` and `itemId`
    * are both the `rs_` id (the run-item path's convention). Called from
    * `output_item.added{reasoning}` so the block takes its WIRE position, and
@@ -2438,7 +2438,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   }
 
   /**
-   * OA-11: fill + seal an OPEN reasoning block: one `reasoning.delta` per
+   * Fill + seal an OPEN reasoning block: one `reasoning.delta` per
    * non-empty summary part (`partIndex` = the wire `summary_index`), then
    * `reasoning.opaque` (the replayable ciphertext, `itemId` = rs_) BEFORE
    * `reasoning.end`, so "sealed" means complete (the spec's recommendation;
@@ -2474,7 +2474,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     filledReasoning.add(rsId);
   }
 
-  /** OA-11: fill every reasoning block from a terminal event's `response.output`
+  /** Fill every reasoning block from a terminal event's `response.output`
    *  (see `terminalReasoningItems` for why this, not `output_item.done`, is the
    *  source). An item never announced by `output_item.added` opens here
    *  (defensive — position is then the terminal event's). */
@@ -2487,14 +2487,14 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   }
 
   /**
-   * Map a `reasoning_item_created` run-item (Task 3, audit M48). Since OA-11 it
+   * Map a `reasoning_item_created` run-item (Task 3, audit M48). Since reasoning is sourced from the terminal output it
    * is the FALLBACK source: on the live wire it lands after `response.completed`,
    * whose output already filled the block, so a run-item whose `rs_` id is in
    * `filledReasoning` is a no-op (single source per id — no duplicate block, no
    * `late-reasoning` ext). If raw `output_item.added` opened the block but no
    * terminal output has filled it yet, the run-item fills that block in place.
    * Only with NO raw reasoning events for the id (run-item-only streams) does the
-   * pre-OA-11 mapping below still run, unchanged:
+   * run-item-only mapping below still run, unchanged:
    *
    * The run-item wrapper delivers the reasoning item as ONE completed unit (unlike
    * the incremental text/tool-arg deltas elsewhere in this facet), so
@@ -2533,9 +2533,9 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * return.
    */
   function driveReasoningItemCreated(item: OpenAIReasoningItem): void {
-    // OA-11 dedupe: already filled from the terminal output (or an earlier run-item).
+    // Dedupe: already filled from the terminal output (or an earlier run-item).
     if (item.id !== undefined && filledReasoning.has(item.id)) return;
-    // OA-11: raw `output_item.added` opened this block; no terminal output has
+    // Raw `output_item.added` opened this block; no terminal output has
     // filled it yet (synthetic ordering) — fill it in place from the run-item,
     // whose `content[]` IS the raw `summary[]` (one part per index).
     if (msgId !== undefined && item.id !== undefined && openReasoning.has(item.id)) {
@@ -2576,7 +2576,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         ...(itemId !== undefined ? { itemId } : {}),
       });
     }
-    // OA-11: a terminal output naming this rs_ later must not open a second block.
+    // A terminal output naming this rs_ later must not open a second block.
     if (itemId !== undefined) filledReasoning.add(itemId);
   }
 
@@ -2702,7 +2702,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         shellOutputHasError(rawItem.output) || rawItem.status === "incomplete" ? "error" : "ok";
       // The full per-command record (stdout/stderr/exit code) is lossy to
       // collapse into text-only content — carry it verbatim as structuredContent
-      // too (mirrors the function_call path's ggui-cache-marker precedent).
+      // too (mirrors the function_call path's cache-marker precedent).
       structuredContent = JsonValue.parse(rawItem.output);
       // The outcome mapping alone cannot recover `status` ('in_progress' vs
       // 'completed' vs absent all map ok) — carry it verbatim, with caller.
@@ -2813,7 +2813,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * doc) — no pending registration.
    */
   /**
-   * OA-13: did OpenAI (the provider) already execute this built-in call? →
+   * Did OpenAI (the provider) already execute this built-in call? →
    * `tool.start.providerExecuted` (SPEC:632; SPEC:496 "client MUST NOT
    * execute"). Per the installed runtime (agents-core 0.18.0
    * `dist/runner/modelOutputs.mjs`): `hosted_tool_call` always (resolved
@@ -2866,7 +2866,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       name,
       ...(rawItem.id !== undefined ? { itemId: rawItem.id } : {}),
       ...(startMeta !== undefined ? { providerMetadata: startMeta } : {}),
-      // OA-13: see builtinProviderExecuted().
+      // See builtinProviderExecuted().
       ...(builtinProviderExecuted(rawItem) ? { providerExecuted: true } : {}),
       messageId: msgId,
     });
@@ -2952,7 +2952,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       toolCallId,
       name: "builtin:tool_search",
       ...(rawItem.id !== undefined ? { itemId: rawItem.id } : {}),
-      // OA-13: the item says where it ran — only `execution:"server"` is the
+      // The item says where it ran — only `execution:"server"` is the
       // provider's (SPEC:496); "client" (the SDK's own loader / a custom
       // execute()) and absent leave the key off.
       ...(rawItem.execution === "server" ? { providerExecuted: true } : {}),
@@ -3023,7 +3023,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   function driveHostError(event: OpenAIHostError): void {
     // O1 (§8.0 item 14 as amended): a host-fed error arriving while a round's
     // close is deferred releases that close per INV-FLUSH (2) BEFORE the
-    // normalizer closes the error (PS-21).
+    // normalizer closes the error.
     releaseAllDeferredCloses();
     ensureResponseOpen();
     if (turnId === undefined) return; // unreachable post-ensure; satisfies narrowing
@@ -3083,7 +3083,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
             return;
           }
           // Authoritative tool-result source (canonical model, A1). Drives toolDone
-          // with content + structuredContent (the ggui cache marker — see
+          // with content + structuredContent (a reference client's cache marker — see
           // `extractStructuredContent`'s doc for the two peer-supported homes and
           // the playbook 2026-07-03 wire-truth findings behind them).
           const outcome: ToolOutcome = rawItem.status === "incomplete" ? "error" : "ok";
@@ -3091,7 +3091,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
           const structuredContent = extractStructuredContent(event.item.output, event.item.customData);
           // workspace#21: `customData._meta` → block `_meta`; with `_meta.ui` the
           // payload is MCP-Apps view data → ALSO `uiData` (SPEC.md:332), leaving
-          // `structuredContent` as it was (the :340 mapping; ggui's cache marker
+          // `structuredContent` as it was (the :340 mapping; a reference client's cache marker
           // rides it). §2.1's "exactly one consumer" is per channel (ruled
           // option A). Mirrors claude-agent-sdk/src/index.ts:1926-1946.
           const resultMeta = extractResultMeta(event.item.customData);
@@ -3106,7 +3106,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
           // could misattribute it) and pass it through so toolDone binds to the
           // correct — possibly already-closed-pending-this-result — turn.
           const doneTurnId = resolvePendingTurnId(rawItem.callId);
-          // HO-2 (the handoff-drop review, PS-4): a result for a transfer call
+          // A result for a transfer call
           // whose bracket is still open means that handoff never ran —
           // agents-core <=0.8.0's "Multiple handoffs detected, ignoring this
           // one." (0.8.0 toolExecution.mjs:750-755), the one streamed producer.
@@ -3180,7 +3180,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
           driveToolSearchOutput(event.item.rawItem);
           return;
         case "reasoning_item_created":
-          // FALLBACK source since OA-11 (the raw terminal output fills first; an
+          // FALLBACK source (the raw terminal output fills first; an
           // already-filled rs_ is a no-op) — see driveReasoningItemCreated's docstring.
           driveReasoningItemCreated(event.item.rawItem);
           return;
@@ -3197,7 +3197,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
           // `'handoff_occurred'`). So the nested-turn lifecycle IS determinable:
           // bracket the transfer with `subagentStart` now / `subagentDone` at the
           // matching `handoff_occurred` below (by callId via `openHandoffs`; or at
-          // the call's `tool_output` when the handoff never ran — HO-2).
+          // the call's `tool_output` when the handoff never ran).
           //
           // `item.agent` (real d.ts naming) is the SOURCE agent — the one whose
           // LLM call produced this handoff call — NOT the transfer target (see
@@ -3270,7 +3270,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
           // still emit the `handoff` event losslessly rather than dropping the
           // now-known identity (Tenet 6) — it just doesn't close anything. It
           // precedes the tool.done, which may close the source round.
-          // HO-2: the handoff is owned by the SOURCE turn, explicitly. With two
+          // The handoff is owned by the SOURCE turn, explicitly. With two
           // brackets open (agents-core <=0.8.0) the engine's backfill would pick
           // the last-restored nested turn; on every single-bracket stream this is
           // the value the backfill gave.
@@ -3400,7 +3400,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     flush(): AgEvent[] {
       // O1 (INV-FLUSH as amended; fold/flush option 1): release the deferred
       // closes FIRST — they are older rounds, so their message.end precedes the
-      // live response's (insertion order, CB-16) — as paused / verbatim /
+      // live response's (insertion order) — as paused / verbatim /
       // message.end+usage then turn.abort (`releaseDeferredClose`); a flush
       // never emits a success turn.done.
       releaseAllDeferredCloses();

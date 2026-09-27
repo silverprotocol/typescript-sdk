@@ -52,7 +52,7 @@ describe("runOpenaiCapture — module-load smoke", () => {
   });
 });
 
-// The commentary capture (commentary-gpt6sol, sp-probe ad6f19f) needs reasoning
+// The commentary capture (commentary-gpt6sol, ad6f19f) needs reasoning
 // summaries: `CaptureRunInput.reasoningSummary` → the Agent's
 // `modelSettings.reasoning.summary` (agents-core 0.18.0 dist/model.d.ts:37,
 // `ModelSettingsReasoning.summary: 'auto' | 'concise' | 'detailed' | null`).

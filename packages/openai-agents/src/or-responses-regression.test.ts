@@ -335,7 +335,7 @@ describe("OpenRouter /v1/responses (beta) rides the existing OpenAI normalizer (
     // (4) Cost mapping: the TERMINAL turn's usage carried OpenRouter's full
     // superset (`cost`/`cost_details`/`is_byok`). AgUsage maps the provider-REPORTED
     // cost figure verbatim to costUsd (cost is provider-reported wire data with
-    // a first-class AgUsage home; guuey's broker meters off the teed wire and
+    // a first-class AgUsage home; a reference host's broker meters off the teed wire and
     // reads no normalizer costUsd — audit M42 canonical).
     const terminalTurn = res.turns.find((t) => t.turnId === "turn_gen-1782801070-T4gq9Oz4Bv5AoSog1Cxd");
     expect(terminalTurn?.usage).toMatchObject({

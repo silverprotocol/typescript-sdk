@@ -1,6 +1,6 @@
 /**
- * Keyless unit tests for the openai capture agent's handoff knob (sp-probe's
- * nested-turn package ask, 2026-09-24: a live OpenAI handoff cassette gates §10
+ * Keyless unit tests for the openai capture agent's handoff knob (the
+ * nested-turn capture, 2026-09-24: a live OpenAI handoff cassette gates §10
  * item 22 and the facet's `handoff_occurred` terminal mapping).
  * `CaptureRunInput.handoff` builds a second Agent that the main agent can hand
  * off to. No API key, no network: the builder is pure.
@@ -52,7 +52,7 @@ describe("openaiHandoffAgent — the handoff knob", () => {
   });
 });
 
-// The parallel-handoff knob (sp-cto's ask on the disclosed residual; sp-probe's
+// The parallel-handoff knob (measuring the disclosed residual; the harness's
 // `openaiHandoffs` → `CaptureRunInput.handoffs`, 3a7557c): several targets, so
 // the model can emit two transfer_to_* calls in one response.
 describe("openaiHandoffAgents — the handoff list (openaiHandoff or openaiHandoffs)", () => {

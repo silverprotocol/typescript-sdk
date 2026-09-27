@@ -44,8 +44,8 @@ import type { CaptureRunInput } from "../types.js";
  * pre-knob agent). Today one knob: `reasoningSummary` → `reasoning.summary`
  * (agents-core 0.18.0 `dist/model.d.ts`:37, `ModelSettingsReasoning.summary:
  * 'auto' | 'concise' | 'detailed' | null`), so a capture can request the
- * reasoning-summary text the commentary scenario needs (sp-probe ad6f19f,
- * rnd 13+17 stage 2 evidence). Effort is left at the API default. Exported
+ * reasoning-summary text the commentary scenario needs (ad6f19f, the
+ * narration-phase evidence). Effort is left at the API default. Exported
  * so the keyless smoke test can pin it.
  */
 export function openaiModelSettings(input: CaptureRunInput): ModelSettings | undefined {
@@ -54,9 +54,9 @@ export function openaiModelSettings(input: CaptureRunInput): ModelSettings | und
 }
 
 /**
- * The openai capture agent's approval / resume knobs (sp-main work order,
- * 2026-09-24: the OpenAI approval-resume capture — evidence for the fold/flush
- * package's Q2). They mirror sp-claude's deferred-tool pattern (a22d669 +
+ * The openai capture agent's approval / resume knobs (2026-09-24: the
+ * OpenAI approval-resume capture — evidence for the fold/flush
+ * package's Q2). They mirror the claude capture agent's deferred-tool pattern (a22d669 +
  * 35ab1eb): leg 1 stops on the interruption and hands its RunState out; each
  * resume leg forks from THAT serialized state with its own decision.
  *
@@ -168,7 +168,7 @@ export function serializeInterruptedRun(result: {
 export type OpenaiToolSource = { mcpServers: MCPServer[] } | { tools: Tool[] };
 
 /**
- * The handoff knob (sp-probe's nested-turn package ask, 2026-09-24: a live
+ * The handoff knob (the nested-turn capture, 2026-09-24: a live
  * OpenAI handoff cassette gates §10 item 22 and the facet's `handoff_occurred`
  * terminal mapping). When `input.handoff` is set, it builds the agent the main
  * agent may hand off to: the knob's `name` / `instructions` /
@@ -207,8 +207,8 @@ function buildHandoffAgent(
 
 /**
  * The main agent's handoff list, from EITHER handoff knob: `openaiHandoffs`
- * (`input.handoffs`, several targets: the parallel-handoff capture, sp-cto's
- * ask on the disclosed residual, where the model may emit two `transfer_to_*`
+ * (`input.handoffs`, several targets: the parallel-handoff capture
+ * measuring the disclosed residual, where the model may emit two `transfer_to_*`
  * calls in one response and agents-core 0.18.0 runs only the first), else
  * `openaiHandoff` (`input.handoff`, one target, built exactly as
  * {@link openaiHandoffAgent} builds it). One Agent per target, in knob order,
@@ -255,7 +255,7 @@ export function openaiMainAgent(
 /**
  * Yields the RAW native `@openai/agents` `RunStreamEvent` stream, unnormalized,
  * each item materialized as a plain `JsonValue` via `toJsonValue` (audit
- * D5-a's native-ingestion boundary — the whole event, no per-field cast).
+ * native-ingestion boundary — the whole event, no per-field cast).
  */
 export async function* runOpenaiCapture(input: OpenaiCaptureRunInput): AsyncIterable<JsonValue> {
   const apiKey = input.apiKey ?? process.env["OPENAI_API_KEY"];
@@ -282,7 +282,7 @@ export async function* runOpenaiCapture(input: OpenaiCaptureRunInput): AsyncIter
         // `@openai/agents-core` 0.12.0's `MCPServer.useStructuredContent`
         // (default `false`) was considered and REJECTED — flipping it merges
         // MCP `structuredContent` into the MODEL-VISIBLE tool-result text
-        // instead of restoring a separate channel, which would leak the ggui
+        // instead of restoring a separate channel, which would leak a reference client's
         // cache-marker payload into what the model sees (a behavior change,
         // not a fix). Left unset (SDK default).
         //
@@ -291,7 +291,7 @@ export async function* runOpenaiCapture(input: OpenaiCaptureRunInput): AsyncIter
         // the wrapper's `item.customData` field (`RunToolCallOutputItem.
         // customData`, agents-core 0.12.0's `dist/items.mjs`), which
         // `../../../openai-agents/src/index.ts`'s `extractStructuredContent`
-        // now reads. This is what actually carries the ggui cache marker
+        // now reads. This is what actually carries a reference client's cache marker
         // through on real 0.12.0 wire — verified against agents-core
         // 0.12.0's `mcpToFunctionTool` (`dist/mcp.mjs:672-738`) and
         // `normalizeToolOutputCustomData` (`dist/utils/customData.mjs`, which
@@ -303,7 +303,7 @@ export async function* runOpenaiCapture(input: OpenaiCaptureRunInput): AsyncIter
         // `_meta` — agents-core 0.18.0 `MCPToolCustomDataContext.resultMeta`
         // (`dist/mcpUtil.d.ts`:41, sourced `result._meta ?? content._meta` at
         // `dist/mcp.mjs`:700) — the same `{ structuredContent, _meta }` shape
-        // guuey's worker ships (guuey#981), so a re-capture of
+        // a reference host's worker ships, so a re-capture of
         // `app-spec-structured-result` (its mock emits `_meta.ui`,
         // `mcp-mocks/app-spec.ts`) proves the facet's `_meta` / `uiData`
         // routing live. Still `undefined` when the tool returned neither.
@@ -357,7 +357,7 @@ export async function* runOpenaiCapture(input: OpenaiCaptureRunInput): AsyncIter
       runInput = state;
     }
 
-    // NO `context` is passed, deliberately (sp-cto, 2026-09-24): the run
+    // NO `context` is passed, deliberately (2026-09-24): the run
     // `context` rides into the serialized RunState (agents-core 0.18.0
     // RunState: context, originalInput, modelResponses, currentStep, spans),
     // which leg 1 hands out via `onRunState`. It is kept in a gitignored
@@ -370,7 +370,7 @@ export async function* runOpenaiCapture(input: OpenaiCaptureRunInput): AsyncIter
     });
 
     for await (const event of stream) {
-      // Wire projection (audit D5-a) — toJsonValue materializes the WHOLE raw
+      // Wire projection (the audit's ingestion boundary) — toJsonValue materializes the WHOLE raw
       // event into plain JsonValue with no per-field cast.
       yield toJsonValue(event);
     }

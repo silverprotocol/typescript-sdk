@@ -12,11 +12,11 @@ describe("mapFinishReason", () => {
   });
 });
 
-// OA-15 — `turn.done.finishReasonRaw` (draft.4: SPEC.md §8.0 graceful
+// `turn.done.finishReasonRaw` (draft.4: SPEC.md §8.0 graceful
 // degradation + §10 item 23, spec 89c57db). Set ONLY when the mapped
 // finishReason is a fallback ("other"/"unknown"), carrying the native value byte
 // for byte; a real mapping (max_output_tokens → token_limit, …) sets nothing.
-describe("createOpenaiNormalizer — OA-15 turn.done.finishReasonRaw", () => {
+describe("createOpenaiNormalizer — turn.done.finishReasonRaw", () => {
   function closeWith(response: { [k: string]: JsonValue }): AgEvent[] {
     const n = createOpenaiNormalizer();
     return [
@@ -373,7 +373,7 @@ const TOOL_TURN: JsonValue[] = [
     },
   },
   // tool_output run-item — authoritative toolDone source.
-  // item.output carries structuredContent (ggui cache marker).
+  // item.output carries structuredContent (a reference client's cache marker).
   {
     type: "run_item_stream_event",
     name: "tool_output",
@@ -1069,7 +1069,7 @@ describe("createOpenaiNormalizer — response.failed error arm (T5c)", () => {
   // may carry `error.misalignment {detailed_explanation, error_type, steer{message}}`
   // beside code `misalignment_policy_violation` (synthetic-tested only: the
   // documented auto-stop applies to persisted-reasoning / WebSocket / compaction
-  // requests the e2e HTTP path never uses). rd-15 (ruling A.6, rides 0.7.0;
+  // requests the e2e HTTP path never uses). Remedy-shaped vendor data (ruling A.6, rides 0.7.0;
   // a review condition: the carry must sit in a home that FOLDS):
   // before turn.error the facet emits an adapter NOTICE message — one text block
   // whose text is `detailed_explanation` verbatim (error.message when absent) and
@@ -1092,7 +1092,7 @@ describe("createOpenaiNormalizer — response.failed error arm (T5c)", () => {
     ];
   }
 
-  it("rd-15: response.failed with error.misalignment → an adapter NOTICE message (text = detailed_explanation, text.start _meta carries the whole object) right before turn.error; no ext.openai.misalignment", () => {
+  it("remedy-shaped data: response.failed with error.misalignment → an adapter NOTICE message (text = detailed_explanation, text.start _meta carries the whole object) right before turn.error; no ext.openai.misalignment", () => {
     const n = createOpenaiNormalizer();
     const evs = failedWith("resp_mis_1", MISALIGNMENT)
       .flatMap((e) => n.push(e))
@@ -1114,7 +1114,7 @@ describe("createOpenaiNormalizer — response.failed error arm (T5c)", () => {
     for (const e of evs) expect(() => AgEvent.parse(e)).not.toThrow();
   });
 
-  it("rd-15 (readable + durable): the fold keeps the notice message — its text is the explanation and its block `_meta` holds the whole misalignment object; no park", () => {
+  it("remedy-shaped data (readable + durable): the fold keeps the notice message — its text is the explanation and its block `_meta` holds the whole misalignment object; no park", () => {
     const n = createOpenaiNormalizer();
     const r = new Reducer();
     for (const e of failedWith("resp_mis_fold", MISALIGNMENT)) for (const ev of n.push(e)) r.push(ev);
@@ -1130,7 +1130,7 @@ describe("createOpenaiNormalizer — response.failed error arm (T5c)", () => {
     expect(() => AgReduceResult.parse(res)).not.toThrow();
   });
 
-  it("rd-15: with no detailed_explanation, the notice text falls back to error.message", () => {
+  it("remedy-shaped data: with no detailed_explanation, the notice text falls back to error.message", () => {
     const n = createOpenaiNormalizer();
     const { detailed_explanation: _drop, ...noExplanation } = MISALIGNMENT;
     const evs = failedWith("resp_mis_3", noExplanation)
@@ -1783,7 +1783,7 @@ describe("createOpenaiNormalizer — capstone fold-identity over a combined corp
 // item shape there — reasoning's content/encrypted_content and the handoff
 // agents exist ONLY on the run-item wrappers). So the run-item arm is the sole
 // source for all of them; `output_item.added` is left untouched. SUPERSEDED for
-// reasoning by OA-11 (see the OA-11 describe below): the raw `output_item.added`
+// reasoning (see the describe below that sources it from the terminal output): the raw `output_item.added`
 // opens the block and the terminal `response.output` fills it; the tests in THIS
 // describe feed no raw reasoning events, so they pin the run-item FALLBACK path.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1969,13 +1969,13 @@ describe("createOpenaiNormalizer — reasoning_item_created (Task 3, audit M48)"
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OA-11 — reasoning as a first-class block on the LIVE wire order.
+// Reasoning as a first-class block on the LIVE wire order.
 //
 // Live evidence (corpus/echo-gpt6sol/openai.native.json, gpt-6-sol, @openai/
 // agents 0.18.0): `output_item.added{reasoning rs_}` [3] → `output_item.done
 // {reasoning}` [4] → `output_item.added{function_call fc_}` [5] … →
 // `response.completed` [21] → run-item `reasoning_item_created` [22]. The run-
-// item lands AFTER the close, so before OA-11 only `ext.openai.late-reasoning`
+// item lands AFTER the close, so before this change only `ext.openai.late-reasoning`
 // fired and no reasoning block folded. And the `encrypted_content` at [4] is a
 // DIFFERENT blob from [21]/[22] — OpenAI re-encrypts per stage; only the final
 // one (the `response.completed` output's) is what stateless replay sends back.
@@ -1987,7 +1987,7 @@ describe("createOpenaiNormalizer — reasoning_item_created (Task 3, audit M48)"
 // output, never from `output_item.done`. The run-item then dedupes by id.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("createOpenaiNormalizer — OA-11 reasoning sourced from the response.completed output", () => {
+describe("createOpenaiNormalizer — reasoning sourced from the response.completed output", () => {
   const RESP = "resp_oa11";
   const RS = "rs_oa11";
   const FC = "fc_oa11";
@@ -2256,14 +2256,14 @@ describe("createOpenaiNormalizer — OA-11 reasoning sourced from the response.c
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OA-12 — `message.start.model?` (SPEC:610) filled from `response.created`'s
+// `message.start.model?` (SPEC:610) filled from `response.created`'s
 // `response.model` (live: echo-gpt6sol natives [1] `"model": "gpt-6-sol"`,
 // which arrives BEFORE the message opens). An existing optional slot, folded to
 // `AgMessage.model` (SPEC:585, reduce.ts); absent/non-string/empty ⇒ no key
-// (byte-identical to pre-OA-12). R&D finding #1 (2026-09-23).
+// (byte-identical when absent). R&D finding #1 (2026-09-23).
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("createOpenaiNormalizer — OA-12 message.start.model from response.created", () => {
+describe("createOpenaiNormalizer — message.start.model from response.created", () => {
   function run(stream: JsonValue[]): AgEvent[] {
     const n = createOpenaiNormalizer();
     return stream.flatMap((e) => n.push(e)).concat(n.flush());
@@ -2665,8 +2665,8 @@ describe("createOpenaiNormalizer — HO handoff close (the transfer result + the
   });
 });
 
-// HO-2 — handoff brackets that never get handoff_occurred (the handoff-drop
-// review's PS-4 finding). agents-core <=0.8.0 streams a
+// Handoff brackets that never get handoff_occurred (the never-run handoff
+// close). agents-core <=0.8.0 streams a
 // handoff_requested for EVERY transfer the model calls but runs only the
 // first: each ignored one gets a tool_output "Multiple handoffs detected,
 // ignoring this one." (0.8.0 toolExecution.mjs:750-755) and no
@@ -2677,7 +2677,7 @@ describe("createOpenaiNormalizer — HO handoff close (the transfer result + the
 // for a call whose bracket is open means that handoff never ran: its nested
 // turn closes there with turn.abort + subagent.done (§8.0 item 29: stopped ⇒
 // aborted), and brackets are matched by callId, not FIFO.
-describe("createOpenaiNormalizer — HO-2 handoff brackets closed by a tool_output (<=0.8.0 peers)", () => {
+describe("createOpenaiNormalizer — handoff brackets closed by a tool_output (<=0.8.0 peers)", () => {
   function fc(callId: string, name: string): JsonValue[] {
     return [
       rawModel({ type: "response.output_item.added", item: { id: `fc_${callId}`, type: "function_call", status: "in_progress", arguments: "", call_id: callId, name } }),
@@ -3193,12 +3193,12 @@ describe("createOpenaiNormalizer — HO-P handoff round release (§8.0 item 14)"
   });
 });
 
-// pkg-07b — the host-supplied partition root. `threadId` is the host's: a
+// The host-supplied partition root. `threadId` is the host's: a
 // normalizer constructed with one stamps it on every turn.start and
 // message.start (nested turns included) and never places it in a turnId or
 // parentTurnId; constructed with none it stamps the placeholder label
 // "openai", which is not a partition root.
-describe("createOpenaiNormalizer — options.threadId (pkg-07b partition root)", () => {
+describe("createOpenaiNormalizer — options.threadId (partition root)", () => {
   const T = "th_host_pkg07b";
   const U = { input_tokens: 9, output_tokens: 3, total_tokens: 12 };
   const fcItem = (callId: string, name: string): JsonValue =>
@@ -4340,7 +4340,7 @@ describe("createOpenaiNormalizer — tool_output structuredContent under 0.12.0 
         output: JSON.stringify({ type: "text", text: JSON.stringify(payload) }),
         // The NEW 0.12.0 channel: populated only when the caller's MCPServer
         // config sets customDataExtractor (see run.ts). This is where the
-        // ggui cache marker actually rides on real 0.12.0 wire.
+        // a reference client's cache marker actually rides on real 0.12.0 wire.
         customData: { structuredContent: { ...payload, cache: cacheMarker } },
       }),
       rawModel({ type: "response.completed", response: { id: "resp_customdata_1", status: "completed" } }),
@@ -4432,10 +4432,10 @@ describe("createOpenaiNormalizer — tool_output structuredContent under 0.12.0 
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// workspace#21 (guuey#981's ask) — `customData._meta` → tool-result `_meta`, and
+// workspace#21 (a reference host's ask) — `customData._meta` → tool-result `_meta`, and
 // the §2.1 MCP-Apps routing: `_meta.ui` present ⇒ ADD `uiData` = the
 // structuredContent (SPEC.md:332), `structuredContent` itself unchanged (the
-// :340 host-convention mapping; ggui's cache marker keeps riding it).
+// :340 host-convention mapping; a reference client's cache marker keeps riding it).
 // Ruled option A 2026-09-23: facet mapping under SPEC.md:332/:338/
 // :340 — `customData._meta` is the host's MCP result `_meta` (agents-core 0.18.0
 // `MCPToolCustomDataContext.resultMeta`), a protocol annotation → carried
@@ -5121,7 +5121,7 @@ describe("createOpenaiNormalizer — AssistantMessageItem.phase (agents-core 0.1
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OA-14 — R&D items 13+17, stage 1 (ruled 2026-09-23):
+// The phase read at the raw add — R&D items 13+17, stage 1 (ruled 2026-09-23):
 // `phase` is read at raw `response.output_item.added{type:"message"}` and carried
 // on the matching `text.start.providerMetadata` (the vercel half: c4f5981). Live
 // evidence: 6/8 openai seeds carry `phase` on that added event — incl. echo-gpt55,
@@ -5131,7 +5131,7 @@ describe("createOpenaiNormalizer — AssistantMessageItem.phase (agents-core 0.1
 // vercel parity). A providerMetadata carry — no new wire literal.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("createOpenaiNormalizer — OA-14 phase on text.start from output_item.added", () => {
+describe("createOpenaiNormalizer — phase on text.start from output_item.added", () => {
   function run(s: JsonValue[]): AgEvent[] {
     const n = createOpenaiNormalizer();
     return s.flatMap((e) => n.push(e)).concat(n.flush());
@@ -5236,7 +5236,7 @@ describe("createOpenaiNormalizer — OA-14 phase on text.start from output_item.
     expect(evs.find((e) => e.type === "text.end")).toMatchObject({ providerMetadata: { phase: "commentary" } });
   });
 
-  // Completion correlation (protocol package rd-13-17 §2 stage 1): match
+  // Completion correlation (the narration-phase rule, stage 1): match
   // message_output_created to its open text stream by id FIRST — on the direct
   // OpenAI wire the raw `item_id` and the run-item `rawItem.id` are the SAME
   // (all 8 openai seeds) — and fall back to FIFO only when the id is unknown
@@ -5300,7 +5300,7 @@ describe("createOpenaiNormalizer — OA-14 phase on text.start from output_item.
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PH-2 — R&D items 13+17, STAGE 2 (draft.4, spec fb2126a on the core P-phase):
+// The first-class phase — R&D items 13+17, STAGE 2 (draft.4, spec fb2126a on the core P-phase):
 // the first-class optional `phase` on text.start/text.end. SPEC §8.0 item 27:
 // OpenAI `phase:"commentary"` → `phase:"interim"` on that message's text block;
 // "final_answer", null, "", absent and any other value → `phase` absent; the
@@ -5311,7 +5311,7 @@ describe("createOpenaiNormalizer — OA-14 phase on text.start from output_item.
 // rules a STASHED (deferred tool-round) text.end "not yet emitted" (2026-09-23).
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("createOpenaiNormalizer — PH-2 first-class phase:\"interim\" (draft.4, §8.0 item 27, §10 item 26)", () => {
+describe("createOpenaiNormalizer — first-class phase:\"interim\" (draft.4, §8.0 item 27, §10 item 26)", () => {
   function run(s: JsonValue[]): AgEvent[] {
     const n = createOpenaiNormalizer();
     return s.flatMap((e) => n.push(e)).concat(n.flush());
@@ -5380,7 +5380,7 @@ describe("createOpenaiNormalizer — PH-2 first-class phase:\"interim\" (draft.4
     const startA = textEvent(evs, "text.start", "msg_A");
     expect(startA).not.toHaveProperty("phase");
     expect(startA).not.toHaveProperty("providerMetadata");
-    // No marker ⇒ no lossless ext either (pre-PH-2 the post-close run-item
+    // No marker ⇒ no lossless ext either (before the first-class phase, the post-close run-item
     // emitted ext.openai.late-phase {phase: null} for a null phase).
     expect(evs.map((e) => e.type)).not.toContain("ext.openai.late-phase");
     const block = fold(twoItemVector(bad, "final_answer"))
@@ -5634,7 +5634,7 @@ describe("createOpenaiNormalizer — LV live (non-JSON-round-tripped) natives ne
   // CONSTRUCTION, not because today's throws happen to be TypeErrors. A V8
   // SyntaxError quotes its input (`Unexpected token 'o', "{"secret":"…" is not
   // valid JSON`), so an error MESSAGE can carry a slice of tool arguments or a
-  // wrapper output. Force one out of drive(): the OA-14 phase carry reaches
+  // wrapper output. Force one out of drive(): the phase carry reaches
   // AgProviderMeta.parse unguarded, so a spy that throws there reaches the guard.
   it("last-resort guard carries the error NAME only: a SyntaxError quoting SECRET_ content never reaches the wire", () => {
     const spy = vi.spyOn(AgProviderMeta, "parse").mockImplementation(() => {
@@ -5775,8 +5775,8 @@ describe("createOpenaiNormalizer — LV live (non-JSON-round-tripped) natives ne
 // a leg-1 `turn_resp_*` id: INV-XINV) and lands as its OWN role:"tool" message
 // (`messageId: "<callId>:result"`); the resumed model response then opens its
 // assistant message in that turn and its response.completed closes it (the
-// the claude facet's 37185be shape). Outcome stays ok/error from rawItem.status — never
-// "denied" (PS-13).
+// claude facet's 37185be shape). Outcome stays ok/error from rawItem.status — never
+// "denied".
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("createOpenaiNormalizer — RS a resumed invoke's leading tool_output opens its own turn", () => {
@@ -5844,7 +5844,7 @@ describe("createOpenaiNormalizer — RS a resumed invoke's leading tool_output o
     expect(r.needsResync).toBe(false);
   });
 
-  // The pin for the pending D3 wording (c20):
+  // The pin for the fresh-turn rule (c20):
   // ONE resuming invoke that carries TWO approved results (approve-all), in the
   // order the SDK replays them from RunState. One resume turn, named for the
   // FIRST call; both results are their own role:"tool" messages in it; no
@@ -5916,7 +5916,7 @@ describe("createOpenaiNormalizer — RS a resumed invoke's leading tool_output o
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OA-13 — `tool.start.providerExecuted` (SPEC:632; tool-call block
+// `tool.start.providerExecuted` (SPEC:632; tool-call block
 // `providerExecuted`, SPEC:210; SPEC:496 "server already ran it; client MUST
 // NOT execute"). An existing optional slot (R&D item 10 re-verify,
 // 2026-09-23); claude and vercel already set it. Which item kinds OpenAI
@@ -5936,7 +5936,7 @@ describe("createOpenaiNormalizer — RS a resumed invoke's leading tool_output o
 // Absent ⇒ key omitted (SPEC treats absent as not provider-executed).
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("createOpenaiNormalizer — OA-13 tool.start.providerExecuted", () => {
+describe("createOpenaiNormalizer — tool.start.providerExecuted", () => {
   function called(rawItem: JsonValue): JsonValue[] {
     return [
       rawModel({ type: "response.created", response: { id: "resp_oa13" } }),
@@ -6047,9 +6047,9 @@ describe("createOpenaiNormalizer — OA-13 tool.start.providerExecuted", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// IS — ids the facet MINTS are unique across invokes (the D3 review,
-// finding DC-10; the rnd-14 ruling; INV-BLOCK collision-free
-// derived ids). guuey folds every invoke of a conversation into ONE Reducer; the
+// IS — ids the facet MINTS are unique across invokes (the fresh-turn rule;
+// delivery integrity; INV-BLOCK collision-free derived ids). A reference host
+// folds every invoke of a conversation into ONE Reducer; the
 // old per-normalizer counters (`turn_openai_<n>`, `turn_handoff_<n>`) repeated
 // across invokes. Now each normalizer draws a random `openai_<16 hex>` stem once
 // (outside withAtomicPush's inner factory), or takes the host's `invokeId`.
@@ -6156,7 +6156,7 @@ describe("createOpenaiNormalizer — IS minted ids are unique across invokes fol
 // §10 item 26's OpenAI leg). The real-order approval interruption is
 // function_call → response.completed (usage U) → tool_called →
 // tool_approval_requested → end of stream (the live leg-1 capture). It
-// used to flush as turn.done{success} (CB-14 / PS-2): now `paused`, asks naming
+// used to flush as turn.done{success}: now `paused`, asks naming
 // approval_<callId>, the stashed finishReason and usage U.
 // ─────────────────────────────────────────────────────────────────────────────
 

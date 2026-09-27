@@ -2,7 +2,7 @@
  * The openai facet's last-resort `push()` guard (the core non-terminal `error`
  * event `{message: "normalizer error", code}`, openai-agents/src/index.ts
  * `reportNormalizerError`) must fire ZERO
- * times over every committed openai native (sp-main / sp-cto, 2026-09-24).
+ * times over every committed openai native (2026-09-24).
  *
  * The guard exists so a facet bug on a malformed event degrades visibly
  * instead of throwing out of push() (SPEC.md:933). But a guard that fires on
@@ -49,7 +49,7 @@ describe("openai last-resort push() guard — fires 0 times over the committed c
   });
 });
 
-// Determinism (sp-main's precondition for withAtomicPush): a throw rebuilds the
+// Determinism (a precondition for withAtomicPush): a throw rebuilds the
 // inner normalizer by re-driving the journal, so the rebuilt state must equal
 // the original exactly. Inject one throwing native (an envelope-valid but
 // malformed `tool_called` — its drive() dereferences a missing rawItem) at the
