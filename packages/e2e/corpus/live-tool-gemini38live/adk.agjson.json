@@ -20,40 +20,14 @@
     "seq": 2
   },
   {
-    "type": "content.block",
-    "seq": 3,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 4
+    "seq": 3
   },
   {
     "type": "content.block",
-    "seq": 5,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 6,
+    "seq": 4,
     "block": {
       "type": "provider-raw",
       "vendor": "google",
@@ -84,11 +58,11 @@
       ]
     },
     "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 7
+    "seq": 5
   },
   {
     "type": "tool.start",
-    "seq": 8,
+    "seq": 6,
     "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
     "toolCallId": "call_285686",
     "name": "echo",
@@ -96,13 +70,13 @@
   },
   {
     "type": "tool.args.delta",
-    "seq": 9,
+    "seq": 7,
     "toolCallId": "call_285686",
     "delta": "{\"message\":\"conformance-probe-live\"}"
   },
   {
     "type": "tool.args.assembled",
-    "seq": 10,
+    "seq": 8,
     "toolCallId": "call_285686",
     "input": {
       "message": "conformance-probe-live"
@@ -112,24 +86,11 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 11
+    "seq": 9
   },
   {
     "type": "content.block",
-    "seq": 12,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 13,
+    "seq": 10,
     "block": {
       "type": "provider-raw",
       "vendor": "google",
@@ -142,7 +103,7 @@
   },
   {
     "type": "tool.done",
-    "seq": 14,
+    "seq": 11,
     "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
     "toolCallId": "call_285686",
     "content": [
@@ -157,43 +118,17 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 15
-  },
-  {
-    "type": "content.block",
-    "seq": 16,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
+    "seq": 12
   },
   {
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 17
+    "seq": 13
   },
   {
     "type": "content.block",
-    "seq": 18,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 19,
+    "seq": 14,
     "block": {
       "type": "provider-raw",
       "vendor": "google",
@@ -206,13 +141,68 @@
   },
   {
     "type": "content.block",
-    "seq": 20,
+    "seq": 15,
     "block": {
       "type": "audio",
       "source": {
         "type": "base64",
         "mediaType": "audio/pcm;rate=24000",
         "data": "<audio-elided:4 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "seq": 16
+  },
+  {
+    "type": "content.block",
+    "seq": 17,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
+  },
+  {
+    "type": "content.block",
+    "seq": 18,
+    "block": {
+      "type": "text",
+      "text": "The tool ",
+      "_meta": {
+        "agjson/transcription": {
+          "role": "output",
+          "kind": "transcription"
+        }
+      }
+    },
+    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "seq": 19
+  },
+  {
+    "type": "content.block",
+    "seq": 20,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:16000 chars>"
       }
     },
     "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
@@ -231,7 +221,7 @@
       "type": "provider-raw",
       "vendor": "google",
       "raw": {
-        "artifactDelta": {}
+        "modelVersion": "gemini-3.8-live"
       }
     },
     "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
@@ -240,100 +230,6 @@
   {
     "type": "content.block",
     "seq": 23,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "modelVersion": "gemini-3.8-live"
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 24,
-    "block": {
-      "type": "text",
-      "text": "The tool ",
-      "_meta": {
-        "agjson/transcription": {
-          "role": "output",
-          "kind": "transcription"
-        }
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "state.delta",
-    "patch": {},
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 25
-  },
-  {
-    "type": "content.block",
-    "seq": 26,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 27,
-    "block": {
-      "type": "audio",
-      "source": {
-        "type": "base64",
-        "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:16000 chars>"
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "state.delta",
-    "patch": {},
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 28
-  },
-  {
-    "type": "content.block",
-    "seq": 29,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 30,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "modelVersion": "gemini-3.8-live"
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 31,
     "block": {
       "type": "audio",
       "source": {
@@ -349,20 +245,106 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 32
+    "seq": 24
   },
   {
     "type": "content.block",
-    "seq": 33,
+    "seq": 25,
     "block": {
       "type": "provider-raw",
       "vendor": "google",
       "raw": {
-        "artifactDelta": {}
+        "modelVersion": "gemini-3.8-live"
       }
     },
     "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
     "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
+  },
+  {
+    "type": "content.block",
+    "seq": 26,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:15360 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "seq": 27
+  },
+  {
+    "type": "content.block",
+    "seq": 28,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
+  },
+  {
+    "type": "content.block",
+    "seq": 29,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:15360 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "seq": 30
+  },
+  {
+    "type": "content.block",
+    "seq": 31,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
+  },
+  {
+    "type": "content.block",
+    "seq": 32,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:10240 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "seq": 33
   },
   {
     "type": "content.block",
@@ -381,11 +363,13 @@
     "type": "content.block",
     "seq": 35,
     "block": {
-      "type": "audio",
-      "source": {
-        "type": "base64",
-        "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:15360 chars>"
+      "type": "text",
+      "text": "returned conformance-probe-live.",
+      "_meta": {
+        "agjson/transcription": {
+          "role": "output",
+          "kind": "transcription"
+        }
       }
     },
     "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
@@ -401,18 +385,25 @@
     "type": "content.block",
     "seq": 37,
     "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:20480 chars>"
       }
     },
     "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
     "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
   },
   {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
+    "seq": 38
+  },
+  {
     "type": "content.block",
-    "seq": 38,
+    "seq": 39,
     "block": {
       "type": "provider-raw",
       "vendor": "google",
@@ -425,13 +416,13 @@
   },
   {
     "type": "content.block",
-    "seq": 39,
+    "seq": 40,
     "block": {
       "type": "audio",
       "source": {
         "type": "base64",
         "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:15360 chars>"
+        "data": "<audio-elided:23040 chars>"
       }
     },
     "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
@@ -441,20 +432,7 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 40
-  },
-  {
-    "type": "content.block",
-    "seq": 41,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
+    "seq": 41
   },
   {
     "type": "content.block",
@@ -477,7 +455,7 @@
       "source": {
         "type": "base64",
         "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:10240 chars>"
+        "data": "<audio-elided:30720 chars>"
       }
     },
     "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
@@ -496,7 +474,7 @@
       "type": "provider-raw",
       "vendor": "google",
       "raw": {
-        "artifactDelta": {}
+        "modelVersion": "gemini-3.8-live"
       }
     },
     "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
@@ -505,192 +483,6 @@
   {
     "type": "content.block",
     "seq": 46,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "modelVersion": "gemini-3.8-live"
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 47,
-    "block": {
-      "type": "text",
-      "text": "returned conformance-probe-live.",
-      "_meta": {
-        "agjson/transcription": {
-          "role": "output",
-          "kind": "transcription"
-        }
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "state.delta",
-    "patch": {},
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 48
-  },
-  {
-    "type": "content.block",
-    "seq": 49,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 50,
-    "block": {
-      "type": "audio",
-      "source": {
-        "type": "base64",
-        "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:20480 chars>"
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "state.delta",
-    "patch": {},
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 51
-  },
-  {
-    "type": "content.block",
-    "seq": 52,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 53,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "modelVersion": "gemini-3.8-live"
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 54,
-    "block": {
-      "type": "audio",
-      "source": {
-        "type": "base64",
-        "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:23040 chars>"
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "state.delta",
-    "patch": {},
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 55
-  },
-  {
-    "type": "content.block",
-    "seq": 56,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 57,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "modelVersion": "gemini-3.8-live"
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 58,
-    "block": {
-      "type": "audio",
-      "source": {
-        "type": "base64",
-        "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:30720 chars>"
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "state.delta",
-    "patch": {},
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 59
-  },
-  {
-    "type": "content.block",
-    "seq": 60,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 61,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "modelVersion": "gemini-3.8-live"
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 62,
     "block": {
       "type": "audio",
       "source": {
@@ -706,24 +498,11 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 63
+    "seq": 47
   },
   {
     "type": "content.block",
-    "seq": 64,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 65,
+    "seq": 48,
     "block": {
       "type": "provider-raw",
       "vendor": "google",
@@ -736,7 +515,7 @@
   },
   {
     "type": "content.block",
-    "seq": 66,
+    "seq": 49,
     "block": {
       "type": "audio",
       "source": {
@@ -752,24 +531,11 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 67
+    "seq": 50
   },
   {
     "type": "content.block",
-    "seq": 68,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 69,
+    "seq": 51,
     "block": {
       "type": "provider-raw",
       "vendor": "google",
@@ -784,43 +550,17 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 70
-  },
-  {
-    "type": "content.block",
-    "seq": 71,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
+    "seq": 52
   },
   {
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 72
+    "seq": 53
   },
   {
     "type": "content.block",
-    "seq": 73,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 74,
+    "seq": 54,
     "block": {
       "type": "provider-raw",
       "vendor": "google",
@@ -869,30 +609,17 @@
       ]
     },
     "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 75
+    "seq": 55
   },
   {
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "seq": 76
+    "seq": 56
   },
   {
     "type": "content.block",
-    "seq": 77,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
-    "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
-  },
-  {
-    "type": "content.block",
-    "seq": 78,
+    "seq": 57,
     "block": {
       "type": "provider-raw",
       "vendor": "google",
@@ -905,12 +632,12 @@
   },
   {
     "type": "message.end",
-    "seq": 79,
+    "seq": 58,
     "id": "msg_turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33"
   },
   {
     "type": "turn.done",
-    "seq": 80,
+    "seq": 59,
     "turnId": "turn_adk_e-d4fb0c8c-9569-4b1a-916e-28abcdbbbd33",
     "outcome": {
       "type": "success"

@@ -43,21 +43,8 @@
     "seq": 5
   },
   {
-    "type": "content.block",
-    "seq": 6,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
-    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
-  },
-  {
     "type": "tool.done",
-    "seq": 7,
+    "seq": 6,
     "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "toolCallId": "call_30587",
     "content": [
@@ -72,24 +59,11 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
-    "seq": 8
-  },
-  {
-    "type": "content.block",
-    "seq": 9,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
-    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
+    "seq": 7
   },
   {
     "type": "tool.start",
-    "seq": 10,
+    "seq": 8,
     "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "toolCallId": "call_38561",
     "name": "echo",
@@ -97,13 +71,13 @@
   },
   {
     "type": "tool.args.delta",
-    "seq": 11,
+    "seq": 9,
     "toolCallId": "call_38561",
     "delta": "{\"message\":\"turn-two\"}"
   },
   {
     "type": "tool.args.assembled",
-    "seq": 12,
+    "seq": 10,
     "toolCallId": "call_38561",
     "input": {
       "message": "turn-two"
@@ -114,24 +88,11 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
-    "seq": 13
-  },
-  {
-    "type": "content.block",
-    "seq": 14,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
-    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
+    "seq": 11
   },
   {
     "type": "tool.done",
-    "seq": 15,
+    "seq": 12,
     "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "toolCallId": "call_38561",
     "content": [
@@ -146,24 +107,11 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
-    "seq": 16
-  },
-  {
-    "type": "content.block",
-    "seq": 17,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
-    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
+    "seq": 13
   },
   {
     "type": "text.start",
-    "seq": 18,
+    "seq": 14,
     "id": "text:0",
     "messageId": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
@@ -175,7 +123,7 @@
   },
   {
     "type": "text.delta",
-    "seq": 19,
+    "seq": 15,
     "id": "text:0",
     "messageId": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "delta": "Both tool calls have completed:\n\n1. **First call** (`message='turn-one'`): `turn-one`\n2. **Second call** (`message='turn-two'`): `turn-two`",
@@ -183,7 +131,7 @@
   },
   {
     "type": "text.end",
-    "seq": 20,
+    "seq": 16,
     "id": "text:0",
     "messageId": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
@@ -197,29 +145,16 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
-    "seq": 21
-  },
-  {
-    "type": "content.block",
-    "seq": 22,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
-    "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
+    "seq": 17
   },
   {
     "type": "message.end",
-    "seq": 23,
+    "seq": 18,
     "id": "msg_turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a"
   },
   {
     "type": "turn.done",
-    "seq": 24,
+    "seq": 19,
     "turnId": "turn_adk_e-a68558a8-ec3f-4084-80c1-3aa78118fc5a",
     "outcome": {
       "type": "success"

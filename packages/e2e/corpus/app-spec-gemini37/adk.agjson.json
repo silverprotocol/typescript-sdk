@@ -44,21 +44,8 @@
     "seq": 5
   },
   {
-    "type": "content.block",
-    "seq": 6,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-11d0e000-493d-4727-8398-ffd7d2378c06",
-    "turnId": "turn_adk_e-11d0e000-493d-4727-8398-ffd7d2378c06"
-  },
-  {
     "type": "tool.done",
-    "seq": 7,
+    "seq": 6,
     "turnId": "turn_adk_e-11d0e000-493d-4727-8398-ffd7d2378c06",
     "toolCallId": "call_643265",
     "content": [
@@ -90,24 +77,11 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-11d0e000-493d-4727-8398-ffd7d2378c06",
-    "seq": 8
-  },
-  {
-    "type": "content.block",
-    "seq": 9,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-11d0e000-493d-4727-8398-ffd7d2378c06",
-    "turnId": "turn_adk_e-11d0e000-493d-4727-8398-ffd7d2378c06"
+    "seq": 7
   },
   {
     "type": "text.start",
-    "seq": 10,
+    "seq": 8,
     "id": "text:0",
     "messageId": "msg_turn_adk_e-11d0e000-493d-4727-8398-ffd7d2378c06",
     "turnId": "turn_adk_e-11d0e000-493d-4727-8398-ffd7d2378c06",
@@ -119,7 +93,7 @@
   },
   {
     "type": "text.delta",
-    "seq": 11,
+    "seq": 9,
     "id": "text:0",
     "messageId": "msg_turn_adk_e-11d0e000-493d-4727-8398-ffd7d2378c06",
     "delta": "The card has been rendered with the following details:\n\n**Title:** Hello  \n**Body:** World  \n\n**Structured Content Payload:**\n```json\n{\n  \"title\": \"Hello\",\n  \"body\": \"World\",\n  \"cache\": {\n    \"hit\": false,\n    \"kind\": \"cold\",\n    \"llmCallsAvoided\": 0\n  }\n}\n```",
@@ -127,7 +101,7 @@
   },
   {
     "type": "text.end",
-    "seq": 12,
+    "seq": 10,
     "id": "text:0",
     "messageId": "msg_turn_adk_e-11d0e000-493d-4727-8398-ffd7d2378c06",
     "turnId": "turn_adk_e-11d0e000-493d-4727-8398-ffd7d2378c06",
@@ -141,29 +115,16 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-11d0e000-493d-4727-8398-ffd7d2378c06",
-    "seq": 13
-  },
-  {
-    "type": "content.block",
-    "seq": 14,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-11d0e000-493d-4727-8398-ffd7d2378c06",
-    "turnId": "turn_adk_e-11d0e000-493d-4727-8398-ffd7d2378c06"
+    "seq": 11
   },
   {
     "type": "message.end",
-    "seq": 15,
+    "seq": 12,
     "id": "msg_turn_adk_e-11d0e000-493d-4727-8398-ffd7d2378c06"
   },
   {
     "type": "turn.done",
-    "seq": 16,
+    "seq": 13,
     "turnId": "turn_adk_e-11d0e000-493d-4727-8398-ffd7d2378c06",
     "outcome": {
       "type": "success"

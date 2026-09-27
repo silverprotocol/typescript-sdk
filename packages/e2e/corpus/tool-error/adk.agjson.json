@@ -41,21 +41,8 @@
     "seq": 5
   },
   {
-    "type": "content.block",
-    "seq": 6,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-536c5fea-34da-409a-b919-787dba39d665",
-    "turnId": "turn_adk_e-536c5fea-34da-409a-b919-787dba39d665"
-  },
-  {
     "type": "tool.done",
-    "seq": 7,
+    "seq": 6,
     "turnId": "turn_adk_e-536c5fea-34da-409a-b919-787dba39d665",
     "toolCallId": "adk-90b70200-fc8f-4865-9bff-af13e46649d0",
     "content": [
@@ -71,24 +58,11 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-536c5fea-34da-409a-b919-787dba39d665",
-    "seq": 8
-  },
-  {
-    "type": "content.block",
-    "seq": 9,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-536c5fea-34da-409a-b919-787dba39d665",
-    "turnId": "turn_adk_e-536c5fea-34da-409a-b919-787dba39d665"
+    "seq": 7
   },
   {
     "type": "text.start",
-    "seq": 10,
+    "seq": 8,
     "id": "text:0",
     "messageId": "msg_turn_adk_e-536c5fea-34da-409a-b919-787dba39d665",
     "turnId": "turn_adk_e-536c5fea-34da-409a-b919-787dba39d665",
@@ -100,7 +74,7 @@
   },
   {
     "type": "text.delta",
-    "seq": 11,
+    "seq": 9,
     "id": "text:0",
     "messageId": "msg_turn_adk_e-536c5fea-34da-409a-b919-787dba39d665",
     "delta": "The `fail` tool returned an error. The error code is `E_MOCK` and the error message is `boom`.",
@@ -108,7 +82,7 @@
   },
   {
     "type": "text.end",
-    "seq": 12,
+    "seq": 10,
     "id": "text:0",
     "messageId": "msg_turn_adk_e-536c5fea-34da-409a-b919-787dba39d665",
     "turnId": "turn_adk_e-536c5fea-34da-409a-b919-787dba39d665",
@@ -122,29 +96,16 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-536c5fea-34da-409a-b919-787dba39d665",
-    "seq": 13
-  },
-  {
-    "type": "content.block",
-    "seq": 14,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-536c5fea-34da-409a-b919-787dba39d665",
-    "turnId": "turn_adk_e-536c5fea-34da-409a-b919-787dba39d665"
+    "seq": 11
   },
   {
     "type": "message.end",
-    "seq": 15,
+    "seq": 12,
     "id": "msg_turn_adk_e-536c5fea-34da-409a-b919-787dba39d665"
   },
   {
     "type": "turn.done",
-    "seq": 16,
+    "seq": 13,
     "turnId": "turn_adk_e-536c5fea-34da-409a-b919-787dba39d665",
     "outcome": {
       "type": "success"

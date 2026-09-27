@@ -66,21 +66,8 @@
     "seq": 8
   },
   {
-    "type": "content.block",
-    "seq": 9,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
-    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
-  },
-  {
     "type": "tool.done",
-    "seq": 10,
+    "seq": 9,
     "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "toolCallId": "call_25597",
     "content": [
@@ -95,31 +82,18 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
-    "seq": 11
-  },
-  {
-    "type": "content.block",
-    "seq": 12,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
-    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
+    "seq": 10
   },
   {
     "type": "reasoning.start",
-    "seq": 13,
+    "seq": 11,
     "id": "reasoning:1",
     "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
   },
   {
     "type": "reasoning.delta",
-    "seq": 14,
+    "seq": 12,
     "id": "reasoning:1",
     "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "delta": "Okay, here's my interpretation of that thought process, tailored for an expert user:\n\n**Responding to the Echo**\n\nAlright, the tool is showing the expected echo. That's the signal, right? My internal systems are confirming the data. So, what's next? It’s time to move beyond the data acquisition phase. The user, with their depth of knowledge, needs the next layer of information and now I need to formulate a response to engage them further. There are parameters to this response, so I'll create a response now.\n\n\n",
@@ -127,7 +101,7 @@
   },
   {
     "type": "reasoning.end",
-    "seq": 15,
+    "seq": 13,
     "id": "reasoning:1",
     "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
@@ -135,7 +109,7 @@
   },
   {
     "type": "text.start",
-    "seq": 16,
+    "seq": 14,
     "id": "text:0",
     "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
@@ -147,7 +121,7 @@
   },
   {
     "type": "text.delta",
-    "seq": 17,
+    "seq": 15,
     "id": "text:0",
     "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "delta": "thinking-probe-gemini38",
@@ -155,7 +129,7 @@
   },
   {
     "type": "text.end",
-    "seq": 18,
+    "seq": 16,
     "id": "text:0",
     "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
@@ -169,29 +143,16 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
-    "seq": 19
-  },
-  {
-    "type": "content.block",
-    "seq": 20,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
-    "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
+    "seq": 17
   },
   {
     "type": "message.end",
-    "seq": 21,
+    "seq": 18,
     "id": "msg_turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8"
   },
   {
     "type": "turn.done",
-    "seq": 22,
+    "seq": 19,
     "turnId": "turn_adk_e-e3b965a9-d054-49ec-b760-7b8c362b1ff8",
     "outcome": {
       "type": "success"

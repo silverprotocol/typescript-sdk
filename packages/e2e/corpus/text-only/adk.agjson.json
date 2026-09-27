@@ -52,26 +52,13 @@
     "seq": 5
   },
   {
-    "type": "content.block",
-    "seq": 6,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-0d99cec5-d0b1-4212-90c1-0b1974a171f7",
-    "turnId": "turn_adk_e-0d99cec5-d0b1-4212-90c1-0b1974a171f7"
-  },
-  {
     "type": "message.end",
-    "seq": 7,
+    "seq": 6,
     "id": "msg_turn_adk_e-0d99cec5-d0b1-4212-90c1-0b1974a171f7"
   },
   {
     "type": "turn.done",
-    "seq": 8,
+    "seq": 7,
     "turnId": "turn_adk_e-0d99cec5-d0b1-4212-90c1-0b1974a171f7",
     "outcome": {
       "type": "success"

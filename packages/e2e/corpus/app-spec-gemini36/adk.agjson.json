@@ -44,21 +44,8 @@
     "seq": 5
   },
   {
-    "type": "content.block",
-    "seq": 6,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
-    "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b"
-  },
-  {
     "type": "tool.done",
-    "seq": 7,
+    "seq": 6,
     "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
     "toolCallId": "a78c62GF",
     "content": [
@@ -90,24 +77,11 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
-    "seq": 8
-  },
-  {
-    "type": "content.block",
-    "seq": 9,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
-    "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b"
+    "seq": 7
   },
   {
     "type": "text.start",
-    "seq": 10,
+    "seq": 8,
     "id": "text:0",
     "messageId": "msg_turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
     "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
@@ -119,7 +93,7 @@
   },
   {
     "type": "text.delta",
-    "seq": 11,
+    "seq": 9,
     "id": "text:0",
     "messageId": "msg_turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
     "delta": "I have called the `render_card` tool. Here is the structured payload returned by the tool:\n\n- **Title**: Hello\n- **Body**: World\n- **Cache**: Cold hit (`hit`: `false`, `kind`: `cold`, `llmCallsAvoided`: `0`)",
@@ -127,7 +101,7 @@
   },
   {
     "type": "text.end",
-    "seq": 12,
+    "seq": 10,
     "id": "text:0",
     "messageId": "msg_turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
     "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
@@ -141,29 +115,16 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
-    "seq": 13
-  },
-  {
-    "type": "content.block",
-    "seq": 14,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
-    "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b"
+    "seq": 11
   },
   {
     "type": "message.end",
-    "seq": 15,
+    "seq": 12,
     "id": "msg_turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b"
   },
   {
     "type": "turn.done",
-    "seq": 16,
+    "seq": 13,
     "turnId": "turn_adk_e-2290a102-02de-402e-80cb-a2243ac4332b",
     "outcome": {
       "type": "success"

@@ -43,21 +43,8 @@
     "seq": 5
   },
   {
-    "type": "content.block",
-    "seq": 6,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
-    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
-  },
-  {
     "type": "tool.done",
-    "seq": 7,
+    "seq": 6,
     "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "toolCallId": "call_163246",
     "content": [
@@ -85,24 +72,11 @@
       }
     },
     "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
-    "seq": 8
-  },
-  {
-    "type": "content.block",
-    "seq": 9,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
-    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
+    "seq": 7
   },
   {
     "type": "tool.start",
-    "seq": 10,
+    "seq": 8,
     "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "toolCallId": "call_134506",
     "name": "apply_state_step",
@@ -110,13 +84,13 @@
   },
   {
     "type": "tool.args.delta",
-    "seq": 11,
+    "seq": 9,
     "toolCallId": "call_134506",
     "delta": "{\"step\":2}"
   },
   {
     "type": "tool.args.assembled",
-    "seq": 12,
+    "seq": 10,
     "toolCallId": "call_134506",
     "input": {
       "step": 2
@@ -127,24 +101,11 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
-    "seq": 13
-  },
-  {
-    "type": "content.block",
-    "seq": 14,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
-    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
+    "seq": 11
   },
   {
     "type": "tool.done",
-    "seq": 15,
+    "seq": 12,
     "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "toolCallId": "call_134506",
     "content": [
@@ -170,24 +131,11 @@
       }
     },
     "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
-    "seq": 16
-  },
-  {
-    "type": "content.block",
-    "seq": 17,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
-    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
+    "seq": 13
   },
   {
     "type": "text.start",
-    "seq": 18,
+    "seq": 14,
     "id": "text:0",
     "messageId": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
@@ -199,7 +147,7 @@
   },
   {
     "type": "text.delta",
-    "seq": 19,
+    "seq": 15,
     "id": "text:0",
     "messageId": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "delta": "done",
@@ -207,7 +155,7 @@
   },
   {
     "type": "text.end",
-    "seq": 20,
+    "seq": 16,
     "id": "text:0",
     "messageId": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
@@ -221,29 +169,16 @@
     "type": "state.delta",
     "patch": {},
     "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
-    "seq": 21
-  },
-  {
-    "type": "content.block",
-    "seq": 22,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "artifactDelta": {}
-      }
-    },
-    "messageId": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
-    "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
+    "seq": 17
   },
   {
     "type": "message.end",
-    "seq": 23,
+    "seq": 18,
     "id": "msg_turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36"
   },
   {
     "type": "turn.done",
-    "seq": 24,
+    "seq": 19,
     "turnId": "turn_adk_e-315ab9a9-26a9-4f22-a183-bd9217332a36",
     "outcome": {
       "type": "success"
