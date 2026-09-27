@@ -40,6 +40,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm spec-drift
+      # The negative cases: each drift rule must still fire on a seeded mutation,
+      # which a green positive run alone cannot show.
+      - run: pnpm spec-drift:self-test
       - run: pnpm api-surface
       - run: pnpm fixture-drift
       - run: pnpm test
