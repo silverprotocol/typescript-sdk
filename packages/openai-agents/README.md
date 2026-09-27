@@ -120,10 +120,12 @@ stem, so ids stay unique when a host folds every invoke of a conversation into
 one reducer:
 - a response with no `response.created`, or a host error with no turn open,
   gets a fallback turn `turn_<stem>_<n>`;
-- a handoff gets a subagent turn `turn_<stem>_handoff_<n>`;
-- a handoff that arrives before any turn of the invoke has opened (a resumed
-  invoke can stream one first) gets the parent label
-  `turn_<stem>_handoff_parent`.
+- a handoff gets a subagent turn `turn_<stem>_handoff_<n>`.
+
+A resumed invoke can stream a handoff before any turn of the invoke has
+opened. The facet then opens the resumed invoke's own turn,
+`turn_resume_<callId>` (an id from the wire), at that handoff, and the handoff's
+subagent turn is parented to it, so the subagent turn carries the host's thread.
 
 By default the stem is a random `openai_<16 hex>` drawn once per normalizer.
 Pass `createOpenaiNormalizer({ invokeId })` to make the output deterministic

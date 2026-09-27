@@ -3293,12 +3293,129 @@ describe("createOpenaiNormalizer — options.threadId (pkg-07b partition root)",
     const start = evs.find((e) => e.type === "subagent.start");
     expect(start).toBeDefined();
     expect(Reflect.get(start ?? {}, "parentTurnId")).not.toBe(T);
-    expect(Reflect.get(start ?? {}, "parentTurnId")).toBe("turn_inv1_handoff_parent");
+    // The resumed invoke's own turn, opened here: a real parent carrying T.
+    expect(Reflect.get(start ?? {}, "parentTurnId")).toBe("turn_resume_call_early");
   });
 
   it("the ext.openai.* vendor segment is unchanged by a threadId", () => {
     const evs = run([{ type: "some_future_envelope" }], { threadId: T });
     expect(evs.some((e) => e.type === "ext.openai.unparsed")).toBe(true);
+  });
+});
+
+// A resumed invoke whose step items start with handoff_requested.
+// agents-core 0.18.0's resumeAcceptedModelResponse streams step items without
+// the raw model stream, so the transfer's handoff_requested can be the first
+// thing the facet sees: no turn of the invoke is open yet. The facet opens the
+// resumed invoke's own turn (turn_resume_<callId>) there and parents the nested
+// bracket to it, so the nested turn has a real parent carrying the host thread
+// (SPEC §1.2: a nested turn's parentTurnId points at the enclosing turn;
+// Partition root and §10 item 55: nested turns included), even when this invoke
+// is folded on its own.
+describe("createOpenaiNormalizer — a resumed handoff: the bracket's parent is the resumed invoke's own turn", () => {
+  const T = "th_host_rh";
+  const requested = (callId: string): JsonValue =>
+    runItem("handoff_requested", {
+      type: "handoff_call_item",
+      rawItem: { type: "function_call", name: "transfer_to_Echoer", callId, status: "completed", arguments: "{}" },
+      agent: { name: "spike" },
+    });
+  const occurred = (callId: string): JsonValue =>
+    runItem("handoff_occurred", {
+      type: "handoff_output_item",
+      rawItem: { type: "function_call_result", name: "transfer_to_Echoer", callId, status: "completed", output: { type: "text", text: '{"assistant":"Echoer"}' } },
+      sourceAgent: { name: "spike" },
+      targetAgent: { name: "Echoer" },
+    });
+  const targetRound: JsonValue[] = [
+    rawModel({ type: "response.created", response: { id: "resp_rh_target" } }),
+    rawModel({ type: "response.output_text.delta", item_id: "m_rh", delta: "echoed" }),
+    rawModel({ type: "response.completed", response: { id: "resp_rh_target", status: "completed" } }),
+  ];
+  const RESUMED_HANDOFF: JsonValue[] = [
+    requested("call_rh"),
+    occurred("call_rh"),
+    { type: "agent_updated_stream_event", agent: { name: "Echoer" } },
+    ...targetRound,
+  ];
+  function run(s: JsonValue[], options?: { threadId?: string }): AgEvent[] {
+    const n = createOpenaiNormalizer({ invokeId: "inv1", ...(options ?? {}) });
+    return s.flatMap((e) => n.push(e)).concat(n.flush());
+  }
+  const idOf = (e: AgEvent): unknown => Reflect.get(e, "turnId");
+
+  it("the resume turn opens AT handoff_requested, before the bracket, and is the bracket's parent", () => {
+    const n = createOpenaiNormalizer({ invokeId: "inv1", threadId: T });
+    const batch = n.push(requested("call_rh"));
+    expect(batch.map((e) => [e.type, idOf(e)])).toEqual([
+      ["turn.start", "turn_resume_call_rh"],
+      ["subagent.start", "turn_inv1_handoff_1"],
+    ]);
+    expect(batch[0]).toMatchObject({ threadId: T });
+    expect(batch[1]).toMatchObject({ parentTurnId: "turn_resume_call_rh" });
+  });
+
+  it("the resume turn opens exactly once: handoff_occurred joins it (handoff and the transfer's tool.done land there)", () => {
+    const evs = run(RESUMED_HANDOFF, { threadId: T });
+    expect(evs.filter((e) => e.type === "turn.start" && idOf(e) === "turn_resume_call_rh")).toHaveLength(1);
+    expect(evs.find((e) => e.type === "handoff")).toMatchObject({ turnId: "turn_resume_call_rh", toAgentName: "Echoer" });
+    expect(evs.find((e) => e.type === "tool.done")).toMatchObject({
+      toolCallId: "call_rh",
+      turnId: "turn_resume_call_rh",
+      messageId: "call_rh:result",
+    });
+    // The target's first response adopts the resumed invoke's turn (the existing resume design).
+    expect(evs.find((e) => e.type === "message.start" && Reflect.get(e, "role") === "assistant")).toMatchObject({ turnId: "turn_resume_call_rh" });
+  });
+
+  it("folded ON ITS OWN, every turn (the nested one included) is rooted at T, and the nested turn's parent is a real turn; no park", () => {
+    const r = new Reducer();
+    for (const e of run(RESUMED_HANDOFF, { threadId: T })) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const res = r.result();
+    expect(res.turns.every((t) => t.threadId === T)).toBe(true);
+    expect(res.messages.every((m) => m.threadId === T)).toBe(true);
+    const nested = res.turns.find((t) => t.turnId === "turn_inv1_handoff_1");
+    expect(nested).toMatchObject({ parentTurnId: "turn_resume_call_rh", threadId: T, outcome: { type: "success" } });
+    expect(res.turns.some((t) => t.turnId === nested?.parentTurnId)).toBe(true);
+  });
+
+  it("an ignored tool_called before the handoff_requested (a function_call step item) changes nothing: still one resume turn, opened at the handoff", () => {
+    const toolCalled = runItem("tool_called", {
+      type: "tool_call_item",
+      rawItem: { type: "function_call", name: "echo", callId: "call_fn", status: "completed", arguments: "{}" },
+    });
+    const evs = run([toolCalled, ...RESUMED_HANDOFF], { threadId: T });
+    const starts = evs.filter((e) => e.type === "turn.start");
+    expect(starts.map(idOf)).toEqual(["turn_resume_call_rh"]);
+    expect(evs.find((e) => e.type === "subagent.start")).toMatchObject({ parentTurnId: "turn_resume_call_rh" });
+  });
+
+  it("INV-TURN: no event owned by the resume turn precedes its turn.start (the turn.start moved earlier, nothing moved before it)", () => {
+    const evs = run(RESUMED_HANDOFF, { threadId: T });
+    const iStart = evs.findIndex((e) => e.type === "turn.start" && idOf(e) === "turn_resume_call_rh");
+    expect(iStart).toBe(0);
+    const owned = evs.map((e, i) => [e, i] as const).filter(([e]) => idOf(e) === "turn_resume_call_rh" || Reflect.get(e, "parentTurnId") === "turn_resume_call_rh");
+    expect(owned.length).toBeGreaterThan(2);
+    for (const [, i] of owned) expect(i).toBeGreaterThanOrEqual(iStart);
+  });
+
+  it("unchanged: with nothing after the transfer, flush still closes the resume turn with turn.abort (the honest flush), not success", () => {
+    const evs = run([requested("call_rh"), occurred("call_rh")], { threadId: T });
+    expect(evs.filter((e) => e.type === "turn.abort" && idOf(e) === "turn_resume_call_rh")).toHaveLength(1);
+    expect(evs.some((e) => e.type === "turn.done" && idOf(e) === "turn_resume_call_rh")).toBe(false);
+  });
+
+  it("negative control: a handoff_requested after a turn opened keeps that turn as the parent (no resume turn)", () => {
+    const evs = run([
+      rawModel({ type: "response.created", response: { id: "resp_rh_src" } }),
+      rawModel({ type: "response.output_item.added", item: { id: "fc_rh", type: "function_call", call_id: "call_src", name: "transfer_to_Echoer", arguments: "" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_rh_src", status: "completed" } }),
+      requested("call_src"),
+      occurred("call_src"),
+    ]);
+    expect(evs.some((e) => e.type === "turn.start" && String(idOf(e)).startsWith("turn_resume_"))).toBe(false);
+    expect(evs.find((e) => e.type === "subagent.start")).toMatchObject({ parentTurnId: "turn_resp_rh_src" });
   });
 });
 

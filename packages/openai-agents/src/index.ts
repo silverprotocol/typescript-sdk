@@ -3214,11 +3214,19 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
           // `subagentDone` in the `handoff_occurred` case below.
           const ordinal = ++handoffOrdinal;
           const handoffTurnId = `turn_${invokeStem}_handoff_${ordinal}`;
-          // A handoff_requested before any turn of this invoke opened (a resumed
-          // invoke can stream one first) gets a facet-local, invoke-unique parent
-          // label: never the host thread, which is a partition root, not a turn.
-          const parentTurnId = lastTopLevelTurnId ?? `turn_${invokeStem}_handoff_parent`;
-          openHandoffs.push({ turnId: handoffTurnId, parentTurnId, callId: event.item.rawItem.callId });
+          // A handoff_requested before any turn of this invoke opened: a resumed
+          // invoke streams step items without the raw model stream
+          // (resumeAcceptedModelResponse), so the transfer can be the first thing
+          // seen. Open the resumed invoke's own turn here, the same
+          // `turn_resume_<callId>` its transfer result would otherwise open at
+          // handoff_occurred, so the bracket's parent is a real turn carrying the
+          // host thread (SPEC §1.2: a nested turn's parentTurnId points at the
+          // enclosing turn; Partition root: nested turns included). The label is
+          // an unreachable fallback: with no turn open the helper always opens one.
+          const callId = event.item.rawItem.callId;
+          const parentTurnId =
+            lastTopLevelTurnId ?? openTurnForLeadingResult(callId)?.turnId ?? `turn_${invokeStem}_handoff_parent`;
+          openHandoffs.push({ turnId: handoffTurnId, parentTurnId, callId });
           a.subagentStart(handoffTurnId, parentTurnId);
           return;
         }
