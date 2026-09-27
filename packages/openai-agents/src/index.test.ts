@@ -1207,10 +1207,13 @@ describe("createOpenaiNormalizer — refusal arm (T5c)", () => {
   });
 
   // The recorded order: on the live wire every message_output_created run-item
-  // lands AFTER its response's response.completed / response.incomplete (all
-  // recorded instances). The round's terminal therefore reads the refusal from
-  // the terminal event's own `response.output`, and a late run-item's refusal
-  // never carries into the next round.
+  // lands AFTER its response's response.completed (all recorded instances). The
+  // round's terminal therefore reads the refusal from the terminal event's own
+  // `response.output`, and a late run-item's refusal never carries into the next
+  // round. An unsuccessful terminal ends the stream instead: on the Responses
+  // model, @openai/agents 0.18.0 yields the raw response.incomplete and then
+  // throws, so no run-item and no tool result follows a content_filter. The
+  // content_filter legs feed that order, except the "synthetic order" leg.
   const RU = { input_tokens: 20, output_tokens: 6, total_tokens: 26 };
   const refusalMessage = (id: string) => ({
     type: "message",
@@ -1265,10 +1268,6 @@ describe("createOpenaiNormalizer — refusal arm (T5c)", () => {
       rawModel({ type: "response.created", response: { id: "resp_rr_3" } }),
       rawModel({ type: "response.output_text.delta", item_id: "msg_rr_3", delta: "partial" }),
       rawModel({ type: "response.incomplete", response: { id: "resp_rr_3", status: "incomplete", incomplete_details: { reason: "content_filter" }, usage: RU } }),
-      runItem("message_output_created", {
-        type: "message_output_item",
-        rawItem: { type: "message", id: "msg_rr_3", role: "assistant", status: "incomplete", content: [{ type: "output_text", text: "partial", annotations: [] }] },
-      }),
     ]);
     const t = terminals(evs, "turn_resp_rr_3");
     expect(t).toHaveLength(1);
@@ -1280,7 +1279,9 @@ describe("createOpenaiNormalizer — refusal arm (T5c)", () => {
     });
   });
 
-  it("recorded order: a content_filter round deferred behind a pending call is released after that call's tool.done as its error turn.done", () => {
+  // A tool result after a content_filter is not an order 0.18.0 delivers (see
+  // above); this leg pins the deferred release for a host or model that does.
+  it("synthetic order: a content_filter round deferred behind a pending call is released after that call's tool.done as its error turn.done", () => {
     const evs = runRecorded([
       rawModel({ type: "response.created", response: { id: "resp_rr_4" } }),
       rawModel({ type: "response.output_item.added", item: { id: "fc_rr_4", type: "function_call", call_id: "call_rr_4", name: "echo", arguments: "" } }),
