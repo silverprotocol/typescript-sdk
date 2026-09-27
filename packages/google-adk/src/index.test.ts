@@ -895,7 +895,7 @@ describe("createAdkNormalizer — hitl.ask auth: flat `authConfig` view + native
   // authScheme.type; URLs/scopes by ADK's own auth_handler.js:112-128
   // derivation; clientId/audience from rawAuthCredential.oauth2). The native
   // AuthConfig rides WHOLE in metadata.authConfig, so the ask stays lossless
-  // (sp-protocol confirmed 2026-09-23).
+  // (confirmed 2026-09-23).
   function askFor(native: JsonValue): AgEvent {
     const out = run([event([], { actions: { requestedAuthConfigs: { fc_1: native } } })]);
     for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
@@ -3724,7 +3724,7 @@ describe("createAdkNormalizer — JSON-null guard: a null arm is carried, a null
 });
 
 describe("createAdkNormalizer — ADK tool-failure envelope → tool.done outcome (adk-10, SPEC §8.0 item 25, draft.4)", () => {
-  // adk-10, founder-ruled 2026-09-23: "Flip on error, approvals kept". ADK
+  // adk-10, ruled 2026-09-23: "Flip on error, approvals kept". ADK
   // answers a failed tool call with a functionResponse whose response carries
   // Gemini's documented `error` key: an unresolvable tool name
   // (answerUnresolvableCall, functions.js 2.1.0:264), a thrown tool including
