@@ -3,7 +3,7 @@
  *
  * Validates module-load contract (no CLI resolution at import time) and
  * the public shape of the exported function. No live SDK run — no API key
- * required. Task 7 (operator) exercises the live path.
+ * required. An operator's live capture exercises the live path.
  */
 import { describe, it, expect } from "vitest";
 // Static on purpose: the vendor SDK's cold load runs at collection, which

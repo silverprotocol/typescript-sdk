@@ -14,7 +14,7 @@
  *   - The `query()` call omits `pathToClaudeCodeExecutable` and
  *     `spawnClaudeCodeProcess`; the SDK manages its own executable lifecycle
  *
- * Live run is exercised by the OPERATOR in Task 7. This module + its smoke test
+ * The live run is an operator's capture. This module + its smoke test
  * only confirm: (a) module loads without throwing, (b) the function is callable
  * and returns an AsyncIterable without starting the SDK.
  */
@@ -75,8 +75,8 @@ export interface CaptureRunInput {
    * Installs a PreToolUse hook that returns this `permissionDecision` for every
    * tool call. "defer" parks the call: the CLI ends the turn and reports it as
    * the result's `deferred_tool_use` (the claude facet carries it on
-   * `ext.anthropic.result-meta.deferredToolUse`; R&D candidate 20's live
-   * receipt). "allow" and "deny" are the two resume legs' decisions ("deny"
+   * `ext.anthropic.result-meta.deferredToolUse`; the deferred-tool live
+   * capture is the receipt). "allow" and "deny" are the two resume legs' decisions ("deny"
    * exercises the decline path: permission_denials → tool.done{outcome:"denied"}).
    * Absent ⇒ no hooks option, byte-identical to before.
    */
@@ -435,7 +435,7 @@ export async function* runClaudeCapture(input: CaptureRunInput): AsyncIterable<J
       // by design — captures must exercise ONLY the scenario's declared MCP
       // tools), which also removes that tool-search capability, so a
       // deferred MCP tool schema is NEVER loaded into context. Verified
-      // empirically live (playbook 2026-07-03): without `alwaysLoad`, the
+      // empirically live (2026-07-03): without `alwaysLoad`, the
       // model narrates a fabricated `<tool_call>...</tool_call>` in PLAIN
       // TEXT instead of emitting a real `tool_use` content block (the SDK
       // never sees the tool exists) — silently producing a hallucinated

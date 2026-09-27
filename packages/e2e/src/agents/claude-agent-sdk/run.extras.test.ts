@@ -1,5 +1,5 @@
 // The query() options behind CaptureRunInput.preToolUseDecision /
-// resumeSessionId (R&D candidate 20's live capture: a PreToolUse `defer`, then
+// resumeSessionId (the deferred-tool live capture: a PreToolUse `defer`, then
 // resume legs that allow or deny). Exercised WITHOUT the SDK: the builder is
 // pure, and the installed hook is called directly.
 import { describe, expect, it } from "vitest";

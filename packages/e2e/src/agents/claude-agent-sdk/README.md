@@ -48,7 +48,7 @@ The SDK takes an `AbortController`; the harness interface exposes an
 `AbortSignal`. The bridge forwards the signal's abort event onto a fresh
 controller.
 
-## Usage (operator / Task 7)
+## Usage (operator)
 
 ```ts
 import { runClaudeCapture } from "./run.js";

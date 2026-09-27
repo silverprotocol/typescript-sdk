@@ -410,7 +410,7 @@ function toolResultContentToAgBlocks(content: NonNullable<ToolResultContent>): A
 
 // Assistant-side mcp_tool_result content → AgBlock[] (distinct shape from the
 // user-side tool_result content mapped by `toolResultContentToAgBlocks` above).
-// A `for...of` loop, not `.map` — playbook 2026-07-03 SDK-bump adaptation: the
+// A `for...of` loop, not `.map` — the 2026-07-03 SDK-bump adaptation: the
 // 0.3.199 `SDKMessage` union widened enough that `.map`/`.forEach`/`.filter`
 // callback PARAMETER inference silently degrades to implicit `any` on this
 // content shape (a known TS limitation calling an array method on a value typed
@@ -477,12 +477,12 @@ function isDenialKind(kind: string | undefined): boolean {
 
 // Which assistant `error` codes are transient (retriable). An API-error turn's
 // stashed top-level close and a nested frame's non-terminal `error` share it.
-// Finding #2 (minor): `overloaded` (transient capacity error, a first
+// `overloaded` (transient capacity error, a first
 // cousin of rate_limit/server_error) joins the retriable set.
 // `model_not_found` (a permanent misconfiguration — e.g. a stale/
 // decommissioned model id) is deliberately EXCLUDED: explicit
-// false-by-omission, not an oversight (playbook 2026-07-03 SDK-bump
-// adaptation, Finding #2). `account_on_hold` (0.3.258) is likewise a
+// false-by-omission, not an oversight (the 2026-07-03 SDK-bump
+// adaptation). `account_on_hold` (0.3.258) is likewise a
 // deliberate non-retriable: a billing-class code (the account is on
 // hold — a first cousin of `billing_error`, cleared by the account
 // holder, never by re-sending the turn).
@@ -514,7 +514,7 @@ function assistantErrorRetriable(errCode: NonNullable<SDKAssistantError>): boole
 //    default content.block) never apply it, so those facts drop there (a
 //    disclosed, pre-existing gap; a retraction itself still executes via
 //    `message.remove` regardless, see `drive()`).
-//  - `blockMeta` (X5): the HOST-only wrapper facts (HOST_ONLY_WRAPPER_KEYS).
+//  - `blockMeta`: the HOST-only wrapper facts (HOST_ONLY_WRAPPER_KEYS).
 //    Only text.start / reasoning.start get it, because `reduce()` folds their
 //    `_meta` onto the block.
 // Returns which halves ANCHORED on a folded start event: `replay` when the
@@ -547,7 +547,7 @@ function emitAssistantBlock(
     case "text": {
       // Claude's assistant message is a COMPLETE structure (not a live stream), so
       // citations are already known at the point text.end fires — they ride the
-      // STREAMED-text citations carrier (audit M22: text.end.citations), never as
+      // STREAMED-text citations carrier (text.end.citations), never as
       // a duplicate id-less supplement block.
       const id = `${messageId}:text:${blockIndex}`;
       const citations =
@@ -751,7 +751,7 @@ function isSDKMessage(v: unknown): v is SDKMessage {
 // subagent adoption), and task_progress/task_notification's own
 // `summary`/`last_tool_name` would DUPLICATE content the nested subagent's
 // own tool_use/tool_result stream already conveys once correlation resolves
-// — the M22 double-fold hazard. `description` enrichment onto
+// — a double fold. `description` enrichment onto
 // subagent.start was also considered and rejected: `subagent.start`'s
 // schema carries no providerMetadata slot (only agentId/agentName), and
 // reaching it would require bypassing the `subagentStart()` sugar
@@ -768,14 +768,14 @@ function isSDKMessage(v: unknown): v is SDKMessage {
 // carried, not forced onto an unrelated event.
 //
 // SDKPermissionDeniedMessage is the ONE arm that DOES map onto an existing
-// home (the W1 `<turnId>:denials` carrier, audit M19) — see the dedicated
+// home (the `<turnId>:denials` carrier) — see the dedicated
 // branch + `deniedLiveByToolUseId` in `createClaudeNormalizer()` below; it
 // is deliberately EXCLUDED from the carried sets here.
 //
 // SDKModelRefusalFallbackMessage is HALF-mapped: its retraction goes to
 // `message.remove` (§8 item 19) and the rest of the frame has no home. It is
 // NOT in the sets below either. Its dedicated branch does the retraction and
-// then emits the same `ext.anthropic.frame` carry itself (X4, 2026-09-23, on
+// then emits the same `ext.anthropic.frame` carry itself (since 2026-09-23, on
 // the item-22 reading for half-mapped frames — see that branch).
 //
 // ONE uniform key — `ext.anthropic.frame{kind, frame}` (SPEC §8 item 22 /
@@ -882,7 +882,7 @@ function readUserMessageUuids(v: unknown): string[] | undefined {
   return Array.isArray(v) && v.every((s): s is string => typeof s === "string") ? [...v] : undefined;
 }
 
-// X5 (2026-09-23): the assistant-wrapper keys that ride a block's HOST-ONLY
+// Since 2026-09-23: the assistant-wrapper keys that ride a block's HOST-ONLY
 // `_meta` rather than replay-load-bearing `providerMetadata` (SPEC §12). They
 // are CLI-wrapper facts the Messages API never consumes. See the split in
 // drive()'s assistant branch.
@@ -1415,7 +1415,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // tool_result (same non-null parent_tool_use_id) can route to it instead.
   const subagentTurnByParentToolUseId = new Map<string, string>();
 
-  // INV-TURN (SPEC:743; ruling B, 2026-09-23): ONE turnId names
+  // INV-TURN (SPEC:743; ruled 2026-09-23): ONE turnId names
   // exactly ONE turn. A top-level turn is `turn_` + the id of the frame that
   // OPENS it: the first assistant message's id (`m.id`, from a complete frame
   // or a stream `message_start`) in the ordinary case, or the frame's own
@@ -1540,7 +1540,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // the user branch), and a nested one for a run this invoke never opened opens
   // a fresh run the same way.
   //
-  // B-STRICT NESTED TERMINALS (draft.4, the nested-turn ruling Q1,
+  // B-STRICT NESTED TERMINALS (draft.4, the nested-turn ruling,
   // 2026-09-24). A nested turn opens
   // with exactly one subagent.start and closes with exactly one turn.done |
   // turn.error | turn.abort carrying its turnId, IMMEDIATELY followed by its
@@ -1616,8 +1616,8 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
     }
   }
 
-  // Playbook 2026-07-03 SDK-bump adaptation, Finding #1 (critical) — refusal-
-  // fallback retraction (§8 item 19). `supersedes` / `retracted_message_uuids`
+  // Refusal-fallback retraction (§8 item 19; the 2026-07-03 SDK-bump
+  // adaptation). `supersedes` / `retracted_message_uuids`
   // name PRIOR DELIVERED MESSAGES by their wire-frame `uuid` (`msg.uuid`) — a
   // DIFFERENT id space from the messageIds this facet actually emits (`m.id`
   // for an assistant frame's `message.start`, `${tool_use_id}:result` for an
@@ -1631,10 +1631,10 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // home mapping): live per-denial diagnostic recorded by the standalone
   // `permission_denied` frame (fires DURING the turn, before the terminal
   // result) — keyed by tool_use_id so the terminal `permission_denials[]`
-  // aggregate (the ALREADY-handled W1 `<turnId>:denials` carrier, audit M19)
+  // aggregate (the ALREADY-handled `<turnId>:denials` carrier)
   // can enrich its tool.done with the actual rejection text + decision-reason
   // context, instead of emitting a SECOND tool.start/tool.done pair for the
-  // same denial (the M22 double-fold hazard).
+  // same denial (a double fold).
   type LiveDenial = {
     message: string;
     decisionReasonType?: string;
@@ -1907,12 +1907,12 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
     });
   }
 
-  // Emit what the block's content_block_stop produces — text.end (with the M22
+  // Emit what the block's content_block_stop produces — text.end (with the
   // streamed-citations carrier), reasoning.end + the replay-load-bearing opaque
   // (same end-then-opaque order as the complete arm), the MANDATORY
   // tool.args.assembled (spec §4/§8.1), or the buffered compaction block.
   // `atFlush` (INV-FLUSH (3), draft.4; the fold/flush ruling, "snapshot
-  // fold + honest flush; opaque at flush forbidden"; leg C1): the
+  // fold + honest flush; opaque at flush forbidden"): the
   // stream ENDED with this block open, so the close lands NO new content. The
   // lifecycle closes stay (text.end with its already-received citations,
   // reasoning.end), and the block's scratch is DROPPED: no tool.args.assembled
@@ -2212,7 +2212,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // name kept; null kept: "no estimate yet" is a real value). Absent key ⇒
         // no bag, byte-identical.
         //
-        // X5 (2026-09-23): it rides the delta's host-only `_meta`, not
+        // Since 2026-09-23: it rides the delta's host-only `_meta`, not
         // `providerMetadata`. The latter is REPLAY-LOAD-BEARING (SPEC §12: values
         // that must round-trip to the provider), and the Messages API never
         // consumes this CLI estimate. Consequence: `reduce()` folds `_meta` only
@@ -2244,7 +2244,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         return;
       }
       if (d.type === "citations_delta" && b.kind === "text") {
-        // Buffered — the M22 streamed-citations carrier is text.end, at stop.
+        // Buffered — the streamed-citations carrier is text.end, at stop.
         b.citations.push(...mapCitations([d.citation]));
         return;
       }
@@ -2344,7 +2344,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
 
   // Emit a result's permission_denials as tool.start + tool.done denied pairs,
   // inside a dedicated carrier message: the assistant message is already
-  // sealed, and INV-MSG (audit M19) forbids attaching to sealed messages or
+  // sealed, and INV-MSG forbids attaching to sealed messages or
   // closed turns. BOTH result arms call it, at the same point (after the seal
   // and the run closes, before result-meta and the close). Through 0.6.4 only
   // the success arm did, so an error-subtype result (SDKResultError declares
@@ -2417,7 +2417,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
           : undefined;
       if (continued === undefined) closePendingMessage();
 
-      // Finding #1 (critical): this frame supersedes prior delivered messages
+      // Refusal-fallback retraction: this frame supersedes prior delivered messages
       // (refusal-fallback retry) — evict them "on arrival", per the field's own
       // doc, before opening the canonical replacement below. Idempotent with
       // the end-of-turn `model_refusal_fallback` notice (see the `system`
@@ -2503,7 +2503,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // diagnostics, there `{cache_miss_reason: {type: "tools_changed",
       // cache_missed_input_tokens: 3258}}`, i.e. why the prompt cache missed.
       // Response-only (never sent back on replay), so it rides host-only `_meta`
-      // (SPEC §12, the X5 split), verbatim with its wire name. Undeclared on
+      // (SPEC §12, the host-only split), verbatim with its wire name. Undeclared on
       // @anthropic-ai/sdk 0.93.0's BetaMessage, so read through the JSON
       // boundary; null (its usual value) carries nothing. It is per RESPONSE,
       // and the CLI repeats the same message object on every frame of a
@@ -2555,7 +2555,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // vendor carries; a 0.7.0 carry with zero golden moves). Three more
       // @internal CLI 2.1.280 assistant-wrapper strings, UNDECLARED in sdk.d.ts
       // 0.3.280 (so read through the JSON boundary), carried verbatim under their
-      // wire names on the frame's first block's host-only `_meta` (the X5 route,
+      // wire names on the frame's first block's host-only `_meta` (the wrapper-key route,
       // which folds onto block._meta; never providerMetadata, SPEC §12):
       //  - `error_details`: "Raw API error message: preserves details (e.g.
       //    prompt-too-long token counts) that user-facing content discards"
@@ -2678,7 +2678,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
           if (resumeReason !== undefined) wrapperMetaRaw["resume_reason"] = resumeReason;
         }
       }
-      // X5 (the 2026-09-23 re-cut): the bag mixes two kinds of fact. SPEC
+      // The 2026-09-23 re-cut: the bag mixes two kinds of fact. SPEC
       // §12 makes `providerMetadata` REPLAY-LOAD-BEARING (values that must
       // round-trip to the provider) and `_meta` host-only side metadata.
       // Every key in HOST_ONLY_WRAPPER_KEYS is a CLI-wrapper fact the Messages
@@ -2719,7 +2719,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // reasoning block. A listed empty block (display "omitted") gets none.
       // The index is FRAME-local. Never inferred from position, text or turn
       // end; never decoded from the signature; the vendor list itself still
-      // rides host-only `_meta` verbatim (X5).
+      // rides host-only `_meta` verbatim.
       const narrationIndexes = new Set(narrationBlockIndexes ?? []);
       if (suppressed && narrationIndexes.size > 0) {
         // STREAMED: the complete frame precedes its blocks' content_block_stop
@@ -2837,7 +2837,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         const errCode: NonNullable<SDKAssistantError> = msg.error;
         const retriable = assistantErrorRetriable(errCode);
         if (msg.parent_tool_use_id !== null) {
-          // A NESTED error frame (ruling 1, 2026-09-23): the error is
+          // A NESTED error frame (ruled 2026-09-23): the error is
           // owned by the NESTED turn (SPEC:97 a subagent is a full turn with its
           // own turnId; INV-OWNER, SPEC:753), so it never closes the parent. The
           // parent closes as an error only when its OWN result frame says so.
@@ -2865,7 +2865,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // and this message's seal is deferred (INV-MSG) until nothing can continue it.
 
       // Record this frame's own uuid → the messageId it produced, so a LATER
-      // retraction naming this uuid can translate it (Finding #1). The EMITTED
+      // retraction naming this uuid can translate it (§8 item 19). The EMITTED
       // id, so a retraction still names the message that actually exists on the
       // wire when this frame rode a derived carrier.
       registerUuid(msg.uuid, [messageId], turnId);
@@ -2961,10 +2961,10 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // subagent reduce() correctly routes the result.
       const content = msg.message.content;
       if (typeof content !== "string") {
-        // Task 8c leg 4: prefer the REAL subagent turnId recorded at
+        // Prefer the REAL subagent turnId recorded at
         // subagent.start time. Fall back to the old synthetic label only when
         // it is unknown (e.g. a result delivered before its subagent.start
-        // was ever observed) — defensive; leg 3's never-opened-turn guard now
+        // was ever observed) — defensive; the never-opened-turn guard now
         // parks loudly on that label instead of fabricating a phantom turn.
         // Top-level: the OPEN top-level turn, explicitly (overlapping subagent
         // runs make the assembler's last-turn backfill unreliable). With no turn
@@ -3071,7 +3071,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         let toolResultCount = 0;
         for (const b of content) if (b.type === "tool_result") toolResultCount++;
         const applySibling = sibling !== undefined && toolResultCount === 1;
-        // Finding #1: this frame's own uuid may later be named by a retraction
+        // Retraction (§8 item 19): this frame's own uuid may later be named by a retraction
         // (a refused leg's tombstoned tool_results, per the field's own doc) —
         // collect every adopted messageId this frame produces below.
         const resultMessageIds: string[] = [];
@@ -3168,7 +3168,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
             });
           }
         }
-        // Finding #1: record this frame's uuid → the adopted messageId(s) it
+        // Retraction (§8 item 19): record this frame's uuid → the adopted messageId(s) it
         // produced, so a later retraction naming this uuid can translate it.
         registerUuid(msg.uuid, resultMessageIds, toolTurnId);
       }
@@ -3406,7 +3406,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
     }
 
     if (msg.type === "system" && msg.subtype === "model_refusal_fallback") {
-      // Finding #1 (critical): the end-of-turn authoritative eviction record —
+      // Refusal-fallback retraction: the end-of-turn authoritative eviction record —
       // "the complete audit record for the turn" per the field's own doc.
       // Idempotent with the earlier `supersedes`-triggered eviction above (see
       // `retractUuids`'s doc); also the ONLY retraction path when a consumer
@@ -3417,7 +3417,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       closePendingMessage();
       const uuids = Array.isArray(msg.retracted_message_uuids) ? msg.retracted_message_uuids : [];
       retractUuids(uuids);
-      // X4 (the 2026-09-23 re-cut): only the retraction has a core home.
+      // The 2026-09-23 re-cut: only the retraction has a core home.
       // A notice yields 0..N `message.remove`s, so there is no single event to
       // hang the rest on. The rest of the frame is the switch itself: `trigger`, `direction`
       // ('retry'; 'revert'/'sticky' are "no longer emitted" per 0.3.280),
@@ -3433,10 +3433,10 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // whose content that home already conveys, and `message.remove` conveys
       // only the retraction. So the residual fields fall under item 22's
       // no-drop MUST, and the whole frame rides. (A clarifying
-      // line for item 22 is queued for the review bar.) `ext.*` is live-only
+      // line for item 22 is queued for review.) `ext.*` is live-only
       // and non-folding, so the second copy of `retracted_message_uuids`
-      // cannot double-fold (the M22 hazard). This is the only producer for R&D
-      // item 3's `turn.model-switch`. Synthetic-only (needs a classifier refusal).
+      // cannot double-fold. This is the only producer for the candidate
+      // `turn.model-switch` event. Synthetic-only (needs a classifier refusal).
       a.emitExt("anthropic", "frame", { kind: msg.subtype, frame: carryVerbatim(msg) });
       return;
     }
@@ -3445,8 +3445,8 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // Fixture-drift ratchet finding: this standalone LIVE denial notice is
       // the SAME fact the already-handled `SDKResultMessage.permission_denials[]`
       // aggregate turns into a tool.start+tool.done{denied} pair inside the
-      // W1 `<turnId>:denials` carrier (audit M19, above) — do NOT emit a
-      // second pair here (the M22 double-fold hazard). Record this frame's
+      // `<turnId>:denials` carrier (above) — do NOT emit a
+      // second pair here (a double fold). Record this frame's
       // richer diagnostic fields only; the aggregate handler consumes them.
       //
       // `decision_reason_code` (CLI 2.1.280, @internal — UNDECLARED in sdk.d.ts
@@ -3551,7 +3551,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
     flush(): AgEvent[] {
       // INV-MSG: nothing can continue the deferred message now — seal it with
       // its real usage rather than leaving INV-FLUSH to synthesize a bare
-      // `message.end`. At flush: no content is minted (INV-FLUSH (3), C1).
+      // `message.end`. At flush: no content is minted (INV-FLUSH (3)).
       closePendingMessage(true);
       // B-strict: every subagent run still open closes here with its nested
       // terminal (turn.abort{stream-truncated}, or its stashed API error) and

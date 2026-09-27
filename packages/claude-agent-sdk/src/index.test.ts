@@ -196,7 +196,7 @@ function assertAllValid(evs: AgEvent[]): void {
 // monotonic. The nested-subagent turn is seeded by `subagent.start`, so it has
 // NO synthesized `turn.start`.
 
-// INV-TURN (per-turn ids, ruling B, 2026-09-23): a top-level turn
+// INV-TURN (per-turn ids, ruled 2026-09-23): a top-level turn
 // is named by the frame that OPENS it, never by the session. Most fixtures
 // open on `assistantMsg` (message id "msg_fixture_1"); a turn a result frame
 // opens by itself (no assistant frame first) is named by that result's uuid.
@@ -206,7 +206,7 @@ const RESULT_ONLY_TURN = "turn_00000000-0000-0000-0000-000000000002";
 describe("createClaudeNormalizer — assistant text (assembled golden)", () => {
   // `run()` = push the ONE assistant message + flush, with no terminal `result`
   // message ever arriving — a genuinely truncated stream (the session never told
-  // us how it ended). Per INV-FLUSH (audit M21) flush() truthfully closes the
+  // us how it ended). Per INV-FLUSH flush() truthfully closes the
   // still-open turn with `turn.abort{stream-truncated}`, never a silent no-op.
   it("synthesizes turn.start, backfills turnId, and uses turn-scoped seq", () => {
     const evs = run(assistantMsg([{ type: "text", text: "hello", citations: null }]));
@@ -262,7 +262,7 @@ describe("createClaudeNormalizer — assistant text (assembled golden)", () => {
   });
 });
 
-describe("createClaudeNormalizer — INV-FLUSH truncation (audit M21)", () => {
+describe("createClaudeNormalizer — INV-FLUSH truncation", () => {
   it("flush() aborts a dangling turn as stream-truncated when the terminal result message never arrives", () => {
     // The stream stops after an assistant message but the terminal `result`
     // message never lands (session cut off) — flush() must truthfully abort
@@ -472,7 +472,7 @@ describe("createClaudeNormalizer — tool_result", () => {
       toolCallId: "toolu_fixture_1",
       outcome: "ok",
       content: [{ type: "text", text: "42" }],
-      // SPEC §5 tool.done adoption (audit B10; Task 8b): the plain tool_result
+      // SPEC §5 tool.done adoption: the plain tool_result
       // path always carries a derived messageId so the reducer lands the result
       // in its own dedicated ToolMessage rather than the (possibly already
       // sealed) assistant message — see the messageId-adoption describe block
@@ -484,11 +484,11 @@ describe("createClaudeNormalizer — tool_result", () => {
   });
 });
 
-// ── tool.done.messageId adoption (SPEC §5; audit B10; Task 8b) ────────────────
-// Regression pin for the Wave-1 park bug: the Claude SDK closes the assistant
-// message (message.end) BEFORE the tool_result user message arrives. Pre-Wave-1
-// this silently attached the result to the already-sealed assistant message
-// (the exact leak M19 was built to close). Post-enforcement (pre-8b) the plain
+// ── tool.done.messageId adoption (SPEC §5) ────────────────────────────────────
+// Regression pin for a park bug: the Claude SDK closes the assistant
+// message (message.end) BEFORE the tool_result user message arrives. Before
+// the reducer enforced INV-MSG this silently attached the result to the
+// already-sealed assistant message. Once INV-MSG was enforced, the plain
 // tool_result → tool.done call carried no messageId, so the reducer tried (and
 // failed) to attach to the assistant message's already-cleared open pointer and
 // PARKED the fold (needsResync=true) — everything after the first tool call in
@@ -496,7 +496,7 @@ describe("createClaudeNormalizer — tool_result", () => {
 // a REAL claude tool conversation, so this was caught by a reference host's
 // fold-identity check. The fix: the facet derives a stable
 // `${toolCallId}:result` messageId, engaging the reducer's SPEC §5 adoption
-// path (Task 5) — a DEDICATED role:"tool" message, not an attach to the
+// path — a DEDICATED role:"tool" message, not an attach to the
 // assistant message.
 describe("createClaudeNormalizer — tool.done.messageId adoption (SPEC §5)", () => {
   it("standard tool round-trip (tool_use → message.end → tool_result) folds without park: the result lands in its own ToolMessage, not the sealed assistant message", () => {
@@ -833,10 +833,10 @@ describe("createClaudeNormalizer — nested subagent turn (assembled golden)", (
 // subagent's own session (a `user` message whose `parent_tool_use_id` matches
 // the spawning Task call) routed its `tool.done.turnId` to that synthetic
 // label — which the reducer's adoption path then fabricated into a phantom
-// turn (or, post leg 3, would park loudly). The facet now tracks
+// turn (or, once the never-opened-turn guard landed, parked loudly). The facet now tracks
 // `parent_tool_use_id → subagent turnId` (derived from `subagentStart`) so
 // inner results route to the SUBAGENT's OWN turnId instead.
-describe("createClaudeNormalizer — inner tool-result routes to the subagent turn (Task 8c leg 4)", () => {
+describe("createClaudeNormalizer — inner tool-result routes to the subagent turn", () => {
   const TASK_TOOL_ID = "toolu_task";
   const INNER_TOOL_ID = "toolu_inner_search";
   const TOP_SESSION = "sess_top";
@@ -1020,7 +1020,7 @@ describe("createClaudeNormalizer — refusal stop_reason", () => {
   });
 });
 
-describe("createClaudeNormalizer — text citations (audit M22)", () => {
+describe("createClaudeNormalizer — text citations ride text.end", () => {
   it("attaches citations to text.end and emits NO supplement content.block", () => {
     const evs = run(
       assistantMsg([
@@ -1122,10 +1122,10 @@ function resultWithDenial(): SDKMessage {
 }
 
 describe("createClaudeNormalizer — permission_denials", () => {
-  it("emits tool.start + tool.done denied for each permission denial, inside a carrier message BEFORE turn close (audit M19)", () => {
+  it("emits tool.start + tool.done denied for each permission denial, inside a carrier message BEFORE turn close (INV-MSG)", () => {
     const evs = run(resultWithDenial());
-    // The denial carrier message opens+closes BEFORE turn.done: INV-MSG (audit
-    // M19) forbids attaching a tool.start/tool.done pair to the already-sealed
+    // The denial carrier message opens+closes BEFORE turn.done: INV-MSG
+    // forbids attaching a tool.start/tool.done pair to the already-sealed
     // assistant message or to a closed turn, so the denials get their own
     // message, opened while the turn is still open.
     expect(evs.map((e) => e.type)).toEqual([
@@ -1152,7 +1152,7 @@ describe("createClaudeNormalizer — permission_denials", () => {
     assertAllValid(evs);
   });
 
-  it("permission denials fold into a dedicated carrier message, before turn close (audit M19)", () => {
+  it("permission denials fold into a dedicated carrier message, before turn close (INV-MSG)", () => {
     const events = run(resultWithDenial());
     // Local narrowing casts: `id` is not common to every `AgEvent` union arm
     // (the `AgExtEvent.catchall(JsonValue)` template-literal `type` widens the
@@ -1373,9 +1373,9 @@ describe("createClaudeNormalizer — message.end usage", () => {
   });
 });
 
-// ─── B1b: Extended population — providerExecuted, structured_output, parent_tool_use_id, server blocks ──
+// ─── Extended population — providerExecuted, structured_output, parent_tool_use_id, server blocks ───────
 
-describe("createClaudeNormalizer — B1b: providerExecuted from caller", () => {
+describe("createClaudeNormalizer — providerExecuted from caller", () => {
   it("sets providerExecuted: true for server_tool_use blocks", () => {
     const evs = run(
       assistantMsg([
@@ -1408,7 +1408,7 @@ describe("createClaudeNormalizer — B1b: providerExecuted from caller", () => {
   });
 });
 
-describe("createClaudeNormalizer — B1b: structured_output", () => {
+describe("createClaudeNormalizer — structured_output", () => {
   it("uses structured_output as turn.done.outcome.result when present", () => {
     const msg: SDKMessage = {
       type: "result",
@@ -1448,7 +1448,7 @@ describe("createClaudeNormalizer — B1b: structured_output", () => {
   });
 });
 
-describe("createClaudeNormalizer — B1b: parent_tool_use_id on tool.done", () => {
+describe("createClaudeNormalizer — parent_tool_use_id on tool.done", () => {
   it("a nested tool_result for a run this invoke never opened opens a run named by its frame (INV-TURN), never the synthetic parent label", () => {
     const content: UserContent = [
       {
@@ -1474,7 +1474,7 @@ describe("createClaudeNormalizer — B1b: parent_tool_use_id on tool.done", () =
       type: "tool.done",
       toolCallId: "toolu_fixture_1",
       turnId: "turn_00000000-0000-0000-0000-000000000003",
-      // SPEC §5 tool.done adoption (audit B10; Task 8b): the derived messageId
+      // SPEC §5 tool.done adoption: the derived messageId
       // is independent of turnId routing — the subagent-routed result still
       // adopts its own dedicated ToolMessage rather than attaching in-place.
       messageId: "toolu_fixture_1:result",
@@ -1536,7 +1536,7 @@ describe("createClaudeNormalizer — deferral c: assistant error → turn.error"
     assertAllValid(evs);
   });
 
-  // Finding #2 (minor, playbook 2026-07-03 SDK-bump adaptation, claude-agent-sdk
+  // The 2026-07-03 SDK-bump adaptation (claude-agent-sdk
   // 0.2.141 → 0.3.199): `SDKAssistantMessageError` gained `overloaded` and
   // `model_not_found`.
   it("emits turn.error with retriable:true for overloaded", () => {
@@ -1640,7 +1640,7 @@ describe("createClaudeNormalizer — deferral c: assistant error → turn.error"
   });
 });
 
-// ─── INV-TURN: one turnId names exactly one turn (ruling B) ──────
+// ─── INV-TURN: one turnId names exactly one turn ─────────────────
 // Through 0.6.4 every top-level turn was `turn_${session_id}`, so in a
 // multi-turn invoke the second turn's message.start and content landed on T
 // AFTER turn.done(T) (no second turn.start: the assembler's seen-turn set
@@ -2089,8 +2089,7 @@ describe("createClaudeNormalizer — INV-TURN: one turnId per turn (B, 2026-09-2
 });
 
 // ─── draft.4 `phase:"interim"` from narration_block_indexes (§8.0 item 27) ───
-// rnd 13+17 stage 2, the claude leg (A.6; a SHOULD per the A.10.5
-// ruling). A `thinking` block listed in the frame-local narration_block_indexes
+// The claude leg (a SHOULD). A `thinking` block listed in the frame-local narration_block_indexes
 // whose text is NON-EMPTY → phase "interim" on that reasoning block: on
 // reasoning.start when the frame is complete-form (known before the first
 // delta), on reasoning.end when it streamed (the complete frame precedes the
@@ -2349,15 +2348,15 @@ describe("createClaudeNormalizer — replayed user frames (isReplay) re-emit not
   });
 });
 
-// ─── Finding #1 (critical): refusal-fallback retraction protocol ─────────────
-// playbook 2026-07-03 SDK-bump adaptation (claude-agent-sdk 0.2.141 → 0.3.199).
+// ─── refusal-fallback retraction protocol ────────────────────────────────────
+// The 2026-07-03 SDK-bump adaptation (claude-agent-sdk 0.2.141 → 0.3.199).
 // New wire: SDKAssistantMessage.supersedes? + the system message
 // SDKModelRefusalFallbackMessage{retracted_message_uuids} — the SDK retried a
 // refused turn on a fallback model and instructs eviction of the refused leg.
 // LOCKED MAPPING: message.remove per retracted uuid, translated through the
 // facet's own uuid(msg.uuid)→messageId(m.id / `${tool_use_id}:result`)
 // convention — a DIFFERENT id space (SPEC §8 item 19).
-describe("createClaudeNormalizer — refusal-fallback retraction (playbook 2026-07-03)", () => {
+describe("createClaudeNormalizer — refusal-fallback retraction (§8 item 19)", () => {
   const REFUSED_UUID = "00000000-0000-0000-0000-0000000000f1";
   const FALLBACK_UUID = "00000000-0000-0000-0000-0000000000f2";
   const NOTICE_UUID = "00000000-0000-0000-0000-0000000000f3";
@@ -2495,8 +2494,8 @@ describe("createClaudeNormalizer — refusal-fallback retraction (playbook 2026-
   it("usage stays verbatim — the facet does not invent usage subtraction for the refused leg", () => {
     // The turn's usage (mapTurnUsage/mapMessageUsage) is untouched by this
     // adaptation: the SDK's own result.usage/modelUsage already accounts for
-    // whatever billing the refusal-fallback retry accrued server-side (playbook
-    // brief's usage caution). Assert the verbatim contract still holds in a
+    // whatever billing the refusal-fallback retry accrued server-side (the
+    // adaptation's usage caution). Assert the verbatim contract still holds in a
     // retraction turn: per-turn counters, the query-scoped cost, the per-model
     // running totals.
     const n = createClaudeNormalizer();
@@ -2515,7 +2514,7 @@ describe("createClaudeNormalizer — refusal-fallback retraction (playbook 2026-
     });
   });
 
-  // ─── X4 (the 2026-09-23 re-cut): the rest of the frame rides the carry ──
+  // ─── the 2026-09-23 re-cut: the rest of the frame rides the carry ───────
   // Through 0.6.3 only `retracted_message_uuids` was read; the switch itself
   // (models, direction, scope, refusal category/explanation, the edit-and-retry
   // uuid, `content`) was dropped. The whole frame now rides
@@ -2780,7 +2779,7 @@ describe("createClaudeNormalizer — SDKInformationalMessage → notice message 
   });
 });
 
-describe("createClaudeNormalizer — B1b: server blocks semantic homes", () => {
+describe("createClaudeNormalizer — server blocks semantic homes", () => {
   it("maps compaction block to content.block with type: compaction", () => {
     const evs = run(
       assistantMsg([
@@ -3068,18 +3067,18 @@ describe("tool_use_result sibling mapping", () => {
 
 // ─── fixture-drift ratchet — the 16 remaining `silently-dropped` claude arms
 // (2026-07-03 follow-up to the SDKInformationalMessage flagship fix above) ────
-// Per-arm decision procedure (see `.superpowers/sdd/claude-arms-disposition-report.md`
-// for the full table + wire-shape citations):
-//  1. SDKPermissionDeniedMessage -> HANDLED: routed into the existing W1
-//     `<turnId>:denials` carrier (audit M19) as enrichment, not a duplicate pair.
+// Per-arm decision procedure (each arm's sdk-surface.json note has the full
+// reasoning):
+//  1. SDKPermissionDeniedMessage -> HANDLED: routed into the existing
+//     `<turnId>:denials` carrier as enrichment, not a duplicate pair.
 //  2. The other 15 -> uniform lossless carry `ext.anthropic.frame{kind, frame}`
 //     (SPEC §8 item 22 / §12) — including the Task* subagent-progress family
 //     and SDKModelRefusalNoFallbackMessage, both STUDIED against an
 //     existing-home mapping and rejected (see index.ts's `anthropicFrameKind`
 //     doc comment for the full reasoning: tool_use_id is OPTIONAL on every
 //     Task* arm, so the family is a broader "tasks panel" superset, not 1:1
-//     with Task-tool subagent adoption; forcing the mapping risks the M22
-//     double-fold hazard).
+//     with Task-tool subagent adoption; forcing the mapping risks a
+//     double fold).
 
 // Every fixture below includes a representative slice of the arm's OPTIONAL
 // fields (not just the required minimum) so the "byte-preserved frame" assertion
@@ -3100,7 +3099,7 @@ function modelRefusalNoFallbackMsg(): SDKMessage {
   };
 }
 
-// X4 (2026-09-23): the half-mapped fallback arm. Its retraction names a uuid a
+// Since 2026-09-23: the half-mapped fallback arm. Its retraction names a uuid a
 // fresh normalizer never saw, so `message.remove` is a no-op (item 19) and the
 // uniform carry is the ONLY event — the same shape the table below pins for
 // every fully carried arm. The describe block above covers the mapped half.
@@ -3331,7 +3330,7 @@ function mirrorErrorMsg(): SDKMessage {
 
 const CARRIED_ARMS: ReadonlyArray<{ armName: string; kind: string; msg: SDKMessage }> = [
   { armName: "SDKModelRefusalNoFallbackMessage", kind: "model_refusal_no_fallback", msg: modelRefusalNoFallbackMsg() },
-  // X4: carried AND mapped (its retraction -> message.remove, a no-op here).
+  // Carried AND mapped (its retraction -> message.remove, a no-op here).
   { armName: "SDKModelRefusalFallbackMessage", kind: "model_refusal_fallback", msg: modelRefusalFallbackMsg() },
   { armName: "SDKLocalCommandOutputMessage", kind: "local_command_output", msg: localCommandOutputMsg() },
   { armName: "SDKHookProgressMessage", kind: "hook_progress", msg: hookProgressMsg() },
@@ -3377,7 +3376,7 @@ describe("createClaudeNormalizer — uniform vendor-frame carry (ext.anthropic.f
     },
   );
 
-  it("a carried frame sandwiched inside a real turn does not false-park the fold (M22/M46 lesson)", () => {
+  it("a carried frame sandwiched inside a real turn does not false-park the fold", () => {
     const n = createClaudeNormalizer();
     const events = [
       ...n.push(JsonValue.parse(assistantMsg([{ type: "text", text: "hi", citations: null }]))),
@@ -3461,11 +3460,11 @@ describe("createClaudeNormalizer — runtime-only top-level types (command_lifec
 });
 
 // ─── SDKPermissionDeniedMessage — the "real judgment case" existing-home fix ──
-// (audit M19's W1 `<turnId>:denials` carrier). The standalone live denial
+// (the `<turnId>:denials` carrier). The standalone live denial
 // notice is the SAME fact the terminal `permission_denials[]` aggregate
 // already turns into a tool.start+tool.done{denied} pair — this fix enriches
 // THAT pair (rejection message text + decision-reason/agent-id
-// providerMetadata) instead of emitting a second, duplicate pair (M22).
+// providerMetadata) instead of emitting a second, duplicate pair (a double fold).
 function permissionDeniedMsg(overrides?: {
   agent_id?: string;
   decision_reason_type?: string;
@@ -3485,8 +3484,8 @@ function permissionDeniedMsg(overrides?: {
   };
 }
 
-describe("createClaudeNormalizer — SDKPermissionDeniedMessage enriches the W1 <turnId>:denials carrier (audit M19)", () => {
-  it("the live frame alone produces NO standalone event (recorded, not emitted — avoids the M22 double-fold hazard)", () => {
+describe("createClaudeNormalizer — SDKPermissionDeniedMessage enriches the <turnId>:denials carrier", () => {
+  it("the live frame alone produces NO standalone event (recorded, not emitted — avoids a double fold)", () => {
     const n = createClaudeNormalizer();
     const evs = n.push(JsonValue.parse(permissionDeniedMsg()));
     expect(evs).toHaveLength(0);
@@ -3881,7 +3880,7 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
   // NOT under the turn-binding flag. First observed live on app-update-fable51
   // (cohort 0.6.2). --
 
-  it("carries narration_block_indexes verbatim on the first block's HOST-ONLY _meta, not providerMetadata (0.3.272; X5)", () => {
+  it("carries narration_block_indexes verbatim on the first block's HOST-ONLY _meta, not providerMetadata (0.3.272)", () => {
     const n = createClaudeNormalizer();
     const evs = [
       ...n.push(JsonValue.parse(wrapperAssistant({ narration_block_indexes: [0] }))),
@@ -3923,7 +3922,7 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     expect(firstBlock._meta).toEqual({ narration_block_indexes: [0, 2], user_message_uuid: USER_MESSAGE_UUID });
   });
 
-  it("X5 fallback: a TOOL-first frame (tool.start folds no _meta) routes the host-only half through message.metadata, which folds", () => {
+  it("host-only fallback: a TOOL-first frame (tool.start folds no _meta) routes the host-only half through message.metadata, which folds", () => {
     const toolFirst = {
       ...assistantMsg(
         [
@@ -3954,7 +3953,7 @@ describe("createClaudeNormalizer — 0.3.217 wrapper-level carries (resumed_from
     expect(r.result().messages.find((m) => m.id === "msg_fixture_1")?.metadata).toEqual({ narration_block_indexes: [1] });
   });
 
-  it("X5 fallback, MIXED bag on a tool-first frame: the replay half stays on tool.start.providerMetadata, the host half (draft.5: aborted too) moves to message.metadata", () => {
+  it("host-only fallback, MIXED bag on a tool-first frame: the replay half stays on tool.start.providerMetadata, the host half (draft.5: aborted too) moves to message.metadata", () => {
     const mixed = {
       ...assistantMsg([{ type: "tool_use", id: "toolu_x5m", name: "Read", input: { path: "a" } }], null, {
         stop_reason: "tool_use",
@@ -4882,11 +4881,11 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
     expect(result.messages[0]?.content).toMatchObject([{ type: "text", text: "hello" }]);
   });
 
-  it("X5: a STREAMED (suppressed) complete frame carrying host keys rides the combined bag on message.metadata, unchanged", () => {
+  it("host-only route: a STREAMED (suppressed) complete frame carrying host keys rides the combined bag on message.metadata, unchanged", () => {
     // The realistic partials + thinking.display:"updates" path: the stream
     // already emitted the blocks, so the complete frame's wrapper bag has no
     // block to anchor on and rides message.metadata WHOLE and in wire order,
-    // exactly as before X5 (message.metadata is already AgMeta). No stream
+    // exactly as before the 2026-09-23 re-cut (message.metadata is already AgMeta). No stream
     // event gains `_meta` or a narration key.
     const n = createClaudeNormalizer();
     const evs = [
@@ -5619,7 +5618,7 @@ describe("createClaudeNormalizer — result-frame subagent_stats (runtime-only, 
   });
 });
 
-describe("createClaudeNormalizer — thinking_delta.estimated_tokens (runtime-only; Fable 5.1 display:omitted) → reasoning.delta _meta (host-only, live-only; X5)", () => {
+describe("createClaudeNormalizer — thinking_delta.estimated_tokens (runtime-only; Fable 5.1 display:omitted) → reasoning.delta _meta (host-only, live-only)", () => {
   type SDKPartial = Extract<SDKMessage, { type: "stream_event" }>;
   type StreamEvent = SDKPartial["event"];
   const frame = (event: StreamEvent): SDKMessage => ({
@@ -6186,7 +6185,7 @@ describe("createClaudeNormalizer — an API-error turn closes as turn.error, nev
       .filter((e) => e.type === "error")
       .map((e) => ({ turnId: "turnId" in e ? e.turnId : undefined, code: "code" in e ? e.code : undefined, retriable: "retriable" in e ? e.retriable : undefined }));
 
-  it("ruling 1 (protocol's repro): a nested rate_limit does NOT close a recovered parent — the parent closes success, the nested turn gets one non-terminal `error`", () => {
+  it("a nested rate_limit does NOT close a recovered parent — the parent closes success, the nested turn gets one non-terminal `error`", () => {
     const top = assistantMsg([{ type: "tool_use", id: "toolu_t", name: "Task", input: { prompt: "research" } }], null, { stop_reason: "tool_use" });
     const nested = apiErrorAssistantFrame({ parent_tool_use_id: "toolu_t" });
     const taskFailed: unknown = {
@@ -6218,7 +6217,7 @@ describe("createClaudeNormalizer — an API-error turn closes as turn.error, nev
     expect(r.result().turns.find((t) => t.turnId === TOP_TURN)?.outcome).toMatchObject({ type: "success" });
   });
 
-  it("ruling 1: a nested error no longer masks the parent's OWN later error — a top-level billing_error closes the parent as billing_error", () => {
+  it("a nested error no longer masks the parent's OWN later error — a top-level billing_error closes the parent as billing_error", () => {
     const top = assistantMsg([{ type: "text", text: "delegating", citations: null }]);
     const nested = apiErrorAssistantFrame({ parent_tool_use_id: "toolu_t" });
     const ownError = { ...(apiErrorAssistantFrame({ error: "billing_error" }) as object), message: { ...betaMessage([{ type: "text", text: API_ERROR_TEXT, citations: null }]), id: "msg_own_error", model: "<synthetic>" }, uuid: "00000000-0000-0000-0000-0000000000d9" };
@@ -6232,7 +6231,7 @@ describe("createClaudeNormalizer — an API-error turn closes as turn.error, nev
     expect(nestedErrors(evs)).toEqual([{ turnId: API_ERROR_TURN, code: "rate_limit", retriable: true }]);
   });
 
-  it("ruling 1: when the parent's OWN result says error, it closes as that result's error (not the nested frame's), and a flush with no result aborts the parent", () => {
+  it("when the parent's OWN result says error, it closes as that result's error (not the nested frame's), and a flush with no result aborts the parent", () => {
     const top = assistantMsg([{ type: "text", text: "delegating", citations: null }]);
     const nested = apiErrorAssistantFrame({ parent_tool_use_id: "toolu_parent_1" });
     const evs = drive([top, nested, apiErrorResultFrame()]);
@@ -6606,7 +6605,7 @@ describe("createClaudeNormalizer — the API-error triad (api_error / api_error_
     api_error_code: "credentials_expired",
   };
 
-  it("carries all three verbatim, as ONE unit, on the first block's HOST-ONLY _meta (X5); is_api_error_message is NOT carried", () => {
+  it("carries all three verbatim, as ONE unit, on the first block's HOST-ONLY _meta; is_api_error_message is NOT carried", () => {
     const evs = drive([apiErrorAssistantFrame(TRIAD)]);
     const first = evs.find((e) => e.type === "text.start");
     expect(first).toMatchObject({ _meta: TRIAD });
@@ -7763,7 +7762,7 @@ describe("createClaudeNormalizer — remedy carries: host-readable homes that fo
   });
 });
 
-// ─── B-strict nested terminals (draft.4; the nested-turn ruling Q1) ──
+// ─── B-strict nested terminals (draft.4; the nested-turn ruling) ─────
 // The §10 item 22 statement, checked on every stream below: for every
 // subagent.start, exactly ONE turn.done | turn.error | turn.abort with that
 // turnId, carrying no usage, IMMEDIATELY followed by that turn's subagent.done;
@@ -7988,7 +7987,7 @@ describe("createClaudeNormalizer — ids across invokes: no-open-turn results", 
   });
 });
 
-// ─── C1: an honest flush (INV-FLUSH (3), draft.4; the fold/flush ruling) ──────
+// ─── an honest flush (INV-FLUSH (3), draft.4; the fold/flush ruling) ──────────
 // The ruling: "snapshot fold + honest flush; opaque at flush
 // FORBIDDEN". A flush lands no new content: only lifecycle closes (text.end with
 // already-received citations, reasoning.end, message.end, the turn/nested
@@ -8409,7 +8408,7 @@ describe("createClaudeNormalizer — §10 item 45: host records ride _meta, neve
     });
   });
 
-  it("NEGATIVE CONTROL: resumed_from_incomplete_thinking stays replay-side (R2 deferred) — on providerMetadata, never on _meta", () => {
+  it("NEGATIVE CONTROL: resumed_from_incomplete_thinking stays replay-side (its move deferred) — on providerMetadata, never on _meta", () => {
     const evs = drive([{ ...assistantMsg(TEXT), resumed_from_incomplete_thinking: true }]);
     const start = evs.find((e) => e.type === "text.start");
     expect(member(start, "providerMetadata", "resumed_from_incomplete_thinking")).toBe(true);
