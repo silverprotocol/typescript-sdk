@@ -49,7 +49,7 @@
  */
 
 import { FunctionTool, InMemoryRunner, LlmAgent, MCPToolset } from "@google/adk";
-import { ThinkingLevel } from "@google/genai";
+import { ThinkingLevel, type GenerateContentConfig, type HarmBlockThreshold, type HarmCategory } from "@google/genai";
 import { z } from "zod";
 import type { JsonValue } from "@silverprotocol/core";
 import { toJsonValue } from "@silverprotocol/core";
@@ -88,7 +88,18 @@ export interface AdkCaptureInput extends CaptureRunInput {
    * stream, like onSessionState.
    */
   onCrossSessionState?: (states: { sameUser: JsonValue; otherUser: JsonValue }) => void;
+  /**
+   * genai safety settings for the LlmAgent's `generateContentConfig`, e.g.
+   * `[{ category: HARM_CATEGORY_HARASSMENT, threshold: BLOCK_LOW_AND_ABOVE }]`
+   * to capture a model block. Absent or empty: no `safetySettings` key, so the
+   * request is unchanged.
+   */
+  adkSafetySettings?: ReadonlyArray<{ readonly category: HarmCategory; readonly threshold: HarmBlockThreshold }>;
 }
+
+/** The config path the `adkSafetySettings` knob drives, and the harness's proof
+ *  that this agent honors the knob (its knob guard, KNOB_SUPPORT). */
+export const ADK_SAFETY_SETTINGS = "generateContentConfig.safetySettings";
 
 /** The other user the cross-session read opens a session for, and the
  *  harness's proof that this agent supports the cross-session knob. */
@@ -157,23 +168,24 @@ const THINKING_LEVELS: Record<NonNullable<CaptureRunInput["thinkingLevel"]>, Thi
 };
 
 /**
- * The LlmAgent `generateContentConfig` for the scenario's thinking knob, or
- * `undefined` when the scenario sets none. Shared with `workflow.ts` so both
- * capture agents build the same model request. Thought summaries are OFF by
- * default on gemini-3.7-flash, so `includeThoughts` must ride alongside the
- * level for `thought: true` parts to appear on the wire at all.
+ * The LlmAgent `generateContentConfig` for the scenario's thinking and safety
+ * knobs, or `undefined` when the scenario sets neither. Shared with
+ * `workflow.ts` so both capture agents build the same model request. Thought
+ * summaries are OFF by default on gemini-3.7-flash, so `includeThoughts` must
+ * ride alongside the level for `thought: true` parts to appear on the wire at
+ * all. Safety settings ride `safetySettings` verbatim.
  */
 export function adkGenerateContentConfig(
-  input: Pick<CaptureRunInput, "thinkingLevel">,
-): { thinkingConfig: { includeThoughts: true; thinkingLevel: ThinkingLevel } } | undefined {
-  return input.thinkingLevel !== undefined
-    ? {
-        thinkingConfig: {
-          includeThoughts: true,
-          thinkingLevel: THINKING_LEVELS[input.thinkingLevel],
-        },
-      }
-    : undefined;
+  input: Pick<AdkCaptureInput, "thinkingLevel" | "adkSafetySettings">,
+): GenerateContentConfig | undefined {
+  const safety = input.adkSafetySettings ?? [];
+  if (input.thinkingLevel === undefined && safety.length === 0) return undefined;
+  return {
+    ...(input.thinkingLevel !== undefined
+      ? { thinkingConfig: { includeThoughts: true, thinkingLevel: THINKING_LEVELS[input.thinkingLevel] } }
+      : {}),
+    ...(safety.length > 0 ? { safetySettings: safety.map((s) => ({ category: s.category, threshold: s.threshold })) } : {}),
+  };
 }
 
 /**
