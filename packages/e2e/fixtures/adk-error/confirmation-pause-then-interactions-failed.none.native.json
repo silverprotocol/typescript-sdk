@@ -1,0 +1,96 @@
+[
+  {
+    "invocationId": "e-29297718-9106-46b8-958d-dacc4cfd66fa",
+    "author": "first",
+    "id": "amg5sJML",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536984010,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "name": "delete_file",
+            "args": {
+              "path": "notes/draft.txt"
+            },
+            "id": "adk-c518d26c-e900-4b79-98f6-760c1dbe315a"
+          }
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP"
+  },
+  {
+    "invocationId": "e-29297718-9106-46b8-958d-dacc4cfd66fa",
+    "author": "first",
+    "content": {
+      "parts": [
+        {
+          "functionCall": {
+            "name": "adk_request_confirmation",
+            "args": {
+              "originalFunctionCall": {
+                "name": "delete_file",
+                "args": {
+                  "path": "notes/draft.txt"
+                },
+                "id": "adk-c518d26c-e900-4b79-98f6-760c1dbe315a"
+              },
+              "toolConfirmation": {
+                "hint": "Please approve or reject the tool call delete_file() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
+                "confirmed": false
+              }
+            },
+            "id": "adk-ab589c90-ea44-494c-bb7d-6b12407a43d6"
+          }
+        }
+      ],
+      "role": "user"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {
+        "adk-c518d26c-e900-4b79-98f6-760c1dbe315a": {
+          "hint": "Please approve or reject the tool call delete_file() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
+          "confirmed": false
+        }
+      },
+      "skipSummarization": true
+    },
+    "longRunningToolIds": [
+      "adk-ab589c90-ea44-494c-bb7d-6b12407a43d6"
+    ],
+    "id": "Lk42DgxH",
+    "timestamp": 1790536984011
+  },
+  {
+    "invocationId": "e-29297718-9106-46b8-958d-dacc4cfd66fa",
+    "author": "second",
+    "id": "3J8AjCdM",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536984011,
+    "errorCode": "INTERNAL",
+    "errorMessage": "The interaction failed.",
+    "interactionId": "interaction-second-1"
+  }
+]

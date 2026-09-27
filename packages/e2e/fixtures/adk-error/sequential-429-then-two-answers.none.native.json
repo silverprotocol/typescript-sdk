@@ -1,0 +1,71 @@
+[
+  {
+    "invocationId": "e-408e32dc-26c9-4498-a7e5-7207d7972519",
+    "author": "first",
+    "errorCode": "429",
+    "errorMessage": "Resource has been exhausted (e.g. check quota).",
+    "id": "kwqg5mDi",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536984007
+  },
+  {
+    "invocationId": "e-408e32dc-26c9-4498-a7e5-7207d7972519",
+    "author": "second",
+    "id": "hXIHwxgH",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536984007,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "The second agent answered."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP"
+  },
+  {
+    "invocationId": "e-408e32dc-26c9-4498-a7e5-7207d7972519",
+    "author": "third",
+    "id": "wA0BBebE",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536984007,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "The third agent answered."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP"
+  }
+]

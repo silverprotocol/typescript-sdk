@@ -1,0 +1,77 @@
+[
+  {
+    "invocationId": "e-5e8f4faf-50cf-4383-9d53-e90544bfddcf",
+    "author": "assistant",
+    "id": "XKk25ClG",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [
+      "adk-c733ef3c-10cc-4a4e-87dc-90548f9664d8"
+    ],
+    "timestamp": 1790536984015,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "name": "adk_request_input",
+            "args": {
+              "message": "Which city?"
+            },
+            "id": "adk-c733ef3c-10cc-4a4e-87dc-90548f9664d8"
+          }
+        },
+        {
+          "functionCall": {
+            "name": "lookup",
+            "args": {
+              "query": "cities"
+            },
+            "id": "adk-6cef72b6-be5f-428a-b3b8-af8c830c2524"
+          }
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": false
+  },
+  {
+    "invocationId": "e-5e8f4faf-50cf-4383-9d53-e90544bfddcf",
+    "author": "assistant",
+    "errorCode": "UNKNOWN_ERROR",
+    "errorMessage": "The lookup backend is unavailable.",
+    "id": "pN4awGb9",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536984015
+  },
+  {
+    "invocationId": "e-5e8f4faf-50cf-4383-9d53-e90544bfddcf",
+    "author": "assistant",
+    "errorCode": "429",
+    "errorMessage": "Resource has been exhausted (e.g. check quota).",
+    "id": "BUtP4XMC",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536984016
+  }
+]

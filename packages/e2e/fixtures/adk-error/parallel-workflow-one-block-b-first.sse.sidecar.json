@@ -1,0 +1,6 @@
+{
+  "thrown": {
+    "name": "NodeReportedError",
+    "message": "Node 'alpha' failed: SAFETY: The response was blocked for safety."
+  }
+}

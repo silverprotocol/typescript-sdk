@@ -1,0 +1,26 @@
+[
+  {
+    "invocationId": "e-60caff47-3fc8-4f74-93fb-57e96e2d2911",
+    "author": "assistant",
+    "id": "AwTbxASs",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536984009,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY",
+    "nodeInfo": {
+      "path": "flow.assistant"
+    }
+  }
+]

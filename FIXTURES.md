@@ -182,14 +182,38 @@ the engine's own. The runs cover:
   sibling completes in both);
 - a rate-limit error, then a sub-agent that pauses on a credential request or
   on a request-input call;
-- a node tool whose node meets a rate-limit error, then succeeds on retry.
+- a node tool whose node meets a rate-limit error, then succeeds on retry;
+- a SequentialAgent whose first sub-agent meets a rate-limit error while the
+  second, or the second and third, answer; and a lone rate-limit error that
+  ends the run;
+- a Workflow node whose blocked call is not recovered, so the run throws;
+- a credential pause whose step ends on a content-less usage report, so the
+  model runs again and meets a rate-limit error (SSE);
+- a confirmation pause in a non-last sub-agent, then a failed status on the
+  next sub-agent's Interactions-route call;
+- a signalled credential pause, then a rate-limit error in the same step's
+  stream, then a further model round (SSE); and the same step with the
+  credential call followed by a call whose before-tool callback throws, which
+  drops the pause and is followed by a further model round;
+- a credential pause in a first sub-agent, then a rate-limit error in the
+  second;
+- a request-input call whose pause is never signalled (a later call's
+  before-tool callback throws before the skip-summarization event), then a
+  rate-limit error in the further model round.
+
+A host-terminal event after a credential pause needs no run of its own: feed
+it after `adk-pause/plain-credential` (default mode) or
+`adk-pause/after-pause-sse-credential` (SSE).
 
 Each run is written in the default mode (`<leg>.none`) and in SSE
 (`<leg>.sse`), except legs that exist in one mode only. In the default mode a
 blocked candidate is returned without its content, as the API withholds
-blocked content. They are regenerated only by
+blocked content. A run that throws from `runAsync` (a Workflow node that
+fails for good) has a `<leg>.<mode>.sidecar.json` next to its natives, holding
+the thrown error's `name` and `message`, which a host feeds as the
+host-terminal event. They are regenerated only by
 `GEN_ADK_ERROR=1 … adk-error-fixtures.gen.test.ts`, which checks each run's
-error events and arrival order before it writes.
+error events, pauses and arrival order before it writes.
 
 `packages/e2e/fixtures/adk-pause/` holds ADK pause/completion streams built by
 the REAL `@google/adk` engine with a stub model (no key, no network), plus two

@@ -1,0 +1,17 @@
+[
+  {
+    "invocationId": "e-76563491-a002-4fdc-bdfe-c1f79eef083a",
+    "author": "assistant",
+    "errorCode": "429",
+    "errorMessage": "Resource has been exhausted (e.g. check quota).",
+    "id": "tg70XSYH",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536984008
+  }
+]
