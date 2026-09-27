@@ -2229,10 +2229,16 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
       });
     }
     a.closeMessage(messageId);
+    // The turn's accrued usage rides its terminal on both closes (SPEC §4:
+    // turn.error.usage mirrors turn.done), as the host-error close does.
+    const usage = mapUsage(usageByTurn.get(turnId) ?? event.usageMetadata);
     if (errorClose !== undefined) {
-      a.closeTurnError(turnId, { message: errorClose.message, code: errorClose.code });
+      a.closeTurnError(turnId, {
+        message: errorClose.message,
+        code: errorClose.code,
+        ...(usage !== undefined ? { usage } : {}),
+      });
     } else {
-      const usage = mapUsage(usageByTurn.get(turnId) ?? event.usageMetadata);
       const safety = mapBlockedSafety(event.safetyRatings);
       // A turn with pending HITL asks (requestedAuthConfigs /
       // requestedToolConfirmations / adk_request_input, tracked by

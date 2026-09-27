@@ -4958,3 +4958,29 @@ describe("createAdkNormalizer — with hostCompletion, a paused run that ends wi
     expect(terminalOf([{ type: ADK_HOST_ERROR_TYPE, code: "Error", message: "boom" }])).toEqual([expect.objectContaining({ type: "turn.error" })]);
   });
 });
+
+describe("createAdkNormalizer — an in-band error close carries the turn's usage, as the done close does (SPEC §4 turn.error.usage)", () => {
+  it("an errorCode + errorMessage event closes turn.error with the turn's accumulated usage, its own report included", () => {
+    const out = run([
+      event([{ functionCall: { name: "echo", args: { message: "x" }, id: "fc-1" } }], {
+        usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 2, totalTokenCount: 12 },
+      }),
+      {
+        invocationId: "inv_fixture_1",
+        errorCode: "UNAVAILABLE",
+        errorMessage: "model overloaded",
+        usageMetadata: { promptTokenCount: 14, candidatesTokenCount: 0, totalTokenCount: 14 },
+      },
+    ]);
+    const err = out.find((e) => e.type === "turn.error");
+    expect(err).toMatchObject({ type: "turn.error", code: "UNAVAILABLE", message: "model overloaded", usage: { inputTokens: 24, outputTokens: 2, totalTokens: 26 } });
+    for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("an error event with no usage anywhere in the turn closes turn.error with no usage key, as before", () => {
+    const out = run([{ invocationId: "inv_fixture_1", errorCode: "UNAVAILABLE", errorMessage: "model overloaded" }]);
+    const err = out.find((e) => e.type === "turn.error");
+    expect(err).toMatchObject({ type: "turn.error", code: "UNAVAILABLE", message: "model overloaded" });
+    expect(err !== undefined && "usage" in err).toBe(false);
+  });
+});
