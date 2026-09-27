@@ -127,8 +127,8 @@ export class Reducer {
   // Message ids sealed by message.end.
   #sealed: Set<string> = new Set();
   // turnIds legitimately opened via turn.start / subagent.start (or restored
-  // by a messages.snapshot's turns?) — Task 8c leg 3 (guuey capstone finding
-  // B). Distinguishes "a real turn genuinely exists" from a turn the fold only
+  // by a messages.snapshot's turns?) — Task 8c leg 3 (a reference host's capstone
+  // finding B). Distinguishes "a real turn genuinely exists" from a turn the fold only
   // knows by name, so the tool.done adoption CREATE path degrades loudly
   // (resync) instead of creating a message for a turn that was never opened.
   #openedTurns: Set<string> = new Set();
@@ -281,7 +281,7 @@ export class Reducer {
         // INV-MSG: a message.start for a turn that already closed parks.
         if (this.#isClosedTurn(this.#resolveTurnId(ev.turnId) ?? ev.turnId)) { this.#resync = true; break; }
         // draft.5 INV-OWNER: a live message.start makes its turn's thread
-        // known and joins D9's seen-opened set (a turn.start's thread wins; else
+        // known and joins the seen-opened set (§5.0 INV-OWNER) (a turn.start's thread wins; else
         // the first one folded), and a record held for the turn is adopted onto it.
         if (this.#seenOpened.get(ev.turnId) === undefined) this.#seenOpened.set(ev.turnId, ev.threadId);
         const knownThread = this.#seenOpened.get(ev.turnId);
@@ -340,7 +340,7 @@ export class Reducer {
         if (parentTurn !== undefined) {
           threadId = parentTurn.threadId;
         } else {
-          // Task 8c leg 2 (SPEC §1.2 + guuey capstone finding A): a parent
+          // Task 8c leg 2 (SPEC §1.2 + a reference host's capstone finding A): a parent
           // lookup miss means ev.parentTurnId is a wire label that was never
           // opened as a real turn (e.g. claude's synthetic `turn_${toolCallId}`
           // Task-tool cross-ref) — NOT a legitimate cross-thread reference.
@@ -423,9 +423,9 @@ export class Reducer {
         if (pos === undefined) break;
         const msg = this.#messages.get(pos.messageId);
         if (msg === undefined) break;
-        // INV-MSG (SPEC.md:745, draft.4 E5): a block-finalizing event into a sealed
+        // INV-MSG (SPEC.md:745, draft.4): a block-finalizing event into a sealed
         // message, or into any message of a closed turn, parks like a delta.
-        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; } // INV-MSG finalizer guard (E5)
+        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; } // INV-MSG finalizer guard
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "text") break;
         // draft.4 phase: a value on the end REPLACES the start one; absent keeps
@@ -479,9 +479,9 @@ export class Reducer {
         if (pos === undefined) break;
         const msg = this.#messages.get(pos.messageId);
         if (msg === undefined) break;
-        // INV-MSG (SPEC.md:745, draft.4 E5): a block-finalizing event into a sealed
+        // INV-MSG (SPEC.md:745, draft.4): a block-finalizing event into a sealed
         // message, or into any message of a closed turn, parks like a delta.
-        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; } // INV-MSG finalizer guard (E5)
+        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; } // INV-MSG finalizer guard
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "reasoning") break;
         // draft.4 phase: same rule as text.end (end REPLACES, absent keeps, no post-seal fill).
@@ -511,9 +511,9 @@ export class Reducer {
         if (pos === undefined) break;
         const msg = this.#messages.get(pos.messageId);
         if (msg === undefined) break;
-        // INV-MSG (SPEC.md:745, draft.4 E5): a block-finalizing event into a sealed
+        // INV-MSG (SPEC.md:745, draft.4): a block-finalizing event into a sealed
         // message, or into any message of a closed turn, parks like a delta.
-        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; } // INV-MSG finalizer guard (E5)
+        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; } // INV-MSG finalizer guard
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "reasoning") break;
         // Use accumulated opaque scratch if present; otherwise use ev.value directly.
@@ -572,9 +572,9 @@ export class Reducer {
         if (pos === undefined) break;
         const msg = this.#messages.get(pos.messageId);
         if (msg === undefined) break;
-        // INV-MSG (SPEC.md:745, draft.4 E5): a block-finalizing event into a sealed
+        // INV-MSG (SPEC.md:745, draft.4): a block-finalizing event into a sealed
         // message, or into any message of a closed turn, parks like a delta.
-        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; } // INV-MSG finalizer guard (E5)
+        if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; } // INV-MSG finalizer guard
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "tool-call") break;
         block.input = ev.input;
@@ -678,7 +678,7 @@ export class Reducer {
               existing !== undefined
                 ? (existing.turnId ?? "unknown-turn")
                 : (this.#resolveTurnId(ev.turnId) ?? ev.turnId ?? "unknown-turn");
-            // Task 8c leg 3 (guuey capstone finding B): a turn that was never
+            // Task 8c leg 3 (a reference host's capstone finding B): a turn that was never
             // legitimately opened (turn.start / subagent.start / a snapshot's
             // turns?) is just as invalid an adoption target as a sealed
             // message or a closed turn: park rather than create a message for it.
@@ -792,7 +792,7 @@ export class Reducer {
       // ── TURN-RECORD events (R5) ───────────────────────────────────────────────
 
       case "turn.done": {
-        // D9 (draft.4 §5.0 INV-OWNER): a terminal for a turn this fold never saw
+        // INV-OWNER (draft.4 §5.0): a terminal for a turn this fold never saw
         // opened is not an unresolvable owner: it folds onto no turn record and
         // does not park. A CORE client that ignores subagent.*, or a fold whose
         // opener was dropped, sees exactly this; a producer's lone terminal fails
@@ -833,7 +833,7 @@ export class Reducer {
 
       case "turn.error": {
         // Non-folding into content; sets outcome={type:"error",...} on the turn record.
-        // D9, as turn.done, for a NAMED turnId. A turnId-less terminal resolves to
+        // INV-OWNER, as turn.done, for a NAMED turnId. A turnId-less terminal resolves to
         // the sole OPEN turn, never a closed one; with none or several open its
         // owner is unresolvable and the fold parks (INV-OWNER, draft.5).
         if (ev.turnId !== undefined && !this.#seenOpened.has(ev.turnId)) break;
@@ -865,7 +865,7 @@ export class Reducer {
         // Non-folding into content; sets a dedicated aborted outcome on the turn record
         // (symmetric with turn.error). taskState is verbatim-A2A only and is NEVER
         // reducer-invented (audit M29) — it stays whatever a prior turn.done left it as.
-        // D9, as turn.done, for a NAMED turnId. A turnId-less terminal resolves to
+        // INV-OWNER, as turn.done, for a NAMED turnId. A turnId-less terminal resolves to
         // the sole OPEN turn, never a closed one; with none or several open its
         // owner is unresolvable and the fold parks (INV-OWNER, draft.5).
         if (ev.turnId !== undefined && !this.#seenOpened.has(ev.turnId)) break;
@@ -1211,8 +1211,8 @@ export class Reducer {
         this.#sealed = new Set();
         this.#blockPos = new Map();
         // #restartedSinceClose is NOT cleared: a snapshot folds no terminal (draft.5 INV-MSG).
-        // Task 8c leg 3: a snapshot-restored turn counts as opened (guuey
-        // capstone finding B) — reseed #openedTurns from the replaced turns in
+        // Task 8c leg 3: a snapshot-restored turn counts as opened (a reference
+        // host's capstone finding B) — reseed #openedTurns from the replaced turns in
         // lockstep with #turns above; a turns-omitting snapshot re-seeds it from
         // the records it keeps.
         this.#openedTurns = ev.turns !== undefined
@@ -1526,11 +1526,11 @@ export class Reducer {
   }
 
   /**
-   * D9: the record a terminal for a SEEN turn folds onto — the existing one,
+   * INV-OWNER: the record a terminal for a SEEN turn folds onto — the existing one,
    * else one created on the thread the fold saw the turn opened on. With no
    * thread known it returns undefined and the terminal folds onto no record.
    * No other turn's thread is borrowed (that could adopt a subagent's parent
-   * label as a threadId), and a D9 path never writes a threadId equal to its
+   * label as a threadId), and an INV-OWNER path never writes a threadId equal to its
    * turnId.
    */
   #seenTurnRecord(turnId: string): AgTurnRecord | undefined {

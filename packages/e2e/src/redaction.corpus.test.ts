@@ -1,6 +1,6 @@
 /**
  * redaction.corpus.test.ts — the committed corpus never carries an
- * account-identifying value (sp-cto's audit of the vercel-header item,
+ * account-identifying value (the audit of the vercel-header item,
  * 2026-09-24). b86072a redacted the committed vercel natives; this gate keeps
  * any later capture that bypasses capture-time redaction (redact.ts) from
  * reintroducing one: under every REDACTED_KEYS key, at any depth, in every

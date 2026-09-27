@@ -14,8 +14,8 @@ name: Nightly peer check
 #            superseded open ones for the same peer + signal.
 #
 # Like ci.yml this runs on the standalone typescript-sdk mirror (this
-# directory is the repo root there); inside the private workspace/guuey
-# supertrees the file is inert. Keyless: no secrets, no LLM calls — a green
+# directory is the repo root there); inside the private workspace
+# the file is inert. Keyless: no secrets, no LLM calls — a green
 # night vouches for import/type/wire-fixture compatibility with latest, NOT
 # live behavior (that is `pnpm e2e:capture`, a human step in the ritual).
 #

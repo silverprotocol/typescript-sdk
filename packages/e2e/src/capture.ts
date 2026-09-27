@@ -235,7 +235,7 @@ export async function runCapture(
     for (const event of native) {
       const produced = normalizer.push(event);
       for (const e of produced) {
-        // Wire projection (audit D5-a) — toWire materializes the AgEvent as
+        // Wire projection — toWire materializes the AgEvent as
         // plain JsonValue for the cassette.
         agEvents.push(toWire(e));
       }

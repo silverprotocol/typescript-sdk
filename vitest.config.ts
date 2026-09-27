@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 
 // Resolve workspace packages by name to their local source, so cross-package
 // imports (e.g. @silverprotocol/core) work WITHOUT a pnpm install — the SDK is
-// co-developed inside the guuey tree under the no-install discipline (see the S2
+// co-developed inside a reference host's tree under the no-install discipline (see the S2
 // plan). tsc resolves the same names via each package's tsconfig `paths`.
 export default defineConfig({
   test: {
@@ -16,7 +16,7 @@ export default defineConfig({
     // `--config ../../vitest.config.ts` (vitest 5 stopped resolving a parent
     // config, so the capture ritual passes the flag explicitly).
     exclude: [...configDefaults.exclude, "**/dist/**"],
-    // The budget catches hangs; it does not time tests. On a busy fleet box
+    // The budget catches hangs; it does not time tests. On a busy machine
     // (load avg ~300 on 12 cores, 2026-09-23) the slowest ordinary test body,
     // provenance.test.ts's corpus walk, took 5.05 s: past vitest's 5 s
     // default. 30 s gives it 6x and sits far below CI's 15-minute test-job cap.

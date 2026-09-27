@@ -1,6 +1,6 @@
 /**
- * trigger-carrier.corpus.test.ts — pkg-07 leg F5 (the trigger/carrier
- * agreement). On every claude golden, the turns whose turn.start carries
+ * trigger-carrier.corpus.test.ts — the trigger/carrier agreement
+ * (draft.5). On every claude golden, the turns whose turn.start carries
  * `trigger.ref` R are exactly the turns whose opening frame stamped
  * `user_message_uuid` R, which the facet carries on the first block's `_meta`
  * or as `message.metadata` (draft.5 host records). No turn.start carries a
@@ -34,7 +34,7 @@ function agreement(events: Ev[]): { triggers: Map<string, Set<string>>; stamps: 
 }
 const canon = (m: Map<string, Set<string>>) => JSON.stringify([...m].map(([k, v]) => [k, [...v].sort()]).sort());
 
-describe("pkg-07 F5: turn.start trigger ↔ user_message_uuid stamp agreement over the corpus", () => {
+describe("turn.start trigger ↔ user_message_uuid stamp agreement over the corpus", () => {
   it("claude goldens: trigger refs and stamps name the same turns; other frameworks carry no trigger", () => {
     let triggerCount = 0;
     const wrong: string[] = [];

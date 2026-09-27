@@ -466,7 +466,7 @@ const blockAnno = {
 };
 
 /**
- * The resource-link block (draft.5, pkg-05): MCP's ResourceLink members,
+ * The resource-link block (draft.5): MCP's ResourceLink members,
  * each optional beside the required `uri`. `size` is an integer, as ruled.
  * It is exported so a normalizer can check each native member against
  * core's own schema (`AgResourceLinkBlock.shape.<member>.safeParse(v)`), and
@@ -1057,7 +1057,7 @@ export type AgOpenAiWidgetAction = z.infer<typeof AgOpenAiWidgetAction>;
 // (a2uiMessage / method), so a validation issue names the member that is
 // actually wrong: a plain z.union let every non-matching branch report its
 // own `surface` literal, and the input check (input-check.ts) misclassified
-// e.g. an mcp-app ui/open-link with a non-string url (CB-9). Same members,
+// e.g. an mcp-app ui/open-link with a non-string url. Same members,
 // same literals, same accepted values; only the failure path is exact.
 export const AgSurfaceInteraction = z.discriminatedUnion("surface", [
   z.discriminatedUnion("a2uiMessage", [AgA2uiSurfaceAction, AgA2uiFunctionResponse, AgA2uiError]),

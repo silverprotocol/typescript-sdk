@@ -172,7 +172,7 @@ describe("reduce — R1 lifecycle", () => {
   });
 
   // (d2) subagent.start falls back to a real turn's root threadId when the
-  // parent lookup misses (Task 8c leg 2 — guuey capstone finding A: claude's
+  // parent lookup misses (Task 8c leg 2 — a reference host's capstone finding A: claude's
   // synthetic `turn_${toolCallId}` parentTurnId label was never opened as a
   // real turn, so a naive fallback corrupted the subagent's own threadId).
   it("(d2) subagent.start falls back to any real turn's threadId when the parent was never opened", () => {
@@ -885,10 +885,10 @@ describe("reduce — R5 turn-records", () => {
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
 
-  // (b2) D9 (draft.4 §5.0 INV-OWNER): a terminal for a turn the fold never saw
+  // (b2) INV-OWNER (draft.4 §5.0): a terminal for a turn the fold never saw
   // opened folds onto NO turn record and does not park. Through draft.3 the
   // reducer minted a defensive stub record for it.
-  it("(b2) turn.error before turn.start → no turn record, no resync (D9)", () => {
+  it("(b2) turn.error before turn.start → no turn record, no resync (INV-OWNER)", () => {
     const out = reduce([
       {
         type: "turn.error",
@@ -1407,7 +1407,7 @@ describe("reduce — R8 shared-state snapshot + delta", () => {
 
   describe("draft.4 key-replace object fold (§10.29 vectors)", () => {
     const fold = (evs: AgEvent[]) => reduce(evs);
-    it("D1: {cfg:{a:1,b:2}} then {cfg:{a:5}} folds to {cfg:{a:5}} (state-fold-gemini38; ADK holds the same)", () => {
+    it("key replace: {cfg:{a:1,b:2}} then {cfg:{a:5}} folds to {cfg:{a:5}} (state-fold-gemini38; ADK holds the same)", () => {
       const out = fold([
         { type: "state.delta", seq: 0, patch: { cfg: { a: 1, b: 2 } } },
         { type: "state.delta", seq: 1, patch: { cfg: { a: 5 } } },
@@ -1538,10 +1538,10 @@ describe("reduce — R8 shared-state snapshot + delta", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// D9 — a terminal folds only onto a turn the fold saw opened (draft.4 INV-OWNER)
+// INV-OWNER — a terminal folds only onto a turn the fold saw opened (draft.4)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("reduce — D9: a terminal for a never-opened turn folds onto no record", () => {
+describe("reduce — INV-OWNER: a terminal for a never-opened turn folds onto no record", () => {
   /** Folds incrementally and asserts the batch fold agrees, on every vector. */
   const fold = (evs: AgEvent[]) => {
     const acc = new Reducer();
@@ -1705,7 +1705,7 @@ describe("reduce — D9: a terminal for a never-opened turn folds onto no record
     expect(continuing.needsResync).toBe(joiner.needsResync);
   });
 
-  it("no D9 path writes a turn record whose threadId is its turnId", () => {
+  it("no INV-OWNER path writes a turn record whose threadId is its turnId", () => {
     const streams: AgEvent[][] = [
       [{ type: "turn.done", seq: 0, turnId: "tX", outcome: { type: "success" } }],
       [
@@ -3052,7 +3052,7 @@ describe("INV-MSG: a straggler delta into a sealed message parks (SPEC.md:745)",
 // (message.metadata, turn.done.messageMetadata) stay outside the rule.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("INV-MSG E5: a block-finalizing event into a sealed message or a closed turn parks", () => {
+describe("INV-MSG: a block-finalizing event into a sealed message or a closed turn parks", () => {
   // One open message m1 holding a text, a reasoning and a tool-call block, all unfinalized.
   const HEAD: AgEvent[] = [
     { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
@@ -3139,7 +3139,7 @@ describe("INV-MSG E5: a block-finalizing event into a sealed message or a closed
 // tool-result typed `preliminary` + turn.done.messageId targeting (audit M20)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("tool.done snapshot fold over a kept-open result (draft.4 §5; fold/flush P1)", () => {
+describe("tool.done snapshot fold over a kept-open result (draft.4 §5; the fold/flush rule)", () => {
   const S = { cache: { hit: true } };
   const U = { card: "weather" };
   const M = { ui: { resourceUri: "ui://cards/weather" } };
@@ -3603,11 +3603,11 @@ describe("tool.done.messageId adoption (SPEC §5 fold row; audit B10)", () => {
   });
 
   it("a lone orphan tool.done with NO turns at all parks — no phantom turn fabricated (Task 8c leg 3)", () => {
-    // Mirrors the guuey capstone repro 2 shape: a tool_result the assembler
+    // Mirrors a reference host's capstone repro 2 shape: a tool_result the assembler
     // truly cannot place anywhere (no turn.start, no subagent.start — nothing
     // was ever legitimately opened). Before leg 3, the CREATE path's
     // ensureTurn() would happily fabricate an "unknown-turn" stub here instead
-    // of parking — defeating guuey's skipSnapshot degrade-loudly path.
+    // of parking — defeating the host's skipSnapshot degrade-loudly path.
     const r = new Reducer();
     r.push({
       type: "tool.done",
@@ -3884,7 +3884,7 @@ describe("draft.4 phase on text and reasoning blocks", () => {
     expect(snapshots[snapshots.length - 1]).toEqual(reduce(evs).result);
   });
 
-  it("no post-seal fill: a phase on a text.end after message.end is not applied, and the fold parks (draft.4 E5)", () => {
+  it("no post-seal fill: a phase on a text.end after message.end is not applied, and the fold parks (draft.4 INV-MSG)", () => {
     const evs = [
       ...head,
       { type: "text.start", seq: 2, id: "x1", turnId: "t1", phase: "interim" },
@@ -4267,7 +4267,7 @@ describe("draft.5 §5.0 INV-OWNER: a record event for a turn whose thread is not
     expect(c[0]!.handoffs).toHaveLength(1);
   });
 
-  it("billing B1: display.required(tX), then turn.start{tX, th1}, then turn.done{usage}: the billed record is on th1, not a placeholder", () => {
+  it("billing case 1: display.required(tX), then turn.start{tX, th1}, then turn.done{usage}: the billed record is on th1, not a placeholder", () => {
     const r = run([
       rec("display.required", 0, "tX"),
       ev({ type: "turn.start", seq: 1, turnId: "tX", threadId: "th1" }),
@@ -4278,7 +4278,7 @@ describe("draft.5 §5.0 INV-OWNER: a record event for a turn whose thread is not
     ]);
   });
 
-  it("billing B2: two turnId-less turn.errors (usage 7, then 9) with two open turns: the first parks, no stub record, no usage lost silently", () => {
+  it("billing case 2: two turnId-less turn.errors (usage 7, then 9) with two open turns: the first parks, no stub record, no usage lost silently", () => {
     const pre = [ev({ type: "turn.start", seq: 0, turnId: "t1", threadId: "T" }), ev({ type: "turn.start", seq: 1, turnId: "t2", threadId: "T" })];
     const r = run([...pre, ev({ type: "turn.error", seq: 2, message: "a", usage: { outputTokens: 7 } }), ev({ type: "turn.error", seq: 3, message: "b", usage: { outputTokens: 9 } })]);
     expect(r.needsResync).toBe(true);
@@ -4286,7 +4286,7 @@ describe("draft.5 §5.0 INV-OWNER: a record event for a turn whose thread is not
     expect(r.result().turns.every((t) => t.usage === undefined && t.outcome === undefined)).toBe(true);
   });
 
-  it("billing B3: t1 closed with usage 50, then a turnId-less guardrail.result and turn.error{usage 7}: parks, t1 keeps 50 and success", () => {
+  it("billing case 3: t1 closed with usage 50, then a turnId-less guardrail.result and turn.error{usage 7}: parks, t1 keeps 50 and success", () => {
     const r = run([
       ev({ type: "turn.start", seq: 0, turnId: "t1", threadId: "T" }),
       ev({ type: "turn.done", seq: 1, turnId: "t1", outcome: { type: "success" }, finishReason: "stop", usage: { outputTokens: 50 } }),

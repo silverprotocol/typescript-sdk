@@ -23,7 +23,7 @@ function visibleText(nodes: RichTextInline[]): string {
 // ─── block goldens ────────────────────────────────────────────────────────────
 
 describe("parseRichText — block goldens", () => {
-  it("parses the guuey#95 Daily Planner shape (bold inside list items)", () => {
+  it("parses the Daily Planner shape (bold inside list items)", () => {
     const blocks = parseRichText(
       "Here is your plan:\n\n- **12:00–2:00 PM** — Finish the pitch deck\n- **2:00–3:00 PM** — Review inbox",
     );
@@ -189,7 +189,7 @@ describe("safety policy", () => {
 // ─── streaming tolerance ──────────────────────────────────────────────────────
 
 describe("streaming tolerance", () => {
-  it("`**bol` parses to an OPEN strong with the partial content (the guuey#95 case)", () => {
+  it("`**bol` parses to an OPEN strong with the partial content (the Daily Planner case)", () => {
     expect(inline("**bol")).toEqual([
       { type: "strong", children: [{ type: "text", text: "bol" }], closed: false },
     ]);
@@ -269,7 +269,7 @@ describe("streaming tolerance", () => {
   });
 });
 
-// ─── tables (GFM pipe subset — typescript-sdk#23 / guuey#370) ─────────────────
+// ─── tables (GFM pipe subset — typescript-sdk#23) ─────────────────
 
 type Table = Extract<RichTextBlock, { type: "table" }>;
 
@@ -279,7 +279,7 @@ function rowText(row: { cells: { children: RichTextInline[] }[] }): string[] {
 }
 
 describe("tables — GFM pipe subset", () => {
-  it("parses the guuey#370 shape (header, delimiter, body rows) with inline markdown inside cells", () => {
+  it("parses a reference host's table shape (header, delimiter, body rows) with inline markdown inside cells", () => {
     const blocks = parseRichText("| # | Task |\n|---|------|\n| 1 | Ship it |\n| 2 | **Bold** cell |\n");
     expect(blocks).toHaveLength(1);
     const t = blocks[0] as Table;

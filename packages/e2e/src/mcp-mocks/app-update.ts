@@ -1,7 +1,7 @@
 /**
  * app-update.ts — registers the "render_card" + "update_card" tool pair on an
  * McpServer: the `*_update` / re-render carry-fidelity sequence
- * (silverprotocol/workspace#2, requested by ggui's e2e re-architecture).
+ * (silverprotocol/workspace#2, requested by a reference client's e2e re-architecture).
  *
  * Both tools return the MCP App-spec shape ANCHORED ON THE SAME ui resource
  * (`ui://mock/card`) with a monotonic `revision` marker:

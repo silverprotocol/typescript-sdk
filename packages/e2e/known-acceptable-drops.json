@@ -1793,7 +1793,7 @@
   },
   {
     "path": "[*].event.delta.estimated_tokens",
-    "reason": "claude stream_event (cohort 0.5.4, corpus/partials-fable51, 2026-09-02): Claude Code's RUNTIME-ONLY per-thinking_delta token estimate. Since X5 (sp-claude, 2026-09-23) non-null values ride reasoning.delta _meta.estimated_tokens verbatim (Rule 4): host-only and live-only, no longer replay-load-bearing providerMetadata. null means 'no estimate yet' and is carried as null too, but null is ambient so it needs this null-only entry.",
+    "reason": "claude stream_event (cohort 0.5.4, corpus/partials-fable51, 2026-09-02): Claude Code's RUNTIME-ONLY per-thinking_delta token estimate. Since 2026-09-23 non-null values ride reasoning.delta _meta.estimated_tokens verbatim (Rule 4): host-only and live-only, no longer replay-load-bearing providerMetadata. null means 'no estimate yet' and is carried as null too, but null is ambient so it needs this null-only entry.",
     "reviewed": "null-only",
     "frameworks": [
       "claude"
@@ -2225,7 +2225,7 @@
   },
   {
     "path": "[*].message.stop_sequence",
-    "reason": "claude: the matched stop sequence string; not surfaced in AgJSON (finishReason 'stop' suffices). Widened null-only -> any on 2026-09-23 (sp-claude disposition): the Agent SDK exposes no stop sequences, and the synthetic API-error assistant frame (api-error-auth seed) carries \"\" as CLI filler, so no populated value can be a consumer signal.",
+    "reason": "claude: the matched stop sequence string; not surfaced in AgJSON (finishReason 'stop' suffices). Widened null-only -> any on 2026-09-23 (triage disposition): the Agent SDK exposes no stop sequences, and the synthetic API-error assistant frame (api-error-auth seed) carries \"\" as CLI filler, so no populated value can be a consumer signal.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2881,7 +2881,7 @@
   },
   {
     "path": "[*].terminal_reason",
-    "reason": "claude: the result frame's terminal_reason (0.3.199 addition; values like \"completed\", \"api_error\", \"tool_deferred\", \"tool_deferred_unavailable\"). Mostly telemetry with no AgJSON home of its own - a success close carries its reason through stop_reason -> finishReason/finishReasonRaw. READ by createClaudeNormalizer since sp-claude 8e7ff85 (2026-09-23): on an is_error result close whose terminal_reason is not completed/api_error, it becomes turn.error code AND message (e.g. tool_deferred_unavailable, live in defer-tool-sonnet5-resume-unavailable). Stays allowlisted rather than transformed: a transform to turn.error code would drop on every success seed (\"completed\" has no code target). (Corrected 2026-09-23: the earlier reason said it was never read.)",
+    "reason": "claude: the result frame's terminal_reason (0.3.199 addition; values like \"completed\", \"api_error\", \"tool_deferred\", \"tool_deferred_unavailable\"). Mostly telemetry with no AgJSON home of its own - a success close carries its reason through stop_reason -> finishReason/finishReasonRaw. READ by createClaudeNormalizer since 8e7ff85 (2026-09-23): on an is_error result close whose terminal_reason is not completed/api_error, it becomes turn.error code AND message (e.g. tool_deferred_unavailable, live in defer-tool-sonnet5-resume-unavailable). Stays allowlisted rather than transformed: a transform to turn.error code would drop on every success seed (\"completed\" has no code target). (Corrected 2026-09-23: the earlier reason said it was never read.)",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -3276,7 +3276,7 @@
   },
   {
     "path": "[*].model",
-    "reason": "claude: the system/init frame's REQUESTED model (session configuration, the init-frame disposition of slash_commands[*] etc.: never read by createClaudeNormalizer). What SERVED a turn rides message.model (carried); on every other seed this leaf is value-covered only because message.model echoes it. On an auth failure nothing served the turn (the assistant frame says \"<synthetic>\"), so no turn content is lost (sp-claude disposition, 2026-09-23, api-error-auth); a session-config carry would be sp-protocol's call.",
+    "reason": "claude: the system/init frame's REQUESTED model (session configuration, the init-frame disposition of slash_commands[*] etc.: never read by createClaudeNormalizer). What SERVED a turn rides message.model (carried); on every other seed this leaf is value-covered only because message.model echoes it. On an auth failure nothing served the turn (the assistant frame says \"<synthetic>\"), so no turn content is lost (triage disposition, 2026-09-23, api-error-auth); a session-config carry would be a spec decision.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -3284,7 +3284,7 @@
   },
   {
     "path": "[*].message.usage.server_tool_use.web_search_requests",
-    "reason": "claude: the per-MESSAGE server_tool_use breakdown on an assistant frame (first seen as zeros on the synthetic API-error frame, api-error-auth, 2026-09-23). sp-claude disposition: the turn-level count is authoritative - the result's cumulative server_tool_use lands on turn.done/turn.error usage.serverToolRequests; mapping the per-message breakdown onto every message.end would move every claude golden for ambient zeros with no consumer asking. A later mapMessageUsage carry if one does.",
+    "reason": "claude: the per-MESSAGE server_tool_use breakdown on an assistant frame (first seen as zeros on the synthetic API-error frame, api-error-auth, 2026-09-23). Triage disposition: the turn-level count is authoritative - the result's cumulative server_tool_use lands on turn.done/turn.error usage.serverToolRequests; mapping the per-message breakdown onto every message.end would move every claude golden for ambient zeros with no consumer asking. A later mapMessageUsage carry if one does.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -3292,7 +3292,7 @@
   },
   {
     "path": "[*].message.usage.server_tool_use.web_fetch_requests",
-    "reason": "claude: the per-MESSAGE server_tool_use breakdown on an assistant frame (first seen as zeros on the synthetic API-error frame, api-error-auth, 2026-09-23). sp-claude disposition: the turn-level count is authoritative - the result's cumulative server_tool_use lands on turn.done/turn.error usage.serverToolRequests; mapping the per-message breakdown onto every message.end would move every claude golden for ambient zeros with no consumer asking. A later mapMessageUsage carry if one does.",
+    "reason": "claude: the per-MESSAGE server_tool_use breakdown on an assistant frame (first seen as zeros on the synthetic API-error frame, api-error-auth, 2026-09-23). Triage disposition: the turn-level count is authoritative - the result's cumulative server_tool_use lands on turn.done/turn.error usage.serverToolRequests; mapping the per-message breakdown onto every message.end would move every claude golden for ambient zeros with no consumer asking. A later mapMessageUsage carry if one does.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -3356,7 +3356,7 @@
   },
   {
     "path": "[*].tool_use_result",
-    "reason": "claude: the user frame's display restatement of a tool_result (here \"Error: \" + the hook-block text). sp-claude disposition E (2026-09-23): it restates the tool_result content, which tool.done.content carries; no AgJSON home of its own, so no transform. First live in defer-tool-sonnet5-resume-deny.",
+    "reason": "claude: the user frame's display restatement of a tool_result (here \"Error: \" + the hook-block text). Triage disposition (2026-09-23): it restates the tool_result content, which tool.done.content carries; no AgJSON home of its own, so no transform. First live in defer-tool-sonnet5-resume-deny.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -3364,7 +3364,7 @@
   },
   {
     "path": "[*].data.providerData.response.text.format.type",
-    "reason": "openai: the response's echo of the request's text-format config (value \"text\"): request configuration, not turn content. In other seeds the value coincides with a text block; the tool-approval interrupt leg stops before any text (sp-openai triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
+    "reason": "openai: the response's echo of the request's text-format config (value \"text\"): request configuration, not turn content. In other seeds the value coincides with a text block; the tool-approval interrupt leg stops before any text (triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -3372,7 +3372,7 @@
   },
   {
     "path": "[*].data.event.response.text.format.type",
-    "reason": "openai: the response's echo of the request's text-format config (value \"text\"): request configuration, not turn content. In other seeds the value coincides with a text block; the tool-approval interrupt leg stops before any text (sp-openai triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
+    "reason": "openai: the response's echo of the request's text-format config (value \"text\"): request configuration, not turn content. In other seeds the value coincides with a text block; the tool-approval interrupt leg stops before any text (triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -3380,7 +3380,7 @@
   },
   {
     "path": "[*].data.response.providerData.text.format.type",
-    "reason": "openai: the response's echo of the request's text-format config (value \"text\"): request configuration, not turn content. In other seeds the value coincides with a text block; the tool-approval interrupt leg stops before any text (sp-openai triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
+    "reason": "openai: the response's echo of the request's text-format config (value \"text\"): request configuration, not turn content. In other seeds the value coincides with a text block; the tool-approval interrupt leg stops before any text (triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -3388,7 +3388,7 @@
   },
   {
     "path": "[*].item.functionToolStateKey",
-    "reason": "openai: the tool_approval_item's RunState bookkeeping key (agents-core 0.18.0), a JSON-encoded [namespace, tool] pair. A resume uses the RunState, never this key, and hitl.ask stays {askId, kind, toolCallId} (sp-openai triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
+    "reason": "openai: the tool_approval_item's RunState bookkeeping key (agents-core 0.18.0), a JSON-encoded [namespace, tool] pair. A resume uses the RunState, never this key, and hitl.ask stays {askId, kind, toolCallId} (triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -3396,7 +3396,7 @@
   },
   {
     "path": "[*].item.rawItem.name",
-    "reason": "openai: on a resumed invoke, the tool-output run item's tool name. The name belongs to the first leg's tool-call block, joined across invokes by toolCallId; the resumed invoke opens no tool.start for it to match, and c20 A.6 adds no name carry. The model stream's item.name and response.output[*].name paths still guard the tool name in every seed that calls a tool (sp-openai triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
+    "reason": "openai: on a resumed invoke, the tool-output run item's tool name. The name belongs to the first leg's tool-call block, joined across invokes by toolCallId; the resumed invoke opens no tool.start for it to match, and c20 A.6 adds no name carry. The model stream's item.name and response.output[*].name paths still guard the tool name in every seed that calls a tool (triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -3404,7 +3404,7 @@
   },
   {
     "path": "[*].data.providerData.response.tools[*].name",
-    "reason": "openai: the response's echo of the request's tool definitions: request configuration, not turn content. In a seed that calls the tool the value coincides with tool.start's name; a resumed invoke calls none, so nothing matches (sp-openai triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
+    "reason": "openai: the response's echo of the request's tool definitions: request configuration, not turn content. In a seed that calls the tool the value coincides with tool.start's name; a resumed invoke calls none, so nothing matches (triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -3412,7 +3412,7 @@
   },
   {
     "path": "[*].data.event.response.tools[*].name",
-    "reason": "openai: the response's echo of the request's tool definitions: request configuration, not turn content. In a seed that calls the tool the value coincides with tool.start's name; a resumed invoke calls none, so nothing matches (sp-openai triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
+    "reason": "openai: the response's echo of the request's tool definitions: request configuration, not turn content. In a seed that calls the tool the value coincides with tool.start's name; a resumed invoke calls none, so nothing matches (triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -3420,7 +3420,7 @@
   },
   {
     "path": "[*].data.response.providerData.tools[*].name",
-    "reason": "openai: the response's echo of the request's tool definitions: request configuration, not turn content. In a seed that calls the tool the value coincides with tool.start's name; a resumed invoke calls none, so nothing matches (sp-openai triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
+    "reason": "openai: the response's echo of the request's tool definitions: request configuration, not turn content. In a seed that calls the tool the value coincides with tool.start's name; a resumed invoke calls none, so nothing matches (triage 2026-09-24, applied at enrolment of the approval-tool-gpt6sol legs).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -3428,7 +3428,7 @@
   },
   {
     "path": "[*].item.sourceAgent.name",
-    "reason": "openai: the SDK agent label of a handoff's source agent on the handoff_occurred run item; no AgJSON home. The handoff event names its target (handoff.toAgentName) and carries no source-side name, and the facet never mints an id from a name. Same class as [*].item.agent.name, which already carries the same value on handoff_requested (sp-openai triage 2026-09-24, applied at enrolment of handoff-gpt6sol).",
+    "reason": "openai: the SDK agent label of a handoff's source agent on the handoff_occurred run item; no AgJSON home. The handoff event names its target (handoff.toAgentName) and carries no source-side name, and the facet never mints an id from a name. Same class as [*].item.agent.name, which already carries the same value on handoff_requested (triage 2026-09-24, applied at enrolment of handoff-gpt6sol).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -3436,7 +3436,7 @@
   },
   {
     "path": "[*].content.parts[*].functionResponse.response.content[*].type",
-    "reason": "adk (draft.5 \u00a78.0 item 31; google-adk maps an MCP resource_link part to one resource-link block): the MCP content part's `type` discriminator. A resource_link part's value `resource_link` becomes the AgJSON block type `resource-link` \u2014 a rename, which value match cannot see (every other member of the link is pinned by a transform to the block: `[*].content[*].<member>`). A text part's `text` matches as-is, and the other MCP parts (image, audio, resource) still ride provider-raw verbatim, where their `type` matches raw.type. First observed on resource-link-gemini38 at the item-31 regen (pkg-05).",
+    "reason": "adk (draft.5 \u00a78.0 item 31; google-adk maps an MCP resource_link part to one resource-link block): the MCP content part's `type` discriminator. A resource_link part's value `resource_link` becomes the AgJSON block type `resource-link` \u2014 a rename, which value match cannot see (every other member of the link is pinned by a transform to the block: `[*].content[*].<member>`). A text part's `text` matches as-is, and the other MCP parts (image, audio, resource) still ride provider-raw verbatim, where their `type` matches raw.type. First observed on resource-link-gemini38 at the item-31 regen.",
     "reviewed": "any",
     "frameworks": [
       "adk"
@@ -3444,7 +3444,7 @@
   },
   {
     "path": "[*].message.usage.output_tokens",
-    "reason": "claude (draft.5 pkg-11): the assistant frame's output_tokens. With no partials streamed it is a placeholder, so message.end carries no outputTokens (the no-partials placeholder omission); in a streamed run message.end's outputTokens comes from the stream's message_delta, and the turn terminal carries the result's real count. Through 0.7.x this leaf was transformed onto usage.outputTokens.",
+    "reason": "claude (draft.5 usage inclusion): the assistant frame's output_tokens. With no partials streamed it is a placeholder, so message.end carries no outputTokens (the no-partials placeholder omission); in a streamed run message.end's outputTokens comes from the stream's message_delta, and the turn terminal carries the result's real count. Through 0.7.x this leaf was transformed onto usage.outputTokens.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -3452,7 +3452,7 @@
   },
   {
     "path": "[*].usage.iterations[*].input_tokens",
-    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage, the sibling of the allowlisted [*].usage.iterations[*] members (cache_*, output_tokens, type, model); no AgJSON usage home. Masked until draft.5 by a value collision with the non-inclusive inputTokens; pkg-11's cache-inclusive inputTokens removed the collision.",
+    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage, the sibling of the allowlisted [*].usage.iterations[*] members (cache_*, output_tokens, type, model); no AgJSON usage home. Masked until draft.5 by a value collision with the non-inclusive inputTokens; draft.5's cache-inclusive inputTokens removed the collision.",
     "reviewed": "any",
     "frameworks": [
       "claude"

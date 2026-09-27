@@ -1,5 +1,5 @@
 /**
- * Consumer-ingestion posture (SPEC §0.2 / §12; audit B5).
+ * Consumer-ingestion posture (SPEC §0.2 / §12).
  *
  * A consumer validating incoming events MUST parse-known-else-skip and pass
  * unknown fields through, so additive-minor spec revisions survive. This is

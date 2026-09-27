@@ -1,5 +1,5 @@
 /**
- * Wire projection (audit D5-a). SPEC §0.1 asserts every AgEvent is a plain
+ * Wire projection. SPEC §0.1 asserts every AgEvent is a plain
  * JSON value, but TypeScript cannot PROVE `AgEvent extends JsonValue`
  * (structural interfaces like AgUsage lack index signatures). These helpers
  * are the single sanctioned crossing: a JSON round-trip typed at the
@@ -257,7 +257,7 @@ export function toJsonValueSafeWithIssues(v: unknown): { value: JsonValue; issue
       return JSON_SAFE_MAX_DEPTH_MARK;
     }
     if (isErrorObject(obj)) {
-      // Deliberate extension beyond JSON (sp-main, 2026-09-24): an Error's
+      // Deliberate extension beyond JSON (ruled 2026-09-24): an Error's
       // `name` and `message` are not enumerable own data, so JSON drops them
       // and a live error part loses its text. Map it to {name, message, …own
       // enumerable props}, and NEVER `stack` (it holds local file paths).

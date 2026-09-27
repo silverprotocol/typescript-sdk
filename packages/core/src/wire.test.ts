@@ -13,7 +13,7 @@ import {
 import { JsonValue } from "./agjson.js";
 import { AgEvent } from "./agjson.js";
 
-describe("toWire/toJsonValue (audit D5-a)", () => {
+describe("toWire/toJsonValue (the wire projection)", () => {
   it("round-trips a representative event byte-identically and parses back", () => {
     const ev = AgEvent.parse({
       type: "turn.done",
@@ -234,7 +234,7 @@ describe("toJsonValueSafe: Error instances (a deliberate extension beyond JSON)"
     expect(reads).toBe(2);
   });
 
-  it("parity with sp-google's c6ecc1c facet vectors (0.6.7 and 0.7.0 map the same values)", () => {
+  it("parity with the google-adk facet's c6ecc1c vectors (0.6.7 and 0.7.0 map the same values)", () => {
     class QuotaError extends Error {
       override name = "QuotaError";
     }

@@ -83,7 +83,7 @@ describe("INV-FLUSH turn closure (audit M21)", () => {
     expect(a.flush().filter((e) => e.type === "turn.abort")).toHaveLength(0);
   });
 
-  it("pkg-07 (i): a late merging turn.start or subagent.start for a closed turn reopens nothing, so flush() emits no second terminal", () => {
+  it("merging turn.start (i): a late merging turn.start or subagent.start for a closed turn reopens nothing, so flush() emits no second terminal", () => {
     const a = new StreamAssembler();
     a.openTurn("t1", "th1");
     a.openTurn("t2", "th1");
@@ -105,7 +105,7 @@ describe("INV-FLUSH turn closure (audit M21)", () => {
     expect(r.needsResync).toBe(false);
   });
 
-  it("pkg-07 (i): rollback restores the closed set with the rest of the trackers", () => {
+  it("merging turn.start (i): rollback restores the closed set with the rest of the trackers", () => {
     const a = new StreamAssembler();
     a.openTurn("t1", "th1");
     const cp = a.checkpoint();
@@ -123,7 +123,7 @@ describe("INV-FLUSH turn closure (audit M21)", () => {
     expect(b.flush().filter((e) => e.type === "turn.abort")).toHaveLength(0);
   });
 
-  it("pkg-07 (ii): openTurn with a trigger for a turn already seen emits a merging turn.start, and the trigger reaches the record", () => {
+  it("merging turn.start (ii): openTurn with a trigger for a turn already seen emits a merging turn.start, and the trigger reaches the record", () => {
     const a = new StreamAssembler();
     a.openMessage({ id: "m1", role: "assistant", turnId: "t1", threadId: "th1" }); // synthesizes turn.start for t1
     a.openTurn("t1", "th1", { trigger: { kind: "resume", ref: "a1" } });
@@ -695,7 +695,7 @@ describe("StreamAssembler.checkpoint / rollback (option A, used by vercel-ai)", 
   });
 
   it("checkpoint() and rollback() cover every data field the assembler declares (a new field cannot silently escape a rollback)", () => {
-    // Source reflection (sp-cto's nit 1): a data field added later without a
+    // Source reflection (a review nit): a data field added later without a
     // checkpoint()/rollback() line would make rollback partial with no other
     // test failing. Methods (`#name(`) are not state.
     const src = readFileSync(join(import.meta.dirname, "stream-assembler.ts"), "utf8");

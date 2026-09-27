@@ -531,7 +531,7 @@ describe("assertKnobsHonored", () => {
   });
 });
 
-describe("openai tool approval: the knob guard, the RunState location and the leg-1 match (sp-openai 82b3aae)", () => {
+describe("openai tool approval: the knob guard, the RunState location and the leg-1 match (82b3aae)", () => {
   const withKnobs = (extra: Record<string, unknown>) => Scenario.parse({ name: "approval-probe", prompt: "x", ...extra });
   const openaiWithApproval = { runOpenaiCapture: () => undefined, openaiApprovalPlan: () => undefined };
 
@@ -748,7 +748,7 @@ describe("claudeSubagents and openaiHandoff: the knob guards (nested-turn captur
   });
 });
 
-describe("adkLive: the knob guard (cto's Live barge-in ask)", () => {
+describe("adkLive: the knob guard (the Live barge-in capture)", () => {
   const withKnobs = (extra: Record<string, unknown>) => Scenario.parse({ name: "live-probe", prompt: "x", ...extra });
   const live = { bargeIn: "Stop. Say ok." };
 

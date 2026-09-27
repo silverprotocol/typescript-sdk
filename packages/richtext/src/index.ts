@@ -30,7 +30,7 @@
  * this AST (`text`, `code`) is literal content — render it as text content
  * (React children / RN <Text> / textContent), NEVER as markup.
  *
- * TABLES (typescript-sdk#23, downstream guuey#370) are the GFM pipe-table
+ * TABLES (typescript-sdk#23) are the GFM pipe-table
  * subset: a header row, a delimiter row (`|---|:---:|---:|` — the alignment
  * source), then body rows; no cell spans, no block content inside cells.
  * The rules follow GFM where GFM has one and stay predictable for chat where

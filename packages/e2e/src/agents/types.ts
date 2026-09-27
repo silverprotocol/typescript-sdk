@@ -50,7 +50,7 @@ export interface CaptureRunInput {
    *  underlying SDK requires. */
   abortSignal?: AbortSignal;
   /**
-   * OpenAI tool-approval knob (openai-agents only; sp-openai 82b3aae). "interrupt"
+   * OpenAI tool-approval knob (openai-agents only; 82b3aae). "interrupt"
    * is leg 1: every MCP tool needs approval, the run stops on the first call, and
    * its serialized RunState goes to `onRunState`. "approve" / "reject" is a resume
    * leg: it rebuilds leg 1's RunState (`resumeRunState`) and gives that decision
@@ -93,7 +93,7 @@ export interface CaptureRunInput {
   /** claude-agent-sdk only: resume this earlier session (the SDK's `resume`). */
   resumeSessionId?: string;
   /** google-adk only: a scripted state-writing tool (apply_state_step) writes
-   *  entry `step - 1` through toolContext.state (sp-google 5bc5351). */
+   *  entry `step - 1` through toolContext.state (5bc5351). */
   adkStateScript?: ReadonlyArray<Readonly<Record<string, JsonValue>>>;
   /** google-adk only: called once after a normal run with ADK's own
    *  session.state read back (never yielded as a native event). */

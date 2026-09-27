@@ -9,7 +9,7 @@ name: Release
 # the mirror is where releases run (the trusted-publisher config on npmjs.com
 # must point at THAT repo).
 #
-# Release model (mirrors ggui's oss/release.yml): "publish what's in git."
+# Release model (mirrors a reference client's release workflow): "publish what's in git."
 #   - Versions come from each `packages/<pkg>/package.json` as committed.
 #     This workflow never mutates package.json or git state.
 #   - Already-published `name@version` targets are skipped (idempotent
@@ -97,7 +97,7 @@ jobs:
           # `_authToken=${NODE_AUTH_TOKEN}` line to .npmrc, and with the
           # token unset (we use OIDC) pnpm passes the literal placeholder
           # through and the registry 404s BEFORE OIDC fallback fires
-          # (see ggui oss/release.yml for the full war story).
+          # (learned the hard way in a reference client's release workflow).
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm build

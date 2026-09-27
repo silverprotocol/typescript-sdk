@@ -171,7 +171,7 @@ const CLAUDE_SEEDS = [
   // claude-sonnet-5 @0.3.280. The CLI flattens the link into a text block
   // "[Resource link: <name>] <uri> (<description>)" in the tool_result
   // content and keeps the structured copy in tool_use_result.resourceLinks.
-  // Since draft.5 (pkg-05) the facet carries that list as a host record on the
+  // Since draft.5 the facet carries that list as a host record on the
   // tool.done's `_meta["anthropic/resourceLinks"]` (through 0.7.x it rode
   // providerMetadata.resourceLinks). All eight leaves are pinned by transforms:
   // the flattened text repeats uri/name/description, so value-match alone
@@ -313,7 +313,7 @@ const OPENAI_SEEDS = [
   // source turn closes success; Echoer's rounds are top-level turns (a
   // transfer, not a sub-run).
   "handoff-gpt6sol",
-  // 2026-09-25 (handoff dropped call, A′, step P2′): the live parallel-handoff
+  // 2026-09-25 (the handoff dropped-call fix): the live parallel-handoff
   // response (a832444; gpt-6-sol @ @openai/agents 0.18.0). The model calls
   // two transfers; agents-core runs the first and drops the second from the
   // run, so no run item ever names it. Under the per-call release (§8.0 item
@@ -394,15 +394,15 @@ const ADK_SEEDS = [
   "tool-error-gemini38",
   // 2026-09-23 (rnd capture #1): the resource_link leg on ADK (gemini-3.8-flash
   // @2.1.0). MCPToolset hands the MCP content through as
-  // functionResponse.response.content[*]. Since draft.5 (§8.0 item 31,
-  // pkg-05) the facet maps the resource_link part to ONE resource-link block
+  // functionResponse.response.content[*]. Since draft.5 (§8.0 item 31)
+  // the facet maps the resource_link part to ONE resource-link block
   // carrying uri, name, title, description, mimeType, size and annotations (no
   // residual provider-raw: the link has no icons); through 0.7.x it rode whole
   // as a provider-raw block. Transforms pin the seven member leaves to the
   // block; the part's `type` (resource_link → resource-link) is an allowlisted
   // rename.
   "resource-link-gemini38",
-  // 2026-09-24 (rnd, ADK shared-state fold): the corpus's first NON-EMPTY
+  // 2026-09-24 (the ADK shared-state fold): the corpus's first NON-EMPTY
   // actions.stateDelta. The scenario knob adkStateScript drives the ADK capture agent's
   // scripted apply_state_step tool (5bc5351): step 1 writes cfg={a:1,b:2}
   // plus temp:scratch, step 2 writes cfg={a:5}. ADK's Runner trims temp: before
@@ -410,10 +410,10 @@ const ADK_SEEDS = [
   // verbatim as state.delta patches. ADK's own session.state, read back into
   // adk.session-state.json, is {cfg:{a:5}}. draft.3's one-level merge folded
   // the two patches to {cfg:{a:5,b:2}} (an R&D finding); draft.4's per-key
-  // replace (pkg-21) folds them to {cfg:{a:5}}, as ADK holds, and the
+  // replace (draft.4 §5) folds them to {cfg:{a:5}}, as ADK holds, and the
   // session-state suite below pins that fold == sidecar.
   "state-fold-gemini38",
-  // 2026-09-23 (rd-06 A.9 step 5): the FIRST live ADK 2.x WORKFLOW-plane
+  // 2026-09-23: the FIRST live ADK 2.x WORKFLOW-plane
   // captures (@google/adk 2.1.0, gemini-3.8-flash), rooted at google's
   // agents/google-adk/workflow.ts graph through the scenario knob adkWorkflow.
   // Recorded with the SPEC §8.0 obligation-4 host-completion marker as the
@@ -519,7 +519,7 @@ async function readSnapshotForFramework(scn: string, framework: string): Promise
 }
 
 /**
- * guuey#26 / INV-MSG — fold a cassette's `agjson` stream through the
+ * INV-MSG — fold a cassette's `agjson` stream through the
  * NORMATIVE `Reducer` and report both faces of the invariant: parking
  * (`needsResync`) and any message id RE-OPENED after being sealed with
  * `message.end`. A cassette can be snapshot-stable AND census-clean and
@@ -527,7 +527,7 @@ async function readSnapshotForFramework(scn: string, framework: string): Promise
  * message id — that is exactly what INV-MSG forbids (`reduce()` refuses a
  * sealed message as an attach target, sets `needsResync`, and discards
  * everything after the park). Shared by every seed-corpus suite below so the
- * Claude fix's regression class (see `app-update-sonnet5`, guuey#26) is
+ * Claude fix's regression class (see `app-update-sonnet5`) is
  * checked identically for every facet, not just the one it was found in.
  */
 function foldThroughReducer(agjson: JsonValue[]): { reducer: Reducer; reopened: string[] } {
@@ -593,7 +593,7 @@ function assertUsageIdentity(agjson: JsonValue[]): void {
 }
 
 /**
- * draft.5 usage inclusion (pkg-11's replay leg). On every golden, every usage
+ * draft.5 usage inclusion (the replay leg). On every golden, every usage
  * bag at any depth (top-level and byModel) that carries cacheReadTokens or
  * cacheWriteTokens has inputTokens >= their sum: inputTokens is the
  * cache-inclusive total. On a Claude golden, against its native cassette:
@@ -722,14 +722,14 @@ describe("replay CI gate — Claude seed corpus (machinery/snapshot self-consist
         assertUsageInclusion("claude", scn, agjson, native);
       });
 
-      // guuey#26. A cassette can be snapshot-stable AND census-clean and still
+      // A reference host's fold issue: a cassette can be snapshot-stable AND census-clean and still
       // be unusable by a real consumer: if the producer re-opens a message id
       // it already sealed, INV-MSG makes `reduce()` park (`needsResync`) and
       // every event after the park is discarded. `app-update-sonnet5` — a live
       // claude-sonnet-5 capture whose thinking and tool_use blocks arrive as
       // two frames of ONE message id — parked exactly this way, and no gate in
       // this repo noticed, because none of them ever FOLDED a cassette.
-      it("folds through the normative Reducer WITHOUT parking, and never re-opens a sealed id (guuey#26 / INV-MSG)", async () => {
+      it("folds through the normative Reducer WITHOUT parking, and never re-opens a sealed id (INV-MSG)", async () => {
         const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "claude.native.json"));
         const { reducer, reopened } = foldThroughReducer(agjson);
         expect(reopened).toEqual([]);
@@ -765,7 +765,7 @@ describe("replay CI gate — OpenAI seed corpus (machinery/snapshot self-consist
         assertUsageInclusion("openai", scn, agjson, native);
       });
 
-      // guuey#26 ride-along. The Claude facet's per-frame open/seal parked the
+      // The INV-MSG ride-along. The Claude facet's per-frame open/seal parked the
       // Reducer whenever one API message spanned multiple frames (a live
       // production incident — see the Claude suite's comment above). This is
       // the SAME class of check for the OpenAI facet's own cassettes: a
@@ -774,7 +774,7 @@ describe("replay CI gate — OpenAI seed corpus (machinery/snapshot self-consist
       // `echo-gpt56`/`app-spec-structured-result` are REAL `@openai/agents`
       // captures (not hand-authored), so this pins the invariant against
       // genuine wire behavior, not just the seed machinery.
-      it("folds through the normative Reducer WITHOUT parking, and never re-opens a sealed id (guuey#26 / INV-MSG ride-along)", async () => {
+      it("folds through the normative Reducer WITHOUT parking, and never re-opens a sealed id (INV-MSG ride-along)", async () => {
         const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "openai.native.json"));
         const { reducer, reopened } = foldThroughReducer(agjson);
         expect(reopened).toEqual([]);
@@ -810,12 +810,12 @@ describe("replay CI gate — ADK seed corpus (machinery/snapshot self-consistenc
         assertUsageInclusion("adk", scn, agjson, native);
       });
 
-      // guuey#26 ride-along (see the OpenAI suite's comment above for the full
+      // The INV-MSG ride-along (see the OpenAI suite's comment above for the full
       // rationale). `echo-gemini35`/`echo-gemini36`/`multi-turn`/
       // `single-tool-call`/`text-only`/`tool-error`/`app-spec-gemini36` are
       // REAL `@google/adk` captures — this pins the same "sealed id never
       // re-opens" invariant against genuine ADK wire behavior.
-      it("folds through the normative Reducer WITHOUT parking, and never re-opens a sealed id (guuey#26 / INV-MSG ride-along)", async () => {
+      it("folds through the normative Reducer WITHOUT parking, and never re-opens a sealed id (INV-MSG ride-along)", async () => {
         const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "adk.native.json"));
         const { reducer, reopened } = foldThroughReducer(agjson);
         expect(reopened).toEqual([]);
@@ -826,7 +826,7 @@ describe("replay CI gate — ADK seed corpus (machinery/snapshot self-consistenc
 });
 
 /**
- * pkg-21 (draft.4 §5 per-key replace): a `<framework>.session-state.json`
+ * Per-key replace (draft.4 §5): a `<framework>.session-state.json`
  * sidecar is the framework's OWN shared state, read back after the run (ADK's
  * session.state); it is ground truth, never replayed (FIXTURES.md). The
  * reference fold of the committed golden must hold exactly that state. The
@@ -877,10 +877,10 @@ describe("replay CI gate — Vercel seed corpus (machinery/snapshot self-consist
         assertUsageInclusion("vercel", scn, agjson, native);
       });
 
-      // guuey#26 ride-along, fourth facet: same INV-MSG fold gate as the
+      // The INV-MSG ride-along, fourth facet: same INV-MSG fold gate as the
       // claude/openai/adk suites above, pinned before this facet's first
       // live consumer too (see foldThroughReducer's doc).
-      it("folds through the normative Reducer WITHOUT parking, and never re-opens a sealed id (guuey#26 / INV-MSG)", async () => {
+      it("folds through the normative Reducer WITHOUT parking, and never re-opens a sealed id (INV-MSG)", async () => {
         const { agjson } = await replayCassette(join(CORPUS_ROOT, scn, "vercel.native.json"));
         const { reducer, reopened } = foldThroughReducer(agjson);
         expect(reopened).toEqual([]);

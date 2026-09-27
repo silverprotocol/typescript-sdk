@@ -1,7 +1,7 @@
 name: CI
 
 # Runs on the standalone typescript-sdk repo (this directory is the repo root
-# there). Inside the private workspace/guuey supertrees this file is inert.
+# there). Inside the private workspace this file is inert.
 # Keyless: no secrets, no LLM calls — replay/census/convergence are the
 # deterministic conformance gates (audit B11).
 

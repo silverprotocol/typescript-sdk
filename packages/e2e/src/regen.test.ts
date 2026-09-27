@@ -108,7 +108,7 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // census caught structuredContent/_meta.ui.resourceUri vanishing from
   // tool.done; the regen re-normalizes the SAME native.json through the
   // fixed facet).
-  // guuey#26 (2026-07-29) — SECOND regen of this pair. The claude facet now
+  // A reference host's fold issue (2026-07-29) — SECOND regen of this pair. The claude facet now
   // coalesces the per-id message lifecycle: this cassette's thinking block and
   // tool_use block are two frames of ONE message id, and the old per-frame
   // open/seal RE-OPENED an id `reduce()` had already sealed (INV-MSG), parking
@@ -176,7 +176,7 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // 2026-09-23: the gated commentary seed, enrolled at capture time
   // (capture-time coverage.json is computed against EMPTY guard maps).
   { scenario: "commentary-gpt6sol", framework: "openai" },
-  // 2026-09-23 (rd-06 A.9 step 5): the live ADK workflow seeds, enrolled at
+  // 2026-09-23 (the ADK workflow plane): the live ADK workflow seeds, enrolled at
   // capture time (capture-time coverage.json is computed against EMPTY guard maps).
   { scenario: "workflow-complete-gemini38", framework: "adk" },
   { scenario: "workflow-pause-gemini38", framework: "adk" },
@@ -196,7 +196,7 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "narration-opus55", framework: "claude" },
   // 2026-09-23 (candidate-20 bar): the unavailable resume leg, unenrolled (coverage kept honest).
   { scenario: "defer-tool-sonnet5-resume-unavailable", framework: "claude" },
-  // 2026-09-24 (rnd): the ADK shared-state fold seed, enrolled at capture time.
+  // 2026-09-24: the ADK shared-state fold seed, enrolled at capture time.
   { scenario: "state-fold-gemini38", framework: "adk" },
   // 2026-09-24 (fold/flush Q2 evidence): the openai tool-approval legs.
   // Leg 1's capture-time coverage was computed against empty guard maps
@@ -210,8 +210,8 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // enrolled on the openai facet's handoff close (b5d8a98). The capture ran through
   // the held openaiHandoff knob; replay needs only the committed native.
   { scenario: "handoff-gpt6sol", framework: "openai" },
-  // 2026-09-25 (handoff dropped call, A′): the live parallel-handoff capture
-  // (a832444). Its census triage came at step P′; step P2′ regenerated it on the
+  // 2026-09-25 (the handoff dropped-call fix): the live parallel-handoff capture
+  // (a832444). Its census triage came first; a later step regenerated it on the
   // openai facet's per-call release and enrolled it in OPENAI_SEEDS.
   { scenario: "handoff-parallel-gpt6sol", framework: "openai" },
   // 2026-09-25 (nested-turn capture ask): the first live Claude subagent runs,

@@ -83,7 +83,7 @@ function projectError(e: Error): { [k: string]: unknown } {
 /**
  * Yields the RAW native `TextStreamPart` stream from `streamText().fullStream`,
  * unnormalized, each item materialized as a plain `JsonValue` via `toJsonValue`
- * (audit D5-a's native-ingestion boundary — the whole part, no per-field cast).
+ * (the native-ingestion boundary — the whole part, no per-field cast).
  */
 export async function* runVercelCapture(input: CaptureRunInput): AsyncIterable<JsonValue> {
   const apiKey = input.apiKey ?? process.env["OPENAI_API_KEY"];
@@ -124,7 +124,7 @@ export async function* runVercelCapture(input: CaptureRunInput): AsyncIterable<J
     });
 
     for await (const part of result.fullStream) {
-      // Wire projection (audit D5-a) — toJsonValue materializes the WHOLE raw
+      // Wire projection — toJsonValue materializes the WHOLE raw
       // part into plain JsonValue with no per-field cast. Error instances are
       // projected first so their `message` survives the round-trip (see
       // projectStreamPartErrors); Error-free parts pass through by reference.

@@ -586,7 +586,7 @@ describe("runCapture", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// host-completion marker (SPEC §8.0 host obligation 4; rd-06 A.9 step 5)
+// host-completion marker (SPEC §8.0 host obligation 4)
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("runCapture — hostCompletion records the host-completion marker (adk)", () => {

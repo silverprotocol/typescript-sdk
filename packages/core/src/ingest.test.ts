@@ -5,7 +5,7 @@ import { AgEvent, type JsonValue } from "./agjson.js";
 import { ingestAgEvent, ingestAgEvents, type AgIngestReject } from "./ingest.js";
 import { Reducer } from "./reduce.js";
 
-describe("ingestAgEvent — consumer-lenient posture (SPEC §0.2; audit B5)", () => {
+describe("ingestAgEvent — consumer-lenient posture (SPEC §0.2)", () => {
   it("parses a known event", () => {
     const e = ingestAgEvent({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
     expect(e?.type).toBe("turn.start");

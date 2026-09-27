@@ -87,7 +87,7 @@ function expected(atIndexOfBad: number, withoutBad: AgEvent[], code: string, tur
   ];
 }
 
-describe("withAtomicPush (per-native atomicity, the fleet guard; option B)", () => {
+describe("withAtomicPush (per-native atomicity; the 2026-09-24 guard ruling, option B)", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("differential: push(prefix, bad, rest) ≡ push(prefix, rest) + one error at bad's position; the +1 renumbering is explicit", () => {

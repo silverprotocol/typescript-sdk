@@ -1,6 +1,6 @@
 /**
- * atomic-push.ts — per-native atomicity for a Normalizer (the fleet guard
- * ruling, 2026-09-24, binding; sp-main approved sp-openai's option B).
+ * atomic-push.ts — per-native atomicity for a Normalizer (the no-throw guard
+ * ruling, 2026-09-24, binding: option B).
  *
  * A Normalizer MUST NOT throw out of push() (SPEC.md §8.0). When handling
  * one native throws anyway, the events it had already produced must be

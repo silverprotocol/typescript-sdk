@@ -2,7 +2,7 @@
  * cross-invoke-ids.test.ts — turn ids never repeat across the invokes of one
  * fold (draft.4: ids are unique across the invokes of a fold).
  *
- * guuey folds a whole conversation into ONE Reducer, one invoke after another,
+ * A reference host folds a whole conversation into ONE Reducer, one invoke after another,
  * each from a fresh normalizer (SPEC §8.0 Lifetime). An id minted from the
  * native (a response id, an invocation id, a result uuid) is unique by
  * construction; a FALLBACK id minted when the native has none must be unique

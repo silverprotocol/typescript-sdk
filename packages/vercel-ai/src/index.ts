@@ -7,7 +7,7 @@
  * surface carrying typed usage (`finish-step.usage` / `finish.totalUsage`).
  *
  * DESIGN: docs/plans/2026-07-14-vercel-ai-facet-brief.md (private workspace)
- * — event mapping table + D1 decision sheet. Every wire shape below was
+ * — event mapping table + decision sheet. Every wire shape below was
  * captured from REAL ai@7.0.26 fullStream output (keyless MockLanguageModelV3
  * runs, 2026-07-20), which corrected the survey in three places:
  *  - `text-delta`/`reasoning-delta` carry `text`; `tool-input-delta` carries
@@ -21,7 +21,7 @@
  *    `rawFinishReason` (the `{unified, raw}` object form exists only on the
  *    model-spec chunk grammar).
  *
- * Anchoring (D1-final): one `streamText` invocation = ONE turn. The threadId is
+ * Anchoring: one `streamText` invocation = ONE turn. The threadId is
  * the host's `threadId` option, else the fixed placeholder `"vercel"` (the
  * fullStream carries no thread id). One message PER
  * STEP: opened at `start-step`, sealed at `finish-step` with that step's
@@ -254,7 +254,7 @@ function errFields(v: unknown): ErrorFields {
 // ─── wire → AgJSON value mapping ─────────────────────────────────────────────
 
 /** fullStream `LanguageModelUsage` (flat tokens + detail bags — verified
- *  ai@7.0.26) → AgUsage. `cumulative` deliberately ABSENT (D1: totalUsage is
+ *  ai@7.0.26) → AgUsage. `cumulative` deliberately ABSENT (totalUsage is
  *  carried verbatim on the turn-terminal — `turn.done` or `turn.error`; per-step
  *  usage rides message.end). Spec §4
  *  (draft.3): `outputTokens` is reasoning-INCLUSIVE upstream (ai normalizes
@@ -306,7 +306,7 @@ function mapFinishReason(v: unknown): AgFinishReason {
 /**
  * `turn.done.finishReasonRaw` (draft.4, SPEC §8.0 graceful degradation, §10
  * item 23): the native reason verbatim, set ONLY when the mapping fell back
- * to `"other"`/`"unknown"`. A real mapping sets nothing (the OA-15 scope).
+ * to `"other"`/`"unknown"`. A real mapping sets nothing.
  * The native value is the provider's `rawFinishReason` on the `finish` part,
  * which is what ai itself could not map when it reports `"other"`. With no
  * `rawFinishReason`, an unrecognized unified `finishReason` (a future ai
@@ -333,7 +333,7 @@ const THREAD_ID = "vercel";
  * the threadId: the other facets pass a vendor literal, and the thread id can
  * be host-supplied (the `threadId` option), which must never re-key the ext
  * namespace. Its default equals this value, so the default wire is unchanged. Whether SPEC reserves `vercel` alongside
- * anthropic/google/openai/langgraph is sp-protocol's call.
+ * anthropic/google/openai/langgraph is a spec decision.
  */
 const EXT_VENDOR = "vercel";
 
@@ -440,7 +440,7 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
     openReasoningIds.clear();
   }
 
-  /** messageEnd BEFORE any turn-terminal event (D1/R5 ordering rule). */
+  /** messageEnd BEFORE any turn-terminal event (the ordering rule). */
   function closeOpenMessage(usage?: AgUsage): void {
     if (msgId === undefined) return;
     endOpenStreams();
@@ -829,11 +829,11 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
     a.emitExt(EXT_VENDOR, "frame", { kind: part.type, frame: safeJson(part) });
   }
 
-  /** The last-resort guard's ONE emission point (fleet pattern, 2026-09-24):
+  /** The last-resort guard's ONE emission point (the guard pattern, 2026-09-24):
    *  the core non-terminal `error` event (SPEC §8.0 allows it besides an
    *  unparsed carry), with `code` = the thrown value's constructor NAME only.
    *  Never its message (a SyntaxError quotes its input) and never the native.
-   *  Kept behind this one helper while guuey/ggui confirm they treat the event
+   *  Kept behind this one helper while the reference host and client confirm they treat the event
    *  as non-fatal. The committed corpus never fires it. */
   function emitNormalizerError(err: unknown): void {
     let code = "NonError";
@@ -883,7 +883,7 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
   }
 
   /**
-   * The last-resort guard, per native (the fleet guard ruling, 2026-09-24,
+   * The last-resort guard, per native (the no-throw guard ruling, 2026-09-24,
    * binding): if handling one native throws, its partial batch is DISCARDED
    * (the assembler rolls back, so it consumes no seq; INV-SEQ), the facet's
    * own state rolls back with it, and one core `error` event is emitted in its

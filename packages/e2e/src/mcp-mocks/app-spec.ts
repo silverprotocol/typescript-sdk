@@ -8,7 +8,7 @@
  *   _meta: { ui: { resourceUri: "ui://mock/card", visibility: ["model"] } }
  * }
  *
- * This synthesizes the MCP App-spec shape + ggui render-cache-marker.
+ * This synthesizes the MCP App-spec shape + a reference client's render-cache marker.
  * The capture agent's metering reads structuredContent.cache.hit.
  */
 

@@ -4,8 +4,7 @@
  * turn, emits subagent lifecycle, and enforces turn-scoped monotonic seq. Used by
  * the stateful `Normalizer` implementations in `@silverprotocol/<framework>` packages.
  *
- * Generalised from the guuey-side `backend/services/nocode-runtime/src/stream-assembler.ts`
- * (spec §8.2 / §16). The guuey-side version will be deleted in T5.
+ * Generalised from a reference host's stream assembler (spec §8.2 / §16).
  *
  * Invariants enforced:
  *  I1  – `turn.start` synthesized when `openMessage` is called for an unseen turnId
@@ -172,16 +171,16 @@ export class StreamAssembler {
 
   // messageId → turnId map (populated in openMessage): used by content/tool events
   // to backfill turnId from the owning message when the event carries no turnId.
-  // Mirrors the guuey-side StreamAssembler #msgTurn.
+  // Mirrors a reference host's StreamAssembler #msgTurn.
   #msgTurn = new Map<string, string>();
 
   // The most recent turnId introduced by any turn-opening event (openTurn,
   // openMessage, subagentStart). Fallback for content events that carry neither
-  // turnId nor messageId (e.g. an orphan tool.done). Mirrors guuey #lastTurn.
+  // turnId nor messageId (e.g. an orphan tool.done). Mirrors a reference host's #lastTurn.
   #lastTurn: string | undefined = undefined;
 
   // Stack of #lastTurn snapshots, one pushed per subagentStart and popped by
-  // the matching subagentDone (Task 8c leg 1 — guuey capstone finding A). The
+  // the matching subagentDone (Task 8c leg 1 — a reference host's capstone finding A). The
   // OLD owner-fallback reused the wire-visible `parentTurnId` argument directly
   // as the restored owner, but a facet's `parentTurnId` label (e.g. claude's
   // synthetic `turn_${toolCallId}` Task-tool cross-ref) MAY never have been
@@ -259,7 +258,7 @@ export class StreamAssembler {
   /**
    * Resolve a turnId for a content/tool event: explicit field → owning message's
    * turnId (#msgTurn) → current open turn (#lastTurn).
-   * Mirrors the guuey-side `withTurnId` + `#msgTurn`/`#lastTurn` resolution order.
+   * Mirrors a reference host's `withTurnId` + `#msgTurn`/`#lastTurn` resolution order.
    */
   #resolveTurnId(explicitTurnId: string | undefined, messageId: string | undefined): string | undefined {
     if (explicitTurnId !== undefined) return explicitTurnId;
@@ -710,7 +709,7 @@ export class StreamAssembler {
    * A restorable snapshot of this assembler's whole state: the seq counter,
    * the turn / message trackers, the turn stack, the cumulative-delta
    * buffers and how many events sit undrained. It exists for a facet's
-   * per-native transaction (the fleet guard ruling, 2026-09-24): take a
+   * per-native transaction (the no-throw guard ruling, 2026-09-24): take a
    * checkpoint before driving one native, and {@link rollback} to it if
    * driving throws. The discarded partial batch then consumes no seq
    * (INV-SEQ), and no turn, message or block it half-opened survives.

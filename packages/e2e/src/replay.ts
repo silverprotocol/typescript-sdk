@@ -74,7 +74,7 @@ export interface ReplayResult {
   hostCompleted: boolean;
 }
 
-// ─── the recorded host-completion marker (rd-06; draft.4 §8.0 host obligation 4) ──
+// ─── the recorded host-completion marker (draft.4 §8.0 host obligation 4) ──
 
 /**
  * A capture harness MAY append ONE line `{"type": HOST_COMPLETE_MARKER}` as the
@@ -274,8 +274,8 @@ export async function replayNatives(recorded: JsonValue[], fw: Framework, opts: 
   // replay pins it to "vercel", which reproduces the committed goldens'
   // `turn_vercel_<n>` ids byte-for-byte. Each cassette is its own fold, so
   // the fixed stem cannot collide. openai mints a random stem for its fallback
-  // and handoff turn ids the same way (DC-10); replay pins it to "openai", so a
-  // fallback turn reproduces the pre-DC-10 `turn_openai_<n>` byte-for-byte.
+  // and handoff turn ids the same way (unique across invokes); replay pins it to "openai", so a
+  // fallback turn reproduces the earlier `turn_openai_<n>` byte-for-byte.
   const normalizer =
     fw === "openai"
       ? createOpenaiNormalizer({ invokeId: "openai" })
@@ -293,7 +293,7 @@ export async function replayNatives(recorded: JsonValue[], fw: Framework, opts: 
   const agjson: JsonValue[] = [];
   for (const event of native) {
     for (const e of normalizer.push(event)) {
-      // Wire projection (audit D5-a) — toWire materializes the AgEvent as
+      // Wire projection — toWire materializes the AgEvent as
       // plain JsonValue, exactly as the wire delivers it.
       agjson.push(toWire(e));
     }
