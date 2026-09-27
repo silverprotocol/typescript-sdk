@@ -5,7 +5,8 @@ Agent SDK `query()` and yields the **RAW native `SDKMessage` stream** as
 `JsonValue` items — unnormalized. The harness captures this stream and pipes it
 through the normalizer under test in a separate step.
 
-This is also the de-ggui'd replacement for the silverprotocol example agent.
+This is also the standalone replacement for the silverprotocol example agent:
+it depends on no consumer's packages.
 
 ## Files
 
@@ -20,15 +21,15 @@ This is also the de-ggui'd replacement for the silverprotocol example agent.
 
 SDK `@anthropic-ai/claude-agent-sdk@0.2.141` ships a **native binary** and
 self-resolves it at run time. The `resolveClaudeCliPath` / `spawnClaudeCli`
-pattern from the `../ggui` sample agent is deliberately absent — it would
+pattern from a reference client's sample agent is deliberately absent — it would
 throw at module-load on this SDK version.
 
 `query()` is called **without** `pathToClaudeCodeExecutable` and **without**
 `spawnClaudeCodeProcess`.
 
-### Zero `@ggui-ai/*` imports
+### Zero imports from a reference client's packages
 
-No `GGUI_AGENT_SYSTEM_PROMPT`, no `DEFAULT_ALLOWED_TOOLS`, no
+No client-owned system prompt, no `DEFAULT_ALLOWED_TOOLS`, no
 `sdkMessageToNormalized`. `JsonValue` comes from `@silverprotocol/core`.
 
 ### JSON round-trip tap
