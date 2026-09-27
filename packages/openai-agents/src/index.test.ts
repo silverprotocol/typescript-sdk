@@ -3982,6 +3982,117 @@ describe("createOpenaiNormalizer — tool_approval_requested (Task 3, audit M48)
   });
 });
 
+describe("createOpenaiNormalizer — hosted-MCP approval ids", () => {
+  // The order @openai/agents 0.18.0 streams it: the raw items, then
+  // response.completed, then the run-items (agents-core streams a response's
+  // step items after the raw loop, run.mjs:1935). A hosted-MCP approval request
+  // is a hosted_tool_call whose rawItem has no callId: its id is the request id
+  // (agents-openai's converter, openaiResponsesConverter.mjs:1446-1459; the
+  // approval item, runner/modelOutputs.mjs:463-470). An mcp_approval_response
+  // has no id at all (runner/mcpApprovals.mjs:39-49).
+  const request = (id: string, q: string) => ({
+    type: "mcp_approval_request",
+    id,
+    server_label: "deepwiki",
+    name: "ask_question",
+    arguments: `{"q":"${q}"}`,
+  });
+  const R1 = request("mcpr_1", "a");
+  const R2 = request("mcpr_2", "b");
+  const U = { input_tokens: 10, output_tokens: 5, total_tokens: 15 };
+  const rawRound = (rid: string, items: JsonValue[]): JsonValue[] => [
+    rawModel({ type: "response.created", response: { id: rid, model: "gpt-6-sol" }, sequence_number: 0 }),
+    ...items.flatMap((item, i) => [
+      rawModel({ type: "response.output_item.added", item, output_index: i, sequence_number: 2 * i + 1 }),
+      rawModel({ type: "response.output_item.done", item, output_index: i, sequence_number: 2 * i + 2 }),
+    ]),
+    rawModel({ type: "response.completed", response: { id: rid, status: "completed", output: items, usage: U } }),
+  ];
+  const calledRequest = (r: typeof R1): JsonValue =>
+    runItem("tool_called", {
+      type: "tool_call_item",
+      rawItem: { type: "hosted_tool_call", id: r.id, name: "mcp_approval_request", status: "completed", providerData: { ...r } },
+    });
+  const approvalRequested = (r: typeof R1): JsonValue =>
+    runItem("tool_approval_requested", {
+      type: "tool_approval_item",
+      rawItem: { type: "hosted_tool_call", name: r.name, id: r.id, status: "in_progress", providerData: { ...r } },
+    });
+  const approvalResponse = (requestId: string, approve: boolean): JsonValue =>
+    runItem("tool_called", {
+      type: "tool_call_item",
+      rawItem: { type: "hosted_tool_call", name: "mcp_approval_response", providerData: { approve, approval_request_id: requestId } },
+    });
+  function run(s: JsonValue[]): { evs: AgEvent[]; r: Reducer } {
+    const n = createOpenaiNormalizer({ invokeId: "inv1" });
+    const evs = s.flatMap((e) => n.push(e)).concat(n.flush());
+    const r = new Reducer();
+    for (const ev of evs) r.push(ev);
+    return { evs, r };
+  }
+  const asks = (evs: AgEvent[]) =>
+    evs.filter((e) => e.type === "hitl.ask").map((e) => ({ askId: Reflect.get(e, "askId"), toolCallId: Reflect.get(e, "toolCallId") }));
+  const startIds = (evs: AgEvent[]) => evs.filter((e) => e.type === "tool.start").map((e) => Reflect.get(e, "toolCallId"));
+
+  it("in the order the SDK streams it, a hosted-MCP approval ask is keyed on its request id: askId approval_<request id> and toolCallId the request id, distinct for two requests", () => {
+    const { evs, r } = run([
+      ...rawRound("resp_ap_1", [R1, R2]),
+      calledRequest(R1),
+      approvalRequested(R1),
+      calledRequest(R2),
+      approvalRequested(R2),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(asks(evs)).toEqual([
+      { askId: "approval_mcpr_1", toolCallId: "mcpr_1" },
+      { askId: "approval_mcpr_2", toolCallId: "mcpr_2" },
+    ]);
+  });
+
+  it("a function-call approval ask keeps askId approval_<callId> and toolCallId the callId", () => {
+    const { evs } = run([
+      rawModel({ type: "response.created", response: { id: "resp_ap_2" } }),
+      rawModel({ type: "response.output_item.added", item: { id: "fc_ap_2", type: "function_call", call_id: "call_ap_2", name: "send_email", arguments: "" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_ap_2", status: "completed" } }),
+      runItem("tool_approval_requested", {
+        type: "tool_approval_item",
+        rawItem: { type: "function_call", name: "send_email", callId: "call_ap_2", arguments: "{}", id: "fc_ap_2" },
+      }),
+    ]);
+    expect(asks(evs)).toEqual([{ askId: "approval_call_ap_2", toolCallId: "call_ap_2" }]);
+  });
+
+  it("two mcp_approval_response run-items in one invoke get distinct derived ids keyed on their request ids, and the fold does not resync", () => {
+    const { evs, r } = run([
+      ...rawRound("resp_ap_3", [R1, R2]),
+      calledRequest(R1),
+      calledRequest(R2),
+      approvalResponse("mcpr_1", true),
+      approvalResponse("mcpr_2", false),
+    ]);
+    expect(r.needsResync).toBe(false);
+    const ids = startIds(evs);
+    expect(ids).toContain("mcpr_1:approval-response");
+    expect(ids).toContain("mcpr_2:approval-response");
+    expect(ids).not.toContain("mcp_approval_response");
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("an id-less hosted item that is not an approval response gets a collision-free derived id, never its name", () => {
+    const idless = (): JsonValue =>
+      runItem("tool_called", {
+        type: "tool_call_item",
+        rawItem: { type: "hosted_tool_call", name: "web_search_call", status: "completed", output: "ok" },
+      });
+    const { evs, r } = run([...rawRound("resp_ap_4", []), idless(), idless()]);
+    expect(r.needsResync).toBe(false);
+    const ids = startIds(evs);
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2);
+    expect(ids).not.toContain("web_search_call");
+  });
+});
+
 describe("createOpenaiNormalizer — default run-item arm (Task 3, audit M48)", () => {
   it("a genuinely-unknown run-item name routes to ext.openai.unparsed (the file's stated convention, now true)", () => {
     const n = createOpenaiNormalizer();

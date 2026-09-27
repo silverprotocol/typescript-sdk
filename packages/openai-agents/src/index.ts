@@ -819,14 +819,20 @@ interface OpenAIHandoffOccurredEvent {
   item: OpenAIHandoffOccurredItem;
 }
 
-/** A tool approval request item (RunToolApprovalItem) — the function call that
- *  needs human approval rides in rawItem. */
+/** A tool approval request item (RunToolApprovalItem) — the call that needs
+ *  human approval rides in rawItem. A function, shell, apply-patch or computer
+ *  call carries its `callId`. A hosted-MCP approval request is a
+ *  `hosted_tool_call` with NO callId: `{name: <the MCP tool's name>, id: <the
+ *  request id>, status, providerData}` (agents-core 0.18.0
+ *  runner/modelOutputs.mjs:463-470), and its request id is agents-core's own
+ *  identity for it. */
 interface OpenAIToolApprovalItem {
-  type: "function_call";
-  name: string;
-  callId: string;
-  arguments: string;
+  type: string;
+  name?: string;
+  callId?: string;
+  arguments?: string;
   id?: string;
+  providerData?: { [k: string]: JsonValue };
 }
 
 interface OpenAIToolApprovalRequestedEvent {
@@ -1703,6 +1709,9 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   let lastTopLevelTurnId: string | undefined;
   // Per-invoke ordinal for the synthetic subagent turnId (`turn_handoff_<n>`).
   let handoffOrdinal = 0;
+  // Per-invoke ordinal for a derived id (INV-BLOCK, SPEC:767) when a native
+  // item carries no id the facet can key on.
+  let derivedOrdinal = 0;
   // Open handoff brackets, keyed by the transfer call's callId (paired turnId
   // + the SAME parentTurnId `subagentStart` used — `subagentDone` must replay
   // it verbatim, mirroring the claude-agent-sdk facet's paired start/done
@@ -3091,6 +3100,25 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     return false;
   }
 
+  /**
+   * The toolCallId of a `hosted_tool_call`: its item id when it has one. An
+   * id-less item gets a derived id (INV-BLOCK, SPEC:767: "Normalizers MUST
+   * mint collision-free **derived** ids when the framework omits one"), never
+   * its `name`, which two items of one invoke can share:
+   *  - an `mcp_approval_response` (agents-core 0.18.0 builds it with no id,
+   *    runner/mcpApprovals.mjs:39-49) is keyed on the request it answers:
+   *    `<approval_request_id>:approval-response`;
+   *  - any other id-less item: `<name>_<invoke stem>_<n>`.
+   */
+  function hostedToolCallId(rawItem: OpenAIHostedToolCallItem): string {
+    if (rawItem.id !== undefined && rawItem.id.length > 0) return rawItem.id;
+    const requestId: unknown = rawItem.providerData?.approval_request_id;
+    if (rawItem.name === "mcp_approval_response" && typeof requestId === "string" && requestId.length > 0) {
+      return `${requestId}:approval-response`;
+    }
+    return `${rawItem.name}_${invokeStem}_${++derivedOrdinal}`;
+  }
+
   function driveBuiltinToolCalled(
     rawItem:
       | OpenAIShellCallItem
@@ -3101,7 +3129,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   ): void {
     ensureResponseOpen();
     if (msgId === undefined) return; // unreachable post-ensure; satisfies narrowing
-    const toolCallId = rawItem.type === "hosted_tool_call" ? (rawItem.id ?? rawItem.name) : rawItem.callId;
+    const toolCallId = rawItem.type === "hosted_tool_call" ? hostedToolCallId(rawItem) : rawItem.callId;
     const name = builtinToolName(rawItem);
     // Caller provenance (0.14.0): typed only on the shapes the wire declares
     // it for — computer_call and program carry none (protocol.d.ts).
@@ -3574,13 +3602,24 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
           // (reduce.ts R9: no accumulator mutation), so emitting the ask alone is
           // complete; the host/turn-close owns any pause semantics.
           const item = event.item.rawItem;
+          // The call the ask gates: a function, shell, apply-patch or computer
+          // call's callId, else the item's id. A hosted-MCP approval request
+          // has no callId, and its id is the request id its tool.start uses.
+          // callId comes first, so a function approval's ask is unchanged.
+          const gatedId = item.callId ?? item.id;
+          if (gatedId === undefined) {
+            // No id to key on: a collision-free derived askId (INV-BLOCK) and
+            // no toolCallId, rather than naming a call the facet cannot find.
+            a.emit({ type: "hitl.ask", askId: `approval_${invokeStem}_${++derivedOrdinal}`, kind: "approval" });
+            return;
+          }
           a.emit({
             type: "hitl.ask",
-            askId: `approval_${item.callId}`,
+            askId: `approval_${gatedId}`,
             kind: "approval",
-            toolCallId: item.callId,
+            toolCallId: gatedId,
           });
-          askedApprovals.set(item.callId, `approval_${item.callId}`);
+          askedApprovals.set(gatedId, `approval_${gatedId}`);
           return;
         }
         default:
