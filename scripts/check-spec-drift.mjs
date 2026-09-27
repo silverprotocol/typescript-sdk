@@ -324,12 +324,14 @@ function armRegion(tsText, arm) {
 
 /** null when `ref` resolves in agjson.ts, else the reason it does not. */
 function resolveTableReference(tsText, ref) {
-  const armRef = /^(AgClosedEvent|AgBlock)\[([a-z][a-z0-9.\-]*)\]\.(\w+)$/.exec(ref);
+  const armRef = /^(AgClosedEvent|AgBlock)\[([a-z][a-z0-9.\-]*)\]\.(\w+(?:\.\w+)*)$/.exec(ref);
   if (armRef) {
     const region = armRegion(tsText, armRef[2]);
     if (!region) return `no \`type: z.literal("${armRef[2]}")\` arm`;
-    return new RegExp(`\\b${armRef[3]}\\s*:`).test(region) ? null : `arm ${armRef[2]} has no member \`${armRef[3]}\``;
+    for (const member of armRef[3].split(".")) if (!new RegExp(`\\b${member}\\s*:`).test(region)) return `arm ${armRef[2]} has no member \`${member}\``;
+    return null;
   }
+  if (/[\[\]]/.test(ref.replace(/\[\]/g, ""))) return `\`${ref}\` is not a location this check can resolve (expected \`Export.member\`, \`Export.array[].member\` or \`AgClosedEvent|AgBlock[arm].member\`)`;
   const [root, ...path] = ref.split(".").map((x) => x.replace(/\[\]$/, ""));
   const region = declarationRegion(tsText, root);
   if (!region) return `no declaration of \`${root}\``;
@@ -425,12 +427,13 @@ const FENCE_END = /^\s*```\s*$/;
 
 // SPEC owner → schema location. Small, explicit, printed in the summary (a re-read checks the union resolved where intended).
 const SPEC_LOCATION_MAP = {
-  // arms of the two discriminated unions SPEC spells with the wire name
-  "AgEvent[*]": "AgClosedEvent[*]",
+  // (AgEvent[arm] → AgClosedEvent[arm] is applied by mapSpecLocation before this map is consulted; it is not an entry.)
   // AgInput arms by `kind:` → the named input schemas; the `results[]` item path is the schema's own shape
   "AgInput[start]": "AgInputStart", "AgInput[resume]": "AgInputResume", "AgInput[tool-result]": "AgInputToolResult",
   // SPEC inlines a record shape the schema names
   "AgTurnRecord.handoffs.kind": "AgHandoffRecord.kind",
+  // the input's results[] item path, spelled without the array segment in the §12 row
+  "AgInputToolResult.results.scheduling": "AgInputToolResult.scheduling",
   // SPEC inlines an export's set at a location the export covers in the schema
   "AgClosedEvent[reasoning.opaque].kind": "AgOpaque.kind",
   "AgInputToolResult.results.outcome": "ToolOutcome",
@@ -445,6 +448,10 @@ const UNPINNED_SITE_EXCEPTIONS = {};
 // fixture manifest: a SPEC edit that adds or removes a union updates it in the same commit, so a location that
 // silently stops being read (a field retyped to an alias while its row stays pinned by another) fails --self-test.
 const EXPECTED_SPEC_UNIONS = 54;
+// The number of z.enum sites agjson.ts declares at the current draft — the same ratchet on the schema side: a site the
+// keyer stops reaching (a chain-broken `z\n  .enum(`, a second z.enum on one line) or a site removed fails --self-test
+// until the count is updated in the same commit.
+const EXPECTED_ENUM_SITES = 40;
 
 function stripTrailer(l) { return l.replace(/(?<!:)\/\/.*$/, ""); }
 function braceDelta(l) { let d = 0, inStr = false; for (const ch of l) { if (ch === '"') inStr = !inStr; else if (!inStr) { if (ch === "{") d++; else if (ch === "}") d--; } } return d; }
@@ -487,6 +494,12 @@ function extractSpecUnions(specText) {
       const d = /(?:type|kind):\s*"([^"]+)"/.exec(l) ?? /^\s*(?:type|kind):\s*"([^"]+)"/.exec(stripTrailer(lines[i + 1] ?? ""));
       arm = d ? d[1] : null; path.length = 0; armDepth = depth;
     }
+    // a union continued from the previous line: `| "c" | "d";` right after a line that recorded a union and did not end it
+    if (!alias && /^\s*\|\s*"/.test(l) && out.length && out[out.length - 1].line === i && !/[;}]\s*$/.test(stripTrailer(lines[i - 1]))) {
+      out[out.length - 1].values.push(...Array.from(l.matchAll(Q), (v) => v[1])); continue;
+    }
+    // a field whose union starts on the next line (`reason:` / `mode: "a" |` then `"b" | …`): the extractor does not join it — say so
+    if (!alias && !blockOwnerPending && t.length > 0 && !/^\/\//.test(t) && (/[:|]$/.test(t) && !/^\s*(?:export\s+)?type\s+\w+\s*=\s*$/.test(l) || (/^"/.test(t) && !(out.length && out[out.length - 1].line === i)))) problems.push(`SPEC.md:${i + 1} a type line wraps (\`${t.slice(0, 40)}\`): a closed union split across lines is not read — keep each union on one line or as \`type X =\` alias lines`);
     // unions on this line — every `name?: "a" | "b"`, `name: ("a"|"b")[]`, `Array<"a"|"b">`, `type X = "a" | "b"`
     const re = /(?:\btype\s+)?\b([A-Za-z_]\w*)\??\s*[:=]\s*(?:\(|Array<)?\s*("[^"\n]+"(?:\s*\|\s*"[^"\n]+")+)/g;
     for (let mm = re.exec(l); mm; mm = re.exec(l)) {
@@ -509,27 +522,33 @@ function extractSpecUnions(specText) {
 
 /** Every `z.enum([...])` site in agjson.ts with its values: key forms `Export`, `Export.path.to.field`, `AgClosedEvent[arm].field`, `AgBlock[kind].field`. */
 function extractSchemaEnumSitesWithValues(tsText) {
-  const lines = tsText.split("\n"); const sites = []; let exportName = null, arm = null, pendingName = null;
+  const lines = tsText.split("\n"); const sites = []; let exportName = null, arm = null, armDepth = 0, pendingName = null;
   const path = []; let depth = 0;
-  const valuesFrom = (i) => { const from = lines.slice(i).join("\n"); const k = from.indexOf("z.enum("); let d = 0, j = k + 6, q = false; for (; j < from.length; j++) { const c = from[j]; if (c === '"') { q = !q; continue; } if (q) continue; if (c === "(" || c === "[") d++; else if (c === ")" || c === "]") { d--; if (d === 0) break; } } return Array.from(from.slice(k, j + 1).matchAll(Q), (v) => v[1]); }; // quote-aware: a bracket inside a value ("[start,end]") never ends the slice
+  const valuesFrom = (i, at = 0, split = false) => { const from = (split ? lines[i].replace(/^\s*\./, "z.") + "\n" + lines.slice(i + 1).join("\n") : lines.slice(i).join("\n")); const k0 = split ? 0 : Math.max(0, at); const k = from.indexOf("z.enum(", k0) >= 0 ? from.indexOf("z.enum(", k0) : from.search(/z\s*\.\s*enum\(/); let d = 0, j = k + from.slice(k).search(/\(/), q = false; for (; j < from.length; j++) { const c = from[j]; if (c === '"') { q = !q; continue; } if (q) continue; if (c === "(" || c === "[") d++; else if (c === ")" || c === "]") { d--; if (d === 0) break; } } return Array.from(from.slice(k, j + 1).matchAll(Q), (v) => v[1]); }; // quote-aware: a bracket inside a value ("[start,end]") never ends the slice
   const delta = (l) => { let d = 0, s = null; for (const ch of l) { if (s) { if (ch === s) s = null; continue; } if (ch === '"' || ch === "'" || ch === "`") s = ch; else if ("{([".includes(ch)) d++; else if ("})]".includes(ch)) d--; } return d; };
   for (let i = 0; i < lines.length; i++) {
-    const l = lines[i].replace(/\/\/.*$/, "");
-    const ex = /^(?:export )?(?:const|type|interface|function) (\w+)/.exec(l); if (ex) { exportName = ex[1]; arm = null; path.length = 0; depth = 0; pendingName = null; }
-    const disc = /type: z\.literal\("([a-z][a-z0-9.\-]*)"\)/.exec(l); if (disc && (exportName === "AgClosedEvent" || exportName === "AgBlock")) arm = disc[1];
-    if (l.includes("z.enum(")) {
-      const bare = /^(?:export )?const (\w+) = z\.enum\(/.exec(l);
-      const lead = /^\s*(\w+)\??:\s*/.exec(l)?.[1] ?? null;
-      const inner = /(\w+):\s*(?:z\.array\()?z\.enum\(/.exec(l)?.[1] ?? null;
-      let key;
-      if (bare) key = bare[1];
-      else { const segs = [...path.map((x) => x.name).filter(Boolean)]; if (lead && inner && lead !== inner) segs.push(lead, inner); else if (inner) segs.push(inner); else if (pendingName) segs.push(pendingName); const p = segs.join("."); key = arm && (exportName === "AgClosedEvent" || exportName === "AgBlock") ? `${exportName}[${arm}].${p}` : `${exportName}.${p}`; }
-      sites.push({ key, line: i + 1, values: valuesFrom(i) });
+    const l = lines[i].replace(/(?<!:)\/\/.*$/, ""); // colon-aware: a `://` inside a string is not a comment
+    const ex = /^(?:export )?(?:const|type|interface|function) (\w+)/.exec(l); if (ex) { exportName = ex[1]; arm = null; armDepth = 0; path.length = 0; depth = 0; pendingName = null; }
+    const disc = /type: z\.literal\("([a-z][a-z0-9.\-]*)"\)/.exec(l); if (disc && (exportName === "AgClosedEvent" || exportName === "AgBlock")) { arm = disc[1]; armDepth = depth; }
+    // a chain-broken site: `field: z` on the previous line, `.enum([...])` on this one — keyed to the previous line's field
+    const splitEnum = /^\s*\.enum\(/.test(l) && i > 0 && /\bz\s*$/.test(lines[i - 1].replace(/(?<!:)\/\/.*$/, ""));
+    const enumLine = splitEnum ? lines[i - 1].replace(/(?<!:)\/\/.*$/, "") + " " + l.trim() : l;
+    if (/z\s*\.\s*enum\(/.test(enumLine)) {
+      const bare = /^(?:export )?const (\w+) = z\s*\.\s*enum\(/.exec(enumLine);
+      const lead = /^\s*(\w+)\??:\s*/.exec(enumLine)?.[1] ?? null;
+      const occurrences = bare ? [null] : Array.from(enumLine.matchAll(/(\w+):\s*(?:z\.array\()?z\s*\.\s*enum\(/g), (m) => ({ inner: m[1], at: m.index }));
+      if (!bare && occurrences.length === 0) occurrences.push({ inner: null, at: enumLine.search(/z\s*\.\s*enum\(/) });
+      for (const occ of occurrences) {
+        let key;
+        if (bare) key = bare[1];
+        else { const inner = occ.inner; const segs = [...path.map((x) => x.name).filter(Boolean)]; if (lead && inner && lead !== inner) segs.push(lead, inner); else if (inner) segs.push(inner); else if (pendingName) segs.push(pendingName); const p = segs.join("."); key = arm && (exportName === "AgClosedEvent" || exportName === "AgBlock") ? `${exportName}[${arm}].${p}` : `${exportName}.${p}`; }
+        sites.push({ key, line: i + 1, values: valuesFrom(i, occ ? occ.at : 0, splitEnum) });
+      }
     }
     const d = delta(l);
     if (/^\s*(\w+)\??:\s*z\s*$/.test(l)) pendingName = /^\s*(\w+)/.exec(l)[1];
     if (d > 0) { const name = /^\s*(\w+)\??:\s*/.exec(l)?.[1] ?? pendingName ?? null; for (let k = 0; k < d; k++) path.push({ name: k === 0 ? name : null, depth: depth + k }); depth += d; if (name) pendingName = null; }
-    else if (d < 0) { depth += d; while (path.length && path[path.length - 1].depth >= depth) path.pop(); if (depth <= 0) pendingName = null; }
+    else if (d < 0) { depth += d; while (path.length && path[path.length - 1].depth >= depth) path.pop(); if (depth <= 0) pendingName = null; if (arm !== null && depth < armDepth) arm = null; }
   }
   return sites;
 }
@@ -559,13 +578,12 @@ function mapSpecLocation(loc) {
   if (SPEC_LOCATION_MAP[l]) l = SPEC_LOCATION_MAP[l];
   return l;
 }
-/** Bind a (mapped) location to rows: exact first; else unique root+last; else none. Returns { rows, rule }. */
+/** Bind a (mapped) location to rows by exact match only — a loose owner+field fallback would let a new closed set written
+ *  under an already-named owner (or a schema site keyed under a nested path) pass as "named"; the few SPEC-side spellings the
+ *  table does not carry are listed in SPEC_LOCATION_MAP instead. Returns { rows, rule }. */
 function bindLocation(loc, rowsWithLocs) {
-  const exact = rowsWithLocs.filter((r) => r.locs.has(loc)); if (exact.length) return { rows: exact, rule: "exact" };
-  const root = loc.includes("[") ? loc.slice(0, loc.indexOf("]") + 1) : loc.split(".")[0]; const last = loc.split(".").pop();
-  const loose = rowsWithLocs.filter((r) => [...r.locs].some((x) => { const xr = x.includes("[") ? x.slice(0, x.indexOf("]") + 1) : x.split(".")[0]; return xr === root && x.split(".").pop() === last; }));
-  if (loose.length === 1) return { rows: loose, rule: "root+last" };
-  return { rows: [], rule: loose.length > 1 ? "ambiguous" : "none" };
+  const exact = rowsWithLocs.filter((r) => r.locs.has(loc));
+  return exact.length ? { rows: exact, rule: "exact" } : { rows: [], rule: "none" };
 }
 
 function checkSpecUnionsAgainstSchema(specText, tsText) {
@@ -585,6 +603,7 @@ function checkSpecUnionsAgainstSchema(specText, tsText) {
     if (b.rows.length === 0) { findings.push(`  SPEC.md:${u.line} writes \`${u.location}\` as the closed union {${u.values.join(", ")}} but no §12 table row names that location (resolved as \`${mapped}\`; ${b.rule})`); receipt.push(entry); continue; }
     const want = [...u.values].sort().join("|");
     for (const r of b.rows) {
+      if ((rowSites.get(r.row) ?? []).length === 0) findings.push(`  SPEC.md:${u.line} \`${u.location}\` binds §12 table line ${r.row.line} (${r.row.set}), but no z.enum site in agjson.ts is keyed to that row — the schema no longer closes the set, or the keyer no longer reaches its site`);
       if (tableClass(r.row.cls) === "OPEN STRING") findings.push(`  §12 table line ${r.row.line} classes ${r.row.set} OPEN STRING, but SPEC.md:${u.line} still writes \`${u.location}\` as the closed union {${u.values.join(", ")}}`);
       for (const s of rowSites.get(r.row) ?? []) {
         entry.sites.push(s.key); if (!pinned.has(s)) pinned.set(s, []); pinned.get(s).push(u.line);
@@ -595,12 +614,13 @@ function checkSpecUnionsAgainstSchema(specText, tsText) {
     receipt.push(entry);
   }
   // reverse: every site pinned or excepted
-  const unpinned = sites.filter((s) => !pinned.has(s));
-  for (const s of unpinned) if (!UNPINNED_SITE_EXCEPTIONS[s.key]) findings.push(`  agjson.ts:${s.line} \`${s.key}\` is compared against no SPEC closed union (no SPEC location bound to its §12 row writes the set; not on the exception list)`);
+  const unpinned = sites.filter((s) => !pinned.has(s) && !UNPINNED_SITE_EXCEPTIONS[s.key]);
+  const excepted = sites.filter((s) => !pinned.has(s) && UNPINNED_SITE_EXCEPTIONS[s.key]).map((s) => s.key);
+  for (const s of unpinned) findings.push(`  agjson.ts:${s.line} \`${s.key}\` is compared against no SPEC closed union (no SPEC location bound to its §12 row writes the set; not on the exception list)`);
   // twins census
   const bySet = new Map(); for (const s of sites) { const k = [...s.values].sort().join("|"); if (!bySet.has(k)) bySet.set(k, []); bySet.get(k).push(s); }
   const twins = [...bySet.values()].filter((g) => g.length > 1).map((g) => { const rowsOf = g.map((s) => (siteRows.get(s).rows[0]?.row.line ?? "—")); return { sites: g.map((s) => `${s.key}@${s.line}`), rows: rowsOf, shared: new Set(rowsOf).size === 1 }; });
-  return { findings, unions: unions.length, otherFenceUnions, sites: sites.length, pinned: sites.length - unpinned.length, unpinned: unpinned.map((s) => s.key), receipt, twins };
+  return { findings, unions: unions.length, otherFenceUnions, sites: sites.length, pinned: sites.length - unpinned.length - excepted.length, unpinned: unpinned.map((s) => s.key), excepted, receipt, twins };
 }
 
 /**
@@ -649,6 +669,7 @@ function runCheck(sources) {
       enumSites6: unions.sites,
       enumSitesPinned: unions.pinned,
       unpinnedSites: unions.unpinned,
+      exceptedSites: unions.excepted,
       census: { receipt: unions.receipt, twins: unions.twins },
       specEventTypes: specEventTypes.length,
       schemaEventTypes: schemaEventTypes.length,
@@ -793,11 +814,11 @@ async function main() {
     // Negative pass 4 — check 6. (a) The live tree pins every z.enum site through the table with
     // no exception, and the union extractor reaches the whole population (a regression that loses
     // a fence, an arm line, a nested field or the multi-line alias unpins a site and fails here).
-    if (checked.enumSitesPinned !== checked.enumSites6 || checked.unpinnedSites.length !== 0 || checked.specUnions !== EXPECTED_SPEC_UNIONS) {
-      console.error(`\n✖ --self-test: check 6 pins ${checked.enumSitesPinned} of ${checked.enumSites6} z.enum site(s) on the live tree with ${checked.specUnions} SPEC union(s) (unpinned: ${checked.unpinnedSites.join(", ") || "none"}); expected every site pinned and exactly ${EXPECTED_SPEC_UNIONS} unions — a SPEC edit that adds or removes a closed union updates EXPECTED_SPEC_UNIONS in the same commit`);
+    if (checked.enumSitesPinned + checked.exceptedSites.length !== checked.enumSites6 || checked.unpinnedSites.length !== 0 || checked.specUnions !== EXPECTED_SPEC_UNIONS || checked.enumSites6 !== EXPECTED_ENUM_SITES) {
+      console.error(`\n✖ --self-test: check 6 keys ${checked.enumSites6} z.enum site(s) (expected exactly ${EXPECTED_ENUM_SITES}) and pins ${checked.enumSitesPinned} of them (excepted: ${checked.exceptedSites.join(", ") || "none"}; unpinned: ${checked.unpinnedSites.join(", ") || "none"}) with ${checked.specUnions} SPEC union(s) (expected exactly ${EXPECTED_SPEC_UNIONS}) — a SPEC edit that adds or removes a closed union updates EXPECTED_SPEC_UNIONS, and a schema edit that adds or removes a z.enum site updates EXPECTED_ENUM_SITES, in the same commit`);
       process.exit(1);
     }
-    // (b) Nine mutations that must each surface a finding, applied one at a time to in-memory copies —
+    // (b) Thirteen mutations that must each surface a finding, applied one at a time to in-memory copies —
     // they cover the extractor's forms (an interface field, an AgEvent arm line, the multi-line alias, a
     // hyphenated value), a value dropped so the SPEC set equals ANOTHER row's set (the pool trap), one of
     // two twin z.enum sites grown alone, an OPEN STRING field written back as a closed union, a union no
@@ -812,6 +833,10 @@ async function main() {
       { name: "one twin z.enum site grown alone (the second resumeBinding)", ts: (t) => { const needle = 'resumeBinding: z.enum(["id", "positional"])'; const k = t.lastIndexOf(needle); return k < 0 ? t : t.slice(0, k) + 'resumeBinding: z.enum(["id", "positional", "phantom_twin"])' + t.slice(k + needle.length); }, expect: (f) => f.includes("phantom_twin") && f.includes("`AgClosedEvent[hitl.ask].resumeBinding`") },
       { name: "a closed union no §12 row names (a phantom interface) → completeness", spec: (s) => s.replace("interface AgMemoryRecord {", 'interface AgPhantomInjectedBySelfTest { kind: "alpha" | "beta" }\ninterface AgMemoryRecord {'), expect: (f) => f.includes("`AgPhantomInjectedBySelfTest.kind`") && f.includes("no §12 table row names that location") },
       { name: "the AgFinishReason alias removed → its z.enum site unpinned (reverse direction)", spec: (s) => s.replace(/type AgFinishReason =\n(?:\s*\|[^\n]*\n)+/, ""), expect: (f) => f.includes("`AgFinishReason` is compared against no SPEC closed union") },
+      { name: "a chain-broken z.enum (`z` then `.enum(` on the next line) keeps its key and is compared", ts: (t) => t.replace('mode: z.enum(["enabled", "disabled"])', 'mode: z\n    .enum(["enabled", "disabled", "phantom_split"])'), expect: (f) => f.includes("phantom_split") && f.includes("`AgReasoningConfig.mode`") },
+      { name: "a closed union at a new location under an already-named owner → completeness, no loose binding", spec: (s) => s.replace('| { type: "memory.write"; scope: "agent"|"user"|"skill"|"thread";', '| { type: "memory.write"; scope: "agent"|"user"|"skill"|"thread"; previous?: { scope: "agent"|"user"|"skill"|"thread" };'), expect: (f) => f.includes("`AgEvent[memory.write].previous.scope`") && f.includes("no §12 table row names that location") },
+      { name: "a field union wrapped onto the next line is reported, not dropped", spec: (s) => s.replace('promptBlocked?: { reason: "safety"|"blocklist"|"prohibited"|"other";', 'promptBlocked?: { reason:\n    "safety"|"blocklist"|"prohibited"|"other";'), expect: (f) => f.includes("a type line wraps") },
+      { name: "a z.enum site opened to z.string while SPEC still closes the set → its row binds no site", ts: (t) => t.replace('z.enum(["summarized", "full"])', "z.string()"), expect: (f) => f.includes("no z.enum site in agjson.ts is keyed to that row") && f.includes("`AgEvent[reasoning.start].mode`") },
     ];
     const seedLines = [];
     for (const seed of seeds) {
