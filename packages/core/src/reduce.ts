@@ -52,7 +52,7 @@ function mergeProviderMeta(
  * result. A bare `block.providerMetadata = mergeProviderMeta(...)` left an
  * explicit `providerMetadata: undefined` key on blocks that never had any:
  * invisible in JSON, but visible to `in` / `toHaveProperty` / Object.keys
- * consumers (sp-openai's PH-2 finding, 2026-09-23).
+ * consumers (found 2026-09-23).
  */
 function setProviderMeta(block: { providerMetadata?: AgProviderMeta }, incoming: AgProviderMeta | undefined): void {
   const merged = mergeProviderMeta(block.providerMetadata, incoming);
@@ -99,7 +99,7 @@ function isClosedEvent(ev: AgEvent): ev is AgClosedEventType {
 }
 
 /**
- * Implementation bound on held landings (CB-7; cto's note, not normative). No
+ * Implementation bound on held landings (not normative). No
  * reference producer emits a record event before its turn's opener, so a
  * conformant stream holds nothing; the bound only stops a hostile or broken
  * stream from growing state result() never shows. Past either cap the landing
@@ -132,7 +132,7 @@ export class Reducer {
   // knows by name, so the tool.done adoption CREATE path degrades loudly
   // (resync) instead of creating a message for a turn that was never opened.
   #openedTurns: Set<string> = new Set();
-  // D9 (draft.4 §5.0 INV-OWNER; bar wf_08cf78ac-c30, A tightened): every
+  // draft.4 §5.0 INV-OWNER: every
   // turnId the fold has seen opened — by turn.start, by subagent.start, or by a
   // folded messages.snapshot (its `turns`, or a message's turnId) — mapped to
   // the threadId it was opened on (undefined when the opener named none). A
@@ -142,7 +142,7 @@ export class Reducer {
   // #openedTurns (tool.done adoption) and never rebuilt from #turns, whose
   // records non-terminal arms may have minted as stubs.
   #seenOpened: Map<string, string | undefined> = new Map();
-  // CB-7 (draft.5 §5.0 INV-OWNER, "same-turn thread, hold"): the landings of
+  // draft.5 §5.0 INV-OWNER (a held record lands on its own turn's thread): the landings of
   // the six record events (source, handoff, prompt.blocked, guardrail.result,
   // display.required, agent.capabilities) for a turn whose thread the fold does
   // not know yet. Each is a turn record result() never shows; it moves into
@@ -156,7 +156,7 @@ export class Reducer {
   // takes a turn.done{paused}; every terminal that folds removes its id. A
   // messages.snapshot folds no terminal, so the set survives it (a refresh
   // split by a reconnect still folds); whether the turn is closed paused is
-  // read from the records the snapshot leaves (CB-8).
+  // read from the records the snapshot leaves.
   #restartedSinceClose: Set<string> = new Set();
   // block/tool-call id → position in its owning message's content[], for REPLACE.
   #blockPos: Map<string, { messageId: string; index: number }> = new Map();
@@ -171,7 +171,7 @@ export class Reducer {
   #lastSeq: number = -1;
   #resync: boolean = false;
 
-  // ── rd-14 INV-BLOCK (invoke-scoped) ─────────────────────────────────────────
+  // ── INV-BLOCK (invoke-scoped) ─────────────────────────────────────────
   // Block ids created in the current invoke, and toolCallIds whose FINAL
   // (more-less) tool.done already landed. Both reset at the seq-0 restart, so a
   // new invoke may reuse per-invoke ids.
@@ -199,7 +199,7 @@ export class Reducer {
     if (this.#lastSeq >= 0 && ev.seq > this.#lastSeq + 1) {
       this.#resync = true;
     }
-    // rd-14 (founder: "Stall it, like a gap"): a repeated or backward seq ABOVE 0
+    // INV-SEQ (draft.4): a repeated or backward seq ABOVE 0
     // parks exactly like a forward gap. Only seq 0 (a new invoke's restart) may go
     // backward (SPEC INV-SEQ), so a re-delivery can never fold twice.
     if (this.#lastSeq >= 0 && ev.seq > 0 && ev.seq <= this.#lastSeq) {
@@ -257,7 +257,7 @@ export class Reducer {
         this.#openedTurns.add(ev.turnId);
         this.#seenOpened.set(ev.turnId, ev.threadId);
         // Idempotent: if the turn already exists, merge defined fields only. A
-        // record held for this turn (CB-7) is adopted onto this thread first.
+        // record held for this turn is adopted onto this thread first.
         const existing = this.#turns.get(ev.turnId) ?? this.#adoptHeld(ev.turnId, ev.threadId);
         if (existing === undefined) {
           this.#turns.set(ev.turnId, {
@@ -278,9 +278,9 @@ export class Reducer {
 
       // ── MESSAGE lifecycle ──────────────────────────────────────────────────
       case "message.start": {
-        // rd-14 INV-MSG: a message.start for a turn that already closed parks.
+        // INV-MSG: a message.start for a turn that already closed parks.
         if (this.#isClosedTurn(this.#resolveTurnId(ev.turnId) ?? ev.turnId)) { this.#resync = true; break; }
-        // CB-7 (draft.5 INV-OWNER): a live message.start makes its turn's thread
+        // draft.5 INV-OWNER: a live message.start makes its turn's thread
         // known and joins D9's seen-opened set (a turn.start's thread wins; else
         // the first one folded), and a record held for the turn is adopted onto it.
         if (this.#seenOpened.get(ev.turnId) === undefined) this.#seenOpened.set(ev.turnId, ev.threadId);
@@ -349,12 +349,12 @@ export class Reducer {
           // adopting the unresolvable label as this subagent's own threadId.
           // A "real" turn is identified by threadId !== turnId: through draft.4
           // a defensive stub used its own turnId as a placeholder thread. draft.5
-          // retires the stubs (CB-7), and the check stays as a guard.
+          // retires the stubs, and the check stays as a guard.
           // `ev.parentTurnId` remains the last resort when no real turn exists yet.
           const realTurn = [...this.#turns.values()].find((t) => t.threadId !== t.turnId);
           threadId = realTurn?.threadId ?? ev.parentTurnId;
         }
-        // A record held for this nested turn (CB-7) takes the thread and the
+        // A record held for this nested turn takes the thread and the
         // parentTurnId here; otherwise a new record opens.
         if (this.#adoptHeld(ev.turnId, threadId, ev.parentTurnId) === undefined) {
           this.#turns.set(ev.turnId, {
@@ -387,7 +387,7 @@ export class Reducer {
 
       // ── TEXT blocks ───────────────────────────────────────────────────────────
       case "text.start": {
-        if (this.#dupBlock(ev.id)) break; // rd-14 INV-BLOCK
+        if (this.#dupBlock(ev.id)) break; // INV-BLOCK
         const msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
         if (msg === undefined) { this.#resync = true; break; }
         const block: AgBlock = {
@@ -409,7 +409,7 @@ export class Reducer {
         const msg = this.#messages.get(pos.messageId);
         if (msg === undefined) break;
         // INV-MSG (SPEC.md:745): a straggler delta into a sealed message, or into
-        // any message of a closed turn (rd-14), parks.
+        // any message of a closed turn, parks.
         if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; } // INV-MSG delta guard
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "text") break;
@@ -441,7 +441,7 @@ export class Reducer {
 
       // ── REASONING blocks ──────────────────────────────────────────────────────
       case "reasoning.start": {
-        if (this.#dupBlock(ev.id)) break; // rd-14 INV-BLOCK
+        if (this.#dupBlock(ev.id)) break; // INV-BLOCK
         const msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
         if (msg === undefined) { this.#resync = true; break; }
         const block: AgBlock = {
@@ -464,7 +464,7 @@ export class Reducer {
         const msg = this.#messages.get(pos.messageId);
         if (msg === undefined) break;
         // INV-MSG (SPEC.md:745): a straggler delta into a sealed message, or into
-        // any message of a closed turn (rd-14), parks.
+        // any message of a closed turn, parks.
         if (this.#isClosedTarget(msg.id)) { this.#resync = true; break; } // INV-MSG delta guard
         const block = msg.content[pos.index];
         if (block === undefined || block.type !== "reasoning") break;
@@ -533,7 +533,7 @@ export class Reducer {
 
       // ── TOOL-CALL blocks ──────────────────────────────────────────────────────
       case "tool.start": {
-        if (this.#dupBlock(ev.toolCallId)) break; // rd-14 INV-BLOCK
+        if (this.#dupBlock(ev.toolCallId)) break; // INV-BLOCK
         const msg = this.openMessage(ev.turnId, ev.candidateIndex ?? 0);
         if (msg === undefined) { this.#resync = true; break; }
         const block: AgBlock = {
@@ -595,7 +595,7 @@ export class Reducer {
 
       // ── TOOL-RESULT blocks ────────────────────────────────────────────────────
       case "tool.done": {
-        // rd-14 INV-BLOCK: a second FINAL (more-less) tool.done for one call parks.
+        // INV-BLOCK: a second FINAL (more-less) tool.done for one call parks.
         if (ev.more !== true) {
           if (this.#finalToolDone.has(ev.toolCallId)) { this.#resync = true; break; }
           this.#finalToolDone.add(ev.toolCallId);
@@ -621,15 +621,15 @@ export class Reducer {
             this.#resync = true;
             break;
           }
-          // Snapshot fold (draft.4 §5; fold/flush P1, bar wf_2231e194-e31): while a
+          // Snapshot fold (draft.4 §5): while a
           // result is kept open, every tool.done carries the FULL current result, so
           // a later one REPLACES the payload as a unit. content, outcome, isError,
           // structuredContent, uiData, sideData, errorText, errorCode and
           // pendingInput take the later event's values, and a field it omits is
           // CLEARED: an ok final no longer keeps a kept-open error's
           // isError/errorText, and an error final no longer keeps a kept-open
-          // structuredContent. uiData is payload (founder ruling, bar
-          // wf_93a30c7b-cd0): a carried `uiData: null` is STORED as a value ("no
+          // structuredContent. uiData is payload (draft.4):
+          // a carried `uiData: null` is STORED as a value ("no
           // view data"), never a retraction; a view's identity that must outlive a
           // snapshot lives on `_meta.ui.resourceUri`, a descriptor below.
           block.content = ev.content;
@@ -835,7 +835,7 @@ export class Reducer {
         // Non-folding into content; sets outcome={type:"error",...} on the turn record.
         // D9, as turn.done, for a NAMED turnId. A turnId-less terminal resolves to
         // the sole OPEN turn, never a closed one; with none or several open its
-        // owner is unresolvable and the fold parks (INV-OWNER, draft.5 CB-7).
+        // owner is unresolvable and the fold parks (INV-OWNER, draft.5).
         if (ev.turnId !== undefined && !this.#seenOpened.has(ev.turnId)) break;
         const turn = ev.turnId !== undefined ? this.#seenTurnRecord(ev.turnId) : this.#soleOpenRecord();
         if (turn === undefined) {
@@ -867,7 +867,7 @@ export class Reducer {
         // reducer-invented (audit M29) — it stays whatever a prior turn.done left it as.
         // D9, as turn.done, for a NAMED turnId. A turnId-less terminal resolves to
         // the sole OPEN turn, never a closed one; with none or several open its
-        // owner is unresolvable and the fold parks (INV-OWNER, draft.5 CB-7).
+        // owner is unresolvable and the fold parks (INV-OWNER, draft.5).
         if (ev.turnId !== undefined && !this.#seenOpened.has(ev.turnId)) break;
         const turn = ev.turnId !== undefined ? this.#seenTurnRecord(ev.turnId) : this.#soleOpenRecord();
         if (turn === undefined) {
@@ -1046,7 +1046,7 @@ export class Reducer {
         // Apply patch to #state using a tightened discriminator:
         //
         //   Array.isArray(patch)                 → RFC-6902 via applyPatch (R6)
-        //   typeof patch === "object" && != null  → key-replace: each top-level key set whole (draft.4, pkg-21)
+        //   typeof patch === "object" && != null  → key-replace: each top-level key set whole (draft.4)
         //   else (scalar / null)                  → explicit no-op
         //     (documented: a future third source may extend this discriminator;
         //      scalars are NOT an error and must NOT set #resync)
@@ -1067,14 +1067,14 @@ export class Reducer {
           }
           this.#state = result.value;
         } else if (typeof patch === "object" && patch !== null) {
-          // Key-replace (draft.4 §5, pkg-21, founder-ruled): each top-level key
+          // Key-replace (draft.4 §5): each top-level key
           // of the patch REPLACES #state[key] whole, which is how ADK applies
           // a stateDelta (sessions/state.js State.set). draft.3 merged one
           // level deep: a write that rewrote part of an object-valued key kept
           // the stale members (state-fold-gemini38: {cfg:{a:1,b:2}} then
           // {cfg:{a:5}} folded to {cfg:{a:5,b:2}} where ADK holds {cfg:{a:5}}),
           // and two partial writes to one key could assemble an object neither
-          // write held (DC-6). null is stored as a value. #state starts as {}
+          // write held. null is stored as a value. #state starts as {}
           // when it is absent or not an object.
           // Keys are DEFINED, never assigned, so an own `__proto__` key of a
           // hand-built patch never selects the state's prototype.
@@ -1218,7 +1218,7 @@ export class Reducer {
         this.#openedTurns = ev.turns !== undefined
           ? new Set(ev.turns.map((t) => t.turnId))
           : new Set(this.#turns.keys());
-        // D9 (bar wf_08cf78ac-c30): a snapshot that carries `turns` is
+        // draft.4: a snapshot that carries `turns` is
         // authoritative, so seen becomes exactly its turns plus its messages'
         // turns (a turn seen before it and absent from it is no longer seen);
         // one that omits `turns` keeps what was seen and adds its messages'
@@ -1234,7 +1234,7 @@ export class Reducer {
           if (messageThread.get(m.turnId) === undefined) messageThread.set(m.turnId, m.threadId);
         }
         for (const [turnId, threadId] of messageThread) this.#seenOpened.set(turnId, threadId);
-        // CB-7: a held record whose thread this snapshot taught is adopted onto
+        // draft.5 INV-OWNER: a held record whose thread this snapshot taught is adopted onto
         // it. #openedTurns was seeded above from records with a known thread
         // only, so an adopted record is not an adoption target by this snapshot.
         for (const turnId of [...this.#held.keys()]) {
@@ -1398,14 +1398,14 @@ export class Reducer {
    * If omitted and exactly one turn is open, return that turn's id.
    * Otherwise return `undefined` (ambiguous / no turns open).
    */
-  /** INV-MSG: true when the message is sealed or its turn has closed (rd-14 closed-turn half). */
+  /** INV-MSG: true when the message is sealed or its turn has closed (the closed-turn half). */
   #isClosedTarget(messageId: string): boolean {
     if (this.#sealed.has(messageId)) return true;
     return this.#isClosedTurn(this.#messages.get(messageId)?.turnId);
   }
 
   /**
-   * INV-MSG (draft.5, CB-8 A′: closure follows the records): a turn is closed
+   * INV-MSG (draft.5: closure follows the records): a turn is closed
    * while the fold holds a turn record for it that carries an `outcome`. Only a
    * folded turn.done / turn.error / turn.abort sets one, so a terminal that
    * folds onto no record closes nothing; a messages.snapshot changes closure
@@ -1442,7 +1442,7 @@ export class Reducer {
     return true;
   }
 
-  /** rd-14 INV-BLOCK: a block-creating id seen twice in one invoke parks; else records it. */
+  /** INV-BLOCK: a block-creating id seen twice in one invoke parks; else records it. */
   #dupBlock(id: string): boolean {
     if (this.#invokeBlockIds.has(id)) {
       this.#resync = true;
@@ -1454,7 +1454,7 @@ export class Reducer {
 
   #resolveTurnId(turnId: string | undefined): string | undefined {
     if (turnId !== undefined) return turnId;
-    // §4 per-turn routing / INV-OWNER (draft.5, CB-7): an omitted turnId
+    // §4 per-turn routing / INV-OWNER (draft.5): an omitted turnId
     // resolves to the sole OPEN turn, never to a closed one (through draft.4
     // this counted records, so a lone closed turn or a stub could be picked).
     return this.#soleOpenRecord()?.turnId;
@@ -1472,7 +1472,7 @@ export class Reducer {
   }
 
   /**
-   * Where a record event lands (CB-7, draft.5 INV-OWNER). A named turn with a
+   * Where a record event lands (draft.5 INV-OWNER). A named turn with a
    * record lands on it; one whose thread is known gets a new record on that
    * thread; one whose thread is not known yet is held (a record result() omits),
    * or, past the implementation bound, parks the fold. A turnId-less record
@@ -1505,7 +1505,7 @@ export class Reducer {
   }
 
   /**
-   * Move the record held for `turnId` (CB-7) into #turns on the thread that is
+   * Move the record held for `turnId` into #turns on the thread that is
    * now known, with `parentTurnId` when a subagent.start opened it. Returns the
    * adopted record, or undefined when nothing was held for the turn.
    */

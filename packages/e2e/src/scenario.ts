@@ -37,8 +37,8 @@ export const Scenario = z.object({
   // Claude follow-up prompts (claude-agent-sdk only; the other capture agents
   // ignore it). Presence runs ONE query() in streaming-input mode: `prompt`
   // first, then each follow-up only after the previous `result` frame, so a
-  // single invoke yields one result per prompt. Added 2026-09-23 for sp-claude
-  // B's live receipt (≥2 results in one invoke → ≥2 AgTurnRecords, each
+  // single invoke yields one result per prompt. Added 2026-09-23 for the claude
+  // facet's multi-result receipt (≥2 results in one invoke → ≥2 AgTurnRecords, each
   // closed once). At least one non-empty follow-up when present.
   followUps: z.array(z.string().min(1)).min(1).optional(),
   // workspace#7: run the capture with token-granular partials enabled.
@@ -78,8 +78,8 @@ export const Scenario = z.object({
   thinkingDisplay: z.enum(["summarized", "omitted"]).optional(),
   // OpenAI reasoning-summary knob (openai-agents only; the other capture agents
   // ignore it). Presence asks the Responses API for reasoning summaries
-  // (`modelSettings.reasoning.summary`). Added 2026-09-23 for the founder-gated
-  // commentary capture (rnd 13+17 stage 2): the corpus's live OpenAI legs carry
+  // (`modelSettings.reasoning.summary`). Added 2026-09-23 for the
+  // commentary capture: the corpus's live OpenAI legs carry
   // only phase "final_answer" and empty summaries, and without this knob a
   // capture cannot ask for summary text at all. Model-named seeds using it
   // MUST be captured with an explicit CAPTURE_MODEL, like thinkingLevel.
@@ -88,7 +88,7 @@ export const Scenario = z.object({
   // agents ignore it). Presence roots the capture at a Workflow instead of a
   // plain LlmAgent (agents/google-adk/workflow.ts): "pause" ends the invoke at
   // a HITL RequestInput node, "complete" runs the graph to its end. Added
-  // 2026-09-23 for rd-06 A.9 step 5, the live workflow cassettes recorded with
+  // 2026-09-23 for the live workflow cassettes recorded with
   // the host-completion marker. Model-named seeds using it MUST be captured
   // with an explicit CAPTURE_MODEL, like thinkingLevel.
   adkWorkflow: z.enum(["pause", "complete"]).optional(),
@@ -112,7 +112,7 @@ export const Scenario = z.object({
   // a separate cassette, SPEC §8.0 Lifetime). Model-named seeds using them
   // MUST be captured with an explicit CAPTURE_MODEL.
   preToolUseDecision: z.enum(["defer", "allow", "deny"]).optional(),
-  // OpenAI tool-approval knob (openai-agents only; sp-openai 82b3aae,
+  // OpenAI tool-approval knob (openai-agents only;
   // 2026-09-24). "interrupt" is leg 1: every MCP tool needs approval, so the
   // run stops on the first call; the harness keeps its RunState OUT of the
   // corpus (capture-cli.ts runStatePath). "approve" / "reject" is a resume leg
@@ -126,7 +126,7 @@ export const Scenario = z.object({
   // Shared-state knob (google-adk only; rnd's ADK state-fold candidate,
   // 2026-09-24). Each entry is one step's state writes: the agent registers
   // apply_state_step({step}), which writes entry step-1 through
-  // toolContext.state (sp-google 5bc5351), so the values never depend on the
+  // toolContext.state, so the values never depend on the
   // model. The capture also reads ADK's session.state back after the run into
   // a <fw>.session-state.json sidecar, as ground truth for the fold.
   adkStateScript: z.array(z.record(z.string(), JsonValue)).min(1).optional(),
@@ -165,8 +165,8 @@ export const Scenario = z.object({
   // off, so the native stream carries handoff_requested / handoff_occurred and
   // the second agent's turn.
   openaiHandoff: HandoffTarget.optional(),
-  // Parallel-handoff knob (openai-agents only; cto's review of the handoff
-  // close, 2026-09-25): SEVERAL handoff targets on the main agent, so a model
+  // Parallel-handoff knob (openai-agents only;
+  // 2026-09-25): SEVERAL handoff targets on the main agent, so a model
   // can emit more than one transfer_to_* call in one response (the Responses
   // API defaults parallel_tool_calls on). A separate knob from openaiHandoff,
   // with its own KNOB_SUPPORT proof, so an agent that only knows one target

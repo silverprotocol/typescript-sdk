@@ -1,8 +1,8 @@
 /**
  * atomic-guard.corpus.test.ts — corpus-scale proofs for the per-native guard
- * (the fleet guard ruling, 2026-09-24): core withAtomicPush (option B, for
- * the claude / openai / adk facets) and StreamAssembler checkpoint/rollback
- * (option A, used by vercel-ai).
+ * (a native that makes push() throw leaves no partial output, 2026-09-24):
+ * core withAtomicPush (for the claude / openai / adk facets) and
+ * StreamAssembler checkpoint/rollback (used by vercel-ai).
  *
  * 1. Zero fires: replaying every committed native never produces the guard's
  *    `error {message: "normalizer error"}`.
@@ -40,7 +40,7 @@ function natives(fw: Fw): Array<[string, JsonValue[]]> {
 const FACTORY: Record<Exclude<Fw, "vercel">, () => Normalizer> = {
   claude: () => createClaudeNormalizer(),
   // A pinned invokeId, as the vercel legs pin theirs: the default stem is drawn
-  // once at CONSTRUCTION (outside withAtomicPush's inner factory, DC-10), and B
+  // once at CONSTRUCTION (outside withAtomicPush's inner factory), and B
   // poisons randomness to prove no facet push draws any.
   openai: () => createOpenaiNormalizer({ invokeId: "openai" }),
   adk: () => createAdkNormalizer({ invokeId: "adk" }),

@@ -1,12 +1,12 @@
 /**
- * adk-pause.test.ts — rd-06 P-RED: the ADK pause/completion fixture set,
+ * adk-pause.test.ts — the ADK pause/completion fixture set,
  * pinned against SPEC draft.4 §10 item 25 at google-adk STEP-1 scope.
  *
  * The fixtures under fixtures/adk-pause/ are built by the REAL @google/adk
  * engine with a stub model (adk-pause-fixtures.gen.test.ts). One Normalizer per
  * invoke (§8.0 Lifetime); the pause → resume pair is folded by ONE host Reducer.
  *
- * Step-1 classes (sp-google fa23c5c → e7cb467, 0.6.6):
+ * Step-1 classes (0.6.6):
  *  - PAUSE: the turn closes `turn.done {outcome:"paused", finishReason:"paused"}`
  *    with one ask per pending request, at the invocation's end: from push() on
  *    the host-completion event, else from flush() (SPEC §8.0 item 26).
@@ -18,7 +18,7 @@
  * Every class: needsResync false, exactly one terminal per opened turn, and no
  * event targets a turn after its terminal.
  *
- * Step 2 (sp-google, draft.4 §8.0 item 26 + host obligation 4) adds:
+ * Step 2 (draft.4 §8.0 item 26 + host obligation 4) adds:
  *  - the answer-id rule: each ask's toolCallId is its adk_request_* call id;
  *  - credential → auth / confirmation → approval (wf-functionnode-credential
  *    is now a PAUSE);
@@ -26,7 +26,7 @@
  *    and `{type:"__host_complete__"}` after the natives, a completed run closes
  *    success from push(), and the two plain-plane parks fold clean.
  * Two success-close engine shapes remain host-completion-only
- * (SUCCESS_CLOSE_SHAPES): without the opt-in they still park (rd-06 PS-2). They
+ * (SUCCESS_CLOSE_SHAPES): without the opt-in they still park. They
  * are a success-close class, not a pause class.
  */
 import { describe, expect, it } from "vitest";
@@ -123,7 +123,7 @@ const AFTER_PAUSE = [
   "after-pause-sse-credential",
 ] as const;
 
-describe("rd-06 P-RED: ADK pause / completion closure (§10 item 25, step-1 scope)", () => {
+describe("ADK pause / completion closure (§10 item 25, step-1 scope)", () => {
   it("the fixture set is complete (non-vacuity)", () => {
     const have = readdirSync(DIR).filter((f) => f.endsWith(".native.json")).map((f) => f.replace(".native.json", "")).sort();
     const want = [...PAUSE, ...ABORT_AT_FLUSH, ...SUCCESS, ...SUCCESS_CLOSE_SHAPES, ...AFTER_PAUSE, "wf-pause-resume.invoke1", "wf-pause-resume.invoke2"].sort();
@@ -204,7 +204,7 @@ describe("rd-06 P-RED: ADK pause / completion closure (§10 item 25, step-1 scop
   });
 
   for (const name of SUCCESS_CLOSE_SHAPES) {
-    it(`success-close shape, host-completion-only (rd-06 PS-2): ${name} parks without the opt-in`, () => {
+    it(`success-close shape, host-completion-only: ${name} parks without the opt-in`, () => {
       const { r, tagged } = fold(load(name));
       expect(r.needsResync).toBe(true);
       const [term] = terminals(tagged);
@@ -262,7 +262,7 @@ describe("pauses the invocation outlives (§8.0 item 26: the paused close at the
   }
 });
 
-describe("replay: the recorded host-completion marker (rd-06; draft.4 §8.0 host obligation 4)", () => {
+describe("replay: the recorded host-completion marker (draft.4 §8.0 host obligation 4)", () => {
   const marker = { type: HOST_COMPLETE_MARKER } as JsonValue;
 
   it("only a trailing marker line counts: it is split off and reported; a mid-stream one is left alone", () => {
@@ -285,13 +285,13 @@ describe("replay: the recorded host-completion marker (rd-06; draft.4 §8.0 host
   });
 
   // Goldens whose run has NO in-band terminal, where the marker is what closes
-  // it (rd-06 A.9 step 5 live captures): without it a completed Workflow
+  // it (the live workflow captures): without it a completed Workflow
   // flushes turn.abort; with it the facet closes success from push(). Every
   // other ADK golden ends on an in-band close, which the marker leaves as is.
   const MARKER_CLOSES = new Set(["workflow-complete-gemini38"]);
 
-  // The bare natives of a golden: a cassette captured since rd-06 A.9 step 5
-  // records the marker itself (capture-cli sets hostCompletion for adk).
+  // The bare natives of a golden: a cassette captured since the live workflow
+  // captures records the marker itself (capture-cli sets hostCompletion for adk).
   const bareNatives = (d: string): { native: JsonValue[]; recorded: boolean } => {
     const split = splitHostCompleteMarker(
       JSON.parse(readFileSync(join(CORPUS, d, "adk.native.json"), "utf8")) as JsonValue[],

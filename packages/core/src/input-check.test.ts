@@ -95,7 +95,7 @@ describe("checkAgInput — draft.4 §0.2, workspace#20 decision 6 (§10 item N, 
     expect(reject({ ...start({}), metadata: { k: undefined } })).toEqual({ code: "malformed", path: [] });
   });
 
-  it("CB-9: resume.uiActions reports the member that is actually wrong (surface first, then its own discriminant)", () => {
+  it("resume.uiActions reports the member that is actually wrong (surface first, then its own discriminant)", () => {
     const ui = (a: Record<string, unknown>) => ({ ...ENV, kind: "resume", uiActions: [{ surfaceId: "s1", ...a }] });
     // protocol's vector: a non-string url is a wrong JSON type → malformed, at the url.
     expect(reject(ui({ surface: "mcp-app", method: "ui/open-link", params: { url: 5 } }))).toEqual({ code: "malformed", path: ["uiActions", 0, "params", "url"] });
@@ -116,12 +116,12 @@ describe("checkAgInput — draft.4 §0.2, workspace#20 decision 6 (§10 item N, 
     expect(r.ok && isDeepStrictEqual(r.input, ok)).toBe(true);
   });
 
-  it("several problems: malformed beats unknown-value, whatever the order (ALT-1; flipped from first-issue-wins)", () => {
+  it("several problems: malformed beats unknown-value, whatever the order (flipped from first-issue-wins)", () => {
     expect(reject({ ...ENV, kind: "resume", answers: [{ askId: "a", status: "zz" }, { askId: 1, status: "resolved" }] })).toEqual({ code: "malformed", path: ["answers", 1, "askId"] });
     expect(reject({ ...ENV, kind: "resume", answers: [{ askId: 1, status: "resolved" }, { askId: "a", status: "zz" }] })).toEqual({ code: "malformed", path: ["answers", 0, "askId"] });
   });
 
-  describe("capabilities.uiResources.viewMessageTurns (draft.4, founder ruling on view-message turns)", () => {
+  describe("capabilities.uiResources.viewMessageTurns (draft.4 view-message turns)", () => {
     it("an MCP-shaped object where the boolean belongs → malformed at its path", () => {
       expect(reject(start({ capabilities: { uiResources: { viewMessageTurns: { text: {} } } } }))).toEqual({
         code: "malformed",
@@ -144,7 +144,7 @@ describe("checkAgInput — draft.4 §0.2, workspace#20 decision 6 (§10 item N, 
     });
   });
 
-  describe("ALT-1 input classes (founder ruling on decision 6, bar wf_a8a31902-fb5; §10 item 29 inputs b11-b17)", () => {
+  describe("input classes (§10 item 29 inputs b11-b17)", () => {
     it("protocol is judged FIRST: a protocol other than agjson is malformed at [protocol], before version and before kind (b11)", () => {
       expect(reject({ ...ENV, protocol: "foo", kind: "start", messages: [] })).toEqual({ code: "malformed", path: ["protocol"] });
       expect(reject({ ...ENV, protocol: "foo", kind: "zz" })).toEqual({ code: "malformed", path: ["protocol"] });

@@ -1388,7 +1388,7 @@ describe("reduce — R8 shared-state snapshot + delta", () => {
     expect(r.state).toEqual({ x: 0 });
   });
 
-  // (c) state.delta {nodeX:{k:"v"}} → key-replace (draft.4 §5, pkg-21): the key is set WHOLE
+  // (c) state.delta {nodeX:{k:"v"}} → key-replace (draft.4 §5): the key is set WHOLE
   it("(c) state.delta {nodeX:{k:'v'}} replaces state.nodeX whole (draft.4 key-replace; draft.3 merged one level)", () => {
     const acc = new Reducer();
     // Seed initial state
@@ -1405,7 +1405,7 @@ describe("reduce — R8 shared-state snapshot + delta", () => {
     expect(() => AgReduceResult.parse(r)).not.toThrow();
   });
 
-  describe("draft.4 key-replace object fold (pkg-21; §10.29 vectors)", () => {
+  describe("draft.4 key-replace object fold (§10.29 vectors)", () => {
     const fold = (evs: AgEvent[]) => reduce(evs);
     it("D1: {cfg:{a:1,b:2}} then {cfg:{a:5}} folds to {cfg:{a:5}} (state-fold-gemini38; ADK holds the same)", () => {
       const out = fold([
@@ -1600,7 +1600,7 @@ describe("reduce — D9: a terminal for a never-opened turn folds onto no record
       { type: "turn.done", seq: 1, turnId: "tS", outcome: { type: "success" } },
     ]);
     expect(viaTurns.result().turns).toEqual([{ turnId: "tS", threadId: "th1", outcome: { type: "success" } }]);
-    // cto's control 2 / §10 item 43 (b): the record takes the message's thread, never the turnId.
+    // §10 item 43 (b): the record takes the message's thread, never the turnId.
     const viaMessage = fold([
       { type: "messages.snapshot", seq: 0, messages: [{ id: "m1", role: "assistant", content: [], turnId: "tM", threadId: "thX" }], turns: [] },
       { type: "turn.abort", seq: 1, turnId: "tM", reason: "stream-truncated" },
@@ -1611,7 +1611,7 @@ describe("reduce — D9: a terminal for a never-opened turn folds onto no record
     expect(viaMessage.needsResync).toBe(false);
   });
 
-  it("a snapshot is authoritative: a turn seen before it and absent from it folds its terminal onto no record (cto's control 1)", () => {
+  it("a snapshot is authoritative: a turn seen before it and absent from it folds its terminal onto no record", () => {
     const acc = fold([
       { type: "turn.start", seq: 0, turnId: "t1", threadId: "th1" },
       { type: "messages.snapshot", seq: 1, messages: [], turns: [] },
@@ -2988,9 +2988,9 @@ describe("INV-MSG seal + binding window enforcement (audit M19)", () => {
 // "A block-creating or delta event targeting a sealed message ... is a
 // reduce()-error → snapshot-resync, never a silent attach." The delta events
 // resolve their block by id (#blockPos), so the openMessage() pointer clear
-// never saw them. This is the SEALED half only (sp-protocol ruling A,
+// never saw them. This is the SEALED half only (ruled
 // 2026-09-23); the closed-turn half waits for per-turn turnIds in the claude
-// facet (ruling B). text.end / reasoning.end / reasoning.opaque /
+// facet. text.end / reasoning.end / reasoning.opaque /
 // tool.args.assembled are not named by :745 and are untouched.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -3046,8 +3046,7 @@ describe("INV-MSG: a straggler delta into a sealed message parks (SPEC.md:745)",
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// INV-MSG for BLOCK-FINALIZING events (draft.4 E5, founder-ruled editorial
-// batch 1): exactly text.end, reasoning.end, reasoning.opaque and
+// INV-MSG for BLOCK-FINALIZING events (draft.4): exactly text.end, reasoning.end, reasoning.opaque and
 // tool.args.assembled, targeting a sealed message or any message of a closed
 // turn, park like a delta, never a silent merge. The message-level merges
 // (message.metadata, turn.done.messageMetadata) stay outside the rule.
@@ -3225,7 +3224,7 @@ describe("tool.done snapshot fold over a kept-open result (draft.4 §5; fold/flu
       toolMetadata: T,
       providerMetadata: { p: 1, q: 2 },
     });
-    // uiData is payload (founder ruling, bar wf_93a30c7b-cd0): the final omits it, so it clears.
+    // uiData is payload (draft.4): the final omits it, so it clears.
     for (const k of ["isError", "errorText", "structuredContent", "uiData", "preliminary"]) expect(k in rest, k).toBe(false);
   });
 
@@ -3810,13 +3809,13 @@ describe("tool.done _meta carriage (workspace#9)", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// draft.4 `phase` (rnd 13+17 stage 2, P-phase): an open-string label on
+// draft.4 `phase`: an open-string label on
 // text.start/text.end/reasoning.start/reasoning.end that folds onto the block.
 // Set-if-present; a value on *.end REPLACES the prior one, an absent one keeps
 // it; no fill once the owning message is sealed.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("draft.4 phase on text and reasoning blocks (rnd 13+17 stage 2)", () => {
+describe("draft.4 phase on text and reasoning blocks", () => {
   const head: AgEvent[] = [
     { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
     { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
@@ -3899,12 +3898,12 @@ describe("draft.4 phase on text and reasoning blocks (rnd 13+17 stage 2)", () =>
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// rd-14 P14 (founder: "1 + 1a: Stall it, like a gap"): INV-SEQ narrows backward
+// draft.4: a repeated or backward seq stalls like a gap. INV-SEQ narrows backward
 // tolerance to the 0-restart; INV-BLOCK is enforced per invoke; INV-MSG's
-// closed-turn half joins the sealed half (31f7bab).
+// closed-turn half joins the sealed half.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("rd-14 P14: delivery integrity in the reference reducer", () => {
+describe("delivery integrity in the reference reducer", () => {
   const fold = (evs: AgEvent[]): Reducer => {
     const r = new Reducer();
     for (const e of evs) r.push(e);
@@ -4020,7 +4019,7 @@ describe("rd-14 P14: delivery integrity in the reference reducer", () => {
   });
 });
 
-describe("providerMetadata: no explicit undefined key on blocks without metadata (sp-openai PH-2 finding)", () => {
+describe("providerMetadata: no explicit undefined key on blocks without metadata", () => {
   const base = { turnId: "t1", threadId: "th1" };
   const fold = (withMeta: boolean) =>
     reduce([

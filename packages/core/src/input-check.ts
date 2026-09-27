@@ -1,7 +1,7 @@
 /**
  * input-check.ts — the reference AgInput receiver check (draft.4 §0.2,
- * workspace#20 decision 6: option 1 "omit the element, reject the input";
- * input classes per the founder's ALT-1 ruling, bar wf_a8a31902-fb5).
+ * §10 item 29: an input that fails is rejected whole, classed unknown-value,
+ * malformed or major-mismatch).
  *
  * A receiver passes unknown object fields through untouched, and REJECTS THE
  * WHOLE INPUT, before acting on any part of it, when the input fails this
@@ -12,7 +12,7 @@
  * - `unknown-value`: the value at the path is a STRING that the closed set
  *   there does not define (an `AgInput.kind`, an `AgHitlAnswer.status`, a
  *   reasoning `mode`, an `AgBlock` `type`, …). zod's codes alone cannot
- *   tell this from malformed, so the rule reads the raw value (bar CB-6);
+ *   tell this from malformed, so the rule reads the raw value;
  * - `malformed`: every other failure — a missing value, a value of the wrong
  *   JSON type, a value that breaks a stated constraint, a non-JSON input, or
  *   a `protocol` other than `"agjson"` (it names the protocol; it is not a

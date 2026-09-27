@@ -238,7 +238,7 @@ describe("AgBlock (EXTENDED)", () => {
     }
   });
 
-  it("pkg-05 (draft.5): a resource-link carries MCP's name, title, description and size beside uri and mimeType", () => {
+  it("draft.5: a resource-link carries MCP's name, title, description and size beside uri and mimeType", () => {
     const full = {
       type: "resource-link",
       uri: "file:///docs/conformance-probe-resource-link.md",
@@ -263,7 +263,7 @@ describe("AgBlock (EXTENDED)", () => {
     expect(AgResourceLinkBlock.parse(full)).toEqual(full);
   });
 
-  it("draft.5: AgUsage carries costScope and totalTokensRaw (pkg-11, Live usage), and ingest keeps them", () => {
+  it("draft.5: AgUsage carries costScope and totalTokensRaw (Live usage), and ingest keeps them", () => {
     const usage = { inputTokens: 245, outputTokens: 30, totalTokens: 275, totalTokensRaw: 634, costUsd: 0.01, costScope: "query", cumulative: false };
     expect(AgUsage.parse(usage)).toEqual(usage);
     // nested: a byModel entry keeps them too
@@ -1539,7 +1539,7 @@ describe("the notice role (spec §3, draft.2)", () => {
   });
 });
 
-describe("AgSurfaceInteraction: discriminated on surface first (CB-9) accepts exactly what the plain union accepted", () => {
+describe("AgSurfaceInteraction: discriminated on surface first accepts exactly what the plain union accepted", () => {
   // The previous definition, rebuilt here as the reference.
   const plain = z.union([AgA2uiSurfaceAction, AgA2uiFunctionResponse, AgA2uiError, AgMcpAppViewMessage, AgOpenAiWidgetAction]);
   const S = { surfaceId: "s1" };

@@ -1,7 +1,6 @@
 /**
- * record.ts — lenient readers for STORED records (draft.4 §0.2, workspace#20
- * decision 6, founder ruling 2026-09-23: option 1, "omit the element, reject
- * the input").
+ * record.ts — lenient readers for STORED records (draft.4 §0.2: a stored
+ * record omits an unreadable element and reports it; an input is rejected).
  *
  * §0.2's consumer posture also binds a reader of a stored `AgMessage` or
  * `AgMemoryRecord` it did not receive inside an event. These readers

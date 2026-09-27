@@ -94,7 +94,7 @@ const SDK_PACKAGE: Record<Framework, string> = {
  *  e.g. for capturing a newly-released model before it becomes the default
  *  here. */
 const DEFAULT_MODEL: Record<Framework, string> = {
-  // Policy (two clauses, founder-ruled 2026-09-02 for Claude and 2026-09-05
+  // Policy (two clauses, ruled 2026-09-02 for Claude and 2026-09-05
   // for OpenAI): each default is the newest model live-verified with that facet
   // in the committed corpus (see corpus/*/​*.provenance.json) AND
   // cost-appropriate as the WORKING default — the model every refresh capture
@@ -103,7 +103,7 @@ const DEFAULT_MODEL: Record<Framework, string> = {
   // (echo-fable51, echo-gpt6astra) rather than the default. Bump only after a
   // clean capture at the new model lands as a replay seed.
   claude: "claude-sonnet-5",
-  // 2026-09-23 (cohort 0.6.3, founder-ruled): bumped from gpt-5.6-sol. The
+  // 2026-09-23 (cohort 0.6.3, ruled): bumped from gpt-5.6-sol. The
   // echo-gpt6sol seeds landed clean on both the openai and vercel facets;
   // gpt-6-sol costs HALF of gpt-5.6-sol ($2/$10 vs $4/$20 per MTok) and the API
   // can switch its reasoning off, so it meets both policy clauses. It has no
@@ -352,7 +352,7 @@ async function loadFrameworkDeps(
     ]);
     assertKnobsHonored(scenario, framework, agent);
     // The same fixed id stem replay uses (replay.ts), so a capture that hits the
-    // claude facet's fallback id path (a frame with no uuid, sp-claude d2ba53e)
+    // claude facet's fallback id path (a frame with no uuid)
     // replays identically; the facet's default stem is random.
     return { runAgentCapture: agent.runClaudeCapture, createNormalizer: () => createClaudeNormalizer({ invokeId: "claude" }) };
   }
@@ -362,7 +362,7 @@ async function loadFrameworkDeps(
       import("@silverprotocol/openai-agents"),
     ]);
     assertKnobsHonored(scenario, framework, agent);
-    // The same fixed id stem replay uses (replay.ts, sp-openai f986f9c), so a
+    // The same fixed id stem replay uses (replay.ts), so a
     // fresh capture's agjson equals its replay; the facet's default stem is
     // random, which a capture hitting a fallback id path would record.
     return { runAgentCapture: agent.runOpenaiCapture, createNormalizer: () => createOpenaiNormalizer({ invokeId: "openai" }) };
@@ -410,7 +410,7 @@ async function loadFrameworkDeps(
     // capture (the host) records the completion marker after a normal return
     // and feeds it to the facet through its opt-in, as replay.ts does with a
     // recorded marker. Every committed ADK golden replays byte-identically
-    // with or without it (sp-google 613fd7f), so plain re-captures are safe.
+    // with or without it, so plain re-captures are safe.
     createNormalizer: () => createAdkNormalizer({ invokeId: "adk", hostCompletion: true }),
     hostCompletion: true,
   };
@@ -445,7 +445,7 @@ export async function resumeSessionFrom(seed: string, framework: Framework, corp
  * Where an openai leg-1 capture (toolApproval "interrupt") keeps its RunState:
  * a gitignored capture-time location in this checkout, keyed by seed. NEVER the
  * corpus: the RunState can carry the conversation, tool arguments and response
- * ids, the corpus is public, and replay never needs it (sp-main, 2026-09-24).
+ * ids, the corpus is public, and replay never needs it (2026-09-24).
  */
 export function runStatePath(seed: string, root = join(PACKAGE_ROOT, ".tmp", "capture-state")): string {
   return join(root, seed, "openai.runstate");

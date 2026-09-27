@@ -1,5 +1,5 @@
 /**
- * adk-pause-fixtures.gen.test.ts — generator for the rd-06 P-RED fixture set.
+ * adk-pause-fixtures.gen.test.ts — generator for the ADK pause fixture set.
  *
  * NOT part of the CI gate: runs only with GEN_ADK_PAUSE=1. It drives the REAL
  * @google/adk engine (the e2e pin, 2.1.0) with a STUB model — no key, no
@@ -7,7 +7,7 @@
  * plain-JSON boundary the capture agent uses) to fixtures/adk-pause/. The
  * events that carry the pause/completion semantics (adk_request_* calls, the
  * workflow's resume record, the confirmation event, the auth function
- * response) are built by the engine, not the model (rd-06 PS-6/CB-4/PS-3), so
+ * response) are built by the engine, not the model, so
  * a stub model is enough to exercise them.
  *
  *   GEN_ADK_PAUSE=1 npx vitest run --config ../../vitest.config.ts src/adk-pause-fixtures.gen.test.ts
@@ -111,7 +111,7 @@ function lastIndexWhere(events: JsonValue[], pred: (e: Record<string, unknown>) 
   return -1;
 }
 
-describe.runIf(process.env["GEN_ADK_PAUSE"] === "1")("rd-06 P-RED fixture generation (real @google/adk, stub model)", () => {
+describe.runIf(process.env["GEN_ADK_PAUSE"] === "1")("ADK pause fixture generation (real @google/adk, stub model)", () => {
   it("writes fixtures/adk-pause/*.native.json", async () => {
     const out: Record<string, JsonValue[]> = {};
 
@@ -233,7 +233,7 @@ describe.runIf(process.env["GEN_ADK_PAUSE"] === "1")("rd-06 P-RED fixture genera
       out["wf-functionnode-credential"] = await runOnce(new Workflow({ name: "cred_workflow", edges: [["START", fetchNode]] }));
     }
 
-    // ── a NodeTool inside a plain LlmAgent (nodeInfo inside a plain run, PS-15) ──
+    // ── a NodeTool inside a plain LlmAgent (nodeInfo inside a plain run) ──
     {
       const lookup = new FunctionNode("lookup", (_c, input: unknown) => ({ found: input }), {
         inputSchema: z.object({ q: z.string() }),

@@ -1,6 +1,6 @@
 /**
  * cross-invoke-ids.test.ts — turn ids never repeat across the invokes of one
- * fold (the D3 review bar, DC-10; rd-14's "ids unique across invokes").
+ * fold (draft.4: ids are unique across the invokes of a fold).
  *
  * guuey folds a whole conversation into ONE Reducer, one invoke after another,
  * each from a fresh normalizer (SPEC §8.0 Lifetime). An id minted from the
@@ -74,7 +74,7 @@ const LEGS: Array<{ facet: string; path: string; make: () => Normalizer; natives
   },
 ];
 
-describe("cross-invoke turn ids: two invokes of one facet, folded into ONE Reducer, never repeat a turnId (D3 bar, DC-10)", () => {
+describe("cross-invoke turn ids: two invokes of one facet, folded into ONE Reducer, never repeat a turnId", () => {
   for (const { facet, path, make, natives } of LEGS) {
     it(`${facet}: ${path}`, () => {
       const first = run(make(), natives);

@@ -1845,7 +1845,7 @@ describe("forward-compat + Tenet 6 (scaffold contract, kept)", () => {
   });
 });
 
-describe("draft.4 phase: an OpenAI commentary text part opens as phase 'interim' (rnd 13+17 stage 2)", () => {
+describe("draft.4 phase: an OpenAI commentary text part opens as phase 'interim'", () => {
   const COMMENTARY = { openai: { itemId: "msg_c", phase: "commentary" } };
   const FINAL = { openai: { itemId: "msg_f", phase: "final_answer" } };
   const stream = (bag?: object) => [
@@ -1880,8 +1880,8 @@ describe("draft.4 phase: an OpenAI commentary text part opens as phase 'interim'
 
 describe("invoke-scoped ids: turn and message ids unique across the invokes of one fold", () => {
   // The fullStream has no id before finish-step, so each normalizer draws a
-  // random id stem unless the host passes `invokeId` (sp-protocol's ruling on
-  // rd-14 P14: a per-normalizer counter restarting at 1 collided across invokes).
+  // random id stem unless the host passes `invokeId` (a per-normalizer counter
+  // restarting at 1 collided across invokes).
   const PARTS = [
     { type: "start" },
     { type: "start-step", request: {}, warnings: [] },
@@ -2143,7 +2143,7 @@ describe("per-native guard: a throw mid-part discards that part's batch, emits o
   });
 
   it("saveLocal()/restoreLocal() cover every mutable per-invoke local of the factory (a new one cannot silently escape a rollback)", () => {
-    // Source reflection (sp-cto's nit 3): the factory's top-level `let`s and
+    // Source reflection: the factory's top-level `let`s and
     // Set/Map locals are the facet's per-invoke state; each must be saved and
     // restored, or a rolled-back part leaves it advanced.
     const src = readFileSync(join(import.meta.dirname, "index.ts"), "utf8");
@@ -2181,7 +2181,7 @@ describe("per-native guard: a throw mid-part discards that part's batch, emits o
   });
 });
 
-describe("preliminary tool-result, then tool-error (CB-7; draft.4 §5 snapshot fold)", () => {
+describe("preliminary tool-result, then tool-error (draft.4 §5 snapshot fold)", () => {
   const parts = [
     { type: "start" },
     { type: "start-step", request: {}, warnings: [] },
