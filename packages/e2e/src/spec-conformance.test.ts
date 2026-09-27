@@ -98,7 +98,7 @@ interface Section10Item {
 const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 1, title: "reduce() invariant (full fold table + block insertion order)", disposition: "COVERED-BY", evidence: "fixture-only", citation: "reduce.test.ts describe \"reduce — R10 capstone: byte-identity + live-SSE↔history invariant\" › \"byte-identity: reduce(CAPSTONE_EVENTS) deep-equals the hand-spelled EXPECTED_RESULT (toEqual, order-sensitive)\"" },
   { n: 2, title: "Reconnect (forward-gap park + snapshot-resync; backward jump folds normally)", disposition: "COVERED-BY", evidence: "fixture-only", citation: "reduce.test.ts describe \"reduce — R9 new-ops + resync + snapshot + live-only\": the forward-gap / park / snapshot-recovery legs \"(e1) seq-gap sets needsResync; events after gap are ignored until snapshot\", \"(e2) seq-gap → messages.snapshot recovery clears needsResync\", \"(e3) seq-gap → state.snapshot recovery ALSO clears needsResync (both recovery paths)\", \"(e4) parked reducer ignores non-snapshot events; resumes after state.snapshot\", \"(e5) an ext event occupying a seq slot between two closed events does NOT false-park (Task 2b)\", \"(e6) a genuine forward gap revealed BY an ext event still parks (gap detection works through ext events)\" and the conditional-replace legs \"(d1) messages.snapshot without turns/artifacts PRESERVES prior artifacts + turns\", \"(d2) full messages.snapshot REPLACEs all three containers + clears transient\", \"(d3) messages.snapshot memory replaces only scope:thread records; non-thread survives\", \"(d4) messages.snapshot clears needsResync (un-parks)\"" },
-  { n: 3, title: "Tool-result routing matrix (content/structuredContent/uiData/sideData): channel separation only — structuredContent is model-facing, delivery host-determined, model receipt not asserted (draft.4 E6)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.3" },
+  { n: 3, title: "Tool-result routing matrix (content/structuredContent/uiData/sideData): channel separation only — structuredContent is model-facing, delivery host-determined, model receipt not asserted (draft.4)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.3" },
   { n: 4, leg: "a", title: "Gemini signature loop — tool-call signature (ingest leg)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.4(a), facet-driven via createAdkNormalizer" },
   { n: 4, leg: "b", title: "Gemini signature loop — thinking-only turn", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.4(b), facet-driven via createAdkNormalizer" },
   { n: 4, leg: "c", title: "Gemini signature loop — Google-Search-grounded turn", disposition: "N/A", evidence: "none", citation: "§10 preamble emit/re-input carve-out; no built-in-tool-step signature carrier in google-adk" },
@@ -1000,7 +1000,7 @@ describe("§10.20 — malformed input at a trust boundary (draft.4): a non-envel
     expect(ignored).toHaveLength(1);
     expect(ignored[0]).toMatchObject({ seq: 2, ignoredType: "message.remove", raw: malformed });
     // The report is itself a well-formed event: a consumer that re-validates
-    // ingest output strictly meets the stub first (P2 second read).
+    // ingest output strictly meets the stub first (second read).
     expect(AgEvent.safeParse(ignored[0]).success).toBe(true);
 
     const a = reduce(withIt);
@@ -1813,7 +1813,7 @@ describe("§10.23(openai) — an unmapped OpenAI finish reason → fallback + fi
 
 // ─────────────────────────────────────────────────────────────────────────────
 // §10.27 — Re-delivery never folds twice (draft.4; INV-SEQ/INV-BLOCK/INV-MSG,
-// rd-14 path 1 + 1a). Each offending event leaves needsResync true and the
+// path 1 + 1a). Each offending event leaves needsResync true and the
 // fold equal to the fold of the events before it, on the incremental Reducer
 // AND the batch reduce().
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1913,7 +1913,7 @@ describe("§10.27 — re-delivery never folds twice (draft.4)", () => {
     expect(dups).toEqual([]);
   });
 
-  // draft.4 message.start rule (bar wf_140b3183-767, ruled path 1): a message.start naming a closed turn parks,
+  // draft.4 message.start rule (ruled path 1): a message.start naming a closed turn parks,
   // within an invoke and across invokes; closure survives a 0-restart and, since draft.5, follows the
   // fold's turn records across a messages.snapshot.
   const TERMS = [
@@ -1965,7 +1965,7 @@ describe("§10.27 — re-delivery never folds twice (draft.4)", () => {
     expect(f.needsResync).toBe(false);
     expect((f.result.messages.find((m) => m.id === "m1") as { metadata?: Record<string, unknown> } | undefined)?.metadata).toMatchObject({ k: 1 });
   });
-  // draft.5 (bar wf_c7592535-af3, ruled 2026-09-25): closure follows the fold's turn records —
+  // draft.5 (ruled 2026-09-25): closure follows the fold's turn records —
   // a turn is closed while its record carries an `outcome` — so a messages.snapshot changes closure only
   // through the `turns` it leaves in the fold. (s-iv) replaces draft.4's (v-e) control.
   const E = [...S, ...END, ...DONE];
@@ -2787,7 +2787,7 @@ describe("§10.23(vercel) — a vercel finish with no AgJSON target → fallback
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// §10.37 — Shared-state fold (draft.4; §5 `state.delta`, pkg-21)
+// §10.37 — Shared-state fold (draft.4; §5 `state.delta`)
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("§10.37 — shared-state fold (draft.4; §5 state.delta)", () => {
