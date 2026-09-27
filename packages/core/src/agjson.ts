@@ -1005,7 +1005,7 @@ export const AgMcpAppViewMessage = z.discriminatedUnion("method", [
     ...surfaceEnvelope,
     surface: z.literal("mcp-app"),
     method: z.literal("ui/request-display-mode"),
-    params: z.object({ mode: z.enum(["inline", "fullscreen", "pip"]) }),
+    params: z.object({ mode: z.enum(["inline", "pip", "fullscreen"]) }), // AgDisplayMode's order (the canonical export, defined below)
   }),
   z.object({
     ...surfaceEnvelope,
