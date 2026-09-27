@@ -499,7 +499,9 @@ function extractSpecUnions(specText) {
       out[out.length - 1].values.push(...Array.from(l.matchAll(Q), (v) => v[1])); continue;
     }
     // a field whose union starts on the next line (`reason:` / `mode: "a" |` then `"b" | …`): the extractor does not join it — say so
-    if (!alias && !blockOwnerPending && t.length > 0 && !/^\/\//.test(t) && (/[:|]$/.test(t) && !/^\s*(?:export\s+)?type\s+\w+\s*=\s*$/.test(l) || (/^"/.test(t) && !(out.length && out[out.length - 1].line === i)))) problems.push(`SPEC.md:${i + 1} a type line wraps (\`${t.slice(0, 40)}\`): a closed union split across lines is not read — keep each union on one line or as \`type X =\` alias lines`);
+    const nextT = (lines[i + 1] !== undefined ? stripTrailer(lines[i + 1]) : "").trim();
+    const wrapsIntoUnion = (/:$/.test(t) && /^(?:"|\|\s*")/.test(nextT)) || (/\|$/.test(t) && !/^\s*(?:export\s+)?type\s+\w+\s*=\s*$/.test(l));
+    if (!alias && !blockOwnerPending && t.length > 0 && !/^\/\//.test(t) && (wrapsIntoUnion || (/^"/.test(t) && !(out.length && out[out.length - 1].line === i)))) problems.push(`SPEC.md:${i + 1} a type line wraps (\`${t.slice(0, 40)}\`): a closed union split across lines is not read — keep each union on one line or as \`type X =\` alias lines`);
     // unions on this line — every `name?: "a" | "b"`, `name: ("a"|"b")[]`, `Array<"a"|"b">`, `type X = "a" | "b"`
     const re = /(?:\btype\s+)?\b([A-Za-z_]\w*)\??\s*[:=]\s*(?:\(|Array<)?\s*("[^"\n]+"(?:\s*\|\s*"[^"\n]+")+)/g;
     for (let mm = re.exec(l); mm; mm = re.exec(l)) {
@@ -541,7 +543,14 @@ function extractSchemaEnumSitesWithValues(tsText) {
       for (const occ of occurrences) {
         let key;
         if (bare) key = bare[1];
-        else { const inner = occ.inner; const segs = [...path.map((x) => x.name).filter(Boolean)]; if (lead && inner && lead !== inner) segs.push(lead, inner); else if (inner) segs.push(inner); else if (pendingName) segs.push(pendingName); const p = segs.join("."); key = arm && (exportName === "AgClosedEvent" || exportName === "AgBlock") ? `${exportName}[${arm}].${p}` : `${exportName}.${p}`; }
+        else {
+          const inner = occ.inner; const segs = [...path.map((x) => x.name).filter(Boolean)];
+          // `lead` is a nesting segment only when a `{` or `(` opens between it and this occurrence (`params: z.object({ mode: z.enum(…) })`);
+          // a sibling field on the same line (`target: z.enum(…), action: z.enum(…)`) keys to its own name
+          const nested = Boolean(lead && inner && lead !== inner && delta(enumLine.slice(enumLine.indexOf(lead + ":") + lead.length + 1, occ.at ?? 0)) > 0); // a block still OPEN at this occurrence (`params: z.object({ mode: …`), not one that opened and closed before it
+          if (nested) segs.push(lead, inner); else if (inner) segs.push(inner); else if (pendingName) segs.push(pendingName);
+          const p = segs.join("."); key = arm && (exportName === "AgClosedEvent" || exportName === "AgBlock") ? `${exportName}[${arm}].${p}` : `${exportName}.${p}`;
+        }
         sites.push({ key, line: i + 1, values: valuesFrom(i, occ ? occ.at : 0, splitEnum) });
       }
     }
@@ -858,7 +867,17 @@ async function main() {
     if (reclass.spec === sources.spec || !reclass.spec.includes("OPEN STRING (documented values) | out | none (fallback") || reclass.ts === sources.ts) { console.error("\n✖ --self-test: could not apply the check-6 reclass control (one of its three anchors is gone)"); process.exit(1); }
     const { findings: reclassFindings } = runCheck(reclass);
     if (reclassFindings.length !== 0) { console.error("\n✖ --self-test: the check-6 reclass control (AgTrigger.kind → OPEN STRING on all three sides) must produce no finding:"); for (const line of reclassFindings) console.error(line); process.exit(1); }
-    console.log(`\n✓ --self-test: check 6 — ${checked.enumSitesPinned}/${checked.enumSites6} z.enum site(s) pinned on the live tree; ${seeds.length} negative seeds produced the expected drift; the reclass control stayed green:`);
+    // (d) Two formattings that must stay GREEN: two z.enum sites on one line (each keyed to its own field, 40 sites), and a
+    // non-union type line wrapped onto the next line (no wrap finding).
+    const joined = { spec: sources.spec, ts: sources.ts.replace('    target: z.enum(["input", "output", "tool"]),\n    passed: z.boolean(),\n    action: z.enum(["block", "retry", "rewrite", "override", "terminate"]).optional(),', '    target: z.enum(["input", "output", "tool"]), action: z.enum(["block", "retry", "rewrite", "override", "terminate"]).optional(),\n    passed: z.boolean(),') };
+    if (joined.ts === sources.ts) { console.error("\n✖ --self-test: could not apply the joined-line control (the guardrails block anchor is gone)"); process.exit(1); }
+    const joinedRun = runCheck(joined);
+    if (joinedRun.findings.length !== 0 || joinedRun.checked.enumSites6 !== EXPECTED_ENUM_SITES) { console.error(`\n✖ --self-test: two z.enum sites on one line must key to their own fields and stay green (${joinedRun.checked.enumSites6} sites):`); for (const line of joinedRun.findings) console.error(line); process.exit(1); }
+    const wrapped = { ts: sources.ts, spec: sources.spec.replace("interface AgSurfaceEnvelope {", "interface AgSurfaceEnvelope {\n  wrappedProbe?:\n    string;") };
+    if (wrapped.spec === sources.spec) { console.error("\n✖ --self-test: could not apply the non-union wrap control (no `interface AgSurfaceEnvelope {`)"); process.exit(1); }
+    const wrappedRun = runCheck(wrapped);
+    if (wrappedRun.findings.length !== 0) { console.error("\n✖ --self-test: a wrapped NON-union type line must produce no finding:"); for (const line of wrappedRun.findings) console.error(line); process.exit(1); }
+    console.log(`\n✓ --self-test: check 6 — ${checked.enumSitesPinned}/${checked.enumSites6} z.enum site(s) pinned on the live tree; ${seeds.length} negative seeds produced the expected drift; the reclass, joined-line and non-union-wrap controls stayed green:`);
     for (const line of seedLines) console.log(line);
   }
 }
