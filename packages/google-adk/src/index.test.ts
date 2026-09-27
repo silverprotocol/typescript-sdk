@@ -5020,3 +5020,114 @@ describe("createAdkNormalizer — an in-band error close carries the turn's usag
     expect(err !== undefined && "usage" in err).toBe(false);
   });
 });
+
+describe("createAdkNormalizer — the bookkeeping entries ADK's A2A relay writes into customMetadata are not carried", () => {
+  const inv = { invocationId: "inv_fixture_1" };
+  const PLANTED: string[] = [];
+  const plant = (tag: string): string => {
+    const value = `PLANTED-${tag}-${PLANTED.length}`;
+    PLANTED.push(value);
+    return value;
+  };
+  /** The four relay entries, each holding planted values at some depth. */
+  const relayEntries = (tag: string) => ({
+    "a2a:request": {
+      message: { parts: [{ kind: "text", text: plant(`${tag}-request-text`) }], metadata: { entry: plant(`${tag}-request-meta`) } },
+      configuration: { setting: { nested: plant(`${tag}-request-config`) } },
+      metadata: { entry: plant(`${tag}-request-host`) },
+    },
+    "a2a:response": { kind: "status-update", status: { state: "completed", message: { parts: [{ kind: "text", text: plant(`${tag}-response`) }] } } },
+    "a2a:task_id": plant(`${tag}-task`),
+    "a2a:context_id": plant(`${tag}-context`),
+  });
+  const text = (t: string) => ({ role: "model", parts: [{ text: t }] });
+  const drive = (natives: JsonValue[]): AgEvent[] => {
+    const n = createAdkNormalizer({ invokeId: "adk" });
+    return [...natives.flatMap((e) => n.push(e)), ...n.flush()];
+  };
+  const carries = (out: AgEvent[]): Array<{ [k: string]: unknown }> =>
+    out.flatMap((e) => {
+      if (e.type !== "content.block") return [];
+      const block: unknown = Reflect.get(e, "block");
+      if (typeof block !== "object" || block === null || Reflect.get(block, "type") !== "provider-raw") return [];
+      const raw: unknown = Reflect.get(block, "raw");
+      return typeof raw === "object" && raw !== null ? [raw as { [k: string]: unknown }] : [];
+    });
+  const expectNoPlanted = (out: AgEvent[], label: string) => {
+    const wire = JSON.stringify(out);
+    for (const value of PLANTED) expect(wire.includes(value), `${label}: ${value}`).toBe(false);
+  };
+
+  it("a relayed event's other customMetadata entries ride in the provider-raw carry, without the four relay entries; the pushed native is not changed", () => {
+    for (const [tag, kept] of [["done", { note: "kept" }], ["done-nested", { note: { deeper: ["kept", 2] }, "a2a:other": "kept too" }]] as const) {
+      const native = toJsonValue({ ...inv, author: "helper", content: text("Done."), turnComplete: true, customMetadata: { ...relayEntries(tag), ...kept } });
+      const before = JSON.stringify(native);
+      const out = drive([native]);
+      expect(JSON.stringify(native), tag).toBe(before);
+      expect(carries(out).map((raw) => raw["customMetadata"]), tag).toEqual([kept]);
+      expectNoPlanted(out, tag);
+    }
+  });
+
+  it("a relayed event without turnComplete that carries the relay entries (a chained chunk) carries none of them", () => {
+    for (const tag of ["chunk", "chunk-final"]) {
+      const out = drive([
+        toJsonValue({ ...inv, author: "helper", content: text("Hel"), partial: true, customMetadata: relayEntries(`${tag}-1`) }),
+        toJsonValue({ ...inv, author: "helper", content: text("Hello"), partial: false, customMetadata: { ...relayEntries(`${tag}-2`), note: "kept" } }),
+      ]);
+      expect(carries(out).map((raw) => raw["customMetadata"]), tag).toEqual([{ note: "kept" }]);
+      expectNoPlanted(out, tag);
+    }
+  });
+
+  it("a customMetadata that held only the relay entries is not carried at all, and adds no provider-raw block", () => {
+    for (const tag of ["only-a", "only-b"]) {
+      const out = drive([toJsonValue({ ...inv, author: "helper", content: text("Done."), turnComplete: true, customMetadata: relayEntries(tag) })]);
+      expect(carries(out), tag).toEqual([]);
+      expectNoPlanted(out, tag);
+    }
+  });
+
+  const unparsed = (out: AgEvent[]): unknown => {
+    const ext = out.find((e) => e.type === "ext.google.unparsed");
+    return ext === undefined ? undefined : Reflect.get(ext, "native");
+  };
+
+  it("a native that is not an ADK event rides ext.google.unparsed without the relay entries: its other customMetadata entries stay, and a customMetadata left empty is dropped; the pushed native is not changed", () => {
+    for (const [tag, kept] of [["unparsed-kept", { note: "kept", "a2a:other": "kept" }], ["unparsed-empty", undefined]] as const) {
+      const native = toJsonValue({ author: "helper", turnComplete: true, customMetadata: { ...relayEntries(tag), ...(kept ?? {}) } });
+      const before = JSON.stringify(native);
+      const out = drive([native]);
+      expect(JSON.stringify(native), tag).toBe(before);
+      expect(unparsed(out), tag).toEqual(kept === undefined ? { author: "helper", turnComplete: true } : { author: "helper", turnComplete: true, customMetadata: kept });
+      expectNoPlanted(out, tag);
+    }
+    const plain = toJsonValue({ author: "helper", turnComplete: true, customMetadata: "a plain string" });
+    expect(unparsed(drive([plain]))).toEqual({ author: "helper", turnComplete: true, customMetadata: "a plain string" });
+  });
+
+  it("an event serialized from Python (snake_case custom_metadata, no content) rides ext.google.unparsed without the relay entries: its other entries stay; the pushed native is not changed", () => {
+    for (const [tag, kept] of [["snake-kept", { note: "kept", "a2a:other": "kept" }], ["snake-empty", undefined]] as const) {
+      const native = toJsonValue({
+        invocation_id: "inv_py_1",
+        author: "helper",
+        turn_complete: true,
+        error_message: "remote failed",
+        custom_metadata: { ...relayEntries(tag), ...(kept ?? {}) },
+      });
+      const before = JSON.stringify(native);
+      const out = drive([native]);
+      expect(JSON.stringify(native), tag).toBe(before);
+      const base = { invocation_id: "inv_py_1", author: "helper", turn_complete: true, error_message: "remote failed" };
+      expect(unparsed(out), tag).toEqual(kept === undefined ? base : { ...base, custom_metadata: kept });
+      expectNoPlanted(out, tag);
+    }
+  });
+
+  it("a customMetadata without the relay entries rides unchanged, and so does one that is not an object", () => {
+    for (const bag of [{ note: "kept", "a2a:other": "kept" }, "a plain string"]) {
+      const out = drive([toJsonValue({ ...inv, author: "a1", content: text("Done."), turnComplete: true, customMetadata: bag })]);
+      expect(carries(out).map((raw) => raw["customMetadata"])).toEqual([bag]);
+    }
+  });
+});
