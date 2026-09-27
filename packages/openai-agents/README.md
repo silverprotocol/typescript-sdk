@@ -208,9 +208,12 @@ turn of the model round that produced it:
   close is held, for a tool result too, gets the same; one that arrives after
   its round closed carries them as `ext.openai.late-citations`.)
 - The next `response.created` releases a round that still waits only on calls
-  whose run-item never arrived, so the next round keeps its own turn.
-- A last round still waiting at the end of the stream closes with
-  `turn.abort` (`stream-truncated`).
+  whose run-item, or an approval request's ask or answer, never arrived, so
+  the next round keeps its own turn.
+- A last round still waiting only on a call whose run-item never arrived
+  closes with `turn.abort` (`stream-truncated`). A round waiting on a pending
+  result closes as INV-FLUSH (2) directs: `paused` when an approval ask names
+  the pending call.
 
 A hosted call, which the provider runs, emits `tool.start` with
 `providerExecuted: true`, and its `tool.done` from its one run-item:
@@ -218,12 +221,17 @@ A hosted call, which the provider runs, emits `tool.start` with
   search's `action` without its `sources`, a file search's `queries`, or a
   code interpreter's `code` and `container_id`.
 - An MCP item's `server_label` lands in `tool.start.serverName`, and the MCP
-  tool's own name in `tool.start.providerMetadata.mcpToolName`.
+  tool's own name in `tool.start.providerMetadata.mcpToolName`. An `mcp_call`
+  that an approval gated names that request in
+  `tool.start.providerMetadata.approval_request_id`.
 - A web search's `sources`, a file search's `results`, a code interpreter's
-  `outputs` and an `mcp_list_tools` listing land as `data` blocks, and an
-  image generation result as a `file` block.
-- A call whose status is `failed`, or which carries an `error`, closes with
-  `outcome: "error"`.
+  `outputs` and an `mcp_list_tools` listing land as `data` blocks. An image
+  generation result lands as a `file` block, and its own fields (such as
+  `revised_prompt`, `size` and `quality`) ride `tool.done.providerMetadata`.
+- A call whose status is `failed` or `incomplete`, or which carries an
+  `error`, closes with `outcome: "error"`. When it carries an `error`, the
+  error's message is `errorText`, its type is `errorCode`, and the error
+  itself rides `tool.done.providerMetadata.error`.
 
 A hosted MCP approval request's ask lands inside the round, as
 `hitl.ask` with `askId` `approval_<request id>` and `toolCallId` the request
@@ -237,8 +245,10 @@ resumed response then opens its message in that turn with its model.
 Current limits:
 - A hosted MCP approval request closes at once, like any hosted call, so a
   round that waits on an approval closes as `success`, not `paused`.
-- An MCP call's `tool.start.name` stays `mcp_call`; its tool's own name is
-  `providerMetadata.mcpToolName`.
+- An MCP item's `tool.start.name` is its item type (`mcp_call`,
+  `mcp_approval_request`, `mcp_approval_response`), not the MCP tool's own
+  name, which is `providerMetadata.mcpToolName` on an MCP call and an
+  approval request.
 
 ## Refusals
 

@@ -4062,6 +4062,18 @@ describe("createOpenaiNormalizer — hosted-MCP approval ids", () => {
     expect(asks(evs)).toEqual([{ askId: "approval_call_ap_2", toolCallId: "call_ap_2" }]);
   });
 
+  it("an approval ask whose item carries neither a callId nor an id gets a derived askId carrying the invoke stem, and names no call", () => {
+    const idless = (): JsonValue => runItem("tool_approval_requested", { type: "tool_approval_item", rawItem: { type: "hosted_tool_call", name: "ask_question" } });
+    const { evs } = run([...rawRound("resp_ap_5", []), idless(), idless()]);
+    const got = asks(evs);
+    expect(got).toHaveLength(2);
+    expect(new Set(got.map((a) => a.askId)).size).toBe(2);
+    for (const a of got) {
+      expect(String(a.askId)).toContain("inv1");
+      expect(a.toolCallId).toBeUndefined();
+    }
+  });
+
   it("two mcp_approval_response run-items in one invoke get distinct derived ids keyed on their request ids, and the fold does not resync", () => {
     const { evs, r } = run([
       ...rawRound("resp_ap_3", [R1, R2]),
@@ -4090,6 +4102,8 @@ describe("createOpenaiNormalizer — hosted-MCP approval ids", () => {
     expect(ids).toHaveLength(2);
     expect(new Set(ids).size).toBe(2);
     expect(ids).not.toContain("web_search_call");
+    // Collision-free across a fold's invokes: each derived id carries the invoke stem.
+    for (const id of ids) expect(String(id)).toContain("inv1");
   });
 });
 
@@ -4242,6 +4256,19 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
     expect(turnIds(evs)).toEqual(["turn_resp_s1", "turn_resp_s2"]);
     expect(terminalsOf(evs, "turn_resp_s1")).toMatchObject([{ type: "turn.done", outcome: { type: "success" } }]);
     expect(idx(evs, "turn.done", "turnId", "turn_resp_s1")).toBeLessThan(idx(evs, "turn.start", "turnId", "turn_resp_s2"));
+  });
+
+  it("at the next response.created, a round still waiting on a pending result is not released: only its never-streamed listed calls stop being waited for", () => {
+    const { evs, r } = run([
+      ...rawRound("resp_q1", [SH, WS]),
+      calledSh,
+      ...rawRound("resp_q2", []),
+      shOutput,
+    ]);
+    expect(r.needsResync).toBe(false);
+    const done1 = idx(evs, "turn.done", "turnId", "turn_resp_q1");
+    expect(done1).toBeGreaterThan(idx(evs, "tool.done", "toolCallId", "call_sh_1"));
+    expect(terminalsOf(evs, "turn_resp_q1")).toMatchObject([{ type: "turn.done", outcome: { type: "success" } }]);
   });
 
   it("a last round still waiting on a listed built-in call at end of stream is released at flush as turn.abort stream-truncated, its usage on message.end", () => {
@@ -4469,11 +4496,20 @@ describe("createOpenaiNormalizer — hosted call inputs and results", () => {
     expect(first(evs, "tool.done")).toMatchObject({ outcome: "ok", content: [{ type: "text", text: "answer" }] });
   });
 
-  it("an mcp_call whose status is failed, or which carries an error, closes with outcome error and the error text", () => {
-    const failed = hostedRound({ ...MCP_RAW, status: "failed", error: "server unreachable" }, mcpItem({ status: "failed", error: "server unreachable", output: null }));
-    expect(first(failed, "tool.done")).toMatchObject({ outcome: "error", isError: true, errorText: "server unreachable" });
-    const errored = hostedRound({ ...MCP_RAW, error: "bad arguments" }, mcpItem({ error: "bad arguments", output: null }));
-    expect(first(errored, "tool.done")).toMatchObject({ outcome: "error", isError: true, errorText: "bad arguments" });
+  it("an mcp_call whose status is failed, or which carries an error, closes with outcome error, its error's message and type, and the error verbatim", () => {
+    // openai-node 7.22.0 McpToolCallError: {code, message, type} or {content, type}.
+    const protocolError = { type: "mcp_protocol_error", code: -32000, message: "server unreachable" };
+    const failed = hostedRound({ ...MCP_RAW, status: "failed", error: protocolError }, mcpItem({ status: "failed", error: protocolError, output: null }));
+    expect(first(failed, "tool.done")).toMatchObject({
+      outcome: "error",
+      isError: true,
+      errorText: "server unreachable",
+      errorCode: "mcp_protocol_error",
+      providerMetadata: { error: protocolError },
+    });
+    const execError = { type: "mcp_tool_execution_error", content: [{ type: "text", text: "bad arguments" }] };
+    const errored = hostedRound({ ...MCP_RAW, error: execError }, mcpItem({ error: execError, output: null }));
+    expect(first(errored, "tool.done")).toMatchObject({ outcome: "error", isError: true, errorCode: "mcp_tool_execution_error", errorText: JSON.stringify(execError) });
     const statusOnly = hostedRound({ ...MCP_RAW, status: "failed" }, mcpItem({ status: "failed", output: null }));
     expect(first(statusOnly, "tool.done")).toMatchObject({ outcome: "error", isError: true });
   });
@@ -4512,11 +4548,14 @@ describe("createOpenaiNormalizer — hosted call inputs and results", () => {
 
   it("an image_generation result lands as a file block, not text", () => {
     const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk";
+    const fields = { revised_prompt: "a red cube", size: "1024x1024", quality: "high", background: "opaque", action: "generate" };
     const evs = hostedRound(
-      { type: "image_generation_call", id: "ig_1", status: "completed", result: png },
-      { type: "hosted_tool_call", id: "ig_1", name: "image_generation_call", status: "completed", output: png, providerData: { type: "image_generation_call", id: "ig_1" } },
+      { type: "image_generation_call", id: "ig_1", status: "completed", result: png, ...fields, output_format: null },
+      { type: "hosted_tool_call", id: "ig_1", name: "image_generation_call", status: "completed", output: png, providerData: { type: "image_generation_call", id: "ig_1", ...fields, output_format: null } },
     );
     expect(first(evs, "tool.done")).toMatchObject({ outcome: "ok", content: [{ type: "file", source: { type: "base64", mediaType: "image/png", data: png } }] });
+    // Its own fields ride tool.done providerMetadata; a null field is no field.
+    expect(Reflect.get(first(evs, "tool.done") ?? {}, "providerMetadata")).toEqual(fields);
     expect(JSON.stringify(first(evs, "tool.done"))).not.toContain('"type":"text"');
   });
 
@@ -4569,6 +4608,11 @@ describe("createOpenaiNormalizer — hosted call inputs and results", () => {
       { type: "hosted_tool_call", id: "ws_9", name: "web_search_call", status: "completed", providerData: { type: "web_search_call", id: "ws_9", action: { type: "search", query: "x" } } },
     );
     expect(first(ws, "tool.start")).not.toHaveProperty("providerMetadata");
+  });
+
+  it("an mcp_call an approval gated names that request as tool.start providerMetadata.approval_request_id", () => {
+    const evs = hostedRound({ ...MCP_RAW, approval_request_id: "mcpr_7" }, mcpItem({ approval_request_id: "mcpr_7" }));
+    expect(first(evs, "tool.start")).toMatchObject({ providerMetadata: { mcpToolName: "ask_question", approval_request_id: "mcpr_7" } });
   });
 
   it("an mcp_approval_request carries the request's arguments and server_label on its tool.start", () => {

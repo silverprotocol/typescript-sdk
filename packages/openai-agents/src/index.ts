@@ -1042,9 +1042,9 @@ function terminalHasRefusal(output: JsonValue | undefined): boolean {
 
 /**
  * The media type of an image_generation result (base64): the item's
- * `output_format` when it carries one, else read from the image's own
- * signature, else `application/octet-stream`. The item carries no format of
- * its own on the wire (it is a tool option), so the signature decides.
+ * `output_format` when it carries one (openai-node 7.22.0 declares it
+ * optional and nullable on ImageGenerationCall), else read from the image's
+ * own signature, else `application/octet-stream`.
  */
 function imageResultMediaType(providerData: { [k: string]: JsonValue } | undefined, data: string): string {
   const format = providerData?.output_format;
@@ -3390,7 +3390,14 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * always sets to "completed", the status in providerData), or the item
    * carries an `error`.
    */
-  function hostedResult(rawItem: OpenAIHostedToolCallItem): { content: AgBlock[]; outcome: ToolOutcome; isError?: true; errorText?: string } {
+  function hostedResult(rawItem: OpenAIHostedToolCallItem): {
+    content: AgBlock[];
+    outcome: ToolOutcome;
+    isError?: true;
+    errorText?: string;
+    errorCode?: string;
+    providerMetadata?: AgProviderMeta;
+  } {
     const pd = rawItem.providerData;
     const content: AgBlock[] = [];
     const output: unknown = rawItem.output;
@@ -3418,13 +3425,50 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       content.push({ type: "data", name: "code_interpreter_outputs", data: JsonValue.parse(outputs) });
     }
     const status: unknown = rawItem.name === "mcp_call" ? (pd?.status ?? rawItem.status) : rawItem.status;
+    // An mcp_call's `error` is an object on the wire (openai-node 7.22.0
+    // McpToolCallError: a protocol or HTTP error {code, message, type}, or a
+    // tool execution error {content, type}): its message (else the object as
+    // JSON) is the errorText, its type the errorCode, and the object rides
+    // tool.done providerMetadata verbatim. A string error is its own text.
     const error: unknown = pd?.error;
+    const errorMessage: unknown = isJsonObject(error) ? error.message : undefined;
     const errorText =
-      typeof error === "string" && error.length > 0 ? error : isJsonObject(error) ? JSON.stringify(error) : undefined;
+      typeof error === "string" && error.length > 0
+        ? error
+        : typeof errorMessage === "string" && errorMessage.length > 0
+          ? errorMessage
+          : isJsonObject(error)
+            ? JSON.stringify(error)
+            : undefined;
+    const errorType: unknown = isJsonObject(error) ? error.type : undefined;
+    // An image_generation result's own fields (revised prompt, size, quality,
+    // background, action, format) ride tool.done providerMetadata verbatim.
+    const image = rawItem.name === "image_generation_call" ? pd : undefined;
+    const imageField = (k: string): JsonValue | undefined => {
+      const v = image?.[k];
+      return v === null ? undefined : v;
+    };
+    const providerMetadata = openaiProviderMeta({
+      error: isJsonObject(error) ? error : undefined,
+      revised_prompt: imageField("revised_prompt"),
+      size: imageField("size"),
+      quality: imageField("quality"),
+      background: imageField("background"),
+      action: imageField("action"),
+      output_format: imageField("output_format"),
+    });
+    const meta = providerMetadata !== undefined ? { providerMetadata } : {};
     if (status === "failed" || status === "incomplete" || errorText !== undefined) {
-      return { content, outcome: "error", isError: true, ...(errorText !== undefined ? { errorText } : {}) };
+      return {
+        content,
+        outcome: "error",
+        isError: true,
+        ...(errorText !== undefined ? { errorText } : {}),
+        ...(typeof errorType === "string" && errorType.length > 0 ? { errorCode: errorType } : {}),
+        ...meta,
+      };
     }
-    return { content, outcome: "ok" };
+    return { content, outcome: "ok", ...meta };
   }
 
   function driveBuiltinToolCalled(
@@ -3479,9 +3523,13 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       rawItem.type === "hosted_tool_call" && (rawItem.name === "mcp_call" || rawItem.name === "mcp_approval_request")
         ? rawItem.providerData?.name
         : undefined;
+    // An mcp_call that an approval gated names that request (verbatim).
+    const approvalRequestId: unknown =
+      rawItem.type === "hosted_tool_call" && rawItem.name === "mcp_call" ? rawItem.providerData?.approval_request_id : undefined;
     const startMeta = openaiProviderMeta({
       caller: callerToJson(caller),
       mcpToolName: typeof mcpToolName === "string" && mcpToolName.length > 0 ? mcpToolName : undefined,
+      approval_request_id: typeof approvalRequestId === "string" && approvalRequestId.length > 0 ? approvalRequestId : undefined,
     });
     // An MCP item's server label (SPEC tool.start.serverName).
     const serverLabel: unknown = rawItem.type === "hosted_tool_call" ? rawItem.providerData?.server_label : undefined;
