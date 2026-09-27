@@ -441,13 +441,18 @@ const SPEC_LOCATION_MAP = {
 const SPEC_BLOCK_OWNERS = { "{ type: \"hitl.ask\";": "AgEvent[hitl.ask]", "{ askId: string;": "AgHitlAnswer" };
 // z.enum sites SPEC writes no closed union for (each entry names why); empty today.
 const UNPINNED_SITE_EXCEPTIONS = {};
+// The number of closed unions SPEC.md writes inside its ts fences at the current draft — a ratchet, like the
+// fixture manifest: a SPEC edit that adds or removes a union updates it in the same commit, so a location that
+// silently stops being read (a field retyped to an alias while its row stays pinned by another) fails --self-test.
+const EXPECTED_SPEC_UNIONS = 54;
 
 function stripTrailer(l) { return l.replace(/(?<!:)\/\/.*$/, ""); }
 function braceDelta(l) { let d = 0, inStr = false; for (const ch of l) { if (ch === '"') inStr = !inStr; else if (!inStr) { if (ch === "{") d++; else if (ch === "}") d--; } } return d; }
 
 /** Every closed union (≥2 quoted literals) inside SPEC.md's ts fences: { location, values, line, form }. */
 function extractSpecUnions(specText) {
-  const lines = specText.split("\n"); const out = []; const problems = [];
+  // Only ```ts / ```typescript fences are read; a closed union written in any other fence is counted for --census (0 at the tip) and otherwise ignored.
+  const lines = specText.split("\n"); const out = []; const problems = []; let otherFenceUnions = 0; let inOther = false;
   let inTs = false, owner = null, ownerIsAlias = false, arm = null, armDepth = 0, depth = 0, alias = null, blockOwnerPending = false;
   const path = []; // [{name, depth}] nested object fields opened by `name: {` / `name: Array<{`
   const locationOf = (field) => {
@@ -457,7 +462,12 @@ function extractSpecUnions(specText) {
   };
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i];
-    if (!inTs) { if (TS_FENCE.test(raw)) { inTs = true; owner = null; arm = null; depth = 0; path.length = 0; alias = null; blockOwnerPending = true; } continue; }
+    if (!inTs) {
+      if (TS_FENCE.test(raw)) { inTs = true; owner = null; arm = null; depth = 0; path.length = 0; alias = null; blockOwnerPending = true; continue; }
+      if (inOther) { if (FENCE_END.test(raw)) inOther = false; else if (/\b[A-Za-z_]\w*\??\s*[:=]\s*(?:\(|Array<)?\s*"[^"\n]+"(?:\s*\|\s*"[^"\n]+")+/.test(raw)) otherFenceUnions++; }
+      else if (/^\s*```/.test(raw)) inOther = true;
+      continue;
+    }
     if (FENCE_END.test(raw)) { if (alias && alias.values.length > 1) out.push({ location: alias.name, values: alias.values, line: alias.line, form: "alias" }); inTs = false; alias = null; continue; }
     const l = stripTrailer(raw); const t = l.trim(); let m;
     // block owner for a fence that opens with a bare object literal
@@ -494,14 +504,14 @@ function extractSpecUnions(specText) {
     if (delta > 0) { const opener = /^\s*(?:\|\s*)?(?:\(\s*\w+\s*&\s*)?(?:([A-Za-z_]\w*)\??\s*:\s*(?:Array<)?)?\{/.exec(l) ?? /^\s*([A-Za-z_]\w*)\??\s*:\s*Array<\{/.exec(l); const name = opener?.[1]; for (let k = 0; k < delta; k++) path.push({ name: k === 0 ? name ?? null : null, depth: depth + k }); depth += delta; }
     else if (delta < 0) { depth += delta; while (path.length && path[path.length - 1].depth >= depth) path.pop(); if (arm !== null && depth <= armDepth) arm = null; }
   }
-  return { unions: out, problems };
+  return { unions: out, problems, otherFenceUnions };
 }
 
 /** Every `z.enum([...])` site in agjson.ts with its values: key forms `Export`, `Export.path.to.field`, `AgClosedEvent[arm].field`, `AgBlock[kind].field`. */
 function extractSchemaEnumSitesWithValues(tsText) {
   const lines = tsText.split("\n"); const sites = []; let exportName = null, arm = null, pendingName = null;
   const path = []; let depth = 0;
-  const valuesFrom = (i) => { const from = lines.slice(i).join("\n"); const k = from.indexOf("z.enum("); let d = 0, j = k + 6; for (; j < from.length; j++) { const c = from[j]; if (c === "(" || c === "[") d++; else if (c === ")" || c === "]") { d--; if (d === 0) break; } } return Array.from(from.slice(k, j + 1).matchAll(Q), (v) => v[1]); };
+  const valuesFrom = (i) => { const from = lines.slice(i).join("\n"); const k = from.indexOf("z.enum("); let d = 0, j = k + 6, q = false; for (; j < from.length; j++) { const c = from[j]; if (c === '"') { q = !q; continue; } if (q) continue; if (c === "(" || c === "[") d++; else if (c === ")" || c === "]") { d--; if (d === 0) break; } } return Array.from(from.slice(k, j + 1).matchAll(Q), (v) => v[1]); }; // quote-aware: a bracket inside a value ("[start,end]") never ends the slice
   const delta = (l) => { let d = 0, s = null; for (const ch of l) { if (s) { if (ch === s) s = null; continue; } if (ch === '"' || ch === "'" || ch === "`") s = ch; else if ("{([".includes(ch)) d++; else if ("})]".includes(ch)) d--; } return d; };
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i].replace(/\/\/.*$/, "");
@@ -561,7 +571,7 @@ function bindLocation(loc, rowsWithLocs) {
 function checkSpecUnionsAgainstSchema(specText, tsText) {
   const findings = [];
   const rows = extractSpecClosedSetTable(specText);
-  const { unions, problems } = extractSpecUnions(specText); findings.push(...problems.map((p) => `  ${p}`));
+  const { unions, problems, otherFenceUnions } = extractSpecUnions(specText); findings.push(...problems.map((p) => `  ${p}`));
   const sites = extractSchemaEnumSitesWithValues(tsText);
   const rowsWithLocs = rows.map((r) => ({ row: r, locs: rowLocations(r, tsText) }));
   // sites → rows
@@ -584,15 +594,13 @@ function checkSpecUnionsAgainstSchema(specText, tsText) {
     }
     receipt.push(entry);
   }
-  // OPEN STRING rows must resolve to a location at all
-  for (const r of rowsWithLocs) if (tableClass(r.row.cls) === "OPEN STRING" && r.locs.size === 0) findings.push(`  §12 table line ${r.row.line} (${r.row.set}) is classed OPEN STRING but names no location to check`);
   // reverse: every site pinned or excepted
   const unpinned = sites.filter((s) => !pinned.has(s));
   for (const s of unpinned) if (!UNPINNED_SITE_EXCEPTIONS[s.key]) findings.push(`  agjson.ts:${s.line} \`${s.key}\` is compared against no SPEC closed union (no SPEC location bound to its §12 row writes the set; not on the exception list)`);
   // twins census
   const bySet = new Map(); for (const s of sites) { const k = [...s.values].sort().join("|"); if (!bySet.has(k)) bySet.set(k, []); bySet.get(k).push(s); }
   const twins = [...bySet.values()].filter((g) => g.length > 1).map((g) => { const rowsOf = g.map((s) => (siteRows.get(s).rows[0]?.row.line ?? "—")); return { sites: g.map((s) => `${s.key}@${s.line}`), rows: rowsOf, shared: new Set(rowsOf).size === 1 }; });
-  return { findings, unions: unions.length, sites: sites.length, pinned: sites.length - unpinned.length, unpinned: unpinned.map((s) => s.key), receipt, twins };
+  return { findings, unions: unions.length, otherFenceUnions, sites: sites.length, pinned: sites.length - unpinned.length, unpinned: unpinned.map((s) => s.key), receipt, twins };
 }
 
 /**
@@ -637,6 +645,7 @@ function runCheck(sources) {
       tableRows: table.rows,
       enumSites: table.sites,
       specUnions: unions.unions,
+      otherFenceUnions: unions.otherFenceUnions,
       enumSites6: unions.sites,
       enumSitesPinned: unions.pinned,
       unpinnedSites: unions.unpinned,
@@ -689,6 +698,7 @@ async function main() {
     for (const [k, v] of Object.entries(SPEC_LOCATION_MAP)) console.log(`  ${k} → ${v}`);
     console.log(`bare-block owners (SPEC_BLOCK_OWNERS): ${Object.entries(SPEC_BLOCK_OWNERS).map(([k, v]) => `${JSON.stringify(k)} → ${v}`).join("; ")}`);
     console.log(`unpinned-site exceptions: ${Object.keys(UNPINNED_SITE_EXCEPTIONS).length === 0 ? "none" : Object.entries(UNPINNED_SITE_EXCEPTIONS).map(([k, v]) => `${k} (${v})`).join("; ")}`);
+    console.log(`closed unions written in a non-ts fence (ignored by the check): ${checked.otherFenceUnions}`);
   }
   if (advisory.length > 0) {
     console.log(`  advisory: SPEC.md §4 defines AgUsage field(s) the reference does not carry yet: ${advisory.join(", ")}`);
@@ -783,14 +793,15 @@ async function main() {
     // Negative pass 4 — check 6. (a) The live tree pins every z.enum site through the table with
     // no exception, and the union extractor reaches the whole population (a regression that loses
     // a fence, an arm line, a nested field or the multi-line alias unpins a site and fails here).
-    if (checked.enumSitesPinned !== checked.enumSites6 || checked.unpinnedSites.length !== 0 || checked.specUnions < 50) {
-      console.error(`\n✖ --self-test: check 6 pins ${checked.enumSitesPinned} of ${checked.enumSites6} z.enum site(s) on the live tree with ${checked.specUnions} SPEC union(s) (unpinned: ${checked.unpinnedSites.join(", ") || "none"}); expected every site pinned and ≥ 50 unions`);
+    if (checked.enumSitesPinned !== checked.enumSites6 || checked.unpinnedSites.length !== 0 || checked.specUnions !== EXPECTED_SPEC_UNIONS) {
+      console.error(`\n✖ --self-test: check 6 pins ${checked.enumSitesPinned} of ${checked.enumSites6} z.enum site(s) on the live tree with ${checked.specUnions} SPEC union(s) (unpinned: ${checked.unpinnedSites.join(", ") || "none"}); expected every site pinned and exactly ${EXPECTED_SPEC_UNIONS} unions — a SPEC edit that adds or removes a closed union updates EXPECTED_SPEC_UNIONS in the same commit`);
       process.exit(1);
     }
-    // (b) Seven mutations that must each surface a finding, applied one at a time to in-memory copies —
+    // (b) Nine mutations that must each surface a finding, applied one at a time to in-memory copies —
     // they cover the extractor's forms (an interface field, an AgEvent arm line, the multi-line alias, a
     // hyphenated value), a value dropped so the SPEC set equals ANOTHER row's set (the pool trap), one of
-    // two twin z.enum sites grown alone, and an OPEN STRING field written back as a closed union.
+    // two twin z.enum sites grown alone, an OPEN STRING field written back as a closed union, a union no
+    // row names (the completeness rule) and an alias removed so its z.enum site goes unpinned (the reverse rule).
     const seeds = [
       { name: "interface field union grows (AgReasoningConfig.mode)", spec: (s) => s.replace('mode: "enabled" | "disabled"', 'mode: "enabled" | "disabled" | "phantom_injected_by_self_test"'), expect: (f) => f.includes("phantom_injected_by_self_test") && f.includes("≠ agjson.ts") },
       { name: "OPEN STRING field written as a closed union (AgReasoningConfig.effort)", spec: (s) => s.replace("effort?: string;", 'effort?: "minimal" | "low" | "medium" | "high";'), expect: (f) => f.includes("OPEN STRING") && f.includes("`AgReasoningConfig.effort`") && f.includes("closed union") },
@@ -799,6 +810,8 @@ async function main() {
       { name: "hyphenated value added (AgSurfaceEnvelope.surface)", spec: (s) => s.replace('surface: "a2ui" | "mcp-app" | "openai-app"', 'surface: "a2ui" | "mcp-app" | "openai-app" | "phantom-kebab"'), expect: (f) => f.includes("phantom-kebab") && f.includes("`AgSurfaceEnvelope.surface`") },
       { name: "a value dropped so the set equals another row's (AgMemoryRecord.scope loses thread)", spec: (s) => s.replace('scope: "agent" | "user" | "skill" | "thread";', 'scope: "agent" | "user" | "skill";'), expect: (f) => f.includes("`AgMemoryRecord.scope`") && f.includes("≠ agjson.ts") },
       { name: "one twin z.enum site grown alone (the second resumeBinding)", ts: (t) => { const needle = 'resumeBinding: z.enum(["id", "positional"])'; const k = t.lastIndexOf(needle); return k < 0 ? t : t.slice(0, k) + 'resumeBinding: z.enum(["id", "positional", "phantom_twin"])' + t.slice(k + needle.length); }, expect: (f) => f.includes("phantom_twin") && f.includes("`AgClosedEvent[hitl.ask].resumeBinding`") },
+      { name: "a closed union no §12 row names (a phantom interface) → completeness", spec: (s) => s.replace("interface AgMemoryRecord {", 'interface AgPhantomInjectedBySelfTest { kind: "alpha" | "beta" }\ninterface AgMemoryRecord {'), expect: (f) => f.includes("`AgPhantomInjectedBySelfTest.kind`") && f.includes("no §12 table row names that location") },
+      { name: "the AgFinishReason alias removed → its z.enum site unpinned (reverse direction)", spec: (s) => s.replace(/type AgFinishReason =\n(?:\s*\|[^\n]*\n)+/, ""), expect: (f) => f.includes("`AgFinishReason` is compared against no SPEC closed union") },
     ];
     const seedLines = [];
     for (const seed of seeds) {
