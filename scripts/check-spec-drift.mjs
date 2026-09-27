@@ -5,7 +5,7 @@
  * Guards that every `AgEvent.type` literal and `AgInput.kind` literal named
  * in the AgJSON spec text (`SPEC.md`) has a matching `z.literal(...)` arm in
  * the reference schema (`packages/core/src/agjson.ts`), and vice versa.
- * Style precedent: guuey's `scripts/check-spec-drift.mjs` (structural
+ * Style precedent: a reference host's own spec-drift script (structural
  * interface-field diffing) — this checker instead diffs closed SETS of
  * string-literal discriminants, which is the shape SPEC.md §3/§4 actually
  * declare. Zero deps, pure Node.

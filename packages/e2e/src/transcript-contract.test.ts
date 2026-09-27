@@ -11,7 +11,7 @@
  * per the FIXTURES.md contract and are never asserted.
  *
  * The guest-gesture suite arms itself when the transcript lands
- * (corpus/guest-gesture/ggui.native.json — filed by ggui per workspace#10's
+ * (corpus/guest-gesture/ggui.native.json — filed by its producer per workspace#10's
  * enrollment draft; producer-side refresh ritual). Until then it skips, and
  * the always-on enrollment-completeness test below guards against a
  * half-landed enrollment (transcript without provenance, or vice versa).
@@ -63,7 +63,7 @@ function theOne(v: Json | undefined, key: string): Json {
 
 // Envelope tolerance: a frame may be a bare payload or a JSON-RPC envelope —
 // method/tool discriminants and result bodies are read structurally, not by a
-// pinned envelope shape (the envelope framing is ggui's; the STABLE set is
+// pinned envelope shape (the envelope framing is its producer's; the STABLE set is
 // the discriminants and equalities, per workspace#10).
 function methodOf(frame: Json): string | undefined {
   return isObj(frame) && typeof frame["method"] === "string" ? frame["method"] : undefined;
@@ -108,7 +108,7 @@ describe.runIf(existsSync(GG_TRANSCRIPT))(
       expect(toolNameOf(frames()[4] as Json)).toBe("ggui_consume");
     });
 
-    it("render result carries the MCP-Apps bootstrap and the ggui_consume hint", () => {
+    it("render result carries the MCP-Apps bootstrap and the next-step consume hint", () => {
       const render = resultOf(frames()[0] as Json);
       const resourceUris = deepCollect(render, "resourceUri").filter((v) => typeof v === "string");
       expect(resourceUris.length, "_meta.ui.resourceUri missing").toBeGreaterThan(0);
