@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import type { JsonValue } from "@silverprotocol/core";
 import {
   flattenLeaves,
@@ -29,6 +32,20 @@ describe("normalizePath", () => {
     expect(normalizePath("[2].message.content[0].citations[0].cited_text")).toBe(
       "[*].message.content[*].citations[*].cited_text",
     );
+  });
+
+  it("collapses an artifactDelta key to {id} whole, dots included, on the native and the AgJSON side", () => {
+    expect(normalizePath("[3].actions.artifactDelta.report.txt")).toBe("[*].actions.artifactDelta.{id}");
+    expect(normalizePath("[0].block.raw.artifactDelta.chart.v2.png")).toBe("[*].block.raw.artifactDelta.{id}");
+    expect(normalizePath("[0].actions.artifactDelta.notes")).toBe("[*].actions.artifactDelta.{id}");
+  });
+
+  it("leaves an artifactDelta path that continues into an array alone", () => {
+    expect(normalizePath("[0].actions.artifactDelta.list[1]")).toBe("[*].actions.artifactDelta.list[*]");
+  });
+
+  it("collapses only under actions or a provider-raw raw, not a same-named key elsewhere", () => {
+    expect(normalizePath("[3].actions.stateDelta.artifactDelta.k")).toBe("[*].actions.stateDelta.artifactDelta.k");
   });
 });
 
@@ -174,6 +191,34 @@ describe("census", () => {
       ...overrides,
     };
   }
+
+  // ── artifactDelta: an ambient saved version is checked by transform ──────
+
+  it("an ADK artifactDelta version 0 is carried when the provider-raw block lands, and a drop when it does not", () => {
+    const native = [{ actions: { artifactDelta: { "report.txt": 0 } } }] as JsonValue;
+    const carried = [{ type: "content.block", block: { type: "provider-raw", vendor: "google", raw: { artifactDelta: { "report.txt": 0 } } } }] as JsonValue;
+    const transforms = new Map<string, string>([["[*].actions.artifactDelta.{id}", "[*].block.raw.artifactDelta.{id}"]]);
+    const registry = new Set(["[*].actions.artifactDelta.{id}"]);
+    const withCarry = census(makeInput({ native, agjson: carried, transforms, registry }));
+    expect(withCarry.drops).toEqual([]);
+    expect(withCarry.newFields).toEqual([]);
+    const withoutCarry = census(makeInput({ native, agjson: [] as JsonValue, transforms, registry }));
+    expect(withoutCarry.drops.map((d) => d.norm)).toEqual(["[*].actions.artifactDelta.{id}"]);
+    // Without the transform the version-0 leaf is ambient, so Rule 3 calls it a drop even when carried.
+    const noTransform = census(makeInput({ native, agjson: carried, registry }));
+    expect(noTransform.drops.map((d) => d.norm)).toEqual(["[*].actions.artifactDelta.{id}"]);
+  });
+
+  it("@google/adk still types artifactDelta as filename → number (the collapse assumes a scalar value)", () => {
+    const pkg = createRequire(import.meta.url).resolve("@google/adk/package.json");
+    const dts = readFileSync(join(dirname(pkg), "dist", "types", "events", "event_actions.d.ts"), "utf8");
+    expect(dts).toMatch(/artifactDelta:\s*\{\s*\[key: string\]: number;\s*\}/);
+  });
+
+  it("the committed transforms map the ADK artifactDelta carry", () => {
+    const committed = JSON.parse(readFileSync(new URL("../transforms.json", import.meta.url), "utf8")) as Record<string, string>;
+    expect(committed["[*].actions.artifactDelta.{id}"]).toBe("[*].block.raw.artifactDelta.{id}");
+  });
 
   // ── {*} dynamic-key wildcard (compileWildcardPath) ────────────────────────
 

@@ -148,6 +148,24 @@ export function compileWildcardPath(pattern: string): (norm: string) => boolean 
 const ID_KEYED_CONTAINERS = ["wire_tool_inputs"] as const;
 
 /**
+ * Containers keyed by an opaque name whose VALUE is a scalar, so everything after
+ * the container to the end of the path is the key, dots included. Such a key
+ * collapses to `{id}` whole.
+ *
+ * - `artifactDelta` (ADK event actions, carried on a provider-raw block's `raw`):
+ *   filename → saved version (@google/adk 2.1.0 types it `{ [key: string]:
+ *   number }`; census.test.ts pins that). A filename can contain dots
+ *   (`report.txt`), and the first save is version 0, an ambient value that Rule 3
+ *   would call a drop. The collapse gives the native and the AgJSON path one
+ *   shared norm-path, so a transform can check that the carry landed.
+ *
+ * Each entry names the container WITH its parent (`actions.artifactDelta`,
+ * `raw.artifactDelta`), so a same-named key elsewhere (a state key called
+ * `artifactDelta`) keeps its own leaves.
+ */
+const LEAF_KEYED_CONTAINERS = ["actions.artifactDelta", "raw.artifactDelta"] as const;
+
+/**
  * Collapses every concrete numeric index `[n]` to `[*]`, and the opaque id key
  * directly under each {@link ID_KEYED_CONTAINERS} entry to `{id}`, so that
  * structurally equivalent paths across different array positions and different
@@ -159,6 +177,11 @@ export function normalizePath(path: string): string {
     // Only the ONE segment directly under the container is an id; anything
     // deeper is a real field name and must survive.
     out = out.replace(new RegExp(`(\\.${container}\\.)[^.\\[]+`, "g"), "$1{id}");
+  }
+  for (const container of LEAF_KEYED_CONTAINERS) {
+    // The key runs to the end of the path (the value is a scalar), so a dotted
+    // key collapses whole; a path that goes on into an array is left alone.
+    out = out.replace(new RegExp(`(\\.${container.replaceAll(".", "\\.")}\\.)[^\\[]+$`), "$1{id}");
   }
   return out;
 }

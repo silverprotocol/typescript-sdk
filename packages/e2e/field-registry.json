@@ -1,5 +1,6 @@
 [
   "[*].actions.agentState.input",
+  "[*].actions.artifactDelta.{id}",
   "[*].actions.stateDelta.app:flag",
   "[*].actions.stateDelta.cfg.a",
   "[*].actions.stateDelta.cfg.b",
