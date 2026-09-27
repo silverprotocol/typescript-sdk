@@ -48,7 +48,7 @@
  * no mock server booted.
  */
 
-import { FunctionTool, InMemoryRunner, LlmAgent, MCPToolset } from "@google/adk";
+import { FunctionTool, InMemoryRunner, LlmAgent, MCPToolset, type StreamingMode } from "@google/adk";
 import { ThinkingLevel, type GenerateContentConfig, type HarmBlockThreshold, type HarmCategory } from "@google/genai";
 import { z } from "zod";
 import type { JsonValue } from "@silverprotocol/core";
@@ -95,6 +95,33 @@ export interface AdkCaptureInput extends CaptureRunInput {
    * request is unchanged.
    */
   adkSafetySettings?: ReadonlyArray<{ readonly category: HarmCategory; readonly threshold: HarmBlockThreshold }>;
+  /**
+   * The ADK StreamingMode for runAsync's RunConfig, e.g. `StreamingMode.SSE`
+   * to capture a streamed run through ADK's own response aggregator. Absent:
+   * no `streamingMode` key, so the run config is unchanged.
+   */
+  adkStreamingMode?: StreamingMode;
+}
+
+/** The config path the `adkStreamingMode` knob drives, and the harness's proof
+ *  that this agent honors the knob (its knob guard, KNOB_SUPPORT). */
+export const ADK_STREAMING_MODE = "runConfig.streamingMode";
+
+/**
+ * runAsync's RunConfig: the capture's turn cap and, when the scenario sets it,
+ * the streaming mode. maxTurns → maxLlmCalls: ADK has no per-turn cap; one
+ * capture "turn" is one LLM call round, and the SDK's own default (500,
+ * createRunConfig) is unbounded for this harness's purposes, so the claude and
+ * openai agents' `maxTurns ?? 8` keeps same-corpus captures comparable.
+ */
+export function adkRunConfig(input: Pick<AdkCaptureInput, "maxTurns" | "adkStreamingMode">): {
+  maxLlmCalls: number;
+  streamingMode?: StreamingMode;
+} {
+  return {
+    maxLlmCalls: input.maxTurns ?? 8,
+    ...(input.adkStreamingMode !== undefined ? { streamingMode: input.adkStreamingMode } : {}),
+  };
 }
 
 /** The config path the `adkSafetySettings` knob drives, and the harness's proof
@@ -251,11 +278,7 @@ export async function* runAdkCapture(input: AdkCaptureInput): AsyncIterable<Json
       // role:"user" was load-bearing on ≤1.3.0 — see header (google/adk-js#475,
       // fixed by #478 in 1.4.0); kept explicit deliberately.
       newMessage: { role: "user", parts: [{ text: input.prompt }] },
-      // maxTurns → maxLlmCalls: ADK has no per-turn cap; one capture "turn" is
-      // one LLM call round, and the SDK's own default (500, createRunConfig)
-      // is unbounded for this harness's purposes — mirror the claude/openai
-      // agents' `maxTurns ?? 8` so same-corpus captures stay comparable.
-      runConfig: { maxLlmCalls: input.maxTurns ?? 8 },
+      runConfig: adkRunConfig(input),
       ...(input.abortSignal !== undefined ? { abortSignal: input.abortSignal } : {}),
     });
 
