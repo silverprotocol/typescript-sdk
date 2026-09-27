@@ -662,6 +662,20 @@ describe("adkStateScript: the knob guard and the session-state sidecar", () => {
   });
 });
 
+describe("adkSafetySettings: the knob guard", () => {
+  const scenario = Scenario.parse({
+    name: "prompt-block",
+    prompt: "x",
+    adkSafetySettings: [{ category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_LOW_AND_ABOVE" }],
+  });
+
+  it("passes on an adk agent that exports ADK_SAFETY_SETTINGS, fails without it or off adk", () => {
+    expect(() => assertKnobsHonored(scenario, "adk", { ADK_SAFETY_SETTINGS: "generateContentConfig.safetySettings" })).not.toThrow();
+    expect(() => assertKnobsHonored(scenario, "adk", {})).toThrow(/does not export ADK_SAFETY_SETTINGS/);
+    expect(() => assertKnobsHonored(scenario, "openai", { ADK_SAFETY_SETTINGS: "x" })).toThrow(/only the adk capture agent honors/);
+  });
+});
+
 describe("claudeSubagents and openaiHandoff: the knob guards (nested-turn capture ask)", () => {
   const withKnobs = (extra: Record<string, unknown>) => Scenario.parse({ name: "nested-probe", prompt: "x", ...extra });
   const agents = { helper: { description: "echoes", prompt: "Call echo." } };

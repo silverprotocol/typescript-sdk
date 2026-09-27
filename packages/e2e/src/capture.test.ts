@@ -480,6 +480,26 @@ describe("runCapture", () => {
     expect("handoff" in (deps.input() as object)).toBe(false);
   });
 
+  it("forwards scenario.adkSafetySettings verbatim, and sets no key when the scenario has none", async () => {
+    const settings = [
+      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_LOW_AND_ABOVE" },
+      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_ONLY_HIGH" },
+    ];
+    const seen: unknown[] = [];
+    const deps: CaptureDeps = {
+      async *runAgentCapture(input) {
+        seen.push("adkSafetySettings" in input ? input.adkSafetySettings : "absent");
+        yield* fakeNativeNoTools();
+      },
+      serveMock,
+      createNormalizer: createClaudeNormalizer,
+      census,
+    };
+    await runCapture(Scenario.parse({ name: "prompt-block", prompt: "x", adkSafetySettings: settings }), deps, { ports: [], framework: "claude" });
+    await runCapture(Scenario.parse({ name: "text-only", prompt: "x" }), deps, { ports: [], framework: "claude" });
+    expect(seen).toEqual([settings, "absent"]);
+  });
+
   it("forwards scenario.adkStateScript and records the session state the agent reports via onSessionState", async () => {
     const script = [{ cfg: { a: 1, b: 2 }, "temp:scratch": "x" }, { cfg: { a: 5 } }];
     let seenScript: unknown;

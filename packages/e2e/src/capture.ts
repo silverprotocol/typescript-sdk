@@ -179,6 +179,11 @@ export async function runCapture(
       ...(scenario.adkCrossSessionState === true
         ? { onCrossSessionState: (states: { sameUser: JsonValue; otherUser: JsonValue }) => { crossSessionState = states; } }
         : {}),
+      // The schema's value lists are genai's enum values (scenario.ts), so the
+      // strings are the enum members themselves.
+      ...(scenario.adkSafetySettings !== undefined
+        ? { adkSafetySettings: scenario.adkSafetySettings as unknown as NonNullable<CaptureRunInput["adkSafetySettings"]> }
+        : {}),
       ...(scenario.claudeSubagents !== undefined ? { subagents: scenario.claudeSubagents } : {}),
       ...(scenario.openaiHandoff !== undefined ? { handoff: scenario.openaiHandoff } : {}),
       ...(scenario.openaiHandoffs !== undefined ? { handoffs: scenario.openaiHandoffs } : {}),

@@ -6,7 +6,8 @@
 import { describe, it, expect } from "vitest";
 
 // These imports WILL fail until scenario.ts is created — that's the RED step.
-import { Scenario, derivedTools } from "./scenario.js";
+import { HarmBlockThreshold, HarmCategory } from "@google/genai";
+import { ADK_HARM_BLOCK_THRESHOLDS, ADK_HARM_CATEGORIES, Scenario, derivedTools } from "./scenario.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Scenario.parse
@@ -122,6 +123,21 @@ describe("Scenario.parse", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // derivedTools
 // ─────────────────────────────────────────────────────────────────────────────
+
+describe("adkSafetySettings", () => {
+  it("lists exactly @google/genai's HarmCategory and HarmBlockThreshold values", () => {
+    expect([...ADK_HARM_CATEGORIES].sort()).toEqual(Object.values(HarmCategory).sort());
+    expect([...ADK_HARM_BLOCK_THRESHOLDS].sort()).toEqual(Object.values(HarmBlockThreshold).sort());
+  });
+
+  it("accepts genai pairs and rejects an unknown category, an unknown threshold or an empty list", () => {
+    const ok = Scenario.parse({ name: "s", prompt: "x", adkSafetySettings: [{ category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_LOW_AND_ABOVE" }] });
+    expect(ok.adkSafetySettings).toEqual([{ category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_LOW_AND_ABOVE" }]);
+    expect(() => Scenario.parse({ name: "s", prompt: "x", adkSafetySettings: [{ category: "HARM_CATEGORY_HARASMENT", threshold: "BLOCK_LOW_AND_ABOVE" }] })).toThrow();
+    expect(() => Scenario.parse({ name: "s", prompt: "x", adkSafetySettings: [{ category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_SOME" }] })).toThrow();
+    expect(() => Scenario.parse({ name: "s", prompt: "x", adkSafetySettings: [] })).toThrow();
+  });
+});
 
 describe("derivedTools", () => {
   it("returns empty allowedTools and expectTools for a scenario with no mcpServers", () => {

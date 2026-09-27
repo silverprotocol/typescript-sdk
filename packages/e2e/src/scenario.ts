@@ -22,6 +22,31 @@ const HandoffTarget = z.object({
   handoffDescription: z.string().min(1).optional(),
 });
 
+/** @google/genai's HarmCategory values (2.24.0), for the adkSafetySettings knob. */
+export const ADK_HARM_CATEGORIES = [
+  "HARM_CATEGORY_UNSPECIFIED",
+  "HARM_CATEGORY_HARASSMENT",
+  "HARM_CATEGORY_HATE_SPEECH",
+  "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+  "HARM_CATEGORY_DANGEROUS_CONTENT",
+  "HARM_CATEGORY_CIVIC_INTEGRITY",
+  "HARM_CATEGORY_JAILBREAK",
+  "HARM_CATEGORY_IMAGE_HATE",
+  "HARM_CATEGORY_IMAGE_DANGEROUS_CONTENT",
+  "HARM_CATEGORY_IMAGE_HARASSMENT",
+  "HARM_CATEGORY_IMAGE_SEXUALLY_EXPLICIT",
+] as const;
+
+/** @google/genai's HarmBlockThreshold values (2.24.0), for the adkSafetySettings knob. */
+export const ADK_HARM_BLOCK_THRESHOLDS = [
+  "HARM_BLOCK_THRESHOLD_UNSPECIFIED",
+  "BLOCK_LOW_AND_ABOVE",
+  "BLOCK_MEDIUM_AND_ABOVE",
+  "BLOCK_ONLY_HIGH",
+  "BLOCK_NONE",
+  "OFF",
+] as const;
+
 export const Scenario = z.object({
   name: z.string(),
   prompt: z.string(),
@@ -137,6 +162,17 @@ export const Scenario = z.object({
   // user) and `app:` keys per app across sessions, so it shows which of the
   // run's writes a later session starts with. Never replayed.
   adkCrossSessionState: z.literal(true).optional(),
+  // Safety-settings knob (google-adk only, 2026-09-27): genai { category,
+  // threshold } pairs the agent puts on the LlmAgent's
+  // generateContentConfig.safetySettings, so a capture can ask the model to
+  // block (e.g. HARM_CATEGORY_HARASSMENT at BLOCK_LOW_AND_ABOVE). The value
+  // lists are genai's HarmCategory / HarmBlockThreshold, written out here so
+  // this module does not load @google/genai (scenario.test.ts pins them to
+  // the installed enums).
+  adkSafetySettings: z
+    .array(z.object({ category: z.enum(ADK_HARM_CATEGORIES), threshold: z.enum(ADK_HARM_BLOCK_THRESHOLDS) }))
+    .min(1)
+    .optional(),
   // Subagent knob (claude-agent-sdk only; the nested-turn package's capture ask,
   // 2026-09-24). Each entry is a programmatic subagent the agent passes as the
   // query's options.agents, with the built-in Agent tool enabled and

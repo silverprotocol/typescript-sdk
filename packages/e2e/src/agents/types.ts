@@ -15,6 +15,7 @@
  * call site that types against this shared shape.
  */
 import type { JsonValue } from "@silverprotocol/core";
+import type { HarmBlockThreshold, HarmCategory } from "@google/genai";
 
 export interface CaptureRunInput {
   /** The user prompt to run. */
@@ -101,6 +102,9 @@ export interface CaptureRunInput {
    *  starts: one for the capture's user and one for another user (never
    *  yielded as a native event). */
   onCrossSessionState?: (states: { sameUser: JsonValue; otherUser: JsonValue }) => void;
+  /** google-adk only: genai safety settings for the LlmAgent's
+   *  generateContentConfig.safetySettings (scenario.ts adkSafetySettings). */
+  adkSafetySettings?: ReadonlyArray<{ readonly category: HarmCategory; readonly threshold: HarmBlockThreshold }>;
   /** claude-agent-sdk only: programmatic subagents for the query's
    *  options.agents, with the Agent tool enabled and auto-allowed; a
    *  background:true launch keeps the input open until its task_notification
