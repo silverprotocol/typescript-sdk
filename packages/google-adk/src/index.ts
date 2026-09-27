@@ -126,7 +126,11 @@ import { isJsonObject, stringMember } from "./json-guards.js";
 /** A Gemini `Part` — the discriminated-by-presence union (one of the arms
  *  carries content; `thought` / `thoughtSignature` ride alongside). Fields are
  *  optional so a fixture sets exactly the arm it exercises. `args` / `response`
- *  are JSON OBJECTS/dicts (NOT JSON strings — do NOT JSON.parse). */
+ *  are JSON OBJECTS/dicts (NOT JSON strings — do NOT JSON.parse). It restates the
+ *  peer's native shape, so it changes when the peer's shape does.
+ *
+ * @beta
+ */
 export interface AdkPart {
   /** Visible text (or, with `thought:true`, the visible reasoning text). */
   text?: string;
@@ -226,14 +230,22 @@ export interface AdkPart {
 }
 
 /** A Gemini `Content` — the role + the part list. ADK normalizes Gemini's
- *  "model" role; we map "model" → "assistant" downstream where needed. */
+ *  "model" role; we map "model" → "assistant" downstream where needed. It restates the
+ *  peer's native shape, so it changes when the peer's shape does.
+ *
+ * @beta
+ */
 export interface AdkContent {
   role?: string;
   parts?: AdkPart[];
 }
 
 /** A Google ADK `Event` — a Gemini `Content` plus the `LlmResponse` /
- *  `Event` metadata (verified shapes; see file header). */
+ *  `Event` metadata (verified shapes; see file header). It restates the
+ *  peer's native shape, so it changes when the peer's shape does.
+ *
+ * @beta
+ */
 export interface AdkEvent {
   content?: AdkContent;
   /** true on an incremental/streamed event; false (or absent) on the FINAL
