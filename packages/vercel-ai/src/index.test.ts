@@ -1778,7 +1778,9 @@ describe("abort (captured abort-midstream — text stream left open by the wire)
 });
 
 describe("finish mapping (captured finish-content-filter)", () => {
-  it("content-filter → turn.done{safety_blocked}", () => {
+  // The only native reason the mapping sends to "safety_blocked" (none goes to "refusal"), fed in the recorded
+  // fullStream order: the turn closes once, with the mapped finish reason, whatever the outcome.
+  it("content-filter closes the turn with exactly one turn.done carrying safety_blocked; every event passes producer-strict AgEvent parse; reduce() needs no resync and the turn record's finishReason is safety_blocked", () => {
     const out = run([
       { type: "start" },
       { type: "start-step", request: {}, warnings: [] },
@@ -1788,9 +1790,16 @@ describe("finish mapping (captured finish-content-filter)", () => {
       { type: "finish-step", finishReason: "content-filter", usage: USAGE, response: RESPONSE_S1 },
       { type: "finish", finishReason: "content-filter", totalUsage: USAGE },
     ]);
-    const done = out.find((e) => e.type === "turn.done") as { finishReason: string };
-    expect(done.finishReason).toBe("safety_blocked");
-    expectAllParse(out);
+    const start = out.find((e) => e.type === "turn.start") as { turnId: string };
+    const dones = out.filter((e) => e.type === "turn.done" && (e as { turnId?: string }).turnId === start.turnId) as Array<{ finishReason: string }>;
+    expect(dones).toHaveLength(1);
+    expect(dones[0]!.finishReason).toBe("safety_blocked");
+    expect(out.filter((e) => e.type === "turn.done")).toHaveLength(1);
+    for (const ev of out) expect(AgEvent.safeParse(ev).success).toBe(true);
+    const { result, needsResync } = foldBatch(out);
+    expect(needsResync).toBe(false);
+    const turn = result.turns.find((t) => t.turnId === start.turnId);
+    expect(turn?.finishReason).toBe("safety_blocked");
   });
 });
 
