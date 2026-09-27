@@ -650,6 +650,46 @@ function mapBlockedSafety(ratings: AdkEvent["safetyRatings"]): AgSafety[] | unde
   return out.length > 0 ? out : undefined;
 }
 
+// ─── ADK's prompt-block event (errorCode) → prompt.blocked (spec §4) ─────────
+/**
+ * The errorCode values that mark an ADK event as a blocked prompt: genai
+ * 2.24.0's `BlockedReason` values and the Gemini API's spelling of the
+ * unspecified one. In StreamingMode NONE, @google/adk 2.1.0's
+ * `createLlmResponse` (models/llm_response.js) turns a blocked prompt into an
+ * event whose errorCode is the block reason, with no finishReason, no content
+ * and no safety ratings. Exported so the e2e suite's genai pin test
+ * (e2e/src/adk-prompt-block-reasons.pin.test.ts) can hold it against genai's
+ * own `BlockedReason`. It restates the peer's native values, so it changes
+ * when they do.
+ *
+ * @beta
+ */
+export const ADK_PROMPT_BLOCK_REASONS: readonly string[] = [
+  "BLOCKED_REASON_UNSPECIFIED",
+  "SAFETY",
+  "OTHER",
+  "BLOCKLIST",
+  "PROHIBITED_CONTENT",
+  "IMAGE_SAFETY",
+  "MODEL_ARMOR",
+  "JAILBREAK",
+  "BLOCK_REASON_UNSPECIFIED",
+];
+const PROMPT_BLOCK_REASONS: ReadonlySet<string> = new Set(ADK_PROMPT_BLOCK_REASONS);
+
+/** The block reason when an event is an ADK prompt block (a treated errorCode,
+ *  no finishReason, which a response-level block keeps beside errorCode, and no
+ *  content parts), else undefined. */
+function adkPromptBlockReason(event: AdkEvent): string | undefined {
+  const code: unknown = event.errorCode;
+  return typeof code === "string" &&
+    PROMPT_BLOCK_REASONS.has(code) &&
+    event.finishReason === undefined &&
+    (event.content?.parts ?? []).length === 0
+    ? code
+    : undefined;
+}
+
 // ─── promptFeedback.blockReason → prompt.blocked reason (spec §4) ────────────
 // Maps Gemini blockReason to the AgJSON prompt.blocked reason enum.
 function mapBlockReason(reason: string): "safety" | "blocklist" | "prohibited" | "other" {
@@ -1613,7 +1653,8 @@ function driveAdkTopLevel(
   turnId: string,
   pendingAsks: Map<string, AgPausedAsk[]>,
   reserved: ReservedAskState,
-  streamedTranscription: Map<string, string>
+  streamedTranscription: Map<string, string>,
+  turnClosed: boolean
 ): void {
   // Transcriptions (Live): ADK streams chunks (`finished: false`), then yields
   // a `finished: true` transcription whose text is the chunks joined
@@ -1645,8 +1686,16 @@ function driveAdkTopLevel(
   // `interrupted` → turn.abort is closed in drive(), after this event's own
   // content and carries (see closeInterrupted), never here mid-event.
 
-  // ── promptFeedback → prompt.blocked ──
-  if (event.promptFeedback?.blockReason !== undefined) {
+  // ── prompt block → prompt.blocked: one record per block event while the turn
+  // is open, never after its terminal. A record runs before the close logic, so
+  // it precedes the terminal the same event may bring; the terminal itself is
+  // unchanged. An event carrying promptFeedback is recorded from it (a
+  // dual-shape event records once); otherwise ADK's own shape records: a treated
+  // errorCode with no finishReason and no content (adkPromptBlockReason), reason
+  // mapped as below and no safety, since that event carries no ratings.
+  if (turnClosed) {
+    // no record after the turn's terminal
+  } else if (event.promptFeedback?.blockReason !== undefined) {
     const blockReason = event.promptFeedback.blockReason;
     const reason = mapBlockReason(blockReason);
     const safety =
@@ -1662,16 +1711,21 @@ function driveAdkTopLevel(
         : undefined;
     // draft.8 (§4): an unmapped block reason (reason "other") carries the
     // native value verbatim in reasonRaw; a mapped reason carries none, as a
-    // lossless finishReason takes no finishReasonRaw (§10 item 23). On
-    // @google/adk 2.1.0 no ADK-built event carries promptFeedback: its
-    // createLlmResponse turns a prompt block into errorCode/errorMessage
-    // (models/llm_response.js), so this arm serves events built elsewhere.
+    // lossless finishReason takes no finishReasonRaw. No ADK-built event
+    // carries promptFeedback at @google/adk 2.1.0, so this arm serves events
+    // built elsewhere; ADK's own shape is the branch below.
     a.emit({
       type: "prompt.blocked",
       reason,
       ...(reason === "other" ? { reasonRaw: blockReason } : {}),
       ...(safety !== undefined ? { safety } : {}),
     });
+  } else {
+    const blockReason = adkPromptBlockReason(event);
+    if (blockReason !== undefined) {
+      const reason = mapBlockReason(blockReason);
+      a.emit({ type: "prompt.blocked", reason, ...(reason === "other" ? { reasonRaw: blockReason } : {}) });
+    }
   }
 
   // ── groundingMetadata → source + display.required ──────────────────────────
@@ -2486,7 +2540,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // per-invoke.
 
     if (!isPartial) trackLongRunning(event, turnId);
-    driveAdkTopLevel(a, event, messageId, turnId, pendingAsks, reserved, streamedTranscription); // standalone/content arms (Tasks 4–5)
+    driveAdkTopLevel(a, event, messageId, turnId, pendingAsks, reserved, streamedTranscription, closedTurns.has(turnId)); // standalone/content arms (Tasks 4–5)
     // A turn gets ONE terminal: an interrupt on a turn that already closed
     // (a second barge-in, or one after a success close) adds none.
     if (event.interrupted === true && !closedTurns.has(turnId)) interruptPending.add(turnId);

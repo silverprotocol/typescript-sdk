@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { AgEvent, AgReduceResult, JsonValue, Reducer, toJsonValue } from "@silverprotocol/core";
 import {
   ADK_HOST_ERROR_TYPE,
+  ADK_PROMPT_BLOCK_REASONS,
   createAdkNormalizer,
   isLossyFinishReason,
   mapFinishReason,
@@ -5018,5 +5019,133 @@ describe("createAdkNormalizer — an in-band error close carries the turn's usag
     const err = out.find((e) => e.type === "turn.error");
     expect(err).toMatchObject({ type: "turn.error", code: "UNAVAILABLE", message: "model overloaded" });
     expect(err !== undefined && "usage" in err).toBe(false);
+  });
+});
+
+describe("createAdkNormalizer — an ADK prompt block (errorCode, no finishReason, no content) → prompt.blocked, one per block event", () => {
+  const inv = { invocationId: "inv_fixture_1" };
+  const TERMINAL = new Set(["turn.done", "turn.error", "turn.abort"]);
+  const blocks = (out: AgEvent[]) => out.filter((e) => e.type === "prompt.blocked");
+  const push = (events: JsonValue[], options: AdkNormalizerOptions = {}) => {
+    const n = createAdkNormalizer({ invokeId: "adk", ...options });
+    return [...events.flatMap((e) => n.push(e)), ...n.flush()];
+  };
+
+  it("a prompt-block event records prompt.blocked before the turn's unchanged terminal, with no safety", () => {
+    const out = push([{ ...inv, errorCode: "SAFETY", usageMetadata: { promptTokenCount: 7, totalTokenCount: 7 } }]);
+    expect(blocks(out)).toEqual([expect.objectContaining({ type: "prompt.blocked", reason: "safety" })]);
+    const [record] = blocks(out);
+    expect(record !== undefined && ("reasonRaw" in record || "safety" in record)).toBe(false);
+    const term = out.findIndex((e) => TERMINAL.has(e.type));
+    expect(out[term]).toMatchObject({ type: "turn.done", finishReason: "safety_blocked" });
+    expect(out.filter((e) => TERMINAL.has(e.type))).toHaveLength(1);
+    expect(out.indexOf(record!)).toBeLessThan(term);
+  });
+
+  it("the same event with an errorMessage records prompt.blocked before its turn.error", () => {
+    const out = push([{ ...inv, errorCode: "SAFETY", errorMessage: "The prompt was blocked." }]);
+    expect(blocks(out)).toHaveLength(1);
+    const term = out.findIndex((e) => TERMINAL.has(e.type));
+    expect(out[term]).toMatchObject({ type: "turn.error", code: "SAFETY" });
+    expect(out.filter((e) => TERMINAL.has(e.type))).toHaveLength(1);
+    expect(out.indexOf(blocks(out)[0]!)).toBeLessThan(term);
+  });
+
+  it('an unmapped treated value (OTHER, IMAGE_SAFETY, JAILBREAK, BLOCK_REASON_UNSPECIFIED) records reason "other" with reasonRaw verbatim', () => {
+    for (const raw of ["OTHER", "IMAGE_SAFETY", "JAILBREAK", "BLOCK_REASON_UNSPECIFIED"]) {
+      expect(blocks(push([{ ...inv, errorCode: raw }])), raw).toEqual([expect.objectContaining({ type: "prompt.blocked", reason: "other", reasonRaw: raw })]);
+    }
+    for (const [raw, reason] of [["BLOCKLIST", "blocklist"], ["PROHIBITED_CONTENT", "prohibited"]] as const) {
+      const [record] = blocks(push([{ ...inv, errorCode: raw }]));
+      expect(record, raw).toMatchObject({ reason });
+      expect(record !== undefined && "reasonRaw" in record, raw).toBe(false);
+    }
+  });
+
+  it("a response-level block, a non-block errorCode or content parts is not a prompt block: no record", () => {
+    const negatives: JsonValue[] = [
+      { ...inv, errorCode: "SAFETY", finishReason: "SAFETY" },
+      { ...inv, errorCode: "OTHER", finishReason: "OTHER" },
+      { ...inv, errorCode: "429", errorMessage: "Resource exhausted" },
+      { ...inv, errorCode: "UNKNOWN_ERROR", errorMessage: "Unknown error." },
+      { ...inv, errorCode: "SAFETY", content: { role: "model", parts: [{ text: "partial answer" }] } },
+    ];
+    for (const native of negatives) expect(blocks(push([native])), JSON.stringify(native)).toEqual([]);
+  });
+
+  it("one record per block event while the turn is open: three block events record three with the host-completion event, one without it", () => {
+    const three: JsonValue[] = [
+      { ...inv, errorCode: "SAFETY" },
+      { ...inv, errorCode: "PROHIBITED_CONTENT" },
+      { ...inv, errorCode: "SAFETY" },
+    ];
+    const marked = push([...three, { type: "__host_complete__" }], { hostCompletion: true });
+    expect(blocks(marked).map((e) => (e as { reason: string }).reason)).toEqual(["safety", "prohibited", "safety"]);
+    const term = marked.findIndex((e) => TERMINAL.has(e.type));
+    expect(marked.filter((e) => TERMINAL.has(e.type))).toHaveLength(1);
+    expect(Math.max(...blocks(marked).map((e) => marked.indexOf(e)))).toBeLessThan(term);
+    const bare = push(three);
+    expect(blocks(bare)).toHaveLength(1);
+    expect(bare.filter((e) => TERMINAL.has(e.type))).toHaveLength(1);
+  });
+
+  it("a prompt block while an ask is pending is recorded, and the turn still closes paused", () => {
+    const authConfig = { authScheme: { type: "apiKey", in: "header", name: "X-Key" }, credentialKey: "mail-key" };
+    const out = push([
+      toJson(event([{ functionCall: { name: "read_mail", args: {}, id: "fc-1" } }])),
+      toJson(event([{ functionCall: { name: "adk_request_credential", args: { functionCallId: "fc-1", authConfig }, id: "adk-cred-1" } }], { longRunningToolIds: ["adk-cred-1"] })),
+      { ...inv, content: { role: "user", parts: [{ functionResponse: { name: "read_mail", id: "fc-1", response: { status: "authorization requested" } } }] }, actions: { requestedAuthConfigs: { "fc-1": authConfig } } },
+      { ...inv, errorCode: "SAFETY" },
+    ]);
+    expect(blocks(out)).toHaveLength(1);
+    const terms = out.filter((e) => TERMINAL.has(e.type));
+    expect(terms).toEqual([expect.objectContaining({ type: "turn.done", outcome: expect.objectContaining({ type: "paused" }) })]);
+    expect(out.indexOf(blocks(out)[0]!)).toBeLessThan(out.indexOf(terms[0]!));
+  });
+
+  it("an event carrying promptFeedback and a prompt-block errorCode is recorded once, from its promptFeedback", () => {
+    const out = push([
+      {
+        ...inv,
+        errorCode: "OTHER",
+        promptFeedback: { blockReason: "SAFETY", safetyRatings: [{ category: "HARM_CATEGORY_HARASSMENT", probability: "HIGH", blocked: true }] },
+      },
+    ]);
+    expect(blocks(out)).toEqual([expect.objectContaining({ reason: "safety", safety: [expect.objectContaining({ category: "HARM_CATEGORY_HARASSMENT" })] })]);
+  });
+
+  it("a prompt block inside a Workflow node is recorded, and the host-fed error closes the turn", () => {
+    const out = push([
+      { ...inv, errorCode: "SAFETY", nodeInfo: { path: "wf/classify" } },
+      { type: ADK_HOST_ERROR_TYPE, code: "Error", message: "the node failed" },
+    ]);
+    expect(blocks(out)).toHaveLength(1);
+    expect(out.filter((e) => TERMINAL.has(e.type))).toEqual([expect.objectContaining({ type: "turn.error" })]);
+  });
+
+  it("no prompt.blocked is recorded after the turn's terminal, from either shape", () => {
+    const out = push([
+      toJson(event([{ text: "Hello." }], { partial: false, finishReason: "STOP" })),
+      { ...inv, promptFeedback: { blockReason: "SAFETY" } },
+      { ...inv, errorCode: "SAFETY" },
+    ]);
+    expect(out.filter((e) => TERMINAL.has(e.type))).toEqual([expect.objectContaining({ type: "turn.done", finishReason: "stop" })]);
+    expect(blocks(out)).toEqual([]);
+  });
+
+  it("two identical block events inside a Workflow node record two prompt.blocked while the turn is open, and the same event after the terminal records none", () => {
+    const nodeBlock = { ...inv, errorCode: "SAFETY", nodeInfo: { path: "wf/classify" } };
+    const out = push([nodeBlock, nodeBlock, { type: ADK_HOST_ERROR_TYPE, code: "Error", message: "the node failed" }, nodeBlock]);
+    const term = out.findIndex((e) => TERMINAL.has(e.type));
+    expect(out[term]).toMatchObject({ type: "turn.error" });
+    expect(out.filter((e) => TERMINAL.has(e.type))).toHaveLength(1);
+    expect(blocks(out)).toHaveLength(2);
+    expect(Math.max(...blocks(out).map((e) => out.indexOf(e)))).toBeLessThan(term);
+  });
+
+  it("ADK_PROMPT_BLOCK_REASONS holds genai's eight BlockedReason values and the Gemini API's BLOCK_REASON_UNSPECIFIED", () => {
+    expect([...ADK_PROMPT_BLOCK_REASONS].sort()).toEqual(
+      ["BLOCKED_REASON_UNSPECIFIED", "SAFETY", "OTHER", "BLOCKLIST", "PROHIBITED_CONTENT", "IMAGE_SAFETY", "MODEL_ARMOR", "JAILBREAK", "BLOCK_REASON_UNSPECIFIED"].sort(),
+    );
   });
 });

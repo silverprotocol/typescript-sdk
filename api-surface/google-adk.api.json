@@ -13,6 +13,13 @@
       "export declare const ADK_HOST_ERROR_TYPE = \"__host_error__\";"
     ]
   },
+  "ADK_PROMPT_BLOCK_REASONS": {
+    "module": "index",
+    "tag": "beta",
+    "decl": [
+      "export declare const ADK_PROMPT_BLOCK_REASONS: readonly string[];"
+    ]
+  },
   "AdkContent": {
     "module": "index",
     "tag": "beta",

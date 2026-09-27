@@ -219,11 +219,11 @@
         },
         "errorCode": {
           "disposition": "handled",
-          "note": "turn.error `code` (when errorMessage is also set) and a mapFinishReason() fallback input; also gates hasCompletion in maybeCloseTurn."
+          "note": "turn.error `code` (when errorMessage is also set) and a mapFinishReason() fallback input; also gates hasCompletion in maybeCloseTurn. A treated block reason (ADK_PROMPT_BLOCK_REASONS) with no finishReason and no content parts is ADK's prompt-block shape (StreamingMode NONE): it also records prompt.blocked, one per such event while the turn is open, before the unchanged terminal."
         },
         "errorMessage": {
           "disposition": "handled",
-          "note": "turn.error `message` \u2014 gates whether a completed turn with errorCode closes via closeTurnError (both set) vs closeTurnDone (errorCode alone, e.g. a non-fatal block reason)."
+          "note": "turn.error `message` \u2014 gates whether a completed turn with errorCode closes via closeTurnError (both set) vs closeTurnDone (errorCode alone, e.g. a block reason with no message). A prompt-block event records prompt.blocked either way."
         },
         "interrupted": {
           "disposition": "handled",
