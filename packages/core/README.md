@@ -190,10 +190,10 @@ they may change in a minor release. Two kinds are tagged:
   (`NORMALIZER_ERROR_MESSAGE`, `normalizerErrorCode`), and the JSON-safety
   helpers with their issue types and markers (`toJsonValue*`, `isJsonValue`,
   `JsonSafeIssue*`, `JSON_SAFE_*`).
-- **In the framework packages, an exported type that restates the upstream
-  SDK's native shapes.** It follows the package's peer range. Each package's
-  own API (its `createXNormalizer()`, the options it takes and its helpers)
-  carries the 1.x promise.
+- **In the framework packages, an exported type or value that restates the
+  upstream SDK's native shapes or values.** It follows the package's peer
+  range. Each package's own API (its `createXNormalizer()`, the options it
+  takes and its helpers) carries the 1.x promise.
 
 ## Learn more
 
