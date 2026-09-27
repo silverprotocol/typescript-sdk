@@ -315,6 +315,31 @@ export function assertLiveToolsHonored(scenario: Scenario, liveAgentModule: obje
   }
 }
 
+/**
+ * Throws if an adk knob is combined with a capture shape whose agent does not
+ * apply it. The adk guard reads the three agent modules together, so a proof
+ * export in run.ts also satisfies a workflow or Live scenario, whose agent
+ * builds its own model request and run config:
+ *  - adkStreamingMode sets runAsync's runConfig.streamingMode in run.ts only;
+ *    the workflow agent (workflow.ts) and the Live agent (live.ts) would drop it;
+ *  - adkSafetySettings reaches the model request in run.ts and workflow.ts
+ *    (adkGenerateContentConfig), not in live.ts.
+ * Exported for unit testing.
+ */
+export function assertAdkShapeHonors(scenario: Scenario): void {
+  const refuse = (knob: string, shape: string): never => {
+    throw new Error(
+      `e2e:capture: scenario "${scenario.name}" sets ${knob} with ${shape}, but the ${shape} capture agent does not apply ${knob}, ` +
+        `so it would be dropped silently. No capture attempted.`,
+    );
+  };
+  if (scenario.adkStreamingMode !== undefined) {
+    if (scenario.adkWorkflow !== undefined) refuse("adkStreamingMode", "adkWorkflow");
+    if (scenario.adkLive !== undefined) refuse("adkStreamingMode", "adkLive");
+  }
+  if (scenario.adkSafetySettings !== undefined && scenario.adkLive !== undefined) refuse("adkSafetySettings", "adkLive");
+}
+
 export function assertKnobsHonored(scenario: Scenario, framework: Framework, agentModule: object): void {
   for (const [knob, support] of Object.entries(KNOB_SUPPORT)) {
     if ((scenario as Record<string, unknown>)[knob] === undefined) continue;
@@ -398,6 +423,7 @@ async function loadFrameworkDeps(
     throw new Error(`e2e:capture: scenario "${scenario.name}" sets both adkWorkflow and adkLive; pick one. No capture attempted.`);
   }
   assertLiveToolsHonored(scenario, liveAgent);
+  assertAdkShapeHonors(scenario);
   if (scenario.adkCrossSessionState === true && scenario.adkStateScript === undefined) {
     throw new Error(`e2e:capture: scenario "${scenario.name}" sets adkCrossSessionState without adkStateScript; the cross-session read needs the scripted state writes. No capture attempted.`);
   }

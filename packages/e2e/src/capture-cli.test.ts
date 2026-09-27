@@ -41,6 +41,7 @@ import {
   isFramework,
   resolveModel,
   resolveSdkVersion,
+  assertAdkShapeHonors,
   assertKnobsHonored,
   assertLiveToolsHonored,
   resumeSessionFrom,
@@ -683,6 +684,23 @@ describe("adkStreamingMode: the knob guard", () => {
     expect(() => assertKnobsHonored(scenario, "adk", { ADK_STREAMING_MODE: "runConfig.streamingMode" })).not.toThrow();
     expect(() => assertKnobsHonored(scenario, "adk", {})).toThrow(/does not export ADK_STREAMING_MODE/);
     expect(() => assertKnobsHonored(scenario, "vercel", { ADK_STREAMING_MODE: "x" })).toThrow(/only the adk capture agent honors/);
+  });
+});
+
+describe("assertAdkShapeHonors: adk knobs the chosen capture shape would drop", () => {
+  const safety = [{ category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_LOW_AND_ABOVE" }];
+  const parse = (extra: Record<string, unknown>) => Scenario.parse({ name: "shape", prompt: "x", ...extra });
+
+  it("refuses adkStreamingMode with adkWorkflow or adkLive, and adkSafetySettings with adkLive", () => {
+    expect(() => assertAdkShapeHonors(parse({ adkStreamingMode: "sse", adkWorkflow: "pause" }))).toThrow(/adkStreamingMode with adkWorkflow/);
+    expect(() => assertAdkShapeHonors(parse({ adkStreamingMode: "sse", adkLive: {} }))).toThrow(/adkStreamingMode with adkLive/);
+    expect(() => assertAdkShapeHonors(parse({ adkSafetySettings: safety, adkLive: {} }))).toThrow(/adkSafetySettings with adkLive/);
+  });
+
+  it("passes the shapes whose agent applies the knob", () => {
+    expect(() => assertAdkShapeHonors(parse({ adkStreamingMode: "sse", adkSafetySettings: safety }))).not.toThrow();
+    expect(() => assertAdkShapeHonors(parse({ adkSafetySettings: safety, adkWorkflow: "complete" }))).not.toThrow();
+    expect(() => assertAdkShapeHonors(parse({ adkLive: {} }))).not.toThrow();
   });
 });
 
