@@ -192,7 +192,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 42, leg: "single-delivery", title: "Kept-open results are snapshots (draft.4): claude, openai and adk never emit more than one tool.done per call, so they satisfy the item trivially", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.42(single-delivery), a scan of every corpus/*/{claude,openai,adk}.agjson.json" },
   { n: 43, title: "Never-opened terminals (draft.4): a terminal for a turn not seen opened folds to no record without a resync; a snapshot carrying turns replaces what is seen, one omitting turns keeps it; a seen turn with no record takes its snapshot message's threadId or gets no record; no created record carries a threadId no event carried; on every replay golden each terminal follows its turn's opener in the invoke", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.43, reference reduce() + Reducer (f3d5256 + the snapshot rework) and a scan of every corpus/*/*.agjson.json" },
   { n: 44, leg: "adk", title: "MCP resource links (draft.5, §8.0 item 31): N resource_link parts → N resource-link blocks in native order, members verbatim and absent where absent; a residual provider-raw only for icons, a mistyped size or a member the schema would alter; a signed uri byte-equal; item 28 reductions inside the link; a uri-less part stays one reduced provider-raw", disposition: "COVERED-BY", evidence: "fixture-only", citation: "google-adk/src/index.test.ts \"createAdkNormalizer — an MCP resource_link part becomes one resource-link block, with a residual-only provider-raw\" (the §10 item 44 case, the residual-verbatim case, the item-28 case, the uri-less case, the signed-uri case)" },
-  { n: 44, leg: "golden", title: "MCP resource links (draft.5): resource-link-gemini38/adk seq 7 holds exactly one resource-link whose members equal the native resource_link part's, and no provider-raw for that link", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.44(golden)" },
+  { n: 44, leg: "golden", title: "MCP resource links (draft.5): resource-link-gemini38/adk's linking-call tool.done holds exactly one resource-link whose members equal the native resource_link part's, and no provider-raw for that link", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.44(golden)" },
   { n: 44, leg: "not-bound", title: "MCP resource links (draft.5): no claude, openai or vercel golden emits a resource-link block into tool.done.content (§8 applicability: none of the three emits an MCP link part into content today)", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.44(not-bound), a scan of every corpus/*/{claude,openai,vercel}.agjson.json" },
   { n: 44, leg: "claude", title: "MCP resource links (draft.5)", disposition: "N/A", evidence: "none", citation: "§8.0 item 31 applicability: the claude-agent-sdk facet delivers an MCP link to the model as rendered text and carries the structured list as a host record (§2.1); it emits no link part into tool.done.content" },
   { n: 44, leg: "openai", title: "MCP resource links (draft.5)", disposition: "N/A", evidence: "none", citation: "§8.0 item 31 applicability: the openai-agents facet receives MCP output stringified and emits no link part into tool.done.content" },
@@ -3244,8 +3244,13 @@ describe("§10.44 — MCP resource links (draft.5; §8.0 item 31)", () => {
     }
     return out;
   };
-  it("(golden) resource-link-gemini38/adk: seq 7 holds exactly one resource-link whose members equal the native resource_link part's, and no provider-raw for that link", () => {
-    const ev = load("resource-link-gemini38", "adk").find((e) => e["seq"] === 7) as { type: string; content: Array<Record<string, unknown>> };
+  it("(golden) resource-link-gemini38/adk: the linking call's tool.done holds exactly one resource-link whose members equal the native resource_link part's, and no provider-raw for that link", () => {
+    // Selected by identity, never by seq: a golden regeneration that renumbers seq keeps this leg on the same event.
+    const carriers = load("resource-link-gemini38", "adk").filter(
+      (e) => e["type"] === "tool.done" && ((e["content"] as Array<Record<string, unknown>> | undefined) ?? []).some((b) => b["type"] === "resource-link"),
+    );
+    expect(carriers.map((e) => e["toolCallId"])).toEqual(["call_164587"]);
+    const ev = carriers[0] as { type: string; content: Array<Record<string, unknown>> };
     expect(ev.type).toBe("tool.done");
     const links = ev.content.filter((b) => b["type"] === "resource-link");
     expect(links).toHaveLength(1);
