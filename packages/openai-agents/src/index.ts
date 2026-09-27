@@ -1117,14 +1117,14 @@ export function mapFinishReason(reason: string | undefined | null): AgFinishReas
 }
 
 /**
- * OA-15 (draft.4 — SPEC.md §8.0 graceful degradation, §10 item 23; sp-protocol
+ * OA-15 (draft.4 — SPEC.md §8.0 graceful degradation, §10 item 23; spec
  * 89c57db): the `turn.done` finish fields for a native reason. `finishReason`
  * is `mapFinishReason(reason)`; `finishReasonRaw` — the native value byte for
  * byte — rides along ONLY when that mapping fell back ("other"/"unknown") AND a
  * native string exists. A real mapping (max_output_tokens → token_limit, a bare
  * completion → stop, content_filter → safety_blocked) sets nothing: the companion
  * is for a value with no AgJSON target, not a second copy of a mapped one
- * (sp-protocol's scope ruling; widening it would be a new normative sentence).
+ * (the spec's scope ruling; widening it would be a new normative sentence).
  */
 function finishReasonFields(
   reason: string | undefined | null,
@@ -1219,7 +1219,7 @@ function mapAnnotationsToCitations(
  *  string, verbatim — or `undefined`. openai-node types it
  *  `'commentary' | 'final_answer' | null`; null and "" carry no marker, so they
  *  yield neither a `providerMetadata.phase` carry nor an ext.openai.late-phase
- *  (sp-protocol ruling (a), SPEC §10 item 26). Read through `unknown`: the
+ *  (spec ruling (a), SPEC §10 item 26). Read through `unknown`: the
  *  run-item field is envelope-only-validated wire data (JsonValue boundary). */
 function vendorPhase(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
@@ -1346,7 +1346,7 @@ function extractStructuredContent(
  * at `dist/mcp.mjs`:700); guuey's worker and this repo's capture agent return it
  * as `customData._meta`. It is a host/protocol annotation (MCP-Apps `ui.*`), so
  * it rides the tool-result block's own `_meta` VERBATIM (SPEC.md:338; §8.0
- * no-drop). sp-protocol ruled this option A on 2026-09-23. A non-object `_meta`
+ * no-drop). Ruled option A on 2026-09-23. A non-object `_meta`
  * (null, string, array) is not a `_meta` → `undefined`, and the block is
  * byte-identical to the pre-#21 output. Mirrors the claude facet's sibling
  * `_meta` parse (claude-agent-sdk/src/index.ts:1872-1876).
@@ -1421,7 +1421,7 @@ function isOpenAIStreamEvent(v: unknown): v is OpenAIStreamEvent {
 /**
  * The OpenAI Agents SDK normalizer. The inner, deterministic normalizer
  * (`createInnerOpenaiNormalizer` below) is wrapped in core's `withAtomicPush`
- * (sp-probe; sp-main's binding guard ruling, 2026-09-24). Every `push()` is
+ * (the binding guard ruling, 2026-09-24). Every `push()` is
  * atomic, and none of it lives in the facet:
  * - The native is normalized with `toJsonValueSafe`, so LIVE SDK objects map
  *   exactly like the JSON corpus.
@@ -1446,7 +1446,7 @@ export interface OpenaiNormalizerOptions {
    * rnd-14 ruling and INV-BLOCK's collision-free derived ids require it: guuey
    * folds a whole conversation into ONE Reducer, and a repeated turn id
    * re-opens a closed turn, which parks INV-TURN / INV-MSG consumers.
-   * sp-protocol's D3 bar (wf_9722b7bc-ba9, DC-10) found the old per-normalizer
+   * The D3 review (finding DC-10) found the old per-normalizer
    * counters (`turn_openai_<n>`, `turn_handoff_<n>`) repeating across invokes.
    *
    * By default each normalizer draws a fresh `openai_<16 hex>` stem from
@@ -1685,13 +1685,13 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
 
   /**
    * O1 — release a close deferred under §8.0 item 14 at END OF STREAM (flush) or
-   * ahead of a host-fed error, per INV-FLUSH (2) as sp-protocol's fold/flush
-   * package words it (A.5; founder: Q1 option 1, "honest flush"). A flush never
+   * ahead of a host-fed error, per INV-FLUSH (2) as the fold/flush ruling
+   * words it (A.5; ruled option 1, "honest flush"). A flush never
    * emits a success turn.done:
    *  - an approval `hitl.ask` was emitted for a still-pending call of this
    *    round ⇒ `turn.done{outcome:{type:"paused", asks}}`, with the deferred
    *    finishReason and usage (the OpenAI approval interruption — the run ends
-   *    with no tool_output; sp-probe's live leg-1 capture);
+   *    with no tool_output; the live leg-1 capture, approval-tool-gpt6sol);
    *  - else a non-success deferred outcome (the content_filter arm) ⇒ released
    *    verbatim;
    *  - else ⇒ `message.end` carrying the round's usage (a per-message usage
@@ -1775,10 +1775,10 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   }
 
   /**
-   * INV-TURN (SPEC:743) for a RESUMED invoke — sp-protocol's c20 package, A.6
+   * INV-TURN (SPEC:743) for a RESUMED invoke — the c20 ruling, A.6
    * (openai): when a tool result's round is unknown to this invoke
    * (`resolvePendingTurnId` misses) and no response is open, the result is the
-   * resumed stream's LEADING event (sp-probe's live approval-resume capture,
+   * resumed stream's LEADING event (the live approval-resume capture,
    * 2026-09-24: after `RunState.fromString` + approve/reject, the approved or
    * rejected call's `tool_output` arrives before any `response.created`). Open a
    * turn for it — `turn_resume_<callId>`: deterministic, and never a leg-1
@@ -1796,7 +1796,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       a.openTurn(opened, threadId);
       return { turnId: opened, messageId: `${callId}:result` };
     }
-    // Approve-all (sp-protocol's D3 pin, 2026-09-24): the resuming invoke can
+    // Approve-all (the D3 pin, 2026-09-24): the resuming invoke can
     // replay SEVERAL results before its response. While the resume turn is
     // open with no assistant message yet (turnId set, msgId unset — a state
     // only this helper creates), each further result joins THAT turn as its
@@ -1876,7 +1876,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         if (!openTextStreams.has(ev.item_id)) {
           openTextStreams.add(ev.item_id);
           // OA-14: the phase announced at output_item.added rides text.start
-          // (rnd 13+17 Stage 1, founder ruling 2026-09-23; vercel parity c4f5981).
+          // (R&D items 13+17, stage 1, ruled 2026-09-23; vercel parity c4f5981).
           const phase = pendingPhase.get(ev.item_id);
           const startMeta = openaiProviderMeta({ phase });
           // PH-2 (draft.4, SPEC §8.0 item 27 + §5 "phase timing"): known before
@@ -2308,14 +2308,14 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
           // OA-14: RETIRED when this id's SAME phase already rode its text.start
           // (the live case); kept — lossless — when only the run-item knows it,
           // or knows a different value.
-          // PH-2: null/"" is no marker at all (sp-protocol ruling (a)) — neither
+          // PH-2: null/"" is no marker at all (spec ruling (a)) — neither
           // a carry nor a late-phase ext.
           const lateItemPhase = vendorPhase(item.phase);
           if (lateItemPhase !== undefined && carriedPhase.get(item.id) !== lateItemPhase) {
             if (isStashedTextStream(item.id)) {
               // PH-2 case (ii): the round close is STASHED (a deferred tool
               // round), so this block's text.end is NOT yet emitted — the §5
-              // timing rule makes the end the phase's home (sp-protocol,
+              // timing rule makes the end the phase's home (ruled
               // 2026-09-23). The marker has a first-class home, so no late-phase.
               const interim = interimAtStart.has(item.id) ? undefined : interimPhase(lateItemPhase);
               const endMeta = openaiProviderMeta({ phase: lateItemPhase });
@@ -2380,7 +2380,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * OA-11: fill + seal an OPEN reasoning block: one `reasoning.delta` per
    * non-empty summary part (`partIndex` = the wire `summary_index`), then
    * `reasoning.opaque` (the replayable ciphertext, `itemId` = rs_) BEFORE
-   * `reasoning.end`, so "sealed" means complete (sp-protocol's recommendation;
+   * `reasoning.end`, so "sealed" means complete (the spec's recommendation;
    * the Claude signature-before-stop order). The facet never consumes
    * `response.reasoning_summary_text.delta` (the raw default arm drops it), so
    * this is the ONLY place summary text is emitted — no double under INV-DELTA.
@@ -3031,7 +3031,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
           // workspace#21: `customData._meta` → block `_meta`; with `_meta.ui` the
           // payload is MCP-Apps view data → ALSO `uiData` (SPEC.md:332), leaving
           // `structuredContent` as it was (the :340 mapping; ggui's cache marker
-          // rides it). §2.1's "exactly one consumer" is per channel (sp-protocol,
+          // rides it). §2.1's "exactly one consumer" is per channel (ruled
           // option A). Mirrors claude-agent-sdk/src/index.ts:1926-1946.
           const resultMeta = extractResultMeta(event.item.customData);
           // A CLONE, not an alias: the two channels reach different consumers, and
@@ -3173,7 +3173,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
           const item = event.item;
           const open = takeOpenHandoff(item.rawItem.callId); // by callId — see openHandoffs' doc.
           if (open !== undefined) {
-            // draft.4 nested-run closure (§8.0 item 29, §10 item 36; sp-protocol's
+            // draft.4 nested-run closure (§8.0 item 29, §10 item 36; the
             // nested-turn package A.6): the bracket closes with its own terminal,
             // immediately followed by `subagent.done`. `handoff_occurred` IS the
             // SDK's report that the transfer ran (the handoff span closed and the
@@ -3182,7 +3182,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
             a.closeTurnDone(open.turnId, { outcome: { type: "success" }, finishReason: "unknown" });
             a.subagentDone(open.turnId, open.parentTurnId);
           }
-          // HO (0.7.0 regression, sp-probe's live handoff-gpt6sol): the transfer is
+          // HO (0.7.0 regression, the live handoff-gpt6sol capture): the transfer is
           // an ordinary function_call the model emitted (tool.start from
           // `response.output_item.added`, registered pending), and THIS item's
           // rawItem is its result — the SDK never sends a `tool_output` for it.
@@ -3308,7 +3308,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       // LV: a host may push the SDK's LIVE stream objects (undefined members,
       // Dates, class instances, cycles), not the JSON round-tripped shape the
       // corpus records, and the carried-member `JsonValue.parse` sites threw a
-      // ZodError on them (sp-main's no-throw check, 2026-09-24: 6 of 9 live
+      // ZodError on them (a no-throw check, 2026-09-24: 6 of 9 live
       // shapes). The native arrives already normalized: `withAtomicPush` ran core's
       // `toJsonValueSafe` on it (JSON semantics per node: toJSON honoured,
       // undefined dropped, Date → ISO string), and it owns the no-throw
@@ -3321,7 +3321,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         // A COPY via JsonValue.parse, like every other carry path: plain input
         // arrives by reference, so carrying it as-is would alias the host's
         // object into an emitted event, and would forward an own `__proto__`
-        // key (sp-cto's checks, 2026-09-24).
+        // key (review checks, 2026-09-24).
         a.emitExt("openai", "unparsed", { native: JsonValue.parse(native) });
         return a.drain();
       }

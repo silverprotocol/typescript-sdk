@@ -13,7 +13,7 @@ describe("mapFinishReason", () => {
 });
 
 // OA-15 — `turn.done.finishReasonRaw` (draft.4: SPEC.md §8.0 graceful
-// degradation + §10 item 23, sp-protocol 89c57db). Set ONLY when the mapped
+// degradation + §10 item 23, spec 89c57db). Set ONLY when the mapped
 // finishReason is a fallback ("other"/"unknown"), carrying the native value byte
 // for byte; a real mapping (max_output_tokens → token_limit, …) sets nothing.
 describe("createOpenaiNormalizer — OA-15 turn.done.finishReasonRaw", () => {
@@ -765,8 +765,8 @@ describe("createOpenaiNormalizer — defer turn.done past pending tool results (
     expect(() => AgReduceResult.parse(res)).not.toThrow();
   });
 
-  // O1 (sp-protocol's fold/flush package, A.5 INV-TURN/INV-FLUSH + A.6 openai;
-  // founder: Q1 option 1, "honest flush"): a flush NEVER emits a success
+  // O1 (the fold/flush ruling, A.5 INV-TURN/INV-FLUSH + A.6 openai;
+  // option 1, "honest flush"): a flush NEVER emits a success
   // turn.done. A close deferred under §8.0 item 14 is released as `paused` (an
   // approval ask outstanding), verbatim (a non-success outcome), or else as
   // message.end carrying the round's usage, then turn.abort{stream-truncated}.
@@ -1069,8 +1069,8 @@ describe("createOpenaiNormalizer — response.failed error arm (T5c)", () => {
   // may carry `error.misalignment {detailed_explanation, error_type, steer{message}}`
   // beside code `misalignment_policy_violation` (synthetic-tested only: the
   // documented auto-stop applies to persisted-reasoning / WebSocket / compaction
-  // requests the e2e HTTP path never uses). rd-15 (sp-protocol's package A.6,
-  // founder: rides 0.7.0; sp-cto: the carry must sit in a home that FOLDS):
+  // requests the e2e HTTP path never uses). rd-15 (ruling A.6, rides 0.7.0;
+  // a review condition: the carry must sit in a home that FOLDS):
   // before turn.error the facet emits an adapter NOTICE message — one text block
   // whose text is `detailed_explanation` verbatim (error.message when absent) and
   // whose text.start `_meta["openai/misalignment"]` holds the WHOLE object
@@ -2057,7 +2057,7 @@ describe("createOpenaiNormalizer — OA-11 reasoning sourced from the response.c
     expect(opaques).toHaveLength(1);
     expect(opaques[0]).toMatchObject({ id: RS, kind: "ciphertext", value: "ENC_FINAL", provider: "openai", itemId: RS });
     expect(types.filter((t) => t === "reasoning.end")).toHaveLength(1);
-    // Opaque BEFORE end: "sealed" means complete (sp-protocol's recommendation —
+    // Opaque BEFORE end: "sealed" means complete (the spec's recommendation —
     // mirrors Claude's signature landing before content_block_stop).
     expect(types.indexOf("reasoning.opaque")).toBeLessThan(types.indexOf("reasoning.end"));
 
@@ -2260,7 +2260,7 @@ describe("createOpenaiNormalizer — OA-11 reasoning sourced from the response.c
 // `response.model` (live: echo-gpt6sol natives [1] `"model": "gpt-6-sol"`,
 // which arrives BEFORE the message opens). An existing optional slot, folded to
 // `AgMessage.model` (SPEC:585, reduce.ts); absent/non-string/empty ⇒ no key
-// (byte-identical to pre-OA-12). sp-rnd finding #1 (2026-09-23).
+// (byte-identical to pre-OA-12). R&D finding #1 (2026-09-23).
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("createOpenaiNormalizer — OA-12 message.start.model from response.created", () => {
@@ -2478,7 +2478,7 @@ describe("createOpenaiNormalizer — handoff_requested / handoff_occurred (Task 
   });
 });
 
-// HO — the handoff close (0.7.0 regression, sp-probe's live handoff-gpt6sol at
+// HO — the handoff close (0.7.0 regression, the live handoff-gpt6sol capture at
 // c08a2a2). On the real wire the transfer is an ordinary function_call the
 // model emits (`response.output_item.added` → tool.start, pending), and its
 // result arrives ONLY as `handoff_occurred`'s `handoff_output_item` rawItem (a
@@ -4319,7 +4319,7 @@ describe("createOpenaiNormalizer — tool_output structuredContent under 0.12.0 
 // the §2.1 MCP-Apps routing: `_meta.ui` present ⇒ ADD `uiData` = the
 // structuredContent (SPEC.md:332), `structuredContent` itself unchanged (the
 // :340 host-convention mapping; ggui's cache marker keeps riding it).
-// sp-protocol ruled option A 2026-09-23: facet mapping under SPEC.md:332/:338/
+// Ruled option A 2026-09-23: facet mapping under SPEC.md:332/:338/
 // :340 — `customData._meta` is the host's MCP result `_meta` (agents-core 0.18.0
 // `MCPToolCustomDataContext.resultMeta`), a protocol annotation → carried
 // VERBATIM (§8.0 no-drop); §2.1's "exactly one consumer" is per channel.
@@ -5004,7 +5004,7 @@ describe("createOpenaiNormalizer — AssistantMessageItem.phase (agents-core 0.1
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OA-14 — rnd 13+17 Stage 1 (founder ruling 2026-09-23, relayed by sp-main):
+// OA-14 — R&D items 13+17, stage 1 (ruled 2026-09-23):
 // `phase` is read at raw `response.output_item.added{type:"message"}` and carried
 // on the matching `text.start.providerMetadata` (the vercel half: c4f5981). Live
 // evidence: 6/8 openai seeds carry `phase` on that added event — incl. echo-gpt55,
@@ -5183,15 +5183,15 @@ describe("createOpenaiNormalizer — OA-14 phase on text.start from output_item.
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PH-2 — rnd 13+17 STAGE 2 (draft.4, sp-protocol fb2126a on sp-probe P-phase):
+// PH-2 — R&D items 13+17, STAGE 2 (draft.4, spec fb2126a on the core P-phase):
 // the first-class optional `phase` on text.start/text.end. SPEC §8.0 item 27:
 // OpenAI `phase:"commentary"` → `phase:"interim"` on that message's text block;
 // "final_answer", null, "", absent and any other value → `phase` absent; the
 // vendor marker stays VERBATIM in providerMetadata (the stage-1 carry). §5
 // "`phase` timing": on the `*.start` when known before the first delta, else on
 // the block's `*.end` — never after an emitted `*.end` (then first-class phase
-// stays absent and the lossless ext.openai.late-phase carry stays). sp-protocol
-// ruled a STASHED (deferred tool-round) text.end "not yet emitted" (2026-09-23).
+// stays absent and the lossless ext.openai.late-phase carry stays). The spec
+// rules a STASHED (deferred tool-round) text.end "not yet emitted" (2026-09-23).
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("createOpenaiNormalizer — PH-2 first-class phase:\"interim\" (draft.4, §8.0 item 27, §10 item 26)", () => {
@@ -5258,7 +5258,7 @@ describe("createOpenaiNormalizer — PH-2 first-class phase:\"interim\" (draft.4
   it.each([
     ["null", null],
     ["empty string", ""],
-  ])("negative control: phase %s ⇒ neither `phase` nor `providerMetadata.phase` (sp-protocol ruling (a))", (_label, bad) => {
+  ])("negative control: phase %s ⇒ neither `phase` nor `providerMetadata.phase` (spec ruling (a))", (_label, bad) => {
     const evs = run(twoItemVector(bad, "final_answer"));
     const startA = textEvent(evs, "text.start", "msg_A");
     expect(startA).not.toHaveProperty("phase");
@@ -5356,7 +5356,7 @@ describe("createOpenaiNormalizer — PH-2 first-class phase:\"interim\" (draft.4
 // degradation). The corpus is `toJsonValue(event)` — JSON round-tripped — so it
 // never showed that a host pushing the SDK's LIVE stream objects (class
 // instances with toJSON, `undefined` members, Dates, cycles) hit
-// `JsonValue.parse` at carried-member sites and THREW a ZodError (sp-main's
+// `JsonValue.parse` at carried-member sites and THREW a ZodError (a
 // no-throw check, 2026-09-24: 6 of 9 live shapes threw at d8d04ca). Fix:
 // normalize ONCE at push() entry with core `toJsonValueSafe` (total, JSON
 // semantics per node), so live input is exactly the corpus shape.
@@ -5489,7 +5489,7 @@ describe("createOpenaiNormalizer — LV live (non-JSON-round-tripped) natives ne
     expect(evs.some((e) => e.type === "ext.openai.unparsed")).toBe(false);
   });
 
-  // sp-cto's aliasing / `__proto__` checks on the toJsonValueSafe swap
+  // Review checks for aliasing / `__proto__` on the toJsonValueSafe swap
   // (2026-09-24): the helper returns plain input BY REFERENCE and keeps an own
   // `__proto__` as data. The unrecognised-envelope branch was the one emit path
   // with no copying parse, so its `ext.openai.unparsed.native` WAS the host's
@@ -5513,7 +5513,7 @@ describe("createOpenaiNormalizer — LV live (non-JSON-round-tripped) natives ne
     expect(carried).toEqual({ weird: true, nested: { k: 1 } });
   });
 
-  // sp-cto nit (2026-09-24): the guard's payload must be content-free BY
+  // A review nit (2026-09-24): the guard's payload must be content-free BY
   // CONSTRUCTION, not because today's throws happen to be TypeErrors. A V8
   // SyntaxError quotes its input (`Unexpected token 'o', "{"secret":"…" is not
   // valid JSON`), so an error MESSAGE can carry a slice of tool arguments or a
@@ -5538,7 +5538,7 @@ describe("createOpenaiNormalizer — LV live (non-JSON-round-tripped) natives ne
     }
   });
 
-  // sp-cto (2026-09-24): the guard catches a throw DEEP in drive(), possibly
+  // A review finding (2026-09-24): the guard catches a throw DEEP in drive(), possibly
   // AFTER this same native already opened a turn, a message and a block. Those
   // events stay on the wire (the assembler's seq/open-state advanced past them);
   // what must hold is: reduce() never parks, INV-MSG (every message.start gets
@@ -5648,17 +5648,17 @@ describe("createOpenaiNormalizer — LV live (non-JSON-round-tripped) natives ne
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RS — a RESUMED invoke opens its own turn (INV-TURN, SPEC:743). sp-probe's live
+// RS — a RESUMED invoke opens its own turn (INV-TURN, SPEC:743). The live
 // approval-resume capture (gpt-6-sol, @openai/agents 0.18.0, 2026-09-24): after
 // `RunState.fromString` + approve/reject, the resumed stream's FIRST event is the
 // approved (or rejected) call's `tool_output`, before any `response.created`. The
 // facet emitted tool.done with no turn open, so reduce() parked on the stream
-// alone. Per sp-protocol's c20 package (A.6, openai): when the call's round is
+// alone. Per the c20 ruling (A.6, openai): when the call's round is
 // unknown, the leading result opens `turn_resume_<callId>` (deterministic, never
 // a leg-1 `turn_resp_*` id: INV-XINV) and lands as its OWN role:"tool" message
 // (`messageId: "<callId>:result"`); the resumed model response then opens its
 // assistant message in that turn and its response.completed closes it (the
-// sp-claude 37185be shape). Outcome stays ok/error from rawItem.status — never
+// the claude facet's 37185be shape). Outcome stays ok/error from rawItem.status — never
 // "denied" (PS-13).
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -5727,7 +5727,7 @@ describe("createOpenaiNormalizer — RS a resumed invoke's leading tool_output o
     expect(r.needsResync).toBe(false);
   });
 
-  // sp-protocol's pin for the pending D3 wording (c20, bar wf_9722b7bc-ba9):
+  // The pin for the pending D3 wording (c20):
   // ONE resuming invoke that carries TWO approved results (approve-all), in the
   // order the SDK replays them from RunState. One resume turn, named for the
   // FIRST call; both results are their own role:"tool" messages in it; no
@@ -5801,7 +5801,7 @@ describe("createOpenaiNormalizer — RS a resumed invoke's leading tool_output o
 // ─────────────────────────────────────────────────────────────────────────────
 // OA-13 — `tool.start.providerExecuted` (SPEC:632; tool-call block
 // `providerExecuted`, SPEC:210; SPEC:496 "server already ran it; client MUST
-// NOT execute"). An existing optional slot (sp-rnd item 10 re-verify,
+// NOT execute"). An existing optional slot (R&D item 10 re-verify,
 // 2026-09-23); claude and vercel already set it. Which item kinds OpenAI
 // executes, per the installed runtime (agents-core 0.18.0
 // dist/runner/modelOutputs.mjs):
@@ -5930,8 +5930,8 @@ describe("createOpenaiNormalizer — OA-13 tool.start.providerExecuted", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// IS — ids the facet MINTS are unique across invokes (sp-protocol's D3 bar,
-// wf_9722b7bc-ba9, finding DC-10; the rnd-14 ruling; INV-BLOCK collision-free
+// IS — ids the facet MINTS are unique across invokes (the D3 review,
+// finding DC-10; the rnd-14 ruling; INV-BLOCK collision-free
 // derived ids). guuey folds every invoke of a conversation into ONE Reducer; the
 // old per-normalizer counters (`turn_openai_<n>`, `turn_handoff_<n>`) repeated
 // across invokes. Now each normalizer draws a random `openai_<16 hex>` stem once
@@ -6035,10 +6035,10 @@ describe("createOpenaiNormalizer — IS minted ids are unique across invokes fol
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// O1 — the honest flush (sp-protocol's fold/flush package, A.5 + A.6 openai;
+// O1 — the honest flush (the fold/flush ruling, A.5 + A.6 openai;
 // §10 item 26's OpenAI leg). The real-order approval interruption is
 // function_call → response.completed (usage U) → tool_called →
-// tool_approval_requested → end of stream (sp-probe's live leg-1 capture). It
+// tool_approval_requested → end of stream (the live leg-1 capture). It
 // used to flush as turn.done{success} (CB-14 / PS-2): now `paused`, asks naming
 // approval_<callId>, the stashed finishReason and usage U.
 // ─────────────────────────────────────────────────────────────────────────────
