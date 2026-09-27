@@ -1400,39 +1400,62 @@ function mapUsage(usage: OpenAIResponseUsage | undefined): AgUsage | undefined {
   return u;
 }
 
-// ─── url_citation annotation → AgCitation ──────────────────────────────────
-// `partText` is the source output_text part's text string; used to extract the
-// cited substring from the char-offset indices carried by the annotation (Fix 3).
-function mapAnnotationsToCitations(
-  annotations: OpenAIAnnotation[] | undefined,
-  partText: string,
-): AgCitation[] | undefined {
-  if (annotations === undefined || annotations.length === 0) return undefined;
-  const out: AgCitation[] = [];
-  for (const ann of annotations) {
-    if (ann.type === "url_citation") {
-      // Extract the cited substring from the part text when both offsets are present
-      // and valid (Fix 3). Fall back to "" when any guard condition fails.
-      const startIdx = ann.start_index;
-      const endIdx = ann.end_index;
-      const citedText =
-        startIdx !== undefined && endIdx !== undefined && startIdx >= 0 && endIdx <= partText.length
-          ? partText.slice(startIdx, endIdx)
-          : "";
-      const cit: AgCitation = {
-        kind: "url",
-        url: ann.url,
-        citedText,
-        indexFrame: "response",
-      };
-      if (ann.title !== undefined) cit.title = ann.title;
-      if (startIdx !== undefined) cit.startIndex = startIdx;
-      if (endIdx !== undefined) cit.endIndex = endIdx;
-      out.push(cit);
+// ─── output_text annotations → AgCitation ──────────────────────────────────
+// In `splitAnnotations`, `partText` is the source output_text part's text
+// string, used to extract the cited substring from the char-offset indices
+// carried by the annotation (Fix 3).
+/**
+ * An output_text part's annotations, raw. agents-openai 0.18.0's converter
+ * nests every part field but `type` and `text` under `providerData`
+ * (openaiResponsesConverter.mjs `convertToMessageContentItem`), so on the real
+ * wire they are `part.providerData.annotations` (15 of 17 recorded parts carry
+ * them there, 0 at the top level); a top-level `annotations` is read first.
+ * Anything but an array is no annotations.
+ */
+function partAnnotations(part: OpenAIOutputText): JsonValue[] {
+  const top: unknown = part.annotations;
+  const nested: unknown = "providerData" in part && isJsonObject(part.providerData) ? part.providerData.annotations : undefined;
+  const raw = Array.isArray(top) ? top : Array.isArray(nested) ? nested : undefined;
+  if (raw === undefined) return [];
+  const parsed = JsonValue.parse(raw);
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+/**
+ * Split a part's raw annotations. A `url_citation` with a string `url` maps
+ * to an AgCitation; every other annotation (file_citation,
+ * container_file_citation, file_path, …) has no citation target and stays
+ * verbatim in `unmapped`, for the `ext.openai.late-citations` carry (SPEC:965:
+ * never dropped silently).
+ */
+function splitAnnotations(raw: readonly JsonValue[], partText: string): { citations?: AgCitation[]; unmapped: JsonValue[] } {
+  const citations: AgCitation[] = [];
+  const unmapped: JsonValue[] = [];
+  for (const ann of raw) {
+    if (!isJsonObject(ann) || ann.type !== "url_citation" || typeof ann.url !== "string") {
+      unmapped.push(ann);
+      continue;
     }
-    // file_citation: no url-kind match; skip (deferred to a later slice — only remaining silent annotation drop)
+    // Extract the cited substring from the part text when both offsets are present
+    // and valid (Fix 3). Fall back to "" when any guard condition fails.
+    const startIdx = typeof ann.start_index === "number" ? ann.start_index : undefined;
+    const endIdx = typeof ann.end_index === "number" ? ann.end_index : undefined;
+    const citedText =
+      startIdx !== undefined && endIdx !== undefined && startIdx >= 0 && endIdx <= partText.length
+        ? partText.slice(startIdx, endIdx)
+        : "";
+    const cit: AgCitation = {
+      kind: "url",
+      url: ann.url,
+      citedText,
+      indexFrame: "response",
+    };
+    if (typeof ann.title === "string") cit.title = ann.title;
+    if (startIdx !== undefined) cit.startIndex = startIdx;
+    if (endIdx !== undefined) cit.endIndex = endIdx;
+    citations.push(cit);
   }
-  return out.length > 0 ? out : undefined;
+  return { ...(citations.length > 0 ? { citations } : {}), unmapped };
 }
 
 // ─── optional 0.14.0 wire fields → providerMetadata (spec §2) ─────────────────
@@ -2827,9 +2850,10 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
               ...(item.phase !== undefined ? { phase: item.phase } : {}),
             });
           }
-          if (part.annotations !== undefined && part.annotations.length > 0) {
+          const idlessAnnotations = partAnnotations(part);
+          if (idlessAnnotations.length > 0) {
             a.emitExt("openai", "late-citations", {
-              annotations: JsonValue.parse(part.annotations),
+              annotations: idlessAnnotations,
             });
           }
           continue;
@@ -2837,17 +2861,21 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         if (msgId === undefined) {
           // response already closed — see doc above. While the round's close
           // is STASHED (deferred for its tool results or built-in calls), this
-          // block's text.end is not out yet, so its citations ride it (the
-          // phase marker's case (ii) below); only a message that lands after
-          // the close was released takes the ext carry.
-          if (part.annotations !== undefined && part.annotations.length > 0) {
-            const stashedCitations = isStashedTextStream(item.id) ? mapAnnotationsToCitations(part.annotations, part.text) : undefined;
-            if (stashedCitations !== undefined) {
-              stashedEndFields.set(item.id, { ...stashedEndFields.get(item.id), citations: stashedCitations });
-            } else {
+          // block's text.end is not out yet, so its url citations ride it (the
+          // phase marker's case (ii) below), and any other annotation takes
+          // the ext carry; a message that lands after the close was released
+          // carries every annotation on the ext.
+          const closedAnnotations = partAnnotations(part);
+          if (closedAnnotations.length > 0) {
+            const split = isStashedTextStream(item.id) ? splitAnnotations(closedAnnotations, part.text) : undefined;
+            if (split?.citations !== undefined) {
+              stashedEndFields.set(item.id, { ...stashedEndFields.get(item.id), citations: split.citations });
+            }
+            const carry = split?.citations !== undefined ? split.unmapped : closedAnnotations;
+            if (carry.length > 0) {
               a.emitExt("openai", "late-citations", {
                 itemId: item.id,
-                annotations: JsonValue.parse(part.annotations),
+                annotations: carry,
               });
             }
           }
@@ -2890,7 +2918,10 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
           item.id !== undefined && openTextStreams.has(item.id) ? item.id : openTextStreams.values().next().value;
         if (streamId === undefined) continue; // defensive: no matching open stream
         openTextStreams.delete(streamId);
-        const citations = mapAnnotationsToCitations(part.annotations, part.text);
+        // A url citation rides text.end; any other annotation has no citation
+        // target and takes the ext carry, after the text.end (SPEC:965).
+        const liveSplit = splitAnnotations(partAnnotations(part), part.text);
+        const citations = liveSplit.citations;
         // phase (0.14.0) rides the matching text.end's providerMetadata —
         // PER-PART, not message.metadata: this facet folds a response into ONE
         // message, and a program-driven turn emits multiple message items with
@@ -2912,6 +2943,9 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
               }
             : undefined,
         );
+        if (liveSplit.unmapped.length > 0) {
+          a.emitExt("openai", "late-citations", { itemId: item.id ?? streamId, annotations: liveSplit.unmapped });
+        }
       }
     }
   }
@@ -3385,10 +3419,13 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * web_search's `sources`, an mcp_list_tools listing, a file_search's
    * `results` and a code_interpreter's `outputs` as data blocks, and its
    * outcome. The outcome is "error" when the native status is `failed` or
-   * `incomplete`, as a shell, apply-patch, program or function result's
-   * `incomplete` is (for an mcp_call, whose top-level status the converter
-   * always sets to "completed", the status in providerData), or the item
-   * carries an `error`.
+   * `incomplete`, as a shell, program or function result's `incomplete` is
+   * (and an apply-patch result's `failed`); for an mcp_call, whose top-level
+   * status the converter always sets to "completed", the status in
+   * providerData. It is also "error" when the item carries an `error`, even
+   * with a `completed` status. Any other status (`in_progress`,
+   * `searching`, `interpreting`, …) closes "ok"; a status other than
+   * `completed` rides tool.done providerMetadata.status verbatim.
    */
   function hostedResult(rawItem: OpenAIHostedToolCallItem): {
     content: AgBlock[];
@@ -3449,6 +3486,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       return v === null ? undefined : v;
     };
     const providerMetadata = openaiProviderMeta({
+      status: typeof status === "string" && status.length > 0 && status !== "completed" ? status : undefined,
       error: isJsonObject(error) ? error : undefined,
       revised_prompt: imageField("revised_prompt"),
       size: imageField("size"),

@@ -4162,6 +4162,17 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
     });
   const answer = (id: string, approve: boolean): JsonValue =>
     called({ type: "hosted_tool_call", name: "mcp_approval_response", providerData: { approve, approval_request_id: id } });
+  /** A cited message in its two wire shapes: the raw terminal output keeps an
+   *  output_text part's annotations at the top level; agents-openai's
+   *  converter nests them under `providerData` in the run-item
+   *  (openaiResponsesConverter.mjs convertToMessageContentItem). */
+  function citedMessage(id: string, text: string, ann: JsonValue[], extra: { [k: string]: JsonValue } = {}) {
+    const base = { type: "message", id, role: "assistant", status: "completed", ...extra };
+    return {
+      raw: { ...base, content: [{ type: "output_text", text, annotations: ann, logprobs: [] }] },
+      converted: { ...base, content: [{ type: "output_text", text, providerData: { annotations: ann, logprobs: [] } }] },
+    };
+  }
 
   function run(s: JsonValue[]): { evs: AgEvent[]; r: Reducer } {
     const n = createOpenaiNormalizer({ invokeId: "inv1" });
@@ -4259,6 +4270,8 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
   });
 
   it("at the next response.created, a round still waiting on a pending result is not released: only its never-streamed listed calls stop being waited for", () => {
+    // A defensive feed: 0.18.0 streams a client-executed call's tool_output
+    // before the next model call (run.mjs:1935-1951).
     const { evs, r } = run([
       ...rawRound("resp_q1", [SH, WS]),
       calledSh,
@@ -4310,11 +4323,11 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
 
   it("in the order the SDK streams it, a web-search round's url_citation annotations ride the answer's text.end, not ext.openai.late-citations", () => {
     const ann = [{ type: "url_citation", url: "https://example.com/w", title: "W", start_index: 0, end_index: 4 }];
-    const CITED = { ...MSG, content: [{ type: "output_text", text: "done", annotations: ann }] };
+    const cited = citedMessage("msg_b1", "done", ann);
     const { evs, r } = run([
-      ...rawRound("resp_n1", [WS, CITED], { id: "msg_b1", delta: "done" }),
+      ...rawRound("resp_n1", [WS, cited.raw], { id: "msg_b1", delta: "done" }),
       calledWs,
-      runItem("message_output_created", { type: "message_output_item", rawItem: CITED }),
+      runItem("message_output_created", { type: "message_output_item", rawItem: cited.converted }),
     ]);
     expect(r.needsResync).toBe(false);
     expect(evs.filter((e) => e.type === "ext.openai.late-citations")).toEqual([]);
@@ -4326,13 +4339,13 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
   it("a function-call-deferred round's citations ride the answer's text.end when its message run-item lands before the tool result", () => {
     const ann = [{ type: "url_citation", url: "https://example.com/f", title: "F", start_index: 0, end_index: 2 }];
     const FC = { type: "function_call", id: "fc_n2", call_id: "call_n2", name: "echo", arguments: "{}", status: "completed" };
-    const CITED = { type: "message", id: "msg_n2", role: "assistant", status: "completed", content: [{ type: "output_text", text: "ok", annotations: ann }] };
+    const cited = citedMessage("msg_n2", "ok", ann);
     const { evs, r } = run([
       rawModel({ type: "response.created", response: { id: "resp_n2", model: "gpt-6-sol" } }),
       rawModel({ type: "response.output_text.delta", item_id: "msg_n2", delta: "ok" }),
       rawModel({ type: "response.output_item.added", item: { ...FC, arguments: "" }, output_index: 1 }),
-      rawModel({ type: "response.completed", response: { id: "resp_n2", status: "completed", output: [CITED, FC], usage: U } }),
-      runItem("message_output_created", { type: "message_output_item", rawItem: CITED }),
+      rawModel({ type: "response.completed", response: { id: "resp_n2", status: "completed", output: [cited.raw, FC], usage: U } }),
+      runItem("message_output_created", { type: "message_output_item", rawItem: cited.converted }),
       runItem("tool_output", {
         type: "tool_call_output_item",
         rawItem: { type: "function_call_result", name: "echo", callId: "call_n2", status: "completed", output: "ok" },
@@ -4347,9 +4360,13 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
 
   it("a stashed text block's late phase marker and its citations both ride its text.end", () => {
     const ann = [{ type: "url_citation", url: "https://example.com/q", title: "Q", start_index: 0, end_index: 4 }];
-    const RAW = { type: "message", id: "msg_n4", role: "assistant", status: "completed", content: [{ type: "output_text", text: "done", annotations: ann }] };
-    const LATE = { ...RAW, phase: "final_answer" };
-    const { evs, r } = run([...rawRound("resp_n4", [WS, RAW], { id: "msg_n4", delta: "done" }), calledWs, runItem("message_output_created", { type: "message_output_item", rawItem: LATE })]);
+    const plain = citedMessage("msg_n4", "done", ann);
+    const late = citedMessage("msg_n4", "done", ann, { phase: "final_answer" });
+    const { evs, r } = run([
+      ...rawRound("resp_n4", [WS, plain.raw], { id: "msg_n4", delta: "done" }),
+      calledWs,
+      runItem("message_output_created", { type: "message_output_item", rawItem: late.converted }),
+    ]);
     expect(r.needsResync).toBe(false);
     expect(evs.find((e) => e.type === "text.end" && Reflect.get(e, "id") === "msg_n4")).toMatchObject({
       citations: [{ url: "https://example.com/q" }],
@@ -4359,6 +4376,8 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
   });
 
   it("a message run-item that lands while its response is open is not waited for again when the terminal lists it beside a built-in call", () => {
+    // A defensive feed: 0.18.0 streams a response's run-items only after its
+    // raw stream (run.mjs:1929-1935), so this order does not occur there.
     const { evs, r } = run([
       rawModel({ type: "response.created", response: { id: "resp_n5", model: "gpt-6-sol" } }),
       rawModel({ type: "response.output_text.delta", item_id: "msg_b1", delta: "done" }),
@@ -4372,12 +4391,12 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
 
   it("a message whose round's close was already released keeps its citations on ext.openai.late-citations", () => {
     const ann = [{ type: "url_citation", url: "https://example.com/p", title: "P", start_index: 0, end_index: 2 }];
-    const CITED = { type: "message", id: "msg_n3", role: "assistant", status: "completed", content: [{ type: "output_text", text: "hi", annotations: ann }] };
+    const cited = citedMessage("msg_n3", "hi", ann);
     const { evs, r } = run([
       rawModel({ type: "response.created", response: { id: "resp_n3", model: "gpt-6-sol" } }),
       rawModel({ type: "response.output_text.delta", item_id: "msg_n3", delta: "hi" }),
-      rawModel({ type: "response.completed", response: { id: "resp_n3", status: "completed", output: [CITED], usage: U } }),
-      runItem("message_output_created", { type: "message_output_item", rawItem: CITED }),
+      rawModel({ type: "response.completed", response: { id: "resp_n3", status: "completed", output: [cited.raw], usage: U } }),
+      runItem("message_output_created", { type: "message_output_item", rawItem: cited.converted }),
     ]);
     expect(r.needsResync).toBe(false);
     expect(evs.filter((e) => e.type === "ext.openai.late-citations")).toMatchObject([{ itemId: "msg_n3" }]);
@@ -4424,6 +4443,95 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
       ["tool-result", "mcpr_1:approval-response"],
     ]);
     expect(terminalsOf(invoke2, "turn_resume_mcpr_1:approval-response")).toMatchObject([{ type: "turn.done", outcome: { type: "success" } }]);
+    for (const id of ["mcpr_1:approval-response", "mcpr_2:approval-response"]) {
+      expect(invoke2.find((e) => e.type === "tool.done" && Reflect.get(e, "toolCallId") === id)).toMatchObject({ turnId: "turn_resume_mcpr_1:approval-response" });
+    }
+  });
+
+  it("in the order the SDK streams it, each answer's url citations land on its own message's text block, in their wire order", () => {
+    const a1 = { type: "url_citation", url: "https://example.com/1", title: "1", start_index: 0, end_index: 2 };
+    const a2 = { type: "url_citation", url: "https://example.com/2", title: "2", start_index: 3, end_index: 5 };
+    const a3 = { type: "url_citation", url: "https://example.com/3", title: "3", start_index: 0, end_index: 3 };
+    const x = citedMessage("msg_mx", "ab cd", [a1, a2]);
+    const y = citedMessage("msg_my", "efg", [a3]);
+    const { evs, r } = run([
+      rawModel({ type: "response.created", response: { id: "resp_m2", model: "gpt-6-sol" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_mx", delta: "ab cd" }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_my", delta: "efg" }),
+      rawModel({ type: "response.completed", response: { id: "resp_m2", status: "completed", output: [WS, x.raw, y.raw], usage: U } }),
+      calledWs,
+      runItem("message_output_created", { type: "message_output_item", rawItem: x.converted }),
+      runItem("message_output_created", { type: "message_output_item", rawItem: y.converted }),
+    ]);
+    expect(r.needsResync).toBe(false);
+    const end = (id: string) => evs.find((e) => e.type === "text.end" && Reflect.get(e, "id") === id);
+    expect(end("msg_mx")).toMatchObject({ citations: [{ url: "https://example.com/1", citedText: "ab" }, { url: "https://example.com/2", citedText: "cd" }] });
+    expect(end("msg_my")).toMatchObject({ citations: [{ url: "https://example.com/3" }] });
+    expect(Reflect.get(end("msg_my") ?? {}, "citations")).toHaveLength(1);
+  });
+
+  it("in the order the SDK streams it, a held round's url citations ride its text.end, and its other annotations ride ext.openai.late-citations", () => {
+    const url = { type: "url_citation", url: "https://example.com/u", title: "U", start_index: 0, end_index: 4 };
+    const file = { type: "file_citation", file_id: "file_1", filename: "notes.md", index: 2 };
+    const cited = citedMessage("msg_mf", "done", [url, file]);
+    const { evs, r } = run([
+      ...rawRound("resp_mf", [WS, cited.raw], { id: "msg_mf", delta: "done" }),
+      calledWs,
+      runItem("message_output_created", { type: "message_output_item", rawItem: cited.converted }),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(evs.find((e) => e.type === "text.end" && Reflect.get(e, "id") === "msg_mf")).toMatchObject({ citations: [{ url: "https://example.com/u" }] });
+    expect(evs.filter((e) => e.type === "ext.openai.late-citations")).toMatchObject([{ itemId: "msg_mf", annotations: [file] }]);
+  });
+
+  it("a message run-item that lands while its response is open puts its url citations on text.end and its other annotations on ext.openai.late-citations", () => {
+    // A defensive feed (see the leg above on 0.18.0's run-item order).
+    const url = { type: "url_citation", url: "https://example.com/v", title: "V", start_index: 0, end_index: 2 };
+    const file = { type: "file_path", file_id: "file_2", index: 1 };
+    const cited = citedMessage("msg_lv", "ok", [url, file]);
+    const { evs } = run([
+      rawModel({ type: "response.created", response: { id: "resp_lv2", model: "gpt-6-sol" } }),
+      rawModel({ type: "response.output_text.delta", item_id: "msg_lv", delta: "ok" }),
+      runItem("message_output_created", { type: "message_output_item", rawItem: cited.converted }),
+      rawModel({ type: "response.completed", response: { id: "resp_lv2", status: "completed", output: [cited.raw], usage: U } }),
+    ]);
+    const endIdx = idx(evs, "text.end", "id", "msg_lv");
+    expect(evs[endIdx]).toMatchObject({ citations: [{ url: "https://example.com/v" }] });
+    const ext = evs.findIndex((e) => e.type === "ext.openai.late-citations");
+    expect(evs[ext]).toMatchObject({ itemId: "msg_lv", annotations: [file] });
+    expect(ext).toBeGreaterThan(endIdx);
+  });
+
+  it("at flush, a held content_filter round that lists a built-in call closes with its own error turn.done, not turn.abort", () => {
+    const { evs } = run([
+      rawModel({ type: "response.created", response: { id: "resp_cf", model: "gpt-6-sol" } }),
+      rawModel({ type: "response.incomplete", response: { id: "resp_cf", status: "incomplete", incomplete_details: { reason: "content_filter" }, output: [WS], usage: U } }),
+    ]);
+    expect(terminalsOf(evs, "turn_resp_cf")).toMatchObject([
+      { type: "turn.done", outcome: { type: "error" }, finishReason: "safety_blocked", safety: [{ category: "content_filter", blocked: true }] },
+    ]);
+  });
+
+  it("in the order the SDK streams it, on a resume that also approved a function call, the function's result leads and opens turn_resume_<its callId>, the answer joins it, and the resumed response keeps its model", () => {
+    const n = createOpenaiNormalizer({ invokeId: "inv2" });
+    const evs = [
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "function_call_result", name: "lookup", callId: "call_x1", status: "completed", output: "found" },
+        output: "found",
+      }),
+      answer("mcpr_x1", true),
+      ...rawRound("resp_x2", [MCP]),
+      calledMcp,
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    const r = new Reducer();
+    for (const ev of evs) r.push(ev);
+    expect(r.needsResync).toBe(false);
+    expect(turnIds(evs)).toEqual(["turn_resume_call_x1"]);
+    expect(evs.find((e) => e.type === "message.start" && Reflect.get(e, "id") === "mcpr_x1:approval-response:call")).toMatchObject({ turnId: "turn_resume_call_x1" });
+    expect(evs.find((e) => e.type === "message.start" && Reflect.get(e, "id") === "msg_turn_resume_call_x1")).toMatchObject({ model: "gpt-6-sol" });
   });
 
   it("a late hosted call streamed after the same round's handoff_requested closes in its own round, not the transfer's nested turn", () => {
@@ -4509,7 +4617,13 @@ describe("createOpenaiNormalizer — hosted call inputs and results", () => {
     });
     const execError = { type: "mcp_tool_execution_error", content: [{ type: "text", text: "bad arguments" }] };
     const errored = hostedRound({ ...MCP_RAW, error: execError }, mcpItem({ error: execError, output: null }));
-    expect(first(errored, "tool.done")).toMatchObject({ outcome: "error", isError: true, errorCode: "mcp_tool_execution_error", errorText: JSON.stringify(execError) });
+    expect(first(errored, "tool.done")).toMatchObject({
+      outcome: "error",
+      isError: true,
+      errorCode: "mcp_tool_execution_error",
+      errorText: JSON.stringify(execError),
+      providerMetadata: { error: execError },
+    });
     const statusOnly = hostedRound({ ...MCP_RAW, status: "failed" }, mcpItem({ status: "failed", output: null }));
     expect(first(statusOnly, "tool.done")).toMatchObject({ outcome: "error", isError: true });
   });
@@ -4526,6 +4640,8 @@ describe("createOpenaiNormalizer — hosted call inputs and results", () => {
       outcome: "ok",
       content: [{ type: "data", name: "web_search_sources", data: [{ type: "url", url: "https://example.com/w" }] }],
     });
+    // A web search's own fields are args and result, never tool.done providerMetadata.
+    expect(first(evs, "tool.done")).not.toHaveProperty("providerMetadata");
   });
 
   it("a hosted call whose native status is incomplete closes with outcome error, as an incomplete shell or function result does", () => {
@@ -4544,6 +4660,37 @@ describe("createOpenaiNormalizer — hosted call inputs and results", () => {
       { type: "hosted_tool_call", id: "ws_2", name: "web_search_call", status: "failed", providerData: { type: "web_search_call", id: "ws_2", action: { type: "search", query: "x" } } },
     );
     expect(first(evs, "tool.done")).toMatchObject({ outcome: "error", isError: true });
+  });
+
+  it("an mcp_list_tools string error closes with outcome error and that string as errorText alone", () => {
+    const evs = hostedRound(
+      { type: "mcp_list_tools", id: "mcpl_2", server_label: "deepwiki", tools: [], error: "listing failed" },
+      { type: "hosted_tool_call", id: "mcpl_2", name: "mcp_list_tools", status: "completed", providerData: { type: "mcp_list_tools", id: "mcpl_2", server_label: "deepwiki", tools: [], error: "listing failed" } },
+    );
+    const done = first(evs, "tool.done");
+    expect(done).toMatchObject({ outcome: "error", isError: true, errorText: "listing failed" });
+    expect(done).not.toHaveProperty("errorCode");
+    expect(done).not.toHaveProperty("providerMetadata");
+  });
+
+  it("a hosted call with a non-terminal status closes ok and carries that status as tool.done providerMetadata.status", () => {
+    const evs = hostedRound(
+      { type: "code_interpreter_call", id: "ci_9", status: "interpreting", code: "1", container_id: "cntr_9", outputs: null },
+      { type: "hosted_tool_call", id: "ci_9", name: "code_interpreter_call", status: "interpreting", providerData: { type: "code_interpreter_call", id: "ci_9", code: "1", container_id: "cntr_9", outputs: null } },
+    );
+    expect(first(evs, "tool.done")).toMatchObject({ outcome: "ok", providerMetadata: { status: "interpreting" } });
+  });
+
+  it("an image_generation result's output_format decides its media type and rides tool.done providerMetadata", () => {
+    const webp = "UklGRlYAAABXRUJQVlA4";
+    const evs = hostedRound(
+      { type: "image_generation_call", id: "ig_2", status: "completed", result: webp, output_format: "webp" },
+      { type: "hosted_tool_call", id: "ig_2", name: "image_generation_call", status: "completed", output: webp, providerData: { type: "image_generation_call", id: "ig_2", output_format: "webp" } },
+    );
+    expect(first(evs, "tool.done")).toMatchObject({
+      content: [{ type: "file", source: { type: "base64", mediaType: "image/webp", data: webp } }],
+      providerMetadata: { output_format: "webp" },
+    });
   });
 
   it("an image_generation result lands as a file block, not text", () => {

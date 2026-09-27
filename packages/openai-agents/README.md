@@ -203,17 +203,15 @@ turn of the model round that produced it:
 - A round whose final `response.output` lists a built-in call holds its
   `message.end` and `turn.done` until each listed call's run-item, and any
   result the call waits for, has arrived. It also waits for its messages'
-  `message_output_created`, so an answer's `url_citation` annotations land as
-  `citations` on its text block. (A message that arrives while any round's
-  close is held, for a tool result too, gets the same; one that arrives after
-  its round closed carries them as `ext.openai.late-citations`.)
+  `message_output_created`.
 - The next `response.created` releases a round that still waits only on calls
   whose run-item, or an approval request's ask or answer, never arrived, so
   the next round keeps its own turn.
-- A last round still waiting only on a call whose run-item never arrived
-  closes with `turn.abort` (`stream-truncated`). A round waiting on a pending
-  result closes as INV-FLUSH (2) directs: `paused` when an approval ask names
-  the pending call.
+- At flush, a round still held closes as INV-FLUSH (2) directs:
+  - `paused` when an approval ask names a pending call of the round;
+  - its own outcome when that is not `success` (a `content_filter` round);
+  - otherwise `turn.abort` (`stream-truncated`), whether it waits on a
+    run-item that never arrived or on a pending result.
 
 A hosted call, which the provider runs, emits `tool.start` with
 `providerExecuted: true`, and its `tool.done` from its one run-item:
@@ -229,18 +227,32 @@ A hosted call, which the provider runs, emits `tool.start` with
   generation result lands as a `file` block, and its own fields (such as
   `revised_prompt`, `size` and `quality`) ride `tool.done.providerMetadata`.
 - A call whose status is `failed` or `incomplete`, or which carries an
-  `error`, closes with `outcome: "error"`. When it carries an `error`, the
-  error's message is `errorText`, its type is `errorCode`, and the error
-  itself rides `tool.done.providerMetadata.error`.
+  `error` (even with a `completed` status), closes with `outcome: "error"`.
+  Any other status closes `ok`. A status other than `completed` rides
+  `tool.done.providerMetadata.status`.
+- An `mcp_call`'s `error` is an object: its message (else the object as
+  JSON) is `errorText`, its type is `errorCode`, and the object, its numeric
+  `code` included, rides `tool.done.providerMetadata.error`. A string error
+  (an `mcp_list_tools` failure) is `errorText` alone.
 
-A hosted MCP approval request's ask lands inside the round, as
-`hitl.ask` with `askId` `approval_<request id>` and `toolCallId` the request
-id. An approval's answer (`mcp_approval_response`) has no id of its own, and
-its call gets `<request id>:approval-response`. On a resumed invoke, the
-answers arrive before any model round. The first opens the invoke's turn,
-`turn_resume_<answer id>`, as a resumed tool result does, and each answer's
-call sits in an assistant message of its own, `<answer id>:call`. The
-resumed response then opens its message in that turn with its model.
+A message's output_text annotations arrive in its `message_output_created`,
+under the part's `providerData`. While its round's close is held, a
+`url_citation` lands as `citations` on the message's text block, and any
+other annotation (such as a `file_citation`) rides
+`ext.openai.late-citations`. A message that arrives after its round closed
+carries all its annotations on `ext.openai.late-citations`.
+
+A hosted MCP approval request's ask lands inside the round, as `hitl.ask`
+with `askId` `approval_<request id>` and `toolCallId` the request id. An
+approval's answer (`mcp_approval_response`) has no id of its own; its call
+gets `<request id>:approval-response`, and agents-core answers each request
+once. On a resumed invoke, the items that answer the paused round arrive
+before any model round. The SDK streams an approved call's tool result
+before any hosted answer. The invoke's first leading item, a tool result or
+an answer, opens `turn_resume_<its toolCallId>`, and later ones join that
+turn. Each answer's call sits in an assistant message of its own,
+`<request id>:approval-response:call`, and the resumed response then opens
+`msg_<that turn>` there with its model.
 
 Current limits:
 - A hosted MCP approval request closes at once, like any hosted call, so a
