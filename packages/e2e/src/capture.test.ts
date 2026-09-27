@@ -500,6 +500,22 @@ describe("runCapture", () => {
     expect(seen).toEqual([settings, "absent"]);
   });
 
+  it("forwards scenario.adkStreamingMode, and sets no key when the scenario has none", async () => {
+    const seen: unknown[] = [];
+    const deps: CaptureDeps = {
+      async *runAgentCapture(input) {
+        seen.push("adkStreamingMode" in input ? input.adkStreamingMode : "absent");
+        yield* fakeNativeNoTools();
+      },
+      serveMock,
+      createNormalizer: createClaudeNormalizer,
+      census,
+    };
+    await runCapture(Scenario.parse({ name: "sse-run", prompt: "x", adkStreamingMode: "sse" }), deps, { ports: [], framework: "claude" });
+    await runCapture(Scenario.parse({ name: "text-only", prompt: "x" }), deps, { ports: [], framework: "claude" });
+    expect(seen).toEqual(["sse", "absent"]);
+  });
+
   it("forwards scenario.adkStateScript and records the session state the agent reports via onSessionState", async () => {
     const script = [{ cfg: { a: 1, b: 2 }, "temp:scratch": "x" }, { cfg: { a: 5 } }];
     let seenScript: unknown;

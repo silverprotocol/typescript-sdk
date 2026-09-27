@@ -47,6 +47,11 @@ export const ADK_HARM_BLOCK_THRESHOLDS = [
   "OFF",
 ] as const;
 
+/** The @google/adk StreamingMode values (2.1.0) a runAsync capture can use.
+ *  "bidi" is left out on purpose: bidi runs go through the Live capture
+ *  (the adkLive knob). scenario.adk-enums.test.ts pins this list to ADK's enum. */
+export const ADK_RUNASYNC_STREAMING_MODES = ["none", "sse"] as const;
+
 export const Scenario = z.object({
   name: z.string(),
   prompt: z.string(),
@@ -173,6 +178,12 @@ export const Scenario = z.object({
     .array(z.object({ category: z.enum(ADK_HARM_CATEGORIES), threshold: z.enum(ADK_HARM_BLOCK_THRESHOLDS) }))
     .min(1)
     .optional(),
+  // Streaming knob (google-adk only, 2026-09-27): runAsync's
+  // RunConfig.streamingMode. "sse" sends each model call through ADK's own
+  // StreamingResponseAggregator (partial events, then the aggregated close),
+  // as a production SSE host runs it. It applies to runAsync captures only; a
+  // Live capture (adkLive) streams by construction. Absent: no streamingMode key.
+  adkStreamingMode: z.enum(ADK_RUNASYNC_STREAMING_MODES).optional(),
   // Subagent knob (claude-agent-sdk only; the nested-turn package's capture ask,
   // 2026-09-24). Each entry is a programmatic subagent the agent passes as the
   // query's options.agents, with the built-in Agent tool enabled and

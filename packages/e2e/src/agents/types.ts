@@ -16,6 +16,7 @@
  */
 import type { JsonValue } from "@silverprotocol/core";
 import type { HarmBlockThreshold, HarmCategory } from "@google/genai";
+import type { StreamingMode } from "@google/adk";
 
 export interface CaptureRunInput {
   /** The user prompt to run. */
@@ -105,6 +106,9 @@ export interface CaptureRunInput {
   /** google-adk only: genai safety settings for the LlmAgent's
    *  generateContentConfig.safetySettings (scenario.ts adkSafetySettings). */
   adkSafetySettings?: ReadonlyArray<{ readonly category: HarmCategory; readonly threshold: HarmBlockThreshold }>;
+  /** google-adk only: runAsync's RunConfig.streamingMode (scenario.ts
+   *  adkStreamingMode); the values are ADK's StreamingMode strings. */
+  adkStreamingMode?: StreamingMode;
   /** claude-agent-sdk only: programmatic subagents for the query's
    *  options.agents, with the Agent tool enabled and auto-allowed; a
    *  background:true launch keeps the input open until its task_notification

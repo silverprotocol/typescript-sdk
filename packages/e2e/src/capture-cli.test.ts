@@ -676,6 +676,16 @@ describe("adkSafetySettings: the knob guard", () => {
   });
 });
 
+describe("adkStreamingMode: the knob guard", () => {
+  const scenario = Scenario.parse({ name: "sse-run", prompt: "x", adkStreamingMode: "sse" });
+
+  it("passes on an adk agent that exports ADK_STREAMING_MODE, fails without it or off adk", () => {
+    expect(() => assertKnobsHonored(scenario, "adk", { ADK_STREAMING_MODE: "runConfig.streamingMode" })).not.toThrow();
+    expect(() => assertKnobsHonored(scenario, "adk", {})).toThrow(/does not export ADK_STREAMING_MODE/);
+    expect(() => assertKnobsHonored(scenario, "vercel", { ADK_STREAMING_MODE: "x" })).toThrow(/only the adk capture agent honors/);
+  });
+});
+
 describe("claudeSubagents and openaiHandoff: the knob guards (nested-turn capture ask)", () => {
   const withKnobs = (extra: Record<string, unknown>) => Scenario.parse({ name: "nested-probe", prompt: "x", ...extra });
   const agents = { helper: { description: "echoes", prompt: "Call echo." } };

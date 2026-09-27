@@ -274,7 +274,7 @@ async function freePort(): Promise<number> {
  */
 export const KNOB_SUPPORT: Readonly<
   Record<
-    "preToolUseDecision" | "resumeFrom" | "toolApproval" | "adkWorkflow" | "adkStateScript" | "adkCrossSessionState" | "adkSafetySettings" | "claudeSubagents" | "openaiHandoff" | "openaiHandoffs" | "adkLive",
+    "preToolUseDecision" | "resumeFrom" | "toolApproval" | "adkWorkflow" | "adkStateScript" | "adkCrossSessionState" | "adkSafetySettings" | "adkStreamingMode" | "claudeSubagents" | "openaiHandoff" | "openaiHandoffs" | "adkLive",
     { frameworks: readonly Framework[]; proof?: string | Partial<Record<Framework, string>> }
   >
 > = {
@@ -285,6 +285,7 @@ export const KNOB_SUPPORT: Readonly<
   adkStateScript: { frameworks: ["adk"], proof: "ADK_STATE_TOOL" },
   adkCrossSessionState: { frameworks: ["adk"], proof: "ADK_OTHER_USER_ID" },
   adkSafetySettings: { frameworks: ["adk"], proof: "ADK_SAFETY_SETTINGS" },
+  adkStreamingMode: { frameworks: ["adk"], proof: "ADK_STREAMING_MODE" },
   // The nested-turn capture ask (2026-09-24): each agent proves the knob by
   // exporting the named symbol; until it does, a capture fails loud.
   claudeSubagents: { frameworks: ["claude"], proof: "claudeSubagentOptions" },

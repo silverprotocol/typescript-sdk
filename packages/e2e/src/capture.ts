@@ -184,6 +184,9 @@ export async function runCapture(
       ...(scenario.adkSafetySettings !== undefined
         ? { adkSafetySettings: scenario.adkSafetySettings as unknown as NonNullable<CaptureRunInput["adkSafetySettings"]> }
         : {}),
+      ...(scenario.adkStreamingMode !== undefined
+        ? { adkStreamingMode: scenario.adkStreamingMode as NonNullable<CaptureRunInput["adkStreamingMode"]> }
+        : {}),
       ...(scenario.claudeSubagents !== undefined ? { subagents: scenario.claudeSubagents } : {}),
       ...(scenario.openaiHandoff !== undefined ? { handoff: scenario.openaiHandoff } : {}),
       ...(scenario.openaiHandoffs !== undefined ? { handoffs: scenario.openaiHandoffs } : {}),
