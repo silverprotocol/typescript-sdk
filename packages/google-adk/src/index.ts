@@ -2540,7 +2540,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // per-invoke.
 
     if (!isPartial) trackLongRunning(event, turnId);
-    driveAdkTopLevel(a, event, messageId, turnId, pendingAsks, reserved, streamedTranscription, closedTurns.has(turnId)); // standalone/content arms (Tasks 4–5)
+    driveAdkTopLevel(a, event, messageId, turnId, pendingAsks, reserved, streamedTranscription, closedTurns.has(turnId)); // standalone and content arms
     // A turn gets ONE terminal: an interrupt on a turn that already closed
     // (a second barge-in, or one after a success close) adds none.
     if (event.interrupted === true && !closedTurns.has(turnId)) interruptPending.add(turnId);
