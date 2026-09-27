@@ -1,0 +1,25 @@
+{
+ "leg": "relay-status-text-then-stream-parallel",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "the status-then-stream relay under a ParallelAgent (it has a branch)",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|par.helper||status",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Looking that up. "
+   },
+   {
+    "source": "helper|par.helper||a1",
+    "call": "helper#0",
+    "seg": 1,
+    "text": "Hello"
+   }
+  ]
+ },
+ "calls": []
+}

@@ -1,0 +1,103 @@
+[
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "76977aff-9c43-4bf1-9538-a4fd13631ad4",
+   "a2a:context_id": "a02d9e44-0554-451f-b787-d0dfaf4d05c3"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "UibQcTPD",
+  "invocationId": "e-726dbb5d-6835-4b44-9708-e43938077ca4",
+  "longRunningToolIds": [],
+  "timestamp": 1790554122253,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "76977aff-9c43-4bf1-9538-a4fd13631ad4",
+   "a2a:context_id": "a02d9e44-0554-451f-b787-d0dfaf4d05c3"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "NvdKZaVa",
+  "invocationId": "e-726dbb5d-6835-4b44-9708-e43938077ca4",
+  "longRunningToolIds": [],
+  "timestamp": 1790554122276,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "invocationId": "e-726dbb5d-6835-4b44-9708-e43938077ca4",
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello"
+    }
+   ]
+  },
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "76977aff-9c43-4bf1-9538-a4fd13631ad4",
+   "a2a:context_id": "a02d9e44-0554-451f-b787-d0dfaf4d05c3"
+  },
+  "turnComplete": false,
+  "partial": false,
+  "id": "ngiq50uO",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122276
+ }
+]

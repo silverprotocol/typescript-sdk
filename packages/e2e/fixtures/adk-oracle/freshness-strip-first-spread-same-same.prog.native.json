@@ -1,0 +1,115 @@
+[
+ {
+  "invocationId": "e-faf16d2f-6390-4b48-adb5-d9bbba9e0657",
+  "author": "worker",
+  "id": "aHF17vvv",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121731,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Sa"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-faf16d2f-6390-4b48-adb5-d9bbba9e0657",
+  "author": "worker",
+  "id": "RspMJ4RL",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121731,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "me"
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": true
+ },
+ {
+  "invocationId": "e-faf16d2f-6390-4b48-adb5-d9bbba9e0657",
+  "author": "worker",
+  "id": "tJMyMnrG",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121731,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Sa"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-faf16d2f-6390-4b48-adb5-d9bbba9e0657",
+  "author": "worker",
+  "id": "czBY9AJD",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121731,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "me"
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": true
+ },
+ {
+  "invocationId": "e-faf16d2f-6390-4b48-adb5-d9bbba9e0657",
+  "author": "worker",
+  "id": "yhGX2tdr",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121731,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Same"
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": false
+ }
+]

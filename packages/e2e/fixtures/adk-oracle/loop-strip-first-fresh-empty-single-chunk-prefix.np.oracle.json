@@ -1,0 +1,57 @@
+{
+ "leg": "loop-strip-first-fresh-empty-single-chunk-prefix",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "the first final removed; the second pass answers a prefix in one chunk",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "worker||",
+    "call": 0,
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "worker||",
+    "call": 1,
+    "seg": 0,
+    "text": "Hel"
+   }
+  ],
+  "callback": [
+   {
+    "source": "worker||",
+    "call": 1,
+    "seg": 0,
+    "text": "Hel"
+   }
+  ]
+ },
+ "stripped": [
+  0
+ ],
+ "calls": [
+  {
+   "call": 0,
+   "agent": "worker",
+   "source": "worker||",
+   "firstNative": 0,
+   "segments": [
+    "Hello"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "worker",
+   "source": "worker||",
+   "firstNative": 2,
+   "segments": [
+    "Hel"
+   ],
+   "threw": false
+  }
+ ]
+}

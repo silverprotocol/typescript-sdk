@@ -1,0 +1,208 @@
+[
+ {
+  "invocationId": "e-3daebfb1-39bc-4423-ab4d-f14a576d7af8",
+  "author": "assistant",
+  "id": "Eg5X1yK6",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119531,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "And "
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-3daebfb1-39bc-4423-ab4d-f14a576d7af8",
+  "author": "assistant",
+  "id": "Kj2R4Mo8",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119532,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "so"
+    },
+    {
+     "functionCall": {
+      "name": "lookup",
+      "args": {},
+      "id": "adk-09c7cc00-8483-4f09-b745-bd288467bf64"
+     }
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-3daebfb1-39bc-4423-ab4d-f14a576d7af8",
+  "author": "assistant",
+  "content": {
+   "role": "user",
+   "parts": [
+    {
+     "functionResponse": {
+      "id": "adk-09c7cc00-8483-4f09-b745-bd288467bf64",
+      "name": "lookup",
+      "response": {
+       "ok": true
+      }
+     }
+    }
+   ]
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "afEBLZg6",
+  "longRunningToolIds": [],
+  "timestamp": 1790554119532
+ },
+ {
+  "invocationId": "e-3daebfb1-39bc-4423-ab4d-f14a576d7af8",
+  "author": "assistant",
+  "id": "SNysepGq",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119532,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "then"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-3daebfb1-39bc-4423-ab4d-f14a576d7af8",
+  "author": "assistant",
+  "id": "ncLUJeQZ",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119532,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "And so"
+    },
+    {
+     "functionCall": {
+      "name": "lookup",
+      "args": {},
+      "id": "adk-09c7cc00-8483-4f09-b745-bd288467bf64"
+     }
+    },
+    {
+     "text": "then"
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": false
+ },
+ {
+  "invocationId": "e-3daebfb1-39bc-4423-ab4d-f14a576d7af8",
+  "author": "assistant",
+  "content": {
+   "role": "user",
+   "parts": [
+    {
+     "functionResponse": {
+      "id": "adk-09c7cc00-8483-4f09-b745-bd288467bf64",
+      "name": "lookup",
+      "response": {
+       "ok": true
+      }
+     }
+    }
+   ]
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "G4JDk7VQ",
+  "longRunningToolIds": [],
+  "timestamp": 1790554119532
+ },
+ {
+  "invocationId": "e-3daebfb1-39bc-4423-ab4d-f14a576d7af8",
+  "author": "assistant",
+  "id": "AJw9zv5U",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119532,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "done"
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": true
+ },
+ {
+  "invocationId": "e-3daebfb1-39bc-4423-ab4d-f14a576d7af8",
+  "author": "assistant",
+  "id": "slqv04Om",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119532,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "done"
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": false
+ }
+]

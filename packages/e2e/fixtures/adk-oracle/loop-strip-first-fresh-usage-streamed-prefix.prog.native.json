@@ -1,0 +1,110 @@
+[
+ {
+  "invocationId": "e-ad2844ac-9c4b-4ff9-bb43-72b9906090a2",
+  "author": "a1",
+  "id": "WxTb8Rxp",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121919,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-ad2844ac-9c4b-4ff9-bb43-72b9906090a2",
+  "author": "a1",
+  "id": "DTCapleR",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121919,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo"
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": true
+ },
+ {
+  "invocationId": "e-ad2844ac-9c4b-4ff9-bb43-72b9906090a2",
+  "author": "a1",
+  "id": "c64m9WuU",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121919,
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  }
+ },
+ {
+  "invocationId": "e-ad2844ac-9c4b-4ff9-bb43-72b9906090a2",
+  "author": "a1",
+  "id": "nwBaO3Ky",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121919,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-ad2844ac-9c4b-4ff9-bb43-72b9906090a2",
+  "author": "a1",
+  "id": "eux8qge7",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121919,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": false
+ }
+]

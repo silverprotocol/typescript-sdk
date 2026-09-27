@@ -1,0 +1,30 @@
+{
+ "leg": "usage-only-tail",
+ "mode": "none",
+ "hcOnly": false,
+ "threw": null,
+ "note": "text, STOP, then a usage-only chunk",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "assistant||",
+    "call": 0,
+    "seg": 0,
+    "text": "Hello"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "assistant",
+   "source": "assistant||",
+   "firstNative": 0,
+   "segments": [
+    "Hello"
+   ],
+   "threw": false
+  }
+ ]
+}

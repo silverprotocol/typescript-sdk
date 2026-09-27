@@ -1,0 +1,122 @@
+[
+ {
+  "invocationId": "e-51e72fa2-8af1-40ba-9575-8fadab54eaa7",
+  "author": "spike",
+  "id": "Ec6snSsN",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554126245,
+  "liveSessionResumptionUpdate": {
+   "newHandle": "<redacted>",
+   "resumable": true
+  }
+ },
+ {
+  "invocationId": "e-51e72fa2-8af1-40ba-9575-8fadab54eaa7",
+  "author": "spike",
+  "id": "v8ZXhpiM",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554126245,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "modelVersion": "gemini-live-2.5-flash-preview",
+  "partial": true
+ },
+ {
+  "invocationId": "e-51e72fa2-8af1-40ba-9575-8fadab54eaa7",
+  "author": "spike",
+  "id": "F0EfgoZV",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554126245,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo"
+    }
+   ]
+  },
+  "modelVersion": "gemini-live-2.5-flash-preview",
+  "partial": true
+ },
+ {
+  "invocationId": "e-51e72fa2-8af1-40ba-9575-8fadab54eaa7",
+  "author": "spike",
+  "id": "ZPMcw8et",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554126245,
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "responseTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "modelVersion": "gemini-live-2.5-flash-preview"
+ },
+ {
+  "invocationId": "e-51e72fa2-8af1-40ba-9575-8fadab54eaa7",
+  "author": "spike",
+  "id": "kDaCgJAp",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554126245,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello"
+    }
+   ]
+  },
+  "partial": false,
+  "modelVersion": "gemini-live-2.5-flash-preview"
+ },
+ {
+  "invocationId": "e-51e72fa2-8af1-40ba-9575-8fadab54eaa7",
+  "author": "spike",
+  "id": "CpLMURCr",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554126245,
+  "turnComplete": true,
+  "modelVersion": "gemini-live-2.5-flash-preview"
+ }
+]

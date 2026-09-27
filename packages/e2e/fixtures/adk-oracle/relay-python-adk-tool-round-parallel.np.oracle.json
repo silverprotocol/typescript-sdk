@@ -1,0 +1,25 @@
+{
+ "leg": "relay-python-adk-tool-round-parallel",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "the Python tool-round relay under a ParallelAgent",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|par.helper||status",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Let me check the rates. "
+   },
+   {
+    "source": "helper|par.helper||status",
+    "call": "helper#0",
+    "seg": 1,
+    "text": "1 USD = 0.92 EUR."
+   }
+  ]
+ },
+ "calls": []
+}

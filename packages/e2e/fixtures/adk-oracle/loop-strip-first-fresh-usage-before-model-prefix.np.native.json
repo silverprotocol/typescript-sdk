@@ -1,0 +1,86 @@
+[
+ {
+  "invocationId": "e-4845dc9b-2ed0-407a-936d-be6af768c97e",
+  "author": "a1",
+  "id": "QkP93Qqp",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121738,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-4845dc9b-2ed0-407a-936d-be6af768c97e",
+  "author": "a1",
+  "id": "zUMIXaZV",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121738,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo"
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": true
+ },
+ {
+  "invocationId": "e-4845dc9b-2ed0-407a-936d-be6af768c97e",
+  "author": "a1",
+  "id": "8rPcoKwu",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121738,
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  }
+ },
+ {
+  "invocationId": "e-4845dc9b-2ed0-407a-936d-be6af768c97e",
+  "author": "a1",
+  "id": "bM0hAenq",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121738,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  }
+ }
+]

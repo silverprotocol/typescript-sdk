@@ -1,0 +1,44 @@
+{
+ "leg": "set-model-response",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "an output schema answered through set_model_response; ADK rewrites the set_model_response call into the JSON answer text",
+ "expected": "callback",
+ "readings": {
+  "raw": [
+   {
+    "source": "assistant||",
+    "call": 0,
+    "seg": 0,
+    "text": "Sure. "
+   }
+  ],
+  "callback": [
+   {
+    "source": "assistant||",
+    "call": 0,
+    "seg": 0,
+    "text": "Sure. "
+   },
+   {
+    "source": "assistant||",
+    "call": "set_model_response",
+    "seg": 1,
+    "text": "{\"answer\":\"x\"}"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "assistant",
+   "source": "assistant||",
+   "firstNative": 0,
+   "segments": [
+    "Sure. "
+   ],
+   "threw": false
+  }
+ ]
+}

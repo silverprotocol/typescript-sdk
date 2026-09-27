@@ -1,0 +1,78 @@
+{
+ "leg": "nodetool-retry",
+ "mode": "prog",
+ "hcOnly": false,
+ "threw": null,
+ "note": "a NodeTool's inner agent is blocked, then retried",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "inner|inner@adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0|inner",
+    "call": 2,
+    "seg": 0,
+    "text": "Sunny"
+   },
+   {
+    "source": "inner|inner@adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0|inner",
+    "call": 3,
+    "seg": 0,
+    "text": "Sunny"
+   },
+   {
+    "source": "outer||",
+    "call": 4,
+    "seg": 0,
+    "text": "It is sunny"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "outer",
+   "source": "outer||",
+   "firstNative": 0,
+   "segments": [],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "inner",
+   "source": "inner|inner@adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0|inner",
+   "firstNative": 1,
+   "segments": [],
+   "threw": false
+  },
+  {
+   "call": 2,
+   "agent": "inner",
+   "source": "inner|inner@adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0|inner",
+   "firstNative": 3,
+   "segments": [
+    "Sunny"
+   ],
+   "threw": false
+  },
+  {
+   "call": 3,
+   "agent": "inner",
+   "source": "inner|inner@adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0|inner",
+   "firstNative": 8,
+   "segments": [
+    "Sunny"
+   ],
+   "threw": false
+  },
+  {
+   "call": 4,
+   "agent": "outer",
+   "source": "outer||",
+   "firstNative": 12,
+   "segments": [
+    "It is sunny"
+   ],
+   "threw": false
+  }
+ ]
+}

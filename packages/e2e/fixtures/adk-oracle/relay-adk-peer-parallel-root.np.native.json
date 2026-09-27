@@ -1,0 +1,216 @@
+[
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "40f8ad2c-0b86-4320-b5d5-a47a40c4a4f3"
+    }
+   },
+   "a2a:task_id": "3f147c7e-a9ca-4cbb-a572-0d4fba1c3236",
+   "a2a:context_id": "d7645b73-ffed-4a47-97a2-fa8dd7fde20b"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "l102N1AD",
+  "invocationId": "e-9462979d-9291-4713-891e-5ef21c93c986",
+  "longRunningToolIds": [],
+  "timestamp": 1790554125604,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Al",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "67ad2b0e-96d1-4843-91fb-62ce10036655"
+    }
+   },
+   "a2a:task_id": "3f147c7e-a9ca-4cbb-a572-0d4fba1c3236",
+   "a2a:context_id": "d7645b73-ffed-4a47-97a2-fa8dd7fde20b"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "dkjXRK3w",
+  "invocationId": "e-9462979d-9291-4713-891e-5ef21c93c986",
+  "longRunningToolIds": [],
+  "timestamp": 1790554125604,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Be",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "40f8ad2c-0b86-4320-b5d5-a47a40c4a4f3"
+    }
+   },
+   "a2a:task_id": "3f147c7e-a9ca-4cbb-a572-0d4fba1c3236",
+   "a2a:context_id": "d7645b73-ffed-4a47-97a2-fa8dd7fde20b"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "1EZJzY36",
+  "invocationId": "e-9462979d-9291-4713-891e-5ef21c93c986",
+  "longRunningToolIds": [],
+  "timestamp": 1790554125604,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "pha",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "67ad2b0e-96d1-4843-91fb-62ce10036655"
+    }
+   },
+   "a2a:task_id": "3f147c7e-a9ca-4cbb-a572-0d4fba1c3236",
+   "a2a:context_id": "d7645b73-ffed-4a47-97a2-fa8dd7fde20b"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "J1HN4pRa",
+  "invocationId": "e-9462979d-9291-4713-891e-5ef21c93c986",
+  "longRunningToolIds": [],
+  "timestamp": 1790554125604,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "ta",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "partial": false,
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "40f8ad2c-0b86-4320-b5d5-a47a40c4a4f3"
+    }
+   },
+   "a2a:task_id": "3f147c7e-a9ca-4cbb-a572-0d4fba1c3236",
+   "a2a:context_id": "d7645b73-ffed-4a47-97a2-fa8dd7fde20b"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "MONBinGd",
+  "invocationId": "e-9462979d-9291-4713-891e-5ef21c93c986",
+  "longRunningToolIds": [],
+  "timestamp": 1790554125604,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Alpha",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "partial": false,
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "67ad2b0e-96d1-4843-91fb-62ce10036655"
+    }
+   },
+   "a2a:task_id": "3f147c7e-a9ca-4cbb-a572-0d4fba1c3236",
+   "a2a:context_id": "d7645b73-ffed-4a47-97a2-fa8dd7fde20b"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "DI9S22LZ",
+  "invocationId": "e-9462979d-9291-4713-891e-5ef21c93c986",
+  "longRunningToolIds": [],
+  "timestamp": 1790554125604,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Beta",
+     "thought": false
+    }
+   ]
+  }
+ }
+]

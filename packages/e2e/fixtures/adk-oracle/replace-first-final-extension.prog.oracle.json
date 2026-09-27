@@ -1,0 +1,60 @@
+{
+ "leg": "replace-first-final-extension",
+ "mode": "prog",
+ "hcOnly": true,
+ "threw": null,
+ "note": "the first final is replaced by an extension of its stream",
+ "expected": "callback",
+ "readings": {
+  "raw": [
+   {
+    "source": "worker||",
+    "call": 0,
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "worker||",
+    "call": 1,
+    "seg": 0,
+    "text": "Hi there"
+   }
+  ],
+  "callback": [
+   {
+    "source": "worker||",
+    "call": 0,
+    "seg": 0,
+    "text": "Hello world"
+   },
+   {
+    "source": "worker||",
+    "call": 1,
+    "seg": 0,
+    "text": "Hi there"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "worker",
+   "source": "worker||",
+   "firstNative": 0,
+   "segments": [
+    "Hello"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "worker",
+   "source": "worker||",
+   "firstNative": 3,
+   "segments": [
+    "Hi there"
+   ],
+   "threw": false
+  }
+ ]
+}

@@ -1,0 +1,31 @@
+{
+ "leg": "relay-status-between-chunks",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "a working status with text between the artifact's chunks",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|||a1",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Hel"
+   },
+   {
+    "source": "helper|||status",
+    "call": "helper#0",
+    "seg": 1,
+    "text": " (still working) "
+   },
+   {
+    "source": "helper|||a1",
+    "call": "helper#0",
+    "seg": 2,
+    "text": "lo"
+   }
+  ]
+ },
+ "calls": []
+}

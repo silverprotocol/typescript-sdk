@@ -1,0 +1,67 @@
+[
+ {
+  "invocationId": "e-58a77248-f21b-4914-ab8d-6a9e5a47f151",
+  "author": "assistant",
+  "id": "0YYUZVRw",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122207,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-58a77248-f21b-4914-ab8d-6a9e5a47f151",
+  "author": "assistant",
+  "id": "TxPp3qdJ",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122207,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-58a77248-f21b-4914-ab8d-6a9e5a47f151",
+  "author": "assistant",
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Appended note."
+    }
+   ]
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "p1M2mBPa",
+  "longRunningToolIds": [],
+  "timestamp": 1790554122207
+ }
+]

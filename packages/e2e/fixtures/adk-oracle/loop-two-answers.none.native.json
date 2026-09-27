@@ -1,0 +1,56 @@
+[
+ {
+  "invocationId": "e-9c05ab83-54a7-47a3-967e-cbaf611e2a34",
+  "author": "worker",
+  "id": "kA49aL82",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119569,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP"
+ },
+ {
+  "invocationId": "e-9c05ab83-54a7-47a3-967e-cbaf611e2a34",
+  "author": "worker",
+  "id": "br8psh0Y",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119569,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hi there"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP"
+ }
+]

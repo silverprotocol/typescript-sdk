@@ -1,0 +1,25 @@
+{
+ "leg": "relay-python-adk-two-texts",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "Python ADK's legacy executor: two text events",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|||status",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Research notes: rates are stable. "
+   },
+   {
+    "source": "helper|||status",
+    "call": "helper#0",
+    "seg": 1,
+    "text": "1 USD = 0.92 EUR."
+   }
+  ]
+ },
+ "calls": []
+}

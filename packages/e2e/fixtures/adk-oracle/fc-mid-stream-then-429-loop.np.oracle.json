@@ -1,0 +1,62 @@
+{
+ "leg": "fc-mid-stream-then-429-loop",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "text and a function call, then the stream throws a 429; the loop's next pass streams",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "a1||",
+    "call": 0,
+    "seg": 0,
+    "text": "Let me check"
+   },
+   {
+    "source": "a1||",
+    "call": 1,
+    "seg": 0,
+    "text": "Hi there"
+   },
+   {
+    "source": "a1||",
+    "call": 2,
+    "seg": 0,
+    "text": "unused"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "a1",
+   "source": "a1||",
+   "firstNative": 0,
+   "segments": [
+    "Let me check"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "a1",
+   "source": "a1||",
+   "firstNative": 5,
+   "segments": [
+    "Hi there"
+   ],
+   "threw": false
+  },
+  {
+   "call": 2,
+   "agent": "a1",
+   "source": "a1||",
+   "firstNative": 8,
+   "segments": [
+    "unused"
+   ],
+   "threw": false
+  }
+ ]
+}

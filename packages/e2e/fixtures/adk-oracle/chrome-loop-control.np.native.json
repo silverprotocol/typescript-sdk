@@ -1,0 +1,134 @@
+[
+ {
+  "invocationId": "e-86f3d52e-e40a-4b22-874d-0c0e5679492a",
+  "author": "assistant",
+  "id": "aekIE2BF",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122197,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-86f3d52e-e40a-4b22-874d-0c0e5679492a",
+  "author": "assistant",
+  "id": "O8hpkibe",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122197,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-86f3d52e-e40a-4b22-874d-0c0e5679492a",
+  "author": "assistant",
+  "id": "KYukaJwp",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122197,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello"
+    }
+   ]
+  },
+  "turnComplete": true
+ },
+ {
+  "invocationId": "e-86f3d52e-e40a-4b22-874d-0c0e5679492a",
+  "author": "assistant",
+  "id": "XIGb0Ram",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122198,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hi "
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-86f3d52e-e40a-4b22-874d-0c0e5679492a",
+  "author": "assistant",
+  "id": "KHXlE9hY",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122198,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "there"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-86f3d52e-e40a-4b22-874d-0c0e5679492a",
+  "author": "assistant",
+  "id": "xIX9HpN6",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122198,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hi there"
+    }
+   ]
+  },
+  "turnComplete": true
+ }
+]

@@ -1,0 +1,30 @@
+{
+ "leg": "block-after-text-bare",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "text, then a bare SAFETY block",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "assistant||",
+    "call": 0,
+    "seg": 0,
+    "text": "Hello"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "assistant",
+   "source": "assistant||",
+   "firstNative": 0,
+   "segments": [
+    "Hello"
+   ],
+   "threw": false
+  }
+ ]
+}

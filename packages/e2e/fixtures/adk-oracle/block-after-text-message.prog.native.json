@@ -1,0 +1,88 @@
+[
+ {
+  "invocationId": "e-01cb0001-1dd2-4c34-98e4-f3b513205471",
+  "author": "assistant",
+  "id": "7wlxFGfj",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119410,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-01cb0001-1dd2-4c34-98e4-f3b513205471",
+  "author": "assistant",
+  "id": "xawz8O65",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119410,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-01cb0001-1dd2-4c34-98e4-f3b513205471",
+  "author": "assistant",
+  "id": "inIQPH0r",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119410,
+  "errorCode": "SAFETY",
+  "errorMessage": "Blocked for safety.",
+  "finishReason": "SAFETY",
+  "partial": true
+ },
+ {
+  "invocationId": "e-01cb0001-1dd2-4c34-98e4-f3b513205471",
+  "author": "assistant",
+  "id": "ZsYWRtfA",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119411,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello"
+    }
+   ]
+  },
+  "errorCode": "SAFETY",
+  "errorMessage": "Blocked for safety.",
+  "finishReason": "SAFETY",
+  "partial": false
+ }
+]

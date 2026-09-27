@@ -1,0 +1,25 @@
+{
+ "leg": "relay-loop-two-clean-passes",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "a LoopAgent's relay streams Hello on both passes",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|||a1",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "helper|||a1",
+    "call": "helper#1",
+    "seg": 0,
+    "text": "Hello"
+   }
+  ]
+ },
+ "calls": []
+}

@@ -1,0 +1,114 @@
+[
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "d175f480-2751-4554-aca0-b0078dd70dd9"
+    }
+   },
+   "a2a:task_id": "94e49d6e-37bc-431b-9861-2ce4c3a817bf",
+   "a2a:context_id": "143b5956-168f-49bb-a98d-d3849c248123"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "WFRVvJ4C",
+  "invocationId": "e-ac35334b-ba0f-4e86-8f14-f9bfbe2cd465",
+  "longRunningToolIds": [],
+  "timestamp": 1790554125601,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "d175f480-2751-4554-aca0-b0078dd70dd9"
+    }
+   },
+   "a2a:task_id": "94e49d6e-37bc-431b-9861-2ce4c3a817bf",
+   "a2a:context_id": "143b5956-168f-49bb-a98d-d3849c248123"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "CLGpvkxp",
+  "invocationId": "e-ac35334b-ba0f-4e86-8f14-f9bfbe2cd465",
+  "longRunningToolIds": [],
+  "timestamp": 1790554125601,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "partial": false,
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "d175f480-2751-4554-aca0-b0078dd70dd9"
+    }
+   },
+   "a2a:task_id": "94e49d6e-37bc-431b-9861-2ce4c3a817bf",
+   "a2a:context_id": "143b5956-168f-49bb-a98d-d3849c248123"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "utjfWweS",
+  "invocationId": "e-ac35334b-ba0f-4e86-8f14-f9bfbe2cd465",
+  "longRunningToolIds": [],
+  "timestamp": 1790554125601,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello",
+     "thought": false
+    }
+   ]
+  }
+ }
+]

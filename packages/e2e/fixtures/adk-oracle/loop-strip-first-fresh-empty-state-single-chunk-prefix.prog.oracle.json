@@ -1,0 +1,57 @@
+{
+ "leg": "loop-strip-first-fresh-empty-state-single-chunk-prefix",
+ "mode": "prog",
+ "hcOnly": true,
+ "threw": null,
+ "note": "as the single-chunk prefix leg, with an after-agent state change",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "worker||",
+    "call": 0,
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "worker||",
+    "call": 1,
+    "seg": 0,
+    "text": "Hel"
+   }
+  ],
+  "callback": [
+   {
+    "source": "worker||",
+    "call": 1,
+    "seg": 0,
+    "text": "Hel"
+   }
+  ]
+ },
+ "stripped": [
+  0
+ ],
+ "calls": [
+  {
+   "call": 0,
+   "agent": "worker",
+   "source": "worker||",
+   "firstNative": 0,
+   "segments": [
+    "Hello"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "worker",
+   "source": "worker||",
+   "firstNative": 3,
+   "segments": [
+    "Hel"
+   ],
+   "threw": false
+  }
+ ]
+}

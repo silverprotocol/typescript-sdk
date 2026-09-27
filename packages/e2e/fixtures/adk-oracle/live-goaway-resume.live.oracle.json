@@ -1,0 +1,56 @@
+{
+ "leg": "live-goaway-resume",
+ "mode": "live",
+ "hcOnly": false,
+ "threw": null,
+ "note": "text cut by goAway; the resumed connection answers anew; alternative: the cut generation's text dropped",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "spike||",
+    "call": 0,
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "spike||",
+    "call": 1,
+    "seg": 0,
+    "text": "Hi there"
+   }
+  ],
+  "callback": [
+   {
+    "source": "spike||",
+    "call": 1,
+    "seg": 0,
+    "text": "Hi there"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "spike",
+   "source": "spike||",
+   "firstNative": null,
+   "segments": [
+    "Hello"
+   ],
+   "threw": false,
+   "connection": 0
+  },
+  {
+   "call": 1,
+   "agent": "spike",
+   "source": "spike||",
+   "firstNative": null,
+   "segments": [
+    "Hi there"
+   ],
+   "threw": false,
+   "connection": 1
+  }
+ ]
+}

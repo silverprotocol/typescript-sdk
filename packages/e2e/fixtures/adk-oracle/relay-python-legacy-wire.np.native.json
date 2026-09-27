@@ -1,0 +1,100 @@
+[
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "180b961c-a330-4eb3-9637-b34389117d77",
+   "a2a:context_id": "b5c2ca37-3b2c-4c32-9c97-2c72407335ef"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "YNO6UgAC",
+  "invocationId": "e-7dc7b277-f054-4810-8301-00161574e1ff",
+  "longRunningToolIds": [],
+  "timestamp": 1790554124181,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Let me check the rates. ",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": false
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "180b961c-a330-4eb3-9637-b34389117d77",
+   "a2a:context_id": "b5c2ca37-3b2c-4c32-9c97-2c72407335ef"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "W9wzjIfY",
+  "invocationId": "e-7dc7b277-f054-4810-8301-00161574e1ff",
+  "longRunningToolIds": [],
+  "timestamp": 1790554124215,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "1 USD = 0.92 EUR.",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": false
+ },
+ {
+  "author": "helper",
+  "partial": false,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "art-1"
+    }
+   },
+   "a2a:task_id": "180b961c-a330-4eb3-9637-b34389117d77",
+   "a2a:context_id": "b5c2ca37-3b2c-4c32-9c97-2c72407335ef"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "AgQjJfNb",
+  "invocationId": "e-7dc7b277-f054-4810-8301-00161574e1ff",
+  "longRunningToolIds": [],
+  "timestamp": 1790554124261,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "1 USD = 0.92 EUR.",
+     "thought": false
+    }
+   ]
+  }
+ }
+]

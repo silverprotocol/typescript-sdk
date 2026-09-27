@@ -1,0 +1,46 @@
+{
+ "leg": "reflect-retry-malformed",
+ "mode": "prog",
+ "hcOnly": false,
+ "threw": null,
+ "note": "a malformed function call, retried by ReflectAndRetryModelPlugin",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "assistant||",
+    "call": 0,
+    "seg": 0,
+    "text": "Let me check"
+   },
+   {
+    "source": "assistant||",
+    "call": 1,
+    "seg": 0,
+    "text": "Here is the answer."
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "assistant",
+   "source": "assistant||",
+   "firstNative": 0,
+   "segments": [
+    "Let me check"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "assistant",
+   "source": "assistant||",
+   "firstNative": 6,
+   "segments": [
+    "Here is the answer."
+   ],
+   "threw": false
+  }
+ ]
+}

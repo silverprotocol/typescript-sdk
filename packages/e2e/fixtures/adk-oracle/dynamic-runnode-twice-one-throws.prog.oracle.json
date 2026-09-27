@@ -1,0 +1,45 @@
+{
+ "leg": "dynamic-runnode-twice-one-throws",
+ "mode": "prog",
+ "hcOnly": true,
+ "threw": {
+  "name": "DynamicNodeFailError",
+  "message": "Dynamic node same failed: Node 'same' failed: boom"
+ },
+ "note": "a dynamic entry runs one agent twice; the first throws mid-text, which aborts the second; the entry returns text",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "same||wfd.same@1",
+    "call": 0,
+    "seg": 0,
+    "text": "Ex "
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "same",
+   "source": "same||wfd.same@1",
+   "firstNative": 0,
+   "segments": [
+    "Ex "
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "same",
+   "source": "same||wfd.same@1",
+   "firstNative": 1,
+   "segments": [],
+   "threw": false,
+   "cut": true,
+   "planned": [
+    "Why not"
+   ]
+  }
+ ]
+}

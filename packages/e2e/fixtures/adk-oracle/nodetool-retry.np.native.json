@@ -1,0 +1,303 @@
+[
+ {
+  "invocationId": "e-1594425c-ccae-4e36-a5b8-f65d66ff2ffb",
+  "author": "outer",
+  "id": "J1or4Kjc",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [
+   "adk-e3c126ae-b281-48f5-b43b-52b95b31586c"
+  ],
+  "timestamp": 1790554121327,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "functionCall": {
+      "name": "inner",
+      "args": {
+       "request": "x"
+      },
+      "id": "adk-e3c126ae-b281-48f5-b43b-52b95b31586c"
+     }
+    }
+   ]
+  },
+  "partial": false
+ },
+ {
+  "invocationId": "e-1594425c-ccae-4e36-a5b8-f65d66ff2ffb",
+  "author": "inner",
+  "branch": "inner@adk-e3c126ae-b281-48f5-b43b-52b95b31586c",
+  "id": "TyATxDtL",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121328,
+  "errorCode": "SAFETY",
+  "errorMessage": "Blocked for safety.",
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "SAFETY",
+  "nodeInfo": {
+   "path": "inner"
+  }
+ },
+ {
+  "invocationId": "e-1594425c-ccae-4e36-a5b8-f65d66ff2ffb",
+  "author": "inner",
+  "branch": "inner@adk-e3c126ae-b281-48f5-b43b-52b95b31586c",
+  "id": "FyFrJyxo",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121328,
+  "errorCode": "SAFETY",
+  "errorMessage": "Blocked for safety.",
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "SAFETY",
+  "partial": false,
+  "nodeInfo": {
+   "path": "inner"
+  }
+ },
+ {
+  "invocationId": "e-1594425c-ccae-4e36-a5b8-f65d66ff2ffb",
+  "author": "inner",
+  "branch": "inner@adk-e3c126ae-b281-48f5-b43b-52b95b31586c",
+  "id": "65hXPtdO",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121329,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Sun"
+    }
+   ]
+  },
+  "partial": true,
+  "nodeInfo": {
+   "path": "inner"
+  }
+ },
+ {
+  "invocationId": "e-1594425c-ccae-4e36-a5b8-f65d66ff2ffb",
+  "author": "inner",
+  "branch": "inner@adk-e3c126ae-b281-48f5-b43b-52b95b31586c",
+  "id": "ilk5lSTm",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121329,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "ny"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP",
+  "partial": true,
+  "nodeInfo": {
+   "path": "inner"
+  }
+ },
+ {
+  "invocationId": "e-1594425c-ccae-4e36-a5b8-f65d66ff2ffb",
+  "author": "inner",
+  "branch": "inner@adk-e3c126ae-b281-48f5-b43b-52b95b31586c",
+  "id": "TjBzYGAP",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121330,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Sunny"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP",
+  "partial": false,
+  "output": "Sunny",
+  "nodeInfo": {
+   "messageAsOutput": true,
+   "path": "inner",
+   "outputFor": [
+    "inner"
+   ]
+  }
+ },
+ {
+  "invocationId": "e-1594425c-ccae-4e36-a5b8-f65d66ff2ffb",
+  "author": "outer",
+  "content": {
+   "role": "user",
+   "parts": [
+    {
+     "functionResponse": {
+      "id": "adk-e3c126ae-b281-48f5-b43b-52b95b31586c",
+      "name": "inner",
+      "response": {
+       "result": "Sunny"
+      }
+     }
+    }
+   ]
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "Gafollrl",
+  "longRunningToolIds": [],
+  "timestamp": 1790554121330
+ },
+ {
+  "invocationId": "e-1594425c-ccae-4e36-a5b8-f65d66ff2ffb",
+  "author": "outer",
+  "id": "Dlk7khJx",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121330,
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP",
+  "partial": false
+ },
+ {
+  "invocationId": "e-1594425c-ccae-4e36-a5b8-f65d66ff2ffb",
+  "author": "outer",
+  "id": "w9L4lmzD",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121331,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "It is "
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-1594425c-ccae-4e36-a5b8-f65d66ff2ffb",
+  "author": "outer",
+  "id": "UScPUz9n",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121331,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "sunny"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP",
+  "partial": true
+ },
+ {
+  "invocationId": "e-1594425c-ccae-4e36-a5b8-f65d66ff2ffb",
+  "author": "outer",
+  "id": "DgDiDwiA",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121331,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "It is sunny"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP",
+  "partial": false
+ }
+]

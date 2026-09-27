@@ -1,0 +1,25 @@
+{
+ "leg": "relay-second-artifact-equals-first-tail",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "a second artifact equal to the first one's tail",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|||art-1",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Hello there"
+   },
+   {
+    "source": "helper|||art-2",
+    "call": "helper#0",
+    "seg": 1,
+    "text": "there"
+   }
+  ]
+ },
+ "calls": []
+}

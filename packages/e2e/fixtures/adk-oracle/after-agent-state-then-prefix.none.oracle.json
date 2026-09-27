@@ -1,0 +1,46 @@
+{
+ "leg": "after-agent-state-then-prefix",
+ "mode": "none",
+ "hcOnly": true,
+ "threw": null,
+ "note": "an after-agent state change, then a pass whose answer is a prefix of the last",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "worker||",
+    "call": 0,
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "worker||",
+    "call": 1,
+    "seg": 0,
+    "text": "Hel"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "worker",
+   "source": "worker||",
+   "firstNative": 0,
+   "segments": [
+    "Hello"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "worker",
+   "source": "worker||",
+   "firstNative": 2,
+   "segments": [
+    "Hel"
+   ],
+   "threw": false
+  }
+ ]
+}

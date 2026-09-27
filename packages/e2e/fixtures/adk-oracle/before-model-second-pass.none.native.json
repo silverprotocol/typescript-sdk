@@ -1,0 +1,50 @@
+[
+ {
+  "invocationId": "e-1a8f56e0-fa3f-4797-af3a-2873dd705f2c",
+  "author": "worker",
+  "id": "u1QaLpM9",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121362,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP"
+ },
+ {
+  "invocationId": "e-1a8f56e0-fa3f-4797-af3a-2873dd705f2c",
+  "author": "worker",
+  "id": "RHxO2o3N",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121362,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Cached answer."
+    }
+   ]
+  }
+ }
+]

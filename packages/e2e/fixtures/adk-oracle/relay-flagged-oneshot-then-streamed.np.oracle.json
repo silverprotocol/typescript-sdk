@@ -1,0 +1,25 @@
+{
+ "leg": "relay-flagged-oneshot-then-streamed",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "a one-shot artifact with lastChunk, then a streamed artifact",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|||art-1",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "First."
+   },
+   {
+    "source": "helper|||art-2",
+    "call": "helper#0",
+    "seg": 1,
+    "text": "Second."
+   }
+  ]
+ },
+ "calls": []
+}

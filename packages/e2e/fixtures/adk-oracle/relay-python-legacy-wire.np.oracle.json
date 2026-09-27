@@ -1,0 +1,25 @@
+{
+ "leg": "relay-python-legacy-wire",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "Python ADK's legacy executor without metadata: two working statuses, then a lastChunk artifact repeating the last",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|||status",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Let me check the rates. "
+   },
+   {
+    "source": "helper|||status",
+    "call": "helper#0",
+    "seg": 1,
+    "text": "1 USD = 0.92 EUR."
+   }
+  ]
+ },
+ "calls": []
+}

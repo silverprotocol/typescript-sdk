@@ -1,0 +1,68 @@
+[
+ {
+  "invocationId": "e-5f017fe4-b9c0-4b15-8bc9-e7cbe52041fe",
+  "author": "custom",
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "partial": true,
+  "id": "oSo3nxaU",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122182
+ },
+ {
+  "invocationId": "e-5f017fe4-b9c0-4b15-8bc9-e7cbe52041fe",
+  "author": "custom",
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo"
+    }
+   ]
+  },
+  "partial": true,
+  "id": "l9feY2Ff",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122186
+ },
+ {
+  "invocationId": "e-5f017fe4-b9c0-4b15-8bc9-e7cbe52041fe",
+  "author": "custom",
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello world"
+    }
+   ]
+  },
+  "partial": false,
+  "id": "w33wyVkD",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122190
+ }
+]

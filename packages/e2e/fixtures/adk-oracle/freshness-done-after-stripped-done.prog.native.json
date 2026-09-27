@@ -1,0 +1,70 @@
+[
+ {
+  "invocationId": "e-b34f3b2f-7581-46e0-b901-73479123fae2",
+  "author": "worker",
+  "id": "GFZCqy1m",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121473,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "All "
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-b34f3b2f-7581-46e0-b901-73479123fae2",
+  "author": "worker",
+  "id": "JD6OEl1o",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121473,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Done."
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": true
+ },
+ {
+  "invocationId": "e-b34f3b2f-7581-46e0-b901-73479123fae2",
+  "author": "worker",
+  "id": "BA0P4ti2",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121474,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Done."
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": true
+ }
+]

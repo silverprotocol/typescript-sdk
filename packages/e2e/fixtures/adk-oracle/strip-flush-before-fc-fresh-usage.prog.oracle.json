@@ -1,0 +1,57 @@
+{
+ "leg": "strip-flush-before-fc-fresh-usage",
+ "mode": "prog",
+ "hcOnly": false,
+ "threw": null,
+ "note": "text, then a function call; the text-only repeat removed; the second call streams",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "t1||",
+    "call": 0,
+    "seg": 0,
+    "text": "Let me check"
+   },
+   {
+    "source": "t1||",
+    "call": 1,
+    "seg": 0,
+    "text": "Answer"
+   }
+  ],
+  "callback": [
+   {
+    "source": "t1||",
+    "call": 0,
+    "seg": 0,
+    "text": "Let me check"
+   }
+  ]
+ },
+ "stripped": [
+  1
+ ],
+ "calls": [
+  {
+   "call": 0,
+   "agent": "t1",
+   "source": "t1||",
+   "firstNative": 0,
+   "segments": [
+    "Let me check"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "t1",
+   "source": "t1||",
+   "firstNative": 5,
+   "segments": [
+    "Answer"
+   ],
+   "threw": false
+  }
+ ]
+}

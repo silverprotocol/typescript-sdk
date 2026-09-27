@@ -1,0 +1,204 @@
+[
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "06e90657-b87c-479e-a145-82c5160e7c25",
+   "a2a:context_id": "65d2ed2d-d1b7-42c8-84ee-30f3918c0159"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "Qn2x2BbK",
+  "invocationId": "e-023462a0-f8a8-4a03-8f33-ffd67a1d71f6",
+  "longRunningToolIds": [],
+  "timestamp": 1790554125316,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "06e90657-b87c-479e-a145-82c5160e7c25",
+   "a2a:context_id": "65d2ed2d-d1b7-42c8-84ee-30f3918c0159"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "uC1JpWrV",
+  "invocationId": "e-023462a0-f8a8-4a03-8f33-ffd67a1d71f6",
+  "longRunningToolIds": [],
+  "timestamp": 1790554125337,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "invocationId": "e-023462a0-f8a8-4a03-8f33-ffd67a1d71f6",
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello"
+    }
+   ]
+  },
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "06e90657-b87c-479e-a145-82c5160e7c25",
+   "a2a:context_id": "65d2ed2d-d1b7-42c8-84ee-30f3918c0159"
+  },
+  "turnComplete": false,
+  "partial": false,
+  "id": "Nck0k0k2",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554125337
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "d56c4a81-531e-4c5e-ba25-35d7ec5e9c47",
+   "a2a:context_id": "65d2ed2d-d1b7-42c8-84ee-30f3918c0159"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "2jYSuwKQ",
+  "invocationId": "e-023462a0-f8a8-4a03-8f33-ffd67a1d71f6",
+  "longRunningToolIds": [],
+  "timestamp": 1790554125405,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "d56c4a81-531e-4c5e-ba25-35d7ec5e9c47",
+   "a2a:context_id": "65d2ed2d-d1b7-42c8-84ee-30f3918c0159"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "Ey3PZtgV",
+  "invocationId": "e-023462a0-f8a8-4a03-8f33-ffd67a1d71f6",
+  "longRunningToolIds": [],
+  "timestamp": 1790554125427,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "invocationId": "e-023462a0-f8a8-4a03-8f33-ffd67a1d71f6",
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello"
+    }
+   ]
+  },
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "d56c4a81-531e-4c5e-ba25-35d7ec5e9c47",
+   "a2a:context_id": "65d2ed2d-d1b7-42c8-84ee-30f3918c0159"
+  },
+  "turnComplete": false,
+  "partial": false,
+  "id": "R8qooEwm",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554125427
+ }
+]

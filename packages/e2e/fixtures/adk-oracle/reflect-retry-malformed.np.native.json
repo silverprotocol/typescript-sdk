@@ -1,0 +1,230 @@
+[
+ {
+  "invocationId": "e-f0aff891-6f62-44c2-ba51-c402e4debeca",
+  "author": "assistant",
+  "id": "17Xe516O",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121363,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Let me "
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-f0aff891-6f62-44c2-ba51-c402e4debeca",
+  "author": "assistant",
+  "id": "fTi2LqI3",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121363,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "check"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-f0aff891-6f62-44c2-ba51-c402e4debeca",
+  "author": "assistant",
+  "id": "PE3r4v4W",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121363,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "functionCall": {
+      "id": "adk_handle_model_error_97c8465a-f992-451e-8e39-694aa3cccba9",
+      "name": "adk_handle_model_error",
+      "args": {
+       "response_type": "ERROR_HANDLED_BY_REFLECT_AND_RETRY_PLUGIN",
+       "error_type": "MALFORMED_FUNCTION_CALL",
+       "error_details": "Malformed function call.",
+       "finish_reason": "MALFORMED_FUNCTION_CALL",
+       "retry_count": 1
+      }
+     }
+    }
+   ]
+  }
+ },
+ {
+  "invocationId": "e-f0aff891-6f62-44c2-ba51-c402e4debeca",
+  "author": "assistant",
+  "content": {
+   "role": "user",
+   "parts": [
+    {
+     "functionResponse": {
+      "id": "adk_handle_model_error_97c8465a-f992-451e-8e39-694aa3cccba9",
+      "name": "adk_handle_model_error",
+      "response": {
+       "reflection_guidance": "The call to the model failed.\n\n**Reflection Guidance:**\n- This is retry attempt **1** of **3**\n- Analyze the error and the arguments you provided. Do not repeat the exact same call.\n\nFormulate a new plan based on your analysis and try a corrected or different approach."
+      }
+     }
+    }
+   ]
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "sGZKRmAE",
+  "longRunningToolIds": [],
+  "timestamp": 1790554121363
+ },
+ {
+  "invocationId": "e-f0aff891-6f62-44c2-ba51-c402e4debeca",
+  "author": "assistant",
+  "id": "kfkam6zg",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121363,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "functionCall": {
+      "id": "adk_handle_model_error_5e663d7e-936d-44c4-a500-d3384e7762d4",
+      "name": "adk_handle_model_error",
+      "args": {
+       "response_type": "ERROR_HANDLED_BY_REFLECT_AND_RETRY_PLUGIN",
+       "error_type": "MALFORMED_FUNCTION_CALL",
+       "error_details": "Malformed function call.",
+       "finish_reason": "MALFORMED_FUNCTION_CALL",
+       "retry_count": 2
+      }
+     }
+    }
+   ]
+  }
+ },
+ {
+  "invocationId": "e-f0aff891-6f62-44c2-ba51-c402e4debeca",
+  "author": "assistant",
+  "content": {
+   "role": "user",
+   "parts": [
+    {
+     "functionResponse": {
+      "id": "adk_handle_model_error_5e663d7e-936d-44c4-a500-d3384e7762d4",
+      "name": "adk_handle_model_error",
+      "response": {
+       "reflection_guidance": "The call to the model failed.\n\n**Reflection Guidance:**\n- This is retry attempt **1** of **3**\n- Analyze the error and the arguments you provided. Do not repeat the exact same call.\n\nFormulate a new plan based on your analysis and try a corrected or different approach."
+      }
+     }
+    }
+   ]
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "9r1dqS76",
+  "longRunningToolIds": [],
+  "timestamp": 1790554121363
+ },
+ {
+  "invocationId": "e-f0aff891-6f62-44c2-ba51-c402e4debeca",
+  "author": "assistant",
+  "id": "ghk2jtjr",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121364,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Here is "
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-f0aff891-6f62-44c2-ba51-c402e4debeca",
+  "author": "assistant",
+  "id": "K9o9h6QH",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121364,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "the answer."
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": true
+ },
+ {
+  "invocationId": "e-f0aff891-6f62-44c2-ba51-c402e4debeca",
+  "author": "assistant",
+  "id": "1cYCDP8e",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121364,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Here is the answer."
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": false
+ }
+]

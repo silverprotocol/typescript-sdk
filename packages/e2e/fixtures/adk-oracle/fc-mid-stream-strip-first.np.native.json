@@ -1,0 +1,122 @@
+[
+ {
+  "invocationId": "e-210f9bdb-9bfb-498a-94ba-6cf95a2de948",
+  "author": "t1",
+  "id": "Y0GNs9Oo",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121953,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Let me check"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-210f9bdb-9bfb-498a-94ba-6cf95a2de948",
+  "author": "t1",
+  "id": "zDDOt2dw",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121953,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "functionCall": {
+      "name": "noop",
+      "args": {},
+      "id": "c1"
+     }
+    }
+   ]
+  },
+  "partial": false
+ },
+ {
+  "invocationId": "e-210f9bdb-9bfb-498a-94ba-6cf95a2de948",
+  "author": "t1",
+  "content": {
+   "role": "user",
+   "parts": [
+    {
+     "functionResponse": {
+      "id": "c1",
+      "name": "noop",
+      "response": {
+       "ok": true
+      }
+     }
+    }
+   ]
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "4I5bdiQE",
+  "longRunningToolIds": [],
+  "timestamp": 1790554121953
+ },
+ {
+  "invocationId": "e-210f9bdb-9bfb-498a-94ba-6cf95a2de948",
+  "author": "t1",
+  "id": "cExOirl3",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121953,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": " more"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-210f9bdb-9bfb-498a-94ba-6cf95a2de948",
+  "author": "t1",
+  "id": "bSZAAEh1",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121953,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": " more"
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": false
+ }
+]

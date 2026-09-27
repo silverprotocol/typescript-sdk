@@ -1,0 +1,25 @@
+{
+ "leg": "relay-parallel-pair",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "a ParallelAgent of two relays",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "ha|par.ha||art-1",
+    "call": "ha",
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "hb|par.hb||art-1",
+    "call": "hb",
+    "seg": 0,
+    "text": "World"
+   }
+  ]
+ },
+ "calls": []
+}

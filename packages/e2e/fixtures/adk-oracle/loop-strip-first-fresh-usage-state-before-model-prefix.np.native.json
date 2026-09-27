@@ -1,0 +1,116 @@
+[
+ {
+  "invocationId": "e-e06ebaae-6917-46b9-976a-e948ccfc2288",
+  "author": "a1",
+  "id": "WYuVoWEN",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121739,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-e06ebaae-6917-46b9-976a-e948ccfc2288",
+  "author": "a1",
+  "id": "Q7zrwkFa",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121739,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo"
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": true
+ },
+ {
+  "invocationId": "e-e06ebaae-6917-46b9-976a-e948ccfc2288",
+  "author": "a1",
+  "id": "2dRQaXzE",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121739,
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  }
+ },
+ {
+  "invocationId": "e-e06ebaae-6917-46b9-976a-e948ccfc2288",
+  "author": "a1",
+  "actions": {
+   "stateDelta": {
+    "k": 0.024299086567317607
+   },
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "jBxnwnTI",
+  "longRunningToolIds": [],
+  "timestamp": 1790554121739
+ },
+ {
+  "invocationId": "e-e06ebaae-6917-46b9-976a-e948ccfc2288",
+  "author": "a1",
+  "id": "l0ayNnpO",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121739,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  }
+ },
+ {
+  "invocationId": "e-e06ebaae-6917-46b9-976a-e948ccfc2288",
+  "author": "a1",
+  "actions": {
+   "stateDelta": {
+    "k": 0.9891735305553582
+   },
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "wPjkbO4r",
+  "longRunningToolIds": [],
+  "timestamp": 1790554121739
+ }
+]

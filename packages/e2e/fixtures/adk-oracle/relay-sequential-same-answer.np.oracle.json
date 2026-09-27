@@ -1,0 +1,37 @@
+{
+ "leg": "relay-sequential-same-answer",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "a SequentialAgent of two relays; both answer Hello",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|||status",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Looking that up. "
+   },
+   {
+    "source": "helper|||a1",
+    "call": "helper#0",
+    "seg": 1,
+    "text": "Hello"
+   },
+   {
+    "source": "helper2|||status",
+    "call": "helper2#0",
+    "seg": 0,
+    "text": "Checking. "
+   },
+   {
+    "source": "helper2|||a1",
+    "call": "helper2#0",
+    "seg": 1,
+    "text": "Hello"
+   }
+  ]
+ },
+ "calls": []
+}

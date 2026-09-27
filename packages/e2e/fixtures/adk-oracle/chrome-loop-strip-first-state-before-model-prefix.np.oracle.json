@@ -1,0 +1,47 @@
+{
+ "leg": "chrome-loop-strip-first-state-before-model-prefix",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "the first final removed; a state change; a before-model callback answers the second pass with a prefix",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "assistant||",
+    "call": 0,
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "assistant||",
+    "call": "before-model",
+    "seg": 0,
+    "text": "Hel"
+   }
+  ],
+  "callback": [
+   {
+    "source": "assistant||",
+    "call": "before-model",
+    "seg": 0,
+    "text": "Hel"
+   }
+  ]
+ },
+ "stripped": [
+  null
+ ],
+ "calls": [
+  {
+   "call": 0,
+   "agent": "assistant",
+   "source": "assistant||",
+   "firstNative": 0,
+   "segments": [
+    "Hello"
+   ],
+   "threw": false
+  }
+ ]
+}

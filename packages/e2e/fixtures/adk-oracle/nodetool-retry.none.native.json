@@ -1,0 +1,152 @@
+[
+ {
+  "invocationId": "e-dfde9b10-9258-486f-abb6-8c97965c7a1a",
+  "author": "outer",
+  "id": "2sQmx0Y9",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [
+   "adk-237339a3-1a67-410a-9e7f-58a4d6fac889"
+  ],
+  "timestamp": 1790554121339,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "functionCall": {
+      "name": "inner",
+      "args": {
+       "request": "x"
+      },
+      "id": "adk-237339a3-1a67-410a-9e7f-58a4d6fac889"
+     }
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP"
+ },
+ {
+  "invocationId": "e-dfde9b10-9258-486f-abb6-8c97965c7a1a",
+  "author": "inner",
+  "branch": "inner@adk-237339a3-1a67-410a-9e7f-58a4d6fac889",
+  "id": "WOjTQgah",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121339,
+  "errorCode": "SAFETY",
+  "errorMessage": "Blocked for safety.",
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "SAFETY",
+  "nodeInfo": {
+   "path": "inner"
+  }
+ },
+ {
+  "invocationId": "e-dfde9b10-9258-486f-abb6-8c97965c7a1a",
+  "author": "inner",
+  "branch": "inner@adk-237339a3-1a67-410a-9e7f-58a4d6fac889",
+  "id": "07DNRExD",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121340,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Sunny"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP",
+  "output": "Sunny",
+  "nodeInfo": {
+   "messageAsOutput": true,
+   "path": "inner",
+   "outputFor": [
+    "inner"
+   ]
+  }
+ },
+ {
+  "invocationId": "e-dfde9b10-9258-486f-abb6-8c97965c7a1a",
+  "author": "outer",
+  "content": {
+   "role": "user",
+   "parts": [
+    {
+     "functionResponse": {
+      "id": "adk-237339a3-1a67-410a-9e7f-58a4d6fac889",
+      "name": "inner",
+      "response": {
+       "result": "Sunny"
+      }
+     }
+    }
+   ]
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "dz7nb3FS",
+  "longRunningToolIds": [],
+  "timestamp": 1790554121340
+ },
+ {
+  "invocationId": "e-dfde9b10-9258-486f-abb6-8c97965c7a1a",
+  "author": "outer",
+  "id": "R1R7DPtI",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121340,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "It is sunny"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP"
+ }
+]

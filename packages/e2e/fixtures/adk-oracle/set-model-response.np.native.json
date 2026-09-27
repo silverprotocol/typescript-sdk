@@ -1,0 +1,69 @@
+[
+ {
+  "invocationId": "e-607aa54c-892d-461a-9fff-85d118ee846a",
+  "author": "assistant",
+  "id": "u1GDm5Xj",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121366,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Sure. "
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-607aa54c-892d-461a-9fff-85d118ee846a",
+  "author": "assistant",
+  "id": "iYRwNfE4",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121366,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Sure. "
+    }
+   ]
+  },
+  "partial": false
+ },
+ {
+  "invocationId": "e-607aa54c-892d-461a-9fff-85d118ee846a",
+  "author": "assistant",
+  "id": "OjA49A8j",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "skipSummarization": true
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121366,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "{\"answer\":\"x\"}"
+    }
+   ]
+  },
+  "partial": false
+ }
+]

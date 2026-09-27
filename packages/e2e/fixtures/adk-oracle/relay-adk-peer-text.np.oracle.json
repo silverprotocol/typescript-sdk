@@ -1,0 +1,30 @@
+{
+ "leg": "relay-adk-peer-text",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "an ADK peer: a remote LlmAgent streams Hello",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|worker",
+    "call": "helper|worker",
+    "seg": 0,
+    "text": "Hello"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "worker",
+   "source": "worker||",
+   "firstNative": null,
+   "segments": [
+    "Hello"
+   ],
+   "threw": false
+  }
+ ]
+}

@@ -1,0 +1,57 @@
+{
+ "leg": "loop-strip-first-spread",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "the first final removed; the second pass streams; the stream showed the first answer; the session keeps no final text for it",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "a1||",
+    "call": 0,
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "a1||",
+    "call": 1,
+    "seg": 0,
+    "text": "Hi there"
+   }
+  ],
+  "callback": [
+   {
+    "source": "a1||",
+    "call": 1,
+    "seg": 0,
+    "text": "Hi there"
+   }
+  ]
+ },
+ "stripped": [
+  0
+ ],
+ "calls": [
+  {
+   "call": 0,
+   "agent": "a1",
+   "source": "a1||",
+   "firstNative": 0,
+   "segments": [
+    "Hello"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "a1",
+   "source": "a1||",
+   "firstNative": 2,
+   "segments": [
+    "Hi there"
+   ],
+   "threw": false
+  }
+ ]
+}

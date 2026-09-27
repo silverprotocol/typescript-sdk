@@ -1,0 +1,111 @@
+[
+ {
+  "invocationId": "e-f6ecc713-49b6-4c25-88d4-8d2af8aff391",
+  "author": "worker",
+  "id": "utTqaPnm",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121931,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "All "
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-f6ecc713-49b6-4c25-88d4-8d2af8aff391",
+  "author": "worker",
+  "id": "Jzqq3mJm",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121931,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Done."
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": true
+ },
+ {
+  "invocationId": "e-f6ecc713-49b6-4c25-88d4-8d2af8aff391",
+  "author": "worker",
+  "id": "RCdO89lT",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121931,
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  }
+ },
+ {
+  "invocationId": "e-f6ecc713-49b6-4c25-88d4-8d2af8aff391",
+  "author": "worker",
+  "id": "xCjl1tEg",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121931,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Done."
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": true
+ },
+ {
+  "invocationId": "e-f6ecc713-49b6-4c25-88d4-8d2af8aff391",
+  "author": "worker",
+  "id": "PZ5ca06U",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121931,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Done."
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": false
+ }
+]

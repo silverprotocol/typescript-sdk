@@ -1,0 +1,144 @@
+[
+ {
+  "invocationId": "e-e818a3d6-8497-467b-b383-346ee0857c7e",
+  "author": "worker",
+  "id": "Xv0TQMnL",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121322,
+  "errorCode": "SAFETY",
+  "errorMessage": "Blocked for safety.",
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "SAFETY",
+  "partial": true,
+  "nodeInfo": {
+   "path": "wf.worker"
+  }
+ },
+ {
+  "invocationId": "e-e818a3d6-8497-467b-b383-346ee0857c7e",
+  "author": "worker",
+  "id": "mMuL34lK",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121322,
+  "errorCode": "SAFETY",
+  "errorMessage": "Blocked for safety.",
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "SAFETY",
+  "partial": false,
+  "nodeInfo": {
+   "path": "wf.worker"
+  }
+ },
+ {
+  "invocationId": "e-e818a3d6-8497-467b-b383-346ee0857c7e",
+  "author": "worker",
+  "id": "Zrs0OQgm",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121323,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Recovered "
+    }
+   ]
+  },
+  "partial": true,
+  "nodeInfo": {
+   "path": "wf.worker"
+  }
+ },
+ {
+  "invocationId": "e-e818a3d6-8497-467b-b383-346ee0857c7e",
+  "author": "worker",
+  "id": "ssLwnilf",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121323,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "fine"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP",
+  "partial": true,
+  "nodeInfo": {
+   "path": "wf.worker"
+  }
+ },
+ {
+  "invocationId": "e-e818a3d6-8497-467b-b383-346ee0857c7e",
+  "author": "worker",
+  "id": "SYsnEczc",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121323,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Recovered fine"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP",
+  "partial": false,
+  "output": "Recovered fine",
+  "nodeInfo": {
+   "messageAsOutput": true,
+   "path": "wf.worker",
+   "outputFor": [
+    "wf.worker"
+   ]
+  }
+ }
+]

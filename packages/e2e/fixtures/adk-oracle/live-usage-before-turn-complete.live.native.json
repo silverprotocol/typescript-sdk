@@ -1,0 +1,105 @@
+[
+ {
+  "invocationId": "e-13bfd3f0-6e81-4caa-8b08-01cfe863dca1",
+  "author": "spike",
+  "id": "giB0Z0Qb",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554126206,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "modelVersion": "gemini-live-2.5-flash-preview",
+  "partial": true
+ },
+ {
+  "invocationId": "e-13bfd3f0-6e81-4caa-8b08-01cfe863dca1",
+  "author": "spike",
+  "id": "VYDTKb6H",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554126212,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo"
+    }
+   ]
+  },
+  "modelVersion": "gemini-live-2.5-flash-preview",
+  "partial": true
+ },
+ {
+  "invocationId": "e-13bfd3f0-6e81-4caa-8b08-01cfe863dca1",
+  "author": "spike",
+  "id": "hwJRoVYe",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554126213,
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "responseTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "modelVersion": "gemini-live-2.5-flash-preview"
+ },
+ {
+  "invocationId": "e-13bfd3f0-6e81-4caa-8b08-01cfe863dca1",
+  "author": "spike",
+  "id": "GdZ5kU45",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554126213,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello"
+    }
+   ]
+  },
+  "partial": false,
+  "modelVersion": "gemini-live-2.5-flash-preview"
+ },
+ {
+  "invocationId": "e-13bfd3f0-6e81-4caa-8b08-01cfe863dca1",
+  "author": "spike",
+  "id": "ubyJ43YH",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554126213,
+  "turnComplete": true,
+  "modelVersion": "gemini-live-2.5-flash-preview"
+ }
+]

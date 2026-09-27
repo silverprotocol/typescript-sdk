@@ -1,0 +1,4762 @@
+{
+ "after-agent-state-then-prefix.none.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 3,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Hello"
+  ],
+  "units": [
+   "Hello",
+   "Hel"
+  ]
+ },
+ "after-agent-state-then-prefix.none.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "after-agent-state-then-prefix.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 3,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Hel"
+  ]
+ },
+ "after-agent-state-then-prefix.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "after-agent-state-then-prefix.prog.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 3,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Hel"
+  ]
+ },
+ "after-agent-state-then-prefix.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "after-agent-text.none.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 6,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Hello"
+  ],
+  "units": [
+   "Hello",
+   "Noted."
+  ]
+ },
+ "after-agent-text.none.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "after-agent-text.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 6,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Noted."
+  ]
+ },
+ "after-agent-text.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "after-agent-text.prog.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 6,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Noted."
+  ]
+ },
+ "after-agent-text.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "before-model-second-pass.none.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 14,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Hello"
+  ],
+  "units": [
+   "Hello",
+   "Cached answer."
+  ]
+ },
+ "before-model-second-pass.none.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "before-model-second-pass.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 14,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Cached answer."
+  ]
+ },
+ "before-model-second-pass.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "before-model-second-pass.prog.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 14,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Cached answer."
+  ]
+ },
+ "before-model-second-pass.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "block-after-text-bare.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": true,
+  "status": "known-defect"
+ },
+ "block-after-text-bare.np.hc": {
+  "verdict": "OVER",
+  "over": 5,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hello"
+  ],
+  "units": [
+   "Hello"
+  ]
+ },
+ "block-after-text-bare.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "block-after-text-bare.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "block-after-text-message-usage.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": true,
+  "status": "known-defect"
+ },
+ "block-after-text-message-usage.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": true,
+  "status": "known-defect"
+ },
+ "block-after-text-message-usage.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "block-after-text-message-usage.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "block-after-text-message.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": true,
+  "status": "known-defect"
+ },
+ "block-after-text-message.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": true,
+  "status": "known-defect"
+ },
+ "block-after-text-message.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "block-after-text-message.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "block-after-text-usage.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": true,
+  "status": "known-defect"
+ },
+ "block-after-text-usage.np.hc": {
+  "verdict": "OVER",
+  "over": 5,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hello"
+  ],
+  "units": [
+   "Hello"
+  ]
+ },
+ "block-after-text-usage.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "block-after-text-usage.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "chrome-loop-control.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 8,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Hi there"
+  ]
+ },
+ "chrome-loop-control.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "chrome-loop-strip-every-final.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  }
+ },
+ "chrome-loop-strip-every-final.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  }
+ },
+ "chrome-loop-strip-first-state-before-model-prefix.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "chrome-loop-strip-first-state-before-model-prefix.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "chrome-loop-strip-first-state-streamed-prefix.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "chrome-loop-strip-first-state-streamed-prefix.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "chrome-loop-strip-first-state.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "chrome-loop-strip-first-state.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "chrome-loop-strip-first.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "chrome-loop-strip-first.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "chrome-single-stream.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "chrome-single-stream.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "chrome-state-then-prefix.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 3,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Hel"
+  ]
+ },
+ "chrome-state-then-prefix.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "chrome-strip-first-after-agent-text.np.bare": {
+  "verdict": "OVER+UNDER",
+  "over": 9,
+  "under": 14,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER+UNDER",
+   "over": 14,
+   "under": 14
+  },
+  "blocks": [
+   "Hel",
+   "lo",
+   "ded note."
+  ],
+  "units": [
+   "Hello",
+   "Appended note."
+  ]
+ },
+ "chrome-strip-first-after-agent-text.np.hc": {
+  "verdict": "OVER+UNDER",
+  "over": 9,
+  "under": 14,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER+UNDER",
+   "over": 14,
+   "under": 14
+  },
+  "blocks": [
+   "Hel",
+   "lo",
+   "ded note."
+  ],
+  "units": [
+   "Hello",
+   "Appended note."
+  ]
+ },
+ "custom-final-extends.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "UNDER",
+   "over": 0,
+   "under": 5
+  }
+ },
+ "custom-final-extends.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "UNDER",
+   "over": 0,
+   "under": 5
+  }
+ },
+ "custom-final-strict-prefix.np.bare": {
+  "verdict": "OVER",
+  "over": 2,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "UNDER",
+   "over": 0,
+   "under": 3
+  },
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hel"
+  ]
+ },
+ "custom-final-strict-prefix.np.hc": {
+  "verdict": "OVER",
+  "over": 2,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "UNDER",
+   "over": 0,
+   "under": 3
+  },
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hel"
+  ]
+ },
+ "dynamic-runnode-twice-one-throws.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "dynamic-runnode-twice-one-throws.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "dynamic-runnode-twice-one-throws.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "dynamic-runnode-twice-one-throws.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "dynamic-runnode-twice.none.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "dynamic-runnode-twice.none.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "dynamic-runnode-twice.np.bare": {
+  "verdict": "OVER",
+  "over": 4,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "One ",
+   "Two ",
+   "done",
+   "done",
+   "done"
+  ],
+  "units": [
+   "One done",
+   "Two done"
+  ]
+ },
+ "dynamic-runnode-twice.np.hc": {
+  "verdict": "OVER",
+  "over": 4,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "One ",
+   "Two ",
+   "done",
+   "done",
+   "done"
+  ],
+  "units": [
+   "One done",
+   "Two done"
+  ]
+ },
+ "dynamic-runnode-twice.prog.bare": {
+  "verdict": "OVER",
+  "over": 4,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "One ",
+   "Two ",
+   "done",
+   "done",
+   "done"
+  ],
+  "units": [
+   "One done",
+   "Two done"
+  ]
+ },
+ "dynamic-runnode-twice.prog.hc": {
+  "verdict": "OVER",
+  "over": 4,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "One ",
+   "Two ",
+   "done",
+   "done",
+   "done"
+  ],
+  "units": [
+   "One done",
+   "Two done"
+  ]
+ },
+ "fc-mid-stream-strip-first.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "fc-mid-stream-strip-first.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "fc-mid-stream-strip-first.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "fc-mid-stream-strip-first.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "fc-mid-stream-then-429-loop.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 14,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [
+   "Let me check"
+  ],
+  "units": [
+   "Let me check",
+   "Hi there",
+   "unused"
+  ]
+ },
+ "fc-mid-stream-then-429-loop.np.hc": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 14,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [
+   "Let me check"
+  ],
+  "units": [
+   "Let me check",
+   "Hi there",
+   "unused"
+  ]
+ },
+ "fc-mid-stream-then-429-loop.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "fc-mid-stream-then-429-loop.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "freshness-done-after-stripped-done.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  }
+ },
+ "freshness-done-after-stripped-done.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  }
+ },
+ "freshness-done-after-stripped-done.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  }
+ },
+ "freshness-done-after-stripped-done.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  }
+ },
+ "freshness-same-same-stripped.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  }
+ },
+ "freshness-same-same-stripped.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  }
+ },
+ "freshness-same-same-stripped.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  }
+ },
+ "freshness-same-same-stripped.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  }
+ },
+ "freshness-same-same.none.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 4,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Same"
+  ],
+  "units": [
+   "Same",
+   "Same"
+  ]
+ },
+ "freshness-same-same.none.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "freshness-same-same.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 4,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Same"
+  ],
+  "units": [
+   "Same",
+   "Same"
+  ]
+ },
+ "freshness-same-same.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "freshness-same-same.prog.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 4,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Same"
+  ],
+  "units": [
+   "Same",
+   "Same"
+  ]
+ },
+ "freshness-same-same.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "freshness-strip-first-fresh-empty-done-after-done.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 9,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-fresh-empty-done-after-done.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 9,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-fresh-empty-done-after-done.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 9,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-fresh-empty-done-after-done.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 9,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-fresh-empty-same-same.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 4,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-fresh-empty-same-same.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 4,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-fresh-empty-same-same.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 4,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-fresh-empty-same-same.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 4,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-fresh-usage-done-after-done.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 9,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-fresh-usage-done-after-done.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 9,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-fresh-usage-done-after-done.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 9,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-fresh-usage-done-after-done.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 9,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-fresh-usage-same-same.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 4,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-fresh-usage-same-same.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 4,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-fresh-usage-same-same.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 4,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-fresh-usage-same-same.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 4,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-spread-done-after-done.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 9,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-spread-done-after-done.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 9,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-spread-done-after-done.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 9,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-spread-done-after-done.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 9,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-spread-same-same.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 4,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-spread-same-same.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 4,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-spread-same-same.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 4,
+   "under": 0
+  }
+ },
+ "freshness-strip-first-spread-same-same.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 4,
+   "under": 0
+  }
+ },
+ "live-generation-complete.live.bare": {
+  "verdict": "OVER",
+  "over": 5,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hello"
+  ],
+  "units": [
+   "Hello"
+  ]
+ },
+ "live-generation-complete.live.hc": {
+  "verdict": "OVER",
+  "over": 5,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hello"
+  ],
+  "units": [
+   "Hello"
+  ]
+ },
+ "live-goaway-resume-no-usage.live.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "live-goaway-resume-no-usage.live.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "live-goaway-resume.live.bare": {
+  "verdict": "OVER",
+  "over": 8,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 13,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hi ",
+   "there",
+   "Hi there"
+  ],
+  "units": [
+   "Hello",
+   "Hi there"
+  ]
+ },
+ "live-goaway-resume.live.hc": {
+  "verdict": "OVER",
+  "over": 8,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 13,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hi ",
+   "there",
+   "Hi there"
+  ],
+  "units": [
+   "Hello",
+   "Hi there"
+  ]
+ },
+ "live-goaway-resumption-mid-text.live.bare": {
+  "verdict": "OVER",
+  "over": 8,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 13,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hi ",
+   "there",
+   "Hi there"
+  ],
+  "units": [
+   "Hello",
+   "Hi there"
+  ]
+ },
+ "live-goaway-resumption-mid-text.live.hc": {
+  "verdict": "OVER",
+  "over": 8,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 13,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hi ",
+   "there",
+   "Hi there"
+  ],
+  "units": [
+   "Hello",
+   "Hi there"
+  ]
+ },
+ "live-grounding-between-chunks.live.bare": {
+  "verdict": "OVER",
+  "over": 5,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hello"
+  ],
+  "units": [
+   "Hello"
+  ]
+ },
+ "live-grounding-between-chunks.live.hc": {
+  "verdict": "OVER",
+  "over": 5,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hello"
+  ],
+  "units": [
+   "Hello"
+  ]
+ },
+ "live-resumption-control.live.bare": {
+  "verdict": "OVER",
+  "over": 5,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hello"
+  ],
+  "units": [
+   "Hello"
+  ]
+ },
+ "live-resumption-control.live.hc": {
+  "verdict": "OVER",
+  "over": 5,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hello"
+  ],
+  "units": [
+   "Hello"
+  ]
+ },
+ "live-text-turn-complete.live.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "live-text-turn-complete.live.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "live-transcription-final.live.bare": {
+  "verdict": "OVER",
+  "over": 10,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hello",
+   "Hello"
+  ],
+  "units": [
+   "Hello"
+  ]
+ },
+ "live-transcription-final.live.hc": {
+  "verdict": "OVER",
+  "over": 10,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hello",
+   "Hello"
+  ],
+  "units": [
+   "Hello"
+  ]
+ },
+ "live-usage-before-turn-complete.live.bare": {
+  "verdict": "OVER",
+  "over": 5,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hello"
+  ],
+  "units": [
+   "Hello"
+  ]
+ },
+ "live-usage-before-turn-complete.live.hc": {
+  "verdict": "OVER",
+  "over": 5,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hello"
+  ],
+  "units": [
+   "Hello"
+  ]
+ },
+ "live-usage-on-turn-complete.live.bare": {
+  "verdict": "OVER",
+  "over": 5,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hello"
+  ],
+  "units": [
+   "Hello"
+  ]
+ },
+ "live-usage-on-turn-complete.live.hc": {
+  "verdict": "OVER",
+  "over": 5,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hello"
+  ],
+  "units": [
+   "Hello"
+  ]
+ },
+ "loop-strip-first-fresh-empty-before-model-prefix.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 3,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 2,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Hel"
+  ]
+ },
+ "loop-strip-first-fresh-empty-before-model-prefix.np.hc": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 3,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 2,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Hel"
+  ]
+ },
+ "loop-strip-first-fresh-empty-before-model-prefix.prog.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 3,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 2,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Hel"
+  ]
+ },
+ "loop-strip-first-fresh-empty-before-model-prefix.prog.hc": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 3,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 2,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Hel"
+  ]
+ },
+ "loop-strip-first-fresh-empty-single-chunk-prefix.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-single-chunk-prefix.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-single-chunk-prefix.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-single-chunk-prefix.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-state-before-model-prefix.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-state-before-model-prefix.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-state-before-model-prefix.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-state-before-model-prefix.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-state-single-chunk-prefix.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-state-single-chunk-prefix.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-state-single-chunk-prefix.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-state-single-chunk-prefix.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-state.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-state.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-state.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-state.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-streamed-prefix.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-streamed-prefix.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-streamed-prefix.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty-streamed-prefix.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-empty.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-before-model-prefix.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-before-model-prefix.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-before-model-prefix.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-before-model-prefix.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-single-chunk-prefix.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-single-chunk-prefix.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-single-chunk-prefix.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-single-chunk-prefix.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-state-before-model-prefix.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-state-before-model-prefix.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-state-before-model-prefix.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-state-before-model-prefix.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-state-single-chunk-prefix.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-state-single-chunk-prefix.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-state-single-chunk-prefix.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-state-single-chunk-prefix.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-state.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-state.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-state.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-state.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-streamed-prefix.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-streamed-prefix.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-streamed-prefix.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage-streamed-prefix.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-fresh-usage.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-before-model-prefix.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 3,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 2,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Hel"
+  ]
+ },
+ "loop-strip-first-spread-before-model-prefix.np.hc": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 3,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 2,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Hel"
+  ]
+ },
+ "loop-strip-first-spread-before-model-prefix.prog.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 3,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 2,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Hel"
+  ]
+ },
+ "loop-strip-first-spread-before-model-prefix.prog.hc": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 3,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 2,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Hel"
+  ]
+ },
+ "loop-strip-first-spread-single-chunk-prefix.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-single-chunk-prefix.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-single-chunk-prefix.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-single-chunk-prefix.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-state-before-model-prefix.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-state-before-model-prefix.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-state-before-model-prefix.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-state-before-model-prefix.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-state-single-chunk-prefix.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-state-single-chunk-prefix.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-state-single-chunk-prefix.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-state-single-chunk-prefix.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-state.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-state.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-state.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-state.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-streamed-prefix.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-streamed-prefix.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-streamed-prefix.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread-streamed-prefix.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-strip-first-spread.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "loop-two-answers.none.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 8,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Hello"
+  ],
+  "units": [
+   "Hello",
+   "Hi there"
+  ]
+ },
+ "loop-two-answers.none.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "loop-two-answers.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 8,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Hi there"
+  ]
+ },
+ "loop-two-answers.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "loop-two-answers.prog.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 8,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Hi there"
+  ]
+ },
+ "loop-two-answers.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "nodetool-retry.none.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 16,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [],
+  "units": [
+   "Sunny",
+   "It is sunny"
+  ]
+ },
+ "nodetool-retry.none.hc": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 16,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [],
+  "units": [
+   "Sunny",
+   "It is sunny"
+  ]
+ },
+ "nodetool-retry.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 16,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [],
+  "units": [
+   "Sunny",
+   "It is sunny"
+  ]
+ },
+ "nodetool-retry.np.hc": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 16,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [],
+  "units": [
+   "Sunny",
+   "It is sunny"
+  ]
+ },
+ "nodetool-retry.prog.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 21,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [],
+  "units": [
+   "Sunny",
+   "Sunny",
+   "It is sunny"
+  ]
+ },
+ "nodetool-retry.prog.hc": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 21,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [],
+  "units": [
+   "Sunny",
+   "Sunny",
+   "It is sunny"
+  ]
+ },
+ "parallel-interleaved.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": true,
+  "status": "known-defect"
+ },
+ "parallel-interleaved.np.hc": {
+  "verdict": "OVER",
+  "over": 4,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Al",
+   "Be",
+   "pha",
+   "ta",
+   "Beta"
+  ],
+  "units": [
+   "Alpha",
+   "Beta"
+  ]
+ },
+ "parallel-interleaved.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": true,
+  "status": "known-defect"
+ },
+ "parallel-interleaved.prog.hc": {
+  "verdict": "OVER",
+  "over": 4,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Al",
+   "Be",
+   "pha",
+   "ta",
+   "Beta"
+  ],
+  "units": [
+   "Alpha",
+   "Beta"
+  ]
+ },
+ "reflect-retry-malformed.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "reflect-retry-malformed.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "reflect-retry-malformed.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "reflect-retry-malformed.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-adk-peer-parallel-interleaved.np.bare": {
+  "verdict": "OVER",
+  "over": 5,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Red ",
+   "Blue ",
+   "fox",
+   "jay",
+   "e jay"
+  ],
+  "units": [
+   "Red fox",
+   "Blue jay"
+  ]
+ },
+ "relay-adk-peer-parallel-interleaved.np.hc": {
+  "verdict": "OVER",
+  "over": 5,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Red ",
+   "Blue ",
+   "fox",
+   "jay",
+   "e jay"
+  ],
+  "units": [
+   "Red fox",
+   "Blue jay"
+  ]
+ },
+ "relay-adk-peer-parallel-root.np.bare": {
+  "verdict": "OVER",
+  "over": 4,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Al",
+   "Be",
+   "pha",
+   "ta",
+   "Beta"
+  ],
+  "units": [
+   "Alpha",
+   "Beta"
+  ]
+ },
+ "relay-adk-peer-parallel-root.np.hc": {
+  "verdict": "OVER",
+  "over": 4,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Al",
+   "Be",
+   "pha",
+   "ta",
+   "Beta"
+  ],
+  "units": [
+   "Alpha",
+   "Beta"
+  ]
+ },
+ "relay-adk-peer-text.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-adk-peer-text.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-adk-peer-tool-round.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-adk-peer-tool-round.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-completed-status-text.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-completed-status-text.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-dynamic-runnode-twice.np.bare": {
+  "verdict": "OVER",
+  "over": 3,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "Hel",
+   "lo",
+   "lo",
+   "llo",
+   "done"
+  ],
+  "units": [
+   "Hello",
+   "Hello",
+   "done"
+  ]
+ },
+ "relay-dynamic-runnode-twice.np.hc": {
+  "verdict": "OVER",
+  "over": 3,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "Hel",
+   "lo",
+   "lo",
+   "llo",
+   "done"
+  ],
+  "units": [
+   "Hello",
+   "Hello",
+   "done"
+  ]
+ },
+ "relay-failed-status.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-failed-status.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-final-artifact-repeats-status.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-final-artifact-repeats-status.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-flagged-oneshot-then-streamed.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-flagged-oneshot-then-streamed.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-flagless-oneshot-then-streamed.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-flagless-oneshot-then-streamed.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-input-required.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-input-required.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-loop-two-clean-passes.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-loop-two-clean-passes.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-parallel-pair.np.bare": {
+  "verdict": "OVER",
+  "over": 3,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "Wor",
+   "lo",
+   "ld",
+   "rld"
+  ],
+  "units": [
+   "Hello",
+   "World"
+  ]
+ },
+ "relay-parallel-pair.np.hc": {
+  "verdict": "OVER",
+  "over": 3,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "Wor",
+   "lo",
+   "ld",
+   "rld"
+  ],
+  "units": [
+   "Hello",
+   "World"
+  ]
+ },
+ "relay-planner-loop-two-runs.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-planner-loop-two-runs.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-python-adk-one-text.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-python-adk-one-text.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-python-adk-tool-round-parallel.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-python-adk-tool-round-parallel.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-python-adk-tool-round.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-python-adk-tool-round.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-python-adk-two-texts.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-python-adk-two-texts.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-python-legacy-wire.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-python-legacy-wire.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-second-artifact-equals-first-tail.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-second-artifact-equals-first-tail.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-sequential-same-answer.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-sequential-same-answer.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-sequential-two-relays.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-sequential-two-relays.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-status-between-chunks.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-status-between-chunks.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-status-text-parallel-pair.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 5,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Looking that up. ",
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Looking that up. ",
+   "Hello",
+   "Fine."
+  ]
+ },
+ "relay-status-text-parallel-pair.np.hc": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 5,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Looking that up. ",
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Looking that up. ",
+   "Hello",
+   "Fine."
+  ]
+ },
+ "relay-status-text-then-stream-parallel.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-status-text-then-stream-parallel.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-status-text-then-stream.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-status-text-then-stream.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-streamed-artifact.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-streamed-artifact.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-throw-then-loop-pass.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 5,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Hel"
+  ],
+  "units": [
+   "Hel",
+   "Hello"
+  ]
+ },
+ "relay-throw-then-loop-pass.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-two-status-texts-then-oneshot.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 16,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Looking up the exchange rates...",
+   "Processing the exchange rates.."
+  ],
+  "units": [
+   "Looking up the exchange rates...",
+   "Processing the exchange rates..",
+   "1 USD = 0.92 EUR"
+  ]
+ },
+ "relay-two-status-texts-then-oneshot.np.hc": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 16,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Looking up the exchange rates...",
+   "Processing the exchange rates.."
+  ],
+  "units": [
+   "Looking up the exchange rates...",
+   "Processing the exchange rates..",
+   "1 USD = 0.92 EUR"
+  ]
+ },
+ "replace-first-final-extension.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "OVER",
+   "over": 6,
+   "under": 0
+  }
+ },
+ "replace-first-final-extension.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "OVER",
+   "over": 6,
+   "under": 0
+  }
+ },
+ "replace-first-final-extension.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "OVER",
+   "over": 6,
+   "under": 0
+  }
+ },
+ "replace-first-final-extension.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "OVER",
+   "over": 6,
+   "under": 0
+  }
+ },
+ "replace-first-final-prefix.np.bare": {
+  "verdict": "OVER",
+  "over": 2,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hi ",
+   "there"
+  ],
+  "units": [
+   "Hel",
+   "Hi there"
+  ]
+ },
+ "replace-first-final-prefix.np.hc": {
+  "verdict": "OVER",
+  "over": 2,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hi ",
+   "there"
+  ],
+  "units": [
+   "Hel",
+   "Hi there"
+  ]
+ },
+ "replace-first-final-prefix.prog.bare": {
+  "verdict": "OVER",
+  "over": 2,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hi ",
+   "there"
+  ],
+  "units": [
+   "Hel",
+   "Hi there"
+  ]
+ },
+ "replace-first-final-prefix.prog.hc": {
+  "verdict": "OVER",
+  "over": 2,
+  "under": 0,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo",
+   "Hi ",
+   "there"
+  ],
+  "units": [
+   "Hel",
+   "Hi there"
+  ]
+ },
+ "replace-first-final-redacted.np.bare": {
+  "verdict": "OVER+UNDER",
+  "over": 9,
+  "under": 9,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "raw",
+   "verdict": "OVER",
+   "over": 4,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo",
+   "ted.",
+   "Hi ",
+   "there"
+  ],
+  "units": [
+   "Redacted.",
+   "Hi there"
+  ]
+ },
+ "replace-first-final-redacted.np.hc": {
+  "verdict": "OVER+UNDER",
+  "over": 9,
+  "under": 9,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "raw",
+   "verdict": "OVER",
+   "over": 4,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo",
+   "ted.",
+   "Hi ",
+   "there"
+  ],
+  "units": [
+   "Redacted.",
+   "Hi there"
+  ]
+ },
+ "replace-first-final-redacted.prog.bare": {
+  "verdict": "OVER+UNDER",
+  "over": 9,
+  "under": 9,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "raw",
+   "verdict": "OVER",
+   "over": 4,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo",
+   "ted.",
+   "Hi ",
+   "there"
+  ],
+  "units": [
+   "Redacted.",
+   "Hi there"
+  ]
+ },
+ "replace-first-final-redacted.prog.hc": {
+  "verdict": "OVER+UNDER",
+  "over": 9,
+  "under": 9,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "raw",
+   "verdict": "OVER",
+   "over": 4,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo",
+   "ted.",
+   "Hi ",
+   "there"
+  ],
+  "units": [
+   "Redacted.",
+   "Hi there"
+  ]
+ },
+ "replace-first-final-textless.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "replace-first-final-textless.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "replace-first-final-textless.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "replace-first-final-textless.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "set-model-response.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "OVER",
+   "over": 14,
+   "under": 0
+  }
+ },
+ "set-model-response.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "OVER",
+   "over": 14,
+   "under": 0
+  }
+ },
+ "set-model-response.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "OVER",
+   "over": 14,
+   "under": 0
+  }
+ },
+ "set-model-response.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "OVER",
+   "over": 14,
+   "under": 0
+  }
+ },
+ "strip-every-final-loop.none.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "UNDER",
+   "over": 0,
+   "under": 13
+  }
+ },
+ "strip-every-final-loop.none.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "UNDER",
+   "over": 0,
+   "under": 13
+  }
+ },
+ "strip-every-final-loop.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  }
+ },
+ "strip-every-final-loop.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  }
+ },
+ "strip-every-final-loop.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  }
+ },
+ "strip-every-final-loop.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  }
+ },
+ "strip-every-final-usage-loop.none.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "UNDER",
+   "over": 0,
+   "under": 13
+  }
+ },
+ "strip-every-final-usage-loop.none.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "UNDER",
+   "over": 0,
+   "under": 13
+  }
+ },
+ "strip-every-final-usage-loop.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 8,
+  "park": true,
+  "status": "by-design",
+  "alt": {
+   "reading": "raw",
+   "verdict": "UNDER",
+   "over": 0,
+   "under": 8
+  },
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Hi there"
+  ]
+ },
+ "strip-every-final-usage-loop.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  }
+ },
+ "strip-every-final-usage-loop.prog.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 8,
+  "park": true,
+  "status": "by-design",
+  "alt": {
+   "reading": "raw",
+   "verdict": "UNDER",
+   "over": 0,
+   "under": 8
+  },
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Hi there"
+  ]
+ },
+ "strip-every-final-usage-loop.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "raw",
+   "verdict": "MATCH",
+   "over": 0,
+   "under": 0
+  }
+ },
+ "strip-flush-before-fc-fresh-empty-usage.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 6,
+  "park": true,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER+UNDER",
+   "over": 12,
+   "under": 6
+  },
+  "blocks": [
+   "Let me check"
+  ],
+  "units": [
+   "Let me check",
+   "Answer"
+  ]
+ },
+ "strip-flush-before-fc-fresh-empty-usage.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  }
+ },
+ "strip-flush-before-fc-fresh-empty.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  }
+ },
+ "strip-flush-before-fc-fresh-empty.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  }
+ },
+ "strip-flush-before-fc-fresh-empty.prog.bare": {
+  "verdict": "OVER+UNDER",
+  "over": 12,
+  "under": 6,
+  "park": true,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  },
+  "blocks": [
+   "Let me check",
+   "Let me check"
+  ],
+  "units": [
+   "Let me check",
+   "Answer"
+  ]
+ },
+ "strip-flush-before-fc-fresh-empty.prog.hc": {
+  "verdict": "OVER+UNDER",
+  "over": 12,
+  "under": 6,
+  "park": true,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  },
+  "blocks": [
+   "Let me check",
+   "Let me check"
+  ],
+  "units": [
+   "Let me check",
+   "Answer"
+  ]
+ },
+ "strip-flush-before-fc-fresh-usage-usage.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 6,
+  "park": true,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER+UNDER",
+   "over": 12,
+   "under": 6
+  },
+  "blocks": [
+   "Let me check"
+  ],
+  "units": [
+   "Let me check",
+   "Answer"
+  ]
+ },
+ "strip-flush-before-fc-fresh-usage-usage.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  }
+ },
+ "strip-flush-before-fc-fresh-usage.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  }
+ },
+ "strip-flush-before-fc-fresh-usage.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  }
+ },
+ "strip-flush-before-fc-fresh-usage.prog.bare": {
+  "verdict": "OVER+UNDER",
+  "over": 12,
+  "under": 6,
+  "park": true,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  },
+  "blocks": [
+   "Let me check",
+   "Let me check"
+  ],
+  "units": [
+   "Let me check",
+   "Answer"
+  ]
+ },
+ "strip-flush-before-fc-fresh-usage.prog.hc": {
+  "verdict": "OVER+UNDER",
+  "over": 12,
+  "under": 6,
+  "park": true,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  },
+  "blocks": [
+   "Let me check",
+   "Let me check"
+  ],
+  "units": [
+   "Let me check",
+   "Answer"
+  ]
+ },
+ "strip-flush-before-fc-spread-usage.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 6,
+  "park": true,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER+UNDER",
+   "over": 12,
+   "under": 6
+  },
+  "blocks": [
+   "Let me check"
+  ],
+  "units": [
+   "Let me check",
+   "Answer"
+  ]
+ },
+ "strip-flush-before-fc-spread-usage.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  }
+ },
+ "strip-flush-before-fc-spread.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  }
+ },
+ "strip-flush-before-fc-spread.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  }
+ },
+ "strip-flush-before-fc-spread.prog.bare": {
+  "verdict": "OVER+UNDER",
+  "over": 12,
+  "under": 6,
+  "park": true,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  },
+  "blocks": [
+   "Let me check",
+   "Let me check"
+  ],
+  "units": [
+   "Let me check",
+   "Answer"
+  ]
+ },
+ "strip-flush-before-fc-spread.prog.hc": {
+  "verdict": "OVER+UNDER",
+  "over": 12,
+  "under": 6,
+  "park": true,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  },
+  "blocks": [
+   "Let me check",
+   "Let me check"
+  ],
+  "units": [
+   "Let me check",
+   "Answer"
+  ]
+ },
+ "strip-split-flush-before-fc-fresh-empty.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  }
+ },
+ "strip-split-flush-before-fc-fresh-empty.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  }
+ },
+ "strip-split-flush-before-fc-fresh-usage.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  }
+ },
+ "strip-split-flush-before-fc-fresh-usage.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  }
+ },
+ "strip-split-flush-before-fc-spread.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  }
+ },
+ "strip-split-flush-before-fc-spread.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 12,
+   "under": 0
+  }
+ },
+ "text-and-fc-one-chunk.none.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "text-and-fc-one-chunk.none.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "text-and-fc-one-chunk.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "text-and-fc-one-chunk.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "text-and-fc-one-chunk.prog.bare": {
+  "verdict": "OVER+UNDER",
+  "over": 6,
+  "under": 4,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [
+   "And ",
+   "so",
+   "then",
+   "sothen"
+  ],
+  "units": [
+   "And so",
+   "then",
+   "done"
+  ]
+ },
+ "text-and-fc-one-chunk.prog.hc": {
+  "verdict": "OVER+UNDER",
+  "over": 6,
+  "under": 4,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [
+   "And ",
+   "so",
+   "then",
+   "sothen"
+  ],
+  "units": [
+   "And so",
+   "then",
+   "done"
+  ]
+ },
+ "text-fc-text.none.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "text-fc-text.none.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "text-fc-text.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "text-fc-text.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "text-fc-text.prog.bare": {
+  "verdict": "OVER+UNDER",
+  "over": 6,
+  "under": 4,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [
+   "And ",
+   "so",
+   "then",
+   "sothen"
+  ],
+  "units": [
+   "And so",
+   "then",
+   "done"
+  ]
+ },
+ "text-fc-text.prog.hc": {
+  "verdict": "OVER+UNDER",
+  "over": 6,
+  "under": 4,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [
+   "And ",
+   "so",
+   "then",
+   "sothen"
+  ],
+  "units": [
+   "And so",
+   "then",
+   "done"
+  ]
+ },
+ "text-fc-then-answer.none.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "text-fc-then-answer.none.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "text-fc-then-answer.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 6,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [
+   "Let me check"
+  ],
+  "units": [
+   "Let me check",
+   "Answer"
+  ]
+ },
+ "text-fc-then-answer.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "text-fc-then-answer.prog.bare": {
+  "verdict": "OVER+UNDER",
+  "over": 12,
+  "under": 6,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [
+   "Let me check",
+   "Let me check"
+  ],
+  "units": [
+   "Let me check",
+   "Answer"
+  ]
+ },
+ "text-fc-then-answer.prog.hc": {
+  "verdict": "OVER+UNDER",
+  "over": 12,
+  "under": 6,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [
+   "Let me check",
+   "Let me check"
+  ],
+  "units": [
+   "Let me check",
+   "Answer"
+  ]
+ },
+ "text-then-stop-usage.none.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "text-then-stop-usage.none.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "text-then-stop-usage.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "text-then-stop-usage.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "text-then-stop-usage.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "text-then-stop-usage.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "usage-only-tail.none.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "usage-only-tail.none.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "usage-only-tail.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "usage-only-tail.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "usage-only-tail.prog.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "usage-only-tail.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "workflow-node-retry.none.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 14,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [],
+  "units": [
+   "Recovered fine"
+  ]
+ },
+ "workflow-node-retry.none.hc": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 14,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [],
+  "units": [
+   "Recovered fine"
+  ]
+ },
+ "workflow-node-retry.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 14,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [],
+  "units": [
+   "Recovered fine"
+  ]
+ },
+ "workflow-node-retry.np.hc": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 14,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [],
+  "units": [
+   "Recovered fine"
+  ]
+ },
+ "workflow-node-retry.prog.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 14,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [],
+  "units": [
+   "Recovered fine"
+  ]
+ },
+ "workflow-node-retry.prog.hc": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 14,
+  "park": true,
+  "status": "known-defect",
+  "blocks": [],
+  "units": [
+   "Recovered fine"
+  ]
+ }
+}

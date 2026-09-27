@@ -1,0 +1,37 @@
+{
+ "leg": "relay-sequential-two-relays",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "a SequentialAgent of two relays with different answers",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "first|||status",
+    "call": "first#0",
+    "seg": 0,
+    "text": "One moment. "
+   },
+   {
+    "source": "first|||art-1",
+    "call": "first#0",
+    "seg": 1,
+    "text": "Hello"
+   },
+   {
+    "source": "second|||status",
+    "call": "second#0",
+    "seg": 0,
+    "text": "Checking. "
+   },
+   {
+    "source": "second|||art-1",
+    "call": "second#0",
+    "seg": 1,
+    "text": "World"
+   }
+  ]
+ },
+ "calls": []
+}

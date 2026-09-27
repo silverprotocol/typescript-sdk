@@ -1,0 +1,46 @@
+{
+ "leg": "parallel-interleaved",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "two ParallelAgent branches interleave",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "alpha|par.alpha|",
+    "call": 0,
+    "seg": 0,
+    "text": "Alpha"
+   },
+   {
+    "source": "beta|par.beta|",
+    "call": 1,
+    "seg": 0,
+    "text": "Beta"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "alpha",
+   "source": "alpha|par.alpha|",
+   "firstNative": 0,
+   "segments": [
+    "Alpha"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "beta",
+   "source": "beta|par.beta|",
+   "firstNative": 1,
+   "segments": [
+    "Beta"
+   ],
+   "threw": false
+  }
+ ]
+}

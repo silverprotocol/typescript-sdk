@@ -1,0 +1,61 @@
+[
+ {
+  "invocationId": "e-cba42f09-e5fd-4ef6-8242-32bb34998a13",
+  "author": "worker",
+  "id": "r4xrRtbu",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121323,
+  "errorCode": "SAFETY",
+  "errorMessage": "Blocked for safety.",
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "SAFETY",
+  "nodeInfo": {
+   "path": "wf.worker"
+  }
+ },
+ {
+  "invocationId": "e-cba42f09-e5fd-4ef6-8242-32bb34998a13",
+  "author": "worker",
+  "id": "sfQjOBPd",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121326,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Recovered fine"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP",
+  "output": "Recovered fine",
+  "nodeInfo": {
+   "messageAsOutput": true,
+   "path": "wf.worker",
+   "outputFor": [
+    "wf.worker"
+   ]
+  }
+ }
+]

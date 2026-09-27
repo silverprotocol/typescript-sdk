@@ -195,3 +195,48 @@ No recorded capture reaches these shapes, and the stub model keeps them out of
 the corpus for the same reason as the ADK set. They are regenerated only by
 `GEN_OPENAI_HOSTED=1 … openai-hosted-fixtures.gen.test.ts` and gated by
 `openai-hosted.test.ts`.
+
+`packages/e2e/fixtures/adk-oracle/` is ground truth for the google-adk
+facet's text rendering. It holds streams built by the REAL `@google/adk`
+runners (runAsync in SSE, progressive SSE and the default mode, and runLive)
+over scripted transports: the Gemini client, the Chrome Prompt API, a Live
+socket, and A2A peers (scripted, or the real A2AAgentExecutor over an ADK
+app). No key and no network are used. Beside each stream, an oracle sidecar
+names the text that each model call, remote window or Live turn was meant to
+produce. For Gemini streams that text is what the transport actually
+yielded; for the default mode, Chrome and Live it is the scripted reply; for
+relays, callbacks and custom agents it is stated by the leg. Each unit names
+its source (author, branch, node path, and a relay's window). The legs
+cover:
+- block and usage tails;
+- function calls mid-stream;
+- loop, parallel, Workflow and NodeTool roots;
+- after-model callbacks that strip or replace a final; after-agent
+  callbacks that add text or change state; before-model callbacks that
+  answer a pass;
+- plugins;
+- Chrome streams;
+- relay artifacts and status text, including the Python executor's legacy
+  wire;
+- Live usage, transcription and goAway resumption.
+
+`adk-oracle.test.ts` folds every stream, bare and with host completion, and
+checks the fold's text blocks against the intended text as a block partition.
+It compares each fold's record (verdict, OVER / UNDER, park, the unit diff,
+and whether a non-clean fold is by design, a stated residual or a known
+defect) with `expected.json`, exactly in both directions: a fold that moves
+either way fails until the expectations are re-stamped with
+`ADK_ORACLE_WRITE=1`. The sets are regenerated only by
+`GEN_ADK_ORACLE=1 … adk-oracle-fixtures.gen.test.ts`.
+`GEN_ADK_ORACLE=check` regenerates into `.tmp/` and compares the records,
+not the bytes, because streams carry random ids.
+
+Two fidelity limits apply to these streams, beside the redaction every
+committed native gets:
+- Relay customMetadata entries are reduced to what the fold needs:
+  `a2a:response` keeps `kind` and an artifact's `artifactId` (the relay
+  stream a facet window rule keys on), the task and context ids stay, and
+  any other relay entry keeps no member.
+- A facet that starts reading any other member of those entries needs the
+  set regenerated from the engine without the reduction, and its fixtures
+  re-captured.

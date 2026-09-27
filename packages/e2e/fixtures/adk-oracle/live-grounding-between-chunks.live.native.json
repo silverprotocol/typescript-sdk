@@ -1,0 +1,110 @@
+[
+ {
+  "invocationId": "e-74ed17c1-ed3f-463c-aa08-20bf0247bd43",
+  "author": "spike",
+  "id": "ldZ2fbr7",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554126221,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "modelVersion": "gemini-live-2.5-flash-preview",
+  "partial": true
+ },
+ {
+  "invocationId": "e-74ed17c1-ed3f-463c-aa08-20bf0247bd43",
+  "author": "spike",
+  "id": "tul3iVHp",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554126222,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo"
+    }
+   ]
+  },
+  "modelVersion": "gemini-live-2.5-flash-preview",
+  "partial": true
+ },
+ {
+  "invocationId": "e-74ed17c1-ed3f-463c-aa08-20bf0247bd43",
+  "author": "spike",
+  "id": "FntrQrRH",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554126222,
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "responseTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "modelVersion": "gemini-live-2.5-flash-preview"
+ },
+ {
+  "invocationId": "e-74ed17c1-ed3f-463c-aa08-20bf0247bd43",
+  "author": "spike",
+  "id": "yFeT2u9D",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554126222,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello"
+    }
+   ]
+  },
+  "partial": false,
+  "groundingMetadata": {
+   "webSearchQueries": [
+    "q"
+   ]
+  },
+  "modelVersion": "gemini-live-2.5-flash-preview"
+ },
+ {
+  "invocationId": "e-74ed17c1-ed3f-463c-aa08-20bf0247bd43",
+  "author": "spike",
+  "id": "jBDm4aeX",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554126222,
+  "turnComplete": true,
+  "modelVersion": "gemini-live-2.5-flash-preview"
+ }
+]

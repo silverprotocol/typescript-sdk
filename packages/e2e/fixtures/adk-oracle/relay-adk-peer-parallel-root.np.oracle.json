@@ -1,0 +1,46 @@
+{
+ "leg": "relay-adk-peer-parallel-root",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "an ADK peer whose root is a ParallelAgent: one relay carries two remote authors",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|ra",
+    "call": "helper|ra",
+    "seg": 0,
+    "text": "Alpha"
+   },
+   {
+    "source": "helper|rb",
+    "call": "helper|rb",
+    "seg": 1,
+    "text": "Beta"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "ra",
+   "source": "ra||",
+   "firstNative": null,
+   "segments": [
+    "Alpha"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "rb",
+   "source": "rb||",
+   "firstNative": null,
+   "segments": [
+    "Beta"
+   ],
+   "threw": false
+  }
+ ]
+}

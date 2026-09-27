@@ -1,0 +1,33 @@
+{
+ "leg": "custom-final-extends",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "a custom agent streams Hello, then its own non-partial Hello world",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "custom||",
+    "call": "custom#0",
+    "seg": 0,
+    "text": "Hello world"
+   }
+  ],
+  "callback": [
+   {
+    "source": "custom||",
+    "call": "custom#0",
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "custom||",
+    "call": "custom#1",
+    "seg": 0,
+    "text": "Hello world"
+   }
+  ]
+ },
+ "calls": []
+}

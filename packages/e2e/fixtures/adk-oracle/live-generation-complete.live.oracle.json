@@ -1,0 +1,31 @@
+{
+ "leg": "live-generation-complete",
+ "mode": "live",
+ "hcOnly": false,
+ "threw": null,
+ "note": "text chunks, generationComplete, then usage and turnComplete",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "spike||",
+    "call": 0,
+    "seg": 0,
+    "text": "Hello"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "spike",
+   "source": "spike||",
+   "firstNative": null,
+   "segments": [
+    "Hello"
+   ],
+   "threw": false,
+   "connection": 0
+  }
+ ]
+}

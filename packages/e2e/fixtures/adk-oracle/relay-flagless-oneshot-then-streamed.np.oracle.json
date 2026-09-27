@@ -1,0 +1,25 @@
+{
+ "leg": "relay-flagless-oneshot-then-streamed",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "a one-shot artifact with neither append nor lastChunk, then a streamed artifact",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|||a0",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Plan: search. "
+   },
+   {
+    "source": "helper|||a1",
+    "call": "helper#0",
+    "seg": 1,
+    "text": "Hello"
+   }
+  ]
+ },
+ "calls": []
+}

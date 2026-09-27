@@ -1,0 +1,46 @@
+{
+ "leg": "text-fc-then-answer",
+ "mode": "prog",
+ "hcOnly": false,
+ "threw": null,
+ "note": "text and a function call, then a second call answers",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "assistant||",
+    "call": 0,
+    "seg": 0,
+    "text": "Let me check"
+   },
+   {
+    "source": "assistant||",
+    "call": 1,
+    "seg": 0,
+    "text": "Answer"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "assistant",
+   "source": "assistant||",
+   "firstNative": 0,
+   "segments": [
+    "Let me check"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "assistant",
+   "source": "assistant||",
+   "firstNative": 5,
+   "segments": [
+    "Answer"
+   ],
+   "threw": false
+  }
+ ]
+}

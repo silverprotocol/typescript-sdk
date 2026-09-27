@@ -1,0 +1,57 @@
+{
+ "leg": "strip-flush-before-fc-fresh-empty-usage",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "as the flush leg, both calls carrying usage",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "assistant||",
+    "call": 0,
+    "seg": 0,
+    "text": "Let me check"
+   },
+   {
+    "source": "assistant||",
+    "call": 1,
+    "seg": 0,
+    "text": "Answer"
+   }
+  ],
+  "callback": [
+   {
+    "source": "assistant||",
+    "call": 1,
+    "seg": 0,
+    "text": "Answer"
+   }
+  ]
+ },
+ "stripped": [
+  0
+ ],
+ "calls": [
+  {
+   "call": 0,
+   "agent": "assistant",
+   "source": "assistant||",
+   "firstNative": 0,
+   "segments": [
+    "Let me check"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "assistant",
+   "source": "assistant||",
+   "firstNative": 4,
+   "segments": [
+    "Answer"
+   ],
+   "threw": false
+  }
+ ]
+}

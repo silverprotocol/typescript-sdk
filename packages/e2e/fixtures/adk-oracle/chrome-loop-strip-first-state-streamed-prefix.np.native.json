@@ -1,0 +1,120 @@
+[
+ {
+  "invocationId": "e-78770713-de08-4f01-bd3f-920608620962",
+  "author": "assistant",
+  "id": "5rXn29EK",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122201,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-78770713-de08-4f01-bd3f-920608620962",
+  "author": "assistant",
+  "id": "e5OLJBKO",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122201,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-78770713-de08-4f01-bd3f-920608620962",
+  "author": "assistant",
+  "actions": {
+   "stateDelta": {
+    "k": 0.9510472813689218
+   },
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "XeaaT9Zi",
+  "longRunningToolIds": [],
+  "timestamp": 1790554122203
+ },
+ {
+  "invocationId": "e-78770713-de08-4f01-bd3f-920608620962",
+  "author": "assistant",
+  "id": "E5GFE5zc",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122203,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-78770713-de08-4f01-bd3f-920608620962",
+  "author": "assistant",
+  "id": "YPbeeVim",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122203,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "turnComplete": true
+ },
+ {
+  "invocationId": "e-78770713-de08-4f01-bd3f-920608620962",
+  "author": "assistant",
+  "actions": {
+   "stateDelta": {
+    "k": 0.980763909305836
+   },
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "or84KAfN",
+  "longRunningToolIds": [],
+  "timestamp": 1790554122203
+ }
+]

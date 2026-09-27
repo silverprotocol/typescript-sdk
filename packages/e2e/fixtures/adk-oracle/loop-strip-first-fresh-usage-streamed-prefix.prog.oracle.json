@@ -1,0 +1,57 @@
+{
+ "leg": "loop-strip-first-fresh-usage-streamed-prefix",
+ "mode": "prog",
+ "hcOnly": true,
+ "threw": null,
+ "note": "the first final removed; the second pass streams a prefix",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "a1||",
+    "call": 0,
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "a1||",
+    "call": 1,
+    "seg": 0,
+    "text": "Hel"
+   }
+  ],
+  "callback": [
+   {
+    "source": "a1||",
+    "call": 1,
+    "seg": 0,
+    "text": "Hel"
+   }
+  ]
+ },
+ "stripped": [
+  0
+ ],
+ "calls": [
+  {
+   "call": 0,
+   "agent": "a1",
+   "source": "a1||",
+   "firstNative": 0,
+   "segments": [
+    "Hello"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "a1",
+   "source": "a1||",
+   "firstNative": 3,
+   "segments": [
+    "Hel"
+   ],
+   "threw": false
+  }
+ ]
+}

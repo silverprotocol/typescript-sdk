@@ -1,0 +1,46 @@
+{
+ "leg": "dynamic-runnode-twice",
+ "mode": "none",
+ "hcOnly": true,
+ "threw": null,
+ "note": "a Workflow's dynamic entry runs one agent twice, concurrently; the entry returns nothing",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "same||wfd.same@1",
+    "call": 0,
+    "seg": 0,
+    "text": "One done"
+   },
+   {
+    "source": "same||wfd.same@2",
+    "call": 1,
+    "seg": 0,
+    "text": "Two done"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "same",
+   "source": "same||wfd.same@1",
+   "firstNative": 0,
+   "segments": [
+    "One done"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "same",
+   "source": "same||wfd.same@2",
+   "firstNative": 1,
+   "segments": [
+    "Two done"
+   ],
+   "threw": false
+  }
+ ]
+}

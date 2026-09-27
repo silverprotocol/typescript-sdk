@@ -1,0 +1,72 @@
+[
+ {
+  "invocationId": "e-62de7713-089d-4e5f-bb31-83003a4271f1",
+  "author": "same",
+  "id": "YhR4lc94",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121215,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "One done"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP",
+  "output": "One done",
+  "nodeInfo": {
+   "messageAsOutput": true,
+   "path": "wfd.same@1",
+   "outputFor": [
+    "wfd.same@1"
+   ]
+  }
+ },
+ {
+  "invocationId": "e-62de7713-089d-4e5f-bb31-83003a4271f1",
+  "author": "same",
+  "id": "7zGcAhcC",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121215,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Two done"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP",
+  "output": "Two done",
+  "nodeInfo": {
+   "messageAsOutput": true,
+   "path": "wfd.same@2",
+   "outputFor": [
+    "wfd.same@2"
+   ]
+  }
+ }
+]

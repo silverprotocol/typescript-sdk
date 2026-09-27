@@ -1,0 +1,442 @@
+[
+ {
+  "invocationId": "e-11c18ff9-03bd-4060-b78c-8c14b0b9b09f",
+  "author": "outer",
+  "id": "OuIszi5a",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [
+   "adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0"
+  ],
+  "timestamp": 1790554121333,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "functionCall": {
+      "name": "inner",
+      "args": {
+       "request": "x"
+      },
+      "id": "adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0"
+     }
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-11c18ff9-03bd-4060-b78c-8c14b0b9b09f",
+  "author": "inner",
+  "branch": "inner@adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0",
+  "id": "83GCcYL3",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121334,
+  "errorCode": "SAFETY",
+  "errorMessage": "Blocked for safety.",
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "SAFETY",
+  "partial": true,
+  "nodeInfo": {
+   "path": "inner"
+  }
+ },
+ {
+  "invocationId": "e-11c18ff9-03bd-4060-b78c-8c14b0b9b09f",
+  "author": "inner",
+  "branch": "inner@adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0",
+  "id": "nzx2ZB6u",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121334,
+  "errorCode": "SAFETY",
+  "errorMessage": "Blocked for safety.",
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "SAFETY",
+  "partial": false,
+  "nodeInfo": {
+   "path": "inner"
+  }
+ },
+ {
+  "invocationId": "e-11c18ff9-03bd-4060-b78c-8c14b0b9b09f",
+  "author": "inner",
+  "branch": "inner@adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0",
+  "id": "je69kxSg",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121335,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Sun"
+    }
+   ]
+  },
+  "partial": true,
+  "nodeInfo": {
+   "path": "inner"
+  }
+ },
+ {
+  "invocationId": "e-11c18ff9-03bd-4060-b78c-8c14b0b9b09f",
+  "author": "inner",
+  "branch": "inner@adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0",
+  "id": "XgUu4xLB",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121335,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "ny"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP",
+  "partial": true,
+  "nodeInfo": {
+   "path": "inner"
+  }
+ },
+ {
+  "invocationId": "e-11c18ff9-03bd-4060-b78c-8c14b0b9b09f",
+  "author": "inner",
+  "branch": "inner@adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0",
+  "id": "eqYFJvgo",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121335,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Sunny"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP",
+  "partial": false,
+  "output": "Sunny",
+  "nodeInfo": {
+   "messageAsOutput": true,
+   "path": "inner",
+   "outputFor": [
+    "inner"
+   ]
+  }
+ },
+ {
+  "invocationId": "e-11c18ff9-03bd-4060-b78c-8c14b0b9b09f",
+  "author": "outer",
+  "content": {
+   "role": "user",
+   "parts": [
+    {
+     "functionResponse": {
+      "id": "adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0",
+      "name": "inner",
+      "response": {
+       "result": "Sunny"
+      }
+     }
+    }
+   ]
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "eNGLVd1x",
+  "longRunningToolIds": [],
+  "timestamp": 1790554121335
+ },
+ {
+  "invocationId": "e-11c18ff9-03bd-4060-b78c-8c14b0b9b09f",
+  "author": "outer",
+  "id": "l2Tk21mA",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [
+   "adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0"
+  ],
+  "timestamp": 1790554121335,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "functionCall": {
+      "name": "inner",
+      "args": {
+       "request": "x"
+      },
+      "id": "adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0"
+     }
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP",
+  "partial": false
+ },
+ {
+  "invocationId": "e-11c18ff9-03bd-4060-b78c-8c14b0b9b09f",
+  "author": "inner",
+  "branch": "inner@adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0",
+  "id": "r0JGlYWE",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121336,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Sun"
+    }
+   ]
+  },
+  "partial": true,
+  "nodeInfo": {
+   "path": "inner"
+  }
+ },
+ {
+  "invocationId": "e-11c18ff9-03bd-4060-b78c-8c14b0b9b09f",
+  "author": "inner",
+  "branch": "inner@adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0",
+  "id": "lB0qcPQY",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121336,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "ny"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP",
+  "partial": true,
+  "nodeInfo": {
+   "path": "inner"
+  }
+ },
+ {
+  "invocationId": "e-11c18ff9-03bd-4060-b78c-8c14b0b9b09f",
+  "author": "inner",
+  "branch": "inner@adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0",
+  "id": "vs9GEpHK",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121336,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Sunny"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP",
+  "partial": false,
+  "output": "Sunny",
+  "nodeInfo": {
+   "messageAsOutput": true,
+   "path": "inner",
+   "outputFor": [
+    "inner"
+   ]
+  }
+ },
+ {
+  "invocationId": "e-11c18ff9-03bd-4060-b78c-8c14b0b9b09f",
+  "author": "outer",
+  "content": {
+   "role": "user",
+   "parts": [
+    {
+     "functionResponse": {
+      "id": "adk-77bf44ec-a236-4ab4-a495-c913a1dfbfe0",
+      "name": "inner",
+      "response": {
+       "result": "Sunny"
+      }
+     }
+    }
+   ]
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "LfE18nqf",
+  "longRunningToolIds": [],
+  "timestamp": 1790554121336
+ },
+ {
+  "invocationId": "e-11c18ff9-03bd-4060-b78c-8c14b0b9b09f",
+  "author": "outer",
+  "id": "TVCpKbpQ",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121337,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "It is "
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-11c18ff9-03bd-4060-b78c-8c14b0b9b09f",
+  "author": "outer",
+  "id": "LEj1eXXk",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121337,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "sunny"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP",
+  "partial": true
+ },
+ {
+  "invocationId": "e-11c18ff9-03bd-4060-b78c-8c14b0b9b09f",
+  "author": "outer",
+  "id": "cjKLqKpV",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121337,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "It is sunny"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP",
+  "partial": false
+ }
+]

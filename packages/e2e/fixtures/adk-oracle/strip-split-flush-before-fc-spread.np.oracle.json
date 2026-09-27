@@ -1,0 +1,57 @@
+{
+ "leg": "strip-split-flush-before-fc-spread",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "as the flush leg, the text split over two chunks",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "assistant||",
+    "call": 0,
+    "seg": 0,
+    "text": "Let me check"
+   },
+   {
+    "source": "assistant||",
+    "call": 1,
+    "seg": 0,
+    "text": "Answer"
+   }
+  ],
+  "callback": [
+   {
+    "source": "assistant||",
+    "call": 1,
+    "seg": 0,
+    "text": "Answer"
+   }
+  ]
+ },
+ "stripped": [
+  0
+ ],
+ "calls": [
+  {
+   "call": 0,
+   "agent": "assistant",
+   "source": "assistant||",
+   "firstNative": 0,
+   "segments": [
+    "Let me check"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "assistant",
+   "source": "assistant||",
+   "firstNative": 4,
+   "segments": [
+    "Answer"
+   ],
+   "threw": false
+  }
+ ]
+}

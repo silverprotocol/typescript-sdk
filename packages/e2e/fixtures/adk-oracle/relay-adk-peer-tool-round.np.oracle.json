@@ -1,0 +1,46 @@
+{
+ "leg": "relay-adk-peer-tool-round",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "an ADK peer: text and a function call, the tool, then a second call answers",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|worker",
+    "call": "helper|worker",
+    "seg": 0,
+    "text": "Let me check"
+   },
+   {
+    "source": "helper|worker",
+    "call": "helper|worker",
+    "seg": 1,
+    "text": "Answer"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "worker",
+   "source": "worker||",
+   "firstNative": null,
+   "segments": [
+    "Let me check"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "worker",
+   "source": "worker||",
+   "firstNative": null,
+   "segments": [
+    "Answer"
+   ],
+   "threw": false
+  }
+ ]
+}

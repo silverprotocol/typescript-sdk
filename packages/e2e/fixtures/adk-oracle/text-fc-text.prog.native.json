@@ -1,0 +1,227 @@
+[
+ {
+  "invocationId": "e-d82077e9-95c4-48a4-8740-1ebf3a7689dc",
+  "author": "assistant",
+  "id": "OeVFA72R",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119496,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "And "
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-d82077e9-95c4-48a4-8740-1ebf3a7689dc",
+  "author": "assistant",
+  "id": "ANfJ4swH",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119497,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "so"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-d82077e9-95c4-48a4-8740-1ebf3a7689dc",
+  "author": "assistant",
+  "id": "IzlqN6K2",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119497,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "functionCall": {
+      "name": "lookup",
+      "args": {},
+      "id": "adk-e931b9a4-982d-4027-9664-e8c049527ceb"
+     }
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-d82077e9-95c4-48a4-8740-1ebf3a7689dc",
+  "author": "assistant",
+  "content": {
+   "role": "user",
+   "parts": [
+    {
+     "functionResponse": {
+      "id": "adk-e931b9a4-982d-4027-9664-e8c049527ceb",
+      "name": "lookup",
+      "response": {
+       "ok": true
+      }
+     }
+    }
+   ]
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "PMMYCIAs",
+  "longRunningToolIds": [],
+  "timestamp": 1790554119497
+ },
+ {
+  "invocationId": "e-d82077e9-95c4-48a4-8740-1ebf3a7689dc",
+  "author": "assistant",
+  "id": "ljxPRmYS",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119497,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "then"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-d82077e9-95c4-48a4-8740-1ebf3a7689dc",
+  "author": "assistant",
+  "id": "iIO0iHxB",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119497,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "And so"
+    },
+    {
+     "functionCall": {
+      "name": "lookup",
+      "args": {},
+      "id": "adk-e931b9a4-982d-4027-9664-e8c049527ceb"
+     }
+    },
+    {
+     "text": "then"
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": false
+ },
+ {
+  "invocationId": "e-d82077e9-95c4-48a4-8740-1ebf3a7689dc",
+  "author": "assistant",
+  "content": {
+   "role": "user",
+   "parts": [
+    {
+     "functionResponse": {
+      "id": "adk-e931b9a4-982d-4027-9664-e8c049527ceb",
+      "name": "lookup",
+      "response": {
+       "ok": true
+      }
+     }
+    }
+   ]
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "VdNdM2uQ",
+  "longRunningToolIds": [],
+  "timestamp": 1790554119497
+ },
+ {
+  "invocationId": "e-d82077e9-95c4-48a4-8740-1ebf3a7689dc",
+  "author": "assistant",
+  "id": "tRZXg8k6",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119497,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "done"
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": true
+ },
+ {
+  "invocationId": "e-d82077e9-95c4-48a4-8740-1ebf3a7689dc",
+  "author": "assistant",
+  "id": "T6VnvKA2",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554119497,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "done"
+    }
+   ]
+  },
+  "finishReason": "STOP",
+  "partial": false
+ }
+]

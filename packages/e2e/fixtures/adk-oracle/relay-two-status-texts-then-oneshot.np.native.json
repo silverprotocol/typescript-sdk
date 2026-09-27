@@ -1,0 +1,100 @@
+[
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "97eff3f0-f883-4808-8efa-63ac6d8c59e0",
+   "a2a:context_id": "5d887400-979e-4b84-9b48-e5388491d83d"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "jIqX3KLN",
+  "invocationId": "e-7249d3d8-5a32-45be-9f74-ccee12bf38e1",
+  "longRunningToolIds": [],
+  "timestamp": 1790554123336,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Looking up the exchange rates...",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": false
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "97eff3f0-f883-4808-8efa-63ac6d8c59e0",
+   "a2a:context_id": "5d887400-979e-4b84-9b48-e5388491d83d"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "c6z3Z0kU",
+  "invocationId": "e-7249d3d8-5a32-45be-9f74-ccee12bf38e1",
+  "longRunningToolIds": [],
+  "timestamp": 1790554123358,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Processing the exchange rates..",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": false
+ },
+ {
+  "author": "helper",
+  "partial": false,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "97eff3f0-f883-4808-8efa-63ac6d8c59e0",
+   "a2a:context_id": "5d887400-979e-4b84-9b48-e5388491d83d"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "2R1i96Rg",
+  "invocationId": "e-7249d3d8-5a32-45be-9f74-ccee12bf38e1",
+  "longRunningToolIds": [],
+  "timestamp": 1790554123380,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "1 USD = 0.92 EUR",
+     "thought": false
+    }
+   ]
+  }
+ }
+]

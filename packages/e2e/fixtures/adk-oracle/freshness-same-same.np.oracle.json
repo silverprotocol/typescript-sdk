@@ -1,0 +1,46 @@
+{
+ "leg": "freshness-same-same",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "two passes say the same",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "worker||",
+    "call": 0,
+    "seg": 0,
+    "text": "Same"
+   },
+   {
+    "source": "worker||",
+    "call": 1,
+    "seg": 0,
+    "text": "Same"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "worker",
+   "source": "worker||",
+   "firstNative": 0,
+   "segments": [
+    "Same"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "worker",
+   "source": "worker||",
+   "firstNative": 2,
+   "segments": [
+    "Same"
+   ],
+   "threw": false
+  }
+ ]
+}

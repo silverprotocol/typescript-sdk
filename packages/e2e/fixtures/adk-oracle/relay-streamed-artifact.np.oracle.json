@@ -1,0 +1,19 @@
+{
+ "leg": "relay-streamed-artifact",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "a streamed artifact, no status text",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|||a1",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Hello"
+   }
+  ]
+ },
+ "calls": []
+}

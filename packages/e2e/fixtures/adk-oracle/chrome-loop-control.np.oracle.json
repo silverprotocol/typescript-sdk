@@ -1,0 +1,46 @@
+{
+ "leg": "chrome-loop-control",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "a LoopAgent's two passes; no callback",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "assistant||",
+    "call": 0,
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "assistant||",
+    "call": 1,
+    "seg": 0,
+    "text": "Hi there"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "assistant",
+   "source": "assistant||",
+   "firstNative": 0,
+   "segments": [
+    "Hello"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "assistant",
+   "source": "assistant||",
+   "firstNative": 1,
+   "segments": [
+    "Hi there"
+   ],
+   "threw": false
+  }
+ ]
+}

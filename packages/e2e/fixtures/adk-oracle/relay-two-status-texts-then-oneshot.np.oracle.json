@@ -1,0 +1,31 @@
+{
+ "leg": "relay-two-status-texts-then-oneshot",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "two working status texts, then a one-shot artifact with lastChunk",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|||status",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Looking up the exchange rates..."
+   },
+   {
+    "source": "helper|||status",
+    "call": "helper#0",
+    "seg": 1,
+    "text": "Processing the exchange rates.."
+   },
+   {
+    "source": "helper|||a1",
+    "call": "helper#0",
+    "seg": 2,
+    "text": "1 USD = 0.92 EUR"
+   }
+  ]
+ },
+ "calls": []
+}

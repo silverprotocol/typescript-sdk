@@ -1,0 +1,34 @@
+[
+ {
+  "author": "helper",
+  "customMetadata": {
+   "a2a:request": {},
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "8439ed99-cc66-4718-99b2-1c17017baa7d",
+   "a2a:context_id": "df13fd9d-c6b0-4576-9f39-860f621485df"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "5AOAiBXQ",
+  "invocationId": "e-e87907e4-53d9-47be-a0a5-91827ca476d0",
+  "longRunningToolIds": [],
+  "timestamp": 1790554125112,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Which city?",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": true
+ }
+]

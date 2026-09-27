@@ -1,0 +1,19 @@
+{
+ "leg": "relay-failed-status",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "a relay streams Hel, then its task fails with a status message (a relayed turnComplete event)",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|||a1",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Hel"
+   }
+  ]
+ },
+ "calls": []
+}

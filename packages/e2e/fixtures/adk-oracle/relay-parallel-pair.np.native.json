@@ -1,0 +1,208 @@
+[
+ {
+  "author": "ha",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "art-1"
+    }
+   },
+   "a2a:task_id": "47830f6a-8754-4ba3-ae52-546849f16d00",
+   "a2a:context_id": "0732ec89-1393-414d-a9a9-f36c44cfac9f"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "uCSOu6Gu",
+  "invocationId": "e-0337bda1-51a8-427a-ba7e-465329681667",
+  "longRunningToolIds": [],
+  "branch": "par.ha",
+  "timestamp": 1790554126133,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "hb",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "art-1"
+    }
+   },
+   "a2a:task_id": "63d116ec-288e-498a-8667-0c210b424965",
+   "a2a:context_id": "58acd61c-83e2-41b3-b5d2-05305c12067a"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "ET98zlV4",
+  "invocationId": "e-0337bda1-51a8-427a-ba7e-465329681667",
+  "longRunningToolIds": [],
+  "branch": "par.hb",
+  "timestamp": 1790554126133,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Wor",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "ha",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "art-1"
+    }
+   },
+   "a2a:task_id": "47830f6a-8754-4ba3-ae52-546849f16d00",
+   "a2a:context_id": "0732ec89-1393-414d-a9a9-f36c44cfac9f"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "kpWzH699",
+  "invocationId": "e-0337bda1-51a8-427a-ba7e-465329681667",
+  "longRunningToolIds": [],
+  "branch": "par.ha",
+  "timestamp": 1790554126165,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "ha",
+  "invocationId": "e-0337bda1-51a8-427a-ba7e-465329681667",
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello"
+    }
+   ]
+  },
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "art-1"
+    }
+   },
+   "a2a:task_id": "47830f6a-8754-4ba3-ae52-546849f16d00",
+   "a2a:context_id": "0732ec89-1393-414d-a9a9-f36c44cfac9f"
+  },
+  "turnComplete": false,
+  "partial": false,
+  "id": "Z2nyurqQ",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554126165
+ },
+ {
+  "author": "hb",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "art-1"
+    }
+   },
+   "a2a:task_id": "63d116ec-288e-498a-8667-0c210b424965",
+   "a2a:context_id": "58acd61c-83e2-41b3-b5d2-05305c12067a"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "HS2py60b",
+  "invocationId": "e-0337bda1-51a8-427a-ba7e-465329681667",
+  "longRunningToolIds": [],
+  "branch": "par.hb",
+  "timestamp": 1790554126165,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "ld",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "hb",
+  "invocationId": "e-0337bda1-51a8-427a-ba7e-465329681667",
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "World"
+    }
+   ]
+  },
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "art-1"
+    }
+   },
+   "a2a:task_id": "63d116ec-288e-498a-8667-0c210b424965",
+   "a2a:context_id": "58acd61c-83e2-41b3-b5d2-05305c12067a"
+  },
+  "turnComplete": false,
+  "partial": false,
+  "id": "WDOgErCw",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554126165
+ }
+]

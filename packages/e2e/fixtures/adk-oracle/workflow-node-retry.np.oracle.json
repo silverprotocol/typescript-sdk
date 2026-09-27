@@ -1,0 +1,38 @@
+{
+ "leg": "workflow-node-retry",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "a Workflow node is blocked, then retried",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "worker||wf.worker",
+    "call": 1,
+    "seg": 0,
+    "text": "Recovered fine"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "worker",
+   "source": "worker||wf.worker",
+   "firstNative": 0,
+   "segments": [],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "worker",
+   "source": "worker||wf.worker",
+   "firstNative": 2,
+   "segments": [
+    "Recovered fine"
+   ],
+   "threw": false
+  }
+ ]
+}

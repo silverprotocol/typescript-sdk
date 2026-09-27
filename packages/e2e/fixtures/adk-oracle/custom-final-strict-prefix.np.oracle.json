@@ -1,0 +1,33 @@
+{
+ "leg": "custom-final-strict-prefix",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "a custom agent streams Hello, then its own non-partial Hel; expected: the session's text; alternative: the stream, then the non-partial as a new message",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "custom||",
+    "call": "custom#0",
+    "seg": 0,
+    "text": "Hel"
+   }
+  ],
+  "callback": [
+   {
+    "source": "custom||",
+    "call": "custom#0",
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "custom||",
+    "call": "custom#1",
+    "seg": 0,
+    "text": "Hel"
+   }
+  ]
+ },
+ "calls": []
+}

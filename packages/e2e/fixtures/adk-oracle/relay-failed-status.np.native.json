@@ -1,0 +1,93 @@
+[
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "bdbe51b1-81c3-4656-920b-6f018ebd09e2",
+   "a2a:context_id": "cfa261dd-3fe0-40a3-85e8-dd97208c81b7"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "wEw36vIJ",
+  "invocationId": "e-8bb1d4da-4ecf-4bad-89f3-58fc2a0648b8",
+  "longRunningToolIds": [],
+  "timestamp": 1790554124955,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "invocationId": "e-8bb1d4da-4ecf-4bad-89f3-58fc2a0648b8",
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "bdbe51b1-81c3-4656-920b-6f018ebd09e2",
+   "a2a:context_id": "cfa261dd-3fe0-40a3-85e8-dd97208c81b7"
+  },
+  "turnComplete": false,
+  "partial": false,
+  "id": "fLEfgLtS",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554124976
+ },
+ {
+  "author": "helper",
+  "errorMessage": "Rate limited.",
+  "customMetadata": {
+   "a2a:request": {},
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "bdbe51b1-81c3-4656-920b-6f018ebd09e2",
+   "a2a:context_id": "cfa261dd-3fe0-40a3-85e8-dd97208c81b7"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "XsHmewQS",
+  "invocationId": "e-8bb1d4da-4ecf-4bad-89f3-58fc2a0648b8",
+  "longRunningToolIds": [],
+  "timestamp": 1790554124975,
+  "turnComplete": true
+ }
+]

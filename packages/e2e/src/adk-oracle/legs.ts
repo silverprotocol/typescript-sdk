@@ -1,0 +1,298 @@
+/**
+ * The legs behind fixtures/adk-oracle. Each leg builds a root (or a whole capture) per mode:
+ * `np` SSE, `prog` progressive SSE, `none` the default mode, `live` runLive. `hcOnly` marks a root the facet documents
+ * as host-completion-only (a multi-agent root, an after-agent append; google-adk README, "Completion"): its bare fold is
+ * by design when its host-completed twin is clean (oracle.ts scoreLeg). The intended units default to each model call's
+ * yielded text split at function calls; `units` replaces them where the truth is not one model call's text (a
+ * callback's reply, a remote window, a custom agent), and `readings` names an alternative reading.
+ */
+import { randomUUID } from "node:crypto";
+import { z } from "zod";
+import { A2AAgentExecutor, RemoteA2AAgent } from "@google/adk/a2a";
+import {
+  BLOCK, END, FC, STOP, T, TFC, U, USAGE, ScriptedGemini, adk, capture, captureLive, chromeModel, liveModel, scopeOf, state,
+  type Captured, type Chunk, type ChunkEntry, type Script, type Unit,
+} from "./engine.js";
+
+/* The engine drives framework internals by shape. */
+type Any = any;
+
+export type Mode = "np" | "prog" | "none" | "live";
+export type Reading = "raw" | "callback";
+export type Mapped = { call: number; agent: string; source: string; firstNative: number | null; segments: string[]; threw: boolean; cut?: boolean; planned?: string[]; connection?: number };
+type Built = { root?: Any; plugins?: Any[]; capture?: () => Promise<Captured>; mapped?: (r: Captured) => Mapped[] };
+type UnitsFn = (base: Unit[], mapped: Mapped[], mode: Mode, r: Captured) => Unit[];
+/** `residual`: a shape the facet's README documents it cannot render faithfully; its non-clean folds are recorded as
+ *  a stated residual rather than a known defect. */
+export type Leg = { id: string; note: string; modes: Mode[]; hcOnly?: boolean; residual?: string; tag?: boolean; build: (mode: Mode) => Built; units?: UnitsFn; readings?: { expected: Reading; transform: UnitsFn; note?: string } };
+
+const { LlmAgent, LoopAgent, ParallelAgent, SequentialAgent, Workflow, NodeTool, FunctionTool, node, ReflectAndRetryModelPlugin, BaseAgent, createEvent, InMemoryRunner, StreamingMode } = adk as Any;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const M = "Blocked for safety.";
+const HOWS = ["spread", "fresh-usage", "fresh-empty"] as const;
+type How = (typeof HOWS)[number];
+const retry = { maxAttempts: 3, initialDelay: 0, maxDelay: 0, jitter: 0 };
+
+// ── builders ──
+const lookup = () => new FunctionTool({ name: "lookup", description: "Look up.", parameters: z.object({}), execute: async () => ({ ok: true }) });
+const noop = () => new FunctionTool({ name: "noop", description: "n", execute: async () => ({ ok: true }) });
+const agent = (name: string, script: Script[], extra: Any = {}) => new LlmAgent({ name, model: new ScriptedGemini(name, script), instruction: "x", ...extra });
+const loop2 = (a: Any) => new LoopAgent({ name: "loop", maxIterations: 2, subAgents: [a] });
+/** A strict script queue (an exhausted script throws); chunks may carry a delay: { c, d }. */
+const fake = (name: string, scripts: Script[]) => new ScriptedGemini(name, scripts, { strict: true, model: "gemini-2.5-flash" });
+const one = (name: string, s: Script[], extra: Any = {}) => new LlmAgent({ name, model: fake(name, s), instruction: "x", ...extra });
+const strictLoop2 = (s: Script[], extra: Any = {}) => new LoopAgent({ name: "loop", maxIterations: 2, subAgents: [new LlmAgent({ name: "a1", model: fake("a1", s), instruction: "x", ...extra })] });
+const text = (t: string): ChunkEntry => ({ c: T(t) });
+const stop = (t: string, u?: Chunk): ChunkEntry => ({ c: STOP(t, u) });
+const fc = (id = "c1"): ChunkEntry => ({ c: FC("noop", {}, id) });
+const at = (x: ChunkEntry, d: number): ChunkEntry => ({ ...(x as { c: Chunk }), d });
+const chromeLoop = (s: string[][], extra: Any = {}) => new LoopAgent({ name: "loop", maxIterations: 2, subAgents: [new LlmAgent({ name: "assistant", model: chromeModel("assistant", s, { strict: true }), instruction: "x", ...extra })] });
+
+// ── callbacks (an after-model callback returns a response to replace the model's, undefined to keep it) ──
+const isFinal = (r: Any) => r.partial !== true && !!r.content && (r.content.parts ?? []).some((p: Any) => typeof p.text === "string");
+const hasText = (r: Any) => (r.content?.parts ?? []).some((p: Any) => typeof p.text === "string" && p.text.length > 0 && !p.thought);
+const hasFc = (r: Any) => (r.content?.parts ?? []).some((p: Any) => p.functionCall);
+const strip = ({ response }: Any) => (isFinal(response) ? { ...response, content: undefined } : undefined);
+const replaceWith = (parts: Any[] | null) => ({ response }: Any) => (isFinal(response) ? { ...(response.usageMetadata ? { usageMetadata: response.usageMetadata } : {}), ...(parts ? { content: { role: "model", parts } } : {}) } : undefined);
+const firstCallOnly = (cb: Any) => { let n = 0; return (args: Any) => (isFinal(args.response) && n++ === 0 ? cb(args) : undefined); };
+/** Records the call whose final a first-call strip removed (the response's call tag; untagged → null). */
+const noteStripped = (response: Any) => { const k = response?.customMetadata?.__oracle_call; state.stripped.push(k === undefined ? null : k); };
+/** Strips or replaces the first text-only final (partial and function-call responses pass), three ways. */
+const stripFirst = (how: How) => { let n = 0; return ({ response }: Any) => {
+  if (response.partial || !hasText(response) || hasFc(response)) return undefined;
+  if (n++ > 0) return undefined;
+  noteStripped(response);
+  if (how === "spread") return { ...response, content: undefined };
+  if (how === "fresh-usage") return { usageMetadata: U(15) };
+  return { content: { role: "model", parts: [] } };
+}; };
+const spreadStripFirst = () => { let n = 0; return ({ response }: Any) => { if (response.partial || !hasText(response) || n++ > 0) return undefined; noteStripped(response); return { ...response, content: undefined }; }; };
+const setState = (ctx: Any) => { const c = ctx.context ?? ctx.callbackContext ?? ctx; c.state.set("k", Math.random()); return undefined; };
+const beforeHel = () => { let c = 0; return () => (c++ === 0 ? undefined : { content: { role: "model", parts: [{ text: "Hel" }] } }); };
+
+// ── readings ──
+/** The stripped answer: SSE modes keep the streamed partials; the default mode had no stream. */
+const stripReading: UnitsFn = (units, _m, mode) => (mode === "none" ? [] : units);
+const setCallText = (calls: Record<number, string | null>): UnitsFn => (_u, mapped) => mapped.flatMap((c) => { const t = calls[c.call]; const segs = t === undefined ? c.segments : t === null ? [] : [t]; return segs.map((text, i) => ({ source: c.source, call: c.call, seg: i, text })); });
+/** Drops the call whose final the callback removed (from its tag; the first call when untagged). */
+const strippedGone: UnitsFn = (units, mapped, _mode, r) => { const k = r.stripped.length && r.stripped[0] !== null ? r.stripped[0] : mapped[0]?.call; return units.filter((u) => u.call !== k); };
+const extra = (call: string, t: string, fallback: string): UnitsFn => (base, mapped) => [...base, { source: mapped[0]?.source ?? fallback, call, seg: 0, text: t }];
+const wfOutput: UnitsFn = (base, _m, _mode, r) => [...base, ...r.natives.filter((e: Any) => e.output !== undefined && (e.content?.parts ?? []).some((p: Any) => typeof p.text === "string" && p.text)).map((e: Any, i) => ({ source: scopeOf(e), call: "workflow-output", seg: i, text: e.content.parts.map((p: Any) => p.text ?? "").join("") }))];
+
+/** A custom agent that yields its own model-text events: [text, partial] in order. */
+class ScriptedCustom extends BaseAgent {
+  private readonly evs: Array<[string, boolean]>;
+  constructor(name: string, evs: Array<[string, boolean]>) { super({ name, description: "custom" }); this.evs = evs; }
+  async *runAsyncImpl(ctx: Any) {
+    for (const [t, partial] of this.evs) { await sleep(2); yield createEvent({ invocationId: ctx.invocationId, author: this.name, branch: ctx.branch, content: { role: "model", parts: [{ text: t }] }, partial }); }
+  }
+  async *runLiveImpl() {}
+}
+const customUnits = (texts: string[]): UnitsFn => (_b, _m, _mode, r) => { const e = r.natives.find((x: Any) => x.author === "custom"); const source = e ? scopeOf(e) : "custom||"; return texts.map((t, i) => ({ source, call: `custom#${i}`, seg: 0, text: t })); };
+
+const GEMINI: Leg[] = [
+  // the transport's own shapes
+  { id: "block-after-text-message-usage", note: "text, then a SAFETY block with a message and usage", modes: ["np", "prog"], build: () => ({ root: agent("assistant", [[T("Hel"), T("lo"), BLOCK({ message: M, usage: U() })]]) }) },
+  { id: "block-after-text-usage", note: "text, then a SAFETY block with usage", modes: ["np", "prog"], build: () => ({ root: agent("assistant", [[T("Hel"), T("lo"), BLOCK({ usage: U() })]]) }) },
+  { id: "block-after-text-message", note: "text, then a SAFETY block with a message", modes: ["np", "prog"], build: () => ({ root: agent("assistant", [[T("Hel"), T("lo"), BLOCK({ message: M })]]) }) },
+  { id: "block-after-text-bare", note: "text, then a bare SAFETY block", modes: ["np", "prog"], build: () => ({ root: agent("assistant", [[T("Hel"), T("lo"), BLOCK()]]) }) },
+  { id: "text-then-stop-usage", note: "text, then STOP with usage", modes: ["np", "prog", "none"], build: () => ({ root: agent("assistant", [[T("Hel"), T("lo"), END(U())]]) }) },
+  { id: "usage-only-tail", note: "text, STOP, then a usage-only chunk", modes: ["np", "prog", "none"], build: () => ({ root: agent("assistant", [[T("Hel"), STOP("lo"), USAGE(U())]]) }) },
+  { id: "text-fc-text", note: "text, a function call chunk, more text", modes: ["np", "prog", "none"], build: () => ({ root: agent("assistant", [[T("And "), T("so"), FC("lookup"), T("then"), END()], [STOP("done")]], { tools: [lookup()] }) }) },
+  { id: "text-and-fc-one-chunk", note: "text and a function call in one chunk", modes: ["np", "prog", "none"], build: () => ({ root: agent("assistant", [[T("And "), TFC("so", "lookup"), T("then"), END()], [STOP("done")]], { tools: [lookup()] }) }) },
+  { id: "text-fc-then-answer", note: "text and a function call, then a second call answers", modes: ["np", "prog", "none"], build: () => ({ root: agent("assistant", [[T("Let me check"), FC("lookup"), END(U())], [T("Ans"), T("wer"), END(U())]], { tools: [lookup()] }) }) },
+  // multi-agent roots
+  { id: "loop-two-answers", note: "a LoopAgent's two passes answer", hcOnly: true, modes: ["np", "prog", "none"], build: () => ({ root: loop2(agent("worker", [[T("Hel"), STOP("lo", U())], [T("Hi "), STOP("there", U())]])) }) },
+  { id: "parallel-interleaved", note: "two ParallelAgent branches interleave", hcOnly: true, modes: ["np", "prog"], build: () => ({ root: new ParallelAgent({ name: "par", subAgents: [agent("alpha", [{ chunks: [T("Al"), T("pha"), END(U())], gap: 200 }]), agent("beta", [{ chunks: [T("Be"), T("ta"), END(U())], delay: 100, gap: 200 }])] }) }) },
+  { id: "dynamic-runnode-twice", note: "a Workflow's dynamic entry runs one agent twice, concurrently; the entry returns nothing", hcOnly: true, modes: ["np", "prog", "none"], build: () => { const a = agent("same", [{ chunks: [T("One "), STOP("done", U())], delay: 50, gap: 150 }, { chunks: [T("Two "), STOP("done", U())], delay: 100, gap: 150 }]); return { root: new Workflow({ name: "wfd", dynamicEntry: async (ctx: Any) => { await Promise.allSettled([ctx.runNode(a, "x"), ctx.runNode(a, "y")]); return undefined; } }) }; } },
+  { id: "workflow-node-retry", note: "a Workflow node is blocked, then retried", hcOnly: true, modes: ["np", "prog", "none"], build: () => ({ root: new Workflow({ name: "wf", edges: [["START", node(agent("worker", [[BLOCK({ message: M, usage: U() })], [T("Recovered "), STOP("fine", U())]]), { retryConfig: retry })]] }) }) },
+  { id: "nodetool-retry", note: "a NodeTool's inner agent is blocked, then retried", modes: ["np", "prog", "none"], build: () => ({ root: agent("outer", [[FC("inner", { request: "x" }), END(U())], [T("It is "), STOP("sunny", U())]], { tools: [new NodeTool(node(agent("inner", [[BLOCK({ message: M, usage: U() })], [T("Sun"), STOP("ny", U())]]), { retryConfig: retry, inputSchema: z.string() }))] }) }) },
+  // after-model callbacks that strip or replace every final
+  { id: "strip-every-final-usage-loop", note: "every final is stripped (usage kept); a LoopAgent's two passes", hcOnly: true, modes: ["np", "prog", "none"], build: () => ({ root: loop2(agent("worker", [[T("Hel"), STOP("lo", U())], [T("Hi "), STOP("there", U())]], { afterModelCallback: strip })) }),
+    readings: { expected: "callback", transform: stripReading, note: "the strip removes a duplicate final; the streamed text is the answer (the default mode has no stream)" } },
+  { id: "strip-every-final-loop", note: "every final is stripped; no usage", hcOnly: true, modes: ["np", "prog", "none"], build: () => ({ root: loop2(agent("worker", [[T("Hel"), STOP("lo")], [T("Hi "), STOP("there")]], { afterModelCallback: strip })) }), readings: { expected: "callback", transform: stripReading } },
+  { id: "replace-first-final-extension", note: "the first final is replaced by an extension of its stream", hcOnly: true, modes: ["np", "prog"], build: () => ({ root: loop2(agent("worker", [[T("Hel"), STOP("lo", U())], [T("Hi "), STOP("there", U())]], { afterModelCallback: firstCallOnly(replaceWith([{ text: "Hello world" }])) })) }), readings: { expected: "callback", transform: setCallText({ 0: "Hello world" }) } },
+  { id: "replace-first-final-prefix", note: "the first final is replaced by a strict prefix of its stream", hcOnly: true, modes: ["np", "prog"], build: () => ({ root: loop2(agent("worker", [[T("Hel"), STOP("lo", U())], [T("Hi "), STOP("there", U())]], { afterModelCallback: firstCallOnly(replaceWith([{ text: "Hel" }])) })) }), readings: { expected: "callback", transform: setCallText({ 0: "Hel" }) } },
+  { id: "replace-first-final-textless", note: "the first final is replaced by a usage-only response", hcOnly: true, modes: ["np", "prog"], build: () => ({ root: loop2(agent("worker", [[T("Hel"), STOP("lo", U())], [T("Hi "), STOP("there", U())]], { afterModelCallback: firstCallOnly(replaceWith(null)) })) }), readings: { expected: "raw", transform: setCallText({ 0: null }), note: "the stream showed the answer; the session keeps no text for it" } },
+  { id: "replace-first-final-redacted", note: "the first final is replaced by different text", hcOnly: true, modes: ["np", "prog"], build: () => ({ root: loop2(agent("worker", [[T("Hel"), STOP("lo", U())], [T("Hi "), STOP("there", U())]], { afterModelCallback: firstCallOnly(replaceWith([{ text: "Redacted." }])) })) }), readings: { expected: "callback", transform: setCallText({ 0: "Redacted." }) } },
+  { id: "after-agent-text", note: "an after-agent callback adds its own text", hcOnly: true, modes: ["np", "prog", "none"], build: () => ({ root: agent("assistant", [[T("Hel"), STOP("lo", U())]], { afterAgentCallback: () => ({ role: "model", parts: [{ text: "Noted." }] }) }) }), units: extra("after-agent", "Noted.", "assistant||") },
+  { id: "after-agent-state-then-prefix", note: "an after-agent state change, then a pass whose answer is a prefix of the last", hcOnly: true, modes: ["np", "prog", "none"], build: () => ({ root: loop2(agent("worker", [[T("Hel"), STOP("lo", U())], [STOP("Hel", U())]], { afterAgentCallback: (ctx: Any) => { ctx.state.set("seen", true); return undefined; } })) }) },
+  { id: "before-model-second-pass", note: "a before-model callback answers the second pass", hcOnly: true, modes: ["np", "prog", "none"], build: () => { let n = 0; return { root: loop2(agent("worker", [[T("Hel"), STOP("lo", U())]], { beforeModelCallback: () => (n++ === 1 ? { content: { role: "model", parts: [{ text: "Cached answer." }] } } : undefined) })) }; }, units: extra("before-model", "Cached answer.", "worker||") },
+  // plugins and schema
+  { id: "reflect-retry-malformed", note: "a malformed function call, retried by ReflectAndRetryModelPlugin", modes: ["np", "prog"], build: () => ({ root: agent("assistant", [[T("Let me "), T("check"), BLOCK({ reason: "MALFORMED_FUNCTION_CALL", message: "Malformed function call." })], [T("Here is "), STOP("the answer.")]], { tools: [lookup()] }), plugins: [new ReflectAndRetryModelPlugin()] }) },
+  { id: "set-model-response", note: "an output schema answered through set_model_response", modes: ["np", "prog"], build: () => ({ root: agent("assistant", [[T("Sure. "), FC("set_model_response", { answer: "x" }), END()]], { tools: [lookup()], outputSchema: z.object({ answer: z.string() }) }) }),
+    readings: { expected: "callback", transform: (units) => [...units, { source: units[0]?.source ?? "assistant||", call: "set_model_response", seg: 1, text: "{\"answer\":\"x\"}" }], note: "ADK rewrites the set_model_response call into the JSON answer text" } },
+  // freshness: a new call whose text the previous window ends with
+  { id: "freshness-done-after-stripped-done", note: "every final stripped; the second pass says what the first ended with", hcOnly: true, modes: ["np", "prog"], build: () => ({ root: loop2(agent("worker", [[T("All "), STOP("Done.")], [STOP("Done.")]], { afterModelCallback: strip })) }), readings: { expected: "callback", transform: stripReading } },
+  { id: "freshness-same-same-stripped", note: "every final stripped; two passes say the same", hcOnly: true, modes: ["np", "prog"], build: () => ({ root: loop2(agent("worker", [[STOP("Same")], [STOP("Same")]], { afterModelCallback: strip })) }), readings: { expected: "callback", transform: stripReading } },
+  { id: "freshness-same-same", note: "two passes say the same", hcOnly: true, modes: ["np", "prog", "none"], build: () => ({ root: loop2(agent("worker", [[STOP("Same")], [STOP("Same")]])) }) },
+  // only the FIRST text-only final stripped or replaced (spread / a fresh usage-only response / a fresh empty one)
+  ...HOWS.flatMap((how): Leg[] => [
+    { id: `loop-strip-first-${how}`, note: "the first final removed; the second pass streams", hcOnly: true, modes: ["np", "prog"], build: () => ({ root: strictLoop2([{ chunks: [text("Hel"), stop("lo")] }, { chunks: [text("Hi "), stop("there")] }], { afterModelCallback: stripFirst(how) }) }), readings: { expected: "raw", transform: strippedGone, note: "the stream showed the first answer; the session keeps no final text for it" } },
+    { id: `loop-strip-first-${how}-state`, note: "the first final removed; an after-agent state change; the second pass streams", hcOnly: true, modes: ["np", "prog"], build: () => ({ root: strictLoop2([{ chunks: [text("Hel"), stop("lo")] }, { chunks: [text("Hi "), stop("there")] }], { afterModelCallback: stripFirst(how), afterAgentCallback: setState }) }), readings: { expected: "raw", transform: strippedGone } },
+    { id: `loop-strip-first-${how}-before-model-prefix`, note: "the first final removed; a before-model callback answers the second pass with a prefix", hcOnly: true, modes: ["np", "prog"], build: () => ({ root: strictLoop2([{ chunks: [text("Hel"), stop("lo")] }], { afterModelCallback: stripFirst(how), beforeModelCallback: beforeHel() }) }), units: extra("before-model", "Hel", "a1||"), readings: { expected: "raw", transform: strippedGone } },
+    { id: `loop-strip-first-${how}-state-before-model-prefix`, note: "as the before-model prefix leg, with an after-agent state change", hcOnly: true, modes: ["np", "prog"], build: () => ({ root: strictLoop2([{ chunks: [text("Hel"), stop("lo")] }], { afterModelCallback: stripFirst(how), afterAgentCallback: setState, beforeModelCallback: beforeHel() }) }), units: extra("before-model", "Hel", "a1||"), readings: { expected: "raw", transform: strippedGone } },
+    { id: `loop-strip-first-${how}-streamed-prefix`, note: "the first final removed; the second pass streams a prefix", hcOnly: true, modes: ["np", "prog"], build: () => ({ root: strictLoop2([{ chunks: [text("Hel"), stop("lo")] }, { chunks: [text("Hel"), stop("")] }], { afterModelCallback: stripFirst(how) }) }), readings: { expected: "raw", transform: strippedGone } },
+    { id: `loop-strip-first-${how}-single-chunk-prefix`, note: "the first final removed; the second pass answers a prefix in one chunk", hcOnly: true, modes: ["np", "prog"], build: () => ({ root: loop2(agent("worker", [[T("Hel"), STOP("lo")], [STOP("Hel")]], { afterModelCallback: stripFirst(how) })) }), readings: { expected: "raw", transform: strippedGone } },
+    { id: `loop-strip-first-${how}-state-single-chunk-prefix`, note: "as the single-chunk prefix leg, with an after-agent state change", hcOnly: true, modes: ["np", "prog"], build: () => ({ root: loop2(agent("worker", [[T("Hel"), STOP("lo")], [STOP("Hel")]], { afterModelCallback: stripFirst(how), afterAgentCallback: setState })) }), readings: { expected: "raw", transform: strippedGone } },
+    { id: `strip-flush-before-fc-${how}`, note: "text, then a function call; the text-only repeat removed; the second call streams", modes: ["np", "prog"], build: () => ({ root: one("t1", [{ chunks: [text("Let me check"), fc()] }, { chunks: [text("Ans"), stop("wer")] }], { tools: [noop()], afterModelCallback: stripFirst(how) }) }), readings: { expected: "raw", transform: strippedGone } },
+    { id: `strip-flush-before-fc-${how}-usage`, note: "as the flush leg, both calls carrying usage", modes: ["np"], build: () => ({ root: agent("assistant", [[T("Let me check"), FC("lookup"), END(U())], [T("Ans"), T("wer"), END(U())]], { tools: [lookup()], afterModelCallback: stripFirst(how) }) }), readings: { expected: "raw", transform: strippedGone } },
+    { id: `strip-split-flush-before-fc-${how}`, note: "as the flush leg, the text split over two chunks", modes: ["np"], build: () => ({ root: agent("assistant", [[T("Let me "), T("check"), FC("lookup"), END()], [T("Ans"), T("wer"), END()]], { tools: [lookup()], afterModelCallback: stripFirst(how) }) }), readings: { expected: "raw", transform: strippedGone } },
+    { id: `freshness-strip-first-${how}-done-after-done`, note: "the first final removed; the second pass says what the first ended with", hcOnly: true, modes: ["np", "prog"], build: () => ({ root: loop2(agent("worker", [[T("All "), STOP("Done.")], [STOP("Done.")]], { afterModelCallback: stripFirst(how) })) }), readings: { expected: "raw", transform: strippedGone } },
+    { id: `freshness-strip-first-${how}-same-same`, note: "the first final removed; two passes say the same", hcOnly: true, modes: ["np", "prog"], build: () => ({ root: loop2(agent("worker", [[T("Sa"), STOP("me")], [T("Sa"), STOP("me")]], { afterModelCallback: stripFirst(how) })) }), readings: { expected: "raw", transform: strippedGone } },
+  ]),
+  { id: "fc-mid-stream-strip-first", note: "text, a function call chunk, more text; the first non-partial response removed", modes: ["np", "prog"], build: () => { let k = 0; return { root: one("t1", [{ chunks: [text("Let me check"), fc(), text(" more"), stop("")] }, { chunks: [text("Ans"), stop("wer")] }], { tools: [noop()], afterModelCallback: ({ response }: Any) => (response.partial || k++ > 0 ? undefined : { ...response, content: undefined }) }) }; } },
+  { id: "fc-mid-stream-then-429-loop", note: "text and a function call, then the stream throws a 429; the loop's next pass streams", hcOnly: true, modes: ["np", "prog"], build: () => ({ root: strictLoop2([{ chunks: [text("Let me check"), fc()], throwAfter: JSON.stringify({ error: { code: 429, message: "x" } }) }, { chunks: [text("Hi "), stop("there", U(15))] }, { chunks: [stop("unused")] }], { tools: [noop()] }) }) },
+  { id: "dynamic-runnode-twice-one-throws", note: "a dynamic entry runs one agent twice; the first throws mid-text, which aborts the second; the entry returns text", hcOnly: true, modes: ["np", "prog"], build: () => { const a = new LlmAgent({ name: "same", model: fake("same", [{ chunks: [at(text("Ex "), 50)], throwAfter: "boom" }, { chunks: [at(text("Why "), 100), at(stop("not", U(15)), 300)] }]), instruction: "x" }); return { root: new Workflow({ name: "wfd", dynamicEntry: async (ctx: Any) => { await Promise.all([ctx.runNode(a, "x"), ctx.runNode(a, "y")]); return "done"; } }) }; }, units: wfOutput },
+  // a custom agent's own text against its open window
+  { id: "custom-final-strict-prefix", note: "a custom agent streams Hello, then its own non-partial Hel", modes: ["np"], build: () => ({ root: new ScriptedCustom("custom", [["Hel", true], ["lo", true], ["Hel", false]]) }), units: customUnits(["Hel"]), readings: { expected: "raw", transform: customUnits(["Hello", "Hel"]), note: "expected: the session's text; alternative: the stream, then the non-partial as a new message" } },
+  { id: "custom-final-extends", note: "a custom agent streams Hello, then its own non-partial Hello world", modes: ["np"], build: () => ({ root: new ScriptedCustom("custom", [["Hel", true], ["lo", true], ["Hello world", false]]) }), units: customUnits(["Hello world"]), readings: { expected: "raw", transform: customUnits(["Hello", "Hello world"]) } },
+];
+
+const CHROME: Leg[] = [
+  { id: "chrome-single-stream", note: "one agent streams; the turnComplete final repeats the text, unflagged", modes: ["np"], build: () => ({ root: new LlmAgent({ name: "assistant", model: chromeModel("assistant", [["Hel", "lo"]]), instruction: "x" }) }) },
+  { id: "chrome-loop-control", note: "a LoopAgent's two passes; no callback", hcOnly: true, modes: ["np"], build: () => ({ root: chromeLoop([["Hel", "lo"], ["Hi ", "there"]]) }) },
+  { id: "chrome-loop-strip-every-final", note: "every turnComplete final stripped", hcOnly: true, modes: ["np"], build: () => ({ root: loop2(new LlmAgent({ name: "worker", model: chromeModel("worker", [["Hel", "lo"], ["Hi ", "there"]]), instruction: "x", afterModelCallback: ({ response }: Any) => (response.turnComplete ? { ...response, content: undefined } : undefined) })) }), readings: { expected: "callback", transform: stripReading } },
+  { id: "chrome-state-then-prefix", note: "an after-agent state change, then a pass whose answer is a prefix of the last", hcOnly: true, modes: ["np"], build: () => ({ root: loop2(new LlmAgent({ name: "worker", model: chromeModel("worker", [["Hel", "lo"], ["Hel"]]), instruction: "x", afterAgentCallback: (ctx: Any) => { ctx.state.set("seen", true); return undefined; } })) }) },
+  { id: "chrome-loop-strip-first", note: "the first final removed; the second pass streams", hcOnly: true, modes: ["np"], build: () => ({ root: chromeLoop([["Hel", "lo"], ["Hi ", "there"]], { afterModelCallback: spreadStripFirst() }) }), readings: { expected: "raw", transform: strippedGone } },
+  { id: "chrome-loop-strip-first-state", note: "as chrome-loop-strip-first, with an after-agent state change", hcOnly: true, modes: ["np"], build: () => ({ root: chromeLoop([["Hel", "lo"], ["Hi ", "there"]], { afterModelCallback: spreadStripFirst(), afterAgentCallback: setState }) }), readings: { expected: "raw", transform: strippedGone } },
+  { id: "chrome-loop-strip-first-state-streamed-prefix", note: "the first final removed; a state change; the second pass streams a prefix", hcOnly: true, modes: ["np"], build: () => ({ root: chromeLoop([["Hel", "lo"], ["Hel"]], { afterModelCallback: spreadStripFirst(), afterAgentCallback: setState }) }), readings: { expected: "raw", transform: strippedGone } },
+  { id: "chrome-loop-strip-first-state-before-model-prefix", note: "the first final removed; a state change; a before-model callback answers the second pass with a prefix", hcOnly: true, modes: ["np"], build: () => ({ root: chromeLoop([["Hel", "lo"]], { afterModelCallback: spreadStripFirst(), afterAgentCallback: setState, beforeModelCallback: beforeHel() }) }), units: extra("before-model", "Hel", "assistant||"), readings: { expected: "raw", transform: strippedGone } },
+  { id: "chrome-strip-first-after-agent-text", note: "the final removed; an after-agent callback adds its own text", hcOnly: true, modes: ["np"], build: () => ({ root: new LlmAgent({ name: "assistant", model: chromeModel("assistant", [["Hel", "lo"]], { strict: true }), instruction: "x", afterModelCallback: spreadStripFirst(), afterAgentCallback: () => ({ role: "model", parts: [{ text: "Appended note." }] }) }) }), units: extra("after-agent", "Appended note.", "assistant||"), readings: { expected: "raw", transform: strippedGone } },
+];
+
+// ── RemoteA2AAgent relays: a scripted A2A peer, or the real A2AAgentExecutor over a real ADK app (JSON round-trip) ──
+type Step = { status: string; text?: string; final?: boolean } | { art: string; text: string; append?: boolean; last?: boolean } | { throw: string } | { raw: (taskId: string, contextId: string) => Any };
+/** A scripted peer: a strict queue of passes, 20 ms per step. Each pass it serves is logged (state.served). */
+function stepClient(name: string, scripts: Step[][]) {
+  const q = [...scripts];
+  return { async *sendMessageStream(params: Any) {
+    const steps = q.shift();
+    if (!steps) throw new Error("no script left");
+    state.served.push(name);
+    const taskId = randomUUID();
+    const contextId = params.message.contextId ?? randomUUID();
+    for (const st of steps) {
+      await sleep(20);
+      if ("throw" in st) throw new Error(st.throw);
+      if ("raw" in st) { yield JSON.parse(JSON.stringify(st.raw(taskId, contextId))); continue; }
+      if ("status" in st) yield { kind: "status-update", taskId, contextId, final: st.final ?? false, status: { state: st.status, ...(st.text !== undefined ? { message: { kind: "message", messageId: randomUUID(), role: "agent", parts: [{ kind: "text", text: st.text }] } } : {}) } };
+      else yield { kind: "artifact-update", taskId, contextId, artifact: { artifactId: st.art, parts: [{ kind: "text", text: st.text }] }, ...(st.append !== undefined ? { append: st.append } : {}), ...(st.last !== undefined ? { lastChunk: st.last } : {}) };
+    }
+  } };
+}
+function adkPeer(remoteRoot: Any) {
+  const executor = new A2AAgentExecutor({ runner: new InMemoryRunner({ agent: remoteRoot, appName: "remote" }), runConfig: { streamingMode: StreamingMode.SSE } } as Any);
+  return { async *sendMessageStream(params: Any) {
+    const pub: Any[] = [];
+    await executor.execute({ userMessage: params.message, taskId: randomUUID(), contextId: params.message.contextId ?? randomUUID() } as Any, { publish: (e: Any) => pub.push(e), finished: () => {} } as Any);
+    for (const e of pub) yield JSON.parse(JSON.stringify(e));
+  } };
+}
+const relay = (name: string, client: Any) => new RemoteA2AAgent({ name, client, description: "remote" } as Any);
+const sRelay = (name: string, scripts: Step[][]) => relay(name, stepClient(name, scripts));
+const streamed = (pre: Step[] = [], mid: Step[] = []): Step[] => [{ status: "working" }, ...pre, { art: "a1", text: "Hel", append: false, last: false }, ...mid, { art: "a1", text: "lo", append: true, last: true }, { status: "completed", final: true }];
+const md = { adk_app_name: "remote", adk_user_id: "u", adk_session_id: "s", adk_author: "rates_agent" };
+const pst = (parts: Any[]) => (taskId: string, contextId: string) => ({ kind: "status-update", taskId, contextId, final: false, status: { state: "working", message: { kind: "message", messageId: randomUUID(), role: "agent", parts } }, metadata: md });
+const tx = (t: string) => ({ kind: "text", text: t });
+/** The wire of Python ADK's legacy A2A executor: one working status per content event, then a lastChunk artifact
+ *  (append unset) holding the last status message's parts, then completed. */
+const pyAdk = (texts: string[], withTool: boolean): Step[] => [
+  { raw: (taskId, contextId) => ({ kind: "status-update", taskId, contextId, final: false, status: { state: "working" }, metadata: md }) },
+  ...(withTool
+    ? [{ raw: pst([tx(texts[0]!), { kind: "data", data: { id: "c1", name: "get_rate", args: {} }, metadata: { adk_type: "function_call" } }]) },
+       { raw: pst([{ kind: "data", data: { id: "c1", name: "get_rate", response: { rate: 0.92 } }, metadata: { adk_type: "function_response" } }]) },
+       { raw: pst([tx(texts[1]!)]) }]
+    : texts.map((t) => ({ raw: pst([tx(t)]) }))),
+  { raw: (taskId, contextId) => ({ kind: "artifact-update", taskId, contextId, lastChunk: true, artifact: { artifactId: randomUUID(), parts: [tx(texts[texts.length - 1]!)] }, metadata: md }) },
+  { raw: (taskId, contextId) => ({ kind: "status-update", taskId, contextId, final: true, status: { state: "completed" }, metadata: md }) },
+];
+/** A scripted peer for the relay-concurrency legs: working, the pieces as one streamed artifact, completed. */
+function piecesClient(pieces: string[]) {
+  return { async *sendMessageStream(params: Any) {
+    const taskId = randomUUID();
+    const contextId = params.message.contextId ?? randomUUID();
+    yield { kind: "status-update", taskId, contextId, status: { state: "working" }, final: false };
+    for (const [i, p] of pieces.entries()) { await sleep(30); yield { kind: "artifact-update", taskId, contextId, artifact: { artifactId: "art-1", parts: [{ kind: "text", text: p }] }, append: i > 0, lastChunk: i === pieces.length - 1 }; }
+    yield { kind: "status-update", taskId, contextId, status: { state: "completed" }, final: true };
+  } };
+}
+/** Relay units: the source is the relay's scope plus its window (the artifact id, or `status` for status text);
+ *  windows may interleave, a window's units are consumed in order. One list per pass the relay actually served. */
+type Item = [window: string, text: string];
+const relayUnits = (spec: Record<string, { authors?: string[]; passes: Item[][] }>): UnitsFn => (_b, _m, _mode, r) =>
+  Object.entries(spec).flatMap(([name, { authors = [], passes }]) => {
+    const names = [name, ...authors];
+    const e = r.natives.find((x: Any) => names.includes(x.author) && (x.content?.parts ?? []).some((p: Any) => typeof p.text === "string" && p.text)) ?? r.natives.find((x: Any) => names.includes(x.author));
+    const scope = e ? scopeOf(e) : `${name}||`;
+    const served = r.served.filter((x) => x === name).length;
+    return passes.slice(0, served).flatMap((items, pi) => items.map(([w, t], i) => ({ source: `${scope}|${w}`, call: `${name}#${pi}`, seg: i, text: t })));
+  });
+const fixedUnits = (units: Array<[source: string, text: string]>): UnitsFn => () => units.map(([source, t], i) => ({ source, call: source, seg: i, text: t }));
+const LOOKING: Step[] = [{ status: "working", text: "Looking that up. " }];
+const cfake = (name: string, scripts: Script[]) => fake(name, scripts);
+
+const RELAY: Leg[] = [
+  { id: "relay-streamed-artifact", note: "a streamed artifact, no status text", tag: false, modes: ["np"], build: () => ({ root: sRelay("helper", [streamed()]) }), units: relayUnits({ helper: { passes: [[["a1", "Hello"]]] } }) },
+  { id: "relay-status-text-then-stream", note: "a working status with text, then a streamed artifact", tag: false, modes: ["np"], build: () => ({ root: sRelay("helper", [streamed(LOOKING)]) }), units: relayUnits({ helper: { passes: [[["status", "Looking that up. "], ["a1", "Hello"]]] } }) },
+  { id: "relay-status-text-then-stream-parallel", note: "the status-then-stream relay under a ParallelAgent (it has a branch)", tag: false, hcOnly: true, modes: ["np"], build: () => ({ root: new ParallelAgent({ name: "par", subAgents: [sRelay("helper", [streamed(LOOKING)])] }) }), units: relayUnits({ helper: { passes: [[["status", "Looking that up. "], ["a1", "Hello"]]] } }) },
+  { id: "relay-status-between-chunks", note: "a working status with text between the artifact's chunks", tag: false, modes: ["np"], build: () => ({ root: sRelay("helper", [streamed([], [{ status: "working", text: " (still working) " }])]) }), units: relayUnits({ helper: { passes: [[["a1", "Hel"], ["status", " (still working) "], ["a1", "lo"]]] } }) },
+  { id: "relay-flagless-oneshot-then-streamed", note: "a one-shot artifact with neither append nor lastChunk, then a streamed artifact", tag: false, modes: ["np"], build: () => ({ root: sRelay("helper", [[{ status: "working" }, { art: "a0", text: "Plan: search. " }, { art: "a1", text: "Hel", append: false, last: false }, { art: "a1", text: "lo", append: true, last: true }, { status: "completed", final: true }]]) }), units: relayUnits({ helper: { passes: [[["a0", "Plan: search. "], ["a1", "Hello"]]] } }) },
+  { id: "relay-flagged-oneshot-then-streamed", note: "a one-shot artifact with lastChunk, then a streamed artifact", tag: false, modes: ["np"], build: () => ({ root: sRelay("helper", [[{ status: "working" }, { art: "art-1", text: "First.", append: false, last: true }, { art: "art-2", text: "Sec", append: false, last: false }, { art: "art-2", text: "ond.", append: true, last: true }, { status: "completed", final: true }]]) }), units: relayUnits({ helper: { passes: [[["art-1", "First."], ["art-2", "Second."]]] } }) },
+  { id: "relay-second-artifact-equals-first-tail", note: "a second artifact equal to the first one's tail", tag: false, modes: ["np"], build: () => ({ root: sRelay("helper", [[{ status: "working" }, { art: "art-1", text: "Hello ", append: false, last: false }, { art: "art-1", text: "there", append: true, last: true }, { art: "art-2", text: "there", append: false, last: true }, { status: "completed", final: true }]]) }), units: relayUnits({ helper: { passes: [[["art-1", "Hello there"], ["art-2", "there"]]] } }) },
+  { id: "relay-two-status-texts-then-oneshot", note: "two working status texts, then a one-shot artifact with lastChunk", tag: false, modes: ["np"], build: () => ({ root: sRelay("helper", [[{ status: "working" }, { status: "working", text: "Looking up the exchange rates..." }, { status: "working", text: "Processing the exchange rates.." }, { art: "a1", text: "1 USD = 0.92 EUR", append: false, last: true }, { status: "completed", final: true }]]) }), units: relayUnits({ helper: { passes: [[["status", "Looking up the exchange rates..."], ["status", "Processing the exchange rates.."], ["a1", "1 USD = 0.92 EUR"]]] } }) },
+  { id: "relay-sequential-same-answer", note: "a SequentialAgent of two relays; both answer Hello", tag: false, hcOnly: true, modes: ["np"], build: () => ({ root: new SequentialAgent({ name: "seq", subAgents: [sRelay("helper", [streamed(LOOKING)]), sRelay("helper2", [streamed([{ status: "working", text: "Checking. " }])])] }) }), units: relayUnits({ helper: { passes: [[["status", "Looking that up. "], ["a1", "Hello"]]] }, helper2: { passes: [[["status", "Checking. "], ["a1", "Hello"]]] } }) },
+  { id: "relay-sequential-two-relays", note: "a SequentialAgent of two relays with different answers", tag: false, hcOnly: true, modes: ["np"], build: () => ({ root: new SequentialAgent({ name: "seq", subAgents: [sRelay("first", [[{ status: "working", text: "One moment. " }, { art: "art-1", text: "Hel", append: false, last: false }, { art: "art-1", text: "lo", append: true, last: true }, { status: "completed", final: true }]]), sRelay("second", [[{ status: "working", text: "Checking. " }, { art: "art-1", text: "Wor", append: false, last: false }, { art: "art-1", text: "ld", append: true, last: true }, { status: "completed", final: true }]])] }) }), units: relayUnits({ first: { passes: [[["status", "One moment. "], ["art-1", "Hello"]]] }, second: { passes: [[["status", "Checking. "], ["art-1", "World"]]] } }) },
+  { id: "relay-status-text-parallel-pair", note: "a ParallelAgent of a status-then-stream relay and a one-shot relay", tag: false, hcOnly: true, modes: ["np"], build: () => ({ root: new ParallelAgent({ name: "par", subAgents: [sRelay("helper", [[{ status: "working", text: "Looking that up. " }, { art: "art-1", text: "Hel", append: false, last: false }, { art: "art-1", text: "lo", append: true, last: true }, { status: "completed", final: true }]]), sRelay("other", [[{ art: "art-9", text: "Fine.", append: false, last: true }, { status: "completed", final: true }]])] }) }), units: relayUnits({ helper: { passes: [[["status", "Looking that up. "], ["art-1", "Hello"]]] }, other: { passes: [[["art-9", "Fine."]]] } }) },
+  { id: "relay-final-artifact-repeats-status", note: "a working status with text, then a lastChunk artifact repeating it", tag: false, modes: ["np"], build: () => ({ root: sRelay("helper", [[{ status: "working", text: "1 USD = 0.92 EUR." }, { art: "art-1", text: "1 USD = 0.92 EUR.", append: false, last: true }, { status: "completed", final: true }]]) }), units: relayUnits({ helper: { passes: [[["status", "1 USD = 0.92 EUR."]]] } }) },
+  { id: "relay-python-legacy-wire", note: "Python ADK's legacy executor without metadata: two working statuses, then a lastChunk artifact repeating the last", tag: false, modes: ["np"], build: () => ({ root: sRelay("helper", [[{ status: "working", text: "Let me check the rates. " }, { status: "working", text: "1 USD = 0.92 EUR." }, { art: "art-1", text: "1 USD = 0.92 EUR.", last: true }, { status: "completed", final: true }]]) }), units: relayUnits({ helper: { passes: [[["status", "Let me check the rates. "], ["status", "1 USD = 0.92 EUR."]]] } }) },
+  { id: "relay-python-adk-one-text", note: "Python ADK's legacy executor: one text event", tag: false, modes: ["np"], build: () => ({ root: sRelay("helper", [pyAdk(["1 USD = 0.92 EUR."], false)]) }), units: relayUnits({ helper: { authors: ["rates_agent"], passes: [[["status", "1 USD = 0.92 EUR."]]] } }) },
+  { id: "relay-python-adk-tool-round", note: "Python ADK's legacy executor: a preamble with a function call, its response, then the answer", tag: false, modes: ["np"], build: () => ({ root: sRelay("helper", [pyAdk(["Let me check the rates. ", "1 USD = 0.92 EUR."], true)]) }), units: relayUnits({ helper: { authors: ["rates_agent"], passes: [[["status", "Let me check the rates. "], ["status", "1 USD = 0.92 EUR."]]] } }) },
+  { id: "relay-python-adk-two-texts", note: "Python ADK's legacy executor: two text events", tag: false, modes: ["np"], build: () => ({ root: sRelay("helper", [pyAdk(["Research notes: rates are stable. ", "1 USD = 0.92 EUR."], false)]) }), units: relayUnits({ helper: { authors: ["rates_agent"], passes: [[["status", "Research notes: rates are stable. "], ["status", "1 USD = 0.92 EUR."]]] } }) },
+  { id: "relay-python-adk-tool-round-parallel", note: "the Python tool-round relay under a ParallelAgent", tag: false, hcOnly: true, modes: ["np"], build: () => ({ root: new ParallelAgent({ name: "par", subAgents: [sRelay("helper", [pyAdk(["Let me check the rates. ", "1 USD = 0.92 EUR."], true)])] }) }), units: relayUnits({ helper: { authors: ["rates_agent"], passes: [[["status", "Let me check the rates. "], ["status", "1 USD = 0.92 EUR."]]] } }) },
+  { id: "relay-failed-status", note: "a relay streams Hel, then its task fails with a status message (a relayed turnComplete event)", tag: false, modes: ["np"], build: () => ({ root: sRelay("helper", [[{ status: "working" }, { art: "a1", text: "Hel", append: false, last: false }, { status: "failed", text: "Rate limited.", final: true }]]) }), units: relayUnits({ helper: { passes: [[["a1", "Hel"]]] } }) },
+  { id: "relay-completed-status-text", note: "a relay streams Hello, then completes with a status message (a relayed turnComplete event)", tag: false, modes: ["np"], build: () => ({ root: sRelay("helper", [[{ status: "working" }, { art: "a1", text: "Hel", append: false, last: false }, { art: "a1", text: "lo", append: true, last: true }, { status: "completed", text: "Done.", final: true }]]) }), units: relayUnits({ helper: { passes: [[["a1", "Hello"], ["status", "Done."]]] } }) },
+  { id: "relay-input-required", note: "a relay asks for input with a status message (a relayed turnComplete event)", tag: false, modes: ["np"], build: () => ({ root: sRelay("helper", [[{ status: "working" }, { status: "input-required", text: "Which city?", final: true }]]) }), units: relayUnits({ helper: { passes: [[["status", "Which city?"]]] } }) },
+  { id: "relay-throw-then-loop-pass", note: "a LoopAgent's relay streams Hel, then its stream throws; the next pass streams Hello", tag: false, hcOnly: true, modes: ["np"], build: () => ({ root: new LoopAgent({ name: "loop", maxIterations: 2, subAgents: [sRelay("helper", [[{ status: "working" }, { art: "a1", text: "Hel", append: false, last: false }, { throw: "connection reset" }], streamed()])] }) }), units: relayUnits({ helper: { passes: [[["a1", "Hel"]], [["a1", "Hello"]]] } }) },
+  { id: "relay-loop-two-clean-passes", note: "a LoopAgent's relay streams Hello on both passes", tag: false, hcOnly: true, modes: ["np"], build: () => ({ root: new LoopAgent({ name: "loop", maxIterations: 2, subAgents: [sRelay("helper", [streamed(), streamed()])] }) }), units: relayUnits({ helper: { passes: [[["a1", "Hello"]], [["a1", "Hello"]]] } }) },
+  { id: "relay-planner-loop-two-runs", note: "a LoopAgent of a planner and a relay; both remote runs answer Same", tag: false, hcOnly: true, modes: ["np"], build: () => ({ root: new LoopAgent({ name: "loop", maxIterations: 2, subAgents: [new LlmAgent({ name: "planner", model: new ScriptedGemini("planner", [[STOP("")]]), instruction: "x" }), sRelay("helper", [[{ status: "working" }, { art: "art-1", text: "Same", append: false, last: true }, { status: "completed", final: true }], [{ status: "working" }, { art: "art-1", text: "Same", append: false, last: true }, { status: "completed", final: true }]])] }) }), units: relayUnits({ helper: { passes: [[["art-1", "Same"]], [["art-1", "Same"]]] } }) },
+  { id: "relay-adk-peer-text", note: "an ADK peer: a remote LlmAgent streams Hello", tag: false, modes: ["np"], build: () => ({ root: relay("helper", adkPeer(new LlmAgent({ name: "worker", model: cfake("worker", [{ chunks: [text("Hel"), stop("lo", U(15))] }]), instruction: "x" }))) }), units: fixedUnits([["helper|worker", "Hello"]]) },
+  { id: "relay-adk-peer-tool-round", note: "an ADK peer: text and a function call, the tool, then a second call answers", tag: false, modes: ["np"], build: () => ({ root: relay("helper", adkPeer(new LlmAgent({ name: "worker", model: cfake("worker", [{ chunks: [text("Let me check"), fc()] }, { chunks: [text("Ans"), stop("wer", U(15))] }]), instruction: "x", tools: [noop()] }))) }), units: fixedUnits([["helper|worker", "Let me check"], ["helper|worker", "Answer"]]) },
+  { id: "relay-adk-peer-parallel-root", note: "an ADK peer whose root is a ParallelAgent: one relay carries two remote authors", tag: false, modes: ["np"], build: () => ({ root: relay("helper", adkPeer(new ParallelAgent({ name: "rpar", subAgents: [new LlmAgent({ name: "ra", model: new ScriptedGemini("ra", [[T("Al"), T("pha"), END(U())]]), instruction: "x" }), new LlmAgent({ name: "rb", model: new ScriptedGemini("rb", [[T("Be"), T("ta"), END(U())]]), instruction: "x" })] }))) }), units: fixedUnits([["helper|ra", "Alpha"], ["helper|rb", "Beta"]]) },
+  { id: "relay-adk-peer-parallel-interleaved", note: "an ADK peer whose ParallelAgent branches interleave in time", tag: false, modes: ["np"], build: () => ({ root: relay("helper", adkPeer(new ParallelAgent({ name: "par", subAgents: [
+      new LlmAgent({ name: "b1", model: cfake("b1", [{ chunks: [at(text("Red "), 50), at(text("fox"), 200), at(stop("", U(15)), 10)] }]), instruction: "x" }),
+      new LlmAgent({ name: "b2", model: cfake("b2", [{ chunks: [at(text("Blue "), 100), at(text("jay"), 300), at(stop("", U(15)), 10)] }]), instruction: "x" })] }))) }),
+    units: fixedUnits([["helper|b1", "Red fox"], ["helper|b2", "Blue jay"]]) },
+  { id: "relay-dynamic-runnode-twice", note: "a dynamic entry runs one relay twice, concurrently; the entry returns text", tag: false, hcOnly: true, modes: ["np"], build: () => { const r = relay("helper", piecesClient(["Hel", "lo"])); return { root: new Workflow({ name: "wfd", dynamicEntry: async (ctx: Any) => { await Promise.all([ctx.runNode(r, "x"), ctx.runNode(r, "y")]); return "done"; } }) }; },
+    units: (b, m, mode, r) => { const seen: string[] = []; for (const e of r.natives as Any[]) { if (e.author !== "helper") continue; const k = scopeOf(e); if (!seen.includes(k)) seen.push(k); } const src = seen.length === 2 ? seen : ["helper||#1", "helper||#2"]; return wfOutput(src.map((source, i) => ({ source: `${source}|art-1`, call: `helper#${i}`, seg: 0, text: "Hello" })), m, mode, r); } },
+  { id: "relay-parallel-pair", note: "a ParallelAgent of two relays", tag: false, hcOnly: true, modes: ["np"], build: () => ({ root: new ParallelAgent({ name: "par", subAgents: [relay("ha", piecesClient(["Hel", "lo"])), relay("hb", piecesClient(["Wor", "ld"]))] }) }), units: (b, m, mode, r) => { const s = (n: string) => { const e = (r.natives as Any[]).find((x) => x.author === n); return e ? scopeOf(e) : `${n}||`; }; return [{ source: `${s("ha")}|art-1`, call: "ha", seg: 0, text: "Hello" }, { source: `${s("hb")}|art-1`, call: "hb", seg: 0, text: "World" }]; } },
+];
+
+// ── Live ──
+const LU = { promptTokenCount: 10, responseTokenCount: 5, totalTokenCount: 15 };
+const lt = (s: string): Chunk => ({ serverContent: { modelTurn: { role: "model", parts: [{ text: s }] } } });
+const resume = (h: string): Chunk => ({ sessionResumptionUpdate: { newHandle: h, resumable: true } });
+const TC: Chunk = { serverContent: { turnComplete: true } };
+const UTC: Chunk = { usageMetadata: LU, serverContent: { turnComplete: true } };
+const GOAWAY: Chunk = { goAway: { timeLeft: "1s" } };
+const TEXT = { responseModalities: ["TEXT"] };
+const RESUME = { responseModalities: ["TEXT"], sessionResumption: {} };
+const liveMapped = (r: Captured): Mapped[] => { const e = (r.natives as Any[]).find((x) => x.author === "spike"); const source = e ? scopeOf(e) : "spike||"; return r.calls.map((c) => ({ ...c, source, firstNative: null })); };
+const live = (id: string, note: string, scripts: Chunk[][], runConfig: Any, readings?: Leg["readings"]): Leg => ({ id, note, modes: ["live"], ...(readings ? { readings } : {}),
+  build: () => ({ capture: () => captureLive(new LlmAgent({ name: "spike", model: liveModel("spike", scripts), instruction: "x" }), { runConfig }), mapped: liveMapped }) });
+const cutGone: UnitsFn = (units) => units.filter((u) => u.call !== 0);
+const LIVE: Leg[] = [
+  live("live-text-turn-complete", "text chunks, then turnComplete (no usage)", [[lt("Hel"), lt("lo"), TC]], TEXT),
+  live("live-usage-on-turn-complete", "text chunks; usage rides the turnComplete message", [[lt("Hel"), lt("lo"), UTC]], TEXT),
+  live("live-usage-before-turn-complete", "text chunks, a usage-only message, then turnComplete", [[lt("Hel"), lt("lo"), { usageMetadata: LU }, TC]], TEXT),
+  live("live-grounding-between-chunks", "a grounding-only message between text chunks", [[lt("Hel"), { serverContent: { groundingMetadata: { webSearchQueries: ["q"] } } }, lt("lo"), UTC]], TEXT),
+  live("live-generation-complete", "text chunks, generationComplete, then usage and turnComplete", [[lt("Hel"), lt("lo"), { serverContent: { generationComplete: true } }, UTC]], TEXT),
+  live("live-transcription-final", "text chunks, an output-transcription final (partial:false, no content), then usage and turnComplete", [[lt("Hel"), lt("lo"), { serverContent: { outputTranscription: { text: "Hello", finished: true } } }, UTC]], TEXT),
+  live("live-resumption-control", "a resumption update, text, turnComplete (one connection)", [[resume("h1"), lt("Hel"), lt("lo"), UTC]], RESUME),
+  live("live-goaway-resume", "text cut by goAway; the resumed connection answers anew", [[resume("h1"), lt("Hel"), lt("lo"), GOAWAY], [resume("h2"), lt("Hi "), lt("there"), UTC]], RESUME, { expected: "raw", transform: cutGone, note: "alternative: the cut generation's text dropped" }),
+  live("live-goaway-resumption-mid-text", "a resumption update mid-text, then goAway; the resumed connection answers anew", [[lt("Hel"), resume("h1"), lt("lo"), GOAWAY], [lt("Hi "), lt("there"), UTC]], RESUME, { expected: "raw", transform: cutGone }),
+  live("live-goaway-resume-no-usage", "as live-goaway-resume, with no usage in the resumed generation", [[resume("h1"), lt("Hel"), lt("lo"), GOAWAY], [resume("h2"), lt("Hi "), lt("there"), TC]], RESUME, { expected: "raw", transform: cutGone }),
+];
+
+export const LEGS: Leg[] = [...GEMINI, ...CHROME, ...RELAY, ...LIVE];
+export { capture };

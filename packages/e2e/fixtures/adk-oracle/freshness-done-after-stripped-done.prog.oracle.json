@@ -1,0 +1,60 @@
+{
+ "leg": "freshness-done-after-stripped-done",
+ "mode": "prog",
+ "hcOnly": true,
+ "threw": null,
+ "note": "every final stripped; the second pass says what the first ended with",
+ "expected": "callback",
+ "readings": {
+  "raw": [
+   {
+    "source": "worker||",
+    "call": 0,
+    "seg": 0,
+    "text": "All Done."
+   },
+   {
+    "source": "worker||",
+    "call": 1,
+    "seg": 0,
+    "text": "Done."
+   }
+  ],
+  "callback": [
+   {
+    "source": "worker||",
+    "call": 0,
+    "seg": 0,
+    "text": "All Done."
+   },
+   {
+    "source": "worker||",
+    "call": 1,
+    "seg": 0,
+    "text": "Done."
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "worker",
+   "source": "worker||",
+   "firstNative": 0,
+   "segments": [
+    "All Done."
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "worker",
+   "source": "worker||",
+   "firstNative": 2,
+   "segments": [
+    "Done."
+   ],
+   "threw": false
+  }
+ ]
+}

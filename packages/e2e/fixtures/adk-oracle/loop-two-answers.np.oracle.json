@@ -1,0 +1,46 @@
+{
+ "leg": "loop-two-answers",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "a LoopAgent's two passes answer",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "worker||",
+    "call": 0,
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "worker||",
+    "call": 1,
+    "seg": 0,
+    "text": "Hi there"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "worker",
+   "source": "worker||",
+   "firstNative": 0,
+   "segments": [
+    "Hello"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "worker",
+   "source": "worker||",
+   "firstNative": 3,
+   "segments": [
+    "Hi there"
+   ],
+   "threw": false
+  }
+ ]
+}

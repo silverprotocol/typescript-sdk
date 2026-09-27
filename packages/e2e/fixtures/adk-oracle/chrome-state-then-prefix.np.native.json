@@ -1,0 +1,142 @@
+[
+ {
+  "invocationId": "e-e429f881-d6e0-4cd9-8da7-357e702bdc21",
+  "author": "worker",
+  "id": "LAD4ClD1",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122199,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-e429f881-d6e0-4cd9-8da7-357e702bdc21",
+  "author": "worker",
+  "id": "fkK9HHgT",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122199,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-e429f881-d6e0-4cd9-8da7-357e702bdc21",
+  "author": "worker",
+  "id": "pc2eG3wN",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122199,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello"
+    }
+   ]
+  },
+  "turnComplete": true
+ },
+ {
+  "invocationId": "e-e429f881-d6e0-4cd9-8da7-357e702bdc21",
+  "author": "worker",
+  "actions": {
+   "stateDelta": {
+    "seen": true
+   },
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "csJTFFuK",
+  "longRunningToolIds": [],
+  "timestamp": 1790554122199
+ },
+ {
+  "invocationId": "e-e429f881-d6e0-4cd9-8da7-357e702bdc21",
+  "author": "worker",
+  "id": "if4Tq02J",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122199,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "partial": true
+ },
+ {
+  "invocationId": "e-e429f881-d6e0-4cd9-8da7-357e702bdc21",
+  "author": "worker",
+  "id": "4hT5ZUe1",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122199,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel"
+    }
+   ]
+  },
+  "turnComplete": true
+ },
+ {
+  "invocationId": "e-e429f881-d6e0-4cd9-8da7-357e702bdc21",
+  "author": "worker",
+  "actions": {
+   "stateDelta": {
+    "seen": true
+   },
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "sUeq9kz2",
+  "longRunningToolIds": [],
+  "timestamp": 1790554122199
+ }
+]

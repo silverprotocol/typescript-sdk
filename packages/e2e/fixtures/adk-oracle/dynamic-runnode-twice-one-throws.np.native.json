@@ -1,0 +1,45 @@
+[
+ {
+  "invocationId": "e-4ff2b045-d0e2-4616-a946-e2ca922bc673",
+  "author": "same",
+  "id": "HvfQf0eg",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121959,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Ex "
+    }
+   ]
+  },
+  "partial": true,
+  "nodeInfo": {
+   "path": "wfd.same@1"
+  }
+ },
+ {
+  "invocationId": "e-4ff2b045-d0e2-4616-a946-e2ca922bc673",
+  "author": "same",
+  "errorCode": "UNKNOWN_ERROR",
+  "errorMessage": "boom",
+  "id": "nq0w2QxW",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122011,
+  "nodeInfo": {
+   "path": "wfd.same@1"
+  }
+ }
+]

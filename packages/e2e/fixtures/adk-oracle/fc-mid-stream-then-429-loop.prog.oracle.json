@@ -1,0 +1,33 @@
+{
+ "leg": "fc-mid-stream-then-429-loop",
+ "mode": "prog",
+ "hcOnly": true,
+ "threw": {
+  "name": "Error",
+  "message": "No function call event found for function responses ids: c1"
+ },
+ "note": "text and a function call, then the stream throws a 429; the loop's next pass streams",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "a1||",
+    "call": 0,
+    "seg": 0,
+    "text": "Let me check"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "a1",
+   "source": "a1||",
+   "firstNative": 0,
+   "segments": [
+    "Let me check"
+   ],
+   "threw": false
+  }
+ ]
+}

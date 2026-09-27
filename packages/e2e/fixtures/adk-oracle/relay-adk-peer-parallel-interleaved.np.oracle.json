@@ -1,0 +1,46 @@
+{
+ "leg": "relay-adk-peer-parallel-interleaved",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "an ADK peer whose ParallelAgent branches interleave in time",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|b1",
+    "call": "helper|b1",
+    "seg": 0,
+    "text": "Red fox"
+   },
+   {
+    "source": "helper|b2",
+    "call": "helper|b2",
+    "seg": 1,
+    "text": "Blue jay"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "b1",
+   "source": "b1||",
+   "firstNative": null,
+   "segments": [
+    "Red fox"
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "b2",
+   "source": "b2||",
+   "firstNative": null,
+   "segments": [
+    "Blue jay"
+   ],
+   "threw": false
+  }
+ ]
+}

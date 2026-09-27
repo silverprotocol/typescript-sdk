@@ -1,0 +1,47 @@
+{
+ "leg": "chrome-strip-first-after-agent-text",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "the final removed; an after-agent callback adds its own text",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "assistant||",
+    "call": 0,
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "assistant||",
+    "call": "after-agent",
+    "seg": 0,
+    "text": "Appended note."
+   }
+  ],
+  "callback": [
+   {
+    "source": "assistant||",
+    "call": "after-agent",
+    "seg": 0,
+    "text": "Appended note."
+   }
+  ]
+ },
+ "stripped": [
+  null
+ ],
+ "calls": [
+  {
+   "call": 0,
+   "agent": "assistant",
+   "source": "assistant||",
+   "firstNative": 0,
+   "segments": [
+    "Hello"
+   ],
+   "threw": false
+  }
+ ]
+}

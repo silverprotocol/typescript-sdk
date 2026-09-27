@@ -1,0 +1,50 @@
+[
+ {
+  "invocationId": "e-fa27d68b-92df-4570-bcfb-a28c43df3d22",
+  "author": "assistant",
+  "id": "ZrLZJ9qA",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554121358,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello"
+    }
+   ]
+  },
+  "usageMetadata": {
+   "promptTokenCount": 10,
+   "candidatesTokenCount": 5,
+   "totalTokenCount": 15
+  },
+  "finishReason": "STOP"
+ },
+ {
+  "invocationId": "e-fa27d68b-92df-4570-bcfb-a28c43df3d22",
+  "author": "assistant",
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Noted."
+    }
+   ]
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "id": "Fwko8Z5a",
+  "longRunningToolIds": [],
+  "timestamp": 1790554121358
+ }
+]

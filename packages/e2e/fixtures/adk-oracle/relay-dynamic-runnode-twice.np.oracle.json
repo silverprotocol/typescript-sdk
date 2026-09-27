@@ -1,0 +1,31 @@
+{
+ "leg": "relay-dynamic-runnode-twice",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "a dynamic entry runs one relay twice, concurrently; the entry returns text",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper||wfd.helper@1|art-1",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "helper||wfd.helper@2|art-1",
+    "call": "helper#1",
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "wfd||",
+    "call": "workflow-output",
+    "seg": 0,
+    "text": "done"
+   }
+  ]
+ },
+ "calls": []
+}

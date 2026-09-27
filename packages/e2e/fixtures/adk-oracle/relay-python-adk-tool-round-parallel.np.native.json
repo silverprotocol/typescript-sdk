@@ -1,0 +1,148 @@
+[
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "1e32a567-277e-40bc-a70b-a890a760ba16",
+   "a2a:context_id": "bb17bee5-ff81-4372-b244-76057159b572"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "ET7Jnmqx",
+  "invocationId": "e-4987f8e2-031c-4d28-8d04-582b58139df1",
+  "longRunningToolIds": [],
+  "branch": "par.helper",
+  "timestamp": 1790554124814,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Let me check the rates. ",
+     "thought": false
+    },
+    {
+     "functionCall": {
+      "id": "c1",
+      "name": "get_rate",
+      "args": {}
+     }
+    }
+   ]
+  },
+  "turnComplete": false
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "1e32a567-277e-40bc-a70b-a890a760ba16",
+   "a2a:context_id": "bb17bee5-ff81-4372-b244-76057159b572"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "4VEii1jk",
+  "invocationId": "e-4987f8e2-031c-4d28-8d04-582b58139df1",
+  "longRunningToolIds": [],
+  "branch": "par.helper",
+  "timestamp": 1790554124837,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "functionResponse": {
+      "id": "c1",
+      "name": "get_rate",
+      "response": {
+       "rate": 0.92
+      }
+     }
+    }
+   ]
+  },
+  "turnComplete": false
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "1e32a567-277e-40bc-a70b-a890a760ba16",
+   "a2a:context_id": "bb17bee5-ff81-4372-b244-76057159b572"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "w18SVyu6",
+  "invocationId": "e-4987f8e2-031c-4d28-8d04-582b58139df1",
+  "longRunningToolIds": [],
+  "branch": "par.helper",
+  "timestamp": 1790554124859,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "1 USD = 0.92 EUR.",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": false
+ },
+ {
+  "author": "helper",
+  "partial": false,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "9897c7af-79f9-4663-b500-2bba35b6640e"
+    }
+   },
+   "a2a:task_id": "1e32a567-277e-40bc-a70b-a890a760ba16",
+   "a2a:context_id": "bb17bee5-ff81-4372-b244-76057159b572"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "HktRvyEI",
+  "invocationId": "e-4987f8e2-031c-4d28-8d04-582b58139df1",
+  "longRunningToolIds": [],
+  "branch": "par.helper",
+  "timestamp": 1790554124885,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "1 USD = 0.92 EUR.",
+     "thought": false
+    }
+   ]
+  }
+ }
+]

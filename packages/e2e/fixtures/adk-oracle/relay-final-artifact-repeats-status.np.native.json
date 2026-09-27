@@ -1,0 +1,68 @@
+[
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "be68b9b5-cfeb-49a1-aa8e-d38fc9f627cf",
+   "a2a:context_id": "513613fc-3e69-4829-ac2a-96e291b3bc4c"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "OWlkrate",
+  "invocationId": "e-6869cf31-87f9-4d14-ad17-65ded39d52e4",
+  "longRunningToolIds": [],
+  "timestamp": 1790554124102,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "1 USD = 0.92 EUR.",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": false
+ },
+ {
+  "author": "helper",
+  "partial": false,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "art-1"
+    }
+   },
+   "a2a:task_id": "be68b9b5-cfeb-49a1-aa8e-d38fc9f627cf",
+   "a2a:context_id": "513613fc-3e69-4829-ac2a-96e291b3bc4c"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "ISdxqYLa",
+  "invocationId": "e-6869cf31-87f9-4d14-ad17-65ded39d52e4",
+  "longRunningToolIds": [],
+  "timestamp": 1790554124124,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "1 USD = 0.92 EUR.",
+     "thought": false
+    }
+   ]
+  }
+ }
+]

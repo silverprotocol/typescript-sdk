@@ -1,0 +1,37 @@
+{
+ "leg": "text-and-fc-one-chunk",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "text and a function call in one chunk",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "assistant||",
+    "call": 0,
+    "seg": 0,
+    "text": "And so"
+   },
+   {
+    "source": "assistant||",
+    "call": 0,
+    "seg": 1,
+    "text": "then"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "assistant",
+   "source": "assistant||",
+   "firstNative": 0,
+   "segments": [
+    "And so",
+    "then"
+   ],
+   "threw": false
+  }
+ ]
+}

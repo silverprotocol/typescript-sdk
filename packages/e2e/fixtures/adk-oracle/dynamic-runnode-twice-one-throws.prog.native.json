@@ -1,0 +1,45 @@
+[
+ {
+  "invocationId": "e-05b81a2d-a6ac-43ec-be73-d3f1b7af073e",
+  "author": "same",
+  "id": "OaRNUpwr",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122013,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Ex "
+    }
+   ]
+  },
+  "partial": true,
+  "nodeInfo": {
+   "path": "wfd.same@1"
+  }
+ },
+ {
+  "invocationId": "e-05b81a2d-a6ac-43ec-be73-d3f1b7af073e",
+  "author": "same",
+  "errorCode": "UNKNOWN_ERROR",
+  "errorMessage": "boom",
+  "id": "h1gUdUQ4",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790554122081,
+  "nodeInfo": {
+   "path": "wfd.same@1"
+  }
+ }
+]

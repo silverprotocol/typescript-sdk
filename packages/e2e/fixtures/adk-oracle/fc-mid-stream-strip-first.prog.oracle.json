@@ -1,0 +1,37 @@
+{
+ "leg": "fc-mid-stream-strip-first",
+ "mode": "prog",
+ "hcOnly": false,
+ "threw": null,
+ "note": "text, a function call chunk, more text; the first non-partial response removed",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "t1||",
+    "call": 0,
+    "seg": 0,
+    "text": "Let me check"
+   },
+   {
+    "source": "t1||",
+    "call": 0,
+    "seg": 1,
+    "text": " more"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "t1",
+   "source": "t1||",
+   "firstNative": 0,
+   "segments": [
+    "Let me check",
+    " more"
+   ],
+   "threw": false
+  }
+ ]
+}

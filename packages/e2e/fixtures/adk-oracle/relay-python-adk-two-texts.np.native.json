@@ -1,0 +1,100 @@
+[
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "2b3a7c66-8d31-4f69-bb34-be34bd19f237",
+   "a2a:context_id": "fedfd3d4-ba00-4e7f-a7be-75f3080b658f"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "xR9EdKfc",
+  "invocationId": "e-5f6ee4df-b80d-449b-b9de-839d446435fa",
+  "longRunningToolIds": [],
+  "timestamp": 1790554124646,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Research notes: rates are stable. ",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": false
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "2b3a7c66-8d31-4f69-bb34-be34bd19f237",
+   "a2a:context_id": "fedfd3d4-ba00-4e7f-a7be-75f3080b658f"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "1rTa9tnw",
+  "invocationId": "e-5f6ee4df-b80d-449b-b9de-839d446435fa",
+  "longRunningToolIds": [],
+  "timestamp": 1790554124675,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "1 USD = 0.92 EUR.",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": false
+ },
+ {
+  "author": "helper",
+  "partial": false,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "6790cd5d-5df7-4f39-ba15-a8c7b9d53069"
+    }
+   },
+   "a2a:task_id": "2b3a7c66-8d31-4f69-bb34-be34bd19f237",
+   "a2a:context_id": "fedfd3d4-ba00-4e7f-a7be-75f3080b658f"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "IXViSRPr",
+  "invocationId": "e-5f6ee4df-b80d-449b-b9de-839d446435fa",
+  "longRunningToolIds": [],
+  "timestamp": 1790554124722,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "1 USD = 0.92 EUR.",
+     "thought": false
+    }
+   ]
+  }
+ }
+]

@@ -1,0 +1,30 @@
+{
+ "leg": "chrome-single-stream",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "one agent streams; the turnComplete final repeats the text, unflagged",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "assistant||",
+    "call": 0,
+    "seg": 0,
+    "text": "Hello"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "assistant",
+   "source": "assistant||",
+   "firstNative": 0,
+   "segments": [
+    "Hello"
+   ],
+   "threw": false
+  }
+ ]
+}
