@@ -4356,6 +4356,49 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
     expect(evs.filter((e) => e.type === "ext.openai.late-citations")).toMatchObject([{ itemId: "msg_n3" }]);
   });
 
+  it("in the order the SDK streams it, a resumed invoke's leading approval answers open its turn with each answer in its own call message, and the resumed response's message.start (not an answer's) keeps its model; the pair folds clean", () => {
+    const first = createOpenaiNormalizer({ invokeId: "inv1" });
+    const invoke1 = [
+      ...rawRound("resp_p1", [request("mcpr_1"), request("mcpr_2")]),
+      calledRequest("mcpr_1"),
+      approvalRequested("mcpr_1"),
+      calledRequest("mcpr_2"),
+      approvalRequested("mcpr_2"),
+    ].flatMap((e) => first.push(e)).concat(first.flush());
+    const second = createOpenaiNormalizer({ invokeId: "inv2" });
+    const invoke2 = [answer("mcpr_1", true), answer("mcpr_2", false), ...rawRound("resp_p2", [MCP]), calledMcp]
+      .flatMap((e) => second.push(e))
+      .concat(second.flush());
+    const alone = new Reducer();
+    for (const ev of invoke2) alone.push(ev);
+    expect(alone.needsResync).toBe(false);
+    const both = new Reducer();
+    for (const ev of [...invoke1, ...invoke2]) both.push(ev);
+    expect(both.needsResync).toBe(false);
+    expect(turnIds(invoke2)).toEqual(["turn_resume_mcpr_1:approval-response"]);
+    const starts = invoke2.filter((e) => e.type === "message.start").map((e) => ({ id: Reflect.get(e, "id"), model: Reflect.get(e, "model") }));
+    expect(starts).toEqual([
+      { id: "mcpr_1:approval-response:call", model: undefined },
+      { id: "mcpr_2:approval-response:call", model: undefined },
+      { id: "msg_turn_resume_mcpr_1:approval-response", model: "gpt-6-sol" },
+    ]);
+    expect(invoke2.find((e) => e.type === "tool.start" && Reflect.get(e, "toolCallId") === "mcp_1")).toMatchObject({
+      messageId: "msg_turn_resume_mcpr_1:approval-response",
+    });
+    // Each answer's call message closes before the resumed response's opens,
+    // and the resumed response's call folds into its own message.
+    const resumed = idx(invoke2, "message.start", "id", "msg_turn_resume_mcpr_1:approval-response");
+    expect(idx(invoke2, "message.end", "id", "mcpr_1:approval-response:call")).toBeLessThan(resumed);
+    expect(idx(invoke2, "message.end", "id", "mcpr_2:approval-response:call")).toBeLessThan(resumed);
+    const fold = alone.result().messages;
+    expect(fold.find((m) => m.id === "msg_turn_resume_mcpr_1:approval-response")?.content.map((b) => Reflect.get(b, "toolCallId"))).toContain("mcp_1");
+    expect(fold.find((m) => m.id === "mcpr_1:approval-response:call")?.content.map((b) => [b.type, Reflect.get(b, "toolCallId")])).toEqual([
+      ["tool-call", "mcpr_1:approval-response"],
+      ["tool-result", "mcpr_1:approval-response"],
+    ]);
+    expect(terminalsOf(invoke2, "turn_resume_mcpr_1:approval-response")).toMatchObject([{ type: "turn.done", outcome: { type: "success" } }]);
+  });
+
   it("a late hosted call streamed after the same round's handoff_requested closes in its own round, not the transfer's nested turn", () => {
     const TR = { type: "function_call", id: "fc_h1", call_id: "call_h1", name: "transfer_to_billing", arguments: "{}", status: "completed" };
     const { evs } = run([

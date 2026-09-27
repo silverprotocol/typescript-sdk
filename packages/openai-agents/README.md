@@ -228,13 +228,15 @@ A hosted call, which the provider runs, emits `tool.start` with
 A hosted MCP approval request's ask lands inside the round, as
 `hitl.ask` with `askId` `approval_<request id>` and `toolCallId` the request
 id. An approval's answer (`mcp_approval_response`) has no id of its own, and
-its call gets `<request id>:approval-response`.
+its call gets `<request id>:approval-response`. On a resumed invoke, the
+answers arrive before any model round. The first opens the invoke's turn,
+`turn_resume_<answer id>`, as a resumed tool result does, and each answer's
+call sits in an assistant message of its own, `<answer id>:call`. The
+resumed response then opens its message in that turn with its model.
 
 Current limits:
 - A hosted MCP approval request closes at once, like any hosted call, so a
   round that waits on an approval closes as `success`, not `paused`.
-- A built-in run-item that opens a resumed invoke, before any model round,
-  still opens a turn of its own.
 - An MCP call's `tool.start.name` stays `mcp_call`; its tool's own name is
   `providerMetadata.mcpToolName`.
 

@@ -3443,14 +3443,28 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         : undefined;
     const key = typeof answered === "string" && answered.length > 0 ? answered : rawItem.id;
     if (rawItem.id !== undefined) seenBuiltinItemIds.add(rawItem.id);
-    // A run-item that lands after its round's terminal attaches to that round;
-    // one that lands while a response is open belongs to it.
-    const late = lateBuiltinRound(key);
-    if (late === undefined) ensureResponseOpen();
-    const ownerMsgId = late !== undefined ? late.mId : msgId;
-    const ownerTurnId = late !== undefined ? late.tid : turnId;
-    if (ownerMsgId === undefined) return; // unreachable post-ensure; satisfies narrowing
     const toolCallId = rawItem.type === "hosted_tool_call" ? hostedToolCallId(rawItem) : rawItem.callId;
+    // A run-item that lands after its round's terminal attaches to that round;
+    // one that lands while a response is open belongs to it. A hosted call
+    // that no round claims while no response is open (the resuming invoke's
+    // leading `mcp_approval_response`) opens its turn as a leading tool result
+    // does (`openTurnForLeadingResult`), in an assistant message of its own,
+    // `<toolCallId>:call`, closed after the call: the response that follows
+    // then opens its own message in that turn, with its model. A leading
+    // client-executed or tool-search call is not a 0.18.0 shape (a resumed
+    // approved call streams its tool_output), so it keeps the response open.
+    const late = lateBuiltinRound(key);
+    // openTurnForLeadingResult returns undefined while a response is open.
+    const leading = late === undefined && rawItem.type === "hosted_tool_call" ? openTurnForLeadingResult(toolCallId) : undefined;
+    const callMsgId = leading !== undefined ? `${toolCallId}:call` : undefined;
+    if (leading !== undefined && callMsgId !== undefined) {
+      a.openMessage({ id: callMsgId, role: "assistant", turnId: leading.turnId, threadId });
+    } else if (late === undefined) {
+      ensureResponseOpen();
+    }
+    const ownerMsgId = late !== undefined ? late.mId : (callMsgId ?? msgId);
+    const ownerTurnId = late !== undefined ? late.tid : (leading?.turnId ?? turnId);
+    if (ownerMsgId === undefined) return; // unreachable post-ensure; satisfies narrowing
     const name = builtinToolName(rawItem);
     // Caller provenance (0.14.0): typed only on the shapes the wire declares
     // it for — computer_call and program carry none (protocol.d.ts).
@@ -3496,7 +3510,9 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     a.toolArgsDelta(toolCallId, JSON.stringify(input));
     a.toolArgsAssembled(toolCallId, input);
     if (rawItem.type === "hosted_tool_call") {
-      a.toolDone({ toolCallId, ...hostedResult(rawItem), ...(late !== undefined ? { turnId: late.tid } : {}) });
+      const doneTurnId = late?.tid ?? leading?.turnId;
+      a.toolDone({ toolCallId, ...hostedResult(rawItem), ...(doneTurnId !== undefined ? { turnId: doneTurnId } : {}) });
+      if (callMsgId !== undefined) a.closeMessage(callMsgId);
       // An approval request waits for its ask or its answer; any other hosted
       // call, and an answer (keyed on its request), is complete here.
       if (!(rawItem.id !== undefined && approvalRequestIds.has(rawItem.id))) drainListedBuiltin(key);
