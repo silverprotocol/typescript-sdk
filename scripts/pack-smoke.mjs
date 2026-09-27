@@ -76,4 +76,13 @@ for (const [name, fn] of checks) {
   run(`node -e "import('${name}').then(${fn}).then(() => console.log('ok ${name}'))"`, app);
   console.log(`ok ${name}`);
 }
-console.log("pack-smoke: all six packages import clean");
+// The same checks through require() from a CommonJS file, as release.yml's
+// consumer smoke loads them. The packages are ES modules, which require()
+// loads only from Node 22.12 on, so this leg holds the engines floor's
+// promise to CommonJS consumers.
+writeFileSync(
+  join(app, "require-check.cjs"),
+  checks.map(([name, fn]) => `(${fn})(require(${JSON.stringify(name)})); console.log("ok require ${name}");`).join("\n") + "\n",
+);
+process.stdout.write(run("node require-check.cjs", app));
+console.log("pack-smoke: all six packages import and require clean");

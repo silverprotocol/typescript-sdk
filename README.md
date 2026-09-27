@@ -18,6 +18,10 @@ npm install @silverprotocol/core @silverprotocol/claude-agent-sdk
 # or openai-agents / google-adk for other frameworks
 ```
 
+Requires Node.js 22.12 or later. The packages are ES modules: `import` them,
+or `require()` them from CommonJS, which Node supports for ES modules from
+22.12 on.
+
 ## Packages
 
 - **`@silverprotocol/core`** — the AgJSON types (`AgInput`, `AgEvent`,
