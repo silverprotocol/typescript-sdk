@@ -107,7 +107,7 @@
       "members": {
         "message_output_created": {
           "disposition": "handled",
-          "note": "driveMessageOutputCreated() \u2014 the authoritative text-end + citations source (audit M22); refusal parts set pendingRefusal."
+          "note": "driveMessageOutputCreated() \u2014 the authoritative text-end + citations source (audit M22). A refusal part sets pendingRefusal; its text is a single-source fallback (driveRunItemRefusal): the round's refusal text block comes from the raw response.refusal.delta/.done events when any arrive (they stream before the round closes); otherwise whichever arrives first of the terminal output and this run-item (while the round is open) supplies it, and a later one adds no copy; after the close with no copy it rides ext.openai.late-message {partType: \"refusal\"}."
         },
         "tool_called": {
           "disposition": "handled",

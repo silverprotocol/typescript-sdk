@@ -191,3 +191,34 @@ The source round is still closed at `flush()` when:
 
 A call replayed on a resumed invoke gets no `tool.start` from the facet, so it
 is never released this way.
+
+## Refusals
+
+When the model refuses, its message carries a `refusal` content part. The
+facet emits that part's text as a `text` block in the round's message. The
+block id is `<item id>:refusal`; a part whose item has no id uses
+`<message id>:refusal`, and a second such block in the same response gets
+`:2` appended (then `:3`, and so on). The block's `text.start` carries
+`providerMetadata.type: "refusal"`, the part's own wire discriminant. That
+marker is what a host needs in order to replay the part as a `refusal` part
+rather than `output_text`; this package does not convert AgJSON back into
+Responses input. The item's `phase` marker rides beside it, as it does on an
+`output_text` block.
+
+A refusal round whose terminal response arrives (`response.completed` or
+`response.incomplete`) closes with `finishReason: "refusal"` on its
+`turn.done`: `success`, or `paused` while it waits on an approval. A round
+that `response.failed` ends closes with `turn.error`. A round cut off at the
+end of the stream, or deferred behind a tool call whose result never
+arrives, closes with `turn.abort` and no `finishReason`.
+
+The text comes from one source per round, so it lands once:
+- the streamed `response.refusal.delta` and `response.refusal.done` events,
+  when any arrive;
+- otherwise the refusal part in the terminal `response.completed` (or
+  `response.incomplete`) output, emitted before the round's message closes.
+
+The `message_output_created` run-item arrives after the round has closed and
+adds no second copy. If it carries a refusal that no earlier event delivered,
+the text rides `ext.openai.late-message` with `partType: "refusal"`, because
+the message is already sealed.

@@ -911,6 +911,21 @@ interface OpenAIResponsesTextDone {
   item_id: string;
   text?: string;
 }
+/** openai-node `ResponseRefusalDeltaEvent` — a streamed fragment of a
+ *  `refusal` content part's text (snake_case `item_id`/`delta`). Carried via the
+ *  `model` carrier. */
+interface OpenAIResponsesRefusalDelta {
+  type: "response.refusal.delta";
+  item_id: string;
+  delta: string;
+}
+/** openai-node `ResponseRefusalDoneEvent` — the `refusal` part of `item_id` is
+ *  complete; `refusal` carries its whole text. Carried via the `model` carrier. */
+interface OpenAIResponsesRefusalDone {
+  type: "response.refusal.done";
+  item_id: string;
+  refusal: string;
+}
 /** openai-node `ResponseUsage` — per-response token counts (snake_case).
  *  Extends to include provider-specific fields like OpenRouter's `cost` superset.
  *  `cache_write_tokens` is openai ≥6.46 wire (GPT-5.6-era explicit prompt
@@ -960,6 +975,43 @@ interface TerminalReasoningItem {
   id: string;
   summary: ReadonlyArray<{ partIndex: number; text: string }>;
   encryptedContent?: string;
+}
+
+/** One `refusal` content part of a terminal event's `response.output` message
+ *  member, narrowed from `JsonValue`: its item's id and vendor phase marker
+ *  (when present) and its text. */
+interface TerminalRefusalPart {
+  itemId?: string;
+  phase?: string;
+  text: string;
+}
+
+/**
+ * The refusal parts of a terminal event's `response.output`, in wire order —
+ * the source of a round's refusal text when no refusal event streamed
+ * (see "Refusal text" in the normalizer). Deserialization boundary: a
+ * non-array output, a non-message member and a part whose `refusal` is not a
+ * string are skipped; an empty id is no id.
+ */
+function terminalRefusalParts(output: JsonValue | undefined): TerminalRefusalPart[] {
+  const out: TerminalRefusalPart[] = [];
+  if (!Array.isArray(output)) return out;
+  for (const member of output) {
+    if (!isJsonObject(member) || member.type !== "message") continue;
+    const content = member.content;
+    if (!Array.isArray(content)) continue;
+    const itemId = typeof member.id === "string" && member.id.length > 0 ? member.id : undefined;
+    const phase = vendorPhase(member.phase);
+    for (const part of content) {
+      if (!isJsonObject(part) || part.type !== "refusal" || typeof part.refusal !== "string") continue;
+      out.push({
+        ...(itemId !== undefined ? { itemId } : {}),
+        ...(phase !== undefined ? { phase } : {}),
+        text: part.refusal,
+      });
+    }
+  }
+  return out;
 }
 
 /**
@@ -1109,6 +1161,8 @@ type OpenAIRawResponsesEvent =
   | OpenAIResponsesFnArgsDone
   | OpenAIResponsesTextDelta
   | OpenAIResponsesTextDone
+  | OpenAIResponsesRefusalDelta
+  | OpenAIResponsesRefusalDone
   | OpenAIResponsesCompleted
   | OpenAIResponsesFailed
   | OpenAIResponsesError;
@@ -1468,6 +1522,9 @@ function isOpenAIStreamEvent(v: unknown): v is OpenAIStreamEvent {
  *
  *  - turn open  ← `model:response.created` (real `response.id` present at start)
  *  - text       ← `model:response.output_text.delta` (carries `item_id`)
+ *  - refusal    ← `model:response.refusal.delta` / `.done` (a `text` block,
+ *                 id `<item_id>:refusal`); with no refusal event in the round,
+ *                 the terminal output's refusal part (see "Refusal text")
  *  - text end   ← the `message_output_created` run-item (authoritative close +
  *                 citations carrier, audit M22 — `response.output_text.done` is a
  *                 no-op; text streams left open by it fall to the defensive
@@ -1674,14 +1731,92 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   // string so argBuffers is primarily for the fallback path.
   const instanceArgBuffers = new Map<string, string>();
 
-  // Refusal tracking (T5c). Set when a `message_output_created` run-item carries
-  // a `refusal` content part BEFORE its response's terminal event (a synthetic
-  // order); the terminal arm also reads the refusal from its own
-  // `response.output` (`terminalHasRefusal`), which is the live order: the
-  // run-item lands after the close. Cleared on every response close and at
-  // every `response.created`, so a late run-item's refusal never reaches the
-  // next round.
+  // Refusal tracking (T5c). Set when a refusal event streams, or when a
+  // `message_output_created` run-item carries a `refusal` content part BEFORE
+  // its response's terminal event (a synthetic order); the terminal arm also
+  // reads the refusal from its own `response.output` (`terminalHasRefusal`),
+  // which is the live order: the run-item lands after the close. Cleared on
+  // every response close and at every `response.created`, so a late run-item's
+  // refusal never reaches the next round.
   let pendingRefusal = false;
+
+  // Refusal text (SPEC §8.0 graceful degradation: a native event the
+  // normalizer can map is never dropped silently). A `refusal` content part's
+  // text is a `text` block in the round's message, id `<item id>:refusal` (the
+  // same item can also carry an `output_text` part, whose block id is the item
+  // id), its `text.start` carrying `providerMetadata.type: "refusal"`, the
+  // part's own wire discriminant and the marker a replay reads to send a
+  // refusal part back, beside the item's `phase` marker as an output_text
+  // block carries it. ONE source per round:
+  //  - the raw `response.refusal.delta` / `.done` events, when any arrived;
+  //  - else the refusal part itself, from whichever comes first of the
+  //    terminal output (read before the round closes) and a
+  //    `message_output_created` run-item that lands while the round is open.
+  //    A run-item that lands after the close, with no copy emitted, rides
+  //    `ext.openai.late-message` (the message is sealed).
+  // The source is chosen per round, not matched per item id: a run-item's ids
+  // can be a different id space from the raw `item_id`s (the OpenRouter
+  // surface mints `msg_tmp_` run-item ids), where an id match would copy the
+  // text twice.
+  // `openRefusalBlocks`: this response's refusal blocks not yet ended;
+  // `refusalBlocks`: every refusal block this response opened (a repeated
+  // `.done` never reopens one); `refusalTextEmitted`: the round has its
+  // refusal text, cleared at `response.created` only, because the run-item
+  // that reads it lands after the round closed. `refusalCarriedPhase`: item id
+  // → the phase marker its refusal block carried (normalizer-lifetime, like
+  // `carriedPhase`, which stays the output_text blocks' own record).
+  const openRefusalBlocks = new Set<string>();
+  const refusalBlocks = new Set<string>();
+  let refusalTextEmitted = false;
+  const refusalCarriedPhase = new Map<string, string>();
+
+  /** The item's vendor phase marker for a refusal block's `text.start`: the one
+   *  announced at `output_item.added`, else the one an output_text block of the
+   *  same item already carried. */
+  function refusalItemPhase(itemId: string): string | undefined {
+    return pendingPhase.get(itemId) ?? carriedPhase.get(itemId);
+  }
+
+  /** A refusal block id not yet used this response, for the whole-part sources
+   *  (an id-less item keys on the message id). */
+  function freshRefusalBlockId(itemId: string | undefined, mId: string): string {
+    const base = `${itemId ?? mId}:refusal`;
+    let id = base;
+    for (let k = 2; refusalBlocks.has(id); k++) id = `${base}:${k}`;
+    return id;
+  }
+
+  /** Open refusal block `blockId` in message `mId`. The phase marker rides
+   *  `text.start` as on an output_text block (the first-class `phase:"interim"`
+   *  for "commentary"), and is recorded as carried for the late run-item. */
+  function openRefusalBlock(blockId: string, mId: string, phase: string | undefined, itemId: string | undefined): void {
+    const startMeta = openaiProviderMeta({ phase, type: "refusal" });
+    const interim = interimPhase(phase);
+    a.textStart(blockId, mId, {
+      role: "assistant",
+      ...(startMeta !== undefined ? { providerMetadata: startMeta } : {}),
+      ...(interim !== undefined ? { phase: interim } : {}),
+    });
+    if (phase !== undefined && itemId !== undefined) refusalCarriedPhase.set(itemId, phase);
+    openRefusalBlocks.add(blockId);
+    refusalBlocks.add(blockId);
+    refusalTextEmitted = true;
+  }
+
+  /** A whole refusal part as one block: start, the text as one delta (none for
+   *  an empty text), end. */
+  function emitWholeRefusal(blockId: string, mId: string, text: string, phase: string | undefined, itemId: string | undefined): void {
+    openRefusalBlock(blockId, mId, phase, itemId);
+    if (text.length > 0) a.textDelta(blockId, mId, text, { cumulative: false });
+    a.textEnd(blockId, mId);
+    openRefusalBlocks.delete(blockId);
+  }
+
+  /** End every refusal block the stream left open (no `.done` before the close). */
+  function endOpenRefusalBlocks(mId: string): void {
+    for (const blockId of openRefusalBlocks) a.textEnd(blockId, mId);
+    openRefusalBlocks.clear();
+  }
 
   // ── Task 4b: defer a round's close past its pending tool results ───────────
   // (SPEC §5.0 INV-MSG). On the real wire, the `tool_output` run-item arrives
@@ -1921,6 +2056,8 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     // late run-item for it takes the existing `late-reasoning` degrade.
     openReasoning.clear();
     pendingPhase.clear();
+    openRefusalBlocks.clear();
+    refusalBlocks.clear();
     turnId = undefined;
     msgId = undefined;
     responseId = undefined;
@@ -1935,6 +2072,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   function closeResponse(): void {
     if (msgId !== undefined) {
       for (const streamId of openTextStreams) a.textEnd(streamId, msgId);
+      endOpenRefusalBlocks(msgId);
       a.closeMessage(msgId);
     }
     resetResponseState();
@@ -1945,8 +2083,9 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     switch (ev.type) {
       case "response.created": {
         // A new response: a refusal recorded by a late run-item belongs to the
-        // response before it, never to this one.
+        // response before it, never to this one; so does its refusal text.
         pendingRefusal = false;
+        refusalTextEmitted = false;
         // Authoritative turn open — the real response.id is present at start.
         // So is the resolved model id (JsonValue boundary: string-guarded).
         const rawModelId: unknown = ev.response.model;
@@ -1991,6 +2130,32 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         // `driveMessageOutputCreated` closes it (with citations if present), or —
         // defensively, if that run-item never arrives — `closeResponse()` /
         // `endOpenStreamsAndCloseMessage()` / `emitRoundClose()` do at native close.
+        return;
+      }
+      case "response.refusal.delta": {
+        // Refusal text streams like output_text (see "Refusal text"): the raw
+        // refusal events are this round's source once any arrives.
+        ensureResponseOpen();
+        if (msgId === undefined) return; // unreachable post-ensure; satisfies the narrowing
+        pendingRefusal = true;
+        const blockId = `${ev.item_id}:refusal`;
+        if (!refusalBlocks.has(blockId)) openRefusalBlock(blockId, msgId, refusalItemPhase(ev.item_id), ev.item_id);
+        a.textDelta(blockId, msgId, ev.delta, { cumulative: false });
+        return;
+      }
+      case "response.refusal.done": {
+        // Ends the part's block. With no delta before it, its `refusal` is the
+        // whole text. A refusal part carries no annotations, so unlike
+        // `response.output_text.done` nothing arrives later for its `text.end`.
+        ensureResponseOpen();
+        if (msgId === undefined) return; // unreachable post-ensure; satisfies the narrowing
+        pendingRefusal = true;
+        const blockId = `${ev.item_id}:refusal`;
+        if (!refusalBlocks.has(blockId)) {
+          emitWholeRefusal(blockId, msgId, ev.refusal, refusalItemPhase(ev.item_id), ev.item_id);
+          return;
+        }
+        if (openRefusalBlocks.delete(blockId)) a.textEnd(blockId, msgId);
         return;
       }
       case "response.output_item.added": {
@@ -2109,6 +2274,17 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         // a reasoning.* event must never target a sealed message; core's reduce()
         // does not check that for reasoning.*, so the order is this facet's job).
         fillReasoningFromTerminalOutput(ev.response.output);
+        // Refusal text (see "Refusal text"): with no refusal event in this
+        // round, the terminal output's refusal parts are its source, emitted
+        // now while the message is open (the run-item lands after the close).
+        // Then any refusal block the stream left open ends here, before every
+        // branch below closes the message.
+        if (!refusalTextEmitted) {
+          for (const part of terminalRefusalParts(ev.response.output)) {
+            emitWholeRefusal(freshRefusalBlockId(part.itemId, msgId), msgId, part.text, part.phase, part.itemId);
+          }
+        }
+        endOpenRefusalBlocks(msgId);
         // Snapshot before any deferral: `resetResponseState()` below always
         // clears these, but a deferred close needs them later (Task 4b).
         const currentTurnId = turnId;
@@ -2280,10 +2456,50 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     }
   }
 
+  /**
+   * A `message_output_created` run-item's refusal part (see "Refusal text").
+   *  - The round already has its refusal text (the raw events or the terminal
+   *    output): no second copy. The item's phase marker, if that block did
+   *    not carry it, rides `ext.openai.late-phase` (the block's `text.end` is
+   *    out: case (iii) of the output_text arm), once per item: an item that
+   *    also carries an output_text part leaves it to that part's arm.
+   *  - The round is open (a synthetic order): the part is the source.
+   *  - The round closed with no copy: the message is sealed, so the text rides
+   *    `ext.openai.late-message` with `partType: "refusal"`, anchored to the
+   *    round like the id-less late message.
+   */
+  function driveRunItemRefusal(item: OpenAIAssistantMessageItem, text: string): void {
+    const itemPhase = vendorPhase(item.phase);
+    if (refusalTextEmitted) {
+      if (
+        item.id !== undefined &&
+        itemPhase !== undefined &&
+        refusalCarriedPhase.get(item.id) !== itemPhase &&
+        !item.content.some((p) => p.type === "output_text")
+      ) {
+        a.emitExt("openai", "late-phase", { itemId: item.id, phase: itemPhase });
+      }
+      return;
+    }
+    if (msgId !== undefined) {
+      emitWholeRefusal(freshRefusalBlockId(item.id, msgId), msgId, text, itemPhase, item.id);
+      return;
+    }
+    const anchor = turnId ?? lastTopLevelTurnId;
+    a.emitExt("openai", "late-message", {
+      text,
+      partType: "refusal",
+      ...(item.id !== undefined ? { itemId: item.id } : {}),
+      ...(anchor !== undefined ? { forTurnId: anchor } : {}),
+      ...(itemPhase !== undefined ? { phase: itemPhase } : {}),
+    });
+  }
+
   /** End any still-open text streams (defensive), then close the open message. */
   function endOpenStreamsAndCloseMessage(): void {
     if (msgId !== undefined) {
       for (const streamId of openTextStreams) a.textEnd(streamId, msgId);
+      endOpenRefusalBlocks(msgId);
       a.closeMessage(msgId);
     }
   }
@@ -2299,7 +2515,8 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * `refusal` part sets `pendingRefusal`, which counts only when the run-item
    * lands before its response's terminal event (a synthetic order). On the
    * live wire it lands after the close, and the terminal arm reads the round's
-   * refusal from its own `response.output` (`terminalHasRefusal`).
+   * refusal from its own `response.output` (`terminalHasRefusal`). Its text is
+   * a single-source fallback (`driveRunItemRefusal`, see "Refusal text").
    *
    * Correlation (id FIRST, FIFO fallback; the narration-phase rule, stage
    * 1): on the direct OpenAI wire the raw delta's `item_id` and the
@@ -2352,6 +2569,10 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     for (const part of item.content) {
       if (part.type === "refusal") {
         pendingRefusal = true;
+        // The typeof guard is load-bearing: rawItem is envelope-only-validated
+        // wire data, and push() must never throw.
+        const text: unknown = part.refusal;
+        if (typeof text === "string") driveRunItemRefusal(item, text);
         continue;
       }
       if (part.type === "output_text") {

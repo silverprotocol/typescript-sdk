@@ -1363,6 +1363,318 @@ describe("createOpenaiNormalizer — refusal arm (T5c)", () => {
   });
 });
 
+describe("createOpenaiNormalizer — refusal text", () => {
+  // SPEC §8.0 graceful degradation: a normalizer MUST NOT silently drop a
+  // native event it can map. A refusal's text is one `text` block in the
+  // round's message; its `providerMetadata.type` is the part's own wire
+  // discriminant ("refusal"), the marker a replay reads to send a refusal part
+  // back. Each round takes the text from ONE source: the raw
+  // `response.refusal.delta` / `.done` events when any arrived, else the
+  // refusal part itself (the terminal output, or a run-item that lands while
+  // the round is open). The order the SDK streams it (no recorded cassette
+  // carries a refusal yet): output_item.added → refusal deltas →
+  // refusal.done → response.completed (its output carries the part) → the
+  // message_output_created run-item, after the close. At @openai/agents
+  // 0.18.0 a refusal round with no tool call then ends the run
+  // (ModelRefusalError), so a second response follows only a round that
+  // also called a tool.
+  const TEXT = "I can't help with that.";
+  const RU = { input_tokens: 20, output_tokens: 6, total_tokens: 26 };
+  const message = (id: string, phase?: string, content: JsonValue[] = [{ type: "refusal", refusal: TEXT }]): JsonValue => ({
+    id,
+    type: "message",
+    status: "completed",
+    content,
+    ...(phase !== undefined ? { phase } : {}),
+    role: "assistant",
+  });
+  const created = (rid: string): JsonValue => rawModel({ type: "response.created", response: { id: rid } });
+  const added = (id: string, phase?: string): JsonValue =>
+    rawModel({
+      type: "response.output_item.added",
+      item: { id, type: "message", status: "in_progress", content: [], ...(phase !== undefined ? { phase } : {}), role: "assistant" },
+      output_index: 0,
+      sequence_number: 2,
+    });
+  const refusalDelta = (id: string, delta: string, seq: number, contentIndex = 0): JsonValue =>
+    rawModel({ type: "response.refusal.delta", content_index: contentIndex, delta, item_id: id, output_index: 0, sequence_number: seq });
+  const refusalDone = (id: string, contentIndex = 0): JsonValue =>
+    rawModel({ type: "response.refusal.done", content_index: contentIndex, item_id: id, output_index: 0, refusal: TEXT, sequence_number: 9 });
+  const completed = (rid: string, output?: JsonValue[]): JsonValue =>
+    rawModel({ type: "response.completed", response: { id: rid, status: "completed", ...(output !== undefined ? { output } : {}), usage: RU } });
+  const lateItem = (msg: JsonValue): JsonValue => runItem("message_output_created", { type: "message_output_item", rawItem: msg });
+
+  function run(s: JsonValue[]): { evs: AgEvent[]; r: Reducer; batches: AgEvent[][] } {
+    const n = createOpenaiNormalizer({ invokeId: "inv1" });
+    const batches = s.map((e) => n.push(e));
+    const evs = batches.flat().concat(n.flush());
+    const r = new Reducer();
+    for (const ev of evs) r.push(ev);
+    return { evs, r, batches };
+  }
+  /** The text blocks of the folded message `mid`. */
+  const textBlocks = (r: Reducer, mid: string) =>
+    (r.result().messages.find((m) => m.id === mid)?.content ?? []).filter((b) => b.type === "text");
+  /** Ext events whose JSON carries the refusal text: a second copy. */
+  const extCopies = (evs: AgEvent[]) => evs.filter((e) => e.type.startsWith("ext.") && JSON.stringify(e).includes(TEXT));
+  /** Every ext event. */
+  const exts = (evs: AgEvent[]) => evs.filter((e) => e.type.startsWith("ext."));
+  /** The index of the first `type` event whose `key` is `value`; asserts it exists. */
+  function at(evs: AgEvent[], type: string, key: string, value: string): number {
+    const i = evs.findIndex((e) => e.type === type && Reflect.get(e, key) === value);
+    expect(i, `${type} ${key}=${value}`).toBeGreaterThanOrEqual(0);
+    return i;
+  }
+  const turnDone = (evs: AgEvent[]) => evs.filter((e) => e.type === "turn.done");
+
+  it("in the order the SDK streams it, refusal deltas become one text block in the round's message, marked as a refusal part; the late run-item adds no second copy", () => {
+    const { evs, r, batches } = run([
+      created("resp_rt_1"),
+      added("msg_rt_1", "final_answer"),
+      refusalDelta("msg_rt_1", "I can't ", 3),
+      refusalDelta("msg_rt_1", "help with that.", 4),
+      refusalDone("msg_rt_1"),
+      completed("resp_rt_1", [message("msg_rt_1", "final_answer")]),
+      lateItem(message("msg_rt_1", "final_answer")),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(textBlocks(r, "msg_turn_resp_rt_1")).toEqual([
+      { type: "text", text: TEXT, providerMetadata: { phase: "final_answer", type: "refusal" } },
+    ]);
+    expect(evs.filter((e) => e.type === "text.start")).toHaveLength(1);
+    expect(exts(evs)).toEqual([]);
+    expect(at(evs, "text.end", "id", "msg_rt_1:refusal")).toBeLessThan(at(evs, "message.end", "id", "msg_turn_resp_rt_1"));
+    // refusal.done seals the block: a refusal part has nothing more to come.
+    expect(batches[4]).toMatchObject([{ type: "text.end", id: "msg_rt_1:refusal" }]);
+    expect(turnDone(evs)).toMatchObject([{ outcome: { type: "success" }, finishReason: "refusal" }]);
+  });
+
+  it("in the order the SDK streams it, with no refusal events, the refusal text comes once from the response.completed output, before the message closes", () => {
+    const { evs, r } = run([
+      created("resp_rt_2"),
+      completed("resp_rt_2", [message("msg_rt_2", "final_answer")]),
+      lateItem(message("msg_rt_2", "final_answer")),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(textBlocks(r, "msg_turn_resp_rt_2")).toEqual([
+      { type: "text", text: TEXT, providerMetadata: { phase: "final_answer", type: "refusal" } },
+    ]);
+    expect(exts(evs)).toEqual([]);
+    expect(at(evs, "text.end", "id", "msg_rt_2:refusal")).toBeLessThan(at(evs, "message.end", "id", "msg_turn_resp_rt_2"));
+    expect(turnDone(evs)).toMatchObject([{ finishReason: "refusal" }]);
+  });
+
+  it("refusal.done with no delta before it carries the whole text once, and a commentary phase marks the block interim", () => {
+    // No terminal output: the refusal events alone mark the round a refusal.
+    const { evs, r } = run([
+      created("resp_rt_3"),
+      added("msg_rt_3", "commentary"),
+      refusalDone("msg_rt_3"),
+      completed("resp_rt_3"),
+      lateItem(message("msg_rt_3", "commentary")),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(textBlocks(r, "msg_turn_resp_rt_3")).toEqual([
+      { type: "text", text: TEXT, phase: "interim", providerMetadata: { phase: "commentary", type: "refusal" } },
+    ]);
+    expect(evs.filter((e) => e.type === "text.delta")).toMatchObject([{ id: "msg_rt_3:refusal", delta: TEXT }]);
+    expect(exts(evs)).toEqual([]);
+    expect(turnDone(evs)).toMatchObject([{ finishReason: "refusal" }]);
+  });
+
+  it("a refusal run-item that lands while its response is open supplies the text once when no refusal event streamed", () => {
+    // No terminal output: the run-item is the round's only refusal source.
+    const { evs, r } = run([created("resp_rt_4"), lateItem(message("msg_rt_4")), completed("resp_rt_4")]);
+    expect(r.needsResync).toBe(false);
+    expect(textBlocks(r, "msg_turn_resp_rt_4")).toEqual([{ type: "text", text: TEXT, providerMetadata: { type: "refusal" } }]);
+    expect(exts(evs)).toEqual([]);
+    expect(turnDone(evs)).toMatchObject([{ finishReason: "refusal" }]);
+  });
+
+  it("a refusal run-item after its round closed with no earlier copy rides ext.openai.late-message, marked as a refusal part and anchored to its round", () => {
+    const { evs, r } = run([created("resp_rt_5"), completed("resp_rt_5"), lateItem(message("msg_rt_5", "final_answer"))]);
+    expect(r.needsResync).toBe(false);
+    expect(textBlocks(r, "msg_turn_resp_rt_5")).toEqual([]);
+    const late = evs.filter((e) => e.type === "ext.openai.late-message");
+    expect(late).toHaveLength(1);
+    expect(late[0]).toMatchObject({
+      text: TEXT,
+      partType: "refusal",
+      itemId: "msg_rt_5",
+      phase: "final_answer",
+      forTurnId: "turn_resp_rt_5",
+    });
+    expect(exts(evs)).toHaveLength(1);
+  });
+
+  it("each response takes its refusal source afresh: a refusal round that also called a tool, then the next response's refusal, carry one copy each", () => {
+    // Neither response streams refusal events, so each takes its text from
+    // its own terminal output; the second response's source depends on the
+    // per-round reset. The first round defers behind its call.
+    const fc = { type: "function_call", id: "fc_rt_6", call_id: "call_rt_6", name: "echo", arguments: "{}", status: "completed" };
+    const { evs, r } = run([
+      created("resp_rt_6a"),
+      rawModel({ type: "response.output_item.added", item: { ...fc, arguments: "", status: "in_progress" }, output_index: 1, sequence_number: 3 }),
+      completed("resp_rt_6a", [message("msg_rt_6a"), fc]),
+      lateItem(message("msg_rt_6a")),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "function_call_result", name: "echo", callId: "call_rt_6", status: "completed", output: "ok" },
+        output: "ok",
+      }),
+      created("resp_rt_6b"),
+      completed("resp_rt_6b", [message("msg_rt_6b")]),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(textBlocks(r, "msg_turn_resp_rt_6a")).toEqual([{ type: "text", text: TEXT, providerMetadata: { type: "refusal" } }]);
+    expect(textBlocks(r, "msg_turn_resp_rt_6b")).toEqual([{ type: "text", text: TEXT, providerMetadata: { type: "refusal" } }]);
+    expect(exts(evs)).toEqual([]);
+    const iTool = at(evs, "tool.done", "toolCallId", "call_rt_6");
+    const doneA = evs.findIndex((e) => e.type === "turn.done" && Reflect.get(e, "turnId") === "turn_resp_rt_6a");
+    expect(doneA).toBeGreaterThan(iTool);
+    expect(turnDone(evs)).toMatchObject([{ turnId: "turn_resp_rt_6a", finishReason: "refusal" }, { turnId: "turn_resp_rt_6b", finishReason: "refusal" }]);
+  });
+
+  it("a refusal stream its response closes before refusal.done ends with the round, which closes as a refusal", () => {
+    const { evs, r } = run([created("resp_rt_7"), refusalDelta("msg_rt_7", "I can't ", 3), completed("resp_rt_7")]);
+    expect(r.needsResync).toBe(false);
+    expect(textBlocks(r, "msg_turn_resp_rt_7")).toEqual([{ type: "text", text: "I can't ", providerMetadata: { type: "refusal" } }]);
+    expect(at(evs, "text.end", "id", "msg_rt_7:refusal")).toBeLessThan(at(evs, "message.end", "id", "msg_turn_resp_rt_7"));
+    expect(turnDone(evs)).toMatchObject([{ outcome: { type: "success" }, finishReason: "refusal" }]);
+  });
+
+  it("a refusal stream cut off by response.failed or by the end of the stream ends before its message closes", () => {
+    const failed = run([
+      created("resp_rt_8a"),
+      refusalDelta("msg_rt_8a", "I can't ", 3),
+      rawModel({ type: "response.failed", response: { id: "resp_rt_8a", error: { message: "boom", code: "server_error" } } }),
+    ]);
+    const cut = run([created("resp_rt_8b"), refusalDelta("msg_rt_8b", "I can't ", 3)]);
+    for (const [{ evs, r }, id] of [
+      [failed, "8a"],
+      [cut, "8b"],
+    ] as const) {
+      expect(r.needsResync).toBe(false);
+      expect(textBlocks(r, `msg_turn_resp_rt_${id}`)).toEqual([{ type: "text", text: "I can't ", providerMetadata: { type: "refusal" } }]);
+      expect(at(evs, "text.end", "id", `msg_rt_${id}:refusal`)).toBeLessThan(at(evs, "message.end", "id", `msg_turn_resp_rt_${id}`));
+    }
+  });
+
+  it("an output_text part and a refusal part of one message item stay two blocks, and a phase only the run-item knows rides one late-phase for the item", () => {
+    const both: JsonValue[] = [
+      { type: "output_text", text: "Here is part.", annotations: [] },
+      { type: "refusal", refusal: TEXT },
+    ];
+    const { evs, r } = run([
+      created("resp_rt_9"),
+      added("msg_rt_9"),
+      rawModel({ type: "response.output_text.delta", content_index: 0, delta: "Here is part.", item_id: "msg_rt_9", output_index: 0, sequence_number: 3 }),
+      rawModel({ type: "response.output_text.done", content_index: 0, item_id: "msg_rt_9", output_index: 0, text: "Here is part.", sequence_number: 4 }),
+      refusalDelta("msg_rt_9", TEXT, 5, 1),
+      refusalDone("msg_rt_9", 1),
+      completed("resp_rt_9", [message("msg_rt_9", undefined, both)]),
+      lateItem(message("msg_rt_9", "final_answer", both)),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(textBlocks(r, "msg_turn_resp_rt_9")).toEqual([
+      { type: "text", text: "Here is part." },
+      { type: "text", text: TEXT, providerMetadata: { type: "refusal" } },
+    ]);
+    expect(exts(evs)).toMatchObject([{ type: "ext.openai.late-phase", itemId: "msg_rt_9", phase: "final_answer" }]);
+  });
+
+  it("a phase only the late run-item knows, after its refusal block ended, rides ext.openai.late-phase", () => {
+    const { evs, r } = run([
+      created("resp_rt_10"),
+      added("msg_rt_10"),
+      refusalDelta("msg_rt_10", TEXT, 3),
+      refusalDone("msg_rt_10"),
+      completed("resp_rt_10", [message("msg_rt_10")]),
+      lateItem(message("msg_rt_10", "final_answer")),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(textBlocks(r, "msg_turn_resp_rt_10")).toEqual([{ type: "text", text: TEXT, providerMetadata: { type: "refusal" } }]);
+    expect(evs.filter((e) => e.type === "ext.openai.late-phase")).toMatchObject([{ itemId: "msg_rt_10", phase: "final_answer" }]);
+    expect(extCopies(evs)).toEqual([]);
+  });
+
+  it("a refusal block's phase does not stand in for its item's output_text block, whose late phase still rides ext.openai.late-phase once", () => {
+    const both: JsonValue[] = [
+      { type: "output_text", text: "Here is part.", annotations: [] },
+      { type: "refusal", refusal: TEXT },
+    ];
+    const { evs, r } = run([
+      created("resp_rt_11"),
+      rawModel({ type: "response.output_text.delta", content_index: 0, delta: "Here is part.", item_id: "msg_rt_11", output_index: 0, sequence_number: 3 }),
+      completed("resp_rt_11", [message("msg_rt_11", "final_answer", both)]),
+      lateItem(message("msg_rt_11", "final_answer", both)),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(textBlocks(r, "msg_turn_resp_rt_11")).toEqual([
+      { type: "text", text: "Here is part." },
+      { type: "text", text: TEXT, providerMetadata: { phase: "final_answer", type: "refusal" } },
+    ]);
+    expect(evs.filter((e) => e.type === "ext.openai.late-phase")).toMatchObject([{ itemId: "msg_rt_11", phase: "final_answer" }]);
+  });
+
+  it("two id-less refusal parts in the response.completed output stay two blocks with distinct ids", () => {
+    const idless = (text: string): JsonValue => ({ type: "message", status: "completed", content: [{ type: "refusal", refusal: text }], role: "assistant" });
+    const { evs, r } = run([created("resp_rt_12"), completed("resp_rt_12", [idless("No."), idless("Still no.")])]);
+    expect(r.needsResync).toBe(false);
+    expect(textBlocks(r, "msg_turn_resp_rt_12")).toEqual([
+      { type: "text", text: "No.", providerMetadata: { type: "refusal" } },
+      { type: "text", text: "Still no.", providerMetadata: { type: "refusal" } },
+    ]);
+    expect(evs.filter((e) => e.type === "text.start").map((e) => Reflect.get(e, "id"))).toEqual([
+      "msg_turn_resp_rt_12:refusal",
+      "msg_turn_resp_rt_12:refusal:2",
+    ]);
+  });
+
+  it("a refusal part streamed after an output_text part of the same item takes the phase that output_text block already carried", () => {
+    const both: JsonValue[] = [
+      { type: "output_text", text: "Here is part.", annotations: [] },
+      { type: "refusal", refusal: TEXT },
+    ];
+    const { evs, r } = run([
+      created("resp_rt_13"),
+      added("msg_rt_13", "commentary"),
+      rawModel({ type: "response.output_text.delta", content_index: 0, delta: "Here is part.", item_id: "msg_rt_13", output_index: 0, sequence_number: 3 }),
+      rawModel({ type: "response.output_text.done", content_index: 0, item_id: "msg_rt_13", output_index: 0, text: "Here is part.", sequence_number: 4 }),
+      refusalDelta("msg_rt_13", TEXT, 5, 1),
+      refusalDone("msg_rt_13", 1),
+      completed("resp_rt_13", [message("msg_rt_13", "commentary", both)]),
+      lateItem(message("msg_rt_13", "commentary", both)),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(textBlocks(r, "msg_turn_resp_rt_13")).toEqual([
+      { type: "text", text: "Here is part.", phase: "interim", providerMetadata: { phase: "commentary" } },
+      { type: "text", text: TEXT, phase: "interim", providerMetadata: { phase: "commentary", type: "refusal" } },
+    ]);
+    expect(exts(evs)).toEqual([]);
+  });
+
+  it("an empty refusal part in the response.completed output lands as an empty refusal block with no text.delta", () => {
+    const { evs, r } = run([created("resp_rt_14"), completed("resp_rt_14", [message("msg_rt_14", undefined, [{ type: "refusal", refusal: "" }])])]);
+    expect(r.needsResync).toBe(false);
+    expect(textBlocks(r, "msg_turn_resp_rt_14")).toEqual([{ type: "text", text: "", providerMetadata: { type: "refusal" } }]);
+    expect(evs.filter((e) => e.type === "text.delta")).toEqual([]);
+    expect(turnDone(evs)).toMatchObject([{ finishReason: "refusal" }]);
+  });
+
+  it("a run-item refusal part whose text is not a string adds no block, and the round still closes as a refusal", () => {
+    const { evs, r } = run([
+      created("resp_rt_15"),
+      lateItem(message("msg_rt_15", undefined, [{ type: "refusal", refusal: 42 }])),
+      completed("resp_rt_15"),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(textBlocks(r, "msg_turn_resp_rt_15")).toEqual([]);
+    expect(evs.filter((e) => e.type === "error" || e.type.startsWith("ext."))).toEqual([]);
+    expect(turnDone(evs)).toMatchObject([{ finishReason: "refusal" }]);
+  });
+});
+
 describe("createOpenaiNormalizer — __host_error__ sentinel (T5c)", () => {
   it("with an OPEN turn → closes that turn with turn.error{code:max_turns, usage}", () => {
     const n = createOpenaiNormalizer();
