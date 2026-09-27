@@ -210,11 +210,14 @@ turn of the model round that produced it:
 
 A hosted call, which the provider runs, emits `tool.start` with
 `providerExecuted: true`, and its `tool.done` from its one run-item:
-- Its arguments are read from the item: an MCP call's `arguments`, or a web
-  search's `action` without its `sources`.
-- An MCP item's `server_label` lands in `tool.start.serverName`.
-- A web search's `sources` and an `mcp_list_tools` listing land as `data`
-  blocks, and an image generation result as a `file` block.
+- Its arguments are read from the item: an MCP call's `arguments`, a web
+  search's `action` without its `sources`, a file search's `queries`, or a
+  code interpreter's `code` and `container_id`.
+- An MCP item's `server_label` lands in `tool.start.serverName`, and the MCP
+  tool's own name in `tool.start.providerMetadata.mcpToolName`.
+- A web search's `sources`, a file search's `results`, a code interpreter's
+  `outputs` and an `mcp_list_tools` listing land as `data` blocks, and an
+  image generation result as a `file` block.
 - A call whose status is `failed`, or which carries an `error`, closes with
   `outcome: "error"`.
 
@@ -228,9 +231,8 @@ Current limits:
   round that waits on an approval closes as `success`, not `paused`.
 - A built-in run-item that opens a resumed invoke, before any model round,
   still opens a turn of its own.
-- An MCP call keeps the name `mcp_call`.
-- A file search's queries and results, and a code interpreter's code and
-  outputs, are not carried yet.
+- An MCP call's `tool.start.name` stays `mcp_call`; its tool's own name is
+  `providerMetadata.mcpToolName`.
 
 ## Refusals
 

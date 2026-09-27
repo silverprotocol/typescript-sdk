@@ -3295,18 +3295,31 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   /**
    * A hosted call's input. agents-openai's converter keeps a hosted item's
    * fields in `providerData` (SPEC:965: a native value is never dropped
-   * silently): its `arguments` (top-level when present, else in
-   * providerData — the MCP kinds), else a web_search's `action` without its
-   * `sources`, which are the call's result, not its input.
+   * silently):
+   *  - its `arguments` (top-level when present, else in providerData — the
+   *    MCP kinds);
+   *  - else a web_search's `action` without its `sources`, which are the
+   *    call's result, not its input;
+   *  - else a file_search's `queries`;
+   *  - else a code_interpreter's `code` and `container_id` (its call payload
+   *    without its `outputs`, the program precedent).
    */
   function hostedInput(rawItem: OpenAIHostedToolCallItem): JsonValue {
-    const args: unknown = rawItem.arguments ?? rawItem.providerData?.arguments;
+    const pd = rawItem.providerData;
+    const args: unknown = rawItem.arguments ?? pd?.arguments;
     if (typeof args === "string") return parseJsonArguments(rawItem.id, args);
-    const action = rawItem.providerData?.action;
+    const action = pd?.action;
     if (isJsonObject(action)) {
       const input: { [k: string]: JsonValue } = {};
       for (const [k, v] of Object.entries(action)) if (k !== "sources") input[k] = v;
       return JsonValue.parse(input);
+    }
+    if (rawItem.name === "file_search_call" && pd?.queries !== undefined) return JsonValue.parse({ queries: pd.queries });
+    if (rawItem.name === "code_interpreter_call" && (pd?.code !== undefined || pd?.container_id !== undefined)) {
+      return JsonValue.parse({
+        ...(pd?.code !== undefined ? { code: pd.code } : {}),
+        ...(pd?.container_id !== undefined ? { container_id: pd.container_id } : {}),
+      });
     }
     return {};
   }
@@ -3314,10 +3327,13 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   /**
    * A hosted call's result: its `output` (an image_generation result, which
    * is base64 image data, as a file block; any other as text), a
-   * web_search's `sources` and an mcp_list_tools listing as data blocks, and
-   * its outcome. The outcome is "error" when the native status is `failed`
-   * (for an mcp_call, whose top-level status the converter always sets to
-   * "completed", the status in providerData) or the item carries an `error`.
+   * web_search's `sources`, an mcp_list_tools listing, a file_search's
+   * `results` and a code_interpreter's `outputs` as data blocks, and its
+   * outcome. The outcome is "error" when the native status is `failed` or
+   * `incomplete`, as a shell, apply-patch, program or function result's
+   * `incomplete` is (for an mcp_call, whose top-level status the converter
+   * always sets to "completed", the status in providerData), or the item
+   * carries an `error`.
    */
   function hostedResult(rawItem: OpenAIHostedToolCallItem): { content: AgBlock[]; outcome: ToolOutcome; isError?: true; errorText?: string } {
     const pd = rawItem.providerData;
@@ -3338,11 +3354,19 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     if (rawItem.name === "mcp_list_tools" && Array.isArray(tools)) {
       content.push({ type: "data", name: "mcp_list_tools", data: JsonValue.parse(tools) });
     }
+    const results = pd?.results;
+    if (rawItem.name === "file_search_call" && Array.isArray(results)) {
+      content.push({ type: "data", name: "file_search_results", data: JsonValue.parse(results) });
+    }
+    const outputs = pd?.outputs;
+    if (rawItem.name === "code_interpreter_call" && Array.isArray(outputs)) {
+      content.push({ type: "data", name: "code_interpreter_outputs", data: JsonValue.parse(outputs) });
+    }
     const status: unknown = rawItem.name === "mcp_call" ? (pd?.status ?? rawItem.status) : rawItem.status;
     const error: unknown = pd?.error;
     const errorText =
       typeof error === "string" && error.length > 0 ? error : isJsonObject(error) ? JSON.stringify(error) : undefined;
-    if (status === "failed" || errorText !== undefined) {
+    if (status === "failed" || status === "incomplete" || errorText !== undefined) {
       return { content, outcome: "error", isError: true, ...(errorText !== undefined ? { errorText } : {}) };
     }
     return { content, outcome: "ok" };
@@ -3379,7 +3403,17 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       rawItem.type === "shell_call" || rawItem.type === "apply_patch_call" || rawItem.type === "hosted_tool_call"
         ? rawItem.caller
         : undefined;
-    const startMeta = openaiProviderMeta({ caller: callerToJson(caller) });
+    // An MCP call's or approval request's own tool name: the item's `name` is
+    // the umbrella (`mcp_call` / `mcp_approval_request`), so the MCP tool's
+    // name rides providerMetadata (SPEC:965).
+    const mcpToolName: unknown =
+      rawItem.type === "hosted_tool_call" && (rawItem.name === "mcp_call" || rawItem.name === "mcp_approval_request")
+        ? rawItem.providerData?.name
+        : undefined;
+    const startMeta = openaiProviderMeta({
+      caller: callerToJson(caller),
+      mcpToolName: typeof mcpToolName === "string" && mcpToolName.length > 0 ? mcpToolName : undefined,
+    });
     // An MCP item's server label (SPEC tool.start.serverName).
     const serverLabel: unknown = rawItem.type === "hosted_tool_call" ? rawItem.providerData?.server_label : undefined;
     a.toolStart({

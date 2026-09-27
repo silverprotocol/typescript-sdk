@@ -4374,6 +4374,16 @@ describe("createOpenaiNormalizer — hosted call inputs and results", () => {
     });
   });
 
+  it("a hosted call whose native status is incomplete closes with outcome error, as an incomplete shell or function result does", () => {
+    const fs = hostedRound(
+      { type: "file_search_call", id: "fs_9", status: "incomplete", queries: ["x"] },
+      { type: "hosted_tool_call", id: "fs_9", name: "file_search_call", status: "incomplete", providerData: { type: "file_search_call", id: "fs_9", queries: ["x"] } },
+    );
+    expect(first(fs, "tool.done")).toMatchObject({ outcome: "error", isError: true });
+    const mcp = hostedRound({ ...MCP_RAW, status: "incomplete" }, mcpItem({ status: "incomplete", output: null }));
+    expect(first(mcp, "tool.done")).toMatchObject({ outcome: "error", isError: true });
+  });
+
   it("a hosted call whose native status is failed closes with outcome error", () => {
     const evs = hostedRound(
       { type: "web_search_call", id: "ws_2", status: "failed", action: { type: "search", query: "x" } },
@@ -4400,6 +4410,47 @@ describe("createOpenaiNormalizer — hosted call inputs and results", () => {
     );
     expect(first(evs, "tool.start")).toMatchObject({ serverName: "deepwiki" });
     expect(first(evs, "tool.done")).toMatchObject({ outcome: "ok", content: [{ type: "data", name: "mcp_list_tools", data: tools }] });
+  });
+
+  it("a file_search call carries its queries as its arguments and its results as a data block result", () => {
+    const results = [{ file_id: "file_1", filename: "notes.md", score: 0.9, text: "the answer" }];
+    const evs = hostedRound(
+      { type: "file_search_call", id: "fs_1", status: "completed", queries: ["answer"], results },
+      { type: "hosted_tool_call", id: "fs_1", name: "file_search_call", status: "completed", providerData: { type: "file_search_call", id: "fs_1", queries: ["answer"], results } },
+    );
+    expect(first(evs, "tool.args.assembled")).toMatchObject({ input: { queries: ["answer"] } });
+    expect(first(evs, "tool.done")).toMatchObject({ outcome: "ok", content: [{ type: "data", name: "file_search_results", data: results }] });
+  });
+
+  it("a code_interpreter call carries its code and container as its arguments and its outputs as a data block result", () => {
+    const outputs: JsonValue[] = [
+      { type: "logs", logs: "42\n" },
+      { type: "image", url: "https://example.com/plot.png" },
+    ];
+    const evs = hostedRound(
+      { type: "code_interpreter_call", id: "ci_1", status: "completed", code: "print(6*7)", container_id: "cntr_1", outputs },
+      {
+        type: "hosted_tool_call",
+        id: "ci_1",
+        name: "code_interpreter_call",
+        status: "completed",
+        providerData: { type: "code_interpreter_call", id: "ci_1", code: "print(6*7)", container_id: "cntr_1", outputs },
+      },
+    );
+    expect(first(evs, "tool.args.assembled")).toMatchObject({ input: { code: "print(6*7)", container_id: "cntr_1" } });
+    expect(first(evs, "tool.done")).toMatchObject({ outcome: "ok", content: [{ type: "data", name: "code_interpreter_outputs", data: outputs }] });
+  });
+
+  it("an MCP call and an MCP approval request carry the MCP tool's own name as tool.start providerMetadata.mcpToolName", () => {
+    expect(first(hostedRound(MCP_RAW, mcpItem()), "tool.start")).toMatchObject({ name: "mcp_call", providerMetadata: { mcpToolName: "ask_question" } });
+    const req = { type: "mcp_approval_request", id: "mcpr_9", server_label: "deepwiki", name: "ask_question", arguments: "{}" };
+    const evs = hostedRound(req, { type: "hosted_tool_call", id: "mcpr_9", name: "mcp_approval_request", status: "completed", providerData: { ...req } });
+    expect(first(evs, "tool.start")).toMatchObject({ providerMetadata: { mcpToolName: "ask_question" } });
+    const ws = hostedRound(
+      { type: "web_search_call", id: "ws_9", status: "completed", action: { type: "search", query: "x" } },
+      { type: "hosted_tool_call", id: "ws_9", name: "web_search_call", status: "completed", providerData: { type: "web_search_call", id: "ws_9", action: { type: "search", query: "x" } } },
+    );
+    expect(first(ws, "tool.start")).not.toHaveProperty("providerMetadata");
   });
 
   it("an mcp_approval_request carries the request's arguments and server_label on its tool.start", () => {
