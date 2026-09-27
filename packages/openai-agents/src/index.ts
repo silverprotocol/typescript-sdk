@@ -1041,6 +1041,59 @@ function terminalHasRefusal(output: JsonValue | undefined): boolean {
 }
 
 /**
+ * The raw Responses output item types that @openai/agents 0.18.0 turns into a
+ * built-in call run-item keeping the item's id: agents-openai's converter
+ * (openaiResponsesConverter.mjs `convertToOutputItem`) maps the hosted kinds
+ * to a `hosted_tool_call` with `id: item.id`, and keeps shell, apply-patch,
+ * computer, program and tool-search calls under their own type. agents-core
+ * streams each as a `tool_called` / `tool_search_called` run-item AFTER the
+ * response's `response.completed` (it streams a response's step items after
+ * the raw loop, run.mjs:1935). `local_shell_call` converts to an unknown item
+ * and never streams as a call, so it is not listed.
+ */
+const BUILTIN_OUTPUT_ITEM_TYPES: ReadonlySet<string> = new Set([
+  "web_search_call",
+  "file_search_call",
+  "image_generation_call",
+  "code_interpreter_call",
+  "mcp_list_tools",
+  "mcp_approval_request",
+  "mcp_call",
+  "computer_call",
+  "shell_call",
+  "apply_patch_call",
+  "program",
+  "tool_search_call",
+]);
+
+/** A built-in call a terminal event's `response.output` lists: its item id
+ *  and raw type. */
+interface TerminalBuiltinItem {
+  id: string;
+  type: string;
+}
+
+/**
+ * The built-in calls a terminal event's `response.output` lists, in wire
+ * order (see {@link BUILTIN_OUTPUT_ITEM_TYPES}). Deserialization boundary: a
+ * non-array output, a non-object member and a member with no non-empty string
+ * id are skipped.
+ */
+function terminalBuiltinItems(output: JsonValue | undefined): TerminalBuiltinItem[] {
+  const out: TerminalBuiltinItem[] = [];
+  if (!Array.isArray(output)) return out;
+  for (const member of output) {
+    if (!isJsonObject(member)) continue;
+    const type = member.type;
+    const id = member.id;
+    if (typeof type !== "string" || !BUILTIN_OUTPUT_ITEM_TYPES.has(type)) continue;
+    if (typeof id !== "string" || id.length === 0) continue;
+    out.push({ id, type });
+  }
+  return out;
+}
+
+/**
  * Reasoning from the terminal output: extract the reasoning items from a terminal event's `response.output`.
  * This — not `response.output_item.done` — is the replayable source: OpenAI
  * re-encrypts `encrypted_content` per stage (live, echo-gpt6sol natives [4] vs
@@ -1850,14 +1903,109 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * is open (defensive; every caller already calls `ensureResponseOpen()` first).
    */
   function registerPendingTool(callId: string): void {
-    if (turnId === undefined) return;
-    let pending = pendingToolsByTurn.get(turnId);
+    registerPendingToolFor(turnId, callId);
+  }
+
+  /** Register `callId` as pending a `tool.done` under round `tid`. */
+  function registerPendingToolFor(tid: string | undefined, callId: string): void {
+    if (tid === undefined) return;
+    let pending = pendingToolsByTurn.get(tid);
     if (pending === undefined) {
       pending = new Set<string>();
-      pendingToolsByTurn.set(turnId, pending);
+      pendingToolsByTurn.set(tid, pending);
     }
     pending.add(callId);
-    turnIdByToolCallId.set(callId, turnId);
+    turnIdByToolCallId.set(callId, tid);
+  }
+
+  // ── Built-in round attach ───────────────────────────────────────────────────
+  // agents-core streams a response's built-in call run-items (`tool_called`,
+  // `tool_search_called`) after its `response.completed`, so the round has
+  // already reached its terminal when they land. A round whose terminal
+  // `response.output` lists a built-in call (see BUILTIN_OUTPUT_ITEM_TYPES)
+  // defers its close as §8.0 item 14 defers a round for its pending tool
+  // results, and each late run-item attaches to THAT round's turn and message
+  // (never a turn opened for it). The close is released:
+  //  - when every listed call has its run-item and every pending result has
+  //    landed (`maybeReleaseRound`);
+  //  - at the next `response.created`, when the round still waits only on
+  //    listed calls whose run-item never streamed (agents-core can suppress
+  //    one), so the new response keeps its own turn; those calls stop being
+  //    the round's;
+  //  - at flush, per INV-FLUSH (2).
+  // A listed `mcp_approval_request` waits for its approval ask
+  // (`tool_approval_requested`) or its answer (`mcp_approval_response`), which
+  // agents-core streams after the request's own `tool_called`, so the ask
+  // lands in the round. `listedBuiltinsByTurn`: round → listed item ids still
+  // waiting. `builtinTurnByItemId`: listed item id → its round.
+  // `approvalRequestIds`: the listed items that are approval requests.
+  // `seenBuiltinItemIds`: built-in items whose run-item already landed (one
+  // that lands before its terminal, a synthetic order), so the terminal never
+  // lists them.
+  const listedBuiltinsByTurn = new Map<string, Set<string>>();
+  const builtinTurnByItemId = new Map<string, string>();
+  const approvalRequestIds = new Set<string>();
+  const seenBuiltinItemIds = new Set<string>();
+
+  /** List round `tid`'s built-in calls (those whose run-item has not landed). */
+  function listBuiltins(tid: string, items: readonly TerminalBuiltinItem[]): string[] {
+    const ids: string[] = [];
+    for (const item of items) {
+      if (seenBuiltinItemIds.has(item.id)) continue;
+      ids.push(item.id);
+      builtinTurnByItemId.set(item.id, tid);
+      if (item.type === "mcp_approval_request") approvalRequestIds.add(item.id);
+    }
+    if (ids.length > 0) listedBuiltinsByTurn.set(tid, new Set(ids));
+    return ids;
+  }
+
+  /** The stashed round a late built-in run-item belongs to: the round whose
+   *  terminal listed `key`, else, when no response is open, the invoke's last
+   *  round if its close is still stashed (a run-item its terminal did not
+   *  list). Undefined when neither holds. */
+  function lateBuiltinRound(key: string | undefined): { tid: string; mId: string } | undefined {
+    const listedTid = key !== undefined ? builtinTurnByItemId.get(key) : undefined;
+    const tid = listedTid ?? (turnId === undefined ? lastTopLevelTurnId : undefined);
+    if (tid === undefined) return undefined;
+    const stashed = stashedCloseByTurn.get(tid);
+    return stashed !== undefined ? { tid, mId: stashed.msgId } : undefined;
+  }
+
+  /** The listed item `key` has what it waited for: drop it, and release its
+   *  round if nothing else keeps the round open. */
+  function drainListedBuiltin(key: string | undefined): void {
+    if (key === undefined) return;
+    const tid = builtinTurnByItemId.get(key);
+    if (tid === undefined) return;
+    const listed = listedBuiltinsByTurn.get(tid);
+    if (listed === undefined || !listed.delete(key)) return;
+    approvalRequestIds.delete(key);
+    maybeReleaseRound(tid);
+  }
+
+  /** Release round `tid`'s stashed close when no pending result and no listed
+   *  built-in call keeps it open. */
+  function maybeReleaseRound(tid: string): void {
+    const stashed = stashedCloseByTurn.get(tid);
+    if (stashed === undefined) return;
+    if ((pendingToolsByTurn.get(tid)?.size ?? 0) > 0) return;
+    if ((listedBuiltinsByTurn.get(tid)?.size ?? 0) > 0) return;
+    stashedCloseByTurn.delete(tid);
+    listedBuiltinsByTurn.delete(tid);
+    emitRoundClose(tid, stashed.msgId, stashed.openTextStreamIds, stashed.fields);
+  }
+
+  /** At a new `response.created`: every round still waiting on listed calls
+   *  whose run-item never streamed stops waiting on them, and is released if
+   *  no pending result keeps it open. */
+  function releaseListedAtNextResponse(): void {
+    for (const [tid, listed] of [...listedBuiltinsByTurn]) {
+      for (const id of listed) approvalRequestIds.delete(id);
+      listed.clear();
+      listedBuiltinsByTurn.delete(tid);
+      maybeReleaseRound(tid);
+    }
   }
   // A round's close is MORE than `closeTurnDone`: `reduce()`'s message.end
   // handler (SPEC §5.0 INV-MSG, same enforcement commit) clears the message's
@@ -1947,6 +2095,8 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   function releaseAllDeferredCloses(): void {
     for (const [tid, stashed] of stashedCloseByTurn) releaseDeferredClose(tid, stashed);
     stashedCloseByTurn.clear();
+    listedBuiltinsByTurn.clear();
+    approvalRequestIds.clear();
   }
 
   /**
@@ -1957,9 +2107,16 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * immediately via `endOpenStreamsAndCloseMessage` — an errored round's
    * pending results are moot, by design).
    */
-  function finishOrDeferRound(tid: string, mId: string, textStreamIds: readonly string[], fields: TurnDoneFields): void {
+  function finishOrDeferRound(
+    tid: string,
+    mId: string,
+    textStreamIds: readonly string[],
+    fields: TurnDoneFields,
+    builtins: readonly TerminalBuiltinItem[] = [],
+  ): void {
+    const listed = listBuiltins(tid, builtins);
     const pending = pendingToolsByTurn.get(tid);
-    if (pending !== undefined && pending.size > 0) {
+    if ((pending !== undefined && pending.size > 0) || listed.length > 0) {
       stashedCloseByTurn.set(tid, { msgId: mId, openTextStreamIds: [...textStreamIds], fields });
       return;
     }
@@ -2095,6 +2252,10 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         // response before it, never to this one; so does its refusal text.
         pendingRefusal = false;
         refusalTextEmitted = false;
+        // A round still waiting only on listed built-in calls whose run-item
+        // never streamed is released before this response's turn opens (see
+        // "Built-in round attach").
+        releaseListedAtNextResponse();
         // Authoritative turn open — the real response.id is present at start.
         // So is the resolved model id (JsonValue boundary: string-guarded).
         const rawModelId: unknown = ev.response.model;
@@ -2301,6 +2462,9 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         const textStreamIds = Array.from(openTextStreams);
         const reason = ev.response.incomplete_details?.reason;
         const usage = mapUsage(ev.response.usage);
+        // The built-in calls this response lists, whose run-items land after
+        // this event (see "Built-in round attach").
+        const builtins = terminalBuiltinItems(ev.response.output);
         // `status` is OPTIONAL upstream and its enum is OPEN ("clients must
         // accept additional values"), so it is read through `unknown` + a typeof
         // guard rather than trusted through the declared union — this is the
@@ -2329,7 +2493,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
             outcome: { type: "success" },
             finishReason: "refusal",
             ...(usage !== undefined ? { usage } : {}),
-          });
+          }, builtins);
         } else if (reason === "content_filter") {
           const safety: AgSafety[] = [{ category: "content_filter", blocked: true }];
           finishOrDeferRound(currentTurnId, currentMsgId, textStreamIds, {
@@ -2337,7 +2501,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
             ...finishReasonFields(reason),
             safety,
             ...(usage !== undefined ? { usage } : {}),
-          });
+          }, builtins);
         } else if (ev.type === "response.incomplete") {
           endOpenStreamsAndCloseMessage();
           a.closeTurnError(currentTurnId, {
@@ -2383,7 +2547,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
             // An unmapped native reason also carries finishReasonRaw.
             ...finishReasonFields(reason),
             ...(usage !== undefined ? { usage } : {}),
-          });
+          }, builtins);
         }
         resetResponseState();
         return;
@@ -2886,10 +3050,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       turnIdByToolCallId.delete(callId);
     }
     if (pending.size > 0) return;
-    const stashed = stashedCloseByTurn.get(sourceTurnId);
-    if (stashed === undefined) return;
-    stashedCloseByTurn.delete(sourceTurnId);
-    emitRoundClose(sourceTurnId, stashed.msgId, stashed.openTextStreamIds, stashed.fields);
+    maybeReleaseRound(sourceTurnId);
   }
 
   function drainPendingTool(callId: string, doneTurnId: string | undefined): void {
@@ -2898,17 +3059,12 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     const pending = pendingToolsByTurn.get(doneTurnId);
     if (pending === undefined) return;
     pending.delete(callId);
-    if (pending.size === 0) {
-      const stashed = stashedCloseByTurn.get(doneTurnId);
-      if (stashed !== undefined) {
-        // The pending set just drained — emit the deferred message.end +
-        // turn.done immediately after this tool.done, same push() batch
-        // (INV-MSG: the message must still be open when tool.done lands, so
-        // message.end waits for this too).
-        stashedCloseByTurn.delete(doneTurnId);
-        emitRoundClose(doneTurnId, stashed.msgId, stashed.openTextStreamIds, stashed.fields);
-      }
-    }
+    // The pending set just drained — emit the deferred message.end +
+    // turn.done immediately after this tool.done, same push() batch
+    // (INV-MSG: the message must still be open when tool.done lands, so
+    // message.end waits for this too), unless a listed built-in call of the
+    // round has yet to land (see "Built-in round attach").
+    if (pending.size === 0) maybeReleaseRound(doneTurnId);
   }
 
   /** True if any shell command in `entries` timed out or exited non-zero. */
@@ -3055,11 +3211,12 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * action/operation arrives complete on this one wrapper), and
    * `hosted_tool_call` has no raw-wire literal AT ALL (see its own doc — it is
    * an agents-core-internal umbrella normalized only at this run-item layer).
-   * `ensureResponseOpen()` mirrors the raw function_call path's treatment
-   * (both are tool-START signals expected EARLY in a round, unlike the
-   * LATE-arriving `tool_output`/`message_output_created` run-items this file
-   * already documents) — residual ordering risk if a future capture shows
-   * otherwise is flagged in the adaptation report, not silently assumed away.
+   * Like every run-item, this wrapper lands AFTER its response's
+   * `response.completed` (agents-core 0.18.0 streams a response's step items
+   * after the raw loop, run.mjs:1935), so it attaches to the round its
+   * terminal listed, whose close is deferred for it (see "Built-in round
+   * attach"); it opens a response only when none has been seen for it (a
+   * run-item that lands while its response is open joins that response).
    *
    * `shell_call`/`apply_patch_call`/`computer_call` are PENDING calls (their
    * result arrives via a LATER `tool_output` run-item, same Task-4b
@@ -3127,8 +3284,21 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       | OpenAIHostedToolCallItem
       | OpenAIProgramCallItem,
   ): void {
-    ensureResponseOpen();
-    if (msgId === undefined) return; // unreachable post-ensure; satisfies narrowing
+    // The listed item this run-item is: its own id, or, for an approval's
+    // answer, the request it answers (see "Built-in round attach").
+    const answered: unknown =
+      rawItem.type === "hosted_tool_call" && rawItem.name === "mcp_approval_response"
+        ? rawItem.providerData?.approval_request_id
+        : undefined;
+    const key = typeof answered === "string" && answered.length > 0 ? answered : rawItem.id;
+    if (rawItem.id !== undefined) seenBuiltinItemIds.add(rawItem.id);
+    // A run-item that lands after its round's terminal attaches to that round;
+    // one that lands while a response is open belongs to it.
+    const late = lateBuiltinRound(key);
+    if (late === undefined) ensureResponseOpen();
+    const ownerMsgId = late !== undefined ? late.mId : msgId;
+    const ownerTurnId = late !== undefined ? late.tid : turnId;
+    if (ownerMsgId === undefined) return; // unreachable post-ensure; satisfies narrowing
     const toolCallId = rawItem.type === "hosted_tool_call" ? hostedToolCallId(rawItem) : rawItem.callId;
     const name = builtinToolName(rawItem);
     // Caller provenance (0.14.0): typed only on the shapes the wire declares
@@ -3145,7 +3315,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       ...(startMeta !== undefined ? { providerMetadata: startMeta } : {}),
       // See builtinProviderExecuted().
       ...(builtinProviderExecuted(rawItem) ? { providerExecuted: true } : {}),
-      messageId: msgId,
+      messageId: ownerMsgId,
     });
     const input: JsonValue =
       rawItem.type === "shell_call"
@@ -3164,10 +3334,15 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     if (rawItem.type === "hosted_tool_call") {
       const content: AgBlock[] =
         rawItem.output !== undefined && rawItem.output.length > 0 ? [{ type: "text", text: rawItem.output }] : [];
-      a.toolDone({ toolCallId, content, outcome: "ok" });
+      a.toolDone({ toolCallId, content, outcome: "ok", ...(late !== undefined ? { turnId: late.tid } : {}) });
+      // An approval request waits for its ask or its answer; any other hosted
+      // call, and an answer (keyed on its request), is complete here.
+      if (!(rawItem.id !== undefined && approvalRequestIds.has(rawItem.id))) drainListedBuiltin(key);
       return;
     }
-    registerPendingTool(toolCallId);
+    registerPendingToolFor(ownerTurnId, toolCallId);
+    // Its run-item has landed; the round now waits on its result.
+    drainListedBuiltin(key);
   }
 
   /**
@@ -3217,14 +3392,22 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * like any other unresolved pending tool call, no special-casing needed.
    */
   function driveToolSearchCalled(rawItem: OpenAIToolSearchCallItem): void {
-    ensureResponseOpen();
-    if (msgId === undefined) return; // unreachable post-ensure; satisfies narrowing
+    if (rawItem.id !== undefined) seenBuiltinItemIds.add(rawItem.id);
     const toolCallId = resolveToolSearchCallId(rawItem);
     if (toolCallId === undefined) {
-      // Genuinely unresolvable correlation id — never fabricate one (Tenet 6).
+      // Genuinely unresolvable correlation id — never fabricate one (Tenet 6),
+      // and open no turn for it: the carry is not block content.
       a.emitExt("openai", "unparsed", { name: "tool_search_called", item: JsonValue.parse(rawItem) });
+      drainListedBuiltin(rawItem.id);
       return;
     }
+    // A run-item that lands after its round's terminal attaches to that round
+    // (see "Built-in round attach").
+    const late = lateBuiltinRound(rawItem.id);
+    if (late === undefined) ensureResponseOpen();
+    const ownerMsgId = late !== undefined ? late.mId : msgId;
+    const ownerTurnId = late !== undefined ? late.tid : turnId;
+    if (ownerMsgId === undefined) return; // unreachable post-ensure; satisfies narrowing
     a.toolStart({
       toolCallId,
       name: "builtin:tool_search",
@@ -3233,12 +3416,13 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       // provider's (SPEC:496); "client" (the SDK's own loader / a custom
       // execute()) and absent leave the key off.
       ...(rawItem.execution === "server" ? { providerExecuted: true } : {}),
-      messageId: msgId,
+      messageId: ownerMsgId,
     });
     const input: JsonValue = JsonValue.parse(rawItem.arguments ?? {});
     a.toolArgsDelta(toolCallId, JSON.stringify(input));
     a.toolArgsAssembled(toolCallId, input);
-    registerPendingTool(toolCallId);
+    registerPendingToolFor(ownerTurnId, toolCallId);
+    drainListedBuiltin(rawItem.id);
   }
 
   /**
@@ -3620,6 +3804,9 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
             toolCallId: gatedId,
           });
           askedApprovals.set(gatedId, `approval_${gatedId}`);
+          // A listed hosted-MCP approval request has its ask: its round can
+          // close (see "Built-in round attach").
+          drainListedBuiltin(gatedId);
           return;
         }
         default:

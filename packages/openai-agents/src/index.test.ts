@@ -4093,6 +4093,231 @@ describe("createOpenaiNormalizer — hosted-MCP approval ids", () => {
   });
 });
 
+describe("createOpenaiNormalizer — built-in round attach", () => {
+  // @openai/agents 0.18.0 streams a response's built-in call run-items
+  // (tool_called, tool_search_called) AFTER its response.completed
+  // (agents-core run.mjs:1935). A round whose terminal output lists a built-in
+  // call keeps its close open until those run-items (and any pending result)
+  // land, and they attach to that round, never to a turn opened for them.
+  const U = { input_tokens: 10, output_tokens: 5, total_tokens: 15 };
+  const rawRound = (rid: string, items: JsonValue[], text?: { id: string; delta: string }): JsonValue[] => [
+    rawModel({ type: "response.created", response: { id: rid, model: "gpt-6-sol" }, sequence_number: 0 }),
+    ...items.flatMap((item, i) => [
+      rawModel({ type: "response.output_item.added", item, output_index: i, sequence_number: 2 * i + 1 }),
+      ...(text !== undefined && isMessage(item, text.id)
+        ? [rawModel({ type: "response.output_text.delta", item_id: text.id, delta: text.delta, output_index: i, content_index: 0, sequence_number: 90 })]
+        : []),
+      rawModel({ type: "response.output_item.done", item, output_index: i, sequence_number: 2 * i + 2 }),
+    ]),
+    rawModel({ type: "response.completed", response: { id: rid, status: "completed", output: items, usage: U } }),
+  ];
+  function isMessage(item: JsonValue, id: string): boolean {
+    return typeof item === "object" && item !== null && !Array.isArray(item) && item.type === "message" && item.id === id;
+  }
+  const called = (rawItem: JsonValue): JsonValue => runItem("tool_called", { type: "tool_call_item", rawItem });
+  const WS = { type: "web_search_call", id: "ws_1", status: "completed", action: { type: "search", query: "q" } };
+  const MCP = { type: "mcp_call", id: "mcp_1", server_label: "deepwiki", name: "ask_question", arguments: '{"q":"a"}', output: "answer", error: null };
+  const MSG = { type: "message", id: "msg_b1", role: "assistant", status: "completed", content: [{ type: "output_text", text: "done", annotations: [] }] };
+  const calledWs = called({ type: "hosted_tool_call", id: "ws_1", name: "web_search_call", status: "completed", providerData: { type: "web_search_call", id: "ws_1", action: WS.action } });
+  const calledMcp = called({
+    type: "hosted_tool_call",
+    id: "mcp_1",
+    name: "mcp_call",
+    status: "completed",
+    output: "answer",
+    providerData: { type: "mcp_call", id: "mcp_1", server_label: "deepwiki", name: "ask_question", arguments: '{"q":"a"}', error: null },
+  });
+  const SH = { type: "shell_call", id: "sh_1", call_id: "call_sh_1", status: "completed", action: { commands: ["echo hi"] } };
+  const calledSh = called({ type: "shell_call", id: "sh_1", callId: "call_sh_1", status: "completed", action: { commands: ["echo hi"] }, providerData: { type: "shell_call", id: "sh_1" } });
+  const shOutput = runItem("tool_output", {
+    type: "tool_call_output_item",
+    rawItem: {
+      type: "shell_call_output",
+      callId: "call_sh_1",
+      output: [{ stdout: "hi\n", stderr: "", outcome: { type: "exit", exitCode: 0 } }],
+    },
+    output: "hi\n",
+  });
+  const request = (id: string) => ({ type: "mcp_approval_request", id, server_label: "deepwiki", name: "ask_question", arguments: '{"q":"a"}' });
+  const calledRequest = (id: string): JsonValue =>
+    called({ type: "hosted_tool_call", id, name: "mcp_approval_request", status: "completed", providerData: request(id) });
+  const approvalRequested = (id: string): JsonValue =>
+    runItem("tool_approval_requested", {
+      type: "tool_approval_item",
+      rawItem: { type: "hosted_tool_call", name: "ask_question", id, status: "in_progress", providerData: request(id) },
+    });
+  const answer = (id: string, approve: boolean): JsonValue =>
+    called({ type: "hosted_tool_call", name: "mcp_approval_response", providerData: { approve, approval_request_id: id } });
+
+  function run(s: JsonValue[]): { evs: AgEvent[]; r: Reducer } {
+    const n = createOpenaiNormalizer({ invokeId: "inv1" });
+    const evs = s.flatMap((e) => n.push(e)).concat(n.flush());
+    const r = new Reducer();
+    for (const ev of evs) r.push(ev);
+    return { evs, r };
+  }
+  const turnIds = (evs: AgEvent[]) => [...new Set(evs.map((e) => Reflect.get(e, "turnId")).filter((t) => typeof t === "string"))];
+  const idx = (evs: AgEvent[], type: string, key: string, value: string) => {
+    const i = evs.findIndex((e) => e.type === type && Reflect.get(e, key) === value);
+    expect(i, `${type} ${key}=${value}`).toBeGreaterThanOrEqual(0);
+    return i;
+  };
+  const terminalsOf = (evs: AgEvent[], tid: string) =>
+    evs.filter((e) => (e.type === "turn.done" || e.type === "turn.abort" || e.type === "turn.error") && Reflect.get(e, "turnId") === tid);
+
+  it("in the order the SDK streams it, a round's hosted calls attach to their own round: web_search and mcp_call land in turn_resp_*, which closes success after them, and no other turn opens", () => {
+    const { evs, r } = run([...rawRound("resp_b1", [WS, MCP, MSG], { id: "msg_b1", delta: "done" }), calledWs, calledMcp, runItem("message_output_created", { type: "message_output_item", rawItem: MSG })]);
+    expect(r.needsResync).toBe(false);
+    expect(turnIds(evs)).toEqual(["turn_resp_b1"]);
+    expect(evs.filter((e) => e.type === "turn.start")).toHaveLength(1);
+    expect(terminalsOf(evs, "turn_resp_b1")).toMatchObject([{ type: "turn.done", outcome: { type: "success" }, usage: { inputTokens: 10, outputTokens: 5 } }]);
+    const done = idx(evs, "turn.done", "turnId", "turn_resp_b1");
+    expect(idx(evs, "tool.done", "toolCallId", "ws_1")).toBeLessThan(done);
+    expect(idx(evs, "tool.done", "toolCallId", "mcp_1")).toBeLessThan(done);
+    const msg = r.result().messages.find((m) => m.id === "msg_turn_resp_b1");
+    expect(msg?.content.filter((b) => b.type === "tool-call").map((b) => Reflect.get(b, "toolCallId"))).toEqual(["ws_1", "mcp_1"]);
+  });
+
+  it("in the order the SDK streams it, hosted-MCP approval asks land inside their round, which closes after the last ask", () => {
+    const { evs, r } = run([
+      ...rawRound("resp_a1", [request("mcpr_1"), request("mcpr_2")]),
+      calledRequest("mcpr_1"),
+      approvalRequested("mcpr_1"),
+      calledRequest("mcpr_2"),
+      approvalRequested("mcpr_2"),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(turnIds(evs)).toEqual(["turn_resp_a1"]);
+    const done = idx(evs, "turn.done", "turnId", "turn_resp_a1");
+    expect(idx(evs, "hitl.ask", "askId", "approval_mcpr_2")).toBeLessThan(done);
+    expect(evs.filter((e) => e.type === "hitl.ask").map((e) => Reflect.get(e, "turnId"))).toEqual(["turn_resp_a1", "turn_resp_a1"]);
+    expect(evs.filter((e) => e.type === "turn.abort")).toEqual([]);
+  });
+
+  it("in the order the SDK streams it, a client-executed shell round closes only after its tool_output, and the next response keeps its own turn and model", () => {
+    const MSG2 = { type: "message", id: "msg_c2", role: "assistant", status: "completed", content: [{ type: "output_text", text: "it said hi", annotations: [] }] };
+    const { evs, r } = run([
+      ...rawRound("resp_c1", [SH]),
+      calledSh,
+      shOutput,
+      ...rawRound("resp_c2", [MSG2], { id: "msg_c2", delta: "it said hi" }),
+      runItem("message_output_created", { type: "message_output_item", rawItem: MSG2 }),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(turnIds(evs)).toEqual(["turn_resp_c1", "turn_resp_c2"]);
+    expect(idx(evs, "turn.done", "turnId", "turn_resp_c1")).toBeGreaterThan(idx(evs, "tool.done", "toolCallId", "call_sh_1"));
+    expect(idx(evs, "turn.done", "turnId", "turn_resp_c1")).toBeLessThan(idx(evs, "turn.start", "turnId", "turn_resp_c2"));
+    expect(evs.find((e) => e.type === "message.start" && Reflect.get(e, "turnId") === "turn_resp_c2")).toMatchObject({ model: "gpt-6-sol" });
+    expect(idx(evs, "text.start", "id", "msg_c2")).toBeGreaterThan(idx(evs, "turn.start", "turnId", "turn_resp_c2"));
+    expect(r.result().turns.map((t) => t.usage?.inputTokens)).toEqual([10, 10]);
+  });
+
+  it("in the order the SDK streams it, two same-invoke approval answers (onApproval) drain their requests: round 1 closes at its last answer, before round 2 starts, with distinct answer ids", () => {
+    const n = createOpenaiNormalizer({ invokeId: "inv1" });
+    const head = [...rawRound("resp_o1", [request("mcpr_1"), request("mcpr_2")]), calledRequest("mcpr_1"), calledRequest("mcpr_2"), answer("mcpr_1", true)];
+    for (const e of head) n.push(e);
+    expect(n.push(answer("mcpr_2", false)).filter((e) => e.type === "turn.done").map((e) => Reflect.get(e, "turnId"))).toEqual(["turn_resp_o1"]);
+    const { evs, r } = run([
+      ...rawRound("resp_o1", [request("mcpr_1"), request("mcpr_2")]),
+      calledRequest("mcpr_1"),
+      calledRequest("mcpr_2"),
+      answer("mcpr_1", true),
+      answer("mcpr_2", false),
+      ...rawRound("resp_o2", [MCP]),
+      calledMcp,
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(turnIds(evs)).toEqual(["turn_resp_o1", "turn_resp_o2"]);
+    expect(idx(evs, "turn.done", "turnId", "turn_resp_o1")).toBeLessThan(idx(evs, "turn.start", "turnId", "turn_resp_o2"));
+    for (const id of ["mcpr_1:approval-response", "mcpr_2:approval-response"]) {
+      expect(evs.find((e) => e.type === "tool.start" && Reflect.get(e, "toolCallId") === id)).toMatchObject({ turnId: "turn_resp_o1" });
+    }
+    expect(evs.find((e) => e.type === "tool.start" && Reflect.get(e, "toolCallId") === "mcp_1")).toMatchObject({ turnId: "turn_resp_o2" });
+  });
+
+  it("a listed built-in call whose run-item never streams stops holding its round at the next response.created, which keeps its own turn", () => {
+    const MSG2 = { type: "message", id: "msg_s2", role: "assistant", status: "completed", content: [{ type: "output_text", text: "ok", annotations: [] }] };
+    const { evs, r } = run([...rawRound("resp_s1", [WS]), ...rawRound("resp_s2", [MSG2], { id: "msg_s2", delta: "ok" })]);
+    expect(r.needsResync).toBe(false);
+    expect(turnIds(evs)).toEqual(["turn_resp_s1", "turn_resp_s2"]);
+    expect(terminalsOf(evs, "turn_resp_s1")).toMatchObject([{ type: "turn.done", outcome: { type: "success" } }]);
+    expect(idx(evs, "turn.done", "turnId", "turn_resp_s1")).toBeLessThan(idx(evs, "turn.start", "turnId", "turn_resp_s2"));
+  });
+
+  it("a last round still waiting on a listed built-in call at end of stream is released at flush as turn.abort stream-truncated, its usage on message.end", () => {
+    const { evs } = run([...rawRound("resp_f1", [WS])]);
+    expect(terminalsOf(evs, "turn_resp_f1")).toMatchObject([{ type: "turn.abort", reason: "stream-truncated" }]);
+    expect(evs.find((e) => e.type === "message.end" && Reflect.get(e, "id") === "msg_turn_resp_f1")).toMatchObject({ usage: { inputTokens: 10 } });
+  });
+
+  it("a round listing a hosted call and a pending function call closes only when both have landed", () => {
+    const FC = { type: "function_call", id: "fc_m1", call_id: "call_m1", name: "echo", arguments: "{}", status: "completed" };
+    const { evs, r } = run([
+      ...rawRound("resp_m1", [FC, WS]),
+      runItem("tool_called", { type: "tool_call_item", rawItem: { type: "function_call", id: "fc_m1", callId: "call_m1", name: "echo", arguments: "{}" } }),
+      calledWs,
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "function_call_result", name: "echo", callId: "call_m1", status: "completed", output: "ok" },
+        output: "ok",
+      }),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(turnIds(evs)).toEqual(["turn_resp_m1"]);
+    const done = idx(evs, "turn.done", "turnId", "turn_resp_m1");
+    expect(done).toBeGreaterThan(idx(evs, "tool.done", "toolCallId", "call_m1"));
+    expect(done).toBeGreaterThan(idx(evs, "tool.done", "toolCallId", "ws_1"));
+    expect(terminalsOf(evs, "turn_resp_m1")).toMatchObject([{ type: "turn.done", outcome: { type: "success" } }]);
+  });
+
+  it("a built-in run-item that lands while its response is open joins that response, and the terminal does not wait for it again", () => {
+    const { evs, r } = run([
+      rawModel({ type: "response.created", response: { id: "resp_e1", model: "gpt-6-sol" } }),
+      calledWs,
+      rawModel({ type: "response.completed", response: { id: "resp_e1", status: "completed", output: [WS], usage: U } }),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(turnIds(evs)).toEqual(["turn_resp_e1"]);
+    expect(terminalsOf(evs, "turn_resp_e1")).toMatchObject([{ type: "turn.done", outcome: { type: "success" } }]);
+  });
+
+  it("a late hosted call streamed after the same round's handoff_requested closes in its own round, not the transfer's nested turn", () => {
+    const TR = { type: "function_call", id: "fc_h1", call_id: "call_h1", name: "transfer_to_billing", arguments: "{}", status: "completed" };
+    const { evs } = run([
+      rawModel({ type: "response.created", response: { id: "resp_h1", model: "gpt-6-sol" } }),
+      rawModel({ type: "response.output_item.added", item: { ...TR, arguments: "" }, output_index: 0 }),
+      rawModel({ type: "response.completed", response: { id: "resp_h1", status: "completed", output: [TR, WS], usage: U } }),
+      runItem("handoff_requested", {
+        type: "handoff_call_item",
+        rawItem: { type: "function_call", name: "transfer_to_billing", callId: "call_h1", arguments: "{}", id: "fc_h1" },
+        agent: { name: "triage" },
+      }),
+      calledWs,
+    ]);
+    expect(evs.find((e) => e.type === "tool.start" && Reflect.get(e, "toolCallId") === "ws_1")).toMatchObject({ turnId: "turn_resp_h1" });
+    expect(evs.find((e) => e.type === "tool.done" && Reflect.get(e, "toolCallId") === "ws_1")).toMatchObject({ turnId: "turn_resp_h1" });
+  });
+
+  it("a late built-in run-item its terminal did not list still attaches to the invoke's last round while that round's close is deferred", () => {
+    const FC = { type: "function_call", id: "fc_u1", call_id: "call_u1", name: "echo", arguments: "{}", status: "completed" };
+    const { evs, r } = run([
+      rawModel({ type: "response.created", response: { id: "resp_u1", model: "gpt-6-sol" } }),
+      rawModel({ type: "response.output_item.added", item: { ...FC, arguments: "" }, output_index: 0 }),
+      rawModel({ type: "response.completed", response: { id: "resp_u1", status: "completed", output: [FC], usage: U } }),
+      calledWs,
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "function_call_result", name: "echo", callId: "call_u1", status: "completed", output: "ok" },
+        output: "ok",
+      }),
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(turnIds(evs)).toEqual(["turn_resp_u1"]);
+    expect(evs.find((e) => e.type === "tool.start" && Reflect.get(e, "toolCallId") === "ws_1")).toMatchObject({ turnId: "turn_resp_u1" });
+    expect(idx(evs, "turn.done", "turnId", "turn_resp_u1")).toBeGreaterThan(idx(evs, "tool.done", "toolCallId", "call_u1"));
+  });
+});
+
 describe("createOpenaiNormalizer — default run-item arm (Task 3, audit M48)", () => {
   it("a genuinely-unknown run-item name routes to ext.openai.unparsed (the file's stated convention, now true)", () => {
     const n = createOpenaiNormalizer();
@@ -4127,8 +4352,24 @@ describe("createOpenaiNormalizer — default run-item arm (Task 3, audit M48)", 
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("createOpenaiNormalizer — built-in tool lifecycle: shell_call (playbook 2026-07-03)", () => {
+  // In the order the SDK streams it: the raw items, response.completed listing
+  // the call, then the run-items (agents-core run.mjs:1935).
   const SHELL_ROUND: JsonValue[] = [
     rawModel({ type: "response.created", response: { id: "resp_shell_1" } }),
+    // The raw output_item.added for this item: the (function_call-only) raw
+    // path must no-op it, not double-start.
+    rawModel({
+      type: "response.output_item.added",
+      item: { id: "item_shell_1", type: "shell_call", call_id: "call_shell_1" },
+    }),
+    rawModel({
+      type: "response.completed",
+      response: {
+        id: "resp_shell_1",
+        status: "completed",
+        output: [{ type: "shell_call", id: "item_shell_1", call_id: "call_shell_1", status: "completed", action: { commands: ["ls", "-la"], timeout_ms: 5000 } }],
+      },
+    }),
     runItem("tool_called", {
       type: "tool_call_item",
       rawItem: {
@@ -4139,13 +4380,6 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: shell_call (playbo
         id: "item_shell_1",
       },
     }),
-    // Defensive: a real capture may ALSO fire the raw output_item.added for
-    // this item — the (unchanged, function_call-only) raw path must no-op it,
-    // not double-start.
-    rawModel({
-      type: "response.output_item.added",
-      item: { id: "item_shell_1", type: "shell_call", call_id: "call_shell_1" },
-    }),
     runItem("tool_output", {
       type: "tool_call_output_item",
       rawItem: {
@@ -4154,7 +4388,6 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: shell_call (playbo
         output: [{ stdout: "file1\nfile2\n", stderr: "", outcome: { type: "exit", exitCode: 0 } }],
       },
     }),
-    rawModel({ type: "response.completed", response: { id: "resp_shell_1", status: "completed" } }),
   ];
 
   it("synthesizes tool.start with name builtin:shell from the tool_called wrapper", () => {
@@ -4231,8 +4464,25 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: shell_call (playbo
 });
 
 describe("createOpenaiNormalizer — built-in tool lifecycle: apply_patch_call (playbook 2026-07-03)", () => {
+  // In the order the SDK streams it (see SHELL_ROUND).
   const APPLY_PATCH_ROUND: JsonValue[] = [
     rawModel({ type: "response.created", response: { id: "resp_patch_1" } }),
+    rawModel({
+      type: "response.completed",
+      response: {
+        id: "resp_patch_1",
+        status: "completed",
+        output: [
+          {
+            type: "apply_patch_call",
+            id: "item_patch_1",
+            call_id: "call_patch_1",
+            status: "completed",
+            operation: { type: "create_file", path: "hello.txt", diff: "+hello" },
+          },
+        ],
+      },
+    }),
     runItem("tool_called", {
       type: "tool_call_item",
       rawItem: {
@@ -4252,7 +4502,6 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: apply_patch_call (
         output: "applied",
       },
     }),
-    rawModel({ type: "response.completed", response: { id: "resp_patch_1", status: "completed" } }),
   ];
 
   it("synthesizes tool.start with name builtin:apply_patch and the operation as args", () => {
@@ -4319,6 +4568,7 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: hosted_tool_call (
   // 0.12.0's runner/modelOutputs.mjs).
   const HOSTED_ROUND: JsonValue[] = [
     rawModel({ type: "response.created", response: { id: "resp_hosted_1" } }),
+    rawModel({ type: "response.completed", response: { id: "resp_hosted_1", status: "completed", output: [{ type: "web_search_call", id: "item_hosted_1", status: "completed", action: { type: "search", query: "weather today" } }] } }),
     runItem("tool_called", {
       type: "tool_call_item",
       rawItem: {
@@ -4330,7 +4580,6 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: hosted_tool_call (
         output: "It is sunny.",
       },
     }),
-    rawModel({ type: "response.completed", response: { id: "resp_hosted_1", status: "completed" } }),
   ];
 
   it("emits tool.start with the item's own real name (no builtin: synthesis)", () => {
@@ -4413,6 +4662,7 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: hosted_tool_call (
 describe("createOpenaiNormalizer — built-in tool lifecycle: computer_call (fixture-drift ratchet, 2026-07-03)", () => {
   const COMPUTER_ROUND: JsonValue[] = [
     rawModel({ type: "response.created", response: { id: "resp_computer_1" } }),
+    rawModel({ type: "response.completed", response: { id: "resp_computer_1", status: "completed", output: [{ type: "computer_call", id: "item_computer_1", call_id: "call_computer_1", status: "completed", action: { type: "screenshot" } }] } }),
     runItem("tool_called", {
       type: "tool_call_item",
       rawItem: {
@@ -4431,7 +4681,6 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: computer_call (fix
         output: { type: "computer_screenshot", data: "aGVsbG8=" },
       },
     }),
-    rawModel({ type: "response.completed", response: { id: "resp_computer_1", status: "completed" } }),
   ];
 
   it("synthesizes tool.start with name builtin:computer (regression: NOT name:undefined)", () => {
@@ -4494,6 +4743,7 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: computer_call (fix
     // The fixture uses a plausible two-action batch (click + type).
     const batchRound: JsonValue[] = [
       rawModel({ type: "response.created", response: { id: "resp_computer_batch_1" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_computer_batch_1", status: "completed", output: [{ type: "computer_call", id: "item_computer_batch_1", call_id: "call_computer_batch_1", status: "completed", actions: [{ type: "click", x: 100, y: 200 }, { type: "type", text: "hello" }] }] } }),
       runItem("tool_called", {
         type: "tool_call_item",
         rawItem: {
@@ -4516,7 +4766,6 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: computer_call (fix
           output: { type: "computer_screenshot", data: "aGVsbG8=" },
         },
       }),
-      rawModel({ type: "response.completed", response: { id: "resp_computer_batch_1", status: "completed" } }),
     ];
     const evs = batchRound.flatMap((e) => n.push(e)).concat(n.flush());
 
@@ -4546,6 +4795,7 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: tool_search (fixtu
   // `driveToolSearchCalled`/`driveToolSearchOutput`'s docs in index.ts.
   const TOOL_SEARCH_ROUND: JsonValue[] = [
     rawModel({ type: "response.created", response: { id: "resp_search_1" } }),
+    rawModel({ type: "response.completed", response: { id: "resp_search_1", status: "completed", output: [{ type: "tool_search_call", id: "item_search_1", call_id: "call_search_1", status: "completed", execution: "server", arguments: { query: "weather tools" } }] } }),
     runItem("tool_search_called", {
       type: "tool_search_call_item",
       rawItem: {
@@ -4564,7 +4814,6 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: tool_search (fixtu
         tools: [{ type: "tool_reference", functionName: "get_weather" }],
       },
     }),
-    rawModel({ type: "response.completed", response: { id: "resp_search_1", status: "completed" } }),
   ];
 
   it("synthesizes tool.start with name builtin:tool_search from the tool_search_called wrapper", () => {
@@ -4610,6 +4859,7 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: tool_search (fixtu
     const n = createOpenaiNormalizer();
     const evs = [
       rawModel({ type: "response.created", response: { id: "resp_search_2" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_search_2", status: "completed", output: [{ type: "tool_search_call", id: "item_search_2", status: "completed", execution: "client", arguments: { paths: ["weather"] } }] } }),
       runItem("tool_search_called", {
         type: "tool_search_call_item",
         rawItem: {
@@ -4629,7 +4879,6 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: tool_search (fixtu
           providerData: { call_id: "item_search_2", execution: "client" },
         },
       }),
-      rawModel({ type: "response.completed", response: { id: "resp_search_2", status: "completed" } }),
     ]
       .flatMap((e) => n.push(e))
       .concat(n.flush());
@@ -4643,15 +4892,17 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: tool_search (fixtu
     const n = createOpenaiNormalizer();
     const evs = [
       rawModel({ type: "response.created", response: { id: "resp_search_3" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_search_3", status: "completed" } }),
       runItem("tool_search_called", {
         type: "tool_search_call_item",
         rawItem: { type: "tool_search_call", arguments: { query: "x" } }, // no id, callId, or call_id
       }),
-      rawModel({ type: "response.completed", response: { id: "resp_search_3", status: "completed" } }),
     ]
       .flatMap((e) => n.push(e))
       .concat(n.flush());
     expect(evs.some((e) => e.type === "tool.start")).toBe(false);
+    // The carry opens no turn of its own after the round closed.
+    expect(evs.filter((e) => e.type === "turn.start")).toHaveLength(1);
     const unparsed = evs.find((e) => e.type === "ext.openai.unparsed") as { name?: string };
     expect(unparsed?.name).toBe("tool_search_called");
   });
@@ -4660,11 +4911,11 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: tool_search (fixtu
     const n = createOpenaiNormalizer();
     const evs = [
       rawModel({ type: "response.created", response: { id: "resp_search_4" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_search_4", status: "completed" } }),
       runItem("tool_search_output_created", {
         type: "tool_search_output_item",
         rawItem: { type: "tool_search_output", tools: [] },
       }),
-      rawModel({ type: "response.completed", response: { id: "resp_search_4", status: "completed" } }),
     ]
       .flatMap((e) => n.push(e))
       .concat(n.flush());
@@ -4677,15 +4928,15 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: tool_search (fixtu
     const n = createOpenaiNormalizer();
     const evs = [
       rawModel({ type: "response.created", response: { id: "resp_search_5" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_search_5", status: "completed", output: [{ type: "tool_search_call", id: "item_search_5", call_id: "call_search_5", status: "completed", arguments: { query: "nonexistent" } }] } }),
       runItem("tool_search_called", {
         type: "tool_search_call_item",
-        rawItem: { type: "tool_search_call", callId: "call_search_5", arguments: { query: "nonexistent" } },
+        rawItem: { type: "tool_search_call", callId: "call_search_5", arguments: { query: "nonexistent" }, id: "item_search_5" },
       }),
       runItem("tool_search_output_created", {
         type: "tool_search_output_item",
         rawItem: { type: "tool_search_output", callId: "call_search_5", tools: [] },
       }),
-      rawModel({ type: "response.completed", response: { id: "resp_search_5", status: "completed" } }),
     ]
       .flatMap((e) => n.push(e))
       .concat(n.flush());
@@ -4715,6 +4966,7 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: tool_search (fixtu
     const n = createOpenaiNormalizer();
     const evs = [
       rawModel({ type: "response.created", response: { id: "resp_div_1" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_div_1", status: "completed", output: [{ type: "tool_search_call", id: "item_div_1", call_id: "call_divergent_B", status: "completed", execution: "client", arguments: { query: "test" } }] } }),
       runItem("tool_search_called", {
         type: "tool_search_call_item",
         rawItem: {
@@ -4723,6 +4975,7 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: tool_search (fixtu
           execution: "client",
           arguments: { query: "test" },
           providerData: { call_id: "call_divergent_B" }, // but providerData.call_id is "B"
+          id: "item_div_1",
         },
       }),
       runItem("tool_search_output_created", {
@@ -4733,7 +4986,6 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: tool_search (fixtu
           providerData: { call_id: "call_divergent_B" }, // output carries ONLY providerData.call_id "B"
         },
       }),
-      rawModel({ type: "response.completed", response: { id: "resp_div_1", status: "completed" } }),
     ]
       .flatMap((e) => n.push(e))
       .concat(n.flush());
@@ -4749,6 +5001,7 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: tool_search (fixtu
     const r = new Reducer();
     const corpus = [
       rawModel({ type: "response.created", response: { id: "resp_div_2" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_div_2", status: "completed", output: [{ type: "tool_search_call", id: "item_div_2", call_id: "call_divergent_B", status: "completed", execution: "client", arguments: { query: "test" } }] } }),
       runItem("tool_search_called", {
         type: "tool_search_call_item",
         rawItem: {
@@ -4757,6 +5010,7 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: tool_search (fixtu
           execution: "client",
           arguments: { query: "test" },
           providerData: { call_id: "call_divergent_B" },
+          id: "item_div_2",
         },
       }),
       runItem("tool_search_output_created", {
@@ -4767,7 +5021,6 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: tool_search (fixtu
           providerData: { call_id: "call_divergent_B" },
         },
       }),
-      rawModel({ type: "response.completed", response: { id: "resp_div_2", status: "completed" } }),
     ];
     for (const e of corpus) for (const ev of n2.push(e)) r.push(ev);
     for (const ev of n2.flush()) r.push(ev);
@@ -5120,8 +5373,24 @@ describe("createOpenaiNormalizer — tool_output customData._meta + §2.1 MCP-Ap
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("createOpenaiNormalizer — programmatic tool calling: program/program_output (agents-core 0.14.0)", () => {
+  // In the order the SDK streams it: the raw items, response.completed listing
+  // the call, then the run-items (agents-core run.mjs:1935).
   const PROGRAM_ROUND: JsonValue[] = [
     rawModel({ type: "response.created", response: { id: "resp_prog_1" } }),
+    // The raw output_item.added carrier for the program item: the
+    // (function_call-only) raw path must no-op it, not double-start.
+    rawModel({
+      type: "response.output_item.added",
+      item: { id: "item_prog_1", type: "program" },
+    }),
+    rawModel({
+      type: "response.completed",
+      response: {
+        id: "resp_prog_1",
+        status: "completed",
+        output: [{ type: "program", id: "item_prog_1", call_id: "call_prog_1", code: "results = [search(q) for q in queries]", fingerprint: "fp_abc123" }],
+      },
+    }),
     runItem("tool_called", {
       type: "tool_call_item",
       rawItem: {
@@ -5132,13 +5401,6 @@ describe("createOpenaiNormalizer — programmatic tool calling: program/program_
         id: "item_prog_1",
       },
     }),
-    // Defensive: a real capture may ALSO fire the raw output_item.added carrier
-    // for the program item — the (function_call-only) raw path must no-op it,
-    // not double-start.
-    rawModel({
-      type: "response.output_item.added",
-      item: { id: "item_prog_1", type: "program" },
-    }),
     runItem("tool_output", {
       type: "tool_call_output_item",
       rawItem: {
@@ -5148,7 +5410,6 @@ describe("createOpenaiNormalizer — programmatic tool calling: program/program_
         status: "completed",
       },
     }),
-    rawModel({ type: "response.completed", response: { id: "resp_prog_1", status: "completed" } }),
   ];
 
   it("synthesizes tool.start with name builtin:program (rawItem-derived, NOT the wrapper's 'programmatic_tool_calling')", () => {
@@ -5242,6 +5503,14 @@ describe("createOpenaiNormalizer — ToolSearchOutputItem.toolSearchAgentName (a
   function searchRound(outputExtra: { [k: string]: JsonValue }): JsonValue[] {
     return [
       rawModel({ type: "response.created", response: { id: "resp_tsan_1" } }),
+      rawModel({
+        type: "response.completed",
+        response: {
+          id: "resp_tsan_1",
+          status: "completed",
+          output: [{ type: "tool_search_call", id: "item_tsan_1", call_id: "call_tsan_1", status: "completed", execution: "server", arguments: { query: "weather tools" } }],
+        },
+      }),
       runItem("tool_search_called", {
         type: "tool_search_call_item",
         rawItem: {
@@ -5249,6 +5518,7 @@ describe("createOpenaiNormalizer — ToolSearchOutputItem.toolSearchAgentName (a
           callId: "call_tsan_1",
           execution: "server",
           arguments: { query: "weather tools" },
+          id: "item_tsan_1",
         },
       }),
       runItem("tool_search_output_created", {
@@ -5260,7 +5530,6 @@ describe("createOpenaiNormalizer — ToolSearchOutputItem.toolSearchAgentName (a
           ...outputExtra,
         },
       }),
-      rawModel({ type: "response.completed", response: { id: "resp_tsan_1", status: "completed" } }),
     ];
   }
   function runRound(outputExtra: { [k: string]: JsonValue }): AgEvent[] {
@@ -5459,6 +5728,7 @@ describe("createOpenaiNormalizer — ToolCaller provenance (agents-core 0.14.0)"
     const n = createOpenaiNormalizer();
     const evs = [
       rawModel({ type: "response.created", response: { id: "resp_caller_3" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_caller_3", status: "completed", output: [{ type: "shell_call", id: "item_shell_c1", call_id: "call_shell_c1", status: "completed", action: { commands: ["ls"] }, caller: { type: "program", caller_id: "call_prog_9" } }] } }),
       runItem("tool_called", {
         type: "tool_call_item",
         rawItem: {
@@ -5470,7 +5740,6 @@ describe("createOpenaiNormalizer — ToolCaller provenance (agents-core 0.14.0)"
           caller: { type: "program", callerId: "call_prog_9" },
         },
       }),
-      rawModel({ type: "response.completed", response: { id: "resp_caller_3", status: "completed" } }),
     ].flatMap((e) => n.push(e)).concat(n.flush());
     const start = evs.find((e) => e.type === "tool.start") as {
       name?: string;
@@ -5515,6 +5784,7 @@ describe("createOpenaiNormalizer — ShellCallResultItem.status (agents-core 0.1
   function shellRound(resultRawItem: JsonValue): JsonValue[] {
     return [
       rawModel({ type: "response.created", response: { id: "resp_shst_1" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_shst_1", status: "completed", output: [{ type: "shell_call", id: "item_shst_1", call_id: "call_shst_1", status: "completed", action: { commands: ["ls"] } }] } }),
       runItem("tool_called", {
         type: "tool_call_item",
         rawItem: {
@@ -5526,7 +5796,6 @@ describe("createOpenaiNormalizer — ShellCallResultItem.status (agents-core 0.1
         },
       }),
       runItem("tool_output", { type: "tool_call_output_item", rawItem: resultRawItem }),
-      rawModel({ type: "response.completed", response: { id: "resp_shst_1", status: "completed" } }),
     ];
   }
 
@@ -6067,6 +6336,9 @@ describe("createOpenaiNormalizer — LV live (non-JSON-round-tripped) natives ne
   const rm = (event: unknown): JsonValue => liveNative({ type: "raw_model_stream_event", data: { type: "model", event } });
   const ri = (name: string, item: unknown): JsonValue => liveNative({ type: "run_item_stream_event", name, item });
   const created = rm({ type: "response.created", response: { id: "resp_lv" } });
+  // The built-in legs feed the run-item in the order the SDK streams it:
+  // after response.completed, which lists the call.
+  const completedListing = (output: unknown[]): JsonValue => rm({ type: "response.completed", response: { id: "resp_lv", status: "completed", output } });
   const WHEN = new Date("2026-09-24T01:02:03.000Z");
   function cyclicAgent(): unknown {
     const a: { name: string; self?: unknown } = { name: "spike" };
@@ -6095,6 +6367,7 @@ describe("createOpenaiNormalizer — LV live (non-JSON-round-tripped) natives ne
   it("B: tool_search_called with no resolvable id and a live Date ⇒ ext.openai.unparsed carrying the ISO string, no throw", () => {
     const evs = run([
       created,
+      completedListing([]),
       ri("tool_search_called", {
         type: "tool_search_call_item",
         rawItem: { type: "tool_search_call", id: undefined, callId: undefined, when: WHEN, arguments: {} },
@@ -6119,6 +6392,7 @@ describe("createOpenaiNormalizer — LV live (non-JSON-round-tripped) natives ne
   it("I: tool_search arguments with an undefined member and a Date ⇒ assembled input {at: ISO}, no throw", () => {
     const evs = run([
       created,
+      completedListing([{ type: "tool_search_call", id: "ts_lv", call_id: "call_ts_lv", status: "completed", arguments: { at: WHEN } }]),
       ri("tool_search_called", {
         type: "tool_search_call_item",
         rawItem: { type: "tool_search_call", callId: "call_ts_lv", arguments: { q: undefined, at: WHEN }, id: "ts_lv" },
@@ -6130,6 +6404,7 @@ describe("createOpenaiNormalizer — LV live (non-JSON-round-tripped) natives ne
   it("J: a computer_call live action with an undefined member ⇒ assembled input without it, no throw", () => {
     const evs = run([
       created,
+      completedListing([{ type: "computer_call", id: "cu_lv", call_id: "call_cu_lv", status: "completed", action: { type: "click", x: 1 } }]),
       ri("tool_called", {
         type: "tool_call_item",
         rawItem: { type: "computer_call", callId: "call_cu_lv", status: "completed", action: { type: "click", x: 1, y: undefined }, id: "cu_lv" },
@@ -6516,9 +6791,19 @@ describe("createOpenaiNormalizer — RS a resumed invoke's leading tool_output o
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("createOpenaiNormalizer — tool.start.providerExecuted", () => {
-  function called(rawItem: JsonValue): JsonValue[] {
+  // In the order the SDK streams it: response.completed lists the call under
+  // its raw type (a hosted call's raw type is its `name`), then the run-item.
+  function called(rawItem: { [k: string]: JsonValue }): JsonValue[] {
+    const rawType = rawItem.type === "hosted_tool_call" ? rawItem.name : rawItem.type;
+    const listed: JsonValue = {
+      type: rawType ?? null,
+      id: rawItem.id ?? null,
+      ...(rawItem.callId !== undefined ? { call_id: rawItem.callId } : {}),
+      status: "completed",
+    };
     return [
       rawModel({ type: "response.created", response: { id: "resp_oa13" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_oa13", status: "completed", output: [listed] } }),
       runItem("tool_called", { type: "tool_call_item", rawItem }),
     ];
   }
@@ -6567,6 +6852,10 @@ describe("createOpenaiNormalizer — tool.start.providerExecuted", () => {
   it("tool_search execution:server ⇒ true; execution:client / absent ⇒ no key", () => {
     const search = (execution: string | undefined): JsonValue[] => [
       rawModel({ type: "response.created", response: { id: "resp_oa13_ts" } }),
+      rawModel({
+        type: "response.completed",
+        response: { id: "resp_oa13_ts", status: "completed", output: [{ type: "tool_search_call", id: "ts_1", call_id: "call_ts", status: "completed" }] },
+      }),
       runItem("tool_search_called", {
         type: "tool_search_call_item",
         rawItem: {
@@ -6611,7 +6900,6 @@ describe("createOpenaiNormalizer — tool.start.providerExecuted", () => {
     const r = new Reducer();
     const stream = [
       ...called({ type: "hosted_tool_call", id: "ws_2", name: "web_search_call", arguments: "{}", status: "completed", output: "ok" }),
-      rawModel({ type: "response.completed", response: { id: "resp_oa13", status: "completed" } }),
     ];
     for (const e of stream) for (const ev of n.push(e)) r.push(ev);
     for (const ev of n.flush()) r.push(ev);
