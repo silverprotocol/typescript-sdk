@@ -442,10 +442,12 @@ describe.runIf(process.env["GEN_ADK_PAUSE_FOLLOW"] === "1")("pauses the invocati
    * ADK's own Gemini model class with its transport replaced (no key, no
    * network): each call's chunks go through the real StreamingResponseAggregator
    * (models/google_llm.js streaming branch), so under runConfig.streamingMode
-   * "sse" the usage-only tail after a function call is the aggregator's own
-   * `close()` output, not a stub model's. First call: one function-call chunk
-   * carrying finishReason STOP and usageMetadata; after a functionResponse: a
-   * text partial, then a final text chunk with STOP and usage.
+   * "sse" the tail after a function call is the aggregator's own `close()`
+   * output, not a stub model's: no content, finishReason STOP, and the
+   * function-call chunk's usageMetadata again (utils/streaming_utils.js
+   * `close()`). First call: one function-call chunk carrying finishReason STOP
+   * and usageMetadata; after a functionResponse: a text partial, then a final
+   * text chunk with STOP and usage.
    */
   class SseTransportGemini extends Gemini {
     constructor(call: { name: string; args: Record<string, unknown> }) {
@@ -493,8 +495,10 @@ describe.runIf(process.env["GEN_ADK_PAUSE_FOLLOW"] === "1")("pauses the invocati
    *    run, and the next sub-agent's text still follows in the same invocation.
    *  - after-pause-sse-credential: a credential request under
    *    streamingMode "sse" through ADK's real aggregator. The aggregator's
-   *    usage-only tail makes the step loop run the model again in the same
-   *    invocation.
+   *    tail has no content but carries usage AND the finish reason; the step
+   *    loop still reads it as an empty metadata event after tool calls
+   *    (agents/llm_agent.js:458 does not test the finish reason), so the model
+   *    runs again in the same invocation.
    */
   it("writes after-pause-sequential-confirmation and after-pause-sse-credential", async () => {
     const out: Record<string, JsonValue[]> = {};
