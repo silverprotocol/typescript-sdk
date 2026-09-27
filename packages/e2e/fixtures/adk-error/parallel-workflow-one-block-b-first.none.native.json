@@ -1,0 +1,63 @@
+[
+  {
+    "invocationId": "e-51ba3d72-db89-47a7-b80a-3f4559e5d4a9",
+    "author": "beta",
+    "branch": "beta@1",
+    "id": "bZ0vm5mG",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479925,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Beta answered."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "output": "Beta answered.",
+    "nodeInfo": {
+      "messageAsOutput": true,
+      "path": "flow.beta",
+      "outputFor": [
+        "flow.beta"
+      ]
+    }
+  },
+  {
+    "invocationId": "e-51ba3d72-db89-47a7-b80a-3f4559e5d4a9",
+    "author": "alpha",
+    "branch": "alpha@1",
+    "id": "m3DVgyzz",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479925,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY",
+    "nodeInfo": {
+      "path": "flow.alpha"
+    }
+  }
+]

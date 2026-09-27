@@ -164,6 +164,33 @@ unless your normalizer is constructed to consume it.
 
 ## Engine-built fixtures (not corpus)
 
+`packages/e2e/fixtures/adk-error/` holds ADK runs that meet in-band errors,
+built by the REAL `@google/adk` engine: its runners (LoopAgent, ParallelAgent,
+SequentialAgent, a Workflow with parallel nodes or a node retry, NodeTool) and
+its own Gemini model class with the genai transport replaced (no key, no
+network). A streaming call's chunks go through ADK's real SSE aggregator, so
+the error events, and the aggregate that repeats one as a stream closes, are
+the engine's own. The runs cover:
+- a response-level block that carries a finish message, with usage on the
+  finish chunk, with usage on a later chunk, after streamed text with no
+  usage, and in progressive SSE;
+- a first call blocked with no usage and no text, then a second call that
+  streams text and ends on the same block;
+- the same block met twice, by a LoopAgent and by a retried Workflow node;
+- a ParallelAgent with one or two erroring branches, and a Workflow with two
+  parallel nodes of which one is blocked, each in both arrival orders (the
+  sibling completes in both);
+- a rate-limit error, then a sub-agent that pauses on a credential request or
+  on a request-input call;
+- a node tool whose node meets a rate-limit error, then succeeds on retry.
+
+Each run is written in the default mode (`<leg>.none`) and in SSE
+(`<leg>.sse`), except legs that exist in one mode only. In the default mode a
+blocked candidate is returned without its content, as the API withholds
+blocked content. They are regenerated only by
+`GEN_ADK_ERROR=1 … adk-error-fixtures.gen.test.ts`, which checks each run's
+error events and arrival order before it writes.
+
 `packages/e2e/fixtures/adk-pause/` holds ADK pause/completion streams built by
 the REAL `@google/adk` engine with a stub model (no key, no network), plus two
 truncations cut from a complete run. They exercise engine-produced shapes a

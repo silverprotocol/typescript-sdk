@@ -1,0 +1,277 @@
+[
+  {
+    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "author": "assistant",
+    "id": "WKs62X2I",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [
+      "adk-058a7cac-5786-487f-b087-006d9537c51d"
+    ],
+    "timestamp": 1790536480018,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "name": "lookup",
+            "args": {
+              "request": "weather"
+            },
+            "id": "adk-058a7cac-5786-487f-b087-006d9537c51d"
+          }
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": false
+  },
+  {
+    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "author": "lookup",
+    "errorCode": "429",
+    "errorMessage": "Resource has been exhausted (e.g. check quota).",
+    "id": "LFc4j4Af",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "branch": "lookup@adk-058a7cac-5786-487f-b087-006d9537c51d",
+    "timestamp": 1790536480019,
+    "nodeInfo": {
+      "path": "lookup"
+    }
+  },
+  {
+    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "author": "lookup",
+    "branch": "lookup@adk-058a7cac-5786-487f-b087-006d9537c51d",
+    "id": "k1A5x2ye",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536480019,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Sunny"
+        }
+      ]
+    },
+    "partial": true,
+    "nodeInfo": {
+      "path": "lookup"
+    }
+  },
+  {
+    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "author": "lookup",
+    "branch": "lookup@adk-058a7cac-5786-487f-b087-006d9537c51d",
+    "id": "TKuy8qQo",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536480019,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": true,
+    "nodeInfo": {
+      "path": "lookup"
+    }
+  },
+  {
+    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "author": "lookup",
+    "branch": "lookup@adk-058a7cac-5786-487f-b087-006d9537c51d",
+    "id": "wg861RNc",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536480019,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Sunny."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": false,
+    "output": "Sunny.",
+    "nodeInfo": {
+      "messageAsOutput": true,
+      "path": "lookup",
+      "outputFor": [
+        "lookup"
+      ]
+    }
+  },
+  {
+    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "author": "assistant",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "adk-058a7cac-5786-487f-b087-006d9537c51d",
+            "name": "lookup",
+            "response": {
+              "result": "Sunny."
+            }
+          }
+        }
+      ]
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "id": "9oDuJZvv",
+    "longRunningToolIds": [],
+    "timestamp": 1790536480020
+  },
+  {
+    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "author": "assistant",
+    "id": "7LZ9YFwz",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536480020,
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": false
+  },
+  {
+    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "author": "assistant",
+    "id": "K6Y2pHg9",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536480020,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "It is sunny"
+        }
+      ]
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "author": "assistant",
+    "id": "cKu4rL45",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536480020,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": true
+  },
+  {
+    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "author": "assistant",
+    "id": "ARm7xyLz",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536480020,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "It is sunny."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": false
+  }
+]

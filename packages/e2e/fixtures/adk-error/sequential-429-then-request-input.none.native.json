@@ -1,0 +1,66 @@
+[
+  {
+    "invocationId": "e-c35105db-b0e2-406b-a89f-127fac6b70bf",
+    "author": "first",
+    "errorCode": "429",
+    "errorMessage": "Resource has been exhausted (e.g. check quota).",
+    "id": "4nYsaDqJ",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536480015
+  },
+  {
+    "invocationId": "e-c35105db-b0e2-406b-a89f-127fac6b70bf",
+    "author": "second",
+    "id": "F1grYNMr",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [
+      "adk-5f529e74-ea00-47c1-84c2-e92d82724c30"
+    ],
+    "timestamp": 1790536480015,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "name": "adk_request_input",
+            "args": {
+              "message": "Which city?"
+            },
+            "id": "adk-5f529e74-ea00-47c1-84c2-e92d82724c30"
+          }
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP"
+  },
+  {
+    "invocationId": "e-c35105db-b0e2-406b-a89f-127fac6b70bf",
+    "author": "second",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "skipSummarization": true
+    },
+    "id": "WtL4KrxL",
+    "longRunningToolIds": [],
+    "timestamp": 1790536480015
+  }
+]

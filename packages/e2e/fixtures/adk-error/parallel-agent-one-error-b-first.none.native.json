@@ -1,0 +1,52 @@
+[
+  {
+    "invocationId": "e-c95e7c5e-2eda-496f-bfa0-c19443b87274",
+    "author": "beta",
+    "branch": "fanout.beta",
+    "id": "jDXd2Mli",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479755,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Beta answered."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP"
+  },
+  {
+    "invocationId": "e-c95e7c5e-2eda-496f-bfa0-c19443b87274",
+    "author": "alpha",
+    "branch": "fanout.alpha",
+    "id": "ZqXBOp5l",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479755,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY"
+  }
+]

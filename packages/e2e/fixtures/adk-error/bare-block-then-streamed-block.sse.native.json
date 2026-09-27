@@ -1,0 +1,91 @@
+[
+  {
+    "invocationId": "e-280032ad-e143-40ff-8d0a-7eed9151622e",
+    "author": "assistant",
+    "id": "2hJmG2jQ",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479483,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "finishReason": "SAFETY"
+  },
+  {
+    "invocationId": "e-280032ad-e143-40ff-8d0a-7eed9151622e",
+    "author": "assistant",
+    "id": "FugQmJP8",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479483,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Partial answer"
+        }
+      ]
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-280032ad-e143-40ff-8d0a-7eed9151622e",
+    "author": "assistant",
+    "id": "lO1KGWE0",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479483,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY"
+  },
+  {
+    "invocationId": "e-280032ad-e143-40ff-8d0a-7eed9151622e",
+    "author": "assistant",
+    "id": "87kNKrk3",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479483,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Partial answer"
+        }
+      ]
+    },
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY",
+    "partial": false
+  }
+]

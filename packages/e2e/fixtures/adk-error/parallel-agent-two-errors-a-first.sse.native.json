@@ -1,0 +1,154 @@
+[
+  {
+    "invocationId": "e-4f5fa0c8-d9c1-4910-9f6a-9e3580dab5f3",
+    "author": "alpha",
+    "branch": "fanout.alpha",
+    "id": "VcUx7mf8",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479521,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Alpha "
+        }
+      ]
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-4f5fa0c8-d9c1-4910-9f6a-9e3580dab5f3",
+    "author": "alpha",
+    "branch": "fanout.alpha",
+    "id": "6l1vhTJP",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479521,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY"
+  },
+  {
+    "invocationId": "e-4f5fa0c8-d9c1-4910-9f6a-9e3580dab5f3",
+    "author": "beta",
+    "branch": "fanout.beta",
+    "id": "ZzQSJaZf",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479521,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Beta "
+        }
+      ]
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-4f5fa0c8-d9c1-4910-9f6a-9e3580dab5f3",
+    "author": "beta",
+    "branch": "fanout.beta",
+    "id": "6eXI6OBZ",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479542,
+    "errorCode": "RECITATION",
+    "errorMessage": "The response recited a source.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "RECITATION"
+  },
+  {
+    "invocationId": "e-4f5fa0c8-d9c1-4910-9f6a-9e3580dab5f3",
+    "author": "beta",
+    "branch": "fanout.beta",
+    "id": "aYgY1jok",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479542,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Beta "
+        }
+      ]
+    },
+    "errorCode": "RECITATION",
+    "errorMessage": "The response recited a source.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "RECITATION",
+    "partial": false
+  },
+  {
+    "invocationId": "e-4f5fa0c8-d9c1-4910-9f6a-9e3580dab5f3",
+    "author": "alpha",
+    "branch": "fanout.alpha",
+    "id": "D5MD23xC",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479521,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Alpha "
+        }
+      ]
+    },
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY",
+    "partial": false
+  }
+]

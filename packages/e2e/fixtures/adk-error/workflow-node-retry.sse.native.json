@@ -1,0 +1,192 @@
+[
+  {
+    "invocationId": "e-ab8a6970-c066-492f-a6fb-70b3aa99ba28",
+    "author": "assistant",
+    "id": "gd8GoQc2",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479493,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY",
+    "nodeInfo": {
+      "path": "flow.assistant"
+    }
+  },
+  {
+    "invocationId": "e-ab8a6970-c066-492f-a6fb-70b3aa99ba28",
+    "author": "assistant",
+    "id": "3xcP9UGs",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479494,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY",
+    "partial": false,
+    "nodeInfo": {
+      "path": "flow.assistant"
+    }
+  },
+  {
+    "invocationId": "e-ab8a6970-c066-492f-a6fb-70b3aa99ba28",
+    "author": "assistant",
+    "id": "RIwuxgtE",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479495,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY",
+    "nodeInfo": {
+      "path": "flow.assistant"
+    }
+  },
+  {
+    "invocationId": "e-ab8a6970-c066-492f-a6fb-70b3aa99ba28",
+    "author": "assistant",
+    "id": "DTHiDlE0",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479495,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY",
+    "partial": false,
+    "nodeInfo": {
+      "path": "flow.assistant"
+    }
+  },
+  {
+    "invocationId": "e-ab8a6970-c066-492f-a6fb-70b3aa99ba28",
+    "author": "assistant",
+    "id": "BfwVBCqM",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479497,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Recovered"
+        }
+      ]
+    },
+    "partial": true,
+    "nodeInfo": {
+      "path": "flow.assistant"
+    }
+  },
+  {
+    "invocationId": "e-ab8a6970-c066-492f-a6fb-70b3aa99ba28",
+    "author": "assistant",
+    "id": "73GtDPxQ",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479497,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": true,
+    "nodeInfo": {
+      "path": "flow.assistant"
+    }
+  },
+  {
+    "invocationId": "e-ab8a6970-c066-492f-a6fb-70b3aa99ba28",
+    "author": "assistant",
+    "id": "ozpUr64Q",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479497,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Recovered."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": false,
+    "output": "Recovered.",
+    "nodeInfo": {
+      "messageAsOutput": true,
+      "path": "flow.assistant",
+      "outputFor": [
+        "flow.assistant"
+      ]
+    }
+  }
+]

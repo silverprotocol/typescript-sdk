@@ -1,0 +1,85 @@
+[
+  {
+    "invocationId": "e-b3392334-55c1-4e1a-931b-6b967b2f92f4",
+    "author": "assistant",
+    "id": "0ZqO66i1",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479488,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY",
+    "nodeInfo": {
+      "path": "flow.assistant"
+    }
+  },
+  {
+    "invocationId": "e-b3392334-55c1-4e1a-931b-6b967b2f92f4",
+    "author": "assistant",
+    "id": "0C20IKki",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479492,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY",
+    "nodeInfo": {
+      "path": "flow.assistant"
+    }
+  },
+  {
+    "invocationId": "e-b3392334-55c1-4e1a-931b-6b967b2f92f4",
+    "author": "assistant",
+    "id": "yfx7MFPY",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479492,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Recovered."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "output": "Recovered.",
+    "nodeInfo": {
+      "messageAsOutput": true,
+      "path": "flow.assistant",
+      "outputFor": [
+        "flow.assistant"
+      ]
+    }
+  }
+]

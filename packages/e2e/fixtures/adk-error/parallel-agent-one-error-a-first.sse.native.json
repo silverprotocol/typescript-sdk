@@ -1,0 +1,128 @@
+[
+  {
+    "invocationId": "e-7350b84c-2e61-4b83-8a3b-56c11d1284fe",
+    "author": "alpha",
+    "branch": "fanout.alpha",
+    "id": "GUjDWFBO",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479690,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY"
+  },
+  {
+    "invocationId": "e-7350b84c-2e61-4b83-8a3b-56c11d1284fe",
+    "author": "beta",
+    "branch": "fanout.beta",
+    "id": "uvZb36ox",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479690,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Beta answered"
+        }
+      ]
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-7350b84c-2e61-4b83-8a3b-56c11d1284fe",
+    "author": "beta",
+    "branch": "fanout.beta",
+    "id": "bmchky6c",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479714,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": true
+  },
+  {
+    "invocationId": "e-7350b84c-2e61-4b83-8a3b-56c11d1284fe",
+    "author": "beta",
+    "branch": "fanout.beta",
+    "id": "R61PmQEc",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479714,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Beta answered."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": false
+  },
+  {
+    "invocationId": "e-7350b84c-2e61-4b83-8a3b-56c11d1284fe",
+    "author": "alpha",
+    "branch": "fanout.alpha",
+    "id": "ozYFYqGe",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479691,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY",
+    "partial": false
+  }
+]

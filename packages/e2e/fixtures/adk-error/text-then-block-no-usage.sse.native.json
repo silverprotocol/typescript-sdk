@@ -1,0 +1,87 @@
+[
+  {
+    "invocationId": "e-e834d2e4-26cf-42a4-8885-439ba2887ceb",
+    "author": "assistant",
+    "id": "cISU0GvY",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479482,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Here is the start of "
+        }
+      ]
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-e834d2e4-26cf-42a4-8885-439ba2887ceb",
+    "author": "assistant",
+    "id": "WALhVpXN",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479482,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "an answer"
+        }
+      ]
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-e834d2e4-26cf-42a4-8885-439ba2887ceb",
+    "author": "assistant",
+    "id": "sPfsjj2C",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479482,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "finishReason": "SAFETY"
+  },
+  {
+    "invocationId": "e-e834d2e4-26cf-42a4-8885-439ba2887ceb",
+    "author": "assistant",
+    "id": "mygUMTLI",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790536479482,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Here is the start of an answer"
+        }
+      ]
+    },
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "finishReason": "SAFETY",
+    "partial": false
+  }
+]
