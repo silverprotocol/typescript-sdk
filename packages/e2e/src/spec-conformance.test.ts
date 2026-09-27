@@ -30,8 +30,8 @@ import { createClaudeNormalizer } from "@silverprotocol/claude-agent-sdk";
 import { createVercelNormalizer } from "@silverprotocol/vercel-ai";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// §10 Conformance Suite (audit M55 — "§10 items are prose, zero executable
-// fixtures — folklore-grade conformance").
+// §10 Conformance Suite: executable fixtures for §10's items, so conformance is
+// tested, not only described.
 //
 // Home: packages/e2e, not core. This file needs BOTH the core reduce()/AgEvent
 // surface (for the framework-neutral items) AND the facet normalizers
@@ -97,7 +97,7 @@ interface Section10Item {
 
 const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 1, title: "reduce() invariant (full fold table + block insertion order)", disposition: "COVERED-BY", evidence: "fixture-only", citation: "reduce.test.ts describe \"reduce — R10 capstone: byte-identity + live-SSE↔history invariant\" › \"byte-identity: reduce(CAPSTONE_EVENTS) deep-equals the hand-spelled EXPECTED_RESULT (toEqual, order-sensitive)\"" },
-  { n: 2, title: "Reconnect (forward-gap park + snapshot-resync; backward jump folds normally)", disposition: "COVERED-BY", evidence: "fixture-only", citation: "reduce.test.ts describe \"reduce — R9 new-ops + resync + snapshot + live-only\": the forward-gap / park / snapshot-recovery legs \"(e1) seq-gap sets needsResync; events after gap are ignored until snapshot\", \"(e2) seq-gap → messages.snapshot recovery clears needsResync\", \"(e3) seq-gap → state.snapshot recovery ALSO clears needsResync (both recovery paths)\", \"(e4) parked reducer ignores non-snapshot events; resumes after state.snapshot\", \"(e5) an ext event occupying a seq slot between two closed events does NOT false-park (Task 2b)\", \"(e6) a genuine forward gap revealed BY an ext event still parks (gap detection works through ext events)\" and the conditional-replace legs \"(d1) messages.snapshot without turns/artifacts PRESERVES prior artifacts + turns\", \"(d2) full messages.snapshot REPLACEs all three containers + clears transient\", \"(d3) messages.snapshot memory replaces only scope:thread records; non-thread survives\", \"(d4) messages.snapshot clears needsResync (un-parks)\"" },
+  { n: 2, title: "Reconnect (forward-gap park + snapshot-resync; backward jump folds normally)", disposition: "COVERED-BY", evidence: "fixture-only", citation: "reduce.test.ts describe \"reduce — R9 new-ops + resync + snapshot + live-only\": the forward-gap / park / snapshot-recovery legs \"(e1) seq-gap sets needsResync; events after gap are ignored until snapshot\", \"(e2) seq-gap → messages.snapshot recovery clears needsResync\", \"(e3) seq-gap → state.snapshot recovery ALSO clears needsResync (both recovery paths)\", \"(e4) parked reducer ignores non-snapshot events; resumes after state.snapshot\", \"(e5) an ext event occupying a seq slot between two closed events does NOT false-park\", \"(e6) a genuine forward gap revealed BY an ext event still parks (gap detection works through ext events)\" and the conditional-replace legs \"(d1) messages.snapshot without turns/artifacts PRESERVES prior artifacts + turns\", \"(d2) full messages.snapshot REPLACEs all three containers + clears transient\", \"(d3) messages.snapshot memory replaces only scope:thread records; non-thread survives\", \"(d4) messages.snapshot clears needsResync (un-parks)\"" },
   { n: 3, title: "Tool-result routing matrix (content/structuredContent/uiData/sideData): channel separation only — structuredContent is model-facing, delivery host-determined, model receipt not asserted (draft.4)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.3" },
   { n: 4, leg: "a", title: "Gemini signature loop — tool-call signature (ingest leg)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.4(a), facet-driven via createAdkNormalizer" },
   { n: 4, leg: "b", title: "Gemini signature loop — thinking-only turn", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.4(b), facet-driven via createAdkNormalizer" },
@@ -281,7 +281,7 @@ function specSection10ItemNumbers(): number[] {
   return Array.from(section.matchAll(/^(\d+)\. \*\*/gm), (m) => Number(m[1]));
 }
 
-describe("§10 conformance accounting (audit M55)", () => {
+describe("§10 conformance accounting", () => {
   it("SPEC.md §10 numbers its items 1..N with no gap or repeat (N derived, never pinned)", () => {
     const declared = specSection10ItemNumbers();
     expect(declared.length).toBeGreaterThan(0);

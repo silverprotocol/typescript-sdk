@@ -2337,7 +2337,7 @@ describe("reduce — R9 new-ops + resync + snapshot + live-only", () => {
   // (e5) raw-events repro: closed(seq0) → ext.acme.x(seq1) → closed(seq2) —
   // the ext event legitimately occupies seq1, so seq2 is NOT a gap. Both
   // closed events must fold; needsResync must stay false.
-  it("(e5) an ext event occupying a seq slot between two closed events does NOT false-park (Task 2b)", () => {
+  it("(e5) an ext event occupying a seq slot between two closed events does NOT false-park", () => {
     const acc = new Reducer();
     acc.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
     acc.push({ type: "ext.acme.x", seq: 1, value: "live-only" });
