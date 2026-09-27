@@ -4318,6 +4318,98 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
   });
 });
 
+describe("createOpenaiNormalizer — hosted call inputs and results", () => {
+  // agents-openai's converter keeps a hosted item's inputs, status and error
+  // in `providerData` (openaiResponsesConverter.mjs: the mcp_call,
+  // mcp_approval_request and mcp_list_tools arms, and the
+  // web_search/file_search/image_generation/code_interpreter arm), and puts
+  // an image_generation result in `output`. Fed in the order the SDK streams
+  // it: response.completed listing the call, then its tool_called.
+  const U = { input_tokens: 10, output_tokens: 5, total_tokens: 15 };
+  function hostedRound(raw: { [k: string]: JsonValue }, rawItem: { [k: string]: JsonValue }): AgEvent[] {
+    const n = createOpenaiNormalizer({ invokeId: "inv1" });
+    return [
+      rawModel({ type: "response.created", response: { id: "resp_hc", model: "gpt-6-sol" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_hc", status: "completed", output: [raw], usage: U } }),
+      runItem("tool_called", { type: "tool_call_item", rawItem }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+  }
+  const first = (evs: AgEvent[], type: string) => evs.find((e) => e.type === type);
+  const MCP_RAW = { type: "mcp_call", id: "mcp_1", server_label: "deepwiki", name: "ask_question", arguments: '{"q":"a"}', output: "answer", error: null };
+  const mcpItem = (over: { [k: string]: JsonValue } = {}): { [k: string]: JsonValue } => {
+    // The converter keeps `output` only when the item has one (`output: outputData ?? undefined`).
+    const { output, ...providerData } = { ...MCP_RAW, ...over };
+    return { type: "hosted_tool_call", id: "mcp_1", name: "mcp_call", status: "completed", ...(typeof output === "string" ? { output } : {}), providerData };
+  };
+
+  it("in the order the SDK streams it, a hosted mcp_call carries its arguments as tool.args.assembled and its server_label as tool.start.serverName", () => {
+    const evs = hostedRound(MCP_RAW, mcpItem());
+    expect(first(evs, "tool.start")).toMatchObject({ toolCallId: "mcp_1", name: "mcp_call", serverName: "deepwiki", providerExecuted: true });
+    expect(first(evs, "tool.args.assembled")).toMatchObject({ input: { q: "a" } });
+    expect(first(evs, "tool.done")).toMatchObject({ outcome: "ok", content: [{ type: "text", text: "answer" }] });
+  });
+
+  it("an mcp_call whose status is failed, or which carries an error, closes with outcome error and the error text", () => {
+    const failed = hostedRound({ ...MCP_RAW, status: "failed", error: "server unreachable" }, mcpItem({ status: "failed", error: "server unreachable", output: null }));
+    expect(first(failed, "tool.done")).toMatchObject({ outcome: "error", isError: true, errorText: "server unreachable" });
+    const errored = hostedRound({ ...MCP_RAW, error: "bad arguments" }, mcpItem({ error: "bad arguments", output: null }));
+    expect(first(errored, "tool.done")).toMatchObject({ outcome: "error", isError: true, errorText: "bad arguments" });
+    const statusOnly = hostedRound({ ...MCP_RAW, status: "failed" }, mcpItem({ status: "failed", output: null }));
+    expect(first(statusOnly, "tool.done")).toMatchObject({ outcome: "error", isError: true });
+  });
+
+  it("a web_search call carries its action without sources as its arguments, and its sources as a data block result", () => {
+    const action = { type: "search", query: "weather", sources: [{ type: "url", url: "https://example.com/w" }] };
+    const evs = hostedRound(
+      { type: "web_search_call", id: "ws_1", status: "completed", action },
+      { type: "hosted_tool_call", id: "ws_1", name: "web_search_call", status: "completed", providerData: { type: "web_search_call", id: "ws_1", action } },
+    );
+    expect(first(evs, "tool.args.assembled")).toMatchObject({ input: { type: "search", query: "weather" } });
+    expect(JSON.stringify(first(evs, "tool.args.assembled"))).not.toContain("sources");
+    expect(first(evs, "tool.done")).toMatchObject({
+      outcome: "ok",
+      content: [{ type: "data", name: "web_search_sources", data: [{ type: "url", url: "https://example.com/w" }] }],
+    });
+  });
+
+  it("a hosted call whose native status is failed closes with outcome error", () => {
+    const evs = hostedRound(
+      { type: "web_search_call", id: "ws_2", status: "failed", action: { type: "search", query: "x" } },
+      { type: "hosted_tool_call", id: "ws_2", name: "web_search_call", status: "failed", providerData: { type: "web_search_call", id: "ws_2", action: { type: "search", query: "x" } } },
+    );
+    expect(first(evs, "tool.done")).toMatchObject({ outcome: "error", isError: true });
+  });
+
+  it("an image_generation result lands as a file block, not text", () => {
+    const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk";
+    const evs = hostedRound(
+      { type: "image_generation_call", id: "ig_1", status: "completed", result: png },
+      { type: "hosted_tool_call", id: "ig_1", name: "image_generation_call", status: "completed", output: png, providerData: { type: "image_generation_call", id: "ig_1" } },
+    );
+    expect(first(evs, "tool.done")).toMatchObject({ outcome: "ok", content: [{ type: "file", source: { type: "base64", mediaType: "image/png", data: png } }] });
+    expect(JSON.stringify(first(evs, "tool.done"))).not.toContain('"type":"text"');
+  });
+
+  it("an mcp_list_tools listing lands as structured data content, with its server_label as serverName", () => {
+    const tools = [{ name: "ask_question", input_schema: { type: "object" } }];
+    const evs = hostedRound(
+      { type: "mcp_list_tools", id: "mcpl_1", server_label: "deepwiki", tools },
+      { type: "hosted_tool_call", id: "mcpl_1", name: "mcp_list_tools", status: "completed", providerData: { type: "mcp_list_tools", id: "mcpl_1", server_label: "deepwiki", tools } },
+    );
+    expect(first(evs, "tool.start")).toMatchObject({ serverName: "deepwiki" });
+    expect(first(evs, "tool.done")).toMatchObject({ outcome: "ok", content: [{ type: "data", name: "mcp_list_tools", data: tools }] });
+  });
+
+  it("an mcp_approval_request carries the request's arguments and server_label on its tool.start", () => {
+    const req = { type: "mcp_approval_request", id: "mcpr_1", server_label: "deepwiki", name: "ask_question", arguments: '{"q":"a"}' };
+    const evs = hostedRound(req, { type: "hosted_tool_call", id: "mcpr_1", name: "mcp_approval_request", status: "completed", providerData: { ...req } });
+    expect(first(evs, "tool.start")).toMatchObject({ toolCallId: "mcpr_1", serverName: "deepwiki", providerExecuted: true });
+    expect(first(evs, "tool.args.assembled")).toMatchObject({ input: { q: "a" } });
+  });
+});
+
 describe("createOpenaiNormalizer — default run-item arm (Task 3, audit M48)", () => {
   it("a genuinely-unknown run-item name routes to ext.openai.unparsed (the file's stated convention, now true)", () => {
     const n = createOpenaiNormalizer();

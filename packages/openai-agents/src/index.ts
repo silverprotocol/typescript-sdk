@@ -1041,6 +1041,22 @@ function terminalHasRefusal(output: JsonValue | undefined): boolean {
 }
 
 /**
+ * The media type of an image_generation result (base64): the item's
+ * `output_format` when it carries one, else read from the image's own
+ * signature, else `application/octet-stream`. The item carries no format of
+ * its own on the wire (it is a tool option), so the signature decides.
+ */
+function imageResultMediaType(providerData: { [k: string]: JsonValue } | undefined, data: string): string {
+  const format = providerData?.output_format;
+  if (format === "png" || format === "jpeg" || format === "webp" || format === "gif") return `image/${format}`;
+  if (data.startsWith("iVBORw0KGgo")) return "image/png";
+  if (data.startsWith("/9j/")) return "image/jpeg";
+  if (data.startsWith("UklGR")) return "image/webp";
+  if (data.startsWith("R0lGOD")) return "image/gif";
+  return "application/octet-stream";
+}
+
+/**
  * The raw Responses output item types that @openai/agents 0.18.0 turns into a
  * built-in call run-item keeping the item's id: agents-openai's converter
  * (openaiResponsesConverter.mjs `convertToOutputItem`) maps the hosted kinds
@@ -3276,6 +3292,62 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     return `${rawItem.name}_${invokeStem}_${++derivedOrdinal}`;
   }
 
+  /**
+   * A hosted call's input. agents-openai's converter keeps a hosted item's
+   * fields in `providerData` (SPEC:965: a native value is never dropped
+   * silently): its `arguments` (top-level when present, else in
+   * providerData — the MCP kinds), else a web_search's `action` without its
+   * `sources`, which are the call's result, not its input.
+   */
+  function hostedInput(rawItem: OpenAIHostedToolCallItem): JsonValue {
+    const args: unknown = rawItem.arguments ?? rawItem.providerData?.arguments;
+    if (typeof args === "string") return parseJsonArguments(rawItem.id, args);
+    const action = rawItem.providerData?.action;
+    if (isJsonObject(action)) {
+      const input: { [k: string]: JsonValue } = {};
+      for (const [k, v] of Object.entries(action)) if (k !== "sources") input[k] = v;
+      return JsonValue.parse(input);
+    }
+    return {};
+  }
+
+  /**
+   * A hosted call's result: its `output` (an image_generation result, which
+   * is base64 image data, as a file block; any other as text), a
+   * web_search's `sources` and an mcp_list_tools listing as data blocks, and
+   * its outcome. The outcome is "error" when the native status is `failed`
+   * (for an mcp_call, whose top-level status the converter always sets to
+   * "completed", the status in providerData) or the item carries an `error`.
+   */
+  function hostedResult(rawItem: OpenAIHostedToolCallItem): { content: AgBlock[]; outcome: ToolOutcome; isError?: true; errorText?: string } {
+    const pd = rawItem.providerData;
+    const content: AgBlock[] = [];
+    const output: unknown = rawItem.output;
+    if (typeof output === "string" && output.length > 0) {
+      content.push(
+        rawItem.name === "image_generation_call"
+          ? { type: "file", source: { type: "base64", mediaType: imageResultMediaType(pd, output), data: output } }
+          : { type: "text", text: output },
+      );
+    }
+    const action = pd?.action;
+    if (isJsonObject(action) && Array.isArray(action.sources)) {
+      content.push({ type: "data", name: "web_search_sources", data: JsonValue.parse(action.sources) });
+    }
+    const tools = pd?.tools;
+    if (rawItem.name === "mcp_list_tools" && Array.isArray(tools)) {
+      content.push({ type: "data", name: "mcp_list_tools", data: JsonValue.parse(tools) });
+    }
+    const status: unknown = rawItem.name === "mcp_call" ? (pd?.status ?? rawItem.status) : rawItem.status;
+    const error: unknown = pd?.error;
+    const errorText =
+      typeof error === "string" && error.length > 0 ? error : isJsonObject(error) ? JSON.stringify(error) : undefined;
+    if (status === "failed" || errorText !== undefined) {
+      return { content, outcome: "error", isError: true, ...(errorText !== undefined ? { errorText } : {}) };
+    }
+    return { content, outcome: "ok" };
+  }
+
   function driveBuiltinToolCalled(
     rawItem:
       | OpenAIShellCallItem
@@ -3308,9 +3380,12 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         ? rawItem.caller
         : undefined;
     const startMeta = openaiProviderMeta({ caller: callerToJson(caller) });
+    // An MCP item's server label (SPEC tool.start.serverName).
+    const serverLabel: unknown = rawItem.type === "hosted_tool_call" ? rawItem.providerData?.server_label : undefined;
     a.toolStart({
       toolCallId,
       name,
+      ...(typeof serverLabel === "string" && serverLabel.length > 0 ? { serverName: serverLabel } : {}),
       ...(rawItem.id !== undefined ? { itemId: rawItem.id } : {}),
       ...(startMeta !== undefined ? { providerMetadata: startMeta } : {}),
       // See builtinProviderExecuted().
@@ -3328,13 +3403,11 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
               ? // The call's whole wire payload, verbatim (the shell/apply-patch
                 // precedent): `code` is the model-authored program source.
                 { code: rawItem.code, fingerprint: rawItem.fingerprint }
-              : parseJsonArguments(rawItem.id, rawItem.arguments);
+              : hostedInput(rawItem);
     a.toolArgsDelta(toolCallId, JSON.stringify(input));
     a.toolArgsAssembled(toolCallId, input);
     if (rawItem.type === "hosted_tool_call") {
-      const content: AgBlock[] =
-        rawItem.output !== undefined && rawItem.output.length > 0 ? [{ type: "text", text: rawItem.output }] : [];
-      a.toolDone({ toolCallId, content, outcome: "ok", ...(late !== undefined ? { turnId: late.tid } : {}) });
+      a.toolDone({ toolCallId, ...hostedResult(rawItem), ...(late !== undefined ? { turnId: late.tid } : {}) });
       // An approval request waits for its ask or its answer; any other hosted
       // call, and an answer (keyed on its request), is complete here.
       if (!(rawItem.id !== undefined && approvalRequestIds.has(rawItem.id))) drainListedBuiltin(key);

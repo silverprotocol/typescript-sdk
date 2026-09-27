@@ -192,6 +192,46 @@ The source round is still closed at `flush()` when:
 A call replayed on a resumed invoke gets no `tool.start` from the facet, so it
 is never released this way.
 
+## Built-in and hosted tools
+
+The OpenAI Agents SDK reports a built-in tool call as a `tool_called` (or
+`tool_search_called`) run-item that arrives after the response's
+`response.completed`. Built-in calls are hosted web search, file search,
+code interpreter, image generation and MCP calls, plus shell, apply-patch,
+computer, program and tool-search calls. The facet keeps each call in the
+turn of the model round that produced it:
+- A round whose final `response.output` lists a built-in call holds its
+  `message.end` and `turn.done` until each listed call's run-item, and any
+  result the call waits for, has arrived.
+- The next `response.created` releases a round that still waits only on calls
+  whose run-item never arrived, so the next round keeps its own turn.
+- A last round still waiting at the end of the stream closes with
+  `turn.abort` (`stream-truncated`).
+
+A hosted call, which the provider runs, emits `tool.start` with
+`providerExecuted: true`, and its `tool.done` from its one run-item:
+- Its arguments are read from the item: an MCP call's `arguments`, or a web
+  search's `action` without its `sources`.
+- An MCP item's `server_label` lands in `tool.start.serverName`.
+- A web search's `sources` and an `mcp_list_tools` listing land as `data`
+  blocks, and an image generation result as a `file` block.
+- A call whose status is `failed`, or which carries an `error`, closes with
+  `outcome: "error"`.
+
+A hosted MCP approval request's ask lands inside the round, as
+`hitl.ask` with `askId` `approval_<request id>` and `toolCallId` the request
+id. An approval's answer (`mcp_approval_response`) has no id of its own, and
+its call gets `<request id>:approval-response`.
+
+Current limits:
+- A hosted MCP approval request closes at once, like any hosted call, so a
+  round that waits on an approval closes as `success`, not `paused`.
+- A built-in run-item that opens a resumed invoke, before any model round,
+  still opens a turn of its own.
+- An MCP call keeps the name `mcp_call`.
+- A file search's queries and results, and a code interpreter's code and
+  outputs, are not carried yet.
+
 ## Refusals
 
 When the model refuses, its message carries a `refusal` content part. The
