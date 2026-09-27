@@ -179,6 +179,22 @@ for await (const native of query({ prompt: "call the echo tool" }))
 agEvents.push(...n.flush());        // seal anything still open
 ```
 
+## API stability
+
+Symbols tagged `@beta` in the type declarations are outside the 1.x promise:
+they may change in a minor release. Two kinds are tagged:
+
+- **In `core`, the producer helpers** for writing a normalizer:
+  `StreamAssembler` and its types (`AssemblerCheckpoint`, `SeqlessEvent`, the
+  `*Fields` types), `withAtomicPush` with its options and its error pair
+  (`NORMALIZER_ERROR_MESSAGE`, `normalizerErrorCode`), and the JSON-safety
+  helpers with their issue types and markers (`toJsonValue*`, `isJsonValue`,
+  `JsonSafeIssue*`, `JSON_SAFE_*`).
+- **In the framework packages, an exported type that restates the upstream
+  SDK's native shapes.** It follows the package's peer range. Each package's
+  own API (its `createXNormalizer()`, the options it takes and its helpers)
+  carries the 1.x promise.
+
 ## Learn more
 
 - **Spec & docs** — [silverprotocol.io/AgJSON](https://silverprotocol.io/AgJSON)
