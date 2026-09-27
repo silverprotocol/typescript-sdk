@@ -2422,6 +2422,42 @@ describe("createAdkNormalizer — actions.escalate:true → handoff escalate", (
 });
 
 describe("createAdkNormalizer — unmapped actions → content.block provider-raw", () => {
+  /** The raw of every provider-raw content block the stream emits. */
+  const providerRaws = (out: AgEvent[]): unknown[] =>
+    out.flatMap((e) => {
+      if (e.type !== "content.block") return [];
+      const block: unknown = e.block;
+      if (typeof block !== "object" || block === null || Array.isArray(block)) return [];
+      return "type" in block && block.type === "provider-raw" && "raw" in block ? [block.raw] : [];
+    });
+  // ADK's createEventActions() default, which every native event carries.
+  const adkDefaultActions = { stateDelta: {}, artifactDelta: {}, requestedAuthConfigs: {}, requestedToolConfirmations: {} };
+
+  it("an empty artifactDelta (ADK's default on every event) emits no provider-raw block", () => {
+    const out = run([event([{ text: "Hi" }], { actions: adkDefaultActions, partial: false, finishReason: "STOP" })]);
+    expect(providerRaws(out)).toEqual([]);
+  });
+
+  it("a non-empty artifactDelta is carried as before", () => {
+    const out = run([event([], { actions: { ...adkDefaultActions, artifactDelta: { a: 1 } } })]);
+    expect(providerRaws(out)).toEqual([{ artifactDelta: { a: 1 } }]);
+  });
+
+  it("a null or non-object artifactDelta (a stored or hand-built native) is carried verbatim, with no error event", () => {
+    for (const value of [null, "v1"] as const) {
+      const n = createAdkNormalizer({ invokeId: "adk" });
+      const out = [...n.push({ invocationId: "inv_fixture_1", content: { role: "model", parts: [] }, actions: { artifactDelta: value } }), ...n.flush()];
+      expect(out.some((e) => e.type === "error"), String(value)).toBe(false);
+      expect(providerRaws(out), String(value)).toEqual([{ artifactDelta: value }]);
+    }
+  });
+
+  it("an empty artifactDelta beside another unmapped action: the block carries the other action only", () => {
+    const widgets = [{ name: "chart", code: "<svg/>" }];
+    const out = run([event([], { actions: { ...adkDefaultActions, renderUiWidgets: widgets } })]);
+    expect(providerRaws(out)).toEqual([{ renderUiWidgets: widgets }]);
+  });
+
   it("carries artifactDelta in a provider-raw content.block (lossless opaque passthrough)", () => {
     const out = run([
       event([], { actions: { artifactDelta: { doc1: "patch-v1" } } }),

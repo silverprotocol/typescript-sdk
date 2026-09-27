@@ -1795,8 +1795,15 @@ function driveAdkTopLevel(
       a.emit({ type: "state.delta", patch: scrubStateMap(actions.stateDelta) });
 
     const unmappedActions: { [k: string]: JsonValue } = {};
-    if (actions.artifactDelta !== undefined)
-      unmappedActions["artifactDelta"] = JsonValue.parse(actions.artifactDelta);
+    // ADK's createEventActions() gives EVERY event an empty artifactDelta
+    // (events/event_actions.js, @google/adk 2.1.0), so an empty object is not
+    // carried: it says nothing, and carrying it put a provider-raw block on
+    // every event (the per-event carry SPEC §8.0 item 23 declines). Any other
+    // value, including a null or non-object one from a stored native, is
+    // carried verbatim as before.
+    const artifactDelta: unknown = actions.artifactDelta;
+    if (artifactDelta !== undefined && !(isJsonObject(artifactDelta) && Object.keys(artifactDelta).length === 0))
+      unmappedActions["artifactDelta"] = JsonValue.parse(artifactDelta);
     if (actions.renderUiWidgets !== undefined)
       unmappedActions["renderUiWidgets"] = JsonValue.parse(actions.renderUiWidgets);
     // agentState is an OBJECT on the official 2.0.0 EventActions (a
