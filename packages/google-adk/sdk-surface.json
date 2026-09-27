@@ -231,7 +231,7 @@
         },
         "customMetadata": {
           "disposition": "carried",
-          "note": "Opaque per-event bag -> the event-level unmapped-fields provider-raw content.block (driveAdkTopLevel), alongside citationMetadata/branch/modelVersion (and the structural candidateIndex tolerance)."
+          "note": "Opaque per-event bag -> the event-level unmapped-fields provider-raw content.block (driveAdkTopLevel), alongside citationMetadata/branch/modelVersion (and the structural candidateIndex tolerance). Not carried: the up to four bookkeeping entries ADK's RemoteA2AAgent writes into it on the events it relays (a2a:request, a2a:response, a2a:task_id, a2a:context_id), an exception to draft.8's carry of unmapped event fields (\u00a78.0 item 23); every other entry, including one a remote agent wrote, rides unchanged. A bag that held only those is not carried, here or in an ext.google.unparsed native, where an event serialized from Python spells it custom_metadata."
         },
         "citationMetadata": {
           "disposition": "carried",
