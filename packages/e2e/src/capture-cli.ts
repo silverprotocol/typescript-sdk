@@ -363,8 +363,9 @@ export function assertKnobsHonored(scenario: Scenario, framework: Framework, age
 /** Resolves { runAgentCapture, createNormalizer } for one framework via a
  *  lazy import — importing capture-cli.ts never requires all three provider
  *  SDKs to be resolvable, only the one actually invoked. Every branch first
- *  checks the scenario's knobs against the loaded agent (assertKnobsHonored). */
-async function loadFrameworkDeps(
+ *  checks the scenario's knobs against the loaded agent (assertKnobsHonored).
+ *  Exported for unit testing. */
+export async function loadFrameworkDeps(
   framework: Framework,
   scenario: Scenario,
 ): Promise<{
