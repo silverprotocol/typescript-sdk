@@ -1,5 +1,5 @@
 /**
- * capture-cli.ts — the `pnpm e2e:capture` CLI logic (Task 6 / audit M60).
+ * capture-cli.ts — the `pnpm e2e:capture` CLI logic.
  *
  * Fixes the audit's "output-path divergence" finding: writes the corpus
  * triple `corpus/<scenario>/<framework>.{native,agjson,coverage}.json` (the
@@ -13,8 +13,8 @@
  * namespace. It is independent of the corpus/ directory names already
  * committed (text-tool-turn, app-spec, complete-result, convergence-echo) —
  * those predate this CLI's wiring and were captured/hand-authored through a
- * different, undocumented-CLI process (see the Task 6 report's provenance
- * table). Running this CLI against an existing `scenarios/<name>` writes/
+ * different, undocumented-CLI process (each cassette's provenance sidecar
+ * records its source). Running this CLI against an existing `scenarios/<name>` writes/
  * overwrites `corpus/<name>/`; it does NOT retroactively regenerate the
  * differently-named legacy corpus entries. Bridging the two namespaces is a
  * separate concern, out of scope here.
@@ -30,7 +30,7 @@
  *     chosen framework's real capture agent + normalizer, and calls
  *     `runCaptureAndWrite` with `outDir = corpus/<scenario>`.
  *
- * RUNNER CHOICE (reported per the Task 6 brief's explicit ask): `tsx` is NOT
+ * RUNNER CHOICE: `tsx` is NOT
  * a workspace dependency — verified empirically (`node_modules/tsx` absent;
  * adding it would mean a NEW tool for a single script). Node 24's built-in
  * TS type-stripping (`node script.ts`, no flag needed) was tried directly and
@@ -147,12 +147,12 @@ export function isFramework(v: string): v is Framework {
  *
  * `require.resolve(\`${pkg}/package.json\`)` (the naive approach) THROWS
  * `ERR_PACKAGE_PATH_NOT_EXPORTED` for any package whose `exports` map omits
- * a `./package.json` subpath — verified empirically (playbook 2026-07-03
+ * a `./package.json` subpath — verified empirically (the 2026-07-03
  * live capture run): BOTH `@anthropic-ai/claude-agent-sdk` (0.2.141 AND
  * 0.3.199) and `@openai/agents` (0.12.0) have `exports` maps with no
  * `./package.json` entry, so that call silently threw and the caller's
  * try/catch returned `null` for every capture ever run — a bug that never
- * surfaced because no live capture had run before this playbook step. The
+ * surfaced because no live capture had run before that capture run. The
  * package's own `.` export (its main entry) IS always resolvable, so this
  * walks up from there — bounded to 5 levels (real packages are 0-2 levels
  * deep: e.g. `@anthropic-ai/claude-agent-sdk`'s main is `sdk.mjs` directly in

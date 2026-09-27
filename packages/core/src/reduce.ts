@@ -192,7 +192,7 @@ export class Reducer {
     // other live-only events). This must run BEFORE the isClosedEvent skip
     // below: an ext/live-only event between two closed events still occupies a
     // seq slot, so skipping it here would let the NEXT closed event look like
-    // a forward gap that never happened (found by M46 review — the false-park
+    // a forward gap that never happened (found in review — the false-park
     // this fixes voided every fold with an ext emission between closed events).
     // After the first event (#lastSeq >= 0), a forward gap sets #resync (park)
     // — including when an ext/live-only event is the one revealing the gap.
@@ -253,7 +253,7 @@ export class Reducer {
       case "turn.start": {
         // draft.5 INV-MSG: a turn.start naming a closed turn opens its paused refresh.
         if (this.#isClosedTurn(ev.turnId)) this.#restartedSinceClose.add(ev.turnId);
-        // Task 8c leg 3: a turn.start always counts as a legitimately opened turn.
+        // A turn.start always counts as a legitimately opened turn.
         this.#openedTurns.add(ev.turnId);
         this.#seenOpened.set(ev.turnId, ev.threadId);
         // Idempotent: if the turn already exists, merge defined fields only. A
@@ -324,7 +324,7 @@ export class Reducer {
 
       // ── SUBAGENT lifecycle ─────────────────────────────────────────────────
       case "subagent.start": {
-        // Task 8c leg 3: a subagent.start always counts as a legitimately
+        // A subagent.start always counts as a legitimately
         // opened turn, even on the idempotent-duplicate early return below.
         this.#openedTurns.add(ev.turnId);
         // Idempotent: if the nested turn already exists, skip (never duplicate).
@@ -340,7 +340,7 @@ export class Reducer {
         if (parentTurn !== undefined) {
           threadId = parentTurn.threadId;
         } else {
-          // A parent lookup miss (found by a reference host) means
+          // A parent lookup miss (SPEC §1.2; found by a reference host) means
           // ev.parentTurnId is a wire label that was never
           // opened as a real turn (e.g. claude's synthetic `turn_${toolCallId}`
           // Task-tool cross-ref) — NOT a legitimate cross-thread reference.
@@ -432,7 +432,7 @@ export class Reducer {
         // it; never filled once the owning message is sealed.
         if (ev.phase !== undefined && !this.#sealed.has(msg.id)) block.phase = ev.phase;
         setProviderMeta(block, ev.providerMetadata);
-        // STREAMED-text citations carrier (audit M22): attach citations to the
+        // STREAMED-text citations carrier: attach citations to the
         // sealed block named by `ev.id` — never re-emitted as a duplicate
         // supplement block.
         if (ev.citations !== undefined) block.citations = ev.citations;
@@ -650,7 +650,7 @@ export class Reducer {
           if (ev.dynamic !== undefined) block.dynamic = ev.dynamic;
           if (ev._meta !== undefined) block._meta = ev._meta;
           setProviderMeta(block, ev.providerMetadata);
-          // Typed preliminary flag mirrors the block's `more` state (audit M20):
+          // Typed preliminary flag mirrors the block's `more` state:
           // more:true keeps it set (kept open); the final more-less tool.done
           // clears it and closes the result (removed from open tracking).
           if (ev.more) {
@@ -664,7 +664,7 @@ export class Reducer {
           let msg: AgMessage | undefined;
           if (ev.messageId !== undefined) {
             // SPEC §5 tool.done row: the landed tool-result message ADOPTS
-            // ev.messageId as its own id (stable ToolMessage identity; audit B10).
+            // ev.messageId as its own id (stable ToolMessage identity).
             const existing = this.#messages.get(ev.messageId);
             // INV-MSG enforcement: a sealed message, or ANY message of a closed
             // turn — including one that would need to be freshly created — is
@@ -817,7 +817,7 @@ export class Reducer {
         }
         // messageMetadata: REPLACE the whole messageMetadata bag of the message named
         // by turn.done.messageId when present, else of the open message of this turn
-        // (audit M20; §5 turn.done row, §13.10). No per-key merge.
+        // (§5 turn.done row, §13.10). No per-key merge.
         // (Read happens BEFORE the binding window closes below.)
         if (ev.messageMetadata !== undefined) {
           const msg = ev.messageId !== undefined ? this.#messages.get(ev.messageId) : this.openMessage(ev.turnId, 0);
@@ -864,7 +864,7 @@ export class Reducer {
       case "turn.abort": {
         // Non-folding into content; sets a dedicated aborted outcome on the turn record
         // (symmetric with turn.error). taskState is verbatim-A2A only and is NEVER
-        // reducer-invented (audit M29) — it stays whatever a prior turn.done left it as.
+        // reducer-invented — it stays whatever a prior turn.done left it as.
         // INV-OWNER, as turn.done, for a NAMED turnId. A turnId-less terminal resolves to
         // the sole OPEN turn, never a closed one; with none or several open its
         // owner is unresolvable and the fold parks (INV-OWNER, draft.5).
@@ -886,7 +886,7 @@ export class Reducer {
       case "source": {
         // Append sourceId to the turn's sourceIds[] in order (preserve groundingChunks order),
         // AND land the FULL record (payload/chunkIndex/providerMetadata) on sources[] so
-        // citations can resolve post-fold (audit M23) — sourceIds[] stays as the derived index.
+        // citations can resolve post-fold — sourceIds[] stays as the derived index.
         const turn = this.#landingRecord(ev.turnId);
         if (turn === undefined) break;
         if (turn.sourceIds === undefined) {
@@ -926,7 +926,7 @@ export class Reducer {
         // Record safety[] on the turn (merge — append to existing safety, or create) AND
         // land the dedicated promptBlocked record {reason, safety?} so the REQUIRED reason
         // and the blockedness itself survive the fold — a bare-reason block used to fold to
-        // ZERO trace (audit M28).
+        // ZERO trace.
         const turn = this.#landingRecord(ev.turnId);
         if (turn === undefined) break;
         if (ev.safety !== undefined) {
@@ -1291,7 +1291,7 @@ export class Reducer {
         // Clear the per-block scratch buffers too (same block-id / toolCallId key),
         // else a stale opaque-signature / arg buffer leaks into a LATER message that
         // reuses the same id (cross-task scratch leak — byte-identity can't catch it
-        // because it corrupts batch AND incremental identically). (final-review M1)
+        // because it corrupts batch AND incremental identically).
         this.#toolArgs.delete(blockId);
         this.#opaque.delete(blockId);
         // INV-BLOCK is about ids PRESENT in the fold (SPEC INV-BLOCK): a removed
@@ -1373,8 +1373,8 @@ export class Reducer {
   }
 
   /**
-   * Evict dangling per-block streaming scratch owned by a closed turn
-   * (audit M51): #toolArgs/#opaque entries are otherwise reclaimed only on
+   * Evict dangling per-block streaming scratch owned by a closed turn:
+   * #toolArgs/#opaque entries are otherwise reclaimed only on
    * assembled/seal/snapshot — an errored/aborted turn leaks them and a reused
    * per-invoke block id in a LATER turn would concatenate stale scratch.
    */
@@ -1580,7 +1580,7 @@ export class Reducer {
 
 /**
  * Batch fold. Returns the folded result AND the resync signal — a parked fold
- * is never a silent truncation (audit M50; INV-SEQ: "a conformant reducer MUST
+ * is never a silent truncation (INV-SEQ: "a conformant reducer MUST
  * expose its resync condition to the caller").
  */
 export function reduce(events: AgEvent[]): { result: AgReduceResult; needsResync: boolean } {

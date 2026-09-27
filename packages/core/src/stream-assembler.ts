@@ -155,7 +155,7 @@ export class StreamAssembler {
   // turnIds currently OPEN (opened, not yet closed) — insertion order (JS Sets
   // iterate in insertion order). Bookkept in the single emit funnel `#emit` so
   // EVERY turn-lifecycle event (sugar primitives + raw `emit()`) keeps it correct.
-  // Drives `flush()`'s INV-FLUSH turn.abort closure (audit M21).
+  // Drives `flush()`'s INV-FLUSH turn.abort closure.
   #openTurns = new Set<string>();
 
   // turnIds whose terminal (turn.done / turn.error / turn.abort, or a nested
@@ -208,7 +208,7 @@ export class StreamAssembler {
 
   /** Emit one closed event into the buffer. */
   #emit(ev: AgClosedEventType): void {
-    // Turn-lifecycle bookkeeping (INV-TURN / INV-FLUSH; audit M21). `#emit` is the
+    // Turn-lifecycle bookkeeping (INV-TURN / INV-FLUSH). `#emit` is the
     // single funnel every primitive (and the raw `emit()` base primitive) routes
     // through, so this is the one place that can never miss a turn open/close.
     switch (ev.type) {
@@ -365,7 +365,7 @@ export class StreamAssembler {
    * `turn.start` (fix: subagent-turn-double-open / subagent-turnstart-ordering).
    */
   subagentStart(turnId: string, parentTurnId: string): void {
-    // Task 8c leg 1: snapshot the CURRENT owner before switching into the
+    // Snapshot the CURRENT owner before switching into the
     // nested turn, so the matching subagentDone can restore it verbatim —
     // never the (possibly synthetic) `parentTurnId` wire label.
     this.#turnStack.push(this.#lastTurn);
@@ -389,7 +389,7 @@ export class StreamAssembler {
       parentTurnId,
     };
     this.#emit(ev);
-    // INV-OWNER (Task 8c leg 1 — supersedes audit B10's parentTurnId reuse):
+    // INV-OWNER (this supersedes the earlier reuse of the parentTurnId argument):
     // restored to the ENCLOSING turn that was current when the subagent
     // opened — never the wire parentTurnId label, which MAY be a synthetic
     // cross-ref (e.g. claude's `turn_${toolCallId}`) that was never opened as
@@ -437,7 +437,7 @@ export class StreamAssembler {
 
   /**
    * Emit `text.end` for a finished text content stream. `fields.citations` is the
-   * STREAMED-text citations carrier (audit M22): a normalizer passes citations for
+   * STREAMED-text citations carrier: a normalizer passes citations for
    * this block here — never as a duplicate id-less supplement block — and `reduce()`
    * attaches them to the sealed block named by `id`.
    */
@@ -482,7 +482,7 @@ export class StreamAssembler {
    * prior buffer. `opts.providerMetadata` rides the delta verbatim — the home
    * for a provider's per-chunk, replay-load-bearing reasoning metadata; absent
    * ⇒ no key. Host-only telemetry does NOT belong here: e.g. the Claude CLI's
-   * per-delta `estimated_tokens` rides `_meta` (X5). This sugar has no `_meta`
+   * per-delta `estimated_tokens` rides `_meta`. This sugar has no `_meta`
    * option, so a facet raw-emits the delta for that case.
    */
   reasoningDelta(
@@ -642,7 +642,7 @@ export class StreamAssembler {
   /**
    * Emit an open `ext.<vendor>.<key>` event (lossless vendor extension channel).
    * The type field is the only constraint: `ext.` + vendor + `.` + key.
-   * M49: the lossless vendor channel never drops payload bytes. Non-object
+   * The lossless vendor channel never drops payload bytes. Non-object
    * payloads ride under `value`; reserved-envelope collisions relocate under
    * `shadowed` (the envelope stays engine-owned — ratified anti-clobber).
    * Payload's own `value` key wins the top-level slot when no wrapper is
@@ -769,7 +769,7 @@ export class StreamAssembler {
    * Flush per INV-FLUSH (SPEC §5.0): (1) synthetic `message.end` for each
    * still-open message in insertion order; (2) `turn.abort{stream-truncated}`
    * for each still-open turn, innermost (latest-opened) first — NEVER a
-   * success close (audit M21); (3) nothing else.
+   * success close; (3) nothing else.
    */
   flush(): AgEvent[] {
     for (const [id] of this.#openMessages) {

@@ -57,7 +57,7 @@ const typescriptRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const LOCKSTEP_FAMILIES = {
   // Membership is DERIVED, not hardcoded: the real family is "e2e's @ai-sdk
   // devDeps" — a future @ai-sdk provider added there would otherwise silently
-  // under-force and the skew noise class would return (review finding).
+  // under-force and the skew noise class would return.
   ai: () => {
     const e2e = JSON.parse(readFileSync(resolve(typescriptRoot, "packages/e2e/package.json"), "utf8"));
     return Object.keys(e2e.devDependencies ?? {}).filter((n) => n.startsWith("@ai-sdk/"));
@@ -104,7 +104,7 @@ function providerUtilsPinOf(name, ver) {
  * member's exact `@ai-sdk/provider-utils` pin agrees). "Latest of each" is
  * not automatically "the blessed pairing": an upstream publish skew (ai out
  * minutes before its siblings) would force a mismatched pu pair — the exact
- * noise class the family force exists to silence (review finding). A skewed
+ * noise class the family force exists to silence. A skewed
  * combination is reported as `skew`, not tested.
  */
 function resolveFamilyOverrides(peer, version) {
@@ -179,7 +179,7 @@ function applyOverride(overrides) {
 
 /** An aborted leg still writes result.json: an artifact-less leg makes the
  *  report file a wrong, dedup-poisoned issue body (the hazard the workflow's
- *  `!cancelled()` wiring exists to prevent — review finding). */
+ *  `!cancelled()` wiring exists to prevent). */
 function writeAborted(outDir, peer, version, kind, detail) {
   writeFileSync(
     resolve(outDir, "result.json"),

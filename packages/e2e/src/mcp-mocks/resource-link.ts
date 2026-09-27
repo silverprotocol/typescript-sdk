@@ -11,7 +11,7 @@
  * `tool_use_result.resourceLinks` (claude-agent-sdk 0.3.257; the facet carries
  * them as tool.done providerMetadata, pre-registered in field-registry), and
  * no scenario could produce one until this mock (capture backlog "MCP
- * resource_link tool results"; rnd capture #1, 2026-09-23).
+ * resource_link tool results"; an exploratory capture, 2026-09-23).
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";

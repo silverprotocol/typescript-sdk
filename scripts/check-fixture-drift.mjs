@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * Facet SDK-surface ratchet gate (playbook backlog Task 6 / audit MC-T3 lesson).
+ * Facet SDK-surface ratchet gate.
  *
- * MC-T3's lesson: the last SDK bump (claude-agent-sdk 0.2.141->0.3.199,
+ * The lesson behind it: an earlier SDK bump (claude-agent-sdk 0.2.141->0.3.199,
  * @openai/agents 0.2.1->0.12.0) shipped several new wire families that TS's
  * structural typing absorbed SILENTLY — the compiler stayed green while real
- * wire families went unhandled (see .superpowers/sdd/playbook-sdk-bumps-report.md).
+ * wire families went unhandled.
  * Those were caught by careful reviewer reading, not mechanically. This gate
  * makes that check durable: it diffs each facet's ACTUAL installed SDK member
  * inventory against a per-facet ratchet manifest (`sdk-surface.json`) that
@@ -91,8 +91,8 @@
  * BOTH the injected phantom member and the now-missing real one. If NO facet
  * is resolvable in the current environment, a synthetic in-memory fixture
  * proves the comparator can still fail, so `--self-test` is never vacuously
- * green. This proves the detector can actually fail (M58's lesson — a gate
- * that cannot fail is a defect — applied to this gate too).
+ * green. This proves the detector can actually fail (a gate that cannot
+ * fail is a defect, and that applies to this gate too).
  */
 import { readFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
@@ -232,8 +232,8 @@ function extractOpenaiRunItemStreamEventNames(eventsDtsText) {
  * declares its own discriminant early (right after `providerData`/`id`,
  * before any nested content array reopens `{`/`[` depth), the FIRST match
  * within an arm's own bounds is reliably that arm's discriminant, not a
- * nested one — verified empirically against every arm of `ModelItem` (see
- * `.superpowers/sdd/pb-task-6-report.md`). After processing an arm, the
+ * nested one — verified empirically against every arm of `ModelItem`. After
+ * processing an arm, the
  * search resumes AFTER its closing brace, so nested `z.ZodObject<{` matches
  * inside content/action sub-unions are skipped entirely, never miscounted as
  * top-level arms.
@@ -626,7 +626,7 @@ async function gatherInventories() {
       facet: "openai-agents",
       sdkName: "@openai/agents",
       // The umbrella package's own resolved version — NOT agents-core's (no
-      // lockstep assumption; review finding on the earlier stand-in).
+      // lockstep assumption; a review caught the earlier stand-in).
       installedVersion: sdk.agentsVersion,
       manifestVerifiedAt: manifest.verifiedAt,
       verifiedLog: manifest.verified,
@@ -741,7 +741,7 @@ function checkVerifiedLogs(verifiedChecks) {
     }
     // `verifiedAt` (the label field) tracks the same SDK — keep it in
     // lockstep with the log so the two can never tell different stories
-    // (review finding: this diff itself had to hand-bump one).
+    // (this very diff first had to hand-bump one).
     if (check.manifestVerifiedAt !== undefined && check.manifestVerifiedAt !== newest.sdkVersion) {
       findings.push(
         `  ${check.facet}: sdk-surface.json's \`verifiedAt\` (${check.manifestVerifiedAt}) disagrees with its newest ` +

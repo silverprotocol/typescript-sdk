@@ -187,7 +187,7 @@ describe("extractToolCalls", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// extractToolCalls — framework param (Task 6)
+// extractToolCalls — framework param
 //
 // Ground-truthed against the REAL committed native cassettes:
 //   corpus/text-tool-turn/openai.native.json[14] — run_item_stream_event,

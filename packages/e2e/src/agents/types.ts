@@ -8,7 +8,7 @@
  * against THIS shared shape so it can dispatch to any of the three agents
  * without importing framework-specific types.
  *
- * The claude-agent-sdk agent (Task 5 / pre-existing) declares its own
+ * The claude-agent-sdk agent (pre-existing) declares its own
  * structurally-identical `CaptureRunInput` in `claude-agent-sdk/run.ts` — left
  * untouched (frozen, smoke-tested) rather than migrated to import this file,
  * since TypeScript's structural typing makes the two interchangeable at every

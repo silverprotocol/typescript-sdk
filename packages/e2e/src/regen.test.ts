@@ -1,7 +1,7 @@
 /**
- * regen.test.ts — deterministic snapshot regenerator (Task 7 Step 4 mechanism,
- * introduced early by Task 3 because its own engine fix legitimately drifts a
- * committed golden snapshot — see the commit body for the drift analysis).
+ * regen.test.ts — deterministic snapshot regenerator (introduced
+ * because an engine fix legitimately drifts a committed golden snapshot — see
+ * the body of the commit that added this file for the drift analysis).
  *
  * NOT part of the CI gate — runs only with REGEN=1, replays the committed
  * native cassette through the CURRENT normalizer, and rewrites the agjson +
@@ -27,51 +27,50 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // 2026-09-23: the multi-result seed, enrolled at capture time (capture-time
   // coverage.json is computed against EMPTY guard maps).
   { scenario: "multi-result-sonnet5", framework: "claude" },
-  // Task 4b: deferred round-close (message.end + turn.done past a late
+  // Deferred round-close (message.end + turn.done past a late
   // tool.done) reorders this scenario's tool-turn round — see
-  // or-responses-regression.test.ts and index.test.ts (Task 4b describe block)
+  // or-responses-regression.test.ts and index.test.ts (the "defer turn.done past pending tool results" describe block)
   // for the INV-MSG rationale. Verified: the ONLY delta is the close-reordering
   // (tool.done now precedes message.end/turn.done); no field additions/drops.
   { scenario: "text-tool-turn", framework: "openai" },
-  // Task 6: INV-FLUSH turn closure (audit M21). This 2-message seed
+  // INV-FLUSH turn closure. This 2-message seed
   // (assistant tool-call + user tool-result) never delivers a terminal
   // `result` message — a genuinely truncated stream. flush() now truthfully
   // closes the still-open turn with `turn.abort{stream-truncated}` instead of
   // silently no-op'ing. Verified: the ONLY delta is the appended trailing
   // turn.abort event; no field additions/drops on the existing 9 events.
   { scenario: "app-spec", framework: "claude" },
-  // Task 4 (audit M59): the ADK facet's census was never measured — this is
+  // The ADK facet's census was never measured before — this is
   // the FIRST-EVER regen of an ADK snapshot pair. See replay.test.ts's ADK
-  // seed suite + the Task 4 report for the full drop/newField triage.
+  // seed suite for the drop/newField triage.
   { scenario: "convergence-echo", framework: "adk" },
-  // Task 5 (audit M58): convergence-echo previously had NO claude/openai
+  // convergence-echo previously had NO claude/openai
   // agjson+coverage snapshot of its own — the vacuity-holed I4 assert was
-  // its sole gate. FIRST-EVER regen of these two pairs; see the Task 5
-  // report for the census outcome (both clean — no new triage needed).
+  // its sole gate. FIRST-EVER regen of these two pairs; the census came out
+  // clean for both (no new triage needed).
   { scenario: "convergence-echo", framework: "claude" },
   { scenario: "convergence-echo", framework: "openai" },
-  // Task 5 (audit M58): FIRST-EVER regen of the hand-authored
+  // FIRST-EVER regen of the hand-authored
   // text-tool-turn/adk.native.json fixture (mirrors convergence-echo's
   // event grammar for the SAME echo task text-tool-turn/openai.native.json
-  // already captures — see the Task 5 report for the 3-way convergence
-  // investigation and why text-tool-turn is NOT added to
-  // CONVERGENCE_SCENARIOS).
+  // already captures — see replay.test.ts's text-tool-turn block for why
+  // text-tool-turn is NOT added to CONVERGENCE_SCENARIOS).
   { scenario: "text-tool-turn", framework: "adk" },
-  // Playbook 2026-07-03 (model-release run): FIRST-EVER regen of the new
+  // The 2026-07-03 model-release capture run: FIRST-EVER regen of the new
   // live-model seed cassettes. The corpus triple `pnpm e2e:capture` writes at
   // capture time computes `coverage.json` against EMPTY guard maps (capture.ts's
   // runCapture inline census — it never loads transforms.json/known-acceptable-
   // drops.json/field-registry.json), so the committed coverage.json needs this
   // regen pass to reflect the REAL guard-filtered census (the one replay.test.ts's
   // CI gate actually asserts against). echo-gpt55/openai's agjson.json ALSO needs
-  // regenerating for a second reason: it was captured before this same playbook
-  // step's Finding #2 fix (toolOutputToAgBlocks's missing "input_text" arm) — the
+  // regenerating for a second reason: it was captured before the fix for
+  // toolOutputToAgBlocks's missing "input_text" arm — the
   // committed capture-time agjson had `tool.done.content: []` (the tool result
   // text silently dropped); this regen re-normalizes the SAME native.json through
   // the FIXED facet.
   { scenario: "echo-sonnet5", framework: "claude" },
   { scenario: "echo-gpt55", framework: "openai" },
-  // Playbook 2026-07-03 follow-up (structuredContent under 0.12.0 fix): FIRST
+  // The 2026-07-03 follow-up capture (structuredContent under 0.12.0 fix): FIRST
   // live capture of a structuredContent-bearing MCP tool (render_card,
   // app-spec-structured-result) against gpt-5.5 / agents-core 0.12.0, proving
   // the customDataExtractor + extractStructuredContent fix end-to-end. Same
@@ -80,11 +79,11 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // census (drops===[], newFields===[] after triage — see known-acceptable-
   // drops.json/transforms.json/field-registry.json additions in the same commit).
   { scenario: "app-spec-structured-result", framework: "openai" },
-  // Playbook 2026-07-13 (model-release run, gpt-5.6 + official @google/adk):
+  // The 2026-07-13 model-release capture run (gpt-5.6 + official @google/adk):
   // FIRST-EVER regen of the two new live seeds. Same empty-guard-maps reason
   // as echo-sonnet5/echo-gpt55 above. echo-gemini35/adk's agjson.json ALSO
   // needs regenerating for a second reason: it was captured before the
-  // per-turn usage-summation fix this same playbook step landed (the census
+  // per-turn usage-summation fix that landed with that run (the census
   // caught the tool round's usageMetadata — incl. thoughtsTokenCount 125 —
   // vanishing from turn.done; the regen re-normalizes the SAME native.json
   // through the fixed facet).
@@ -186,15 +185,15 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "defer-tool-sonnet5", framework: "claude" },
   { scenario: "defer-tool-sonnet5-resume-allow", framework: "claude" },
   { scenario: "defer-tool-sonnet5-resume-deny", framework: "claude" },
-  // 2026-09-23 (rnd capture #1): the resource_link seed, enrolled at capture time.
+  // 2026-09-23 (an exploratory capture): the resource_link seed, enrolled at capture time.
   { scenario: "resource-link-sonnet5", framework: "claude" },
   { scenario: "resource-link-gemini38", framework: "adk" },
   { scenario: "resource-link-gpt6sol", framework: "openai" },
   // 2026-09-23: the vercel parallel-tools seed, enrolled at capture time.
   { scenario: "parallel-tools-gpt6sol", framework: "vercel" },
-  // 2026-09-23 (rnd #4): the Opus 5.5 narration seed, enrolled at capture time.
+  // 2026-09-23 (an exploratory capture): the Opus 5.5 narration seed, enrolled at capture time.
   { scenario: "narration-opus55", framework: "claude" },
-  // 2026-09-23 (candidate-20 bar): the unavailable resume leg, unenrolled (coverage kept honest).
+  // 2026-09-23 (a spec-candidate review's decision): the unavailable resume leg, unenrolled (coverage kept honest).
   { scenario: "defer-tool-sonnet5-resume-unavailable", framework: "claude" },
   // 2026-09-24: the ADK shared-state fold seed, enrolled at capture time.
   { scenario: "state-fold-gemini38", framework: "adk" },
@@ -224,7 +223,7 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "partials-uuid-sonnet5", framework: "claude" },
   // 2026-09-25 (R&D capture ask): the vercel resource_link leg, enrolled at capture time.
   { scenario: "resource-link-gpt6sol", framework: "vercel" },
-  // 2026-09-25 (vercel MCP finding): the V1/V4 live legs, generated on the fix.
+  // 2026-09-25 (the vercel MCP fix): the live error and MCP Apps legs, generated on the fix.
   { scenario: "tool-error-gpt6sol", framework: "vercel" },
   { scenario: "app-spec-gpt6sol", framework: "vercel" },
   // 2026-09-25: the ADK state-prefix seed (capture-time coverage was computed

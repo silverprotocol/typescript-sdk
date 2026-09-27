@@ -1,6 +1,5 @@
 /**
- * provenance.ts — the cassette provenance sidecar contract (Task 6 / audit
- * M60 §2.B).
+ * provenance.ts — the cassette provenance sidecar contract.
  *
  * Every `corpus/<scn>/<fw>.native.json` ships a sibling
  * `corpus/<scn>/<fw>.provenance.json` recording WHERE the cassette's bytes
@@ -9,14 +8,13 @@
  * spelunking git history or prose task reports (the audit's "outsider cannot
  * distinguish real-provider evidence from hand-authored fixtures" blast).
  *
- * Shape LOCKED by the Task 6 brief:
+ * Shape (locked):
  *   { kind: "capture"|"fixture"|"authored", capturedAt: string|null,
  *     sdkVersion: string|null, model: string|null, note?: string }
  *
- * Unknown metadata is `null`, never invented — see the Task 6 report's
- * provenance table for how each committed sidecar's fields were sourced
- * (native-cassette field extraction + git history + prior task reports, NOT
- * guesswork).
+ * Unknown metadata is `null`, never invented: each committed sidecar's fields
+ * were sourced from native-cassette field extraction, git history and earlier
+ * task write-ups, NOT guesswork.
  */
 
 export type ProvenanceKind = "capture" | "fixture" | "authored";

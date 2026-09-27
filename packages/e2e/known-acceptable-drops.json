@@ -1,7 +1,7 @@
 [
   {
     "path": "[*].agents[*]",
-    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event. Session capability-catalog listing (available slash-commands/agents/skills), not turn content.",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (a 2026-07-03 capture, echo-sonnet5): no prior committed claude cassette ever carried a system/init event. Session capability-catalog listing (available slash-commands/agents/skills), not turn content.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -9,7 +9,7 @@
   },
   {
     "path": "[*].analytics_disabled",
-    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (a 2026-07-03 capture, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -17,7 +17,7 @@
   },
   {
     "path": "[*].apiKeySource",
-    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (a 2026-07-03 capture, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -33,7 +33,7 @@
   },
   {
     "path": "[*].capabilities[*]",
-    "reason": "claude: NEW system/init bootstrap field at @anthropic-ai/claude-agent-sdk 0.3.207 \u2014 protocol feature-detection flags (live values: interrupt_receipt_v1, msg_lifecycle_v1). Same class as the sibling init fields ([*].agents[*] et al.): session capability-catalog metadata, not turn content; disposed router-plane in claude-agent-sdk/sdk-surface.json's SDKSystemMessage entry (re-verified at 0.3.207, the d.ts-diff audit predicted this field before the wire carried it). First observed live: echo-sonnet5 refresh at 0.3.207 (playbook 2026-07-13).",
+    "reason": "claude: NEW system/init bootstrap field at @anthropic-ai/claude-agent-sdk 0.3.207 \u2014 protocol feature-detection flags (live values: interrupt_receipt_v1, msg_lifecycle_v1). Same class as the sibling init fields ([*].agents[*] et al.): session capability-catalog metadata, not turn content; disposed router-plane in claude-agent-sdk/sdk-surface.json's SDKSystemMessage entry (re-verified at 0.3.207, the d.ts-diff audit predicted this field before the wire carried it). First observed live: echo-sonnet5 refresh at 0.3.207 (a 2026-07-13 capture).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -41,7 +41,7 @@
   },
   {
     "path": "[*].claude_code_version",
-    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (a 2026-07-03 capture, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -73,7 +73,7 @@
   },
   {
     "path": "[*].cwd",
-    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (a 2026-07-03 capture, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -385,7 +385,7 @@
   },
   {
     "path": "[*].data.event.response.reasoning.mode",
-    "reason": "openai: new sibling of the already-allowlisted reasoning.effort/summary/context fields (gpt-5.5 addition) \u2014 agent config / response metadata in the model:response.created/in_progress/completed event payload; no AgJSON home (only response.id and usage are consumed). First observed live (playbook 2026-07-03, echo-gpt55).",
+    "reason": "openai: new sibling of the already-allowlisted reasoning.effort/summary/context fields (gpt-5.5 addition) \u2014 agent config / response metadata in the model:response.created/in_progress/completed event payload; no AgJSON home (only response.id and usage are consumed). First observed live (a 2026-07-03 capture, echo-gpt55).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -449,7 +449,7 @@
   },
   {
     "path": "[*].data.event.response.tool_usage.image_gen.input_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -457,7 +457,7 @@
   },
   {
     "path": "[*].data.event.response.tool_usage.image_gen.input_tokens_details.image_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -465,7 +465,7 @@
   },
   {
     "path": "[*].data.event.response.tool_usage.image_gen.input_tokens_details.text_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -473,7 +473,7 @@
   },
   {
     "path": "[*].data.event.response.tool_usage.image_gen.output_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -481,7 +481,7 @@
   },
   {
     "path": "[*].data.event.response.tool_usage.image_gen.output_tokens_details.image_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -489,7 +489,7 @@
   },
   {
     "path": "[*].data.event.response.tool_usage.image_gen.output_tokens_details.text_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -497,7 +497,7 @@
   },
   {
     "path": "[*].data.event.response.tool_usage.image_gen.total_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -505,7 +505,7 @@
   },
   {
     "path": "[*].data.event.response.tool_usage.web_search.num_requests",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -521,7 +521,7 @@
   },
   {
     "path": "[*].data.event.response.tools[*].output_schema",
-    "reason": "openai: NEW tool-definition field on the 0.13.2/openai-6.46 wire (custom-tool output schema; null for plain function tools) riding the response's REQUEST-CONFIG ECHO \u2014 the tools[] array is the request's own tool list echoed back, same class as the already-allowlisted tools[*].strict/description/parameters.* siblings. First observed live: echo-gpt56 (gpt-5.6, playbook 2026-07-13).",
+    "reason": "openai: NEW tool-definition field on the 0.13.2/openai-6.46 wire (custom-tool output schema; null for plain function tools) riding the response's REQUEST-CONFIG ECHO \u2014 the tools[] array is the request's own tool list echoed back, same class as the already-allowlisted tools[*].strict/description/parameters.* siblings. First observed live: echo-gpt56 (gpt-5.6, 2026-07-13).",
     "reviewed": "null-only",
     "frameworks": [
       "openai"
@@ -545,7 +545,7 @@
   },
   {
     "path": "[*].data.event.response.tools[*].parameters.properties.body.description",
-    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text for this scenario's \"body\" parameter (render_card mock tool) \u2014 mirrors the existing ...properties.message.description entry for a differently-named tool parameter, same bucket, no AgJSON home. First observed live (playbook 2026-07-03 follow-up, app-spec-structured-result/gpt-5.5).",
+    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text for this scenario's \"body\" parameter (render_card mock tool) \u2014 mirrors the existing ...properties.message.description entry for a differently-named tool parameter, same bucket, no AgJSON home. First observed live (a 2026-07-03 follow-up capture, app-spec-structured-result/gpt-5.5).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -553,7 +553,7 @@
   },
   {
     "path": "[*].data.event.response.tools[*].parameters.properties.body.type",
-    "reason": "openai: agent config tools list in event payload; tool parameter schema metadata for this scenario's \"body\" parameter (mirrors the existing ...properties.message.type entry for a differently-named tool parameter \u2014 same bucket, no AgJSON home). First observed live (playbook 2026-07-03 follow-up, app-spec-structured-result/gpt-5.5).",
+    "reason": "openai: agent config tools list in event payload; tool parameter schema metadata for this scenario's \"body\" parameter (mirrors the existing ...properties.message.type entry for a differently-named tool parameter \u2014 same bucket, no AgJSON home). First observed live (a 2026-07-03 follow-up capture, app-spec-structured-result/gpt-5.5).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -561,7 +561,7 @@
   },
   {
     "path": "[*].data.event.response.tools[*].parameters.properties.message.description",
-    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text (mock echo tool's zod .describe(\"The text to echo\")) \u2014 no AgJSON home. First observed live (playbook 2026-07-03, echo-gpt55).",
+    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text (mock echo tool's zod .describe(\"The text to echo\")) \u2014 no AgJSON home. First observed live (a 2026-07-03 capture, echo-gpt55).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -569,7 +569,7 @@
   },
   {
     "path": "[*].data.event.response.tools[*].parameters.properties.message.type",
-    "reason": "openai: agent config tools list in event payload; tool parameter schema metadata for this scenario's \"message\" parameter (mirrors the existing ...properties.text.type entry for a differently-named tool parameter \u2014 same bucket, no AgJSON home). First observed live (playbook 2026-07-03, echo-gpt55).",
+    "reason": "openai: agent config tools list in event payload; tool parameter schema metadata for this scenario's \"message\" parameter (mirrors the existing ...properties.text.type entry for a differently-named tool parameter \u2014 same bucket, no AgJSON home). First observed live (a 2026-07-03 capture, echo-gpt55).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -585,7 +585,7 @@
   },
   {
     "path": "[*].data.event.response.tools[*].parameters.properties.title.description",
-    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text for this scenario's \"title\" parameter (render_card mock tool) \u2014 mirrors the existing ...properties.message.description entry for a differently-named tool parameter, same bucket, no AgJSON home. First observed live (playbook 2026-07-03 follow-up, app-spec-structured-result/gpt-5.5).",
+    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text for this scenario's \"title\" parameter (render_card mock tool) \u2014 mirrors the existing ...properties.message.description entry for a differently-named tool parameter, same bucket, no AgJSON home. First observed live (a 2026-07-03 follow-up capture, app-spec-structured-result/gpt-5.5).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -593,7 +593,7 @@
   },
   {
     "path": "[*].data.event.response.tools[*].parameters.properties.title.type",
-    "reason": "openai: agent config tools list in event payload; tool parameter schema metadata for this scenario's \"title\" parameter (mirrors the existing ...properties.message.type entry for a differently-named tool parameter \u2014 same bucket, no AgJSON home). First observed live (playbook 2026-07-03 follow-up, app-spec-structured-result/gpt-5.5).",
+    "reason": "openai: agent config tools list in event payload; tool parameter schema metadata for this scenario's \"title\" parameter (mirrors the existing ...properties.message.type entry for a differently-named tool parameter \u2014 same bucket, no AgJSON home). First observed live (a 2026-07-03 follow-up capture, app-spec-structured-result/gpt-5.5).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -633,7 +633,7 @@
   },
   {
     "path": "[*].data.event.response.top_p",
-    "reason": "openai: agent config / response metadata in model:response.created/in_progress/completed event payload; no AgJSON home (only response.id and usage are consumed) \u2014 same bucket as the sibling frequency_penalty/presence_penalty/etc. entries already allowlisted. This norm-path was already in field-registry.json but had NO known-acceptable-drops entry: the gpt-4o-mini capture's top_p value apparently coincidentally Rule-4-matched some other agjson value, masking that the field was always homeless. gpt-5.5's top_p (0.98) no longer coincidentally matches, surfacing this latent triage gap live (playbook 2026-07-03, echo-gpt55).",
+    "reason": "openai: agent config / response metadata in model:response.created/in_progress/completed event payload; no AgJSON home (only response.id and usage are consumed) \u2014 same bucket as the sibling frequency_penalty/presence_penalty/etc. entries already allowlisted. This norm-path was already in field-registry.json but had NO known-acceptable-drops entry: the gpt-4o-mini capture's top_p value apparently coincidentally Rule-4-matched some other agjson value, masking that the field was always homeless. gpt-5.5's top_p (0.98) no longer coincidentally matches, surfacing this latent triage gap live (a 2026-07-03 capture, echo-gpt55).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -721,7 +721,7 @@
   },
   {
     "path": "[*].data.providerData.rawModelEventSource",
-    "reason": "openai: new provenance tag on the SDK-flattened opaque providerData sidecar identifying which underlying model-API family produced the event (gpt-5.5 SDK addition) \u2014 never read by createOpenaiNormalizer; these SDK-flattened events are themselves IGNORED (duplicates of the model:* raw events). First observed live (playbook 2026-07-03, echo-gpt55).",
+    "reason": "openai: new provenance tag on the SDK-flattened opaque providerData sidecar identifying which underlying model-API family produced the event (gpt-5.5 SDK addition) \u2014 never read by createOpenaiNormalizer; these SDK-flattened events are themselves IGNORED (duplicates of the model:* raw events). First observed live (a 2026-07-03 capture, echo-gpt55).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -905,7 +905,7 @@
   },
   {
     "path": "[*].data.providerData.response.reasoning.mode",
-    "reason": "openai: new sibling of the already-allowlisted reasoning.effort/summary/context fields (gpt-5.5 addition) \u2014 agent config / response metadata in the model:response.created/in_progress/completed event payload; no AgJSON home (only response.id and usage are consumed). First observed live (playbook 2026-07-03, echo-gpt55).",
+    "reason": "openai: new sibling of the already-allowlisted reasoning.effort/summary/context fields (gpt-5.5 addition) \u2014 agent config / response metadata in the model:response.created/in_progress/completed event payload; no AgJSON home (only response.id and usage are consumed). First observed live (a 2026-07-03 capture, echo-gpt55).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -969,7 +969,7 @@
   },
   {
     "path": "[*].data.providerData.response.tool_usage.image_gen.input_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -977,7 +977,7 @@
   },
   {
     "path": "[*].data.providerData.response.tool_usage.image_gen.input_tokens_details.image_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -985,7 +985,7 @@
   },
   {
     "path": "[*].data.providerData.response.tool_usage.image_gen.input_tokens_details.text_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -993,7 +993,7 @@
   },
   {
     "path": "[*].data.providerData.response.tool_usage.image_gen.output_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1001,7 +1001,7 @@
   },
   {
     "path": "[*].data.providerData.response.tool_usage.image_gen.output_tokens_details.image_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1009,7 +1009,7 @@
   },
   {
     "path": "[*].data.providerData.response.tool_usage.image_gen.output_tokens_details.text_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1017,7 +1017,7 @@
   },
   {
     "path": "[*].data.providerData.response.tool_usage.image_gen.total_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1025,7 +1025,7 @@
   },
   {
     "path": "[*].data.providerData.response.tool_usage.web_search.num_requests",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1065,7 +1065,7 @@
   },
   {
     "path": "[*].data.providerData.response.tools[*].parameters.properties.body.description",
-    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text for this scenario's \"body\" parameter (render_card mock tool) \u2014 mirrors the existing ...properties.message.description entry for a differently-named tool parameter, same bucket, no AgJSON home. First observed live (playbook 2026-07-03 follow-up, app-spec-structured-result/gpt-5.5).",
+    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text for this scenario's \"body\" parameter (render_card mock tool) \u2014 mirrors the existing ...properties.message.description entry for a differently-named tool parameter, same bucket, no AgJSON home. First observed live (a 2026-07-03 follow-up capture, app-spec-structured-result/gpt-5.5).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1073,7 +1073,7 @@
   },
   {
     "path": "[*].data.providerData.response.tools[*].parameters.properties.body.type",
-    "reason": "openai: agent config tools list in event payload; tool parameter schema metadata for this scenario's \"body\" parameter (mirrors the existing ...properties.message.type entry for a differently-named tool parameter \u2014 same bucket, no AgJSON home). First observed live (playbook 2026-07-03 follow-up, app-spec-structured-result/gpt-5.5).",
+    "reason": "openai: agent config tools list in event payload; tool parameter schema metadata for this scenario's \"body\" parameter (mirrors the existing ...properties.message.type entry for a differently-named tool parameter \u2014 same bucket, no AgJSON home). First observed live (a 2026-07-03 follow-up capture, app-spec-structured-result/gpt-5.5).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1081,7 +1081,7 @@
   },
   {
     "path": "[*].data.providerData.response.tools[*].parameters.properties.message.description",
-    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text (mock echo tool's zod .describe(\"The text to echo\")) \u2014 no AgJSON home. First observed live (playbook 2026-07-03, echo-gpt55).",
+    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text (mock echo tool's zod .describe(\"The text to echo\")) \u2014 no AgJSON home. First observed live (a 2026-07-03 capture, echo-gpt55).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1089,7 +1089,7 @@
   },
   {
     "path": "[*].data.providerData.response.tools[*].parameters.properties.message.type",
-    "reason": "openai: agent config tools list in event payload; tool parameter schema metadata for this scenario's \"message\" parameter (mirrors the existing ...properties.text.type entry for a differently-named tool parameter \u2014 same bucket, no AgJSON home). First observed live (playbook 2026-07-03, echo-gpt55).",
+    "reason": "openai: agent config tools list in event payload; tool parameter schema metadata for this scenario's \"message\" parameter (mirrors the existing ...properties.text.type entry for a differently-named tool parameter \u2014 same bucket, no AgJSON home). First observed live (a 2026-07-03 capture, echo-gpt55).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1105,7 +1105,7 @@
   },
   {
     "path": "[*].data.providerData.response.tools[*].parameters.properties.title.description",
-    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text for this scenario's \"title\" parameter (render_card mock tool) \u2014 mirrors the existing ...properties.message.description entry for a differently-named tool parameter, same bucket, no AgJSON home. First observed live (playbook 2026-07-03 follow-up, app-spec-structured-result/gpt-5.5).",
+    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text for this scenario's \"title\" parameter (render_card mock tool) \u2014 mirrors the existing ...properties.message.description entry for a differently-named tool parameter, same bucket, no AgJSON home. First observed live (a 2026-07-03 follow-up capture, app-spec-structured-result/gpt-5.5).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1113,7 +1113,7 @@
   },
   {
     "path": "[*].data.providerData.response.tools[*].parameters.properties.title.type",
-    "reason": "openai: agent config tools list in event payload; tool parameter schema metadata for this scenario's \"title\" parameter (mirrors the existing ...properties.message.type entry for a differently-named tool parameter \u2014 same bucket, no AgJSON home). First observed live (playbook 2026-07-03 follow-up, app-spec-structured-result/gpt-5.5).",
+    "reason": "openai: agent config tools list in event payload; tool parameter schema metadata for this scenario's \"title\" parameter (mirrors the existing ...properties.message.type entry for a differently-named tool parameter \u2014 same bucket, no AgJSON home). First observed live (a 2026-07-03 follow-up capture, app-spec-structured-result/gpt-5.5).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1153,7 +1153,7 @@
   },
   {
     "path": "[*].data.providerData.response.top_p",
-    "reason": "openai: agent config / response metadata in model:response.created/in_progress/completed event payload; no AgJSON home (only response.id and usage are consumed) \u2014 same bucket as the sibling frequency_penalty/presence_penalty/etc. entries already allowlisted. This norm-path was already in field-registry.json but had NO known-acceptable-drops entry: the gpt-4o-mini capture's top_p value apparently coincidentally Rule-4-matched some other agjson value, masking that the field was always homeless. gpt-5.5's top_p (0.98) no longer coincidentally matches, surfacing this latent triage gap live (playbook 2026-07-03, echo-gpt55).",
+    "reason": "openai: agent config / response metadata in model:response.created/in_progress/completed event payload; no AgJSON home (only response.id and usage are consumed) \u2014 same bucket as the sibling frequency_penalty/presence_penalty/etc. entries already allowlisted. This norm-path was already in field-registry.json but had NO known-acceptable-drops entry: the gpt-4o-mini capture's top_p value apparently coincidentally Rule-4-matched some other agjson value, masking that the field was always homeless. gpt-5.5's top_p (0.98) no longer coincidentally matches, surfacing this latent triage gap live (a 2026-07-03 capture, echo-gpt55).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1425,7 +1425,7 @@
   },
   {
     "path": "[*].data.response.providerData.reasoning.mode",
-    "reason": "openai: new sibling of the already-allowlisted reasoning.effort/summary/context fields (gpt-5.5 addition) \u2014 agent config / response metadata in the model:response.created/in_progress/completed event payload; no AgJSON home (only response.id and usage are consumed). First observed live (playbook 2026-07-03, echo-gpt55).",
+    "reason": "openai: new sibling of the already-allowlisted reasoning.effort/summary/context fields (gpt-5.5 addition) \u2014 agent config / response metadata in the model:response.created/in_progress/completed event payload; no AgJSON home (only response.id and usage are consumed). First observed live (a 2026-07-03 capture, echo-gpt55).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1489,7 +1489,7 @@
   },
   {
     "path": "[*].data.response.providerData.tool_usage.image_gen.input_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1497,7 +1497,7 @@
   },
   {
     "path": "[*].data.response.providerData.tool_usage.image_gen.input_tokens_details.image_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1505,7 +1505,7 @@
   },
   {
     "path": "[*].data.response.providerData.tool_usage.image_gen.input_tokens_details.text_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1513,7 +1513,7 @@
   },
   {
     "path": "[*].data.response.providerData.tool_usage.image_gen.output_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1521,7 +1521,7 @@
   },
   {
     "path": "[*].data.response.providerData.tool_usage.image_gen.output_tokens_details.image_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1529,7 +1529,7 @@
   },
   {
     "path": "[*].data.response.providerData.tool_usage.image_gen.output_tokens_details.text_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1537,7 +1537,7 @@
   },
   {
     "path": "[*].data.response.providerData.tool_usage.image_gen.total_tokens",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1545,7 +1545,7 @@
   },
   {
     "path": "[*].data.response.providerData.tool_usage.web_search.num_requests",
-    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, playbook 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
+    "reason": "openai: GENUINE NEW WIRE FAMILY (gpt-5.5 Responses API addition, 2026-07-03) \u2014 built-in hosted-tool usage-stat counters ({image_gen,web_search}) on the response payload, never present in any prior committed cassette (all gpt-4o-mini). Same bucket as the response.* config-echo siblings already allowlisted: agent-config/response metadata, no AgJSON home (only response.id and usage are consumed; this MCP-echo scenario never invokes image_gen/web_search, so every leaf here is 0).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1585,7 +1585,7 @@
   },
   {
     "path": "[*].data.response.providerData.tools[*].parameters.properties.body.description",
-    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text for this scenario's \"body\" parameter (render_card mock tool) \u2014 mirrors the existing ...properties.message.description entry for a differently-named tool parameter, same bucket, no AgJSON home. First observed live (playbook 2026-07-03 follow-up, app-spec-structured-result/gpt-5.5).",
+    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text for this scenario's \"body\" parameter (render_card mock tool) \u2014 mirrors the existing ...properties.message.description entry for a differently-named tool parameter, same bucket, no AgJSON home. First observed live (a 2026-07-03 follow-up capture, app-spec-structured-result/gpt-5.5).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1593,7 +1593,7 @@
   },
   {
     "path": "[*].data.response.providerData.tools[*].parameters.properties.body.type",
-    "reason": "openai: agent config tools list in event payload; tool parameter schema metadata for this scenario's \"body\" parameter (mirrors the existing ...properties.message.type entry for a differently-named tool parameter \u2014 same bucket, no AgJSON home). First observed live (playbook 2026-07-03 follow-up, app-spec-structured-result/gpt-5.5).",
+    "reason": "openai: agent config tools list in event payload; tool parameter schema metadata for this scenario's \"body\" parameter (mirrors the existing ...properties.message.type entry for a differently-named tool parameter \u2014 same bucket, no AgJSON home). First observed live (a 2026-07-03 follow-up capture, app-spec-structured-result/gpt-5.5).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1601,7 +1601,7 @@
   },
   {
     "path": "[*].data.response.providerData.tools[*].parameters.properties.message.description",
-    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text (mock echo tool's zod .describe(\"The text to echo\")) \u2014 no AgJSON home. First observed live (playbook 2026-07-03, echo-gpt55).",
+    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text (mock echo tool's zod .describe(\"The text to echo\")) \u2014 no AgJSON home. First observed live (a 2026-07-03 capture, echo-gpt55).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1609,7 +1609,7 @@
   },
   {
     "path": "[*].data.response.providerData.tools[*].parameters.properties.message.type",
-    "reason": "openai: agent config tools list in event payload; tool parameter schema metadata for this scenario's \"message\" parameter (mirrors the existing ...properties.text.type entry for a differently-named tool parameter \u2014 same bucket, no AgJSON home). First observed live (playbook 2026-07-03, echo-gpt55).",
+    "reason": "openai: agent config tools list in event payload; tool parameter schema metadata for this scenario's \"message\" parameter (mirrors the existing ...properties.text.type entry for a differently-named tool parameter \u2014 same bucket, no AgJSON home). First observed live (a 2026-07-03 capture, echo-gpt55).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1625,7 +1625,7 @@
   },
   {
     "path": "[*].data.response.providerData.tools[*].parameters.properties.title.description",
-    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text for this scenario's \"title\" parameter (render_card mock tool) \u2014 mirrors the existing ...properties.message.description entry for a differently-named tool parameter, same bucket, no AgJSON home. First observed live (playbook 2026-07-03 follow-up, app-spec-structured-result/gpt-5.5).",
+    "reason": "openai: agent config tools list in event payload; tool parameter JSON-schema description text for this scenario's \"title\" parameter (render_card mock tool) \u2014 mirrors the existing ...properties.message.description entry for a differently-named tool parameter, same bucket, no AgJSON home. First observed live (a 2026-07-03 follow-up capture, app-spec-structured-result/gpt-5.5).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1633,7 +1633,7 @@
   },
   {
     "path": "[*].data.response.providerData.tools[*].parameters.properties.title.type",
-    "reason": "openai: agent config tools list in event payload; tool parameter schema metadata for this scenario's \"title\" parameter (mirrors the existing ...properties.message.type entry for a differently-named tool parameter \u2014 same bucket, no AgJSON home). First observed live (playbook 2026-07-03 follow-up, app-spec-structured-result/gpt-5.5).",
+    "reason": "openai: agent config tools list in event payload; tool parameter schema metadata for this scenario's \"title\" parameter (mirrors the existing ...properties.message.type entry for a differently-named tool parameter \u2014 same bucket, no AgJSON home). First observed live (a 2026-07-03 follow-up capture, app-spec-structured-result/gpt-5.5).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1673,7 +1673,7 @@
   },
   {
     "path": "[*].data.response.providerData.top_p",
-    "reason": "openai: agent config / response metadata in model:response.created/in_progress/completed event payload; no AgJSON home (only response.id and usage are consumed) \u2014 same bucket as the sibling frequency_penalty/presence_penalty/etc. entries already allowlisted. This norm-path was already in field-registry.json but had NO known-acceptable-drops entry: the gpt-4o-mini capture's top_p value apparently coincidentally Rule-4-matched some other agjson value, masking that the field was always homeless. gpt-5.5's top_p (0.98) no longer coincidentally matches, surfacing this latent triage gap live (playbook 2026-07-03, echo-gpt55).",
+    "reason": "openai: agent config / response metadata in model:response.created/in_progress/completed event payload; no AgJSON home (only response.id and usage are consumed) \u2014 same bucket as the sibling frequency_penalty/presence_penalty/etc. entries already allowlisted. This norm-path was already in field-registry.json but had NO known-acceptable-drops entry: the gpt-4o-mini capture's top_p value apparently coincidentally Rule-4-matched some other agjson value, masking that the field was always homeless. gpt-5.5's top_p (0.98) no longer coincidentally matches, surfacing this latent triage gap live (a 2026-07-03 capture, echo-gpt55).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1697,7 +1697,7 @@
   },
   {
     "path": "[*].data.response.requestId",
-    "reason": "openai: per-response API-call correlation id on the SDK-assembled response object (response_done event) \u2014 never read by createOpenaiNormalizer (mirrors the existing [*].data.event.response.id precedent: the authoritative id IS consumed elsewhere to derive turnId, but this verbatim correlation id has no AgJSON home). First observed live (playbook 2026-07-03, echo-gpt55).",
+    "reason": "openai: per-response API-call correlation id on the SDK-assembled response object (response_done event) \u2014 never read by createOpenaiNormalizer (mirrors the existing [*].data.event.response.id precedent: the authoritative id IS consumed elsewhere to derive turnId, but this verbatim correlation id has no AgJSON home). First observed live (a 2026-07-03 capture, echo-gpt55).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1705,7 +1705,7 @@
   },
   {
     "path": "[*].data.response.usage.requestUsageEntries[*].endpoint",
-    "reason": "openai: new per-request API-routing metadata (e.g. \"responses.create\") on the SDK-assembled response.usage's per-request breakdown array (gpt-5.5 SDK addition) \u2014 never read by mapUsage (index.ts:675-688, which reads only the flat top-level usage aggregate). First observed live (playbook 2026-07-03, echo-gpt55).",
+    "reason": "openai: new per-request API-routing metadata (e.g. \"responses.create\") on the SDK-assembled response.usage's per-request breakdown array (gpt-5.5 SDK addition) \u2014 never read by mapUsage (index.ts:675-688, which reads only the flat top-level usage aggregate). First observed live (a 2026-07-03 capture, echo-gpt55).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -1977,7 +1977,7 @@
   },
   {
     "path": "[*].fast_mode_state",
-    "reason": "claude: appears on both the system/init event and the terminal result event; never read by createClaudeNormalizer (grep: zero call sites) \u2014 a CLI operating-mode flag, not turn content. First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reason": "claude: appears on both the system/init event and the terminal result event; never read by createClaudeNormalizer (grep: zero call sites) \u2014 a CLI operating-mode flag, not turn content. First observed live (a 2026-07-03 capture, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2049,7 +2049,7 @@
   },
   {
     "path": "[*].item.output",
-    "reason": "openai: SDK wrapper-level convenience field on a tool_output run-item \u2014 read ONLY when it is a JSON OBJECT carrying .structuredContent (index.ts:1539-1542); under @openai/agents-core 0.12.0 it is a JSON-STRINGIFIED STRING for MCP-routed tool results (verified live, playbook 2026-07-03), so isJsonObject() is false and the field is never read here \u2014 this scenario's echo tool has no structuredContent to extract anyway (mcp-mocks/text.ts is deliberately text-only). See the playbook capture report's structuredContent-extraction finding for the broader risk this SDK-version shape change poses for MCP tools that DO return structuredContent.",
+    "reason": "openai: SDK wrapper-level convenience field on a tool_output run-item \u2014 read ONLY when it is a JSON OBJECT carrying .structuredContent (index.ts:1539-1542); under @openai/agents-core 0.12.0 it is a JSON-STRINGIFIED STRING for MCP-routed tool results (verified live, 2026-07-03), so isJsonObject() is false and the field is never read here \u2014 this scenario's echo tool has no structuredContent to extract anyway (mcp-mocks/text.ts is deliberately text-only). This SDK-version shape change is a broader risk for MCP tools that DO return structuredContent.",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -2081,7 +2081,7 @@
   },
   {
     "path": "[*].item.rawItem.output[*].type",
-    "reason": "openai: the array-form tool-result content-part discriminant (\"input_text\"/\"input_image\"/\"input_file\" \u2014 the toolOutputToAgBlocks fix that reads them landed in this playbook step) \u2014 consumed structurally by the `part.type === \"input_text\"` check to select which parts carry model-visible text; the discriminant STRING itself is never copied verbatim anywhere (only the sibling .text is). Mirrors the existing bare-object [*].message.content[*].type precedent pattern (content-block discriminant, consumed structurally). First observed live (a 2026-07-03 capture, echo-gpt55).",
+    "reason": "openai: the array-form tool-result content-part discriminant (\"input_text\"/\"input_image\"/\"input_file\" \u2014 the toolOutputToAgBlocks fix that reads them landed alongside the first live capture noted below) \u2014 consumed structurally by the `part.type === \"input_text\"` check to select which parts carry model-visible text; the discriminant STRING itself is never copied verbatim anywhere (only the sibling .text is). Mirrors the existing bare-object [*].message.content[*].type precedent pattern (content-block discriminant, consumed structurally). First observed live (a 2026-07-03 capture, echo-gpt55).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -2121,7 +2121,7 @@
   },
   {
     "path": "[*].mcp_servers[*].name",
-    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event. Session-scoped MCP-connection bookkeeping.",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (a 2026-07-03 capture, echo-sonnet5): no prior committed claude cassette ever carried a system/init event. Session-scoped MCP-connection bookkeeping.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2137,7 +2137,7 @@
   },
   {
     "path": "[*].mcp_servers[*].status",
-    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event. Session-scoped MCP-connection bookkeeping.",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (a 2026-07-03 capture, echo-sonnet5): no prior committed claude cassette ever carried a system/init event. Session-scoped MCP-connection bookkeeping.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2145,7 +2145,7 @@
   },
   {
     "path": "[*].memory_paths.auto",
-    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (a 2026-07-03 capture, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2161,7 +2161,7 @@
   },
   {
     "path": "[*].message.content[*].caller.type",
-    "reason": "claude: a tool_use block's caller.type is consumed structurally to derive the providerExecuted boolean (index.ts:363-364: \"caller.type !== 'direct'\") \u2014 the literal string itself (e.g. \"direct\") is never copied verbatim into any AgJSON leaf, only the derived boolean is. First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reason": "claude: a tool_use block's caller.type is consumed structurally to derive the providerExecuted boolean (index.ts:363-364: \"caller.type !== 'direct'\") \u2014 the literal string itself (e.g. \"direct\") is never copied verbatim into any AgJSON leaf, only the derived boolean is. First observed live (a 2026-07-03 capture, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2193,7 +2193,7 @@
   },
   {
     "path": "[*].message.diagnostics",
-    "reason": "claude: new per-assistant-message diagnostics field (0.3.199 addition), null in every capture so far; never read by createClaudeNormalizer. Mirrors the existing null-only siblings [*].message.container / [*].message.context_management / [*].message.stop_details (\"provider session/control plumbing with no AgJSON home\"). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reason": "claude: new per-assistant-message diagnostics field (0.3.199 addition), null in every capture so far; never read by createClaudeNormalizer. Mirrors the existing null-only siblings [*].message.container / [*].message.context_management / [*].message.stop_details (\"provider session/control plumbing with no AgJSON home\"). First observed live (a 2026-07-03 capture, echo-sonnet5).",
     "reviewed": "null-only",
     "frameworks": [
       "claude"
@@ -2249,7 +2249,7 @@
   },
   {
     "path": "[*].message.usage.cache_creation.ephemeral_1h_input_tokens",
-    "reason": "claude: per-TTL cache-creation breakdown on the ASSISTANT-MESSAGE-level usage (mirrors the already-allowlisted RESULT-level [*].usage.cache_creation.ephemeral_{5m,1h}_input_tokens entries \u2014 same rationale, different carrier); mapMessageUsage (index.ts:152-160) reads only input_tokens/output_tokens/cache_read_input_tokens/cache_creation_input_tokens, never this nested per-TTL breakdown. The existing [*].message.usage.cache_creation container entry (null-only) never enumerated these leaf paths because the container itself was always null in every prior cassette \u2014 first observed non-null live (playbook 2026-07-03, echo-sonnet5).",
+    "reason": "claude: per-TTL cache-creation breakdown on the ASSISTANT-MESSAGE-level usage (mirrors the already-allowlisted RESULT-level [*].usage.cache_creation.ephemeral_{5m,1h}_input_tokens entries \u2014 same rationale, different carrier); mapMessageUsage (index.ts:152-160) reads only input_tokens/output_tokens/cache_read_input_tokens/cache_creation_input_tokens, never this nested per-TTL breakdown. The existing [*].message.usage.cache_creation container entry (null-only) never enumerated these leaf paths because the container itself was always null in every prior cassette \u2014 first observed non-null live (a 2026-07-03 capture, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2257,7 +2257,7 @@
   },
   {
     "path": "[*].message.usage.cache_creation.ephemeral_5m_input_tokens",
-    "reason": "claude: per-TTL cache-creation breakdown on the ASSISTANT-MESSAGE-level usage (mirrors the already-allowlisted RESULT-level [*].usage.cache_creation.ephemeral_{5m,1h}_input_tokens entries \u2014 same rationale, different carrier); mapMessageUsage (index.ts:152-160) reads only input_tokens/output_tokens/cache_read_input_tokens/cache_creation_input_tokens, never this nested per-TTL breakdown. The existing [*].message.usage.cache_creation container entry (null-only) never enumerated these leaf paths because the container itself was always null in every prior cassette \u2014 first observed non-null live (playbook 2026-07-03, echo-sonnet5).",
+    "reason": "claude: per-TTL cache-creation breakdown on the ASSISTANT-MESSAGE-level usage (mirrors the already-allowlisted RESULT-level [*].usage.cache_creation.ephemeral_{5m,1h}_input_tokens entries \u2014 same rationale, different carrier); mapMessageUsage (index.ts:152-160) reads only input_tokens/output_tokens/cache_read_input_tokens/cache_creation_input_tokens, never this nested per-TTL breakdown. The existing [*].message.usage.cache_creation container entry (null-only) never enumerated these leaf paths because the container itself was always null in every prior cassette \u2014 first observed non-null live (a 2026-07-03 capture, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2329,7 +2329,7 @@
   },
   {
     "path": "[*].modelUsage.claude-haiku-4-5-20251001.contextWindow",
-    "reason": "model capability constant (context window size) for claude-haiku-4-5-20251001 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.contextWindow entry (mapModelUsage, index.ts:116-126, never reads it); not an actual usage measurement, no AgUsage home. New model literal observed live (playbook 2026-07-03).",
+    "reason": "model capability constant (context window size) for claude-haiku-4-5-20251001 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.contextWindow entry (mapModelUsage, index.ts:116-126, never reads it); not an actual usage measurement, no AgUsage home. New model literal observed live (a 2026-07-03 capture).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2337,7 +2337,7 @@
   },
   {
     "path": "[*].modelUsage.claude-haiku-4-5-20251001.maxOutputTokens",
-    "reason": "model capability constant (max output tokens) for claude-haiku-4-5-20251001 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.maxOutputTokens entry (mapModelUsage, index.ts:116-126, never reads it); not an actual usage measurement, no AgUsage home. New model literal observed live (playbook 2026-07-03).",
+    "reason": "model capability constant (max output tokens) for claude-haiku-4-5-20251001 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.maxOutputTokens entry (mapModelUsage, index.ts:116-126, never reads it); not an actual usage measurement, no AgUsage home. New model literal observed live (a 2026-07-03 capture).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2393,7 +2393,7 @@
   },
   {
     "path": "[*].modelUsage.claude-sonnet-5.contextWindow",
-    "reason": "model capability constant (context window size) for claude-sonnet-5 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.contextWindow entry (mapModelUsage, index.ts:116-126, never reads it); not an actual usage measurement, no AgUsage home. New model literal observed live (playbook 2026-07-03).",
+    "reason": "model capability constant (context window size) for claude-sonnet-5 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.contextWindow entry (mapModelUsage, index.ts:116-126, never reads it); not an actual usage measurement, no AgUsage home. New model literal observed live (a 2026-07-03 capture).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2401,7 +2401,7 @@
   },
   {
     "path": "[*].modelUsage.claude-sonnet-5.maxOutputTokens",
-    "reason": "model capability constant (max output tokens) for claude-sonnet-5 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.maxOutputTokens entry (mapModelUsage, index.ts:116-126, never reads it); not an actual usage measurement, no AgUsage home. New model literal observed live (playbook 2026-07-03).",
+    "reason": "model capability constant (max output tokens) for claude-sonnet-5 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.maxOutputTokens entry (mapModelUsage, index.ts:116-126, never reads it); not an actual usage measurement, no AgUsage home. New model literal observed live (a 2026-07-03 capture).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2441,7 +2441,7 @@
   },
   {
     "path": "[*].output_style",
-    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (a 2026-07-03 capture, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2569,7 +2569,7 @@
   },
   {
     "path": "[*].permissionMode",
-    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (a 2026-07-03 capture, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2601,7 +2601,7 @@
   },
   {
     "path": "[*].product_feedback_disabled",
-    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (a 2026-07-03 capture, echo-sonnet5): no prior committed claude cassette ever carried a system/init event.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2641,7 +2641,7 @@
   },
   {
     "path": "[*].request_id",
-    "reason": "claude: per-message Anthropic API request-correlation id (0.3.199 addition) \u2014 operational metadata with no AgJSON home, never read by createClaudeNormalizer. Mirrors the existing [*].uuid / [*].session_id precedents (\"SDK per-message id ... no AgJSON home\"). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reason": "claude: per-message Anthropic API request-correlation id (0.3.199 addition) \u2014 operational metadata with no AgJSON home, never read by createClaudeNormalizer. Mirrors the existing [*].uuid / [*].session_id precedents (\"SDK per-message id ... no AgJSON home\"). First observed live (a 2026-07-03 capture, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2849,7 +2849,7 @@
   },
   {
     "path": "[*].skills[*]",
-    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event. Session capability-catalog listing (available slash-commands/agents/skills), not turn content.",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (a 2026-07-03 capture, echo-sonnet5): no prior committed claude cassette ever carried a system/init event. Session capability-catalog listing (available slash-commands/agents/skills), not turn content.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2857,7 +2857,7 @@
   },
   {
     "path": "[*].slash_commands[*]",
-    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (playbook 2026-07-03, echo-sonnet5): no prior committed claude cassette ever carried a system/init event. Session capability-catalog listing (available slash-commands/agents/skills), not turn content.",
+    "reason": "claude: field on the SDK's system/init bootstrap event (session/CLI/environment metadata) \u2014 createClaudeNormalizer only handles msg.type===\"system\" for the model_refusal_fallback subtype (index.ts:730); every other system-event field (including this one) falls through the final no-op comment (\"Other SDKMessage variants (system, partial-assistant, status, \u2026) carry no AgJSON-relevant content on this seam \u2192 no events\", index.ts:742-743) \u2014 first observed live (a 2026-07-03 capture, echo-sonnet5): no prior committed claude cassette ever carried a system/init event. Session capability-catalog listing (available slash-commands/agents/skills), not turn content.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2865,7 +2865,7 @@
   },
   {
     "path": "[*].source",
-    "reason": "openai: new top-level provenance tag on raw_model_stream_event identifying which underlying model-API family produced the event (gpt-5.5 SDK addition) \u2014 never read by createOpenaiNormalizer (the event is routed by data.type, not this tag). First observed live (playbook 2026-07-03, echo-gpt55).",
+    "reason": "openai: new top-level provenance tag on raw_model_stream_event identifying which underlying model-API family produced the event (gpt-5.5 SDK addition) \u2014 never read by createOpenaiNormalizer (the event is routed by data.type, not this tag). First observed live (a 2026-07-03 capture, echo-gpt55).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -2873,7 +2873,7 @@
   },
   {
     "path": "[*].subtype",
-    "reason": "claude: heterogeneous discriminant \u2014 \"init\" on a system/init event (no AgJSON home, see the system/init reason above) vs \"success\"/an error code on a result event (result.subtype: the error-variant value IS copied verbatim to turn.error.code at index.ts:724, so Rule 4 catches that occurrence via the copy; \"success\" needs no distinct marker of its own). Reviewed \"any\" to match the identical precedent already set for [*].type (also a heterogeneous top-level discriminant, \"consumed structurally to route normalization, never a value-bearing payload\"). First observed live via the system/init \"init\" value (playbook 2026-07-03, echo-sonnet5) \u2014 no prior cassette exercised it.",
+    "reason": "claude: heterogeneous discriminant \u2014 \"init\" on a system/init event (no AgJSON home, see the system/init reason above) vs \"success\"/an error code on a result event (result.subtype: the error-variant value IS copied verbatim to turn.error.code at index.ts:724, so Rule 4 catches that occurrence via the copy; \"success\" needs no distinct marker of its own). Reviewed \"any\" to match the identical precedent already set for [*].type (also a heterogeneous top-level discriminant, \"consumed structurally to route normalization, never a value-bearing payload\"). First observed live via the system/init \"init\" value (a 2026-07-03 capture, echo-sonnet5) \u2014 no prior cassette exercised it.",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2897,7 +2897,7 @@
   },
   {
     "path": "[*].time_to_request_ms",
-    "reason": "claude: result wall-clock/diagnostic telemetry (0.3.199 addition, sibling of the already-allowlisted duration_ms/duration_api_ms/num_turns) \u2014 not part of the AgJSON turn record (no semantic home, non-replayable, never read by createClaudeNormalizer). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reason": "claude: result wall-clock/diagnostic telemetry (0.3.199 addition, sibling of the already-allowlisted duration_ms/duration_api_ms/num_turns) \u2014 not part of the AgJSON turn record (no semantic home, non-replayable, never read by createClaudeNormalizer). First observed live (a 2026-07-03 capture, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2938,7 +2938,7 @@
   },
   {
     "path": "[*].tool_use_meta[*].display_name",
-    "reason": "claude: SDK-injected display sidecar on a tool_use content block (0.3.199 addition) \u2014 a human-readable tool label for host UI rendering; never read by createClaudeNormalizer (the facet reads block.name for tool.start.name, not this sidecar). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reason": "claude: SDK-injected display sidecar on a tool_use content block (0.3.199 addition) \u2014 a human-readable tool label for host UI rendering; never read by createClaudeNormalizer (the facet reads block.name for tool.start.name, not this sidecar). First observed live (a 2026-07-03 capture, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2946,7 +2946,7 @@
   },
   {
     "path": "[*].tool_use_meta[*].server_display_name",
-    "reason": "claude: SDK-injected display sidecar on a tool_use content block (0.3.199 addition) \u2014 a human-readable MCP-server label for host UI rendering; never read by createClaudeNormalizer (the facet reads block.server_name for tool.start.serverName, not this sidecar). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reason": "claude: SDK-injected display sidecar on a tool_use content block (0.3.199 addition) \u2014 a human-readable MCP-server label for host UI rendering; never read by createClaudeNormalizer (the facet reads block.server_name for tool.start.serverName, not this sidecar). First observed live (a 2026-07-03 capture, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2970,7 +2970,7 @@
   },
   {
     "path": "[*].ttft_ms",
-    "reason": "claude: wall-clock/diagnostic telemetry (0.3.199 addition, sibling of the already-allowlisted duration_ms/duration_api_ms/num_turns/ttft_stream_ms/time_to_request_ms) \u2014 a norm-path SHARED by two arms: on the result frame it is unread by createClaudeNormalizer and has no AgJSON home (non-replayable); on the stream_event partial envelope the facet DOES read msg.ttft_ms (workspace#7, index.ts carryTtft) and emits it once per message via message.metadata {ttft_ms} under the wire name (corpus/partials-sonnet5 and partials-fable51 agjson carry it). message.metadata is a merge channel, not a fixed turn-record path, so no Rule-1 transform target exists \u2014 reviewed \"any\" stands for both arms. First observed live (playbook 2026-07-03, echo-sonnet5); reason corrected 2026-09-05 (0.3.261 sweep: the prior text predated the partial carry).",
+    "reason": "claude: wall-clock/diagnostic telemetry (0.3.199 addition, sibling of the already-allowlisted duration_ms/duration_api_ms/num_turns/ttft_stream_ms/time_to_request_ms) \u2014 a norm-path SHARED by two arms: on the result frame it is unread by createClaudeNormalizer and has no AgJSON home (non-replayable); on the stream_event partial envelope the facet DOES read msg.ttft_ms (workspace#7, index.ts carryTtft) and emits it once per message via message.metadata {ttft_ms} under the wire name (corpus/partials-sonnet5 and partials-fable51 agjson carry it). message.metadata is a merge channel, not a fixed turn-record path, so no Rule-1 transform target exists \u2014 reviewed \"any\" stands for both arms. First observed live (a 2026-07-03 capture, echo-sonnet5); reason corrected 2026-09-05 (0.3.261 sweep: the prior text predated the partial carry).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -2978,7 +2978,7 @@
   },
   {
     "path": "[*].ttft_stream_ms",
-    "reason": "claude: result wall-clock/diagnostic telemetry (0.3.199 addition, sibling of the already-allowlisted duration_ms/duration_api_ms/num_turns) \u2014 not part of the AgJSON turn record (no semantic home, non-replayable, never read by createClaudeNormalizer). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reason": "claude: result wall-clock/diagnostic telemetry (0.3.199 addition, sibling of the already-allowlisted duration_ms/duration_api_ms/num_turns) \u2014 not part of the AgJSON turn record (no semantic home, non-replayable, never read by createClaudeNormalizer). First observed live (a 2026-07-03 capture, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -3028,7 +3028,7 @@
   },
   {
     "path": "[*].usage.iterations[*].cache_creation.ephemeral_1h_input_tokens",
-    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (a 2026-07-03 capture, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -3036,7 +3036,7 @@
   },
   {
     "path": "[*].usage.iterations[*].cache_creation.ephemeral_5m_input_tokens",
-    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (a 2026-07-03 capture, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -3044,7 +3044,7 @@
   },
   {
     "path": "[*].usage.iterations[*].cache_creation_input_tokens",
-    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (a 2026-07-03 capture, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -3052,7 +3052,7 @@
   },
   {
     "path": "[*].usage.iterations[*].cache_read_input_tokens",
-    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (a 2026-07-03 capture, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -3068,7 +3068,7 @@
   },
   {
     "path": "[*].usage.iterations[*].output_tokens",
-    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (a 2026-07-03 capture, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -3076,7 +3076,7 @@
   },
   {
     "path": "[*].usage.iterations[*].type",
-    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (playbook 2026-07-03, echo-sonnet5).",
+    "reason": "claude: per-agent-loop-iteration usage breakdown on the result usage (0.3.199 addition) \u2014 mapTurnUsage (index.ts:128-150) reads only the top-level usage aggregate fields and modelUsage, never this per-iteration array; operational telemetry with no AgUsage home (the existing [*].message.usage.iterations entry covers a DIFFERENT, message-level iteration-count field \u2014 this is the result-level per-iteration breakdown ARRAY). First observed live (a 2026-07-03 capture, echo-sonnet5).",
     "reviewed": "any",
     "frameworks": [
       "claude"
@@ -3156,7 +3156,7 @@
   },
   {
     "path": "[*].usageMetadata.promptTokensDetails[*].modality",
-    "reason": "adk: Gemini per-modality prompt-token breakdown (TEXT/IMAGE/\u2026 buckets) \u2014 the TOTALS are mapped (promptTokenCount -> usage.inputTokens, transforms.json); AgUsage has no per-modality vocabulary. First observed live: echo-gemini35 (gemini-3.5-flash, playbook 2026-07-13).",
+    "reason": "adk: Gemini per-modality prompt-token breakdown (TEXT/IMAGE/\u2026 buckets) \u2014 the TOTALS are mapped (promptTokenCount -> usage.inputTokens, transforms.json); AgUsage has no per-modality vocabulary. First observed live: echo-gemini35 (gemini-3.5-flash, 2026-07-13).",
     "reviewed": "any",
     "frameworks": [
       "adk"
@@ -3172,7 +3172,7 @@
   },
   {
     "path": "[*].usageMetadata.serviceTier",
-    "reason": "adk: Gemini billing/capacity tier label \u2014 pure billing telemetry, same class as the openai facet's router-plane rate-limit/service-tier signals. First observed live: echo-gemini35 (playbook 2026-07-13).",
+    "reason": "adk: Gemini billing/capacity tier label \u2014 pure billing telemetry, same class as the openai facet's router-plane rate-limit/service-tier signals. First observed live: echo-gemini35 (a 2026-07-13 capture).",
     "reviewed": "any",
     "frameworks": [
       "adk"

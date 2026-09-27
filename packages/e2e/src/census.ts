@@ -18,10 +18,10 @@
  *        - reviewed:"any"        → ignorable regardless of value.
  *        - reviewed:"null-only"  → ignorable ONLY while the value is null; a
  *          populated (non-null) value falls through to Rule 3/4 like any
- *          unregistered leaf (closes the M57/M2 hole where a null-reviewed
+ *          unregistered leaf (closes the hole where a null-reviewed
  *          drop silently masked a later population of that same path).
  *      An entry whose `frameworks` excludes the current `framework` does not
- *      apply at all (closes the M57 framework-unscoped-guard hole).
+ *      apply at all (closes the framework-unscoped-guard hole).
  *   3. value is AMBIENT (0, '', false, true, null) → always a drop (never
  *      auto-covered by value-match — coincidental collisions would mask real loss)
  *   4. else (distinctive value): covered iff leaf.value ∈ collectValues(agjson)
@@ -55,7 +55,7 @@ export type Framework = "claude" | "openai" | "adk" | "vercel";
  * How a `known-acceptable-drops.json` entry's shape was reviewed:
  *   - "null-only": ignorable ONLY while the source value is null. A populated
  *     value is NOT covered by this entry — it is re-scrutinized like any
- *     unregistered leaf (audit M57/M2 fix).
+ *     unregistered leaf.
  *   - "any": ignorable regardless of value — a genuinely homeless field; no
  *     future population would ever gain an AgJSON home.
  */
@@ -338,7 +338,7 @@ export function census(input: CensusInput): CensusReport {
       const targets = typeof target === "string" ? [target] : target;
       if (leaf.value !== null && !targets.some((t) => agJsonNormPaths.has(t))) {
         // The mapped target never landed anywhere in the agjson — a genuine
-        // drop (audit M57/M1: a transforms-registered value that vanishes).
+        // drop (a transforms-registered value that vanishes).
         drops.push(leaf);
       }
       continue; // registered — Rule 1 owns this leaf either way
@@ -357,7 +357,7 @@ export function census(input: CensusInput): CensusReport {
         continue; // ignorable
       }
       // reviewed:"null-only" with a populated value (or out-of-scope framework)
-      // falls through to Rule 3/4 below — audit M57/M2 fix.
+      // falls through to Rule 3/4 below.
     }
 
     // ── Rule 3: ambient scalar ────────────────────────────────────────────────

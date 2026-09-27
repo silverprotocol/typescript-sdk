@@ -1,6 +1,5 @@
 /**
- * provenance.test.ts — the growth-guard for unlabeled corpora (Task 6 /
- * audit M60 §2.B).
+ * provenance.test.ts — the growth-guard for unlabeled corpora.
  *
  * Two suites:
  *   1. `isProvenanceKind` unit tests.

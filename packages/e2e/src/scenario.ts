@@ -153,7 +153,7 @@ export const Scenario = z.object({
   // conversation, tool arguments and response ids). The resume leg must use
   // leg 1's steer, MCP servers and model (capture-cli enforces it).
   resumeFrom: z.string().min(1).optional(),
-  // Shared-state knob (google-adk only; rnd's ADK state-fold candidate,
+  // Shared-state knob (google-adk only; an ADK state-fold spec candidate,
   // 2026-09-24). Each entry is one step's state writes: the agent registers
   // apply_state_step({step}), which writes entry step-1 through
   // toolContext.state, so the values never depend on the
@@ -262,7 +262,7 @@ export type Scenario = z.infer<typeof Scenario>;
  * mode, so `_note` keys in JSON are silently dropped — keep prose notes here
  * rather than in the JSON files.
  *
- * NOTE (framework param, Task 6): `mcp__<key>__<tool>` is the Claude Agent
+ * NOTE (framework param): `mcp__<key>__<tool>` is the Claude Agent
  * SDK's OWN permission-gate naming convention for MCP-sourced tools — it is
  * NOT a general MCP or AgJSON concept. The openai-agents-sdk / google-adk
  * capture agents discover + call tools by their BARE registered name (no

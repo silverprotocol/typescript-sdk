@@ -479,16 +479,16 @@ describe("census", () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
-  // audit M57 §2.B — the three mutations that PROVED the census was
+  // The three mutations that PROVED the census was
   // value-blind on registered paths. These tests permanently encode them.
   // ─────────────────────────────────────────────────────────────────────────
 
-  // ── M1-class: a transforms-registered source whose mapped TARGET is
+  // ── a transforms-registered source whose mapped TARGET is
   //    entirely absent from the AgJSON ⇒ DROP (previously: silently green,
   //    since the OLD Rule 1 was `transforms.has(leaf.norm)` with no lookup
   //    into the agjson at all). ─────────────────────────────────────────────
 
-  it("M1-class: a transforms-registered source drops when its target never lands in the AgJSON", () => {
+  it("a transforms-registered source drops when its target never lands in the AgJSON", () => {
     const input = makeInput({
       native: [{ stop_reason: "end_turn" }],
       agjson: [{ someUnrelatedField: 1 }], // finishReason genuinely never emitted
@@ -500,7 +500,7 @@ describe("census", () => {
     expect(drop?.value).toBe("end_turn");
   });
 
-  it("M1-class: a transforms-registered null source is trivially mapped (nothing to assert)", () => {
+  it("a transforms-registered null source is trivially mapped (nothing to assert)", () => {
     const input = makeInput({
       native: [{ stop_sequence: null }],
       agjson: [{ someUnrelatedField: 1 }], // target absent, but source is null
@@ -511,12 +511,12 @@ describe("census", () => {
     expect(drop).toBeUndefined();
   });
 
-  // ── M2-class: an allowlist entry reviewed:"null-only" whose source value
+  // ── an allowlist entry reviewed:"null-only" whose source value
   //    is POPULATED ⇒ DROP (previously: silently green, since the OLD Rule 2
   //    was `allowlist.has(leaf.norm)` with no value check at all — a
   //    null-reviewed drop stayed permanently masked even once populated). ──
 
-  it("M2-class: a null-only allowlist entry does NOT cover a populated (non-null) value", () => {
+  it("a null-only allowlist entry does NOT cover a populated (non-null) value", () => {
     const input = makeInput({
       native: [{ parent_tool_use_id: "toolu_distinctive_marker" }],
       agjson: [{ someUnrelatedField: 1 }], // the distinctive value has no home
@@ -554,12 +554,12 @@ describe("census", () => {
     expect(drop).toBeUndefined();
   });
 
-  // ── M3-class (money-path): a distinctive non-ambient source (e.g. a real
+  // ── money-path: a distinctive non-ambient source (e.g. a real
   //    cache-read token count) is NOT unconditionally waived just because its
   //    reason text happens to describe the CURRENT value as ambient — moving
   //    the entry into transforms means the target must genuinely land. ─────
 
-  it("M3-class: a real distinctive cache-token value is verified against its target, not blanket-waived", () => {
+  it("a real distinctive cache-token value is verified against its target, not blanket-waived", () => {
     const input = makeInput({
       native: [{ cached_tokens: 424242 }],
       agjson: [{ someUnrelatedField: 1 }], // cacheReadTokens never landed at all
@@ -572,8 +572,8 @@ describe("census", () => {
   });
 
   // ── per-framework guard scoping: an allowlist entry scoped to a different
-  //    framework than the current replay does NOT apply (audit M57 —
-  //    framework-unscoped guards could mask a same-norm-path drop on another
+  //    framework than the current replay does NOT apply (a
+  //    framework-unscoped guard could mask a same-norm-path drop on another
   //    framework's cassette). ────────────────────────────────────────────
 
   it("does not let a framework-scoped allowlist entry cover a leaf from a different framework", () => {

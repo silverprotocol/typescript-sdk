@@ -32,7 +32,7 @@ export type AgSource = z.infer<typeof AgSource>;
 
 // Grounding-source payload union (spec §2/§4): the §4 `source` event's payload
 // union, extracted here so it can be reused verbatim by BOTH the event arm and
-// AgTurnRecord.sources[] — one definition, DRY, cast-free (audit M23).
+// AgTurnRecord.sources[] — one definition, DRY, cast-free.
 export const AgSourcePayload = z.union([
   AgSource,
   z.object({ url: z.string(), title: z.string().optional() }),
@@ -443,7 +443,7 @@ export type AgBlock =
       toolMetadata?: AgMeta; // per-tool metadata bag (Vercel)
       dynamic?: boolean; // Vercel dynamic-vs-static tool distinction
       pendingInput?: AgPendingInput; // MCP MRTR carrier when outcome==="input_required"
-      preliminary?: boolean; // set when the result is partial/kept-open (tool.done.more:true); cleared by the final tool.done (audit M20)
+      preliminary?: boolean; // set when the result is partial/kept-open (tool.done.more:true); cleared by the final tool.done
       isError?: boolean; // MCP-frozen field, kept verbatim (derived: outcome==="error")
       providerMetadata?: AgProviderMeta;
       annotations?: AgAnnotations;
@@ -582,7 +582,7 @@ export const AgBlock: z.ZodType<AgBlock> = z.lazy(() =>
 // (HITL) arm: the turn parks on one or more asks; `result` MAY accompany a pause
 // (a partial value emitted before parking). `{type:"aborted"}` is turn.abort's
 // dedicated marker (symmetric with the error arm) — taskState is verbatim-A2A
-// only and is NEVER reducer-invented (audit M29).
+// only and is NEVER reducer-invented.
 export const AgOutcome = z.discriminatedUnion("type", [
   z.object({ type: z.literal("success"), result: JsonValue.optional() }),
   // retriable (draft.5): the producer's judgement, recorded from turn.error; absent = unstated, not false.
@@ -705,17 +705,17 @@ export const AgTurnRecord = z.object({
   sourceIds: z.array(z.string()).optional(),
   sources: z.array(z.object({
     sourceId: z.string(),
-    source: AgSourcePayload, // the §4 source arm's payload union, landed verbatim (audit M23)
+    source: AgSourcePayload, // the §4 source arm's payload union, landed verbatim
     chunkIndex: z.number().optional(),
     providerMetadata: AgProviderMeta.optional(),
-  })).optional(), // grounding sources folded from source events (audit M23); sourceIds stays as the derived index
+  })).optional(), // grounding sources folded from source events; sourceIds stays as the derived index
   promptBlocked: z.object({
     reason: z.enum(["safety", "blocklist", "prohibited", "other"]), // mirrors the §4 prompt.blocked reason enum exactly
     reasonRaw: z.string().optional(), // folded from prompt.blocked.reasonRaw verbatim (draft.8)
     safety: z.array(AgSafety).optional(),
-  }).optional(), // audit M28
+  }).optional(),
   asks: z.array(AgPausedAsk).optional(),
-  taskState: z.string().optional(), // verbatim A2A TaskState (never reducer-invented — audit M29); no outcome-target mapping (A44)
+  taskState: z.string().optional(), // verbatim A2A TaskState (never reducer-invented); no outcome-target mapping
   displayRequired: z.array(AgDisplayRequired).optional(),
   trigger: AgTrigger.optional(), // what triggered this turn (A2-additive)
   guardrails: z.array(z.object({
@@ -1218,7 +1218,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     id: z.string(),
     phase: z.string().optional(), // draft.4: REPLACES the start value when present
     providerMetadata: AgProviderMeta.optional(),
-    // STREAMED-text citations carrier (audit M22): citations for a streamed text
+    // STREAMED-text citations carrier: citations for a streamed text
     // block arrive here (not as a duplicate id-less supplement block) and attach
     // to the sealed block named by `id` (spec §5 text.end row).
     citations: z.array(AgCitation).optional(),
@@ -1464,7 +1464,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     artifacts: z.array(AgArtifact).optional(),
     memory: z.array(AgMemoryRecord).optional(),
   }),
-  // ── HOST DISPLAY/RUNTIME HINT ── live-only; `capabilities` here = HOST surface render hint (A30).
+  // ── HOST DISPLAY/RUNTIME HINT ── live-only; `capabilities` here = HOST surface render hint.
   z.object({
     ...base,
     type: z.literal("host.context"),
@@ -1512,7 +1512,7 @@ export const AgClosedEvent = z.discriminatedUnion("type", [
     ...base,
     type: z.literal("ui.display-mode"),
     mode: AgDisplayMode,
-    granted: AgDisplayMode.optional(), // authoritative reply leg (A52)
+    granted: AgDisplayMode.optional(), // authoritative reply leg
     surfaceId: z.string().optional(),
     toolCallId: z.string().optional(),
   }),

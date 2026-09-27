@@ -21,17 +21,16 @@
  *      a. `replayCassette(native)` → drive the REAL ADK facet normalizer.
  *      b. SNAPSHOT: assert produced `agjson` deep-equals `adk.agjson.json`.
  *      c. GATE: assert `report.drops === []` AND `report.newFields === []`
- *         (audit M59 — this gate previously did not exist; the ADK facet's
+ *         (this gate previously did not exist; the ADK facet's
  *         census was 100% unmeasured. Every drop/newField below is triaged
- *         into `transforms.json` / `known-acceptable-drops.json` per the
- *         Task 3 shapes, cited to `google-adk/src/index.ts` — see the Task 4
- *         report for the full triage table).
+ *         into `transforms.json` (a mapping) or
+ *         `known-acceptable-drops.json` (a reasoned entry)).
  *
  * 4. I4 cross-framework convergence gate:
  *    For each scenario that has ALL THREE of `claude.native.json`,
  *    `openai.native.json` AND `adk.native.json`:
  *      a. Replay all three cassettes to produce their respective AgJSON streams.
- *      b. GATE (audit M59): assert EACH framework's `report.drops === []` AND
+ *      b. GATE: assert EACH framework's `report.drops === []` AND
  *         `report.newFields === []` — the census is no longer computed then
  *         discarded; a real per-framework drop on a convergence scenario now
  *         fails this leg directly, not just the seed-corpus suites above.
@@ -59,7 +58,7 @@ const CORPUS_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "corpus"
 
 /**
  * Every Claude seed scenario under corpus/ that ships a committed native cassette.
- * `convergence-echo` joins this list per audit M58: it was previously the ONLY
+ * `convergence-echo` joins this list: it was previously the ONLY
  * live convergence check with NO snapshot/census backstop of its own — the
  * vacuity-holed I4 assert was its sole gate. It now gets the same
  * agjson-snapshot + census-clean machinery gate every other seed gets.
@@ -165,7 +164,7 @@ const CLAUDE_SEEDS = [
   // (no tool.done). result-meta carries deferredToolUse. The resume legs
   // (resumeFrom this seed; allow / deny) are separate cassettes.
   "defer-tool-sonnet5",
-  // 2026-09-23 (rnd capture #1, capture backlog "MCP resource_link"): the
+  // 2026-09-23 (an exploratory capture, capture backlog "MCP resource_link"): the
   // first live resource_link tool result, from the new resource-link mock
   // (find_doc returns a text block + one fully populated resource_link).
   // claude-sonnet-5 @0.3.280. The CLI flattens the link into a text block
@@ -177,7 +176,7 @@ const CLAUDE_SEEDS = [
   // the flattened text repeats uri/name/description, so value-match alone
   // could not prove the carry.
   "resource-link-sonnet5",
-  // 2026-09-23 (rnd #4, rnd 13+17 Claude leg): Opus 5.5 @0.3.280 with
+  // 2026-09-23 (an exploratory capture, the Claude leg of two spec candidates): Opus 5.5 @0.3.280 with
   // includePartialMessages + thinkingDisplay "summarized", two sequential MCP
   // tools, and a steer asking for a one-sentence progress update before each
   // call. The model writes both updates (58- and 73-char text blocks before
@@ -197,7 +196,7 @@ const CLAUDE_SEEDS = [
   // approval ask.
   "defer-tool-sonnet5-resume-allow",
   "defer-tool-sonnet5-resume-deny",
-  // Still unenrolled (candidate-20 bar, package decision 6):
+  // Still unenrolled (a spec-candidate review's decision):
   // -resume-unavailable (no MCP server on resume, so the tool is gone). The
   // FIRST result (before init) has is_error:true and stop_reason /
   // terminal_reason "tool_deferred_unavailable", with the same
@@ -229,7 +228,7 @@ const CLAUDE_SEEDS = [
 
 /**
  * Every OpenAI seed scenario under corpus/ that ships a committed native cassette.
- * `convergence-echo` joins this list per audit M58 (see the CLAUDE_SEEDS comment).
+ * `convergence-echo` joins this list (see the CLAUDE_SEEDS comment).
  *
  * HISTORICAL SEED (stated 2026-09-23 so it stops reading as silent staleness):
  * `echo-gpt55` is deliberately kept at its 2026-07-03 @openai/agents 0.12.0
@@ -241,9 +240,9 @@ const CLAUDE_SEEDS = [
  * `echo-gpt55` joins this list per the 2026-07-03 model-release playbook: the
  * FIRST live capture against the new `gpt-5.5` model (kind:"capture", real
  * sdkVersion — see corpus/echo-gpt55/openai.provenance.json). This capture is
- * ALSO what surfaced Finding #2 (the facet's `toolOutputToAgBlocks` missing the
+ * ALSO what surfaced a facet defect (`toolOutputToAgBlocks` missing the
  * `input_text` array-form discriminant, silently dropping every MCP tool
- * result under `@openai/agents-core` 0.12.0) — fixed the same playbook step.
+ * result under `@openai/agents-core` 0.12.0), fixed alongside that capture.
  *
  * `app-spec-structured-result` joins this list per the 2026-07-03 playbook
  * FOLLOW-UP: the FIRST live capture of a structuredContent-bearing MCP tool
@@ -251,7 +250,7 @@ const CLAUDE_SEEDS = [
  * corpus/app-spec-structured-result/openai.provenance.json). This capture
  * proves `extractStructuredContent`'s `item.customData.structuredContent`
  * channel end-to-end (the fix for the exploratory finding the echo-gpt55
- * playbook step reported but did not fix — see the openai-agents facet's
+ * capture reported but did not fix — see the openai-agents facet's
  * `extractStructuredContent` doc for the full wire-truth citations).
  */
 const OPENAI_SEEDS = [
@@ -280,14 +279,14 @@ const OPENAI_SEEDS = [
   "echo-gpt6sol",
   "echo-gpt6luna",
   // 2026-09-23: the corpus's FIRST live `phase:"commentary"` (the gate
-  // for R&D 13+17 stage 2, the draft.4 `phase` field). gpt-6-sol at
+  // for the draft.4 `phase` field). gpt-6-sol at
   // @openai/agents 0.18.0, reasoningSummary "auto" (echoed back as "detailed",
   // effort medium), three DEPENDENT echo calls with a system-prompt preamble
   // rule: each call's response carries a commentary message before its
   // function_call, folding as text.start.providerMetadata.phase "commentary"
   // ×3 + one "final_answer". Summaries stayed EMPTY (44/6/0 reasoning tokens).
   "commentary-gpt6sol",
-  // 2026-09-23 (rnd capture #1): the resource_link leg on OpenAI (gpt-6-sol
+  // 2026-09-23 (an exploratory capture): the resource_link leg on OpenAI (gpt-6-sol
   // @ @openai/agents 0.18.0). The agents SDK JSON-stringifies the whole MCP
   // content (text + resource_link) into the function_call_output string
   // before the stream, so tool.done carries it as ONE text block of JSON:
@@ -325,7 +324,7 @@ const OPENAI_SEEDS = [
 
 /**
  * Every ADK seed scenario under corpus/ that ships a committed native cassette.
- * `text-tool-turn` joins this list per M58 Task 5: a hand-authored ADK fixture
+ * `text-tool-turn` joins this list with a hand-authored ADK fixture
  * (`corpus/text-tool-turn/adk.native.json`) producing the echo task — the SAME
  * task `text-tool-turn/openai.native.json` already captures (see the
  * CONVERGENCE_SCENARIOS comment below for why `text-tool-turn` itself is NOT
@@ -392,7 +391,7 @@ const ADK_SEEDS = [
   // decision. This scenario steers the bare name and records the clean MCP
   // isError path. tool-error itself stays as the historical 2.5-flash record.
   "tool-error-gemini38",
-  // 2026-09-23 (rnd capture #1): the resource_link leg on ADK (gemini-3.8-flash
+  // 2026-09-23 (an exploratory capture): the resource_link leg on ADK (gemini-3.8-flash
   // @2.1.0). MCPToolset hands the MCP content through as
   // functionResponse.response.content[*]. Since draft.5 (§8.0 item 31)
   // the facet maps the resource_link part to ONE resource-link block
@@ -493,7 +492,7 @@ const VERCEL_SEEDS = [
   // as tool.done structuredContent (the resource_link fully structured) plus
   // one text block of the same JSON. Folds to one turn, needsResync false.
   "resource-link-gpt6sol",
-  // 2026-09-25 (vercel MCP finding, V1/V4 live legs): the error and MCP Apps
+  // 2026-09-25 (the vercel MCP fix's live legs): the error and MCP Apps
   // mocks on vercel, gpt-6-sol @ ai 7.0.111 + @ai-sdk/mcp. The fail tool's
   // CallToolResult {isError:true} arrives as an ordinary tool-result and folds
   // as tool.done{outcome:"error", isError:true}; render_card's _meta.ui rides
@@ -898,20 +897,20 @@ describe("replay CI gate — Vercel seed corpus (machinery/snapshot self-consist
  * expected to produce structurally-equivalent AgJSON under canonicalization.
  *
  * The existing `text-tool-turn` scenario now has all three framework cassettes
- * (Task 5 added `adk.native.json`) but they do NOT capture the identical task:
+ * (a hand-authored `adk.native.json` was added) but they do NOT capture the identical task:
  * Claude's `text-tool-turn/claude.native.json` is a hand-authored
  * weather+subagent fixture (2 tool calls, a thinking block, a subagent turn) —
  * an entirely different scenario from OpenAI's REAL @openai/agents echo-task
  * capture (`text-tool-turn/openai.native.json`, byte-identical to
- * `convergence-echo/openai.native.json`) that Task 5's ADK fixture correctly
+ * `convergence-echo/openai.native.json`) that the ADK fixture correctly
  * mirrors. This is a PRE-EXISTING divergence (claude's fixture predates any
  * convergence intent for this scenario — it exists solely as a
- * single-framework machinery/snapshot seed) — CONFIRMED empirically (Task 5):
+ * single-framework machinery/snapshot seed) — CONFIRMED empirically:
  * wiring `text-tool-turn` into this list throws
  * `assertConvergent`'s claude-vs-openai check on eventSequence/toolCalls/
- * textContent/toolResults before the ADK arm is even reached. Per the M58
- * brief's explicit contingency ("do not weaken the gate or tune the fixture
- * to dodge a genuine mismatch"), `text-tool-turn` stays OUT of
+ * textContent/toolResults before the ADK arm is even reached. The gate is
+ * deliberately not weakened, nor the fixture tuned to dodge a genuine
+ * mismatch, so `text-tool-turn` stays OUT of
  * CONVERGENCE_SCENARIOS — see the dedicated regression test below
  * ("text-tool-turn: claude vs openai — pre-existing task mismatch (BLOCKED,
  * not a fixture bug)") that pins the real divergence so it can't silently
@@ -969,7 +968,7 @@ describe("I4 cross-framework convergence gate", () => {
         replayCassette(adkPath, "adk"),
       ]);
 
-      // Census gate (audit M59): previously this test replayed all three
+      // Census gate: previously this test replayed all three
       // cassettes and used ONLY `.agjson`, silently discarding `.report` —
       // a computed-then-thrown-away census. Assert each framework's census
       // is clean (post-triage) exactly like the seed-corpus suites above,
@@ -1011,9 +1010,9 @@ it("convergence-echo: ADK divergence is detected (non-vacuity)", async () => {
   ).toThrow(/textContent mismatch/);
 });
 
-// ─── text-tool-turn: pre-existing claude/openai task mismatch (M58 Task 5) ───
+// ─── text-tool-turn: pre-existing claude/openai task mismatch ───
 //
-// Task 5 added `corpus/text-tool-turn/adk.native.json` — a hand-authored ADK
+// `corpus/text-tool-turn/adk.native.json` is a hand-authored ADK
 // fixture producing the SAME echo task `text-tool-turn/openai.native.json`
 // already captures (mirroring `convergence-echo/adk.native.json`'s event
 // grammar). Wiring `text-tool-turn` into CONVERGENCE_SCENARIOS to make it a
@@ -1024,7 +1023,7 @@ it("convergence-echo: ADK divergence is detected (non-vacuity)", async () => {
 // Claude's own single-framework machinery/snapshot seed (see CLAUDE_SEEDS
 // above). This is a REAL semantic divergence, not a bug in the new ADK
 // fixture (which converges cleanly with the OpenAI echo task — see the
-// assertion below). Per the M58 brief's contingency, the gate is NOT weakened
+// assertion below). The gate is NOT weakened
 // and the fixture is NOT tuned to dodge the mismatch; this test PINS the
 // divergence so a future accidental CONVERGENCE_SCENARIOS addition fails
 // loudly with a clear pointer back to this comment instead of silently

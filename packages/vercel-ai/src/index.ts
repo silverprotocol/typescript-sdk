@@ -486,7 +486,7 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
         // openai facet carries the same field on text.end (openai-agents
         // index.ts `phaseMeta`); on text.start it is known before any delta.
         const meta = partProviderMeta(part);
-        // draft.4 phase (rnd 13+17 stage 2): OpenAI's "commentary" (text a model
+        // draft.4 phase: OpenAI's "commentary" (text a model
         // writes between tool calls) opens as phase "interim". The provider bag
         // still rides verbatim; "final_answer", unknown values or no bag → no key.
         const interim =

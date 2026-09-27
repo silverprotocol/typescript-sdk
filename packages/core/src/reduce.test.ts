@@ -29,7 +29,7 @@ describe("reduce — scaffold", () => {
     expect(acc.result()).toEqual(reduce([]).result);
     expect(acc.needsResync).toBe(false);
   });
-  it("batch reduce() surfaces the park signal instead of a silently truncated result (audit M50)", () => {
+  it("batch reduce() surfaces the park signal instead of a silently truncated result", () => {
     const out = reduce([
       { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
       { type: "text.start", seq: 5, id: "x1", turnId: "t1" }, // forward gap ⇒ park
@@ -364,8 +364,8 @@ describe("reduce — R2 text + reasoning blocks", () => {
   });
 
   // (e) STREAMED-text citations carrier: text.end.citations attaches to the
-  // sealed block — no duplicate supplement fold (audit M22).
-  it("a cited streamed text block folds ONCE, with citations attached at text.end (audit M22)", () => {
+  // sealed block — no duplicate supplement fold.
+  it("a cited streamed text block folds ONCE, with citations attached at text.end", () => {
     const r = new Reducer();
     r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
     r.push({
@@ -402,7 +402,7 @@ describe("reduce — R3 tool-call + tool-result blocks", () => {
   //     and assembled input agree byte-for-byte, so — unlike its name previously
   //     implied — it does NOT independently prove assembled-over-delta precedence
   //     on a conflict; see (a2) below for the seeded-placeholder-before-assembled case)
-  it("(a) tool.start + args.delta + args.assembled → tool-call block reflects the assembled input (audit M20 mislabel fix)", () => {
+  it("(a) tool.start + args.delta + args.assembled → tool-call block reflects the assembled input", () => {
     const r = reduce([
       TURN_START,
       MSG_START,
@@ -903,8 +903,8 @@ describe("reduce — R5 turn-records", () => {
   });
 
   // (c) turn.abort → AgTurnRecord.outcome = {type:"aborted"} (taskState is verbatim-A2A
-  // only and is NEVER reducer-invented — audit M29; was taskState="aborted" pre-fix).
-  it("(c) turn.abort folds outcome={type:'aborted'}, leaves taskState untouched (audit M29)", () => {
+  // only and is NEVER reducer-invented; it was taskState="aborted" before the fix).
+  it("(c) turn.abort folds outcome={type:'aborted'}, leaves taskState untouched", () => {
     const r = reduce([
       { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
       { type: "turn.abort", seq: 1, turnId: "t1" },
@@ -917,8 +917,8 @@ describe("reduce — R5 turn-records", () => {
   });
 
   // (c2) turn.abort with reason → outcome carries it; taskState stays verbatim-A2A-only
-  // (audit M29 — dedicated marker, symmetric with turn.error).
-  it("turn.abort folds a dedicated aborted outcome and leaves taskState verbatim-A2A (audit M29)", () => {
+  // (a dedicated marker, symmetric with turn.error).
+  it("turn.abort folds a dedicated aborted outcome and leaves taskState verbatim-A2A", () => {
     const r = new Reducer();
     r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
     r.push({ type: "turn.abort", seq: 1, turnId: "t1", reason: "stream-truncated" });
@@ -953,9 +953,9 @@ describe("reduce — R5 turn-records", () => {
   });
 
   // (d2) source → the FULL record lands on sources[] (payload/chunkIndex/providerMetadata
-  // survive the fold, not just the bare sourceId) so citations can resolve post-fold
-  // (audit M23). sourceIds[] stays as the derived binding index.
-  it("source events land full records; citations can resolve post-fold (audit M23)", () => {
+  // survive the fold, not just the bare sourceId) so citations can resolve post-fold.
+  // sourceIds[] stays as the derived binding index.
+  it("source events land full records; citations can resolve post-fold", () => {
     const r = new Reducer();
     r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
     r.push({
@@ -1026,8 +1026,8 @@ describe("reduce — R5 turn-records", () => {
 
   // (f2) prompt.blocked → the dedicated promptBlocked record lands the REQUIRED reason
   // (and blockedness itself), even with no safety[] at all — a bare-reason block used
-  // to fold to ZERO trace (audit M28).
-  it("prompt.blocked folds its reason and blockedness even with empty safety (audit M28)", () => {
+  // to fold to ZERO trace.
+  it("prompt.blocked folds its reason and blockedness even with empty safety", () => {
     const r = new Reducer();
     r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
     r.push({ type: "prompt.blocked", seq: 1, turnId: "t1", reason: "safety" });
@@ -2197,8 +2197,8 @@ describe("reduce — R9 new-ops + resync + snapshot + live-only", () => {
     expect(() => AgReduceResult.parse(acc.result())).not.toThrow();
   });
 
-  // (d5) turns-omitting messages.snapshot preserves adoption eligibility for preserved turns (M27 conditional replace)
-  it("a turns-omitting messages.snapshot preserves adoption eligibility for preserved turns (M27 conditional replace)", () => {
+  // (d5) turns-omitting messages.snapshot preserves adoption eligibility for preserved turns
+  it("a turns-omitting messages.snapshot preserves adoption eligibility for preserved turns", () => {
     const r = new Reducer();
     r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
     r.push({
@@ -2327,12 +2327,12 @@ describe("reduce — R9 new-ops + resync + snapshot + live-only", () => {
   // ── (e5)/(e6) seq accounting is universal — ext/live-only events advance
   // #lastSeq too, so they neither mask a genuine forward gap (e6) nor
   // false-park the fold when they sit between two closed events that ARE
-  // seq-adjacent-through-the-ext-slot (e5). Task 2b (core-wide fix): the
+  // seq-adjacent-through-the-ext-slot (e5). The core-wide fix: the
   // engine's emitExt consumes a seq slot from the SAME monotonic counter as
   // every other event, but push() used to early-return on isClosedEvent(ev)
   // BEFORE the #lastSeq update — an ext.* event between two closed events made
   // the next closed event look like a forward gap → false park → the rest of
-  // the fold silently voided (found by M46 review; fixed at reduce.ts push()).
+  // the fold silently voided (found in review; fixed at reduce.ts push()).
 
   // (e5) raw-events repro: closed(seq0) → ext.acme.x(seq1) → closed(seq2) —
   // the ext event legitimately occupies seq1, so seq2 is NOT a gap. Both
@@ -2685,7 +2685,7 @@ const EXPECTED_RESULT = {
       finishReason: "stop" as const,
       outcome: { type: "success" as const },
       sourceIds: ["src1"],
-      // audit M23: the full record lands on sources[], not just the bare sourceId.
+      // The full record lands on sources[], not just the bare sourceId.
       sources: [{ sourceId: "src1", source: { url: "https://example.com", title: "Example" } }],
     },
     // t2 — nested turn (subagent.start at seq 3; threadId inherited from t1)
@@ -2793,10 +2793,10 @@ describe("reduce — R10 capstone: byte-identity + live-SSE↔history invariant"
     expect(JSON.stringify(events[0])).not.toContain("sourceIds");
   });
 
-  // final-review M1: message.remove must clear the per-block #opaque/#toolArgs scratch,
+  // message.remove must clear the per-block #opaque/#toolArgs scratch,
   // else a stale reasoning signature leaks into a LATER message that reuses the id.
   // (byte-identity can't catch this — it corrupts batch AND incremental identically.)
-  it("scratch-leak M1: message.remove clears #opaque so a reused reasoning id is not contaminated", () => {
+  it("message.remove clears #opaque so a reused reasoning id is not contaminated", () => {
     const events: AgEvent[] = [
       { type: "turn.start", seq: 0, threadId: "th", turnId: "t" },
       { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t", threadId: "th" },
@@ -2886,14 +2886,14 @@ describe("tool.done.structuredContent fold", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// INV-MSG seal + binding-window enforcement (audit M19)
+// INV-MSG seal + binding-window enforcement
 //
 // A sealed message (message.end) or a closed turn (turn.done/error/abort) is
 // NEVER a valid attach target — a block-creating event that targets one must
 // degrade loudly (needsResync) instead of silently attaching past the seal.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("INV-MSG seal + binding window enforcement (audit M19)", () => {
+describe("INV-MSG seal + binding window enforcement", () => {
   const open: AgEvent[] = [
     { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
     { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
@@ -2937,11 +2937,11 @@ describe("INV-MSG seal + binding window enforcement (audit M19)", () => {
     expect(r.result().messages[0]?.messageMetadata).toEqual({ k: 1 });
   });
 
-  // Controller-added leg on Task 6 (review finding on Task 4's #closedTurns work,
+  // An added leg (a review of the #closedTurns work found the gap;
   // same INV-MSG class as the two tests above): the tool.done MERGE branch had NO
   // closed-turn/sealed guard — a post-terminal straggler tool.done for a still-open
   // more:true preliminary silently mutated a closed turn's published content.
-  it("a straggler tool.done for a still-open more:true preliminary parks after turn.error — never mutates the closed turn's published content (audit M20 controller leg)", () => {
+  it("a straggler tool.done for a still-open more:true preliminary parks after turn.error — never mutates the closed turn's published content", () => {
     const r = new Reducer();
     for (const e of open) r.push(e);
     r.push({
@@ -3136,7 +3136,7 @@ describe("INV-MSG: a block-finalizing event into a sealed message or a closed tu
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// tool-result typed `preliminary` + turn.done.messageId targeting (audit M20)
+// tool-result typed `preliminary` + turn.done.messageId targeting
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("tool.done snapshot fold over a kept-open result (draft.4 §5; the fold/flush rule)", () => {
@@ -3303,7 +3303,7 @@ describe("tool.done snapshot fold over a kept-open result (draft.4 §5; the fold
   });
 });
 
-describe("tool-result typed preliminary + turn.done.messageId targeting (audit M20)", () => {
+describe("tool-result typed preliminary + turn.done.messageId targeting", () => {
   // SPEC.md:799: tool.done lands toolMetadata and dynamic. The CREATE path
   // always did; the MERGE path (a final tool.done over a more:true
   // preliminary) dropped both. They are descriptors: replaced only when the
@@ -3354,7 +3354,7 @@ describe("tool-result typed preliminary + turn.done.messageId targeting (audit M
     expect(result(kept).dynamic).toBe(false);
   });
 
-  it("more:true lands a typed preliminary flag on the tool-result block (audit M20)", () => {
+  it("more:true lands a typed preliminary flag on the tool-result block", () => {
     const r = new Reducer();
     r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
     r.push({
@@ -3391,7 +3391,7 @@ describe("tool-result typed preliminary + turn.done.messageId targeting (audit M
     expect(tr2?.type === "tool-result" && tr2.preliminary).toBeUndefined();
   });
 
-  it("turn.done.messageId targets the messageMetadata REPLACE-merge (audit M20)", () => {
+  it("turn.done.messageId targets the messageMetadata REPLACE-merge", () => {
     const r = new Reducer();
     r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
     r.push({
@@ -3425,10 +3425,10 @@ describe("tool-result typed preliminary + turn.done.messageId targeting (audit M
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// tool.done.messageId adoption (SPEC §5 fold row; audit B10)
+// tool.done.messageId adoption (SPEC §5 fold row)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("tool.done.messageId adoption (SPEC §5 fold row; audit B10)", () => {
+describe("tool.done.messageId adoption (SPEC §5 fold row)", () => {
   it("lands the tool-result in a message that adopts messageId as its own id", () => {
     const r = new Reducer();
     r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
@@ -3602,7 +3602,7 @@ describe("tool.done.messageId adoption (SPEC §5 fold row; audit B10)", () => {
     expect(tm).toBeUndefined(); // no phantom message created
   });
 
-  it("a lone orphan tool.done with NO turns at all parks — no phantom turn fabricated (Task 8c leg 3)", () => {
+  it("a lone orphan tool.done with NO turns at all parks — no phantom turn fabricated", () => {
     // Mirrors a reference host's capstone repro 2 shape: a tool_result the assembler
     // truly cannot place anywhere (no turn.start, no subagent.start — nothing
     // was ever legitimately opened). Before leg 3, the CREATE path's
@@ -3658,8 +3658,8 @@ describe("tool.done.messageId adoption (SPEC §5 fold row; audit B10)", () => {
   });
 });
 
-describe("reducer scratch eviction at turn terminals (audit M51)", () => {
-  it("an errored turn's dangling opaque scratch cannot corrupt a later turn's same-id block (audit M51)", () => {
+describe("reducer scratch eviction at turn terminals", () => {
+  it("an errored turn's dangling opaque scratch cannot corrupt a later turn's same-id block", () => {
     const r = new Reducer();
     r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
     r.push({

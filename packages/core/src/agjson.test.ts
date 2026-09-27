@@ -1402,7 +1402,7 @@ describe("S2-EXTENDED additive fields", () => {
   });
 });
 
-describe("AGJSON_VERSION + wire-version validation (audit B17)", () => {
+describe("AGJSON_VERSION + wire-version validation", () => {
   const envelope = {
     protocol: "agjson",
     threadId: "th1",

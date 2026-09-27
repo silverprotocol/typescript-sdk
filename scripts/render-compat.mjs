@@ -19,8 +19,8 @@
  *   <!-- compat:begin -->  …  <!-- compat:end -->
  * Both markers must exist EXACTLY ONCE — a quoted marker anywhere else in
  * the README (e.g. inside a code fence documenting this mechanism) is a
- * hard error, never a silent mis-splice (review finding: a first-indexOf
- * splice destroyed content between a quoted marker and the real section).
+ * hard error, never a silent mis-splice (a first-indexOf splice would destroy
+ * content between a quoted marker and the real section).
  *
  * Usage:
  *   node scripts/render-compat.mjs           # rewrite stale READMEs

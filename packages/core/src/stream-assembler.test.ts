@@ -18,7 +18,7 @@ it("subagentStart seeds the turn so openMessage does NOT add a turn.start", () =
   a.openMessage({ id: "m1", role: "assistant", turnId: "t2", threadId: "th1" });
   expect(a.drain().map((e) => e.type)).toEqual(["subagent.start", "message.start"]); // NO turn.start
 });
-it("subagentDone restores the parent turn as the owner fallback (audit B10)", () => {
+it("subagentDone restores the parent turn as the owner fallback", () => {
   const a = new StreamAssembler();
   a.openTurn("t1", "th1");
   a.subagentStart("t2", "t1");
@@ -27,7 +27,7 @@ it("subagentDone restores the parent turn as the owner fallback (audit B10)", ()
   const textStart = a.drain().find((e) => e.type === "text.start");
   expect(textStart?.turnId).toBe("t1");
 });
-it("subagentDone restores the ENCLOSING turn via the stack, NOT a synthetic parentTurnId label (Task 8c leg 1)", () => {
+it("subagentDone restores the ENCLOSING turn via the stack, NOT a synthetic parentTurnId label", () => {
   const a = new StreamAssembler();
   a.openTurn("t1", "th1");
   // "SYNTHETIC_LABEL" is never opened as a real turn (mirrors claude's
@@ -52,7 +52,7 @@ it("flush() emits message.end for a dangling open message (INV-FLUSH)", () => {
   expect(a.flush().some((e) => e.type === "message.end")).toBe(true);
 });
 
-describe("INV-FLUSH turn closure (audit M21)", () => {
+describe("INV-FLUSH turn closure", () => {
   it("flush() closes a dangling turn with turn.abort(stream-truncated), never success", () => {
     const a = new StreamAssembler();
     a.openTurn("t1", "th1");
@@ -78,7 +78,7 @@ describe("INV-FLUSH turn closure (audit M21)", () => {
   it("a turn closed via raw emit(turn.abort) is not double-closed at flush", () => {
     const a = new StreamAssembler();
     a.openTurn("t1", "th1");
-    a.emit({ type: "turn.abort", reason: "interrupted" }); // turnId backfilled (Task 3)
+    a.emit({ type: "turn.abort", reason: "interrupted" }); // turnId backfilled
     a.drain();
     expect(a.flush().filter((e) => e.type === "turn.abort")).toHaveLength(0);
   });
@@ -540,7 +540,7 @@ describe("contentBlock / providerRaw / emitExt shape", () => {
   });
 });
 
-describe("emitExt losslessness (audit M49)", () => {
+describe("emitExt losslessness", () => {
   it("wraps a non-object payload under `value` instead of dropping it", () => {
     const a = new StreamAssembler();
     a.emitExt("acme", "ping", "hello");
@@ -629,7 +629,7 @@ describe("StreamAssembler.emit — base primitive for standalone events", () => 
     expect(a.drain()).toHaveLength(7);
   });
 
-  it("emit() backfills turnId from the owner chain (INV-OWNER; audit B10)", () => {
+  it("emit() backfills turnId from the owner chain (INV-OWNER)", () => {
     const a = new StreamAssembler();
     a.openTurn("t1", "th1");
     a.emit({ type: "text.start", id: "x1" }); // raw emit, no owner ids

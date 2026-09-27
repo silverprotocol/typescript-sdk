@@ -474,7 +474,7 @@ describe("canonicalizeAgjson — edge cases", () => {
   });
 });
 
-// ─── assertConvergent — vacuity guard (audit M58) ────────────────────────────
+// ─── assertConvergent — vacuity guard ────────────────────────────
 // The gate must never certify "convergent" over two canonicals that carry no
 // content-bearing evidence at all — no text, no tool call, no tool result.
 // Before this guard, two empty (or all-noise) canonicals were structurally
@@ -518,7 +518,7 @@ describe("assertConvergent — vacuity guard: content-empty canonicals rejected"
   it("does NOT reject a schema with only a finishReason set (finishReason alone is not content-bearing)", () => {
     // finishReason is captured from turn.done, which is itself NOISE — a
     // schema carrying only a finishReason (no text/tool) is still vacuous
-    // per the M58 guard definition (text/tool-call/tool-result only).
+    // per the guard's definition (text/tool-call/tool-result only).
     const a: CanonicalSchema = {
       eventSequence: [],
       toolCalls: [],

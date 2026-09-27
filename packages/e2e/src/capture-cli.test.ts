@@ -1,6 +1,6 @@
 /**
- * capture-cli.test.ts — tests for the `pnpm e2e:capture` CLI (Task 6 /
- * audit M60) + the vitest-env-gated LIVE runner.
+ * capture-cli.test.ts — tests for the `pnpm e2e:capture` CLI + the
+ * vitest-env-gated LIVE runner.
  *
  * Three suites:
  *   1. `isFramework` unit tests.
@@ -225,7 +225,7 @@ describe("runCaptureAndWrite", () => {
       );
 
       // The corpus triple — the path shape replay.ts actually reads
-      // (audit M60's output-path divergence fix).
+      // (the output-path divergence fix).
       const native = await readJson(join(outDir, "claude.native.json"));
       const agjson = await readJson(join(outDir, "claude.agjson.json"));
       const coverage = await readJson(join(outDir, "claude.coverage.json"));

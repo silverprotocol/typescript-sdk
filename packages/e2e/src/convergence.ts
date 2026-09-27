@@ -273,13 +273,13 @@ export function canonicalizeAgjson(agjson: JsonValue[]): CanonicalSchema {
   return { eventSequence, toolCalls, textContent, toolResults, finishReason };
 }
 
-// ─── non-emptiness guard (audit M58 — the vacuity hole) ───────────────────────
+// ─── non-emptiness guard (the vacuity hole) ───────────────────────
 
 /**
  * True when a canonical schema carries NO content-bearing evidence at all:
  * no assistant text, no tool call, no tool result. Defined precisely against
  * `CanonicalSchema`'s actual shape (see the interface above) — `reasoning` is
- * enumerated in audit M58's "text/tool-call/tool-result/reasoning" phrasing,
+ * enumerated in the finding that motivated the guard ("text/tool-call/tool-result/reasoning"),
  * but `canonicalizeAgjson` never represents reasoning in the canonical schema
  * at all (`reasoning.*` is unconditionally NOISE — see NOISE_EVENT_TYPES and
  * the module docstring's "Must-IGNORE" list), so the enumeration collapses to
@@ -308,7 +308,7 @@ function isContentEmpty(schema: CanonicalSchema): boolean {
  *
  * Checks (in order):
  *   0. non-emptiness guard — BOTH sides content-empty is rejected outright
- *      (audit M58: two nothing-emitting canonicals are structurally equal by
+ *      (two nothing-emitting canonicals are structurally equal by
  *      construction, so checks 1-6 below would find zero diffs and silently
  *      "pass" — a vacuous certification, not evidence of convergence).
  *   1. eventSequence deep-equal

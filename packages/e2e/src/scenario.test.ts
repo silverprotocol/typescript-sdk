@@ -229,7 +229,7 @@ describe("derivedTools", () => {
     expect(allowedTools).toEqual(expectTools);
   });
 
-  // ── framework param (Task 6) ──────────────────────────────────────────────
+  // ── framework param ──────────────────────────────────────────────
   //
   // Claude Code's own MCP-tool-naming convention (`mcp__<server>__<tool>`) is
   // an artifact of the Claude Agent SDK's permission-gate string — it is NOT

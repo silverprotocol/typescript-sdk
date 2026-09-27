@@ -1,7 +1,7 @@
 /**
  * capture.ts — runCapture: boots scenario mocks, runs the framework's capture
  * agent, verifies tool calls, normalizes, and computes coverage. Produces a
- * Cassette. Framework-parametric (Task 6) — see capture-cli.ts for the CLI
+ * Cassette. Framework-parametric — see capture-cli.ts for the CLI
  * entry that dispatches to a concrete agent per `pnpm e2e:capture <scenario>
  * <framework>`.
  *

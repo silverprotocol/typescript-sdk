@@ -10,7 +10,7 @@
  *   - `known-acceptable-drops.json` — `{ path, reason, reviewed, frameworks? }[]`
  *   - `field-registry.json`         — `string[]` (unchanged)
  * and threading the inferred/explicit `framework` through to `census` so
- * framework-scoped allowlist entries filter correctly (audit M57).
+ * framework-scoped allowlist entries filter correctly.
  *
  * ★ HONEST FRAMING — what this gate IS and IS NOT ★
  *

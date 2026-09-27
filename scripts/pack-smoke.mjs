@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * pack→install→import smoke (audit B13): proves the published tarballs are
+ * pack→install→import smoke: proves the published tarballs are
  * importable by an outsider. pnpm pack rewrites workspace:* to real versions;
  * core installs first so the facets' @silverprotocol/core dep resolves from
  * the local tree via npm's already-satisfied-in-tree reuse (nothing is on
