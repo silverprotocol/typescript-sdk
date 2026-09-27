@@ -1,0 +1,346 @@
+[
+  {
+    "data": {
+      "type": "response_started"
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_b",
+          "model": "fake"
+        },
+        "sequence_number": 0
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "type": "web_search_call",
+          "id": "ws_1",
+          "status": "completed",
+          "action": {
+            "type": "search",
+            "query": "q"
+          }
+        },
+        "output_index": 0,
+        "sequence_number": 1
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "type": "web_search_call",
+          "id": "ws_1",
+          "status": "completed",
+          "action": {
+            "type": "search",
+            "query": "q"
+          }
+        },
+        "output_index": 0,
+        "sequence_number": 2
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "type": "mcp_call",
+          "id": "mcp_1",
+          "server_label": "deepwiki",
+          "name": "ask_question",
+          "arguments": "{\"q\":\"a\"}",
+          "output": "answer",
+          "error": null
+        },
+        "output_index": 1,
+        "sequence_number": 3
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "type": "mcp_call",
+          "id": "mcp_1",
+          "server_label": "deepwiki",
+          "name": "ask_question",
+          "arguments": "{\"q\":\"a\"}",
+          "output": "answer",
+          "error": null
+        },
+        "output_index": 1,
+        "sequence_number": 4
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "type": "message",
+          "id": "msg_b",
+          "role": "assistant",
+          "status": "completed",
+          "content": []
+        },
+        "output_index": 2,
+        "sequence_number": 5
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "done"
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "item_id": "msg_b",
+        "delta": "done",
+        "output_index": 2,
+        "content_index": 0,
+        "sequence_number": 6
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "type": "message",
+          "id": "msg_b",
+          "role": "assistant",
+          "status": "completed",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "done",
+              "annotations": []
+            }
+          ]
+        },
+        "output_index": 2,
+        "sequence_number": 7
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_b",
+          "status": "completed",
+          "output": [
+            {
+              "type": "web_search_call",
+              "id": "ws_1",
+              "status": "completed",
+              "action": {
+                "type": "search",
+                "query": "q"
+              }
+            },
+            {
+              "type": "mcp_call",
+              "id": "mcp_1",
+              "server_label": "deepwiki",
+              "name": "ask_question",
+              "arguments": "{\"q\":\"a\"}",
+              "output": "answer",
+              "error": null
+            },
+            {
+              "type": "message",
+              "id": "msg_b",
+              "role": "assistant",
+              "status": "completed",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": "done",
+                  "annotations": []
+                }
+              ]
+            }
+          ],
+          "usage": {
+            "input_tokens": 10,
+            "output_tokens": 5,
+            "total_tokens": 15
+          }
+        },
+        "sequence_number": 8
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_done",
+      "response": {
+        "id": "resp_b",
+        "usage": {
+          "requests": 1,
+          "inputTokens": 10,
+          "outputTokens": 5,
+          "totalTokens": 15
+        },
+        "output": [
+          {
+            "type": "hosted_tool_call",
+            "id": "ws_1",
+            "name": "web_search_call",
+            "status": "completed",
+            "providerData": {
+              "type": "web_search_call",
+              "id": "ws_1",
+              "action": {
+                "type": "search",
+                "query": "q"
+              }
+            }
+          },
+          {
+            "type": "hosted_tool_call",
+            "id": "mcp_1",
+            "name": "mcp_call",
+            "status": "completed",
+            "output": "answer",
+            "providerData": {
+              "type": "mcp_call",
+              "id": "mcp_1",
+              "server_label": "deepwiki",
+              "name": "ask_question",
+              "arguments": "{\"q\":\"a\"}",
+              "error": null
+            }
+          },
+          {
+            "type": "message",
+            "id": "msg_b",
+            "role": "assistant",
+            "status": "completed",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "done"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "name": "tool_called",
+    "item": {
+      "type": "tool_call_item",
+      "rawItem": {
+        "providerData": {
+          "type": "web_search_call",
+          "id": "ws_1",
+          "action": {
+            "type": "search",
+            "query": "q"
+          }
+        },
+        "id": "ws_1",
+        "type": "hosted_tool_call",
+        "name": "web_search_call",
+        "status": "completed"
+      },
+      "agent": {
+        "name": "B"
+      }
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "name": "tool_called",
+    "item": {
+      "type": "tool_call_item",
+      "rawItem": {
+        "providerData": {
+          "type": "mcp_call",
+          "id": "mcp_1",
+          "server_label": "deepwiki",
+          "name": "ask_question",
+          "arguments": "{\"q\":\"a\"}",
+          "error": null
+        },
+        "id": "mcp_1",
+        "type": "hosted_tool_call",
+        "name": "mcp_call",
+        "status": "completed",
+        "output": "answer"
+      },
+      "agent": {
+        "name": "B"
+      }
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "name": "message_output_created",
+    "item": {
+      "type": "message_output_item",
+      "rawItem": {
+        "id": "msg_b",
+        "type": "message",
+        "role": "assistant",
+        "status": "completed",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "done"
+          }
+        ]
+      },
+      "agent": {
+        "name": "B"
+      }
+    },
+    "type": "run_item_stream_event"
+  }
+]

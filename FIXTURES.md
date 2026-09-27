@@ -177,3 +177,21 @@ because the model is a stub. They are regenerated only by
 the engine itself generates (carrying `state`, `nonce` and a PKCE challenge),
 with every credential member seeded by a `SEED_` placeholder. It has its own
 gate, `GEN_ADK_AUTH_URI=1`, so regenerating it never rewrites the others.
+
+`packages/e2e/fixtures/openai-hosted/` holds OpenAI Agents SDK runs that call
+built-in (hosted) tools, built by the REAL `@openai/agents` streamed `run()`
+over a structural fake Model (no key, no network, tracing off). agents-core
+produces the run items, their order and their shapes. The raw Responses events
+are the fake model's, modelled on the recorded function_call order. The runs
+cover:
+- a web_search_call plus a hosted mcp_call, then text;
+- two hosted-MCP approval requests that interrupt the run;
+- a client-executed shell_call round, then a second round;
+- two approvals answered in the same invoke by `onApproval`;
+- one approval answered on resume, approved and rejected (a two-invoke pair
+  each, sharing its first invoke).
+
+No recorded capture reaches these shapes, and the stub model keeps them out of
+the corpus for the same reason as the ADK set. They are regenerated only by
+`GEN_OPENAI_HOSTED=1 … openai-hosted-fixtures.gen.test.ts` and gated by
+`openai-hosted.test.ts`.
