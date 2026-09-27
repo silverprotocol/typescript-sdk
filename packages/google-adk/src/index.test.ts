@@ -5149,3 +5149,90 @@ describe("createAdkNormalizer — an ADK prompt block (errorCode, no finishReaso
     );
   });
 });
+
+describe("createAdkNormalizer — Gemini finish reasons: the eight block values close turn.done with finishReason safety_blocked", () => {
+  // Every FinishReason value of @google/genai 2.24.0: the expected neutral value and whether it loses the wire string.
+  const TABLE: ReadonlyArray<readonly [string, string, boolean]> = [
+    ["FINISH_REASON_UNSPECIFIED", "unknown", true],
+    ["STOP", "stop", false],
+    ["MAX_TOKENS", "token_limit", false],
+    ["SAFETY", "safety_blocked", false],
+    ["RECITATION", "safety_blocked", false],
+    ["LANGUAGE", "unknown", true],
+    ["OTHER", "other", false],
+    ["BLOCKLIST", "safety_blocked", false],
+    ["PROHIBITED_CONTENT", "safety_blocked", false],
+    ["SPII", "safety_blocked", false],
+    ["MALFORMED_FUNCTION_CALL", "malformed_tool_call", false],
+    ["IMAGE_SAFETY", "safety_blocked", false],
+    ["UNEXPECTED_TOOL_CALL", "unexpected_tool_call", false],
+    ["TOO_MANY_TOOL_CALLS", "other", true],
+    ["IMAGE_PROHIBITED_CONTENT", "safety_blocked", false],
+    ["NO_IMAGE", "unknown", true],
+    ["IMAGE_RECITATION", "safety_blocked", false],
+    ["IMAGE_OTHER", "unknown", true],
+  ];
+  const BLOCK_VALUES = TABLE.filter(([, value]) => value === "safety_blocked").map(([raw]) => raw);
+  const inv = { invocationId: "inv_fixture_1" };
+  const TERMINAL = new Set(["turn.done", "turn.error", "turn.abort"]);
+  const drive = (natives: JsonValue[], options: AdkNormalizerOptions = {}): AgEvent[] => {
+    const n = createAdkNormalizer({ invokeId: "adk", ...options });
+    return [...natives.flatMap((e) => n.push(e)), ...n.flush()];
+  };
+  const fold = (out: AgEvent[]) => {
+    const r = new Reducer();
+    for (const e of out) r.push(e);
+    return r;
+  };
+
+  it("mapFinishReason and isLossyFinishReason cover every genai 2.24.0 FinishReason value: the eight block values map to safety_blocked, lossless", () => {
+    expect(TABLE).toHaveLength(18);
+    expect(BLOCK_VALUES).toEqual(["SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII", "IMAGE_SAFETY", "IMAGE_PROHIBITED_CONTENT", "IMAGE_RECITATION"]);
+    for (const [raw, value, lossy] of TABLE) {
+      expect(mapFinishReason(raw), raw).toBe(value);
+      expect(isLossyFinishReason(raw), raw).toBe(lossy);
+    }
+  });
+
+  it("a final response with each genai 2.24.0 FinishReason value closes turn.done with the table's finishReason, and carries finishReasonRaw only for a lossy value", () => {
+    for (const [raw, value, lossy] of TABLE) {
+      const out = drive([toJsonValue({ ...inv, content: { role: "model", parts: [{ text: "answer" }] }, finishReason: raw })]);
+      const done = out.find((e) => e.type === "turn.done");
+      expect(done, raw).toMatchObject({ type: "turn.done", finishReason: value });
+      expect(done !== undefined && "finishReasonRaw" in done ? done.finishReasonRaw : undefined, raw).toBe(lossy ? raw : undefined);
+    }
+  });
+
+  it("a blocked final as ADK builds it (errorCode and finishReason, no content, no errorMessage), for each of the eight block values, closes exactly one turn.done safety_blocked; every event parses and the fold does not park", () => {
+    for (const raw of BLOCK_VALUES) {
+      const out = drive([toJsonValue({ ...inv, errorCode: raw, finishReason: raw })]);
+      for (const e of out) expect(() => AgEvent.parse(e), raw).not.toThrow();
+      const terms = out.filter((e) => TERMINAL.has(e.type));
+      expect(terms, raw).toHaveLength(1);
+      expect(terms[0], raw).toMatchObject({ type: "turn.done", finishReason: "safety_blocked" });
+      expect(terms[0] !== undefined && "finishReasonRaw" in terms[0], raw).toBe(false);
+      expect(fold(out).needsResync, raw).toBe(false);
+    }
+  });
+
+  it("with host completion, the stashed blocked final of each block value is released by the host-completion event as the same one turn.done safety_blocked", () => {
+    for (const raw of BLOCK_VALUES) {
+      const out = drive([toJsonValue({ ...inv, errorCode: raw, finishReason: raw }), { type: "__host_complete__" }], { hostCompletion: true });
+      for (const e of out) expect(() => AgEvent.parse(e), raw).not.toThrow();
+      const terms = out.filter((e) => TERMINAL.has(e.type));
+      expect(terms, raw).toHaveLength(1);
+      expect(terms[0], raw).toMatchObject({ type: "turn.done", finishReason: "safety_blocked" });
+      expect(fold(out).needsResync, raw).toBe(false);
+    }
+  });
+
+  it("with host completion, a stashed blocked final followed by the host's error closes turn.error with the host's code, and the block value does not reach the terminal", () => {
+    for (const raw of BLOCK_VALUES) {
+      const out = drive([toJsonValue({ ...inv, errorCode: raw, finishReason: raw }), { type: ADK_HOST_ERROR_TYPE, code: "X", message: "the run failed" }], { hostCompletion: true });
+      const terms = out.filter((e) => TERMINAL.has(e.type));
+      expect(terms, raw).toHaveLength(1);
+      expect(terms[0], raw).toMatchObject({ type: "turn.error", code: "X" });
+      expect(fold(out).needsResync, raw).toBe(false);
+    }
+  });
+});

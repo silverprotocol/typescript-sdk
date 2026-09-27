@@ -482,6 +482,8 @@ function resolveFinishReason(reason: string | undefined | null): {
     case "PROHIBITED_CONTENT":
     case "SPII":
     case "IMAGE_SAFETY":
+    case "IMAGE_PROHIBITED_CONTENT":
+    case "IMAGE_RECITATION":
       return { value: "safety_blocked", lossy: false };
     case "MALFORMED_FUNCTION_CALL":
       return { value: "malformed_tool_call", lossy: false };
