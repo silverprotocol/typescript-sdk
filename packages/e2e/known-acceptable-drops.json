@@ -2081,7 +2081,7 @@
   },
   {
     "path": "[*].item.rawItem.output[*].type",
-    "reason": "openai: the array-form tool-result content-part discriminant (\"input_text\"/\"input_image\"/\"input_file\" \u2014 the toolOutputToAgBlocks fix that reads them landed in this playbook step) \u2014 consumed structurally by the `part.type === \"input_text\"` check to select which parts carry model-visible text; the discriminant STRING itself is never copied verbatim anywhere (only the sibling .text is). Mirrors the existing bare-object [*].message.content[*].type precedent pattern (content-block discriminant, consumed structurally). First observed live (playbook 2026-07-03, echo-gpt55).",
+    "reason": "openai: the array-form tool-result content-part discriminant (\"input_text\"/\"input_image\"/\"input_file\" \u2014 the toolOutputToAgBlocks fix that reads them landed in this playbook step) \u2014 consumed structurally by the `part.type === \"input_text\"` check to select which parts carry model-visible text; the discriminant STRING itself is never copied verbatim anywhere (only the sibling .text is). Mirrors the existing bare-object [*].message.content[*].type precedent pattern (content-block discriminant, consumed structurally). First observed live (a 2026-07-03 capture, echo-gpt55).",
     "reviewed": "any",
     "frameworks": [
       "openai"
@@ -2913,7 +2913,7 @@
   },
   {
     "path": "[*].timestamp",
-    "reason": "claude: wall-clock ISO timestamp on the user tool-result message (0.3.199 addition) \u2014 never read by createClaudeNormalizer. First observed live (playbook 2026-07-03, echo-sonnet5). || adk: per-event wall-clock stamp, disclosed `silently-dropped` in google-adk/sdk-surface.json (REQUIRED on the official @google/adk 1.3.0 Event interface; wall-clock per-event timestamps are the nondeterminism class the AgJSON envelope deliberately omits \u2014 SPEC \u00a75.0 INV-FOLD; a precise _meta.timestamp home is a documented future spec decision). First LIVE adk cassette to carry it: echo-gemini35 (official-SDK capture, playbook 2026-07-13) \u2014 the two hand-authored adk fixtures never included it (fixture discipline: type only what is consumed).",
+    "reason": "claude: wall-clock ISO timestamp on the user tool-result message (0.3.199 addition) \u2014 never read by createClaudeNormalizer. First observed live (a 2026-07-03 capture, echo-sonnet5). || adk: per-event wall-clock stamp, disclosed `silently-dropped` in google-adk/sdk-surface.json (REQUIRED on the official @google/adk 1.3.0 Event interface; wall-clock per-event timestamps are the nondeterminism class the AgJSON envelope deliberately omits \u2014 SPEC \u00a75.0 INV-FOLD; a precise _meta.timestamp home is a documented future spec decision). First LIVE adk cassette to carry it: echo-gemini35 (an official-SDK capture of 2026-07-13) \u2014 the two hand-authored adk fixtures never included it (fixture discipline: type only what is consumed).",
     "reviewed": "any",
     "frameworks": [
       "claude",

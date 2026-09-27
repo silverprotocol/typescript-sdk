@@ -180,8 +180,8 @@ export class StreamAssembler {
   #lastTurn: string | undefined = undefined;
 
   // Stack of #lastTurn snapshots, one pushed per subagentStart and popped by
-  // the matching subagentDone (Task 8c leg 1 — a reference host's capstone finding A). The
-  // OLD owner-fallback reused the wire-visible `parentTurnId` argument directly
+  // the matching subagentDone. The OLD owner-fallback (a reference host found
+  // its defect) reused the wire-visible `parentTurnId` argument directly
   // as the restored owner, but a facet's `parentTurnId` label (e.g. claude's
   // synthetic `turn_${toolCallId}` Task-tool cross-ref) MAY never have been
   // opened as a real turn — reusing it fabricated a phantom turn and corrupted

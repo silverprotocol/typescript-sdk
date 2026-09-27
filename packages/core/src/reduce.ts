@@ -127,10 +127,10 @@ export class Reducer {
   // Message ids sealed by message.end.
   #sealed: Set<string> = new Set();
   // turnIds legitimately opened via turn.start / subagent.start (or restored
-  // by a messages.snapshot's turns?) — Task 8c leg 3 (a reference host's capstone
-  // finding B). Distinguishes "a real turn genuinely exists" from a turn the fold only
-  // knows by name, so the tool.done adoption CREATE path degrades loudly
-  // (resync) instead of creating a message for a turn that was never opened.
+  // by a messages.snapshot's turns?). Distinguishes "a real turn genuinely
+  // exists" from a turn the fold only knows by name, so the tool.done adoption
+  // CREATE path degrades loudly (resync) instead of creating a message for a
+  // turn that was never opened.
   #openedTurns: Set<string> = new Set();
   // draft.4 §5.0 INV-OWNER: every
   // turnId the fold has seen opened — by turn.start, by subagent.start, or by a
@@ -340,8 +340,8 @@ export class Reducer {
         if (parentTurn !== undefined) {
           threadId = parentTurn.threadId;
         } else {
-          // Task 8c leg 2 (SPEC §1.2 + a reference host's capstone finding A): a parent
-          // lookup miss means ev.parentTurnId is a wire label that was never
+          // A parent lookup miss (found by a reference host) means
+          // ev.parentTurnId is a wire label that was never
           // opened as a real turn (e.g. claude's synthetic `turn_${toolCallId}`
           // Task-tool cross-ref) — NOT a legitimate cross-thread reference.
           // Every entity in a fold shares one root threadId (SPEC §1.2), so
@@ -678,10 +678,10 @@ export class Reducer {
               existing !== undefined
                 ? (existing.turnId ?? "unknown-turn")
                 : (this.#resolveTurnId(ev.turnId) ?? ev.turnId ?? "unknown-turn");
-            // Task 8c leg 3 (a reference host's capstone finding B): a turn that was never
-            // legitimately opened (turn.start / subagent.start / a snapshot's
-            // turns?) is just as invalid an adoption target as a sealed
-            // message or a closed turn: park rather than create a message for it.
+            // A turn that was never legitimately opened (turn.start /
+            // subagent.start / a snapshot's turns?) is just as invalid an
+            // adoption target as a sealed message or a closed turn: park rather
+            // than create a message for it.
             if (
               this.#sealed.has(ev.messageId) ||
               this.#isClosedTurn(targetTurnKey) ||
@@ -1211,10 +1211,9 @@ export class Reducer {
         this.#sealed = new Set();
         this.#blockPos = new Map();
         // #restartedSinceClose is NOT cleared: a snapshot folds no terminal (draft.5 INV-MSG).
-        // Task 8c leg 3: a snapshot-restored turn counts as opened (a reference
-        // host's capstone finding B) — reseed #openedTurns from the replaced turns in
-        // lockstep with #turns above; a turns-omitting snapshot re-seeds it from
-        // the records it keeps.
+        // A snapshot-restored turn counts as opened: reseed #openedTurns from
+        // the replaced turns in lockstep with #turns above; a turns-omitting
+        // snapshot re-seeds it from the records it keeps.
         this.#openedTurns = ev.turns !== undefined
           ? new Set(ev.turns.map((t) => t.turnId))
           : new Set(this.#turns.keys());

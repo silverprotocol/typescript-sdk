@@ -172,9 +172,9 @@ describe("reduce — R1 lifecycle", () => {
   });
 
   // (d2) subagent.start falls back to a real turn's root threadId when the
-  // parent lookup misses (Task 8c leg 2 — a reference host's capstone finding A: claude's
-  // synthetic `turn_${toolCallId}` parentTurnId label was never opened as a
-  // real turn, so a naive fallback corrupted the subagent's own threadId).
+  // parent lookup misses: claude's synthetic `turn_${toolCallId}`
+  // parentTurnId label is never opened as a real turn, and a naive fallback
+  // corrupted the subagent's own threadId (found by a reference host).
   it("(d2) subagent.start falls back to any real turn's threadId when the parent was never opened", () => {
     const r = reduce([
       { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
