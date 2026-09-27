@@ -123,7 +123,7 @@
         },
         "handoff_requested": {
           "disposition": "handled",
-          "note": "Opens a subagentStart bracket for the transfer, keyed by a minted turn_<invokeStem>_handoff_<n> id (unique across invokes), parented to the source round and matched to its transfer by callId (audit M48 Finding 1; the never-run handoff close). A bracket whose call gets a tool_output instead of handoff_occurred (the handoff never ran: agents-core <=0.8.0 'Multiple handoffs detected, ignoring this one.'; 0.18.0's abort-signal 'aborted' result per handoff call is dropped by its cancelled stream, so it is handled defensively only) closes there with turn.abort (no reason) then subagent.done, before that call's tool.done."
+          "note": "Opens a subagentStart bracket for the transfer, keyed by a minted turn_<invokeStem>_handoff_<n> id (unique across invokes), parented to the source round and matched to its transfer by callId (the never-run handoff close). A bracket whose call gets a tool_output instead of handoff_occurred (the handoff never ran: agents-core <=0.8.0 'Multiple handoffs detected, ignoring this one.'; 0.18.0's abort-signal 'aborted' result per handoff call is dropped by its cancelled stream, so it is handled defensively only) closes there with turn.abort (no reason) then subagent.done, before that call's tool.done."
         },
         "handoff_occurred": {
           "disposition": "handled",

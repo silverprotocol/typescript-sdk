@@ -3019,7 +3019,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   }
 
   /**
-   * Map a `reasoning_item_created` run-item (Task 3, audit M48). Since reasoning is sourced from the terminal output it
+   * Map a `reasoning_item_created` run-item. Since reasoning is sourced from the terminal output it
    * is the FALLBACK source: on the live wire it lands after `response.completed`,
    * whose output already filled the block, so a run-item whose `rs_` id is in
    * `filledReasoning` is a no-op (single source per id — no duplicate block, no

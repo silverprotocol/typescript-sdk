@@ -2728,7 +2728,7 @@ describe("createOpenaiNormalizer — reasoning sourced from the response.complet
 // `response.model` (live: echo-gpt6sol natives [1] `"model": "gpt-6-sol"`,
 // which arrives BEFORE the message opens). An existing optional slot, folded to
 // `AgMessage.model` (SPEC:585, reduce.ts); absent/non-string/empty ⇒ no key
-// (byte-identical when absent). R&D finding #1 (2026-09-23).
+// (byte-identical when absent). Added 2026-09-23.
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("createOpenaiNormalizer — message.start.model from response.created", () => {
