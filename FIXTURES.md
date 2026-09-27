@@ -191,22 +191,39 @@ the engine's own. The runs cover:
   model runs again and meets a rate-limit error (SSE);
 - a confirmation pause in a non-last sub-agent, then a failed status on the
   next sub-agent's Interactions-route call;
-- a signalled credential pause, then a rate-limit error in the same step's
-  stream, then a further model round (SSE); and the same step with the
-  credential call followed by a call whose before-tool callback throws, which
-  drops the pause and is followed by a further model round;
+- a signalled credential pause, then a rate-limit error that the same step's
+  model stream yields, then a further model round; the pause stands (SSE);
+- a credential call followed, in the same step, by a call whose before-tool
+  callback throws: ADK never emits the credential request, so no ask reaches
+  the wire and no pause is signalled, and the model runs again;
 - a credential pause in a first sub-agent, then a rate-limit error in the
   second;
 - a request-input call whose pause is never signalled (a later call's
   before-tool callback throws before the skip-summarization event), then a
-  rate-limit error in the further model round.
+  rate-limit error in the further model round. The first error does not end
+  the invocation, since the model runs again; the rate-limit error does. No
+  other engine path was found in which an error precedes the pause end.
 
 A host-terminal event after a credential pause needs no run of its own: feed
 it after `adk-pause/plain-credential` (default mode) or
 `adk-pause/after-pause-sse-credential` (SSE).
 
 Each run is written in the default mode (`<leg>.none`) and in SSE
-(`<leg>.sse`), except legs that exist in one mode only. In the default mode a
+(`<leg>.sse`), except legs that exist in one mode only. A missing `.none` is
+the default mode's behaviour, not an omission:
+- `block-usage-on-finish`, `block-usage-later`, `text-then-block-no-usage` and
+  `bare-block-then-streamed-block` pin the aggregate that repeats an error as a
+  stream closes, which the default mode never yields;
+- in `credential-pause-usage-report-then-429` and
+  `credential-pause-stream-throw-then-rerun`, the pausing step ends on a
+  content-less usage report, or its stream throws after the pause, only in
+  SSE, so only there does ADK run the model again;
+- in `parallel-workflow-one-block-a-first`, the failing node's only
+  default-mode event also ends it, so no sibling can finish after it;
+- `block-usage-on-finish.progressive` is SSE with ADK's progressive streaming
+  on.
+
+In the default mode a
 blocked candidate is returned without its content, as the API withholds
 blocked content. A run that throws from `runAsync` (a Workflow node that
 fails for good) has a `<leg>.<mode>.sidecar.json` next to its natives, holding
