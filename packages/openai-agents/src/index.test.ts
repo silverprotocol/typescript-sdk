@@ -4293,6 +4293,14 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
     expect(evs.find((e) => e.type === "tool.start" && Reflect.get(e, "toolCallId") === "mcp_1")).toMatchObject({ turnId: "turn_resp_o2", name: "ask_question" });
   });
 
+  it("in the order the SDK streams it, a request a kept decision answers in its own round is asked and closed ok there, and the round closes success, not paused", () => {
+    const { evs, r } = run([...rawRound("resp_k1", [request("mcpr_1")]), calledRequest("mcpr_1"), approvalRequested("mcpr_1"), answer("mcpr_1", true)]);
+    expect(r.needsResync).toBe(false);
+    expect(idx(evs, "hitl.ask", "askId", "approval_mcpr_1")).toBeLessThan(idx(evs, "tool.done", "toolCallId", "mcpr_1"));
+    expect(evs.find((e) => e.type === "tool.done" && Reflect.get(e, "toolCallId") === "mcpr_1")).toMatchObject({ outcome: "ok", turnId: "turn_resp_k1" });
+    expect(terminalsOf(evs, "turn_resp_k1")).toMatchObject([{ type: "turn.done", outcome: { type: "success" } }]);
+  });
+
   it("a listed built-in call whose run-item never streams stops holding its round at the next response.created, which keeps its own turn", () => {
     const MSG2 = { type: "message", id: "msg_s2", role: "assistant", status: "completed", content: [{ type: "output_text", text: "ok", annotations: [] }] };
     const { evs, r } = run([...rawRound("resp_s1", [WS]), ...rawRound("resp_s2", [MSG2], { id: "msg_s2", delta: "ok" })]);
@@ -4838,6 +4846,15 @@ describe("createOpenaiNormalizer — hosted call inputs and results", () => {
     expect(first(hostedRound(MCP_RAW, mcpItem()), "tool.done")).toMatchObject({ outcome: "ok" });
   });
 
+  it("an mcp_call recognised by providerData.type alone reads its status from providerData", () => {
+    const evs = hostedRound(
+      { ...MCP_RAW, status: "failed", output: null },
+      { type: "hosted_tool_call", id: "mcp_1", name: "hosted_mcp", status: "completed", providerData: { ...MCP_RAW, status: "failed", output: null } },
+    );
+    expect(first(evs, "tool.start")).toMatchObject({ name: "ask_question", providerMetadata: { type: "mcp_call" } });
+    expect(first(evs, "tool.done")).toMatchObject({ outcome: "error", isError: true, providerMetadata: { status: "failed" } });
+  });
+
   it("a rejected approval answer's reason rides its tool.done providerMetadata.reason", () => {
     const n = createOpenaiNormalizer({ invokeId: "inv2" });
     const evs = n
@@ -4872,6 +4889,25 @@ describe("createOpenaiNormalizer — hosted call inputs and results", () => {
       .concat(n.flush());
     expect(evs.filter((e) => e.type === "tool.start" || e.type === "tool.done")).toEqual([]);
     expect(evs.filter((e) => e.type === "ext.openai.unparsed")).toHaveLength(1);
+  });
+
+  it("an approval answer naming a request the invoke does not hold, while a response is open, closes nothing and rides ext.openai.unparsed", () => {
+    const n = createOpenaiNormalizer({ invokeId: "inv1" });
+    const evs = [
+      rawModel({ type: "response.created", response: { id: "resp_u1", model: "gpt-6-sol" } }),
+      runItem("tool_called", {
+        type: "tool_call_item",
+        rawItem: { type: "hosted_tool_call", name: "mcp_approval_response", providerData: { approve: true, approval_request_id: "mcpr_u" } },
+      }),
+      rawModel({ type: "response.completed", response: { id: "resp_u1", status: "completed", output: [], usage: U } }),
+    ]
+      .flatMap((e) => n.push(e))
+      .concat(n.flush());
+    expect(evs.filter((e) => e.type === "tool.done")).toEqual([]);
+    expect(evs.filter((e) => e.type === "ext.openai.unparsed")).toHaveLength(1);
+    const r = new Reducer();
+    for (const ev of evs) r.push(ev);
+    expect(r.needsResync).toBe(false);
   });
 
   it("an approval answer recognised by providerData.type alone closes its request", () => {

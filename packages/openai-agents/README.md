@@ -259,12 +259,17 @@ An approval's answer (`mcp_approval_response`, recognized by its `name` or
 `providerData.type`) closes the request it names
 (`providerData.approval_request_id`) with exactly one `tool.done`: `outcome`
 `"ok"` when it approves, which records the approval and not the result of
-the call it gates, and `"denied"` when it does not. A rejection's `reason`
-rides `tool.done.providerMetadata.reason`. The answer creates no block of its
-own, and the `mcp_call` it gates is a separate call under its own id.
+the call it gates, and `"denied"` when it does not. An answer's `reason` (a
+rejection's, or one an `onApproval` callback returns) rides
+`tool.done.providerMetadata.reason`. The answer creates no block of its own,
+and the `mcp_call` it gates is a separate call under its own id.
 - With an `onApproval` callback, the SDK emits no ask. The answer arrives in
   the same invoke, closes the request in its round, and that round closes
   before the next model round opens.
+- A decision the run keeps for later calls of the same tool (for example
+  `approve(item, { alwaysApprove: true })`) answers a later request in the
+  round that makes it: the request's ask still lands, its answer closes it
+  `ok` in that round, and the round closes `success`, not `paused`.
 - On a resumed invoke, the items that answer the paused round arrive before
   any model round, and the SDK streams an approved call's tool result before
   any hosted answer. The invoke's first leading item, a tool result or an
@@ -274,9 +279,10 @@ own, and the `mcp_call` it gates is a separate call under its own id.
   there with its model.
 
 Current limit: a resumed invoke that answers some of a paused round's
-requests and leaves others unanswered carries no ask for them; the SDK
-streams none. Its resume turn closes as `turn.abort` (`stream-truncated`),
-and the unanswered requests' asks are those of the paused round.
+approvals and leaves others unanswered, a hosted request's or a function
+call's, carries no ask for them; the SDK streams none. Its resume turn closes
+as `turn.abort` (`stream-truncated`), and the unanswered asks are those of
+the paused round.
 
 ## Refusals
 

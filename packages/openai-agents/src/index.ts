@@ -3399,11 +3399,13 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * separate call under its own id. The request is a pending call of its
    * round in the same invoke (the onApproval flow); in a resuming invoke it
    * is unknown, and the answer lands as a leading result does
-   * (`openTurnForLeadingResult`, INV-XINV). A rejection's `reason` rides
-   * tool.done providerMetadata. An answer that names no request has nothing
-   * to close, and a second answer to a request this invoke already closed
-   * (agents-core answers each request once, runner/mcpApprovals.mjs) would
-   * close it twice: either is carried verbatim on ext.openai.unparsed.
+   * (`openTurnForLeadingResult`, INV-XINV). An answer's `reason` rides
+   * tool.done providerMetadata. Three answers have nothing to close, and each
+   * is carried verbatim on ext.openai.unparsed: one that names no request; a
+   * second answer to a request this invoke already closed (agents-core
+   * answers each request once, runner/mcpApprovals.mjs), which would close it
+   * twice; and one naming a request this invoke does not hold while a
+   * response is open, which no leading turn can take.
    */
   function driveApprovalAnswer(rawItem: OpenAIHostedToolCallItem): void {
     const requestId: unknown = rawItem.providerData?.approval_request_id;
@@ -3416,14 +3418,19 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       reason: typeof reason === "string" && reason.length > 0 ? reason : undefined,
       caller: callerToJson(rawItem.caller),
     });
-    answeredRequests.add(requestId);
     const doneTurnId = resolvePendingTurnId(requestId);
+    const leading = doneTurnId === undefined ? openTurnForLeadingResult(requestId) : undefined;
+    if (doneTurnId === undefined && leading === undefined) {
+      a.emitExt("openai", "unparsed", { name: "tool_called", item: JsonValue.parse(rawItem) });
+      return;
+    }
+    answeredRequests.add(requestId);
     a.toolDone({
       toolCallId: requestId,
       content: [],
       outcome: rawItem.providerData?.approve === true ? "ok" : "denied",
       ...(meta !== undefined ? { providerMetadata: meta } : {}),
-      ...(doneTurnId !== undefined ? { turnId: doneTurnId } : (openTurnForLeadingResult(requestId) ?? {})),
+      ...(doneTurnId !== undefined ? { turnId: doneTurnId } : leading),
     });
     drainPendingTool(requestId, doneTurnId);
   }
@@ -3509,7 +3516,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     if (rawItem.name === "code_interpreter_call" && Array.isArray(outputs)) {
       content.push({ type: "data", name: "code_interpreter_outputs", data: JsonValue.parse(outputs) });
     }
-    const status: unknown = rawItem.name === "mcp_call" ? (pd?.status ?? rawItem.status) : rawItem.status;
+    const status: unknown = hostedMcpKind(rawItem) === "mcp_call" ? (pd?.status ?? rawItem.status) : rawItem.status;
     // An mcp_call's `error` is an object on the wire (openai-node 7.22.0
     // McpToolCallError: a protocol or HTTP error {code, message, type}, or a
     // tool execution error {content, type}): its message (else the object as
