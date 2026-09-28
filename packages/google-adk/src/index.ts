@@ -558,6 +558,82 @@ function nativeWithoutRelayBookkeeping(native: JsonValue): JsonValue {
   return changed ? out : native;
 }
 
+// ─── the forwarded request a remote agent repeats ─────────────────────────────
+// ADK's RemoteA2AAgent forwards the conversation to the remote agent, and a
+// remote agent can repeat that forwarded message as its first, submitted
+// status, in the "user" role (ADK-Python's A2A executor does on a new task).
+// The relay converts that status message's parts into the relayed event's
+// content, and the facet maps such an event as if those parts, and the
+// long-running ids taken from them, were absent, and marks the omission with a
+// content-free ext.google.relay_echo_omitted event.
+//   - @google/adk (`customMetadata`): the converted parts are the event's last
+//     `status.message.parts.length` parts, after any artifact parts
+//     (a2a/event_converter_utils.js, a status update's or a Task's).
+//   - ADK-Python's relay (`custom_metadata` in an event serialized from
+//     Python, or a task it records on a2a-sdk 1.x, as protobuf JSON with no
+//     `kind` and the state and role enums `TASK_STATE_SUBMITTED` and
+//     `ROLE_USER`): it records the whole task as `a2a:response` for a status
+//     update too, converts a status update from its message alone, and a
+//     submitted task from its artifacts alone. So every content part is the
+//     repeat when the recorded task holds no artifact part, and none is when
+//     it does.
+
+/** How many trailing content parts of a relayed event repeat the forwarded
+ *  request ("all" for every part), when its `a2a:response` entry is a status
+ *  update or a task in the `submitted` state whose `status.message` is in the
+ *  `"user"` role (on a2a-sdk 1.x, a task with no `kind` in
+ *  `TASK_STATE_SUBMITTED` whose message is `ROLE_USER`); undefined for any
+ *  other event. */
+function relayEchoPartCount(native: JsonValue): number | "all" | undefined {
+  if (!isJsonObject(native)) return undefined;
+  for (const key of ["customMetadata", "custom_metadata"]) {
+    const bag: unknown = native[key];
+    const response: unknown = isJsonObject(bag) ? bag["a2a:response"] : undefined;
+    if (!isJsonObject(response)) continue;
+    const kind: unknown = response["kind"];
+    const status: unknown = response["status"];
+    const message: unknown = isJsonObject(status) ? status["message"] : undefined;
+    if (!isJsonObject(status) || !isJsonObject(message)) continue;
+    const a2a03 = (kind === "status-update" || kind === "task") && status["state"] === "submitted" && message["role"] === "user";
+    const a2a1 = kind === undefined && status["state"] === "TASK_STATE_SUBMITTED" && message["role"] === "ROLE_USER";
+    if (!a2a03 && !a2a1) continue;
+    if (a2a1) return holdsArtifactPart(response) ? 0 : "all";
+    if (key === "custom_metadata") return kind === "task" && holdsArtifactPart(response) ? 0 : "all";
+    const parts: unknown = message["parts"];
+    return Array.isArray(parts) ? parts.length : 0;
+  }
+  return undefined;
+}
+
+/** Whether a recorded A2A task holds at least one artifact part. */
+function holdsArtifactPart(task: { readonly [k: string]: JsonValue }): boolean {
+  const artifacts: unknown = task["artifacts"];
+  return Array.isArray(artifacts) && artifacts.some((a) => isJsonObject(a) && Array.isArray(a["parts"]) && a["parts"].length > 0);
+}
+
+/** A native without its last `count` content parts (every part for "all") and
+ *  without the long-running tool ids of the calls among them (the facet reads
+ *  `longRunningToolIds` only), as a new value (the argument is not changed),
+ *  and how many parts it removed. Every other member is unchanged. */
+function withoutRelayEcho(native: { readonly [k: string]: JsonValue }, count: number | "all"): { native: JsonValue; omitted: number } {
+  const content: unknown = native["content"];
+  if (!isJsonObject(content)) return { native, omitted: 0 };
+  const parts: unknown = content["parts"];
+  if (!Array.isArray(parts)) return { native, omitted: 0 };
+  const keep = count === "all" ? 0 : Math.max(0, parts.length - count);
+  if (keep === parts.length) return { native, omitted: 0 };
+  const removed = parts.slice(keep);
+  const ids = new Set<string>();
+  for (const part of removed) {
+    const call: unknown = isJsonObject(part) ? part["functionCall"] : undefined;
+    if (isJsonObject(call) && typeof call["id"] === "string") ids.add(call["id"]);
+  }
+  const out: { [k: string]: JsonValue } = { ...native, content: { ...content, parts: parts.slice(0, keep) } };
+  const list: unknown = native["longRunningToolIds"];
+  if (Array.isArray(list) && ids.size > 0) out["longRunningToolIds"] = list.filter((id) => !(typeof id === "string" && ids.has(id)));
+  return { native: out, omitted: removed.length };
+}
+
 /** Outer-discriminant guard. ADK events carry an object `content` and/or an `invocationId`. */
 function isAdkEvent(v: unknown): v is AdkEvent {
   if (!isJsonObject(v)) return false;
@@ -2614,11 +2690,21 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
         if (hostCompletion) hostComplete();
         return a.drain();
       }
-      if (!isAdkEvent(json)) {
-        a.emitExt("google", "unparsed", { native: nativeWithoutRelayBookkeeping(json) });
+      // A relayed repeat of the forwarded request: its parts are removed before
+      // any reader sees the event, and one content-free marker records how
+      // many were removed.
+      const echoParts = relayEchoPartCount(json);
+      let event: JsonValue = json;
+      if (echoParts !== undefined && isJsonObject(json)) {
+        const stripped = withoutRelayEcho(json, echoParts);
+        event = stripped.native;
+        if (stripped.omitted > 0) a.emitExt("google", "relay_echo_omitted", { parts: stripped.omitted });
+      }
+      if (!isAdkEvent(event)) {
+        a.emitExt("google", "unparsed", { native: nativeWithoutRelayBookkeeping(event) });
         return a.drain();
       }
-      drive(json);
+      drive(event);
       return a.drain();
     },
     flush(): AgEvent[] {
