@@ -608,6 +608,24 @@ describe("createAdkNormalizer — tool arms", () => {
     expect(doneB?.content[0]?.text).toBe("B done");
   });
 
+  it("a parallel pair of calls with null ids records each call's position in its event as providerCallIndex (0, then 1) on its tool.start, and a call with its own id records none", () => {
+    const out = run([
+      event([
+        { functionCall: { name: "lookup", args: { city: "Paris" } } },
+        { functionCall: { name: "lookup", args: { city: "Rome" } } },
+        { functionCall: { name: "weather", args: {}, id: "real-1" } },
+      ]),
+    ]);
+    const starts = out.filter((e) => e.type === "tool.start");
+    expect(starts).toHaveLength(3);
+    expect(starts.map((e) => (e.type === "tool.start" ? e.providerMetadata : undefined))).toEqual([
+      { google: { providerCallIndex: 0 } },
+      { google: { providerCallIndex: 1 } },
+      undefined,
+    ]);
+    expect(new Set(starts.map((e) => (e.type === "tool.start" ? e.toolCallId : undefined))).size).toBe(3);
+  });
+
   it("dedupes the partial:false aggregate re-send of a NULL-id call by content identity (not minted-id equality), and the response still correlates to the ONE minted id", () => {
     const fc = { functionCall: { name: "echo", args: { text: "hi" } } }; // no id
     const out = run([
@@ -875,6 +893,17 @@ describe("createAdkNormalizer — actions.requestedAuthConfigs → hitl.ask (kin
       },
     });
     for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("a requestedAuthConfigs map with two entries emits two hitl.ask auth, one per entry in the map's order, and the paused close carries both in that order", () => {
+    const authConfig = (key: string) => ({ authScheme: { type: "oauth2", flows: {} }, credentialKey: key });
+    const out = run([event([], { actions: { requestedAuthConfigs: { fc_zeta: authConfig("zeta_cred"), fc_alpha: authConfig("alpha_cred") } } })]);
+    expect(out.filter((e) => e.type === "hitl.ask")).toEqual([
+      expect.objectContaining({ askId: "auth_fc_zeta", kind: "auth", toolCallId: "fc_zeta", metadata: { authConfig: authConfig("zeta_cred") } }),
+      expect.objectContaining({ askId: "auth_fc_alpha", kind: "auth", toolCallId: "fc_alpha", metadata: { authConfig: authConfig("alpha_cred") } }),
+    ]);
+    const done = out.find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({ outcome: { type: "paused", asks: [{ toolCallId: "fc_zeta" }, { toolCallId: "fc_alpha" }] } });
   });
 
   it("emits no hitl.ask and does not throw when the dicts are empty {} (real ADK shape)", () => {
@@ -1822,6 +1851,25 @@ describe("createAdkNormalizer — actions.requestedToolConfirmations → hitl.as
       metadata: { confirmed: false, payload: { path: "/x" } },
     });
     for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
+
+  it("a requestedToolConfirmations map with two entries emits two hitl.ask approval, one per entry in the map's order, and the paused close carries both in that order", () => {
+    const out = run([
+      event([], {
+        actions: {
+          requestedToolConfirmations: {
+            fc_del_2: { hint: "Delete /b?", confirmed: false, payload: { path: "/b" } },
+            fc_del_1: { hint: "Delete /a?", confirmed: false, payload: { path: "/a" } },
+          },
+        },
+      }),
+    ]);
+    expect(out.filter((e) => e.type === "hitl.ask")).toEqual([
+      expect.objectContaining({ askId: "approval_fc_del_2", kind: "approval", toolCallId: "fc_del_2", message: "Delete /b?", metadata: { confirmed: false, payload: { path: "/b" } } }),
+      expect.objectContaining({ askId: "approval_fc_del_1", kind: "approval", toolCallId: "fc_del_1", message: "Delete /a?", metadata: { confirmed: false, payload: { path: "/a" } } }),
+    ]);
+    const done = out.find((e) => e.type === "turn.done");
+    expect(done).toMatchObject({ outcome: { type: "paused", asks: [{ toolCallId: "fc_del_2" }, { toolCallId: "fc_del_1" }] } });
   });
 });
 
