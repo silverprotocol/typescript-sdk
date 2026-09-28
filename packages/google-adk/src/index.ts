@@ -680,14 +680,19 @@ export const ADK_PROMPT_BLOCK_REASONS: readonly string[] = [
 const PROMPT_BLOCK_REASONS: ReadonlySet<string> = new Set(ADK_PROMPT_BLOCK_REASONS);
 
 /** The block reason when an event is an ADK prompt block (a treated errorCode,
- *  no finishReason, which a response-level block keeps beside errorCode, and no
- *  content parts), else undefined. */
+ *  no finishReason, which a response-level block keeps beside errorCode, no
+ *  content parts, and not relayed), else undefined. ADK's A2A relay marks each
+ *  event it forwards with an a2a:response entry in customMetadata and drops the
+ *  finishReason, so a relayed prompt block and a relayed response-level block
+ *  with the same code arrive alike: no relayed event is read as a prompt block. */
 function adkPromptBlockReason(event: AdkEvent): string | undefined {
   const code: unknown = event.errorCode;
+  const relayed = isJsonObject(event.customMetadata) && Object.hasOwn(event.customMetadata, "a2a:response");
   return typeof code === "string" &&
     PROMPT_BLOCK_REASONS.has(code) &&
     event.finishReason === undefined &&
-    (event.content?.parts ?? []).length === 0
+    (event.content?.parts ?? []).length === 0 &&
+    !relayed
     ? code
     : undefined;
 }

@@ -5143,6 +5143,37 @@ describe("createAdkNormalizer — an ADK prompt block (errorCode, no finishReaso
     expect(Math.max(...blocks(out).map((e) => out.indexOf(e)))).toBeLessThan(term);
   });
 
+  it("an event ADK's A2A relay forwarded (an a2a:response entry in customMetadata, even a null one) is never read as a prompt block, with or without a message, bare and with host completion; the same event whose customMetadata holds other entries but not that one is", () => {
+    const others = { note: "kept", "a2a:other": "kept" };
+    const relays: Array<{ [k: string]: JsonValue }> = [{ "a2a:response": { kind: "status-update", status: { state: "failed" } } }, { "a2a:response": null }];
+    const messages: Array<{ [k: string]: JsonValue }> = [{}, { errorMessage: "SAFETY" }];
+    for (const message of messages) {
+      for (const hostCompletion of [false, true]) {
+        for (const relay of relays) {
+          const relayed = push([{ ...inv, author: "helper", errorCode: "SAFETY", ...message, customMetadata: { ...others, ...relay } }], { hostCompletion });
+          expect(blocks(relayed), `relayed ${JSON.stringify(relay)} ${JSON.stringify(message)} hc=${hostCompletion}`).toEqual([]);
+        }
+        const direct = push([{ ...inv, author: "helper", errorCode: "SAFETY", ...message, customMetadata: others }], { hostCompletion });
+        expect(blocks(direct), `direct ${JSON.stringify(message)} hc=${hostCompletion}`).toHaveLength(1);
+      }
+    }
+  });
+
+  it("a streaming relay's block, which carries the block's code in errorCode, ends the turn as turn.error with that code and records no prompt.blocked, bare and with host completion", () => {
+    for (const code of ["SAFETY", "PROHIBITED_CONTENT"]) {
+      for (const hostCompletion of [false, true]) {
+        const out = push(
+          [{ ...inv, author: "helper", errorCode: code, errorMessage: code, turnComplete: true, customMetadata: { "a2a:response": { kind: "status-update", status: { state: "failed" } } } }],
+          { hostCompletion },
+        );
+        expect(blocks(out), `${code} hc=${hostCompletion}`).toEqual([]);
+        const terms = out.filter((e) => TERMINAL.has(e.type));
+        expect(terms, `${code} hc=${hostCompletion}`).toHaveLength(1);
+        expect(terms[0], `${code} hc=${hostCompletion}`).toMatchObject({ type: "turn.error", code });
+      }
+    }
+  });
+
   it("ADK_PROMPT_BLOCK_REASONS holds genai's eight BlockedReason values and the Gemini API's BLOCK_REASON_UNSPECIFIED", () => {
     expect([...ADK_PROMPT_BLOCK_REASONS].sort()).toEqual(
       ["BLOCKED_REASON_UNSPECIFIED", "SAFETY", "OTHER", "BLOCKLIST", "PROHIBITED_CONTENT", "IMAGE_SAFETY", "MODEL_ARMOR", "JAILBREAK", "BLOCK_REASON_UNSPECIFIED"].sort(),

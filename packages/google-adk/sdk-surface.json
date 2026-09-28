@@ -219,7 +219,7 @@
         },
         "errorCode": {
           "disposition": "handled",
-          "note": "turn.error `code` (when errorMessage is also set) and a mapFinishReason() fallback input; also gates hasCompletion in maybeCloseTurn. A treated block reason (ADK_PROMPT_BLOCK_REASONS) with no finishReason and no content parts is ADK's prompt-block shape (StreamingMode NONE): it also records prompt.blocked, one per such event while the turn is open, before the unchanged terminal."
+          "note": "turn.error `code` (when errorMessage is also set) and a mapFinishReason() fallback input; also gates hasCompletion in maybeCloseTurn. A treated block reason (ADK_PROMPT_BLOCK_REASONS) with no finishReason and no content parts is ADK's prompt-block shape (StreamingMode NONE): it also records prompt.blocked, one per such event while the turn is open, before the unchanged terminal. An event with an a2a:response entry in customMetadata, whoever wrote it (RemoteA2AAgent writes one on every event it relays), is never read as a prompt block: the relay drops the finishReason that tells the two blocks apart."
         },
         "errorMessage": {
           "disposition": "handled",
