@@ -1,0 +1,24 @@
+[
+  {
+    "name": "tool_output",
+    "item": {
+      "type": "tool_call_output_item",
+      "rawItem": {
+        "type": "function_call_result",
+        "name": "lookup",
+        "callId": "call_1",
+        "status": "completed",
+        "output": {
+          "type": "text",
+          "text": "found"
+        }
+      },
+      "agent": {
+        "name": "F"
+      },
+      "output": "found",
+      "executionStatus": "executed"
+    },
+    "type": "run_item_stream_event"
+  }
+]

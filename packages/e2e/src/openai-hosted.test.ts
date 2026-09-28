@@ -162,6 +162,50 @@ describe("openai hosted-MCP approvals answered in the same invoke and on resume"
     expect(needsResync).toBe(false);
   });
 
+  for (const decision of ["approve", "reject"] as const) {
+    it(`hosted-mcp-sticky-${decision}: a kept decision answers a later request of the same server tool in its own round, after its ask, and the round closes success`, () => {
+      const reducer = new Reducer();
+      const first = drive(`hosted-mcp-sticky-${decision}.invoke1`, { invokeId: "openai-1", reducer });
+      const second = drive(`hosted-mcp-sticky-${decision}.invoke2`, { invokeId: "openai-2", reducer });
+      const paused = first.tagged.find((t) => t.ev.type === "turn.done")?.ev["outcome"] as { type: string };
+      expect(paused.type).toBe("paused");
+      const at = (pred: (t: Tagged) => boolean) => second.tagged.findIndex(pred);
+      const ask = at((t) => t.ev.type === "hitl.ask" && t.ev["toolCallId"] === "mcpr_2");
+      const answer = at((t) => t.ev.type === "tool.done" && t.ev["toolCallId"] === "mcpr_2");
+      expect(ask).toBeGreaterThanOrEqual(0);
+      expect(answer).toBeGreaterThan(ask);
+      const done = second.tagged[answer]!.ev;
+      expect(done["outcome"]).toBe(decision === "approve" ? "ok" : "denied");
+      if (decision === "reject") expect(done["providerMetadata"]).toMatchObject({ reason: "not this server" });
+      const round = second.tagged[ask]!.ev["turnId"];
+      expect(done["turnId"]).toBe(round);
+      const close = second.tagged.filter((t) => ["turn.done", "turn.error", "turn.abort"].includes(t.ev.type) && t.ev["turnId"] === round);
+      expect(close.map((t) => [t.ev.type, (t.ev["outcome"] as { type?: string } | undefined)?.type])).toEqual([["turn.done", "success"]]);
+      expect(second.tagged.indexOf(close[0]!)).toBeGreaterThan(answer);
+      expect(second.tagged.filter((t) => t.ev.type === "turn.abort")).toEqual([]);
+      const alone = [1, 2].map((k) => drive(`hosted-mcp-sticky-${decision}.invoke${k}`, { invokeId: `openai-${k}` }).needsResync);
+      expect(alone, "each invoke folded alone").toEqual([false, false]);
+      expect(reducer.needsResync, "the two invokes through one reducer").toBe(false);
+    });
+  }
+
+  it("function-partial-resume: a resume that answers one of two function calls closes that invoke's resume turn as turn.abort stream-truncated (a stated limit)", () => {
+    const reducer = new Reducer();
+    const first = drive("function-partial-resume.invoke1", { invokeId: "openai-1", reducer });
+    const second = drive("function-partial-resume.invoke2", { invokeId: "openai-2", reducer });
+    const paused = first.tagged.find((t) => t.ev.type === "turn.done")?.ev["outcome"] as { type: string; asks: Array<{ askId: string }> };
+    expect([paused.type, paused.asks.map((a) => a.askId)]).toEqual(["paused", ["approval_call_1", "approval_call_2"]]);
+    const closes = (id: string) => second.tagged.filter((t) => t.ev.type === "tool.done" && t.ev["toolCallId"] === id).map((t) => [t.ev["outcome"], t.ev["turnId"]]);
+    expect(closes("call_1")).toEqual([["ok", "turn_resume_call_1"]]);
+    expect(closes("call_2")).toEqual([]);
+    expect(second.tagged.filter((t) => t.ev.type === "hitl.ask")).toEqual([]);
+    const terminals = second.tagged.filter((t) => ["turn.done", "turn.error", "turn.abort"].includes(t.ev.type));
+    expect(terminals.map((t) => [t.ev.type, t.ev["turnId"], t.ev["reason"]])).toEqual([["turn.abort", "turn_resume_call_1", "stream-truncated"]]);
+    const alone = [1, 2].map((k) => drive(`function-partial-resume.invoke${k}`, { invokeId: `openai-${k}` }).needsResync);
+    expect(alone, "each invoke folded alone").toEqual([false, false]);
+    expect(reducer.needsResync, "the two invokes through one reducer").toBe(false);
+  });
+
   it("hosted-mcp-partial-resume: a resume that answers one of two requests closes that invoke's resume turn as turn.abort stream-truncated (a stated limit), and a later invoke closes the other request", () => {
     const reducer = new Reducer();
     const invokes = [1, 2, 3].map((k) => drive(`hosted-mcp-partial-resume.invoke${k}`, { invokeId: `openai-${k}`, reducer }));

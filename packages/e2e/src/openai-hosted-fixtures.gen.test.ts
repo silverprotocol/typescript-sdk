@@ -29,6 +29,14 @@
  *    hosted-mcp-resume-reject.invoke2 resume that run from its RunState with
  *    the request approved (the model then returns the mcp_call and text) or
  *    rejected (text only).
+ *  - hosted-mcp-sticky-approve.invoke1/2 and hosted-mcp-sticky-reject.invoke1/2:
+ *    one hosted-MCP approval request answered on resume with a decision kept
+ *    for the tool (alwaysApprove, or alwaysReject with a message); the resumed
+ *    model then asks again for the same server tool, which the kept decision
+ *    answers in the same invoke, then a text response.
+ *  - function-partial-resume.invoke1/2: two function calls that need approval;
+ *    invoke 2 approves only the first (the run interrupts again for the
+ *    second).
  *  - hosted-mcp-partial-resume.invoke1..3: two hosted-MCP approval requests;
  *    invoke 2 resumes with only the first approved (the run interrupts again
  *    for the second), and invoke 3 resumes with the second rejected, then a
@@ -40,7 +48,8 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "vitest";
-import { Agent, run, hostedMcpTool, webSearchTool, shellTool, setTracingDisabled } from "@openai/agents";
+import { Agent, run, hostedMcpTool, webSearchTool, shellTool, setTracingDisabled, tool } from "@openai/agents";
+import { z } from "zod";
 import type { JsonValue } from "@silverprotocol/core";
 
 const OUT_DIR = join(import.meta.dirname, "..", "fixtures", "openai-hosted");
@@ -230,6 +239,35 @@ describe.runIf(process.env["GEN_OPENAI_HOSTED"] === "1")("openai hosted-tool eng
       );
       if (approve) write("hosted-mcp-resume.invoke1", invoke1);
       write(`hosted-mcp-resume-${approve ? "approve" : "reject"}.invoke2`, invoke2);
+    }
+
+    {
+      const calls = ["call_1", "call_2"].map((callId, k) => ({ type: "function_call", id: `fc_${k + 1}`, call_id: callId, name: "lookup", arguments: "{}", status: "completed" }));
+      const fnRound = fakeModel("resp_f1", calls, calls.map((c) => ({ type: "function_call", id: c.id, callId: c.call_id, name: c.name, arguments: c.arguments, status: "completed" })));
+      const lookup = tool({ name: "lookup", description: "Look up.", parameters: z.object({}), needsApproval: true, execute: async () => "found" });
+      const agent = new Agent({ name: "F", model: scriptedModel([fnRound, answerRound("resp_f2", [], "ok")]) as never, tools: [lookup] });
+      const first = await run(agent, "hi", { stream: true });
+      const invoke1 = await drain(first);
+      first.state.approve(first.interruptions[0]!);
+      const invoke2 = await drain(await run(agent, first.state, { stream: true }));
+      write("function-partial-resume.invoke1", invoke1);
+      write("function-partial-resume.invoke2", invoke2);
+    }
+
+    for (const decision of ["approve", "reject"] as const) {
+      const agent = new Agent({
+        name: decision === "approve" ? "S" : "T",
+        model: scriptedModel([approvalRound("resp_s1", ["mcpr_1"]), approvalRound("resp_s2", ["mcpr_2"]), answerRound("resp_s3", [], "done")]) as never,
+        tools: [gated()],
+      });
+      const first = await run(agent, "hi", { stream: true });
+      const invoke1 = await drain(first);
+      const s1 = first.state;
+      if (decision === "approve") s1.approve(first.interruptions[0]!, { alwaysApprove: true });
+      else s1.reject(first.interruptions[0]!, { alwaysReject: true, message: "not this server" });
+      const invoke2 = await drain(await run(agent, s1, { stream: true }));
+      write(`hosted-mcp-sticky-${decision}.invoke1`, invoke1);
+      write(`hosted-mcp-sticky-${decision}.invoke2`, invoke2);
     }
 
     {
