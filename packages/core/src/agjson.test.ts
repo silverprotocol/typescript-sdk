@@ -1585,3 +1585,19 @@ describe("AgSurfaceInteraction: discriminated on surface first accepts exactly w
   });
 });
 
+
+describe("ui.call callableFrom carries no default (spec §14, A2UI)", () => {
+  const call = { type: "ui.call", seq: 1, surfaceId: "s1", callId: "c1", method: "doThing", args: { x: 1 }, wantResponse: true } as const;
+
+  it("a ui.call without callableFrom parses with no own callableFrom key and re-serializes without one", () => {
+    const parsed = AgEvent.parse(call) as Record<string, unknown>;
+    expect(Object.prototype.hasOwnProperty.call(parsed, "callableFrom")).toBe(false);
+    expect(JSON.stringify(parsed)).not.toContain("callableFrom");
+    expect(JSON.parse(JSON.stringify(parsed))).toEqual(call);
+  });
+
+  it("a ui.call carrying callableFrom remoteOnly round-trips deep-equal", () => {
+    const withBoundary = { ...call, callableFrom: "remoteOnly" } as const;
+    expect(JSON.parse(JSON.stringify(AgEvent.parse(withBoundary)))).toEqual(withBoundary);
+  });
+});
