@@ -2278,11 +2278,12 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
     expect(t).toMatchObject({ type: "turn.done", outcome: { type: "success" }, finishReason: "stop" });
   });
 
-  it("error closes stay immediate even on a nodeInfo event", () => {
-    const t = fold(
-      pushAndFlush([ev({ author: "spike", errorCode: "500", errorMessage: "boom", ...node("wf.spike") })]).all,
-    );
-    expect(t).toMatchObject({ type: "turn.error", code: "500" });
+  it("an in-band error on a nodeInfo event closes no turn from its push(), which emits its error event; flush() closes the turn turn.error with its code", () => {
+    const { pushed, flushed, all } = pushAndFlush([ev({ author: "spike", errorCode: "500", errorMessage: "boom", ...node("wf.spike") })]);
+    expect(pushed.filter((e) => e.type === "error")).toEqual([expect.objectContaining({ code: "500", message: "boom" })]);
+    expect(pushed.some((e) => e.type === "turn.error")).toBe(false);
+    expect(flushed.some((e) => e.type === "error")).toBe(false);
+    expect(fold(all)).toMatchObject({ type: "turn.error", code: "500" });
   });
 
   const branchFinal = (author: string, text: string): AdkEvent =>
@@ -5047,8 +5048,16 @@ describe("createAdkNormalizer — a Live turnComplete right after a tool respons
       .map((e) => e.type);
   };
 
-  it("an error after a tool response still closes the turn at once", () => {
-    expect(inBandTerminals([...called, { ...inv, errorCode: "UNAVAILABLE", errorMessage: "live session dropped" }])).toEqual(["turn.error"]);
+  it("an in-band error after a tool response closes no turn from push(): the error event reports it, and flush() closes the turn turn.error with its code", () => {
+    const errored: AdkEvent[] = [...called, { ...inv, errorCode: "UNAVAILABLE", errorMessage: "live session dropped" }];
+    expect(inBandTerminals(errored)).toEqual([]);
+    const n = createAdkNormalizer({ invokeId: "adk" });
+    const pushed = errored.flatMap((e) => n.push(toJson(e)));
+    const flushed = n.flush();
+    expect(pushed.filter((e) => e.type === "error")).toEqual([expect.objectContaining({ code: "UNAVAILABLE", message: "live session dropped" })]);
+    expect(flushed.filter((e) => e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort")).toEqual([
+      expect.objectContaining({ type: "turn.error", code: "UNAVAILABLE" }),
+    ]);
   });
 
   it("a reply carried only by output transcription ends the wait", () => {
@@ -5130,8 +5139,11 @@ describe("createAdkNormalizer — with hostCompletion, a paused run that ends wi
     expect(terminalOf([])).toEqual([expect.objectContaining({ type: "turn.done", outcome: expect.objectContaining({ type: "paused" }) })]);
   });
 
-  it("a thrown error the host feeds: turn.error", () => {
-    expect(terminalOf([{ type: ADK_HOST_ERROR_TYPE, code: "Error", message: "boom" }])).toEqual([expect.objectContaining({ type: "turn.error" })]);
+  it("a thrown error the host feeds after the pause ended: the turn closes paused, then the error closes turn.error on a new top-level turn", () => {
+    expect(terminalOf([{ type: ADK_HOST_ERROR_TYPE, code: "Error", message: "boom" }])).toEqual([
+      expect.objectContaining({ type: "turn.done", outcome: expect.objectContaining({ type: "paused" }) }),
+      expect.objectContaining({ type: "turn.error", code: "Error", message: "boom" }),
+    ]);
   });
 });
 
@@ -5158,6 +5170,219 @@ describe("createAdkNormalizer — an in-band error close carries the turn's usag
     const err = out.find((e) => e.type === "turn.error");
     expect(err).toMatchObject({ type: "turn.error", code: "UNAVAILABLE", message: "model overloaded" });
     expect(err !== undefined && "usage" in err).toBe(false);
+  });
+});
+
+describe("createAdkNormalizer — ADK in-band invocation errors (§8.0 item 35): no close on arrival, one turn.error at the invocation's end", () => {
+  const inv = { invocationId: "inv_fixture_1" };
+  const TERMINAL = new Set(["turn.done", "turn.error", "turn.abort"]);
+  const u = (prompt: number, candidates: number) => ({ promptTokenCount: prompt, candidatesTokenCount: candidates, totalTokenCount: prompt + candidates });
+  const failure = (code: string, extra: Partial<AdkEvent> = {}): AdkEvent => ({ ...inv, author: "first", errorCode: code, errorMessage: `${code} message`, ...extra });
+  const answer = (text: string, extra: Partial<AdkEvent> = {}): AdkEvent => ({ ...inv, author: "second", content: { role: "model", parts: [{ text }] }, finishReason: "STOP", ...extra });
+  /** Pushes each native, then the host-completion event (host) or a host-terminal event, then flush(). */
+  const feed = (natives: AdkEvent[], host: boolean, hostError?: { code: string; message: string }) => {
+    const n = createAdkNormalizer({ invokeId: "adk", ...(host ? { hostCompletion: true } : {}) });
+    const perNative = natives.map((e) => n.push(toJson(e)));
+    const tail = hostError !== undefined ? n.push({ type: ADK_HOST_ERROR_TYPE, ...hostError }) : host ? n.push({ type: "__host_complete__" }) : [];
+    const flushed = n.flush();
+    return { perNative, tail, flushed, all: [...perNative.flat(), ...tail, ...flushed] };
+  };
+  const terminals = (out: AgEvent[]) => out.filter((e) => TERMINAL.has(e.type));
+  const errorCodes = (out: AgEvent[]) => out.flatMap((e) => (e.type === "error" ? [e.code] : []));
+  /** One terminal per opened turn, nothing aimed at a turn after its terminal, and a fold that does not park. */
+  const expectCleanFold = (out: AgEvent[]) => {
+    for (const e of out) expect(() => AgEvent.parse(e)).not.toThrow();
+    const opened = out.flatMap((e) => (e.type === "turn.start" ? [e.turnId] : []));
+    for (const turnId of opened) {
+      const own = out.filter((e) => e.turnId === turnId);
+      const ends = own.filter((e) => TERMINAL.has(e.type));
+      expect(ends, turnId).toHaveLength(1);
+      expect(own.at(-1), turnId).toBe(ends[0]);
+    }
+    const r = new Reducer();
+    for (const e of out) r.push(e);
+    expect(r.needsResync).toBe(false);
+  };
+
+  it("an in-band error emits its error event from the push() that receives it and closes no turn; a later sub-agent's answer lands in the same turn; the invocation's end closes it turn.error with the error's code and the turn's usage, never success, bare and with host completion", () => {
+    for (const host of [false, true]) {
+      const { perNative, tail, flushed, all } = feed([failure("429", { usageMetadata: u(4, 0) }), answer("Second agent answered.", { usageMetadata: u(10, 3) })], host);
+      expect(perNative[0]!.filter((e) => e.type === "error"), `host=${host}`).toEqual([
+        expect.objectContaining({ code: "429", message: "429 message", turnId: "turn_adk_inv_fixture_1" }),
+      ]);
+      expect(terminals(perNative.flat()), `host=${host}`).toEqual([]);
+      const end = host ? tail : flushed;
+      expect(terminals(end), `host=${host}`).toEqual([
+        expect.objectContaining({ type: "turn.error", code: "429", message: "429 message", usage: expect.objectContaining({ inputTokens: 14, outputTokens: 3 }) }),
+      ]);
+      expect(flushed.some((e) => e.type === "error"), `host=${host}`).toBe(false);
+      expect(all.flatMap((e) => (e.type === "text.delta" ? [e.delta] : []))).toEqual(["Second agent answered."]);
+      expectCleanFold(all);
+    }
+  });
+
+  it("a later in-band error is a further error with its own error event, and the turn.error keeps the first error's code; a host-terminal event takes precedence and closes the same turn, with no fresh host-error turn", () => {
+    for (const host of [false, true]) {
+      const { all } = feed([failure("429"), failure("UNAVAILABLE", { author: "second" })], host);
+      expect(errorCodes(all), `host=${host}`).toEqual(["429", "UNAVAILABLE"]);
+      expect(terminals(all), `host=${host}`).toEqual([expect.objectContaining({ type: "turn.error", code: "429" })]);
+      expectCleanFold(all);
+      const thrown = feed([failure("429"), answer("Recovered.")], host, { code: "max_llm_calls", message: "LLM call limit reached" });
+      expect(terminals(thrown.all), `host=${host}`).toEqual([
+        expect.objectContaining({ type: "turn.error", turnId: "turn_adk_inv_fixture_1", code: "max_llm_calls", message: "LLM call limit reached" }),
+      ]);
+      expectCleanFold(thrown.all);
+    }
+  });
+
+  it("an event with errorCode and no errorMessage is not an in-band error: no error event, and it closes the turn as before", () => {
+    const { all } = feed([{ ...inv, author: "a", errorCode: "SAFETY", finishReason: "SAFETY" }], false);
+    expect(errorCodes(all)).toEqual([]);
+    expect(terminals(all)).toEqual([expect.objectContaining({ type: "turn.done", finishReason: "safety_blocked" })]);
+  });
+
+  it("the SSE aggregate that repeats the previous event of its author, branch and node path yields no error event, and the call's usage counts once, from the later report; other sources' events may come between", () => {
+    const blocked = { errorCode: "SAFETY", errorMessage: "Response blocked.", finishReason: "SAFETY" } as const;
+    const alpha = { ...inv, author: "alpha", branch: "fanout.alpha" };
+    const beta = (extra: Partial<AdkEvent>): AdkEvent => ({ ...inv, author: "beta", branch: "fanout.beta", ...extra });
+    const cases: Array<[string, AdkEvent[], { inputTokens: number; outputTokens: number } | undefined]> = [
+      ["both carry a report", [{ ...alpha, ...blocked, usageMetadata: u(10, 5) }, { ...alpha, ...blocked, partial: false, usageMetadata: u(10, 5) }], { inputTokens: 10, outputTokens: 5 }],
+      ["only the aggregate carries one", [{ ...alpha, ...blocked }, { ...alpha, ...blocked, partial: false, usageMetadata: u(10, 5) }], { inputTokens: 10, outputTokens: 5 }],
+      ["the original is partial and carries one, the aggregate none", [{ ...alpha, ...blocked, partial: true, usageMetadata: u(10, 5) }, { ...alpha, ...blocked, partial: false }], { inputTokens: 10, outputTokens: 5 }],
+      [
+        "another branch streams between them",
+        [
+          { ...alpha, ...blocked, usageMetadata: u(10, 5) },
+          beta({ content: { role: "model", parts: [{ text: "Beta " }] }, partial: true }),
+          beta({ content: { role: "model", parts: [{ text: "Beta answered." }] }, partial: false, finishReason: "STOP", usageMetadata: u(20, 4) }),
+          { ...alpha, ...blocked, partial: false, usageMetadata: u(10, 5) },
+        ],
+        { inputTokens: 30, outputTokens: 9 },
+      ],
+    ];
+    for (const [label, natives, usage] of cases) {
+      for (const host of [false, true]) {
+        const { all } = feed(natives, host);
+        expect(errorCodes(all), `${label}, host=${host}`).toEqual(["SAFETY"]);
+        expect(terminals(all), `${label}, host=${host}`).toEqual([expect.objectContaining({ type: "turn.error", code: "SAFETY", usage: expect.objectContaining(usage) })]);
+        expectCleanFold(all);
+      }
+    }
+  });
+
+  it("an in-band error whose previous same-source event carried partial:false, or which carries another code or message, or comes from another source, is a further error: a loop that meets the same block twice reports it twice and counts both calls, and so does a partial:false error right after another", () => {
+    const blocked = { author: "assistant", errorCode: "SAFETY", errorMessage: "Response blocked.", finishReason: "SAFETY" } as const;
+    const loop: AdkEvent[] = [
+      { ...inv, ...blocked, usageMetadata: u(10, 5) },
+      { ...inv, ...blocked, partial: false, usageMetadata: u(10, 5) },
+      { ...inv, ...blocked, usageMetadata: u(10, 5) },
+      { ...inv, ...blocked, partial: false, usageMetadata: u(10, 5) },
+    ];
+    const other: AdkEvent[] = [
+      { ...inv, ...blocked, usageMetadata: u(10, 5) },
+      { ...inv, ...blocked, errorMessage: "Blocked again.", partial: false, usageMetadata: u(10, 5) },
+      { ...inv, ...blocked, author: "helper", partial: false, usageMetadata: u(10, 5) },
+    ];
+    const twice: AdkEvent[] = [
+      { ...inv, ...blocked, partial: false, usageMetadata: u(10, 5) },
+      { ...inv, ...blocked, partial: false, usageMetadata: u(10, 5) },
+    ];
+    for (const host of [false, true]) {
+      const c = feed(twice, host).all;
+      expect(errorCodes(c), `twice, host=${host}`).toEqual(["SAFETY", "SAFETY"]);
+      expect(terminals(c)).toEqual([expect.objectContaining({ type: "turn.error", usage: expect.objectContaining({ inputTokens: 20, outputTokens: 10 }) })]);
+      expectCleanFold(c);
+      const a = feed(loop, host).all;
+      expect(errorCodes(a), `loop, host=${host}`).toEqual(["SAFETY", "SAFETY"]);
+      expect(terminals(a)).toEqual([expect.objectContaining({ type: "turn.error", usage: expect.objectContaining({ inputTokens: 20, outputTokens: 10 }) })]);
+      expectCleanFold(a);
+      const b = feed(other, host).all;
+      expect(errorCodes(b), `other, host=${host}`).toEqual(["SAFETY", "SAFETY", "SAFETY"]);
+      expect(terminals(b)).toEqual([expect.objectContaining({ type: "turn.error", usage: expect.objectContaining({ inputTokens: 30, outputTokens: 15 }) })]);
+      expectCleanFold(b);
+    }
+  });
+
+  describe("with a pause", () => {
+    // A credential pause as ADK builds it: the tool call, the credential
+    // request, and the function response whose requestedAuthConfigs signal
+    // the pause (isAdkPauseEnd).
+    const authConfig = { authScheme: { type: "apiKey", in: "header", name: "X-Key" }, credentialKey: "mail-key" };
+    const credential: AdkEvent[] = [
+      event([{ functionCall: { name: "read_mail", args: {}, id: "fc-1" } }], { author: "second" }),
+      event([{ functionCall: { name: "adk_request_credential", args: { functionCallId: "fc-1", authConfig }, id: "adk-cred-1" } }], { author: "second", longRunningToolIds: ["adk-cred-1"] }),
+      {
+        ...inv,
+        author: "second",
+        content: { role: "user", parts: [{ functionResponse: { name: "read_mail", id: "fc-1", response: { status: "authorization requested" } } }] },
+        actions: { requestedAuthConfigs: { "fc-1": authConfig } },
+      },
+    ];
+
+    it("an invocation that met an in-band error and whose pause was signalled closes the asking turn paused with its asks, then one other top-level turn with one message and no content closes turn.error with the first error's code; bare, that error turn's opener is the only one flush() emits", () => {
+      for (const host of [false, true]) {
+        const { perNative, tail, flushed, all } = feed([failure("429", { usageMetadata: u(4, 0) }), ...credential], host);
+        expect(terminals(perNative.flat()), `host=${host}`).toEqual([]);
+        const end = host ? tail : flushed;
+        expect(terminals(end), `host=${host}`).toEqual([
+          expect.objectContaining({
+            type: "turn.done",
+            turnId: "turn_adk_inv_fixture_1",
+            outcome: expect.objectContaining({ type: "paused", asks: [expect.objectContaining({ toolCallId: "adk-cred-1" })] }),
+            finishReason: "paused",
+            usage: expect.objectContaining({ inputTokens: 4 }),
+          }),
+          expect.objectContaining({ type: "turn.error", turnId: "turn_adk_inv_fixture_1_error", code: "429" }),
+        ]);
+        const errorMessage = all.find((e) => e.type === "message.start" && e.turnId === "turn_adk_inv_fixture_1_error");
+        const errorTurn = all.filter((e) => e.turnId === "turn_adk_inv_fixture_1_error" || (e.type === "message.end" && e.id === errorMessage?.id));
+        expect(errorTurn.map((e) => e.type)).toEqual(["turn.start", "message.start", "message.end", "turn.error"]);
+        expect(errorTurn.find((e) => e.type === "turn.error")).not.toHaveProperty("usage");
+        expect(errorTurn.find((e) => e.type === "message.end")).not.toHaveProperty("usage");
+        if (!host) expect(flushed.filter((e) => e.type === "turn.start" || e.type === "message.start").map((e) => e.turnId)).toEqual(["turn_adk_inv_fixture_1_error", "turn_adk_inv_fixture_1_error"]);
+        expect(all.indexOf(terminals(all)[0]!)).toBeLessThan(all.findIndex((e) => e.type === "turn.start" && e.turnId === "turn_adk_inv_fixture_1_error"));
+        expectCleanFold(all);
+      }
+    });
+
+    it("an ask whose pause was not signalled by the invocation's end closes with the turn.error, never paused", () => {
+      const unsignalled = credential.slice(0, 2);
+      for (const host of [false, true]) {
+        const { all } = feed([...unsignalled, failure("429", { author: "second" })], host);
+        expect(terminals(all), `host=${host}`).toEqual([expect.objectContaining({ type: "turn.error", turnId: "turn_adk_inv_fixture_1", code: "429" })]);
+        expectCleanFold(all);
+      }
+    });
+
+    it("a host-terminal event after a signalled pause, with or without an in-band error, closes the turn paused, then the error turn with the host's code and only the host's usage", () => {
+      const hostError = { code: "Error", message: "boom", usage: { inputTokens: 7, outputTokens: 1, totalTokens: 8, cumulative: false } };
+      for (const natives of [credential, [failure("429"), ...credential]]) {
+        for (const host of [false, true]) {
+          const { all } = feed(natives, host, hostError);
+          expect(terminals(all), `host=${host}`).toEqual([
+            expect.objectContaining({ type: "turn.done", outcome: expect.objectContaining({ type: "paused" }) }),
+            expect.objectContaining({ type: "turn.error", turnId: "turn_adk_inv_fixture_1_error", code: "Error", message: "boom", usage: expect.objectContaining({ inputTokens: 7 }) }),
+          ]);
+          expectCleanFold(all);
+        }
+      }
+    });
+
+    it("two invokes folded by one reducer give distinct error-turn ids", () => {
+      const one = createAdkNormalizer({ invokeId: "adk-1" });
+      const two = createAdkNormalizer({ invokeId: "adk-2" });
+      const out = [
+        ...[failure("429"), ...credential].flatMap((e) => one.push(toJson(e))),
+        ...one.flush(),
+        ...[failure("429"), ...credential].flatMap((e) => two.push(toJson(e))),
+        ...two.flush(),
+      ];
+      const errorTurns = out.flatMap((e) => (e.type === "turn.error" ? [e.turnId] : []));
+      expect(new Set(errorTurns).size).toBe(2);
+      const r = new Reducer();
+      for (const e of out) r.push(e);
+      expect(r.needsResync).toBe(false);
+    });
   });
 });
 

@@ -258,8 +258,11 @@ export interface AdkEvent {
   finishReason?: string;
   /** Provider error code (Gemini block reason) — surfaces a non-STOP finish. */
   errorCode?: string;
-  /** Free-text error message accompanying errorCode for hard errors. When BOTH
-   *  errorCode AND errorMessage are set, a turn.error is emitted instead of turn.done. */
+  /** Free-text error message accompanying errorCode for hard errors. An event
+   *  with BOTH errorCode AND errorMessage is an in-band invocation error: the
+   *  facet emits a non-terminal `error` event when it arrives, and the
+   *  invocation's turn closes with turn.error at the invocation's end (spec
+   *  §8.0 item 35). */
   errorMessage?: string;
   /** Event id (stable per ADK event). */
   id?: string;
@@ -735,6 +738,53 @@ const USAGE_SUM_FIELDS = [
   "toolUsePromptTokenCount",
   "responseTokenCount",
 ] as const;
+
+/** The per-kind count members of AgUsage, which sumUsage sums with an absent
+ *  count read as 0. */
+const USAGE_COUNTS = [
+  "inputTokens",
+  "outputTokens",
+  "cacheReadTokens",
+  "cacheWriteTokens",
+  "reasoningTokens",
+  "toolUseInputTokens",
+  "serverToolRequests",
+] as const;
+
+/** The aggregate members of AgUsage, which sumUsage sums only when both
+ *  records carry them: a total or a cost one record lacks would understate
+ *  the sum (spec §4: totals are copied, never computed). */
+const USAGE_AGGREGATES = ["totalTokens", "totalTokensRaw", "costUsd"] as const;
+
+/** The field-wise sum of two usage records: each per-kind count present in
+ *  either is summed (an absent count is 0), each aggregate only when both
+ *  carry it (otherwise it is omitted), per model too; every other member is
+ *  the first record's, else the second's. Either absent returns the other. */
+function sumUsage(a: AgUsage | undefined, b: AgUsage | undefined): AgUsage | undefined {
+  if (a === undefined) return b;
+  if (b === undefined) return a;
+  const out: AgUsage = { ...b, ...a };
+  for (const key of USAGE_COUNTS) {
+    const x = a[key];
+    const y = b[key];
+    if (x !== undefined || y !== undefined) out[key] = (x ?? 0) + (y ?? 0);
+  }
+  for (const key of USAGE_AGGREGATES) {
+    const x = a[key];
+    const y = b[key];
+    if (x !== undefined && y !== undefined) out[key] = x + y;
+    else delete out[key];
+  }
+  if (a.byModel !== undefined || b.byModel !== undefined) {
+    const byModel: { [model: string]: AgUsage } = {};
+    for (const model of new Set([...Object.keys(a.byModel ?? {}), ...Object.keys(b.byModel ?? {})])) {
+      const sum = sumUsage(a.byModel?.[model], b.byModel?.[model]);
+      if (sum !== undefined) byModel[model] = sum;
+    }
+    out.byModel = byModel;
+  }
+  return out;
+}
 
 /** Fold one event's usageMetadata into a turn's running accumulator
  *  (field-wise sum; absent fields stay absent so mapUsage's presence checks
@@ -2303,7 +2353,9 @@ export const ADK_HOST_COMPLETE_TYPE = "__host_complete__";
  * SPEC §8.0 host obligation 1: when the ADK runtime THROWS instead of ending
  * the stream (e.g. its LLM-call limit), the host catches it and pushes
  * `{ type: "__host_error__", code, message, usage?, invocationId? }`. The
- * open turn closes `turn.error` with that code and message. The shape matches the OpenAI
+ * open turn closes `turn.error` with that code and message; a turn whose pause
+ * was signalled closes paused first, and the error then closes on a new
+ * top-level turn (spec §8.0 item 26). The shape matches the OpenAI
  * facet's sentinel. A host may build it from the caught Error itself
  * (`Object.assign(err, { type: "__host_error__", code })`): the sentinel is
  * read from the raw native, so the Error's own message is kept.
@@ -2363,6 +2415,34 @@ function isHostCompleteNative(v: JsonValue): boolean {
  * So push() never throws (SPEC §8.0), and no facet state believes a turn,
  * message or block is open that never reached the wire.
  */
+// ─── ADK in-band invocation errors (spec §8.0 item 35) ───────────────────────
+// ADK yields an in-band invocation error (errorCode AND errorMessage) without
+// ending the invocation: a SequentialAgent runs its next sub-agent, a Workflow
+// node retries, a callback or a further model round follows. So the turn never
+// closes on one: the push() that receives it emits the non-terminal `error`
+// event, and the invocation's turn closes with one turn.error at the
+// invocation's end (the host-completion event, a host-terminal event or
+// flush()), never as success.
+
+/** Spec §8.0 item 35: an in-band invocation error carries both errorCode and
+ *  errorMessage. */
+function inBandErrorOf(event: AdkEvent): { code: string; message: string } | undefined {
+  const code: unknown = event.errorCode;
+  const message: unknown = event.errorMessage;
+  return typeof code === "string" && typeof message === "string" ? { code, message } : undefined;
+}
+
+/** The previous event of one source, for item 35's SSE repeat: whether it
+ *  carried `partial: false`, the in-band error it carried, its usage report,
+ *  and the slot that report took among the turn's counted reports (absent when
+ *  it was not counted). */
+interface PreviousSourceEvent {
+  partialFalse: boolean;
+  error: { code: string; message: string } | undefined;
+  usage: NonNullable<AdkEvent["usageMetadata"]> | undefined;
+  usageSlot: number | undefined;
+}
+
 /** The aggregate window's key: the turn plus the event's source (author,
  *  branch and node path). A missing or non-string value is its own key, never
  *  equal to an empty string. */
@@ -2541,6 +2621,17 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
   // double-render quirk applies to usage too), so counting non-partial
   // events counts each round exactly once.
   const usageByTurn = new Map<string, NonNullable<AdkEvent["usageMetadata"]>>();
+  // The usage reports summed into usageByTurn, in order, so the report that an
+  // in-band error's repeat supersedes can be replaced (spec §8.0 item 35).
+  const usageReportsByTurn = new Map<string, Array<NonNullable<AdkEvent["usageMetadata"]>>>();
+  // Spec §8.0 item 35: per turn, the invocation's first in-band invocation
+  // error (errorCode AND errorMessage). The turn never closes on one, never
+  // closes as success after one, and closes with one turn.error at the
+  // invocation's end.
+  const firstInBandError = new Map<string, { code: string; message: string }>();
+  // Per turn and source (author, branch, node path): the previous event, for
+  // item 35's SSE repeat.
+  const previousBySource = new Map<string, PreviousSourceEvent>();
   // Per-turn HITL asks emitted by the two `actions.requested*` arms (audit
   // M26) — populated in emission order by `trackPendingAsk` inside
   // `driveAdkTopLevel`. Consulted ONLY by `maybeCloseTurn`'s REAL close path
@@ -2607,11 +2698,6 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     isPartial: boolean
   ): void {
     if (isPartial || closedTurns.has(turnId)) return;
-    // Every non-partial event contributes its per-round usage to the turn's
-    // accumulator — including functionCall rounds, which never close the
-    // turn themselves (see the usageByTurn doc above).
-    const accumulated = accumulateUsage(usageByTurn.get(turnId), event.usageMetadata);
-    if (accumulated !== undefined) usageByTurn.set(turnId, accumulated);
     const parts = event.content?.parts ?? [];
     const hasFunctionCall = parts.some((p) => p.functionCall !== undefined);
     const interrupted = event.interrupted === true || interruptPending.has(turnId);
@@ -2645,32 +2731,34 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // A bare Live turnComplete between a function response and the model's
     // reply ends the call generation, not the turn (see awaitingReply).
     if (event.finishReason === undefined && event.errorCode === undefined && awaitingReply.has(turnId)) return;
-    // The error-close predicate, spelled ONCE: both errorCode AND errorMessage
-    // present ⇒ turn.error (values captured here so the close below needs no
-    // re-narrowing).
-    const errorClose =
-      event.errorCode !== undefined && event.errorMessage !== undefined
-        ? { code: event.errorCode, message: event.errorMessage }
-        : undefined;
+    // Spec §8.0 item 35: an in-band invocation error never closes the turn
+    // (recordErrorAndUsage emitted its `error` event), and once the invocation
+    // met one, no final response closes it either: the invocation's end does
+    // (hostComplete, hostError, flush). A final response while an ask is
+    // pending still signals the pause (item 26).
+    if (inBandErrorOf(event) !== undefined) return;
+    if (firstInBandError.has(turnId)) {
+      if ((pendingAsks.get(turnId)?.length ?? 0) > 0) deferredClose.set(turnId, event);
+      return;
+    }
     // ── The nodeInfo gate (R&D item 6, step 1) ──
     // ADK's final-response rule is PER AGENT. On a Workflow invoke a node's
     // final text (nodeInfo present) is mid-invocation: closing the invocation
     // turn on it put the workflow's later events after the terminal and parked
     // reduce() (INV-MSG, SPEC.md:745/:757). So an event carrying nodeInfo never
     // closes the turn as success. It is a per-EVENT test, never a latch
-    // (NodeTool puts nodeInfo into plain runs too). Error closes stay
-    // immediate. A completed workflow closes success only on the host-completion
-    // event (the `hostCompletion` opt-in, §8.0 host obligation 4); without it,
-    // it flushes turn.abort.
-    if (errorClose === undefined && event.nodeInfo !== undefined) return;
+    // (NodeTool puts nodeInfo into plain runs too). A completed workflow closes
+    // success only on the host-completion event (the `hostCompletion` opt-in,
+    // §8.0 host obligation 4); without it, it flushes turn.abort.
+    if (event.nodeInfo !== undefined) return;
     // Host obligation 4 (opt-in): a success close waits for the
     // host-completion event, because the run may not be over (a
     // SequentialAgent's next agent, after-agent callback content). A close
     // while an ask is pending waits on every host (item 26: the invocation's
     // end, the host-completion event or flush()), because the model may run
     // again after a pause. The final response is stashed and closed unchanged,
-    // so a stream ending here is byte-identical. Error closes stay immediate.
-    if (errorClose === undefined && (hostCompletion || (pendingAsks.get(turnId)?.length ?? 0) > 0)) {
+    // so a stream ending here is byte-identical.
+    if (hostCompletion || (pendingAsks.get(turnId)?.length ?? 0) > 0) {
       deferredClose.set(turnId, event);
       return;
     }
@@ -2680,8 +2768,8 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // it, so closing the turn on it put their events after the terminal and
     // parked reduce() (INV-TURN). Without the host-completion event such a
     // turn closes at flush(), as a completed Workflow does.
-    if (errorClose === undefined && typeof event.branch === "string") return;
-    closeOnFinalResponse(event, turnId, messageId, errorClose);
+    if (typeof event.branch === "string") return;
+    closeOnFinalResponse(event, turnId, messageId);
   }
 
   /** The paused close at the invocation's end. A final response stashed while
@@ -2690,7 +2778,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
   function closePaused(turnId: string, messageId: string, asks: AgPausedAsk[]): void {
     const stashed = deferredClose.get(turnId);
     if (stashed !== undefined) {
-      closeOnFinalResponse(stashed, turnId, messageId, undefined);
+      closeOnFinalResponse(stashed, turnId, messageId);
       return;
     }
     closedTurns.add(turnId);
@@ -2704,13 +2792,9 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
   }
 
   /** The close on a final response: lossy-finish metadata, message.end, then
-   *  turn.error or turn.done (paused when asks are pending, else success). */
-  function closeOnFinalResponse(
-    event: AdkEvent,
-    turnId: string,
-    messageId: string,
-    errorClose: { code: string; message: string } | undefined,
-  ): void {
+   *  turn.done (paused when asks are pending, else success). An in-band
+   *  invocation error never reaches it (spec §8.0 item 35). */
+  function closeOnFinalResponse(event: AdkEvent, turnId: string, messageId: string): void {
     closedTurns.add(turnId);
     const rawFinish = event.finishReason ?? event.errorCode;
     const finish = resolveFinishReason(rawFinish);
@@ -2723,9 +2807,8 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // `rawErrorCode`, never fabricated as a finishReason. Lossy-only (unlike
     // vercel-ai's unconditional carry) so no recorded cassette — all STOP
     // closes — gains noise. Runs exactly once per turn (real-close path,
-    // closedTurns-guarded), never on partials; the error-close path skips it
-    // (closeTurnError carries the wire errorCode verbatim in `code`).
-    if (errorClose === undefined && rawFinish !== undefined && finish.lossy) {
+    // closedTurns-guarded), never on partials.
+    if (rawFinish !== undefined && finish.lossy) {
       a.emit({
         type: "message.metadata",
         messageId,
@@ -2735,40 +2818,121 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
       });
     }
     a.closeMessage(messageId);
-    // The turn's accrued usage rides its terminal on both closes (SPEC §4:
-    // turn.error.usage mirrors turn.done), as the host-error close does.
+    // The turn's accrued usage rides its terminal.
     const usage = mapUsage(usageByTurn.get(turnId) ?? event.usageMetadata);
-    if (errorClose !== undefined) {
-      a.closeTurnError(turnId, {
-        message: errorClose.message,
-        code: errorClose.code,
-        ...(usage !== undefined ? { usage } : {}),
-      });
+    const safety = mapBlockedSafety(event.safetyRatings);
+    // A turn with pending HITL asks (requestedAuthConfigs /
+    // requestedToolConfirmations / adk_request_input, tracked by
+    // `trackPendingAsk` above) closes PAUSED, not success: the asks are real,
+    // unresolved requests the turn is parked on, never a fabricated success
+    // (SPEC §8 items 12 + 18). A paused close carries finishReason "paused"
+    // (the HITL value), the same as the pause-end close above.
+    const asks = pendingAsks.get(turnId);
+    const paused = asks !== undefined && asks.length > 0;
+    a.closeTurnDone(turnId, {
+      outcome: paused ? { type: "paused", asks } : { type: "success" },
+      finishReason: paused ? "paused" : finish.value,
+      // draft.4 (SPEC.md:941, §10 item 23): a lossy mapping carries the
+      // native value verbatim in turn.done.finishReasonRaw. That is the value
+      // finishReason was mapped from: the wire finishReason, or for an
+      // errorCode-only soft close the errorCode. A paused close's "paused" is
+      // not a fallback, so it takes no companion. message.metadata's
+      // rawFinishReason/rawErrorCode carry stays for one cohort.
+      ...(!paused && rawFinish !== undefined && finish.lossy ? { finishReasonRaw: rawFinish } : {}),
+      ...(usage !== undefined ? { usage } : {}),
+      ...(safety !== undefined ? { safety } : {}),
+    });
+  }
+
+  /** Count one usage report toward the turn's usage; returns its slot. */
+  function countUsage(turnId: string, usage: NonNullable<AdkEvent["usageMetadata"]>): number {
+    const reports = usageReportsByTurn.get(turnId) ?? [];
+    reports.push(usage);
+    usageReportsByTurn.set(turnId, reports);
+    const accumulated = accumulateUsage(usageByTurn.get(turnId), usage);
+    if (accumulated !== undefined) usageByTurn.set(turnId, accumulated);
+    return reports.length - 1;
+  }
+
+  /** Replace the report in one slot and re-sum the turn's usage. */
+  function replaceUsage(turnId: string, slot: number, usage: NonNullable<AdkEvent["usageMetadata"]>): void {
+    const reports = usageReportsByTurn.get(turnId);
+    if (reports === undefined || slot >= reports.length) return;
+    reports[slot] = usage;
+    let sum: NonNullable<AdkEvent["usageMetadata"]> | undefined;
+    for (const report of reports) sum = accumulateUsage(sum, report);
+    if (sum !== undefined) usageByTurn.set(turnId, sum);
+  }
+
+  /** Spec §8.0 item 35 when the event arrives, and the event's usage count.
+   *  Every non-partial event of an open turn counts its usage report once,
+   *  functionCall rounds included (see the usageByTurn doc above). The SSE
+   *  aggregate that repeats the previous in-band error of its source as the
+   *  model call's stream closes yields no `error` event, and its report
+   *  replaces the one it repeats, so the call counts once, from the later
+   *  report. Any other in-band error emits `error` from this push and, when
+   *  it is the invocation's first, latches it. */
+  function recordErrorAndUsage(event: AdkEvent, turnId: string, isPartial: boolean): void {
+    const sourceKey = aggregateWindowKey(turnId, event, null);
+    const previous = previousBySource.get(sourceKey);
+    const error = inBandErrorOf(event);
+    const counting = !isPartial && !closedTurns.has(turnId);
+    let usageSlot: number | undefined;
+    if (error === undefined) {
+      if (counting && event.usageMetadata !== undefined) usageSlot = countUsage(turnId, event.usageMetadata);
     } else {
-      const safety = mapBlockedSafety(event.safetyRatings);
-      // A turn with pending HITL asks (requestedAuthConfigs /
-      // requestedToolConfirmations / adk_request_input, tracked by
-      // `trackPendingAsk` above) closes PAUSED, not success: the asks are real,
-      // unresolved requests the turn is parked on, never a fabricated success
-      // (audit M26 / SPEC §8 items 12 + 18). A paused close carries
-      // finishReason "paused" (the HITL value, R&D item 6 step 1), the same as
-      // the pause-end close above.
-      const asks = pendingAsks.get(turnId);
-      const paused = asks !== undefined && asks.length > 0;
-      a.closeTurnDone(turnId, {
-        outcome: paused ? { type: "paused", asks } : { type: "success" },
-        finishReason: paused ? "paused" : finish.value,
-        // draft.4 (SPEC.md:941, §10 item 23): a lossy mapping carries the
-        // native value verbatim in turn.done.finishReasonRaw. That is the value
-        // finishReason was mapped from: the wire finishReason, or for an
-        // errorCode-only soft close the errorCode. A paused close's "paused" is
-        // not a fallback, so it takes no companion. message.metadata's
-        // rawFinishReason/rawErrorCode carry stays for one cohort.
-        ...(!paused && rawFinish !== undefined && finish.lossy ? { finishReasonRaw: rawFinish } : {}),
-        ...(usage !== undefined ? { usage } : {}),
-        ...(safety !== undefined ? { safety } : {}),
-      });
+      const repeatsPrevious =
+        event.partial === false &&
+        previous !== undefined &&
+        !previous.partialFalse &&
+        previous.error !== undefined &&
+        previous.error.code === error.code &&
+        previous.error.message === error.message;
+      if (repeatsPrevious) {
+        const later = event.usageMetadata ?? previous.usage;
+        if (counting && later !== undefined) {
+          if (previous.usageSlot !== undefined) {
+            replaceUsage(turnId, previous.usageSlot, later);
+            usageSlot = previous.usageSlot;
+          } else {
+            usageSlot = countUsage(turnId, later);
+          }
+        }
+      } else {
+        a.emit({ type: "error", turnId, code: error.code, message: error.message });
+        if (!firstInBandError.has(turnId)) firstInBandError.set(turnId, error);
+        if (counting && event.usageMetadata !== undefined) usageSlot = countUsage(turnId, event.usageMetadata);
+      }
     }
+    previousBySource.set(sourceKey, { partialFalse: event.partial === false, error, usage: event.usageMetadata, usageSlot });
+  }
+
+  /** Item 26's pause signal: an ask is pending and the stream showed the
+   *  pause's end (its pause-end event, or a final response while the ask was
+   *  pending). An in-band invocation error is never one. */
+  function pauseSignalled(turnId: string): boolean {
+    return (pendingAsks.get(turnId)?.length ?? 0) > 0 && (pauseEnded.has(turnId) || deferredClose.has(turnId));
+  }
+
+  /** Spec §8.0 item 35 at the invocation's end: the one turn.error of a turn
+   *  whose invocation met an invocation error, with the given code and message
+   *  and the turn's accumulated usage. */
+  function closeInvocationError(turnId: string, error: { code: string; message: string }, usage: AgUsage | undefined): void {
+    closedTurns.add(turnId);
+    a.closeMessage(`msg_${turnId}`);
+    a.closeTurnError(turnId, { message: error.message, code: error.code, ...(usage !== undefined ? { usage } : {}) });
+  }
+
+  /** Spec §8.0 item 26 with an invocation error: after the paused close, the
+   *  error closes on a new top-level turn of the invocation, which carries one
+   *  assistant message with no content; its turn.error carries only usage a
+   *  host-terminal event reports. */
+  function closeErrorTurn(pausedTurnId: string, error: { code: string; message: string }, usage: AgUsage | undefined): void {
+    const turnId = `${pausedTurnId}_error`;
+    const messageId = ensureOpen(turnId);
+    closedTurns.add(turnId);
+    a.closeMessage(messageId);
+    a.closeTurnError(turnId, { message: error.message, code: error.code, ...(usage !== undefined ? { usage } : {}) });
   }
 
   /** Host obligation 4 bookkeeping: a call named in longRunningToolIds is
@@ -2792,7 +2956,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
    *  close with the accumulated usage when the run ended on a non-final event,
    *  e.g. a completed Workflow). */
   function hostComplete(): void {
-    for (const turnId of openTurns) {
+    for (const turnId of [...openTurns]) {
       if (closedTurns.has(turnId)) continue;
       if (interruptPending.has(turnId)) {
         closeInterrupted(turnId);
@@ -2800,6 +2964,19 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
       }
       const messageId = `msg_${turnId}`;
       const asks = pendingAsks.get(turnId);
+      // Spec §8.0 items 26 and 35: an invocation that met an in-band error
+      // never closes as success. A signalled pause closes paused, and the
+      // error follows on its own turn; otherwise the turn closes turn.error.
+      const error = firstInBandError.get(turnId);
+      if (error !== undefined) {
+        if (asks !== undefined && pauseSignalled(turnId)) {
+          closePaused(turnId, messageId, asks);
+          closeErrorTurn(turnId, error, undefined);
+        } else {
+          closeInvocationError(turnId, error, mapUsage(usageByTurn.get(turnId)));
+        }
+        continue;
+      }
       if (asks !== undefined && asks.length > 0) {
         closePaused(turnId, messageId, asks);
         continue;
@@ -2807,7 +2984,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
       if ((pendingLongRunning.get(turnId)?.size ?? 0) > 0) continue;
       const stashed = deferredClose.get(turnId);
       if (stashed !== undefined) {
-        closeOnFinalResponse(stashed, turnId, messageId, undefined);
+        closeOnFinalResponse(stashed, turnId, messageId);
         continue;
       }
       closedTurns.add(turnId);
@@ -2832,8 +3009,23 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     let closed = 0;
     for (const turnId of [...openTurns].reverse()) {
       if (closedTurns.has(turnId)) continue;
+      // A signalled pause on a turn with no interruption closes paused first,
+      // then the error closes on a new top-level turn (spec §8.0 host
+      // obligation 1 and item 26).
+      const asks = pendingAsks.get(turnId);
+      if (asks !== undefined && pauseSignalled(turnId) && !interruptPending.has(turnId)) {
+        closePaused(turnId, `msg_${turnId}`, asks);
+        closeErrorTurn(turnId, { code: err.code, message: err.message }, err.usage);
+        closed++;
+        continue;
+      }
       closedTurns.add(turnId);
-      const usage = err.usage ?? mapUsage(usageByTurn.get(turnId));
+      // A turn whose invocation met an in-band error closes with the host's
+      // code and message and the turn's accumulated usage plus any usage the
+      // host reports, which covers only work the stream did not report (spec
+      // §8.0 item 35); otherwise the host's usage, when it reports one,
+      // replaces it.
+      const usage = firstInBandError.has(turnId) ? sumUsage(mapUsage(usageByTurn.get(turnId)), err.usage) : (err.usage ?? mapUsage(usageByTurn.get(turnId)));
       a.closeMessage(`msg_${turnId}`);
       a.closeTurnError(turnId, { message: err.message, code: err.code, ...(usage !== undefined ? { usage } : {}) });
       closed++;
@@ -3097,6 +3289,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     carryLiveUsageDetails(event, turnId, messageId, isPartial);
     if (parts.some((p) => p.functionResponse !== undefined)) awaitingReply.add(turnId);
     else if (hasModelOutput(event)) awaitingReply.delete(turnId);
+    recordErrorAndUsage(event, turnId, isPartial);
     maybeCloseTurn(event, turnId, messageId, isPartial);
     // The interrupted generation closes on its own turnComplete (its trailing
     // usageMetadata arrives before it), or at flush() / host completion.
@@ -3209,7 +3402,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
       // Workflow invoke until the host completion signal exists, still reports
       // the tokens it spent. There is never a turn.done here, so the usage
       // appears only once.
-      for (const turnId of openTurns) {
+      for (const turnId of [...openTurns]) {
         if (closedTurns.has(turnId)) continue;
         if (interruptPending.has(turnId)) {
           closeInterrupted(turnId);
@@ -3217,11 +3410,20 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
         }
         // A pause the stream saw end (its pause-end event, or a final response
         // while an ask was pending) is a resolved pause, not a truncation: it
-        // closes paused here (SPEC §8.0 item 26). Asks with neither stay a
-        // truncation, as above.
+        // closes paused here (SPEC §8.0 item 26), and an in-band error of its
+        // invocation then closes on its own turn. Asks with neither stay a
+        // truncation, as above, unless the invocation met an in-band error:
+        // that turn, like any other of such an invocation, closes turn.error
+        // (spec §8.0 item 35, INV-FLUSH (2)).
         const asks = pendingAsks.get(turnId);
-        if (asks !== undefined && asks.length > 0 && (pauseEnded.has(turnId) || deferredClose.has(turnId))) {
+        const error = firstInBandError.get(turnId);
+        if (asks !== undefined && pauseSignalled(turnId)) {
           closePaused(turnId, `msg_${turnId}`, asks);
+          if (error !== undefined) closeErrorTurn(turnId, error, undefined);
+          continue;
+        }
+        if (error !== undefined) {
+          closeInvocationError(turnId, error, mapUsage(usageByTurn.get(turnId)));
           continue;
         }
         closedTurns.add(turnId);

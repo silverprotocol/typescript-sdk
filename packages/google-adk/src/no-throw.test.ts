@@ -4,11 +4,13 @@
  * member path of a set of well-formed base events (one per facet arm) is
  * replaced by each wrong-typed value, and deleted. No case may throw, and a
  * failure the facet cannot map is reported only as a core `error` event
- * carrying a fixed message and the error's constructor name.
+ * carrying a fixed message and the error's constructor name. An event that
+ * still carries both errorCode and errorMessage as strings is an in-band
+ * invocation error, whose own `error` event (spec §8.0 item 35) carries them.
  */
 import { describe, expect, it } from "vitest";
 import { createAdkNormalizer } from "./index.js";
-import type { AgEvent } from "@silverprotocol/core";
+import { NORMALIZER_ERROR_MESSAGE, type AgEvent } from "@silverprotocol/core";
 type J = unknown;
 const inv = "inv_fz";
 const bases: Record<string, J[]> = {
@@ -59,8 +61,10 @@ function setAt(root: J, path: (string | number)[], val: J | typeof DEL): J {
 
 describe("createAdkNormalizer never throws on a malformed event with a valid envelope", () => {
   it("every wrong-typed or deleted member of every base event: no throw from push() or flush(); an unmappable failure is only a core error event", () => {
+    const isGuardError = (x: AgEvent) => x.type === "error" && x.message === NORMALIZER_ERROR_MESSAGE;
     let cases = 0;
     let reported = 0;
+    let advised = 0;
     let differential = 0;
     const thrown: string[] = [];
     for (const [name, evs] of Object.entries(bases)) {
@@ -82,7 +86,7 @@ describe("createAdkNormalizer never throws on a malformed event with a valid env
             // Atomic: a native reported as an error left no other trace, so the
             // run equals the same stream without it, byte for byte, once the
             // error is removed and seq renumbered.
-            if (per[ei]!.some((x) => x.type === "error")) {
+            if (per[ei]!.some(isGuardError)) {
               differential++;
               expect(per[ei]!.map((x) => x.type)).toEqual(["error"]);
               const n2 = createAdkNormalizer({ invokeId: "adk" });
@@ -91,11 +95,18 @@ describe("createAdkNormalizer never throws on a malformed event with a valid env
                 if (j !== ei) without.push(...n2.push(m as never));
               });
               without.push(...n2.flush());
-              const stripped = out.filter((x) => x.type !== "error").map((x, i) => ({ ...x, seq: i }));
+              const stripped = out.filter((x) => !isGuardError(x)).map((x, i) => ({ ...x, seq: i }));
               expect(JSON.stringify(stripped), `${name}[${ei}].${p.join(".")}`).toBe(JSON.stringify(without));
             }
             expect(out.map((x) => x.seq)).toEqual(out.map((_, i) => i));
-            for (const e of out.filter((x) => x.type === "error")) {
+            for (const e of out.filter((x) => x.type === "error" && !isGuardError(x))) {
+              // An in-band invocation error's own advisory: the event's
+              // errorCode and errorMessage, and nothing else from the native.
+              advised++;
+              for (const k of Object.keys(e)) expect(["type", "seq", "message", "code", "turnId"]).toContain(k);
+              expect(typeof (e as { code?: unknown }).code).toBe("string");
+            }
+            for (const e of out.filter(isGuardError)) {
               reported++;
               // Only the fixed message, the constructor name and the owner
               // references the assembler backfills; nothing from the native.
@@ -112,5 +123,6 @@ describe("createAdkNormalizer never throws on a malformed event with a valid env
     // The guard is exercised: many of these cases reach it.
     expect(reported).toBeGreaterThan(100);
     expect(differential).toBeGreaterThan(100);
+    expect(advised).toBeGreaterThan(0);
   });
 });

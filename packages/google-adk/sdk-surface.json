@@ -226,11 +226,11 @@
         },
         "errorCode": {
           "disposition": "handled",
-          "note": "turn.error `code` (when errorMessage is also set) and a mapFinishReason() fallback input; also gates hasCompletion in maybeCloseTurn. A treated block reason (ADK_PROMPT_BLOCK_REASONS) with no finishReason and no content parts is ADK's prompt-block shape (StreamingMode NONE): it also records prompt.blocked, one per such event while the turn is open, before the unchanged terminal. An event with an a2a:response entry in customMetadata, whoever wrote it (RemoteA2AAgent writes one on every event it relays), is never read as a prompt block: the relay drops the finishReason that tells the two blocks apart."
+          "note": "With errorMessage also set, an in-band invocation error (spec \u00a78.0 item 35): the code of the non-terminal error event its push() emits, and of the invocation's one turn.error at the invocation's end when it is the invocation's first; the turn never closes on it. Otherwise a mapFinishReason() fallback input (the errorCode-only close); also gates hasCompletion in maybeCloseTurn. A treated block reason (ADK_PROMPT_BLOCK_REASONS) with no finishReason and no content parts is ADK's prompt-block shape (StreamingMode NONE): it also records prompt.blocked, one per such event while the turn is open, before the unchanged terminal. An event with an a2a:response entry in customMetadata, whoever wrote it (RemoteA2AAgent writes one on every event it relays), is never read as a prompt block: the relay drops the finishReason that tells the two blocks apart."
         },
         "errorMessage": {
           "disposition": "handled",
-          "note": "turn.error `message` \u2014 gates whether a completed turn with errorCode closes via closeTurnError (both set) vs closeTurnDone (errorCode alone, e.g. a block reason with no message). A prompt-block event records prompt.blocked either way."
+          "note": "With errorCode, an in-band invocation error (spec \u00a78.0 item 35): the message of its non-terminal error event, and of the invocation's turn.error when it is the first; the turn never closes on it. errorCode alone (e.g. a block reason with no message) still closes via closeTurnDone. A prompt-block event records prompt.blocked either way."
         },
         "interrupted": {
           "disposition": "handled",
