@@ -1133,6 +1133,22 @@ function apiErrorStatusRetriable(status: unknown): boolean {
   return typeof status === "number" && (status === 429 || status >= 500);
 }
 
+// The error fields an is_error success result carries by itself, when no
+// assistant error frame decided its close first: code = the server's
+// api_error_code when the CLI copied one through; else the CLI's own
+// terminal_reason when it names a cause other than a normal completion; else
+// the generic "api_error". message = the result text (on an API error, its
+// text), or the code when that text is empty. retriable = the HTTP status says
+// rate limit or server failure (see `apiErrorStatusRetriable`).
+function resultErrorFields(msg: SDKResultSuccessMsg): { readonly message: string; readonly code: string; readonly retriable: boolean } {
+  const code = readApiErrorCode(msg) ?? closeCauseTerminalReason(msg.terminal_reason) ?? "api_error";
+  return {
+    message: typeof msg.result === "string" && msg.result !== "" ? msg.result : code,
+    code,
+    retriable: apiErrorStatusRetriable(msg.api_error_status),
+  };
+}
+
 // ─── 0.3.220 result-frame enrichment: fast mode + per-model serving identity ──
 // `fast_mode_disabled_reason` (on BOTH result arms — why fast mode was blocked)
 // and `ModelUsage.canonicalModel`/`provider` (the pricing-lookup identity behind
@@ -1576,6 +1592,10 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   const closedNestedTurnIds = new Set<string>();
   // Nested turnId → its FIRST API error frame's close (released at run close).
   const nestedStashedErrors = new Map<string, StashedTurnError>();
+  // Nested turnIds whose stashed close came from a refusal frame (see the
+  // top-level `refusedTurns`): closed by the framework, the run closes as
+  // turn.done{finishReason:"refusal"}; at flush it stays turn.error.
+  const refusedNestedTurns = new Set<string>();
   // task_started: task_id → the spawning tool_use_id, for a task_notification
   // that carries only its task_id.
   const toolUseIdByTaskId = new Map<string, string>();
@@ -1589,7 +1609,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
     openRuns.set(parentToolUseId, { turnId, parentTurnId });
     a.subagentStart(turnId, parentTurnId);
   }
-  function closeRun(parentToolUseId: string, close: NestedClose): void {
+  function closeRun(parentToolUseId: string, close: NestedClose, atFlush = false): void {
     const run = openRuns.get(parentToolUseId);
     if (run === undefined) return;
     openRuns.delete(parentToolUseId);
@@ -1597,7 +1617,18 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
     closedNestedTurnIds.add(run.turnId);
     const stashed = nestedStashedErrors.get(run.turnId);
     nestedStashedErrors.delete(run.turnId);
-    if (stashed !== undefined) {
+    const refused = refusedNestedTurns.delete(run.turnId);
+    if (stashed !== undefined && refused && !atFlush) {
+      // A refusal frame decided this nested close, and the framework ended the
+      // run: the block signal rides finishReason (as the top-level refusal
+      // close), with no usage (a nested terminal carries none, SPEC §8.0 item
+      // 29). At flush it stays turn.error below (INV-FLUSH).
+      a.closeTurnDone(run.turnId, {
+        outcome: { type: "error", message: stashed.message, code: stashed.code, retriable: stashed.retriable },
+        finishReason: "refusal",
+        safety: [{ category: "refusal", blocked: true }],
+      });
+    } else if (stashed !== undefined) {
       a.closeTurnError(run.turnId, { message: stashed.message, code: stashed.code, retriable: stashed.retriable });
     } else if (close.kind === "success") {
       a.closeTurnDone(run.turnId, { outcome: { type: "success" }, finishReason: "unknown" });
@@ -1612,7 +1643,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // INV-FLUSH orders its own closes.
   function abortOpenRuns(): void {
     for (const parentToolUseId of [...openRuns.keys()].reverse()) {
-      closeRun(parentToolUseId, { kind: "aborted", reason: "stream-truncated" });
+      closeRun(parentToolUseId, { kind: "aborted", reason: "stream-truncated" }, true);
     }
   }
 
@@ -1702,6 +1733,14 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
   // be its own turn's, so a stale one can no longer leak into the next turn.
   type StashedTurnError = { readonly message: string; readonly code: string; readonly retriable: boolean };
   const stashedTurnErrors = new Map<string, StashedTurnError>();
+  // Top-level turnIds whose stashed close came from a refusal frame: an
+  // assistant error frame whose message.stop_reason is "refusal". CLI 2.1.280
+  // sends a refusal it does not retry as such a frame (error
+  // "invalid_request"), then a result with is_error true. Its result closes
+  // the turn as turn.done{outcome error, finishReason "refusal", safety}, so
+  // the block signal reaches the fold (SPEC §4); a flush with no result keeps
+  // the stashed turn.error (INV-TURN lists the flush closes).
+  const refusedTurns = new Set<string>();
 
   /** Remove and return the stashed error close for `turnId`, if any. */
   function takeStashedTurnError(turnId: string): StashedTurnError | undefined {
@@ -2632,8 +2671,9 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // response of the turn without one clears it. Every `fallback_credit_token`,
       // at any depth, is deleted first (a provider credit token is never
       // emitted). Null (every committed golden) carries nothing. Keyed by turn,
-      // so a nested (subagent) response never touches its parent's entry, and
-      // only top-level turns close with turn.done.
+      // so a nested (subagent) response never touches its parent's entry; only a
+      // top-level turn.done carries it (a nested terminal carries no
+      // messageMetadata).
       const stopDetails: unknown = m.stop_details;
       if (isJsonObject(stopDetails)) {
         stopDetailsByTurn.set(turnId, { messageId, value: withoutCreditTokens(JsonValue.parse(stopDetails)) });
@@ -2830,14 +2870,17 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // turn's result frame (which carries the turn's usage) emits it, or
       // `flush()` does if no result ever arrives (see `stashedTurnErrors`).
       if (msg.error !== undefined) {
-        // A reported fix is never silently dropped (SPEC §8.0 item 33). This
-        // turn closes as turn.error, so the turn.done messageMetadata carry of
-        // `stop_details` above never reaches the wire: the CLI's refusal
-        // message (error "invalid_request", stop_reason "refusal") carries the
-        // refusal's category, explanation and recommended model there. It
-        // rides `message.metadata` on this still-open message instead, verbatim
-        // under its wire name, less every provider credit token (§13.10), and
-        // folds into the message's `metadata`. Null carries nothing.
+        // A reported fix is never silently dropped (SPEC §8.0 item 33). An
+        // error frame's turn can close without a turn.done (the stashed
+        // turn.error, a flush, a nested run), where the turn.done
+        // messageMetadata carry of `stop_details` above never reaches the wire:
+        // the CLI's refusal message (error "invalid_request", stop_reason
+        // "refusal") carries the refusal's category, explanation and
+        // recommended model there. So it rides `message.metadata` on this
+        // still-open message whatever the close, verbatim under its wire name,
+        // less every provider credit token (§13.10), and folds into the
+        // message's `metadata`. A refusal its result closes as turn.done also
+        // carries it on that turn.done's messageMetadata. Null carries nothing.
         if (isJsonObject(stopDetails)) {
           const metadata: AgMeta = { stop_details: withoutCreditTokens(JsonValue.parse(stopDetails)) };
           a.emit({ type: "message.metadata", messageId, metadata });
@@ -2863,13 +2906,18 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
           // ("a nested turn has no failure outcome") is an open spec question.
           a.emit({ type: "error", turnId, message: errCode, code: errCode, retriable });
           // B-strict: the nested turn now HAS a failure outcome. The FIRST error
-          // frame's close is stashed and released as the nested turn.error when
-          // its run closes (see `closeRun`), whatever the Task result reports.
-          if (!nestedStashedErrors.has(turnId)) nestedStashedErrors.set(turnId, { message: errCode, code: errCode, retriable });
+          // frame's close is stashed and released as the nested terminal when
+          // its run closes (turn.done{finishReason refusal} for a refusal frame,
+          // else turn.error; see `closeRun`), whatever the Task result reports.
+          if (!nestedStashedErrors.has(turnId)) {
+            nestedStashedErrors.set(turnId, { message: errCode, code: errCode, retriable });
+            if (m.stop_reason === "refusal") refusedNestedTurns.add(turnId);
+          }
         } else if (!stashedTurnErrors.has(turnId)) {
           // First error frame wins: a turn already carrying a stashed close keeps
           // it (through 0.6.2, before the stash, the first error frame closed the turn).
           stashedTurnErrors.set(turnId, { message: errCode, code: errCode, retriable });
+          if (m.stop_reason === "refusal") refusedTurns.add(turnId);
         }
       }
 
@@ -3234,9 +3282,35 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // ride `ext.anthropic.result-meta` before the close (no core home on
       // turn.done — see resultMetaPayload's doc). It is emitted on an
       // API-error turn too, before its close like on every other turn.
-      const resultMeta = resultMetaPayload(msg, stashedError !== undefined || apiErrorTurn);
+      // A refusal close: the stash came from a refusal frame, or (no frame
+      // decided it) this is_error result itself says stop_reason "refusal".
+      const refusedByFrame = stashedError !== undefined && refusedTurns.delete(turnId);
+      const refusedByResult = stashedError === undefined && apiErrorTurn && msg.stop_reason === "refusal";
+      const refusalClose = refusedByFrame || refusedByResult;
+      const resultMeta = resultMetaPayload(msg, !refusalClose && (stashedError !== undefined || apiErrorTurn));
       if (resultMeta !== undefined) {
         a.emitExt("anthropic", "result-meta", resultMeta);
+      }
+      if (refusalClose) {
+        // The refusal close: turn.done, whose finishReason carries the block
+        // signal (SPEC §4) and whose outcome keeps the error the CLI reports
+        // (outcome.type is the facet's choice). The fields are the frame's
+        // stashed ones, or on a result-only refusal this result's own (as its
+        // turn.error close would carry), never an invented code. The closing
+        // response's stop_details rides messageMetadata, as on every turn.done.
+        const fields = stashedError ?? resultErrorFields(msg);
+        const refusalDetails = stopDetailsByTurn.get(turnId);
+        stopDetailsByTurn.delete(turnId);
+        a.closeTurnDone(turnId, {
+          outcome: { type: "error", message: fields.message, code: fields.code, retriable: fields.retriable },
+          finishReason: "refusal",
+          ...(turnUsage !== undefined ? { usage: turnUsage } : {}),
+          safety: [{ category: "refusal", blocked: true }],
+          ...(refusalDetails !== undefined
+            ? { messageId: refusalDetails.messageId, messageMetadata: { stop_details: refusalDetails.value } }
+            : {}),
+        });
+        return;
       }
       if (stashedError !== undefined) {
         // The assistant error frame decided this close; this frame adds the
@@ -3269,11 +3343,11 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         // that never happened. `code` is free-form (SPEC :618), so this fills
         // existing fields from the frame's own value; a live API error
         // (terminal_reason "api_error", api-error-auth) is unchanged.
-        const code = readApiErrorCode(msg) ?? closeCauseTerminalReason(msg.terminal_reason) ?? "api_error";
+        const fields = resultErrorFields(msg);
         a.closeTurnError(turnId, {
-          message: typeof msg.result === "string" && msg.result !== "" ? msg.result : code,
-          code,
-          retriable: apiErrorStatusRetriable(msg.api_error_status),
+          message: fields.message,
+          code: fields.code,
+          retriable: fields.retriable,
           ...(turnUsage !== undefined ? { usage: turnUsage } : {}),
         });
         return;
@@ -3289,9 +3363,10 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // exactly what "paused" names). The result-meta deferredToolUse carry stays.
       // A later invoke that resumes the call opens its own turn, minted from its
       // own frames (INV-XINV). Never keyed on terminal_reason. An is_error result
-      // never reaches here: it closed above as turn.error, and so did a
-      // turn an API-error frame decided; the deferred tool found unavailable on
-      // resume ("tool_deferred_unavailable") is such an is_error close.
+      // never reaches here: it closed above, as turn.error or, for a refusal, as
+      // turn.done, and so did a turn an API-error frame decided; the deferred
+      // tool found unavailable on resume ("tool_deferred_unavailable") is such
+      // an is_error close.
       const deferredCall = readDeferredCall(msg);
       const stop: unknown = msg.stop_reason;
       if (deferredCall !== undefined && stop === "tool_deferred") {
@@ -3331,6 +3406,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // frame emits it (below). Each turn has its own id now, so an entry can
       // only ever be this turn's.
       const stashedError = takeStashedTurnError(turnId);
+      refusedTurns.delete(turnId);
       // Guard `errors` and `subtype` defensively: `isSDKMessage` only checks
       // `typeof v.subtype === "string"` for the result arm — it does NOT validate
       // the `errors` array. A malformed message (missing errors, wrong subtype) must
@@ -3577,6 +3653,7 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         a.closeTurnError(turnId, { ...stashed });
       }
       stashedTurnErrors.clear();
+      refusedTurns.clear();
       return a.flush();
     },
   };

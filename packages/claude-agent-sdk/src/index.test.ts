@@ -6598,16 +6598,22 @@ describe("createClaudeNormalizer — API-error turn LIVE: the captured invalid-A
   });
 });
 
-// ─── a refusal's stop_details on the turn.error path (SPEC §8.0 item 33) ─────
-// CLI 2.1.280 delivers a refusal it does not retry as three frames: the
-// `model_refusal_no_fallback` notice, then its refusal message built as an
-// API-error assistant frame (`error: "invalid_request"`, `is_api_error_message`,
-// `stop_reason: "refusal"`, and the API's `stop_details`), then a success result
-// with `is_error: true` and `stop_reason: "refusal"`. The order is read from the
-// CLI bundle; no live capture holds a refusal yet. The turn closes as turn.error
-// (the error frame decides the close), so the turn.done `messageMetadata` carry
-// never runs: the refused message carries `stop_details` on `message.metadata`
-// while it is still open, and it folds into that message's `metadata`.
+// ─── a refusal the CLI does not retry: its stop_details and its close ─────────
+// On the non-streaming path, CLI 2.1.280 delivers a refusal it does not retry
+// as three frames: the `model_refusal_no_fallback` notice, then its refusal
+// message built as an API-error assistant frame (`error: "invalid_request"`,
+// `is_api_error_message`, `stop_reason: "refusal"`, and the API's
+// `stop_details`), then a success result with `is_error: true` and
+// `stop_reason: "refusal"`. On the default streaming path the refused
+// response's own frames come first, then the same notice and synthetic frame.
+// The order is read from the CLI bundle; no capture holds a refusal yet.
+// The error frame's `stop_details` rides `message.metadata` on the still-open
+// refused message whatever the close (SPEC §8.0 item 33), and folds into that
+// message's `metadata`. The result closes the turn as turn.done with
+// finishReason "refusal" (the block signal, SPEC §4), keeping the error outcome
+// the CLI reports, and that turn.done also carries `stop_details` on its
+// `messageMetadata`. A close that stays turn.error (a flush, a nested run at
+// flush) carries it on `metadata` only.
 const REFUSAL_TEXT = "API Error: Claude can't help with this. Start a new session to continue. Learn more: https://www.anthropic.com/legal/aup";
 const REFUSAL_STOP_DETAILS = {
   type: "refusal",
@@ -6625,13 +6631,16 @@ const REFUSAL_STOP_DETAILS_CARRIED = {
   fallbacks: [{ model: "claude-opus-5-5" }],
 };
 const REFUSAL_MESSAGE_ID = "msg_refusal_1";
+const REFUSAL_TURN = "turn_msg_refusal_1";
+const REFUSAL_OUTCOME = { type: "error", message: "invalid_request", code: "invalid_request", retriable: false };
+const REFUSAL_SAFETY = [{ category: "refusal", blocked: true }];
 
-function refusalFrame(stopDetails: unknown, parentToolUseId: string | null = null): unknown {
+function refusalFrame(stopDetails: unknown, parentToolUseId: string | null = null, id = REFUSAL_MESSAGE_ID): unknown {
   return {
     type: "assistant",
     message: {
       ...betaMessage([{ type: "text", text: REFUSAL_TEXT, citations: null }], { stop_reason: "refusal" }),
-      id: REFUSAL_MESSAGE_ID,
+      id,
       stop_details: stopDetails,
     },
     parent_tool_use_id: parentToolUseId,
@@ -6646,6 +6655,14 @@ function refusalResult(): unknown {
   return { ...resultSuccess("refusal"), is_error: true, result: REFUSAL_TEXT };
 }
 
+// A following round of the same session that carries no refusal.
+function nextRound(): unknown[] {
+  return [
+    { ...(assistantMsg([{ type: "text", text: "Here is another answer.", citations: null }]) as object), message: { ...betaMessage([{ type: "text", text: "Here is another answer.", citations: null }]), id: "msg_next_1" }, uuid: "00000000-0000-0000-0000-0000000000f7" },
+    { ...(resultSuccess("end_turn") as object), uuid: "00000000-0000-0000-0000-0000000000f8" },
+  ];
+}
+
 function stopDetailsCarries(evs: AgEvent[]): AgEvent[] {
   return evs.filter((e) => {
     if (e.type !== "message.metadata") return false;
@@ -6654,47 +6671,48 @@ function stopDetailsCarries(evs: AgEvent[]): AgEvent[] {
   });
 }
 
-describe("createClaudeNormalizer — a refusal's stop_details rides message.metadata when the turn closes as turn.error (SPEC §8.0 item 33)", () => {
-  it("the recorded order carries stop_details once on the refused message, before it seals, credit tokens stripped; the turn still closes turn.error", () => {
+function messageEndAt(evs: AgEvent[], id: string): number {
+  return evs.findIndex((e) => e.type === "message.end" && e.id === id);
+}
+
+describe("createClaudeNormalizer — an error frame's stop_details rides message.metadata whatever the close (SPEC §8.0 item 33)", () => {
+  it("the bundle-read order (non-streaming) carries stop_details once on the refused message, before it seals, credit tokens stripped", () => {
     const evs = drive([modelRefusalNoFallbackMsg(), refusalFrame(REFUSAL_STOP_DETAILS), refusalResult()]);
     const carries = stopDetailsCarries(evs);
     expect(carries).toHaveLength(1);
     expect(carries[0]).toMatchObject({ type: "message.metadata", messageId: REFUSAL_MESSAGE_ID });
-    expect(evs.find((e) => e.type === "message.start" && e.id === REFUSAL_MESSAGE_ID)).toMatchObject({ turnId: "turn_msg_refusal_1" });
+    expect(evs.find((e) => e.type === "message.start" && e.id === REFUSAL_MESSAGE_ID)).toMatchObject({ turnId: REFUSAL_TURN });
     expect(carries[0]?.type === "message.metadata" ? carries[0].metadata : undefined).toEqual({ stop_details: REFUSAL_STOP_DETAILS_CARRIED });
     const carryAt = evs.indexOf(carries[0] as AgEvent);
-    const endAt = evs.findIndex((e) => e.type === "message.end" && e.id === REFUSAL_MESSAGE_ID);
     expect(carryAt).toBeGreaterThan(evs.findIndex((e) => e.type === "text.end"));
-    expect(carryAt).toBeLessThan(endAt);
+    expect(carryAt).toBeLessThan(messageEndAt(evs, REFUSAL_MESSAGE_ID));
     expect(JSON.stringify(evs)).not.toContain("fallback_credit_token");
     expect(JSON.stringify(evs)).not.toContain("SECRET_credit");
-    // The close is unchanged: one turn.error with the frame's native code, no turn.done.
-    expect(turnCloses(evs)).toHaveLength(1);
-    expect(turnCloses(evs)[0]).toMatchObject({ type: "turn.error", turnId: "turn_msg_refusal_1", code: "invalid_request", retriable: false });
-    expect(evs.some((e) => e.type === "turn.done")).toBe(false);
-    // The notice still rides its own carry, and result-meta still names the stop reason.
+    // The notice still rides its own carry.
     expect(evs.filter((e) => e.type === "ext.anthropic.frame")).toEqual([expect.objectContaining({ kind: "model_refusal_no_fallback" })]);
-    expect(evs.find((e) => e.type === "ext.anthropic.result-meta")).toMatchObject({ stopReason: "refusal" });
   });
 
-  it("folds: the refused message's metadata carries stop_details, the turn record keeps the error outcome, and the fold does not park", () => {
+  it("folds: the refused message carries stop_details in both metadata and messageMetadata, deep-equal, and the fold does not park", () => {
     const evs = drive([modelRefusalNoFallbackMsg(), refusalFrame(REFUSAL_STOP_DETAILS), refusalResult()]);
     const r = fold(evs);
     expect(r.needsResync).toBe(false);
     const message = r.result().messages.find((m) => m.id === REFUSAL_MESSAGE_ID);
     expect(message?.metadata).toEqual({ stop_details: REFUSAL_STOP_DETAILS_CARRIED });
-    expect(message?.messageMetadata).toBeUndefined();
-    const turn = r.result().turns.find((t) => t.turnId === "turn_msg_refusal_1");
-    expect(turn?.outcome).toMatchObject({ type: "error", code: "invalid_request", retriable: false });
-    expect(turn?.finishReason).toBeUndefined();
+    expect(message?.messageMetadata).toEqual({ stop_details: REFUSAL_STOP_DETAILS_CARRIED });
   });
 
   it("NEGATIVE CONTROL: a null stop_details carries nothing and leaves the stream otherwise identical", () => {
     const carried = drive([modelRefusalNoFallbackMsg(), refusalFrame(REFUSAL_STOP_DETAILS), refusalResult()]);
     const plain = drive([modelRefusalNoFallbackMsg(), refusalFrame(null), refusalResult()]);
     expect(plain.some((e) => e.type === "message.metadata")).toBe(false);
-    const bare = (evs: AgEvent[]): unknown[] => evs.filter((e) => e.type !== "message.metadata").map((e) => withoutKey(e, "seq"));
+    // Everything but the two carries (the metadata event, and the turn.done's
+    // messageId/messageMetadata) is identical, seq aside.
+    const bare = (evs: AgEvent[]): unknown[] =>
+      evs
+        .filter((e) => e.type !== "message.metadata")
+        .map((e) => (e.type === "turn.done" ? withoutKey(withoutKey(withoutKey(e, "seq"), "messageMetadata"), "messageId") : withoutKey(e, "seq")));
     expect(bare(carried)).toEqual(bare(plain));
+    expect(plain.find((e) => e.type === "turn.done")).not.toHaveProperty("messageMetadata");
   });
 
   it("NEGATIVE CONTROL: a genuine invalid_request API error (no refusal, no stop_details) emits no metadata and closes turn.error", () => {
@@ -6704,7 +6722,7 @@ describe("createClaudeNormalizer — a refusal's stop_details rides message.meta
     expect(fold(evs).needsResync).toBe(false);
   });
 
-  it("a nested (subagent) refusal frame carries stop_details on the nested message, inside the nested turn", () => {
+  it("a nested (subagent) refusal frame still open at flush carries stop_details on the nested message and closes turn.error, metadata only", () => {
     const top = assistantMsg([{ type: "tool_use", id: "toolu_t", name: "Task", input: { prompt: "research" } }], null, { stop_reason: "tool_use" });
     const evs = drive([top, refusalFrame(REFUSAL_STOP_DETAILS, "toolu_t"), resultSuccess("end_turn")]);
     const carries = stopDetailsCarries(evs);
@@ -6714,18 +6732,250 @@ describe("createClaudeNormalizer — a refusal's stop_details rides message.meta
     expect(nestedTurn).toBeDefined();
     expect(nestedTurn).not.toBe(TOP_TURN);
     expect(carries[0]).toMatchObject({ messageId: REFUSAL_MESSAGE_ID, metadata: { stop_details: REFUSAL_STOP_DETAILS_CARRIED } });
-    expect(evs.indexOf(carries[0] as AgEvent)).toBeLessThan(evs.findIndex((e) => e.type === "message.end" && e.id === REFUSAL_MESSAGE_ID));
+    expect(evs.indexOf(carries[0] as AgEvent)).toBeLessThan(messageEndAt(evs, REFUSAL_MESSAGE_ID));
+    // The run is still open at flush: its close stays turn.error (INV-FLUSH).
+    expect(turnCloses(evs).filter((e) => "turnId" in e && e.turnId === nestedTurn)).toEqual([
+      expect.objectContaining({ type: "turn.error", code: "invalid_request" }),
+    ]);
     const r = fold(evs);
     expect(r.needsResync).toBe(false);
-    expect(r.result().messages.find((m) => m.id === REFUSAL_MESSAGE_ID)?.metadata).toEqual({ stop_details: REFUSAL_STOP_DETAILS_CARRIED });
+    const message = r.result().messages.find((m) => m.id === REFUSAL_MESSAGE_ID);
+    expect(message?.metadata).toEqual({ stop_details: REFUSAL_STOP_DETAILS_CARRIED });
+    expect(message?.messageMetadata).toBeUndefined();
   });
 
-  it("a refusal frame WITHOUT an error (the turn.done path) keeps its turn.done messageMetadata carry and adds no message.metadata", () => {
+  it("a refusal frame WITHOUT an error (the success close) keeps its turn.done messageMetadata carry and adds no message.metadata", () => {
     const frame = assistantMsg([{ type: "text", text: "I can't help with that.", citations: null }], null, { stop_reason: "refusal" });
     const withDetails = { ...(frame as object), message: { ...betaMessage([{ type: "text", text: "I can't help with that.", citations: null }], { stop_reason: "refusal" }), stop_details: REFUSAL_STOP_DETAILS } };
     const evs = drive([withDetails, resultSuccess("refusal")]);
     expect(stopDetailsCarries(evs)).toHaveLength(0);
-    expect(evs.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "refusal", messageId: "msg_fixture_1", messageMetadata: { stop_details: REFUSAL_STOP_DETAILS_CARRIED } });
+    expect(evs.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "refusal", outcome: { type: "success" }, messageId: "msg_fixture_1", messageMetadata: { stop_details: REFUSAL_STOP_DETAILS_CARRIED } });
+    expect(fold(evs).needsResync).toBe(false);
+  });
+});
+
+describe("createClaudeNormalizer — a refusal the CLI does not retry closes as turn.done with finishReason refusal", () => {
+  const se = (event: unknown, uuid: string): unknown => ({ type: "stream_event", event, parent_tool_use_id: null, uuid, session_id: "sess_fixture" });
+  // The CLI's synthetic refusal message: a fresh id, a synthetic model, zero usage.
+  const SYNTHETIC_ID = "5f0c1e2a-7b3d-4c8e-9a61-2d4f6b8c0e13";
+  const syntheticFrame = (): unknown => ({
+    ...(refusalFrame(REFUSAL_STOP_DETAILS, null, SYNTHETIC_ID) as { [k: string]: unknown }),
+    message: {
+      ...betaMessage([{ type: "text", text: REFUSAL_TEXT, citations: null }], { stop_reason: "refusal" }),
+      id: SYNTHETIC_ID,
+      model: "<synthetic>",
+      stop_details: REFUSAL_STOP_DETAILS,
+    },
+  });
+  const refusedText = "Here is the start of an answer";
+  const refusedResponseFrame = (): unknown => ({
+    ...(assistantMsg([{ type: "text", text: refusedText, citations: null }], null, { stop_reason: "refusal" }) as object),
+    message: { ...betaMessage([{ type: "text", text: refusedText, citations: null }], { stop_reason: "refusal", stop_details: null }), id: "msg_refused_x" },
+    uuid: "00000000-0000-0000-0000-0000000000f5",
+  });
+  const refusedStream = (): unknown[] => [
+    se({ type: "message_start", message: { ...betaMessage([]), id: "msg_refused_x" } }, "00000000-0000-0000-0000-0000000000e1"),
+    se({ type: "content_block_start", index: 0, content_block: { type: "text", text: "", citations: null } }, "00000000-0000-0000-0000-0000000000e2"),
+    se({ type: "content_block_delta", index: 0, delta: { type: "text_delta", text: refusedText } }, "00000000-0000-0000-0000-0000000000e3"),
+    se({ type: "content_block_stop", index: 0 }, "00000000-0000-0000-0000-0000000000e4"),
+    se({ type: "message_delta", delta: { stop_reason: "refusal", stop_sequence: null, stop_details: null }, usage: { output_tokens: 7 } }, "00000000-0000-0000-0000-0000000000e5"),
+    refusedResponseFrame(),
+    se({ type: "message_stop" }, "00000000-0000-0000-0000-0000000000e6"),
+  ];
+  const doneOf = (evs: AgEvent[], turnId: string): AgEvent[] => evs.filter((e) => e.type === "turn.done" && e.turnId === turnId);
+
+  it("the bundle-read order (non-streaming) closes exactly one turn.done{error outcome, finishReason refusal, safety}; every event parses producer-strict; the fold records finishReason refusal; a following round without a refusal closes stop", () => {
+    const evs = drive([modelRefusalNoFallbackMsg(), refusalFrame(REFUSAL_STOP_DETAILS), refusalResult(), ...nextRound()]);
+    for (const e of evs) expect(AgEvent.safeParse(e).success).toBe(true);
+    const closes = turnCloses(evs).filter((e) => "turnId" in e && e.turnId === REFUSAL_TURN);
+    expect(closes).toHaveLength(1);
+    expect(closes[0]).toMatchObject({
+      type: "turn.done",
+      outcome: REFUSAL_OUTCOME,
+      finishReason: "refusal",
+      safety: REFUSAL_SAFETY,
+      usage: RESULT_USAGE,
+      messageId: REFUSAL_MESSAGE_ID,
+      messageMetadata: { stop_details: REFUSAL_STOP_DETAILS_CARRIED },
+    });
+    expect(closes[0]).not.toHaveProperty("finishReasonRaw");
+    expect(evs.some((e) => e.type === "turn.error")).toBe(false);
+    // The block signal now rides finishReason, so result-meta no longer repeats the stop reason.
+    expect(evs.filter((e) => e.type === "ext.anthropic.result-meta" && "stopReason" in e)).toHaveLength(0);
+    const next = turnCloses(evs).filter((e) => !("turnId" in e) || e.turnId !== REFUSAL_TURN);
+    expect(next).toEqual([expect.objectContaining({ type: "turn.done", finishReason: "stop", outcome: expect.objectContaining({ type: "success" }) })]);
+    // On the wire (serialized): the following round carries no safety entry.
+    expect(JSON.parse(JSON.stringify(next[0]))).not.toHaveProperty("safety");
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    const turn = r.result().turns.find((t) => t.turnId === REFUSAL_TURN);
+    expect(turn?.finishReason).toBe("refusal");
+    expect(turn?.outcome).toEqual(REFUSAL_OUTCOME);
+    expect(turn?.safety).toEqual(REFUSAL_SAFETY);
+    expect(r.result().turns.filter((t) => t.turnId !== REFUSAL_TURN).map((t) => t.finishReason)).toEqual(["stop"]);
+  });
+
+  it("the default shape (the refused response's text frame, the notice, then a synthetic frame): the carry names the synthetic message, the refused text frame carries none, and the turn closes turn.done refusal", () => {
+    const evs = drive([refusedResponseFrame(), modelRefusalNoFallbackMsg(), syntheticFrame(), refusalResult()]);
+    const carries = stopDetailsCarries(evs);
+    expect(carries).toEqual([expect.objectContaining({ messageId: SYNTHETIC_ID, metadata: { stop_details: REFUSAL_STOP_DETAILS_CARRIED } })]);
+    expect(evs.indexOf(carries[0] as AgEvent)).toBeLessThan(messageEndAt(evs, SYNTHETIC_ID));
+    expect(turnCloses(evs)).toEqual([expect.objectContaining({ type: "turn.done", finishReason: "refusal", outcome: REFUSAL_OUTCOME, messageId: SYNTHETIC_ID })]);
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.find((m) => m.id === "msg_refused_x")?.metadata).toBeUndefined();
+    expect(r.result().messages.find((m) => m.id === SYNTHETIC_ID)?.metadata).toEqual({ stop_details: REFUSAL_STOP_DETAILS_CARRIED });
+  });
+
+  it("the streaming path (content, then the refusal): the refused response's stream events, the notice and the synthetic frame close exactly one turn.done refusal; every event parses producer-strict; the fold records finishReason refusal; a following round without a refusal closes stop", () => {
+    const evs = drive([...refusedStream(), modelRefusalNoFallbackMsg(), syntheticFrame(), refusalResult(), ...nextRound()]);
+    for (const e of evs) expect(AgEvent.safeParse(e).success).toBe(true);
+    const turnStart = evs.find((e) => e.type === "turn.start");
+    const turnId = turnStart !== undefined && "turnId" in turnStart ? turnStart.turnId : undefined;
+    expect(turnId).toBe("turn_msg_refused_x");
+    expect(turnCloses(evs).filter((e) => "turnId" in e && e.turnId === turnId)).toEqual([
+      expect.objectContaining({ type: "turn.done", finishReason: "refusal", outcome: REFUSAL_OUTCOME, safety: REFUSAL_SAFETY, messageId: SYNTHETIC_ID }),
+    ]);
+    expect(doneOf(evs, "turn_msg_refused_x")).toHaveLength(1);
+    expect(evs.some((e) => e.type === "turn.error")).toBe(false);
+    // The streamed text still arrived before the refusal.
+    expect(evs.some((e) => e.type === "text.delta" && e.delta === refusedText)).toBe(true);
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.find((t) => t.turnId === "turn_msg_refused_x")?.finishReason).toBe("refusal");
+    expect(r.result().turns.filter((t) => t.turnId !== "turn_msg_refused_x").map((t) => t.finishReason)).toEqual(["stop"]);
+  });
+
+  it("a flush with no result keeps the stashed turn.error; the refused message carries stop_details on metadata only", () => {
+    const evs = drive([modelRefusalNoFallbackMsg(), refusalFrame(REFUSAL_STOP_DETAILS)]);
+    expect(turnCloses(evs)).toEqual([expect.objectContaining({ type: "turn.error", turnId: REFUSAL_TURN, code: "invalid_request", retriable: false })]);
+    expect(evs.some((e) => e.type === "turn.done")).toBe(false);
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    const message = r.result().messages.find((m) => m.id === REFUSAL_MESSAGE_ID);
+    expect(message?.metadata).toEqual({ stop_details: REFUSAL_STOP_DETAILS_CARRIED });
+    expect(message?.messageMetadata).toBeUndefined();
+  });
+
+  it("a nested refusal ended by its Task result closes the nested turn as turn.done refusal without usage; the parent closes on its own result", () => {
+    const top = assistantMsg([{ type: "tool_use", id: "toolu_t", name: "Task", input: { prompt: "research" } }], null, { stop_reason: "tool_use" });
+    const taskResult = {
+      type: "user",
+      message: { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_t", content: [{ type: "text", text: REFUSAL_TEXT }], is_error: false }] },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000f6",
+      session_id: "sess_fixture",
+    };
+    const evs = drive([top, refusalFrame(REFUSAL_STOP_DETAILS, "toolu_t"), taskResult, resultSuccess("end_turn")]);
+    const nestedStart = evs.find((e) => e.type === "message.start" && e.id === REFUSAL_MESSAGE_ID);
+    const nestedTurn = nestedStart !== undefined && "turnId" in nestedStart ? nestedStart.turnId : undefined;
+    expect(nestedTurn).toBeDefined();
+    const nestedCloses = turnCloses(evs).filter((e) => "turnId" in e && e.turnId === nestedTurn);
+    expect(nestedCloses).toEqual([expect.objectContaining({ type: "turn.done", finishReason: "refusal", outcome: REFUSAL_OUTCOME, safety: REFUSAL_SAFETY })]);
+    expect(nestedCloses[0]).not.toHaveProperty("usage");
+    expect(turnCloses(evs).filter((e) => "turnId" in e && e.turnId === TOP_TURN)).toEqual([expect.objectContaining({ type: "turn.done", finishReason: "stop" })]);
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.find((t) => t.turnId === nestedTurn)?.finishReason).toBe("refusal");
+  });
+
+  it("the first error frame decides the close: a rate_limit frame before a refusal frame closes turn.error rate_limit, and a refusal frame first closes turn.done refusal", () => {
+    const rateFirst = drive([apiErrorAssistantFrame(), refusalFrame(REFUSAL_STOP_DETAILS), refusalResult()]);
+    expect(turnCloses(rateFirst)).toEqual([expect.objectContaining({ type: "turn.error", code: "rate_limit", retriable: true })]);
+    const refusalFirst = drive([refusalFrame(REFUSAL_STOP_DETAILS), apiErrorAssistantFrame(), refusalResult()]);
+    expect(turnCloses(refusalFirst)).toEqual([expect.objectContaining({ type: "turn.done", finishReason: "refusal", outcome: REFUSAL_OUTCOME })]);
+    for (const evs of [rateFirst, refusalFirst]) expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("the first nested error frame decides the nested close: a nested rate_limit frame before a nested refusal frame closes the nested turn turn.error rate_limit, and the reverse closes it turn.done refusal", () => {
+    const top = assistantMsg([{ type: "tool_use", id: "toolu_t", name: "Task", input: { prompt: "research" } }], null, { stop_reason: "tool_use" });
+    const taskDone = {
+      type: "user",
+      message: { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_t", content: [{ type: "text", text: "done" }], is_error: false }] },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000f6",
+      session_id: "sess_fixture",
+    };
+    const nestedCloseOf = (frames: unknown[]): AgEvent[] => {
+      const evs = drive(frames);
+      const start = evs.find((e) => e.type === "subagent.start");
+      const nested = start !== undefined && "turnId" in start ? start.turnId : undefined;
+      expect(fold(evs).needsResync).toBe(false);
+      return turnCloses(evs).filter((e) => "turnId" in e && e.turnId === nested);
+    };
+    const rateFirst = nestedCloseOf([top, apiErrorAssistantFrame({ parent_tool_use_id: "toolu_t" }), refusalFrame(REFUSAL_STOP_DETAILS, "toolu_t"), taskDone, resultSuccess("end_turn")]);
+    expect(rateFirst).toEqual([expect.objectContaining({ type: "turn.error", code: "rate_limit" })]);
+    const refusalFirst = nestedCloseOf([top, refusalFrame(REFUSAL_STOP_DETAILS, "toolu_t"), apiErrorAssistantFrame({ parent_tool_use_id: "toolu_t" }), taskDone, resultSuccess("end_turn")]);
+    expect(refusalFirst).toEqual([expect.objectContaining({ type: "turn.done", finishReason: "refusal", outcome: REFUSAL_OUTCOME })]);
+  });
+
+  it("a nested refusal closes turn.done refusal whichever way the framework ends its run: an is_error Task result, or a task_notification completed, failed or stopped", () => {
+    const top = assistantMsg([{ type: "tool_use", id: "toolu_t", name: "Task", input: { prompt: "research" } }], null, { stop_reason: "tool_use" });
+    const taskResultFrame = (isError: boolean, toolUseResult?: unknown): unknown => ({
+      type: "user",
+      message: { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_t", content: [{ type: "text", text: "subagent crashed" }], is_error: isError }] },
+      parent_tool_use_id: null,
+      uuid: "00000000-0000-0000-0000-0000000000f6",
+      session_id: "sess_fixture",
+      ...(toolUseResult !== undefined ? { tool_use_result: toolUseResult } : {}),
+    });
+    const notification = (status: string): unknown => ({
+      type: "system", subtype: "task_notification", task_id: "task_1", tool_use_id: "toolu_t", status, output_file: "/tmp/o", summary: "it broke", uuid: "00000000-0000-0000-0000-0000000000c9", session_id: "sess_fixture",
+    });
+    const cases: [string, unknown[]][] = [
+      ["is_error Task result", [top, refusalFrame(REFUSAL_STOP_DETAILS, "toolu_t"), taskResultFrame(true), resultSuccess("end_turn")]],
+      ...["completed", "failed", "stopped"].map((status): [string, unknown[]] => [
+        `task_notification ${status}`,
+        [top, refusalFrame(REFUSAL_STOP_DETAILS, "toolu_t"), taskResultFrame(false, { status: "async_launched", agentId: "a1" }), resultSuccess("end_turn"), notification(status)],
+      ]),
+    ];
+    for (const [name, frames] of cases) {
+      const evs = drive(frames);
+      const start = evs.find((e) => e.type === "subagent.start");
+      const nested = start !== undefined && "turnId" in start ? start.turnId : undefined;
+      const closes = turnCloses(evs).filter((e) => "turnId" in e && e.turnId === nested);
+      expect(closes, name).toEqual([expect.objectContaining({ type: "turn.done", finishReason: "refusal", outcome: REFUSAL_OUTCOME, safety: REFUSAL_SAFETY })]);
+      expect(closes[0], name).not.toHaveProperty("usage");
+      expect(fold(evs).needsResync, name).toBe(false);
+    }
+  });
+
+  it("a result-only refusal (no refusal frame) closes turn.done refusal with the code and message its result frame carries", () => {
+    const withCode = { ...resultSuccess("refusal"), is_error: true, result: REFUSAL_TEXT, api_error_status: 400, api_error_code: "refusal_code" };
+    const coded = turnCloses(drive([withCode]));
+    expect(coded).toEqual([expect.objectContaining({ type: "turn.done", finishReason: "refusal", safety: REFUSAL_SAFETY, outcome: { type: "error", message: REFUSAL_TEXT, code: "refusal_code", retriable: false } })]);
+    const bare = turnCloses(drive([{ ...resultSuccess("refusal"), is_error: true, result: "" }]));
+    expect(bare).toEqual([expect.objectContaining({ type: "turn.done", finishReason: "refusal", outcome: { type: "error", message: "api_error", code: "api_error", retriable: false } })]);
+  });
+
+  it("a fallback cascade: the retraction stays as today, then the no-fallback refusal closes turn.done refusal", () => {
+    const primary = { ...(assistantMsg([{ type: "text", text: "partial", citations: null }]) as object), message: { ...betaMessage([{ type: "text", text: "partial", citations: null }]), id: "msg_primary_1" }, uuid: "00000000-0000-0000-0000-0000000000a5" };
+    const evs = drive([primary, modelRefusalFallbackMsg(), modelRefusalNoFallbackMsg(), refusalFrame(REFUSAL_STOP_DETAILS), refusalResult()]);
+    const removeAt = evs.findIndex((e) => e.type === "message.remove" && e.id === "msg_primary_1");
+    expect(removeAt).toBeGreaterThan(-1);
+    const doneAt = evs.findIndex((e) => e.type === "turn.done");
+    expect(removeAt).toBeLessThan(doneAt);
+    expect(turnCloses(evs)).toEqual([expect.objectContaining({ type: "turn.done", finishReason: "refusal", outcome: REFUSAL_OUTCOME })]);
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("NEGATIVE CONTROL: an API-error frame whose stop_reason is not refusal stays turn.error, for invalid_request and for the stop_sequence shape", () => {
+    const invalid = drive([apiErrorAssistantFrame({ error: "invalid_request" }), apiErrorResultFrame({ api_error_status: 400 })]);
+    expect(turnCloses(invalid)).toEqual([expect.objectContaining({ type: "turn.error", code: "invalid_request" })]);
+    const rateLimited = drive([apiErrorAssistantFrame(), apiErrorResultFrame()]);
+    expect(turnCloses(rateLimited)).toEqual([expect.objectContaining({ type: "turn.error", code: "rate_limit", retriable: true })]);
+    // Even when the result names a refusal, a frame that decided an error keeps the error close.
+    const mixed = drive([apiErrorAssistantFrame({ error: "invalid_request" }), { ...(apiErrorResultFrame() as object), stop_reason: "refusal" }]);
+    expect(turnCloses(mixed)).toEqual([expect.objectContaining({ type: "turn.error", code: "invalid_request" })]);
+    for (const evs of [invalid, rateLimited, mixed]) {
+      expect(evs.some((e) => e.type === "turn.done")).toBe(false);
+      expect(fold(evs).needsResync).toBe(false);
+    }
+  });
+
+  it("NEGATIVE CONTROL: a refusal frame followed by an error-subtype result keeps the stashed turn.error", () => {
+    const evs = drive([refusalFrame(REFUSAL_STOP_DETAILS), resultError("error_during_execution")]);
+    expect(turnCloses(evs)).toEqual([expect.objectContaining({ type: "turn.error", code: "invalid_request" })]);
     expect(fold(evs).needsResync).toBe(false);
   });
 });

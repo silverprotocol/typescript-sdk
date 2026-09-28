@@ -158,7 +158,30 @@ Usage follows the AgJSON draft.5 accounting rules (spec §4):
   closes the turn as `turn.done` or, on an API error, as `turn.error`. An
   error-subtype result (`error_max_turns`, `error_during_execution`, …) carries
   its usage only when an API-error assistant message had already ended the
-  turn; otherwise its `turn.error` carries none.
+  turn; otherwise its `turn.error` carries none. (A refusal: see Refusals.)
+
+### Refusals
+
+The CLI sends a refusal it does not retry as an API-error assistant message
+(`error: "invalid_request"`, `stop_reason: "refusal"`), then a success result
+with `is_error: true`. The result closes the turn as `turn.done` with
+`finishReason: "refusal"` and `safety: [{ category: "refusal", blocked: true }]`,
+and keeps the error the CLI reports as its outcome
+(`{ type: "error", code: "invalid_request", … }`). The refusal's
+`stop_details`, with any provider credit token removed, rides
+`message.metadata` on the refused message and the `turn.done`'s
+`messageMetadata`. The marker is that message's `stop_reason: "refusal"`:
+claude-agent-sdk sets it from 0.3.199 or earlier (the first version is not
+pinned) through at least 0.3.283. The oldest supported peers, such as 0.2.76,
+do not set it, so a refusal there still closes as `turn.error`.
+
+- A result that reports the refusal by itself (`is_error: true`,
+  `stop_reason: "refusal"`, no error message before it) closes the same way,
+  with the code and message the result carries.
+- A subagent's refusal whose run ends closes the nested turn as `turn.done`
+  with `finishReason: "refusal"` and no usage.
+- A stream that ends before the result closes the turn as `turn.error`, and so
+  does a subagent's refusal whose run is still open at the end of the stream.
 
 ### Turn trigger
 
