@@ -6598,6 +6598,138 @@ describe("createClaudeNormalizer — API-error turn LIVE: the captured invalid-A
   });
 });
 
+// ─── a refusal's stop_details on the turn.error path (SPEC §8.0 item 33) ─────
+// CLI 2.1.280 delivers a refusal it does not retry as three frames: the
+// `model_refusal_no_fallback` notice, then its refusal message built as an
+// API-error assistant frame (`error: "invalid_request"`, `is_api_error_message`,
+// `stop_reason: "refusal"`, and the API's `stop_details`), then a success result
+// with `is_error: true` and `stop_reason: "refusal"`. The order is read from the
+// CLI bundle; no live capture holds a refusal yet. The turn closes as turn.error
+// (the error frame decides the close), so the turn.done `messageMetadata` carry
+// never runs: the refused message carries `stop_details` on `message.metadata`
+// while it is still open, and it folds into that message's `metadata`.
+const REFUSAL_TEXT = "API Error: Claude can't help with this. Start a new session to continue. Learn more: https://www.anthropic.com/legal/aup";
+const REFUSAL_STOP_DETAILS = {
+  type: "refusal",
+  category: "cyber",
+  explanation: "This request was declined.",
+  recommended_model: "claude-opus-5-5",
+  fallback_credit_token: "SECRET_credit_top",
+  fallbacks: [{ model: "claude-opus-5-5", fallback_credit_token: "SECRET_credit_nested" }],
+};
+const REFUSAL_STOP_DETAILS_CARRIED = {
+  type: "refusal",
+  category: "cyber",
+  explanation: "This request was declined.",
+  recommended_model: "claude-opus-5-5",
+  fallbacks: [{ model: "claude-opus-5-5" }],
+};
+const REFUSAL_MESSAGE_ID = "msg_refusal_1";
+
+function refusalFrame(stopDetails: unknown, parentToolUseId: string | null = null): unknown {
+  return {
+    type: "assistant",
+    message: {
+      ...betaMessage([{ type: "text", text: REFUSAL_TEXT, citations: null }], { stop_reason: "refusal" }),
+      id: REFUSAL_MESSAGE_ID,
+      stop_details: stopDetails,
+    },
+    parent_tool_use_id: parentToolUseId,
+    uuid: "00000000-0000-0000-0000-0000000000f2",
+    session_id: "sess_fixture",
+    error: "invalid_request",
+    is_api_error_message: true,
+  };
+}
+
+function refusalResult(): unknown {
+  return { ...resultSuccess("refusal"), is_error: true, result: REFUSAL_TEXT };
+}
+
+function stopDetailsCarries(evs: AgEvent[]): AgEvent[] {
+  return evs.filter((e) => {
+    if (e.type !== "message.metadata") return false;
+    const metadata: unknown = e.metadata;
+    return typeof metadata === "object" && metadata !== null && "stop_details" in metadata;
+  });
+}
+
+describe("createClaudeNormalizer — a refusal's stop_details rides message.metadata when the turn closes as turn.error (SPEC §8.0 item 33)", () => {
+  it("the recorded order carries stop_details once on the refused message, before it seals, credit tokens stripped; the turn still closes turn.error", () => {
+    const evs = drive([modelRefusalNoFallbackMsg(), refusalFrame(REFUSAL_STOP_DETAILS), refusalResult()]);
+    const carries = stopDetailsCarries(evs);
+    expect(carries).toHaveLength(1);
+    expect(carries[0]).toMatchObject({ type: "message.metadata", messageId: REFUSAL_MESSAGE_ID });
+    expect(evs.find((e) => e.type === "message.start" && e.id === REFUSAL_MESSAGE_ID)).toMatchObject({ turnId: "turn_msg_refusal_1" });
+    expect(carries[0]?.type === "message.metadata" ? carries[0].metadata : undefined).toEqual({ stop_details: REFUSAL_STOP_DETAILS_CARRIED });
+    const carryAt = evs.indexOf(carries[0] as AgEvent);
+    const endAt = evs.findIndex((e) => e.type === "message.end" && e.id === REFUSAL_MESSAGE_ID);
+    expect(carryAt).toBeGreaterThan(evs.findIndex((e) => e.type === "text.end"));
+    expect(carryAt).toBeLessThan(endAt);
+    expect(JSON.stringify(evs)).not.toContain("fallback_credit_token");
+    expect(JSON.stringify(evs)).not.toContain("SECRET_credit");
+    // The close is unchanged: one turn.error with the frame's native code, no turn.done.
+    expect(turnCloses(evs)).toHaveLength(1);
+    expect(turnCloses(evs)[0]).toMatchObject({ type: "turn.error", turnId: "turn_msg_refusal_1", code: "invalid_request", retriable: false });
+    expect(evs.some((e) => e.type === "turn.done")).toBe(false);
+    // The notice still rides its own carry, and result-meta still names the stop reason.
+    expect(evs.filter((e) => e.type === "ext.anthropic.frame")).toEqual([expect.objectContaining({ kind: "model_refusal_no_fallback" })]);
+    expect(evs.find((e) => e.type === "ext.anthropic.result-meta")).toMatchObject({ stopReason: "refusal" });
+  });
+
+  it("folds: the refused message's metadata carries stop_details, the turn record keeps the error outcome, and the fold does not park", () => {
+    const evs = drive([modelRefusalNoFallbackMsg(), refusalFrame(REFUSAL_STOP_DETAILS), refusalResult()]);
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    const message = r.result().messages.find((m) => m.id === REFUSAL_MESSAGE_ID);
+    expect(message?.metadata).toEqual({ stop_details: REFUSAL_STOP_DETAILS_CARRIED });
+    expect(message?.messageMetadata).toBeUndefined();
+    const turn = r.result().turns.find((t) => t.turnId === "turn_msg_refusal_1");
+    expect(turn?.outcome).toMatchObject({ type: "error", code: "invalid_request", retriable: false });
+    expect(turn?.finishReason).toBeUndefined();
+  });
+
+  it("NEGATIVE CONTROL: a null stop_details carries nothing and leaves the stream otherwise identical", () => {
+    const carried = drive([modelRefusalNoFallbackMsg(), refusalFrame(REFUSAL_STOP_DETAILS), refusalResult()]);
+    const plain = drive([modelRefusalNoFallbackMsg(), refusalFrame(null), refusalResult()]);
+    expect(plain.some((e) => e.type === "message.metadata")).toBe(false);
+    const bare = (evs: AgEvent[]): unknown[] => evs.filter((e) => e.type !== "message.metadata").map((e) => withoutKey(e, "seq"));
+    expect(bare(carried)).toEqual(bare(plain));
+  });
+
+  it("NEGATIVE CONTROL: a genuine invalid_request API error (no refusal, no stop_details) emits no metadata and closes turn.error", () => {
+    const evs = drive([apiErrorAssistantFrame({ error: "invalid_request" }), apiErrorResultFrame({ api_error_status: 400 })]);
+    expect(evs.some((e) => e.type === "message.metadata")).toBe(false);
+    expect(turnCloses(evs)).toEqual([expect.objectContaining({ type: "turn.error", code: "invalid_request", retriable: false })]);
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("a nested (subagent) refusal frame carries stop_details on the nested message, inside the nested turn", () => {
+    const top = assistantMsg([{ type: "tool_use", id: "toolu_t", name: "Task", input: { prompt: "research" } }], null, { stop_reason: "tool_use" });
+    const evs = drive([top, refusalFrame(REFUSAL_STOP_DETAILS, "toolu_t"), resultSuccess("end_turn")]);
+    const carries = stopDetailsCarries(evs);
+    expect(carries).toHaveLength(1);
+    const nestedStart = evs.find((e) => e.type === "message.start" && e.id === REFUSAL_MESSAGE_ID);
+    const nestedTurn = nestedStart !== undefined && "turnId" in nestedStart ? nestedStart.turnId : undefined;
+    expect(nestedTurn).toBeDefined();
+    expect(nestedTurn).not.toBe(TOP_TURN);
+    expect(carries[0]).toMatchObject({ messageId: REFUSAL_MESSAGE_ID, metadata: { stop_details: REFUSAL_STOP_DETAILS_CARRIED } });
+    expect(evs.indexOf(carries[0] as AgEvent)).toBeLessThan(evs.findIndex((e) => e.type === "message.end" && e.id === REFUSAL_MESSAGE_ID));
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.find((m) => m.id === REFUSAL_MESSAGE_ID)?.metadata).toEqual({ stop_details: REFUSAL_STOP_DETAILS_CARRIED });
+  });
+
+  it("a refusal frame WITHOUT an error (the turn.done path) keeps its turn.done messageMetadata carry and adds no message.metadata", () => {
+    const frame = assistantMsg([{ type: "text", text: "I can't help with that.", citations: null }], null, { stop_reason: "refusal" });
+    const withDetails = { ...(frame as object), message: { ...betaMessage([{ type: "text", text: "I can't help with that.", citations: null }], { stop_reason: "refusal" }), stop_details: REFUSAL_STOP_DETAILS } };
+    const evs = drive([withDetails, resultSuccess("refusal")]);
+    expect(stopDetailsCarries(evs)).toHaveLength(0);
+    expect(evs.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: "refusal", messageId: "msg_fixture_1", messageMetadata: { stop_details: REFUSAL_STOP_DETAILS_CARRIED } });
+    expect(fold(evs).needsResync).toBe(false);
+  });
+});
+
 describe("createClaudeNormalizer — the API-error triad (api_error / api_error_params / api_error_code, CLI 2.1.280, undeclared) on the assistant error frame", () => {
   const TRIAD = {
     api_error: "provider_credentials",

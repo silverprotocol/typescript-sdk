@@ -2830,6 +2830,18 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // turn's result frame (which carries the turn's usage) emits it, or
       // `flush()` does if no result ever arrives (see `stashedTurnErrors`).
       if (msg.error !== undefined) {
+        // A reported fix is never silently dropped (SPEC §8.0 item 33). This
+        // turn closes as turn.error, so the turn.done messageMetadata carry of
+        // `stop_details` above never reaches the wire: the CLI's refusal
+        // message (error "invalid_request", stop_reason "refusal") carries the
+        // refusal's category, explanation and recommended model there. It
+        // rides `message.metadata` on this still-open message instead, verbatim
+        // under its wire name, less every provider credit token (§13.10), and
+        // folds into the message's `metadata`. Null carries nothing.
+        if (isJsonObject(stopDetails)) {
+          const metadata: AgMeta = { stop_details: withoutCreditTokens(JsonValue.parse(stopDetails)) };
+          a.emit({ type: "message.metadata", messageId, metadata });
+        }
         // The API error ended the model's output — nothing can continue this
         // message. Seal it now, so `message.end` still precedes the (deferred)
         // close.
