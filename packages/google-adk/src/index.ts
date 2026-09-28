@@ -1347,6 +1347,19 @@ function mintBlockId(m: BlockIdMint, kind: "text" | "reasoning"): string {
   return `${kind}:${n}`;
 }
 
+/** Whether a part carries a member one of driveAdkPart's non-text arms maps:
+ *  a call, a result, inline or file data, or code or its result. */
+function carriesPayload(part: AdkPart): boolean {
+  return (
+    part.functionCall !== undefined ||
+    part.functionResponse !== undefined ||
+    part.inlineData !== undefined ||
+    part.fileData !== undefined ||
+    part.executableCode !== undefined ||
+    part.codeExecutionResult !== undefined
+  );
+}
+
 function driveAdkPart(
   a: StreamAssembler,
   part: AdkPart,
@@ -1398,6 +1411,15 @@ function driveAdkPart(
     unmappedPartFields["mediaProcessing"] = JsonValue.parse(part.mediaProcessing);
   if (part.speechMetadata !== undefined)
     unmappedPartFields["speechMetadata"] = JsonValue.parse(part.speechMetadata);
+  // A part marked as thought that carries no text but a call, a result or
+  // media (ADK-Python's A2A relay marks every part it converts from a remote
+  // agent's in-progress status as thought) maps through that
+  // payload's arm below, as it would unmarked, and not as an empty reasoning
+  // block. Its `thought` flag, which no event of those arms holds, rides this
+  // carry (SPEC.md §8.0, graceful degradation: no native value is dropped
+  // silently).
+  const thoughtPayload = part.thought === true && typeof part.text !== "string" && carriesPayload(part);
+  if (thoughtPayload) unmappedPartFields["thought"] = true;
   if (Object.keys(unmappedPartFields).length > 0) {
     a.contentBlock(messageId, {
       type: "provider-raw",
@@ -1407,7 +1429,7 @@ function driveAdkPart(
   }
 
   // ── REASONING (thought:true) → reasoning.start/delta/end + opaque signature ──
-  if (part.thought === true) {
+  if (part.thought === true && !thoughtPayload) {
     const id = mintBlockId(blockIds, "reasoning");
     a.reasoningStart(id, messageId);
     // typeof, not `!== undefined`: a JSON-null text is absent (null guard).

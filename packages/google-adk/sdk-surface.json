@@ -128,7 +128,7 @@
         },
         "thought": {
           "disposition": "handled",
-          "note": "Boolean modifier, checked FIRST in driveAdkPart's if-chain -> reasoning.start/delta/end + reasoning.opaque{kind:'signature'} when `thoughtSignature` is also set."
+          "note": "Boolean modifier, checked FIRST in driveAdkPart's if-chain -> reasoning.start/delta/end + reasoning.opaque{kind:'signature'} when `thoughtSignature` is also set, for a part that holds text or nothing. A part marked thought that holds no text but a functionCall, functionResponse, inlineData, fileData, executableCode or codeExecutionResult (ADK-Python's A2A relay marks every part it converts from a remote agent's in-progress status) maps through that member's arm as it would unmarked, and its flag rides the part's provider-raw carry as {thought: true} (SPEC \u00a78.0, graceful degradation: no native value dropped silently)."
         },
         "thoughtSignature": {
           "disposition": "handled",
