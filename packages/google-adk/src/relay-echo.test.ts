@@ -348,6 +348,16 @@ describe("createAdkNormalizer — a user-role or submitted message that is not a
         [callOf(`${t}-f`, `fr-${t}-f`)],
         event(`${t}-f`, member, alone, { role: "user", parts: [{ functionResponse: { name: "lookup", id: `fr-${t}-f`, response: { result: `Tool result ${t}.` } } }] }, record1(`${t}-f`, "TASK_STATE_WORKING", "ROLE_USER", one)),
       ],
+      [
+        "(b) marked as thought: a user-role status update at working carrying a function response marked as thought, after its call",
+        [callOf(`${t}-bt`, `fr-${t}-bt`)],
+        event(`${t}-bt`, member, alone, { role: "model", parts: [{ functionResponse: { name: "lookup", id: `fr-${t}-bt`, response: { result: `Tool result ${t}.` } }, thought: true }] }, record03(`${t}-bt`, "status-update", "working", "user", one), { partial: true }),
+      ],
+      [
+        "(f) marked as thought: the a2a-sdk 1.x record at TASK_STATE_WORKING with a ROLE_USER message carrying a function response marked as thought, after its call",
+        [callOf(`${t}-ft`, `fr-${t}-ft`)],
+        event(`${t}-ft`, member, alone, { role: "user", parts: [{ functionResponse: { name: "lookup", id: `fr-${t}-ft`, response: { result: `Tool result ${t}.` } }, thought: true }] }, record1(`${t}-ft`, "TASK_STATE_WORKING", "ROLE_USER", one)),
+      ],
       ["(g) the a2a-sdk 1.x record at TASK_STATE_SUBMITTED with a ROLE_AGENT message", [], event(`${t}-g`, member, alone, { role: "model", parts: [{ text: `Agent says ${t}.`, thought: true }] }, record1(`${t}-g`, "TASK_STATE_SUBMITTED", "ROLE_AGENT", one))],
       [
         "(h) the a2a-sdk 1.x record at TASK_STATE_SUBMITTED with a ROLE_USER message whose task holds an artifact part, its content that artifact's parts",
@@ -358,8 +368,8 @@ describe("createAdkNormalizer — a user-role or submitted message that is not a
   };
   const all = MEMBERS.flatMap((member) => [0, 1].flatMap((i) => controls(member, i)));
 
-  it("each control (an agent-role submitted status, a user-role working tool result, no a2a:response, a task at another state, a submitted task converted from its artifact, and the a2a-sdk 1.x record at another state, in the agent's role, or holding an artifact), under either spelling of the metadata member, maps byte for byte as the same native with its a2a:response removed, with no marker", () => {
-    expect(all).toHaveLength(32);
+  it("each control (an agent-role submitted status, a user-role working tool result marked as thought or not, no a2a:response, a task at another state, a submitted task converted from its artifact, and the a2a-sdk 1.x record at another state, in the agent's role, or holding an artifact), under either spelling of the metadata member, maps byte for byte as the same native with its a2a:response removed, with no marker", () => {
+    expect(all).toHaveLength(40);
     for (const [label, before, control] of all) {
       for (const host of [false, true]) {
         const out = drive([...before, control], host);
@@ -369,9 +379,9 @@ describe("createAdkNormalizer — a user-role or submitted message that is not a
     }
   });
 
-  it("the user-role tool results relayed while working, (b) and (f), keep their tool.done, which folds against its call; one fold of every control ends with no resync and no tool call without its result", () => {
+  it("the user-role tool results relayed while working, (b) and (f), marked as thought or not, keep their tool.done, which folds against its call; one fold of every control ends with no resync and no tool call without its result", () => {
     const legs = all.filter(([label]) => label.startsWith("(b)") || label.startsWith("(f)"));
-    expect(legs).toHaveLength(8);
+    expect(legs).toHaveLength(16);
     for (const [label, before, control] of legs) {
       const out = drive([...before, control], true);
       const call = before[0]?.["content"];
