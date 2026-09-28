@@ -9,80 +9,97 @@
  * facet.tgz` resolves the facet's dependency without any registry hit).
  */
 import { execSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, readdirSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 const pkgs = ["core", "richtext", "claude-agent-sdk", "openai-agents", "google-adk", "vercel-ai"];
 const work = mkdtempSync(join(tmpdir(), "sp-pack-smoke-"));
-const run = (cmd, cwd) => execSync(cmd, { cwd, stdio: "pipe" }).toString();
+// The work dir holds six tarballs and an npm install (~1,000 entries); it is
+// removed whatever happens below, so a gate run leaves nothing in the
+// shared TMPDIR. PACK_SMOKE_KEEP=1 keeps it for debugging. A failure still
+// throws after the cleanup, so the exit code and its output are unchanged.
+try {
+  const run = (cmd, cwd) => execSync(cmd, { cwd, stdio: "pipe" }).toString();
 
-// `pnpm pack` names tarballs `<scope-stripped>-<name>-<version>.tgz`, e.g.
-// @silverprotocol/openai-agents@0.1.0 -> silverprotocol-openai-agents-0.1.0.tgz
-// (verified empirically). Match by exact prefix, not substring, so e.g. "core"
-// can never accidentally match another package's tarball name.
-const tarballs = {};
-for (const p of pkgs) {
-  const dir = join(root, "packages", p);
-  const before = new Set(readdirSync(work));
-  run("pnpm pack --pack-destination " + work, dir);
-  const tgz = readdirSync(work).find(
-    (f) => !before.has(f) && f.startsWith(`silverprotocol-${p}-`) && f.endsWith(".tgz"),
+  // `pnpm pack` names tarballs `<scope-stripped>-<name>-<version>.tgz`, e.g.
+  // @silverprotocol/openai-agents@0.1.0 -> silverprotocol-openai-agents-0.1.0.tgz
+  // (verified empirically). Match by exact prefix, not substring, so e.g. "core"
+  // can never accidentally match another package's tarball name.
+  const tarballs = {};
+  for (const p of pkgs) {
+    const dir = join(root, "packages", p);
+    const before = new Set(readdirSync(work));
+    run("pnpm pack --pack-destination " + work, dir);
+    const tgz = readdirSync(work).find(
+      (f) => !before.has(f) && f.startsWith(`silverprotocol-${p}-`) && f.endsWith(".tgz"),
+    );
+    if (!tgz) throw new Error(`no tarball for ${p} (pack-destination: ${work})`);
+    tarballs[p] = join(work, tgz);
+  }
+
+  const app = join(work, "app");
+  run(`mkdir -p ${app}`);
+  writeFileSync(
+    join(app, "package.json"),
+    JSON.stringify({ name: "smoke", private: true, type: "module" }),
   );
-  if (!tgz) throw new Error(`no tarball for ${p} (pack-destination: ${work})`);
-  tarballs[p] = join(work, tgz);
-}
+  // core first: the facets' @silverprotocol/core dependency (rewritten from
+  // workspace:* to an exact version by pnpm pack) must resolve from this
+  // already-installed local copy, not the registry.
+  run(`npm install ${tarballs["core"]} --no-audit --no-fund`, app);
+  for (const p of pkgs.slice(1)) run(`npm install ${tarballs[p]} --no-audit --no-fund`, app);
 
-const app = join(work, "app");
-run(`mkdir -p ${app}`);
-writeFileSync(
-  join(app, "package.json"),
-  JSON.stringify({ name: "smoke", private: true, type: "module" }),
-);
-// core first: the facets' @silverprotocol/core dependency (rewritten from
-// workspace:* to an exact version by pnpm pack) must resolve from this
-// already-installed local copy, not the registry.
-run(`npm install ${tarballs["core"]} --no-audit --no-fund`, app);
-for (const p of pkgs.slice(1)) run(`npm install ${tarballs[p]} --no-audit --no-fund`, app);
-
-const checks = [
-  [
-    "@silverprotocol/core",
-    "m => { if (typeof m.AGJSON_VERSION !== 'string' || typeof m.Reducer !== 'function' || typeof m.ingestAgEvent !== 'function') throw new Error('core exports missing'); }",
-  ],
-  [
-    "@silverprotocol/richtext",
-    "m => { if (typeof m.parseRichText !== 'function' || typeof m.parseInlineRichText !== 'function') throw new Error('richtext exports missing'); }",
-  ],
-  [
-    "@silverprotocol/claude-agent-sdk",
-    "m => { if (typeof m.createClaudeNormalizer !== 'function') throw new Error('claude export missing'); }",
-  ],
-  [
-    "@silverprotocol/openai-agents",
-    "m => { if (typeof m.createOpenaiNormalizer !== 'function') throw new Error('openai export missing'); }",
-  ],
-  [
-    "@silverprotocol/google-adk",
-    "m => { if (typeof m.createAdkNormalizer !== 'function') throw new Error('adk export missing'); }",
-  ],
-  [
-    "@silverprotocol/vercel-ai",
-    "m => { if (typeof m.createVercelNormalizer !== 'function') throw new Error('vercel export missing'); }",
-  ],
-];
-for (const [name, fn] of checks) {
-  run(`node -e "import('${name}').then(${fn}).then(() => console.log('ok ${name}'))"`, app);
-  console.log(`ok ${name}`);
+  const checks = [
+    [
+      "@silverprotocol/core",
+      "m => { if (typeof m.AGJSON_VERSION !== 'string' || typeof m.Reducer !== 'function' || typeof m.ingestAgEvent !== 'function') throw new Error('core exports missing'); }",
+    ],
+    [
+      "@silverprotocol/richtext",
+      "m => { if (typeof m.parseRichText !== 'function' || typeof m.parseInlineRichText !== 'function') throw new Error('richtext exports missing'); }",
+    ],
+    [
+      "@silverprotocol/claude-agent-sdk",
+      "m => { if (typeof m.createClaudeNormalizer !== 'function') throw new Error('claude export missing'); }",
+    ],
+    [
+      "@silverprotocol/openai-agents",
+      "m => { if (typeof m.createOpenaiNormalizer !== 'function') throw new Error('openai export missing'); }",
+    ],
+    [
+      "@silverprotocol/google-adk",
+      "m => { if (typeof m.createAdkNormalizer !== 'function') throw new Error('adk export missing'); }",
+    ],
+    [
+      "@silverprotocol/vercel-ai",
+      "m => { if (typeof m.createVercelNormalizer !== 'function') throw new Error('vercel export missing'); }",
+    ],
+  ];
+  for (const [name, fn] of checks) {
+    run(`node -e "import('${name}').then(${fn}).then(() => console.log('ok ${name}'))"`, app);
+    console.log(`ok ${name}`);
+  }
+  // The same checks through require() from a CommonJS file, as release.yml's
+  // consumer smoke loads them. The packages are ES modules, which require()
+  // loads only from Node 22.12 on, so this leg holds the engines floor's
+  // promise to CommonJS consumers.
+  writeFileSync(
+    join(app, "require-check.cjs"),
+    checks.map(([name, fn]) => `(${fn})(require(${JSON.stringify(name)})); console.log("ok require ${name}");`).join("\n") + "\n",
+  );
+  process.stdout.write(run("node require-check.cjs", app));
+  console.log("pack-smoke: all six packages import and require clean");
+} finally {
+  if (process.env.PACK_SMOKE_KEEP === "1") console.log(`pack-smoke: kept ${work}`);
+  else {
+    // A cleanup failure (EBUSY, EPERM) only warns: it must never replace the
+    // smoke's own error or fail a green run.
+    try {
+      rmSync(work, { recursive: true, force: true });
+    } catch (e) {
+      console.warn(`pack-smoke: could not remove ${work}: ${e.message}`);
+    }
+  }
 }
-// The same checks through require() from a CommonJS file, as release.yml's
-// consumer smoke loads them. The packages are ES modules, which require()
-// loads only from Node 22.12 on, so this leg holds the engines floor's
-// promise to CommonJS consumers.
-writeFileSync(
-  join(app, "require-check.cjs"),
-  checks.map(([name, fn]) => `(${fn})(require(${JSON.stringify(name)})); console.log("ok require ${name}");`).join("\n") + "\n",
-);
-process.stdout.write(run("node require-check.cjs", app));
-console.log("pack-smoke: all six packages import and require clean");
