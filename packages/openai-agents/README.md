@@ -204,9 +204,9 @@ turn of the model round that produced it:
   `message.end` and `turn.done` until each listed call's run-item, and any
   result the call waits for, has arrived. It also waits for its messages'
   `message_output_created`.
-- The next `response.created` releases a round that still waits only on calls
-  whose run-item, or an approval request's ask or answer, never arrived, so
-  the next round keeps its own turn.
+- The next `response.created` releases a round that still waits only on
+  listed calls whose run-item never arrived. Those calls stop being results
+  the round waits for, and the next round keeps its own turn.
 - At flush, a round still held closes as INV-FLUSH (2) directs:
   - `paused` when an approval ask names a pending call of the round;
   - its own outcome when that is not `success` (a `content_filter` round);
@@ -214,26 +214,31 @@ turn of the model round that produced it:
     run-item that never arrived or on a pending result.
 
 A hosted call, which the provider runs, emits `tool.start` with
-`providerExecuted: true`, and its `tool.done` from its one run-item:
+`providerExecuted: true`, and, unless it is an MCP approval request (below),
+its `tool.done` from its one run-item:
 - Its arguments are read from the item: an MCP call's `arguments`, a web
   search's `action` without its `sources`, a file search's `queries`, or a
   code interpreter's `code` and `container_id`.
-- An MCP item's `server_label` lands in `tool.start.serverName`, and the MCP
-  tool's own name in `tool.start.providerMetadata.mcpToolName`. An `mcp_call`
-  that an approval gated names that request in
+- An MCP item's `server_label` lands in `tool.start.serverName`. An MCP call
+  and an MCP approval request name the MCP tool (`providerData.name`) in
+  `tool.start.name`, and their item type (`mcp_call`,
+  `mcp_approval_request`) rides `tool.start.providerMetadata.type`. An
+  `mcp_call` that an approval gated names that request in
   `tool.start.providerMetadata.approval_request_id`.
 - A web search's `sources`, a file search's `results`, a code interpreter's
   `outputs` and an `mcp_list_tools` listing land as `data` blocks. An image
   generation result lands as a `file` block, and its own fields (such as
   `revised_prompt`, `size` and `quality`) ride `tool.done.providerMetadata`.
-- A call whose status is `failed` or `incomplete`, or which carries an
-  `error` (even with a `completed` status), closes with `outcome: "error"`.
+- A call whose status is `failed` or `incomplete`, or which carries a
+  non-null `error` (an empty string included, even with a `completed`
+  status), closes with `outcome: "error"`.
   Any other status closes `ok`. A status other than `completed` rides
   `tool.done.providerMetadata.status`.
 - An `mcp_call`'s `error` is an object: its message (else the object as
   JSON) is `errorText`, its type is `errorCode`, and the object, its numeric
-  `code` included, rides `tool.done.providerMetadata.error`. A string error
-  (an `mcp_list_tools` failure) is `errorText` alone.
+  `code` included, rides `tool.done.providerMetadata.error`. A non-empty
+  string error (an `mcp_list_tools` failure) is `errorText` alone, and an
+  empty string rides `tool.done.providerMetadata.error`.
 
 A message's output_text annotations arrive in its `message_output_created`,
 under the part's `providerData`. While its round's close is held, a
@@ -242,25 +247,36 @@ other annotation (such as a `file_citation`) rides
 `ext.openai.late-citations`. A message that arrives after its round closed
 carries all its annotations on `ext.openai.late-citations`.
 
-A hosted MCP approval request's ask lands inside the round, as `hitl.ask`
-with `askId` `approval_<request id>` and `toolCallId` the request id. An
-approval's answer (`mcp_approval_response`) has no id of its own; its call
-gets `<request id>:approval-response`, and agents-core answers each request
-once. On a resumed invoke, the items that answer the paused round arrive
-before any model round. The SDK streams an approved call's tool result
-before any hosted answer. The invoke's first leading item, a tool result or
-an answer, opens `turn_resume_<its toolCallId>`, and later ones join that
-turn. Each answer's call sits in an assistant message of its own,
-`<request id>:approval-response:call`, and the resumed response then opens
-`msg_<that turn>` there with its model.
+A hosted MCP approval request is not resolved. Its `tool.start` (with
+`toolCallId` the request id and the request's `arguments` as
+`tool.args.assembled`) opens a call that stays pending in its round, and its
+ask lands inside the round as `hitl.ask` with `askId`
+`approval_<request id>` and `toolCallId` the request id. A round the stream
+leaves waiting on its requests closes at flush as `paused`, naming each
+request's ask.
 
-Current limits:
-- A hosted MCP approval request closes at once, like any hosted call, so a
-  round that waits on an approval closes as `success`, not `paused`.
-- An MCP item's `tool.start.name` is its item type (`mcp_call`,
-  `mcp_approval_request`, `mcp_approval_response`), not the MCP tool's own
-  name, which is `providerMetadata.mcpToolName` on an MCP call and an
-  approval request.
+An approval's answer (`mcp_approval_response`, recognized by its `name` or
+`providerData.type`) closes the request it names
+(`providerData.approval_request_id`) with exactly one `tool.done`: `outcome`
+`"ok"` when it approves, which records the approval and not the result of
+the call it gates, and `"denied"` when it does not. A rejection's `reason`
+rides `tool.done.providerMetadata.reason`. The answer creates no block of its
+own, and the `mcp_call` it gates is a separate call under its own id.
+- With an `onApproval` callback, the SDK emits no ask. The answer arrives in
+  the same invoke, closes the request in its round, and that round closes
+  before the next model round opens.
+- On a resumed invoke, the items that answer the paused round arrive before
+  any model round, and the SDK streams an approved call's tool result before
+  any hosted answer. The invoke's first leading item, a tool result or an
+  answer, opens `turn_resume_<the call id it closes>`, and later ones join
+  that turn. Each lands as a tool result in a message of its own,
+  `<call id>:result`, and the resumed response then opens `msg_<that turn>`
+  there with its model.
+
+Current limit: a resumed invoke that answers some of a paused round's
+requests and leaves others unanswered carries no ask for them; the SDK
+streams none. Its resume turn closes as `turn.abort` (`stream-truncated`),
+and the unanswered requests' asks are those of the paused round.
 
 ## Refusals
 

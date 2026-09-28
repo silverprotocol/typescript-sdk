@@ -4075,7 +4075,7 @@ describe("createOpenaiNormalizer — hosted-MCP approval ids", () => {
     }
   });
 
-  it("two mcp_approval_response run-items in one invoke get distinct derived ids keyed on their request ids, and the fold does not resync", () => {
+  it("two approval answers in one invoke close their own requests, ok and denied, with no tool.start and no id of their own; the fold does not resync", () => {
     const { evs, r } = run([
       ...rawRound("resp_ap_3", [R1, R2]),
       calledRequest(R1),
@@ -4084,11 +4084,13 @@ describe("createOpenaiNormalizer — hosted-MCP approval ids", () => {
       approvalResponse("mcpr_2", false),
     ]);
     expect(r.needsResync).toBe(false);
-    const ids = startIds(evs);
-    expect(ids).toContain("mcpr_1:approval-response");
-    expect(ids).toContain("mcpr_2:approval-response");
-    expect(ids).not.toContain("mcp_approval_response");
-    expect(new Set(ids).size).toBe(ids.length);
+    expect(startIds(evs)).toEqual(["mcpr_1", "mcpr_2"]);
+    const dones = evs.filter((e) => e.type === "tool.done").map((e) => [Reflect.get(e, "toolCallId"), Reflect.get(e, "outcome")]);
+    expect(dones).toEqual([
+      ["mcpr_1", "ok"],
+      ["mcpr_2", "denied"],
+    ]);
+    for (const e of evs) expect(JSON.stringify(e)).not.toContain("approval-response");
   });
 
   it("an id-less hosted item that is not an approval response gets a collision-free derived id, never its name", () => {
@@ -4204,7 +4206,7 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
     expect(msg?.content.filter((b) => b.type === "tool-call").map((b) => Reflect.get(b, "toolCallId"))).toEqual(["ws_1", "mcp_1"]);
   });
 
-  it("in the order the SDK streams it, hosted-MCP approval asks land inside their round, which closes after the last ask", () => {
+  it("in the order the SDK streams it, a round's hosted-MCP approval requests stay pending: each tool.start names the MCP tool, no tool.done fires for either, and the round flushes paused naming approval_<request id> for each", () => {
     const { evs, r } = run([
       ...rawRound("resp_a1", [request("mcpr_1"), request("mcpr_2")]),
       calledRequest("mcpr_1"),
@@ -4214,10 +4216,37 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
     ]);
     expect(r.needsResync).toBe(false);
     expect(turnIds(evs)).toEqual(["turn_resp_a1"]);
+    for (const id of ["mcpr_1", "mcpr_2"]) {
+      expect(evs.find((e) => e.type === "tool.start" && Reflect.get(e, "toolCallId") === id)).toMatchObject({
+        name: "ask_question",
+        serverName: "deepwiki",
+        providerExecuted: true,
+        providerMetadata: { type: "mcp_approval_request" },
+      });
+    }
+    expect(evs.filter((e) => e.type === "tool.done")).toEqual([]);
+    expect(terminalsOf(evs, "turn_resp_a1")).toMatchObject([
+      {
+        type: "turn.done",
+        outcome: {
+          type: "paused",
+          asks: [
+            { askId: "approval_mcpr_1", kind: "approval", toolCallId: "mcpr_1" },
+            { askId: "approval_mcpr_2", kind: "approval", toolCallId: "mcpr_2" },
+          ],
+        },
+        usage: { inputTokens: 10, outputTokens: 5 },
+      },
+    ]);
     const done = idx(evs, "turn.done", "turnId", "turn_resp_a1");
     expect(idx(evs, "hitl.ask", "askId", "approval_mcpr_2")).toBeLessThan(done);
     expect(evs.filter((e) => e.type === "hitl.ask").map((e) => Reflect.get(e, "turnId"))).toEqual(["turn_resp_a1", "turn_resp_a1"]);
     expect(evs.filter((e) => e.type === "turn.abort")).toEqual([]);
+    const blocks = r.result().messages.flatMap((m) => m.content.map((b) => [b.type, Reflect.get(b, "toolCallId")]));
+    expect(blocks.filter((b) => b[0] === "tool-call" || b[0] === "tool-result")).toEqual([
+      ["tool-call", "mcpr_1"],
+      ["tool-call", "mcpr_2"],
+    ]);
   });
 
   it("in the order the SDK streams it, a client-executed shell round closes only after its tool_output, and the next response keeps its own turn and model", () => {
@@ -4238,7 +4267,7 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
     expect(r.result().turns.map((t) => t.usage?.inputTokens)).toEqual([10, 10]);
   });
 
-  it("in the order the SDK streams it, two same-invoke approval answers (onApproval) drain their requests: round 1 closes at its last answer, before round 2 starts, with distinct answer ids", () => {
+  it("in the order the SDK streams it, two same-invoke approval answers (onApproval) close their requests ok and denied: round 1 closes at its last answer, before round 2 starts", () => {
     const n = createOpenaiNormalizer({ invokeId: "inv1" });
     const head = [...rawRound("resp_o1", [request("mcpr_1"), request("mcpr_2")]), calledRequest("mcpr_1"), calledRequest("mcpr_2"), answer("mcpr_1", true)];
     for (const e of head) n.push(e);
@@ -4255,10 +4284,13 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
     expect(r.needsResync).toBe(false);
     expect(turnIds(evs)).toEqual(["turn_resp_o1", "turn_resp_o2"]);
     expect(idx(evs, "turn.done", "turnId", "turn_resp_o1")).toBeLessThan(idx(evs, "turn.start", "turnId", "turn_resp_o2"));
-    for (const id of ["mcpr_1:approval-response", "mcpr_2:approval-response"]) {
-      expect(evs.find((e) => e.type === "tool.start" && Reflect.get(e, "toolCallId") === id)).toMatchObject({ turnId: "turn_resp_o1" });
-    }
-    expect(evs.find((e) => e.type === "tool.start" && Reflect.get(e, "toolCallId") === "mcp_1")).toMatchObject({ turnId: "turn_resp_o2" });
+    expect(terminalsOf(evs, "turn_resp_o1")).toMatchObject([{ type: "turn.done", outcome: { type: "success" } }]);
+    expect(evs.filter((e) => e.type === "tool.done" && String(Reflect.get(e, "toolCallId")).startsWith("mcpr_"))).toMatchObject([
+      { toolCallId: "mcpr_1", outcome: "ok", turnId: "turn_resp_o1" },
+      { toolCallId: "mcpr_2", outcome: "denied", turnId: "turn_resp_o1" },
+    ]);
+    expect(evs.filter((e) => e.type === "tool.start").map((e) => Reflect.get(e, "toolCallId"))).toEqual(["mcpr_1", "mcpr_2", "mcp_1"]);
+    expect(evs.find((e) => e.type === "tool.start" && Reflect.get(e, "toolCallId") === "mcp_1")).toMatchObject({ turnId: "turn_resp_o2", name: "ask_question" });
   });
 
   it("a listed built-in call whose run-item never streams stops holding its round at the next response.created, which keeps its own turn", () => {
@@ -4418,7 +4450,7 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
     expect(evs.filter((e) => e.type === "ext.openai.late-citations")).toMatchObject([{ itemId: "msg_n3", annotations: ann }]);
   });
 
-  it("in the order the SDK streams it, a resumed invoke's leading approval answers open its turn with each answer in its own call message, and the resumed response's message.start (not an answer's) keeps its model; the pair folds clean", () => {
+  it("in the order the SDK streams it, a resumed invoke's leading approval answers close their requests, ok and denied, in turn_resume_<first request id>, and the resumed response's message.start keeps its model; each invoke and the pair fold clean", () => {
     const first = createOpenaiNormalizer({ invokeId: "inv1" });
     const invoke1 = [
       ...rawRound("resp_p1", [request("mcpr_1"), request("mcpr_2")]),
@@ -4431,37 +4463,40 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
     const invoke2 = [answer("mcpr_1", true), answer("mcpr_2", false), ...rawRound("resp_p2", [MCP]), calledMcp]
       .flatMap((e) => second.push(e))
       .concat(second.flush());
+    const first1 = new Reducer();
+    for (const ev of invoke1) first1.push(ev);
+    expect(first1.needsResync).toBe(false);
     const alone = new Reducer();
     for (const ev of invoke2) alone.push(ev);
     expect(alone.needsResync).toBe(false);
     const both = new Reducer();
     for (const ev of [...invoke1, ...invoke2]) both.push(ev);
     expect(both.needsResync).toBe(false);
-    expect(turnIds(invoke2)).toEqual(["turn_resume_mcpr_1:approval-response"]);
-    const starts = invoke2.filter((e) => e.type === "message.start").map((e) => ({ id: Reflect.get(e, "id"), model: Reflect.get(e, "model") }));
-    expect(starts).toEqual([
-      { id: "mcpr_1:approval-response:call", model: undefined },
-      { id: "mcpr_2:approval-response:call", model: undefined },
-      { id: "msg_turn_resume_mcpr_1:approval-response", model: "gpt-6-sol" },
+    expect(turnIds(invoke2)).toEqual(["turn_resume_mcpr_1"]);
+    // The answers open no tool.start and mint no id of their own.
+    expect(invoke2.filter((e) => e.type === "tool.start").map((e) => Reflect.get(e, "toolCallId"))).toEqual(["mcp_1"]);
+    for (const e of invoke2) expect(JSON.stringify(e)).not.toContain("approval-response");
+    expect(invoke2.filter((e) => e.type === "tool.done" && String(Reflect.get(e, "toolCallId")).startsWith("mcpr_"))).toMatchObject([
+      { toolCallId: "mcpr_1", outcome: "ok", turnId: "turn_resume_mcpr_1" },
+      { toolCallId: "mcpr_2", outcome: "denied", turnId: "turn_resume_mcpr_1" },
     ]);
+    const starts = invoke2.filter((e) => e.type === "message.start" && Reflect.get(e, "role") === "assistant");
+    expect(starts.map((e) => ({ id: Reflect.get(e, "id"), model: Reflect.get(e, "model") }))).toEqual([{ id: "msg_turn_resume_mcpr_1", model: "gpt-6-sol" }]);
     expect(invoke2.find((e) => e.type === "tool.start" && Reflect.get(e, "toolCallId") === "mcp_1")).toMatchObject({
-      messageId: "msg_turn_resume_mcpr_1:approval-response",
+      messageId: "msg_turn_resume_mcpr_1",
+      name: "ask_question",
     });
-    // Each answer's call message closes before the resumed response's opens,
-    // and the resumed response's call folds into its own message.
-    const resumed = idx(invoke2, "message.start", "id", "msg_turn_resume_mcpr_1:approval-response");
-    expect(idx(invoke2, "message.end", "id", "mcpr_1:approval-response:call")).toBeLessThan(resumed);
-    expect(idx(invoke2, "message.end", "id", "mcpr_2:approval-response:call")).toBeLessThan(resumed);
     const fold = alone.result().messages;
-    expect(fold.find((m) => m.id === "msg_turn_resume_mcpr_1:approval-response")?.content.map((b) => Reflect.get(b, "toolCallId"))).toContain("mcp_1");
-    expect(fold.find((m) => m.id === "mcpr_1:approval-response:call")?.content.map((b) => [b.type, Reflect.get(b, "toolCallId")])).toEqual([
-      ["tool-call", "mcpr_1:approval-response"],
-      ["tool-result", "mcpr_1:approval-response"],
-    ]);
-    expect(terminalsOf(invoke2, "turn_resume_mcpr_1:approval-response")).toMatchObject([{ type: "turn.done", outcome: { type: "success" } }]);
-    for (const id of ["mcpr_1:approval-response", "mcpr_2:approval-response"]) {
-      expect(invoke2.find((e) => e.type === "tool.done" && Reflect.get(e, "toolCallId") === id)).toMatchObject({ turnId: "turn_resume_mcpr_1:approval-response" });
-    }
+    expect(fold.find((m) => m.id === "msg_turn_resume_mcpr_1")?.content.map((b) => Reflect.get(b, "toolCallId"))).toContain("mcp_1");
+    expect(terminalsOf(invoke2, "turn_resume_mcpr_1")).toMatchObject([{ type: "turn.done", outcome: { type: "success" } }]);
+    // Invoke 1 flushed paused naming both asks; the pair's record keeps both results.
+    expect(terminalsOf(invoke1, "turn_resp_p1")).toMatchObject([{ type: "turn.done", outcome: { type: "paused" } }]);
+    const results = both
+      .result()
+      .messages.flatMap((m) => m.content)
+      .filter((b) => b.type === "tool-result")
+      .map((b) => Reflect.get(b, "toolCallId"));
+    expect(results).toEqual(expect.arrayContaining(["mcpr_1", "mcpr_2"]));
   });
 
   it("in the order the SDK streams it, each answer's url citations land on its own message's text block, in their wire order", () => {
@@ -4529,7 +4564,7 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
     ]);
   });
 
-  it("in the order the SDK streams it, on a resume that also approved a function call, the function's result leads and opens turn_resume_<its callId>, the answer joins it, and the resumed response keeps its model", () => {
+  it("in the order the SDK streams it, on a resume that also approved a function call, the function's result leads and opens turn_resume_<its callId>, the answer closes its request in that turn, and the resumed response keeps its model", () => {
     const n = createOpenaiNormalizer({ invokeId: "inv2" });
     const evs = [
       runItem("tool_output", {
@@ -4547,7 +4582,8 @@ describe("createOpenaiNormalizer — built-in round attach", () => {
     for (const ev of evs) r.push(ev);
     expect(r.needsResync).toBe(false);
     expect(turnIds(evs)).toEqual(["turn_resume_call_x1"]);
-    expect(evs.find((e) => e.type === "message.start" && Reflect.get(e, "id") === "mcpr_x1:approval-response:call")).toMatchObject({ turnId: "turn_resume_call_x1" });
+    expect(evs.find((e) => e.type === "tool.done" && Reflect.get(e, "toolCallId") === "mcpr_x1")).toMatchObject({ outcome: "ok", turnId: "turn_resume_call_x1" });
+    expect(evs.filter((e) => e.type === "tool.start").map((e) => Reflect.get(e, "toolCallId"))).toEqual(["mcp_1"]);
     expect(evs.find((e) => e.type === "message.start" && Reflect.get(e, "id") === "msg_turn_resume_call_x1")).toMatchObject({ model: "gpt-6-sol" });
   });
 
@@ -4616,7 +4652,7 @@ describe("createOpenaiNormalizer — hosted call inputs and results", () => {
 
   it("in the order the SDK streams it, a hosted mcp_call carries its arguments as tool.args.assembled and its server_label as tool.start.serverName", () => {
     const evs = hostedRound(MCP_RAW, mcpItem());
-    expect(first(evs, "tool.start")).toMatchObject({ toolCallId: "mcp_1", name: "mcp_call", serverName: "deepwiki", providerExecuted: true });
+    expect(first(evs, "tool.start")).toMatchObject({ toolCallId: "mcp_1", name: "ask_question", serverName: "deepwiki", providerExecuted: true });
     expect(first(evs, "tool.args.assembled")).toMatchObject({ input: { q: "a" } });
     expect(first(evs, "tool.done")).toMatchObject({ outcome: "ok", content: [{ type: "text", text: "answer" }] });
   });
@@ -4762,11 +4798,13 @@ describe("createOpenaiNormalizer — hosted call inputs and results", () => {
     expect(first(evs, "tool.done")).toMatchObject({ outcome: "ok", content: [{ type: "data", name: "code_interpreter_outputs", data: outputs }] });
   });
 
-  it("an MCP call and an MCP approval request carry the MCP tool's own name as tool.start providerMetadata.mcpToolName", () => {
-    expect(first(hostedRound(MCP_RAW, mcpItem()), "tool.start")).toMatchObject({ name: "mcp_call", providerMetadata: { mcpToolName: "ask_question" } });
+  it("an MCP call and an MCP approval request name the MCP tool (providerData.name) in tool.start, with the item's type in providerMetadata", () => {
+    const call = first(hostedRound(MCP_RAW, mcpItem()), "tool.start");
+    expect(call).toMatchObject({ name: "ask_question", serverName: "deepwiki", providerMetadata: { type: "mcp_call" } });
+    expect(JSON.stringify(call)).not.toContain("mcpToolName");
     const req = { type: "mcp_approval_request", id: "mcpr_9", server_label: "deepwiki", name: "ask_question", arguments: "{}" };
     const evs = hostedRound(req, { type: "hosted_tool_call", id: "mcpr_9", name: "mcp_approval_request", status: "completed", providerData: { ...req } });
-    expect(first(evs, "tool.start")).toMatchObject({ providerMetadata: { mcpToolName: "ask_question" } });
+    expect(first(evs, "tool.start")).toMatchObject({ name: "ask_question", serverName: "deepwiki", providerMetadata: { type: "mcp_approval_request" } });
     const ws = hostedRound(
       { type: "web_search_call", id: "ws_9", status: "completed", action: { type: "search", query: "x" } },
       { type: "hosted_tool_call", id: "ws_9", name: "web_search_call", status: "completed", providerData: { type: "web_search_call", id: "ws_9", action: { type: "search", query: "x" } } },
@@ -4776,14 +4814,78 @@ describe("createOpenaiNormalizer — hosted call inputs and results", () => {
 
   it("an mcp_call an approval gated names that request as tool.start providerMetadata.approval_request_id", () => {
     const evs = hostedRound({ ...MCP_RAW, approval_request_id: "mcpr_7" }, mcpItem({ approval_request_id: "mcpr_7" }));
-    expect(first(evs, "tool.start")).toMatchObject({ providerMetadata: { mcpToolName: "ask_question", approval_request_id: "mcpr_7" } });
+    expect(first(evs, "tool.start")).toMatchObject({ name: "ask_question", providerMetadata: { type: "mcp_call", approval_request_id: "mcpr_7" } });
   });
 
-  it("an mcp_approval_request carries the request's arguments and server_label on its tool.start", () => {
+  it("an mcp_approval_request carries the request's arguments and server_label on its tool.start and stays pending: no tool.done", () => {
     const req = { type: "mcp_approval_request", id: "mcpr_1", server_label: "deepwiki", name: "ask_question", arguments: '{"q":"a"}' };
     const evs = hostedRound(req, { type: "hosted_tool_call", id: "mcpr_1", name: "mcp_approval_request", status: "completed", providerData: { ...req } });
     expect(first(evs, "tool.start")).toMatchObject({ toolCallId: "mcpr_1", serverName: "deepwiki", providerExecuted: true });
     expect(first(evs, "tool.args.assembled")).toMatchObject({ input: { q: "a" } });
+    expect(first(evs, "tool.done")).toBeUndefined();
+  });
+
+  it("an mcp_call with a non-null providerData.error closes with outcome error, an object or an empty string, with no status", () => {
+    const execError = { type: "mcp_tool_execution_error", content: [{ type: "text", text: "bad arguments" }] };
+    for (const error of [execError, ""]) {
+      // MCP_RAW carries no status.
+      const evs = hostedRound({ ...MCP_RAW, error, output: null }, mcpItem({ error, output: null }));
+      const dones = evs.filter((e) => e.type === "tool.done" && Reflect.get(e, "toolCallId") === "mcp_1");
+      expect(dones).toHaveLength(1);
+      expect(dones[0]).toMatchObject({ outcome: "error", isError: true, providerMetadata: { error } });
+    }
+    // A null error is no error.
+    expect(first(hostedRound(MCP_RAW, mcpItem()), "tool.done")).toMatchObject({ outcome: "ok" });
+  });
+
+  it("a rejected approval answer's reason rides its tool.done providerMetadata.reason", () => {
+    const n = createOpenaiNormalizer({ invokeId: "inv2" });
+    const evs = n
+      .push(
+        runItem("tool_called", {
+          type: "tool_call_item",
+          rawItem: { type: "hosted_tool_call", name: "mcp_approval_response", providerData: { approve: false, approval_request_id: "mcpr_5", reason: "not this server" } },
+        }),
+      )
+      .concat(n.flush());
+    expect(evs.filter((e) => e.type === "tool.done")).toMatchObject([
+      { toolCallId: "mcpr_5", outcome: "denied", providerMetadata: { reason: "not this server" } },
+    ]);
+  });
+
+  it("a second answer to a request already closed in the invoke closes nothing again and rides ext.openai.unparsed", () => {
+    const n = createOpenaiNormalizer({ invokeId: "inv2" });
+    const answer = (approve: boolean): JsonValue =>
+      runItem("tool_called", {
+        type: "tool_call_item",
+        rawItem: { type: "hosted_tool_call", name: "mcp_approval_response", providerData: { approve, approval_request_id: "mcpr_8" } },
+      });
+    const evs = [answer(true), answer(false)].flatMap((e) => n.push(e)).concat(n.flush());
+    expect(evs.filter((e) => e.type === "tool.done")).toMatchObject([{ toolCallId: "mcpr_8", outcome: "ok" }]);
+    expect(evs.filter((e) => e.type === "ext.openai.unparsed")).toHaveLength(1);
+  });
+
+  it("an approval answer that names no request closes nothing and rides ext.openai.unparsed", () => {
+    const n = createOpenaiNormalizer({ invokeId: "inv2" });
+    const evs = n
+      .push(runItem("tool_called", { type: "tool_call_item", rawItem: { type: "hosted_tool_call", name: "mcp_approval_response", providerData: { approve: true } } }))
+      .concat(n.flush());
+    expect(evs.filter((e) => e.type === "tool.start" || e.type === "tool.done")).toEqual([]);
+    expect(evs.filter((e) => e.type === "ext.openai.unparsed")).toHaveLength(1);
+  });
+
+  it("an approval answer recognised by providerData.type alone closes its request", () => {
+    const n = createOpenaiNormalizer({ invokeId: "inv2" });
+    const evs = n
+      .push(
+        runItem("tool_called", {
+          type: "tool_call_item",
+          rawItem: { type: "hosted_tool_call", name: "approval", providerData: { type: "mcp_approval_response", approve: true, approval_request_id: "mcpr_6" } },
+        }),
+      )
+      .concat(n.flush());
+    expect(evs.filter((e) => e.type === "tool.start")).toEqual([]);
+    expect(evs.filter((e) => e.type === "tool.done")).toMatchObject([{ toolCallId: "mcpr_6", outcome: "ok" }]);
   });
 });
 

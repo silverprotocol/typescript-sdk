@@ -1991,19 +1991,19 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   //    one), so the new response keeps its own turn; those calls stop being
   //    the round's;
   //  - at flush, per INV-FLUSH (2).
-  // A listed `mcp_approval_request` waits for its approval ask
-  // (`tool_approval_requested`) or its answer (`mcp_approval_response`), which
-  // agents-core streams after the request's own `tool_called`, so the ask
-  // lands in the round. `listedBuiltinsByTurn`: round → listed item ids still
-  // waiting. `builtinTurnByItemId`: listed item id → its round.
-  // `approvalRequestIds`: the listed items that are approval requests.
+  // A listed `mcp_approval_request` becomes a pending call of its round when
+  // its `tool_called` lands, and its answer (`mcp_approval_response`) closes
+  // it; with no answer, the round flushes paused naming its ask (INV-FLUSH
+  // (2)). `listedBuiltinsByTurn`: round → listed item ids still waiting.
+  // `builtinTurnByItemId`: listed item id → its round.
   // `seenBuiltinItemIds`: built-in items whose run-item already landed (one
   // that lands before its terminal, a synthetic order), so the terminal never
   // lists them.
   const listedBuiltinsByTurn = new Map<string, Set<string>>();
   const builtinTurnByItemId = new Map<string, string>();
-  const approvalRequestIds = new Set<string>();
   const seenBuiltinItemIds = new Set<string>();
+  // Approval requests an `mcp_approval_response` has closed in this invoke.
+  const answeredRequests = new Set<string>();
 
   /** List round `tid`'s built-in calls (those whose run-item has not landed). */
   /** List round `tid`'s built-in calls whose run-item has not landed. When
@@ -2016,7 +2016,6 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       if (seenBuiltinItemIds.has(item.id)) continue;
       ids.push(item.id);
       builtinTurnByItemId.set(item.id, tid);
-      if (item.type === "mcp_approval_request") approvalRequestIds.add(item.id);
     }
     if (ids.length === 0) return ids;
     for (const id of messageIds) {
@@ -2048,7 +2047,6 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     if (tid === undefined) return;
     const listed = listedBuiltinsByTurn.get(tid);
     if (listed === undefined || !listed.delete(key)) return;
-    approvalRequestIds.delete(key);
     maybeReleaseRound(tid);
   }
 
@@ -2069,7 +2067,6 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    *  no pending result keeps it open. */
   function releaseListedAtNextResponse(): void {
     for (const [tid, listed] of [...listedBuiltinsByTurn]) {
-      for (const id of listed) approvalRequestIds.delete(id);
       listed.clear();
       listedBuiltinsByTurn.delete(tid);
       maybeReleaseRound(tid);
@@ -2175,7 +2172,6 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     for (const [tid, stashed] of stashedCloseByTurn) releaseDeferredClose(tid, stashed);
     stashedCloseByTurn.clear();
     listedBuiltinsByTurn.clear();
-    approvalRequestIds.clear();
   }
 
   /**
@@ -3369,21 +3365,67 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
 
   /**
    * The toolCallId of a `hosted_tool_call`: its item id when it has one. An
-   * id-less item gets a derived id (INV-BLOCK, SPEC:767: "Normalizers MUST
-   * mint collision-free **derived** ids when the framework omits one"), never
-   * its `name`, which two items of one invoke can share:
-   *  - an `mcp_approval_response` (agents-core 0.18.0 builds it with no id,
-   *    runner/mcpApprovals.mjs:39-49) is keyed on the request it answers:
-   *    `<approval_request_id>:approval-response`;
-   *  - any other id-less item: `<name>_<invoke stem>_<n>`.
+   * id-less item gets a derived id, `<name>_<invoke stem>_<n>` (INV-BLOCK,
+   * SPEC:767: "Normalizers MUST mint collision-free **derived** ids when the
+   * framework omits one"), never its `name`, which two items of one invoke
+   * can share. An `mcp_approval_response` (which agents-core 0.18.0 builds
+   * with no id, runner/mcpApprovals.mjs:39-49) is no call of its own: it
+   * closes the request it answers (`driveApprovalAnswer`).
    */
   function hostedToolCallId(rawItem: OpenAIHostedToolCallItem): string {
     if (rawItem.id !== undefined && rawItem.id.length > 0) return rawItem.id;
-    const requestId: unknown = rawItem.providerData?.approval_request_id;
-    if (rawItem.name === "mcp_approval_response" && typeof requestId === "string" && requestId.length > 0) {
-      return `${requestId}:approval-response`;
-    }
     return `${rawItem.name}_${invokeStem}_${++derivedOrdinal}`;
+  }
+
+  /** The hosted-MCP kind of a `hosted_tool_call`, by its `name` or its
+   *  `providerData.type` (agents-openai's converter matches either,
+   *  openaiResponsesConverter.mjs:1066-1115). */
+  function hostedMcpKind(
+    rawItem: OpenAIHostedToolCallItem,
+  ): "mcp_call" | "mcp_approval_request" | "mcp_approval_response" | undefined {
+    const type: unknown = rawItem.providerData?.type;
+    for (const kind of ["mcp_call", "mcp_approval_request", "mcp_approval_response"] as const) {
+      if (rawItem.name === kind || type === kind) return kind;
+    }
+    return undefined;
+  }
+
+  /**
+   * An `mcp_approval_response` run-item closes the request it answers
+   * (`providerData.approval_request_id`) with exactly one `tool.done`:
+   * outcome "ok" when `providerData.approve` is true, which records the
+   * approval and not the result of the call it gates, and "denied" when it is
+   * not. It creates no block of its own, and the `mcp_call` it gates is a
+   * separate call under its own id. The request is a pending call of its
+   * round in the same invoke (the onApproval flow); in a resuming invoke it
+   * is unknown, and the answer lands as a leading result does
+   * (`openTurnForLeadingResult`, INV-XINV). A rejection's `reason` rides
+   * tool.done providerMetadata. An answer that names no request has nothing
+   * to close, and a second answer to a request this invoke already closed
+   * (agents-core answers each request once, runner/mcpApprovals.mjs) would
+   * close it twice: either is carried verbatim on ext.openai.unparsed.
+   */
+  function driveApprovalAnswer(rawItem: OpenAIHostedToolCallItem): void {
+    const requestId: unknown = rawItem.providerData?.approval_request_id;
+    if (typeof requestId !== "string" || requestId.length === 0 || answeredRequests.has(requestId)) {
+      a.emitExt("openai", "unparsed", { name: "tool_called", item: JsonValue.parse(rawItem) });
+      return;
+    }
+    const reason: unknown = rawItem.providerData?.reason;
+    const meta = openaiProviderMeta({
+      reason: typeof reason === "string" && reason.length > 0 ? reason : undefined,
+      caller: callerToJson(rawItem.caller),
+    });
+    answeredRequests.add(requestId);
+    const doneTurnId = resolvePendingTurnId(requestId);
+    a.toolDone({
+      toolCallId: requestId,
+      content: [],
+      outcome: rawItem.providerData?.approve === true ? "ok" : "denied",
+      ...(meta !== undefined ? { providerMetadata: meta } : {}),
+      ...(doneTurnId !== undefined ? { turnId: doneTurnId } : (openTurnForLeadingResult(requestId) ?? {})),
+    });
+    drainPendingTool(requestId, doneTurnId);
   }
 
   /**
@@ -3427,8 +3469,9 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
    * `incomplete`, as a shell, program or function result's `incomplete` is
    * (and an apply-patch result's `failed`); for an mcp_call, whose top-level
    * status the converter always sets to "completed", the status in
-   * providerData. It is also "error" when the item carries an `error`, even
-   * with a `completed` status. Any other status (`in_progress`,
+   * providerData. It is also "error" when the item carries a non-null
+   * `error`, an empty string included, even with a `completed` status. Any
+   * other status (`in_progress`,
    * `searching`, `interpreting`, …) closes "ok"; a status other than
    * `completed` rides tool.done providerMetadata.status verbatim.
    */
@@ -3471,8 +3514,10 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     // McpToolCallError: a protocol or HTTP error {code, message, type}, or a
     // tool execution error {content, type}): its message (else the object as
     // JSON) is the errorText, its type the errorCode, and the object rides
-    // tool.done providerMetadata verbatim. A string error is its own text.
+    // tool.done providerMetadata verbatim. A non-empty string error is its own
+    // text; any other non-null error (an empty string) rides providerMetadata.
     const error: unknown = pd?.error;
+    const hasError = error !== undefined && error !== null;
     const errorMessage: unknown = isJsonObject(error) ? error.message : undefined;
     const errorText =
       typeof error === "string" && error.length > 0
@@ -3492,7 +3537,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     };
     const providerMetadata = openaiProviderMeta({
       status: typeof status === "string" && status.length > 0 && status !== "completed" ? status : undefined,
-      error: isJsonObject(error) ? error : undefined,
+      error: hasError && errorText !== error ? JsonValue.parse(error) : undefined,
       revised_prompt: imageField("revised_prompt"),
       size: imageField("size"),
       quality: imageField("quality"),
@@ -3501,7 +3546,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       output_format: imageField("output_format"),
     });
     const meta = providerMetadata !== undefined ? { providerMetadata } : {};
-    if (status === "failed" || status === "incomplete" || errorText !== undefined) {
+    if (status === "failed" || status === "incomplete" || hasError) {
       return {
         content,
         outcome: "error",
@@ -3522,24 +3567,24 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       | OpenAIHostedToolCallItem
       | OpenAIProgramCallItem,
   ): void {
-    // The listed item this run-item is: its own id, or, for an approval's
-    // answer, the request it answers (see "Built-in round attach").
-    const answered: unknown =
-      rawItem.type === "hosted_tool_call" && rawItem.name === "mcp_approval_response"
-        ? rawItem.providerData?.approval_request_id
-        : undefined;
-    const key = typeof answered === "string" && answered.length > 0 ? answered : rawItem.id;
+    const mcpKind = rawItem.type === "hosted_tool_call" ? hostedMcpKind(rawItem) : undefined;
+    if (rawItem.type === "hosted_tool_call" && mcpKind === "mcp_approval_response") {
+      driveApprovalAnswer(rawItem);
+      return;
+    }
+    // The listed item this run-item is (see "Built-in round attach").
+    const key = rawItem.id;
     if (rawItem.id !== undefined) seenBuiltinItemIds.add(rawItem.id);
     const toolCallId = rawItem.type === "hosted_tool_call" ? hostedToolCallId(rawItem) : rawItem.callId;
     // A run-item that lands after its round's terminal attaches to that round;
     // one that lands while a response is open belongs to it. A hosted call
-    // that no round claims while no response is open (the resuming invoke's
-    // leading `mcp_approval_response`) opens its turn as a leading tool result
-    // does (`openTurnForLeadingResult`), in an assistant message of its own,
-    // `<toolCallId>:call`, closed after the call: the response that follows
-    // then opens its own message in that turn, with its model. A leading
-    // client-executed or tool-search call is not a 0.18.0 shape (a resumed
-    // approved call streams its tool_output), so it keeps the response open.
+    // that no round claims while no response is open (not a 0.18.0 shape: a
+    // resuming invoke leads with a tool result or an approval's answer) opens
+    // its turn as a leading tool result does (`openTurnForLeadingResult`), in
+    // an assistant message of its own, `<toolCallId>:call`, closed after the
+    // call: the response that follows then opens its own message in that
+    // turn, with its model. A leading client-executed or tool-search call
+    // keeps the response open.
     const late = lateBuiltinRound(key);
     // openTurnForLeadingResult returns undefined while a response is open.
     const leading = late === undefined && rawItem.type === "hosted_tool_call" ? openTurnForLeadingResult(toolCallId) : undefined;
@@ -3552,26 +3597,22 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     const ownerMsgId = late !== undefined ? late.mId : (callMsgId ?? msgId);
     const ownerTurnId = late !== undefined ? late.tid : (leading?.turnId ?? turnId);
     if (ownerMsgId === undefined) return; // unreachable post-ensure; satisfies narrowing
-    const name = builtinToolName(rawItem);
+    // An MCP call or approval request is named by the MCP tool it calls
+    // (`providerData.name`); the item's own name is the umbrella (`mcp_call` /
+    // `mcp_approval_request`), which rides providerMetadata.type.
+    const mcpToolName: unknown = mcpKind !== undefined ? rawItem.providerData?.name : undefined;
+    const name = typeof mcpToolName === "string" && mcpToolName.length > 0 ? mcpToolName : builtinToolName(rawItem);
     // Caller provenance (0.14.0): typed only on the shapes the wire declares
     // it for — computer_call and program carry none (protocol.d.ts).
     const caller =
       rawItem.type === "shell_call" || rawItem.type === "apply_patch_call" || rawItem.type === "hosted_tool_call"
         ? rawItem.caller
         : undefined;
-    // An MCP call's or approval request's own tool name: the item's `name` is
-    // the umbrella (`mcp_call` / `mcp_approval_request`), so the MCP tool's
-    // name rides providerMetadata (SPEC:965).
-    const mcpToolName: unknown =
-      rawItem.type === "hosted_tool_call" && (rawItem.name === "mcp_call" || rawItem.name === "mcp_approval_request")
-        ? rawItem.providerData?.name
-        : undefined;
     // An mcp_call that an approval gated names that request (verbatim).
-    const approvalRequestId: unknown =
-      rawItem.type === "hosted_tool_call" && rawItem.name === "mcp_call" ? rawItem.providerData?.approval_request_id : undefined;
+    const approvalRequestId: unknown = mcpKind === "mcp_call" ? rawItem.providerData?.approval_request_id : undefined;
     const startMeta = openaiProviderMeta({
       caller: callerToJson(caller),
-      mcpToolName: typeof mcpToolName === "string" && mcpToolName.length > 0 ? mcpToolName : undefined,
+      type: mcpKind,
       approval_request_id: typeof approvalRequestId === "string" && approvalRequestId.length > 0 ? approvalRequestId : undefined,
     });
     // An MCP item's server label (SPEC tool.start.serverName).
@@ -3600,13 +3641,20 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
               : hostedInput(rawItem);
     a.toolArgsDelta(toolCallId, JSON.stringify(input));
     a.toolArgsAssembled(toolCallId, input);
+    if (rawItem.type === "hosted_tool_call" && mcpKind === "mcp_approval_request") {
+      // Not resolved: the request stays a pending call of its round until its
+      // answer closes it; with no answer, the round flushes paused naming its
+      // ask (§8.0 items 14 and 20, INV-FLUSH (2)).
+      if (callMsgId !== undefined) a.closeMessage(callMsgId);
+      registerPendingToolFor(ownerTurnId, toolCallId);
+      drainListedBuiltin(key);
+      return;
+    }
     if (rawItem.type === "hosted_tool_call") {
       const doneTurnId = late?.tid ?? leading?.turnId;
       a.toolDone({ toolCallId, ...hostedResult(rawItem), ...(doneTurnId !== undefined ? { turnId: doneTurnId } : {}) });
       if (callMsgId !== undefined) a.closeMessage(callMsgId);
-      // An approval request waits for its ask or its answer; any other hosted
-      // call, and an answer (keyed on its request), is complete here.
-      if (!(rawItem.id !== undefined && approvalRequestIds.has(rawItem.id))) drainListedBuiltin(key);
+      drainListedBuiltin(key);
       return;
     }
     registerPendingToolFor(ownerTurnId, toolCallId);
@@ -4046,14 +4094,12 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
           return;
         }
         case "tool_approval_requested": {
-          // Task 3 (audit M48): a human-in-the-loop approval gate on a pending
-          // tool call. `askId` mirrors the `approval_${callId}` convention already
-          // established by the google-adk facet's `requestedToolConfirmations` arm
-          // (index.ts:653) for the same `kind:"approval"` semantics. The M26
-          // paused-fold discipline (surfacing this on the turn's `outcome.paused`)
-          // is ADK-scoped for this batch — `hitl.ask` is LIVE-ONLY on the fold
-          // (reduce.ts R9: no accumulator mutation), so emitting the ask alone is
-          // complete; the host/turn-close owns any pause semantics.
+          // A human-in-the-loop approval gate on a pending tool call. `askId`
+          // mirrors the `approval_${callId}` convention of the google-adk
+          // facet's `requestedToolConfirmations` arm for the same
+          // `kind:"approval"` semantics. The gated call stays pending, so a
+          // round the stream leaves waiting on it flushes paused naming this
+          // ask (INV-FLUSH (2)).
           const item = event.item.rawItem;
           // The call the ask gates: a function, shell, apply-patch or computer
           // call's callId, else the item's id. A hosted-MCP approval request
@@ -4073,9 +4119,6 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
             toolCallId: gatedId,
           });
           askedApprovals.set(gatedId, `approval_${gatedId}`);
-          // A listed hosted-MCP approval request has its ask: its round can
-          // close (see "Built-in round attach").
-          drainListedBuiltin(gatedId);
           return;
         }
         default:
