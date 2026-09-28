@@ -291,7 +291,7 @@
         },
         "branch": {
           "disposition": "carried",
-          "note": "FIXED (fixture-drift ratchet): ALREADY typed on AdkEvent ('multi-agent routing', format agent_1.agent_2.agent_3) but NEVER READ prior to this task \u2014 same insidious-finding class as `author`. Folded into the event-level unmappedEvent provider-raw carry. A more precise home (a branch/lineage field alongside handoff/subagent routing) is a plausible future spec-process enhancement. SPEC \u00a78 item 23. Also read by the aggregate window (SSE and Live): part of its key (aggregateWindowKey), and its absence lets windowCandidates look up a same-author window."
+          "note": "FIXED (fixture-drift ratchet): ALREADY typed on AdkEvent ('multi-agent routing', format agent_1.agent_2.agent_3) but NEVER READ prior to this task \u2014 same insidious-finding class as `author`. Folded into the event-level unmappedEvent provider-raw carry. A more precise home (a branch/lineage field alongside handoff/subagent routing) is a plausible future spec-process enhancement. SPEC \u00a78 item 23. Also read by the aggregate window (SSE and Live): part of its key (aggregateWindowKey), and its absence lets windowCandidates look up a same-author window. Also read by the branch gate in maybeCloseTurn: a final response that carries a branch (a ParallelAgent sub-agent) never closes the turn without the host-completion event."
         },
         "timestamp": {
           "disposition": "silently-dropped",

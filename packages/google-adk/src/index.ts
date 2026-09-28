@@ -2580,6 +2580,13 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
       deferredClose.set(turnId, event);
       return;
     }
+    // ── The branch gate ──
+    // A final response that carries a `branch` (a ParallelAgent's sub-agent)
+    // ends that branch, not the invocation: ADK runs the other branches after
+    // it, so closing the turn on it put their events after the terminal and
+    // parked reduce() (INV-TURN). Without the host-completion event such a
+    // turn closes at flush(), as a completed Workflow does.
+    if (errorClose === undefined && typeof event.branch === "string") return;
     closeOnFinalResponse(event, turnId, messageId, errorClose);
   }
 

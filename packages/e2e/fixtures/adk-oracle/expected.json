@@ -2698,8 +2698,8 @@
   "verdict": "MATCH",
   "over": 0,
   "under": 0,
-  "park": true,
-  "status": "by-design"
+  "park": false,
+  "status": "clean"
  },
  "parallel-interleaved.np.hc": {
   "verdict": "MATCH",
@@ -2712,8 +2712,8 @@
   "verdict": "MATCH",
   "over": 0,
   "under": 0,
-  "park": true,
-  "status": "by-design"
+  "park": false,
+  "status": "clean"
  },
  "parallel-interleaved.prog.hc": {
   "verdict": "MATCH",

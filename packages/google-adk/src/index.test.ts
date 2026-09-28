@@ -2285,6 +2285,60 @@ describe("createAdkNormalizer — ADK pause family + Workflow nodeInfo gate (R&D
     expect(t).toMatchObject({ type: "turn.error", code: "500" });
   });
 
+  const branchFinal = (author: string, text: string): AdkEvent =>
+    ev({ author, branch: `fanout.${author}`, content: { role: "model", parts: [{ text }] }, finishReason: "STOP", usageMetadata: usage });
+  const texts = (out: AgEvent[]) => out.flatMap((e) => (e.type === "text.delta" ? [e.delta] : []));
+
+  it("a ParallelAgent branch's final answer never closes the turn without host completion: both branches' answers land in the turn, and flush() closes it turn.abort stream-truncated with the turn's usage", () => {
+    const { pushed, all } = pushAndFlush([branchFinal("beta", "Beta answered."), branchFinal("alpha", "Alpha answered.")]);
+    expect(pushed.some((e) => e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort")).toBe(false);
+    expect(fold(all)).toMatchObject({ type: "turn.abort", reason: "stream-truncated" });
+    expect(texts(all)).toEqual(["Beta answered.", "Alpha answered."]);
+    expect(all.find((e) => e.type === "message.end")).toMatchObject({ usage: { inputTokens: 20, outputTokens: 6 } });
+  });
+
+  it("with host completion the same two branch finals close turn.done success on the host-completion event, and a final answer with no branch still closes on arrival without it", () => {
+    const n = createAdkNormalizer({ invokeId: "adk", hostCompletion: true });
+    const out = [
+      ...n.push(toJsonValue(branchFinal("beta", "Beta answered."))),
+      ...n.push(toJsonValue(branchFinal("alpha", "Alpha answered."))),
+      ...n.push({ type: "__host_complete__" }),
+      ...n.flush(),
+    ];
+    expect(fold(out)).toMatchObject({ type: "turn.done", outcome: { type: "success" }, usage: { inputTokens: 20 } });
+    expect(texts(out)).toEqual(["Beta answered.", "Alpha answered."]);
+    const plain = ev({ author: "agent", content: { role: "model", parts: [{ text: "Done." }] }, finishReason: "STOP" });
+    const { pushed } = pushAndFlush([plain]);
+    expect(pushed.filter((e) => e.type === "turn.done")).toEqual([expect.objectContaining({ outcome: { type: "success" } })]);
+  });
+
+  it("a ParallelAgent with a single branch closes turn.abort stream-truncated at flush() without host completion, where it closed success on arrival before: its final cannot be told from one whose sibling branches still run; with host completion it closes success", () => {
+    const solo = branchFinal("solo", "Only branch.");
+    expect(fold(pushAndFlush([solo]).all)).toMatchObject({ type: "turn.abort", reason: "stream-truncated" });
+    const n = createAdkNormalizer({ invokeId: "adk", hostCompletion: true });
+    const out = [...n.push(toJsonValue(solo)), ...n.push({ type: "__host_complete__" }), ...n.flush()];
+    expect(fold(out)).toMatchObject({ type: "turn.done", outcome: { type: "success" } });
+  });
+
+  it("a SequentialAgent whose first step is a ParallelAgent: the branch finals leave the turn open, and the next sub-agent's final answer, which carries no branch, closes it success from its own push() without host completion", () => {
+    const summary = ev({ author: "summarizer", content: { role: "model", parts: [{ text: "Both answered." }] }, finishReason: "STOP", usageMetadata: usage });
+    const n = createAdkNormalizer({ invokeId: "adk" });
+    const beforeSummary = [...n.push(toJsonValue(branchFinal("beta", "Beta answered."))), ...n.push(toJsonValue(branchFinal("alpha", "Alpha answered.")))];
+    const onSummary = n.push(toJsonValue(summary));
+    const all = [...beforeSummary, ...onSummary, ...n.flush()];
+    expect(onSummary.at(-1)).toMatchObject({ type: "turn.done", outcome: { type: "success" }, usage: { inputTokens: 30 } });
+    expect(fold(all)).toBe(onSummary.at(-1));
+    expect(texts(all)).toEqual(["Beta answered.", "Alpha answered.", "Both answered."]);
+  });
+
+  it("a plugin's replacement for a branch's final answer keeps that branch (the runner copies it when the plugin sets none), so it leaves the turn open as the final it replaced", () => {
+    const replaced = { ...branchFinal("beta", "Beta answered."), content: { role: "model", parts: [{ text: "Beta answered (edited by a plugin)." }] } };
+    const { pushed, all } = pushAndFlush([replaced]);
+    expect(pushed.some((e) => e.type === "turn.done")).toBe(false);
+    expect(fold(all)).toMatchObject({ type: "turn.abort", reason: "stream-truncated" });
+    expect(texts(all)).toEqual(["Beta answered (edited by a plugin)."]);
+  });
+
   it("an adk_request_input call re-sent as the partial:false aggregate yields ONE ask", () => {
     const call = { functionCall: { name: "adk_request_input", args: { message: "City?" }, id: "adk-in" } };
     const out = pushAndFlush([
