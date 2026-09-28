@@ -45,10 +45,10 @@ const LEGS: Record<string, Expected> = {
   "parallel-agent-two-errors-b-first": { errors: ["RECITATION", "SAFETY"], close: { paused: false, code: "RECITATION" } },
   "parallel-workflow-one-block-a-first": { errors: ["SAFETY"], close: { paused: false, code: "NodeReportedError" } },
   "parallel-workflow-one-block-b-first": { errors: ["SAFETY"], close: { paused: false, code: "NodeReportedError" } },
-  // In SSE the relay's closing event repeats the aggregate's error, which
-  // counts as a second error until the relay repeat is recognised.
-  "relay-block-on-text-chunk": { errors: ["SAFETY"], sseErrors: ["SAFETY", "SAFETY"], close: { paused: false, code: "SAFETY" } },
-  "relay-text-then-block": { errors: ["SAFETY"], sseErrors: ["SAFETY", "SAFETY"], close: { paused: false, code: "SAFETY" } },
+  // In SSE the relay's closing event repeats the aggregate's error, and is
+  // recognised as that repeat: one error in either mode.
+  "relay-block-on-text-chunk": { errors: ["SAFETY"], close: { paused: false, code: "SAFETY" } },
+  "relay-text-then-block": { errors: ["SAFETY"], close: { paused: false, code: "SAFETY" } },
   "relay-then-reply-loop-block-no-text-no-usage": { errors: ["SAFETY", "SAFETY"], close: { paused: false, code: "SAFETY" } },
   "relay-then-reply-loop-block-no-text-usage": { errors: ["SAFETY", "SAFETY"], close: { paused: false, code: "SAFETY" } },
   "request-input-tool-throw-then-429": { errors: ["UNKNOWN_ERROR", "429"], close: { paused: false, code: "UNKNOWN_ERROR" } },
@@ -164,16 +164,35 @@ const numberAt = (u: JsonValue | undefined, k: string): number => {
  * usage reports, with an aggregate that repeats an in-band error (a
  * partial:false event carrying the errorCode and errorMessage of the previous
  * event of its source, which did not carry partial:false) counted once with
- * the event it repeats, from the later of the two reports.
+ * the event it repeats, from the later of the two reports, and a relayed
+ * closing event that repeats an earlier in-band error of its source (it
+ * carries turnComplete and an a2a:request entry, and the same a2a:task_id,
+ * code, message and usage report) not counted again.
  */
 function expectedUsage(natives: Native[]): { inputTokens: number; outputTokens: number } {
   const counted: Array<JsonValue | undefined> = [];
   const previous = new Map<string, { partialFalse: boolean; error: HostError | undefined; slot: number | undefined; usage: JsonValue | undefined }>();
+  const relayed: Array<{ source: string; taskId: string; code: string; message: string; usage: string }> = [];
   for (const e of natives) {
     const source = sourceOf(e);
     const prev = previous.get(source);
     const error = inBand(e);
     const usage = e["usageMetadata"];
+    const meta = e["customMetadata"];
+    const taskIdRaw = meta !== undefined && isNative(meta) ? meta["a2a:task_id"] : undefined;
+    const taskId = typeof taskIdRaw === "string" ? taskIdRaw : undefined;
+    const usageKey = JSON.stringify(usage ?? null);
+    if (
+      error !== undefined &&
+      e["turnComplete"] === true &&
+      meta !== undefined &&
+      isNative(meta) &&
+      "a2a:request" in meta &&
+      taskId !== undefined &&
+      relayed.some((r) => r.source === source && r.taskId === taskId && r.code === error.code && r.message === error.message && r.usage === usageKey)
+    )
+      continue;
+    if (error !== undefined && taskId !== undefined) relayed.push({ source, taskId, code: error.code, message: error.message, usage: usageKey });
     let slot: number | undefined;
     const repeat =
       error !== undefined && e["partial"] === false && prev !== undefined && !prev.partialFalse && prev.error?.code === error.code && prev.error.message === error.message;

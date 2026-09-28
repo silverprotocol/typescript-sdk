@@ -222,7 +222,7 @@
         },
         "turnComplete": {
           "disposition": "handled",
-          "note": "maybeCloseTurn's hasCompletion check (is_final_response gate, alongside finishReason/errorCode)."
+          "note": "maybeCloseTurn's hasCompletion check (is_final_response gate, alongside finishReason/errorCode), and the relay repeat of spec \u00a78.0 item 35, which reads a relayed closing event."
         },
         "errorCode": {
           "disposition": "handled",
@@ -238,7 +238,7 @@
         },
         "customMetadata": {
           "disposition": "carried",
-          "note": "Opaque per-event bag -> the event-level unmapped-fields provider-raw content.block (driveAdkTopLevel), alongside citationMetadata/branch/modelVersion (and the structural candidateIndex tolerance). Not carried: the up to four bookkeeping entries ADK's RemoteA2AAgent writes into it on the events it relays (a2a:request, a2a:response, a2a:task_id, a2a:context_id), an exception to draft.8's carry of unmapped event fields (\u00a78.0 item 23); every other entry, including one a remote agent wrote, rides unchanged. A bag that held only those is not carried, here or in an ext.google.unparsed native, where an event serialized from Python spells it custom_metadata. Also read for a repeated request: an a2a:response entry (under either spelling) that records a submitted status whose message is in the user role marks the event's content parts after the first k (k = the parts of the recorded artifacts) as the repeated forwarded request, which the facet omits before any other reader, with one ext.google.relay-echo-omitted marker. Also read by the aggregate window: for an event ADK's RemoteA2AAgent relays, the relayed stream (the a2a:task_id entry, and the a2a:response entry's kind and artifact id) is part of the window key, and a relayed task or message reads its task's windows."
+          "note": "Opaque per-event bag -> the event-level unmapped-fields provider-raw content.block (driveAdkTopLevel), alongside citationMetadata/branch/modelVersion (and the structural candidateIndex tolerance). Not carried: the up to four bookkeeping entries ADK's RemoteA2AAgent writes into it on the events it relays (a2a:request, a2a:response, a2a:task_id, a2a:context_id), an exception to draft.8's carry of unmapped event fields (\u00a78.0 item 23); every other entry, including one a remote agent wrote, rides unchanged. A bag that held only those is not carried, here or in an ext.google.unparsed native, where an event serialized from Python spells it custom_metadata. Also read for a repeated request: an a2a:response entry (under either spelling) that records a submitted status whose message is in the user role marks the event's content parts after the first k (k = the parts of the recorded artifacts) as the repeated forwarded request, which the facet omits before any other reader, with one ext.google.relay-echo-omitted marker. Also read by the aggregate window: for an event ADK's RemoteA2AAgent relays, the relayed stream (the a2a:task_id entry, and the a2a:response entry's kind and artifact id) is part of the window key, and a relayed task or message reads its task's windows. Also read by the relay repeat of spec \u00a78.0 item 35: the presence of the a2a:request entry and the value of the a2a:task_id entry, never carried."
         },
         "citationMetadata": {
           "disposition": "carried",

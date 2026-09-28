@@ -5303,6 +5303,44 @@ describe("createAdkNormalizer — ADK in-band invocation errors (§8.0 item 35):
     }
   });
 
+  it("the relay's closing event that repeats an earlier in-band error of the same source, with the same code, message and usage report and the same a2a:task_id present on both, yields no error event and adds no usage; without a task id on both, with different ids, with another usage report, or without the a2a:request entry or turnComplete, it is a further error", () => {
+    const relayed = (taskId: string | undefined, extra: Partial<AdkEvent> = {}): AdkEvent => ({
+      ...inv,
+      author: "helper",
+      errorCode: "SAFETY",
+      errorMessage: "Response blocked.",
+      usageMetadata: u(10, 5),
+      customMetadata: { "a2a:response": { kind: "status-update" }, ...(taskId !== undefined ? { "a2a:task_id": taskId } : {}) },
+      ...extra,
+    });
+    const closing = (taskId: string | undefined, extra: Partial<AdkEvent> = {}): AdkEvent => {
+      const base = relayed(taskId, extra);
+      return { ...base, turnComplete: true, customMetadata: { ...base.customMetadata, "a2a:request": {} } };
+    };
+    const noUsage = { usageMetadata: undefined };
+    const cases: Array<[string, AdkEvent[], string[], { inputTokens: number; outputTokens: number } | undefined]> = [
+      ["the same task id", [relayed("t1"), closing("t1")], ["SAFETY"], { inputTokens: 10, outputTokens: 5 }],
+      ["the same task id, both closing events", [closing("t1"), closing("t1")], ["SAFETY"], { inputTokens: 10, outputTokens: 5 }],
+      ["the same task id, no usage report on either", [relayed("t1", noUsage), closing("t1", noUsage)], ["SAFETY"], undefined],
+      ["no task id on either", [relayed(undefined), closing(undefined)], ["SAFETY", "SAFETY"], { inputTokens: 20, outputTokens: 10 }],
+      ["different task ids", [relayed("t1"), closing("t2")], ["SAFETY", "SAFETY"], { inputTokens: 20, outputTokens: 10 }],
+      ["another usage report", [relayed("t1"), closing("t1", { usageMetadata: u(12, 5) })], ["SAFETY", "SAFETY"], { inputTokens: 22, outputTokens: 10 }],
+      ["no a2a:request entry", [relayed("t1"), { ...relayed("t1"), turnComplete: true }], ["SAFETY", "SAFETY"], { inputTokens: 20, outputTokens: 10 }],
+      ["no turnComplete", [relayed("t1"), { ...closing("t1"), turnComplete: undefined }], ["SAFETY", "SAFETY"], { inputTokens: 20, outputTokens: 10 }],
+    ];
+    for (const [label, natives, codes, usage] of cases) {
+      for (const host of [false, true]) {
+        const { all } = feed(natives, host);
+        expect(errorCodes(all), `${label}, host=${host}`).toEqual(codes);
+        const [end] = terminals(all);
+        expect(end, `${label}, host=${host}`).toMatchObject({ type: "turn.error", code: "SAFETY" });
+        if (usage === undefined) expect(end, `${label}, host=${host}`).not.toHaveProperty("usage");
+        else expect(end, `${label}, host=${host}`).toMatchObject({ usage: expect.objectContaining(usage) });
+        expectCleanFold(all);
+      }
+    }
+  });
+
   describe("with a pause", () => {
     // A credential pause as ADK builds it: the tool call, the credential
     // request, and the function response whose requestedAuthConfigs signal

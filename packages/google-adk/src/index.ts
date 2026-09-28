@@ -2443,6 +2443,43 @@ interface PreviousSourceEvent {
   usageSlot: number | undefined;
 }
 
+/** An in-band invocation error seen on one source, for item 35's relay
+ *  repeat: its code and message, and its usage report and `a2a:task_id`
+ *  entry as sorted-key JSON ("" when absent). */
+interface InBandErrorRecord {
+  code: string;
+  message: string;
+  usage: string;
+  taskId: string;
+}
+
+/** The record item 35's relay repeat compares for one in-band error. */
+function inBandErrorRecord(event: AdkEvent, error: { code: string; message: string }): InBandErrorRecord {
+  const metadata: unknown = event.customMetadata;
+  return {
+    code: error.code,
+    message: error.message,
+    usage: event.usageMetadata !== undefined ? canonicalJson(JsonValue.parse(event.usageMetadata)) : "",
+    taskId: isJsonObject(metadata) && Object.hasOwn(metadata, "a2a:task_id") ? canonicalJson(metadata["a2a:task_id"] ?? null) : "",
+  };
+}
+
+/** Item 35's relay repeat: `RemoteA2AAgent` stamps an `a2a:request` entry on
+ *  each relayed event that carries `turnComplete: true`, and at @google/adk
+ *  2.1.0 it reports a remote failure that carries no content only in that
+ *  closing event, so one failure can reach the facet twice. The closing event
+ *  repeats an earlier in-band error of the same source when the code, message
+ *  and usage report are equal (an absent report matches only an absent one)
+ *  and both carry the same `a2a:task_id` entry, present on both. */
+function isRelayRepeat(event: AdkEvent, record: InBandErrorRecord, earlier: readonly InBandErrorRecord[]): boolean {
+  const metadata: unknown = event.customMetadata;
+  if (event.turnComplete !== true || !isJsonObject(metadata) || !Object.hasOwn(metadata, "a2a:request")) return false;
+  if (record.taskId === "") return false;
+  return earlier.some(
+    (e) => e.taskId === record.taskId && e.code === record.code && e.message === record.message && e.usage === record.usage,
+  );
+}
+
 /** The aggregate window's key: the turn plus the event's source (author,
  *  branch and node path). A missing or non-string value is its own key, never
  *  equal to an empty string. */
@@ -2630,8 +2667,9 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
   // invocation's end.
   const firstInBandError = new Map<string, { code: string; message: string }>();
   // Per turn and source (author, branch, node path): the previous event, for
-  // item 35's SSE repeat.
+  // item 35's SSE repeat, and the in-band errors seen, for its relay repeat.
   const previousBySource = new Map<string, PreviousSourceEvent>();
+  const inBandErrorsBySource = new Map<string, InBandErrorRecord[]>();
   // Per-turn HITL asks emitted by the two `actions.requested*` arms (audit
   // M26) — populated in emission order by `trackPendingAsk` inside
   // `driveAdkTopLevel`. Consulted ONLY by `maybeCloseTurn`'s REAL close path
@@ -2866,12 +2904,13 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
 
   /** Spec §8.0 item 35 when the event arrives, and the event's usage count.
    *  Every non-partial event of an open turn counts its usage report once,
-   *  functionCall rounds included (see the usageByTurn doc above). The SSE
-   *  aggregate that repeats the previous in-band error of its source as the
-   *  model call's stream closes yields no `error` event, and its report
-   *  replaces the one it repeats, so the call counts once, from the later
-   *  report. Any other in-band error emits `error` from this push and, when
-   *  it is the invocation's first, latches it. */
+   *  functionCall rounds included (see the usageByTurn doc above). An in-band
+   *  invocation error that repeats an earlier one yields no `error` event: the
+   *  SSE aggregate that repeats the previous in-band error of its source as the
+   *  model call's stream closes (its report replaces the one it repeats, so
+   *  the call counts once, from the later report), and the relay's closing
+   *  event (it adds no usage). Any other in-band error emits `error` from this
+   *  push and, when it is the invocation's first, latches it. */
   function recordErrorAndUsage(event: AdkEvent, turnId: string, isPartial: boolean): void {
     const sourceKey = aggregateWindowKey(turnId, event, null);
     const previous = previousBySource.get(sourceKey);
@@ -2881,6 +2920,8 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     if (error === undefined) {
       if (counting && event.usageMetadata !== undefined) usageSlot = countUsage(turnId, event.usageMetadata);
     } else {
+      const record = inBandErrorRecord(event, error);
+      const earlier = inBandErrorsBySource.get(sourceKey) ?? [];
       const repeatsPrevious =
         event.partial === false &&
         previous !== undefined &&
@@ -2898,11 +2939,12 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
             usageSlot = countUsage(turnId, later);
           }
         }
-      } else {
+      } else if (!isRelayRepeat(event, record, earlier)) {
         a.emit({ type: "error", turnId, code: error.code, message: error.message });
         if (!firstInBandError.has(turnId)) firstInBandError.set(turnId, error);
         if (counting && event.usageMetadata !== undefined) usageSlot = countUsage(turnId, event.usageMetadata);
       }
+      inBandErrorsBySource.set(sourceKey, [...earlier, record]);
     }
     previousBySource.set(sourceKey, { partialFalse: event.partial === false, error, usage: event.usageMetadata, usageSlot });
   }
