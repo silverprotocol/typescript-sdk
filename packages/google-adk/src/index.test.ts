@@ -5124,6 +5124,23 @@ describe("createAdkNormalizer — the bookkeeping entries ADK's A2A relay writes
     }
   });
 
+  it("a relayed event whose a2a:response records a task at completed with no status message carries none of the relay entries; its other entries ride", () => {
+    for (const tag of ["completed-a", "completed-b"]) {
+      const entries = { ...relayEntries(tag), "a2a:response": { kind: "task", id: plant(`${tag}-task-id`), status: { state: "completed" }, history: [{ kind: "message", role: "user", parts: [{ kind: "text", text: plant(`${tag}-history`) }] }] } };
+      const out = drive([toJsonValue({ ...inv, author: "helper", content: text("Done."), turnComplete: true, customMetadata: { ...entries, note: "kept" } })]);
+      expect(carries(out).map((raw) => raw["customMetadata"]), tag).toEqual([{ note: "kept" }]);
+      expect(out.some((e) => e.type.startsWith("ext.google.relay")), tag).toBe(false);
+      expectNoPlanted(out, tag);
+    }
+  });
+
+  it("an empty customMetadata, holding no relay entry, rides as {}", () => {
+    for (const tag of ["empty-a", "empty-b"]) {
+      const out = drive([toJsonValue({ ...inv, author: `${tag}-agent`, content: text("Done."), turnComplete: true, customMetadata: {} })]);
+      expect(carries(out).map((raw) => raw["customMetadata"]), tag).toEqual([{}]);
+    }
+  });
+
   it("a customMetadata without the relay entries rides unchanged, and so does one that is not an object", () => {
     for (const bag of [{ note: "kept", "a2a:other": "kept" }, "a plain string"]) {
       const out = drive([toJsonValue({ ...inv, author: "a1", content: text("Done."), turnComplete: true, customMetadata: bag })]);

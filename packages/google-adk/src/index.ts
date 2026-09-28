@@ -563,28 +563,28 @@ function nativeWithoutRelayBookkeeping(native: JsonValue): JsonValue {
 // remote agent can repeat that forwarded message as its first, submitted
 // status, in the "user" role (ADK-Python's A2A executor does on a new task).
 // The relay converts that status message's parts into the relayed event's
-// content, and the facet maps such an event as if those parts, and the
-// long-running ids taken from them, were absent, and marks the omission with a
-// content-free ext.google.relay_echo_omitted event.
-//   - @google/adk (`customMetadata`): the converted parts are the event's last
-//     `status.message.parts.length` parts, after any artifact parts
-//     (a2a/event_converter_utils.js, a status update's or a Task's).
-//   - ADK-Python's relay (`custom_metadata` in an event serialized from
-//     Python, or a task it records on a2a-sdk 1.x, as protobuf JSON with no
-//     `kind` and the state and role enums `TASK_STATE_SUBMITTED` and
-//     `ROLE_USER`): it records the whole task as `a2a:response` for a status
-//     update too, converts a status update from its message alone, and a
-//     submitted task from its artifacts alone. So every content part is the
-//     repeat when the recorded task holds no artifact part, and none is when
-//     it does.
+// content after the parts of any artifacts it records, and the facet maps
+// such an event as if those parts, and the long-running ids taken from them,
+// were absent, and marks the omission with a content-free
+// ext.google.relay-echo-omitted event after the event's turn opens.
+//   - @google/adk converts a recorded task's artifact parts, then its status
+//     message's, one part for each A2A part (a2a/event_converter_utils.js); a
+//     status update records no artifact.
+//   - ADK-Python's relay records the whole task as `a2a:response` for a status
+//     update too (on a2a-sdk 1.x as protobuf JSON, with no `kind` and the
+//     enums `TASK_STATE_SUBMITTED` and `ROLE_USER`), converts a status update
+//     from its message alone and a submitted task from its artifacts alone.
+// So in each case the repeat is every content part after the first k, where
+// k is the number of parts the recorded artifacts hold (0 when none).
 
-/** How many trailing content parts of a relayed event repeat the forwarded
- *  request ("all" for every part), when its `a2a:response` entry is a status
- *  update or a task in the `submitted` state whose `status.message` is in the
- *  `"user"` role (on a2a-sdk 1.x, a task with no `kind` in
- *  `TASK_STATE_SUBMITTED` whose message is `ROLE_USER`); undefined for any
- *  other event. */
-function relayEchoPartCount(native: JsonValue): number | "all" | undefined {
+/** The number of leading content parts a relayed event keeps (the parts of
+ *  the artifacts its `a2a:response` records, 0 when none), when that entry
+ *  (in `customMetadata` or `custom_metadata`) records a submitted status whose
+ *  message is in the user role: `kind` "status-update" or "task", state
+ *  "submitted" and role "user", or, as a relay on a2a-sdk 1.x records it, no
+ *  `kind`, "TASK_STATE_SUBMITTED" and "ROLE_USER". undefined for any other
+ *  event. */
+function relayEchoKeep(native: JsonValue): number | undefined {
   if (!isJsonObject(native)) return undefined;
   for (const key of ["customMetadata", "custom_metadata"]) {
     const bag: unknown = native[key];
@@ -597,31 +597,29 @@ function relayEchoPartCount(native: JsonValue): number | "all" | undefined {
     const a2a03 = (kind === "status-update" || kind === "task") && status["state"] === "submitted" && message["role"] === "user";
     const a2a1 = kind === undefined && status["state"] === "TASK_STATE_SUBMITTED" && message["role"] === "ROLE_USER";
     if (!a2a03 && !a2a1) continue;
-    if (a2a1) return holdsArtifactPart(response) ? 0 : "all";
-    if (key === "custom_metadata") return kind === "task" && holdsArtifactPart(response) ? 0 : "all";
-    const parts: unknown = message["parts"];
-    return Array.isArray(parts) ? parts.length : 0;
+    return artifactPartCount(response);
   }
   return undefined;
 }
 
-/** Whether a recorded A2A task holds at least one artifact part. */
-function holdsArtifactPart(task: { readonly [k: string]: JsonValue }): boolean {
+/** The number of parts the artifacts of a recorded A2A task hold. */
+function artifactPartCount(task: { readonly [k: string]: JsonValue }): number {
   const artifacts: unknown = task["artifacts"];
-  return Array.isArray(artifacts) && artifacts.some((a) => isJsonObject(a) && Array.isArray(a["parts"]) && a["parts"].length > 0);
+  if (!Array.isArray(artifacts)) return 0;
+  let count = 0;
+  for (const artifact of artifacts) if (isJsonObject(artifact) && Array.isArray(artifact["parts"])) count += artifact["parts"].length;
+  return count;
 }
 
-/** A native without its last `count` content parts (every part for "all") and
- *  without the long-running tool ids of the calls among them (the facet reads
- *  `longRunningToolIds` only), as a new value (the argument is not changed),
- *  and how many parts it removed. Every other member is unchanged. */
-function withoutRelayEcho(native: { readonly [k: string]: JsonValue }, count: number | "all"): { native: JsonValue; omitted: number } {
+/** A native with only its first `keep` content parts, and without the
+ *  long-running tool ids of the calls among the parts it removed (the facet
+ *  reads `longRunningToolIds` only), as a new value (the argument is not
+ *  changed), and how many parts it removed. Every other member is unchanged. */
+function withoutRelayEcho(native: { readonly [k: string]: JsonValue }, keep: number): { native: JsonValue; omitted: number } {
   const content: unknown = native["content"];
   if (!isJsonObject(content)) return { native, omitted: 0 };
   const parts: unknown = content["parts"];
-  if (!Array.isArray(parts)) return { native, omitted: 0 };
-  const keep = count === "all" ? 0 : Math.max(0, parts.length - count);
-  if (keep === parts.length) return { native, omitted: 0 };
+  if (!Array.isArray(parts) || parts.length <= keep) return { native, omitted: 0 };
   const removed = parts.slice(keep);
   const ids = new Set<string>();
   for (const part of removed) {
@@ -2469,7 +2467,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     });
   }
 
-  function drive(event: AdkEvent): void {
+  function drive(event: AdkEvent, relayEchoOmitted = 0): void {
     const turnId = liveTurnFor(event);
     // ADK re-yields a bare `{interrupted}` after a message that carried both
     // turnComplete and interrupted (utils/live_connection_utils.js, @google/adk
@@ -2477,6 +2475,10 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // no new turn and no second terminal, so the facet emits nothing for it.
     if (turnId === undefined) return;
     const messageId = ensureOpen(turnId);
+    // A relayed repeat of the forwarded request whose parts push() removed:
+    // one content-free marker, after the opening of the turn the event maps
+    // into.
+    if (relayEchoOmitted > 0) a.emitExt("google", "relay-echo-omitted", { parts: relayEchoOmitted });
     const parts = event.content?.parts ?? [];
     const isPartial = event.partial === true;
     // ADK renders an object `output` as the same event's text part, byte-equal
@@ -2691,20 +2693,20 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
         return a.drain();
       }
       // A relayed repeat of the forwarded request: its parts are removed before
-      // any reader sees the event, and one content-free marker records how
-      // many were removed.
-      const echoParts = relayEchoPartCount(json);
+      // any reader sees the event, and drive() marks how many were removed.
+      const keep = relayEchoKeep(json);
       let event: JsonValue = json;
-      if (echoParts !== undefined && isJsonObject(json)) {
-        const stripped = withoutRelayEcho(json, echoParts);
+      let omitted = 0;
+      if (keep !== undefined && isJsonObject(json)) {
+        const stripped = withoutRelayEcho(json, keep);
         event = stripped.native;
-        if (stripped.omitted > 0) a.emitExt("google", "relay_echo_omitted", { parts: stripped.omitted });
+        omitted = stripped.omitted;
       }
       if (!isAdkEvent(event)) {
         a.emitExt("google", "unparsed", { native: nativeWithoutRelayBookkeeping(event) });
         return a.drain();
       }
-      drive(event);
+      drive(event, omitted);
       return a.drain();
     },
     flush(): AgEvent[] {
