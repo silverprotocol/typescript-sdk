@@ -1,0 +1,99 @@
+[
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "05c3abc7-192d-46a3-89f0-d200204146ab",
+   "a2a:context_id": "02fb24e3-281e-4276-86b9-c8147c7509c5"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "a14FPh9V",
+  "invocationId": "e-feaa988a-da7e-4047-9b3e-704b02764a39",
+  "longRunningToolIds": [],
+  "timestamp": 1790668734126,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": false
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "05c3abc7-192d-46a3-89f0-d200204146ab",
+   "a2a:context_id": "02fb24e3-281e-4276-86b9-c8147c7509c5"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "73QFRKNJ",
+  "invocationId": "e-feaa988a-da7e-4047-9b3e-704b02764a39",
+  "longRunningToolIds": [],
+  "timestamp": 1790668734162,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": false
+ },
+ {
+  "author": "helper",
+  "partial": false,
+  "customMetadata": {
+   "a2a:request": {},
+   "a2a:response": {
+    "kind": "message"
+   },
+   "a2a:task_id": "05c3abc7-192d-46a3-89f0-d200204146ab",
+   "a2a:context_id": "02fb24e3-281e-4276-86b9-c8147c7509c5"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "gGjw4ARh",
+  "invocationId": "e-feaa988a-da7e-4047-9b3e-704b02764a39",
+  "longRunningToolIds": [],
+  "timestamp": 1790668734196,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": true
+ }
+]

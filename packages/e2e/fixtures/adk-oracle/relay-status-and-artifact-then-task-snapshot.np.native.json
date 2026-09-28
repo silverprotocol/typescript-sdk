@@ -1,0 +1,134 @@
+[
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "7c2ee65d-e523-4fc6-a671-076074b33a07",
+   "a2a:context_id": "ddd4ba1e-a019-4e19-95e9-b7d4e745859f"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "S2h3e1ka",
+  "invocationId": "e-b1e4290d-bf27-4b49-8d59-855d62029b92",
+  "longRunningToolIds": [],
+  "timestamp": 1790668733677,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Wait",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": false
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "7c2ee65d-e523-4fc6-a671-076074b33a07",
+   "a2a:context_id": "ddd4ba1e-a019-4e19-95e9-b7d4e745859f"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "D0Wm946L",
+  "invocationId": "e-b1e4290d-bf27-4b49-8d59-855d62029b92",
+  "longRunningToolIds": [],
+  "timestamp": 1790668733707,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "7c2ee65d-e523-4fc6-a671-076074b33a07",
+   "a2a:context_id": "ddd4ba1e-a019-4e19-95e9-b7d4e745859f"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "1tcrEr9v",
+  "invocationId": "e-b1e4290d-bf27-4b49-8d59-855d62029b92",
+  "longRunningToolIds": [],
+  "timestamp": 1790668733740,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "customMetadata": {
+   "a2a:request": {},
+   "a2a:response": {
+    "kind": "task"
+   },
+   "a2a:task_id": "7c2ee65d-e523-4fc6-a671-076074b33a07",
+   "a2a:context_id": "ddd4ba1e-a019-4e19-95e9-b7d4e745859f"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "UTyD41sL",
+  "invocationId": "e-b1e4290d-bf27-4b49-8d59-855d62029b92",
+  "longRunningToolIds": [],
+  "timestamp": 1790668733784,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": true
+ }
+]

@@ -1,0 +1,64 @@
+{
+ "leg": "relay-speaking-planner-loop-status-then-oneshot-same",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "a LoopAgent of a planner that answers Next. on each pass and a relay: pass 1 streams status text Hel, lo and completes with no message; pass 2 (a new task) answers with one lastChunk artifact Hello",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "planner||",
+    "call": 0,
+    "seg": 0,
+    "text": "Next."
+   },
+   {
+    "source": "planner||",
+    "call": 1,
+    "seg": 0,
+    "text": "Next."
+   },
+   {
+    "source": "helper|||status",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Hel"
+   },
+   {
+    "source": "helper|||status",
+    "call": "helper#0",
+    "seg": 1,
+    "text": "lo"
+   },
+   {
+    "source": "helper|||a1",
+    "call": "helper#1",
+    "seg": 0,
+    "text": "Hello"
+   }
+  ]
+ },
+ "calls": [
+  {
+   "call": 0,
+   "agent": "planner",
+   "source": "planner||",
+   "firstNative": 0,
+   "segments": [
+    "Next."
+   ],
+   "threw": false
+  },
+  {
+   "call": 1,
+   "agent": "planner",
+   "source": "planner||",
+   "firstNative": 1,
+   "segments": [
+    "Next."
+   ],
+   "threw": false
+  }
+ ]
+}

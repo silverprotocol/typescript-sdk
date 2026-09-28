@@ -1,0 +1,98 @@
+[
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "be055d96-4a7d-42ad-acea-5440d654cd1a",
+   "a2a:context_id": "45093c88-20ec-4a28-8e6d-dc1cd8b8e574"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "ozRQdVPz",
+  "invocationId": "e-f530a6f9-562e-43e6-a8c0-18aef9797a5f",
+  "longRunningToolIds": [],
+  "timestamp": 1790566691519,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": false
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "be055d96-4a7d-42ad-acea-5440d654cd1a",
+   "a2a:context_id": "45093c88-20ec-4a28-8e6d-dc1cd8b8e574"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "bGraQWT1",
+  "invocationId": "e-f530a6f9-562e-43e6-a8c0-18aef9797a5f",
+  "longRunningToolIds": [],
+  "timestamp": 1790566691540,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": false
+ },
+ {
+  "author": "helper",
+  "customMetadata": {
+   "a2a:request": {},
+   "a2a:response": {
+    "kind": "task"
+   },
+   "a2a:task_id": "be055d96-4a7d-42ad-acea-5440d654cd1a",
+   "a2a:context_id": "45093c88-20ec-4a28-8e6d-dc1cd8b8e574"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "tDpyttLq",
+  "invocationId": "e-f530a6f9-562e-43e6-a8c0-18aef9797a5f",
+  "longRunningToolIds": [],
+  "timestamp": 1790566691562,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": true
+ }
+]

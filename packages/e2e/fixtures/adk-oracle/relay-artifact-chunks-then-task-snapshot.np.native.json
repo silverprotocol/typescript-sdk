@@ -1,0 +1,102 @@
+[
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "c77e0eec-0728-4599-8383-4f1fae9f03b3",
+   "a2a:context_id": "81cfdde7-fd64-4b43-a036-f61b9743b70e"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "0k7wqt6P",
+  "invocationId": "e-2d156b63-78d2-4bb6-96d3-f6b623eb1e03",
+  "longRunningToolIds": [],
+  "timestamp": 1790668734033,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "c77e0eec-0728-4599-8383-4f1fae9f03b3",
+   "a2a:context_id": "81cfdde7-fd64-4b43-a036-f61b9743b70e"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "dQAZOqJp",
+  "invocationId": "e-2d156b63-78d2-4bb6-96d3-f6b623eb1e03",
+  "longRunningToolIds": [],
+  "timestamp": 1790668734058,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "customMetadata": {
+   "a2a:request": {},
+   "a2a:response": {
+    "kind": "task"
+   },
+   "a2a:task_id": "c77e0eec-0728-4599-8383-4f1fae9f03b3",
+   "a2a:context_id": "81cfdde7-fd64-4b43-a036-f61b9743b70e"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "QKGlXO5m",
+  "invocationId": "e-2d156b63-78d2-4bb6-96d3-f6b623eb1e03",
+  "longRunningToolIds": [],
+  "timestamp": 1790668734092,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": true
+ }
+]

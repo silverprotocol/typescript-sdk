@@ -1,0 +1,47 @@
+{
+ "leg": "strip-first-final-usage-then-before-model-prefix",
+ "mode": "prog",
+ "hcOnly": true,
+ "threw": null,
+ "note": "the first final is stripped keeping its usage (a content-less STOP with usage); a before-model callback answers the second pass with a prefix (np and prog give one shape: the model streams one text chunk before its final)",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "a1||",
+    "call": 0,
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "a1||",
+    "call": "before-model",
+    "seg": 0,
+    "text": "Hel"
+   }
+  ],
+  "callback": [
+   {
+    "source": "a1||",
+    "call": "before-model",
+    "seg": 0,
+    "text": "Hel"
+   }
+  ]
+ },
+ "stripped": [
+  0
+ ],
+ "calls": [
+  {
+   "call": 0,
+   "agent": "a1",
+   "source": "a1||",
+   "firstNative": 0,
+   "segments": [
+    "Hello"
+   ],
+   "threw": false
+  }
+ ]
+}

@@ -1,0 +1,100 @@
+[
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "83705ac3-fcb3-4952-ac59-27dde66a8d68",
+   "a2a:context_id": "111d59c3-0948-44a7-854a-8f5285003150"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "WbJRZohs",
+  "invocationId": "e-3401e90c-b249-4c4c-b8d4-cbc61e622de3",
+  "longRunningToolIds": [],
+  "timestamp": 1790566691148,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": false
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "83705ac3-fcb3-4952-ac59-27dde66a8d68",
+   "a2a:context_id": "111d59c3-0948-44a7-854a-8f5285003150"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "atOPNAyk",
+  "invocationId": "e-3401e90c-b249-4c4c-b8d4-cbc61e622de3",
+  "longRunningToolIds": [],
+  "timestamp": 1790566691169,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": false
+ },
+ {
+  "author": "helper",
+  "partial": false,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "e203c7c3-bcdc-4a34-88a4-dea96152079a",
+   "a2a:context_id": "5e82c1a8-0266-4285-973c-4c4b47d78e2c"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "RzqxnW1I",
+  "invocationId": "e-3401e90c-b249-4c4c-b8d4-cbc61e622de3",
+  "longRunningToolIds": [],
+  "timestamp": 1790566691235,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello",
+     "thought": false
+    }
+   ]
+  }
+ }
+]

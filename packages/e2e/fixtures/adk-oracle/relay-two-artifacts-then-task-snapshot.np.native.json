@@ -1,0 +1,106 @@
+[
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "a9f24c9c-829f-4fb6-8cab-5c74fe785a15",
+   "a2a:context_id": "5bfe3450-8418-4c98-a8f8-dac2bf8175d1"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "HCDHc4b0",
+  "invocationId": "e-c40274bb-7acf-4063-8ef7-b62395935c57",
+  "longRunningToolIds": [],
+  "timestamp": 1790668733851,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a2"
+    }
+   },
+   "a2a:task_id": "a9f24c9c-829f-4fb6-8cab-5c74fe785a15",
+   "a2a:context_id": "5bfe3450-8418-4c98-a8f8-dac2bf8175d1"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "Q9QCC9V6",
+  "invocationId": "e-c40274bb-7acf-4063-8ef7-b62395935c57",
+  "longRunningToolIds": [],
+  "timestamp": 1790668733875,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "World",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "customMetadata": {
+   "a2a:request": {},
+   "a2a:response": {
+    "kind": "task"
+   },
+   "a2a:task_id": "a9f24c9c-829f-4fb6-8cab-5c74fe785a15",
+   "a2a:context_id": "5bfe3450-8418-4c98-a8f8-dac2bf8175d1"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "DgsBUq84",
+  "invocationId": "e-c40274bb-7acf-4063-8ef7-b62395935c57",
+  "longRunningToolIds": [],
+  "timestamp": 1790668733898,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello",
+     "thought": false
+    },
+    {
+     "text": "World",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": true
+ }
+]

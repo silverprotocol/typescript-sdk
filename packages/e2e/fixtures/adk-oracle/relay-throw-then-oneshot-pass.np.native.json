@@ -1,0 +1,83 @@
+[
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "status-update"
+   },
+   "a2a:task_id": "3266a2dc-89cc-4bcd-a5b9-3ae3e85fa8a1",
+   "a2a:context_id": "3e07385f-2b68-42ed-9647-f5df6682ed00"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "RryrZFb1",
+  "invocationId": "e-986c6330-2081-42f2-811f-bef72b20b6d8",
+  "longRunningToolIds": [],
+  "timestamp": 1790566691411,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": false
+ },
+ {
+  "author": "helper",
+  "invocationId": "e-986c6330-2081-42f2-811f-bef72b20b6d8",
+  "errorMessage": "connection reset",
+  "turnComplete": true,
+  "id": "9s1a66tU",
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {}
+  },
+  "longRunningToolIds": [],
+  "timestamp": 1790566691433
+ },
+ {
+  "author": "helper",
+  "partial": false,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "14ec0985-6708-41a6-b223-ddbf0a411532",
+   "a2a:context_id": "ef73e648-81d0-46b0-9767-b08ee4e9b2a6"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "LBeCZOmM",
+  "invocationId": "e-986c6330-2081-42f2-811f-bef72b20b6d8",
+  "longRunningToolIds": [],
+  "timestamp": 1790566691475,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello",
+     "thought": false
+    }
+   ]
+  }
+ }
+]

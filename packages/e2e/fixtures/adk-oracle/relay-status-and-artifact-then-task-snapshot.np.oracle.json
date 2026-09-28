@@ -1,0 +1,25 @@
+{
+ "leg": "relay-status-and-artifact-then-task-snapshot",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "two windows open at the snapshot: a relay streams status text Wait and artifact chunks Hel, lo, then a Task snapshot of the same task whose artifact holds Hello",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|||status",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Wait"
+   },
+   {
+    "source": "helper|||a1",
+    "call": "helper#0",
+    "seg": 1,
+    "text": "Hello"
+   }
+  ]
+ },
+ "calls": []
+}

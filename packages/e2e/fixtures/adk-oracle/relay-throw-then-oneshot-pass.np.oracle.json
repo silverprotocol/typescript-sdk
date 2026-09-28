@@ -1,0 +1,25 @@
+{
+ "leg": "relay-throw-then-oneshot-pass",
+ "mode": "np",
+ "hcOnly": true,
+ "threw": null,
+ "note": "a LoopAgent's relay streams status text Hel, then its stream throws; the next pass answers with one lastChunk artifact Hello",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|||status",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Hel"
+   },
+   {
+    "source": "helper|||a1",
+    "call": "helper#1",
+    "seg": 0,
+    "text": "Hello"
+   }
+  ]
+ },
+ "calls": []
+}

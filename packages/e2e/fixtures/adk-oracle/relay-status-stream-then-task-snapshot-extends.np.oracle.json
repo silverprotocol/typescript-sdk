@@ -1,0 +1,31 @@
+{
+ "leg": "relay-status-stream-then-task-snapshot-extends",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "a relay streams status text Hel, lo, then a Task snapshot of the same task whose status message says Hello there",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|||status",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Hel"
+   },
+   {
+    "source": "helper|||status",
+    "call": "helper#0",
+    "seg": 1,
+    "text": "lo"
+   },
+   {
+    "source": "helper|||status",
+    "call": "helper#0",
+    "seg": 2,
+    "text": " there"
+   }
+  ]
+ },
+ "calls": []
+}

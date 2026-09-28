@@ -6,7 +6,9 @@
  * and the readings).
  *
  * Never part of the gate:
- *   GEN_ADK_ORACLE=1      regenerate the fixtures (then re-stamp the expectations: see adk-oracle.test.ts)
+ *   GEN_ADK_ORACLE=1      regenerate the fixtures (then re-stamp the expectations: see adk-oracle.test.ts); with
+ *                         GEN_ADK_ORACLE_LEGS=<id,id,…> (exact leg ids), write only those legs and keep every other
+ *                         fixture; an id that names no leg fails before anything is written
  *   GEN_ADK_ORACLE=check  regenerate into .tmp/adk-oracle-check/ and compare every fold's record with the committed
  *                         fixtures' (natives differ by their random ids; the records must not), e.g. after an ADK bump
  *   npx vitest run --config ../../vitest.config.ts src/adk-oracle-fixtures.gen.test.ts   (from packages/e2e)
@@ -33,6 +35,8 @@ const engine = () => Promise.all([import("./adk-oracle/engine.js"), import("./ad
 const FIXTURES = new URL("../fixtures/adk-oracle/", import.meta.url);
 const CHECK = new URL("../.tmp/adk-oracle-check/", import.meta.url);
 const MODE = process.env["GEN_ADK_ORACLE"];
+const ONLY_IDS = process.env["GEN_ADK_ORACLE_LEGS"] ? process.env["GEN_ADK_ORACLE_LEGS"].split(",").map((x) => x.trim()).filter(Boolean) : null;
+const ONLY = ONLY_IDS ? { test: (id: string) => ONLY_IDS.includes(id) } : null;
 
 /** What each relay customMetadata entry keeps: member paths, or every member (the ids). Any other `a2a:` entry
  *  keeps none. */
@@ -69,6 +73,7 @@ async function generate(dir: URL): Promise<string[]> {
   mkdirSync(dir, { recursive: true });
   const written: string[] = [];
   for (const leg of LEGS) {
+    if (ONLY && dir === FIXTURES && !ONLY.test(leg.id)) continue;
     for (const mode of leg.modes) {
       state.tag = leg.tag !== false;
       const built = leg.build(mode);
@@ -112,10 +117,16 @@ function records(dir: URL): Record<string, FoldRecord> {
 
 describe.runIf(MODE === "1")("google-adk oracle fixture generation (real @google/adk, scripted transports)", () => {
   it("writes every leg-mode's natives and oracle sidecar", async () => {
-    for (const f of readdirSync(FIXTURES, { withFileTypes: true })) if (f.isFile() && /\.(native|oracle)\.json$/.test(f.name)) rmSync(new URL(f.name, FIXTURES));
+    if (ONLY_IDS) {
+      const [, { LEGS }] = await engine();
+      const unknown = ONLY_IDS.filter((id) => !LEGS.some((l) => l.id === id));
+      expect(ONLY_IDS.length, "GEN_ADK_ORACLE_LEGS selects no leg").toBeGreaterThan(0);
+      expect(unknown, "GEN_ADK_ORACLE_LEGS names no such leg").toEqual([]);
+    }
+    if (!ONLY) for (const f of readdirSync(FIXTURES, { withFileTypes: true })) if (f.isFile() && /\.(native|oracle)\.json$/.test(f.name)) rmSync(new URL(f.name, FIXTURES));
     const written = await generate(FIXTURES);
     const [, { LEGS }] = await engine();
-    expect(written.length).toBe(LEGS.reduce((a, l) => a + l.modes.length, 0));
+    expect(written.length).toBe(LEGS.filter((l) => !ONLY || ONLY.test(l.id)).reduce((a, l) => a + l.modes.length, 0));
   }, 600_000);
 });
 

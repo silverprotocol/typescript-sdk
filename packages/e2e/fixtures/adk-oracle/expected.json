@@ -3076,6 +3076,55 @@
   "park": false,
   "status": "clean"
  },
+ "relay-artifact-chunks-then-final-message.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-artifact-chunks-then-final-message.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-artifact-chunks-then-task-snapshot.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-artifact-chunks-then-task-snapshot.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-artifact-throw-then-oneshot-pass.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 5,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Hel"
+  ],
+  "units": [
+   "Hel",
+   "Hello"
+  ]
+ },
+ "relay-artifact-throw-then-oneshot-pass.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
  "relay-completed-status-text.np.bare": {
   "verdict": "MATCH",
   "over": 0,
@@ -3250,6 +3299,72 @@
    "World"
   ]
  },
+ "relay-planner-loop-status-then-oneshot-extends.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 5,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "lo",
+   " there"
+  ],
+  "units": [
+   "Hel",
+   "lo",
+   "Hello there"
+  ]
+ },
+ "relay-planner-loop-status-then-oneshot-extends.np.hc": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 5,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "lo",
+   " there"
+  ],
+  "units": [
+   "Hel",
+   "lo",
+   "Hello there"
+  ]
+ },
+ "relay-planner-loop-status-then-oneshot-same.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 5,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hel",
+   "lo",
+   "Hello"
+  ]
+ },
+ "relay-planner-loop-status-then-oneshot-same.np.hc": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 5,
+  "park": false,
+  "status": "known-defect",
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hel",
+   "lo",
+   "Hello"
+  ]
+ },
  "relay-planner-loop-two-runs.np.bare": {
   "verdict": "MATCH",
   "over": 0,
@@ -3376,6 +3491,68 @@
   "park": false,
   "status": "clean"
  },
+ "relay-speaking-planner-loop-status-then-oneshot-extends.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 21,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Next."
+  ],
+  "units": [
+   "Next.",
+   "Next.",
+   "Hel",
+   "lo",
+   "Hello there"
+  ]
+ },
+ "relay-speaking-planner-loop-status-then-oneshot-extends.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-speaking-planner-loop-status-then-oneshot-same.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 15,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Next."
+  ],
+  "units": [
+   "Next.",
+   "Next.",
+   "Hel",
+   "lo",
+   "Hello"
+  ]
+ },
+ "relay-speaking-planner-loop-status-then-oneshot-same.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-status-and-artifact-then-task-snapshot.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-status-and-artifact-then-task-snapshot.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
  "relay-status-between-chunks.np.bare": {
   "verdict": "MATCH",
   "over": 0,
@@ -3384,6 +3561,48 @@
   "status": "clean"
  },
  "relay-status-between-chunks.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-status-stream-then-final-message.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-status-stream-then-final-message.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-status-stream-then-task-snapshot-extends.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-status-stream-then-task-snapshot-extends.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-status-stream-then-task-snapshot.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-status-stream-then-task-snapshot.np.hc": {
   "verdict": "MATCH",
   "over": 0,
   "under": 0,
@@ -3481,6 +3700,41 @@
   ]
  },
  "relay-throw-then-loop-pass.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-throw-then-oneshot-pass.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 5,
+  "park": true,
+  "status": "by-design",
+  "blocks": [
+   "Hel"
+  ],
+  "units": [
+   "Hel",
+   "Hello"
+  ]
+ },
+ "relay-throw-then-oneshot-pass.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-two-artifacts-then-task-snapshot.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-two-artifacts-then-task-snapshot.np.hc": {
   "verdict": "MATCH",
   "over": 0,
   "under": 0,
@@ -4035,6 +4289,74 @@
    "under": 0
   }
  },
+ "strip-first-final-usage-then-before-model-prefix.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 3,
+  "park": true,
+  "status": "by-design",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 2,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Hel"
+  ]
+ },
+ "strip-first-final-usage-then-before-model-prefix.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
+ "strip-first-final-usage-then-before-model-prefix.prog.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 3,
+  "park": true,
+  "status": "by-design",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 2,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "Hel"
+  ]
+ },
+ "strip-first-final-usage-then-before-model-prefix.prog.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
+ },
  "strip-flush-before-fc-fresh-empty-usage.np.bare": {
   "verdict": "UNDER",
   "over": 0,
@@ -4415,6 +4737,90 @@
    "over": 12,
    "under": 0
   }
+ },
+ "strip-then-before-model-suffix.np.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 2,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 3,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "lo"
+  ]
+ },
+ "strip-then-before-model-suffix.np.hc": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 2,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 3,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "lo"
+  ]
+ },
+ "strip-then-before-model-suffix.prog.bare": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 2,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 3,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "lo"
+  ]
+ },
+ "strip-then-before-model-suffix.prog.hc": {
+  "verdict": "UNDER",
+  "over": 0,
+  "under": 2,
+  "park": false,
+  "status": "known-defect",
+  "alt": {
+   "reading": "callback",
+   "verdict": "OVER",
+   "over": 3,
+   "under": 0
+  },
+  "blocks": [
+   "Hel",
+   "lo"
+  ],
+  "units": [
+   "Hello",
+   "lo"
+  ]
  },
  "text-and-fc-one-chunk.none.bare": {
   "verdict": "MATCH",

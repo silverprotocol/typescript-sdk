@@ -1,0 +1,25 @@
+{
+ "leg": "relay-two-artifacts-then-task-snapshot",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "two windows open at the snapshot: a relay streams artifact a1 Hello and artifact a2 World, then a Task snapshot of the same task holding both",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|||a1",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Hello"
+   },
+   {
+    "source": "helper|||a2",
+    "call": "helper#0",
+    "seg": 1,
+    "text": "World"
+   }
+  ]
+ },
+ "calls": []
+}

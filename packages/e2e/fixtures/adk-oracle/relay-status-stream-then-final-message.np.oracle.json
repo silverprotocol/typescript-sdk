@@ -1,0 +1,25 @@
+{
+ "leg": "relay-status-stream-then-final-message",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "a relay streams status text Hel, lo, then a final Message of the same task repeating Hello",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|||status",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Hel"
+   },
+   {
+    "source": "helper|||status",
+    "call": "helper#0",
+    "seg": 1,
+    "text": "lo"
+   }
+  ]
+ },
+ "calls": []
+}

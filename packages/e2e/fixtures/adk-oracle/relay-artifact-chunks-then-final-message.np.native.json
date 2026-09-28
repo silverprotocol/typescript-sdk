@@ -1,0 +1,103 @@
+[
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "9e03de13-d902-4cb7-8132-1d0b3bf6a818",
+   "a2a:context_id": "40638138-0e31-4394-ace9-c6c2c6d678d1"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "WMrsjllb",
+  "invocationId": "e-cfe938c5-cf89-49fc-bfcb-58dd4dd7aab4",
+  "longRunningToolIds": [],
+  "timestamp": 1790566691606,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hel",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "partial": true,
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "artifact-update",
+    "artifact": {
+     "artifactId": "a1"
+    }
+   },
+   "a2a:task_id": "9e03de13-d902-4cb7-8132-1d0b3bf6a818",
+   "a2a:context_id": "40638138-0e31-4394-ace9-c6c2c6d678d1"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "a8mnfp2B",
+  "invocationId": "e-cfe938c5-cf89-49fc-bfcb-58dd4dd7aab4",
+  "longRunningToolIds": [],
+  "timestamp": 1790566691626,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "lo",
+     "thought": false
+    }
+   ]
+  }
+ },
+ {
+  "author": "helper",
+  "partial": false,
+  "customMetadata": {
+   "a2a:request": {},
+   "a2a:response": {
+    "kind": "message"
+   },
+   "a2a:task_id": "9e03de13-d902-4cb7-8132-1d0b3bf6a818",
+   "a2a:context_id": "40638138-0e31-4394-ace9-c6c2c6d678d1"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "i73fTZv4",
+  "invocationId": "e-cfe938c5-cf89-49fc-bfcb-58dd4dd7aab4",
+  "longRunningToolIds": [],
+  "timestamp": 1790566691649,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "Hello",
+     "thought": false
+    }
+   ]
+  },
+  "turnComplete": true
+ }
+]
