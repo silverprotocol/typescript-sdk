@@ -21,11 +21,18 @@
  *  - hosted-mcp-onapproval: two hosted-MCP approval requests answered in the
  *    same invoke by an onApproval callback (both approved), then a second
  *    response with the two mcp_calls and text.
+ *  - hosted-mcp-onapproval-reject: one hosted-MCP approval request rejected in
+ *    the same invoke by an onApproval callback with a reason, then a second
+ *    response with text only.
  *  - hosted-mcp-resume.invoke1: one hosted-MCP approval request; the run is
  *    interrupted. hosted-mcp-resume-approve.invoke2 and
  *    hosted-mcp-resume-reject.invoke2 resume that run from its RunState with
  *    the request approved (the model then returns the mcp_call and text) or
  *    rejected (text only).
+ *  - hosted-mcp-partial-resume.invoke1..3: two hosted-MCP approval requests;
+ *    invoke 2 resumes with only the first approved (the run interrupts again
+ *    for the second), and invoke 3 resumes with the second rejected, then a
+ *    response with the approved mcp_call and text.
  *
  * Regenerate (never part of the gate):
  *   GEN_OPENAI_HOSTED=1 npx vitest run --config ../../vitest.config.ts src/openai-hosted-fixtures.gen.test.ts
@@ -187,7 +194,7 @@ describe.runIf(process.env["GEN_OPENAI_HOSTED"] === "1")("openai hosted-tool eng
         text,
       );
     };
-    const gated = (onApproval?: () => Promise<{ approve: boolean }>) =>
+    const gated = (onApproval?: () => Promise<{ approve: boolean; reason?: string }>) =>
       hostedMcpTool({ serverLabel: "deepwiki", serverUrl: "https://example.invalid/mcp", requireApproval: "always", ...(onApproval ? { onApproval } : {}) });
 
     write(
@@ -197,6 +204,17 @@ describe.runIf(process.env["GEN_OPENAI_HOSTED"] === "1")("openai hosted-tool eng
           name: "D",
           model: scriptedModel([approvalRound("resp_d1", ["mcpr_1", "mcpr_2"]), answerRound("resp_d2", [{ id: "mcp_1", q: "a" }, { id: "mcp_2", q: "b" }], "done")]) as never,
           tools: [gated(async () => ({ approve: true }))],
+        }),
+      ),
+    );
+
+    write(
+      "hosted-mcp-onapproval-reject",
+      await natives(
+        new Agent({
+          name: "F",
+          model: scriptedModel([approvalRound("resp_f1", ["mcpr_1"]), answerRound("resp_f2", [], "declined")]) as never,
+          tools: [gated(async () => ({ approve: false, reason: "not this server" }))],
         }),
       ),
     );
@@ -212,6 +230,26 @@ describe.runIf(process.env["GEN_OPENAI_HOSTED"] === "1")("openai hosted-tool eng
       );
       if (approve) write("hosted-mcp-resume.invoke1", invoke1);
       write(`hosted-mcp-resume-${approve ? "approve" : "reject"}.invoke2`, invoke2);
+    }
+
+    {
+      const agent = new Agent({
+        name: "G",
+        model: scriptedModel([approvalRound("resp_g1", ["mcpr_1", "mcpr_2"]), answerRound("resp_g2", [{ id: "mcp_1", q: "a" }], "done")]) as never,
+        tools: [gated()],
+      });
+      const first = await run(agent, "hi", { stream: true });
+      const invoke1 = await drain(first);
+      const s1 = first.state;
+      s1.approve(first.interruptions[0]!);
+      const second = await run(agent, s1, { stream: true });
+      const invoke2 = await drain(second);
+      const s2 = second.state;
+      for (const item of second.interruptions) s2.reject(item);
+      const invoke3 = await drain(await run(agent, s2, { stream: true }));
+      write("hosted-mcp-partial-resume.invoke1", invoke1);
+      write("hosted-mcp-partial-resume.invoke2", invoke2);
+      write("hosted-mcp-partial-resume.invoke3", invoke3);
     }
   }, 120_000);
 });

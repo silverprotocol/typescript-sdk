@@ -1,0 +1,20 @@
+[
+  {
+    "name": "tool_called",
+    "item": {
+      "type": "tool_call_item",
+      "rawItem": {
+        "type": "hosted_tool_call",
+        "name": "mcp_approval_response",
+        "providerData": {
+          "approve": true,
+          "approval_request_id": "mcpr_1"
+        }
+      },
+      "agent": {
+        "name": "G"
+      }
+    },
+    "type": "run_item_stream_event"
+  }
+]
