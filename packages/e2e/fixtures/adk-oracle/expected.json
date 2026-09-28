@@ -198,23 +198,15 @@
   "verdict": "MATCH",
   "over": 0,
   "under": 0,
-  "park": true,
-  "status": "known-defect"
+  "park": false,
+  "status": "clean"
  },
  "block-after-text-bare.np.hc": {
-  "verdict": "OVER",
-  "over": 5,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "lo",
-   "Hello"
-  ],
-  "units": [
-   "Hello"
-  ]
+  "status": "clean"
  },
  "block-after-text-bare.prog.bare": {
   "verdict": "MATCH",
@@ -234,15 +226,15 @@
   "verdict": "MATCH",
   "over": 0,
   "under": 0,
-  "park": true,
-  "status": "known-defect"
+  "park": false,
+  "status": "clean"
  },
  "block-after-text-message-usage.np.hc": {
   "verdict": "MATCH",
   "over": 0,
   "under": 0,
-  "park": true,
-  "status": "known-defect"
+  "park": false,
+  "status": "clean"
  },
  "block-after-text-message-usage.prog.bare": {
   "verdict": "MATCH",
@@ -262,15 +254,15 @@
   "verdict": "MATCH",
   "over": 0,
   "under": 0,
-  "park": true,
-  "status": "known-defect"
+  "park": false,
+  "status": "clean"
  },
  "block-after-text-message.np.hc": {
   "verdict": "MATCH",
   "over": 0,
   "under": 0,
-  "park": true,
-  "status": "known-defect"
+  "park": false,
+  "status": "clean"
  },
  "block-after-text-message.prog.bare": {
   "verdict": "MATCH",
@@ -290,23 +282,15 @@
   "verdict": "MATCH",
   "over": 0,
   "under": 0,
-  "park": true,
-  "status": "known-defect"
+  "park": false,
+  "status": "clean"
  },
  "block-after-text-usage.np.hc": {
-  "verdict": "OVER",
-  "over": 5,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "lo",
-   "Hello"
-  ],
-  "units": [
-   "Hello"
-  ]
+  "status": "clean"
  },
  "block-after-text-usage.prog.bare": {
   "verdict": "MATCH",
@@ -511,48 +495,30 @@
   "status": "clean"
  },
  "chrome-strip-first-after-agent-text.np.bare": {
-  "verdict": "OVER+UNDER",
-  "over": 9,
-  "under": 14,
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
   "park": false,
-  "status": "known-defect",
+  "status": "clean",
   "alt": {
    "reading": "callback",
-   "verdict": "OVER+UNDER",
-   "over": 14,
-   "under": 14
-  },
-  "blocks": [
-   "Hel",
-   "lo",
-   "ded note."
-  ],
-  "units": [
-   "Hello",
-   "Appended note."
-  ]
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
  },
  "chrome-strip-first-after-agent-text.np.hc": {
-  "verdict": "OVER+UNDER",
-  "over": 9,
-  "under": 14,
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
   "park": false,
-  "status": "known-defect",
+  "status": "clean",
   "alt": {
    "reading": "callback",
-   "verdict": "OVER+UNDER",
-   "over": 14,
-   "under": 14
-  },
-  "blocks": [
-   "Hel",
-   "lo",
-   "ded note."
-  ],
-  "units": [
-   "Hello",
-   "Appended note."
-  ]
+   "verdict": "OVER",
+   "over": 5,
+   "under": 0
+  }
  },
  "custom-final-extends.np.bare": {
   "verdict": "MATCH",
@@ -585,7 +551,7 @@
   "over": 2,
   "under": 0,
   "park": false,
-  "status": "known-defect",
+  "status": "stated-residual",
   "alt": {
    "reading": "callback",
    "verdict": "UNDER",
@@ -605,7 +571,7 @@
   "over": 2,
   "under": 0,
   "park": false,
-  "status": "known-defect",
+  "status": "stated-residual",
   "alt": {
    "reading": "callback",
    "verdict": "UNDER",
@@ -663,76 +629,32 @@
   "status": "clean"
  },
  "dynamic-runnode-twice.np.bare": {
-  "verdict": "OVER",
-  "over": 4,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "One ",
-   "Two ",
-   "done",
-   "done",
-   "done"
-  ],
-  "units": [
-   "One done",
-   "Two done"
-  ]
+  "status": "clean"
  },
  "dynamic-runnode-twice.np.hc": {
-  "verdict": "OVER",
-  "over": 4,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "One ",
-   "Two ",
-   "done",
-   "done",
-   "done"
-  ],
-  "units": [
-   "One done",
-   "Two done"
-  ]
+  "status": "clean"
  },
  "dynamic-runnode-twice.prog.bare": {
-  "verdict": "OVER",
-  "over": 4,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "One ",
-   "Two ",
-   "done",
-   "done",
-   "done"
-  ],
-  "units": [
-   "One done",
-   "Two done"
-  ]
+  "status": "clean"
  },
  "dynamic-runnode-twice.prog.hc": {
-  "verdict": "OVER",
-  "over": 4,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "One ",
-   "Two ",
-   "done",
-   "done",
-   "done"
-  ],
-  "units": [
-   "One done",
-   "Two done"
-  ]
+  "status": "clean"
  },
  "fc-mid-stream-strip-first.np.bare": {
   "verdict": "MATCH",
@@ -1286,34 +1208,18 @@
   }
  },
  "live-generation-complete.live.bare": {
-  "verdict": "OVER",
-  "over": 5,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "lo",
-   "Hello"
-  ],
-  "units": [
-   "Hello"
-  ]
+  "status": "clean"
  },
  "live-generation-complete.live.hc": {
-  "verdict": "OVER",
-  "over": 5,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "lo",
-   "Hello"
-  ],
-  "units": [
-   "Hello"
-  ]
+  "status": "clean"
  },
  "live-goaway-resume-no-usage.live.bare": {
   "verdict": "MATCH",
@@ -1342,160 +1248,84 @@
   }
  },
  "live-goaway-resume.live.bare": {
-  "verdict": "OVER",
-  "over": 8,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
+  "status": "clean",
   "alt": {
    "reading": "callback",
    "verdict": "OVER",
-   "over": 13,
+   "over": 5,
    "under": 0
-  },
-  "blocks": [
-   "Hel",
-   "lo",
-   "Hi ",
-   "there",
-   "Hi there"
-  ],
-  "units": [
-   "Hello",
-   "Hi there"
-  ]
+  }
  },
  "live-goaway-resume.live.hc": {
-  "verdict": "OVER",
-  "over": 8,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
+  "status": "clean",
   "alt": {
    "reading": "callback",
    "verdict": "OVER",
-   "over": 13,
+   "over": 5,
    "under": 0
-  },
-  "blocks": [
-   "Hel",
-   "lo",
-   "Hi ",
-   "there",
-   "Hi there"
-  ],
-  "units": [
-   "Hello",
-   "Hi there"
-  ]
+  }
  },
  "live-goaway-resumption-mid-text.live.bare": {
-  "verdict": "OVER",
-  "over": 8,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
+  "status": "clean",
   "alt": {
    "reading": "callback",
    "verdict": "OVER",
-   "over": 13,
+   "over": 5,
    "under": 0
-  },
-  "blocks": [
-   "Hel",
-   "lo",
-   "Hi ",
-   "there",
-   "Hi there"
-  ],
-  "units": [
-   "Hello",
-   "Hi there"
-  ]
+  }
  },
  "live-goaway-resumption-mid-text.live.hc": {
-  "verdict": "OVER",
-  "over": 8,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
+  "status": "clean",
   "alt": {
    "reading": "callback",
    "verdict": "OVER",
-   "over": 13,
+   "over": 5,
    "under": 0
-  },
-  "blocks": [
-   "Hel",
-   "lo",
-   "Hi ",
-   "there",
-   "Hi there"
-  ],
-  "units": [
-   "Hello",
-   "Hi there"
-  ]
+  }
  },
  "live-grounding-between-chunks.live.bare": {
-  "verdict": "OVER",
-  "over": 5,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "lo",
-   "Hello"
-  ],
-  "units": [
-   "Hello"
-  ]
+  "status": "clean"
  },
  "live-grounding-between-chunks.live.hc": {
-  "verdict": "OVER",
-  "over": 5,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "lo",
-   "Hello"
-  ],
-  "units": [
-   "Hello"
-  ]
+  "status": "clean"
  },
  "live-resumption-control.live.bare": {
-  "verdict": "OVER",
-  "over": 5,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "lo",
-   "Hello"
-  ],
-  "units": [
-   "Hello"
-  ]
+  "status": "clean"
  },
  "live-resumption-control.live.hc": {
-  "verdict": "OVER",
-  "over": 5,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "lo",
-   "Hello"
-  ],
-  "units": [
-   "Hello"
-  ]
+  "status": "clean"
  },
  "live-text-turn-complete.live.bare": {
   "verdict": "MATCH",
@@ -1513,14 +1343,13 @@
  },
  "live-transcription-final.live.bare": {
   "verdict": "OVER",
-  "over": 10,
+  "over": 5,
   "under": 0,
   "park": false,
   "status": "known-defect",
   "blocks": [
    "Hel",
    "lo",
-   "Hello",
    "Hello"
   ],
   "units": [
@@ -1529,14 +1358,13 @@
  },
  "live-transcription-final.live.hc": {
   "verdict": "OVER",
-  "over": 10,
+  "over": 5,
   "under": 0,
   "park": false,
   "status": "known-defect",
   "blocks": [
    "Hel",
    "lo",
-   "Hello",
    "Hello"
   ],
   "units": [
@@ -1544,64 +1372,32 @@
   ]
  },
  "live-usage-before-turn-complete.live.bare": {
-  "verdict": "OVER",
-  "over": 5,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "lo",
-   "Hello"
-  ],
-  "units": [
-   "Hello"
-  ]
+  "status": "clean"
  },
  "live-usage-before-turn-complete.live.hc": {
-  "verdict": "OVER",
-  "over": 5,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "lo",
-   "Hello"
-  ],
-  "units": [
-   "Hello"
-  ]
+  "status": "clean"
  },
  "live-usage-on-turn-complete.live.bare": {
-  "verdict": "OVER",
-  "over": 5,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "lo",
-   "Hello"
-  ],
-  "units": [
-   "Hello"
-  ]
+  "status": "clean"
  },
  "live-usage-on-turn-complete.live.hc": {
-  "verdict": "OVER",
-  "over": 5,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "lo",
-   "Hello"
-  ],
-  "units": [
-   "Hello"
-  ]
+  "status": "clean"
  },
  "loop-strip-first-fresh-empty-before-model-prefix.np.bare": {
   "verdict": "UNDER",
@@ -2903,50 +2699,28 @@
   "over": 0,
   "under": 0,
   "park": true,
-  "status": "known-defect"
+  "status": "by-design"
  },
  "parallel-interleaved.np.hc": {
-  "verdict": "OVER",
-  "over": 4,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Al",
-   "Be",
-   "pha",
-   "ta",
-   "Beta"
-  ],
-  "units": [
-   "Alpha",
-   "Beta"
-  ]
+  "status": "clean"
  },
  "parallel-interleaved.prog.bare": {
   "verdict": "MATCH",
   "over": 0,
   "under": 0,
   "park": true,
-  "status": "known-defect"
+  "status": "by-design"
  },
  "parallel-interleaved.prog.hc": {
-  "verdict": "OVER",
-  "over": 4,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Al",
-   "Be",
-   "pha",
-   "ta",
-   "Beta"
-  ],
-  "units": [
-   "Alpha",
-   "Beta"
-  ]
+  "status": "clean"
  },
  "reflect-retry-malformed.np.bare": {
   "verdict": "MATCH",
@@ -2977,76 +2751,32 @@
   "status": "clean"
  },
  "relay-adk-peer-parallel-interleaved.np.bare": {
-  "verdict": "OVER",
-  "over": 5,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Red ",
-   "Blue ",
-   "fox",
-   "jay",
-   "e jay"
-  ],
-  "units": [
-   "Red fox",
-   "Blue jay"
-  ]
+  "status": "clean"
  },
  "relay-adk-peer-parallel-interleaved.np.hc": {
-  "verdict": "OVER",
-  "over": 5,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Red ",
-   "Blue ",
-   "fox",
-   "jay",
-   "e jay"
-  ],
-  "units": [
-   "Red fox",
-   "Blue jay"
-  ]
+  "status": "clean"
  },
  "relay-adk-peer-parallel-root.np.bare": {
-  "verdict": "OVER",
-  "over": 4,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Al",
-   "Be",
-   "pha",
-   "ta",
-   "Beta"
-  ],
-  "units": [
-   "Alpha",
-   "Beta"
-  ]
+  "status": "clean"
  },
  "relay-adk-peer-parallel-root.np.hc": {
-  "verdict": "OVER",
-  "over": 4,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Al",
-   "Be",
-   "pha",
-   "ta",
-   "Beta"
-  ],
-  "units": [
-   "Alpha",
-   "Beta"
-  ]
+  "status": "clean"
  },
  "relay-adk-peer-text.np.bare": {
   "verdict": "MATCH",
@@ -3140,44 +2870,18 @@
   "status": "clean"
  },
  "relay-dynamic-runnode-twice.np.bare": {
-  "verdict": "OVER",
-  "over": 3,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "Hel",
-   "lo",
-   "lo",
-   "llo",
-   "done"
-  ],
-  "units": [
-   "Hello",
-   "Hello",
-   "done"
-  ]
+  "status": "clean"
  },
  "relay-dynamic-runnode-twice.np.hc": {
-  "verdict": "OVER",
-  "over": 3,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "Hel",
-   "lo",
-   "lo",
-   "llo",
-   "done"
-  ],
-  "units": [
-   "Hello",
-   "Hello",
-   "done"
-  ]
+  "status": "clean"
  },
  "relay-failed-status.np.bare": {
   "verdict": "MATCH",
@@ -3264,106 +2968,46 @@
   "status": "clean"
  },
  "relay-parallel-pair.np.bare": {
-  "verdict": "OVER",
-  "over": 3,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "Wor",
-   "lo",
-   "ld",
-   "rld"
-  ],
-  "units": [
-   "Hello",
-   "World"
-  ]
+  "status": "clean"
  },
  "relay-parallel-pair.np.hc": {
-  "verdict": "OVER",
-  "over": 3,
+  "verdict": "MATCH",
+  "over": 0,
   "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "Wor",
-   "lo",
-   "ld",
-   "rld"
-  ],
-  "units": [
-   "Hello",
-   "World"
-  ]
+  "status": "clean"
  },
  "relay-planner-loop-status-then-oneshot-extends.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 5,
+  "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "lo",
-   " there"
-  ],
-  "units": [
-   "Hel",
-   "lo",
-   "Hello there"
-  ]
+  "status": "clean"
  },
  "relay-planner-loop-status-then-oneshot-extends.np.hc": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 5,
+  "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "lo",
-   " there"
-  ],
-  "units": [
-   "Hel",
-   "lo",
-   "Hello there"
-  ]
+  "status": "clean"
  },
  "relay-planner-loop-status-then-oneshot-same.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 5,
+  "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "lo"
-  ],
-  "units": [
-   "Hel",
-   "lo",
-   "Hello"
-  ]
+  "status": "clean"
  },
  "relay-planner-loop-status-then-oneshot-same.np.hc": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 5,
+  "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Hel",
-   "lo"
-  ],
-  "units": [
-   "Hel",
-   "lo",
-   "Hello"
-  ]
+  "status": "clean"
  },
  "relay-planner-loop-two-runs.np.bare": {
   "verdict": "MATCH",
@@ -3610,38 +3254,18 @@
   "status": "clean"
  },
  "relay-status-text-parallel-pair.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 5,
+  "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Looking that up. ",
-   "Hel",
-   "lo"
-  ],
-  "units": [
-   "Looking that up. ",
-   "Hello",
-   "Fine."
-  ]
+  "status": "clean"
  },
  "relay-status-text-parallel-pair.np.hc": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 5,
+  "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Looking that up. ",
-   "Hel",
-   "lo"
-  ],
-  "units": [
-   "Looking that up. ",
-   "Hello",
-   "Fine."
-  ]
+  "status": "clean"
  },
  "relay-status-text-then-stream-parallel.np.bare": {
   "verdict": "MATCH",
@@ -3742,36 +3366,18 @@
   "status": "clean"
  },
  "relay-two-status-texts-then-oneshot.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 16,
+  "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Looking up the exchange rates...",
-   "Processing the exchange rates.."
-  ],
-  "units": [
-   "Looking up the exchange rates...",
-   "Processing the exchange rates..",
-   "1 USD = 0.92 EUR"
-  ]
+  "status": "clean"
  },
  "relay-two-status-texts-then-oneshot.np.hc": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 16,
+  "under": 0,
   "park": false,
-  "status": "known-defect",
-  "blocks": [
-   "Looking up the exchange rates...",
-   "Processing the exchange rates.."
-  ],
-  "units": [
-   "Looking up the exchange rates...",
-   "Processing the exchange rates..",
-   "1 USD = 0.92 EUR"
-  ]
+  "status": "clean"
  },
  "replace-first-final-extension.np.bare": {
   "verdict": "MATCH",
@@ -3830,7 +3436,7 @@
   "over": 2,
   "under": 0,
   "park": false,
-  "status": "known-defect",
+  "status": "stated-residual",
   "alt": {
    "reading": "raw",
    "verdict": "MATCH",
@@ -3853,7 +3459,7 @@
   "over": 2,
   "under": 0,
   "park": false,
-  "status": "known-defect",
+  "status": "stated-residual",
   "alt": {
    "reading": "raw",
    "verdict": "MATCH",
@@ -3876,7 +3482,7 @@
   "over": 2,
   "under": 0,
   "park": false,
-  "status": "known-defect",
+  "status": "stated-residual",
   "alt": {
    "reading": "raw",
    "verdict": "MATCH",
@@ -3899,7 +3505,7 @@
   "over": 2,
   "under": 0,
   "park": false,
-  "status": "known-defect",
+  "status": "stated-residual",
   "alt": {
    "reading": "raw",
    "verdict": "MATCH",
@@ -3918,21 +3524,21 @@
   ]
  },
  "replace-first-final-redacted.np.bare": {
-  "verdict": "OVER+UNDER",
-  "over": 9,
-  "under": 9,
+  "verdict": "OVER",
+  "over": 5,
+  "under": 0,
   "park": false,
   "status": "known-defect",
   "alt": {
    "reading": "raw",
    "verdict": "OVER",
-   "over": 4,
+   "over": 9,
    "under": 0
   },
   "blocks": [
    "Hel",
    "lo",
-   "ted.",
+   "Redacted.",
    "Hi ",
    "there"
   ],
@@ -3942,21 +3548,21 @@
   ]
  },
  "replace-first-final-redacted.np.hc": {
-  "verdict": "OVER+UNDER",
-  "over": 9,
-  "under": 9,
+  "verdict": "OVER",
+  "over": 5,
+  "under": 0,
   "park": false,
   "status": "known-defect",
   "alt": {
    "reading": "raw",
    "verdict": "OVER",
-   "over": 4,
+   "over": 9,
    "under": 0
   },
   "blocks": [
    "Hel",
    "lo",
-   "ted.",
+   "Redacted.",
    "Hi ",
    "there"
   ],
@@ -3966,21 +3572,21 @@
   ]
  },
  "replace-first-final-redacted.prog.bare": {
-  "verdict": "OVER+UNDER",
-  "over": 9,
-  "under": 9,
+  "verdict": "OVER",
+  "over": 5,
+  "under": 0,
   "park": false,
   "status": "known-defect",
   "alt": {
    "reading": "raw",
    "verdict": "OVER",
-   "over": 4,
+   "over": 9,
    "under": 0
   },
   "blocks": [
    "Hel",
    "lo",
-   "ted.",
+   "Redacted.",
    "Hi ",
    "there"
   ],
@@ -3990,21 +3596,21 @@
   ]
  },
  "replace-first-final-redacted.prog.hc": {
-  "verdict": "OVER+UNDER",
-  "over": 9,
-  "under": 9,
+  "verdict": "OVER",
+  "over": 5,
+  "under": 0,
   "park": false,
   "status": "known-defect",
   "alt": {
    "reading": "raw",
    "verdict": "OVER",
-   "over": 4,
+   "over": 9,
    "under": 0
   },
   "blocks": [
    "Hel",
    "lo",
-   "ted.",
+   "Redacted.",
    "Hi ",
    "there"
   ],
@@ -4417,19 +4023,18 @@
   }
  },
  "strip-flush-before-fc-fresh-empty.prog.bare": {
-  "verdict": "OVER+UNDER",
-  "over": 12,
+  "verdict": "UNDER",
+  "over": 0,
   "under": 6,
   "park": true,
   "status": "known-defect",
   "alt": {
    "reading": "callback",
-   "verdict": "OVER",
-   "over": 12,
+   "verdict": "MATCH",
+   "over": 0,
    "under": 0
   },
   "blocks": [
-   "Let me check",
    "Let me check"
   ],
   "units": [
@@ -4438,19 +4043,18 @@
   ]
  },
  "strip-flush-before-fc-fresh-empty.prog.hc": {
-  "verdict": "OVER+UNDER",
-  "over": 12,
+  "verdict": "UNDER",
+  "over": 0,
   "under": 6,
   "park": true,
   "status": "known-defect",
   "alt": {
    "reading": "callback",
-   "verdict": "OVER",
-   "over": 12,
+   "verdict": "MATCH",
+   "over": 0,
    "under": 0
   },
   "blocks": [
-   "Let me check",
    "Let me check"
   ],
   "units": [
@@ -4518,19 +4122,18 @@
   }
  },
  "strip-flush-before-fc-fresh-usage.prog.bare": {
-  "verdict": "OVER+UNDER",
-  "over": 12,
+  "verdict": "UNDER",
+  "over": 0,
   "under": 6,
   "park": true,
   "status": "known-defect",
   "alt": {
    "reading": "callback",
-   "verdict": "OVER",
-   "over": 12,
+   "verdict": "MATCH",
+   "over": 0,
    "under": 0
   },
   "blocks": [
-   "Let me check",
    "Let me check"
   ],
   "units": [
@@ -4539,19 +4142,18 @@
   ]
  },
  "strip-flush-before-fc-fresh-usage.prog.hc": {
-  "verdict": "OVER+UNDER",
-  "over": 12,
+  "verdict": "UNDER",
+  "over": 0,
   "under": 6,
   "park": true,
   "status": "known-defect",
   "alt": {
    "reading": "callback",
-   "verdict": "OVER",
-   "over": 12,
+   "verdict": "MATCH",
+   "over": 0,
    "under": 0
   },
   "blocks": [
-   "Let me check",
    "Let me check"
   ],
   "units": [
@@ -4619,19 +4221,18 @@
   }
  },
  "strip-flush-before-fc-spread.prog.bare": {
-  "verdict": "OVER+UNDER",
-  "over": 12,
+  "verdict": "UNDER",
+  "over": 0,
   "under": 6,
   "park": true,
   "status": "known-defect",
   "alt": {
    "reading": "callback",
-   "verdict": "OVER",
-   "over": 12,
+   "verdict": "MATCH",
+   "over": 0,
    "under": 0
   },
   "blocks": [
-   "Let me check",
    "Let me check"
   ],
   "units": [
@@ -4640,19 +4241,18 @@
   ]
  },
  "strip-flush-before-fc-spread.prog.hc": {
-  "verdict": "OVER+UNDER",
-  "over": 12,
+  "verdict": "UNDER",
+  "over": 0,
   "under": 6,
   "park": true,
   "status": "known-defect",
   "alt": {
    "reading": "callback",
-   "verdict": "OVER",
-   "over": 12,
+   "verdict": "MATCH",
+   "over": 0,
    "under": 0
   },
   "blocks": [
-   "Let me check",
    "Let me check"
   ],
   "units": [
@@ -4851,16 +4451,15 @@
   "status": "clean"
  },
  "text-and-fc-one-chunk.prog.bare": {
-  "verdict": "OVER+UNDER",
-  "over": 6,
+  "verdict": "UNDER",
+  "over": 0,
   "under": 4,
   "park": true,
   "status": "known-defect",
   "blocks": [
    "And ",
    "so",
-   "then",
-   "sothen"
+   "then"
   ],
   "units": [
    "And so",
@@ -4869,16 +4468,15 @@
   ]
  },
  "text-and-fc-one-chunk.prog.hc": {
-  "verdict": "OVER+UNDER",
-  "over": 6,
+  "verdict": "UNDER",
+  "over": 0,
   "under": 4,
   "park": true,
   "status": "known-defect",
   "blocks": [
    "And ",
    "so",
-   "then",
-   "sothen"
+   "then"
   ],
   "units": [
    "And so",
@@ -4915,16 +4513,15 @@
   "status": "clean"
  },
  "text-fc-text.prog.bare": {
-  "verdict": "OVER+UNDER",
-  "over": 6,
+  "verdict": "UNDER",
+  "over": 0,
   "under": 4,
   "park": true,
   "status": "known-defect",
   "blocks": [
    "And ",
    "so",
-   "then",
-   "sothen"
+   "then"
   ],
   "units": [
    "And so",
@@ -4933,16 +4530,15 @@
   ]
  },
  "text-fc-text.prog.hc": {
-  "verdict": "OVER+UNDER",
-  "over": 6,
+  "verdict": "UNDER",
+  "over": 0,
   "under": 4,
   "park": true,
   "status": "known-defect",
   "blocks": [
    "And ",
    "so",
-   "then",
-   "sothen"
+   "then"
   ],
   "units": [
    "And so",
@@ -4986,13 +4582,12 @@
   "status": "clean"
  },
  "text-fc-then-answer.prog.bare": {
-  "verdict": "OVER+UNDER",
-  "over": 12,
+  "verdict": "UNDER",
+  "over": 0,
   "under": 6,
   "park": true,
   "status": "known-defect",
   "blocks": [
-   "Let me check",
    "Let me check"
   ],
   "units": [
@@ -5001,13 +4596,12 @@
   ]
  },
  "text-fc-then-answer.prog.hc": {
-  "verdict": "OVER+UNDER",
-  "over": 12,
+  "verdict": "UNDER",
+  "over": 0,
   "under": 6,
   "park": true,
   "status": "known-defect",
   "blocks": [
-   "Let me check",
    "Let me check"
   ],
   "units": [

@@ -2677,7 +2677,7 @@ describe("createAdkNormalizer — event-level unmapped fields → content.block 
   // honestly as `silently-dropped` in sdk-surface.json instead of landed —
   // this test documents that boundary explicitly rather than leaving it an
   // untested assumption.
-  it("does NOT carry author/timestamp (ubiquitous-on-the-real-wire fields; disposed silently-dropped)", () => {
+  it("does NOT carry author/timestamp (ubiquitous-on-the-real-wire fields; author is read only by the aggregate window, timestamp never)", () => {
     const out = run([event([], { author: "billing_agent", timestamp: "2026-07-03T00:00:00Z" })]);
     const blocks = out.filter(
       (e) =>
@@ -4514,6 +4514,20 @@ describe("createAdkNormalizer — a Live barge-in closes turn.abort after the ev
     expect(folds(out).needsResync).toBe(false);
   });
 
+  it("a text reply whose turnComplete carries usage: ADK yields the usage report before the full text, and the full text still renders once", () => {
+    const out = drive([
+      liveEvent("inv_lt", "u1", { content: text("Hel"), partial: true }),
+      liveEvent("inv_lt", "u2", { content: text("lo"), partial: true }),
+      liveEvent("inv_lt", "u3", { usageMetadata: { promptTokenCount: 5, responseTokenCount: 2, totalTokenCount: 7 } }),
+      liveEvent("inv_lt", "u4", { content: text("Hello"), partial: false }),
+      liveEvent("inv_lt", "u5", { turnComplete: true }),
+    ]);
+    expect(out.flatMap((e) => (e.type === "text.delta" ? [e.delta] : []))).toEqual(["Hel", "lo"]);
+    expect(out.filter((e) => TERMINAL.has(e.type)).map((e) => e.type)).toEqual(["turn.done"]);
+    expect(afterTerminal(out)).toEqual([]);
+    expect(folds(out).needsResync).toBe(false);
+  });
+
   it("a text barge-in (the interrupt on a partial text event, then ADK's full-text aggregate): the close waits for the aggregate, and the turn keeps its text", () => {
     const out = drive([
       liveEvent("inv_text", "t1", { content: text("Hello "), partial: true }),
@@ -4900,7 +4914,9 @@ describe("createAdkNormalizer — a Live turnComplete right after a tool respons
     { ...inv, content: { role: "user", parts: [{ functionResponse: { name: "echo", id: "fc-1", response: { result: "probe" } } }] } },
     { ...inv, turnComplete: true },
     event([{ text: "The tool " }], { ...inv, partial: true }),
-    event([{ text: "The tool returned probe." }], inv),
+    // ADK's Live aggregator builds the full text with partial:false
+    // (utils/live_connection_utils.js, buildFullTextResponse).
+    event([{ text: "The tool returned probe." }], { ...inv, partial: false }),
     usage(709, 74, 783),
     { ...inv, turnComplete: true },
   ];
@@ -5440,6 +5456,505 @@ describe("createAdkNormalizer — the bookkeeping entries ADK's A2A relay writes
     for (const bag of [{ note: "kept", "a2a:other": "kept" }, "a plain string"]) {
       const out = drive([toJsonValue({ ...inv, author: "a1", content: text("Done."), turnComplete: true, customMetadata: bag })]);
       expect(carries(out).map((raw) => raw["customMetadata"])).toEqual([bag]);
+    }
+  });
+});
+
+describe("createAdkNormalizer — the aggregate window (§8.0 item 3): keyed per source; every other non-partial event of the source closes it, except the ones ADK yields between a call's chunks and its repeat", () => {
+  const TERMINAL = new Set(["turn.done", "turn.error", "turn.abort"]);
+  const inv = { invocationId: "inv_fixture_1" };
+  const say = (text: string, extra: Partial<AdkEvent> = {}): AdkEvent => ({ ...inv, content: { role: "model", parts: [{ text }] }, ...extra });
+  const drive = (natives: AdkEvent[], host: boolean): AgEvent[] => {
+    const n = createAdkNormalizer({ invokeId: "adk", ...(host ? { hostCompletion: true } : {}) });
+    return [
+      ...natives.flatMap((e) => n.push(toJsonValue(e))),
+      ...(host ? n.push({ type: "__host_complete__" }) : []),
+      ...n.flush(),
+    ];
+  };
+  const deltas = (out: AgEvent[]) => out.flatMap((e) => (e.type === "text.delta" ? [e.delta] : []));
+  /** One terminal, nothing after it, and a fold that does not park. */
+  const expectCleanFold = (out: AgEvent[]) => {
+    const terms = out.filter((e) => TERMINAL.has(e.type));
+    expect(terms).toHaveLength(1);
+    expect(out.indexOf(terms[0]!)).toBe(out.length - 1);
+    const r = new Reducer();
+    for (const e of out) r.push(e);
+    expect(r.needsResync).toBe(false);
+    return terms[0]!;
+  };
+
+  it("streamed text, then a block chunk with a message, then the re-yield: the text renders once and the fold is clean, bare and with host completion", () => {
+    const blocked = { errorCode: "SAFETY", errorMessage: "Response blocked.", finishReason: "SAFETY" } as const;
+    const natives: AdkEvent[] = [
+      say("Here is the start of ", { author: "assistant", partial: true }),
+      say("an answer", { author: "assistant", partial: true }),
+      { ...inv, author: "assistant", ...blocked },
+      say("Here is the start of an answer", { author: "assistant", partial: false, ...blocked }),
+    ];
+    for (const host of [false, true]) {
+      const out = drive(natives, host);
+      expect(deltas(out), `host=${host}`).toEqual(["Here is the start of ", "an answer"]);
+      expect(expectCleanFold(out), `host=${host}`).toMatchObject({ type: "turn.error", code: "SAFETY" });
+    }
+  });
+
+  it("streamed text, then a message-less block chunk, then the re-yield: the text renders once and the fold is clean, bare and with host completion", () => {
+    const blocked = { errorCode: "SAFETY", finishReason: "SAFETY", usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5, totalTokenCount: 15 } } as const;
+    const natives: AdkEvent[] = [
+      say("Hel", { author: "assistant", partial: true }),
+      say("lo", { author: "assistant", partial: true }),
+      { ...inv, author: "assistant", ...blocked },
+      say("Hello", { author: "assistant", partial: false, ...blocked }),
+    ];
+    for (const host of [false, true]) {
+      const out = drive(natives, host);
+      expect(deltas(out), `host=${host}`).toEqual(["Hel", "lo"]);
+      expect(expectCleanFold(out), `host=${host}`).toMatchObject({ type: "turn.done", finishReason: "safety_blocked" });
+    }
+  });
+
+  it("interleaved streams from two parallel branches, with host completion: each re-yield matches its own branch's text, so nothing renders twice and the fold is clean", () => {
+    const alpha = { author: "alpha", branch: "fanout.alpha" };
+    const beta = { author: "beta", branch: "fanout.beta" };
+    const natives: AdkEvent[] = [
+      say("A1 ", { ...alpha, partial: true }),
+      say("B1 ", { ...beta, partial: true }),
+      say("A2", { ...alpha, partial: true, finishReason: "STOP" }),
+      say("B2", { ...beta, partial: true, finishReason: "STOP" }),
+      say("A1 A2", { ...alpha, partial: false, finishReason: "STOP" }),
+      say("B1 B2", { ...beta, partial: false, finishReason: "STOP" }),
+    ];
+    // Without the opt-in, the first branch's final response closes the turn and
+    // the other branch's events land after it: a host-completion-only shape.
+    const out = drive(natives, true);
+    expect(deltas(out)).toEqual(["A1 ", "B1 ", "A2", "B2"]);
+    expect(expectCleanFold(out)).toMatchObject({ type: "turn.done", finishReason: "stop" });
+  });
+
+  it("two branches streaming the same text: each branch's re-yield is suppressed once, so the text renders once per branch", () => {
+    const natives: AdkEvent[] = [
+      say("Same", { author: "alpha", branch: "fanout.alpha", partial: true }),
+      say("Same", { author: "beta", branch: "fanout.beta", partial: true }),
+      say("Same", { author: "alpha", branch: "fanout.alpha", partial: false }),
+      say("Same", { author: "beta", branch: "fanout.beta", partial: false }),
+    ];
+    expect(deltas(drive(natives, true))).toEqual(["Same", "Same"]);
+  });
+
+  it("one author on two branches, one author with no branch on two node paths (two runs under a Workflow dynamic entry), two authors with neither (a custom agent running two sub-agents at once), and one author and branch on two node paths: each source keeps its own window", () => {
+    const cases: Array<[string, Partial<AdkEvent>, Partial<AdkEvent>]> = [
+      ["branch", { author: "worker", branch: "fan.worker@1" }, { author: "worker", branch: "fan.worker@2" }],
+      ["node path", { author: "worker", nodeInfo: { path: "wfd.worker@1" } }, { author: "worker", nodeInfo: { path: "wfd.worker@2" } }],
+      ["author", { author: "alpha" }, { author: "beta" }],
+      ["node path under one branch", { author: "worker", branch: "wf", nodeInfo: { path: "wf.a" } }, { author: "worker", branch: "wf", nodeInfo: { path: "wf.b" } }],
+    ];
+    for (const [label, first, second] of cases) {
+      const natives: AdkEvent[] = [
+        say("one ", { ...first, partial: true }),
+        say("two ", { ...second, partial: true }),
+        say("one", { ...first, partial: true }),
+        say("two", { ...second, partial: true }),
+        say("one one", { ...first, partial: false }),
+        say("two two", { ...second, partial: false }),
+      ];
+      expect(deltas(drive(natives, true)), label).toEqual(["one ", "two ", "one", "two"]);
+    }
+  });
+
+  // In these two, the in-band error closes the turn on arrival, so what follows
+  // it lands after the terminal; they pin the rendered text only.
+  it("a stream that fails mid-text, then a text event of the same source that does not continue it: that text renders in full, bare and with host completion", () => {
+    const natives: AdkEvent[] = [
+      say("Hel", { author: "assistant", partial: true }),
+      { ...inv, author: "assistant", errorCode: "429", errorMessage: "Resource exhausted" },
+      say("Here is the fallback.", { author: "assistant", finishReason: "STOP" }),
+    ];
+    for (const host of [false, true]) expect(deltas(drive(natives, host)), `host=${host}`).toEqual(["Hel", "Here is the fallback."]);
+  });
+
+  it("a stream that fails mid-text, then the retried call streams and repeats: the retry's chunks start a new window, so its repeat renders nothing", () => {
+    const natives: AdkEvent[] = [
+      say("Hel", { author: "assistant", partial: true }),
+      { ...inv, author: "assistant", errorCode: "429", errorMessage: "Resource exhausted" },
+      say("Sorry, ", { author: "assistant", partial: true }),
+      say("try again", { author: "assistant", partial: true }),
+      say("Sorry, try again", { author: "assistant", partial: false, finishReason: "STOP" }),
+    ];
+    for (const host of [false, true]) expect(deltas(drive(natives, host)), `host=${host}`).toEqual(["Hel", "Sorry, ", "try again"]);
+  });
+
+  it("a stream that fails mid-text, then a text event that happens to start with the streamed text: the in-band error closed the window, so that text renders in full", () => {
+    const natives: AdkEvent[] = [
+      say("Hel", { author: "assistant", partial: true }),
+      { ...inv, author: "assistant", errorCode: "429", errorMessage: "Resource exhausted" },
+      say("Hello, fallback", { author: "assistant", finishReason: "STOP" }),
+    ];
+    for (const host of [false, true]) expect(deltas(drive(natives, host)), `host=${host}`).toEqual(["Hel", "Hello, fallback"]);
+  });
+
+  it("a same-source text event right after streamed text that does not continue it (an agent's own text) renders in full, marked partial:false or not", () => {
+    const cases: Array<[string, AdkEvent, string[]]> = [
+      ["unmarked", say("Goodbye", { author: "assistant", finishReason: "STOP" }), ["Hel", "Goodbye"]],
+      ["partial:false", say("Goodbye", { author: "assistant", partial: false, finishReason: "STOP" }), ["Hel", "Goodbye"]],
+    ];
+    for (const [label, next, expected] of cases)
+      for (const host of [false, true])
+        expect(deltas(drive([say("Hel", { author: "assistant", partial: true }), next], host)), `${label}, host=${host}`).toEqual(expected);
+  });
+
+  it("a fresh final response without a partial flag (an after-model callback's replacement) is the repeat when one text starts with the other: an extension renders only its added text, a shorter one nothing", () => {
+    const cases: Array<[string, string, string[]]> = [
+      ["an extension", "Hello [checked]", ["Hel", "lo", " [checked]"]],
+      ["a shorter replacement", "Hel", ["Hel", "lo"]],
+    ];
+    for (const [label, final, expected] of cases) {
+      const natives: AdkEvent[] = [
+        say("Hel", { author: "assistant", partial: true }),
+        say("lo", { author: "assistant", partial: true, finishReason: "STOP" }),
+        say(final, { author: "assistant", finishReason: "STOP" }),
+      ];
+      for (const host of [false, true]) {
+        const out = drive(natives, host);
+        expect(deltas(out), `${label}, host=${host}`).toEqual(expected);
+        expectCleanFold(out);
+      }
+    }
+  });
+
+  it("an in-band error without a branch closes the window its call streamed under a branch: a retry's chunks start a new one, so its repeat renders nothing", () => {
+    const b1 = { author: "b1", branch: "par.b1" };
+    const natives: AdkEvent[] = [
+      say("Hel", { ...b1, partial: true }),
+      { ...inv, author: "b1", errorCode: "429", errorMessage: "Resource exhausted" },
+      say("Sorry, ", { ...b1, partial: true }),
+      say("try again", { ...b1, partial: true }),
+      say("Sorry, try again", { ...b1, partial: false, finishReason: "STOP" }),
+    ];
+    for (const host of [false, true]) expect(deltas(drive(natives, host)), `host=${host}`).toEqual(["Hel", "Sorry, ", "try again"]);
+  });
+
+  it("a function call without a partial flag that replaces a failed call's close (ADK's retry plugin) closes the window: the retry call's repeat renders nothing", () => {
+    const natives: AdkEvent[] = [
+      say("Let me ", { author: "a1", partial: true }),
+      say("check", { author: "a1", partial: true }),
+      { ...inv, author: "a1", content: { role: "model", parts: [{ functionCall: { name: "reflect_and_retry", args: {}, id: "r-1" } }] } },
+      { ...inv, author: "a1", content: { role: "user", parts: [{ functionResponse: { name: "reflect_and_retry", id: "r-1", response: { retry: true } } }] } },
+      say("Here is ", { author: "a1", partial: true }),
+      say("the answer.", { author: "a1", partial: true }),
+      say("Here is the answer.", { author: "a1", partial: false, finishReason: "STOP" }),
+    ];
+    for (const host of [false, true]) expect(deltas(drive(natives, host)), `host=${host}`).toEqual(["Let me ", "check", "Here is ", "the answer."]);
+  });
+
+  it("events ADK yields between a call's chunks and its repeat leave the window open: a Live usage report, a transcription event, a partial:false function call or media part, and a function response", () => {
+    const between: Array<[string, AdkEvent]> = [
+      ["a Live usage report", { ...inv, author: "a1", usageMetadata: { promptTokenCount: 5, responseTokenCount: 2, totalTokenCount: 7 } }],
+      ["a transcription event", { ...inv, author: "a1", partial: false, outputTranscription: { text: "Hello", finished: true } }],
+      ["a partial:false function call", { ...inv, author: "a1", partial: false, content: { role: "model", parts: [{ functionCall: { name: "lookup", args: {}, id: "fc-1" } }] } }],
+      ["a function response", { ...inv, author: "a1", content: { role: "user", parts: [{ functionResponse: { name: "lookup", id: "fc-1", response: { ok: true } } }] } }],
+    ];
+    for (const [label, mid] of between) {
+      const natives: AdkEvent[] = [say("Hel", { author: "a1", partial: true }), say("lo", { author: "a1", partial: true }), mid, say("Hello", { author: "a1", partial: false })];
+      expect(deltas(drive(natives, true)), label).toEqual(["Hel", "lo"]);
+    }
+  });
+
+  it("a usage-only record that is not Live's (a callback's replacement for a final whose text it removed) ends the window: a later text that is a start of the streamed text renders", () => {
+    const natives: AdkEvent[] = [
+      say("Hel", { author: "a1", partial: true }),
+      say("lo", { author: "a1", partial: true }),
+      { ...inv, author: "a1", usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5, totalTokenCount: 15 } },
+      say("Hel", { author: "a1" }),
+    ];
+    expect(deltas(drive(natives, true))).toEqual(["Hel", "lo", "Hel"]);
+  });
+
+  it("a later call's repeat after a call whose close never arrived is the repeat because the streamed text ends with it: each call's text renders once", () => {
+    const natives: AdkEvent[] = [
+      say("Hel", { author: "a1", partial: true }),
+      say("lo", { author: "a1", partial: true }),
+      say("Hi ", { author: "a1", partial: true }),
+      say("there", { author: "a1", partial: true }),
+      say("Hi there", { author: "a1", partial: false, finishReason: "STOP" }),
+    ];
+    for (const host of [false, true]) expect(deltas(drive(natives, host)), `host=${host}`).toEqual(["Hel", "lo", "Hi ", "there"]);
+  });
+
+  it("an A2A relay's status text and each relayed artifact keep their own windows: the artifact's repeat matches its chunks, around status text or with status text between them", () => {
+    const status = (text: string): AdkEvent => say(text, { author: "helper", partial: true, customMetadata: { "a2a:response": { kind: "status-update" } } });
+    const chunk = (text: string, extra: Partial<AdkEvent> = {}): AdkEvent =>
+      say(text, { author: "helper", partial: true, customMetadata: { "a2a:response": { kind: "artifact-update", artifact: { artifactId: "art-1" } } }, ...extra });
+    const repeat = say("Hello", { author: "helper", partial: false, customMetadata: { "a2a:response": { kind: "artifact-update", artifact: { artifactId: "art-1" } } } });
+    const cases: Array<[string, AdkEvent[], string[]]> = [
+      ["status first", [status("Looking that up. "), chunk("Hel"), chunk("lo"), repeat], ["Looking that up. ", "Hel", "lo"]],
+      ["status between", [chunk("Hel"), status("Still working. "), chunk("lo"), repeat], ["Hel", "Still working. ", "lo"]],
+    ];
+    for (const [label, natives, expected] of cases) expect(deltas(drive(natives, true)), label).toEqual(expected);
+  });
+
+  it("a relayed artifact that repeats the relay's status text, with no chunks of its own, reads the status window: the text renders once", () => {
+    const natives: AdkEvent[] = [
+      say("Let me check the rates. ", { author: "helper", partial: true, customMetadata: { "a2a:response": { kind: "status-update" } } }),
+      say("1 USD = 0.92 EUR.", { author: "helper", partial: true, customMetadata: { "a2a:response": { kind: "status-update" } } }),
+      say("1 USD = 0.92 EUR.", { author: "helper", partial: false, customMetadata: { "a2a:response": { kind: "artifact-update", artifact: { artifactId: "art-9" } } } }),
+    ];
+    expect(deltas(drive(natives, true))).toEqual(["Let me check the rates. ", "1 USD = 0.92 EUR."]);
+  });
+
+  it("a record that ends the call closes the window, alone or beside a Live usage report, so a later text that is a start of the streamed text renders: a state or artifact delta, an error code or message, the relay's failure record, turnComplete, an interrupt, a session-resumption update, goAway", () => {
+    const liveUsage = { usageMetadata: { promptTokenCount: 5, responseTokenCount: 2, totalTokenCount: 7 } };
+    const closing: Array<[string, AdkEvent]> = [
+      ["a state delta", { ...inv, author: "a1", actions: { stateDelta: { seen: true } } }],
+      ["an artifact delta", { ...inv, author: "a1", actions: { artifactDelta: { "notes.txt": 1 } } }],
+      ["an error code", { ...inv, author: "a1", errorCode: "UNAVAILABLE" }],
+      ["an error message", { ...inv, author: "a1", errorMessage: "remote failed" }],
+      ["the relay's failure record", { ...inv, author: "a1", errorMessage: "remote failed", turnComplete: true }],
+      ["turnComplete", { ...inv, author: "a1", turnComplete: true }],
+      ["an interrupt", { ...inv, author: "a1", interrupted: true }],
+      ["a session-resumption update", { ...inv, author: "a1", liveSessionResumptionUpdate: { newHandle: "h-1" } } as AdkEvent],
+      ["goAway", { ...inv, author: "a1", goAway: { timeLeft: "5s" } } as AdkEvent],
+    ];
+    for (const [label, record] of closing) {
+      for (const mid of [record, { ...record, ...liveUsage }]) {
+        const natives: AdkEvent[] = [say("Hel", { author: "a1", partial: true }), say("lo", { author: "a1", partial: true }), mid, say("Hel", { author: "a1" })];
+        expect(deltas(drive(natives, true)), `${label}, usage=${mid !== record}`).toEqual(["Hel", "lo", "Hel"]);
+      }
+    }
+  });
+
+  it("ADK's partial:false skipSummarization rewrite that the streamed text ends with is the repeat: the structured answer renders once", () => {
+    const answer = '{"answer":"x"}';
+    const rewrite = (extra: Partial<AdkEvent>): AdkEvent => say(answer, { author: "a1", actions: { skipSummarization: true }, ...extra });
+    const cases: Array<[string, AdkEvent[], string[]]> = [
+      ["text before the answer", [say("Sure. ", { author: "a1", partial: true }), rewrite({ partial: true }), rewrite({ partial: false })], ["Sure. ", answer]],
+      ["the answer alone", [rewrite({ partial: true }), rewrite({ partial: false })], [answer]],
+    ];
+    for (const [label, natives, expected] of cases) expect(deltas(drive(natives, true)), label).toEqual(expected);
+  });
+
+
+  it("text chunks, then ADK's partial:false flush before a function call, then new chunks and a close that repeats only them: each text renders once, the flushed chunk's own text as a tail", () => {
+    const call: AdkEvent = { ...inv, author: "assistant", partial: false, content: { role: "model", parts: [{ functionCall: { name: "lookup", args: {}, id: "fc-1" } }] } };
+    const cases: Array<[string, string, string[]]> = [
+      ["the call chunk has no text", "A1A2", ["A1", "A2", "B"]],
+      ["the call chunk also has text", "A1A2A3", ["A1", "A2", "A3", "B"]],
+    ];
+    for (const [label, flushed, expected] of cases) {
+      const natives: AdkEvent[] = [
+        say("A1", { author: "assistant", partial: true }),
+        say("A2", { author: "assistant", partial: true }),
+        say(flushed, { author: "assistant", partial: false }),
+        call,
+        say("B", { author: "assistant", partial: true }),
+        say("B", { author: "assistant", partial: false, finishReason: "STOP" }),
+      ];
+      for (const host of [false, true]) expect(deltas(drive(natives, host)), `${label}, host=${host}`).toEqual(expected);
+    }
+  });
+
+  it("a call's partial:false close that arrives without content (a callback removed its text) ends the window, with host completion: the next call's chunks start a new one, and a later text renders in full", () => {
+    // Without the opt-in, that close ends the turn before the next call.
+    const u15 = { promptTokenCount: 10, candidatesTokenCount: 5, totalTokenCount: 15 };
+    const streamed: AdkEvent[] = [
+      say("Hel", { author: "a1", partial: true }),
+      say("lo", { author: "a1", partial: true, usageMetadata: u15 }),
+      { ...inv, author: "a1", partial: false, finishReason: "STOP", usageMetadata: u15 },
+    ];
+    const cases: Array<[string, AdkEvent[], string[]]> = [
+      ["a new streamed call", [say("Hi ", { author: "a1", partial: true }), say("there", { author: "a1", partial: true }), say("Hi there", { author: "a1", partial: false, finishReason: "STOP" })], ["Hel", "lo", "Hi ", "there"]],
+      ["a new call extending the stale text", [say("Hello ", { author: "a1", partial: true }), say("again", { author: "a1", partial: true }), say("Hello again", { author: "a1", partial: false, finishReason: "STOP" })], ["Hel", "lo", "Hello ", "again"]],
+      ["a callback's text", [say("From callback.", { author: "a1" })], ["Hel", "lo", "From callback."]],
+      ["an after-agent callback's text", [say("Appended note.", { author: "a1" })], ["Hel", "lo", "Appended note."]],
+    ];
+    for (const [label, next, expected] of cases) {
+      const out = drive([...streamed, ...next], true);
+      expect(deltas(out), label).toEqual(expected);
+      expectCleanFold(out);
+    }
+  });
+
+  it("a repeat without a branch (ADK's A2A relay rebuilds it without the one its chunks carried) takes the one open window of the same author and path; with two such windows it takes neither", () => {
+    const one: AdkEvent[] = [
+      say("Hel", { author: "helper", branch: "par.helper", partial: true }),
+      say("lo", { author: "helper", branch: "par.helper", partial: true }),
+      say("Hello", { author: "helper", partial: false }),
+    ];
+    const out = drive(one, true);
+    expect(deltas(out)).toEqual(["Hel", "lo"]);
+    expectCleanFold(out);
+    const two: AdkEvent[] = [
+      say("A", { author: "worker", branch: "wf.worker@1", partial: true }),
+      say("B", { author: "worker", branch: "wf.worker@2", partial: true }),
+      say("A", { author: "worker", partial: false }),
+      say("B", { author: "worker", branch: "wf.worker@2", partial: false }),
+    ];
+    // The ambiguous repeat renders and closes neither window, so the second one's own repeat still matches.
+    expect(deltas(drive(two, true))).toEqual(["A", "B", "A"]);
+  });
+
+  it("an in-band error without a branch closes every open window of the same author and path: two calls that differ only by branch both start anew", () => {
+    const natives: AdkEvent[] = [
+      say("A", { author: "worker", branch: "wf.worker@1", partial: true }),
+      say("B", { author: "worker", branch: "wf.worker@2", partial: true }),
+      { ...inv, author: "worker", errorCode: "429", errorMessage: "Resource exhausted" },
+      say("C", { author: "worker", branch: "wf.worker@1", partial: true }),
+      say("C", { author: "worker", branch: "wf.worker@1", partial: false }),
+      say("D", { author: "worker", branch: "wf.worker@2", partial: true }),
+      say("D", { author: "worker", branch: "wf.worker@2", partial: false }),
+    ];
+    expect(deltas(drive(natives, true))).toEqual(["A", "B", "C", "D"]);
+    // After the error, a text of either branch that repeats what that branch
+    // streamed before it is a new call's text: both windows ended.
+    const again: AdkEvent[] = [
+      say("A", { author: "worker", branch: "wf.worker@1", partial: true }),
+      say("B", { author: "worker", branch: "wf.worker@2", partial: true }),
+      { ...inv, author: "worker", errorCode: "429", errorMessage: "Resource exhausted" },
+      say("A", { author: "worker", branch: "wf.worker@1", partial: false }),
+      say("B", { author: "worker", branch: "wf.worker@2", partial: false }),
+    ];
+    expect(deltas(drive(again, true))).toEqual(["A", "B", "A", "B"]);
+  });
+
+  it("a branched text with no window of its own leaves the window of another branch of the same author untouched: it renders in full, and that branch's repeat still matches its own chunks", () => {
+    const natives: AdkEvent[] = [
+      say("Hel", { author: "worker", branch: "fanout.worker@1", partial: true }),
+      say("lo", { author: "worker", branch: "fanout.worker@1", partial: true }),
+      say("Hel", { author: "worker", branch: "fanout.worker@2", partial: false }),
+      say("Hello", { author: "worker", branch: "fanout.worker@1", partial: false }),
+    ];
+    expect(deltas(drive(natives, true))).toEqual(["Hel", "lo", "Hel"]);
+  });
+
+  it("a window is kept per turn: text a source streamed in one turn is never matched by that source's text in a later turn", () => {
+    const natives: AdkEvent[] = [
+      say("Hel", { author: "assistant", partial: true }),
+      say("Hello there", { invocationId: "inv_fixture_2", author: "assistant", partial: false, finishReason: "STOP" }),
+    ];
+    expect(deltas(drive(natives, true))).toEqual(["Hel", "Hello there"]);
+  });
+
+  it("an empty text part is not text: an event carrying only one leaves the window open for the repeat", () => {
+    const natives: AdkEvent[] = [
+      say("Hel", { author: "assistant", partial: true }),
+      say("", { author: "assistant", partial: false }),
+      say("Hel", { author: "assistant", partial: false, finishReason: "STOP" }),
+    ];
+    // The empty part itself renders as an empty text block, as it always has.
+    expect(deltas(drive(natives, true)).filter((d) => d !== "")).toEqual(["Hel"]);
+  });
+
+  it("an absent author, branch or node path is its own key: a source without one never shares a window with a source whose value is the empty string", () => {
+    const natives: AdkEvent[] = [
+      say("x", { partial: true }),
+      say("y", { author: "", branch: "", nodeInfo: { path: "" }, partial: true }),
+      say("x", { partial: false }),
+      say("y", { author: "", branch: "", nodeInfo: { path: "" }, partial: false }),
+    ];
+    expect(deltas(drive(natives, true))).toEqual(["x", "y"]);
+  });
+
+  const relayed = (task: string | null, response: { [k: string]: JsonValue }) => ({
+    customMetadata: { "a2a:response": response, ...(task !== null ? { "a2a:task_id": task } : {}) },
+  });
+  const statusText = (text: string, task: string | null): AdkEvent => say(text, { author: "helper", partial: true, ...relayed(task, { kind: "status-update" }) });
+  const artifact = (text: string, task: string | null, partial: boolean, id = "art-1"): AdkEvent =>
+    say(text, { author: "helper", partial, ...relayed(task, { kind: "artifact-update", artifact: { artifactId: id } }) });
+
+  it("a relay pass's windows belong to its A2A task: the next pass's one-shot artifact, in a new task, renders in full when it repeats or extends the text the earlier pass streamed as status messages, while one of the same task still reads that task's status window", () => {
+    for (const [label, next] of [["repeats", "Hello"], ["extends", "Hello there"]] as const) {
+      const natives: AdkEvent[] = [statusText("Hel", "task-1"), statusText("lo", "task-1"), artifact(next, "task-2", false)];
+      expect(deltas(drive(natives, true)), label).toEqual(["Hel", "lo", next]);
+    }
+    const sameTask: AdkEvent[] = [statusText("Hel", "task-1"), statusText("lo", "task-1"), artifact("Hello", "task-1", false)];
+    expect(deltas(drive(sameTask, true)), "same task").toEqual(["Hel", "lo"]);
+  });
+
+  it("the relay's own failure event (errorMessage and turnComplete, no relay entries), or an event of the relaying agent that carries either one without relay entries, ends every relayed window of its author and path: a later text of the same task that starts the streamed text renders in full", () => {
+    const failures: Array<[string, AdkEvent]> = [
+      ["the failure event", { ...inv, author: "helper", errorMessage: "remote failed", turnComplete: true }],
+      ["an errorMessage alone", { ...inv, author: "helper", errorMessage: "remote failed" }],
+      ["a turnComplete alone", { ...inv, author: "helper", turnComplete: true }],
+    ];
+    const streams: Array<[string, AdkEvent[]]> = [
+      ["status messages", [statusText("Hel", "task-1"), statusText("lo", "task-1")]],
+      ["an artifact", [artifact("Hel", "task-1", true), artifact("lo", "task-1", true)]],
+    ];
+    for (const [ending, failure] of failures) {
+      for (const [label, stream] of streams) {
+        const natives: AdkEvent[] = [...stream, failure, artifact("Hel", "task-1", false)];
+        expect(deltas(drive(natives, true)), `${ending}, ${label}`).toEqual(["Hel", "lo", "Hel"]);
+      }
+    }
+  });
+
+  it("a relayed Task or Message restates its task: after the task's status messages or artifact chunks it is the repeat (its added text renders), it ends those windows, and a snapshot of another task renders in full", () => {
+    const snapshot = (text: string, task: string | null, kind: "task" | "message"): AdkEvent =>
+      say(text, { author: "helper", turnComplete: true, ...(kind === "message" ? { partial: false } : {}), ...relayed(task, { kind }) });
+    const cases: Array<[string, AdkEvent[], string[]]> = [
+      ["a Task after status messages", [statusText("Hel", "task-1"), statusText("lo", "task-1"), snapshot("Hello", "task-1", "task")], ["Hel", "lo"]],
+      ["a Message after artifact chunks", [artifact("Hel", "task-1", true), artifact("lo", "task-1", true), snapshot("Hello", "task-1", "message")], ["Hel", "lo"]],
+      [
+        "a Task adding its status message after a status text and two artifacts: it restates the artifacts",
+        [statusText("Looking. ", "task-1"), artifact("Hel", "task-1", true), artifact("lo ", "task-1", true, "art-2"), snapshot("Hello Done.", "task-1", "task")],
+        ["Looking. ", "Hel", "lo ", "Done."],
+      ],
+      ["a Task of another task", [statusText("Hel", "task-1"), statusText("lo", "task-1"), snapshot("Hello", "task-2", "task")], ["Hel", "lo", "Hello"]],
+      [
+        "a Task restating one artifact, with a status text open beside it",
+        [statusText("Wait. ", "task-1"), artifact("Hel", "task-1", true), artifact("lo", "task-1", true), snapshot("Hello", "task-1", "task")],
+        ["Wait. ", "Hel", "lo"],
+      ],
+      [
+        "a Task restating two artifacts",
+        [artifact("Hello ", "task-1", true), artifact("World", "task-1", true, "art-2"), snapshot("Hello World", "task-1", "task")],
+        ["Hello ", "World"],
+      ],
+      [
+        "a Task still in the state it streamed: its artifacts, then its status text",
+        [statusText("Wait.", "task-1"), artifact("Hello ", "task-1", true), snapshot("Hello Wait.", "task-1", "task")],
+        ["Wait.", "Hello "],
+      ],
+      ["a Task that extends its artifact", [artifact("Hel", "task-1", true), artifact("lo", "task-1", true), snapshot("Hello there", "task-1", "task")], ["Hel", "lo", " there"]],
+      ["a final Message after the task's status text", [statusText("Hel", "task-1"), statusText("lo", "task-1"), snapshot("Hello", "task-1", "message")], ["Hel", "lo"]],
+      [
+        "a final Message that extends the task's status text while an artifact of the task is open",
+        [statusText("Hel", "task-1"), statusText("lo", "task-1"), artifact("Chart", "task-1", true, "art-9"), snapshot("Hello there", "task-1", "message")],
+        ["Hel", "lo", "Chart", " there"],
+      ],
+      [
+        "a later text of the same task, after the snapshot ended the windows",
+        [artifact("Hel", "task-1", true), artifact("lo", "task-1", true), snapshot("Hello", "task-1", "message"), artifact("Hel", "task-1", false)],
+        ["Hel", "lo", "Hel"],
+      ],
+      [
+        "a later artifact of the same task, after a snapshot that restated two artifacts ended both",
+        [artifact("Hel", "task-1", true), artifact("lo", "task-1", true, "art-2"), snapshot("Hello", "task-1", "task"), artifact("lo", "task-1", false, "art-2")],
+        ["Hel", "lo", "lo"],
+      ],
+    ];
+    for (const [label, natives, expected] of cases) expect(deltas(drive(natives, true)), label).toEqual(expected);
+  });
+
+  it("a first final a callback stripped but whose usage it kept (partial:false, a finishReason, no content) ends the window: a before-model callback's answer that is a start of the streamed text renders in full", () => {
+    const natives: AdkEvent[] = [
+      say("Hel", { author: "a1", partial: true }),
+      say("lo", { author: "a1", partial: true }),
+      { ...inv, author: "a1", partial: false, finishReason: "STOP", usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5, totalTokenCount: 15 } },
+      say("Hel", { author: "a1" }),
+    ];
+    expect(deltas(drive(natives, true))).toEqual(["Hel", "lo", "Hel"]);
+  });
+
+  it("a Live grounding record between the chunks and the repeat (ADK yields one for a message with no parts, a barge-in's among them) leaves the window open: the text renders once", () => {
+    for (const extra of [{}, { interrupted: true }]) {
+      const natives: AdkEvent[] = [
+        say("Hel", { author: "a1", partial: true }),
+        say("lo", { author: "a1", partial: true }),
+        { ...inv, author: "a1", groundingMetadata: { groundingChunks: [{ web: { uri: "https://example.com/hello", title: "Hello" } }] }, ...extra },
+        say("Hello", { author: "a1", partial: false }),
+      ];
+      expect(deltas(drive(natives, true)), JSON.stringify(extra)).toEqual(["Hel", "lo"]);
     }
   });
 });

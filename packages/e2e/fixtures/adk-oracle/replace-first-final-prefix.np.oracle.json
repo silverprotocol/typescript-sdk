@@ -2,6 +2,7 @@
  "leg": "replace-first-final-prefix",
  "mode": "np",
  "hcOnly": true,
+ "residual": "google-adk README, Streamed text: a same-source text between a call's chunks and its repeat that is a start of the streamed text is read as the repeat",
  "threw": null,
  "note": "the first final is replaced by a strict prefix of its stream",
  "expected": "callback",

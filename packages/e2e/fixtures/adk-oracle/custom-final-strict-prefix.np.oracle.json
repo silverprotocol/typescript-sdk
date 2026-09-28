@@ -2,6 +2,7 @@
  "leg": "custom-final-strict-prefix",
  "mode": "np",
  "hcOnly": false,
+ "residual": "google-adk README, Streamed text: a same-source text between a call's chunks and its repeat that is a start of the streamed text is read as the repeat",
  "threw": null,
  "note": "a custom agent streams Hello, then its own non-partial Hel; expected: the session's text; alternative: the stream, then the non-partial as a new message",
  "expected": "raw",

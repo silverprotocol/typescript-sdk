@@ -2091,8 +2091,10 @@ function driveAdkTopLevel(
   // absent from `@iqai/adk`'s surface, closed by the same opportunistic-carry
   // precedent (absent from all recorded fixtures — no golden-snapshot impact).
   //
-  // `author`/`timestamp` are ALSO real, currently-unread AdkEvent fields
-  // (same manifest inventory) but are DELIBERATELY NOT folded into this bag.
+  // `author`/`timestamp` are ALSO real AdkEvent fields (same manifest
+  // inventory) but are DELIBERATELY NOT folded into this bag (`author` is read
+  // only by the aggregate window: its key, aggregateWindowKey, and the
+  // same-author lookup in windowCandidates).
   // On the official `@google/adk` 1.3.0 `Event` interface `timestamp: number`
   // is REQUIRED and `author?: string` is optional in the TYPE — but the
   // runner sets author on every event it appends in practice, so the
@@ -2267,6 +2269,144 @@ function isHostCompleteNative(v: JsonValue): boolean {
  * So push() never throws (SPEC §8.0), and no facet state believes a turn,
  * message or block is open that never reached the wire.
  */
+/** The aggregate window's key: the turn plus the event's source (author,
+ *  branch and node path). A missing or non-string value is its own key, never
+ *  equal to an empty string. */
+function aggregateWindowKey(turnId: string, event: AdkEvent, stream: string | null = relayStreamOf(event)): string {
+  const author: unknown = event.author;
+  const branch: unknown = event.branch;
+  const path: unknown = event.nodeInfo?.path;
+  return JSON.stringify([
+    turnId,
+    typeof author === "string" ? author : null,
+    typeof branch === "string" ? branch : null,
+    typeof path === "string" ? path : null,
+    stream,
+  ]);
+}
+
+/** What a relayed event is, read from the native relay record ADK's
+ *  RemoteA2AAgent attaches: its A2A task (the `a2a:task_id` entry, null when
+ *  the reply carried none) and its stream, one artifact's chunks and their
+ *  aggregate (`artifact:<id>`), the status messages (`status`), or a Task or
+ *  Message that restates the task (`snapshot`). null for an event that is not
+ *  relayed. */
+function relayOf(event: AdkEvent): { task: string | null; stream: string } | null {
+  const metadata: unknown = event.customMetadata;
+  if (!isJsonObject(metadata)) return null;
+  const response: unknown = metadata["a2a:response"];
+  if (!isJsonObject(response)) return null;
+  const taskId: unknown = metadata["a2a:task_id"];
+  const task = typeof taskId === "string" ? taskId : null;
+  const kind: unknown = response["kind"];
+  const artifact: unknown = response["artifact"];
+  if (kind === "artifact-update" && isJsonObject(artifact) && typeof artifact["artifactId"] === "string")
+    return { task, stream: `artifact:${artifact["artifactId"]}` };
+  if (kind === "status-update") return { task, stream: "status" };
+  if (kind === "task" || kind === "message") return { task, stream: "snapshot" };
+  return null;
+}
+
+/** The window-key part of a relayed stream: the task and the stream, so a new
+ *  relay pass (a new A2A task) never reads the windows of an earlier one. */
+function relayStreamKey(task: string | null, stream: string): string {
+  return JSON.stringify([task, stream]);
+}
+
+/** The A2A stream a relayed event belongs to, scoped by its task; null for
+ *  every event that is not relayed. */
+function relayStreamOf(event: AdkEvent): string | null {
+  const relay = relayOf(event);
+  return relay === null ? null : relayStreamKey(relay.task, relay.stream);
+}
+
+/** The open windows a non-partial event reads and closes: the one under its
+ *  own key; else, for an event without a branch, every open window of the
+ *  same turn, author and node path. */
+function windowCandidates(windows: ReadonlyMap<string, string>, turnId: string, event: AdkEvent): string[] {
+  const own = aggregateWindowKey(turnId, event);
+  if (windows.has(own)) return [own];
+  // A relayed artifact with no chunks of its own can repeat the status text
+  // of its own task (a peer that sends its answer as status messages, then
+  // the same text as its final artifact).
+  const relay = relayOf(event);
+  if (relay !== null && relay.stream.startsWith("artifact:")) {
+    const status = aggregateWindowKey(turnId, event, relayStreamKey(relay.task, "status"));
+    if (windows.has(status)) return [status];
+  }
+  if (typeof event.branch === "string") return [];
+  const wantStream = relayStreamOf(event);
+  return sourceWindows(windows, turnId, event, true)
+    .filter(([, stream]) => stream === wantStream)
+    .map(([key]) => key);
+}
+
+/** The open windows of the source of an event, as [key, stream] pairs: the
+ *  same turn, author and node path, and the same branch unless anyBranch. */
+function sourceWindows(windows: ReadonlyMap<string, string>, turnId: string, event: AdkEvent, anyBranch: boolean): Array<[string, unknown]> {
+  const author: unknown = event.author;
+  const branch: unknown = event.branch;
+  const path: unknown = event.nodeInfo?.path;
+  const wantAuthor = typeof author === "string" ? author : null;
+  const wantBranch = typeof branch === "string" ? branch : null;
+  const wantPath = typeof path === "string" ? path : null;
+  const out: Array<[string, unknown]> = [];
+  for (const key of windows.keys()) {
+    const parsed: unknown = JSON.parse(key);
+    if (
+      Array.isArray(parsed) &&
+      parsed[0] === turnId &&
+      parsed[1] === wantAuthor &&
+      (anyBranch || parsed[2] === wantBranch) &&
+      parsed[3] === wantPath
+    )
+      out.push([key, parsed[4]]);
+  }
+  return out;
+}
+
+/** The windows a relayed Task or Message restates: its task's open artifact
+ *  windows, in the order they opened, and its task's status window. */
+function snapshotWindows(
+  windows: ReadonlyMap<string, string>,
+  turnId: string,
+  event: AdkEvent,
+  task: string | null,
+): { artifacts: string[]; status: string[] } {
+  const own = sourceWindows(windows, turnId, event, false);
+  const artifacts = own.filter(([, stream]) => {
+    if (typeof stream !== "string") return false;
+    const parsed: unknown = JSON.parse(stream);
+    return Array.isArray(parsed) && parsed[0] === task && typeof parsed[1] === "string" && parsed[1].startsWith("artifact:");
+  });
+  const status = relayStreamKey(task, "status");
+  return { artifacts: artifacts.map(([key]) => key), status: own.filter(([, stream]) => stream === status).map(([key]) => key) };
+}
+
+/** The streamed text a relayed Task or Message is read against. ADK renders a
+ *  Task as its artifacts' parts, then its status message's (taskToAdkEvent), so
+ *  the snapshot is matched in that order: against the artifacts and the status
+ *  text together (a task still in the state it streamed), else the artifacts
+ *  alone (its status message is new, and renders), else the status text alone.
+ *  The first reading the snapshot repeats is taken; with none, the first. */
+function snapshotReading(artifactText: string, statusText: string, text: string): string {
+  const readings = [artifactText + statusText, artifactText, statusText].filter((r) => r.length > 0);
+  const repeats = (r: string) => text.startsWith(r) || r.startsWith(text) || r.endsWith(text);
+  return readings.find(repeats) ?? readings[0] ?? "";
+}
+
+/** The relay windows an event of the relaying agent ends without being
+ *  relayed itself: ADK's RemoteA2AAgent reports a failed request with an
+ *  event of its own (errorMessage, turnComplete, no relay record), which ends
+ *  every relayed stream of that author and node path. */
+function relayWindowsEndedBy(windows: ReadonlyMap<string, string>, turnId: string, event: AdkEvent): string[] {
+  if (relayOf(event) !== null) return [];
+  if (event.errorMessage === undefined && event.turnComplete !== true) return [];
+  return sourceWindows(windows, turnId, event, true)
+    .filter(([, stream]) => stream !== null)
+    .map(([key]) => key);
+}
+
 export function createAdkNormalizer(options: AdkNormalizerOptions = {}): Normalizer {
   // The per-invoke id stem, drawn ONCE here, OUTSIDE the inner, so a rebuild
   // re-drives to the same ids and no push() reads randomness.
@@ -2286,7 +2426,8 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
   const hostCompletion = options.hostCompletion === true;
   const a = new StreamAssembler();
   const threadId = options.threadId ?? "google";
-  // §8.3 per-instance accumulator (replaces the module-level streamedText Map):
+  // §8.3 per-instance accumulator (replaces the module-level streamedText Map),
+  // keyed by aggregateWindowKey (turn + source):
   const streamedText = new Map<string, string>();
   // Per turn and role: the transcription chunks streamed so far (see driveAdkTopLevel).
   const streamedTranscription = new Map<string, string>();
@@ -2674,19 +2815,88 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
       nullIdResponseIds.set(idx, consumeMintedCallId(toolCallMint, turnId, fr.name));
     });
 
-    // §8.3 — verbatim port of the legacy suppression, with e.push(...) → a.<primitive>.
-    const alreadyStreamed = streamedText.get(turnId) ?? "";
-    const isAggregate = !isPartial && alreadyStreamed.length > 0;
-    const aggregateText = isAggregate
-      ? parts
-          .filter(
-            (p, idx) => !skipped.has(idx) && p.thought !== true && p.functionCall === undefined && typeof p.text === "string",
+    // §8.3 — the aggregate suppression (§8.0 item 3). ADK re-yields a model
+    // call's streamed text as one `partial: false` event: when the call closes,
+    // in SSE before a non-text part in the same stream, and on the Live path
+    // before a tool call, on a switch between thought and text, and on a
+    // barge-in. The window holding the
+    // text streamed so far is keyed per turn AND per source (author, branch,
+    // node path, and for an event ADK's A2A relay forwards, the relayed stream:
+    // one artifact, or the status messages; an absent value is its own key), so
+    // interleaved streams never share one. Every non-partial event of the
+    // source closes it, except the ones ADK yields between a call's chunks and
+    // its re-yield, none of which carries text: a block chunk (no content, a
+    // finishReason), a Live usage report or grounding record (no content and
+    // nothing else a closing record carries: no errorCode, errorMessage,
+    // finishReason, turnComplete, session-resumption update, goAway or state or
+    // artifact delta, and for the usage report no interruption), a
+    // transcription event, a `partial: false` event whose
+    // parts are all non-text (a function call or media before the Interactions
+    // route's re-yield), and a function response (progressive SSE runs a tool
+    // mid-stream). A text event that closes the window is its re-yield when
+    // one text starts with the other (equal; longer by text no chunk streamed,
+    // whose tail renders; or shorter, a callback's replacement whose bytes
+    // already streamed) or when the streamed text ends with its text (a later
+    // call's re-yield after a call whose close never arrived, or ADK's
+    // structured-output rewrite); any other text renders in full. An event
+    // without a branch that finds no window under its own key (ADK's A2A relay
+    // rebuilds its re-yield without one, and a failed call's in-band error
+    // carries none) reads the open windows of the same turn, author and node
+    // path: a re-yield matches only when exactly one is open, and a text-less
+    // event that ends the match ends them all (a text with two or more
+    // candidates closes none). A relayed stream is scoped by its A2A task. A
+    // relayed artifact with no window of its own reads its task's status
+    // window; a relayed Task or Message restates its task, so it is read, in
+    // the order ADK renders a Task, against that task's artifact windows and
+    // then its status window (snapshotReading), and closes them; and
+    // the relaying agent's own failure event ends every relayed window of its
+    // author and node path. An empty text part is not text.
+    const isTextPart = (p: AdkPart, idx: number): boolean =>
+      !skipped.has(idx) &&
+      p.thought !== true &&
+      p.functionCall === undefined &&
+      typeof p.text === "string" &&
+      p.text.length > 0;
+    const carriesText = parts.some(isTextPart);
+    const ownKey = aggregateWindowKey(turnId, event);
+    const relay = relayOf(event);
+    const snapshot = !isPartial && relay !== null && relay.stream === "snapshot" ? relay : null;
+    const restated = snapshot !== null ? snapshotWindows(streamedText, turnId, event, snapshot.task) : null;
+    const candidates = isPartial
+      ? []
+      : restated !== null
+        ? [...restated.artifacts, ...restated.status]
+        : windowCandidates(streamedText, turnId, event);
+    const [onlyCandidate] = candidates;
+    const readKey = !isPartial && candidates.length === 1 && onlyCandidate !== undefined ? onlyCandidate : ownKey;
+    const alreadyStreamed = isPartial
+      ? (streamedText.get(ownKey) ?? "")
+      : restated !== null
+        ? snapshotReading(
+            restated.artifacts.map((key) => streamedText.get(key) ?? "").join(""),
+            restated.status.map((key) => streamedText.get(key) ?? "").join(""),
+            parts
+              .filter(isTextPart)
+              .map((p) => p.text ?? "")
+              .join(""),
           )
+        : candidates.length === 1
+          ? (streamedText.get(readKey) ?? "")
+          : "";
+    const matchesWindow = !isPartial && alreadyStreamed.length > 0 && carriesText;
+    const eventText = matchesWindow
+      ? parts
+          .filter(isTextPart)
           .map((p) => p.text ?? "")
           .join("")
       : "";
+    const suffixRepeat = matchesWindow && alreadyStreamed.endsWith(eventText);
+    const isAggregate =
+      matchesWindow &&
+      (eventText.startsWith(alreadyStreamed) || alreadyStreamed.startsWith(eventText) || suffixRepeat);
+    const aggregateText = isAggregate ? eventText : "";
     const suppressAggregateText =
-      isAggregate && aggregateText.length > 0 && alreadyStreamed.startsWith(aggregateText);
+      isAggregate && aggregateText.length > 0 && (alreadyStreamed.startsWith(aggregateText) || suffixRepeat);
     let residualTail =
       isAggregate && !suppressAggregateText ? aggregateText.slice(alreadyStreamed.length) : "";
     let accumulated = alreadyStreamed;
@@ -2737,8 +2947,32 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
       if (isPartial) accumulated += contributed;
     });
 
-    if (isPartial) streamedText.set(turnId, accumulated);
-    else if (isAggregate) streamedText.delete(turnId);
+    const stateDelta: unknown = event.actions?.stateDelta;
+    const artifactDelta: unknown = event.actions?.artifactDelta;
+    // Two records ADK's Live aggregator yields on their own between a call's
+    // chunks and its repeat: its usage report, and the grounding metadata of
+    // a message with no parts (a barge-in's among them). One that also carries
+    // anything that ends a call is neither, and closes the window.
+    const endsNoCall =
+      event.errorCode === undefined &&
+      event.errorMessage === undefined &&
+      event.turnComplete !== true &&
+      !Object.hasOwn(event, "liveSessionResumptionUpdate") &&
+      !Object.hasOwn(event, "goAway") &&
+      !(isJsonObject(stateDelta) && Object.keys(stateDelta).length > 0) &&
+      !(isJsonObject(artifactDelta) && Object.keys(artifactDelta).length > 0);
+    const usageReportOnly = endsNoCall && event.interrupted !== true && event.usageMetadata?.responseTokenCount !== undefined;
+    const groundingOnly = endsNoCall && event.groundingMetadata !== undefined;
+    const keepsWindowOpen =
+      !carriesText &&
+      ((event.partial === undefined && parts.length === 0 && (event.finishReason !== undefined || usageReportOnly || groundingOnly)) ||
+        event.inputTranscription !== undefined ||
+        event.outputTranscription !== undefined ||
+        (event.partial === false && parts.length > 0) ||
+        (parts.length > 0 && parts.every((p) => p.functionResponse !== undefined)));
+    if (isPartial) streamedText.set(ownKey, accumulated);
+    else if (carriesText) for (const key of snapshot !== null ? candidates : [readKey]) streamedText.delete(key);
+    else if (!keepsWindowOpen) for (const key of [...candidates, ...relayWindowsEndedBy(streamedText, turnId, event)]) streamedText.delete(key);
 
     // Round-3 review finding (regression on finding b): the resend window's
     // lifecycle is scoped PER CONTENT KEY, never per turn. `mintNullIdCallId`
