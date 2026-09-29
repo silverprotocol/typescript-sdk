@@ -4,10 +4,16 @@
   "partial": true,
   "customMetadata": {
    "a2a:response": {
-    "kind": "status-update"
+    "kind": "status-update",
+    "status": {
+     "state": "working",
+     "message": {
+      "role": "agent"
+     }
+    }
    },
-   "a2a:task_id": "cf1cd3a0-2932-40f4-baca-c4b62196e9f8",
-   "a2a:context_id": "aa7af61c-b6f0-440c-8926-65c96636b208"
+   "a2a:task_id": "28d6cb91-1840-43da-ae0c-33611ce072fe",
+   "a2a:context_id": "076f9c33-d216-4a81-b38c-58e6b6b07247"
   },
   "actions": {
    "stateDelta": {},
@@ -16,11 +22,11 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "jmMtG4k7",
-  "invocationId": "e-4f9202da-ca0d-40eb-8695-a6a6edbefafe",
+  "id": "YdsywbI0",
+  "invocationId": "e-80f1ca56-61ac-4e47-8bfa-4f0a20eef526",
   "longRunningToolIds": [],
   "branch": "par.helper",
-  "timestamp": 1790554122676,
+  "timestamp": 1790677546647,
   "content": {
    "role": "model",
    "parts": [
@@ -42,8 +48,8 @@
      "artifactId": "a1"
     }
    },
-   "a2a:task_id": "cf1cd3a0-2932-40f4-baca-c4b62196e9f8",
-   "a2a:context_id": "aa7af61c-b6f0-440c-8926-65c96636b208"
+   "a2a:task_id": "28d6cb91-1840-43da-ae0c-33611ce072fe",
+   "a2a:context_id": "076f9c33-d216-4a81-b38c-58e6b6b07247"
   },
   "actions": {
    "stateDelta": {},
@@ -52,11 +58,11 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "MYSLwGXF",
-  "invocationId": "e-4f9202da-ca0d-40eb-8695-a6a6edbefafe",
+  "id": "PL8oFkN0",
+  "invocationId": "e-80f1ca56-61ac-4e47-8bfa-4f0a20eef526",
   "longRunningToolIds": [],
   "branch": "par.helper",
-  "timestamp": 1790554122710,
+  "timestamp": 1790677546671,
   "content": {
    "role": "model",
    "parts": [
@@ -77,8 +83,8 @@
      "artifactId": "a1"
     }
    },
-   "a2a:task_id": "cf1cd3a0-2932-40f4-baca-c4b62196e9f8",
-   "a2a:context_id": "aa7af61c-b6f0-440c-8926-65c96636b208"
+   "a2a:task_id": "28d6cb91-1840-43da-ae0c-33611ce072fe",
+   "a2a:context_id": "076f9c33-d216-4a81-b38c-58e6b6b07247"
   },
   "actions": {
    "stateDelta": {},
@@ -87,11 +93,11 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "MvNnG3t2",
-  "invocationId": "e-4f9202da-ca0d-40eb-8695-a6a6edbefafe",
+  "id": "S3VjwhNn",
+  "invocationId": "e-80f1ca56-61ac-4e47-8bfa-4f0a20eef526",
   "longRunningToolIds": [],
   "branch": "par.helper",
-  "timestamp": 1790554122750,
+  "timestamp": 1790677546693,
   "content": {
    "role": "model",
    "parts": [
@@ -104,7 +110,7 @@
  },
  {
   "author": "helper",
-  "invocationId": "e-4f9202da-ca0d-40eb-8695-a6a6edbefafe",
+  "invocationId": "e-80f1ca56-61ac-4e47-8bfa-4f0a20eef526",
   "content": {
    "role": "model",
    "parts": [
@@ -120,12 +126,12 @@
      "artifactId": "a1"
     }
    },
-   "a2a:task_id": "cf1cd3a0-2932-40f4-baca-c4b62196e9f8",
-   "a2a:context_id": "aa7af61c-b6f0-440c-8926-65c96636b208"
+   "a2a:task_id": "28d6cb91-1840-43da-ae0c-33611ce072fe",
+   "a2a:context_id": "076f9c33-d216-4a81-b38c-58e6b6b07247"
   },
   "turnComplete": false,
   "partial": false,
-  "id": "GAzGF4Yt",
+  "id": "b27gwpLz",
   "actions": {
    "stateDelta": {},
    "artifactDelta": {},
@@ -133,6 +139,6 @@
    "requestedToolConfirmations": {}
   },
   "longRunningToolIds": [],
-  "timestamp": 1790554122750
+  "timestamp": 1790677546693
  }
 ]

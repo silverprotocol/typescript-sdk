@@ -11,10 +11,16 @@
     "customMetadata": {
       "a2a:request": {},
       "a2a:response": {
-        "kind": "status-update"
+        "kind": "status-update",
+        "status": {
+          "state": "failed",
+          "message": {
+            "role": "agent"
+          }
+        }
       },
-      "a2a:task_id": "d3a59160-def0-4953-ae24-1d2695c60b9a",
-      "a2a:context_id": "a621a4b2-7849-4f51-a7aa-c26fa1e7ae6d"
+      "a2a:task_id": "a79be59e-fc24-4955-8293-f23d89aeb415",
+      "a2a:context_id": "e43a12a1-fbad-46c4-bd31-ad0ed600ce2e"
     },
     "actions": {
       "stateDelta": {},
@@ -23,10 +29,10 @@
       "requestedToolConfirmations": {},
       "escalate": false
     },
-    "id": "wdmiwxVz",
-    "invocationId": "e-49111cec-1891-40e9-91ac-ecb48aeb586a",
+    "id": "PWhoElcB",
+    "invocationId": "e-c7ba0638-1df7-4345-b84a-4f1431c83344",
     "longRunningToolIds": [],
-    "timestamp": 1790676643891,
+    "timestamp": 1790679230294,
     "turnComplete": true
   }
 ]

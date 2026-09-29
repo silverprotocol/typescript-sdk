@@ -9,8 +9,8 @@
      "artifactId": "a1"
     }
    },
-   "a2a:task_id": "c77e0eec-0728-4599-8383-4f1fae9f03b3",
-   "a2a:context_id": "81cfdde7-fd64-4b43-a036-f61b9743b70e"
+   "a2a:task_id": "6b674685-455a-4567-be23-5bad8b252c5d",
+   "a2a:context_id": "ce4fdcb3-3db1-44f5-a39b-4298373607fc"
   },
   "actions": {
    "stateDelta": {},
@@ -19,10 +19,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "0k7wqt6P",
-  "invocationId": "e-2d156b63-78d2-4bb6-96d3-f6b623eb1e03",
+  "id": "y7riAjdE",
+  "invocationId": "e-6cead59a-f37f-495e-aae0-e7d075eac18d",
   "longRunningToolIds": [],
-  "timestamp": 1790668734033,
+  "timestamp": 1790677551309,
   "content": {
    "role": "model",
    "parts": [
@@ -43,8 +43,8 @@
      "artifactId": "a1"
     }
    },
-   "a2a:task_id": "c77e0eec-0728-4599-8383-4f1fae9f03b3",
-   "a2a:context_id": "81cfdde7-fd64-4b43-a036-f61b9743b70e"
+   "a2a:task_id": "6b674685-455a-4567-be23-5bad8b252c5d",
+   "a2a:context_id": "ce4fdcb3-3db1-44f5-a39b-4298373607fc"
   },
   "actions": {
    "stateDelta": {},
@@ -53,10 +53,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "dQAZOqJp",
-  "invocationId": "e-2d156b63-78d2-4bb6-96d3-f6b623eb1e03",
+  "id": "u1p3npex",
+  "invocationId": "e-6cead59a-f37f-495e-aae0-e7d075eac18d",
   "longRunningToolIds": [],
-  "timestamp": 1790668734058,
+  "timestamp": 1790677551340,
   "content": {
    "role": "model",
    "parts": [
@@ -72,10 +72,23 @@
   "customMetadata": {
    "a2a:request": {},
    "a2a:response": {
-    "kind": "task"
+    "kind": "task",
+    "status": {
+     "state": "completed"
+    },
+    "artifacts": [
+     {
+      "artifactId": "a1",
+      "parts": [
+       {
+        "kind": "text"
+       }
+      ]
+     }
+    ]
    },
-   "a2a:task_id": "c77e0eec-0728-4599-8383-4f1fae9f03b3",
-   "a2a:context_id": "81cfdde7-fd64-4b43-a036-f61b9743b70e"
+   "a2a:task_id": "6b674685-455a-4567-be23-5bad8b252c5d",
+   "a2a:context_id": "ce4fdcb3-3db1-44f5-a39b-4298373607fc"
   },
   "actions": {
    "stateDelta": {},
@@ -84,10 +97,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "QKGlXO5m",
-  "invocationId": "e-2d156b63-78d2-4bb6-96d3-f6b623eb1e03",
+  "id": "d0durLb6",
+  "invocationId": "e-6cead59a-f37f-495e-aae0-e7d075eac18d",
   "longRunningToolIds": [],
-  "timestamp": 1790668734092,
+  "timestamp": 1790677551367,
   "content": {
    "role": "model",
    "parts": [

@@ -9,8 +9,8 @@
      "artifactId": "a1"
     }
    },
-   "a2a:task_id": "f09c2a9e-0e71-4a18-b224-805e13f16cba",
-   "a2a:context_id": "a0477787-8ba8-45c9-8a73-9978ddc026e9"
+   "a2a:task_id": "2a773df9-130c-4209-9971-603c4c601c4e",
+   "a2a:context_id": "cbb43b44-06a7-49f0-8fbd-dbc58fe1855c"
   },
   "actions": {
    "stateDelta": {},
@@ -19,10 +19,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "szzESkNn",
-  "invocationId": "e-06ff8af7-f5dd-4a16-9560-6b3a6cebc461",
+  "id": "P7mgMcnO",
+  "invocationId": "e-c31be6eb-cb25-4d95-8766-3768149575b0",
   "longRunningToolIds": [],
-  "timestamp": 1790668733534,
+  "timestamp": 1790677550801,
   "content": {
    "role": "model",
    "parts": [
@@ -35,10 +35,10 @@
  },
  {
   "author": "helper",
-  "invocationId": "e-06ff8af7-f5dd-4a16-9560-6b3a6cebc461",
+  "invocationId": "e-c31be6eb-cb25-4d95-8766-3768149575b0",
   "errorMessage": "connection reset",
   "turnComplete": true,
-  "id": "7bvNn49T",
+  "id": "y9wRyerb",
   "actions": {
    "stateDelta": {},
    "artifactDelta": {},
@@ -46,7 +46,7 @@
    "requestedToolConfirmations": {}
   },
   "longRunningToolIds": [],
-  "timestamp": 1790668733561
+  "timestamp": 1790677550823
  },
  {
   "author": "helper",
@@ -58,8 +58,8 @@
      "artifactId": "a1"
     }
    },
-   "a2a:task_id": "117dbb10-c3ea-405c-bc0a-346ddeab2ff4",
-   "a2a:context_id": "7ed668cd-2703-4ba3-ad63-14178bd31665"
+   "a2a:task_id": "dbada775-6f50-4e75-958d-7b3320ab2bb5",
+   "a2a:context_id": "9d9ff214-c50b-40ea-93c0-237934c78dc7"
   },
   "actions": {
    "stateDelta": {},
@@ -68,10 +68,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "lDoehGNx",
-  "invocationId": "e-06ff8af7-f5dd-4a16-9560-6b3a6cebc461",
+  "id": "ImnwfAAV",
+  "invocationId": "e-c31be6eb-cb25-4d95-8766-3768149575b0",
   "longRunningToolIds": [],
-  "timestamp": 1790668733611,
+  "timestamp": 1790677550871,
   "content": {
    "role": "model",
    "parts": [

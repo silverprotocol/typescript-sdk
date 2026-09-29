@@ -315,10 +315,14 @@ not the bytes, because streams carry random ids.
 
 Two fidelity limits apply to these streams, beside the redaction every
 committed native gets:
-- Relay customMetadata entries are reduced to what the fold needs:
-  `a2a:response` keeps `kind` and an artifact's `artifactId` (the relay
-  stream a facet window rule keys on), the task and context ids stay, and
-  any other relay entry keeps no member.
+- Relay customMetadata entries are reduced to what the fold needs
+  (`adk-relay-reduce.ts`): `a2a:response` keeps structure only, never text:
+  its `kind`, an artifact update's `artifactId` (the relay stream a facet
+  window rule keys on), the status `state` and its message's `role` (a
+  relayed repeat of the forwarded request is a submitted, user-role status),
+  and a recorded task's artifacts as their `artifactId` and each part's
+  `kind` (the number of parts the repeat follows). The task and context ids
+  stay, and any other relay entry keeps no member.
 - A facet that starts reading any other member of those entries needs the
   set regenerated from the engine without the reduction, and its fixtures
   re-captured.

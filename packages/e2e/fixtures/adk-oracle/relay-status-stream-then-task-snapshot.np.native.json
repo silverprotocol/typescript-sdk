@@ -4,10 +4,16 @@
   "partial": true,
   "customMetadata": {
    "a2a:response": {
-    "kind": "status-update"
+    "kind": "status-update",
+    "status": {
+     "state": "working",
+     "message": {
+      "role": "agent"
+     }
+    }
    },
-   "a2a:task_id": "be055d96-4a7d-42ad-acea-5440d654cd1a",
-   "a2a:context_id": "45093c88-20ec-4a28-8e6d-dc1cd8b8e574"
+   "a2a:task_id": "65a0398d-62df-4606-aaf6-c409750e443a",
+   "a2a:context_id": "18b1e4ef-02d5-4f0d-8c38-d84616d749c2"
   },
   "actions": {
    "stateDelta": {},
@@ -16,10 +22,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "ozRQdVPz",
-  "invocationId": "e-f530a6f9-562e-43e6-a8c0-18aef9797a5f",
+  "id": "1yRNBLbS",
+  "invocationId": "e-8e6a7793-b794-4d82-a06c-c05e85ef1b94",
   "longRunningToolIds": [],
-  "timestamp": 1790566691519,
+  "timestamp": 1790677550314,
   "content": {
    "role": "model",
    "parts": [
@@ -36,10 +42,16 @@
   "partial": true,
   "customMetadata": {
    "a2a:response": {
-    "kind": "status-update"
+    "kind": "status-update",
+    "status": {
+     "state": "working",
+     "message": {
+      "role": "agent"
+     }
+    }
    },
-   "a2a:task_id": "be055d96-4a7d-42ad-acea-5440d654cd1a",
-   "a2a:context_id": "45093c88-20ec-4a28-8e6d-dc1cd8b8e574"
+   "a2a:task_id": "65a0398d-62df-4606-aaf6-c409750e443a",
+   "a2a:context_id": "18b1e4ef-02d5-4f0d-8c38-d84616d749c2"
   },
   "actions": {
    "stateDelta": {},
@@ -48,10 +60,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "bGraQWT1",
-  "invocationId": "e-f530a6f9-562e-43e6-a8c0-18aef9797a5f",
+  "id": "msL6Azph",
+  "invocationId": "e-8e6a7793-b794-4d82-a06c-c05e85ef1b94",
   "longRunningToolIds": [],
-  "timestamp": 1790566691540,
+  "timestamp": 1790677550335,
   "content": {
    "role": "model",
    "parts": [
@@ -68,10 +80,16 @@
   "customMetadata": {
    "a2a:request": {},
    "a2a:response": {
-    "kind": "task"
+    "kind": "task",
+    "status": {
+     "state": "completed",
+     "message": {
+      "role": "agent"
+     }
+    }
    },
-   "a2a:task_id": "be055d96-4a7d-42ad-acea-5440d654cd1a",
-   "a2a:context_id": "45093c88-20ec-4a28-8e6d-dc1cd8b8e574"
+   "a2a:task_id": "65a0398d-62df-4606-aaf6-c409750e443a",
+   "a2a:context_id": "18b1e4ef-02d5-4f0d-8c38-d84616d749c2"
   },
   "actions": {
    "stateDelta": {},
@@ -80,10 +98,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "tDpyttLq",
-  "invocationId": "e-f530a6f9-562e-43e6-a8c0-18aef9797a5f",
+  "id": "PnCgo2x8",
+  "invocationId": "e-8e6a7793-b794-4d82-a06c-c05e85ef1b94",
   "longRunningToolIds": [],
-  "timestamp": 1790566691562,
+  "timestamp": 1790677550357,
   "content": {
    "role": "model",
    "parts": [

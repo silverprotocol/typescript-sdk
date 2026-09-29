@@ -11,10 +11,16 @@
     "customMetadata": {
       "a2a:request": {},
       "a2a:response": {
-        "kind": "status-update"
+        "kind": "status-update",
+        "status": {
+          "state": "failed",
+          "message": {
+            "role": "agent"
+          }
+        }
       },
-      "a2a:task_id": "14fdf393-2588-4c70-afc0-a3f181643ee1",
-      "a2a:context_id": "6adb86de-04a3-479e-b942-485f60b0df02"
+      "a2a:task_id": "5f43a872-eee1-41e6-83bd-f55753172944",
+      "a2a:context_id": "c0ba6f5d-1d86-465b-a39a-85db0ae1a177"
     },
     "actions": {
       "stateDelta": {},
@@ -23,16 +29,16 @@
       "requestedToolConfirmations": {},
       "escalate": false
     },
-    "id": "kevR9KK0",
-    "invocationId": "e-e5d6af2e-167f-44f2-9ad8-9880aa0f85e0",
+    "id": "9DoZS2YK",
+    "invocationId": "e-d46b45d5-38c1-4c19-946c-9b04d8e4927a",
     "longRunningToolIds": [],
-    "timestamp": 1790679023288,
+    "timestamp": 1790679230280,
     "turnComplete": true
   },
   {
-    "invocationId": "e-e5d6af2e-167f-44f2-9ad8-9880aa0f85e0",
+    "invocationId": "e-d46b45d5-38c1-4c19-946c-9b04d8e4927a",
     "author": "planner",
-    "id": "t3NRhj6s",
+    "id": "UMQH1JAT",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -40,7 +46,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790679023289,
+    "timestamp": 1790679230281,
     "content": {
       "role": "model",
       "parts": [
@@ -68,10 +74,16 @@
     "customMetadata": {
       "a2a:request": {},
       "a2a:response": {
-        "kind": "status-update"
+        "kind": "status-update",
+        "status": {
+          "state": "failed",
+          "message": {
+            "role": "agent"
+          }
+        }
       },
-      "a2a:task_id": "f0d54b66-416d-4701-a567-004ff8a8e87d",
-      "a2a:context_id": "6adb86de-04a3-479e-b942-485f60b0df02"
+      "a2a:task_id": "c4b2d76c-a089-454d-aa6d-4a3a18ec93a2",
+      "a2a:context_id": "c0ba6f5d-1d86-465b-a39a-85db0ae1a177"
     },
     "actions": {
       "stateDelta": {},
@@ -80,16 +92,16 @@
       "requestedToolConfirmations": {},
       "escalate": false
     },
-    "id": "vOTl9v6K",
-    "invocationId": "e-e5d6af2e-167f-44f2-9ad8-9880aa0f85e0",
+    "id": "cSGLTlZw",
+    "invocationId": "e-d46b45d5-38c1-4c19-946c-9b04d8e4927a",
     "longRunningToolIds": [],
-    "timestamp": 1790679023290,
+    "timestamp": 1790679230281,
     "turnComplete": true
   },
   {
-    "invocationId": "e-e5d6af2e-167f-44f2-9ad8-9880aa0f85e0",
+    "invocationId": "e-d46b45d5-38c1-4c19-946c-9b04d8e4927a",
     "author": "planner",
-    "id": "5o1jtd90",
+    "id": "PsThRknh",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -97,7 +109,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790679023291,
+    "timestamp": 1790679230282,
     "content": {
       "role": "model",
       "parts": [

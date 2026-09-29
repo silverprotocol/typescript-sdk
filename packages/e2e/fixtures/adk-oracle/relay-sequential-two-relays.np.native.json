@@ -4,10 +4,16 @@
   "partial": true,
   "customMetadata": {
    "a2a:response": {
-    "kind": "status-update"
+    "kind": "status-update",
+    "status": {
+     "state": "working",
+     "message": {
+      "role": "agent"
+     }
+    }
    },
-   "a2a:task_id": "92bf0fdf-0a43-40bc-88de-951d5ade2bab",
-   "a2a:context_id": "4a91000f-08bc-4ed6-b8ed-9f9c6590540f"
+   "a2a:task_id": "5cc5934e-1985-4c47-b3f3-8cebefd76a85",
+   "a2a:context_id": "3da7b54b-6bbf-482b-8576-efe971c87720"
   },
   "actions": {
    "stateDelta": {},
@@ -16,10 +22,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "mgW6zzTp",
-  "invocationId": "e-b07cf19a-d61a-443f-be39-598b298cbb80",
+  "id": "nrjCdfTc",
+  "invocationId": "e-494221d3-cd7b-461a-bfb6-1f67b6c55ee6",
   "longRunningToolIds": [],
-  "timestamp": 1790554123755,
+  "timestamp": 1790677547840,
   "content": {
    "role": "model",
    "parts": [
@@ -41,8 +47,8 @@
      "artifactId": "art-1"
     }
    },
-   "a2a:task_id": "92bf0fdf-0a43-40bc-88de-951d5ade2bab",
-   "a2a:context_id": "4a91000f-08bc-4ed6-b8ed-9f9c6590540f"
+   "a2a:task_id": "5cc5934e-1985-4c47-b3f3-8cebefd76a85",
+   "a2a:context_id": "3da7b54b-6bbf-482b-8576-efe971c87720"
   },
   "actions": {
    "stateDelta": {},
@@ -51,10 +57,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "JCqWoMhh",
-  "invocationId": "e-b07cf19a-d61a-443f-be39-598b298cbb80",
+  "id": "vtJ5lGes",
+  "invocationId": "e-494221d3-cd7b-461a-bfb6-1f67b6c55ee6",
   "longRunningToolIds": [],
-  "timestamp": 1790554123779,
+  "timestamp": 1790677547868,
   "content": {
    "role": "model",
    "parts": [
@@ -75,8 +81,8 @@
      "artifactId": "art-1"
     }
    },
-   "a2a:task_id": "92bf0fdf-0a43-40bc-88de-951d5ade2bab",
-   "a2a:context_id": "4a91000f-08bc-4ed6-b8ed-9f9c6590540f"
+   "a2a:task_id": "5cc5934e-1985-4c47-b3f3-8cebefd76a85",
+   "a2a:context_id": "3da7b54b-6bbf-482b-8576-efe971c87720"
   },
   "actions": {
    "stateDelta": {},
@@ -85,10 +91,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "Ag33iMmC",
-  "invocationId": "e-b07cf19a-d61a-443f-be39-598b298cbb80",
+  "id": "mw2uv33f",
+  "invocationId": "e-494221d3-cd7b-461a-bfb6-1f67b6c55ee6",
   "longRunningToolIds": [],
-  "timestamp": 1790554123804,
+  "timestamp": 1790677547948,
   "content": {
    "role": "model",
    "parts": [
@@ -101,7 +107,7 @@
  },
  {
   "author": "first",
-  "invocationId": "e-b07cf19a-d61a-443f-be39-598b298cbb80",
+  "invocationId": "e-494221d3-cd7b-461a-bfb6-1f67b6c55ee6",
   "content": {
    "role": "model",
    "parts": [
@@ -117,12 +123,12 @@
      "artifactId": "art-1"
     }
    },
-   "a2a:task_id": "92bf0fdf-0a43-40bc-88de-951d5ade2bab",
-   "a2a:context_id": "4a91000f-08bc-4ed6-b8ed-9f9c6590540f"
+   "a2a:task_id": "5cc5934e-1985-4c47-b3f3-8cebefd76a85",
+   "a2a:context_id": "3da7b54b-6bbf-482b-8576-efe971c87720"
   },
   "turnComplete": false,
   "partial": false,
-  "id": "dcDKwn5B",
+  "id": "v6UglYgI",
   "actions": {
    "stateDelta": {},
    "artifactDelta": {},
@@ -130,17 +136,23 @@
    "requestedToolConfirmations": {}
   },
   "longRunningToolIds": [],
-  "timestamp": 1790554123804
+  "timestamp": 1790677547951
  },
  {
   "author": "second",
   "partial": true,
   "customMetadata": {
    "a2a:response": {
-    "kind": "status-update"
+    "kind": "status-update",
+    "status": {
+     "state": "working",
+     "message": {
+      "role": "agent"
+     }
+    }
    },
-   "a2a:task_id": "7a1825a6-1e47-4af7-a241-dbfa8dd805df",
-   "a2a:context_id": "5fa3d954-a7f9-4d77-bc28-04c3a52cf130"
+   "a2a:task_id": "fb7e0543-92de-475c-98e9-42321272641a",
+   "a2a:context_id": "416c70dc-de3d-4aa9-a1df-3050c62d661b"
   },
   "actions": {
    "stateDelta": {},
@@ -149,10 +161,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "t8h2BgeF",
-  "invocationId": "e-b07cf19a-d61a-443f-be39-598b298cbb80",
+  "id": "EZ7kGFPu",
+  "invocationId": "e-494221d3-cd7b-461a-bfb6-1f67b6c55ee6",
   "longRunningToolIds": [],
-  "timestamp": 1790554123868,
+  "timestamp": 1790677548018,
   "content": {
    "role": "model",
    "parts": [
@@ -174,8 +186,8 @@
      "artifactId": "art-1"
     }
    },
-   "a2a:task_id": "7a1825a6-1e47-4af7-a241-dbfa8dd805df",
-   "a2a:context_id": "5fa3d954-a7f9-4d77-bc28-04c3a52cf130"
+   "a2a:task_id": "fb7e0543-92de-475c-98e9-42321272641a",
+   "a2a:context_id": "416c70dc-de3d-4aa9-a1df-3050c62d661b"
   },
   "actions": {
    "stateDelta": {},
@@ -184,10 +196,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "JMUye0sY",
-  "invocationId": "e-b07cf19a-d61a-443f-be39-598b298cbb80",
+  "id": "ntFBiHt0",
+  "invocationId": "e-494221d3-cd7b-461a-bfb6-1f67b6c55ee6",
   "longRunningToolIds": [],
-  "timestamp": 1790554123904,
+  "timestamp": 1790677548038,
   "content": {
    "role": "model",
    "parts": [
@@ -208,8 +220,8 @@
      "artifactId": "art-1"
     }
    },
-   "a2a:task_id": "7a1825a6-1e47-4af7-a241-dbfa8dd805df",
-   "a2a:context_id": "5fa3d954-a7f9-4d77-bc28-04c3a52cf130"
+   "a2a:task_id": "fb7e0543-92de-475c-98e9-42321272641a",
+   "a2a:context_id": "416c70dc-de3d-4aa9-a1df-3050c62d661b"
   },
   "actions": {
    "stateDelta": {},
@@ -218,10 +230,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "eDufE9XL",
-  "invocationId": "e-b07cf19a-d61a-443f-be39-598b298cbb80",
+  "id": "6niAbT1y",
+  "invocationId": "e-494221d3-cd7b-461a-bfb6-1f67b6c55ee6",
   "longRunningToolIds": [],
-  "timestamp": 1790554123940,
+  "timestamp": 1790677548076,
   "content": {
    "role": "model",
    "parts": [
@@ -234,7 +246,7 @@
  },
  {
   "author": "second",
-  "invocationId": "e-b07cf19a-d61a-443f-be39-598b298cbb80",
+  "invocationId": "e-494221d3-cd7b-461a-bfb6-1f67b6c55ee6",
   "content": {
    "role": "model",
    "parts": [
@@ -250,12 +262,12 @@
      "artifactId": "art-1"
     }
    },
-   "a2a:task_id": "7a1825a6-1e47-4af7-a241-dbfa8dd805df",
-   "a2a:context_id": "5fa3d954-a7f9-4d77-bc28-04c3a52cf130"
+   "a2a:task_id": "fb7e0543-92de-475c-98e9-42321272641a",
+   "a2a:context_id": "416c70dc-de3d-4aa9-a1df-3050c62d661b"
   },
   "turnComplete": false,
   "partial": false,
-  "id": "OsHRjczc",
+  "id": "aMt0PPxQ",
   "actions": {
    "stateDelta": {},
    "artifactDelta": {},
@@ -263,6 +275,6 @@
    "requestedToolConfirmations": {}
   },
   "longRunningToolIds": [],
-  "timestamp": 1790554123940
+  "timestamp": 1790677548076
  }
 ]

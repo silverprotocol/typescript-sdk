@@ -4,10 +4,16 @@
   "partial": true,
   "customMetadata": {
    "a2a:response": {
-    "kind": "status-update"
+    "kind": "status-update",
+    "status": {
+     "state": "working",
+     "message": {
+      "role": "agent"
+     }
+    }
    },
-   "a2a:task_id": "2b3a7c66-8d31-4f69-bb34-be34bd19f237",
-   "a2a:context_id": "fedfd3d4-ba00-4e7f-a7be-75f3080b658f"
+   "a2a:task_id": "83bcfc0b-f598-4a3d-abdb-2346b4030bc1",
+   "a2a:context_id": "a39f2ce4-d83f-42b3-8038-2ba9cb929307"
   },
   "actions": {
    "stateDelta": {},
@@ -16,10 +22,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "xR9EdKfc",
-  "invocationId": "e-5f6ee4df-b80d-449b-b9de-839d446435fa",
+  "id": "RPJH7xSK",
+  "invocationId": "e-be4709f1-67ac-4436-91f7-8e1406db97bc",
   "longRunningToolIds": [],
-  "timestamp": 1790554124646,
+  "timestamp": 1790677548758,
   "content": {
    "role": "model",
    "parts": [
@@ -36,10 +42,16 @@
   "partial": true,
   "customMetadata": {
    "a2a:response": {
-    "kind": "status-update"
+    "kind": "status-update",
+    "status": {
+     "state": "working",
+     "message": {
+      "role": "agent"
+     }
+    }
    },
-   "a2a:task_id": "2b3a7c66-8d31-4f69-bb34-be34bd19f237",
-   "a2a:context_id": "fedfd3d4-ba00-4e7f-a7be-75f3080b658f"
+   "a2a:task_id": "83bcfc0b-f598-4a3d-abdb-2346b4030bc1",
+   "a2a:context_id": "a39f2ce4-d83f-42b3-8038-2ba9cb929307"
   },
   "actions": {
    "stateDelta": {},
@@ -48,10 +60,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "1rTa9tnw",
-  "invocationId": "e-5f6ee4df-b80d-449b-b9de-839d446435fa",
+  "id": "I7Yl67Cg",
+  "invocationId": "e-be4709f1-67ac-4436-91f7-8e1406db97bc",
   "longRunningToolIds": [],
-  "timestamp": 1790554124675,
+  "timestamp": 1790677548780,
   "content": {
    "role": "model",
    "parts": [
@@ -70,11 +82,11 @@
    "a2a:response": {
     "kind": "artifact-update",
     "artifact": {
-     "artifactId": "6790cd5d-5df7-4f39-ba15-a8c7b9d53069"
+     "artifactId": "70e048b3-827d-45c3-864d-7a64408dfc07"
     }
    },
-   "a2a:task_id": "2b3a7c66-8d31-4f69-bb34-be34bd19f237",
-   "a2a:context_id": "fedfd3d4-ba00-4e7f-a7be-75f3080b658f"
+   "a2a:task_id": "83bcfc0b-f598-4a3d-abdb-2346b4030bc1",
+   "a2a:context_id": "a39f2ce4-d83f-42b3-8038-2ba9cb929307"
   },
   "actions": {
    "stateDelta": {},
@@ -83,10 +95,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "IXViSRPr",
-  "invocationId": "e-5f6ee4df-b80d-449b-b9de-839d446435fa",
+  "id": "LzUkAJPo",
+  "invocationId": "e-be4709f1-67ac-4436-91f7-8e1406db97bc",
   "longRunningToolIds": [],
-  "timestamp": 1790554124722,
+  "timestamp": 1790677548801,
   "content": {
    "role": "model",
    "parts": [

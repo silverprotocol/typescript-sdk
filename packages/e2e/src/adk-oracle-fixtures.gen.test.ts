@@ -14,9 +14,9 @@
  *   npx vitest run --config ../../vitest.config.ts src/adk-oracle-fixtures.gen.test.ts   (from packages/e2e)
  *
  * Relay customMetadata entries are reduced to what the fold needs by the shared allowlist (RELAY_KEEP,
- * adk-relay-reduce.ts): `a2a:response` keeps `kind` and an artifact's `artifactId` (the relay stream a facet window
- * rule keys on), the task and context ids stay, and any other relay entry keeps no member. A written native is
- * refused if an entry holds more.
+ * adk-relay-reduce.ts): `a2a:response` keeps structure only (its `kind`, an artifact update's `artifactId`, the status
+ * `state` and message `role`, and a task's artifacts as ids and part kinds), the task and context ids stay, and any
+ * other relay entry keeps no member. A written native is refused if an entry holds more.
  *
  * Not a leg: two open windows of one author and path that differ only by branch, closed by an event without one.
  * No ADK 2.1 runner yields it (ParallelAgent branches are different authors, NodeTool calls run one after the other

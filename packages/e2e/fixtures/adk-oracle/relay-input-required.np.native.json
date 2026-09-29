@@ -4,10 +4,16 @@
   "customMetadata": {
    "a2a:request": {},
    "a2a:response": {
-    "kind": "status-update"
+    "kind": "status-update",
+    "status": {
+     "state": "input-required",
+     "message": {
+      "role": "agent"
+     }
+    }
    },
-   "a2a:task_id": "8439ed99-cc66-4718-99b2-1c17017baa7d",
-   "a2a:context_id": "df13fd9d-c6b0-4576-9f39-860f621485df"
+   "a2a:task_id": "926282ef-2a9c-4245-89f4-8dacdcf75d57",
+   "a2a:context_id": "96d88973-1c67-4f08-8f27-4b1d1a03df39"
   },
   "actions": {
    "stateDelta": {},
@@ -16,10 +22,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "5AOAiBXQ",
-  "invocationId": "e-e87907e4-53d9-47be-a0a5-91827ca476d0",
+  "id": "BfBuvCkX",
+  "invocationId": "e-7e7c185e-e80f-4267-a348-908359772b43",
   "longRunningToolIds": [],
-  "timestamp": 1790554125112,
+  "timestamp": 1790677549227,
   "content": {
    "role": "model",
    "parts": [

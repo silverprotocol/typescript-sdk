@@ -4,10 +4,16 @@
   "partial": true,
   "customMetadata": {
    "a2a:response": {
-    "kind": "status-update"
+    "kind": "status-update",
+    "status": {
+     "state": "working",
+     "message": {
+      "role": "agent"
+     }
+    }
    },
-   "a2a:task_id": "05c3abc7-192d-46a3-89f0-d200204146ab",
-   "a2a:context_id": "02fb24e3-281e-4276-86b9-c8147c7509c5"
+   "a2a:task_id": "396a7af3-5c50-4475-8205-3b7bbd24e1e0",
+   "a2a:context_id": "ec87e17c-12f9-420b-b40a-d300c3bd668f"
   },
   "actions": {
    "stateDelta": {},
@@ -16,10 +22,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "a14FPh9V",
-  "invocationId": "e-feaa988a-da7e-4047-9b3e-704b02764a39",
+  "id": "EvcKCFP8",
+  "invocationId": "e-cf7f4743-648f-4aa9-a86e-78ced9593444",
   "longRunningToolIds": [],
-  "timestamp": 1790668734126,
+  "timestamp": 1790677551406,
   "content": {
    "role": "model",
    "parts": [
@@ -36,10 +42,16 @@
   "partial": true,
   "customMetadata": {
    "a2a:response": {
-    "kind": "status-update"
+    "kind": "status-update",
+    "status": {
+     "state": "working",
+     "message": {
+      "role": "agent"
+     }
+    }
    },
-   "a2a:task_id": "05c3abc7-192d-46a3-89f0-d200204146ab",
-   "a2a:context_id": "02fb24e3-281e-4276-86b9-c8147c7509c5"
+   "a2a:task_id": "396a7af3-5c50-4475-8205-3b7bbd24e1e0",
+   "a2a:context_id": "ec87e17c-12f9-420b-b40a-d300c3bd668f"
   },
   "actions": {
    "stateDelta": {},
@@ -48,10 +60,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "73QFRKNJ",
-  "invocationId": "e-feaa988a-da7e-4047-9b3e-704b02764a39",
+  "id": "qxjwsPrQ",
+  "invocationId": "e-cf7f4743-648f-4aa9-a86e-78ced9593444",
   "longRunningToolIds": [],
-  "timestamp": 1790668734162,
+  "timestamp": 1790677551428,
   "content": {
    "role": "model",
    "parts": [
@@ -71,8 +83,8 @@
    "a2a:response": {
     "kind": "message"
    },
-   "a2a:task_id": "05c3abc7-192d-46a3-89f0-d200204146ab",
-   "a2a:context_id": "02fb24e3-281e-4276-86b9-c8147c7509c5"
+   "a2a:task_id": "396a7af3-5c50-4475-8205-3b7bbd24e1e0",
+   "a2a:context_id": "ec87e17c-12f9-420b-b40a-d300c3bd668f"
   },
   "actions": {
    "stateDelta": {},
@@ -81,10 +93,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "gGjw4ARh",
-  "invocationId": "e-feaa988a-da7e-4047-9b3e-704b02764a39",
+  "id": "SKGWwmMF",
+  "invocationId": "e-cf7f4743-648f-4aa9-a86e-78ced9593444",
   "longRunningToolIds": [],
-  "timestamp": 1790668734196,
+  "timestamp": 1790677551450,
   "content": {
    "role": "model",
    "parts": [

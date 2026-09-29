@@ -11,11 +11,11 @@
       "a2a:response": {
         "kind": "artifact-update",
         "artifact": {
-          "artifactId": "bf32c4a9-b62e-429d-8e71-63ed6e3935a5"
+          "artifactId": "218e3f51-7902-4e81-9fc3-c8463b09485e"
         }
       },
-      "a2a:task_id": "17105fe5-f352-4903-abcf-2f9d6cd7a7db",
-      "a2a:context_id": "19c017a0-e3ba-4068-8600-e9eb864fa602"
+      "a2a:task_id": "0cc9b38b-44d2-4e85-af49-3e0a8a35f9c4",
+      "a2a:context_id": "4bd37491-45fa-4ee8-968b-47c56175e4d0"
     },
     "actions": {
       "stateDelta": {},
@@ -24,10 +24,10 @@
       "requestedToolConfirmations": {},
       "escalate": false
     },
-    "id": "GekkcLIl",
-    "invocationId": "e-f0eb21ab-2e9e-4d20-b78c-36ded18fd8e2",
+    "id": "OiQ7iOBL",
+    "invocationId": "e-f3939ce6-0b6e-49a5-88e3-5e1cc27095d8",
     "longRunningToolIds": [],
-    "timestamp": 1790676643891,
+    "timestamp": 1790679230295,
     "content": {
       "role": "model",
       "parts": [
@@ -52,11 +52,11 @@
       "a2a:response": {
         "kind": "artifact-update",
         "artifact": {
-          "artifactId": "bf32c4a9-b62e-429d-8e71-63ed6e3935a5"
+          "artifactId": "218e3f51-7902-4e81-9fc3-c8463b09485e"
         }
       },
-      "a2a:task_id": "17105fe5-f352-4903-abcf-2f9d6cd7a7db",
-      "a2a:context_id": "19c017a0-e3ba-4068-8600-e9eb864fa602"
+      "a2a:task_id": "0cc9b38b-44d2-4e85-af49-3e0a8a35f9c4",
+      "a2a:context_id": "4bd37491-45fa-4ee8-968b-47c56175e4d0"
     },
     "actions": {
       "stateDelta": {},
@@ -65,10 +65,10 @@
       "requestedToolConfirmations": {},
       "escalate": false
     },
-    "id": "JmO7Dr8O",
-    "invocationId": "e-f0eb21ab-2e9e-4d20-b78c-36ded18fd8e2",
+    "id": "GBm3plJj",
+    "invocationId": "e-f3939ce6-0b6e-49a5-88e3-5e1cc27095d8",
     "longRunningToolIds": [],
-    "timestamp": 1790676643891,
+    "timestamp": 1790679230295,
     "content": {
       "role": "model",
       "parts": [
@@ -92,10 +92,16 @@
     "customMetadata": {
       "a2a:request": {},
       "a2a:response": {
-        "kind": "status-update"
+        "kind": "status-update",
+        "status": {
+          "state": "failed",
+          "message": {
+            "role": "agent"
+          }
+        }
       },
-      "a2a:task_id": "17105fe5-f352-4903-abcf-2f9d6cd7a7db",
-      "a2a:context_id": "19c017a0-e3ba-4068-8600-e9eb864fa602"
+      "a2a:task_id": "0cc9b38b-44d2-4e85-af49-3e0a8a35f9c4",
+      "a2a:context_id": "4bd37491-45fa-4ee8-968b-47c56175e4d0"
     },
     "actions": {
       "stateDelta": {},
@@ -104,10 +110,10 @@
       "requestedToolConfirmations": {},
       "escalate": false
     },
-    "id": "4cKv8QUY",
-    "invocationId": "e-f0eb21ab-2e9e-4d20-b78c-36ded18fd8e2",
+    "id": "OBXchVBL",
+    "invocationId": "e-f3939ce6-0b6e-49a5-88e3-5e1cc27095d8",
     "longRunningToolIds": [],
-    "timestamp": 1790676643891,
+    "timestamp": 1790679230295,
     "turnComplete": true
   }
 ]

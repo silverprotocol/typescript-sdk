@@ -4,10 +4,16 @@
   "partial": true,
   "customMetadata": {
    "a2a:response": {
-    "kind": "status-update"
+    "kind": "status-update",
+    "status": {
+     "state": "working",
+     "message": {
+      "role": "agent"
+     }
+    }
    },
-   "a2a:task_id": "3266a2dc-89cc-4bcd-a5b9-3ae3e85fa8a1",
-   "a2a:context_id": "3e07385f-2b68-42ed-9647-f5df6682ed00"
+   "a2a:task_id": "b84314bb-5054-4d07-9a17-13f377527f23",
+   "a2a:context_id": "c65ebc7c-0647-4ff8-a8f8-675b1d78f339"
   },
   "actions": {
    "stateDelta": {},
@@ -16,10 +22,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "RryrZFb1",
-  "invocationId": "e-986c6330-2081-42f2-811f-bef72b20b6d8",
+  "id": "vyj6umyl",
+  "invocationId": "e-d1162243-34d9-408c-b566-d8ed479f1b4f",
   "longRunningToolIds": [],
-  "timestamp": 1790566691411,
+  "timestamp": 1790677550182,
   "content": {
    "role": "model",
    "parts": [
@@ -33,10 +39,10 @@
  },
  {
   "author": "helper",
-  "invocationId": "e-986c6330-2081-42f2-811f-bef72b20b6d8",
+  "invocationId": "e-d1162243-34d9-408c-b566-d8ed479f1b4f",
   "errorMessage": "connection reset",
   "turnComplete": true,
-  "id": "9s1a66tU",
+  "id": "lxYBUNI1",
   "actions": {
    "stateDelta": {},
    "artifactDelta": {},
@@ -44,7 +50,7 @@
    "requestedToolConfirmations": {}
   },
   "longRunningToolIds": [],
-  "timestamp": 1790566691433
+  "timestamp": 1790677550213
  },
  {
   "author": "helper",
@@ -56,8 +62,8 @@
      "artifactId": "a1"
     }
    },
-   "a2a:task_id": "14ec0985-6708-41a6-b223-ddbf0a411532",
-   "a2a:context_id": "ef73e648-81d0-46b0-9767-b08ee4e9b2a6"
+   "a2a:task_id": "a862d0f6-bcc9-43f4-9e51-bfb85fbb7d2f",
+   "a2a:context_id": "38915720-cc79-4b70-883b-d0394a06589a"
   },
   "actions": {
    "stateDelta": {},
@@ -66,10 +72,10 @@
    "requestedToolConfirmations": {},
    "escalate": false
   },
-  "id": "LBeCZOmM",
-  "invocationId": "e-986c6330-2081-42f2-811f-bef72b20b6d8",
+  "id": "W3RZIPvk",
+  "invocationId": "e-d1162243-34d9-408c-b566-d8ed479f1b4f",
   "longRunningToolIds": [],
-  "timestamp": 1790566691475,
+  "timestamp": 1790677550259,
   "content": {
    "role": "model",
    "parts": [
