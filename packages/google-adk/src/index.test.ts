@@ -4255,14 +4255,21 @@ describe("createAdkNormalizer — the host-error sentinel (SPEC §8.0 host oblig
     folds(out);
   });
 
-  it("with both a sentinel usage and accumulated turn usage, the sentinel's usage wins", () => {
-    const n = createAdkNormalizer({ invokeId: "adk" });
-    const out = [
-      ...n.push(toJsonValue(event([{ text: "x" }], { usageMetadata: { promptTokenCount: 3, candidatesTokenCount: 2, totalTokenCount: 5 } }))),
-      ...n.push({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m", usage: { inputTokens: 9, outputTokens: 1 } }),
-    ];
-    expect(terminals(out)[0]).toMatchObject({ usage: { inputTokens: 9, outputTokens: 1 } });
-    expect((terminals(out)[0] as { usage?: { totalTokens?: number } }).usage?.totalTokens).toBeUndefined();
+  it("with both a sentinel usage and accumulated turn usage, the two add field by field (the sentinel's covers only work the stream did not report), and a total only one of them carries is omitted", () => {
+    for (const [hostUsage, expected] of [
+      [{ inputTokens: 9, outputTokens: 1 }, { inputTokens: 12, outputTokens: 3, totalTokens: undefined }],
+      [{ inputTokens: 9, outputTokens: 1, totalTokens: 10 }, { inputTokens: 12, outputTokens: 3, totalTokens: 15 }],
+    ] as const) {
+      const n = createAdkNormalizer({ invokeId: "adk" });
+      const out = [
+        ...n.push(toJsonValue(event([{ text: "x" }], { usageMetadata: { promptTokenCount: 3, candidatesTokenCount: 2, totalTokenCount: 5 } }))),
+        ...n.push({ type: ADK_HOST_ERROR_TYPE, code: "c", message: "m", usage: hostUsage }),
+      ];
+      const usage = (terminals(out)[0] as { usage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number } }).usage;
+      expect(usage?.inputTokens, JSON.stringify(hostUsage)).toBe(expected.inputTokens);
+      expect(usage?.outputTokens, JSON.stringify(hostUsage)).toBe(expected.outputTokens);
+      expect(usage?.totalTokens, JSON.stringify(hostUsage)).toBe(expected.totalTokens);
+    }
   });
 
   it("a fresh terminal turn is named from the per-invoke stem: two default invokes folded through ONE Reducer never share a turn id", () => {

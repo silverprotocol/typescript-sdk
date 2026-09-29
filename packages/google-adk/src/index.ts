@@ -2353,9 +2353,11 @@ export const ADK_HOST_COMPLETE_TYPE = "__host_complete__";
  * SPEC §8.0 host obligation 1: when the ADK runtime THROWS instead of ending
  * the stream (e.g. its LLM-call limit), the host catches it and pushes
  * `{ type: "__host_error__", code, message, usage?, invocationId? }`. The
- * open turn closes `turn.error` with that code and message; a turn whose pause
- * was signalled closes paused first, and the error then closes on a new
- * top-level turn (spec §8.0 item 26). The shape matches the OpenAI
+ * open turn closes `turn.error` with that code and message and the turn's
+ * usage plus `usage`, which covers only work the stream did not report (so
+ * a host passes the usage of unreported work, never a total); a turn whose
+ * pause was signalled closes paused first, and the error then closes on a
+ * new top-level turn (spec §8.0 item 26). The shape matches the OpenAI
  * facet's sentinel. A host may build it from the caught Error itself
  * (`Object.assign(err, { type: "__host_error__", code })`): the sentinel is
  * read from the raw native, so the Error's own message is kept.
@@ -3062,12 +3064,10 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
         continue;
       }
       closedTurns.add(turnId);
-      // A turn whose invocation met an in-band error closes with the host's
-      // code and message and the turn's accumulated usage plus any usage the
-      // host reports, which covers only work the stream did not report (spec
-      // §8.0 item 35); otherwise the host's usage, when it reports one,
-      // replaces it.
-      const usage = firstInBandError.has(turnId) ? sumUsage(mapUsage(usageByTurn.get(turnId)), err.usage) : (err.usage ?? mapUsage(usageByTurn.get(turnId)));
+      // The turn closes with the host's code and message and its accumulated
+      // usage plus any usage the host reports, which covers only work the
+      // stream did not report (spec §8.0 host obligation 1 and item 35).
+      const usage = sumUsage(mapUsage(usageByTurn.get(turnId)), err.usage);
       a.closeMessage(`msg_${turnId}`);
       a.closeTurnError(turnId, { message: err.message, code: err.code, ...(usage !== undefined ? { usage } : {}) });
       closed++;
