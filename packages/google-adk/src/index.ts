@@ -2292,6 +2292,19 @@ function driveAdkTopLevel(
     const kept = withoutRelayBookkeeping(JsonValue.parse(event.customMetadata));
     if (kept !== undefined) unmappedEvent["customMetadata"] = kept;
   }
+  // An error message without an error code (ADK's A2A relay reports its own
+  // failure so, and a remote executor's that it passes on) is not an in-band
+  // invocation error (spec §8.0 item 35), which maps the code and message as a
+  // pair; its message, and a code that is not a string, ride here verbatim
+  // (spec §8.0 graceful degradation and item 23).
+  if (inBandErrorOf(event) === undefined) {
+    const message: unknown = event.errorMessage;
+    const code: unknown = event.errorCode;
+    if (message !== undefined && message !== null) {
+      if (code !== undefined && code !== null) unmappedEvent["errorCode"] = JsonValue.parse(code);
+      unmappedEvent["errorMessage"] = JsonValue.parse(message);
+    }
+  }
   if (Object.keys(unmappedEvent).length > 0) {
     a.contentBlock(messageId, {
       type: "provider-raw",

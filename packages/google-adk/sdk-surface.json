@@ -230,7 +230,7 @@
         },
         "errorMessage": {
           "disposition": "handled",
-          "note": "With errorCode, an in-band invocation error (spec \u00a78.0 item 35): the message of its non-terminal error event, and of the invocation's turn.error when it is the first; the turn never closes on it. errorCode alone (e.g. a block reason with no message) still closes via closeTurnDone. A prompt-block event records prompt.blocked either way."
+          "note": "With errorCode, an in-band invocation error (spec \u00a78.0 item 35): the message of its non-terminal error event, and of the invocation's turn.error when it is the first; the turn never closes on it. errorCode alone (e.g. a block reason with no message) still closes via closeTurnDone. A prompt-block event records prompt.blocked either way. Without a string errorCode (ADK's A2A relay reports its own failure so, and a remote executor's it passes on) it is no in-band invocation error: it rides the event-level provider-raw carry verbatim (driveAdkTopLevel), with a non-string errorCode beside it, and yields no error event."
         },
         "interrupted": {
           "disposition": "handled",
