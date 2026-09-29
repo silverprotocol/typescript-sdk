@@ -392,3 +392,38 @@ describe("createAdkNormalizer — a user-role or submitted message that is not a
     for (const host of [false, true]) expectCleanFold(drive(all.flatMap(([, before, control]) => [...before, control]), host), `one fold host=${host}`);
   });
 });
+
+describe("createAdkNormalizer — a relayed repeat on a Live turn a barge-in closed", () => {
+  it("a relayed repeat that a plugin or callback marks interrupted, after a barge-in closed the Live turn it maps into, opens the next generation, and each marker rides inside that new turn, before its terminal; the fold ends clean", () => {
+    for (const member of MEMBERS) {
+      for (const host of [false, true]) {
+        const label = `${member} host=${host}`;
+        const repeats = [0, 1].map((i) => positive("i", member, 30 + i));
+        const invocationId = "inv-live-closed";
+        const onTurn = (n: Obj): Obj => ({ ...n, invocationId, interrupted: true, longRunningToolIds: [] });
+        const out = drive(
+          [
+            { invocationId, author: "helper", content: { role: "model", parts: [{ text: "Hel" }] }, partial: true },
+            { invocationId, author: "helper", interrupted: true, turnComplete: true },
+            ...repeats.map((l) => onTurn(l.native)),
+          ],
+          host,
+        );
+        const first = out.find((e) => e.type === "turn.start");
+        const firstTurn = first?.type === "turn.start" ? first.turnId : undefined;
+        const markers = out.flatMap((e, idx) => (e.type === MARKER ? [idx] : []));
+        expect(markers, label).toHaveLength(2);
+        for (const m of markers) {
+          const opened = out.slice(0, m).reverse().find((e) => e.type === "turn.start");
+          const turnId = opened?.type === "turn.start" ? opened.turnId : undefined;
+          expect(turnId, label).toBeDefined();
+          expect(turnId, label).not.toBe(firstTurn);
+          const closed = out.findIndex((e, idx) => idx > m && TERMINALS.has(e.type) && "turnId" in e && e.turnId === turnId);
+          expect(closed, label).toBeGreaterThan(m);
+        }
+        expectNoLeaf(out, label);
+        expectCleanFold(out, label);
+      }
+    }
+  });
+});

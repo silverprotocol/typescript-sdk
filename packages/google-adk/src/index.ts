@@ -2609,11 +2609,14 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
   }
 
   function drive(event: AdkEvent, relayEchoOmitted = 0): void {
-    const turnId = liveTurnFor(event);
+    const turnId = liveTurnFor(event, relayEchoOmitted > 0);
     // ADK re-yields a bare `{interrupted}` after a message that carried both
     // turnComplete and interrupted (utils/live_connection_utils.js, @google/adk
     // 2.1.0). For a generation the barge-in already closed, it adds nothing:
     // no new turn and no second terminal, so the facet emits nothing for it.
+    // An event push() removed parts from is not that re-yield even when
+    // nothing is left of it: its marker needs a turn, so it opens the next
+    // generation as an event with content would.
     if (turnId === undefined) return;
     const messageId = ensureOpen(turnId);
     // A relayed repeat of the forwarded request whose parts push() removed:
@@ -2790,13 +2793,13 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
    *  key), with `_g<n>` for the n-th generation after a barge-in closed the
    *  previous one. `undefined` for ADK's bare `{interrupted}` re-yield on a
    *  generation a barge-in already closed. */
-  function liveTurnFor(event: AdkEvent): string | undefined {
+  function liveTurnFor(event: AdkEvent, omittedParts = false): string | undefined {
     const key = turnKey(event);
     const base = key !== undefined ? `turn_${invokeStem}_${key}` : `turn_${invokeStem}`;
     const g = generationOf.get(base) ?? 0;
     const current = g === 0 ? base : `${base}_g${g}`;
     if (!interruptClosed.has(current)) return current;
-    if (event.interrupted === true && !hasLiveContent(event)) return undefined;
+    if (event.interrupted === true && !hasLiveContent(event) && !omittedParts) return undefined;
     generationOf.set(base, g + 1);
     return `${base}_g${g + 1}`;
   }
