@@ -13,6 +13,13 @@
  *
  *   GEN_ADK_ERROR=1 npx vitest run --config ../../vitest.config.ts src/adk-error-fixtures.gen.test.ts
  *
+ * With GEN_ADK_ERROR_LEGS=<name,name,…> (exact leg names) it writes only those legs and keeps every other fixture's
+ * bytes; a name that names no leg, or a list that selects none, fails before anything is written.
+ *
+ * The relay legs drive ADK's RemoteA2AAgent against a remote ADK app served through ADK's own A2AAgentExecutor
+ * (the remote runs in the same streaming mode as the local run). Their natives pass the shared relay reduction
+ * (adk-relay-reduce.ts) before they are written: `a2a:request` keeps no member.
+ *
  * Each fixture is written in the default mode (`<leg>.none`) and in the SSE
  * streaming mode (`<leg>.sse`), except where a leg exists in one mode only.
  * The progressive leg sets ADK_ENABLE_PROGRESSIVE_SSE_STREAMING for its run.
@@ -20,6 +27,7 @@
  * call's first chunk and after its last; the generator checks the recorded
  * order before it writes.
  */
+import { randomUUID } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -37,9 +45,11 @@ import {
   node,
   requestInputTool,
 } from "@google/adk";
+import { A2AAgentExecutor, RemoteA2AAgent } from "@google/adk/a2a";
 import { GenerateContentResponse } from "@google/genai";
 import { z } from "zod";
 import type { JsonValue } from "@silverprotocol/core";
+import { reduceRelayEntries, relayEntriesReduced } from "./adk-relay-reduce.js";
 
 export const ADK_ERROR_DIR = join(import.meta.dirname, "..", "fixtures", "adk-error");
 
@@ -232,9 +242,36 @@ const authorsInOrder = (events: JsonValue[]) => (events as Ev[]).map((e) => e.au
 
 const retry = { maxAttempts: 3, initialDelay: 0, maxDelay: 0, jitter: 0 };
 
+/** Each relay send of the current run: its message's part count and text (a check reads what the relay forwarded). */
+const relaySends: Array<{ parts: number; text: string }> = [];
+/** A remote ADK app behind ADK's own A2A executor, as a RemoteA2AAgent client: each send runs the remote root on a
+ *  fresh task in `mode` and yields what the executor published (a JSON round-trip, the A2A wire boundary). */
+function adkPeer(remoteRoot: RunnerAgent, mode: Mode) {
+  const executor = new A2AAgentExecutor({ runner: new InMemoryRunner({ agent: remoteRoot, appName: "remote" }), runConfig: { streamingMode: mode === "none" ? StreamingMode.NONE : StreamingMode.SSE } } as never);
+  return {
+    async *sendMessageStream(params: { message: { contextId?: string; parts?: Array<{ text?: string }> } }) {
+      const parts = params.message.parts ?? [];
+      relaySends.push({ parts: parts.length, text: parts.map((p) => p.text ?? "").join("") });
+      const published: unknown[] = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await executor.execute({ userMessage: params.message, taskId: randomUUID(), contextId: params.message.contextId ?? randomUUID() } as any, { publish: (e: unknown) => published.push(e), finished: () => {} } as never);
+      for (const e of published) yield JSON.parse(JSON.stringify(e));
+    },
+  };
+}
+/** A RemoteA2AAgent relaying the remote root, built fresh for each run. */
+const relayTo = (name: string, remoteRoot: () => RunnerAgent, mode: Mode): LlmAgent =>
+  new RemoteA2AAgent({ name, client: adkPeer(remoteRoot(), mode), description: "A remote agent." } as never) as unknown as LlmAgent;
+/** A response-level block on a chunk that also carries text: the finish rides the text chunk. */
+const textWithBlock = (t: string, opts: { usage?: Record<string, number> } = {}): Chunk =>
+  chunk({
+    candidates: [{ content: { role: "model", parts: [{ text: t }] }, finishReason: "SAFETY", finishMessage: "The response was blocked for safety." }],
+    ...(opts.usage ? { usageMetadata: opts.usage } : {}),
+  });
+
 /** Every leg: its builder (a fresh tree per run), the modes it is written in, and a shape check on what ADK
  *  yielded (the generator refuses to write a fixture whose shape drifted). */
-type Leg = { name: string; modes: Mode[]; build: () => RunnerAgent; check?: (r: Run, mode: Mode) => void };
+type Leg = { name: string; modes: Mode[]; build: (mode: Mode) => RunnerAgent; check?: (r: Run, mode: Mode) => void; relay?: true };
 
 type Act = { actions?: { requestedAuthConfigs?: object; requestedToolConfirmations?: object; skipSummarization?: boolean } };
 const firstIndex = (events: JsonValue[], pred: (e: Ev & Act) => boolean) => (events as Array<Ev & Act>).findIndex(pred);
@@ -347,6 +384,15 @@ const LEGS: Leg[] = [
   // skip-summarization event, and the model's further round meets a rate-limit error that ends the run.
   { name: "request-input-tool-throw-then-429", modes: ["none", "sse"], build: () => agent("assistant", [{ chunks: [functionCalls([[requestInputTool.name, { message: "Which city?" }], ["lookup", { query: "cities" }]])] }, { throws: rateLimit() }], { tools: [requestInputTool, lookupTool()], beforeToolCallback: failingLookupCallback }),
     check: (r) => { expect(firstIndex(r.events, isSkipSummarization)).toBe(-1); expect(errorRows(r.events)).toEqual(["assistant:UNKNOWN_ERROR:report", "assistant:429:report"]); } },
+  // Relays (RemoteA2AAgent over a remote ADK app): a LoopAgent of two iterations whose sub-agents are the relay
+  // followed by an agent that replies in each iteration, each remote run ending on the same response-level block with
+  // no streamed text, with and without usage (with no reply between them, the relay's second send carries no parts,
+  // and the remote fails before its model runs); a remote call that streams text and then ends on a block; and one
+  // whose finish rides its text chunk.
+  { name: "relay-then-reply-loop-block-no-text-usage", modes: ["none", "sse"], relay: true, build: (m) => new LoopAgent({ name: "loop", maxIterations: 2, subAgents: [relayTo("helper", () => agent("remote_assistant", [{ chunks: [block({ usage: BLOCK_USAGE })] }]), m), agent("planner", [answer("Ask the helper again")])] }), check: (r) => { const errs = (r.events as Ev[]).filter((e) => e.errorCode !== undefined); expect(errs.map((e) => `${e.author}:${e.errorCode}`)).toEqual(["helper:SAFETY", "helper:SAFETY"]); expect(errs.every((e) => JSON.stringify(e.usageMetadata) === JSON.stringify(BLOCK_USAGE))).toBe(true); expect(new Set(errs.map((e) => JSON.stringify((e as { customMetadata?: Record<string, unknown> }).customMetadata?.["a2a:task_id"]))).size).toBe(2); expect(relaySends).toHaveLength(2); expect(relaySends[1]!.parts).toBeGreaterThan(0); expect(relaySends[1]!.text).toContain("Ask the helper again"); } },
+  { name: "relay-then-reply-loop-block-no-text-no-usage", modes: ["none", "sse"], relay: true, build: (m) => new LoopAgent({ name: "loop", maxIterations: 2, subAgents: [relayTo("helper", () => agent("remote_assistant", [{ chunks: [block()] }]), m), agent("planner", [answer("Ask the helper again")])] }), check: (r) => { const errs = (r.events as Ev[]).filter((e) => e.errorCode !== undefined); expect(errs.map((e) => `${e.author}:${e.errorCode}`)).toEqual(["helper:SAFETY", "helper:SAFETY"]); expect(errs.every((e) => e.usageMetadata === undefined)).toBe(true); expect(new Set(errs.map((e) => JSON.stringify((e as { customMetadata?: Record<string, unknown> }).customMetadata?.["a2a:task_id"]))).size).toBe(2); expect(relaySends).toHaveLength(2); expect(relaySends[1]!.parts).toBeGreaterThan(0); expect(relaySends[1]!.text).toContain("Ask the helper again"); } },
+  { name: "relay-text-then-block", modes: ["none", "sse"], relay: true, build: (m) => relayTo("helper", () => agent("remote_assistant", [{ chunks: [text("Here is the start of "), text("an answer"), block({ usage: BLOCK_USAGE })] }]), m), check: (r, m) => { const errs = (r.events as Ev[]).filter((e) => e.errorCode !== undefined); expect(errs.length).toBe(m === "none" ? 1 : 2); if (m === "sse") expect((r.events as Ev[]).some((e) => e.partial === true && hasText(e))).toBe(true); } },
+  { name: "relay-block-on-text-chunk", modes: ["none", "sse"], relay: true, build: (m) => relayTo("helper", () => agent("remote_assistant", [{ chunks: [textWithBlock("A blocked answer", { usage: BLOCK_USAGE })] }]), m), check: (r, m) => { const errs = (r.events as Ev[]).filter((e) => e.errorCode !== undefined); expect(errs.length).toBe(m === "none" ? 1 : 2); } },
   // Progressive SSE: the original arrives as partial:true, then the aggregate.
   { name: "block-usage-on-finish", modes: ["progressive"], build: () => agent("assistant", [{ chunks: [block({ usage: BLOCK_USAGE })] }]),
     check: (r) => expect((r.events as Ev[]).filter((e) => e.errorCode !== undefined).map((e) => e.partial)).toEqual([true, false]) },
@@ -354,17 +400,28 @@ const LEGS: Leg[] = [
 
 describe.runIf(process.env["GEN_ADK_ERROR"] === "1")("ADK in-band error fixture generation (real @google/adk, scripted Gemini transport)", () => {
   it("writes fixtures/adk-error/*.native.json", async () => {
+    const only = process.env["GEN_ADK_ERROR_LEGS"] ? process.env["GEN_ADK_ERROR_LEGS"].split(",").map((x) => x.trim()).filter(Boolean) : null;
+    if (only) {
+      expect(only.length, "GEN_ADK_ERROR_LEGS selects no leg").toBeGreaterThan(0);
+      expect(only.filter((n) => !LEGS.some((l) => l.name === n)), "GEN_ADK_ERROR_LEGS names no such leg").toEqual([]);
+    }
     const out: Record<string, JsonValue[]> = {};
     const sidecars: Record<string, { thrown: { name: string; message: string } }> = {};
     const summary: string[] = [];
     for (const leg of LEGS) {
+      if (only && !only.includes(leg.name)) continue;
       for (const mode of leg.modes) {
-        const r = await run(leg.build(), mode);
+        relaySends.length = 0;
+        const r = await run(leg.build(mode), mode);
+        if (leg.relay) {
+          r.events = reduceRelayEntries(r.events as Record<string, unknown>[]) as JsonValue[];
+          if (!relayEntriesReduced(r.events as Record<string, unknown>[])) throw new Error(`${leg.name}.${mode}: a relay customMetadata entry holds more than RELAY_KEEP lets it keep`);
+        }
         leg.check?.(r, mode);
         const file = `${leg.name}.${mode}`;
         out[file] = r.events;
         if (r.thrown) sidecars[file] = { thrown: r.thrown };
-        summary.push(`${file}: ${r.events.length} events · errors ${JSON.stringify(errorRows(r.events))}${r.threw ? ` · run threw ${r.threw}` : ""}`);
+        summary.push(`${file}: ${r.events.length} events · errors ${JSON.stringify(errorRows(r.events))}${r.threw ? ` · run threw ${r.threw}` : ""}${relaySends.length ? ` · relay sends ${JSON.stringify(relaySends)}` : ""}`);
       }
     }
     mkdirSync(ADK_ERROR_DIR, { recursive: true });

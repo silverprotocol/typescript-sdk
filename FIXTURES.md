@@ -203,6 +203,16 @@ the engine's own. The runs cover:
   rate-limit error in the further model round. The first error does not end
   the invocation, since the model runs again; the rate-limit error does. No
   other engine path was found in which an error precedes the pause end.
+- relays: ADK's `RemoteA2AAgent` relaying a remote ADK app served through
+  ADK's own `A2AAgentExecutor` (the remote runs in the local run's streaming
+  mode). A LoopAgent of two iterations whose sub-agents are the relay
+  followed by an agent that replies in each iteration (the relay's second
+  send forwards that reply), each remote run ending on the same
+  response-level block with no streamed text, once with usage and once
+  without; a remote call that streams text and then ends on a block; and one
+  whose finish rides its text chunk. Without the replying agent the loop's
+  second send carries no parts, and the remote fails before its model runs,
+  so that tree cannot yield two blocked remote runs.
 
 A host-terminal event after a credential pause needs no run of its own: feed
 it after `adk-pause/plain-credential` (default mode) or
@@ -230,7 +240,11 @@ fails for good) has a `<leg>.<mode>.sidecar.json` next to its natives, holding
 the thrown error's `name` and `message`, which a host feeds as the
 host-terminal event. They are regenerated only by
 `GEN_ADK_ERROR=1 … adk-error-fixtures.gen.test.ts`, which checks each run's
-error events, pauses and arrival order before it writes.
+error events, pauses and arrival order before it writes;
+`GEN_ADK_ERROR_LEGS=<name,…>` (exact leg names) writes only those legs and
+keeps every other fixture's bytes. A relay run's natives pass the same relay
+reduction as the oracle set (`adk-relay-reduce.ts`: `a2a:request` keeps no
+member; the task and context ids stay) before they are written.
 
 `packages/e2e/fixtures/adk-pause/` holds ADK pause/completion streams built by
 the REAL `@google/adk` engine with a stub model (no key, no network), plus two

@@ -1,0 +1,218 @@
+[
+  {
+    "author": "helper",
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "customMetadata": {
+      "a2a:request": {},
+      "a2a:response": {
+        "kind": "status-update"
+      },
+      "a2a:task_id": "fd79faff-a29d-458a-bfe6-37b65bede208",
+      "a2a:context_id": "4fc50aa2-bcfe-4ea7-b225-2b3e8e61ee92"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "escalate": false
+    },
+    "id": "VD6yxioZ",
+    "invocationId": "e-c6fc3dfd-b546-40ce-be87-3ca37bbd7c69",
+    "longRunningToolIds": [],
+    "timestamp": 1790679023293,
+    "turnComplete": true
+  },
+  {
+    "invocationId": "e-c6fc3dfd-b546-40ce-be87-3ca37bbd7c69",
+    "author": "planner",
+    "id": "yBG2Nxjs",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790679023293,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Ask the helper again"
+        }
+      ]
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-c6fc3dfd-b546-40ce-be87-3ca37bbd7c69",
+    "author": "planner",
+    "id": "9lOU4WaU",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790679023293,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": true
+  },
+  {
+    "invocationId": "e-c6fc3dfd-b546-40ce-be87-3ca37bbd7c69",
+    "author": "planner",
+    "id": "50cshoz1",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790679023293,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Ask the helper again."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": false
+  },
+  {
+    "author": "helper",
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "customMetadata": {
+      "a2a:request": {},
+      "a2a:response": {
+        "kind": "status-update"
+      },
+      "a2a:task_id": "6a4673a7-c99b-44a6-8cda-1ffecd7803f4",
+      "a2a:context_id": "4fc50aa2-bcfe-4ea7-b225-2b3e8e61ee92"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "escalate": false
+    },
+    "id": "KMOPRzaX",
+    "invocationId": "e-c6fc3dfd-b546-40ce-be87-3ca37bbd7c69",
+    "longRunningToolIds": [],
+    "timestamp": 1790679023294,
+    "turnComplete": true
+  },
+  {
+    "invocationId": "e-c6fc3dfd-b546-40ce-be87-3ca37bbd7c69",
+    "author": "planner",
+    "id": "XepO5tQR",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790679023294,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Ask the helper again"
+        }
+      ]
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-c6fc3dfd-b546-40ce-be87-3ca37bbd7c69",
+    "author": "planner",
+    "id": "dOtNc2xV",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790679023294,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": true
+  },
+  {
+    "invocationId": "e-c6fc3dfd-b546-40ce-be87-3ca37bbd7c69",
+    "author": "planner",
+    "id": "NNj1f5OX",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790679023294,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Ask the helper again."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": false
+  }
+]

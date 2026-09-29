@@ -1,0 +1,141 @@
+[
+  {
+    "author": "helper",
+    "partial": true,
+    "customMetadata": {
+      "a2a:response": {
+        "kind": "artifact-update",
+        "artifact": {
+          "artifactId": "c87c48d9-e1fb-447c-9f99-70cbd091b028"
+        }
+      },
+      "a2a:task_id": "5bdc630c-e39f-4a38-b7a9-f733f5fb1925",
+      "a2a:context_id": "d64a58c0-f8ad-445f-9a01-9e49a5a7ec8d"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "escalate": false
+    },
+    "id": "5SBNKgYC",
+    "invocationId": "e-bc15b434-b1f4-4f54-9410-860ec9c129da",
+    "longRunningToolIds": [],
+    "timestamp": 1790676643890,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Here is the start of ",
+          "thought": false
+        }
+      ]
+    }
+  },
+  {
+    "author": "helper",
+    "partial": true,
+    "customMetadata": {
+      "a2a:response": {
+        "kind": "artifact-update",
+        "artifact": {
+          "artifactId": "c87c48d9-e1fb-447c-9f99-70cbd091b028"
+        }
+      },
+      "a2a:task_id": "5bdc630c-e39f-4a38-b7a9-f733f5fb1925",
+      "a2a:context_id": "d64a58c0-f8ad-445f-9a01-9e49a5a7ec8d"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "escalate": false
+    },
+    "id": "HeBsqlh9",
+    "invocationId": "e-bc15b434-b1f4-4f54-9410-860ec9c129da",
+    "longRunningToolIds": [],
+    "timestamp": 1790676643890,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "an answer",
+          "thought": false
+        }
+      ]
+    }
+  },
+  {
+    "author": "helper",
+    "partial": false,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "customMetadata": {
+      "a2a:response": {
+        "kind": "artifact-update",
+        "artifact": {
+          "artifactId": "c87c48d9-e1fb-447c-9f99-70cbd091b028"
+        }
+      },
+      "a2a:task_id": "5bdc630c-e39f-4a38-b7a9-f733f5fb1925",
+      "a2a:context_id": "d64a58c0-f8ad-445f-9a01-9e49a5a7ec8d"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "escalate": false
+    },
+    "id": "TN8r5jpy",
+    "invocationId": "e-bc15b434-b1f4-4f54-9410-860ec9c129da",
+    "longRunningToolIds": [],
+    "timestamp": 1790676643890,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Here is the start of an answer",
+          "thought": false
+        }
+      ]
+    }
+  },
+  {
+    "author": "helper",
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "customMetadata": {
+      "a2a:request": {},
+      "a2a:response": {
+        "kind": "status-update"
+      },
+      "a2a:task_id": "5bdc630c-e39f-4a38-b7a9-f733f5fb1925",
+      "a2a:context_id": "d64a58c0-f8ad-445f-9a01-9e49a5a7ec8d"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "escalate": false
+    },
+    "id": "JietV5xn",
+    "invocationId": "e-bc15b434-b1f4-4f54-9410-860ec9c129da",
+    "longRunningToolIds": [],
+    "timestamp": 1790676643890,
+    "turnComplete": true
+  }
+]

@@ -1,0 +1,113 @@
+[
+  {
+    "author": "helper",
+    "partial": true,
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "customMetadata": {
+      "a2a:response": {
+        "kind": "artifact-update",
+        "artifact": {
+          "artifactId": "bf32c4a9-b62e-429d-8e71-63ed6e3935a5"
+        }
+      },
+      "a2a:task_id": "17105fe5-f352-4903-abcf-2f9d6cd7a7db",
+      "a2a:context_id": "19c017a0-e3ba-4068-8600-e9eb864fa602"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "escalate": false
+    },
+    "id": "GekkcLIl",
+    "invocationId": "e-f0eb21ab-2e9e-4d20-b78c-36ded18fd8e2",
+    "longRunningToolIds": [],
+    "timestamp": 1790676643891,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "A blocked answer",
+          "thought": false
+        }
+      ]
+    }
+  },
+  {
+    "author": "helper",
+    "partial": false,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "customMetadata": {
+      "a2a:response": {
+        "kind": "artifact-update",
+        "artifact": {
+          "artifactId": "bf32c4a9-b62e-429d-8e71-63ed6e3935a5"
+        }
+      },
+      "a2a:task_id": "17105fe5-f352-4903-abcf-2f9d6cd7a7db",
+      "a2a:context_id": "19c017a0-e3ba-4068-8600-e9eb864fa602"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "escalate": false
+    },
+    "id": "JmO7Dr8O",
+    "invocationId": "e-f0eb21ab-2e9e-4d20-b78c-36ded18fd8e2",
+    "longRunningToolIds": [],
+    "timestamp": 1790676643891,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "A blocked answer",
+          "thought": false
+        }
+      ]
+    }
+  },
+  {
+    "author": "helper",
+    "partial": false,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "customMetadata": {
+      "a2a:request": {},
+      "a2a:response": {
+        "kind": "status-update"
+      },
+      "a2a:task_id": "17105fe5-f352-4903-abcf-2f9d6cd7a7db",
+      "a2a:context_id": "19c017a0-e3ba-4068-8600-e9eb864fa602"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "escalate": false
+    },
+    "id": "4cKv8QUY",
+    "invocationId": "e-f0eb21ab-2e9e-4d20-b78c-36ded18fd8e2",
+    "longRunningToolIds": [],
+    "timestamp": 1790676643891,
+    "turnComplete": true
+  }
+]

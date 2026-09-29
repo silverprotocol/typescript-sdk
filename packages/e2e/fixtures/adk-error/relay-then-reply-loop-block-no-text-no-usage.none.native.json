@@ -1,0 +1,106 @@
+[
+  {
+    "author": "helper",
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "customMetadata": {
+      "a2a:request": {},
+      "a2a:response": {
+        "kind": "status-update"
+      },
+      "a2a:task_id": "ac41b819-c4f0-4c10-aa7c-89f41658d5cc",
+      "a2a:context_id": "be622d57-83c5-44ad-98aa-03388b3ecdd7"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "escalate": false
+    },
+    "id": "6Nl2aJv5",
+    "invocationId": "e-558e21d4-3f22-4efb-88c3-4884335123da",
+    "longRunningToolIds": [],
+    "timestamp": 1790679023296,
+    "turnComplete": true
+  },
+  {
+    "invocationId": "e-558e21d4-3f22-4efb-88c3-4884335123da",
+    "author": "planner",
+    "id": "GrNFALU2",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790679023296,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Ask the helper again."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP"
+  },
+  {
+    "author": "helper",
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "customMetadata": {
+      "a2a:request": {},
+      "a2a:response": {
+        "kind": "status-update"
+      },
+      "a2a:task_id": "ea001941-2818-4530-8a57-4093379dd7b1",
+      "a2a:context_id": "be622d57-83c5-44ad-98aa-03388b3ecdd7"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "escalate": false
+    },
+    "id": "iw9OXmOU",
+    "invocationId": "e-558e21d4-3f22-4efb-88c3-4884335123da",
+    "longRunningToolIds": [],
+    "timestamp": 1790679023296,
+    "turnComplete": true
+  },
+  {
+    "invocationId": "e-558e21d4-3f22-4efb-88c3-4884335123da",
+    "author": "planner",
+    "id": "JRMAKhNz",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790679023296,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Ask the helper again."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP"
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "author": "helper",
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "customMetadata": {
+      "a2a:request": {},
+      "a2a:response": {
+        "kind": "status-update"
+      },
+      "a2a:task_id": "5b95df8e-7d9e-4651-b284-7770a2ebfdd3",
+      "a2a:context_id": "65175939-dc55-4c82-b085-be2b86b8a847"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "escalate": false
+    },
+    "id": "2njCmdoO",
+    "invocationId": "e-e9230123-bc90-446f-bed1-5dcaa66b943f",
+    "longRunningToolIds": [],
+    "timestamp": 1790676643890,
+    "turnComplete": true
+  }
+]

@@ -13,9 +13,10 @@
  *                         fixtures' (natives differ by their random ids; the records must not), e.g. after an ADK bump
  *   npx vitest run --config ../../vitest.config.ts src/adk-oracle-fixtures.gen.test.ts   (from packages/e2e)
  *
- * Relay customMetadata entries are reduced to what the fold needs, by one allowlist (RELAY_KEEP): `a2a:response`
- * keeps `kind` and an artifact's `artifactId` (the relay stream a facet window rule keys on), the task and context
- * ids stay, and any other relay entry keeps no member. A written native is refused if an entry holds more.
+ * Relay customMetadata entries are reduced to what the fold needs by the shared allowlist (RELAY_KEEP,
+ * adk-relay-reduce.ts): `a2a:response` keeps `kind` and an artifact's `artifactId` (the relay stream a facet window
+ * rule keys on), the task and context ids stay, and any other relay entry keeps no member. A written native is
+ * refused if an entry holds more.
  *
  * Not a leg: two open windows of one author and path that differ only by branch, closed by an event without one.
  * No ADK 2.1 runner yields it (ParallelAgent branches are different authors, NodeTool calls run one after the other
@@ -27,6 +28,7 @@ import { describe, expect, it } from "vitest";
 import type { Mapped } from "./adk-oracle/legs.js";
 import { scoreLeg, type FoldRecord, type Oracle } from "./adk-oracle/oracle.js";
 import { redactNative } from "./redact.js";
+import { reduceRelayEntries, relayEntriesReduced } from "./adk-relay-reduce.js";
 import type { JsonValue } from "@silverprotocol/core";
 
 // The engine and the legs load @google/adk; they are imported only when a generation runs, never in the gate.
@@ -37,36 +39,6 @@ const CHECK = new URL("../.tmp/adk-oracle-check/", import.meta.url);
 const MODE = process.env["GEN_ADK_ORACLE"];
 const ONLY_IDS = process.env["GEN_ADK_ORACLE_LEGS"] ? process.env["GEN_ADK_ORACLE_LEGS"].split(",").map((x) => x.trim()).filter(Boolean) : null;
 const ONLY = ONLY_IDS ? { test: (id: string) => ONLY_IDS.includes(id) } : null;
-
-/** What each relay customMetadata entry keeps: member paths, or every member (the ids). Any other `a2a:` entry
- *  keeps none. */
-const RELAY_KEEP: Record<string, readonly string[] | "all"> = { "a2a:response": ["kind", "artifact.artifactId"], "a2a:task_id": "all", "a2a:context_id": "all" };
-const pick = (v: unknown, paths: readonly string[]): Record<string, unknown> => {
-  const out: Record<string, unknown> = {};
-  for (const path of paths) {
-    const keys = path.split(".");
-    let src: unknown = v;
-    for (const k of keys) src = src && typeof src === "object" ? (src as Record<string, unknown>)[k] : undefined;
-    if (src === undefined) continue;
-    let dst = out;
-    keys.slice(0, -1).forEach((k) => { dst = (dst[k] ??= {}) as Record<string, unknown>; });
-    dst[keys[keys.length - 1]!] = src;
-  }
-  return out;
-};
-/** Relay customMetadata entries reduced to what the fold needs (RELAY_KEEP). */
-function reduceRelayEntries(natives: Record<string, unknown>[]): Record<string, unknown>[] {
-  return natives.map((ev) => {
-    const cm = ev["customMetadata"];
-    if (!cm || typeof cm !== "object" || Array.isArray(cm)) return ev;
-    const out: Record<string, unknown> = { ...(cm as Record<string, unknown>) };
-    for (const [k, v] of Object.entries(out)) if (k.startsWith("a2a:") && RELAY_KEEP[k] !== "all") out[k] = pick(v, (RELAY_KEEP[k] as readonly string[] | undefined) ?? []);
-    return { ...ev, customMetadata: out };
-  });
-}
-/** true when every relay entry of every native holds only what RELAY_KEEP lets it keep. */
-const relayEntriesReduced = (natives: Record<string, unknown>[]): boolean =>
-  natives.every((ev) => Object.entries((ev["customMetadata"] ?? {}) as Record<string, unknown>).every(([k, v]) => !k.startsWith("a2a:") || RELAY_KEEP[k] === "all" || JSON.stringify(v) === JSON.stringify(pick(v, (RELAY_KEEP[k] as readonly string[] | undefined) ?? []))));
 
 async function generate(dir: URL): Promise<string[]> {
   const [{ capture, mapCalls, state, unitsOf }, { LEGS }] = await engine();

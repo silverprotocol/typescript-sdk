@@ -1,0 +1,116 @@
+[
+  {
+    "author": "helper",
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "customMetadata": {
+      "a2a:request": {},
+      "a2a:response": {
+        "kind": "status-update"
+      },
+      "a2a:task_id": "14fdf393-2588-4c70-afc0-a3f181643ee1",
+      "a2a:context_id": "6adb86de-04a3-479e-b942-485f60b0df02"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "escalate": false
+    },
+    "id": "kevR9KK0",
+    "invocationId": "e-e5d6af2e-167f-44f2-9ad8-9880aa0f85e0",
+    "longRunningToolIds": [],
+    "timestamp": 1790679023288,
+    "turnComplete": true
+  },
+  {
+    "invocationId": "e-e5d6af2e-167f-44f2-9ad8-9880aa0f85e0",
+    "author": "planner",
+    "id": "t3NRhj6s",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790679023289,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Ask the helper again."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP"
+  },
+  {
+    "author": "helper",
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "customMetadata": {
+      "a2a:request": {},
+      "a2a:response": {
+        "kind": "status-update"
+      },
+      "a2a:task_id": "f0d54b66-416d-4701-a567-004ff8a8e87d",
+      "a2a:context_id": "6adb86de-04a3-479e-b942-485f60b0df02"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "escalate": false
+    },
+    "id": "vOTl9v6K",
+    "invocationId": "e-e5d6af2e-167f-44f2-9ad8-9880aa0f85e0",
+    "longRunningToolIds": [],
+    "timestamp": 1790679023290,
+    "turnComplete": true
+  },
+  {
+    "invocationId": "e-e5d6af2e-167f-44f2-9ad8-9880aa0f85e0",
+    "author": "planner",
+    "id": "5o1jtd90",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790679023291,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Ask the helper again."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP"
+  }
+]
