@@ -3,7 +3,7 @@
  * structure, never text, and the writer's guard accepts exactly what the reduction produces.
  */
 import { describe, expect, it } from "vitest";
-import { reduceRelayEntries, relayEntriesReduced } from "./adk-relay-reduce.js";
+import { RELAY_KEEP, pick, reduceRelayEntries, relayEntriesReduced } from "./adk-relay-reduce.js";
 
 const native = (customMetadata: Record<string, unknown>) => ({ author: "helper", customMetadata });
 const RAW = native({
@@ -47,5 +47,10 @@ describe("relay reduction (the relay natives of the engine-built fixture sets)",
     const planted = structuredClone(reduced);
     ((planted[0]!["customMetadata"] as Record<string, Record<string, unknown>>)["a2a:response"]!["status"] as Record<string, unknown>)["message"] = { role: "user", parts: [{ kind: "text", text: "x" }] };
     expect(relayEntriesReduced(planted)).toBe(false);
+  });
+
+  it("a path whose last segment is an array (`artifacts[]`) is refused, so no element is ever kept whole", () => {
+    expect(() => pick({ artifacts: [{ parts: [{ kind: "text", text: "remote text" }] }] }, ["artifacts[]"])).toThrow(/must be followed by the member it keeps/);
+    for (const paths of Object.values(RELAY_KEEP)) if (paths !== "all") for (const path of paths) expect(path.endsWith("[]"), path).toBe(false);
   });
 });

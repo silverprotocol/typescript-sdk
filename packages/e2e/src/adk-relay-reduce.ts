@@ -9,7 +9,8 @@
  *     the repeat follows); a status message's parts are never kept;
  *   - the task and context ids stay whole (the relay-repeat rule compares the task id);
  *   - any other relay entry, `a2a:request` included, keeps no member.
- * A path segment ending in `[]` keeps that array, each element reduced by the rest of the path. A writer refuses a native whose
+ * A path segment ending in `[]` keeps that array, each element reduced by the rest of the path; a `[]` segment is
+ * never last (it would keep each element whole). A writer refuses a native whose
  * entry still holds more (relayEntriesReduced). No @google/adk import: the gate collects the generators that use it.
  */
 export const RELAY_KEEP: Record<string, readonly string[] | "all"> = {
@@ -28,8 +29,11 @@ function pickPath(v: unknown, segs: readonly string[]): unknown {
   if (!isObj(v) || !(key in v)) return undefined;
   const child = v[key];
   if (array) {
+    // A `[]` segment names the elements a later segment reduces; as the last segment it would keep each element
+    // whole, text included, and the guard would approve it.
+    if (rest.length === 0) throw new Error(`relay reduction path segment \`${seg}\` must be followed by the member it keeps`);
     if (!Array.isArray(child)) return undefined;
-    return { [key]: child.map((el) => (rest.length === 0 ? el : pickPath(el, rest) ?? {})) };
+    return { [key]: child.map((el) => pickPath(el, rest) ?? {}) };
   }
   const inner = pickPath(child, rest);
   return inner === undefined ? undefined : { [key]: inner };
@@ -40,7 +44,8 @@ function merge(a: unknown, b: unknown): unknown {
   if (isObj(a) && isObj(b)) { const out: Record<string, unknown> = { ...a }; for (const [k, v] of Object.entries(b)) out[k] = k in out ? merge(out[k], v) : v; return out; }
   return b === undefined ? a : b;
 }
-const pick = (v: unknown, paths: readonly string[]): Record<string, unknown> => {
+/** Exported for its unit test: the part of `v` the given paths keep. */
+export const pick = (v: unknown, paths: readonly string[]): Record<string, unknown> => {
   let out: unknown = {};
   for (const path of paths) { const p = pickPath(v, path.split(".")); if (p !== undefined) out = merge(out, p); }
   return out as Record<string, unknown>;
