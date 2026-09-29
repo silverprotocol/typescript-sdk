@@ -1,0 +1,12 @@
+{
+ "leg": "relay-echo-nonblocking-submitted-task",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "a non-blocking send whose only event is the returned Task at submitted, its status message repeating the forwarded request in the user role, with no artifacts",
+ "expected": "raw",
+ "readings": {
+  "raw": []
+ },
+ "calls": []
+}

@@ -1,0 +1,57 @@
+[
+ {
+  "author": "helper",
+  "customMetadata": {
+   "a2a:response": {
+    "kind": "task",
+    "status": {
+     "state": "submitted",
+     "message": {
+      "role": "user"
+     }
+    }
+   },
+   "a2a:task_id": "6fd5b35a-b2d0-4b6b-8ab1-ac74bc7f3812",
+   "a2a:context_id": "1f52c01c-4f71-4817-853b-6363c34c1bc9"
+  },
+  "actions": {
+   "stateDelta": {},
+   "artifactDelta": {},
+   "requestedAuthConfigs": {},
+   "requestedToolConfirmations": {},
+   "escalate": false
+  },
+  "id": "900nPB3V",
+  "invocationId": "e-41b97a61-e1d9-4b4c-b046-6375014b9c46",
+  "longRunningToolIds": [],
+  "timestamp": 1790677875764,
+  "content": {
+   "role": "model",
+   "parts": [
+    {
+     "text": "LEAF-echo-text",
+     "thought": false
+    },
+    {
+     "functionCall": {
+      "name": "charge",
+      "args": {
+       "apiKey": "LEAF-echo-args"
+      },
+      "id": "fc-echo"
+     }
+    },
+    {
+     "functionResponse": {
+      "name": "charge",
+      "id": "fc-echo",
+      "response": {
+       "result": "LEAF-echo-result"
+      }
+     }
+    }
+   ]
+  },
+  "turnComplete": false
+ }
+]

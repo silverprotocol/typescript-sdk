@@ -2883,6 +2883,34 @@
   "park": false,
   "status": "clean"
  },
+ "relay-echo-nonblocking-submitted-task.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-echo-nonblocking-submitted-task.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-echo-submitted-status-then-artifact.np.bare": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
+ "relay-echo-submitted-status-then-artifact.np.hc": {
+  "verdict": "MATCH",
+  "over": 0,
+  "under": 0,
+  "park": false,
+  "status": "clean"
+ },
  "relay-failed-status.np.bare": {
   "verdict": "MATCH",
   "over": 0,

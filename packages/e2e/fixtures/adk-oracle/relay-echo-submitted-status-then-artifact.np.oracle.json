@@ -1,0 +1,19 @@
+{
+ "leg": "relay-echo-submitted-status-then-artifact",
+ "mode": "np",
+ "hcOnly": false,
+ "threw": null,
+ "note": "a streaming peer whose first event is a submitted status-update repeating the forwarded request in the user role (text, a function call and its response), then a streamed artifact Hello",
+ "expected": "raw",
+ "readings": {
+  "raw": [
+   {
+    "source": "helper|||a1",
+    "call": "helper#0",
+    "seg": 0,
+    "text": "Hello"
+   }
+  ]
+ },
+ "calls": []
+}
