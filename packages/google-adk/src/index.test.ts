@@ -4821,7 +4821,7 @@ describe("createAdkNormalizer — a Live barge-in closes turn.abort after the ev
     expect(r.result().turns).toHaveLength(2);
   });
 
-  it("a turn gets one terminal: a second interrupt before the generation completes, or an interrupt after a success close, adds none", () => {
+  it("a turn gets one terminal: a second interrupt before the generation completes adds none, and content after a success close opens the next generation, which the interrupt aborts; every fold is clean", () => {
     const twoInterrupts = drive([
       liveEvent("inv_c", "c1", { content: audio }),
       liveEvent("inv_c", "c2", { interrupted: true }),
@@ -4829,13 +4829,18 @@ describe("createAdkNormalizer — a Live barge-in closes turn.abort after the ev
       liveEvent("inv_c", "c4", { interrupted: true }),
     ]);
     expect(twoInterrupts.filter((e) => TERMINAL.has(e.type))).toHaveLength(1);
+    expect(folds(twoInterrupts).needsResync).toBe(false);
     const afterSuccess = drive([
       liveEvent("inv_a", "a1", { content: text("Hi there.") }),
       liveEvent("inv_a", "a2", { turnComplete: true }),
       liveEvent("inv_a", "a3", { content: audio }),
       liveEvent("inv_a", "a4", { interrupted: true }),
     ]);
-    expect(afterSuccess.filter((e) => TERMINAL.has(e.type)).map((e) => e.type)).toEqual(["turn.done"]);
+    expect(afterSuccess.filter((e) => TERMINAL.has(e.type)).map((e) => [e.type, "turnId" in e ? e.turnId : ""])).toEqual([
+      ["turn.done", "turn_adk_inv_a"],
+      ["turn.abort", "turn_adk_inv_a_g1"],
+    ]);
+    expect(folds(afterSuccess).needsResync).toBe(false);
     const bothFlags = drive([
       liveEvent("inv_b", "b1", { content: audio }),
       liveEvent("inv_b", "b2", { turnComplete: true, interrupted: true }),

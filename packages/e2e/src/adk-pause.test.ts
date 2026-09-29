@@ -204,12 +204,16 @@ describe("ADK pause / completion closure (§10 item 25, step-1 scope)", () => {
   });
 
   for (const name of SUCCESS_CLOSE_SHAPES) {
-    it(`success-close shape, host-completion-only: ${name} parks without the opt-in`, () => {
+    it(`success-close shape without the opt-in: ${name} closes success from push(), and the content after the close opens the next turn instead of parking`, () => {
       const { r, tagged } = fold(load(name));
-      expect(r.needsResync).toBe(true);
-      const [term] = terminals(tagged);
-      expect(term?.ev.type).toBe("turn.done");
-      expect(term?.from).toBe("push");
+      expect(r.needsResync).toBe(false);
+      expectOneTerminalAndNothingAfter(tagged);
+      const terms = terminals(tagged);
+      expect(terms).toHaveLength(2);
+      expect(terms[0]?.ev.type).toBe("turn.done");
+      expect(terms[0]?.from).toBe("push");
+      expect(outcomeOf(terms[0]!.ev).type).toBe("success");
+      expect(turnOf(terms[1]!.ev)).toBe(`${turnOf(terms[0]!.ev)}_g1`);
     });
 
     it(`${name}: success-close shape — with the sentinel fed it folds clean and closes success from push()`, () => {

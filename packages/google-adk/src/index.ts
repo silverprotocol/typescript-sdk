@@ -2712,6 +2712,13 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
   // opens a new turn, `<turn>_g<n>`, instead of landing in the closed one.
   const generationOf = new Map<string, number>();
   const interruptClosed = new Set<string>();
+  // Turns a final response closed as success before the invocation ended
+  // (without the host-completion event only). ADK keeps running after such a
+  // final (a SequentialAgent's next sub-agent, a LoopAgent's next iteration),
+  // and content that follows opens the next generation of the turn rather
+  // than landing after its terminal (spec §8.0: framework content that
+  // arrives after a terminal opens a new turn).
+  const successClosed = new Set<string>();
   // Turns whose last function response has no model output after it yet. On
   // the Live path the model always answers a tool result with a reply
   // generation, and ADK can yield the call generation's turnComplete between
@@ -2822,6 +2829,8 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // parked reduce() (INV-TURN). Without the host-completion event such a
     // turn closes at flush(), as a completed Workflow does.
     if (typeof event.branch === "string") return;
+    // No ask is pending here, so this close is a success.
+    successClosed.add(turnId);
     closeOnFinalResponse(event, turnId, messageId);
   }
 
@@ -3097,6 +3106,86 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     });
   }
 
+  /** The part indexes whose text repeats a changed output rendering (see
+   *  drive()): skipped here and in the aggregate. */
+  function skippedParts(event: AdkEvent, parts: readonly AdkPart[]): Set<number> {
+    const renderedOutput = changedOutputRendering(event.output);
+    const skipped = new Set<number>();
+    if (renderedOutput !== undefined)
+      parts.forEach((p, idx) => {
+        if (p.thought !== true && typeof p.text === "string" && p.text === renderedOutput) skipped.add(idx);
+      });
+    return skipped;
+  }
+
+  /** An event's reading against the aggregate windows of a turn (the rules
+   *  are stated in drive()). */
+  function readWindow(turnId: string, event: AdkEvent, parts: readonly AdkPart[], skipped: ReadonlySet<number>, isPartial: boolean) {
+  const isTextPart = (p: AdkPart, idx: number): boolean =>
+    !skipped.has(idx) &&
+    p.thought !== true &&
+    p.functionCall === undefined &&
+    typeof p.text === "string" &&
+    p.text.length > 0;
+  const carriesText = parts.some(isTextPart);
+  const ownKey = aggregateWindowKey(turnId, event);
+  const relay = relayOf(event);
+  const snapshot = !isPartial && relay !== null && relay.stream === "snapshot" ? relay : null;
+  const restated = snapshot !== null ? snapshotWindows(streamedText, turnId, event, snapshot.task) : null;
+  const candidates = isPartial
+    ? []
+    : restated !== null
+      ? [...restated.artifacts, ...restated.status]
+      : windowCandidates(streamedText, turnId, event);
+  const [onlyCandidate] = candidates;
+  const readKey = !isPartial && candidates.length === 1 && onlyCandidate !== undefined ? onlyCandidate : ownKey;
+  const alreadyStreamed = isPartial
+    ? (streamedText.get(ownKey) ?? "")
+    : restated !== null
+      ? snapshotReading(
+          restated.artifacts.map((key) => streamedText.get(key) ?? "").join(""),
+          restated.status.map((key) => streamedText.get(key) ?? "").join(""),
+          parts
+            .filter(isTextPart)
+            .map((p) => p.text ?? "")
+            .join(""),
+        )
+      : candidates.length === 1
+        ? (streamedText.get(readKey) ?? "")
+        : "";
+  const matchesWindow = !isPartial && alreadyStreamed.length > 0 && carriesText;
+  const eventText = matchesWindow
+    ? parts
+        .filter(isTextPart)
+        .map((p) => p.text ?? "")
+        .join("")
+    : "";
+  const suffixRepeat = matchesWindow && alreadyStreamed.endsWith(eventText);
+  const isAggregate =
+    matchesWindow &&
+    (eventText.startsWith(alreadyStreamed) || alreadyStreamed.startsWith(eventText) || suffixRepeat);
+  const aggregateText = isAggregate ? eventText : "";
+  const suppressAggregateText =
+    isAggregate && aggregateText.length > 0 && (alreadyStreamed.startsWith(aggregateText) || suffixRepeat);
+    return { isTextPart, carriesText, ownKey, snapshot, candidates, readKey, alreadyStreamed, isAggregate, aggregateText, suppressAggregateText };
+  }
+
+  /** Whether an event after a success close only repeats the closed turn's
+   *  streamed text: ADK's aggregate after a message-less block chunk closed
+   *  the turn. It stays on that turn, where the window suppresses it, rather
+   *  than opening a new one. */
+  function repeatsClosedTurn(turnId: string, event: AdkEvent): boolean {
+    if (event.partial === true) return false;
+    const { parts } = splitPayloadParts(event.content?.parts ?? []);
+    if (parts.length === 0) return false;
+    const skipped = skippedParts(event, parts);
+    const reading = readWindow(turnId, event, parts, skipped, false);
+    return (
+      reading.suppressAggregateText &&
+      parts.every((p, idx) => skipped.has(idx) || reading.isTextPart(p, idx) || (p.thought !== true && p.text === ""))
+    );
+  }
+
   function drive(event: AdkEvent, relayEchoOmitted = 0): void {
     const turnId = liveTurnFor(event, relayEchoOmitted > 0);
     // ADK re-yields a bare `{interrupted}` after a message that carried both
@@ -3124,12 +3213,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // repeat what the reduction removed, so that one part is skipped here and
     // in the aggregate below. Nothing else matches: not a string output, not
     // a substring, not model text.
-    const renderedOutput = changedOutputRendering(event.output);
-    const skipped = new Set<number>();
-    if (renderedOutput !== undefined)
-      parts.forEach((p, idx) => {
-        if (p.thought !== true && typeof p.text === "string" && p.text === renderedOutput) skipped.add(idx);
-      });
+    const skipped = skippedParts(event, parts);
 
     // STREAMED-text citations carrier (audit M22): groundingMetadata is
     // EVENT-level, not per-part. A Gemini grounding response carries the full
@@ -3199,52 +3283,18 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // then its status window (snapshotReading), and closes them; and
     // the relaying agent's own failure event ends every relayed window of its
     // author and node path. An empty text part is not text.
-    const isTextPart = (p: AdkPart, idx: number): boolean =>
-      !skipped.has(idx) &&
-      p.thought !== true &&
-      p.functionCall === undefined &&
-      typeof p.text === "string" &&
-      p.text.length > 0;
-    const carriesText = parts.some(isTextPart);
-    const ownKey = aggregateWindowKey(turnId, event);
-    const relay = relayOf(event);
-    const snapshot = !isPartial && relay !== null && relay.stream === "snapshot" ? relay : null;
-    const restated = snapshot !== null ? snapshotWindows(streamedText, turnId, event, snapshot.task) : null;
-    const candidates = isPartial
-      ? []
-      : restated !== null
-        ? [...restated.artifacts, ...restated.status]
-        : windowCandidates(streamedText, turnId, event);
-    const [onlyCandidate] = candidates;
-    const readKey = !isPartial && candidates.length === 1 && onlyCandidate !== undefined ? onlyCandidate : ownKey;
-    const alreadyStreamed = isPartial
-      ? (streamedText.get(ownKey) ?? "")
-      : restated !== null
-        ? snapshotReading(
-            restated.artifacts.map((key) => streamedText.get(key) ?? "").join(""),
-            restated.status.map((key) => streamedText.get(key) ?? "").join(""),
-            parts
-              .filter(isTextPart)
-              .map((p) => p.text ?? "")
-              .join(""),
-          )
-        : candidates.length === 1
-          ? (streamedText.get(readKey) ?? "")
-          : "";
-    const matchesWindow = !isPartial && alreadyStreamed.length > 0 && carriesText;
-    const eventText = matchesWindow
-      ? parts
-          .filter(isTextPart)
-          .map((p) => p.text ?? "")
-          .join("")
-      : "";
-    const suffixRepeat = matchesWindow && alreadyStreamed.endsWith(eventText);
-    const isAggregate =
-      matchesWindow &&
-      (eventText.startsWith(alreadyStreamed) || alreadyStreamed.startsWith(eventText) || suffixRepeat);
-    const aggregateText = isAggregate ? eventText : "";
-    const suppressAggregateText =
-      isAggregate && aggregateText.length > 0 && (alreadyStreamed.startsWith(aggregateText) || suffixRepeat);
+    const {
+      isTextPart,
+      carriesText,
+      ownKey,
+      snapshot,
+      candidates,
+      readKey,
+      alreadyStreamed,
+      isAggregate,
+      aggregateText,
+      suppressAggregateText,
+    } = readWindow(turnId, event, parts, skipped, isPartial);
     let residualTail =
       isAggregate && !suppressAggregateText ? aggregateText.slice(alreadyStreamed.length) : "";
     let accumulated = alreadyStreamed;
@@ -3381,8 +3431,15 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     const base = key !== undefined ? `turn_${invokeStem}_${key}` : `turn_${invokeStem}`;
     const g = generationOf.get(base) ?? 0;
     const current = g === 0 ? base : `${base}_g${g}`;
-    if (!interruptClosed.has(current)) return current;
-    if (event.interrupted === true && !hasLiveContent(event) && !omittedParts) return undefined;
+    // Content after a success close (an event with parts or a transcription,
+    // or an in-band invocation error) opens the next generation; an event
+    // with none of those stays where it maps today.
+    const afterSuccess =
+      successClosed.has(current) &&
+      (hasLiveContent(event) || omittedParts || inBandErrorOf(event) !== undefined) &&
+      !repeatsClosedTurn(current, event);
+    if (!interruptClosed.has(current) && !afterSuccess) return current;
+    if (!afterSuccess && event.interrupted === true && !hasLiveContent(event) && !omittedParts) return undefined;
     generationOf.set(base, g + 1);
     return `${base}_g${g + 1}`;
   }

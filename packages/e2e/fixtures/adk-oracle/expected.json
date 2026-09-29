@@ -1,17 +1,10 @@
 {
  "after-agent-state-then-prefix.none.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 3,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Hello"
-  ],
-  "units": [
-   "Hello",
-   "Hel"
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "after-agent-state-then-prefix.none.hc": {
   "verdict": "MATCH",
@@ -21,19 +14,11 @@
   "status": "clean"
  },
  "after-agent-state-then-prefix.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 3,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Hel",
-   "lo"
-  ],
-  "units": [
-   "Hello",
-   "Hel"
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "after-agent-state-then-prefix.np.hc": {
   "verdict": "MATCH",
@@ -43,19 +28,11 @@
   "status": "clean"
  },
  "after-agent-state-then-prefix.prog.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 3,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Hel",
-   "lo"
-  ],
-  "units": [
-   "Hello",
-   "Hel"
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "after-agent-state-then-prefix.prog.hc": {
   "verdict": "MATCH",
@@ -65,18 +42,11 @@
   "status": "clean"
  },
  "after-agent-text.none.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 6,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Hello"
-  ],
-  "units": [
-   "Hello",
-   "Noted."
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "after-agent-text.none.hc": {
   "verdict": "MATCH",
@@ -86,19 +56,11 @@
   "status": "clean"
  },
  "after-agent-text.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 6,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Hel",
-   "lo"
-  ],
-  "units": [
-   "Hello",
-   "Noted."
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "after-agent-text.np.hc": {
   "verdict": "MATCH",
@@ -108,19 +70,11 @@
   "status": "clean"
  },
  "after-agent-text.prog.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 6,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Hel",
-   "lo"
-  ],
-  "units": [
-   "Hello",
-   "Noted."
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "after-agent-text.prog.hc": {
   "verdict": "MATCH",
@@ -130,18 +84,11 @@
   "status": "clean"
  },
  "before-model-second-pass.none.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 14,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Hello"
-  ],
-  "units": [
-   "Hello",
-   "Cached answer."
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "before-model-second-pass.none.hc": {
   "verdict": "MATCH",
@@ -151,19 +98,11 @@
   "status": "clean"
  },
  "before-model-second-pass.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 14,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Hel",
-   "lo"
-  ],
-  "units": [
-   "Hello",
-   "Cached answer."
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "before-model-second-pass.np.hc": {
   "verdict": "MATCH",
@@ -173,19 +112,11 @@
   "status": "clean"
  },
  "before-model-second-pass.prog.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 14,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Hel",
-   "lo"
-  ],
-  "units": [
-   "Hello",
-   "Cached answer."
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "before-model-second-pass.prog.hc": {
   "verdict": "MATCH",
@@ -307,19 +238,11 @@
   "status": "clean"
  },
  "chrome-loop-control.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 8,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Hel",
-   "lo"
-  ],
-  "units": [
-   "Hello",
-   "Hi there"
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "chrome-loop-control.np.hc": {
   "verdict": "MATCH",
@@ -473,19 +396,11 @@
   "status": "clean"
  },
  "chrome-state-then-prefix.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 3,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Hel",
-   "lo"
-  ],
-  "units": [
-   "Hello",
-   "Hel"
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "chrome-state-then-prefix.np.hc": {
   "verdict": "MATCH",
@@ -817,18 +732,11 @@
   }
  },
  "freshness-same-same.none.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 4,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Same"
-  ],
-  "units": [
-   "Same",
-   "Same"
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "freshness-same-same.none.hc": {
   "verdict": "MATCH",
@@ -838,18 +746,11 @@
   "status": "clean"
  },
  "freshness-same-same.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 4,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Same"
-  ],
-  "units": [
-   "Same",
-   "Same"
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "freshness-same-same.np.hc": {
   "verdict": "MATCH",
@@ -859,18 +760,11 @@
   "status": "clean"
  },
  "freshness-same-same.prog.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 4,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Same"
-  ],
-  "units": [
-   "Same",
-   "Same"
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "freshness-same-same.prog.hc": {
   "verdict": "MATCH",
@@ -2540,18 +2434,11 @@
   }
  },
  "loop-two-answers.none.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 8,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Hello"
-  ],
-  "units": [
-   "Hello",
-   "Hi there"
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "loop-two-answers.none.hc": {
   "verdict": "MATCH",
@@ -2561,19 +2448,11 @@
   "status": "clean"
  },
  "loop-two-answers.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 8,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Hel",
-   "lo"
-  ],
-  "units": [
-   "Hello",
-   "Hi there"
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "loop-two-answers.np.hc": {
   "verdict": "MATCH",
@@ -2583,19 +2462,11 @@
   "status": "clean"
  },
  "loop-two-answers.prog.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 8,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Hel",
-   "lo"
-  ],
-  "units": [
-   "Hello",
-   "Hi there"
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "loop-two-answers.prog.hc": {
   "verdict": "MATCH",
@@ -2809,18 +2680,11 @@
   "status": "clean"
  },
  "relay-artifact-throw-then-oneshot-pass.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 5,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Hel"
-  ],
-  "units": [
-   "Hel",
-   "Hello"
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "relay-artifact-throw-then-oneshot-pass.np.hc": {
   "verdict": "MATCH",
@@ -3138,21 +3002,11 @@
   "status": "clean"
  },
  "relay-speaking-planner-loop-status-then-oneshot-extends.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 21,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Next."
-  ],
-  "units": [
-   "Next.",
-   "Next.",
-   "Hel",
-   "lo",
-   "Hello there"
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "relay-speaking-planner-loop-status-then-oneshot-extends.np.hc": {
   "verdict": "MATCH",
@@ -3162,21 +3016,11 @@
   "status": "clean"
  },
  "relay-speaking-planner-loop-status-then-oneshot-same.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 15,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Next."
-  ],
-  "units": [
-   "Next.",
-   "Next.",
-   "Hel",
-   "lo",
-   "Hello"
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "relay-speaking-planner-loop-status-then-oneshot-same.np.hc": {
   "verdict": "MATCH",
@@ -3312,18 +3156,11 @@
   "status": "clean"
  },
  "relay-throw-then-loop-pass.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 5,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Hel"
-  ],
-  "units": [
-   "Hel",
-   "Hello"
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "relay-throw-then-loop-pass.np.hc": {
   "verdict": "MATCH",
@@ -3333,18 +3170,11 @@
   "status": "clean"
  },
  "relay-throw-then-oneshot-pass.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 5,
-  "park": true,
-  "status": "by-design",
-  "blocks": [
-   "Hel"
-  ],
-  "units": [
-   "Hel",
-   "Hello"
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "relay-throw-then-oneshot-pass.np.hc": {
   "verdict": "MATCH",
@@ -3830,25 +3660,17 @@
   }
  },
  "strip-every-final-usage-loop.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 8,
-  "park": true,
-  "status": "by-design",
+  "under": 0,
+  "park": false,
+  "status": "clean",
   "alt": {
    "reading": "raw",
-   "verdict": "UNDER",
+   "verdict": "MATCH",
    "over": 0,
-   "under": 8
-  },
-  "blocks": [
-   "Hel",
-   "lo"
-  ],
-  "units": [
-   "Hello",
-   "Hi there"
-  ]
+   "under": 0
+  }
  },
  "strip-every-final-usage-loop.np.hc": {
   "verdict": "MATCH",
@@ -3864,25 +3686,17 @@
   }
  },
  "strip-every-final-usage-loop.prog.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 8,
-  "park": true,
-  "status": "by-design",
+  "under": 0,
+  "park": false,
+  "status": "clean",
   "alt": {
    "reading": "raw",
-   "verdict": "UNDER",
+   "verdict": "MATCH",
    "over": 0,
-   "under": 8
-  },
-  "blocks": [
-   "Hel",
-   "lo"
-  ],
-  "units": [
-   "Hello",
-   "Hi there"
-  ]
+   "under": 0
+  }
  },
  "strip-every-final-usage-loop.prog.hc": {
   "verdict": "MATCH",
@@ -3898,25 +3712,17 @@
   }
  },
  "strip-first-final-usage-then-before-model-prefix.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 3,
-  "park": true,
-  "status": "by-design",
+  "under": 0,
+  "park": false,
+  "status": "clean",
   "alt": {
    "reading": "callback",
    "verdict": "OVER",
-   "over": 2,
+   "over": 5,
    "under": 0
-  },
-  "blocks": [
-   "Hel",
-   "lo"
-  ],
-  "units": [
-   "Hello",
-   "Hel"
-  ]
+  }
  },
  "strip-first-final-usage-then-before-model-prefix.np.hc": {
   "verdict": "MATCH",
@@ -3932,25 +3738,17 @@
   }
  },
  "strip-first-final-usage-then-before-model-prefix.prog.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 3,
-  "park": true,
-  "status": "by-design",
+  "under": 0,
+  "park": false,
+  "status": "clean",
   "alt": {
    "reading": "callback",
    "verdict": "OVER",
-   "over": 2,
+   "over": 5,
    "under": 0
-  },
-  "blocks": [
-   "Hel",
-   "lo"
-  ],
-  "units": [
-   "Hello",
-   "Hel"
-  ]
+  }
  },
  "strip-first-final-usage-then-before-model-prefix.prog.hc": {
   "verdict": "MATCH",
@@ -3966,24 +3764,17 @@
   }
  },
  "strip-flush-before-fc-fresh-empty-usage.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 6,
-  "park": true,
-  "status": "known-defect",
+  "under": 0,
+  "park": false,
+  "status": "clean",
   "alt": {
    "reading": "callback",
-   "verdict": "OVER+UNDER",
+   "verdict": "OVER",
    "over": 12,
-   "under": 6
-  },
-  "blocks": [
-   "Let me check"
-  ],
-  "units": [
-   "Let me check",
-   "Answer"
-  ]
+   "under": 0
+  }
  },
  "strip-flush-before-fc-fresh-empty-usage.np.hc": {
   "verdict": "MATCH",
@@ -4065,24 +3856,17 @@
   ]
  },
  "strip-flush-before-fc-fresh-usage-usage.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 6,
-  "park": true,
-  "status": "known-defect",
+  "under": 0,
+  "park": false,
+  "status": "clean",
   "alt": {
    "reading": "callback",
-   "verdict": "OVER+UNDER",
+   "verdict": "OVER",
    "over": 12,
-   "under": 6
-  },
-  "blocks": [
-   "Let me check"
-  ],
-  "units": [
-   "Let me check",
-   "Answer"
-  ]
+   "under": 0
+  }
  },
  "strip-flush-before-fc-fresh-usage-usage.np.hc": {
   "verdict": "MATCH",
@@ -4164,24 +3948,17 @@
   ]
  },
  "strip-flush-before-fc-spread-usage.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 6,
-  "park": true,
-  "status": "known-defect",
+  "under": 0,
+  "park": false,
+  "status": "clean",
   "alt": {
    "reading": "callback",
-   "verdict": "OVER+UNDER",
+   "verdict": "OVER",
    "over": 12,
-   "under": 6
-  },
-  "blocks": [
-   "Let me check"
-  ],
-  "units": [
-   "Let me check",
-   "Answer"
-  ]
+   "under": 0
+  }
  },
  "strip-flush-before-fc-spread-usage.np.hc": {
   "verdict": "MATCH",
@@ -4563,18 +4340,11 @@
   "status": "clean"
  },
  "text-fc-then-answer.np.bare": {
-  "verdict": "UNDER",
+  "verdict": "MATCH",
   "over": 0,
-  "under": 6,
-  "park": true,
-  "status": "known-defect",
-  "blocks": [
-   "Let me check"
-  ],
-  "units": [
-   "Let me check",
-   "Answer"
-  ]
+  "under": 0,
+  "park": false,
+  "status": "clean"
  },
  "text-fc-then-answer.np.hc": {
   "verdict": "MATCH",
