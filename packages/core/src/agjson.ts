@@ -921,18 +921,29 @@ const surfaceEnvelope = {
 
 // A2UI v1.0 client→server `action` (A2UI-frozen names VERBATIM, §0.4). `context`
 // = the A2UI resolved data-bindings — the SOLE sanctioned Record<string, unknown>
-// (map shape known: string keys; each value opaque per §0.1).
-export const AgA2uiSurfaceAction = z.object({
-  ...surfaceEnvelope,
-  surface: z.literal("a2ui"),
-  a2uiMessage: z.literal("action"),
-  name: z.string(),
-  sourceComponentId: z.string(),
-  timestamp: z.string(),
-  context: z.record(z.string(), z.unknown()),
-  wantResponse: z.boolean().optional(),
-  actionId: z.string().optional(),
-});
+// (map shape known: string keys; each value opaque per §0.1). `actionId` is
+// REQUIRED when `wantResponse` is true (§3).
+export const AgA2uiSurfaceAction = z
+  .object({
+    ...surfaceEnvelope,
+    surface: z.literal("a2ui"),
+    a2uiMessage: z.literal("action"),
+    name: z.string(),
+    sourceComponentId: z.string(),
+    timestamp: z.string(),
+    context: z.record(z.string(), z.unknown()),
+    wantResponse: z.boolean().optional(),
+    actionId: z.string().optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.wantResponse === true && v.actionId === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        message: "wantResponse: true requires actionId (A2UI v1.0 action)",
+        path: ["actionId"],
+      });
+    }
+  });
 export type AgA2uiSurfaceAction = z.infer<typeof AgA2uiSurfaceAction>;
 
 // A2UI v1.0 client→server `functionResponse` (inbound leg of the server

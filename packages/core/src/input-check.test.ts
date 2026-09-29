@@ -199,3 +199,30 @@ describe("checkAgInput — draft.4 §0.2, workspace#20 decision 6 (§10 item N, 
     });
   });
 });
+
+describe("checkAgInput — the producer-side errorText rule and the A2UI action's actionId", () => {
+  const results = (r: Record<string, unknown>) => ({ ...ENV, kind: "tool-result", results: [{ toolCallId: "c1", content: [{ type: "text", text: "fine" }], ...r }] });
+
+  for (const outcome of ["ok", "denied"] as const) {
+    it(`accepts a results[] entry with outcome ${outcome} that carries errorText, errorText kept`, () => {
+      const r = checkAgInput(results({ outcome, errorText: "x" }));
+      expect(r.ok).toBe(true);
+      expect(r.ok ? (r.input as unknown as { results: Array<Record<string, unknown>> }).results[0] : undefined).toMatchObject({ outcome, errorText: "x" });
+    });
+  }
+
+  const action = (a: Record<string, unknown>) => ({ ...ENV, kind: "resume", uiActions: [{ surfaceId: "s1", surface: "a2ui", a2uiMessage: "action", name: "submit", sourceComponentId: "c", timestamp: "t", context: {}, ...a }] });
+
+  it("rejects an A2UI action with wantResponse true and no actionId as malformed at actionId", () => {
+    expect(reject(action({ wantResponse: true }))).toEqual({ code: "malformed", path: ["uiActions", 0, "actionId"] });
+  });
+
+  it("accepts an A2UI action with wantResponse true and an actionId", () => {
+    expect(checkAgInput(action({ wantResponse: true, actionId: "a1" })).ok).toBe(true);
+  });
+
+  it("accepts an A2UI action with wantResponse false or absent and no actionId", () => {
+    expect(checkAgInput(action({ wantResponse: false })).ok).toBe(true);
+    expect(checkAgInput(action({})).ok).toBe(true);
+  });
+});
