@@ -4637,3 +4637,95 @@ describe("reduce — a memory record carries its write's _meta", () => {
     expect(toPersistable(r.result()).memory).toEqual([{ scope: "thread", key: "k", value: { a: 3 }, turnId: "t", _meta: { x: 1 } }]);
   });
 });
+
+describe("§2.2 errorText scoping, consumer side: outcome is authoritative, and no event is rejected for the producer rule", () => {
+  const opened = [
+    { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+    { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+    { type: "tool.start", seq: 2, toolCallId: "c1", name: "lookup", turnId: "t1" },
+  ] as JsonValue[];
+  const resultOf = (r: AgReduceResult) => r.messages.flatMap((m) => m.content).find((b) => b.type === "tool-result") as Record<string, unknown> | undefined;
+
+  it("a final tool.done with outcome error and no errorText folds to an error result, never a success", () => {
+    const events = ingestAgEvents([...opened, { type: "tool.done", seq: 3, toolCallId: "c1", content: [{ type: "data", name: "response", data: { error: { code: "E" } } }], outcome: "error", isError: true, turnId: "t1" }]);
+    expect(events.map((e) => e.type)).toEqual(["turn.start", "message.start", "tool.start", "tool.done"]);
+    const { result, needsResync } = reduce(events);
+    expect(needsResync).toBe(false);
+    const block = resultOf(result);
+    expect(block?.["outcome"]).toBe("error");
+    expect(block?.["isError"]).toBe(true);
+    expect("errorText" in (block ?? {})).toBe(false);
+  });
+
+  for (const outcome of ["ok", "denied"] as const) {
+    it(`a tool.done with outcome ${outcome} that carries errorText parses, ingests and folds with no park or drop, errorText kept`, () => {
+      const done = { type: "tool.done", seq: 3, toolCallId: "c1", content: [{ type: "text", text: "fine" }], outcome, errorText: "x", turnId: "t1" };
+      expect(AgEvent.safeParse(done).success).toBe(true);
+      const events = ingestAgEvents([...opened, done]);
+      expect(events.map((e) => e.type)).toEqual(["turn.start", "message.start", "tool.start", "tool.done"]);
+      const { result, needsResync } = reduce(events);
+      expect(needsResync).toBe(false);
+      expect(resultOf(result)).toMatchObject({ outcome, errorText: "x" });
+      const r = new Reducer();
+      for (const e of events) r.push(e);
+      expect(r.needsResync).toBe(false);
+      expect(r.result()).toEqual(result);
+    });
+  }
+});
+
+describe("INV-MSG: taskState alone never closes a turn, and removing a sealed message un-seals it", () => {
+  const E = [
+    { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+    { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+    { type: "message.end", seq: 2, id: "m1" },
+  ] as AgEvent[];
+  const m2 = { type: "message.start", seq: 4, id: "m2", role: "assistant", turnId: "t1", threadId: "th1" } as AgEvent;
+
+  it("a snapshot whose turn record carries taskState and no outcome leaves the turn open: a later message.start folds", () => {
+    const folded = reduce(E).result;
+    for (const taskState of ["completed", "failed", "canceled"]) {
+      const snap = { type: "messages.snapshot", seq: 3, messages: folded.messages, turns: [{ turnId: "t1", threadId: "th1", taskState }] } as AgEvent;
+      const r = new Reducer();
+      for (const e of [...E, snap, m2]) r.push(e);
+      expect(r.needsResync, taskState).toBe(false);
+      expect(r.result().turns).toEqual([{ turnId: "t1", threadId: "th1", taskState }]);
+      expect(r.result().messages.find((m) => m.id === "m2")?.turnId, taskState).toBe("t1");
+    }
+  });
+
+  it("control: the same snapshot whose record also carries an outcome closes the turn, and the message.start parks", () => {
+    const folded = reduce(E).result;
+    const snap = { type: "messages.snapshot", seq: 3, messages: folded.messages, turns: [{ turnId: "t1", threadId: "th1", taskState: "completed", outcome: { type: "success" } }] } as AgEvent;
+    const r = new Reducer();
+    for (const e of [...E, snap, m2]) r.push(e);
+    expect(r.needsResync).toBe(true);
+  });
+
+  const sealedThenReopened = (remove: boolean): Reducer => {
+    const r = new Reducer();
+    r.push({ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" });
+    r.push({ type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    r.push({ type: "text.start", seq: 2, id: "x1", turnId: "t1" });
+    r.push({ type: "text.delta", seq: 3, id: "x1", delta: "old" });
+    r.push({ type: "text.end", seq: 4, id: "x1" });
+    r.push({ type: "message.end", seq: 5, id: "m1" });
+    if (remove) r.push({ type: "message.remove", seq: 6, id: "m1", turnId: "t1" });
+    r.push({ type: "message.start", seq: 7, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" });
+    r.push({ type: "text.start", seq: 8, id: "x2", turnId: "t1" });
+    r.push({ type: "text.delta", seq: 9, id: "x2", delta: "new" });
+    return r;
+  };
+
+  it("a sealed message that is removed is un-sealed: its id re-opens and takes new blocks", () => {
+    const r = sealedThenReopened(true);
+    expect(r.needsResync).toBe(false);
+    const msgs = r.result().messages;
+    expect(msgs.map((m) => m.id)).toEqual(["m1"]);
+    expect(msgs[0]!.content).toEqual([expect.objectContaining({ type: "text", text: "new" })]);
+  });
+
+  it("control: without the remove, a block for the re-started sealed id parks", () => {
+    expect(sealedThenReopened(false).needsResync).toBe(true);
+  });
+});
