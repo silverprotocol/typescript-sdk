@@ -1474,10 +1474,67 @@ function carriesPayload(part: AdkPart): boolean {
   );
 }
 
+/** An event's parts with each part that holds text beside a payload member,
+ *  or two or more payload members, split into one part per payload member in
+ *  driveAdkPart's arm order, after a part holding its text (a genai Part holds
+ *  one kind of data, so such a part is malformed; every arm returns, and each
+ *  arm after the first would never map). The first part keeps the text, the
+ *  thought signature and every unmapped member (they are carried once); each
+ *  payload part holds its member alone, marked as thought when the original
+ *  part was. So the parts map as the same event with the split parts would
+ *  (but for the positions below): the text in its text or reasoning block,
+ *  and each payload member through its own arm, credential scrubs included
+ *  (SPEC.md §8.0, graceful degradation: no native value is dropped
+ *  silently). Any other part is
+ *  unchanged, and an event with no such part keeps its array. `origin` holds,
+ *  for each resulting part, the index of the native part it came from: a
+ *  null-id call's providerCallIndex and tool.start's `index` record that
+ *  original position (SPEC.md §8.0 item 2), never the split one. */
+function splitPayloadParts(parts: readonly AdkPart[]): { parts: readonly AdkPart[]; origin: readonly number[] } {
+  if (!parts.some((p) => payloadCount(p) > (typeof p.text === "string" ? 0 : 1))) return { parts, origin: parts.map((_, i) => i) };
+  const out: AdkPart[] = [];
+  const origin: number[] = [];
+  for (const [nativeIndex, part] of parts.entries()) {
+    const textual = typeof part.text === "string";
+    if (payloadCount(part) <= (textual ? 0 : 1)) {
+      out.push(part);
+      origin.push(nativeIndex);
+      continue;
+    }
+    const { functionCall, functionResponse, inlineData, executableCode, codeExecutionResult, fileData, ...rest } = part;
+    const mark: AdkPart = part.thought === true ? { thought: true } : {};
+    const halves: AdkPart[] = [];
+    if (functionCall !== undefined) halves.push({ functionCall, ...mark });
+    if (functionResponse !== undefined) halves.push({ functionResponse, ...mark });
+    if (inlineData !== undefined) halves.push({ inlineData, ...mark });
+    if (executableCode !== undefined) halves.push({ executableCode, ...mark });
+    if (codeExecutionResult !== undefined) halves.push({ codeExecutionResult, ...mark });
+    if (fileData !== undefined) halves.push({ fileData, ...mark });
+    const [first, ...others] = halves;
+    const split: AdkPart[] = textual || first === undefined ? [rest, ...halves] : [{ ...rest, ...first }, ...others];
+    out.push(...split);
+    for (let k = 0; k < split.length; k++) origin.push(nativeIndex);
+  }
+  return { parts: out, origin };
+}
+
+/** How many of driveAdkPart's payload members a part holds. */
+function payloadCount(part: AdkPart): number {
+  let n = 0;
+  if (part.functionCall !== undefined) n++;
+  if (part.functionResponse !== undefined) n++;
+  if (part.inlineData !== undefined) n++;
+  if (part.executableCode !== undefined) n++;
+  if (part.codeExecutionResult !== undefined) n++;
+  if (part.fileData !== undefined) n++;
+  return n;
+}
+
 function driveAdkPart(
   a: StreamAssembler,
   part: AdkPart,
   index: number,
+  nativeIndex: number,
   event: AdkEvent,
   messageId: string,
   turnId: string,
@@ -1610,7 +1667,8 @@ function driveAdkPart(
       if (minted.resend) return ""; // dedup the partial:false aggregate re-send (window-scoped content identity)
       toolCallId = minted.toolCallId;
     }
-    const providerCallIndex = realId !== null ? undefined : index;
+    // The native part's position, not the split one (see splitPayloadParts).
+    const providerCallIndex = realId !== null ? undefined : nativeIndex;
     // The reserved credential call's args carry the whole ADK AuthConfig: scrub
     // them to the allowlist (see scrubAdkAuthConfig) before they reach
     // tool.args.* and the folded tool-call block.
@@ -1623,7 +1681,7 @@ function driveAdkPart(
     a.toolStart({
       toolCallId,
       name: fc.name,
-      index,
+      index: nativeIndex,
       longRunning,
       providerMetadata:
         providerCallIndex !== undefined
@@ -2562,7 +2620,11 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // one content-free marker, after the opening of the turn the event maps
     // into.
     if (relayEchoOmitted > 0) a.emitExt("google", "relay-echo-omitted", { parts: relayEchoOmitted });
-    const parts = event.content?.parts ?? [];
+    // A part holding text beside a payload member, or two payload members, is
+    // split before any reader below classifies it (see splitPayloadParts), so
+    // its text joins the aggregate as text does and each payload member maps
+    // through its own arm.
+    const { parts, origin: nativeIndexOf } = splitPayloadParts(event.content?.parts ?? []);
     const isPartial = event.partial === true;
     // ADK renders an object `output` as the same event's text part, byte-equal
     // to JSON.stringify(output) (workflow/base_node.js toContent → valueToText).
@@ -2658,6 +2720,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
         a,
         part,
         index,
+        nativeIndexOf[index] ?? index,
         event,
         messageId,
         turnId,

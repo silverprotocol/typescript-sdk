@@ -124,7 +124,7 @@
       "members": {
         "text": {
           "disposition": "handled",
-          "note": "Primary text content -> text.start/delta/end (with citations/providerMetadata.google.thoughtSignature when signed, audit M22/\u00a78.8). When the SAME part also has `thought:true`, it routes to reasoning.* instead (see the `thought` entry) \u2014 `driveAdkPart` checks `thought` FIRST and returns before reaching the text branch, so a thought+text part is never double-emitted."
+          "note": "Primary text content -> text.start/delta/end (with citations/providerMetadata.google.thoughtSignature when signed, \u00a78.8). When the SAME part also has `thought:true`, it routes to reasoning.* instead (see the `thought` entry) \u2014 `driveAdkPart` checks `thought` FIRST and returns before reaching the text branch, so a thought+text part is never double-emitted. A part holding text beside a functionCall, functionResponse, inlineData, fileData, executableCode or codeExecutionResult (malformed: a genai Part holds one kind of data), or holding two or more of those, is split by drive() before any reader classifies it (splitPayloadParts): a part with its text, thoughtSignature and unmapped members, then one part per payload member in driveAdkPart's arm order, each marked thought when the original was. The event then maps as the same event with the split parts, except that a call split out of a part records the native part's position (tool.start's index and a null-id call's providerCallIndex, \u00a78.0 item 2), so the text joins the aggregate as text does and each member maps through its own arm, credential scrubs included (SPEC \u00a78.0, graceful degradation)."
         },
         "thought": {
           "disposition": "handled",

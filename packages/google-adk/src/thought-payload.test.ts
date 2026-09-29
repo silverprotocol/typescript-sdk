@@ -101,11 +101,13 @@ describe("createAdkNormalizer — a part marked as thought that holds text, or n
     }
   });
 
-  it("thought text never renders as visible text: a part marked as thought that holds text beside a call stays a reasoning block (a known residual, not the intended mapping: the call beside any text, an empty one included, is not mapped yet)", () => {
+  it("thought text never renders as visible text: a part marked as thought that holds text beside a call maps its text as a reasoning block, and its call as a part marked as thought that holds the call alone would", () => {
     for (const i of [0, 1]) {
       const out = drive([event(`r-beside-${i}`, [{ text: `Thinking ${i}.`, thought: true, ...call(`beside-${i}`, `fc-beside-${i}`) }])]);
       expect(out.filter((e) => e.type.startsWith("reasoning.")).map((e) => e.type), `#${i}`).toEqual(["reasoning.start", "reasoning.delta", "reasoning.end"]);
-      expect(out.some((e) => e.type.startsWith("text.") || isThoughtCarry(e)), `#${i}`).toBe(false);
+      expect(out.some((e) => e.type.startsWith("text.")), `#${i}`).toBe(false);
+      expect(out.filter(isThoughtCarry), `#${i}`).toHaveLength(1);
+      expect(out.find((e) => e.type === "tool.start"), `#${i}`).toMatchObject({ toolCallId: `fc-beside-${i}`, name: "lookup" });
     }
   });
 });

@@ -3490,10 +3490,10 @@ describe("createAdkNormalizer — genai-optional arm members ride provider-raw, 
       for (const ev of out) expect(() => AgEvent.parse(ev)).not.toThrow();
     });
 
-    it("branch order is unchanged: a text part carrying a malformed inlineData still takes the text arm, no carry (the media arm is never reached)", () => {
+    it("a text part carrying a malformed inlineData maps its text, and the inlineData beside it rides its own arm's carry, as a part holding it alone would", () => {
       const out = run([mediaEvent({ text: "hi", inlineData: { data: "AAAA" } })]);
       expect(out.some((e) => e.type === "text.delta")).toBe(true);
-      expect(providerRawBlocks(out)).toHaveLength(0);
+      expect(providerRawBlocks(out).map((e) => (e as { block: { raw: unknown } }).block.raw)).toEqual([{ inlineData: { data: "AAAA" } }]);
       expect(typedBlocks(out)).toHaveLength(0);
     });
 
