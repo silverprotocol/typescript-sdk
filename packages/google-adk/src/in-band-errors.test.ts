@@ -441,3 +441,36 @@ describe("createAdkNormalizer — a host-terminal error after an in-band error",
     }
   });
 });
+
+describe("createAdkNormalizer — an event with an error message and no error code after a relayed block", () => {
+  // The shape a LoopAgent over a RemoteA2AAgent yields at @google/adk 2.1.0:
+  // the first remote run ends on a relayed block, and the second iteration's
+  // empty A2A message fails in the remote executor, which the relay reports as
+  // an event with an errorMessage, no errorCode, no usage and no relay entries.
+  it("is not an invocation error and not a repeat of the relayed block: the relayed block yields the only error event, and the turn closes with one turn.error carrying the block's code and usage", () => {
+    for (const [i, usage] of [[0, { promptTokenCount: 10, candidatesTokenCount: 5, totalTokenCount: 15 }], [1, undefined]] as const) {
+      for (const host of [false, true]) {
+        const label = `#${i} host=${host}`;
+        const inv = `inv-no-code-${i}`;
+        const block: Native = {
+          invocationId: inv,
+          author: "helper",
+          turnComplete: true,
+          errorCode: "SAFETY",
+          errorMessage: "The response was blocked for safety.",
+          ...(usage !== undefined ? { usageMetadata: usage } : {}),
+          customMetadata: { "a2a:request": {}, "a2a:response": { kind: "status-update" }, "a2a:task_id": `task-${i}`, "a2a:context_id": `ctx-${i}` },
+        };
+        const noCode: Native = { invocationId: inv, author: "helper", turnComplete: true, errorMessage: "partOrString cannot be an empty array" };
+        const run = fold("synthetic", "no-code-after-relayed-block", [block, noCode], host, undefined);
+        expect(run.perNative[0]?.filter((e) => e.type === "error").map((e) => Reflect.get(e, "code")), label).toEqual(["SAFETY"]);
+        expect(run.perNative[1]?.some((e) => e.type === "error"), label).toBe(false);
+        const closes = run.all.filter((e) => TERMINAL.has(e.type));
+        expect(closes.map((e) => [e.type, Reflect.get(e, "code")]), label).toEqual([["turn.error", "SAFETY"]]);
+        const alone = fold("synthetic", "relayed-block-alone", [block], host, undefined).all.find((e) => e.type === "turn.error");
+        expect(Reflect.get(closes[0] ?? {}, "usage"), label).toEqual(alone === undefined ? undefined : Reflect.get(alone, "usage"));
+        expectCleanFold(run);
+      }
+    }
+  });
+});
