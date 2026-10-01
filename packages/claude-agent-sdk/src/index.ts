@@ -278,6 +278,8 @@ function mapTurnUsage(
 ): AgUsage {
   const byModel: Record<string, AgUsage> = {};
   for (const [model, mu] of Object.entries(modelUsage)) {
+    // SPEC §13.7: an own `__proto__` key is dropped, never passed through.
+    if (model === "__proto__") continue;
     byModel[model] = mapModelUsage(mu);
   }
   const reasoningTokens = readThinkingTokens(usage);
@@ -1249,7 +1251,8 @@ function resultMetaPayload(msg: SDKResultMsg, closesAsError: boolean): { [k: str
   const byModel: { [k: string]: JsonValue } = {};
   const modelUsage = isJsonObject(msg.modelUsage) ? msg.modelUsage : {};
   for (const [model, mu] of Object.entries(modelUsage)) {
-    if (!isJsonObject(mu)) continue;
+    // SPEC §13.7: an own `__proto__` key is dropped, never passed through.
+    if (model === "__proto__" || !isJsonObject(mu)) continue;
     const identity: { [k: string]: JsonValue } = {
       ...(typeof mu["canonicalModel"] === "string" ? { canonicalModel: mu["canonicalModel"] } : {}),
       ...(typeof mu["provider"] === "string" ? { provider: mu["provider"] } : {}),
@@ -2452,7 +2455,11 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // (the merge-into-message channel) instead; see below the block loop.
       const wrapperMetaRaw: { [k: string]: JsonValue } = {};
       if (msg.supersedes !== undefined && msg.supersedes.length > 0) {
-        wrapperMetaRaw["supersedes"] = msg.supersedes;
+        // A copy through the JSON boundary, like every other native carry: the
+        // emitted value never shares the frame's array, and an own `__proto__`
+        // key at any depth is dropped (SPEC §13.7). A list of strings is
+        // carried unchanged.
+        wrapperMetaRaw["supersedes"] = JsonValue.parse(msg.supersedes);
       }
       if (msg.resumed_from_incomplete_thinking === true) {
         wrapperMetaRaw["resumed_from_incomplete_thinking"] = true;

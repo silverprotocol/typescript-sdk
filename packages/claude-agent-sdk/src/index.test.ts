@@ -6599,6 +6599,70 @@ describe("createClaudeNormalizer — API-error turn LIVE: the captured invalid-A
   });
 });
 
+// ─── an own __proto__ key in native data is dropped (SPEC §13.7) ──────────────
+// JSON.parse keeps a `__proto__` member as an own key. The facet's carries copy
+// native values through the JSON boundary, which drops it; these legs pin the
+// two places that read native keys or values without that copy.
+describe("createClaudeNormalizer — an own __proto__ key in native data is dropped, never carried or made a prototype (SPEC §13.7)", () => {
+  const MARK = "PLANTED_KEY";
+  // Build a frame with an own `__proto__` key wherever MARK appears as a key.
+  const planted = (frame: unknown): unknown => JSON.parse(JSON.stringify(frame).split(`"${MARK}"`).join('"__proto__"'));
+  // Every path, at any depth, holding an own `__proto__` key or a prototype other than Object.prototype.
+  const findings = (v: unknown, path = "$", out: string[] = []): string[] => {
+    if (v === null || typeof v !== "object") return out;
+    if (Object.prototype.hasOwnProperty.call(v, "__proto__")) out.push(`own ${path}`);
+    if (!Array.isArray(v) && Object.getPrototypeOf(v) !== Object.prototype) out.push(`prototype ${path}`);
+    for (const [k, child] of Object.entries(v)) findings(child, `${path}.${k}`, out);
+    return out;
+  };
+  const pushRaw = (frames: unknown[]): AgEvent[] => {
+    const n = createClaudeNormalizer();
+    return [...frames.flatMap((f) => n.push(f)), ...n.flush()];
+  };
+
+  it("supersedes: an element carrying an own __proto__ key is carried without it on both routes (a tool-first frame's message.metadata, a text-first frame's block _meta), and the carried list is a copy; a list of strings is carried unchanged", () => {
+    const uuids = ["00000000-0000-0000-0000-0000000000b1", "00000000-0000-0000-0000-0000000000b2"];
+    const routes: [string, BetaMessage["content"]][] = [
+      ["tool-first", [{ type: "tool_use", id: "toolu_s1", name: "get_weather", input: {} }]],
+      ["text-first", [{ type: "text", text: "answer", citations: null }]],
+    ];
+    for (const [route, content] of routes) {
+      const frame = { ...(assistantMsg(content) as object), supersedes: [{ [MARK]: { x: 1 }, nested: { [MARK]: { y: 2 } } }] };
+      const evs = pushRaw([planted(frame), resultSuccess("end_turn")]);
+      expect(findings(evs), route).toEqual([]);
+      expect(JSON.stringify(evs), route).toContain('"supersedes"');
+      const r = new Reducer();
+      for (const e of evs) r.push(e);
+      expect(r.needsResync, route).toBe(false);
+      expect(findings(r.result()), route).toEqual([]);
+      // A list of strings is carried unchanged, and never by reference.
+      const parsed = JSON.parse(JSON.stringify({ ...(assistantMsg(content) as object), supersedes: uuids }));
+      const plain = pushRaw([parsed, resultSuccess("end_turn")]);
+      expect(JSON.stringify(plain), route).toContain(`"supersedes":${JSON.stringify(uuids)}`);
+      parsed.supersedes.push("changed-after-push");
+      expect(JSON.stringify(plain), route).not.toContain("changed-after-push");
+    }
+  });
+
+  it("modelUsage: a model key named __proto__ is dropped from turn.done usage.byModel and from result-meta, and the other models are kept", () => {
+    const base = resultSuccess("end_turn") as { modelUsage: { [k: string]: unknown } };
+    const entry = base.modelUsage["claude-opus"];
+    const result = { ...base, modelUsage: { "claude-opus": { ...(entry as object), canonicalModel: "claude-opus-5" }, [MARK]: { ...(entry as object), canonicalModel: "x" } } };
+    const evs = pushRaw([planted(result)]);
+    expect(findings(evs)).toEqual([]);
+    const done = evs.find((e) => e.type === "turn.done");
+    const usage: unknown = done !== undefined && "usage" in done ? done.usage : undefined;
+    const byModel: unknown = typeof usage === "object" && usage !== null && "byModel" in usage ? usage.byModel : undefined;
+    expect(typeof byModel === "object" && byModel !== null ? Object.keys(byModel) : []).toEqual(["claude-opus"]);
+    expect(typeof byModel === "object" && byModel !== null ? Object.getPrototypeOf(byModel) : undefined).toBe(Object.prototype);
+    const meta = evs.find((e) => e.type === "ext.anthropic.result-meta");
+    expect(JSON.stringify(meta)).toContain('"claude-opus"');
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(findings(r.result())).toEqual([]);
+  });
+});
+
 describe("createClaudeNormalizer — the API-error triad (api_error / api_error_params / api_error_code, CLI 2.1.280, undeclared) on the assistant error frame", () => {
   const TRIAD = {
     api_error: "provider_credentials",
