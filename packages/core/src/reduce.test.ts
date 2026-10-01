@@ -4921,3 +4921,54 @@ describe("a subagent.start for a turn the fold already holds gives it a parentTu
     expect(r.needsResync).toBe(true);
   });
 });
+
+describe("fold rows whose landed members had no positive test: tool.done pendingInput, source providerMetadata, keyless memory, memory patch metadata", () => {
+  const fold = (evs: unknown[]) => { const r = new Reducer(); for (const e of evs) r.push(e as AgEvent); return r; };
+  const open = [
+    { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+    { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+  ];
+
+  it("a tool.done carrying pendingInput lands it on the tool-result block", () => {
+    const r = fold([...open,
+      { type: "tool.start", seq: 2, toolCallId: "c1", name: "ask", turnId: "t1" },
+      { type: "tool.done", seq: 3, toolCallId: "c1", turnId: "t1", content: [], outcome: "input_required", pendingInput: { requestState: "rs-1", inputKeys: ["city"] } },
+    ]);
+    expect(r.needsResync).toBe(false);
+    const block = r.result().messages.flatMap((m) => m.content).find((b) => b.type === "tool-result") as Record<string, unknown> | undefined;
+    expect(block).toMatchObject({ toolCallId: "c1", outcome: "input_required", pendingInput: { requestState: "rs-1", inputKeys: ["city"] } });
+  });
+
+  it("a source carrying providerMetadata lands it on the turn's sources[]", () => {
+    const r = fold([...open,
+      { type: "source", seq: 2, turnId: "t1", sourceId: "s1", source: { url: "https://example.com/a", title: "A" }, chunkIndex: 0, providerMetadata: { google: { score: 0.9 } } },
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.find((t) => t.turnId === "t1")?.sources).toEqual([
+      { sourceId: "s1", source: { url: "https://example.com/a", title: "A" }, chunkIndex: 0, providerMetadata: { google: { score: 0.9 } } },
+    ]);
+  });
+
+  it("keyless memory.write events: two to one scope fold to one record (the later value), keyless writes to two scopes to two", () => {
+    const r = fold([...open,
+      { type: "memory.write", seq: 2, scope: "user", value: { v: 1 } },
+      { type: "memory.write", seq: 3, scope: "user", value: { v: 2 } },
+      { type: "memory.write", seq: 4, scope: "agent", value: { v: 3 } },
+    ]);
+    expect(r.needsResync).toBe(false);
+    const mem = r.result().memory ?? [];
+    expect(mem.filter((m) => m.scope === "user")).toEqual([expect.objectContaining({ scope: "user", value: { v: 2 } })]);
+    expect(mem.filter((m) => m.scope === "agent")).toEqual([expect.objectContaining({ scope: "agent", value: { v: 3 } })]);
+    expect(mem).toHaveLength(2);
+  });
+
+  it("a memory.write patch without reason or durable keeps the record's; one carrying them replaces them", () => {
+    const base = [...open, { type: "memory.write", seq: 2, scope: "user", key: "k", value: { n: 1 }, reason: "first", durable: true }];
+    const kept = fold([...base, { type: "memory.write", seq: 3, scope: "user", key: "k", patch: [{ op: "replace", path: "/n", value: 2 }] }]);
+    expect(kept.needsResync).toBe(false);
+    expect(kept.result().memory?.find((m) => m.key === "k")).toMatchObject({ value: { n: 2 }, reason: "first", durable: true });
+    const replaced = fold([...base, { type: "memory.write", seq: 3, scope: "user", key: "k", patch: [{ op: "replace", path: "/n", value: 3 }], reason: "second", durable: false }]);
+    expect(replaced.needsResync).toBe(false);
+    expect(replaced.result().memory?.find((m) => m.key === "k")).toMatchObject({ value: { n: 3 }, reason: "second", durable: false });
+  });
+});
