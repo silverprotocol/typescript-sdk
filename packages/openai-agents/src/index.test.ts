@@ -7715,6 +7715,52 @@ describe("createOpenaiNormalizer — O1 honest flush (fold/flush option 1)", () 
     expect(r.result().turns.every((t) => t.outcome?.type === "aborted")).toBe(true);
   });
 
+  it("a host-terminal event while an approval round's close is deferred releases that round's turn.done paused with its asks and deferred finishReason, then exactly one other top-level turn closes turn.error with the host's code; two invokes in one fold give distinct error-turn ids", () => {
+    const invoke = (invokeId: string, respId: string, callId: string): AgEvent[] => {
+      const n = createOpenaiNormalizer({ invokeId });
+      return [
+        ...approvalRound(respId, callId, { ask: true }),
+        { type: "__host_error__", code: "max_turns", message: "Max turns (8) exceeded" } satisfies JsonValue,
+      ]
+        .flatMap((e) => n.push(e))
+        .concat(n.flush());
+    };
+    const errorTurnIds: string[] = [];
+    const both = new Reducer();
+    for (const [invokeId, respId, callId] of [
+      ["inv1", "resp_hp1", "call_hp1"],
+      ["inv2", "resp_hp2", "call_hp2"],
+    ] as const) {
+      const evs = invoke(invokeId, respId, callId);
+      const round = `turn_${respId}`;
+      // The released close: paused, naming the round's ask, with the round's deferred finishReason and usage.
+      const done = evs.filter((e) => e.type === "turn.done");
+      expect(done).toHaveLength(1);
+      expect(done[0]).toMatchObject({
+        turnId: round,
+        outcome: { type: "paused", asks: [{ askId: `approval_${callId}`, kind: "approval", toolCallId: callId }] },
+        finishReason: "stop",
+        usage: { inputTokens: 110, outputTokens: 56 },
+      });
+      // Exactly one other top-level turn opens, after the release, and closes turn.error with the host's code.
+      const starts = evs.filter((e) => e.type === "turn.start");
+      expect(starts.map((e) => Reflect.get(e, "turnId"))[0]).toBe(round);
+      const others = starts.filter((e) => Reflect.get(e, "turnId") !== round);
+      expect(others).toHaveLength(1);
+      expect(Reflect.get(others[0] as AgEvent, "parentTurnId")).toBeUndefined();
+      const errorTurn = String(Reflect.get(others[0] as AgEvent, "turnId"));
+      expect(evs.indexOf(others[0] as AgEvent)).toBeGreaterThan(evs.indexOf(done[0] as AgEvent));
+      expect(evs.filter((e) => e.type === "turn.error")).toMatchObject([{ turnId: errorTurn, code: "max_turns", message: "Max turns (8) exceeded" }]);
+      expect(evs.filter((e) => e.type === "turn.abort")).toEqual([]);
+      expect(fold(evs).needsResync).toBe(false);
+      errorTurnIds.push(errorTurn);
+      for (const e of evs) both.push(e);
+    }
+    expect(new Set(errorTurnIds).size).toBe(2);
+    expect(both.needsResync).toBe(false);
+    expect(both.result().turns.map((t) => t.outcome?.type)).toEqual(["paused", "error", "paused", "error"]);
+  });
+
   it.each([
     ["no approval ask", false, "turn.abort"],
     ["an approval ask outstanding", true, "turn.done"],
