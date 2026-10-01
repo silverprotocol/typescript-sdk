@@ -4880,3 +4880,44 @@ describe("§5 fold rows at N≥2 and the members each row lands", () => {
     expect(msgs.map((m) => (m.content[0] as { text?: string }).text)).toEqual(["one", "three"]);
   });
 });
+
+describe("a subagent.start for a turn the fold already holds gives it a parentTurnId when it has none (§5 turn-open idempotency, INV-OWNER)", () => {
+  const fold = (evs: unknown[]) => { const r = new Reducer(); for (const e of evs) r.push(e as AgEvent); return r; };
+  const turnOf = (r: Reducer, id: string) => r.result().turns.find((t) => t.turnId === id);
+
+  it("turn.start{c} then subagent.start{c, parentTurnId p}: c takes p as its parent and keeps its thread", () => {
+    const r = fold([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "p" },
+      { type: "turn.start", seq: 1, threadId: "th1", turnId: "c" },
+      { type: "subagent.start", seq: 2, turnId: "c", parentTurnId: "p" },
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(turnOf(r, "c")).toEqual({ turnId: "c", threadId: "th1", parentTurnId: "p" });
+    expect(r.result().turns).toHaveLength(2);
+  });
+
+  it("a snapshot carrying turn c with no parent, then subagent.start{c, p}: c takes p, and its carried outcome stays (not reopened)", () => {
+    const r = fold([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "p" },
+      { type: "messages.snapshot", seq: 1, messages: [], turns: [{ turnId: "p", threadId: "th1" }, { turnId: "c", threadId: "th1", outcome: { type: "success" } }] },
+      { type: "subagent.start", seq: 2, turnId: "c", parentTurnId: "p" },
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(turnOf(r, "c")).toEqual({ turnId: "c", threadId: "th1", parentTurnId: "p", outcome: { type: "success" } });
+    r.push({ type: "message.start", seq: 3, id: "m1", role: "assistant", turnId: "c", threadId: "th1" } as AgEvent);
+    expect(r.needsResync).toBe(true);
+  });
+
+  it("a subagent.start naming a closed turn with no parent gives it the parent and does not reopen it", () => {
+    const r = fold([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "p" },
+      { type: "turn.start", seq: 1, threadId: "th1", turnId: "c" },
+      { type: "turn.done", seq: 2, turnId: "c", outcome: { type: "success" }, finishReason: "stop" },
+      { type: "subagent.start", seq: 3, turnId: "c", parentTurnId: "p" },
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(turnOf(r, "c")).toMatchObject({ turnId: "c", threadId: "th1", parentTurnId: "p", outcome: { type: "success" } });
+    r.push({ type: "message.start", seq: 4, id: "m1", role: "assistant", turnId: "c", threadId: "th1" } as AgEvent);
+    expect(r.needsResync).toBe(true);
+  });
+});

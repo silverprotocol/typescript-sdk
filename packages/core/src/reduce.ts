@@ -327,9 +327,12 @@ export class Reducer {
         // A subagent.start always counts as a legitimately
         // opened turn, even on the idempotent-duplicate early return below.
         this.#openedTurns.add(ev.turnId);
-        // Idempotent: if the nested turn already exists, skip (never duplicate).
+        // Idempotent: a second open of a turn the fold already holds merges fields and never duplicates it (§5
+        // turn-open idempotency): a record with no parentTurnId takes this one; a record that has one keeps it, and
+        // a known thread stays.
         const existingNested = this.#turns.get(ev.turnId);
         if (existingNested !== undefined) {
+          if (existingNested.parentTurnId === undefined) existingNested.parentTurnId = ev.parentTurnId;
           this.#seenOpened.set(ev.turnId, existingNested.threadId);
           break;
         }
