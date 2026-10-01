@@ -2414,9 +2414,19 @@ describe("reduce — R9 new-ops + resync + snapshot + live-only", () => {
     ]).result;
     expect(withUiSurface).toEqual(baseline);
 
-    // ext.<vendor>.<key> — live-only via isClosedEvent guard (already exits early)
-    // Verify the ext path also produces no change via the AgEvent union
-    expect(baseline).toEqual(reduce(baseEvents).result);
+    // ext.<vendor>.<key> — live-only: each ext event occupies its seq slot and folds nothing, for any vendor.
+    const extEvents = [
+      { type: "ext.acme.note", seq: 2, value: { note: "live-only" } },
+      { type: "ext.google.relay-echo-omitted", seq: 2, parts: 3 },
+    ] as unknown as AgEvent[];
+    for (const ext of extEvents) {
+      const withExt = reduce([...baseEvents, ext]);
+      expect(withExt.needsResync, ext.type).toBe(false);
+      expect(withExt.result, ext.type).toEqual(baseline);
+    }
+    const withBothExt = reduce([...baseEvents, extEvents[0]!, { ...extEvents[1]!, seq: 3 } as AgEvent]);
+    expect(withBothExt.needsResync).toBe(false);
+    expect(withBothExt.result).toEqual(baseline);
 
     expect(() => AgReduceResult.parse(baseline)).not.toThrow();
     expect(() => AgReduceResult.parse(withError)).not.toThrow();
@@ -4727,5 +4737,146 @@ describe("INV-MSG: taskState alone never closes a turn, and removing a sealed me
 
   it("control: without the remove, a block for the re-started sealed id parks", () => {
     expect(sealedThenReopened(false).needsResync).toBe(true);
+  });
+});
+
+describe("§5 fold rows at N≥2 and the members each row lands", () => {
+  const fold = (evs: unknown[]) => { const r = new Reducer(); for (const e of evs) r.push(e as AgEvent); return r; };
+  const open = [
+    { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+    { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+  ];
+  const blockOf = (r: Reducer, type: string) => r.result().messages.flatMap((m) => m.content).find((b) => b.type === type) as Record<string, unknown> | undefined;
+
+  it("a stream that starts at seq 5 on a fresh reducer folds (no earlier seq to gap from); after a seq-0 event the same jump parks", () => {
+    const tail = [
+      { type: "turn.start", seq: 5, threadId: "th1", turnId: "t1" },
+      { type: "message.start", seq: 6, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+    ];
+    const fresh = fold(tail);
+    expect(fresh.needsResync).toBe(false);
+    expect(fresh.result().messages.map((m) => m.id)).toEqual(["m1"]);
+    expect(fold([{ type: "turn.start", seq: 0, threadId: "th0", turnId: "t0" }, ...tail]).needsResync).toBe(true);
+  });
+
+  it("each of the other ui.* types is live-only: it occupies its seq slot and changes no fold result", () => {
+    const baseline = fold(open).result();
+    const ui = [
+      { type: "ui.call", surfaceId: "s1", callId: "c1", method: "m", args: { a: 1 }, wantResponse: true },
+      { type: "ui.result", surfaceId: "s1", callId: "c1", value: { ok: true } },
+      { type: "ui.action-result", surfaceId: "s1", actionId: "a1", value: 1 },
+      { type: "ui.widget.result", surfaceId: "s1", callId: "c1", result: "done" },
+      { type: "ui.display-mode", mode: "fullscreen", surfaceId: "s1" },
+      { type: "ui.surface.update", surfaceId: "s1", components: [{ id: "c" }] },
+      { type: "ui.surface.end", surfaceId: "s1" },
+      { type: "ui.data-model", surfaceId: "s1", path: "/a", value: 2 },
+    ];
+    for (const u of ui) expect(AgEvent.safeParse({ ...u, seq: 2 }).success, u.type).toBe(true);
+    for (const u of ui) {
+      const r = fold([...open, { ...u, seq: 2 }]);
+      expect(r.needsResync, u.type).toBe(false);
+      expect(r.result(), u.type).toEqual(baseline);
+    }
+    const all = fold([...open, ...ui.map((u, i) => ({ ...u, seq: 2 + i }))]);
+    expect(all.needsResync).toBe(false);
+    expect(all.result()).toEqual(baseline);
+  });
+
+  it("tool.start lands title, toolMetadata, uiVisibility and serverName on the tool-call block; tool.args.assembled sets title and toolMetadata when present", () => {
+    const r = fold([...open,
+      { type: "tool.start", seq: 2, toolCallId: "c1", name: "lookup", turnId: "t1", title: "Look up", toolMetadata: { m: 1 }, uiVisibility: ["model", "app"], serverName: "srv" },
+      { type: "tool.start", seq: 3, toolCallId: "c2", name: "fetch", turnId: "t1" },
+      { type: "tool.args.assembled", seq: 4, toolCallId: "c2", input: { q: 1 }, title: "Fetch it", toolMetadata: { n: 2 } },
+    ]);
+    expect(r.needsResync).toBe(false);
+    const calls = r.result().messages.flatMap((m) => m.content).filter((b) => b.type === "tool-call") as Array<Record<string, unknown>>;
+    expect(calls[0]).toMatchObject({ toolCallId: "c1", title: "Look up", toolMetadata: { m: 1 }, uiVisibility: ["model", "app"], serverName: "srv" });
+    expect(calls[1]).toMatchObject({ toolCallId: "c2", input: { q: 1 }, title: "Fetch it", toolMetadata: { n: 2 } });
+  });
+
+  it("artifact.start opens the artifact with its extensions; turn.done records taskState on the turn", () => {
+    const r = fold([...open,
+      { type: "artifact.start", seq: 2, artifactId: "a1", turnId: "t1", threadId: "th1", name: "report", extensions: ["https://example.com/ext/v1"] },
+      { type: "message.end", seq: 3, id: "m1" },
+      { type: "turn.done", seq: 4, turnId: "t1", outcome: { type: "success" }, finishReason: "stop", taskState: "completed" },
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().artifacts?.[0]).toMatchObject({ artifactId: "a1", turnId: "t1", threadId: "th1", extensions: ["https://example.com/ext/v1"] });
+    expect(r.result().turns.find((t) => t.turnId === "t1")?.taskState).toBe("completed");
+  });
+
+  it("reasoning.delta merges providerMetadata; reasoning.end merges it by key (a later key replaces, earlier keys stay) and sets provider", () => {
+    const r = fold([...open,
+      { type: "reasoning.start", seq: 2, id: "r1", turnId: "t1" },
+      { type: "reasoning.delta", seq: 3, id: "r1", delta: "think", providerMetadata: { first: { a: 1 }, shared: { b: 1 } } },
+      { type: "reasoning.end", seq: 4, id: "r1", provider: "anthropic", providerMetadata: { shared: { b: 2 }, last: { c: 3 } } },
+    ]);
+    expect(r.needsResync).toBe(false);
+    const b = blockOf(r, "reasoning")!;
+    expect(b["provider"]).toBe("anthropic");
+    expect(b["providerMetadata"]).toEqual({ first: { a: 1 }, shared: { b: 2 }, last: { c: 3 } });
+  });
+
+  it("a second reasoning.opaque replaces the first; opaque deltas interleaved across two reasoning ids assemble per id", () => {
+    const r = fold([...open,
+      { type: "reasoning.start", seq: 2, id: "r1", turnId: "t1" },
+      { type: "reasoning.start", seq: 3, id: "r2", turnId: "t1" },
+      { type: "reasoning.opaque", seq: 4, id: "r1", kind: "signature", value: "first", provider: "anthropic" },
+      { type: "reasoning.opaque", seq: 5, id: "r1", kind: "signature", value: "second", provider: "anthropic" },
+      { type: "reasoning.opaque.delta", seq: 6, id: "r2", delta: "x" },
+      { type: "reasoning.opaque.delta", seq: 7, id: "r1", delta: "a" },
+      { type: "reasoning.opaque.delta", seq: 8, id: "r2", delta: "y" },
+      { type: "reasoning.opaque.delta", seq: 9, id: "r1", delta: "b" },
+      { type: "reasoning.opaque", seq: 10, id: "r2", kind: "signature", value: "", provider: "pydantic" },
+    ]);
+    expect(r.needsResync).toBe(false);
+    // blocks in creation order: r1, then r2
+    const blocks = () => r.result().messages.flatMap((m) => m.content).filter((x) => x.type === "reasoning") as Array<{ opaque?: { value: string; provider?: string } }>;
+    expect(blocks()[0]?.opaque).toMatchObject({ value: "second", provider: "anthropic" });
+    expect(blocks()[1]?.opaque).toMatchObject({ value: "xy", provider: "pydantic" });
+    r.push({ type: "reasoning.opaque", seq: 11, id: "r1", kind: "signature", value: "", provider: "pydantic" } as AgEvent);
+    expect(r.needsResync).toBe(false);
+    expect(blocks()[0]?.opaque).toMatchObject({ value: "ab", provider: "pydantic" });
+    expect(blocks()[1]?.opaque).toMatchObject({ value: "xy" });
+  });
+
+  it("two guardrail.result events on one turn both land, in order", () => {
+    const r = fold([...open,
+      { type: "guardrail.result", seq: 2, turnId: "t1", target: "input", passed: true, guardrailName: "pii" },
+      { type: "guardrail.result", seq: 3, turnId: "t1", target: "output", passed: false, action: "block", reason: "unsafe" },
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.find((t) => t.turnId === "t1")?.guardrails).toEqual([
+      expect.objectContaining({ target: "input", passed: true, guardrailName: "pii" }),
+      expect.objectContaining({ target: "output", passed: false, action: "block", reason: "unsafe" }),
+    ]);
+  });
+
+  it("a snapshot's memory replaces only thread records: a skill record survives it", () => {
+    const r = fold([...open,
+      { type: "memory.write", seq: 2, scope: "skill", key: "k", value: { v: 1 } },
+      { type: "memory.write", seq: 3, scope: "thread", key: "t", value: { v: 2 } },
+      { type: "messages.snapshot", seq: 4, messages: [], memory: [{ scope: "thread", key: "t2", value: { v: 3 } }] },
+    ]);
+    expect(r.needsResync).toBe(false);
+    const mem = r.result().memory ?? [];
+    expect(mem.find((m) => m.scope === "skill" && m.key === "k")?.value).toEqual({ v: 1 });
+    expect(mem.filter((m) => m.scope === "thread").map((m) => m.key)).toEqual(["t2"]);
+  });
+
+  it("removing the middle of three messages keeps the other two, in order, with their blocks", () => {
+    const msg = (id: string, seq: number, text: string) => [
+      { type: "message.start", seq, id, role: "assistant", turnId: "t1", threadId: "th1" },
+      { type: "text.start", seq: seq + 1, id: `x-${id}`, turnId: "t1" },
+      { type: "text.delta", seq: seq + 2, id: `x-${id}`, delta: text },
+      { type: "text.end", seq: seq + 3, id: `x-${id}` },
+      { type: "message.end", seq: seq + 4, id },
+    ];
+    const r = fold([{ type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" }, ...msg("m1", 1, "one"), ...msg("m2", 6, "two"), ...msg("m3", 11, "three"),
+      { type: "message.remove", seq: 16, id: "m2", turnId: "t1" }]);
+    expect(r.needsResync).toBe(false);
+    const msgs = r.result().messages;
+    expect(msgs.map((m) => m.id)).toEqual(["m1", "m3"]);
+    expect(msgs.map((m) => (m.content[0] as { text?: string }).text)).toEqual(["one", "three"]);
   });
 });
