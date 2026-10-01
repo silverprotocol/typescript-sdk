@@ -98,7 +98,7 @@ import {
   type AgFinishReason,
   AgMeta,
   AgProviderMeta,
-  type AgUsage,
+  AgUsage,
   type AgSafety,
   type AgPausedAsk,
   type AgCitation,
@@ -1424,6 +1424,11 @@ function extractResultMeta(customData: JsonValue | undefined): AgMeta | undefine
 // structurally and no-ops anything it does not recognise — so a partially-shaped-but-
 // well-typed event is never lost, and only a genuinely non-OpenAI-shaped payload
 // falls to `unparsed`.
+/** A JsonValue that is an AgUsage (a type guard, so no cast is needed). */
+function isAgUsage(v: JsonValue): v is JsonValue & AgUsage {
+  return AgUsage.safeParse(v).success;
+}
+
 function isOpenAIStreamEvent(v: unknown): v is OpenAIStreamEvent {
   if (!isJsonObject(v)) return false;
   if (v.type === "run_item_stream_event") return typeof v.name === "string";
@@ -3028,12 +3033,29 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     ensureResponseOpen();
     if (turnId === undefined) return; // unreachable post-ensure; satisfies narrowing
     endOpenStreamsAndCloseMessage();
+    const usage = hostErrorUsage(event.usage);
     a.closeTurnError(turnId, {
       message: event.message,
       code: event.code,
-      ...(event.usage !== undefined ? { usage: event.usage } : {}),
+      ...(usage !== undefined ? { usage } : {}),
     });
     resetResponseState();
+  }
+
+  /**
+   * The sentinel's `usage` is host-built, and nothing checks it on the way in.
+   * It reaches turn.error as the host built it, every key in its order, except
+   * that no own `__proto__` key survives at any depth (SPEC §13.7):
+   * `JsonValue.parse` drops that key and keeps the rest. A usage that is not an
+   * AgUsage once that key is dropped is not put on turn.error; it rides
+   * ext.openai.unparsed.
+   */
+  function hostErrorUsage(usage: AgUsage | undefined): AgUsage | undefined {
+    if (usage === undefined) return undefined;
+    const carried = JsonValue.parse(usage);
+    if (isAgUsage(carried)) return carried;
+    a.emitExt("openai", "unparsed", { name: "__host_error__", usage: carried });
+    return undefined;
   }
 
   /** Drive the engine from one (already-narrowed) OpenAIStreamEvent. */

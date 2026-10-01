@@ -1243,6 +1243,51 @@ describe("createOpenaiNormalizer — __host_error__ sentinel (T5c)", () => {
     expect(startIdx).toBeLessThan(errIdx);
   });
 
+  it("the host error's usage reaches turn.error with every key the host built, in its order, except an own __proto__ key at any depth", () => {
+    const ownProtoPaths = (v: unknown, path = ""): string[] => {
+      if (v === null || typeof v !== "object") return [];
+      const out: string[] = [];
+      for (const k of Object.keys(v)) {
+        if (k === "__proto__") out.push(path || ".");
+        out.push(...ownProtoPaths(Reflect.get(v, k), `${path}.${k}`));
+      }
+      return out;
+    };
+    const sentinel = (usage: string): unknown => JSON.parse(`{"type":"__host_error__","code":"max_turns","message":"Max turns (1) exceeded","usage":${usage}}`);
+    const run = (usage: string): AgEvent[] => {
+      const n = createOpenaiNormalizer({ invokeId: "inv1" });
+      return n.push(rawModel({ type: "response.created", response: { id: "resp_hu" } })).concat(n.push(sentinel(usage)), n.flush());
+    };
+    const planted = '{"outputTokens":3,"__proto__":{"inputTokens":999},"inputTokens":12,"byModel":{"m":{"__proto__":{"x":1},"inputTokens":1}},"hostField":7}';
+    expect(ownProtoPaths(JSON.parse(planted))).toEqual([".", ".byModel.m"]);
+    const evs = run(planted);
+    const usage = Reflect.get(evs.find((e) => e.type === "turn.error") ?? {}, "usage");
+    expect(ownProtoPaths(usage)).toEqual([]);
+    expect(Object.getPrototypeOf(usage)).toBe(Object.prototype);
+    expect(JSON.stringify(usage)).toBe('{"outputTokens":3,"inputTokens":12,"byModel":{"m":{"inputTokens":1}},"hostField":7}');
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(ownProtoPaths(r.result())).toEqual([]);
+    // Without the key, the usage reaches turn.error byte-identical.
+    const plain = '{"outputTokens":3,"inputTokens":12,"byModel":{"m":{"inputTokens":1}},"hostField":7}';
+    expect(JSON.stringify(Reflect.get(run(plain).find((e) => e.type === "turn.error") ?? {}, "usage"))).toBe(plain);
+  });
+
+  it("a host error whose usage is not a usage closes turn.error without one and carries it on ext.openai.unparsed", () => {
+    const n = createOpenaiNormalizer({ invokeId: "inv1" });
+    const evs = n
+      .push(JSON.parse('{"type":"__host_error__","code":"max_turns","message":"Max turns (1) exceeded","usage":{"inputTokens":"12"}}'))
+      .concat(n.flush());
+    const err = evs.find((e) => e.type === "turn.error");
+    expect(err).toMatchObject({ code: "max_turns" });
+    expect(err).not.toHaveProperty("usage");
+    expect(evs.filter((e) => e.type === "ext.openai.unparsed")).toMatchObject([{ name: "__host_error__", usage: { inputTokens: "12" } }]);
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync).toBe(false);
+  });
+
   it("with NO turn open (max_turns after last response completed) → opens+closes a fresh terminal turn", () => {
     const n = createOpenaiNormalizer();
     const evs = [
