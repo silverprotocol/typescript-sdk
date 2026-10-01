@@ -132,7 +132,20 @@ export interface VercelStreamPart {
  *  copy too), and a host that reuses or mutates its tool input, output or
  *  frame after push() cannot change an event already emitted. */
 function safeJson(v: unknown): JsonValue {
-  return structuredClone(toJsonValueSafe(v));
+  return withoutProtoKeys(structuredClone(toJsonValueSafe(v)));
+}
+
+/** `v` with every member named `__proto__` dropped at any depth, its siblings
+ *  kept, as a new value: a JSON object can hold such a member as data, and the
+ *  facet emits none, as core's ingest copy keeps none. */
+function withoutProtoKeys(v: JsonValue): JsonValue {
+  if (Array.isArray(v)) return v.map(withoutProtoKeys);
+  if (typeof v === "object" && v !== null) {
+    const out: { [k: string]: JsonValue } = {};
+    for (const [k, x] of Object.entries(v)) if (k !== "__proto__") out[k] = withoutProtoKeys(x);
+    return out;
+  }
+  return v;
 }
 
 /** True for a non-null, non-array object carrying a string `type` (guard idiom
@@ -170,16 +183,17 @@ const num = (v: unknown): number | undefined => (typeof v === "number" ? v : und
 const CREDIT_TOKEN_KEYS = new Set(["fallback_credit_token", "fallbackCreditToken"]);
 
 /**
- * `v` with every provider credit-token key deleted at any depth; everything
- * else is kept verbatim (SPEC §13.10: a provider credit token is never
- * emitted). Anthropic's refusal stop details can hold one, in the API's
+ * `v` with every provider credit-token key deleted at any depth, and every
+ * member named `__proto__` (an assignment by that name would set the copy's
+ * prototype); everything else is kept verbatim (SPEC §13.10: a provider credit
+ * token is never emitted). Anthropic's refusal stop details can hold one, in the API's
  * snake_case or a provider's camelCase spelling.
  */
 function withoutCreditTokens(v: JsonValue): JsonValue {
   if (Array.isArray(v)) return v.map(withoutCreditTokens);
   if (typeof v === "object" && v !== null) {
     const out: { [k: string]: JsonValue } = {};
-    for (const [k, x] of Object.entries(v)) if (!CREDIT_TOKEN_KEYS.has(k)) out[k] = withoutCreditTokens(x);
+    for (const [k, x] of Object.entries(v)) if (!CREDIT_TOKEN_KEYS.has(k) && k !== "__proto__") out[k] = withoutCreditTokens(x);
     return out;
   }
   return v;

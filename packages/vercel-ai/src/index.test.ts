@@ -2478,3 +2478,53 @@ describe("threadId option (partition root): the host's id everywhere, else the p
     expect(JSON.stringify(runWith({ threadId: undefined }))).toBe(JSON.stringify(evs));
   });
 });
+
+describe("a member named __proto__ in a native part is dropped at every depth", () => {
+  // Each object below holds a `__proto__` member (JSON.parse makes it an own data member) next to a sibling, at depth
+  // one and nested; the emitted events keep the siblings and never the member, and every copy keeps Object.prototype.
+  const P = '"__proto__": {"x": 1}, "nested": {"__proto__": {"x": 1}, "k": 1}';
+  const parts = (): unknown[] =>
+    JSON.parse(`[
+      {"type": "start"},
+      {"type": "start-step", "request": {}, "warnings": [{"type": "other", "message": "w", ${P}}]},
+      {"type": "tool-call", "toolCallId": "c1", "toolName": "echo", "input": {"message": "m", ${P}}, "toolMetadata": {"clientName": "ai-sdk-mcp-client", "toolName": "echo"}, "dynamic": true},
+      {"type": "tool-result", "toolCallId": "c1", "toolName": "echo", "input": {"message": "m"}, "dynamic": true, "toolMetadata": {"clientName": "ai-sdk-mcp-client", "toolName": "echo"},
+        "output": {"content": [{"type": "text", "text": "m"}], "isError": false, "structuredContent": {"v": 1, ${P}}, "_meta": {"ui": {"resourceUri": "ui://card", ${P}}}, ${P}}},
+      {"type": "future-part", "data": {"v": 1, ${P}}},
+      {"type": "finish-step", "finishReason": "stop", "usage": {"inputTokens": 1, "outputTokens": 1, "totalTokens": 2}, "providerMetadata": {"anthropic": {"stopDetails": {"reason": "end_turn", ${P}}}}},
+      {"type": "finish", "finishReason": "stop", "totalUsage": {"inputTokens": 1, "outputTokens": 1, "totalTokens": 2}}
+    ]`) as unknown[];
+  /** Every path holding an own `__proto__` member, or an object whose prototype is not Object.prototype. */
+  const offenders = (v: unknown, path = "", out: string[] = []): string[] => {
+    if (Array.isArray(v)) { v.forEach((x, i) => offenders(x, `${path}[${i}]`, out)); return out; }
+    if (v !== null && typeof v === "object") {
+      if (Object.hasOwn(v, "__proto__")) out.push(`${path} own __proto__`);
+      if (Object.getPrototypeOf(v) !== Object.prototype) out.push(`${path} prototype`);
+      for (const [k, x] of Object.entries(v)) offenders(x, `${path}.${k}`, out);
+    }
+    return out;
+  };
+  const drive = (): AgEvent[] => {
+    const n = createVercelNormalizer({ invokeId: "vercel" });
+    return [...parts().flatMap((p) => n.push(p as never)), ...n.flush()];
+  };
+
+  it("in a tool's input and output, its structured content and _meta, a step's warnings, an unknown part's frame and the step's stop details", () => {
+    expect(offenders(parts()).filter((o) => o.endsWith("own __proto__")).length).toBe(14);
+    const events = drive();
+    expect(offenders(events)).toEqual([]);
+    const types = events.map((e) => e.type);
+    expect(types).toEqual(expect.arrayContaining(["tool.args.assembled", "tool.done", "ext.vercel.warnings", "ext.vercel.frame", "message.metadata"]));
+    // the siblings ride
+    const wire = JSON.stringify(events);
+    expect((wire.match(/"nested":\{"k":1\}/g) ?? []).length).toBeGreaterThanOrEqual(7);
+    const meta = events.find((e) => e.type === "message.metadata" && JSON.stringify(e).includes("stopDetails")) as { metadata?: { stopDetails?: object } } | undefined;
+    expect(meta?.metadata?.stopDetails).toEqual({ reason: "end_turn", nested: { k: 1 } });
+    expect(Object.getPrototypeOf(meta?.metadata?.stopDetails)).toBe(Object.prototype);
+    const r = new Reducer();
+    for (const e of events) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(offenders(r.result())).toEqual([]);
+    expect(({} as { x?: unknown }).x).toBeUndefined();
+  });
+});
