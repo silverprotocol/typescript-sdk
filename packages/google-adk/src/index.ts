@@ -115,7 +115,7 @@ import {
   scrubCredentialCallArgs,
   adkAuthConfigView,
 } from "./auth-objects.js";
-import { isJsonObject, stringMember } from "./json-guards.js";
+import { isJsonObject, stringMember, withoutProtoMembers } from "./json-guards.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AdkEvent — the HAND-DEFINED fixture contract (a faithful PROJECTION of the
@@ -541,21 +541,23 @@ function withoutRelayBookkeeping(value: JsonValue): JsonValue | undefined {
 /** A native with its customMetadata, or the custom_metadata of an event
  *  serialized from Python, reduced as by withoutRelayBookkeeping and dropped
  *  when nothing is left, as a new value; every other member is unchanged, and
- *  the argument is not changed. */
+ *  the argument is not changed. The new value's members are defined, never
+ *  assigned, and one named __proto__ is not copied (SPEC §13.7). */
 function nativeWithoutRelayBookkeeping(native: JsonValue): JsonValue {
   if (!isJsonObject(native)) return native;
   let changed = false;
-  const out: { [k: string]: JsonValue } = {};
+  const out: Array<[string, JsonValue]> = [];
   for (const [key, value] of Object.entries(native)) {
+    if (key === "__proto__") continue;
     if (key !== "customMetadata" && key !== "custom_metadata") {
-      out[key] = value;
+      out.push([key, value]);
       continue;
     }
     const kept = withoutRelayBookkeeping(value);
     if (kept !== value) changed = true;
-    if (kept !== undefined) out[key] = kept;
+    if (kept !== undefined) out.push([key, kept]);
   }
-  return changed ? out : native;
+  return changed ? Object.fromEntries(out) : native;
 }
 
 // ─── the forwarded request a remote agent repeats ─────────────────────────────
@@ -2673,8 +2675,10 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
       // withAtomicPush has already read the native as plain JSON (see
       // createAdkNormalizer). The host-error sentinel is checked first: an
       // Error-built one keeps its message, because core maps an Error to
-      // {name, message, ...own enumerable}.
-      const json = native;
+      // {name, message, ...own enumerable}. A member named __proto__ is
+      // dropped first, at every depth (SPEC §13.7), so no reader below sees
+      // one.
+      const json = withoutProtoMembers(native);
       const hostErr = hostErrorOf(json);
       if (hostErr !== undefined) {
         // Like the completion sentinel below, a host<->facet contract input
