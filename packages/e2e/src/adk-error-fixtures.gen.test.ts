@@ -32,6 +32,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  ChromeBuiltInLlm,
   FunctionTool,
   Gemini,
   InMemoryRunner,
@@ -155,6 +156,20 @@ class FailedInteractionGemini extends Gemini {
       },
     };
   }
+}
+
+/** ADK's built-in Chrome model (ChromeBuiltInLlm) over a scripted Prompt API session whose every prompt fails with
+ *  the given error name: ADK turns the failure into an in-band error that completes the turn. */
+function failingChromeModel(errorName: string, message: string): ChromeBuiltInLlm {
+  const fail = () => Object.assign(new Error(message), { name: errorName });
+  const session = {
+    clone: () => session,
+    destroy() {},
+    addEventListener() {},
+    prompt: async () => { throw fail(); },
+    promptStreaming: () => new ReadableStream({ pull() { throw fail(); } }),
+  };
+  return new ChromeBuiltInLlm({ languageModel: { availability: async () => "available", create: async () => session } } as never);
 }
 
 /** Several function calls in one model chunk. */
@@ -384,6 +399,19 @@ const LEGS: Leg[] = [
   // skip-summarization event, and the model's further round meets a rate-limit error that ends the run.
   { name: "request-input-tool-throw-then-429", modes: ["none", "sse"], build: () => agent("assistant", [{ chunks: [functionCalls([[requestInputTool.name, { message: "Which city?" }], ["lookup", { query: "cities" }]])] }, { throws: rateLimit() }], { tools: [requestInputTool, lookupTool()], beforeToolCallback: failingLookupCallback }),
     check: (r) => { expect(firstIndex(r.events, isSkipSummarization)).toBe(-1); expect(errorRows(r.events)).toEqual(["assistant:UNKNOWN_ERROR:report", "assistant:429:report"]); } },
+  // A Workflow whose dynamic entry runs one agent twice concurrently (no sub-branch), each run ending on the same
+  // response-level block.
+  { name: "workflow-runnode-same-agent-twice-blocked", modes: ["none", "sse"], build: () => { const a = agent("assistant", [{ chunks: [block({ usage: BLOCK_USAGE })] }]); return new Workflow({ name: "flow", dynamicEntry: async (ctx: { runNode: (n: unknown, input: string) => Promise<unknown> }) => { await Promise.all([ctx.runNode(a, "first"), ctx.runNode(a, "second")]); return "done"; } } as never) as unknown as RunnerAgent; },
+    check: (r) => expect(errorRows(r.events).filter((x) => x.endsWith(":report"))).toEqual(["assistant:SAFETY:report", "assistant:SAFETY:report"]) },
+  // A LoopAgent of two iterations over ADK's built-in Chrome model, each iteration ending on an in-band error whose
+  // event completes the turn.
+  { name: "chrome-loop-error-each-iteration", modes: ["none", "sse"], build: () => new LoopAgent({ name: "loop", maxIterations: 2, subAgents: [new LlmAgent({ name: "assistant", model: failingChromeModel("NotSupportedError", "The device cannot run the model."), instruction: "Answer the user." })] }),
+    check: (r) => { const errs = (r.events as Array<Ev & { turnComplete?: boolean }>).filter((e) => e.errorCode !== undefined); expect(errs.map((e) => `${e.author}:${e.errorCode}:${e.turnComplete === true}`)).toEqual(["assistant:NotSupportedError:true", "assistant:NotSupportedError:true"]); } },
+  // A LoopAgent of two iterations over ADK's Interactions route, each interaction ending "failed" with an error that
+  // completes the turn. SSE only: in the default mode ADK maps a failed interaction to an error with no
+  // turnComplete.
+  { name: "interactions-loop-failed-each-iteration", modes: ["sse"], build: () => new LoopAgent({ name: "loop", maxIterations: 2, subAgents: [new LlmAgent({ name: "assistant", model: new FailedInteractionGemini("assistant"), instruction: "Answer the user." })] }),
+    check: (r) => { const errs = (r.events as Array<Ev & { turnComplete?: boolean }>).filter((e) => e.errorCode !== undefined); expect(errs.map((e) => `${e.author}:${e.errorCode}:${e.turnComplete === true}`)).toEqual(["assistant:INTERNAL:true", "assistant:INTERNAL:true"]); } },
   // Relays (RemoteA2AAgent over a remote ADK app): a LoopAgent of two iterations whose sub-agents are the relay
   // followed by an agent that replies in each iteration, each remote run ending on the same response-level block with
   // no streamed text, with and without usage (with no reply between them, the relay's second send carries no parts,

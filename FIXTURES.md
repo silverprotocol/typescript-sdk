@@ -203,6 +203,13 @@ the engine's own. The runs cover:
   rate-limit error in the further model round. The first error does not end
   the invocation, since the model runs again; the rate-limit error does. No
   other engine path was found in which an error precedes the pause end.
+- a Workflow whose dynamic entry runs one agent twice concurrently, with no
+  sub-branch, each run ending on the same response-level block; the run
+  then throws, so the sidecar holds the thrown error;
+- a LoopAgent of two iterations over ADK's built-in Chrome model, each
+  iteration ending on an in-band error that completes the turn;
+- a LoopAgent of two iterations over ADK's Interactions route, each
+  interaction ending failed, with an error that completes the turn;
 - relays: ADK's `RemoteA2AAgent` relaying a remote ADK app served through
   ADK's own `A2AAgentExecutor` (the remote runs in the local run's streaming
   mode). A LoopAgent of two iterations whose sub-agents are the relay
@@ -231,7 +238,10 @@ the default mode's behaviour, not an omission:
 - in `parallel-workflow-one-block-a-first`, the failing node's only
   default-mode event also ends it, so no sibling can finish after it;
 - `block-usage-on-finish.progressive` is SSE with ADK's progressive streaming
-  on.
+  on;
+- `interactions-loop-failed-each-iteration` exists in SSE only: in the default
+  mode ADK maps a failed interaction to an error that does not complete the
+  turn.
 
 In the default mode a
 blocked candidate is returned without its content, as the API withholds

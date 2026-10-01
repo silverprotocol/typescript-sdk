@@ -1,0 +1,6 @@
+{
+  "thrown": {
+    "name": "DynamicNodeFailError",
+    "message": "Dynamic node assistant failed: Node 'assistant' failed: SAFETY: The response was blocked for safety."
+  }
+}

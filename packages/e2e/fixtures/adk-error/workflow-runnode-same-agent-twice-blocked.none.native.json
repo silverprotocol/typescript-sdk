@@ -1,0 +1,50 @@
+[
+  {
+    "invocationId": "e-8ea51387-4248-4d69-a42b-0953ca037f58",
+    "author": "assistant",
+    "id": "LTBKSECg",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790849984646,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY",
+    "nodeInfo": {
+      "path": "flow.assistant@1"
+    }
+  },
+  {
+    "invocationId": "e-8ea51387-4248-4d69-a42b-0953ca037f58",
+    "author": "assistant",
+    "id": "j0vAX7oD",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790849984647,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY",
+    "nodeInfo": {
+      "path": "flow.assistant@2"
+    }
+  }
+]

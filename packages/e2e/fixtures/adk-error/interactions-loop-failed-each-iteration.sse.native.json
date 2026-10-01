@@ -1,0 +1,36 @@
+[
+  {
+    "invocationId": "e-0b7b2162-1ad4-40cb-9744-266b49fb77c9",
+    "author": "assistant",
+    "id": "jOkgn0Xr",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790849984653,
+    "errorCode": "INTERNAL",
+    "errorMessage": "The interaction failed.",
+    "turnComplete": true,
+    "interactionId": "interaction-assistant-1"
+  },
+  {
+    "invocationId": "e-0b7b2162-1ad4-40cb-9744-266b49fb77c9",
+    "author": "assistant",
+    "id": "KBYs8tHy",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790849984653,
+    "errorCode": "INTERNAL",
+    "errorMessage": "The interaction failed.",
+    "turnComplete": true,
+    "interactionId": "interaction-assistant-1"
+  }
+]

@@ -1,0 +1,34 @@
+[
+  {
+    "invocationId": "e-f9fcc3f6-68d8-4d36-8d3a-610d71d0941b",
+    "author": "assistant",
+    "id": "H7d0EYxn",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790849984650,
+    "errorCode": "NotSupportedError",
+    "errorMessage": "The device cannot run the model.",
+    "turnComplete": true
+  },
+  {
+    "invocationId": "e-f9fcc3f6-68d8-4d36-8d3a-610d71d0941b",
+    "author": "assistant",
+    "id": "UjW6ABOd",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790849984651,
+    "errorCode": "NotSupportedError",
+    "errorMessage": "The device cannot run the model.",
+    "turnComplete": true
+  }
+]
