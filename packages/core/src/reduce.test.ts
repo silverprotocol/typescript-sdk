@@ -4972,3 +4972,26 @@ describe("fold rows whose landed members had no positive test: tool.done pending
     expect(replaced.result().memory?.find((m) => m.key === "k")).toMatchObject({ value: { n: 3 }, reason: "second", durable: false });
   });
 });
+
+describe("memory records a snapshot cannot seed, and the keyless record's key", () => {
+  const fold = (evs: unknown[]) => { const r = new Reducer(); for (const e of evs) r.push(e as AgEvent); return r; };
+
+  it("a fresh reducer given a snapshot whose memory holds a user record and a thread record folds the thread record only", () => {
+    const r = fold([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      { type: "messages.snapshot", seq: 1, messages: [], memory: [{ scope: "user", key: "u", value: { v: 1 } }, { scope: "thread", key: "t", value: { v: 2 } }] },
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().memory).toEqual([expect.objectContaining({ scope: "thread", key: "t", value: { v: 2 } })]);
+  });
+
+  it("a write with key \"\" and a keyless write to the same scope land on one record", () => {
+    const r = fold([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      { type: "memory.write", seq: 1, scope: "user", key: "", value: { v: 1 } },
+      { type: "memory.write", seq: 2, scope: "user", value: { v: 2 } },
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect((r.result().memory ?? []).filter((m) => m.scope === "user").map((m) => m.value)).toEqual([{ v: 2 }]);
+  });
+});
