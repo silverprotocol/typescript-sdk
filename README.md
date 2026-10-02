@@ -31,8 +31,9 @@ or `require()` them from CommonJS, which Node supports for ES modules from
 - **`@silverprotocol/<framework>`** — per-framework normalizers
   (`claude-agent-sdk`, `openai-agents`, `google-adk`, …) that translate each
   framework's native events ⇄ AgJSON. **Producers** ship a `createXNormalizer()`
-  function; **consumers** use `ingestAgEvent()` or `AgEvent.parse()` to validate
-  and load AgJSON from the wire.
+  function; **consumers** use `ingestAgEvent()` to validate and load AgJSON
+  from the wire, as it returns a copy that core builds; `AgEvent.parse()` checks
+  a value against the schema only.
 - **`@silverprotocol/richtext`** — the headless rich-text block model for
   AgJSON `text` content: a typed markdown-subset AST (`parseRichText`) plus the
   one shared safety policy (HTML always literal, link `href` scheme-allowlisted),
