@@ -1,0 +1,95 @@
+[
+  {
+    "invocationId": "e-c05b2f79-94bd-4e6b-ba43-877c9f5b3f23",
+    "author": "first",
+    "id": "LGZoS5Dv",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790911668317,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "The first agent answered"
+        }
+      ]
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-c05b2f79-94bd-4e6b-ba43-877c9f5b3f23",
+    "author": "first",
+    "id": "v6sXudxc",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790911668317,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": true
+  },
+  {
+    "invocationId": "e-c05b2f79-94bd-4e6b-ba43-877c9f5b3f23",
+    "author": "first",
+    "id": "5dWNgduf",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790911668317,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "The first agent answered."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": false
+  },
+  {
+    "invocationId": "e-c05b2f79-94bd-4e6b-ba43-877c9f5b3f23",
+    "author": "second",
+    "errorCode": "429",
+    "errorMessage": "Resource has been exhausted (e.g. check quota).",
+    "id": "5qZK1yWF",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790911668318
+  }
+]

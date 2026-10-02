@@ -1,0 +1,128 @@
+[
+  {
+    "invocationId": "e-638fae2e-c9a2-4d74-b327-13eb1dfd171f",
+    "author": "planner",
+    "id": "zDHsHjOG",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790911668318,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Ask the helper."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP"
+  },
+  {
+    "author": "helper",
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "customMetadata": {
+      "a2a:request": {},
+      "a2a:response": {
+        "kind": "status-update",
+        "status": {
+          "state": "failed",
+          "message": {
+            "role": "agent"
+          }
+        }
+      },
+      "a2a:task_id": "7993b3f1-4372-4b2a-a73b-9bd08e53aba7",
+      "a2a:context_id": "21b674d0-592e-4201-9ef8-27e0acc54a91"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "escalate": false
+    },
+    "id": "5GPOTSub",
+    "invocationId": "e-638fae2e-c9a2-4d74-b327-13eb1dfd171f",
+    "longRunningToolIds": [],
+    "timestamp": 1790911668320,
+    "turnComplete": true
+  },
+  {
+    "invocationId": "e-638fae2e-c9a2-4d74-b327-13eb1dfd171f",
+    "author": "planner",
+    "id": "KzIRUeku",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790911668320,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Ask the helper."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP"
+  },
+  {
+    "author": "helper",
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "customMetadata": {
+      "a2a:request": {},
+      "a2a:response": {
+        "kind": "status-update",
+        "status": {
+          "state": "failed",
+          "message": {
+            "role": "agent"
+          }
+        }
+      },
+      "a2a:task_id": "65449d20-bfb0-45bf-9e77-2c3ac765603a",
+      "a2a:context_id": "21b674d0-592e-4201-9ef8-27e0acc54a91"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "escalate": false
+    },
+    "id": "AaNjGpns",
+    "invocationId": "e-638fae2e-c9a2-4d74-b327-13eb1dfd171f",
+    "longRunningToolIds": [],
+    "timestamp": 1790911668321,
+    "turnComplete": true
+  }
+]

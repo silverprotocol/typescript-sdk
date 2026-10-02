@@ -1,0 +1,44 @@
+[
+  {
+    "invocationId": "e-ccfaefdd-c004-466a-a8c2-025c60f4004a",
+    "author": "first",
+    "id": "oLPkjzPg",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790911668315,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "The first agent answered."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP"
+  },
+  {
+    "invocationId": "e-ccfaefdd-c004-466a-a8c2-025c60f4004a",
+    "author": "second",
+    "errorCode": "429",
+    "errorMessage": "Resource has been exhausted (e.g. check quota).",
+    "id": "bDHExCoy",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790911668316
+  }
+]

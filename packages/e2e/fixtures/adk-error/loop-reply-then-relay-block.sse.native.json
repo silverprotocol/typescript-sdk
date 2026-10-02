@@ -1,0 +1,230 @@
+[
+  {
+    "invocationId": "e-002a75ae-4410-462a-8ee7-09c5289821a3",
+    "author": "planner",
+    "id": "xU356s4h",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790911668322,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Ask the helper"
+        }
+      ]
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-002a75ae-4410-462a-8ee7-09c5289821a3",
+    "author": "planner",
+    "id": "LHhq70HT",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790911668322,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": true
+  },
+  {
+    "invocationId": "e-002a75ae-4410-462a-8ee7-09c5289821a3",
+    "author": "planner",
+    "id": "dV66jBGX",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790911668322,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Ask the helper."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": false
+  },
+  {
+    "author": "helper",
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "customMetadata": {
+      "a2a:request": {},
+      "a2a:response": {
+        "kind": "status-update",
+        "status": {
+          "state": "failed",
+          "message": {
+            "role": "agent"
+          }
+        }
+      },
+      "a2a:task_id": "fa267dd3-7044-41c9-9ec1-0f74d89afeac",
+      "a2a:context_id": "e22aba7a-6d72-4ef9-95eb-6ad1e64097b7"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "escalate": false
+    },
+    "id": "efw1SDSu",
+    "invocationId": "e-002a75ae-4410-462a-8ee7-09c5289821a3",
+    "longRunningToolIds": [],
+    "timestamp": 1790911668323,
+    "turnComplete": true
+  },
+  {
+    "invocationId": "e-002a75ae-4410-462a-8ee7-09c5289821a3",
+    "author": "planner",
+    "id": "zN0paeGA",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790911668323,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Ask the helper"
+        }
+      ]
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-002a75ae-4410-462a-8ee7-09c5289821a3",
+    "author": "planner",
+    "id": "rYJx3u6D",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790911668323,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": true
+  },
+  {
+    "invocationId": "e-002a75ae-4410-462a-8ee7-09c5289821a3",
+    "author": "planner",
+    "id": "onZ8LJYc",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790911668323,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Ask the helper."
+        }
+      ]
+    },
+    "usageMetadata": {
+      "promptTokenCount": 20,
+      "candidatesTokenCount": 4,
+      "totalTokenCount": 24
+    },
+    "finishReason": "STOP",
+    "partial": false
+  },
+  {
+    "author": "helper",
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "customMetadata": {
+      "a2a:request": {},
+      "a2a:response": {
+        "kind": "status-update",
+        "status": {
+          "state": "failed",
+          "message": {
+            "role": "agent"
+          }
+        }
+      },
+      "a2a:task_id": "c022b03d-57e3-4681-a7cb-7927ec285e6d",
+      "a2a:context_id": "e22aba7a-6d72-4ef9-95eb-6ad1e64097b7"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {},
+      "escalate": false
+    },
+    "id": "sULkgCk3",
+    "invocationId": "e-002a75ae-4410-462a-8ee7-09c5289821a3",
+    "longRunningToolIds": [],
+    "timestamp": 1790911668323,
+    "turnComplete": true
+  }
+]
