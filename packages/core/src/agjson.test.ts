@@ -514,6 +514,16 @@ describe("AgBlock / AgEvent field coverage (spec §2 / §4)", () => {
     expect(ev).toMatchObject({ type: "ext.acme.foo", seq: 0, anything: 1, nested: { a: [1, 2] } });
   });
 
+  it("parses an ext event whose wire form holds a member named __proto__ into objects with the ordinary prototype", () => {
+    const wire = JSON.parse('{"type":"ext.acme.note","seq":3,"__proto__":{"inherited":1},"nested":{"__proto__":{"inherited":2}}}') as unknown;
+    const ev = AgEvent.parse(wire) as Record<string, unknown>;
+    expect(ev.type).toBe("ext.acme.note");
+    expect(Object.getPrototypeOf(ev)).toBe(Object.prototype);
+    expect(Object.getPrototypeOf(ev["nested"])).toBe(Object.prototype);
+    expect(ev["inherited"]).toBeUndefined();
+    expect((ev["nested"] as Record<string, unknown>)["inherited"]).toBeUndefined();
+  });
+
   it("rejects a bare unknown type that matches neither the closed union nor the ext regex", () => {
     expect(() => AgEvent.parse({ type: "nope", seq: 0 })).toThrow();
     expect(() => AgEvent.parse({ type: "ext.acme", seq: 0 })).toThrow(); // missing the .<key> segment
