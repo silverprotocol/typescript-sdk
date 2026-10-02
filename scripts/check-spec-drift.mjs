@@ -667,6 +667,10 @@ function runCheck(sources) {
   const unions = checkSpecUnionsAgainstSchema(sources.spec, sources.ts);
   findings.push(...unions.findings);
 
+  // 7. The revision-note head and the version sites follow AGJSON_VERSION.
+  const heads = checkRevisionHeads(sources.spec, sources.ts);
+  findings.push(...heads.findings);
+
   return {
     findings,
     advisory,
@@ -685,9 +689,52 @@ function runCheck(sources) {
       specInputKinds: specInputKinds.length,
       schemaInputKinds: schemaInputKinds.length,
       specUsageFields: specUsage.length,
+      revisionTag: heads.tag,
+      specVersion: heads.version,
       schemaUsageFields: tsUsage.length,
     },
   };
+}
+
+// ─── 7. The revision-note head and the version sites follow AGJSON_VERSION (rc.1) ─────────────
+// G-rc1-a: §15 carries exactly one entry head (`**<tag> (`) for the prerelease tag of AGJSON_VERSION; no
+// draft entry follows draft.8, the closing draft; an rc.K head directly follows the entry before it (draft.8
+// for rc.1, else rc.K−1). G-rc1-b: the header's `Spec version` and §12's current-version sentence both read
+// AGJSON_VERSION. A version with no prerelease tag is a finding until the release's note head is defined.
+function checkRevisionHeads(specText, tsText) {
+  const findings = [];
+  const m = /export const AGJSON_VERSION = "([^"]+)"/.exec(tsText);
+  if (!m) return { findings: ['  G-rc1-a: agjson.ts has no `export const AGJSON_VERSION = "…"`'], version: null, tag: null };
+  const version = m[1];
+  const dash = version.indexOf("-");
+  const tag = dash < 0 ? "" : version.slice(dash + 1);
+  const lines = specText.split("\n");
+  const heads = [];
+  lines.forEach((l, i) => { if (/^\*\*(draft|rc)\.\d+ \(/.test(l)) heads.push({ l, i }); });
+  if (tag === "") {
+    findings.push(`  G-rc1-a: AGJSON_VERSION ${version} has no prerelease tag; define the release note's entry head and extend check 7`);
+  } else {
+    const own = heads.filter((h) => h.l.startsWith(`**${tag} (`));
+    if (own.length !== 1) findings.push(`  G-rc1-a: §15 has ${own.length} entry head(s) \`**${tag} (\` for AGJSON_VERSION ${version}; expected exactly 1`);
+    const rc = /^rc\.(\d+)$/.exec(tag);
+    if (rc && own.length === 1) {
+      const prev = Number(rc[1]) === 1 ? "draft.8" : `rc.${Number(rc[1]) - 1}`;
+      let j = own[0].i - 1;
+      while (j >= 0 && lines[j].trim() === "") j--;
+      if (j < 0 || !lines[j].startsWith(`**${prev} (`)) {
+        findings.push(`  G-rc1-a: the ${tag} entry does not directly follow the ${prev} entry (previous non-blank line: ${j >= 0 ? lines[j].slice(0, 48) : "none"}…)`);
+      }
+    }
+  }
+  for (const h of heads) {
+    const d = /^\*\*draft\.(\d+) \(/.exec(h.l);
+    if (d && Number(d[1]) > 8) findings.push(`  G-rc1-a: a draft entry after the closing draft.8 at SPEC.md:${h.i + 1} (${h.l.slice(0, 24)}…)`);
+  }
+  const header = [...specText.matchAll(/\*\*Spec version: `([^`]+)`\*\*/g)].map((x) => x[1]);
+  const current = [...specText.matchAll(/The current spec version is `([^`]+)`/g)].map((x) => x[1]);
+  if (header.length !== 1 || header[0] !== version) findings.push(`  G-rc1-b: the header's Spec version reads ${header.join(", ") || "nothing"}; AGJSON_VERSION is ${version}`);
+  if (current.length !== 1 || current[0] !== version) findings.push(`  G-rc1-b: §12's current spec version reads ${current.join(", ") || "nothing"}; AGJSON_VERSION is ${version}`);
+  return { findings, version, tag };
 }
 
 async function loadRealSources() {
@@ -719,6 +766,7 @@ async function main() {
   console.log(
     `✓ SPEC ↔ agjson.ts wire types in sync (${checked.specEventTypes} AgEvent.type literal(s), ${checked.specInputKinds} AgInput.kind literal(s), ${checked.schemaUsageFields} AgUsage field(s) checked); §12 closed-set table: ${checked.tableRows} row(s) ↔ ${checked.enumSites} z.enum site(s); SPEC unions: ${checked.specUnions} bound through the table, ${checked.enumSitesPinned} of ${checked.enumSites6} z.enum site(s) pinned — check 5 keys ${checked.enumSites}, this keyer also reaches AgCitationUnit, AgCitationBounds, AgRunConfig.toolChoice and AgMcpAppViewMessage.params.mode)`,
   );
+  console.log(`✓ revision heads: §15 carries one \`**${checked.revisionTag} (\` entry head; the header and §12 read ${checked.specVersion} (= AGJSON_VERSION)`);
   if (census) {
     console.log("\n§12-bound census (SPEC union → resolved location [rule] → row line(s) → compared z.enum site(s)):");
     for (const e of checked.census.receipt) console.log(`  SPEC.md:${String(e.line).padStart(4)}  ${e.location}  →  ${e.mapped}  [${e.rule}]  rows ${e.rows.join(",") || "—"}  sites ${e.sites.join(" ") || "—"}`);
@@ -879,6 +927,23 @@ async function main() {
     if (wrappedRun.findings.length !== 0) { console.error("\n✖ --self-test: a wrapped NON-union type line must produce no finding:"); for (const line of wrappedRun.findings) console.error(line); process.exit(1); }
     console.log(`\n✓ --self-test: check 6 — ${checked.enumSitesPinned}/${checked.enumSites6} z.enum site(s) pinned on the live tree; ${seeds.length} negative seeds produced the expected drift; the reclass, joined-line and non-union-wrap controls stayed green:`);
     for (const line of seedLines) console.log(line);
+    // Check 7 (G-rc1-a/b): a duplicated entry head for the current tag, and a §12 version other than
+    // AGJSON_VERSION, must each surface a finding.
+    const tag7 = checked.revisionTag;
+    const headLine = sources.spec.split("\n").find((l) => l.startsWith(`**${tag7} (`));
+    const verSpec = sources.spec.replace(/The current spec version is `[^`]+`/, () => "The current spec version is `0.0.0-mutant`");
+    if (!headLine || verSpec === sources.spec) {
+      console.error("\n✖ --self-test: could not apply the check-7 mutations (no entry head for the current tag, or no §12 current-version sentence)");
+      process.exit(1);
+    }
+    const dupHits = runCheck({ spec: sources.spec.replace(headLine, () => `${headLine}\n\n${headLine}`), ts: sources.ts }).findings.filter((l) => l.includes("G-rc1-a"));
+    const verHits = runCheck({ spec: verSpec, ts: sources.ts }).findings.filter((l) => l.includes("G-rc1-b"));
+    if (dupHits.length === 0 || verHits.length === 0) {
+      console.error(`\n✖ --self-test: a check-7 mutation surfaced no finding (duplicated head: ${dupHits.length}, §12 version: ${verHits.length}).`);
+      process.exit(1);
+    }
+    console.log("\n✓ --self-test: check 7 — a duplicated entry head and a mismatched §12 version each produced the expected drift:");
+    for (const line of [...dupHits, ...verHits]) console.log(line);
   }
 }
 
