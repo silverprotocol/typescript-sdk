@@ -23,6 +23,8 @@
  * Each fixture is written in the default mode (`<leg>.none`) and in the SSE
  * streaming mode (`<leg>.sse`), except where a leg exists in one mode only.
  * The progressive leg sets ADK_ENABLE_PROGRESSIVE_SSE_STREAMING for its run.
+ * A Live leg (`<leg>.live`) runs runLive over ADK's own Gemini Live connection, whose genai Live socket is replaced
+ * by a script; a Live run that rejects keeps what it yielded and writes its error as the sidecar.
  * Arrival order across parallel branches is steered with delays before a
  * call's first chunk and after its last; the generator checks the recorded
  * order before it writes.
@@ -36,6 +38,7 @@ import {
   FunctionTool,
   Gemini,
   InMemoryRunner,
+  LiveRequestQueue,
   LlmAgent,
   LoopAgent,
   NodeTool,
@@ -74,6 +77,9 @@ const functionCall = (name: string, args: Record<string, unknown>): Chunk =>
 const answer = (t: string): Call => ({
   chunks: [text(t), chunk({ candidates: [{ content: { role: "model", parts: [{ text: "." }] }, finishReason: "STOP" }], usageMetadata: ANSWER_USAGE })],
 });
+/** A chunk that carries only prompt feedback (no candidates), as the API sends when the prompt itself is blocked. */
+const promptFeedbackOnly = (opts: { usage?: Record<string, number> } = {}): Chunk =>
+  chunk({ promptFeedback: { blockReason: "SAFETY", blockReasonMessage: "The prompt was blocked for safety." }, ...(opts.usage ? { usageMetadata: opts.usage } : {}) });
 const rateLimit = (): Error =>
   new Error(JSON.stringify({ error: { code: 429, message: "Resource has been exhausted (e.g. check quota).", status: "RESOURCE_EXHAUSTED" } }));
 
@@ -84,8 +90,10 @@ function merged(chunks: Chunk[]): Chunk {
   const parts: Array<Record<string, unknown>> = [];
   const candidate: Record<string, unknown> = {};
   let usage: unknown;
+  let promptFeedback: unknown;
   for (const c of chunks) {
     if (c.usageMetadata) usage = c.usageMetadata;
+    if (c.promptFeedback) promptFeedback = c.promptFeedback;
     const k = c.candidates?.[0];
     if (!k) continue;
     for (const p of k.content?.parts ?? []) {
@@ -97,6 +105,8 @@ function merged(chunks: Chunk[]): Chunk {
     if (k.finishMessage !== undefined) candidate["finishMessage"] = k.finishMessage;
   }
   const blocked = typeof candidate["finishReason"] === "string" && !["STOP", "MAX_TOKENS"].includes(candidate["finishReason"]);
+  // A prompt the API blocks has no candidate: the response carries the prompt feedback (and any usage) alone.
+  if (promptFeedback && !chunks.some((c) => c.candidates?.length)) return chunk({ promptFeedback, ...(usage ? { usageMetadata: usage } : {}) });
   return chunk({
     candidates: [{ ...(parts.length && !blocked ? { content: { role: "model", parts } } : {}), ...candidate }],
     ...(usage ? { usageMetadata: usage } : {}),
@@ -172,6 +182,25 @@ function failingChromeModel(errorName: string, message: string): ChromeBuiltInLl
   return new ChromeBuiltInLlm({ languageModel: { availability: async () => "available", create: async () => session } } as never);
 }
 
+/** ADK's own Gemini class with its genai Live socket replaced: on the client's first send the socket delivers
+ *  `messages`, then reports `error` through the socket's error callback (as a dropped or refused Live session does). */
+function erroringLiveModel(name: string, messages: Array<Record<string, unknown>>, error: Error): Gemini {
+  const g = new Gemini({ model: `gemini-live-stub-${name}`, apiKey: "stub-not-a-key" });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (g as any)._liveApiClient = { live: { connect: async ({ callbacks }: any) => {
+    let sent = false;
+    const fire = () => {
+      if (sent) return;
+      sent = true;
+      setTimeout(() => { for (const m of messages) callbacks.onmessage(structuredClone(m)); callbacks.onerror(error); }, 5);
+    };
+    return { sendClientContent: fire, sendRealtimeInput: fire, sendToolResponse: () => {}, close: () => callbacks.onclose() };
+  } } };
+  return g;
+}
+const liveText = (t: string): Record<string, unknown> => ({ serverContent: { modelTurn: { role: "model", parts: [{ text: t }] } } });
+const liveError = (): Error => new Error("The Live session closed with an internal error (1011).");
+
 /** Several function calls in one model chunk. */
 const functionCalls = (calls: Array<[string, Record<string, unknown>]>): Chunk =>
   chunk({
@@ -220,7 +249,7 @@ const deleteTool = (): FunctionTool =>
 
 const plain = (value: unknown): JsonValue => JSON.parse(JSON.stringify(value)) as JsonValue;
 type RunnerAgent = ConstructorParameters<typeof InMemoryRunner>[0]["agent"];
-type Mode = "none" | "sse" | "progressive";
+type Mode = "none" | "sse" | "progressive" | "live";
 
 /** One invocation on a fresh session. A run that throws (a Workflow node that fails for good) keeps what it
  *  yielded; the generator records that it threw. */
@@ -253,6 +282,31 @@ async function run(root: RunnerAgent, mode: Mode): Promise<Run> {
 
 type Ev = { author?: string; branch?: string; partial?: boolean; errorCode?: string; errorMessage?: string; usageMetadata?: unknown; content?: { parts?: Array<Record<string, unknown>> } };
 const errorRows = (events: JsonValue[]) => (events as Ev[]).filter((e) => e.errorCode !== undefined).map((e) => `${e.author}:${e.errorCode}:${e.partial === false ? "aggregate" : "report"}`);
+/** One user turn over runLive; a 3 s cap closes the queue and aborts 500 ms later. A run that rejects keeps what it
+ *  yielded and records the error, as run() does. */
+async function runLive(root: RunnerAgent): Promise<Run> {
+  const runner = new InMemoryRunner({ agent: root });
+  const s = await runner.sessionService.createSession({ appName: runner.appName, userId: "user-1" });
+  const queue = new LiveRequestQueue();
+  queue.sendContent({ role: "user", parts: [{ text: "Answer the question." }] });
+  const abort = new AbortController();
+  const cap = setTimeout(() => { queue.close(); setTimeout(() => abort.abort(), 500); }, 3000);
+  const events: JsonValue[] = [];
+  let threw: string | undefined;
+  let thrown: { name: string; message: string } | undefined;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for await (const ev of (runner as any).runLive({ userId: "user-1", sessionId: s.id, liveRequestQueue: queue, runConfig: { responseModalities: ["TEXT"] }, abortSignal: abort.signal })) {
+      events.push(plain(ev));
+      if ((ev as { turnComplete?: boolean }).turnComplete === true) queue.close();
+    }
+  } catch (e) {
+    threw = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+    thrown = e instanceof Error ? { name: e.name, message: e.message } : { name: typeof e, message: String(e) };
+  }
+  clearTimeout(cap);
+  return { events, ...(threw ? { threw, thrown } : {}) };
+}
 const authorsInOrder = (events: JsonValue[]) => (events as Ev[]).map((e) => e.author).filter((a, i, all) => a !== all[i - 1]);
 
 const retry = { maxAttempts: 3, initialDelay: 0, maxDelay: 0, jitter: 0 };
@@ -438,6 +492,33 @@ const LEGS: Leg[] = [
   { name: "relay-text-then-block", modes: ["none", "sse"], relay: true, build: (m) => relayTo("helper", () => agent("remote_assistant", [{ chunks: [text("Here is the start of "), text("an answer"), block({ usage: BLOCK_USAGE })] }]), m), check: (r, m) => { const errs = (r.events as Ev[]).filter((e) => e.errorCode !== undefined); expect(errs.length).toBe(m === "none" ? 1 : 2); if (m === "sse") expect((r.events as Ev[]).some((e) => e.partial === true && hasText(e))).toBe(true); } },
   { name: "relay-block-on-text-chunk", modes: ["none", "sse"], relay: true, build: (m) => relayTo("helper", () => agent("remote_assistant", [{ chunks: [textWithBlock("A blocked answer", { usage: BLOCK_USAGE })] }]), m), check: (r, m) => { const errs = (r.events as Ev[]).filter((e) => e.errorCode !== undefined); expect(errs.length).toBe(m === "none" ? 1 : 2); } },
   // Progressive SSE: the original arrives as partial:true, then the aggregate.
+  // A chunk that carries only prompt feedback (no candidates), with and without usage. Streamed, ADK's aggregator
+  // yields no event with an errorCode and at most one content-less, usage-only final event; in the default mode the
+  // response becomes one event with an errorCode and no finishReason and no content.
+  ...[["prompt-feedback-only-usage", { usage: BLOCK_USAGE }], ["prompt-feedback-only-no-usage", {}]].map(([name, opts]) => ({
+    name: name as string, modes: ["none", "sse"] as Mode[], build: () => agent("assistant", [{ chunks: [promptFeedbackOnly(opts as { usage?: Record<string, number> })] }]),
+    check: (r: Run, mode: Mode) => {
+      const events = r.events as Array<Ev & { finishReason?: unknown; turnComplete?: boolean }>;
+      expect(r.threw).toBeUndefined();
+      if (mode === "sse") {
+        expect(events.filter((e) => e.errorCode !== undefined)).toEqual([]);
+        const bare = events.filter((e) => e.content === undefined || (e.content.parts ?? []).length === 0);
+        expect(bare.length).toBeLessThanOrEqual(1);
+        expect(bare.every((e) => e.partial !== true && e.errorCode === undefined && e.errorMessage === undefined)).toBe(true);
+        expect(events.every((e) => e.content === undefined || (e.content.parts ?? []).length === 0)).toBe(true);
+      } else {
+        const errs = events.filter((e) => e.errorCode !== undefined);
+        expect(errs.length).toBe(1);
+        expect(errs.every((e) => e.finishReason === undefined && (e.content === undefined || (e.content.parts ?? []).length === 0))).toBe(true);
+      }
+    },
+  })),
+  // runLive over ADK's own Gemini Live connection, the socket reporting an error before any model output, and after a
+  // streamed text: runLive rejects, and no yielded event carries an errorCode or an errorMessage.
+  { name: "live-socket-error-before-output", modes: ["live"], build: () => agent("assistant", [], { model: erroringLiveModel("assistant", [], liveError()) }),
+    check: (r) => { expect(r.thrown?.message).toBe(liveError().message); expect((r.events as Ev[]).filter((e) => e.errorCode !== undefined || e.errorMessage !== undefined)).toEqual([]); } },
+  { name: "live-socket-error-after-text", modes: ["live"], build: () => agent("assistant", [], { model: erroringLiveModel("assistant", [liveText("Here is the start of "), liveText("an answer")], liveError()) }),
+    check: (r) => { expect(r.thrown?.message).toBe(liveError().message); expect((r.events as Ev[]).filter((e) => e.errorCode !== undefined || e.errorMessage !== undefined)).toEqual([]); expect((r.events as Ev[]).some((e) => (e.content?.parts ?? []).some((p) => typeof p["text"] === "string"))).toBe(true); } },
   { name: "block-usage-on-finish", modes: ["progressive"], build: () => agent("assistant", [{ chunks: [block({ usage: BLOCK_USAGE })] }]),
     check: (r) => expect((r.events as Ev[]).filter((e) => e.errorCode !== undefined).map((e) => e.partial)).toEqual([true, false]) },
 ];
@@ -456,7 +537,7 @@ describe.runIf(process.env["GEN_ADK_ERROR"] === "1")("ADK in-band error fixture 
       if (only && !only.includes(leg.name)) continue;
       for (const mode of leg.modes) {
         relaySends.length = 0;
-        const r = await run(leg.build(mode), mode);
+        const r = mode === "live" ? await runLive(leg.build(mode)) : await run(leg.build(mode), mode);
         if (leg.relay) {
           r.events = reduceRelayEntries(r.events as Record<string, unknown>[]) as JsonValue[];
           if (!relayEntriesReduced(r.events as Record<string, unknown>[])) throw new Error(`${leg.name}.${mode}: a relay customMetadata entry holds more than RELAY_KEEP lets it keep`);

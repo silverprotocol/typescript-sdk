@@ -1,0 +1,48 @@
+[
+  {
+    "invocationId": "e-eda5df26-945c-40c1-832c-004cf317af50",
+    "author": "assistant",
+    "id": "U39DDFXn",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790931114603,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Here is the start of "
+        }
+      ]
+    },
+    "modelVersion": "gemini-live-stub-assistant",
+    "partial": true
+  },
+  {
+    "invocationId": "e-eda5df26-945c-40c1-832c-004cf317af50",
+    "author": "assistant",
+    "id": "WgrPERiN",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790931114603,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "an answer"
+        }
+      ]
+    },
+    "modelVersion": "gemini-live-stub-assistant",
+    "partial": true
+  }
+]

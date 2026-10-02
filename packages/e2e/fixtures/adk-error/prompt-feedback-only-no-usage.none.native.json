@@ -1,0 +1,17 @@
+[
+  {
+    "invocationId": "e-9f7c81a3-72e8-4ce4-9088-52047c4df19e",
+    "author": "assistant",
+    "id": "zt3TfVYl",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790931114587,
+    "errorCode": "SAFETY",
+    "errorMessage": "The prompt was blocked for safety."
+  }
+]

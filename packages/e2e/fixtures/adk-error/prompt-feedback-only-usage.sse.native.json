@@ -1,0 +1,21 @@
+[
+  {
+    "invocationId": "e-a48474d1-b361-4b12-86bb-01d71f65aa6a",
+    "author": "assistant",
+    "id": "i0ScsCtV",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1790931114586,
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "partial": false
+  }
+]
