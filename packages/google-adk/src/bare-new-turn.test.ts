@@ -91,7 +91,7 @@ describe("createAdkNormalizer — content after a bare success close opens the n
     expect(fold(both).needsResync).toBe(false);
   });
 
-  it("an event that only repeats the closed turn's streamed text (ADK's aggregate after a message-less block chunk closed it) stays on that turn and emits nothing, and a text-less event after the close opens no turn", () => {
+  it("an event that only repeats the closed turn's streamed text (ADK's aggregate after a message-less block chunk closed it) stays on that turn and emits nothing, and a state-only event after it opens the next turn", () => {
     for (const i of [0, 1]) {
       const inv = `inv-repeat-${i}`;
       const text = `Hello ${i}`;
@@ -105,9 +105,107 @@ describe("createAdkNormalizer — content after a bare success close opens the n
         ],
         false,
       );
-      expect(out.filter((e) => e.type === "turn.start"), `#${i}`).toHaveLength(1);
+      expect(out.filter((e) => e.type === "turn.start").map((e) => Reflect.get(e, "turnId")), `#${i}`).toEqual([`turn_adk_${inv}`, `turn_adk_${inv}_g1`]);
       expect(out.flatMap((e) => (e.type === "text.delta" ? [e.delta] : [])).join(""), `#${i}`).toBe(text);
+      expect(out.filter((e) => e.type === "state.delta").map((e) => Reflect.get(e, "turnId")), `#${i}`).toEqual([`turn_adk_${inv}_g1`]);
       expect(fold(out).needsResync, `#${i}`).toBe(false);
+    }
+  });
+
+  it("a repeat of the closed turn's text that carries ADK's empty stateDelta emits that one state.delta on the closed turn, and nothing else of it", () => {
+    for (const i of [0, 1]) {
+      const inv = `inv-repeat-state-${i}`;
+      const text = `Hello ${i}`;
+      const out = run(
+        [
+          { invocationId: inv, author: "agent", content: { role: "model", parts: [{ text: text.slice(0, 3) }] }, partial: true },
+          { invocationId: inv, author: "agent", content: { role: "model", parts: [{ text: text.slice(3) }] }, partial: true },
+          { invocationId: inv, author: "agent", finishReason: "STOP" },
+          { invocationId: inv, author: "agent", content: { role: "model", parts: [{ text }] }, partial: false, actions: { stateDelta: {} } },
+        ],
+        false,
+      );
+      const end = out.findIndex((e) => TERMINAL.test(e.type));
+      expect(out.slice(end + 1).map((e) => [e.type, Reflect.get(e, "turnId")]), `#${i}`).toEqual([["state.delta", `turn_adk_${inv}`]]);
+      expect(out.filter((e) => e.type === "turn.start"), `#${i}`).toHaveLength(1);
+      expect(fold(out).needsResync, `#${i}`).toBe(false);
+    }
+  });
+});
+
+/** Events that name a turn, by turnId or through a message of that turn, after the turn's terminal. */
+function afterTerminal(out: AgEvent[]): string[] {
+  const closed = new Set<string>();
+  const turnOf = new Map<string, string>();
+  const found: string[] = [];
+  for (const e of out) {
+    const id: unknown = Reflect.get(e, "id");
+    const ownTurn: unknown = Reflect.get(e, "turnId");
+    const messageId: unknown = Reflect.get(e, "messageId");
+    if (e.type === "message.start" && typeof id === "string" && typeof ownTurn === "string") turnOf.set(id, ownTurn);
+    const turn =
+      typeof ownTurn === "string" ? ownTurn : typeof messageId === "string" ? turnOf.get(messageId) : e.type === "message.end" && typeof id === "string" ? turnOf.get(id) : undefined;
+    if (turn !== undefined && closed.has(turn)) found.push(`${e.type} @${turn}`);
+    if (TERMINAL.test(e.type) && typeof ownTurn === "string") closed.add(ownTurn);
+  }
+  return found;
+}
+
+describe("createAdkNormalizer — after a bare success close, no later event of the invocation names the closed turn", () => {
+  const live = (inv: string, i: number): Obj[] => [
+    { invocationId: inv, author: "voice", content: { role: "model", parts: [{ text: `Hi ${i}.` }] }, modelVersion: "gemini-live-x" },
+    { invocationId: inv, author: "voice", turnComplete: true, modelVersion: "gemini-live-x" },
+    { invocationId: inv, author: "voice", usageMetadata: { promptTokenCount: 7 + i, candidatesTokenCount: 2, totalTokenCount: 9 + i }, modelVersion: "gemini-live-x" },
+    { invocationId: inv, author: "voice", content: { role: "model", parts: [{ functionCall: { name: "lookup", id: `c-${i}`, args: {} } }] }, modelVersion: "gemini-live-x" },
+    { invocationId: inv, author: "voice", content: { role: "user", parts: [{ functionResponse: { name: "lookup", id: `c-${i}`, response: { ok: true } } }] } },
+    { invocationId: inv, author: "voice", content: { role: "model", parts: [{ text: `Found ${i}.` }] }, modelVersion: "gemini-live-x" },
+    { invocationId: inv, author: "voice", turnComplete: true, modelVersion: "gemini-live-x" },
+  ];
+  /** Each shape as [label, the natives after the reply that closes the first turn]. */
+  const shapes = (inv: string, i: number): Array<[string, Obj[]]> => [
+    ["the relay's own failure (an error message and turnComplete, no error code)", [{ invocationId: inv, author: "helper", errorMessage: `Remote agent request failed ${i}`, turnComplete: true }]],
+    ["a usage report carrying modelVersion", [{ invocationId: inv, author: "planner", modelVersion: "gemini-x", usageMetadata: { promptTokenCount: 3 + i, candidatesTokenCount: 1, totalTokenCount: 4 + i } }]],
+    ["a state-only callback event", [{ invocationId: inv, author: "planner", actions: { stateDelta: { step: i } } }]],
+    ["an event carrying only branch and nodeInfo", [{ invocationId: inv, author: "planner", branch: `root.b${i}`, nodeInfo: { path: `wf/n${i}` } }]],
+    ["a prompt block", [{ invocationId: inv, author: "planner", errorCode: "SAFETY" }]],
+  ];
+
+  it("a Live text generation, then a tool-call generation that opens on a usage report carrying modelVersion: the report opens the second generation and its usage counts there, and the fold is clean", () => {
+    for (const i of [0, 1]) {
+      const inv = `inv-live-${i}`;
+      const out = run(live(inv, i), false);
+      expect(afterTerminal(out), `#${i}`).toEqual([]);
+      expect(fold(out).needsResync, `#${i}`).toBe(false);
+      const ends = out.filter((e) => TERMINAL.test(e.type));
+      expect(ends.map((e) => e.type), `#${i}`).toEqual(["turn.done", "turn.done"]);
+      expect(Reflect.get(ends[1] ?? {}, "usage"), `#${i}`).toMatchObject({ inputTokens: 7 + i });
+    }
+  });
+
+  it("after a reply closes the first turn, each content-less shape (the relay's code-less failure, a usage report with modelVersion, a state-only callback, a branch and nodeInfo carry, a prompt block) opens a second turn, nothing names the first after its terminal, and the fold is clean", () => {
+    for (const i of [0, 1]) {
+      const inv = `inv-shape-${i}`;
+      for (const [label, later] of shapes(inv, i)) {
+        const out = run([reply(inv, "planner", `Hello ${i}.`), ...later], false);
+        const tag = `${label} #${i}`;
+        expect(afterTerminal(out), tag).toEqual([]);
+        expect(fold(out).needsResync, tag).toBe(false);
+        expect(new Set(out.filter((e) => e.type === "turn.start").map((e) => Reflect.get(e, "turnId"))), tag).toEqual(new Set([`turn_adk_${inv}`, `turn_adk_${inv}_g1`]));
+        expect(terminals(out)[0], tag).toEqual(["turn.done", `turn_adk_${inv}`, "success"]);
+      }
+    }
+  });
+
+  it("with the host-completion event each of those runs stays one turn closing once", () => {
+    for (const i of [0, 1]) {
+      const inv = `inv-shape-hc-${i}`;
+      for (const [label, later] of [...shapes(inv, i), ["a Live tool-call generation", live(inv, i)] as [string, Obj[]]]) {
+        const natives = label === "a Live tool-call generation" ? later : [reply(inv, "planner", `Hello ${i}.`), ...later];
+        const out = run(natives, true);
+        expect(terminals(out).length, `${label} #${i}`).toBeGreaterThan(0);
+        expect(afterTerminal(out), `${label} #${i}`).toEqual([]);
+        expect(fold(out).needsResync, `${label} #${i}`).toBe(false);
+      }
     }
   });
 });

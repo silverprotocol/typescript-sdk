@@ -5487,7 +5487,7 @@ describe("createAdkNormalizer — an ADK prompt block (errorCode, no finishReaso
     for (const native of negatives) expect(blocks(push([native])), JSON.stringify(native)).toEqual([]);
   });
 
-  it("one record per block event while the turn is open: three block events record three with the host-completion event, one without it", () => {
+  it("one record per block event: three block events record three, in one turn with the host-completion event and in three turns without it, each before its turn's terminal", () => {
     const three: JsonValue[] = [
       { ...inv, errorCode: "SAFETY" },
       { ...inv, errorCode: "PROHIBITED_CONTENT" },
@@ -5499,8 +5499,13 @@ describe("createAdkNormalizer — an ADK prompt block (errorCode, no finishReaso
     expect(marked.filter((e) => TERMINAL.has(e.type))).toHaveLength(1);
     expect(Math.max(...blocks(marked).map((e) => marked.indexOf(e)))).toBeLessThan(term);
     const bare = push(three);
-    expect(blocks(bare)).toHaveLength(1);
-    expect(bare.filter((e) => TERMINAL.has(e.type))).toHaveLength(1);
+    expect(blocks(bare).map((e) => (e as { reason: string }).reason)).toEqual(["safety", "prohibited", "safety"]);
+    const ends = bare.filter((e) => TERMINAL.has(e.type));
+    expect(ends.map((e) => e.turnId)).toEqual(["turn_adk_inv_fixture_1", "turn_adk_inv_fixture_1_g1", "turn_adk_inv_fixture_1_g2"]);
+    for (const [k, record] of blocks(bare).entries()) {
+      expect(record.turnId).toBe(ends[k]?.turnId);
+      expect(bare.indexOf(record)).toBeLessThan(bare.indexOf(ends[k]!));
+    }
   });
 
   it("a prompt block while an ask is pending is recorded, and the turn still closes paused", () => {
@@ -5537,14 +5542,18 @@ describe("createAdkNormalizer — an ADK prompt block (errorCode, no finishReaso
     expect(out.filter((e) => TERMINAL.has(e.type))).toEqual([expect.objectContaining({ type: "turn.error" })]);
   });
 
-  it("no prompt.blocked is recorded after the turn's terminal, from either shape", () => {
+  it("no prompt.blocked is recorded on a turn after its terminal: after a bare success close, a block of either shape opens the next turn and is recorded there", () => {
     const out = push([
       toJson(event([{ text: "Hello." }], { partial: false, finishReason: "STOP" })),
       { ...inv, promptFeedback: { blockReason: "SAFETY" } },
       { ...inv, errorCode: "SAFETY" },
     ]);
-    expect(out.filter((e) => TERMINAL.has(e.type))).toEqual([expect.objectContaining({ type: "turn.done", finishReason: "stop" })]);
-    expect(blocks(out)).toEqual([]);
+    const ends = out.filter((e) => TERMINAL.has(e.type));
+    expect(ends[0]).toMatchObject({ type: "turn.done", turnId: "turn_adk_inv_fixture_1", finishReason: "stop" });
+    expect(ends).toHaveLength(2);
+    expect(blocks(out).map((e) => e.turnId)).toEqual(["turn_adk_inv_fixture_1_g1", "turn_adk_inv_fixture_1_g1"]);
+    expect(Math.min(...blocks(out).map((e) => out.indexOf(e)))).toBeGreaterThan(out.indexOf(ends[0]!));
+    expect(Math.max(...blocks(out).map((e) => out.indexOf(e)))).toBeLessThan(out.indexOf(ends[1]!));
   });
 
   it("two identical block events inside a Workflow node record two prompt.blocked while the turn is open, and the same event after the terminal records none", () => {

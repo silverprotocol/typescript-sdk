@@ -3431,12 +3431,14 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     const base = key !== undefined ? `turn_${invokeStem}_${key}` : `turn_${invokeStem}`;
     const g = generationOf.get(base) ?? 0;
     const current = g === 0 ? base : `${base}_g${g}`;
-    // Content after a success close (an event with parts or a transcription,
-    // or an in-band invocation error) opens the next generation; an event
-    // with none of those stays where it maps today.
+    // Any event after a success close opens the next generation, so nothing
+    // it emits names the closed turn (SPEC :959): content, a usage report, a
+    // carry, a state change. Two stay: an aggregate that only repeats the
+    // closed turn's streamed text (the window suppresses it), and ADK's bare
+    // {interrupted} re-yield after a barge-in (below; it emits nothing).
     const afterSuccess =
       successClosed.has(current) &&
-      (hasLiveContent(event) || omittedParts || inBandErrorOf(event) !== undefined) &&
+      !(event.interrupted === true && !hasLiveContent(event) && !omittedParts) &&
       !repeatsClosedTurn(current, event);
     if (!interruptClosed.has(current) && !afterSuccess) return current;
     if (!afterSuccess && event.interrupted === true && !hasLiveContent(event) && !omittedParts) return undefined;
