@@ -25,9 +25,11 @@
  *  - the sentinel-fed close: with `createAdkNormalizer({ hostCompletion: true })`
  *    and `{type:"__host_complete__"}` after the natives, a completed run closes
  *    success from push(), and the two plain-plane parks fold clean.
- * Two success-close engine shapes remain host-completion-only
- * (SUCCESS_CLOSE_SHAPES): without the opt-in they still park. They
- * are a success-close class, not a pause class.
+ * Two success-close engine shapes (SUCCESS_CLOSE_SHAPES) are the runs §10
+ * item 25 names for content after a final response: without the opt-in the
+ * content after the success close opens the next turn; with it the run
+ * folds clean and closes success from push(). They are a success-close
+ * class, not a pause class.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -108,7 +110,7 @@ const SUCCESS = ["nodetool-in-llmagent"] as const;
 /** Success-close engine shapes that remain host-completion-only: a success
  *  close precedes more of the invocation (a SequentialAgent root's next agent,
  *  after-agent callback content). Not a pause class. */
-const SUCCESS_CLOSE_SHAPES = ["known-gap-sequential-root", "known-gap-after-agent-callback"] as const;
+const SUCCESS_CLOSE_SHAPES = ["sequential-two-answers", "after-agent-callback-content"] as const;
 /** Pauses the invocation outlives: an ADK event follows the pause end in the
  *  same invocation and carries state and content (adk-pause-fixtures.gen.test.ts,
  *  GEN_ADK_PAUSE_FOLLOW). */

@@ -264,7 +264,12 @@ request-input pauses, workflow pause/resume, truncation). They are NOT corpus
 cassettes: they fail the acceptance filter's "real framework wire" test
 because the model is a stub. They are regenerated only by
 `GEN_ADK_PAUSE=1 … adk-pause-fixtures.gen.test.ts` and gated by
-`adk-pause.test.ts` against AgJSON draft.4 §10 item 25. One more,
+`adk-pause.test.ts` against AgJSON draft.4 §10 item 25. Two of them,
+`sequential-two-answers` and `after-agent-callback-content`, are the two
+fixtures item 25 names for a run that continues after a final response (a
+SequentialAgent of two answering sub-agents; an agent whose after-agent
+callback appends content after its final response), cited by its
+`content-after-final` conformance leg. One more,
 `plain-credential-authuri`, is an OAuth2 credential request whose auth URI
 the engine itself generates (carrying `state`, `nonce` and a PKCE challenge),
 with every credential member seeded by a `SEED_` placeholder. It has its own

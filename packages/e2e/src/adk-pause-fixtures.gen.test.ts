@@ -248,8 +248,9 @@ describe.runIf(process.env["GEN_ADK_PAUSE"] === "1")("ADK pause fixture generati
       );
     }
 
-    // ── known gaps on the legacy path (pinned, not fixed in step 1) ──
-    out["known-gap-sequential-root"] = await runOnce(
+    // ── a run that continues after a final response (§10 item 25: a SequentialAgent of two answering sub-agents; an
+    //    agent whose after-agent callback appends content after its final response) ──
+    out["sequential-two-answers"] = await runOnce(
       new SequentialAgent({
         name: "seq",
         subAgents: [
@@ -258,7 +259,7 @@ describe.runIf(process.env["GEN_ADK_PAUSE"] === "1")("ADK pause fixture generati
         ],
       }),
     );
-    out["known-gap-after-agent-callback"] = await runOnce(
+    out["after-agent-callback-content"] = await runOnce(
       new LlmAgent({
         name: "agent",
         model: new StubModel(undefined),
