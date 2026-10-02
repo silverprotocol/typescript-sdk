@@ -2360,6 +2360,16 @@ describe("§10.29 — forward-compatible records and inputs (draft.4; §0.2 stor
     expect(reject(start({ run: { reasoning: { mode: "zz", effort: "xhigh" } } }))).toEqual({ code: "unknown-value", path: ["run", "reasoning", "mode"] });
   });
 
+  it("(b18) an open-string field: case is carried unchanged, a JSON null is malformed, and an absent effort is unset", () => {
+    expect(reject(start({ run: { reasoning: { mode: "enabled", effort: null } } }))).toEqual({ code: "malformed", path: ["run", "reasoning", "effort"] });
+    const absent = checkAgInput(start({ run: { reasoning: { mode: "enabled" } } }));
+    expect(absent.ok).toBe(true);
+    expect(absent.ok ? "effort" in (absent.input as unknown as { run: { reasoning: Record<string, unknown> } }).run.reasoning : undefined).toBe(false);
+    const upper = checkAgInput(start({ run: { reasoning: { mode: "enabled", effort: "HIGH" } } }));
+    expect(upper.ok).toBe(true);
+    expect(upper.ok ? (upper.input as unknown as { run: { reasoning: { effort: string } } }).run.reasoning.effort : undefined).toBe("HIGH");
+  });
+
   it("(b8) a different major version is major-mismatch", () => {
     expect(reject({ ...ENV, version: "2.0.0", kind: "start", messages: [] })).toEqual({ code: "major-mismatch", path: ["version"] });
   });
