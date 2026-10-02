@@ -257,7 +257,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 58, leg: "adk", title: "Block finish reason whatever the outcome (rc.1): an ADK blocked final (errorCode and finishReason, no content, no errorMessage), for each of the eight values the mapping sends to safety_blocked, closes with exactly one turn.done carrying safety_blocked; every event passes producer-strict AgEvent validation, reduce() needs no resync and the turn record carries the mapped finishReason", disposition: "COVERED-BY", evidence: "fixture-only", citation: "google-adk/src/index.test.ts \"a blocked final as ADK builds it (errorCode and finishReason, no content, no errorMessage), for each of the eight block values, closes exactly one turn.done safety_blocked; every event parses and the fold does not park\"; the parse, fold and record checks re-asserted in spec-conformance.test.ts §10.58(adk)" },
   { n: 58, leg: "adk-host-completion", title: "Block finish reason whatever the outcome (rc.1): with host completion, an ADK stashed blocked final of each block value is released by the host-completion event as exactly one turn.done carrying safety_blocked; every event passes producer-strict AgEvent validation, reduce() needs no resync and the turn record carries the mapped finishReason", disposition: "COVERED-BY", evidence: "fixture-only", citation: "google-adk/src/index.test.ts \"with host completion, the stashed blocked final of each block value is released by the host-completion event as the same one turn.done safety_blocked\"; the parse, fold and record checks re-asserted in spec-conformance.test.ts §10.58(adk-host-completion)" },
   { n: 58, leg: "vercel", title: "Block finish reason whatever the outcome (rc.1): a Vercel AI SDK content-filter finish, in fullStream order, closes with exactly one turn.done carrying safety_blocked; every event passes producer-strict AgEvent validation, reduce() needs no resync and the turn record carries the mapped finishReason", disposition: "COVERED-BY", evidence: "fixture-only", citation: "vercel-ai/src/index.test.ts \"content-filter closes the turn with exactly one turn.done carrying safety_blocked; every event passes producer-strict AgEvent parse; reduce() needs no resync and the turn record's finishReason is safety_blocked\"; the parse, fold and record checks re-asserted in spec-conformance.test.ts §10.58(vercel)" },
-  { n: 58, leg: "claude", title: "Block finish reason whatever the outcome (rc.1)", disposition: "N/A", evidence: "none", citation: "binding sentence: the item binds a close a normalizer makes with a turn.done; fed the order the Claude Code CLI 2.1.280 bundle builds for a no-fallback refusal (a synthetic API-error assistant frame with stop_reason refusal, then an is_error result; the order is read from the bundle, with no live capture yet), the reference claude-agent-sdk normalizer closes the turn with turn.error, which §4's block-signal note covers" },
+  { n: 58, leg: "claude", title: "Block finish reason whatever the outcome (rc.1): a Claude Code CLI refusal the CLI does not retry, in the bundle-read order and on the streaming path, closes with exactly one turn.done carrying refusal; every event passes producer-strict AgEvent validation, reduce() needs no resync and the turn record carries refusal", disposition: "COVERED-BY", evidence: "fixture-only", citation: "claude-agent-sdk/src/index.test.ts \"the bundle-read order (non-streaming) closes exactly one turn.done{error outcome, finishReason refusal, safety}; every event parses producer-strict; the fold records finishReason refusal; a following round without a refusal closes stop\" and \"the streaming path (content, then the refusal): the refused response's stream events, the notice and the synthetic frame close exactly one turn.done refusal; every event parses producer-strict; the fold records finishReason refusal; a following round without a refusal closes stop\"; the parse, fold and record checks re-asserted in spec-conformance.test.ts §10.58(claude)" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -4308,9 +4308,9 @@ describe("§10.57 — ADK prompt block → prompt.blocked (rc.1): one record per
 // with the mapped finishReason, every event passes producer-strict AgEvent
 // validation, reduce() needs no resync, and the turn record carries the mapped
 // finishReason. Nothing is asserted about outcome.type (§4, "A block is not an
-// outcome"). No claude leg: fed the order Claude Code CLI 2.1.280 delivers for a
-// refusal, the reference claude-agent-sdk normalizer closes the turn with
-// turn.error, which the item does not bind (its manifest row is N/A).
+// outcome"). The claude leg feeds a refusal in the order the Claude Code CLI's
+// bundle builds it (the notice, an API-error frame whose stop reason is refusal,
+// then an erroring result), which the reference normalizer closes with turn.done.
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("§10.58 — block finish reason whatever the outcome (rc.1): exactly one turn.done with the mapped finishReason, every event valid, a clean fold and the turn record's finishReason", () => {
@@ -4421,5 +4421,16 @@ describe("§10.58 — block finish reason whatever the outcome (rc.1): exactly o
     ];
     const evs = [...parts.flatMap((p) => n.push(p)), ...n.flush()];
     blockChecks(evs, firstTurnId(evs), "safety_blocked", "vercel");
+  });
+
+  it("(claude) a refusal in the Claude Code CLI's bundle-read order (the notice, an API-error frame whose stop reason is refusal, an erroring result): one turn.done refusal, every event valid, a clean fold, the record's refusal", () => {
+    const STOP = { type: "refusal", category: "cyber", explanation: "declined", recommended_model: "claude-test-2" };
+    const TEXT = "API Error: Claude can't help with this.";
+    const evs = rDrive([
+      { type: "system", subtype: "model_refusal_no_fallback", original_model: "claude-test", request_id: "req_c10", api_refusal_category: "cyber", api_refusal_explanation: "declined", refused_user_message_uuid: "00000000-0000-0000-0000-00000000c1a1", content: "declined", uuid: "00000000-0000-0000-0000-00000000c1a2", session_id: "sess_s10_remedy" },
+      rAssistant("msg_c10_refusal", [{ type: "text", text: TEXT, citations: null }], { error: "invalid_request", is_api_error_message: true }, { stop_reason: "refusal", stop_details: STOP }),
+      { ...rResult("refusal"), is_error: true, result: TEXT },
+    ]);
+    blockChecks(evs, firstTurnId(evs), "refusal", "claude");
   });
 });
