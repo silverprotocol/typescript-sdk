@@ -1266,24 +1266,63 @@ function mapGroundingCitations(
   gm: AdkEvent["groundingMetadata"]
 ): AgCitation[] | undefined {
   if (gm?.groundingSupports === undefined || gm.groundingSupports.length === 0) return undefined;
-  return gm.groundingSupports.map((support): AgCitation => {
-    // genai types the scores as numbers. A list holding anything else has no
-    // AgCitation home: the citation omits the member (filtering would shift
-    // the pairing of each score with its chunk index), and the event-level
-    // carry holds the list verbatim (groundingScoresCarry).
-    const scores = support.confidenceScores === undefined ? [] : finiteScores(support.confidenceScores);
+  return gm.groundingSupports.map((support: unknown): AgCitation => {
+    // genai types these members (numbers, a string, number lists). A value of
+    // another type has no AgCitation home: the citation takes the member's
+    // default (0, "", []) or, for the optional scores, omits it, and the
+    // event-level carry holds the native value verbatim
+    // (groundingSupportsCarry). Nothing is filtered: ADK pairs each score with
+    // the chunk index at the same position.
+    const read = readSupport(support);
     return {
       kind: "offset",
       unit: "byte",
-      startIndex: support.segment?.startIndex ?? 0,
-      endIndex: support.segment?.endIndex ?? 0,
+      startIndex: read.startIndex ?? 0,
+      endIndex: read.endIndex ?? 0,
       bounds: "[start,end)",
-      sourceIds: support.groundingChunkIndices?.map((i) => `grounding_${i}`) ?? [],
-      ...(scores !== undefined ? { confidenceScores: scores } : {}),
-      citedText: support.segment?.text ?? "",
+      sourceIds: (read.chunkIndices ?? []).map((i) => `grounding_${i}`),
+      ...(read.scores !== undefined ? { confidenceScores: read.scores } : {}),
+      citedText: read.text ?? "",
       indexFrame: "response",
     };
   });
+}
+
+/** One grounding support's members as AgCitation takes them. An absent or
+ *  JSON-null member reads as its default; a member of another type reads as undefined, and its
+ *  native value is named in `unmapped`. */
+function readSupport(support: unknown): {
+  startIndex: number | undefined;
+  endIndex: number | undefined;
+  text: string | undefined;
+  chunkIndices: number[] | undefined;
+  scores: number[] | undefined;
+  unmapped: { [k: string]: JsonValue };
+} {
+  const unmapped: { [k: string]: JsonValue } = {};
+  const member = (key: string): unknown => (isJsonObject(support) ? support[key] : undefined);
+  const segment = member("segment");
+  const seg = (key: string): unknown => (isJsonObject(segment) ? segment[key] : undefined);
+  const startRaw = seg("startIndex");
+  const endRaw = seg("endIndex");
+  const textRaw = seg("text");
+  const startIndex = startRaw === undefined || startRaw === null ? 0 : finiteNumber(startRaw);
+  const endIndex = endRaw === undefined || endRaw === null ? 0 : finiteNumber(endRaw);
+  const text = textRaw === undefined || textRaw === null ? "" : typeof textRaw === "string" ? textRaw : undefined;
+  const segmentMapped = (segment === undefined || segment === null || isJsonObject(segment)) && startIndex !== undefined && endIndex !== undefined && text !== undefined;
+  if (!segmentMapped) unmapped["segment"] = JsonValue.parse(segment);
+  const indicesRaw = member("groundingChunkIndices");
+  const chunkIndices = indicesRaw === undefined || indicesRaw === null ? [] : chunkIndexList(indicesRaw);
+  if (chunkIndices === undefined) unmapped["groundingChunkIndices"] = JsonValue.parse(indicesRaw);
+  const scoresRaw = member("confidenceScores");
+  const scores = scoresRaw === undefined || scoresRaw === null ? [] : finiteScores(scoresRaw);
+  if (scores === undefined) unmapped["confidenceScores"] = JsonValue.parse(scoresRaw);
+  return { startIndex, endIndex, text, chunkIndices, scores, unmapped };
+}
+
+/** The value when it is a finite number, else undefined. */
+function finiteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 /** The value when it is a list of finite numbers, else undefined. */
@@ -1291,27 +1330,40 @@ function finiteScores(value: unknown): number[] | undefined {
   if (!Array.isArray(value)) return undefined;
   const scores: number[] = [];
   for (const score of value) {
-    if (typeof score !== "number" || !Number.isFinite(score)) return undefined;
-    scores.push(score);
+    const n = finiteNumber(score);
+    if (n === undefined) return undefined;
+    scores.push(n);
   }
   return scores;
 }
 
-/** The grounding supports' confidence-score lists that mapGroundingCitations
- *  could not map, verbatim at their native path: one entry per support, in
- *  order, holding the list for a support whose list is not all finite numbers
- *  and nothing for any other. Undefined when every list mapped. */
-function groundingScoresCarry(gm: AdkEvent["groundingMetadata"]): JsonValue | undefined {
+/** The value when it is a list of chunk indexes (non-negative integers), else
+ *  undefined. */
+function chunkIndexList(value: unknown): number[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const indices: number[] = [];
+  for (const index of value) {
+    if (typeof index !== "number" || !Number.isInteger(index) || index < 0) return undefined;
+    indices.push(index);
+  }
+  return indices;
+}
+
+/** The grounding supports' members that mapGroundingCitations could not map,
+ *  verbatim at their native path: one entry per support, in order, holding
+ *  those members (the whole `segment` when one of its members did not map)
+ *  and nothing for a support that mapped whole. Undefined when every support
+ *  mapped. */
+function groundingSupportsCarry(gm: AdkEvent["groundingMetadata"]): JsonValue | undefined {
   const supports: unknown = gm?.groundingSupports;
   if (!Array.isArray(supports)) return undefined;
-  let unmapped = false;
+  let any = false;
   const entries = supports.map((support: unknown): JsonValue => {
-    const scores: unknown = isJsonObject(support) ? support["confidenceScores"] : undefined;
-    if (scores === undefined || finiteScores(scores) !== undefined) return {};
-    unmapped = true;
-    return { confidenceScores: JsonValue.parse(scores) };
+    const { unmapped } = readSupport(support);
+    if (Object.keys(unmapped).length > 0) any = true;
+    return unmapped;
   });
-  return unmapped ? { groundingSupports: entries } : undefined;
+  return any ? { groundingSupports: entries } : undefined;
 }
 
 // ─── null-id call mint state (audit M47; window/correlation redesign — review
@@ -2181,8 +2233,8 @@ function driveAdkTopLevel(
     unmappedEvent["isolationScope"] = JsonValue.parse(event.isolationScope);
   if (event.citationMetadata !== undefined)
     unmappedEvent["citationMetadata"] = JsonValue.parse(event.citationMetadata);
-  const groundingScores = groundingScoresCarry(event.groundingMetadata);
-  if (groundingScores !== undefined) unmappedEvent["groundingMetadata"] = groundingScores;
+  const groundingSupports = groundingSupportsCarry(event.groundingMetadata);
+  if (groundingSupports !== undefined) unmappedEvent["groundingMetadata"] = groundingSupports;
   if (event.customMetadata !== undefined) {
     const kept = withoutRelayBookkeeping(JsonValue.parse(event.customMetadata));
     if (kept !== undefined) unmappedEvent["customMetadata"] = kept;
