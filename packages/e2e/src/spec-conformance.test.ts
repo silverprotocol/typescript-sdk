@@ -142,6 +142,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 25, leg: "replay", title: "Framework pause and completion closure (draft.4): a golden the normalizer closes on the framework's own events folds unchanged with and without the host-completion event; one it does not closes as obligation 4 directs with it and turn.abort from flush() without it", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.25(replay) over every corpus/*/adk golden, including the live Workflow seeds (371a02c)" },
   { n: 25, leg: "no-pause-signal", title: "Framework pause and completion closure (draft.7): a stream cut after the adk_request_* call with no pause signal closes turn.abort from flush() and never turn.done, bare and with hostCompletion configured but no completion event fed (INV-FLUSH (2)'s truncation rule)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.25(no-pause-signal) over fixtures/adk-pause/after-pause-usage-tail cut after the reserved call" },
   { n: 25, leg: "usage", title: "Framework pause and completion closure (draft.7; stub usage): the paused close carries the invocation's usage — the field-wise sum of every non-partial ADK usageMetadata — and no message.end of the turn carries usage; the SSE-aggregator fixture is asserted only to carry usage on the paused close (its sum is §8.0 item 24's known overcount)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.25(stub usage) over the six after-pause fixtures × 2 modes" },
+  { n: 25, leg: "content-after-final", title: "Framework pause and completion closure (draft.4; rc.1): two further ADK fixtures bound by no other criterion of the item: a run that continues after a final response (a SequentialAgent of two answering sub-agents; an agent whose after-agent callback appends content after its final response) folds without a resync with and without the host-completion event, and no message.start or block event names a turn after that turn's terminal", disposition: "COVERED-BY", evidence: "fixture-only", citation: "adk-pause.test.ts \"success-close shape without the opt-in: … closes success from push(), and the content after the close opens the next turn instead of parking\"; \"…: success-close shape — with the sentinel fed it folds clean and closes success from push()\"" },
   { n: 26, leg: "fold", title: "Interim-narration marker (draft.4): phase folds set-if-present on text/reasoning start and end (end REPLACES, absent keeps), undocumented values verbatim, no-phase streams byte-identical to draft.3, INV-FOLD", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.26(fold), reference reduce() + Reducer (2abe30b)" },
   { n: 26, leg: "vercel", title: "Interim-narration marker (draft.4): an OpenAI commentary text part opens phase 'interim'; final_answer / unknown / no bag → no phase; providerMetadata.phase kept verbatim", disposition: "COVERED-BY", evidence: "fixture-only", citation: "vercel-ai/src/index.test.ts describe \"draft.4 phase: an OpenAI commentary text part opens as phase 'interim'\" (commentary → text.start{phase:'interim'}; final_answer/unknown/no bag → no phase key) + describe \"text-start/text-end providerMetadata carry (captured echo-gpt56/gpt6astra/gpt6luna/gpt6sol shape: OpenAI `phase` on both parts)\" (commentary and final answer stay separate blocks, each bag verbatim) (2abe30b)" },
   { n: 26, leg: "openai", title: "Interim-narration marker (draft.4): a commentary + final_answer response yields phase 'interim' on the first item's text.start only; null/\"\" yield neither phase nor providerMetadata.phase", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.26(openai) via createOpenaiNormalizer (the phase carry, 347d550)" },
@@ -187,6 +188,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 40, leg: "claude", title: "Flush honesty (draft.4): a Claude stream cut mid-turn with open text, reasoning and a partial tool call flushes content-free lifecycle closes only", disposition: "COVERED-BY", evidence: "fixture-only", citation: "claude-agent-sdk/src/index.test.ts \"createClaudeNormalizer — C1: flush never mints content\" › \"leg (a): every flush() event is a content-free lifecycle close; …\"" },
   { n: 40, leg: "openai", title: "Flush honesty (draft.4): the approval interruption flushes exactly one turn.done{paused, asks:[approval_<callId>], usage U}; without the approval, turn.abort{stream-truncated} and a message.end carrying U", disposition: "COVERED-BY", evidence: "fixture-only", citation: "openai-agents/src/index.test.ts \"createOpenaiNormalizer — O1 honest flush (fold/flush option 1)\" › the two \"§10.26 leg: …\" cases (the item's pre-landing number)" },
   { n: 40, leg: "adk", title: "Flush honesty (draft.7): an ADK stream cut mid-turn after a pause signal flushes exactly one paused turn.done, the turn's last event, and no turn.abort for that turn — INV-FLUSH (2)'s paused release is the only turn.done a flush emits", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.25 (§10.40 adk) over fixtures/adk-pause/after-pause-callback cut after the pause signal" },
+  { n: 40, leg: "adk-error-turn", title: "Flush honesty (rc.1): every prefix of every engine-built ADK error and pause native, flushed bare, emits a turn.start and a message.start only for the one error turn INV-FLUSH (3) admits after a paused release — that turn's turn.start, one message.start and one message.end for a message with no content and no usage, and its turn.error — and some prefix exercises it", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.40(adk fixtures) over every prefix of every fixtures/adk-error and fixtures/adk-pause native" },
   { n: 41, title: "MCP Apps view locator carry (draft.4): every native tool result's MCP Apps _meta.ui reaches its tool.done's _meta.ui deep-equal", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.41: every corpus native carrying _meta.ui, replayed through its reference normalizer (claude, openai, adk)" },
   { n: 42, leg: "vercel", title: "Kept-open results are snapshots (draft.4): yield/yield/return and yield/throw emit full snapshots; the error final carries E's message and no structuredContent", disposition: "COVERED-BY", evidence: "fixture-only", citation: "vercel-ai/src/index.test.ts \"§10 item 42 — kept-open results are snapshots (yield/yield/return, yield/throw)\" (bec1308)" },
   { n: 42, leg: "single-delivery", title: "Kept-open results are snapshots (draft.4): claude, openai and adk never emit more than one tool.done per call, so they satisfy the item trivially", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.42(single-delivery), a scan of every corpus/*/{claude,openai,adk}.agjson.json" },
@@ -258,6 +260,18 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 58, leg: "adk-host-completion", title: "Block finish reason whatever the outcome (rc.1): with host completion, an ADK stashed blocked final of each block value is released by the host-completion event as exactly one turn.done carrying safety_blocked; every event passes producer-strict AgEvent validation, reduce() needs no resync and the turn record carries the mapped finishReason", disposition: "COVERED-BY", evidence: "fixture-only", citation: "google-adk/src/index.test.ts \"with host completion, the stashed blocked final of each block value is released by the host-completion event as the same one turn.done safety_blocked\"; the parse, fold and record checks re-asserted in spec-conformance.test.ts §10.58(adk-host-completion)" },
   { n: 58, leg: "vercel", title: "Block finish reason whatever the outcome (rc.1): a Vercel AI SDK content-filter finish, in fullStream order, closes with exactly one turn.done carrying safety_blocked; every event passes producer-strict AgEvent validation, reduce() needs no resync and the turn record carries the mapped finishReason", disposition: "COVERED-BY", evidence: "fixture-only", citation: "vercel-ai/src/index.test.ts \"content-filter closes the turn with exactly one turn.done carrying safety_blocked; every event passes producer-strict AgEvent parse; reduce() needs no resync and the turn record's finishReason is safety_blocked\"; the parse, fold and record checks re-asserted in spec-conformance.test.ts §10.58(vercel)" },
   { n: 58, leg: "claude", title: "Block finish reason whatever the outcome (rc.1): a Claude Code CLI refusal the CLI does not retry, in the bundle-read order and on the streaming path, closes with exactly one turn.done carrying refusal; every event passes producer-strict AgEvent validation, reduce() needs no resync and the turn record carries refusal", disposition: "COVERED-BY", evidence: "fixture-only", citation: "claude-agent-sdk/src/index.test.ts \"the bundle-read order (non-streaming) closes exactly one turn.done{error outcome, finishReason refusal, safety}; every event parses producer-strict; the fold records finishReason refusal; a following round without a refusal closes stop\" and \"the streaming path (content, then the refusal): the refused response's stream events, the notice and the synthetic frame close exactly one turn.done refusal; every event parses producer-strict; the fold records finishReason refusal; a following round without a refusal closes stop\"; the parse, fold and record checks re-asserted in spec-conformance.test.ts §10.58(claude)" },
+  { n: 60, leg: "adk-runs", title: "ADK invocation errors (rc.1): every engine-built run of the item's ADK fixtures, in each streaming mode it has, bare and with the host-completion event, folds without a resync; every opened turn has exactly one terminal and no event after it; no turn of an invocation that met an invocation error closes success after the invocation met it", disposition: "COVERED-BY", evidence: "fixture-only", citation: "google-adk/src/in-band-errors.test.ts \"every expected leg has runs in both modes, and every run has an expected leg\"; \"every run folds without a resync, every opened turn has exactly one terminal and nothing after it, and no turn closes as success but, without the host-completion event, the one an answer closes before the first in-band error\"" },
+  { n: 60, leg: "adk-errors", title: "ADK invocation errors (rc.1): each in-band invocation error yields exactly one non-terminal error event carrying its errorCode as code, from the push() that received it; an event that item 35 names as repeating one yields none; flush() emits none", disposition: "COVERED-BY", evidence: "fixture-only", citation: "google-adk/src/in-band-errors.test.ts \"each in-band invocation error yields exactly one error event, carrying its errorCode, from the push() that received it; an aggregate that repeats one yields none, and flush() yields none\"; \"is not an invocation error and not a repeat of the relayed block: the relayed block yields the only error event, and the turn closes with one turn.error carrying the block's code and usage\"; google-adk/src/index.test.ts \"an in-band error emits its error event from the push() that receives it and closes no turn; a later sub-agent's answer lands in the same turn; the invocation's end closes it turn.error with the error's code and the turn's usage, never success, bare and with host completion\"; \"a later in-band error is a further error with its own error event, and the turn.error keeps the first error's code; a host-terminal event takes precedence and closes the same turn, with no fresh host-error turn\"; \"an event with errorCode and no errorMessage is not an in-band error: no error event, and it closes the turn as before\"; \"the SSE aggregate that repeats the previous event of its author, branch and node path yields no error event, and the call's usage counts once, from the later report; other sources' events may come between\"; \"an in-band error whose previous same-source event carried partial:false, or which carries another code or message, or comes from another source, is a further error: a loop that meets the same block twice reports it twice and counts both calls, and so does a partial:false error right after another\"; \"the relay's closing event that repeats an earlier in-band error of the same source, with the same code, message and usage report and the same a2a:task_id present on both, yields no error event and adds no usage; without a task id on both, with different ids, with another usage report, or without the a2a:request entry or turnComplete, it is a further error\"" },
+  { n: 60, leg: "adk-text", title: "ADK invocation errors (rc.1): the text of each message folds once, as it was streamed", disposition: "COVERED-BY", evidence: "fixture-only", citation: "google-adk/src/in-band-errors.test.ts \"the text of each message folds once, as it was streamed\"" },
+  { n: 60, leg: "adk-close", title: "ADK invocation errors (rc.1): with no signalled pause, and for every listed fixture but the two in which a final response that carries no branch and no ADK node info precedes the first invocation error, the invocation's turn closes with exactly one turn.error after every content event, carrying the host-terminal event's code when one was fed and otherwise the first in-band error's, with usage equal to the field-wise sum of the invocation's usage reports, a repeating event counted once", disposition: "COVERED-BY", evidence: "fixture-only", citation: "google-adk/src/in-band-errors.test.ts \"with no signalled pause and no answer closing a turn before the first in-band error, the invocation's turn closes with exactly one turn.error after every content event, carrying the host-terminal event's code when one was fed, else the first in-band error's, and the field-wise sum of the non-partial usage reports with a repeating aggregate counted once\"; \"an invocation that met an in-band error and ends with the host's error carrying usage closes one turn.error with the host's code and the turn's accumulated usage plus the host's, field by field, a total only when both carry one\"; \"a Workflow whose entry runs one agent twice concurrently without a sub-branch, both runs ending on a block: each run's block counts once (twice the block's usage), and the one turn.error carries the first in-band code without the host-terminal event and the thrown error's code with it\"" },
+  { n: 60, leg: "adk-early-close-bare", title: "ADK invocation errors (rc.1): for the SequentialAgent whose first sub-agent answers and the LoopAgent whose replying agent precedes its relaying agent, a normalizer not configured for the host-completion event that closed a turn as success on that final response: that turn.done was emitted before the push() that received the first invocation error; every error event and exactly one turn.error, after every content event and carrying the first in-band error's code, name one other top-level turn whose turn.start follows that close; the usage of that turn.done and of that turn.error, an absent usage counting as zero, sum field-wise to the invocation's usage reports", disposition: "COVERED-BY", evidence: "fixture-only", citation: "google-adk/src/in-band-errors.test.ts \"without the host-completion event, when an answer closes a first turn as success before the first in-band error, that turn closes turn.done success with the answer's usage, then the invocation's one turn.error closes a second turn last, carrying the first in-band error's code, and the two terminals' usage sums to the non-partial usage reports, an absent usage counting as zero\"" },
+  { n: 60, leg: "adk-early-close-host-completion", title: "ADK invocation errors (rc.1): the same two fixtures with the host-completion event fed: one turn, closing turn.error with that sum", disposition: "COVERED-BY", evidence: "fixture-only", citation: "google-adk/src/in-band-errors.test.ts \"without the host-completion event, when an answer closes a first turn as success before the first in-band error, that turn closes turn.done success with the answer's usage, then the invocation's one turn.error closes a second turn last, carrying the first in-band error's code, and the two terminals' usage sums to the non-partial usage reports, an absent usage counting as zero\"" },
+  { n: 60, leg: "adk-orders", title: "ADK invocation errors (rc.1): the two arrival orders of each ParallelAgent and parallel-Workflow fixture yield the same terminal type and usage, and with one erroring branch the same code", disposition: "COVERED-BY", evidence: "fixture-only", citation: "google-adk/src/in-band-errors.test.ts \"the two arrival orders of each ParallelAgent and parallel-Workflow run give the same terminal type and usage, and with one erroring branch the same code\"" },
+  { n: 60, leg: "adk-pause", title: "ADK invocation errors (rc.1): when a pause was signalled and the invocation met an invocation error, the asking turn closes turn.done paused with one ask per pending request, and exactly one other top-level turn, opened after that close and carrying one message with no content, closes turn.error; a turn whose pause was not signalled closes with that turn.error and no paused close; in bare mode flush() emits turn.start and message.start only for that error turn", disposition: "COVERED-BY", evidence: "fixture-only", citation: "google-adk/src/in-band-errors.test.ts \"with a signalled pause, the asking turn closes turn.done paused with its asks, then exactly one other top-level turn, opened after that close and carrying one message with no content, closes turn.error; bare, flush() opens no turn or message but that one\"; \"after a signalled pause and an in-band error, a host-terminal event closes the asking turn paused, then the one error turn with the host's code and only the host's usage, on the engine-built runs, bare and with host completion\"; google-adk/src/index.test.ts \"an invocation that met an in-band error and whose pause was signalled closes the asking turn paused with its asks, then one other top-level turn with one message and no content closes turn.error with the first error's code; bare, that error turn's opener is the only one flush() emits\"; \"an ask whose pause was not signalled by the invocation's end closes with the turn.error, never paused\"; \"a host-terminal event after a signalled pause, with or without an in-band error, closes the turn paused, then the error turn with the host's code and only the host's usage\"" },
+  { n: 60, leg: "adk-ids", title: "ADK invocation errors (rc.1): two such invokes folded by one reducer yield distinct error-turn ids", disposition: "COVERED-BY", evidence: "fixture-only", citation: "google-adk/src/index.test.ts \"two invokes folded by one reducer give distinct error-turn ids\"" },
+  { n: 60, leg: "openai", title: "ADK invocation errors (rc.1): a host-terminal event while an approval round's close is deferred releases that close as a turn.done carrying the deferred round's finishReason, and exactly one other top-level turn closes turn.error", disposition: "COVERED-BY", evidence: "fixture-only", citation: "openai-agents/src/index.test.ts \"a host-terminal event while an approval round's close is deferred releases that round's turn.done paused with its asks and deferred finishReason, then exactly one other top-level turn closes turn.error with the host's code; two invokes in one fold give distinct error-turn ids\"" },
+  { n: 60, leg: "claude", title: "ADK invocation errors (rc.1): no fixture of the item is a Claude Agent SDK run", disposition: "N/A", evidence: "none", citation: "§10 item 60 binds each fixture a normalizer's framework has; its list names ADK and OpenAI Agents runs only" },
+  { n: 60, leg: "vercel", title: "ADK invocation errors (rc.1): no fixture of the item is a Vercel AI SDK run", disposition: "N/A", evidence: "none", citation: "§10 item 60 binds each fixture a normalizer's framework has; its list names ADK and OpenAI Agents runs only" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -276,6 +290,8 @@ const CITED_TEST_FILES: Record<string, string> = {
   "claude-agent-sdk/src/index.test.ts": "../../claude-agent-sdk/src/index.test.ts",
   "openai-agents/src/index.test.ts": "../../openai-agents/src/index.test.ts",
   "google-adk/src/index.test.ts": "../../google-adk/src/index.test.ts",
+  "google-adk/src/in-band-errors.test.ts": "../../google-adk/src/in-band-errors.test.ts",
+  "adk-pause.test.ts": "./adk-pause.test.ts",
   "vercel-ai/src/index.test.ts": "../../vercel-ai/src/index.test.ts",
 };
 
@@ -2958,6 +2974,45 @@ describe("§10.40 — flush honesty (draft.4; §5.0 INV-FLUSH)", () => {
   const TERMINALS = new Set(["turn.done", "turn.abort", "turn.error"]);
   // INV-FLUSH (3): a text.end / reasoning.end at flush carries at most citations, phase and providerMetadata.
   const END_KEYS = new Set(["type", "seq", "id", "turnId", "threadId", "messageId", "provider", "citations", "phase", "providerMetadata"]);
+  // INV-FLUSH (3), rc.1: after releasing a paused close, a flush may open the one error turn of an invocation that
+  // met an invocation error: that turn's turn.start, one message.start and one message.end for a message with no
+  // content and no usage, and its turn.error, as the flush's last four events. Returns the indexes of the turn.start
+  // and the message.start it admits (none when the flush does not have that shape).
+  const admittedErrorTurn = (flushed: AgEvent[]): Set<number> => {
+    const at = flushed.findIndex((e) => e.type === "turn.start");
+    if (at < 0 || at !== flushed.length - 4) return new Set();
+    const [start, open, end, close] = flushed.slice(at) as [AgEvent, AgEvent, AgEvent, AgEvent];
+    const turnId = (start as { turnId?: string }).turnId;
+    const pausedBefore = flushed.slice(0, at).some((e) => e.type === "turn.done" && (e as { outcome?: { type?: string } }).outcome?.type === "paused");
+    const ok = pausedBefore && turnId !== undefined
+      && open.type === "message.start" && (open as { turnId?: string }).turnId === turnId
+      && end.type === "message.end" && (end as { id?: string }).id === (open as { id?: string }).id && (end as { usage?: unknown }).usage === undefined
+      && close.type === "turn.error" && (close as { turnId?: string }).turnId === turnId;
+    return ok ? new Set([at, at + 1]) : new Set();
+  };
+  // One flush's honesty (item 40): lifecycle closes, message.end, non-success terminals and ext carries before the
+  // terminals; never a success turn.done or content; a start only for the admitted error turn. Returns whether the
+  // flush opened that turn.
+  const honest = (flushed: AgEvent[], at: string, bad: string[]): boolean => {
+    const admitted = admittedErrorTurn(flushed);
+    let firstTerminal = -1;
+    flushed.forEach((e, i) => {
+      const ty = e.type as string;
+      if (TERMINALS.has(ty) && firstTerminal < 0) firstTerminal = i;
+      if (ty.startsWith("ext.")) {
+        if (firstTerminal >= 0) bad.push(`${at}: ${ty} after a terminal`);
+      } else if (ty === "turn.done") {
+        if ((e as { outcome?: { type?: string } }).outcome?.type === "success") bad.push(`${at}: success turn.done at flush`);
+      } else if (!CLOSES.has(ty) && !TERMINALS.has(ty) && !admitted.has(i)) {
+        bad.push(`${at}: ${ty} at flush`);
+      }
+      if (ty === "text.end" || ty === "reasoning.end") {
+        const extra = Object.keys(e).filter((k) => !END_KEYS.has(k));
+        if (extra.length) bad.push(`${at}: ${ty} carries ${extra.join(",")}`);
+      }
+    });
+    return admitted.size > 0;
+  };
   const make = (fw: string) =>
     fw === "openai" ? createOpenaiNormalizer({ invokeId: "openai" })
     : fw === "adk" ? createAdkNormalizer({ invokeId: "adk" })
@@ -2980,22 +3035,7 @@ describe("§10.40 — flush honesty (draft.4; §5.0 INV-FLUSH)", () => {
           const flushed = n.flush() as AgEvent[];
           cuts[fw] = (cuts[fw] ?? 0) + 1;
           const at = `${dir}/${fw}@${cut}`;
-          let firstTerminal = -1;
-          flushed.forEach((e, i) => {
-            const ty = e.type as string;
-            if (TERMINALS.has(ty) && firstTerminal < 0) firstTerminal = i;
-            if (ty.startsWith("ext.")) {
-              if (firstTerminal >= 0) bad.push(`${at}: ${ty} after a terminal`);
-            } else if (ty === "turn.done") {
-              if ((e as { outcome?: { type?: string } }).outcome?.type === "success") bad.push(`${at}: success turn.done at flush`);
-            } else if (!CLOSES.has(ty) && !TERMINALS.has(ty)) {
-              bad.push(`${at}: ${ty} at flush`);
-            }
-            if (ty === "text.end" || ty === "reasoning.end") {
-              const extra = Object.keys(e).filter((k) => !END_KEYS.has(k));
-              if (extra.length) bad.push(`${at}: ${ty} carries ${extra.join(",")}`);
-            }
-          });
+          honest(flushed, at, bad);
           const turns = reduce([...pushed, ...flushed]).result.turns;
           for (const t of turns) if (t.outcome === undefined) bad.push(`${at}: turn ${t.turnId} has no outcome`);
         }
@@ -3004,6 +3044,55 @@ describe("§10.40 — flush honesty (draft.4; §5.0 INV-FLUSH)", () => {
     expect(bad.slice(0, 20)).toEqual([]);
     // Non-vacuity: every reference normalizer was cut and flushed.
     expect(Object.keys(cuts).sort()).toEqual(["adk", "claude", "openai", "vercel"]);
+  }, 120_000);
+
+  it("(adk fixtures) every prefix of every engine-built ADK error and pause native, flushed bare: the same honesty, a turn.start and a message.start at flush only for the one error turn INV-FLUSH (3) admits after a paused release, every opened turn folds to an outcome, and some prefix opens that error turn", () => {
+    const bad: string[] = [];
+    let cuts = 0;
+    let errorTurns = 0;
+    for (const dir of ["adk-error", "adk-pause"]) {
+      const base = new URL(`../fixtures/${dir}/`, import.meta.url);
+      for (const f of readdirSync(base).filter((x) => x.endsWith(".native.json")).sort()) {
+        const native = (JSON.parse(readFileSync(new URL(f, base), "utf8")) as JsonValue[]).filter((e) => (e as { type?: string } | null)?.type !== HOST_COMPLETE_MARKER);
+        for (let cut = 1; cut <= native.length; cut++) {
+          const n = createAdkNormalizer({ invokeId: "adk" });
+          const pushed: AgEvent[] = [];
+          for (const e of native.slice(0, cut)) pushed.push(...(n.push(e as never) as AgEvent[]));
+          const flushed = n.flush() as AgEvent[];
+          cuts++;
+          if (honest(flushed, `${dir}/${f}@${cut}`, bad)) errorTurns++;
+          for (const t of reduce([...pushed, ...flushed]).result.turns) if (t.outcome === undefined) bad.push(`${dir}/${f}@${cut}: turn ${t.turnId} has no outcome`);
+        }
+      }
+    }
+    expect(bad.slice(0, 20)).toEqual([]);
+    expect(cuts).toBeGreaterThan(0);
+    expect(errorTurns).toBeGreaterThan(0);
+  }, 120_000);
+
+  it("(error turn) a turn.start and a message.start at flush are admitted only in INV-FLUSH (3)'s exact shape: after a paused release, one turn.start, one message.start, its message.end with no usage, and that turn's turn.error, as the flush's last four events", () => {
+    const paused = { type: "turn.done", seq: 1, turnId: "t1", outcome: { type: "paused", asks: [] }, finishReason: "paused" };
+    const start = { type: "turn.start", seq: 2, turnId: "t2", threadId: "th" };
+    const open = { type: "message.start", seq: 3, id: "m2", role: "assistant", turnId: "t2", threadId: "th" };
+    const end = { type: "message.end", seq: 4, id: "m2" };
+    const close = { type: "turn.error", seq: 5, turnId: "t2", message: "x", code: "429" };
+    const flag = (flushed: unknown[]): string[] => {
+      const bad: string[] = [];
+      honest(flushed as AgEvent[], "x", bad);
+      return bad;
+    };
+    expect(flag([paused, start, open, end, close])).toEqual([]);
+    const refused: Array<[string, unknown[]]> = [
+      ["no paused release before the turn.start", [start, open, end, close]],
+      ["a release that is not paused", [{ ...paused, outcome: { type: "rejected" } }, start, open, end, close]],
+      ["usage on the message.end", [paused, start, open, { ...end, usage: { inputTokens: 1 } }, close]],
+      ["a turn.error naming another turn", [paused, start, open, end, { ...close, turnId: "t1" }]],
+      ["a message of another turn", [paused, start, { ...open, turnId: "t1" }, end, close]],
+      ["a message.end closing another message", [paused, start, open, { ...end, id: "m9" }, close]],
+      ["an event after the turn.error", [paused, start, open, end, close, { type: "step.done", seq: 6, id: "s1" }]],
+      ["a second opened turn", [paused, start, open, end, close, { ...start, seq: 6, turnId: "t3" }, { ...open, seq: 7, id: "m3", turnId: "t3" }, { ...end, seq: 8, id: "m3" }, { ...close, seq: 9, turnId: "t3" }]],
+    ];
+    for (const [name, flushed] of refused) expect(flag(flushed).some((b) => b.includes("turn.start at flush")), name).toBe(true);
   });
 });
 
