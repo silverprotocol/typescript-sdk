@@ -5671,13 +5671,43 @@ describe("createAdkNormalizer — Gemini finish reasons: the eight block values 
     }
   });
 
+  it("a blocked final as ADK builds it, for each of the eight block values, names the block value as its safety category on the turn.done and on the folded turn record, so the collapsed reason is recoverable", () => {
+    for (const raw of BLOCK_VALUES) {
+      const out = drive([toJsonValue({ ...inv, errorCode: raw, finishReason: raw })]);
+      const done = out.find((e) => e.type === "turn.done");
+      expect(done !== undefined && "safety" in done ? done.safety : undefined, raw).toEqual([{ category: raw, blocked: true }]);
+      expect(fold(out).result().turns.at(-1)?.safety, raw).toEqual([{ category: raw, blocked: true }]);
+    }
+  });
+
+  it("an errorCode-only soft close of each block value, and a final carrying a block value beside its text, carry the block value as the safety category too", () => {
+    for (const raw of BLOCK_VALUES) {
+      for (const native of [{ ...inv, errorCode: raw, finishReason: undefined, turnComplete: true }, { ...inv, content: { role: "model", parts: [{ text: "partial answer" }] }, finishReason: raw }]) {
+        const done = drive([toJsonValue(native)]).find((e) => e.type === "turn.done");
+        expect(done, `${raw} ${JSON.stringify(native)}`).toMatchObject({ finishReason: "safety_blocked", safety: [{ category: raw, blocked: true }] });
+      }
+    }
+  });
+
+  it("a blocked rating names the category when the event carries one: the block value is not added beside it, and a final that is not safety_blocked gets no safety", () => {
+    for (const raw of BLOCK_VALUES) {
+      const rating = { category: "HARM_CATEGORY_DANGEROUS_CONTENT", probability: "HIGH", blocked: true };
+      const done = drive([toJsonValue({ ...inv, errorCode: raw, finishReason: raw, safetyRatings: [rating, { category: "HARM_CATEGORY_HARASSMENT", probability: "LOW" }] })]).find((e) => e.type === "turn.done");
+      expect(done !== undefined && "safety" in done ? done.safety : undefined, raw).toEqual([rating]);
+    }
+    for (const raw of ["STOP", "MAX_TOKENS", "OTHER"]) {
+      const done = drive([toJsonValue({ ...inv, content: { role: "model", parts: [{ text: "answer" }] }, finishReason: raw })]).find((e) => e.type === "turn.done");
+      expect(done !== undefined && "safety" in done, raw).toBe(false);
+    }
+  });
+
   it("with host completion, the stashed blocked final of each block value is released by the host-completion event as the same one turn.done safety_blocked", () => {
     for (const raw of BLOCK_VALUES) {
       const out = drive([toJsonValue({ ...inv, errorCode: raw, finishReason: raw }), { type: "__host_complete__" }], { hostCompletion: true });
       for (const e of out) expect(() => AgEvent.parse(e), raw).not.toThrow();
       const terms = out.filter((e) => TERMINAL.has(e.type));
       expect(terms, raw).toHaveLength(1);
-      expect(terms[0], raw).toMatchObject({ type: "turn.done", finishReason: "safety_blocked" });
+      expect(terms[0], raw).toMatchObject({ type: "turn.done", finishReason: "safety_blocked", safety: [{ category: raw, blocked: true }] });
       expect(fold(out).needsResync, raw).toBe(false);
     }
   });

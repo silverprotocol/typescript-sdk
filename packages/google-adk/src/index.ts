@@ -2909,7 +2909,16 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     a.closeMessage(messageId);
     // The turn's accrued usage rides its terminal.
     const usage = mapUsage(usageByTurn.get(turnId) ?? event.usageMetadata);
-    const safety = mapBlockedSafety(event.safetyRatings);
+    // SPEC §4's safety_blocked conformance note: a safety_blocked close
+    // carries safety[].category so the collapsed reason stays recoverable. A
+    // blocked rating names it; when no rating does (ADK 2.1.0 delivers none on
+    // a real block), the native value finishReason was mapped from is the
+    // category, as a block.
+    const rated = mapBlockedSafety(event.safetyRatings);
+    const safety =
+      rated === undefined && finish.value === "safety_blocked" && rawFinish !== undefined
+        ? [{ category: rawFinish, blocked: true }]
+        : rated;
     // A turn with pending HITL asks (requestedAuthConfigs /
     // requestedToolConfirmations / adk_request_input, tracked by
     // `trackPendingAsk` above) closes PAUSED, not success: the asks are real,
