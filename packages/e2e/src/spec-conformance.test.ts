@@ -22,7 +22,7 @@ import type { AgRecordReport } from "@silverprotocol/core";
 import * as coreNs from "@silverprotocol/core";
 import { isDeepStrictEqual } from "node:util";
 import type { JsonValue } from "@silverprotocol/core";
-import { createAdkNormalizer, ADK_HOST_COMPLETE_TYPE } from "@silverprotocol/google-adk";
+import { createAdkNormalizer, ADK_HOST_COMPLETE_TYPE, ADK_HOST_ERROR_TYPE } from "@silverprotocol/google-adk";
 import { replayNatives, HOST_COMPLETE_MARKER, splitHostCompleteMarker } from "./replay.js";
 import type { AdkEvent, AdkPart } from "@silverprotocol/google-adk";
 import { createOpenaiNormalizer } from "@silverprotocol/openai-agents";
@@ -105,7 +105,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 4, leg: "openai", title: "OpenAI stateless reasoning loop (rs_/encrypted_content)", disposition: "N/A", evidence: "none", citation: "§10 preamble emit/re-input carve-out (the ingest-capture sub-claim is COVERED by openai-agents/src/index.test.ts describe \"createOpenaiNormalizer — reasoning_item_created (Task 3, audit M48)\" and describe \"createOpenaiNormalizer — reasoning sourced from the response.completed output\" › \"fold: content[0] is the reasoning block (rs_ itemId + final opaque), content[1] the fc_ tool-call — the §10.4 stateless-replay order\")" },
   { n: 5, title: "Source round-trips (MCP base64 + Anthropic url/file)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.5" },
   { n: 6, title: "Mandatory display (display.required not dropped)", disposition: "COVERED-BY", evidence: "fixture-only", citation: "reduce.test.ts \"(h) display.required appends to AgTurnRecord.displayRequired[]\"" },
-  { n: 7, title: "safety_blocked category", disposition: "COVERED-BY", evidence: "fixture-only", citation: "openai-agents/src/index.test.ts \"content_filter incomplete → turn.done error outcome + safety (NOT turn.error)\" (in describe \"createOpenaiNormalizer — response.incomplete error arm (T5c)\")" },
+  { n: 7, title: "safety_blocked category", disposition: "COVERED-BY", evidence: "fixture-only", citation: "openai-agents/src/index.test.ts \"content_filter incomplete → turn.done error outcome + safety (NOT turn.error)\" (in describe \"createOpenaiNormalizer — response.incomplete error arm (T5c)\"); on @google/adk 2.1.0 no ADK-built event carries safety ratings at either block level (createLlmResponse copies none), so the source provides no category, item 7's SHOULD does not arise there, and safety[] is absent" },
   { n: 8, title: "Cumulative-usage verbatim fold (INV-DELTA)", disposition: "COVERED-BY", evidence: "fixture-only", citation: "reduce.test.ts \"(a) turn.done sets finishReason/usage(verbatim)/safety/outcome; paused → asks[]\" + \"(b2) message.end.usage lands verbatim on AgMessage.usage\"" },
   { n: 8, leg: "turn-terminal", title: "Cumulative-usage verbatim fold (draft.5): a Claude turn terminal's per-turn counters fold with cumulative false and its costUsd, costScope and byModel verbatim; nothing subtracts", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.8(turn-terminal), reduce-level through the consumer ingest" },
   { n: 9, title: "ADK aggregate suppression", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.9, facet-driven via createAdkNormalizer" },
@@ -130,7 +130,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 21, leg: "no-raw-on-candidates", title: "Reasoning-inclusive usage identity (draft.5): none of the draft.3 candidatesTokenCount vectors yields totalTokensRaw", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.21(no-raw-on-candidates)" },
   { n: 22, title: "Forward-compatible ingest (draft.4; draft.8 legs f–g + the built-record clause): an ignored well-formed event occupies its seq slot, is reported in place, and the fold is unchanged; an unknown block type nested in a carrier event and an undefined closed-set value inside a terminal stub the whole event; an unknown top-level member of a record-building event reaches no built record, block or turn while a snapshot-carried member survives", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.22, reference ingest (ingestAgEvents) → reduce" },
   { n: 23, leg: "adk", title: "Unmapped native value (draft.4): an ADK finish reason with no AgJSON target → finishReason other|unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.23(adk) via createAdkNormalizer (e59e976)" },
-  { n: 23, leg: "adk-blocked", title: "Unmapped native value (draft.8): an ADK promptFeedback.blockReason with no AgJSON target → prompt.blocked reason other + reasonRaw verbatim; a mapped block reason carries no reasonRaw", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.23(adk-blocked) via createAdkNormalizer over a synthetic promptFeedback native (ADK 2.1.0 builds no promptFeedback event of its own — a prompt block closes the turn as turn.error or turn.done{safety_blocked}; the arm serves other producers of that shape); the facet leg google-adk/src/index.test.ts \"an unmapped promptFeedback.blockReason emits prompt.blocked with reason … and reasonRaw verbatim; a mapped reason carries no reasonRaw\"" },
+  { n: 23, leg: "adk-blocked", title: "Unmapped native value (draft.8): an ADK promptFeedback.blockReason with no AgJSON target → prompt.blocked reason other + reasonRaw verbatim; a mapped block reason carries no reasonRaw", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.23(adk-blocked) via createAdkNormalizer over a synthetic promptFeedback native (ADK 2.1.0 builds no promptFeedback event of its own; its prompt block is the errorCode shape §8.0 item 34 recognises, see §10.57; this leg serves other producers of the promptFeedback shape); the facet leg google-adk/src/index.test.ts \"an unmapped promptFeedback.blockReason emits prompt.blocked with reason … and reasonRaw verbatim; a mapped reason carries no reasonRaw\"" },
   { n: 23, leg: "openai", title: "Unmapped native value (draft.4): an OpenAI incomplete_details.reason with no AgJSON target → finishReason unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.23(openai) via createOpenaiNormalizer (the unmapped incomplete_details carry, ff358b6)" },
   { n: 23, leg: "claude", title: "Unmapped native value (draft.4): an unmapped Claude stop_reason → finishReason unknown + finishReasonRaw verbatim; mapped and null stop_reasons carry no finishReasonRaw", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.23(claude) via createClaudeNormalizer (fe87254)" },
   { n: 23, leg: "vercel", title: "Unmapped native value (draft.4): a vercel finish whose unified reason falls back (other/unknown) carries the native rawFinishReason as finishReasonRaw", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.23(vercel) via createVercelNormalizer (f2937f9)" },
@@ -250,6 +250,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 55, leg: "adk", title: "Host-supplied partition root (draft.5, §8.0 Partition root): createAdkNormalizer({ threadId: T }) fed every replay golden's natives stamps T on every threadId-bearing event and on no turnId/parentTurnId; reduce() roots every turn, message and artifact at T with no resync; without the option the output equals the committed golden", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.55(adk) over every replay golden of the facet" },
   { n: 55, leg: "vercel", title: "Host-supplied partition root (draft.5, §8.0 Partition root): createVercelNormalizer({ threadId: T }) fed every replay golden's natives stamps T on every threadId-bearing event and on no turnId/parentTurnId; reduce() roots every turn, message and artifact at T with no resync; without the option the output equals the committed golden", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.55(vercel) over every replay golden of the facet" },
   { n: 56, title: "Memory record metadata (draft.8): memory.write._meta lands on the AgMemoryRecord (value replaces whole, patch replaces _meta only when carried); an undeclared top-level member never reaches the record; incremental == batch; the persistable projection and the stored-record reader keep _meta", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.56, reference reduce() + Reducer + toPersistable + readStoredAgMemoryRecords (the core pair: AgMemoryRecord._meta + the memory.write SET/PATCH arms)" },
+  { n: 57, title: "ADK prompt block → prompt.blocked (rc.1): each errorCode-only prompt-block event of an open turn records one prompt.blocked before the turn's terminal; response-level blocks, other error codes, events with content, relayed events record none; an event after a bare success close records on the turn it opens, never on the closed one", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.57 via createAdkNormalizer over synthetic non-streaming natives shaped as ADK 2.1.0's createLlmResponse builds them (a Gemini API attempt on 2026-09-27 reached only response-level blocks, StreamingMode NONE and SSE; Vertex AI not attempted; the ADK Live and Interactions paths do not carry the shape at 2.1.0); facet legs: google-adk/src/index.test.ts \"a prompt-block event records prompt.blocked before the turn's unchanged terminal, with no safety\", \"the same event with an errorMessage records prompt.blocked before its turn.error\", \"an unmapped treated value (OTHER, IMAGE_SAFETY, JAILBREAK, BLOCK_REASON_UNSPECIFIED) records reason …other… with reasonRaw verbatim\", \"a response-level block, a non-block errorCode or content parts is not a prompt block: no record\", \"one record per block event: three block events record three, in one turn with the host-completion event and in three turns without it, each before its turn's terminal\", \"a prompt block while an ask is pending is recorded, and the turn still closes paused\", \"an event carrying promptFeedback and a prompt-block errorCode is recorded once, from its promptFeedback\", \"a prompt block inside a Workflow node is recorded, and the host-fed error closes the turn\", \"two identical block events inside a Workflow node record two prompt.blocked while the turn is open, and the same event after the terminal records none\", \"ADK_PROMPT_BLOCK_REASONS holds genai's eight BlockedReason values and the Gemini API's BLOCK_REASON_UNSPECIFIED\"; the relay leg: spec-conformance.test.ts \"an event relayed from a remote agent (a2a:response in customMetadata) yields no prompt.blocked, and the same event unrelayed yields one\"" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -4149,5 +4150,144 @@ describe("§10.56 — memory record metadata (draft.8): memory.write._meta lands
     const read = readStoredAgMemoryRecords(structuredClone(F.memory) as unknown as readonly unknown[]);
     expect(read.reports).toEqual([]);
     expect((read.value[0] as unknown as Record<string, unknown>)["_meta"]).toEqual({ x: 1 });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.57 — ADK prompt block → prompt.blocked (rc.1; §8.0 item 34). The
+// errorCode shape @google/adk 2.1.0's createLlmResponse builds for a blocked
+// prompt, fed through the reference ADK normalizer as non-streaming natives of
+// one invocation. Every vector checks producer-strict AgEvent validity.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.57 — ADK prompt block → prompt.blocked (rc.1): one record per prompt-block event of an open turn, before the turn's terminal", () => {
+  const inv = { invocationId: "inv_57" };
+  const TERMINAL = new Set(["turn.done", "turn.error", "turn.abort"]);
+  const drive = (natives: JsonValue[], hostCompletion = false): AgEvent[] => {
+    const n = createAdkNormalizer(hostCompletion ? { hostCompletion: true } : {});
+    const out = [...natives.flatMap((e) => n.push(e)), ...n.flush()];
+    for (const ev of out) expect(AgEvent.safeParse(ev).success, JSON.stringify(ev)).toBe(true);
+    return out;
+  };
+  const blocks = (out: AgEvent[]) => out.filter((e) => e.type === "prompt.blocked") as unknown as Array<Record<string, unknown>>;
+  const terminals = (out: AgEvent[]) => out.filter((e) => TERMINAL.has(e.type)) as unknown as Array<Record<string, unknown>>;
+  const seq = (e: unknown) => (e as { seq: number }).seq;
+  const HOST_COMPLETE = { type: ADK_HOST_COMPLETE_TYPE } as unknown as JsonValue;
+  const HOST_ERROR = { type: ADK_HOST_ERROR_TYPE, code: "Error", message: "the node failed" } as unknown as JsonValue;
+  // reduce() over a vector that yields a record lands AgTurnRecord.promptBlocked equal to the last record emitted.
+  const foldsLast = (out: AgEvent[]) => {
+    const r = reduce(out);
+    const last = blocks(out).at(-1)!;
+    const turn = r.result.turns.find((t) => (t as { promptBlocked?: unknown }).promptBlocked !== undefined) as unknown as { promptBlocked: Record<string, unknown> } | undefined;
+    expect(turn?.promptBlocked).toMatchObject({ reason: last["reason"], ...(last["reasonRaw"] !== undefined ? { reasonRaw: last["reasonRaw"] } : {}) });
+    return r;
+  };
+
+  it("(a) {errorCode:SAFETY, usageMetadata} with no finishReason, content or errorMessage → exactly one prompt.blocked{reason:safety} with no reasonRaw or safety, then exactly one terminal with a higher seq", () => {
+    const out = drive([{ ...inv, errorCode: "SAFETY", usageMetadata: { promptTokenCount: 7, totalTokenCount: 7 } } as unknown as JsonValue]);
+    const [rec] = blocks(out);
+    expect(blocks(out)).toHaveLength(1);
+    expect(rec).toMatchObject({ reason: "safety" });
+    expect("reasonRaw" in rec! || "safety" in rec!).toBe(false);
+    expect(terminals(out)).toHaveLength(1);
+    expect(seq(terminals(out)[0])).toBeGreaterThan(seq(rec));
+    expect(foldsLast(out).needsResync).toBe(false);
+  });
+
+  it("(b) the same event with an errorMessage → the same record before exactly one terminal", () => {
+    const out = drive([{ ...inv, errorCode: "SAFETY", errorMessage: "The prompt was blocked." } as unknown as JsonValue]);
+    expect(blocks(out)).toEqual([expect.objectContaining({ reason: "safety" })]);
+    expect(terminals(out)).toHaveLength(1);
+    expect(seq(terminals(out)[0])).toBeGreaterThan(seq(blocks(out)[0]));
+    expect(foldsLast(out).needsResync).toBe(false);
+  });
+
+  for (const raw of ["OTHER", "IMAGE_SAFETY", "JAILBREAK", "BLOCK_REASON_UNSPECIFIED"]) {
+    it(`(c) errorCode ${raw} → prompt.blocked{reason:other} with reasonRaw equal to the value byte for byte`, () => {
+      const out = drive([{ ...inv, errorCode: raw } as unknown as JsonValue]);
+      expect(blocks(out)).toEqual([expect.objectContaining({ reason: "other", reasonRaw: raw })]);
+      foldsLast(out);
+    });
+  }
+
+  it("(d) no prompt.blocked for a response-level block, a non-block errorCode or an event with content parts", () => {
+    const negatives: JsonValue[] = [
+      { ...inv, errorCode: "SAFETY", finishReason: "SAFETY" },
+      { ...inv, errorCode: "OTHER", finishReason: "OTHER" },
+      { ...inv, errorCode: "429", errorMessage: "Resource exhausted" },
+      { ...inv, errorCode: "UNKNOWN_ERROR", errorMessage: "Unknown error." },
+      { ...inv, errorCode: "SAFETY", content: { role: "model", parts: [{ text: "partial answer" }] } },
+    ] as unknown as JsonValue[];
+    for (const native of negatives) expect(blocks(drive([native])), JSON.stringify(native)).toEqual([]);
+  });
+
+  it("(e) with the host-completion event, SAFETY, PROHIBITED_CONTENT, SAFETY (no errorMessage) → three records in that order before the one terminal; without it each record names its own top-level turn (the first, then the turns opened after each close), before that turn's terminal", () => {
+    const three = [{ ...inv, errorCode: "SAFETY" }, { ...inv, errorCode: "PROHIBITED_CONTENT" }, { ...inv, errorCode: "SAFETY" }] as unknown as JsonValue[];
+    const marked = drive([...three, HOST_COMPLETE], true);
+    expect(blocks(marked).map((e) => e["reason"])).toEqual(["safety", "prohibited", "safety"]);
+    expect(terminals(marked)).toHaveLength(1);
+    expect(Math.max(...blocks(marked).map(seq))).toBeLessThan(seq(terminals(marked)[0]));
+    expect(foldsLast(marked).needsResync).toBe(false);
+    const bare = drive(three);
+    expect(blocks(bare).map((e) => e["reason"])).toEqual(["safety", "prohibited", "safety"]);
+    const ends = terminals(bare);
+    expect(ends).toHaveLength(3);
+    const turnIds = ends.map((e) => (e as { turnId?: string }).turnId);
+    expect(turnIds[1]).toBe(`${turnIds[0]}_g1`);
+    expect(turnIds[2]).toBe(`${turnIds[0]}_g2`);
+    blocks(bare).forEach((rec, k) => {
+      expect((rec as { turnId?: string }).turnId).toBe(turnIds[k]);
+      expect(seq(rec)).toBeLessThan(seq(ends[k]!));
+    });
+    expect(reduce(bare).needsResync).toBe(false);
+  });
+
+  it("(f) a SAFETY event without errorMessage while an ask is pending → its record before the turn's one terminal", () => {
+    const authConfig = { authScheme: { type: "apiKey", in: "header", name: "X-Key" }, credentialKey: "k" };
+    const out = drive([
+      { ...inv, author: "agent", content: { role: "model", parts: [{ functionCall: { name: "read_mail", args: {}, id: "fc-1" } }] }, partial: false },
+      { ...inv, author: "agent", content: { role: "model", parts: [{ functionCall: { name: "adk_request_credential", args: { functionCallId: "fc-1", authConfig }, id: "adk-cred-1" } }] }, partial: false, longRunningToolIds: ["adk-cred-1"] },
+      { ...inv, author: "agent", content: { role: "user", parts: [{ functionResponse: { name: "read_mail", id: "fc-1", response: { status: "authorization requested" } } }] }, actions: { requestedAuthConfigs: { "fc-1": authConfig } } },
+      { ...inv, errorCode: "SAFETY" },
+    ] as unknown as JsonValue[]);
+    expect(blocks(out)).toHaveLength(1);
+    expect(terminals(out)).toHaveLength(1);
+    expect(seq(blocks(out)[0])).toBeLessThan(seq(terminals(out)[0]));
+    foldsLast(out);
+  });
+
+  it("(g) an event carrying both promptFeedback.blockReason and the errorCode shape → exactly one record", () => {
+    const out = drive([{ ...inv, errorCode: "OTHER", promptFeedback: { blockReason: "SAFETY" } } as unknown as JsonValue]);
+    expect(blocks(out)).toHaveLength(1);
+    foldsLast(out);
+  });
+
+  it("(h) a SAFETY event without errorMessage carrying ADK node info, then the host-terminal event → one record and then turn.error", () => {
+    const out = drive([{ ...inv, errorCode: "SAFETY", nodeInfo: { path: "wf/classify" } }, HOST_ERROR] as unknown as JsonValue[]);
+    expect(blocks(out)).toHaveLength(1);
+    expect(terminals(out)).toEqual([expect.objectContaining({ type: "turn.error" })]);
+    expect(seq(blocks(out)[0])).toBeLessThan(seq(terminals(out)[0]));
+    expect(foldsLast(out).needsResync).toBe(false);
+  });
+
+  it("(i) a repeated block event while the turn is open records its own prompt.blocked, and the same shape after the turn's terminal records none", () => {
+    const nodeBlock = { ...inv, errorCode: "SAFETY", nodeInfo: { path: "wf/classify" } };
+    const out = drive([nodeBlock, nodeBlock, HOST_ERROR, { ...inv, errorCode: "SAFETY" }] as unknown as JsonValue[]);
+    expect(blocks(out)).toHaveLength(2);
+    expect(terminals(out)).toEqual([expect.objectContaining({ type: "turn.error" })]);
+    expect(Math.max(...blocks(out).map(seq))).toBeLessThan(seq(terminals(out)[0]));
+    expect(foldsLast(out).needsResync).toBe(false);
+  });
+
+  it("an event relayed from a remote agent (a2a:response in customMetadata) yields no prompt.blocked, and the same event unrelayed yields one", () => {
+    const localMeta = { host_note: "kept" };
+    const unrelayed = { ...inv, author: "remote_agent", turnComplete: true, errorCode: "SAFETY", errorMessage: "SAFETY", customMetadata: localMeta };
+    const relayed = { ...unrelayed, customMetadata: { ...localMeta, "a2a:response": { kind: "message" } } };
+    const a = drive([relayed as unknown as JsonValue]);
+    const b = drive([unrelayed as unknown as JsonValue]);
+    expect(blocks(a)).toHaveLength(0);
+    expect(blocks(b)).toEqual([expect.objectContaining({ reason: "safety" })]);
+    expect("reasonRaw" in blocks(b)[0]!).toBe(false);
+    expect(terminals(a).map((e) => e["type"])).toEqual(terminals(b).map((e) => e["type"]));
   });
 });
