@@ -1266,17 +1266,52 @@ function mapGroundingCitations(
   gm: AdkEvent["groundingMetadata"]
 ): AgCitation[] | undefined {
   if (gm?.groundingSupports === undefined || gm.groundingSupports.length === 0) return undefined;
-  return gm.groundingSupports.map((support): AgCitation => ({
-    kind: "offset",
-    unit: "byte",
-    startIndex: support.segment?.startIndex ?? 0,
-    endIndex: support.segment?.endIndex ?? 0,
-    bounds: "[start,end)",
-    sourceIds: support.groundingChunkIndices?.map((i) => `grounding_${i}`) ?? [],
-    confidenceScores: support.confidenceScores ?? [],
-    citedText: support.segment?.text ?? "",
-    indexFrame: "response",
-  }));
+  return gm.groundingSupports.map((support): AgCitation => {
+    // genai types the scores as numbers. A list holding anything else has no
+    // AgCitation home: the citation omits the member (filtering would shift
+    // the pairing of each score with its chunk index), and the event-level
+    // carry holds the list verbatim (groundingScoresCarry).
+    const scores = support.confidenceScores === undefined ? [] : finiteScores(support.confidenceScores);
+    return {
+      kind: "offset",
+      unit: "byte",
+      startIndex: support.segment?.startIndex ?? 0,
+      endIndex: support.segment?.endIndex ?? 0,
+      bounds: "[start,end)",
+      sourceIds: support.groundingChunkIndices?.map((i) => `grounding_${i}`) ?? [],
+      ...(scores !== undefined ? { confidenceScores: scores } : {}),
+      citedText: support.segment?.text ?? "",
+      indexFrame: "response",
+    };
+  });
+}
+
+/** The value when it is a list of finite numbers, else undefined. */
+function finiteScores(value: unknown): number[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const scores: number[] = [];
+  for (const score of value) {
+    if (typeof score !== "number" || !Number.isFinite(score)) return undefined;
+    scores.push(score);
+  }
+  return scores;
+}
+
+/** The grounding supports' confidence-score lists that mapGroundingCitations
+ *  could not map, verbatim at their native path: one entry per support, in
+ *  order, holding the list for a support whose list is not all finite numbers
+ *  and nothing for any other. Undefined when every list mapped. */
+function groundingScoresCarry(gm: AdkEvent["groundingMetadata"]): JsonValue | undefined {
+  const supports: unknown = gm?.groundingSupports;
+  if (!Array.isArray(supports)) return undefined;
+  let unmapped = false;
+  const entries = supports.map((support: unknown): JsonValue => {
+    const scores: unknown = isJsonObject(support) ? support["confidenceScores"] : undefined;
+    if (scores === undefined || finiteScores(scores) !== undefined) return {};
+    unmapped = true;
+    return { confidenceScores: JsonValue.parse(scores) };
+  });
+  return unmapped ? { groundingSupports: entries } : undefined;
 }
 
 // ─── null-id call mint state (audit M47; window/correlation redesign — review
@@ -2146,6 +2181,8 @@ function driveAdkTopLevel(
     unmappedEvent["isolationScope"] = JsonValue.parse(event.isolationScope);
   if (event.citationMetadata !== undefined)
     unmappedEvent["citationMetadata"] = JsonValue.parse(event.citationMetadata);
+  const groundingScores = groundingScoresCarry(event.groundingMetadata);
+  if (groundingScores !== undefined) unmappedEvent["groundingMetadata"] = groundingScores;
   if (event.customMetadata !== undefined) {
     const kept = withoutRelayBookkeeping(JsonValue.parse(event.customMetadata));
     if (kept !== undefined) unmappedEvent["customMetadata"] = kept;
