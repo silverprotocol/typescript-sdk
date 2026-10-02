@@ -8291,6 +8291,25 @@ describe("createClaudeNormalizer — B-strict nested terminals", () => {
     }
   });
 
+  it("a correlated task_notification's carry rides after the home events it produced: the nested terminal and subagent.done come first, for each status", () => {
+    for (const status of ["completed", "failed", "stopped"]) {
+      const evs = drive([
+        taskUse("toolu_t5"),
+        nestedText("msg_sub5", "toolu_t5", "00000000-0000-0000-0000-0000000000a5"),
+        taskResult("toolu_t5", { tool_use_result: { status: "async_launched", agentId: "a5" } }),
+        resultSuccess("end_turn"),
+        notification({ tool_use_id: "toolu_t5", status, summary: "it broke" }),
+      ]);
+      const carryAt = evs.findIndex((e) => e.type === "ext.anthropic.frame" && "kind" in e && e.kind === "task_notification");
+      const terminalAt = evs.findIndex((e) => TERMINALS.has(e.type) && "turnId" in e && e.turnId === "turn_msg_sub5");
+      const doneAt = evs.findIndex((e) => e.type === "subagent.done" && e.turnId === "turn_msg_sub5");
+      expect(terminalAt, status).toBeGreaterThan(-1);
+      expect(terminalAt, status).toBeLessThan(doneAt);
+      expect(doneAt, status).toBeLessThan(carryAt);
+      assertBStrict(evs);
+    }
+  });
+
   it("a task_notification without tool_use_id correlates through its task_started's task_id; one for an unknown task closes nothing", () => {
     const started = { type: "system", subtype: "task_started", task_id: "task_1", tool_use_id: "toolu_t4", description: "d", uuid: "00000000-0000-0000-0000-0000000000c8", session_id: "sess_fixture" };
     const evs = drive([taskUse("toolu_t4"), started, nestedText("msg_sub4", "toolu_t4", "00000000-0000-0000-0000-0000000000a4"), taskResult("toolu_t4", { tool_use_result: { status: "async_launched" } }), resultSuccess("end_turn"), notification({ status: "completed" })]);

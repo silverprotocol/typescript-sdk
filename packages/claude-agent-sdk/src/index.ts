@@ -745,15 +745,17 @@ function isSDKMessage(v: unknown): v is SDKMessage {
 // Task* subagent-progress family) with NO existing AgJSON vocabulary home.
 //
 // The Task* family (task_started/task_progress/task_updated/task_notification)
-// was STUDIED against the facet's ALREADY-derived subagent lifecycle
-// (parent_tool_use_id -> subagentStart/Done in `drive()` below) and
-// deliberately NOT folded into it: `tool_use_id` is OPTIONAL on every Task*
-// arm (a `task_type:"local_workflow"` background task carries NONE at all —
-// this family is a broader "tasks panel" superset, not 1:1 with Task-tool
-// subagent adoption), and task_progress/task_notification's own
+// rides this carry whole. Its content is not folded into the subagent
+// lifecycle: `tool_use_id` is OPTIONAL on every Task* arm (a
+// `task_type:"local_workflow"` background task carries NONE at all — this
+// family is a broader "tasks panel" superset, not 1:1 with Task-tool subagent
+// adoption), and task_progress/task_notification's own
 // `summary`/`last_tool_name` would DUPLICATE content the nested subagent's
-// own tool_use/tool_result stream already conveys once correlation resolves
-// — a double fold. `description` enrichment onto
+// own tool_use/tool_result stream already conveys — a double fold. One part
+// IS mapped: a task_notification correlated to an open run (by tool_use_id,
+// or by task_id through its task_started) closes that run with its nested
+// terminal and subagent.done (B-strict, SPEC §8.0 item 29), before the
+// frame's carry (see `drive()`). `description` enrichment onto
 // subagent.start was also considered and rejected: `subagent.start`'s
 // schema carries no providerMetadata slot (only agentId/agentName), and
 // reaching it would require bypassing the `subagentStart()` sugar
@@ -3584,7 +3586,6 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
     // comment above for the full per-arm reasoning, SPEC §8 item 22).
     const carriedKind = anthropicFrameKind(msg);
     if (carriedKind !== undefined) {
-      a.emitExt("anthropic", "frame", { kind: carriedKind, frame: carryVerbatim(msg) });
       // B-strict: a background sub-run's outcome arrives as task_notification,
       // correlated to its run by tool_use_id (or by task_id through the
       // task_started frame that named it).
@@ -3603,6 +3604,9 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
           }
         }
       }
+      // The carry rides after the home events this frame produced (a correlated
+      // task_notification's nested terminal and subagent.done), SPEC §8.0 item 22.
+      a.emitExt("anthropic", "frame", { kind: carriedKind, frame: carryVerbatim(msg) });
       return;
     }
 
