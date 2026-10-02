@@ -251,6 +251,13 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 55, leg: "vercel", title: "Host-supplied partition root (draft.5, §8.0 Partition root): createVercelNormalizer({ threadId: T }) fed every replay golden's natives stamps T on every threadId-bearing event and on no turnId/parentTurnId; reduce() roots every turn, message and artifact at T with no resync; without the option the output equals the committed golden", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.55(vercel) over every replay golden of the facet" },
   { n: 56, title: "Memory record metadata (draft.8): memory.write._meta lands on the AgMemoryRecord (value replaces whole, patch replaces _meta only when carried); an undeclared top-level member never reaches the record; incremental == batch; the persistable projection and the stored-record reader keep _meta", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.56, reference reduce() + Reducer + toPersistable + readStoredAgMemoryRecords (the core pair: AgMemoryRecord._meta + the memory.write SET/PATCH arms)" },
   { n: 57, title: "ADK prompt block → prompt.blocked (rc.1): each errorCode-only prompt-block event of an open turn records one prompt.blocked before the turn's terminal; response-level blocks, other error codes, events with content, relayed events record none; an event after a bare success close records on the turn it opens, never on the closed one", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.57 via createAdkNormalizer over synthetic non-streaming natives shaped as ADK 2.1.0's createLlmResponse builds them (a Gemini API attempt on 2026-09-27 reached only response-level blocks, StreamingMode NONE and SSE; Vertex AI not attempted; the ADK Live and Interactions paths do not carry the shape at 2.1.0); facet legs: google-adk/src/index.test.ts \"a prompt-block event records prompt.blocked before the turn's unchanged terminal, with no safety\", \"the same event with an errorMessage records prompt.blocked before its turn.error\", \"an unmapped treated value (OTHER, IMAGE_SAFETY, JAILBREAK, BLOCK_REASON_UNSPECIFIED) records reason …other… with reasonRaw verbatim\", \"a response-level block, a non-block errorCode or content parts is not a prompt block: no record\", \"one record per block event: three block events record three, in one turn with the host-completion event and in three turns without it, each before its turn's terminal\", \"a prompt block while an ask is pending is recorded, and the turn still closes paused\", \"an event carrying promptFeedback and a prompt-block errorCode is recorded once, from its promptFeedback\", \"a prompt block inside a Workflow node is recorded, and the host-fed error closes the turn\", \"two identical block events inside a Workflow node record two prompt.blocked while the turn is open, and the same event after the terminal records none\", \"ADK_PROMPT_BLOCK_REASONS holds genai's eight BlockedReason values and the Gemini API's BLOCK_REASON_UNSPECIFIED\"; the relay leg: spec-conformance.test.ts \"an event relayed from a remote agent (a2a:response in customMetadata) yields no prompt.blocked, and the same event unrelayed yields one\"" },
+  { n: 58, leg: "openai-content-filter", title: "Block finish reason whatever the outcome (rc.1): an OpenAI Agents content_filter round, fed in the order the Responses model delivers it (ending at response.incomplete), closes with exactly one turn.done carrying safety_blocked; every event passes producer-strict AgEvent validation, reduce() needs no resync and the turn record carries the mapped finishReason", disposition: "COVERED-BY", evidence: "fixture-only", citation: "openai-agents/src/index.test.ts \"recorded order: a content_filter round closes once, turn.done error with finishReason safety_blocked and the safety signal\"; the parse, fold and record checks re-asserted in spec-conformance.test.ts §10.58(openai-content-filter)" },
+  { n: 58, leg: "openai-refusal", title: "Block finish reason whatever the outcome (rc.1): an OpenAI Agents refusal round, fed in the order the Responses model delivers it (response.completed before its message_output_created run-item), closes with exactly one turn.done carrying refusal; every event passes producer-strict AgEvent validation, reduce() needs no resync and the turn record carries the mapped finishReason", disposition: "COVERED-BY", evidence: "fixture-only", citation: "openai-agents/src/index.test.ts \"recorded order: a refusal round closes once, turn.done success with finishReason refusal, read from the response.completed output\"; the parse, fold and record checks re-asserted in spec-conformance.test.ts §10.58(openai-refusal)" },
+  { n: 58, leg: "openai-deferred", title: "Block finish reason whatever the outcome (rc.1): an OpenAI Agents refusal round deferred behind a pending call closes after that call's tool.done with exactly one turn.done carrying refusal, and the invoke's next round closes stop; every event passes producer-strict AgEvent validation, reduce() needs no resync and the turn record carries the mapped finishReason", disposition: "COVERED-BY", evidence: "fixture-only", citation: "openai-agents/src/index.test.ts \"recorded order: a refusal round deferred behind a pending call closes after that call's tool.done as turn.done success with finishReason refusal, and the next round closes stop\"; the parse, fold and record checks re-asserted in spec-conformance.test.ts §10.58(openai-deferred)" },
+  { n: 58, leg: "adk", title: "Block finish reason whatever the outcome (rc.1): an ADK blocked final (errorCode and finishReason, no content, no errorMessage), for each of the eight values the mapping sends to safety_blocked, closes with exactly one turn.done carrying safety_blocked; every event passes producer-strict AgEvent validation, reduce() needs no resync and the turn record carries the mapped finishReason", disposition: "COVERED-BY", evidence: "fixture-only", citation: "google-adk/src/index.test.ts \"a blocked final as ADK builds it (errorCode and finishReason, no content, no errorMessage), for each of the eight block values, closes exactly one turn.done safety_blocked; every event parses and the fold does not park\"; the parse, fold and record checks re-asserted in spec-conformance.test.ts §10.58(adk)" },
+  { n: 58, leg: "adk-host-completion", title: "Block finish reason whatever the outcome (rc.1): with host completion, an ADK stashed blocked final of each block value is released by the host-completion event as exactly one turn.done carrying safety_blocked; every event passes producer-strict AgEvent validation, reduce() needs no resync and the turn record carries the mapped finishReason", disposition: "COVERED-BY", evidence: "fixture-only", citation: "google-adk/src/index.test.ts \"with host completion, the stashed blocked final of each block value is released by the host-completion event as the same one turn.done safety_blocked\"; the parse, fold and record checks re-asserted in spec-conformance.test.ts §10.58(adk-host-completion)" },
+  { n: 58, leg: "vercel", title: "Block finish reason whatever the outcome (rc.1): a Vercel AI SDK content-filter finish, in fullStream order, closes with exactly one turn.done carrying safety_blocked; every event passes producer-strict AgEvent validation, reduce() needs no resync and the turn record carries the mapped finishReason", disposition: "COVERED-BY", evidence: "fixture-only", citation: "vercel-ai/src/index.test.ts \"content-filter closes the turn with exactly one turn.done carrying safety_blocked; every event passes producer-strict AgEvent parse; reduce() needs no resync and the turn record's finishReason is safety_blocked\"; the parse, fold and record checks re-asserted in spec-conformance.test.ts §10.58(vercel)" },
+  { n: 58, leg: "claude", title: "Block finish reason whatever the outcome (rc.1)", disposition: "N/A", evidence: "none", citation: "binding sentence: the item binds a close a normalizer makes with a turn.done; fed the order the Claude Code CLI 2.1.280 bundle builds for a no-fallback refusal (a synthetic API-error assistant frame with stop_reason refusal, then an is_error result; the order is read from the bundle, with no live capture yet), the reference claude-agent-sdk normalizer closes the turn with turn.error, which §4's block-signal note covers" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -4289,5 +4296,130 @@ describe("§10.57 — ADK prompt block → prompt.blocked (rc.1): one record per
     expect(blocks(b)).toEqual([expect.objectContaining({ reason: "safety" })]);
     expect("reasonRaw" in blocks(b)[0]!).toBe(false);
     expect(terminals(a).map((e) => e["type"])).toEqual(terminals(b).map((e) => e["type"]));
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.58 — Block finish reason whatever the outcome (rc.1; COVERED-BY, one
+// row per leg). Each facet's own test proves its leg in the order its
+// framework delivers the frames; this thin re-assertion re-drives the same
+// native vectors through the reference normalizers and carries the item's
+// parse, fold and record checks: the blocked turn has exactly one turn.done
+// with the mapped finishReason, every event passes producer-strict AgEvent
+// validation, reduce() needs no resync, and the turn record carries the mapped
+// finishReason. Nothing is asserted about outcome.type (§4, "A block is not an
+// outcome"). No claude leg: fed the order Claude Code CLI 2.1.280 delivers for a
+// refusal, the reference claude-agent-sdk normalizer closes the turn with
+// turn.error, which the item does not bind (its manifest row is N/A).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.58 — block finish reason whatever the outcome (rc.1): exactly one turn.done with the mapped finishReason, every event valid, a clean fold and the turn record's finishReason", () => {
+  const turnDones = (evs: AgEvent[], turnId: string) =>
+    evs.filter((e) => e.type === "turn.done" && (e as { turnId?: string }).turnId === turnId) as unknown as Array<{ finishReason?: string }>;
+  const firstTurnId = (evs: AgEvent[]): string => (evs.find((e) => e.type === "turn.start") as unknown as { turnId: string }).turnId;
+  const blockChecks = (evs: AgEvent[], turnId: string, mapped: string, label: string): void => {
+    for (const e of evs) expect(AgEvent.safeParse(e).success, `${label}: ${JSON.stringify(e)}`).toBe(true);
+    const dones = turnDones(evs, turnId);
+    expect(dones, label).toHaveLength(1);
+    expect(dones[0]!.finishReason, label).toBe(mapped);
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    expect(r.needsResync, label).toBe(false);
+    expect(r.result().turns.find((t) => t.turnId === turnId)?.finishReason, label).toBe(mapped);
+  };
+
+  // OpenAI Agents (Responses model, @openai/agents 0.18.0 order): a message_output_created run-item
+  // lands after its response's response.completed; a content_filter ends the stream at response.incomplete.
+  const oaRaw = (event: Record<string, unknown>) => ({ type: "raw_model_stream_event", data: { type: "model", event } }) as unknown as JsonValue;
+  const oaItem = (name: string, item: Record<string, unknown>) => ({ type: "run_item_stream_event", name, item }) as unknown as JsonValue;
+  const OA_USAGE = { input_tokens: 20, output_tokens: 6, total_tokens: 26 };
+  const oaRefusal = (id: string) => ({ type: "message", id, role: "assistant", status: "completed", content: [{ type: "refusal", refusal: "I cannot help with that." }] });
+  const oaLateRefusal = (id: string) => oaItem("message_output_created", { type: "message_output_item", rawItem: oaRefusal(id) });
+  const oaDrive = (natives: JsonValue[]): AgEvent[] => {
+    const n = createOpenaiNormalizer({ invokeId: "inv_c10" });
+    return [...natives.flatMap((e) => n.push(e)), ...n.flush()];
+  };
+
+  it("(openai-content-filter) a content_filter round ending at response.incomplete: one turn.done safety_blocked, every event valid, a clean fold, the record's safety_blocked", () => {
+    const evs = oaDrive([
+      oaRaw({ type: "response.created", response: { id: "resp_c10_a" } }),
+      oaRaw({ type: "response.output_text.delta", item_id: "msg_c10_a", delta: "partial" }),
+      oaRaw({ type: "response.incomplete", response: { id: "resp_c10_a", status: "incomplete", incomplete_details: { reason: "content_filter" }, usage: OA_USAGE } }),
+    ]);
+    blockChecks(evs, "turn_resp_c10_a", "safety_blocked", "openai-content-filter");
+  });
+
+  it("(openai-refusal) a refusal round, response.completed before its message_output_created: one turn.done refusal, every event valid, a clean fold, the record's refusal", () => {
+    const evs = oaDrive([
+      oaRaw({ type: "response.created", response: { id: "resp_c10_b" } }),
+      oaRaw({ type: "response.completed", response: { id: "resp_c10_b", status: "completed", output: [oaRefusal("msg_c10_b")], usage: OA_USAGE } }),
+      oaLateRefusal("msg_c10_b"),
+    ]);
+    blockChecks(evs, "turn_resp_c10_b", "refusal", "openai-refusal");
+  });
+
+  it("(openai-deferred) a refusal round deferred behind a pending call closes after that call's tool.done with one turn.done refusal, and the invoke's next round closes stop; every event valid, a clean fold", () => {
+    const evs = oaDrive([
+      oaRaw({ type: "response.created", response: { id: "resp_c10_c" } }),
+      oaRaw({ type: "response.output_item.added", item: { id: "fc_c10_c", type: "function_call", call_id: "call_c10_c", name: "echo", arguments: "" } }),
+      oaRaw({ type: "response.completed", response: { id: "resp_c10_c", status: "completed", output: [oaRefusal("msg_c10_c")], usage: OA_USAGE } }),
+      oaLateRefusal("msg_c10_c"),
+      oaItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "function_call_result", name: "echo", callId: "call_c10_c", status: "completed", output: "ok" },
+        output: "ok",
+      }),
+      oaRaw({ type: "response.created", response: { id: "resp_c10_d" } }),
+      oaRaw({ type: "response.output_text.delta", item_id: "msg_c10_d", delta: "fine" }),
+      oaRaw({
+        type: "response.completed",
+        response: {
+          id: "resp_c10_d",
+          status: "completed",
+          output: [{ type: "message", id: "msg_c10_d", role: "assistant", status: "completed", content: [{ type: "output_text", text: "fine", annotations: [] }] }],
+        },
+      }),
+    ]);
+    blockChecks(evs, "turn_resp_c10_c", "refusal", "openai-deferred");
+    const iTool = evs.findIndex((e) => e.type === "tool.done" && (e as { toolCallId?: string }).toolCallId === "call_c10_c");
+    const iDone = evs.findIndex((e) => e.type === "turn.done" && (e as { turnId?: string }).turnId === "turn_resp_c10_c");
+    expect(iTool).toBeGreaterThanOrEqual(0);
+    expect(iDone).toBeGreaterThan(iTool);
+    blockChecks(evs, "turn_resp_c10_d", "stop", "openai-next-round");
+  });
+
+  // Google ADK: a blocked final as ADK builds it (errorCode and finishReason, no content, no errorMessage),
+  // for each value the mapping sends to "safety_blocked".
+  const ADK_BLOCK_VALUES = ["SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII", "IMAGE_SAFETY", "IMAGE_PROHIBITED_CONTENT", "IMAGE_RECITATION"];
+  const adkDrive = (natives: JsonValue[], hostCompletion = false): AgEvent[] => {
+    const n = createAdkNormalizer(hostCompletion ? { invokeId: "adk_c10", hostCompletion: true } : { invokeId: "adk_c10" });
+    return [...natives.flatMap((e) => n.push(e)), ...n.flush()];
+  };
+
+  it("(adk) a blocked final for each of the eight block values: one turn.done safety_blocked, every event valid, a clean fold, the record's safety_blocked", () => {
+    for (const raw of ADK_BLOCK_VALUES) {
+      const evs = adkDrive([{ invocationId: "inv_c10", errorCode: raw, finishReason: raw } as unknown as JsonValue]);
+      blockChecks(evs, firstTurnId(evs), "safety_blocked", `adk ${raw}`);
+    }
+  });
+
+  it("(adk-host-completion) with host completion, the stashed blocked final of each block value released by the host-completion event: one turn.done safety_blocked, every event valid, a clean fold, the record's safety_blocked", () => {
+    for (const raw of ADK_BLOCK_VALUES) {
+      const evs = adkDrive([{ invocationId: "inv_c10", errorCode: raw, finishReason: raw } as unknown as JsonValue, { type: ADK_HOST_COMPLETE_TYPE } as unknown as JsonValue], true);
+      blockChecks(evs, firstTurnId(evs), "safety_blocked", `adk-host-completion ${raw}`);
+    }
+  });
+
+  it("(vercel) a content-filter finish in fullStream order: one turn.done safety_blocked, every event valid, a clean fold, the record's safety_blocked", () => {
+    const n = createVercelNormalizer();
+    const parts: JsonValue[] = [
+      { type: "start" },
+      { type: "start-step", request: {}, warnings: [] },
+      { type: "text-start", id: "t1" }, { type: "text-delta", id: "t1", text: "redac" }, { type: "text-end", id: "t1" },
+      { type: "finish-step", finishReason: "content-filter", usage: { inputTokens: 1, outputTokens: 1 }, response: { id: "resp_v_c10", timestamp: "1970-01-01T00:00:00.000Z", modelId: "mock-model" } },
+      { type: "finish", finishReason: "content-filter", totalUsage: { inputTokens: 1, outputTokens: 1 } },
+    ];
+    const evs = [...parts.flatMap((p) => n.push(p)), ...n.flush()];
+    blockChecks(evs, firstTurnId(evs), "safety_blocked", "vercel");
   });
 });
