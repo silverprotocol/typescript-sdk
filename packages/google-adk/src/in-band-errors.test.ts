@@ -25,6 +25,9 @@ interface Expected {
   /** The SSE mode's error codes, where they differ from the default mode's. */
   sseErrors?: string[];
   close: { paused: boolean; code: string };
+  /** Without the host-completion event, an answer closes a first turn as
+   *  success before the invocation meets its first in-band error. */
+  earlyClose?: true;
 }
 const LEGS: Record<string, Expected> = {
   "bare-block-then-streamed-block": { errors: ["SAFETY", "SAFETY"], close: { paused: false, code: "SAFETY" } },
@@ -38,6 +41,7 @@ const LEGS: Record<string, Expected> = {
   "interactions-loop-failed-each-iteration": { errors: ["INTERNAL", "INTERNAL"], close: { paused: false, code: "INTERNAL" } },
   "lone-429": { errors: ["429"], close: { paused: false, code: "429" } },
   "loop-identical-block": { errors: ["SAFETY", "SAFETY"], close: { paused: false, code: "SAFETY" } },
+  "loop-reply-then-relay-block": { errors: ["SAFETY", "SAFETY"], close: { paused: false, code: "SAFETY" }, earlyClose: true },
   "node-tool-retry": { errors: ["429"], close: { paused: false, code: "429" } },
   "parallel-agent-one-error-a-first": { errors: ["SAFETY"], close: { paused: false, code: "SAFETY" } },
   "parallel-agent-one-error-b-first": { errors: ["SAFETY"], close: { paused: false, code: "SAFETY" } },
@@ -56,6 +60,7 @@ const LEGS: Record<string, Expected> = {
   "sequential-429-then-credential": { errors: ["429"], close: { paused: true, code: "429" } },
   "sequential-429-then-request-input": { errors: ["429"], close: { paused: true, code: "429" } },
   "sequential-429-then-two-answers": { errors: ["429"], close: { paused: false, code: "429" } },
+  "sequential-answer-then-429": { errors: ["429"], close: { paused: false, code: "429" }, earlyClose: true },
   "sequential-credential-pause-then-429": { errors: ["429"], close: { paused: true, code: "429" } },
   "text-then-block-no-usage": { errors: ["SAFETY"], close: { paused: false, code: "SAFETY" } },
   "workflow-node-error-unrecovered": { errors: ["SAFETY"], close: { paused: false, code: "NodeReportedError" } },
@@ -261,11 +266,14 @@ describe("createAdkNormalizer — ADK in-band invocation errors over engine-buil
     expect(errorRuns.length).toBeGreaterThanOrEqual(2 * Object.keys(LEGS).length);
   });
 
-  it("every run folds without a resync, every opened turn has exactly one terminal and nothing after it, and no turn closes as success", () => {
+  it("every run folds without a resync, every opened turn has exactly one terminal and nothing after it, and no turn closes as success but, without the host-completion event, the one an answer closes before the first in-band error", () => {
     for (const r of [...errorRuns, ...pauseRuns, ...pauseErrorRuns]) {
       expectCleanFold(r);
       const successes = r.all.filter((e) => e.type === "turn.done" && outcomeType(e) === "success");
-      expect(successes, label(r)).toEqual([]);
+      if (!r.host && LEGS[r.leg]?.earlyClose === true) {
+        expect(successes, label(r)).toHaveLength(1);
+        expect(r.all.indexOf(successes[0]!), label(r)).toBeLessThan(r.all.findIndex((e) => e.type === "error"));
+      } else expect(successes, label(r)).toEqual([]);
     }
   });
 
@@ -292,10 +300,10 @@ describe("createAdkNormalizer — ADK in-band invocation errors over engine-buil
     }
   });
 
-  it("with no signalled pause, the invocation's turn closes with exactly one turn.error after every content event, carrying the host-terminal event's code when one was fed, else the first in-band error's, and the field-wise sum of the non-partial usage reports with a repeating aggregate counted once", () => {
+  it("with no signalled pause and no answer closing a turn before the first in-band error, the invocation's turn closes with exactly one turn.error after every content event, carrying the host-terminal event's code when one was fed, else the first in-band error's, and the field-wise sum of the non-partial usage reports with a repeating aggregate counted once", () => {
     for (const r of errorRuns) {
       const expected = LEGS[r.leg];
-      if (expected === undefined || expected.close.paused) continue;
+      if (expected === undefined || expected.close.paused || (expected.earlyClose === true && !r.host)) continue;
       const ends = r.all.filter((e) => TERMINAL.has(e.type));
       expect(ends.map((e) => e.type), label(r)).toEqual(["turn.error"]);
       const end = ends[0];
@@ -310,6 +318,32 @@ describe("createAdkNormalizer — ADK in-band invocation errors over engine-buil
         if (usage.inputTokens === 0 && usage.outputTokens === 0) expect(end.usage, label(r)).toBeUndefined();
         else expect(end.usage, label(r)).toMatchObject(usage);
       }
+    }
+  });
+
+  it("without the host-completion event, when an answer closes a first turn as success before the first in-band error, that turn closes turn.done success with the answer's usage, then the invocation's one turn.error closes a second turn last, carrying the first in-band error's code, and the two terminals' usage sums to the non-partial usage reports, an absent usage counting as zero", () => {
+    const early = errorRuns.filter((r) => !r.host && LEGS[r.leg]?.earlyClose === true);
+    expect(new Set(early.map((r) => r.leg))).toEqual(new Set(Object.keys(LEGS).filter((leg) => LEGS[leg]?.earlyClose === true)));
+    for (const r of early) {
+      const expected = LEGS[r.leg];
+      if (expected === undefined) throw new Error(label(r));
+      const ends = r.all.filter((e) => TERMINAL.has(e.type));
+      expect(ends.map((e) => e.type), label(r)).toEqual(["turn.done", "turn.error"]);
+      const [done, error] = ends;
+      if (done?.type !== "turn.done" || error?.type !== "turn.error") throw new Error(label(r));
+      expect(outcomeType(done), label(r)).toBe("success");
+      expect(done.turnId, label(r)).not.toBe(error.turnId);
+      expect(r.all.at(-1), label(r)).toBe(error);
+      expect(r.all.indexOf(done), label(r)).toBeLessThan(r.all.findIndex((e) => e.type === "error"));
+      expect(error.code, label(r)).toBe(expected.close.code);
+      const count = (u: unknown, k: string): number => {
+        const v: unknown = typeof u === "object" && u !== null ? Reflect.get(u, k) : undefined;
+        return typeof v === "number" ? v : 0;
+      };
+      const usage = expectedUsage(r.natives);
+      expect(count(done.usage, "inputTokens") + count(error.usage, "inputTokens"), label(r)).toBe(usage.inputTokens);
+      expect(count(done.usage, "outputTokens") + count(error.usage, "outputTokens"), label(r)).toBe(usage.outputTokens);
+      expect(count(done.usage, "inputTokens"), label(r)).toBeGreaterThan(0);
     }
   });
 
