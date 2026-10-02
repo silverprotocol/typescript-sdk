@@ -1067,6 +1067,33 @@ function hasLiveContent(ev: AdkEvent): boolean {
   return (ev.content?.parts?.length ?? 0) > 0 || ev.inputTranscription !== undefined || ev.outputTranscription !== undefined;
 }
 
+// Members of an ADK event that the facet maps to nothing, with the values
+// ADK gives them by default; a member's other value, or any other member,
+// maps to something. The `actions` members are listed below.
+const NO_EMIT_EVENT_MEMBERS: ReadonlySet<string> = new Set(["invocationId", "author", "id", "timestamp"]);
+const NO_EMIT_ACTION_MEMBERS: ReadonlySet<string> = new Set(["artifactDelta", "requestedAuthConfigs", "requestedToolConfirmations"]);
+
+function isEmptyObject(v: unknown): boolean {
+  return isJsonObject(v) && Object.keys(v).length === 0;
+}
+
+/** Whether all an event maps to is the state.delta of its stateDelta (or
+ *  nothing): every member is one the facet maps to nothing, holding ADK's
+ *  default value, but for `actions.stateDelta`. */
+function onlyStateChange(ev: AdkEvent): boolean {
+  for (const [key, value] of Object.entries(ev)) {
+    if (value === undefined || NO_EMIT_EVENT_MEMBERS.has(key)) continue;
+    if (key === "longRunningToolIds" && Array.isArray(value) && value.length === 0) continue;
+    if (key !== "actions" || !isJsonObject(value)) return false;
+    for (const [action, member] of Object.entries(value)) {
+      if (member === undefined || action === "stateDelta") continue;
+      if (action === "escalate" && member === false) continue;
+      if (!NO_EMIT_ACTION_MEMBERS.has(action) || !isEmptyObject(member)) return false;
+    }
+  }
+  return true;
+}
+
 /** Whether an event carries model output: a part of `model`-role content, or
  *  output-transcription text. ADK's function response is `user`-role. */
 function hasModelOutput(ev: AdkEvent): boolean {
@@ -3431,13 +3458,16 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     const base = key !== undefined ? `turn_${invokeStem}_${key}` : `turn_${invokeStem}`;
     const g = generationOf.get(base) ?? 0;
     const current = g === 0 ? base : `${base}_g${g}`;
-    // Any event after a success close opens the next generation, so nothing
-    // it emits names the closed turn (SPEC :959): content, a usage report, a
-    // carry, a state change. Two stay: an aggregate that only repeats the
-    // closed turn's streamed text (the window suppresses it), and ADK's bare
-    // {interrupted} re-yield after a barge-in (below; it emits nothing).
+    // Any event after a success close opens the next generation, so no
+    // message or block event names the closed turn (SPEC :959): content, a
+    // usage report, a carry. Three stay: an event whose only mapping is the
+    // state.delta of its stateDelta (shared state, not the turn's content),
+    // an aggregate that only repeats the closed turn's streamed text (the
+    // window suppresses it), and ADK's bare {interrupted} re-yield after a
+    // barge-in (below; it emits nothing).
     const afterSuccess =
       successClosed.has(current) &&
+      !onlyStateChange(event) &&
       !(event.interrupted === true && !hasLiveContent(event) && !omittedParts) &&
       !repeatsClosedTurn(current, event);
     if (!interruptClosed.has(current) && !afterSuccess) return current;

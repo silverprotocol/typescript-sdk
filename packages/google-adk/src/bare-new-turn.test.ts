@@ -11,7 +11,7 @@
  * the reply closes the first turn as success, and the error, everything after
  * it and the invocation's one turn.error belong to the second turn.
  */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { AgEvent, JsonValue, Reducer, toJsonValue } from "@silverprotocol/core";
@@ -23,6 +23,9 @@ const TERMINAL = /^turn\.(done|error|abort)$/;
 function run(natives: Obj[], host: boolean, invokeId = "adk"): AgEvent[] {
   const n = createAdkNormalizer({ invokeId, ...(host ? { hostCompletion: true } : {}) });
   return [...natives.flatMap((e) => n.push(toJsonValue(e))), ...(host ? n.push({ type: ADK_HOST_COMPLETE_TYPE }) : []), ...n.flush()];
+}
+function isObj(v: unknown): v is Obj {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 function fold(out: AgEvent[]): Reducer {
   const r = new Reducer();
@@ -93,7 +96,7 @@ describe("createAdkNormalizer — content after a bare success close opens the n
     expect(fold(both).needsResync).toBe(false);
   });
 
-  it("an event that only repeats the closed turn's streamed text (ADK's aggregate after a message-less block chunk closed it) stays on that turn and emits nothing, and a state-only event after it opens the next turn", () => {
+  it("an event that only repeats the closed turn's streamed text (ADK's aggregate after a message-less block chunk closed it) stays on that turn and emits nothing, and a state-only event after it stays there too, emitting only its state.delta", () => {
     for (const i of [0, 1]) {
       const inv = `inv-repeat-${i}`;
       const text = `Hello ${i}`;
@@ -107,9 +110,9 @@ describe("createAdkNormalizer — content after a bare success close opens the n
         ],
         false,
       );
-      expect(out.filter((e) => e.type === "turn.start").map((e) => Reflect.get(e, "turnId")), `#${i}`).toEqual([`turn_adk_${inv}`, `turn_adk_${inv}_g1`]);
+      expect(out.filter((e) => e.type === "turn.start").map((e) => Reflect.get(e, "turnId")), `#${i}`).toEqual([`turn_adk_${inv}`]);
       expect(out.flatMap((e) => (e.type === "text.delta" ? [e.delta] : [])).join(""), `#${i}`).toBe(text);
-      expect(out.filter((e) => e.type === "state.delta").map((e) => Reflect.get(e, "turnId")), `#${i}`).toEqual([`turn_adk_${inv}_g1`]);
+      expect(out.slice(out.findIndex((e) => TERMINAL.test(e.type)) + 1).map((e) => [e.type, Reflect.get(e, "turnId")]), `#${i}`).toEqual([["state.delta", `turn_adk_${inv}`]]);
       expect(fold(out).needsResync, `#${i}`).toBe(false);
     }
   });
@@ -167,7 +170,6 @@ describe("createAdkNormalizer — after a bare success close, no later event of 
   const shapes = (inv: string, i: number): Array<[string, Obj[]]> => [
     ["the relay's own failure (an error message and turnComplete, no error code)", [{ invocationId: inv, author: "helper", errorMessage: `Remote agent request failed ${i}`, turnComplete: true }]],
     ["a usage report carrying modelVersion", [{ invocationId: inv, author: "planner", modelVersion: "gemini-x", usageMetadata: { promptTokenCount: 3 + i, candidatesTokenCount: 1, totalTokenCount: 4 + i } }]],
-    ["a state-only callback event", [{ invocationId: inv, author: "planner", actions: { stateDelta: { step: i } } }]],
     ["an event carrying only branch and nodeInfo", [{ invocationId: inv, author: "planner", branch: `root.b${i}`, nodeInfo: { path: `wf/n${i}` } }]],
     ["a prompt block", [{ invocationId: inv, author: "planner", errorCode: "SAFETY" }]],
   ];
@@ -184,7 +186,7 @@ describe("createAdkNormalizer — after a bare success close, no later event of 
     }
   });
 
-  it("after a reply closes the first turn, each content-less shape (the relay's code-less failure, a usage report with modelVersion, a state-only callback, a branch and nodeInfo carry, a prompt block) opens a second turn, nothing names the first after its terminal, and the fold is clean", () => {
+  it("after a reply closes the first turn, each content-less shape that maps to more than shared state (the relay's code-less failure, a usage report with modelVersion, a branch and nodeInfo carry, a prompt block) opens a second turn, nothing names the first after its terminal, and the fold is clean", () => {
     for (const i of [0, 1]) {
       const inv = `inv-shape-${i}`;
       for (const [label, later] of shapes(inv, i)) {
@@ -212,7 +214,76 @@ describe("createAdkNormalizer — after a bare success close, no later event of 
   });
 });
 
-describe("createAdkNormalizer — the two events that stay on a turn after its bare success close", () => {
+describe("createAdkNormalizer — the events that stay on a turn after its bare success close", () => {
+  /** ADK's default actions, as createEventActions() builds them, with a state change. */
+  const stateOnly = (inv: string, delta: Obj, extra: Obj = {}): Obj => ({
+    invocationId: inv,
+    author: "planner",
+    id: `ev-${inv}`,
+    timestamp: 1790000000,
+    longRunningToolIds: [],
+    actions: { stateDelta: delta, artifactDelta: {}, requestedAuthConfigs: {}, requestedToolConfirmations: {}, ...extra },
+  });
+
+  it("a state-only event after the close (an after-agent callback's state write, with ADK's default actions) stays on the closed turn: its state.delta is the only event after the terminal, the fold applies it to the shared state, and the turns are as they were, with no resync", () => {
+    for (const i of [0, 1]) {
+      const inv = `inv-state-tail-${i}`;
+      const out = run([reply(inv, "planner", `Hello ${i}.`), stateOnly(inv, { [`k${i}`]: i })], false);
+      const end = out.findIndex((e) => TERMINAL.test(e.type));
+      expect(out.slice(end + 1).map((e) => [e.type, Reflect.get(e, "turnId"), Reflect.get(e, "patch")]), `#${i}`).toEqual([["state.delta", `turn_adk_${inv}`, { [`k${i}`]: i }]]);
+      const before = fold(out.slice(0, end + 1)).result();
+      const after = fold(out);
+      expect(after.needsResync, `#${i}`).toBe(false);
+      const result = after.result();
+      expect(JSON.stringify(result.turns), `#${i}`).toBe(JSON.stringify(before.turns));
+      expect(JSON.stringify(result.messages), `#${i}`).toBe(JSON.stringify(before.messages));
+      const prior: unknown = Reflect.get(before, "state");
+      expect(Reflect.get(result, "state"), `#${i}`).toEqual({ ...(isObj(prior) ? prior : {}), [`k${i}`]: i });
+    }
+  });
+
+  it("over every engine-built oracle run, bare, each event after a turn's terminal that names the turn is a state.delta from a state-only event or a repeated aggregate, and folding those changes neither the turns nor the messages, with no resync", () => {
+    const dir = join(import.meta.dirname, "..", "..", "e2e", "fixtures", "adk-oracle");
+    const tails: string[] = [];
+    for (const f of readdirSync(dir).filter((x) => x.endsWith(".native.json")).sort()) {
+      const raw: unknown = JSON.parse(readFileSync(join(dir, f), "utf8"));
+      const natives: Obj[] = Array.isArray(raw) ? raw.filter((e): e is Obj => isObj(e) && e["type"] !== "__host_complete__") : [];
+      const out = run(natives, false);
+      const late = afterTerminal(out);
+      if (late.length === 0) continue;
+      tails.push(f);
+      expect(late.every((x) => x.startsWith("state.delta @")), f).toBe(true);
+      for (const [k, e] of out.entries()) {
+        if (afterTerminal(out.slice(0, k + 1)).length === afterTerminal(out.slice(0, k)).length) continue;
+        expect(e.type, `${f} event ${k}`).toBe("state.delta");
+        const before = fold(out.slice(0, k)).result();
+        const after = fold(out.slice(0, k + 1));
+        expect(after.needsResync, `${f} event ${k}`).toBe(false);
+        expect(JSON.stringify(after.result().turns), `${f} event ${k}`).toBe(JSON.stringify(before.turns));
+        expect(JSON.stringify(after.result().messages), `${f} event ${k}`).toBe(JSON.stringify(before.messages));
+      }
+      expect(fold(out).needsResync, f).toBe(false);
+    }
+    expect(tails.length).toBe(20);
+  });
+
+  it("an event with a member that maps to more than shared state opens the next turn, whatever else it holds: escalate true, a non-empty artifactDelta, a non-empty longRunningToolIds, an unknown member", () => {
+    for (const i of [0, 1]) {
+      const inv = `inv-state-plus-${i}`;
+      for (const [label, later] of [
+        ["escalate", stateOnly(inv, { k: i }, { escalate: true })],
+        ["artifactDelta", stateOnly(inv, { k: i }, { artifactDelta: { [`f${i}.txt`]: 1 } })],
+        ["longRunningToolIds", { ...stateOnly(inv, { k: i }), longRunningToolIds: [`c-${i}`] }],
+        ["an unknown member", { ...stateOnly(inv, { k: i }), futureMember: { v: i } }],
+      ] as Array<[string, Obj]>) {
+        const out = run([reply(inv, "planner", `Hello ${i}.`), later], false);
+        expect(new Set(out.filter((e) => e.type === "turn.start").map((e) => Reflect.get(e, "turnId"))), `${label} #${i}`).toEqual(new Set([`turn_adk_${inv}`, `turn_adk_${inv}_g1`]));
+        expect(afterTerminal(out).filter((x) => !x.startsWith("state.delta")), `${label} #${i}`).toEqual([]);
+        expect(fold(out).needsResync, `${label} #${i}`).toBe(false);
+      }
+    }
+  });
+
   it("ADK's bare {interrupted} re-yield after a generation that closed as success emits nothing: no second turn, nothing after the terminal", () => {
     for (const i of [0, 1]) {
       const inv = `inv-reyield-${i}`;
