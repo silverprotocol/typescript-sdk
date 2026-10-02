@@ -11,6 +11,8 @@
  * the reply closes the first turn as success, and the error, everything after
  * it and the invocation's one turn.error belong to the second turn.
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { AgEvent, JsonValue, Reducer, toJsonValue } from "@silverprotocol/core";
 import { ADK_HOST_COMPLETE_TYPE, createAdkNormalizer } from "./index.js";
@@ -206,6 +208,42 @@ describe("createAdkNormalizer — after a bare success close, no later event of 
         expect(afterTerminal(out), `${label} #${i}`).toEqual([]);
         expect(fold(out).needsResync, `${label} #${i}`).toBe(false);
       }
+    }
+  });
+});
+
+describe("createAdkNormalizer — the two events that stay on a turn after its bare success close", () => {
+  it("ADK's bare {interrupted} re-yield after a generation that closed as success emits nothing: no second turn, nothing after the terminal", () => {
+    for (const i of [0, 1]) {
+      const inv = `inv-reyield-${i}`;
+      const out = run(
+        [
+          { invocationId: inv, author: "voice", content: { role: "model", parts: [{ text: `Hi ${i}.` }] } },
+          { invocationId: inv, author: "voice", turnComplete: true },
+          { invocationId: inv, author: "voice", interrupted: true },
+        ],
+        false,
+      );
+      expect(out.filter((e) => e.type === "turn.start"), `#${i}`).toHaveLength(1);
+      expect(terminals(out), `#${i}`).toEqual([["turn.done", `turn_adk_${inv}`, "success"]]);
+      expect(out.at(-1)?.type, `#${i}`).toBe("turn.done");
+      expect(fold(out).needsResync, `#${i}`).toBe(false);
+    }
+  });
+
+  it("on the two engine-built oracle runs whose aggregate repeats the closed turn's text, bare, the one event after the terminal is that aggregate's state.delta {} on the closed turn, and it leaves the fold's state and turns as they were, with no resync", () => {
+    const dir = join(import.meta.dirname, "..", "..", "e2e", "fixtures", "adk-oracle");
+    for (const f of ["block-after-text-bare.np.native.json", "block-after-text-usage.np.native.json"]) {
+      const raw: unknown = JSON.parse(readFileSync(join(dir, f), "utf8"));
+      const natives: Obj[] = Array.isArray(raw) ? raw.filter((e): e is Obj => typeof e === "object" && e !== null && !Array.isArray(e)) : [];
+      const out = run(natives, false);
+      const end = out.findIndex((e) => TERMINAL.test(e.type));
+      const closed = Reflect.get(out[end] ?? {}, "turnId");
+      expect(out.slice(end + 1).map((e) => [e.type, Reflect.get(e, "turnId"), Reflect.get(e, "patch")]), f).toEqual([["state.delta", closed, {}]]);
+      const before = fold(out.slice(0, end + 1));
+      const after = fold(out);
+      expect(after.needsResync, f).toBe(false);
+      expect(JSON.stringify(after.result()), f).toBe(JSON.stringify(before.result()));
     }
   });
 });
