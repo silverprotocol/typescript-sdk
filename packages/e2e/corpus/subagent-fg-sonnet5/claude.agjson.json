@@ -197,7 +197,22 @@
     }
   },
   {
+    "type": "turn.done",
     "seq": 17,
+    "turnId": "turn_cae190ff-8ef1-4252-863d-a7069300d539",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "unknown"
+  },
+  {
+    "type": "subagent.done",
+    "seq": 18,
+    "turnId": "turn_cae190ff-8ef1-4252-863d-a7069300d539",
+    "parentTurnId": "turn_toolu_017zPy9bthr7poFEioqnewEx"
+  },
+  {
+    "seq": 19,
     "type": "ext.anthropic.frame",
     "kind": "task_notification",
     "frame": {
@@ -216,21 +231,6 @@
       "uuid": "1380e43d-eb0b-4878-bb14-b0519fdd5768",
       "session_id": "c169eb45-404d-450f-9498-ba69e06ca104"
     }
-  },
-  {
-    "type": "turn.done",
-    "seq": 18,
-    "turnId": "turn_cae190ff-8ef1-4252-863d-a7069300d539",
-    "outcome": {
-      "type": "success"
-    },
-    "finishReason": "unknown"
-  },
-  {
-    "type": "subagent.done",
-    "seq": 19,
-    "turnId": "turn_cae190ff-8ef1-4252-863d-a7069300d539",
-    "parentTurnId": "turn_toolu_017zPy9bthr7poFEioqnewEx"
   },
   {
     "type": "tool.done",

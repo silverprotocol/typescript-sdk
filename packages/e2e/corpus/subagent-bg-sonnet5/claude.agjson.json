@@ -247,7 +247,22 @@
     }
   },
   {
+    "type": "turn.done",
     "seq": 22,
+    "turnId": "turn_msg_011CfM8SexUt3KWnDDVT6V6P",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "unknown"
+  },
+  {
+    "type": "subagent.done",
+    "seq": 23,
+    "turnId": "turn_msg_011CfM8SexUt3KWnDDVT6V6P",
+    "parentTurnId": "turn_toolu_01Hjvx9dpkX1LBqU9Ww3RiR8"
+  },
+  {
+    "seq": 24,
     "type": "ext.anthropic.frame",
     "kind": "task_notification",
     "frame": {
@@ -266,21 +281,6 @@
       "uuid": "a536946e-883c-4628-b8cf-86140c8199a7",
       "session_id": "84757e79-4bd4-4e7e-9203-ef3ed7dbd1ad"
     }
-  },
-  {
-    "type": "turn.done",
-    "seq": 23,
-    "turnId": "turn_msg_011CfM8SexUt3KWnDDVT6V6P",
-    "outcome": {
-      "type": "success"
-    },
-    "finishReason": "unknown"
-  },
-  {
-    "type": "subagent.done",
-    "seq": 24,
-    "turnId": "turn_msg_011CfM8SexUt3KWnDDVT6V6P",
-    "parentTurnId": "turn_toolu_01Hjvx9dpkX1LBqU9Ww3RiR8"
   },
   {
     "type": "message.end",

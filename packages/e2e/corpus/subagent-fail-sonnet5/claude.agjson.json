@@ -118,7 +118,20 @@
     }
   },
   {
+    "type": "turn.error",
     "seq": 10,
+    "turnId": "turn_15953fa2-ebdc-4427-9713-8b94b53e1684",
+    "message": "Agent terminated early due to an API error: There's an issue with the selected model (claude-nonexistent-0). It may not exist or you may not have access to it. (error type model_not_found, HTTP 404, request id req_011CfM8TeYD8afMYNiCByEgr, model sent to the API: claude-nonexistent-0)",
+    "code": "failed"
+  },
+  {
+    "type": "subagent.done",
+    "seq": 11,
+    "turnId": "turn_15953fa2-ebdc-4427-9713-8b94b53e1684",
+    "parentTurnId": "turn_toolu_01RAd37zdqGdGedvqZiPjJno"
+  },
+  {
+    "seq": 12,
     "type": "ext.anthropic.frame",
     "kind": "task_notification",
     "frame": {
@@ -132,19 +145,6 @@
       "uuid": "52e6fdf9-1d36-4d84-a6b6-8df0819cc313",
       "session_id": "ecce8696-df87-4610-9394-20574e16568e"
     }
-  },
-  {
-    "type": "turn.error",
-    "seq": 11,
-    "turnId": "turn_15953fa2-ebdc-4427-9713-8b94b53e1684",
-    "message": "Agent terminated early due to an API error: There's an issue with the selected model (claude-nonexistent-0). It may not exist or you may not have access to it. (error type model_not_found, HTTP 404, request id req_011CfM8TeYD8afMYNiCByEgr, model sent to the API: claude-nonexistent-0)",
-    "code": "failed"
-  },
-  {
-    "type": "subagent.done",
-    "seq": 12,
-    "turnId": "turn_15953fa2-ebdc-4427-9713-8b94b53e1684",
-    "parentTurnId": "turn_toolu_01RAd37zdqGdGedvqZiPjJno"
   },
   {
     "type": "tool.done",
