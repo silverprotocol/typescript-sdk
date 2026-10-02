@@ -282,6 +282,14 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 60, leg: "openai", title: "ADK invocation errors (rc.1): a host-terminal event while an approval round's close is deferred releases that close as a turn.done carrying the deferred round's finishReason, and exactly one other top-level turn closes turn.error", disposition: "COVERED-BY", evidence: "fixture-only", citation: "openai-agents/src/index.test.ts \"a host-terminal event while an approval round's close is deferred releases that round's turn.done paused with its asks and deferred finishReason, then exactly one other top-level turn closes turn.error with the host's code; two invokes in one fold give distinct error-turn ids\"" },
   { n: 60, leg: "claude", title: "ADK invocation errors (rc.1): no fixture of the item is a Claude Agent SDK run", disposition: "N/A", evidence: "none", citation: "§10 item 60 binds each fixture a normalizer's framework has; its list names ADK and OpenAI Agents runs only" },
   { n: 60, leg: "vercel", title: "ADK invocation errors (rc.1): no fixture of the item is a Vercel AI SDK run", disposition: "N/A", evidence: "none", citation: "§10 item 60 binds each fixture a normalizer's framework has; its list names ADK and OpenAI Agents runs only" },
+  { n: 61, leg: "adk", title: "ADK relay bookkeeping off carries (rc.1): in one fold of fresh synthetic natives (a relayed event completing a turn, one not completing one, one whose only unmapped value is a customMetadata of the four keys, and an unmappable native under either spelling), no secret leaf of a2a:request, a2a:response, a2a:task_id or a2a:context_id reaches an emitted event or a text block's deltas; other entries ride byte-identical; the stream and its fold deep-equal those from the natives without the four keys", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.61, facet-driven via createAdkNormalizer; the replay goldens: replay.test.ts \"agjson deep-equals the committed adk.agjson.json snapshot\"; the facet legs google-adk/src/index.test.ts \"a relayed event's other customMetadata entries ride in the provider-raw carry, without the four relay entries; the pushed native is not changed\"; \"a relayed event without turnComplete that carries the relay entries (a chained chunk) carries none of them\"; \"a customMetadata that held only the relay entries is not carried at all, and adds no provider-raw block\"; \"a native that is not an ADK event rides ext.google.unparsed without the relay entries: its other customMetadata entries stay, and a customMetadata left empty is dropped; the pushed native is not changed\"; \"an event serialized from Python (snake_case custom_metadata, no content) rides ext.google.unparsed without the relay entries: its other entries stay; the pushed native is not changed\"; \"a relayed event whose a2a:response records a task at completed with no status message carries none of the relay entries; its other entries ride\"" },
+  { n: 61, leg: "claude", title: "ADK relay bookkeeping off carries (rc.1)", disposition: "N/A", evidence: "none", citation: "§10 item 61 binds normalizers targeting ADK: no A2A relay surface" },
+  { n: 61, leg: "openai", title: "ADK relay bookkeeping off carries (rc.1)", disposition: "N/A", evidence: "none", citation: "§10 item 61 binds normalizers targeting ADK: no A2A relay surface" },
+  { n: 61, leg: "vercel", title: "ADK relay bookkeeping off carries (rc.1)", disposition: "N/A", evidence: "none", citation: "§10 item 61 binds normalizers targeting ADK: no A2A relay surface" },
+  { n: 62, leg: "adk", title: "Relayed request echo omitted (rc.1): each submitted user-role repeat (a streaming status update, a non-blocking task, a task with artifacts, the a2a-sdk 1.x record) under either member spelling reaches the wire in no form, maps as its event with the content parts after the first k removed, and yields one relay-echo-omitted marker inside its turn; every control maps as the same native with its a2a:response removed", disposition: "COVERED-BY", evidence: "fixture-only", citation: "google-adk/src/relay-echo.test.ts \"each repeat, relayed as a streaming status update, a non-blocking task, a task with artifacts, a task converted as thought, the a2a-sdk 1.x record, or through a converter that maps one part to two, under either spelling of the metadata member, reaches the wire in no form: no planted value, raw or in any block's text\"; \"an event carrying a repeat maps exactly as the same event with its content parts after the first k and their long-running ids removed, its markers aside, with no tool.start, tool.done or hitl.ask from the repeat; that stripped event emits no marker\"; \"each such event yields exactly one ext.google.relay-echo-omitted, after its turn's turn.start and before that turn's terminal, whose only member beyond the envelope is the number of parts it omitted\"; \"a non-blocking task whose only content was the repeat, with only the relay's entries in its metadata, yields the marker alone inside its turn, before the terminal that event or the flush emits, and the fold ends clean\"; \"the long-running ids a repeat's calls contributed go with them: a Workflow node's relayed repeat, after an ask of the run, does not signal that ask's pause, as a node's contentless long-running call would\"; \"a task's artifact parts, the first k content parts, map as the same text blocks as with the repeat absent\"; \"a converter that maps one of a submitted task's artifact parts to two content parts leaves more parts than k: the parts after the first k are omitted, and the marker counts them\"; \"over one fold of every instance, push() never throws, every event validates, and the fold ends with no resync and no tool call without its result\"; \"each control (an agent-role submitted status, a user-role working tool result marked as thought or not, no a2a:response, a task at another state, a submitted task converted from its artifact, and the a2a-sdk 1.x record at another state, in the agent's role, or holding an artifact), under either spelling of the metadata member, maps byte for byte as the same native with its a2a:response removed, with no marker\"; \"the user-role tool results relayed while working, (b) and (f), marked as thought or not, keep their tool.done, which folds against its call; one fold of every control ends with no resync and no tool call without its result\"" },
+  { n: 62, leg: "claude", title: "Relayed request echo omitted (rc.1)", disposition: "N/A", evidence: "none", citation: "§10 item 62 binds normalizers targeting ADK: no A2A relay surface" },
+  { n: 62, leg: "openai", title: "Relayed request echo omitted (rc.1)", disposition: "N/A", evidence: "none", citation: "§10 item 62 binds normalizers targeting ADK: no A2A relay surface" },
+  { n: 62, leg: "vercel", title: "Relayed request echo omitted (rc.1)", disposition: "N/A", evidence: "none", citation: "§10 item 62 binds normalizers targeting ADK: no A2A relay surface" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -301,6 +309,7 @@ const CITED_TEST_FILES: Record<string, string> = {
   "openai-agents/src/index.test.ts": "../../openai-agents/src/index.test.ts",
   "openai-hosted.test.ts": "./openai-hosted.test.ts",
   "google-adk/src/index.test.ts": "../../google-adk/src/index.test.ts",
+  "google-adk/src/relay-echo.test.ts": "../../google-adk/src/relay-echo.test.ts",
   "google-adk/src/in-band-errors.test.ts": "../../google-adk/src/in-band-errors.test.ts",
   "adk-pause.test.ts": "./adk-pause.test.ts",
   "vercel-ai/src/index.test.ts": "../../vercel-ai/src/index.test.ts",
@@ -4562,5 +4571,142 @@ describe("§10.59 — OpenAI built-in round and hosted-MCP approval (rc.1)", () 
       expect(starts.length, fixture).toBeGreaterThan(0);
       for (const s of starts) expect(s, fixture).toMatchObject({ name: "ask_question", serverName: "deepwiki" });
     }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.61 — ADK relay bookkeeping off carries (rc.1), RUNNABLE, facet-driven
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.61 — ADK relay bookkeeping off carries (rc.1): the four relay entries reach no emitted event, and the stream equals the one from natives without them", () => {
+  const RELAY_KEYS = ["a2a:request", "a2a:response", "a2a:task_id", "a2a:context_id"] as const;
+  const LEAVES: string[] = [];
+  const leaf = (tag: string): string => {
+    const v = `S10R-${tag}-${LEAVES.length}`;
+    LEAVES.push(v);
+    return v;
+  };
+  const model = (t: string) => ({ role: "model", parts: [{ text: t }] });
+  /** The relay's send request as the host issued it, with a distinct leaf at each secret position. */
+  const request = (tag: string) => {
+    const text = leaf(`${tag}-forwarded`);
+    const user = leaf(`${tag}-user`);
+    const session = leaf(`${tag}-session`);
+    return {
+      value: {
+        message: { kind: "message", role: "user", parts: [{ kind: "text", text }], metadata: { adk_user_id: user, adk_session_id: session } },
+        configuration: { pushNotificationConfig: { url: "https://push.example/cb", token: leaf(`${tag}-token`), authentication: { schemes: ["Bearer"], credentials: leaf(`${tag}-credentials`) } } },
+        metadata: { tenantKey: leaf(`${tag}-metadata`) },
+      },
+      repeated: { text, user, session },
+    };
+  };
+  const fourKeys = (tag: string) => {
+    const req = request(tag);
+    return {
+      "a2a:request": req.value,
+      // a Task at completed whose status carries no message and whose history repeats the request's leaves
+      "a2a:response": {
+        kind: "task",
+        id: leaf(`${tag}-task-in-response`),
+        status: { state: "completed" },
+        history: [{ kind: "message", role: "user", parts: [{ kind: "text", text: req.repeated.text }], metadata: { adk_user_id: req.repeated.user, adk_session_id: req.repeated.session } }],
+      },
+      "a2a:task_id": leaf(`${tag}-task-id`),
+      "a2a:context_id": leaf(`${tag}-context-id`),
+    };
+  };
+  const inv = { invocationId: "inv_s10_relay" };
+  // (a) completes a turn, with a member `other`; (b) does not complete a turn; (c) no branch/nodeInfo, the four keys only;
+  // (d) cannot be mapped (no content, no invocationId), camelCase and snake_case.
+  const shapeA = (i: number) => ({ ...inv, author: `relay-a${i}`, content: model(`Done ${i}.`), turnComplete: true, customMetadata: { ...fourKeys(`a${i}`), other: { note: `kept-${i}`, nested: [i, { deeper: true }] } } });
+  const shapeB = (i: number) => ({ ...inv, author: `relay-b${i}`, content: model(`Hel${i}`), partial: true, customMetadata: { "a2a:request": request(`b${i}`).value } });
+  const shapeC = (i: number) => ({ ...inv, author: `relay-c${i}`, content: model(`Ok ${i}.`), customMetadata: fourKeys(`c${i}`) });
+  const shapeD = (i: number) => ({ author: `relay-d${i}`, turnComplete: true, customMetadata: fourKeys(`d${i}`) });
+  const shapeDs = (i: number) => ({ author: `relay-ds${i}`, turn_complete: true, custom_metadata: fourKeys(`ds${i}`) });
+  const shapes = { a: [shapeA(1), shapeA(2)], b: [shapeB(1), shapeB(2)], c: [shapeC(1), shapeC(2)], d: [shapeD(1), shapeD(2), shapeDs(1), shapeDs(2)] };
+  const all = [...shapes.a, ...shapes.b, ...shapes.c, ...shapes.d];
+
+  /** The same native with the four keys removed, and the metadata member removed where that removal empties it. */
+  const stripped = (native: Record<string, unknown>): Record<string, unknown> => {
+    const out: Record<string, unknown> = { ...native };
+    for (const member of ["customMetadata", "custom_metadata"]) {
+      const bag = out[member];
+      if (bag === null || typeof bag !== "object" || Array.isArray(bag)) continue;
+      const kept = Object.fromEntries(Object.entries(bag as Record<string, unknown>).filter(([k]) => !(RELAY_KEYS as readonly string[]).includes(k)));
+      if (Object.keys(kept).length === 0) delete out[member];
+      else out[member] = kept;
+    }
+    return out;
+  };
+  const drive = (natives: Record<string, unknown>[]): AgEvent[] => {
+    const n = createAdkNormalizer({ invokeId: "s10-relay" });
+    const out: AgEvent[] = [];
+    for (const native of natives) expect(() => out.push(...n.push(toJsonValue(native)))).not.toThrow();
+    expect(() => out.push(...n.flush())).not.toThrow();
+    return out;
+  };
+  const providerRaws = (out: AgEvent[]): Array<Record<string, unknown>> =>
+    out.flatMap((e) => {
+      if (e.type !== "content.block") return [];
+      const block: unknown = Reflect.get(e, "block");
+      if (typeof block !== "object" || block === null || Reflect.get(block, "type") !== "provider-raw") return [];
+      const raw: unknown = Reflect.get(block, "raw");
+      return typeof raw === "object" && raw !== null ? [raw as Record<string, unknown>] : [];
+    });
+  const textConcats = (out: AgEvent[]): string[] => {
+    const by = new Map<string, string>();
+    for (const e of out) {
+      if (e.type !== "text.delta") continue;
+      const id = String(Reflect.get(e, "blockId") ?? Reflect.get(e, "id") ?? "");
+      by.set(id, (by.get(id) ?? "") + String(Reflect.get(e, "delta") ?? ""));
+    }
+    return [...by.values()];
+  };
+  const expectNoLeaf = (value: unknown, label: string) => {
+    const wire = JSON.stringify(value);
+    for (const v of LEAVES) {
+      expect(wire.includes(v), `${label}: raw ${v}`).toBe(false);
+      expect(wire.includes(JSON.stringify(v).slice(1, -1)), `${label}: escaped ${v}`).toBe(false);
+    }
+  };
+
+  it("in one fold of every shape (two of each, the unmappable shape once per spelling), no secret leaf reaches an emitted event or any text block's deltas, and no provider-raw block's raw.customMetadata holds a relay entry", () => {
+    const out = drive(all);
+    expectNoLeaf(out, "the fold's events");
+    for (const text of textConcats(out)) for (const v of LEAVES) expect(text.includes(v), `a text block's deltas: ${v}`).toBe(false);
+    for (const raw of providerRaws(out)) {
+      const bag = raw["customMetadata"];
+      if (bag !== null && typeof bag === "object") for (const k of RELAY_KEYS) expect(Object.hasOwn(bag, k), k).toBe(false);
+    }
+  });
+
+  it("per shape: (a)'s other rides byte-identical to the native's, (c) leaves no provider-raw customMetadata member, and (d)'s ext.google.unparsed native holds no leaf and no emptied metadata member under either spelling", () => {
+    for (const native of shapes.a) {
+      const carried = providerRaws(drive([native])).map((raw) => raw["customMetadata"]).filter((b) => b !== undefined);
+      expect(carried.map((b) => JSON.stringify(Reflect.get(b as object, "other"))), String(native.author)).toEqual([JSON.stringify(native.customMetadata.other)]);
+    }
+    for (const native of shapes.c) {
+      for (const raw of providerRaws(drive([native]))) expect(Object.hasOwn(raw, "customMetadata"), String(native.author)).toBe(false);
+    }
+    for (const native of shapes.d) {
+      const ext = drive([native]).filter((e) => e.type === "ext.google.unparsed");
+      expect(ext.length, String(native.author)).toBeGreaterThan(0);
+      for (const e of ext) {
+        expectNoLeaf(e, String(native.author));
+        const carriedNative: unknown = Reflect.get(e, "native");
+        for (const member of ["customMetadata", "custom_metadata"]) {
+          const bag = carriedNative !== null && typeof carriedNative === "object" ? Reflect.get(carriedNative, member) : undefined;
+          expect(bag !== undefined && bag !== null && typeof bag === "object" && Object.keys(bag).length === 0, `${String(native.author)}: emptied ${member}`).toBe(false);
+        }
+      }
+    }
+  });
+
+  it("the emitted events, and the fold of them, deep-equal those from the same natives with the four keys removed (and the metadata member removed where that empties it), with the same invoke id", () => {
+    const out = drive(all);
+    const ref = drive(all.map(stripped));
+    expect(isDeepStrictEqual(JSON.parse(JSON.stringify(out)), JSON.parse(JSON.stringify(ref)))).toBe(true);
+    expect(isDeepStrictEqual(JSON.parse(JSON.stringify(reduce(out))), JSON.parse(JSON.stringify(reduce(ref))))).toBe(true);
   });
 });
