@@ -136,6 +136,29 @@ describe("isJsonValue / toJsonValueSafe / toJsonValueSafeWithIssues (live-bounda
     expect(toJsonValueSafe(proxy)).toBeNull();
   });
 
+  it("a null-prototype node with an own __proto__ key takes the copy: ordinary prototype, the key an own data member, siblings equal", () => {
+    const inner = Object.create(null) as Record<string, unknown>;
+    Object.defineProperty(inner, "__proto__", { value: { polluted: true }, enumerable: true, writable: true, configurable: true });
+    inner["d"] = 1;
+    const input = { a: inner, list: [inner], s: "x" };
+    const { value, issues } = toJsonValueSafeWithIssues(input);
+    expect(issues).toEqual([]);
+    expect(value).not.toBe(input);
+    const a = (value as { a: Record<string, unknown> }).a;
+    expect(Object.getPrototypeOf(a)).toBe(Object.prototype);
+    expect(Object.getOwnPropertyDescriptor(a, "__proto__")?.value).toEqual({ polluted: true });
+    expect(a["d"]).toBe(1);
+    expect(JSON.stringify(value)).toBe(JSON.stringify(input));
+    expect((({}) as Record<string, unknown>)["polluted"]).toBeUndefined();
+    // isJsonValue still accepts the null-prototype input
+    expect(isJsonValue(input)).toBe(true);
+  });
+
+  it("an ordinary JSON value still takes the fast path by reference (control)", () => {
+    const input = JSON.parse('{"__proto__":{"polluted":true},"d":[1,{"e":2}]}') as unknown;
+    expect(toJsonValueSafe(input)).toBe(input);
+  });
+
   it("a __proto__ key stays a data member and never touches a prototype", () => {
     const input = JSON.parse('{"__proto__":{"polluted":true},"d":1}');
     input.when = new Date(0); // force the copying path

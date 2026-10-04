@@ -285,3 +285,47 @@ describe("ingestAgEvents — ignored envelopes keep their seq slot; non-envelope
     expect(ingestAgEvents(["junk", { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" }], { onReject })).toHaveLength(1);
   });
 });
+
+/** Every own `__proto__` and every non-ordinary prototype, by path. */
+function protoOffenders(v: unknown, path = "$"): string[] {
+  if (v === null || typeof v !== "object") return [];
+  const out: string[] = [];
+  if (Object.getPrototypeOf(v) !== (Array.isArray(v) ? Array.prototype : Object.prototype)) out.push(`${path} prototype`);
+  if (Object.hasOwn(v, "__proto__")) out.push(`${path}.__proto__`);
+  for (const k of Object.keys(v)) out.push(...protoOffenders((v as Record<string, unknown>)[k], `${path}.${k}`));
+  return out;
+}
+
+/** The same value with every object rebuilt on a null prototype (members defined, never assigned). */
+function nullPrototyped(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(nullPrototyped);
+  if (v === null || typeof v !== "object") return v;
+  const out = Object.create(null) as Record<string, unknown>;
+  for (const k of Object.keys(v)) {
+    Object.defineProperty(out, k, { value: nullPrototyped((v as Record<string, unknown>)[k]), enumerable: true, writable: true, configurable: true });
+  }
+  return out;
+}
+
+describe("ingest — decoded events hold no own __proto__ and only ordinary prototypes (§13.7 decode)", () => {
+  const text =
+    '{"type":"state.delta","seq":0,"__proto__":{"a":1},"patch":{"k":{"__proto__":null,"v":[{"__proto__":[1],"w":"s"}]},"__proto__":"p"}}';
+
+  it("a bare JSON.parse keeps the member at every depth (negative control)", () => {
+    expect(protoOffenders(JSON.parse(text))).toEqual(["$.__proto__", "$.patch.__proto__", "$.patch.k.__proto__", "$.patch.k.v.0.__proto__"]);
+  });
+
+  it("ingestAgEvent drops it at every depth and keeps the siblings", () => {
+    const e = ingestAgEvent(JSON.parse(text) as JsonValue);
+    expect(e).toBeDefined();
+    expect(protoOffenders(e)).toEqual([]);
+    expect((e as unknown as { patch: unknown }).patch).toEqual({ k: { v: [{ w: "s" }] } });
+  });
+
+  it("a null-prototype event is accepted and decodes to ordinary objects", () => {
+    const e = ingestAgEvent(nullPrototyped(JSON.parse('{"type":"state.delta","seq":0,"patch":{"k":{"v":1}}}')) as JsonValue);
+    expect(e).toBeDefined();
+    expect(protoOffenders(e)).toEqual([]);
+    expect((e as unknown as { patch: unknown }).patch).toEqual({ k: { v: 1 } });
+  });
+});

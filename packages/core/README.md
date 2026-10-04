@@ -69,7 +69,8 @@ console.log(AGJSON_VERSION, messages);
 ```
 
 `ingestAgEvents` validates raw wire objects against `AgEvent` and never throws
-(the consumer posture). Unknown fields pass through at every depth. An event it
+(the consumer posture). Unknown fields pass through at every depth, less an own
+`__proto__` member, which it drops (SPEC §13.7). An event it
 cannot validate (a newer event type, an unknown enum value, a malformed known
 type) is not folded: it rides in place as `{type: "ext.agjson.ignored", seq,
 ignoredType, raw}`, which keeps its `seq` slot so the `Reducer` never mistakes it
@@ -99,7 +100,8 @@ if (!checked.ok) return reply(400, { code: checked.code, path: checked.path }); 
   omitted whole, and a record that fails is omitted from its array. Each report
   carries its `path`, the element's `type` when it has one, and the verbatim
   value, so inserting every report back at its index rebuilds the stored
-  record. Unknown fields pass through at every depth; nothing is coerced. What
+  record. Unknown fields pass through at every depth, less an own `__proto__`
+  member; nothing is coerced. What
   they return is a view: keep storing and forwarding the record as received,
   never the view. A record carried inside an event keeps the event rule above:
   a `messages.snapshot` with one unknown block is ignored whole, so it cannot
@@ -115,7 +117,8 @@ if (!checked.ok) return reply(400, { code: checked.code, path: checked.path }); 
   `protocol` other than `"agjson"`. It judges `protocol` first, then `version`,
   then the rest; it checks the envelope members whatever the `kind`, and when
   the rest has both kinds of problem the class is `malformed`. An accepted
-  input comes back with its unknown fields intact.
+  input comes back with its unknown fields intact, less an own `__proto__`
+  member.
 - `validateHitlAnswer` rejects an answer whose `status` is not a defined one
   (`unknown-status`), so an unrecognized status is never read as a grant.
 
@@ -159,6 +162,11 @@ A memory record carries the `_meta` of the write that set it. A `value` write
 replaces the record whole, `_meta` included, and a `patch` replaces `_meta`
 only when the write carries one. A member of the write that the record does
 not declare is not carried.
+
+`Reducer.push` folds each event less an own `__proto__` member at any depth
+(SPEC §13.7), so no state, memory or block value in the result holds one. A host
+that seeds a fold from its own store copies the stored value with `copyJson`,
+which drops the member the same way and returns only ordinary objects.
 
 ## Produce AgJSON
 

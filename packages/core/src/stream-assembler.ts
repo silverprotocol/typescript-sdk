@@ -17,6 +17,7 @@
  */
 
 import type { AgEvent, AgClosedEventType, AgTrigger, AgUsage, AgRole, AgNoticeSource, AgBlock, AgOpaqueKind, AgProviderMeta, AgCitation, JsonValue } from "./agjson.js";
+import { withoutOwnProtoMember } from "./copy-json.js";
 
 // Extracted closed-event arm types (no `as` casts — Extract keeps types typed at source).
 type TurnStartEvent    = Extract<AgClosedEventType, { type: "turn.start" }>;
@@ -233,12 +234,15 @@ export class StreamAssembler {
       default:
         break;
     }
-    this.#buffer.push(ev);
+    // §13.7: an emitted event holds no own `__proto__` member at any depth. The
+    // copy rebuilds only when a node holds one, and never mutates the caller's
+    // values; a class instance rides by reference.
+    this.#buffer.push(withoutOwnProtoMember(ev));
   }
 
   /** Emit one AgExtEvent into the buffer (open template-literal type). */
   #emitExt(ev: AgEvent): void {
-    this.#buffer.push(ev);
+    this.#buffer.push(withoutOwnProtoMember(ev));
   }
 
   /** Ensure a turn.start has been emitted for `turnId`. If not seen, synthesize one. */

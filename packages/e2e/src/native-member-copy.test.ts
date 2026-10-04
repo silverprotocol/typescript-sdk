@@ -8,8 +8,17 @@
  * is also replayed without its content and invocationId, as a native the facet does not recognize and so carries
  * whole (no engine yields one; the carry rebuilds the native without those entries).
  *
- * Not every copy is reachable from a native: a host-made usage on openai-agents' host error and vercel-ai's step stop
- * details occur in no corpus native, so this test does not cover them; their own packages' tests do.
+ * Each corpus native is also replayed with the member planted once per value kind (object, null, array, primitive)
+ * beside a sibling, inside JSON text a native string holds as well, against a control that plants the sibling alone:
+ * the events hold no member, keep the event-type sequence, equal the control's (JSON text compared after parse, less
+ * the member; one claude-facet divergence is named where it is counted), and carry the sibling. A runtime check verifies that an assigning copy would
+ * select a prototype here and that no facet's does. Each native rebuilt with null-prototype objects, and as class
+ * instances, replays to ordinary objects equal to the plain native's. No facet's native holds a JSON Patch operation,
+ * so a path-token leg has no native to plant.
+ *
+ * Not every copy is reachable from a native: a host-made usage on openai-agents' host error, vercel-ai's step stop
+ * details and an object error's message text occur in no corpus native, so this test does not cover them; their own
+ * packages' tests do.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -129,4 +138,197 @@ describe("engine-built google-adk natives whose objects each hold a member named
     expect(found).toEqual([]);
     expect(({} as { x?: unknown }).x).toBeUndefined();
   }, 240_000);
+});
+
+// ── Each value kind, planted beside a sibling, against an unplanted control ──────────────────────────────────────
+
+const SIBLING = "zzPlanted";
+
+/** True when a string holds JSON text for an object or array. */
+function jsonText(s: string): unknown {
+  if (!/^\s*[[{]/.test(s)) return undefined;
+  try {
+    return JSON.parse(s) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * `v` with `members` defined (never assigned) on every object at every depth, below the top-level array, and inside
+ * every JSON text a string holds, re-serialized.
+ */
+function planted(v: unknown, members: Record<string, unknown>): unknown {
+  if (typeof v === "string") {
+    const parsed = jsonText(v);
+    return parsed === undefined ? v : JSON.stringify(planted(parsed, members));
+  }
+  if (Array.isArray(v)) return v.map((x) => planted(x, members));
+  if (v !== null && typeof v === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, x] of Object.entries(v)) out[k] = planted(x, members);
+    for (const [k, x] of Object.entries(members)) {
+      Object.defineProperty(out, k, { value: structuredClone(x), enumerable: true, writable: true, configurable: true });
+    }
+    return out;
+  }
+  return v;
+}
+
+/** The same value with every object rebuilt on a null prototype, or as an instance of a class. */
+class NativeRecord {}
+function rebuilt(v: unknown, make: () => object): unknown {
+  if (Array.isArray(v)) return v.map((x) => rebuilt(x, make));
+  if (v !== null && typeof v === "object") {
+    const out = make() as Record<string, unknown>;
+    for (const [k, x] of Object.entries(v)) {
+      Object.defineProperty(out, k, { value: rebuilt(x, make), enumerable: true, writable: true, configurable: true });
+    }
+    return out;
+  }
+  return v;
+}
+
+/** A comparable form: JSON text parsed, and an own `__proto__` omitted from it, so a serialized native compares by content. */
+function comparable(v: unknown): unknown {
+  if (typeof v === "string") {
+    const parsed = jsonText(v);
+    return parsed === undefined ? v : { "(json)": comparable(parsed) };
+  }
+  if (Array.isArray(v)) return v.map(comparable);
+  if (v !== null && typeof v === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, x] of Object.entries(v)) if (k !== "__proto__") Object.defineProperty(out, k, { value: comparable(x), enumerable: true, writable: true, configurable: true });
+    return out;
+  }
+  return v;
+}
+
+/**
+ * Removes, in place, `providerMetadata.wireInput` from each planted tool.args.assembled event whose control twin has
+ * none (and the emptied `providerMetadata` bag with it). Returns how many it removed.
+ */
+function withoutPlantedOnlyWireInput(got: unknown[], want: unknown[]): number {
+  let n = 0;
+  got.forEach((g, i) => {
+    const e = g as { type?: unknown; providerMetadata?: Record<string, unknown> };
+    const c = want[i] as { providerMetadata?: Record<string, unknown> } | undefined;
+    if (e?.type !== "tool.args.assembled" || e.providerMetadata?.["wireInput"] === undefined) return;
+    if (c?.providerMetadata?.["wireInput"] !== undefined) return;
+    delete e.providerMetadata["wireInput"];
+    if (Object.keys(e.providerMetadata).length === 0) delete e.providerMetadata;
+    n++;
+  });
+  return n;
+}
+
+function driveWith(file: string, natives: JsonValue[], shape: (native: JsonValue[]) => unknown): AgEvent[] {
+  const fw = inferFramework(file);
+  const { native, hostCompleted } = splitHostCompleteMarker(natives);
+  const n =
+    fw === "openai" ? createOpenaiNormalizer({ invokeId: "openai" })
+    : fw === "adk" ? createAdkNormalizer({ invokeId: "adk", ...(hostCompleted ? { hostCompletion: true } : {}) })
+    : fw === "vercel" ? createVercelNormalizer({ invokeId: "vercel" })
+    : createClaudeNormalizer({ invokeId: "claude" });
+  const out: AgEvent[] = [];
+  for (const e of shape(native) as JsonValue[]) out.push(...n.push(e));
+  if (hostCompleted && fw === "adk") out.push(...n.push({ type: HOST_COMPLETE_MARKER }));
+  out.push(...n.flush());
+  return out;
+}
+
+const VALUE_KINDS: Array<[string, unknown]> = [
+  ["object", { x: 1 }],
+  ["null", null],
+  ["array", [{ x: 1 }]],
+  ["primitive", "x"],
+];
+
+/** The runtime's `__proto__` accessor is live when an assignment through it selects a prototype. */
+const accessorLive = ((): boolean => {
+  const o: Record<string, unknown> = {};
+  try {
+    o["__proto__"] = { marker: 1 };
+  } catch {
+    return false;
+  }
+  return (o as { marker?: unknown }).marker === 1;
+})();
+
+describe("facet events from natives planted with each value kind beside a carried sibling", () => {
+  for (const [kind, value] of VALUE_KINDS) {
+    it(`${kind}: no member and no other prototype at any depth, and the events equal the sibling-only control's`, () => {
+      const found: string[] = [];
+      const carried = new Set<string>();
+      let plantedFiles = 0;
+      let claudeWireInputOnlyPlanted = 0;
+      for (const file of natives) {
+        const raw = JSON.parse(readFileSync(new URL(file, CORPUS), "utf8")) as JsonValue[];
+        const control = driveWith(file, raw, (n) => planted(n, { [SIBLING]: 1 }));
+        const events = driveWith(file, raw, (n) => {
+          const p = planted(n, { ["__proto__"]: value, [SIBLING]: 1 });
+          if (JSON.stringify(p).includes('"__proto__":')) plantedFiles++;
+          return p;
+        });
+        found.push(...offendersOf(file, events));
+        if (JSON.stringify(events.map((e) => e.type)) !== JSON.stringify(control.map((e) => e.type))) found.push(`${file} event types differ`);
+        const [got, want] = [comparable(events), comparable(control)] as [unknown[], unknown[]];
+        if (inferFramework(file) === "claude") claudeWireInputOnlyPlanted += withoutPlantedOnlyWireInput(got, want);
+        if (JSON.stringify(got) !== JSON.stringify(want)) found.push(`${file} events differ from the control`);
+        for (const e of events) if (JSON.stringify(e).includes(SIBLING)) carried.add(`${inferFramework(file)} ${e.type}`);
+      }
+      expect(found).toEqual([]);
+      expect(plantedFiles).toBe(natives.length); // every native really holds the member
+      // Known divergence, routed to the claude facet: when the planted member makes a tool's wire input differ from
+      // its content input, the facet carries the wire input as providerMetadata.wireInput, which the control lacks.
+      // This count reaching 0 means the facet no longer does so: remove withoutPlantedOnlyWireInput then.
+      expect(claudeWireInputOnlyPlanted).toBeGreaterThan(0);
+      // Non-vacuity: the sibling planted beside the member reaches tool input on every facet, and shared state on google-adk.
+      for (const fw of ["claude", "openai", "adk", "vercel"]) expect(carried, fw).toContain(`${fw} tool.args.assembled`);
+      expect(carried).toContain("adk state.delta");
+      expect(({} as { x?: unknown }).x).toBeUndefined();
+    }, 240_000);
+  }
+
+  it("the runtime check: an assigning copy of a planted native would select a prototype here, and no facet's does", () => {
+    if (accessorLive) {
+      const assigned = Object.assign({}, JSON.parse('{"__proto__":{"marker":1}}') as object);
+      expect((assigned as { marker?: unknown }).marker).toBe(1);
+    }
+    const found: string[] = [];
+    for (const file of natives) {
+      const raw = JSON.parse(readFileSync(new URL(file, CORPUS), "utf8")) as JsonValue[];
+      const events = driveWith(file, raw, (n) => planted(n, { ["__proto__"]: { marker: 1 } }));
+      const walk = (v: unknown, path: string): void => {
+        if (v === null || typeof v !== "object") return;
+        if ((v as { marker?: unknown }).marker !== undefined) found.push(`${file} ${path}`);
+        for (const [k, x] of Object.entries(v)) walk(x, `${path}.${k}`);
+      };
+      events.forEach((e, i) => walk(e, `[${i}] ${e.type}`));
+      const r = new Reducer();
+      for (const e of events) r.push(e);
+      walk(r.result(), "folded");
+    }
+    expect(found).toEqual([]);
+  }, 240_000);
+});
+
+describe("facet events from natives built with a null prototype or as class instances", () => {
+  const shapes: Array<[string, () => object]> = [
+    ["null prototype", () => Object.create(null) as object],
+    ["class instance", () => new NativeRecord()],
+  ];
+  for (const [name, make] of shapes) {
+    it(`${name}: every emitted and folded object is ordinary, and the events equal the plain native's`, () => {
+      const found: string[] = [];
+      for (const file of natives) {
+        const raw = JSON.parse(readFileSync(new URL(file, CORPUS), "utf8")) as JsonValue[];
+        const plain = driveWith(file, raw, (n) => n);
+        const events = driveWith(file, raw, (n) => rebuilt(n, make));
+        found.push(...offendersOf(file, events));
+        if (JSON.stringify(comparable(events)) !== JSON.stringify(comparable(plain))) found.push(`${file} events differ from the plain native's`);
+      }
+      expect(found).toEqual([]);
+    }, 240_000);
+  }
 });

@@ -2537,3 +2537,43 @@ describe("a member named __proto__ in a native part is dropped at every depth", 
     expect(({} as { x?: unknown }).x).toBeUndefined();
   });
 });
+
+describe("an error object holding a member named __proto__ renders to message text that equals the unplanted error's after parse less the member", () => {
+  const own = (v: unknown, out: string[] = [], path = ""): string[] => {
+    if (Array.isArray(v)) v.forEach((x, i) => own(x, out, `${path}[${i}]`));
+    else if (v !== null && typeof v === "object") {
+      if (Object.hasOwn(v, "__proto__")) out.push(path);
+      for (const [k, x] of Object.entries(v)) own(x, out, `${path}.${k}`);
+    }
+    return out;
+  };
+  const messages = (errorJson: string): string[] => {
+    const n = createVercelNormalizer({ invokeId: "vercel" });
+    const parts = JSON.parse(`[{"type": "start"}, {"type": "start-step", "request": {}, "warnings": []}, {"type": "error", "error": ${errorJson}}]`) as unknown[];
+    const events = [...parts.flatMap((p) => n.push(p as never)), ...n.flush()];
+    return events.flatMap((e) => {
+      const m = (e as { message?: unknown; error?: { message?: unknown } }).message ?? (e as { error?: { message?: unknown } }).error?.message;
+      return typeof m === "string" ? [m] : [];
+    });
+  };
+
+  /** JSON text parsed, an own `__proto__` member omitted at every depth; other text as is. */
+  const parsedLessMember = (m: string): unknown => {
+    if (!m.startsWith("{")) return m;
+    const strip = (v: unknown): unknown =>
+      Array.isArray(v) ? v.map(strip)
+      : v !== null && typeof v === "object" ? Object.fromEntries(Object.entries(v).filter(([k]) => k !== "__proto__").map(([k, x]) => [k, strip(x)]))
+      : v;
+    return strip(JSON.parse(m));
+  };
+
+  it("the message text, parsed and less the member, equals the unplanted error's", () => {
+    const planted = messages('{"code": "E", "__proto__": {"x": 1}, "detail": {"__proto__": null, "k": 1}}');
+    const control = messages('{"code": "E", "detail": {"k": 1}}');
+    expect(planted.length).toBeGreaterThan(0);
+    const texts = planted.filter((m) => m.startsWith("{"));
+    expect(texts.length).toBeGreaterThan(0); // non-vacuity: the object error is rendered as JSON text
+    expect(texts.some((t) => own(JSON.parse(t)).length > 0)).toBe(true); // the text carries the serialized member
+    expect(planted.map(parsedLessMember)).toEqual(control.map(parsedLessMember));
+  });
+});

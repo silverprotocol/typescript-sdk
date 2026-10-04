@@ -226,3 +226,46 @@ describe("checkAgInput — the producer-side errorText rule and the A2UI action'
     expect(checkAgInput(action({})).ok).toBe(true);
   });
 });
+
+/** Every own `__proto__` and every non-ordinary prototype, by path. */
+function protoOffenders(v: unknown, path = "$"): string[] {
+  if (v === null || typeof v !== "object") return [];
+  const out: string[] = [];
+  if (Object.getPrototypeOf(v) !== (Array.isArray(v) ? Array.prototype : Object.prototype)) out.push(`${path} prototype`);
+  if (Object.hasOwn(v, "__proto__")) out.push(`${path}.__proto__`);
+  for (const k of Object.keys(v)) out.push(...protoOffenders((v as Record<string, unknown>)[k], `${path}.${k}`));
+  return out;
+}
+
+/** The same value with every object rebuilt on a null prototype (members defined, never assigned). */
+function nullPrototyped(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(nullPrototyped);
+  if (v === null || typeof v !== "object") return v;
+  const out = Object.create(null) as Record<string, unknown>;
+  for (const k of Object.keys(v)) {
+    Object.defineProperty(out, k, { value: nullPrototyped((v as Record<string, unknown>)[k]), enumerable: true, writable: true, configurable: true });
+  }
+  return out;
+}
+
+describe("checkAgInput — a null-prototype input is still accepted (§13.7 decode)", () => {
+  const text = `{"protocol":"agjson","version":"${AGJSON_VERSION}","threadId":"th","turnId":"t","kind":"start","messages":[{"id":"m","role":"user","content":[{"type":"text","text":"a"}]}],"state":{"k":{"v":1}}}`;
+
+  it("a null-prototype input is accepted, equal to the ordinary one, with ordinary objects", () => {
+    const plain = checkAgInput(JSON.parse(text));
+    const bare = checkAgInput(nullPrototyped(JSON.parse(text)));
+    expect(plain.ok).toBe(true);
+    expect(bare.ok).toBe(true);
+    if (!plain.ok || !bare.ok) return;
+    expect(bare.input).toEqual(plain.input);
+    expect(protoOffenders(bare.input)).toEqual([]);
+  });
+
+  it("a member planted at depth is dropped; the bare parse holds it (negative control)", () => {
+    const planted = JSON.parse(text.replace('"v":1', '"v":1,"__proto__":{"p":1}'));
+    expect(protoOffenders(planted)).toEqual(["$.state.k.__proto__"]);
+    const r = checkAgInput(planted);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(protoOffenders(r.input)).toEqual([]);
+  });
+});

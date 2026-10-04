@@ -7,3 +7,4 @@ export * from "./atomic-push.js";
 export * from "./record.js";
 export * from "./input-check.js";
 export * from "./persist.js";
+export { copyJson } from "./copy-json.js";

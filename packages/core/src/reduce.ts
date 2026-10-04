@@ -14,6 +14,7 @@ import type {
 } from "./agjson.js";
 import { REMOVE_ALL } from "./agjson.js";
 import { applyPatch } from "./json-patch.js";
+import { deleteOwnProtoMember, withoutOwnProtoMember } from "./copy-json.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reducer — the normative event→state fold (spec §5).
@@ -235,10 +236,21 @@ export class Reducer {
     // It runs before the ext guard below, which then narrows the copy. An event
     // structuredClone cannot copy (a function-valued field) folds as pushed, as
     // it always did, rather than throwing out of push().
+    //
+    // §13.7: the fold omits an own `__proto__` member at every depth of every
+    // event it folds. On the clone the walk deletes in place; an event that
+    // cannot be cloned gets a rebuilt copy, so the host's object is never
+    // mutated. Neither walk throws out of push().
     try {
       ev = structuredClone(ev);
+      deleteOwnProtoMember(ev);
     } catch {
-      // not cloneable: fold the event as pushed
+      // not cloneable: fold the event as pushed, less the member
+      try {
+        ev = withoutOwnProtoMember(ev);
+      } catch {
+        // a host getter that throws: fold the event as pushed
+      }
     }
 
     // Ext events (`ext.<vendor>.<key>`) are live-only / non-folding (§4/§12).
@@ -1057,6 +1069,9 @@ export class Reducer {
         if (Array.isArray(patch)) {
           // RFC-6902 path: requires an existing document to patch against.
           if (this.#state === undefined) {
+            // An empty patch applies no operation: nothing to resync, and the
+            // state stays absent.
+            if (patch.length === 0) break;
             // No document to apply the patch to — signal resync (same semantics
             // as memory.write patch against a never-seeded record).
             this.#resync = true;
@@ -1120,6 +1135,8 @@ export class Reducer {
           // PATCH path: mutate an existing record via R6 applyPatch.
           const existing = this.#memory.get(memKey);
           if (existing === undefined) {
+            // An empty patch applies no operation: no record, no resync.
+            if (Array.isArray(ev.patch) && ev.patch.length === 0) break;
             // NEVER seed from {} — set resync flag and bail.
             this.#resync = true;
             break;

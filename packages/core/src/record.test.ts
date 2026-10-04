@@ -143,3 +143,53 @@ describe("readStoredAgMessages / readStoredAgMemoryRecords — arrays of stored 
     expect(readStoredAgMemoryRecords("x" as never)).toEqual({ value: [], reports: [{ path: [], raw: "x" }] });
   });
 });
+
+/** Every own `__proto__` and every non-ordinary prototype, by path. */
+function protoOffenders(v: unknown, path = "$"): string[] {
+  if (v === null || typeof v !== "object") return [];
+  const out: string[] = [];
+  if (Object.getPrototypeOf(v) !== (Array.isArray(v) ? Array.prototype : Object.prototype)) out.push(`${path} prototype`);
+  if (Object.hasOwn(v, "__proto__")) out.push(`${path}.__proto__`);
+  for (const k of Object.keys(v)) out.push(...protoOffenders((v as Record<string, unknown>)[k], `${path}.${k}`));
+  return out;
+}
+
+/** The same value with every object rebuilt on a null prototype (members defined, never assigned). */
+function nullPrototyped(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(nullPrototyped);
+  if (v === null || typeof v !== "object") return v;
+  const out = Object.create(null) as Record<string, unknown>;
+  for (const k of Object.keys(v)) {
+    Object.defineProperty(out, k, { value: nullPrototyped((v as Record<string, unknown>)[k]), enumerable: true, writable: true, configurable: true });
+  }
+  return out;
+}
+
+describe("stored-record readers — a null-prototype record is still read (§13.7 decode)", () => {
+  it("a bare JSON.parse keeps the member (negative control) and the message reader drops it", () => {
+    const raw = JSON.parse('{"id":"m","role":"user","content":[{"type":"text","text":"a","__proto__":{"x":1}}]}') as JsonValue;
+    expect(protoOffenders(raw)).toEqual(["$.content.0.__proto__"]);
+    expect(protoOffenders(readStoredAgMessage(raw).value)).toEqual([]);
+  });
+
+  it("a null-prototype message reads back equal, with ordinary objects and zero reports", () => {
+    const plain = { id: "m", role: "user", content: [{ type: "text", text: "a" }] };
+    const r = readStoredAgMessage(nullPrototyped(plain));
+    expect(r.reports).toEqual([]);
+    expect(r.value).toEqual(plain);
+    expect(protoOffenders(r.value)).toEqual([]);
+    const many = readStoredAgMessages([nullPrototyped(plain)]);
+    expect(many.value).toEqual([plain]);
+  });
+
+  it("a null-prototype memory record reads back equal, with ordinary objects", () => {
+    const plain = { scope: "user", key: "k", value: { pref: { tone: "short" } } };
+    const r = readStoredAgMemoryRecords([nullPrototyped(plain)]);
+    expect(r.value).toEqual([plain]);
+    expect(protoOffenders(r.value)).toEqual([]);
+    const planted = JSON.parse('{"scope":"user","key":"k","value":{"__proto__":{"p":1},"pref":1}}');
+    const r2 = readStoredAgMemoryRecords([planted]);
+    expect(protoOffenders(r2.value)).toEqual([]);
+    expect(r2.value[0]?.value).toEqual({ pref: 1 });
+  });
+});

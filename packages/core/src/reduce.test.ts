@@ -1450,7 +1450,7 @@ describe("reduce — R8 shared-state snapshot + delta", () => {
       expect(out.result.state).toEqual({ obj: { value: "v" } });
       expect(Object.hasOwn((out.result.state as { obj: object }).obj, "kind")).toBe(false);
     });
-    it("copy-isolated and batch == incremental; an own __proto__ key stays data, never a prototype", () => {
+    it("copy-isolated and batch == incremental; an own __proto__ key is omitted, never a prototype", () => {
       const evs: AgEvent[] = [
         { type: "state.delta", seq: 0, patch: JSON.parse('{"k":{"a":1},"__proto__":{"polluted":true}}') },
         { type: "state.delta", seq: 1, patch: [{ op: "replace", path: "/k/a", value: 2 }] },
@@ -1464,15 +1464,17 @@ describe("reduce — R8 shared-state snapshot + delta", () => {
       const state = out.result.state as Record<string, unknown>;
       expect(Object.getPrototypeOf(state)).toBe(Object.prototype);
       expect((state as { k: unknown }).k).toEqual({ a: 2 });
+      expect(Object.hasOwn(state, "__proto__")).toBe(false);
       (state as { k: { a: number } }).k.a = 99; // a consumer mutating the result
       expect((evs[0] as unknown as { patch: { k: { a: number } } }).patch.k.a).toBe(1);
       expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
     });
-    it("an own __proto__ key of a patch is stored as data under that key, never as the state's prototype", () => {
+    it("an own __proto__ key of a patch is omitted from the fold, never the state's prototype", () => {
       const out = fold([{ type: "state.delta", seq: 0, patch: JSON.parse('{"__proto__":{"polluted":true},"k":1}') }]);
       const state = out.result.state as Record<string, unknown>;
       expect(Object.getPrototypeOf(state)).toBe(Object.prototype);
-      expect(Object.getOwnPropertyDescriptor(state, "__proto__")?.value).toEqual({ polluted: true });
+      expect(Object.hasOwn(state, "__proto__")).toBe(false);
+      expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
       expect(state["k"]).toBe(1);
       expect(out.needsResync).toBe(false);
     });
@@ -4993,5 +4995,220 @@ describe("memory records a snapshot cannot seed, and the keyless record's key", 
     ]);
     expect(r.needsResync).toBe(false);
     expect((r.result().memory ?? []).filter((m) => m.scope === "user").map((m) => m.value)).toEqual([{ v: 2 }]);
+  });
+});
+
+describe("reduce — an own __proto__ member is omitted at every depth of every folded event (§13.7)", () => {
+  const T = "turn_x";
+  const M = "msg_turn_x";
+  const stream = (): AgEvent[] =>
+    JSON.parse(
+      JSON.stringify([
+        { type: "turn.start", seq: 0, turnId: T, threadId: "t" },
+        { type: "message.start", seq: 1, id: M, turnId: T, threadId: "t", role: "assistant" },
+        { type: "tool.start", seq: 2, turnId: T, toolCallId: "c1", name: "echo", index: 0 },
+        { type: "tool.args.delta", seq: 3, toolCallId: "c1", delta: '{"text":"hi"}' },
+        { type: "tool.args.assembled", seq: 4, toolCallId: "c1", input: { text: "hi", nested: { deep: [{ k: 1 }] } } },
+        { type: "tool.done", seq: 5, turnId: T, toolCallId: "c1", content: [{ type: "text", text: "echo: hi" }], outcome: "ok" },
+        { type: "text.start", seq: 6, id: "text:0", messageId: M, turnId: T, providerMetadata: { v: { sig: "s", inner: { a: [1, { b: 2 }] } } } },
+        { type: "text.delta", seq: 7, id: "text:0", messageId: M, delta: "Done.", turnId: T },
+        { type: "text.end", seq: 8, id: "text:0", messageId: M, turnId: T },
+        { type: "message.end", seq: 9, id: M },
+        { type: "state.delta", seq: 10, patch: { cfg: { a: 1, list: [{ x: 1 }] }, n: 2 } },
+        { type: "state.delta", seq: 11, patch: [{ op: "add", path: "/cfg/b", value: { c: 3 } }] },
+        { type: "memory.write", seq: 12, scope: "user", key: "k", value: { pref: { tone: "short" } } },
+        {
+          type: "turn.done",
+          seq: 13,
+          turnId: T,
+          outcome: { type: "success" },
+          finishReason: "stop",
+          usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3, cumulative: false },
+        },
+      ]),
+    ) as AgEvent[];
+
+  /** Plants `extra` members (defined, never assigned) on every object node below the event's top level. */
+  const plant = (v: unknown, extra: Record<string, unknown>, top = true): unknown => {
+    if (Array.isArray(v)) return v.map((x) => plant(x, extra, false));
+    if (v === null || typeof v !== "object") return v;
+    const out: Record<string, unknown> = {};
+    for (const [k, x] of Object.entries(v)) out[k] = plant(x, extra, false);
+    if (!top) {
+      for (const [k, x] of Object.entries(extra)) {
+        Object.defineProperty(out, k, { value: structuredClone(x), enumerable: true, writable: true, configurable: true });
+      }
+    }
+    return out;
+  };
+
+  /** Every own `__proto__` and every object whose prototype is not the ordinary one, by path. */
+  const offenders = (v: unknown, path = "$"): string[] => {
+    if (v === null || typeof v !== "object") return [];
+    const out: string[] = [];
+    const want = Array.isArray(v) ? Array.prototype : Object.prototype;
+    if (Object.getPrototypeOf(v) !== want) out.push(`${path} prototype`);
+    if (Object.hasOwn(v, "__proto__")) out.push(`${path}.__proto__`);
+    for (const k of Object.keys(v)) out.push(...offenders((v as Record<string, unknown>)[k], `${path}.${k}`));
+    return out;
+  };
+
+  const SIB = "zzPlanted";
+  const legs: Array<[string, unknown]> = [
+    ["object", { polluted: true }],
+    ["null", null],
+    ["array", [{ polluted: true }]],
+    ["primitive", "s"],
+  ];
+  const accessorLive = (() => {
+    const o: Record<string, unknown> = {};
+    try {
+      o["__proto__"] = { marker: 1 };
+    } catch {
+      return false;
+    }
+    return (o as { marker?: unknown }).marker === 1;
+  })();
+
+  for (const [leg, value] of legs) {
+    it(`value leg ${leg}: the folded result holds no own __proto__ at any depth, every object is ordinary, and it equals the unplanted fold`, () => {
+      const control = stream().map((e) => plant(e, { [SIB]: 1 })) as AgEvent[];
+      const planted = stream().map((e) => plant(e, { ["__proto__"]: value, [SIB]: 1 })) as AgEvent[];
+      const before = JSON.stringify(planted);
+      // non-vacuity: the planted stream holds the member as own data (JSON text shows it)
+      expect((before.match(/"__proto__":/g) ?? []).length).toBeGreaterThan(10);
+      expect(JSON.stringify(control)).not.toContain('"__proto__"');
+      const want = reduce(control);
+      const got = reduce(planted);
+      expect(offenders(got.result)).toEqual([]);
+      expect(JSON.stringify(got.result)).toBe(JSON.stringify(want.result));
+      expect(got.needsResync).toBe(want.needsResync);
+      // non-vacuity: the sibling planted beside the member is carried in both runs
+      expect(JSON.stringify(got.result)).toContain(SIB);
+      // the fold mutated no pushed event
+      expect(JSON.stringify(planted)).toBe(before);
+      expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
+    });
+  }
+
+  it("batch == incremental and decoded == undecoded for a planted stream", () => {
+    const planted = stream().map((e) => plant(e, { ["__proto__"]: { polluted: true }, [SIB]: 1 })) as AgEvent[];
+    const batch = reduce(planted).result;
+    const acc = new Reducer();
+    for (const e of planted) acc.push(e);
+    expect(JSON.stringify(acc.result())).toBe(JSON.stringify(batch));
+    const decoded = ingestAgEvents(JSON.parse(JSON.stringify(planted)) as JsonValue[]);
+    expect(decoded).toHaveLength(planted.length);
+    expect(JSON.stringify(reduce(decoded).result)).toBe(JSON.stringify(batch));
+  });
+
+  it("the runtime check: where the __proto__ accessor is live, an assigned plant would have moved a prototype, and the fold's did not", () => {
+    const planted = stream().map((e) => plant(e, { ["__proto__"]: { marker: 1 } })) as AgEvent[];
+    expect(JSON.stringify(planted)).toContain('"__proto__":{"marker":1}');
+    const { result } = reduce(planted);
+    if (accessorLive) {
+      // An assigning copy of a planted node selects its prototype on this runtime.
+      const assigned = Object.assign({}, JSON.parse('{"__proto__":{"marker":1}}') as object);
+      expect((assigned as { marker?: unknown }).marker).toBe(1);
+    }
+    const walk = (v: unknown): void => {
+      if (v === null || typeof v !== "object") return;
+      expect((v as { marker?: unknown }).marker).toBeUndefined();
+      for (const k of Object.keys(v)) walk((v as Record<string, unknown>)[k]);
+    };
+    walk(result);
+    expect(offenders(result)).toEqual([]);
+  });
+
+  it("an event structuredClone cannot copy is folded less the member, and the host's event is not mutated", () => {
+    const fn = () => 1;
+    const ev = { type: "state.delta", seq: 0, patch: JSON.parse('{"__proto__":{"polluted":true},"k":{"__proto__":1,"j":2}}'), hook: fn } as unknown as AgEvent;
+    const acc = new Reducer();
+    expect(() => acc.push(ev)).not.toThrow();
+    const state = acc.result().state as Record<string, unknown>;
+    expect(offenders(state)).toEqual([]);
+    expect(state).toEqual({ k: { j: 2 } });
+    const patch = (ev as unknown as { patch: Record<string, unknown> }).patch;
+    expect(Object.hasOwn(patch, "__proto__")).toBe(true);
+    expect(Object.hasOwn(patch["k"] as object, "__proto__")).toBe(true);
+    expect((ev as unknown as { hook: unknown }).hook).toBe(fn);
+  });
+
+  it("an uncloneable event whose getter throws does not throw out of push()", () => {
+    const ev = { type: "turn.start", seq: 0, turnId: T, hook: () => 1 } as Record<string, unknown>;
+    Object.defineProperty(ev, "boom", { enumerable: true, get: () => { throw new Error("getter"); } });
+    const acc = new Reducer();
+    expect(() => acc.push(ev as unknown as AgEvent)).not.toThrow();
+    expect(() => acc.result()).not.toThrow();
+  });
+
+  const seeded = (patch: JsonValue): AgEvent[] => [
+    { type: "state.delta", seq: 0, patch: { k: 1 } } as AgEvent,
+    { type: "state.delta", seq: 1, patch } as AgEvent,
+  ];
+  const memSeeded = (patch: JsonValue): AgEvent[] => [
+    { type: "memory.write", seq: 0, scope: "user", key: "m", value: { k: 1 } } as AgEvent,
+    { type: "memory.write", seq: 1, scope: "user", key: "m", patch } as AgEvent,
+  ];
+
+  const resyncLegs: Array<[string, JsonValue]> = [
+    ["a path token named __proto__", [{ op: "add", path: "/__proto__/x", value: 1 }]],
+    ["a from token named __proto__", [{ op: "copy", from: "/__proto__", path: "/x" }]],
+    ["replace /toString", [{ op: "replace", path: "/toString", value: 1 }]],
+    ["remove /constructor", [{ op: "remove", path: "/constructor" }]],
+    ["move from /hasOwnProperty", [{ op: "move", from: "/hasOwnProperty", path: "/h" }]],
+  ];
+  for (const [name, patch] of resyncLegs) {
+    it(`state.delta ${name} resyncs, leaves the state unchanged, and result() returns`, () => {
+      const out = reduce(seeded(patch));
+      expect(out.needsResync).toBe(true);
+      expect(out.result.state).toEqual({ k: 1 });
+      const acc = new Reducer();
+      for (const e of seeded(patch)) acc.push(e);
+      expect(() => acc.result()).not.toThrow();
+    });
+    it(`memory.write ${name} resyncs, leaves the record unchanged, and result() returns`, () => {
+      const out = reduce(memSeeded(patch));
+      expect(out.needsResync).toBe(true);
+      expect(out.result.memory[0]?.value).toEqual({ k: 1 });
+      const acc = new Reducer();
+      for (const e of memSeeded(patch)) acc.push(e);
+      expect(() => acc.result()).not.toThrow();
+    });
+  }
+
+  it("add /toString applies as an own member and does not resync (control)", () => {
+    const patch: JsonValue = [{ op: "add", path: "/toString", value: "s" }];
+    const s = reduce(seeded(patch));
+    expect(s.needsResync).toBe(false);
+    expect(s.result.state).toEqual({ k: 1, toString: "s" });
+    const m = reduce(memSeeded(patch));
+    expect(m.needsResync).toBe(false);
+    expect(m.result.memory[0]?.value).toEqual({ k: 1, toString: "s" });
+  });
+});
+
+describe("reduce — an empty JSON Patch applies no operation", () => {
+  it("[] as the first state event does not resync and the state stays absent", () => {
+    const out = reduce([{ type: "state.delta", seq: 0, patch: [] }]);
+    expect(out.needsResync).toBe(false);
+    expect("state" in out.result).toBe(false);
+  });
+  it("a memory.write [] against an unseeded record does not resync and seeds no record", () => {
+    const out = reduce([{ type: "memory.write", seq: 0, scope: "user", key: "k", patch: [] }]);
+    expect(out.needsResync).toBe(false);
+    expect(out.result.memory).toEqual([]);
+  });
+  it("a non-empty patch against an absent working copy still resyncs (control)", () => {
+    expect(reduce([{ type: "state.delta", seq: 0, patch: [{ op: "add", path: "/k", value: 1 }] }]).needsResync).toBe(true);
+    expect(reduce([{ type: "memory.write", seq: 0, scope: "user", key: "k", patch: [{ op: "add", path: "/k", value: 1 }] }]).needsResync).toBe(true);
+  });
+  it("[] against a seeded state applies and keeps it (control)", () => {
+    const out = reduce([
+      { type: "state.delta", seq: 0, patch: { k: 1 } },
+      { type: "state.delta", seq: 1, patch: [] },
+    ]);
+    expect(out.needsResync).toBe(false);
+    expect(out.result.state).toEqual({ k: 1 });
   });
 });

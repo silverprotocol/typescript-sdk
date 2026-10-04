@@ -77,6 +77,17 @@ export interface JsonSafeIssue {
  * @beta
  */
 export function isJsonValue(v: unknown): v is JsonValue {
+  return jsonWalk(v, false);
+}
+
+/** {@link isJsonValue} where every object also has the ordinary prototype
+ *  (`Object.prototype`, or `Array.prototype` for an array): no null-prototype
+ *  node. The fast path of {@link toJsonValueSafeWithIssues} uses it. */
+function isOrdinaryJsonValue(v: unknown): v is JsonValue {
+  return jsonWalk(v, true);
+}
+
+function jsonWalk(v: unknown, ordinaryOnly: boolean): boolean {
   const ancestors: object[] = [];
   const walk = (x: unknown, depth: number): boolean => {
     if (x === null) return true;
@@ -96,13 +107,14 @@ export function isJsonValue(v: unknown): v is JsonValue {
     ancestors.push(o);
     try {
       if (Array.isArray(o)) {
+        if (ordinaryOnly && Object.getPrototypeOf(o) !== Array.prototype) return false;
         for (let i = 0; i < o.length; i++) {
           if (!(i in o) || !walk(o[i], depth + 1)) return false;
         }
         return true;
       }
       const proto: unknown = Object.getPrototypeOf(o);
-      if (proto !== Object.prototype && proto !== null) return false;
+      if (proto !== Object.prototype && (ordinaryOnly || proto !== null)) return false;
       if (typeof (o as { toJSON?: unknown }).toJSON === "function") return false;
       for (const k in o) {
         if (!Object.prototype.hasOwnProperty.call(o, k)) continue;
@@ -135,8 +147,10 @@ export function isJsonValue(v: unknown): v is JsonValue {
  * Normalizer MUST NOT throw out of `push()` (SPEC.md §8.0). Keep
  * `JsonValue.parse` for validating data that is already JSON.
  *
- * Plain JSON input (see {@link isJsonValue}) is returned UNCHANGED, as the same
- * reference, with no copy. Anything else is rebuilt as a fresh value that
+ * Plain JSON input (see {@link isJsonValue}) whose every object has the
+ * ordinary prototype is returned UNCHANGED, as the same reference, with no
+ * copy. Anything else, a null-prototype node included, is rebuilt as a fresh
+ * value whose every object has the ordinary prototype and that
  * applies `JSON.stringify`'s own rules per node, so for JSON-able input the
  * result serializes identically to `toJsonValue(v)`:
  * - `toJSON` is honoured once per node, with the member key (a `Date` becomes
@@ -208,7 +222,7 @@ function isErrorObject(o: object): boolean {
  * @beta
  */
 export function toJsonValueSafeWithIssues(v: unknown): { value: JsonValue; issues: readonly JsonSafeIssue[] } {
-  if (isJsonValue(v)) return { value: v, issues: [] };
+  if (isOrdinaryJsonValue(v)) return { value: v, issues: [] };
   const issues: JsonSafeIssue[] = [];
   const ancestors: object[] = [];
   const OMIT = Symbol("omit");

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { StreamAssembler } from "./stream-assembler.js";
-import { AgEvent, AgProviderMeta } from "./agjson.js";
+import { AgEvent, AgProviderMeta, type JsonValue } from "./agjson.js";
 import { Reducer } from "./reduce.js";
 
 // ── Existing T1 tests ──────────────────────────────────────────────────────────
@@ -725,5 +725,92 @@ describe("StreamAssembler.checkpoint / rollback (option A, used by vercel-ai)", 
     a.rollback(cp);
     expect(a.drain()).toEqual([]);
     expect(a.flush().map((e) => e.type)).toEqual(["turn.abort"]);
+  });
+});
+
+describe("an emitted event holds no own __proto__ member at any depth (§13.7)", () => {
+  const owns = (v: unknown): string[] => {
+    if (v === null || typeof v !== "object") return [];
+    const out = Object.hasOwn(v, "__proto__") ? ["__proto__"] : [];
+    for (const k of Object.keys(v)) out.push(...owns((v as Record<string, unknown>)[k]).map((p) => `${k}.${p}`));
+    return out;
+  };
+  const parsed = <T>(text: string): T => JSON.parse(text) as T;
+
+  it("emitExt omits a top-level and a nested payload member, carries the siblings, and leaves the payload untouched", () => {
+    const a = new StreamAssembler();
+    const payload = parsed<JsonValue>('{"__proto__":{"polluted":true},"safe":1,"deep":{"__proto__":2,"k":[{"__proto__":3,"j":4}]}}');
+    const before = JSON.stringify(payload);
+    a.emitExt("acme", "ping", payload);
+    const [ev] = a.drain();
+    expect(owns(ev)).toEqual([]);
+    expect(ev).toMatchObject({ type: "ext.acme.ping", safe: 1, deep: { k: [{ j: 4 }] } });
+    expect(JSON.stringify(payload)).toBe(before);
+    expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
+  });
+
+  it("emitExt omits the member from a non-object payload wrapped under value", () => {
+    const a = new StreamAssembler();
+    a.emitExt("acme", "list", parsed<JsonValue>('[{"__proto__":1,"x":2}]'));
+    const [ev] = a.drain();
+    expect(owns(ev)).toEqual([]);
+    expect((ev as { value?: unknown }).value).toEqual([{ x: 2 }]);
+  });
+
+  it("emit() and a lifecycle primitive omit it, and the caller's values are not mutated", () => {
+    const a = new StreamAssembler();
+    const patch = parsed<{ [k: string]: JsonValue }>('{"__proto__":{"p":1},"cfg":{"__proto__":0,"a":1}}');
+    const input = parsed<JsonValue>('{"q":"x","opts":{"__proto__":{"p":1},"n":2}}');
+    const pBefore = JSON.stringify(patch);
+    const iBefore = JSON.stringify(input);
+    a.emit({ type: "state.delta", patch });
+    a.toolArgsAssembled("c1", input);
+    const evs = a.drain();
+    expect(evs.flatMap(owns)).toEqual([]);
+    expect((evs[0] as { patch?: unknown }).patch).toEqual({ cfg: { a: 1 } });
+    expect((evs[1] as { input?: unknown }).input).toEqual({ q: "x", opts: { n: 2 } });
+    expect(JSON.stringify(patch)).toBe(pBefore);
+    expect(JSON.stringify(input)).toBe(iBefore);
+  });
+
+  it("an event without the member is buffered as built, sharing the caller's nodes as before (control)", () => {
+    const a = new StreamAssembler();
+    const input = { q: "x", opts: { n: 2 } };
+    a.toolArgsAssembled("c1", input);
+    const [ev] = a.drain();
+    expect((ev as { input?: unknown }).input).toBe(input);
+  });
+
+  it("a class instance beside the member rides by reference, and a null-prototype node is rebuilt ordinary", () => {
+    class Box {
+      constructor(public readonly n: number) {}
+    }
+    const box = new Box(1);
+    const bare = Object.create(null) as Record<string, unknown>;
+    Object.defineProperty(bare, "__proto__", { value: 1, enumerable: true, writable: true, configurable: true });
+    bare["k"] = 2;
+    const a = new StreamAssembler();
+    a.emitExt("acme", "mix", { box, bare } as unknown as JsonValue);
+    const [ev] = a.drain();
+    expect((ev as unknown as { box: unknown }).box).toBe(box);
+    const outBare = (ev as unknown as { bare: object }).bare;
+    expect(Object.getPrototypeOf(outBare)).toBe(Object.prototype);
+    expect(outBare).toEqual({ k: 2 });
+    expect(Object.hasOwn(bare, "__proto__")).toBe(true);
+  });
+
+  it("the assembled stream folds to the same result as the unplanted stream", () => {
+    const run = (withMember: boolean): unknown => {
+      const a = new StreamAssembler();
+      const extra = withMember ? ',"__proto__":{"p":1}' : "";
+      a.openTurn("t1", "th");
+      a.toolArgsAssembled("c1", parsed<JsonValue>(`{"q":"x"${extra},"o":{"n":1${extra}}}`));
+      a.emit({ type: "state.delta", patch: parsed(`{"k":{"v":1${extra}}${extra}}`) });
+      const r = new Reducer();
+      for (const e of a.drain()) r.push(e);
+      for (const e of a.flush()) r.push(e);
+      return r.result();
+    };
+    expect(JSON.stringify(run(true))).toBe(JSON.stringify(run(false)));
   });
 });

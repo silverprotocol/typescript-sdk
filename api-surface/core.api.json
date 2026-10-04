@@ -675,6 +675,13 @@
       "export declare function checkAgInput(raw: unknown): AgInputCheck;"
     ]
   },
+  "copyJson": {
+    "module": "copy-json",
+    "tag": "beta",
+    "decl": [
+      "export declare function copyJson(v: JsonValue): JsonValue;"
+    ]
+  },
   "ingestAgEvent": {
     "module": "ingest",
     "tag": "public",
