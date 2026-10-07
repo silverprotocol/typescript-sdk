@@ -144,7 +144,11 @@ function imageSource(source: ImageBlockSource): AgSource {
   if (source.type === "base64") {
     return { type: "base64", mediaType: source.media_type, data: source.data };
   }
-  // url
+  if (source.type === "file") {
+    // A Files API reference ({type:"file", file_id}) maps onto AgSource's file
+    // arm. It names no media type, so none is set (mediaType is optional).
+    return { type: "file", fileId: source.file_id };
+  }
   return { type: "url", url: source.url };
 }
 

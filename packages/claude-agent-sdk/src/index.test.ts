@@ -173,6 +173,29 @@ function toolResultMsg(): SDKMessage {
   };
 }
 
+// A tool_result whose content holds images by every Anthropic source kind.
+function imageToolResultMsg(): SDKMessage {
+  const content: UserContent = [
+    {
+      type: "tool_result",
+      tool_use_id: "toolu_fixture_1",
+      content: [
+        { type: "image", source: { type: "base64", media_type: "image/png", data: "iVBORw0KGgo=" } },
+        { type: "image", source: { type: "url", url: "https://example.com/chart.png" } },
+        { type: "image", source: { type: "file", file_id: "file_011CNha8iCJcU1wXNR6q4V8w" } },
+      ],
+      is_error: false,
+    },
+  ];
+  return {
+    type: "user",
+    message: { role: "user", content },
+    parent_tool_use_id: null,
+    uuid: "00000000-0000-0000-0000-000000000003",
+    session_id: "sess_fixture",
+  };
+}
+
 // Narrow `AgEvent` to `AgClosedEventType` by ruling out the open `AgExtEvent`
 // arm (whose `type` always matches `ext.<vendor>.<key>`): that arm's
 // `.catchall(JsonValue)` index signature widens every field access on the union.
@@ -1004,6 +1027,26 @@ describe("createClaudeNormalizer — result error", () => {
       }),
     );
     assertAllValid(evs);
+  });
+});
+
+describe("createClaudeNormalizer — tool_result image sources (SPEC §2 AgSource)", () => {
+  // SPEC §2 types AgSource as:
+  //   | { type: "base64"; mediaType: string; data: string }
+  //   | { type: "url";    url: string; mediaType?: string }
+  //   | { type: "file";   fileId: string; mediaType?: string };
+  // so a url source always has its url, and a Files API reference is the file arm.
+  it("maps each Anthropic image source onto its AgSource arm: base64, url, and a file reference to {type:'file', fileId} with no mediaType", () => {
+    const evs = run(imageToolResultMsg());
+    const done = evs.find((e) => e.type === "tool.done");
+    const content = done !== undefined && done.type === "tool.done" ? done.content : undefined;
+    const sources = Array.isArray(content) ? content.map((b) => (typeof b === "object" && b !== null && "source" in b ? b.source : undefined)) : [];
+    expect(sources).toEqual([
+      { type: "base64", mediaType: "image/png", data: "iVBORw0KGgo=" },
+      { type: "url", url: "https://example.com/chart.png" },
+      { type: "file", fileId: "file_011CNha8iCJcU1wXNR6q4V8w" },
+    ]);
+    for (const e of evs) expect(AgEvent.safeParse(e).success).toBe(true);
   });
 });
 
