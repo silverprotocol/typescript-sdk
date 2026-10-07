@@ -4713,6 +4713,27 @@ describe("createAdkNormalizer — a Live barge-in closes turn.abort after the ev
     expect(transcriptTexts(differs)).toEqual(["Hel", "Hello", "Only final"]);
   });
 
+  it("transcriptions as @google/adk 2.2.1 yields them on a Gemini 3.x Live model (each fragment non-partial and finished, no aggregate): every fragment reads once, in order, and the fold is clean", () => {
+    const transcriptTexts = (out: AgEvent[]) =>
+      folds(out).result().messages.flatMap((m) => m.content).filter((b): b is { type: "text"; text: string } => b.type === "text").map((b) => b.text);
+    for (const i of [0, 1]) {
+      const inv = `inv_f${i}`;
+      const out = drive([
+        liveEvent(inv, "f1", { inputTranscription: { text: `What is `, finished: true }, partial: false, modelVersion: "gemini-3.8-live" }),
+        liveEvent(inv, "f2", { inputTranscription: { text: `the time ${i}?`, finished: true }, partial: false, modelVersion: "gemini-3.8-live" }),
+        liveEvent(inv, "f3", { content: audio, modelVersion: "gemini-3.8-live" }),
+        liveEvent(inv, "f4", { outputTranscription: { text: "It is ", finished: false }, partial: true, modelVersion: "gemini-3.8-live" }),
+        liveEvent(inv, "f5", { outputTranscription: { text: "noon.", finished: false }, partial: true, modelVersion: "gemini-3.8-live" }),
+        liveEvent(inv, "f6", { outputTranscription: { text: "It is noon.", finished: true }, partial: false, modelVersion: "gemini-3.8-live" }),
+        liveEvent(inv, "f7", { turnComplete: true, modelVersion: "gemini-3.8-live" }),
+      ]);
+      expect(transcriptTexts(out), `#${i}`).toEqual(["What is ", `the time ${i}?`, "It is ", "noon."]);
+      expect(turnsOf(out), `#${i}`).toEqual([`turn_adk_${inv}`]);
+      expect(closes(out).map(([, c]) => c), `#${i}`).toEqual(["turn.done:success"]);
+      expect(folds(out).needsResync, `#${i}`).toBe(false);
+    }
+  });
+
   const usagesOf = (out: AgEvent[]) =>
     out
       .filter((e) => e.type === "message.end" || TERMINAL.has(e.type))
@@ -5300,7 +5321,8 @@ describe("createAdkNormalizer — an ADK prompt block (errorCode, no finishReaso
 });
 
 describe("createAdkNormalizer — Gemini finish reasons: the eight block values close turn.done with finishReason safety_blocked", () => {
-  // Every FinishReason value of @google/genai 2.24.0: the expected neutral value and whether it loses the wire string.
+  // Every FinishReason value of @google/genai 2.27.0: the expected neutral value and whether it loses the wire string.
+  // CONTINUATION (added in 2.27.0) has no neutral home yet: it maps to unknown and keeps the wire string.
   const TABLE: ReadonlyArray<readonly [string, string, boolean]> = [
     ["FINISH_REASON_UNSPECIFIED", "unknown", true],
     ["STOP", "stop", false],
@@ -5320,6 +5342,7 @@ describe("createAdkNormalizer — Gemini finish reasons: the eight block values 
     ["NO_IMAGE", "unknown", true],
     ["IMAGE_RECITATION", "safety_blocked", false],
     ["IMAGE_OTHER", "unknown", true],
+    ["CONTINUATION", "unknown", true],
   ];
   const BLOCK_VALUES = TABLE.filter(([, value]) => value === "safety_blocked").map(([raw]) => raw);
   const inv = { invocationId: "inv_fixture_1" };
@@ -5334,8 +5357,8 @@ describe("createAdkNormalizer — Gemini finish reasons: the eight block values 
     return r;
   };
 
-  it("mapFinishReason and isLossyFinishReason cover every genai 2.24.0 FinishReason value: the eight block values map to safety_blocked, lossless", () => {
-    expect(TABLE).toHaveLength(18);
+  it("mapFinishReason and isLossyFinishReason cover every genai 2.27.0 FinishReason value: the eight block values map to safety_blocked, lossless", () => {
+    expect(TABLE).toHaveLength(19);
     expect(BLOCK_VALUES).toEqual(["SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII", "IMAGE_SAFETY", "IMAGE_PROHIBITED_CONTENT", "IMAGE_RECITATION"]);
     for (const [raw, value, lossy] of TABLE) {
       expect(mapFinishReason(raw), raw).toBe(value);
@@ -5343,7 +5366,7 @@ describe("createAdkNormalizer — Gemini finish reasons: the eight block values 
     }
   });
 
-  it("a final response with each genai 2.24.0 FinishReason value closes turn.done with the table's finishReason, and carries finishReasonRaw only for a lossy value", () => {
+  it("a final response with each genai 2.27.0 FinishReason value closes turn.done with the table's finishReason, and carries finishReasonRaw only for a lossy value", () => {
     for (const [raw, value, lossy] of TABLE) {
       const out = drive([toJsonValue({ ...inv, content: { role: "model", parts: [{ text: "answer" }] }, finishReason: raw })]);
       const done = out.find((e) => e.type === "turn.done");
