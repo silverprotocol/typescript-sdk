@@ -1736,6 +1736,9 @@ function driveAdkTopLevel(
   // (utils/live_connection_utils.js, @google/adk 2.1.0). That aggregate is not
   // re-emitted when it repeats this turn's streamed chunks exactly, so the
   // turn's transcription reads once; one that differs rides as its own block.
+  // On a Gemini 3.x Live model, @google/adk 2.2.1 yields input transcription
+  // as non-partial `finished: true` fragments with no aggregate (the same
+  // file): no chunks precede each one, so every fragment rides once.
   // typeof: a JSON-null transcription text is absent (null guard; it rode the
   // text block as `null`, which the schema rejects).
   for (const [role, t] of [

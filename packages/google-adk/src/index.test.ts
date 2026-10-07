@@ -99,6 +99,13 @@ describe("createAdkNormalizer — text turn lifecycle", () => {
     expect(isLossyFinishReason("STOP")).toBe(false);
   });
 
+  it("maps genai 2.27.0's CONTINUATION to unknown, lossy: a final carrying it closes turn.done with finishReason unknown and the wire string in finishReasonRaw", () => {
+    expect(mapFinishReason("CONTINUATION")).toBe("unknown");
+    expect(isLossyFinishReason("CONTINUATION")).toBe(true);
+    const out = run([event([{ text: "answer" }], { partial: false, finishReason: "CONTINUATION" })]);
+    expect(out.find((e) => e.type === "turn.done")).toMatchObject({ type: "turn.done", finishReason: "unknown", finishReasonRaw: "CONTINUATION" });
+  });
+
   it("carries a lossy finishReason as message.metadata before the close (TOO_MANY_TOOL_CALLS)", () => {
     const out = run([
       event([{ text: "done" }], {
@@ -4594,6 +4601,27 @@ describe("createAdkNormalizer — a Live barge-in closes turn.abort after the ev
       liveEvent("inv_d", "d4", { turnComplete: true }),
     ]);
     expect(transcriptTexts(differs)).toEqual(["Hel", "Hello", "Only final"]);
+  });
+
+  it("transcriptions as @google/adk 2.2.1 yields them on a Gemini 3.x Live model (each fragment non-partial and finished, no aggregate): every fragment reads once, in order, and the fold is clean", () => {
+    const transcriptTexts = (out: AgEvent[]) =>
+      folds(out).result().messages.flatMap((m) => m.content).filter((b): b is { type: "text"; text: string } => b.type === "text").map((b) => b.text);
+    for (const i of [0, 1]) {
+      const inv = `inv_f${i}`;
+      const out = drive([
+        liveEvent(inv, "f1", { inputTranscription: { text: `What is `, finished: true }, partial: false, modelVersion: "gemini-3.8-live" }),
+        liveEvent(inv, "f2", { inputTranscription: { text: `the time ${i}?`, finished: true }, partial: false, modelVersion: "gemini-3.8-live" }),
+        liveEvent(inv, "f3", { content: audio, modelVersion: "gemini-3.8-live" }),
+        liveEvent(inv, "f4", { outputTranscription: { text: "It is ", finished: false }, partial: true, modelVersion: "gemini-3.8-live" }),
+        liveEvent(inv, "f5", { outputTranscription: { text: "noon.", finished: false }, partial: true, modelVersion: "gemini-3.8-live" }),
+        liveEvent(inv, "f6", { outputTranscription: { text: "It is noon.", finished: true }, partial: false, modelVersion: "gemini-3.8-live" }),
+        liveEvent(inv, "f7", { turnComplete: true, modelVersion: "gemini-3.8-live" }),
+      ]);
+      expect(transcriptTexts(out), `#${i}`).toEqual(["What is ", `the time ${i}?`, "It is ", "noon."]);
+      expect(turnsOf(out), `#${i}`).toEqual([`turn_adk_${inv}`]);
+      expect(closes(out).map(([, c]) => c), `#${i}`).toEqual(["turn.done:success"]);
+      expect(folds(out).needsResync, `#${i}`).toBe(false);
+    }
   });
 
   const usagesOf = (out: AgEvent[]) =>
