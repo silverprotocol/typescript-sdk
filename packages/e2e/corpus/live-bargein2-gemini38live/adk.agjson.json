@@ -2,21 +2,21 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "threadId": "google"
   },
   {
     "type": "message.start",
     "seq": 1,
-    "id": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "id": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "threadId": "google",
     "role": "assistant"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "seq": 2
   },
   {
@@ -27,16 +27,16 @@
       "source": {
         "type": "base64",
         "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:13440 chars>"
+        "data": "<audio-elided:11520 chars>"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "seq": 4
   },
   {
@@ -49,15 +49,15 @@
         "modelVersion": "gemini-3.8-live"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e"
   },
   {
     "type": "content.block",
     "seq": 6,
     "block": {
       "type": "text",
-      "text": "Silas lived alone ",
+      "text": "Silas had manned ",
       "_meta": {
         "agjson/transcription": {
           "role": "output",
@@ -65,13 +65,13 @@
         }
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "seq": 7
   },
   {
@@ -82,16 +82,16 @@
       "source": {
         "type": "base64",
         "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:25600 chars>"
+        "data": "<audio-elided:28160 chars>"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "seq": 9
   },
   {
@@ -104,27 +104,19 @@
         "modelVersion": "gemini-3.8-live"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9"
-  },
-  {
-    "type": "content.block",
-    "seq": 11,
-    "block": {
-      "type": "audio",
-      "source": {
-        "type": "base64",
-        "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:12800 chars>"
-      }
-    },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
+    "seq": 11
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "seq": 12
   },
   {
@@ -137,24 +129,18 @@
         "modelVersion": "gemini-3.8-live"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "seq": 14
   },
   {
-    "type": "state.delta",
-    "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "seq": 15
-  },
-  {
     "type": "content.block",
-    "seq": 16,
+    "seq": 15,
     "block": {
       "type": "provider-raw",
       "vendor": "google",
@@ -162,13 +148,41 @@
         "modelVersion": "gemini-3.8-live"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e"
+  },
+  {
+    "type": "message.metadata",
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
+    "metadata": {
+      "usageDetails": [
+        {
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 361
+            },
+            {
+              "modality": "AUDIO",
+              "tokenCount": 222
+            }
+          ],
+          "responseTokensDetails": [
+            {
+              "modality": "AUDIO",
+              "tokenCount": 21
+            }
+          ]
+        }
+      ]
+    },
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
+    "seq": 16
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "seq": 17
   },
   {
@@ -181,112 +195,65 @@
         "modelVersion": "gemini-3.8-live"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9"
-  },
-  {
-    "type": "message.metadata",
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "metadata": {
-      "usageDetails": [
-        {
-          "promptTokensDetails": [
-            {
-              "modality": "TEXT",
-              "tokenCount": 363
-            },
-            {
-              "modality": "AUDIO",
-              "tokenCount": 222
-            }
-          ],
-          "responseTokensDetails": [
-            {
-              "modality": "AUDIO",
-              "tokenCount": 25
-            }
-          ]
-        }
-      ]
-    },
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "seq": 19
-  },
-  {
-    "type": "state.delta",
-    "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "seq": 20
-  },
-  {
-    "type": "content.block",
-    "seq": 21,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "modelVersion": "gemini-3.8-live"
-      }
-    },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e"
   },
   {
     "type": "message.end",
-    "seq": 22,
-    "id": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "seq": 19,
+    "id": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "usage": {
-      "inputTokens": 610,
-      "outputTokens": 281,
-      "totalTokens": 891,
-      "totalTokensRaw": 635,
+      "inputTokens": 608,
+      "outputTokens": 277,
+      "totalTokens": 885,
+      "totalTokensRaw": 629,
       "reasoningTokens": 256,
       "cumulative": false
     }
   },
   {
     "type": "turn.abort",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "reason": "interrupted",
-    "seq": 23
+    "seq": 20
   },
   {
     "type": "turn.start",
-    "seq": 24,
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
+    "seq": 21,
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
     "threadId": "google"
   },
   {
     "type": "message.start",
-    "seq": 25,
-    "id": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
+    "seq": 22,
+    "id": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
     "threadId": "google",
     "role": "assistant"
   },
   {
     "type": "content.block",
-    "seq": 26,
+    "seq": 23,
     "block": {
       "type": "audio",
       "source": {
         "type": "base64",
         "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:16640 chars>"
+        "data": "<audio-elided:11520 chars>"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
-    "seq": 27
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
+    "seq": 24
   },
   {
     "type": "content.block",
-    "seq": 28,
+    "seq": 25,
     "block": {
       "type": "provider-raw",
       "vendor": "google",
@@ -294,15 +261,15 @@
         "modelVersion": "gemini-3.8-live"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1"
   },
   {
     "type": "content.block",
-    "seq": 29,
+    "seq": 26,
     "block": {
       "type": "text",
-      "text": "Barnaby, the ",
+      "text": "Barnaby had served ",
       "_meta": {
         "agjson/transcription": {
           "role": "output",
@@ -310,14 +277,47 @@
         }
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
-    "seq": 30
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
+    "seq": 27
+  },
+  {
+    "type": "content.block",
+    "seq": 28,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:20480 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
+    "seq": 29
+  },
+  {
+    "type": "content.block",
+    "seq": 30,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1"
   },
   {
     "type": "content.block",
@@ -327,16 +327,16 @@
       "source": {
         "type": "base64",
         "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:23040 chars>"
+        "data": "<audio-elided:10240 chars>"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
     "seq": 32
   },
   {
@@ -349,27 +349,19 @@
         "modelVersion": "gemini-3.8-live"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1"
-  },
-  {
-    "type": "content.block",
-    "seq": 34,
-    "block": {
-      "type": "audio",
-      "source": {
-        "type": "base64",
-        "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:7680 chars>"
-      }
-    },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
+    "seq": 34
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
     "seq": 35
   },
   {
@@ -382,24 +374,18 @@
         "modelVersion": "gemini-3.8-live"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
     "seq": 37
   },
   {
-    "type": "state.delta",
-    "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
-    "seq": 38
-  },
-  {
     "type": "content.block",
-    "seq": 39,
+    "seq": 38,
     "block": {
       "type": "provider-raw",
       "vendor": "google",
@@ -407,13 +393,41 @@
         "modelVersion": "gemini-3.8-live"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1"
+  },
+  {
+    "type": "message.metadata",
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
+    "metadata": {
+      "usageDetails": [
+        {
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 396
+            },
+            {
+              "modality": "AUDIO",
+              "tokenCount": 243
+            }
+          ],
+          "responseTokensDetails": [
+            {
+              "modality": "AUDIO",
+              "tokenCount": 22
+            }
+          ]
+        }
+      ]
+    },
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
+    "seq": 39
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
     "seq": 40
   },
   {
@@ -426,112 +440,65 @@
         "modelVersion": "gemini-3.8-live"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1"
-  },
-  {
-    "type": "message.metadata",
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
-    "metadata": {
-      "usageDetails": [
-        {
-          "promptTokensDetails": [
-            {
-              "modality": "TEXT",
-              "tokenCount": 398
-            },
-            {
-              "modality": "AUDIO",
-              "tokenCount": 247
-            }
-          ],
-          "responseTokensDetails": [
-            {
-              "modality": "AUDIO",
-              "tokenCount": 25
-            }
-          ]
-        }
-      ]
-    },
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
-    "seq": 42
-  },
-  {
-    "type": "state.delta",
-    "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
-    "seq": 43
-  },
-  {
-    "type": "content.block",
-    "seq": 44,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "modelVersion": "gemini-3.8-live"
-      }
-    },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1"
   },
   {
     "type": "message.end",
-    "seq": 45,
-    "id": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
+    "seq": 42,
+    "id": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
     "usage": {
-      "inputTokens": 682,
-      "outputTokens": 205,
-      "totalTokens": 887,
-      "totalTokensRaw": 707,
-      "reasoningTokens": 180,
+      "inputTokens": 676,
+      "outputTokens": 78,
+      "totalTokens": 754,
+      "totalTokensRaw": 698,
+      "reasoningTokens": 56,
       "cumulative": false
     }
   },
   {
     "type": "turn.abort",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g1",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g1",
     "reason": "interrupted",
-    "seq": 46
+    "seq": 43
   },
   {
     "type": "turn.start",
-    "seq": 47,
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
+    "seq": 44,
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
     "threadId": "google"
   },
   {
     "type": "message.start",
-    "seq": 48,
-    "id": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
+    "seq": 45,
+    "id": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
     "threadId": "google",
     "role": "assistant"
   },
   {
     "type": "content.block",
-    "seq": 49,
+    "seq": 46,
     "block": {
       "type": "audio",
       "source": {
         "type": "base64",
         "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:4 chars>"
+        "data": "<audio-elided:2560 chars>"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "seq": 50
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "seq": 47
   },
   {
     "type": "content.block",
-    "seq": 51,
+    "seq": 48,
     "block": {
       "type": "provider-raw",
       "vendor": "google",
@@ -539,12 +506,12 @@
         "modelVersion": "gemini-3.8-live"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
   },
   {
     "type": "content.block",
-    "seq": 52,
+    "seq": 49,
     "block": {
       "type": "text",
       "text": "The ship ",
@@ -555,14 +522,47 @@
         }
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "seq": 53
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "seq": 50
+  },
+  {
+    "type": "content.block",
+    "seq": 51,
+    "block": {
+      "type": "audio",
+      "source": {
+        "type": "base64",
+        "mediaType": "audio/pcm;rate=24000",
+        "data": "<audio-elided:10240 chars>"
+      }
+    },
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "seq": 52
+  },
+  {
+    "type": "content.block",
+    "seq": 53,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
   },
   {
     "type": "content.block",
@@ -572,16 +572,16 @@
       "source": {
         "type": "base64",
         "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:8320 chars>"
+        "data": "<audio-elided:17920 chars>"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
     "seq": 55
   },
   {
@@ -594,8 +594,8 @@
         "modelVersion": "gemini-3.8-live"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
   },
   {
     "type": "content.block",
@@ -605,16 +605,16 @@
       "source": {
         "type": "base64",
         "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:10240 chars>"
+        "data": "<audio-elided:12800 chars>"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
     "seq": 58
   },
   {
@@ -627,8 +627,8 @@
         "modelVersion": "gemini-3.8-live"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
   },
   {
     "type": "content.block",
@@ -638,16 +638,16 @@
       "source": {
         "type": "base64",
         "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:15360 chars>"
+        "data": "<audio-elided:10240 chars>"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
     "seq": 61
   },
   {
@@ -660,8 +660,8 @@
         "modelVersion": "gemini-3.8-live"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
   },
   {
     "type": "content.block",
@@ -671,16 +671,16 @@
       "source": {
         "type": "base64",
         "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:10240 chars>"
+        "data": "<audio-elided:17920 chars>"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
     "seq": 64
   },
   {
@@ -693,78 +693,12 @@
         "modelVersion": "gemini-3.8-live"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
   },
   {
     "type": "content.block",
     "seq": 66,
-    "block": {
-      "type": "audio",
-      "source": {
-        "type": "base64",
-        "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:15360 chars>"
-      }
-    },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
-  },
-  {
-    "type": "state.delta",
-    "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "seq": 67
-  },
-  {
-    "type": "content.block",
-    "seq": 68,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "modelVersion": "gemini-3.8-live"
-      }
-    },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
-  },
-  {
-    "type": "content.block",
-    "seq": 69,
-    "block": {
-      "type": "audio",
-      "source": {
-        "type": "base64",
-        "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:12800 chars>"
-      }
-    },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
-  },
-  {
-    "type": "state.delta",
-    "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "seq": 70
-  },
-  {
-    "type": "content.block",
-    "seq": 71,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "modelVersion": "gemini-3.8-live"
-      }
-    },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
-  },
-  {
-    "type": "content.block",
-    "seq": 72,
     "block": {
       "type": "text",
       "text": "is fine.",
@@ -775,33 +709,105 @@
         }
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "seq": 73
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "seq": 67
   },
   {
     "type": "content.block",
-    "seq": 74,
+    "seq": 68,
     "block": {
       "type": "audio",
       "source": {
         "type": "base64",
         "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:10240 chars>"
+        "data": "<audio-elided:17920 chars>"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
   },
   {
     "type": "state.delta",
     "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "seq": 69
+  },
+  {
+    "type": "content.block",
+    "seq": 70,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "seq": 71
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "seq": 72
+  },
+  {
+    "type": "content.block",
+    "seq": 73,
+    "block": {
+      "type": "provider-raw",
+      "vendor": "google",
+      "raw": {
+        "modelVersion": "gemini-3.8-live"
+      }
+    },
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
+  },
+  {
+    "type": "message.metadata",
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "metadata": {
+      "usageDetails": [
+        {
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 419
+            },
+            {
+              "modality": "AUDIO",
+              "tokenCount": 265
+            }
+          ],
+          "responseTokensDetails": [
+            {
+              "modality": "AUDIO",
+              "tokenCount": 40
+            }
+          ]
+        }
+      ]
+    },
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "seq": 74
+  },
+  {
+    "type": "state.delta",
+    "patch": {},
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
     "seq": 75
   },
   {
@@ -814,166 +820,28 @@
         "modelVersion": "gemini-3.8-live"
       }
     },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
-  },
-  {
-    "type": "content.block",
-    "seq": 77,
-    "block": {
-      "type": "audio",
-      "source": {
-        "type": "base64",
-        "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:10240 chars>"
-      }
-    },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
-  },
-  {
-    "type": "state.delta",
-    "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "seq": 78
-  },
-  {
-    "type": "content.block",
-    "seq": 79,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "modelVersion": "gemini-3.8-live"
-      }
-    },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
-  },
-  {
-    "type": "content.block",
-    "seq": 80,
-    "block": {
-      "type": "audio",
-      "source": {
-        "type": "base64",
-        "mediaType": "audio/pcm;rate=24000",
-        "data": "<audio-elided:7680 chars>"
-      }
-    },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
-  },
-  {
-    "type": "state.delta",
-    "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "seq": 81
-  },
-  {
-    "type": "content.block",
-    "seq": 82,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "modelVersion": "gemini-3.8-live"
-      }
-    },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
-  },
-  {
-    "type": "state.delta",
-    "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "seq": 83
-  },
-  {
-    "type": "state.delta",
-    "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "seq": 84
-  },
-  {
-    "type": "content.block",
-    "seq": 85,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "modelVersion": "gemini-3.8-live"
-      }
-    },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
-  },
-  {
-    "type": "message.metadata",
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "metadata": {
-      "usageDetails": [
-        {
-          "promptTokensDetails": [
-            {
-              "modality": "TEXT",
-              "tokenCount": 421
-            },
-            {
-              "modality": "AUDIO",
-              "tokenCount": 272
-            }
-          ],
-          "responseTokensDetails": [
-            {
-              "modality": "AUDIO",
-              "tokenCount": 45
-            }
-          ]
-        }
-      ]
-    },
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "seq": 86
-  },
-  {
-    "type": "state.delta",
-    "patch": {},
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "seq": 87
-  },
-  {
-    "type": "content.block",
-    "seq": 88,
-    "block": {
-      "type": "provider-raw",
-      "vendor": "google",
-      "raw": {
-        "modelVersion": "gemini-3.8-live"
-      }
-    },
-    "messageId": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
+    "messageId": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
   },
   {
     "type": "message.end",
-    "seq": 89,
-    "id": "msg_turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2"
+    "seq": 77,
+    "id": "msg_turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2"
   },
   {
     "type": "turn.done",
-    "seq": 90,
-    "turnId": "turn_adk_e-c2ac6878-27bd-460a-9a47-2b45d45c17d9_g2",
+    "seq": 78,
+    "turnId": "turn_adk_e-e5d1de41-4ef6-4186-ade6-f3f26738067e_g2",
     "outcome": {
       "type": "success"
     },
     "finishReason": "stop",
     "usage": {
-      "inputTokens": 742,
-      "outputTokens": 80,
-      "totalTokens": 822,
-      "totalTokensRaw": 787,
-      "reasoningTokens": 35,
+      "inputTokens": 733,
+      "outputTokens": 72,
+      "totalTokens": 805,
+      "totalTokensRaw": 773,
+      "reasoningTokens": 32,
       "cumulative": false
     }
   }

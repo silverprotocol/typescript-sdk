@@ -1,0 +1,383 @@
+[
+  {
+    "type": "system",
+    "subtype": "init",
+    "cwd": "<redacted-path>",
+    "session_id": "24434b33-83d6-4afe-8543-36593b412b9a",
+    "tools": [
+      "mcp__t__echo"
+    ],
+    "mcp_servers": [
+      {
+        "name": "t",
+        "status": "connected",
+        "source": "dynamic"
+      }
+    ],
+    "model": "claude-sonnet-5-5",
+    "permissionMode": "default",
+    "slash_commands": [
+      "deep-research",
+      "design",
+      "design-sync",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator",
+      "plugin-authoring",
+      "advisor",
+      "agents",
+      "auto-mode-setup",
+      "autocompact",
+      "clear",
+      "color",
+      "compact",
+      "config",
+      "output-style",
+      "context",
+      "effort",
+      "fast",
+      "focus",
+      "heapdump",
+      "init",
+      "mcp",
+      "import",
+      "model",
+      "__remote-workflow",
+      "workflow-launch-exec",
+      "reload-plugins",
+      "reload-skills",
+      "rename",
+      "security-review",
+      "usage",
+      "insights",
+      "recap",
+      "skill-doctor",
+      "goal",
+      "design-consent",
+      "design-revoke",
+      "list-agents",
+      "team-onboarding"
+    ],
+    "terminal_slash_commands": [
+      "doctor",
+      "color",
+      "focus",
+      "reload-plugins"
+    ],
+    "apiKeySource": "ANTHROPIC_API_KEY",
+    "claude_code_version": "2.1.292",
+    "output_style": "default",
+    "agents": [
+      "claude",
+      "Explore",
+      "general-purpose",
+      "Plan",
+      "statusline-setup"
+    ],
+    "skills": [
+      "deep-research",
+      "design",
+      "design-sync",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator",
+      "plugin-authoring"
+    ],
+    "plugins": [
+      {
+        "name": "cc-plugin-agents-md",
+        "path": "builtin",
+        "source": "cc-plugin-agents-md@builtin"
+      },
+      {
+        "name": "cc-plugin-telemetry",
+        "path": "builtin",
+        "source": "cc-plugin-telemetry@builtin"
+      },
+      {
+        "name": "cc-plugin-plugin-authoring",
+        "path": "builtin",
+        "source": "cc-plugin-plugin-authoring@builtin"
+      }
+    ],
+    "capabilities": [
+      "interrupt_receipt_v1",
+      "interrupt_cancel_queued_v1",
+      "interrupt_send_now_v1",
+      "msg_lifecycle_v1",
+      "sdk_mcp_tools_list_changed",
+      "sdk_mcp_manifests",
+      "mcp_read_resource_v1",
+      "mcp_tool_ui_meta_v1",
+      "ui_surface_v1"
+    ],
+    "analytics_disabled": false,
+    "product_feedback_disabled": false,
+    "uuid": "d479074d-0e8c-4ab8-a7df-9a037196a775",
+    "messaging_socket_path": "/tmp/cc-socks/60219.sock",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required",
+    "per_turn_effort_active": true,
+    "view_mode": "default"
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-sonnet-5-5",
+      "id": "msg_011CfnTVYTCdksKBHgTF5JjB",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_011gGVWhmW9oYhq6J2Dz3vru",
+          "name": "mcp__t__echo",
+          "input": {
+            "message": "conformance-probe-sonnet55"
+          },
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 1203,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 1203,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 24,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "24434b33-83d6-4afe-8543-36593b412b9a",
+    "uuid": "9dae22f8-029b-45fe-abfb-9caabbb434f1",
+    "timestamp": "2026-10-07T07:09:35.411Z",
+    "request_id": "req_011CfnTVY1vH67vAKgAzPvVA",
+    "wire_tool_inputs": {
+      "toolu_011gGVWhmW9oYhq6J2Dz3vru": {
+        "message": "conformance-probe-sonnet55"
+      }
+    },
+    "tool_use_meta": [
+      {
+        "id": "toolu_011gGVWhmW9oYhq6J2Dz3vru",
+        "display_name": "Echo",
+        "server_display_name": "mock-text"
+      }
+    ]
+  },
+  {
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "tool_use_id": "toolu_011gGVWhmW9oYhq6J2Dz3vru",
+          "type": "tool_result",
+          "content": [
+            {
+              "type": "text",
+              "text": "conformance-probe-sonnet55"
+            }
+          ]
+        }
+      ]
+    },
+    "parent_tool_use_id": null,
+    "session_id": "24434b33-83d6-4afe-8543-36593b412b9a",
+    "uuid": "832b1f3c-074a-4f8b-880a-2ec795873847",
+    "timestamp": "2026-10-07T07:09:35.423Z",
+    "tool_use_result": [
+      {
+        "type": "text",
+        "text": "conformance-probe-sonnet55"
+      }
+    ]
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "model": "claude-sonnet-5-5",
+      "id": "msg_011CfnTVeoT3UeMyxJN457Z5",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "The tool echoed back: `conformance-probe-sonnet55`"
+        }
+      ],
+      "container": null,
+      "stop_reason": null,
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 104,
+        "cache_read_input_tokens": 1203,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 104,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 24,
+        "service_tier": "standard",
+        "inference_geo": "global"
+      },
+      "input_transformations": [],
+      "diagnostics": null,
+      "context_management": null
+    },
+    "parent_tool_use_id": null,
+    "session_id": "24434b33-83d6-4afe-8543-36593b412b9a",
+    "uuid": "f899adc4-7665-4762-a567-643adf36e65a",
+    "timestamp": "2026-10-07T07:09:36.464Z",
+    "request_id": "req_011CfnTVeWayeoj8XWV7HnZ1"
+  },
+  {
+    "duration_api_ms": 4391,
+    "stop_reason": "end_turn",
+    "session_id": "24434b33-83d6-4afe-8543-36593b412b9a",
+    "total_cost_usd": 0.0053801000000000005,
+    "usage": {
+      "input_tokens": 4,
+      "cache_creation_input_tokens": 1307,
+      "cache_read_input_tokens": 1203,
+      "output_tokens": 87,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 1307
+      },
+      "inference_geo": "global",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 24,
+          "cache_read_input_tokens": 1203,
+          "cache_creation_input_tokens": 104,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 104,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard",
+      "fallback_credit": null
+    },
+    "modelUsage": {
+      "claude-sonnet-5-5": {
+        "inputTokens": 4,
+        "outputTokens": 87,
+        "cacheReadInputTokens": 1203,
+        "cacheCreationInputTokens": 1307,
+        "webSearchRequests": 0,
+        "costUSD": 0.0043861,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 128000,
+        "thinkingTokens": 0,
+        "canonicalModel": "claude-sonnet-5-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-haiku-4-5-20251001": {
+        "inputTokens": 914,
+        "outputTokens": 16,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0,
+        "webSearchRequests": 0,
+        "costUSD": 0.000994,
+        "contextWindow": 200000,
+        "maxOutputTokens": 32000,
+        "thinkingTokens": 0,
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required",
+    "subagent_stats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "safety_stops": 0,
+    "is_error": false,
+    "num_turns": 2,
+    "subtype": "success",
+    "api_error_status": null,
+    "result": "The tool echoed back: `conformance-probe-sonnet55`",
+    "ttft_ms": 1827,
+    "type": "result",
+    "duration_ms": 2888,
+    "uuid": "fb544da0-36aa-43af-a717-c9d7c527de4b",
+    "ttft_stream_ms": 1185,
+    "time_to_request_ms": 318,
+    "first_content_frame_ms": 1185,
+    "queued_turn_count": 0,
+    "result_index": 0
+  }
+]

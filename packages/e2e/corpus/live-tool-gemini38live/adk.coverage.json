@@ -1,4 +1,625 @@
 {
-  "drops": [],
-  "newFields": []
+  "drops": [
+    {
+      "path": "[0].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[0].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[0].id",
+      "norm": "[*].id",
+      "value": "VM3k5HCr"
+    },
+    {
+      "path": "[0].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357143993
+    },
+    {
+      "path": "[0].liveSessionResumptionUpdate.newHandle",
+      "norm": "[*].liveSessionResumptionUpdate.newHandle",
+      "value": "<redacted>"
+    },
+    {
+      "path": "[0].liveSessionResumptionUpdate.resumable",
+      "norm": "[*].liveSessionResumptionUpdate.resumable",
+      "value": true
+    },
+    {
+      "path": "[1].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[1].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[1].id",
+      "norm": "[*].id",
+      "value": "jrIov1dw"
+    },
+    {
+      "path": "[1].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357144381
+    },
+    {
+      "path": "[1].content.role",
+      "norm": "[*].content.role",
+      "value": "model"
+    },
+    {
+      "path": "[2].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[2].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[2].content.role",
+      "norm": "[*].content.role",
+      "value": "user"
+    },
+    {
+      "path": "[2].id",
+      "norm": "[*].id",
+      "value": "EX25IJ7d"
+    },
+    {
+      "path": "[2].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357144388
+    },
+    {
+      "path": "[3].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[3].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[3].id",
+      "norm": "[*].id",
+      "value": "ZwEZjJLR"
+    },
+    {
+      "path": "[3].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357144433
+    },
+    {
+      "path": "[3].usageMetadata.promptTokenCount",
+      "norm": "[*].usageMetadata.promptTokenCount",
+      "value": 665
+    },
+    {
+      "path": "[3].usageMetadata.totalTokenCount",
+      "norm": "[*].usageMetadata.totalTokenCount",
+      "value": 680
+    },
+    {
+      "path": "[4].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[4].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[4].id",
+      "norm": "[*].id",
+      "value": "FYsv4Z8E"
+    },
+    {
+      "path": "[4].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357144433
+    },
+    {
+      "path": "[4].turnComplete",
+      "norm": "[*].turnComplete",
+      "value": true
+    },
+    {
+      "path": "[5].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[5].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[5].id",
+      "norm": "[*].id",
+      "value": "OorQDEJZ"
+    },
+    {
+      "path": "[5].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357145140
+    },
+    {
+      "path": "[5].content.role",
+      "norm": "[*].content.role",
+      "value": "model"
+    },
+    {
+      "path": "[6].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[6].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[6].id",
+      "norm": "[*].id",
+      "value": "G33zU55z"
+    },
+    {
+      "path": "[6].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357145140
+    },
+    {
+      "path": "[6].outputTranscription.finished",
+      "norm": "[*].outputTranscription.finished",
+      "value": false
+    },
+    {
+      "path": "[6].partial",
+      "norm": "[*].partial",
+      "value": true
+    },
+    {
+      "path": "[7].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[7].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[7].id",
+      "norm": "[*].id",
+      "value": "XmIVAZCw"
+    },
+    {
+      "path": "[7].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357145156
+    },
+    {
+      "path": "[7].content.role",
+      "norm": "[*].content.role",
+      "value": "model"
+    },
+    {
+      "path": "[8].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[8].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[8].id",
+      "norm": "[*].id",
+      "value": "yf5OOxZZ"
+    },
+    {
+      "path": "[8].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357145218
+    },
+    {
+      "path": "[8].content.role",
+      "norm": "[*].content.role",
+      "value": "model"
+    },
+    {
+      "path": "[9].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[9].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[9].id",
+      "norm": "[*].id",
+      "value": "Qb4V9us1"
+    },
+    {
+      "path": "[9].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357145239
+    },
+    {
+      "path": "[9].content.role",
+      "norm": "[*].content.role",
+      "value": "model"
+    },
+    {
+      "path": "[10].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[10].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[10].id",
+      "norm": "[*].id",
+      "value": "9Tv8hfPq"
+    },
+    {
+      "path": "[10].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357145258
+    },
+    {
+      "path": "[10].content.role",
+      "norm": "[*].content.role",
+      "value": "model"
+    },
+    {
+      "path": "[11].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[11].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[11].id",
+      "norm": "[*].id",
+      "value": "5ZnfxEOL"
+    },
+    {
+      "path": "[11].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357145335
+    },
+    {
+      "path": "[11].content.role",
+      "norm": "[*].content.role",
+      "value": "model"
+    },
+    {
+      "path": "[12].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[12].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[12].id",
+      "norm": "[*].id",
+      "value": "BEPXbYFf"
+    },
+    {
+      "path": "[12].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357145335
+    },
+    {
+      "path": "[12].outputTranscription.finished",
+      "norm": "[*].outputTranscription.finished",
+      "value": false
+    },
+    {
+      "path": "[12].partial",
+      "norm": "[*].partial",
+      "value": true
+    },
+    {
+      "path": "[13].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[13].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[13].id",
+      "norm": "[*].id",
+      "value": "lLFZ2ULq"
+    },
+    {
+      "path": "[13].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357145352
+    },
+    {
+      "path": "[13].content.role",
+      "norm": "[*].content.role",
+      "value": "model"
+    },
+    {
+      "path": "[14].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[14].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[14].id",
+      "norm": "[*].id",
+      "value": "FnHluFp8"
+    },
+    {
+      "path": "[14].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357145517
+    },
+    {
+      "path": "[14].content.role",
+      "norm": "[*].content.role",
+      "value": "model"
+    },
+    {
+      "path": "[15].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[15].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[15].id",
+      "norm": "[*].id",
+      "value": "ik6Ojqp4"
+    },
+    {
+      "path": "[15].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357145725
+    },
+    {
+      "path": "[15].content.role",
+      "norm": "[*].content.role",
+      "value": "model"
+    },
+    {
+      "path": "[16].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[16].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[16].id",
+      "norm": "[*].id",
+      "value": "9QmU1opI"
+    },
+    {
+      "path": "[16].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357145726
+    },
+    {
+      "path": "[16].outputTranscription.finished",
+      "norm": "[*].outputTranscription.finished",
+      "value": false
+    },
+    {
+      "path": "[16].partial",
+      "norm": "[*].partial",
+      "value": true
+    },
+    {
+      "path": "[17].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[17].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[17].id",
+      "norm": "[*].id",
+      "value": "zkzWKWkv"
+    },
+    {
+      "path": "[17].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357145742
+    },
+    {
+      "path": "[17].content.role",
+      "norm": "[*].content.role",
+      "value": "model"
+    },
+    {
+      "path": "[18].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[18].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[18].id",
+      "norm": "[*].id",
+      "value": "NPm2LEB4"
+    },
+    {
+      "path": "[18].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357145775
+    },
+    {
+      "path": "[18].content.role",
+      "norm": "[*].content.role",
+      "value": "model"
+    },
+    {
+      "path": "[19].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[19].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[19].id",
+      "norm": "[*].id",
+      "value": "0Jh3CUqq"
+    },
+    {
+      "path": "[19].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357145776
+    },
+    {
+      "path": "[19].outputTranscription.text",
+      "norm": "[*].outputTranscription.text",
+      "value": "The tool returned the message conformance probe live."
+    },
+    {
+      "path": "[19].outputTranscription.finished",
+      "norm": "[*].outputTranscription.finished",
+      "value": true
+    },
+    {
+      "path": "[19].partial",
+      "norm": "[*].partial",
+      "value": false
+    },
+    {
+      "path": "[20].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[20].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[20].id",
+      "norm": "[*].id",
+      "value": "Wixqwaqa"
+    },
+    {
+      "path": "[20].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357148125
+    },
+    {
+      "path": "[20].usageMetadata.promptTokenCount",
+      "norm": "[*].usageMetadata.promptTokenCount",
+      "value": 708
+    },
+    {
+      "path": "[20].usageMetadata.totalTokenCount",
+      "norm": "[*].usageMetadata.totalTokenCount",
+      "value": 787
+    },
+    {
+      "path": "[21].invocationId",
+      "norm": "[*].invocationId",
+      "value": "e-033bffdd-d266-4e27-9d0f-bca4905616b3"
+    },
+    {
+      "path": "[21].author",
+      "norm": "[*].author",
+      "value": "spike"
+    },
+    {
+      "path": "[21].id",
+      "norm": "[*].id",
+      "value": "iLJMCsYr"
+    },
+    {
+      "path": "[21].timestamp",
+      "norm": "[*].timestamp",
+      "value": 1791357148125
+    },
+    {
+      "path": "[21].turnComplete",
+      "norm": "[*].turnComplete",
+      "value": true
+    }
+  ],
+  "newFields": [
+    "[*].invocationId",
+    "[*].author",
+    "[*].id",
+    "[*].timestamp",
+    "[*].liveSessionResumptionUpdate.newHandle",
+    "[*].liveSessionResumptionUpdate.resumable",
+    "[*].content.role",
+    "[*].content.parts[*].functionCall.name",
+    "[*].content.parts[*].functionCall.args.message",
+    "[*].content.parts[*].functionCall.id",
+    "[*].modelVersion",
+    "[*].content.parts[*].functionResponse.id",
+    "[*].content.parts[*].functionResponse.name",
+    "[*].content.parts[*].functionResponse.response.content[*].type",
+    "[*].content.parts[*].functionResponse.response.content[*].text",
+    "[*].usageMetadata.promptTokenCount",
+    "[*].usageMetadata.responseTokenCount",
+    "[*].usageMetadata.totalTokenCount",
+    "[*].usageMetadata.promptTokensDetails[*].modality",
+    "[*].usageMetadata.promptTokensDetails[*].tokenCount",
+    "[*].usageMetadata.thoughtsTokenCount",
+    "[*].turnComplete",
+    "[*].content.parts[*].inlineData.mimeType",
+    "[*].content.parts[*].inlineData.data",
+    "[*].outputTranscription.text",
+    "[*].outputTranscription.finished",
+    "[*].partial",
+    "[*].usageMetadata.responseTokensDetails[*].modality",
+    "[*].usageMetadata.responseTokensDetails[*].tokenCount"
+  ]
 }

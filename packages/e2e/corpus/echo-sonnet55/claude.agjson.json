@@ -1,0 +1,195 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_msg_011CfnTVYTCdksKBHgTF5JjB",
+    "threadId": "24434b33-83d6-4afe-8543-36593b412b9a"
+  },
+  {
+    "type": "message.start",
+    "seq": 1,
+    "id": "msg_011CfnTVYTCdksKBHgTF5JjB",
+    "turnId": "turn_msg_011CfnTVYTCdksKBHgTF5JjB",
+    "threadId": "24434b33-83d6-4afe-8543-36593b412b9a",
+    "role": "assistant",
+    "model": "claude-sonnet-5-5"
+  },
+  {
+    "type": "tool.start",
+    "seq": 2,
+    "turnId": "turn_msg_011CfnTVYTCdksKBHgTF5JjB",
+    "toolCallId": "toolu_011gGVWhmW9oYhq6J2Dz3vru",
+    "name": "mcp__t__echo",
+    "index": 0,
+    "messageId": "msg_011CfnTVYTCdksKBHgTF5JjB",
+    "providerExecuted": false
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 3,
+    "toolCallId": "toolu_011gGVWhmW9oYhq6J2Dz3vru",
+    "delta": "{\"message\":\"conformance-probe-sonnet55\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 4,
+    "toolCallId": "toolu_011gGVWhmW9oYhq6J2Dz3vru",
+    "input": {
+      "message": "conformance-probe-sonnet55"
+    }
+  },
+  {
+    "type": "message.end",
+    "seq": 5,
+    "id": "msg_011CfnTVYTCdksKBHgTF5JjB",
+    "usage": {
+      "inputTokens": 1205,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 1203,
+      "cumulative": true
+    }
+  },
+  {
+    "type": "tool.done",
+    "seq": 6,
+    "turnId": "turn_msg_011CfnTVYTCdksKBHgTF5JjB",
+    "toolCallId": "toolu_011gGVWhmW9oYhq6J2Dz3vru",
+    "content": [
+      {
+        "type": "text",
+        "text": "conformance-probe-sonnet55"
+      }
+    ],
+    "outcome": "ok",
+    "isError": false,
+    "messageId": "toolu_011gGVWhmW9oYhq6J2Dz3vru:result"
+  },
+  {
+    "type": "message.start",
+    "seq": 7,
+    "id": "msg_011CfnTVeoT3UeMyxJN457Z5",
+    "turnId": "turn_msg_011CfnTVYTCdksKBHgTF5JjB",
+    "threadId": "24434b33-83d6-4afe-8543-36593b412b9a",
+    "role": "assistant",
+    "model": "claude-sonnet-5-5"
+  },
+  {
+    "type": "text.start",
+    "seq": 8,
+    "id": "msg_011CfnTVeoT3UeMyxJN457Z5:text:0",
+    "messageId": "msg_011CfnTVeoT3UeMyxJN457Z5",
+    "turnId": "turn_msg_011CfnTVYTCdksKBHgTF5JjB"
+  },
+  {
+    "type": "text.delta",
+    "seq": 9,
+    "id": "msg_011CfnTVeoT3UeMyxJN457Z5:text:0",
+    "messageId": "msg_011CfnTVeoT3UeMyxJN457Z5",
+    "delta": "The tool echoed back: `conformance-probe-sonnet55`",
+    "turnId": "turn_msg_011CfnTVYTCdksKBHgTF5JjB"
+  },
+  {
+    "type": "text.end",
+    "seq": 10,
+    "id": "msg_011CfnTVeoT3UeMyxJN457Z5:text:0",
+    "messageId": "msg_011CfnTVeoT3UeMyxJN457Z5",
+    "turnId": "turn_msg_011CfnTVYTCdksKBHgTF5JjB"
+  },
+  {
+    "type": "message.end",
+    "seq": 11,
+    "id": "msg_011CfnTVeoT3UeMyxJN457Z5",
+    "usage": {
+      "inputTokens": 1309,
+      "cacheReadTokens": 1203,
+      "cacheWriteTokens": 104,
+      "cumulative": true
+    }
+  },
+  {
+    "seq": 12,
+    "type": "ext.anthropic.result-meta",
+    "fastModeDisabledReason": "sdk_opt_in_required",
+    "queuedTurnCount": 0,
+    "resultIndex": 0,
+    "subagentStats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "modelUsage": {
+      "claude-sonnet-5-5": {
+        "canonicalModel": "claude-sonnet-5-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-haiku-4-5-20251001": {
+        "canonicalModel": "claude-haiku-4-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    }
+  },
+  {
+    "type": "turn.done",
+    "seq": 13,
+    "turnId": "turn_msg_011CfnTVYTCdksKBHgTF5JjB",
+    "outcome": {
+      "type": "success",
+      "result": "The tool echoed back: `conformance-probe-sonnet55`"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 2514,
+      "outputTokens": 87,
+      "cacheReadTokens": 1203,
+      "cacheWriteTokens": 1307,
+      "reasoningTokens": 0,
+      "serverToolRequests": 0,
+      "costUsd": 0.0053801000000000005,
+      "costScope": "query",
+      "cumulative": false,
+      "byModel": {
+        "claude-sonnet-5-5": {
+          "inputTokens": 2514,
+          "outputTokens": 87,
+          "cacheReadTokens": 1203,
+          "cacheWriteTokens": 1307,
+          "reasoningTokens": 0,
+          "costUsd": 0.0043861,
+          "serverToolRequests": 0,
+          "cumulative": true
+        },
+        "claude-haiku-4-5-20251001": {
+          "inputTokens": 914,
+          "outputTokens": 16,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "costUsd": 0.000994,
+          "serverToolRequests": 0,
+          "cumulative": true
+        }
+      }
+    }
+  }
+]
