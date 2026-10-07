@@ -2360,6 +2360,22 @@
     ]
   },
   {
+    "path": "[*].modelUsage.claude-sonnet-5-5.contextWindow",
+    "reason": "claude: static model-capability metadata on the per-model modelUsage entry (mirrors the claude-opus-5-5 / claude-sonnet-5 entries for the same key): limits, not usage, with no AgUsage home. First observed live 2026-10-07 on the echo-sonnet55 seed (1000000 / 128000).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].modelUsage.claude-sonnet-5-5.maxOutputTokens",
+    "reason": "claude: static model-capability metadata on the per-model modelUsage entry (mirrors the claude-opus-5-5 / claude-sonnet-5 entries for the same key): limits, not usage, with no AgUsage home. First observed live 2026-10-07 on the echo-sonnet55 seed (1000000 / 128000).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
     "path": "[*].modelUsage.claude-opus-5.contextWindow",
     "reason": "model capability constant (context window size) for claude-opus-5 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.contextWindow entry (mapModelUsage never reads it); not an actual usage measurement, no AgUsage home. Model literal pre-registered on the 0.3.258 bump (2026-09-02) ahead of the cohort's live capture.",
     "reviewed": "any",
@@ -3480,6 +3496,38 @@
     "reviewed": "any",
     "frameworks": [
       "adk"
+    ]
+  },
+  {
+    "path": "[*].per_turn_effort_active",
+    "reason": "claude: NEW system/init bootstrap field at @anthropic-ai/claude-agent-sdk 0.3.292 (CLI 2.1.292); the CLI schema calls it \"@internal Whether per-turn effort is active for this frame's model\" (prompt-cache mechanics). createClaudeNormalizer handles msg.type===\"system\" only for the model_refusal_fallback subtype, so every other system/init field falls through with no AgJSON home. First observed live 2026-10-07 on echo-sonnet55 (true).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].view_mode",
+    "reason": "claude: NEW system/init bootstrap field at @anthropic-ai/claude-agent-sdk 0.3.292 (CLI 2.1.292): a client display hint ('focus' | 'default') with no AgJSON home; createClaudeNormalizer handles msg.type===\"system\" only for the model_refusal_fallback subtype. First observed live 2026-10-07 on echo-sonnet55 (\"default\").",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].usage.fallback_credit",
+    "reason": "claude: result-usage field, first seen null (echo-sonnet55, 2026-10-07, agent 0.3.292). It is a fallback-credit redemption OUTCOME ({status: redeemed | not_applied, reason}; @anthropic-ai/sdk 0.131 BetaFallbackCreditUsage), not a credit token, so the SPEC 13.10 strip does not apply; the token itself stays in stop_details.fallback_credit_token, which withoutCreditTokens strips by key. AgUsage has no slot; carry is decided when a non-null capture lands.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].safety_stops",
+    "reason": "claude: result field, first seen 0 (echo-sonnet55, 2026-10-07, agent 0.3.292); undeclared in sdk.d.ts. The CLI schema is int().nonnegative().optional() on the success result, merged across a run as a max: a run counter of safety stops, not a block signal (the facet's block signal is the refusal close, finishReason refusal). Carry is decided when a non-zero capture lands.",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
     ]
   }
 ]

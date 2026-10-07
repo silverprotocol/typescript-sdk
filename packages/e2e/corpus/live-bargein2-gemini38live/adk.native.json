@@ -1,8 +1,8 @@
 [
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "9hBpVWgT",
+    "id": "nf4uewsL",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -10,16 +10,16 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333014366,
+    "timestamp": 1791357136801,
     "liveSessionResumptionUpdate": {
       "newHandle": "<redacted>",
       "resumable": true
     }
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "mrnQTJFy",
+    "id": "TH9UJ8VI",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -27,13 +27,13 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333015652,
+    "timestamp": 1791357138423,
     "content": {
       "parts": [
         {
           "inlineData": {
             "mimeType": "audio/pcm;rate=24000",
-            "data": "<audio-elided:13440 chars>"
+            "data": "<audio-elided:11520 chars>"
           }
         }
       ],
@@ -42,9 +42,9 @@
     "modelVersion": "gemini-3.8-live"
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "iqmg8lEX",
+    "id": "eGwmLq3y",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -52,17 +52,17 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333015652,
+    "timestamp": 1791357138423,
     "outputTranscription": {
-      "text": "Silas lived alone ",
+      "text": "Silas had manned ",
       "finished": false
     },
     "partial": true
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "1gsrOLG7",
+    "id": "2zMLiA3Z",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -70,13 +70,13 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333015700,
+    "timestamp": 1791357138491,
     "content": {
       "parts": [
         {
           "inlineData": {
             "mimeType": "audio/pcm;rate=24000",
-            "data": "<audio-elided:25600 chars>"
+            "data": "<audio-elided:28160 chars>"
           }
         }
       ],
@@ -85,9 +85,9 @@
     "modelVersion": "gemini-3.8-live"
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "hkJ5XQEA",
+    "id": "8j7m28jW",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -95,42 +95,17 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333015736,
-    "content": {
-      "parts": [
-        {
-          "inlineData": {
-            "mimeType": "audio/pcm;rate=24000",
-            "data": "<audio-elided:12800 chars>"
-          }
-        }
-      ],
-      "role": "model"
-    },
-    "modelVersion": "gemini-3.8-live"
-  },
-  {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "author": "spike",
-    "id": "K0dZQbat",
-    "actions": {
-      "stateDelta": {},
-      "artifactDelta": {},
-      "requestedAuthConfigs": {},
-      "requestedToolConfirmations": {}
-    },
-    "longRunningToolIds": [],
-    "timestamp": 1790333015736,
+    "timestamp": 1791357138498,
     "outputTranscription": {
-      "text": "Silas lived alone ",
+      "text": "Silas had manned ",
       "finished": true
     },
     "partial": false
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "guI9LIvK",
+    "id": "BTbcXRcr",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -138,14 +113,14 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333015736,
+    "timestamp": 1791357138498,
     "interrupted": true,
     "modelVersion": "gemini-3.8-live"
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "b6ULSyL6",
+    "id": "mVPrzrrI",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -153,15 +128,15 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333015889,
+    "timestamp": 1791357138551,
     "usageMetadata": {
-      "promptTokenCount": 610,
-      "responseTokenCount": 25,
-      "totalTokenCount": 635,
+      "promptTokenCount": 608,
+      "responseTokenCount": 21,
+      "totalTokenCount": 629,
       "promptTokensDetails": [
         {
           "modality": "TEXT",
-          "tokenCount": 363
+          "tokenCount": 361
         },
         {
           "modality": "AUDIO",
@@ -171,7 +146,7 @@
       "responseTokensDetails": [
         {
           "modality": "AUDIO",
-          "tokenCount": 25
+          "tokenCount": 21
         }
       ],
       "thoughtsTokenCount": 256
@@ -179,9 +154,9 @@
     "modelVersion": "gemini-3.8-live"
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "czLmVu5K",
+    "id": "oRn6J13n",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -189,14 +164,14 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333015889,
+    "timestamp": 1791357138551,
     "turnComplete": true,
     "modelVersion": "gemini-3.8-live"
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "htOHvMhT",
+    "id": "Yxnw9VdL",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -204,13 +179,13 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333016865,
+    "timestamp": 1791357139238,
     "content": {
       "parts": [
         {
           "inlineData": {
             "mimeType": "audio/pcm;rate=24000",
-            "data": "<audio-elided:16640 chars>"
+            "data": "<audio-elided:11520 chars>"
           }
         }
       ],
@@ -219,9 +194,9 @@
     "modelVersion": "gemini-3.8-live"
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "sVZdKCmu",
+    "id": "Kbr3oDFp",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -229,17 +204,17 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333016865,
+    "timestamp": 1791357139239,
     "outputTranscription": {
-      "text": "Barnaby, the ",
+      "text": "Barnaby had served ",
       "finished": false
     },
     "partial": true
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "Ima8kWE5",
+    "id": "KwcFcqzV",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -247,13 +222,13 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333016904,
+    "timestamp": 1791357139250,
     "content": {
       "parts": [
         {
           "inlineData": {
             "mimeType": "audio/pcm;rate=24000",
-            "data": "<audio-elided:23040 chars>"
+            "data": "<audio-elided:20480 chars>"
           }
         }
       ],
@@ -262,9 +237,9 @@
     "modelVersion": "gemini-3.8-live"
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "w9AdATbI",
+    "id": "GZUoPbwH",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -272,13 +247,13 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333016917,
+    "timestamp": 1791357139297,
     "content": {
       "parts": [
         {
           "inlineData": {
             "mimeType": "audio/pcm;rate=24000",
-            "data": "<audio-elided:7680 chars>"
+            "data": "<audio-elided:10240 chars>"
           }
         }
       ],
@@ -287,9 +262,9 @@
     "modelVersion": "gemini-3.8-live"
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "sg5sN3cU",
+    "id": "qQYacnAz",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -297,17 +272,17 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333016942,
+    "timestamp": 1791357139313,
     "outputTranscription": {
-      "text": "Barnaby, the ",
+      "text": "Barnaby had served ",
       "finished": true
     },
     "partial": false
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "XGSjz2IZ",
+    "id": "6KJY6ZUs",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -315,14 +290,14 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333016942,
+    "timestamp": 1791357139313,
     "interrupted": true,
     "modelVersion": "gemini-3.8-live"
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "mfjsmqbQ",
+    "id": "SIfZWe1D",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -330,35 +305,35 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333017122,
+    "timestamp": 1791357139372,
     "usageMetadata": {
-      "promptTokenCount": 682,
-      "responseTokenCount": 25,
-      "totalTokenCount": 707,
+      "promptTokenCount": 676,
+      "responseTokenCount": 22,
+      "totalTokenCount": 698,
       "promptTokensDetails": [
         {
           "modality": "TEXT",
-          "tokenCount": 398
+          "tokenCount": 396
         },
         {
           "modality": "AUDIO",
-          "tokenCount": 247
+          "tokenCount": 243
         }
       ],
       "responseTokensDetails": [
         {
           "modality": "AUDIO",
-          "tokenCount": 25
+          "tokenCount": 22
         }
       ],
-      "thoughtsTokenCount": 180
+      "thoughtsTokenCount": 56
     },
     "modelVersion": "gemini-3.8-live"
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "ce8BsPqO",
+    "id": "FnmEqMBE",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -366,14 +341,14 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333017122,
+    "timestamp": 1791357139372,
     "turnComplete": true,
     "modelVersion": "gemini-3.8-live"
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "LKiAtfWz",
+    "id": "pram2KNl",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -381,13 +356,13 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333017517,
+    "timestamp": 1791357140177,
     "content": {
       "parts": [
         {
           "inlineData": {
             "mimeType": "audio/pcm;rate=24000",
-            "data": "<audio-elided:4 chars>"
+            "data": "<audio-elided:2560 chars>"
           }
         }
       ],
@@ -396,9 +371,9 @@
     "modelVersion": "gemini-3.8-live"
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "QprhWAje",
+    "id": "S16LjtLc",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -406,7 +381,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333017517,
+    "timestamp": 1791357140177,
     "outputTranscription": {
       "text": "The ship ",
       "finished": false
@@ -414,9 +389,9 @@
     "partial": true
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "GxYIMOmw",
+    "id": "gxkpvK0U",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -424,32 +399,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333017525,
-    "content": {
-      "parts": [
-        {
-          "inlineData": {
-            "mimeType": "audio/pcm;rate=24000",
-            "data": "<audio-elided:8320 chars>"
-          }
-        }
-      ],
-      "role": "model"
-    },
-    "modelVersion": "gemini-3.8-live"
-  },
-  {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "author": "spike",
-    "id": "oRQF5xbJ",
-    "actions": {
-      "stateDelta": {},
-      "artifactDelta": {},
-      "requestedAuthConfigs": {},
-      "requestedToolConfirmations": {}
-    },
-    "longRunningToolIds": [],
-    "timestamp": 1790333017572,
+    "timestamp": 1791357140193,
     "content": {
       "parts": [
         {
@@ -464,9 +414,9 @@
     "modelVersion": "gemini-3.8-live"
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "AO7rw9vV",
+    "id": "1bXZEzbQ",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -474,13 +424,13 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333017615,
+    "timestamp": 1791357140260,
     "content": {
       "parts": [
         {
           "inlineData": {
             "mimeType": "audio/pcm;rate=24000",
-            "data": "<audio-elided:15360 chars>"
+            "data": "<audio-elided:17920 chars>"
           }
         }
       ],
@@ -489,9 +439,9 @@
     "modelVersion": "gemini-3.8-live"
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "mfXsh13t",
+    "id": "04yFeLXz",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -499,57 +449,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333017642,
-    "content": {
-      "parts": [
-        {
-          "inlineData": {
-            "mimeType": "audio/pcm;rate=24000",
-            "data": "<audio-elided:10240 chars>"
-          }
-        }
-      ],
-      "role": "model"
-    },
-    "modelVersion": "gemini-3.8-live"
-  },
-  {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "author": "spike",
-    "id": "2Qj8YilR",
-    "actions": {
-      "stateDelta": {},
-      "artifactDelta": {},
-      "requestedAuthConfigs": {},
-      "requestedToolConfirmations": {}
-    },
-    "longRunningToolIds": [],
-    "timestamp": 1790333017701,
-    "content": {
-      "parts": [
-        {
-          "inlineData": {
-            "mimeType": "audio/pcm;rate=24000",
-            "data": "<audio-elided:15360 chars>"
-          }
-        }
-      ],
-      "role": "model"
-    },
-    "modelVersion": "gemini-3.8-live"
-  },
-  {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "author": "spike",
-    "id": "w84LbaTz",
-    "actions": {
-      "stateDelta": {},
-      "artifactDelta": {},
-      "requestedAuthConfigs": {},
-      "requestedToolConfirmations": {}
-    },
-    "longRunningToolIds": [],
-    "timestamp": 1790333017810,
+    "timestamp": 1791357140308,
     "content": {
       "parts": [
         {
@@ -564,9 +464,9 @@
     "modelVersion": "gemini-3.8-live"
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "nYYarDxI",
+    "id": "AxohYo5K",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -574,7 +474,57 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333017810,
+    "timestamp": 1791357140334,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:10240 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
+    "author": "spike",
+    "id": "eWOWwsMl",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1791357140444,
+    "content": {
+      "parts": [
+        {
+          "inlineData": {
+            "mimeType": "audio/pcm;rate=24000",
+            "data": "<audio-elided:17920 chars>"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    "modelVersion": "gemini-3.8-live"
+  },
+  {
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
+    "author": "spike",
+    "id": "qJFywNt4",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1791357140444,
     "outputTranscription": {
       "text": "is fine.",
       "finished": false
@@ -582,9 +532,9 @@
     "partial": true
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "ZTCmgDrb",
+    "id": "gyLvXtja",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -592,13 +542,13 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333017816,
+    "timestamp": 1791357140486,
     "content": {
       "parts": [
         {
           "inlineData": {
             "mimeType": "audio/pcm;rate=24000",
-            "data": "<audio-elided:10240 chars>"
+            "data": "<audio-elided:17920 chars>"
           }
         }
       ],
@@ -607,9 +557,9 @@
     "modelVersion": "gemini-3.8-live"
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "Wq9EK7Vw",
+    "id": "STFNmWw6",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -617,57 +567,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333017822,
-    "content": {
-      "parts": [
-        {
-          "inlineData": {
-            "mimeType": "audio/pcm;rate=24000",
-            "data": "<audio-elided:10240 chars>"
-          }
-        }
-      ],
-      "role": "model"
-    },
-    "modelVersion": "gemini-3.8-live"
-  },
-  {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "author": "spike",
-    "id": "jjUP2Dkx",
-    "actions": {
-      "stateDelta": {},
-      "artifactDelta": {},
-      "requestedAuthConfigs": {},
-      "requestedToolConfirmations": {}
-    },
-    "longRunningToolIds": [],
-    "timestamp": 1790333017837,
-    "content": {
-      "parts": [
-        {
-          "inlineData": {
-            "mimeType": "audio/pcm;rate=24000",
-            "data": "<audio-elided:7680 chars>"
-          }
-        }
-      ],
-      "role": "model"
-    },
-    "modelVersion": "gemini-3.8-live"
-  },
-  {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
-    "author": "spike",
-    "id": "1xedlf9N",
-    "actions": {
-      "stateDelta": {},
-      "artifactDelta": {},
-      "requestedAuthConfigs": {},
-      "requestedToolConfirmations": {}
-    },
-    "longRunningToolIds": [],
-    "timestamp": 1790333017838,
+    "timestamp": 1791357140486,
     "outputTranscription": {
       "text": "The ship is fine.",
       "finished": true
@@ -675,9 +575,9 @@
     "partial": false
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "IUdB4LVr",
+    "id": "Dt4WzrqM",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -685,35 +585,35 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333019092,
+    "timestamp": 1791357141581,
     "usageMetadata": {
-      "promptTokenCount": 742,
-      "responseTokenCount": 45,
-      "totalTokenCount": 787,
+      "promptTokenCount": 733,
+      "responseTokenCount": 40,
+      "totalTokenCount": 773,
       "promptTokensDetails": [
         {
           "modality": "TEXT",
-          "tokenCount": 421
+          "tokenCount": 419
         },
         {
           "modality": "AUDIO",
-          "tokenCount": 272
+          "tokenCount": 265
         }
       ],
       "responseTokensDetails": [
         {
           "modality": "AUDIO",
-          "tokenCount": 45
+          "tokenCount": 40
         }
       ],
-      "thoughtsTokenCount": 35
+      "thoughtsTokenCount": 32
     },
     "modelVersion": "gemini-3.8-live"
   },
   {
-    "invocationId": "e-c2ac6878-27bd-460a-9a47-2b45d45c17d9",
+    "invocationId": "e-e5d1de41-4ef6-4186-ade6-f3f26738067e",
     "author": "spike",
-    "id": "DVyQnX4H",
+    "id": "bBd7OBKk",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -721,7 +621,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790333019092,
+    "timestamp": 1791357141581,
     "turnComplete": true,
     "modelVersion": "gemini-3.8-live"
   },

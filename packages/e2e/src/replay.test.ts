@@ -75,6 +75,11 @@ const CLAUDE_SEEDS = [
   "app-spec",
   "convergence-echo",
   "echo-sonnet5",
+  // 2026-10-07: FIRST live capture on claude-sonnet-5-5 at
+  // @anthropic-ai/claude-agent-sdk 0.3.292 (CLI 2.1.292): the same event shape
+  // as echo-sonnet5; system/init permissionMode "default", as at 0.3.280
+  // (kind:"capture", see corpus/echo-sonnet55/claude.provenance.json).
+  "echo-sonnet55",
   // 2026-07-25 (workspace#2): the *_update / re-render carry-fidelity sequence
   // — render_card then update_card against ONE ui resourceUri (kind:"capture",
   // claude-sonnet-5 @0.3.217 — see corpus/app-update-sonnet5/claude.provenance.json).
@@ -279,6 +284,11 @@ const OPENAI_SEEDS = [
   // gpt-6-luna chose not to reason on the echo.
   "echo-gpt6sol",
   "echo-gpt6luna",
+  // 2026-10-07: FIRST live capture on gpt-6.1-sol (GA 2026-09-29) at
+  // @openai/agents 0.19.0 + openai-node 7.22.0, no model-specific settings: the
+  // same event shape as echo-gpt6sol, its reasoning item included
+  // (kind:"capture", see corpus/echo-gpt61sol/openai.provenance.json).
+  "echo-gpt61sol",
   // 2026-09-23: the corpus's FIRST live `phase:"commentary"` (the gate
   // for R&D 13+17 stage 2, the draft.4 `phase` field). gpt-6-sol at
   // @openai/agents 0.18.0, reasoningSummary "auto" (echoed back as "detailed",
@@ -439,11 +449,15 @@ const ADK_SEEDS = [
   // turn.abort{interrupted} on its own turnComplete and the reply folds as its
   // own turn (`<turnId>_g1`, success), so the fold never parks. Audio payloads
   // are elided at capture and the resumption handle is redacted.
+  // Re-captured 2026-10-07 under @google/adk 2.2.1, whose Gemini 3.x Live path
+  // now covers gemini-3.8-live: the same 1 interruption and the same fold.
   "live-bargein-gemini38live",
   // 2026-09-25: the second live session, TWO barge-ins (the second goes out at
   // the first output of generation 2, after generation 1's trailing usage and
   // turnComplete): two interrupted generations, each closing
   // turn.abort{interrupted} with its own usage, then the reply `_g2` succeeds.
+  // Re-captured 2026-10-07 under adk 2.2.1: 29 natives (was 33), the same 2
+  // interruptions and the same fold.
   "live-bargein2-gemini38live",
   // 2026-09-26: the first live (bidi) ADK tool call, gemini-3.8-live (AUDIO, no
   // barge-in; the Live agent binds the echo MCP tool). The call's usage report
@@ -452,6 +466,8 @@ const ADK_SEEDS = [
   // result and the reply fold as ONE turn that closes success; its usage sums
   // both reports. Neither report carries toolUsePromptTokenCount: the tool
   // result is counted in the next report's promptTokenCount.
+  // Re-captured 2026-10-07 under adk 2.2.1: the functionCall is yielded at once
+  // and now opens the message; both message.metadata land after tool.done.
   "live-tool-gemini38live",
 ] as const;
 
@@ -476,6 +492,11 @@ const VERCEL_SEEDS = [
   // reasoning effort outside low..max.
   "echo-gpt6sol",
   "echo-gpt6luna",
+  // 2026-10-07: gpt-6.1-sol on the vercel facet at ai 7.0.130 /
+  // @ai-sdk/openai 4.0.86, whose capability table names no reasoning effort for
+  // it, so the request sends none. The model chose not to reason on this echo
+  // (0 reasoning tokens), unlike echo-gpt6sol's one reasoning block.
+  "echo-gpt61sol",
   // 2026-09-23 (capture backlog "Vercel parallel tool calls"): two MCP tools
   // called in ONE step (echo + find_doc), gpt-6-sol @ ai 7.0.111 /
   // @ai-sdk/openai 4.0.72. The wire is two back-to-back tool-input lifecycles

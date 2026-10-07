@@ -1,0 +1,384 @@
+[
+  {
+    "type": "start"
+  },
+  {
+    "type": "start-step",
+    "request": {},
+    "warnings": []
+  },
+  {
+    "type": "tool-input-start",
+    "id": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "toolName": "echo",
+    "dynamic": true,
+    "toolMetadata": {
+      "clientName": "ai-sdk-mcp-client",
+      "toolName": "echo"
+    }
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "{\""
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "message"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "\":\""
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "con"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "formance"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "-pro"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "be"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "-g"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "pt"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "61"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "sol"
+  },
+  {
+    "type": "tool-input-delta",
+    "id": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "\"}"
+  },
+  {
+    "type": "tool-input-end",
+    "id": "call_RdO4gGD0ZHsA0EIrJe8FRrEv"
+  },
+  {
+    "type": "tool-call",
+    "toolCallId": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "toolName": "echo",
+    "input": {
+      "message": "conformance-probe-gpt61sol"
+    },
+    "providerMetadata": {
+      "openai": {
+        "itemId": "fc_03ee2b7f25e5c724006ac5efe4bf2887d0826d176ea4594367"
+      }
+    },
+    "toolMetadata": {
+      "clientName": "ai-sdk-mcp-client",
+      "toolName": "echo"
+    },
+    "dynamic": true
+  },
+  {
+    "type": "tool-result",
+    "toolCallId": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "toolName": "echo",
+    "input": {
+      "message": "conformance-probe-gpt61sol"
+    },
+    "output": {
+      "content": [
+        {
+          "type": "text",
+          "text": "conformance-probe-gpt61sol"
+        }
+      ],
+      "isError": false
+    },
+    "dynamic": true,
+    "providerMetadata": {
+      "openai": {
+        "itemId": "fc_03ee2b7f25e5c724006ac5efe4bf2887d0826d176ea4594367"
+      }
+    },
+    "toolMetadata": {
+      "clientName": "ai-sdk-mcp-client",
+      "toolName": "echo"
+    }
+  },
+  {
+    "type": "finish-step",
+    "finishReason": "tool-calls",
+    "usage": {
+      "inputTokens": 104,
+      "inputTokenDetails": {
+        "noCacheTokens": 104,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 24,
+      "outputTokenDetails": {
+        "textTokens": 24,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 128,
+      "raw": {
+        "input_tokens": 104,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 24,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 128
+      }
+    },
+    "performance": {
+      "stepTimeMs": 4054.8756249999997,
+      "toolExecutionMs": {
+        "call_RdO4gGD0ZHsA0EIrJe8FRrEv": 3.99212499999976
+      },
+      "responseTimeMs": 4048.548584,
+      "effectiveOutputTokensPerSecond": 5.928050386958133,
+      "outputTokensPerSecond": 14.581705912425887,
+      "inputTokensPerSecond": 43.28552762430867,
+      "effectiveTotalTokensPerSecond": 31.616268730443373,
+      "timeToFirstOutputMs": 2402.650625,
+      "timeBetweenOutputChunksMs": {
+        "min": 0.1619999999998072,
+        "p10": 1.6955419999999322,
+        "median": 5.814208000000235,
+        "avg": 18.283444500000012,
+        "p90": 75.95429200000035,
+        "max": 82.75108399999999
+      }
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_03ee2b7f25e5c724006ac5efe2a27c87d09fcbb9bfb80af06e",
+        "serviceTier": "default",
+        "reasoningContext": "all_turns"
+      }
+    },
+    "response": {
+      "id": "resp_03ee2b7f25e5c724006ac5efe2a27c87d09fcbb9bfb80af06e",
+      "timestamp": "2026-10-07T07:08:18.000Z",
+      "modelId": "gpt-6.1-sol",
+      "headers": {
+        "access-control-expose-headers": "X-Request-ID, CF-Ray, CF-Ray",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a46b12e788a0a76e-ICN",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream; charset=utf-8",
+        "date": "Wed, 07 Oct 2026 07:08:19 GMT",
+        "openai-organization": "<redacted>",
+        "openai-processing-ms": "610",
+        "openai-project": "<redacted>",
+        "openai-version": "2020-10-01",
+        "server": "cloudflare",
+        "set-cookie": "<redacted>",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "x-content-type-options": "nosniff",
+        "x-ratelimit-limit-requests": "15000",
+        "x-ratelimit-limit-tokens": "40000000",
+        "x-ratelimit-remaining-requests": "14999",
+        "x-ratelimit-remaining-tokens": "39999461",
+        "x-ratelimit-reset-requests": "4ms",
+        "x-ratelimit-reset-tokens": "0s",
+        "x-request-id": "req_8f2de9da09fb45b4a5751d8c9e3c00e1"
+      }
+    }
+  },
+  {
+    "type": "start-step",
+    "request": {},
+    "warnings": []
+  },
+  {
+    "type": "text-start",
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+        "phase": "final_answer"
+      }
+    }
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "text": "con"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "text": "formance"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "text": "-pro"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "text": "be"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "text": "-g"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "text": "pt"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "text": "61"
+  },
+  {
+    "type": "text-delta",
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "text": "sol"
+  },
+  {
+    "type": "text-end",
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+        "phase": "final_answer"
+      }
+    }
+  },
+  {
+    "type": "finish-step",
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 146,
+      "inputTokenDetails": {
+        "noCacheTokens": 146,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 12,
+      "outputTokenDetails": {
+        "textTokens": 12,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 158,
+      "raw": {
+        "input_tokens": 146,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 12,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 158
+      }
+    },
+    "performance": {
+      "stepTimeMs": 1908.0818330000002,
+      "toolExecutionMs": {},
+      "responseTimeMs": 1906.848167,
+      "effectiveOutputTokensPerSecond": 6.293107237205635,
+      "outputTokensPerSecond": 38.098715358941426,
+      "inputTokensPerSecond": 91.71563356490333,
+      "effectiveTotalTokensPerSecond": 82.8592452898742,
+      "timeToFirstOutputMs": 1591.8769169999996,
+      "timeBetweenOutputChunksMs": {
+        "min": 0.31804100000044855,
+        "p10": 0.31804100000044855,
+        "median": 2.148624999999811,
+        "avg": 10.649125000000042,
+        "p90": 58.633332999999766,
+        "max": 58.633332999999766
+      }
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_01612cdc512f0375006ac5efe69ff887d0837fe249b6a12640",
+        "serviceTier": "default",
+        "reasoningContext": "all_turns"
+      }
+    },
+    "response": {
+      "id": "resp_01612cdc512f0375006ac5efe69ff887d0837fe249b6a12640",
+      "timestamp": "2026-10-07T07:08:22.000Z",
+      "modelId": "gpt-6.1-sol",
+      "headers": {
+        "access-control-expose-headers": "X-Request-ID, CF-Ray, CF-Ray",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a46b1300ad9ca76e-ICN",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream; charset=utf-8",
+        "date": "Wed, 07 Oct 2026 07:08:22 GMT",
+        "openai-organization": "<redacted>",
+        "openai-processing-ms": "246",
+        "openai-project": "<redacted>",
+        "openai-version": "2020-10-01",
+        "server": "cloudflare",
+        "set-cookie": "<redacted>",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "x-content-type-options": "nosniff",
+        "x-ratelimit-limit-requests": "15000",
+        "x-ratelimit-limit-tokens": "40000000",
+        "x-ratelimit-remaining-requests": "14999",
+        "x-ratelimit-remaining-tokens": "39999419",
+        "x-ratelimit-reset-requests": "4ms",
+        "x-ratelimit-reset-tokens": "0s",
+        "x-request-id": "req_eefc00be8c7349e7acd9b9bd924b8825"
+      }
+    }
+  },
+  {
+    "type": "finish",
+    "finishReason": "stop",
+    "totalUsage": {
+      "inputTokens": 250,
+      "inputTokenDetails": {
+        "noCacheTokens": 250,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 36,
+      "outputTokenDetails": {
+        "textTokens": 36,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 286
+    }
+  }
+]

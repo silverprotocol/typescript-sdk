@@ -1,0 +1,315 @@
+[
+  {
+    "type": "turn.start",
+    "seq": 0,
+    "turnId": "turn_vercel_1",
+    "threadId": "vercel"
+  },
+  {
+    "type": "step.start",
+    "id": "step_1",
+    "turnId": "turn_vercel_1",
+    "seq": 1
+  },
+  {
+    "type": "message.start",
+    "seq": 2,
+    "id": "msg_turn_vercel_1_s1",
+    "turnId": "turn_vercel_1",
+    "threadId": "vercel",
+    "role": "assistant",
+    "stepId": "step_1"
+  },
+  {
+    "type": "tool.start",
+    "seq": 3,
+    "turnId": "turn_vercel_1",
+    "toolCallId": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "name": "echo",
+    "messageId": "msg_turn_vercel_1_s1",
+    "dynamic": true
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 4,
+    "toolCallId": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "{\""
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 5,
+    "toolCallId": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "message"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 6,
+    "toolCallId": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "\":\""
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 7,
+    "toolCallId": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "con"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 8,
+    "toolCallId": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "formance"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 9,
+    "toolCallId": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "-pro"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 10,
+    "toolCallId": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "be"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 11,
+    "toolCallId": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "-g"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 12,
+    "toolCallId": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "pt"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 13,
+    "toolCallId": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "61"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 14,
+    "toolCallId": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "sol"
+  },
+  {
+    "type": "tool.args.delta",
+    "seq": 15,
+    "toolCallId": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "delta": "\"}"
+  },
+  {
+    "type": "tool.args.assembled",
+    "seq": 16,
+    "toolCallId": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "input": {
+      "message": "conformance-probe-gpt61sol"
+    }
+  },
+  {
+    "type": "tool.done",
+    "seq": 17,
+    "turnId": "turn_vercel_1",
+    "toolCallId": "call_RdO4gGD0ZHsA0EIrJe8FRrEv",
+    "outcome": "ok",
+    "structuredContent": {
+      "content": [
+        {
+          "type": "text",
+          "text": "conformance-probe-gpt61sol"
+        }
+      ],
+      "isError": false
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"content\":[{\"type\":\"text\",\"text\":\"conformance-probe-gpt61sol\"}],\"isError\":false}"
+      }
+    ],
+    "dynamic": true
+  },
+  {
+    "type": "message.metadata",
+    "messageId": "msg_turn_vercel_1_s1",
+    "metadata": {
+      "responseId": "resp_03ee2b7f25e5c724006ac5efe2a27c87d09fcbb9bfb80af06e",
+      "model": "gpt-6.1-sol"
+    },
+    "turnId": "turn_vercel_1",
+    "seq": 18
+  },
+  {
+    "type": "message.end",
+    "seq": 19,
+    "id": "msg_turn_vercel_1_s1",
+    "usage": {
+      "inputTokens": 104,
+      "outputTokens": 24,
+      "totalTokens": 128,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 0
+    }
+  },
+  {
+    "type": "step.done",
+    "id": "step_1",
+    "turnId": "turn_vercel_1",
+    "seq": 20
+  },
+  {
+    "type": "step.start",
+    "id": "step_2",
+    "turnId": "turn_vercel_1",
+    "seq": 21
+  },
+  {
+    "type": "message.start",
+    "seq": 22,
+    "id": "msg_turn_vercel_1_s2",
+    "turnId": "turn_vercel_1",
+    "threadId": "vercel",
+    "role": "assistant",
+    "stepId": "step_2"
+  },
+  {
+    "type": "text.start",
+    "seq": 23,
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "messageId": "msg_turn_vercel_1_s2",
+    "turnId": "turn_vercel_1",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+        "phase": "final_answer"
+      }
+    }
+  },
+  {
+    "type": "text.delta",
+    "seq": 24,
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "con",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 25,
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "formance",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 26,
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "-pro",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 27,
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "be",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 28,
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "-g",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 29,
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "pt",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 30,
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "61",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.delta",
+    "seq": 31,
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "messageId": "msg_turn_vercel_1_s2",
+    "delta": "sol",
+    "turnId": "turn_vercel_1"
+  },
+  {
+    "type": "text.end",
+    "seq": 32,
+    "id": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+    "messageId": "msg_turn_vercel_1_s2",
+    "turnId": "turn_vercel_1",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_01612cdc512f0375006ac5efe7fe7c87d09ea7eda783fdda97",
+        "phase": "final_answer"
+      }
+    }
+  },
+  {
+    "type": "message.metadata",
+    "messageId": "msg_turn_vercel_1_s2",
+    "metadata": {
+      "responseId": "resp_01612cdc512f0375006ac5efe69ff887d0837fe249b6a12640",
+      "model": "gpt-6.1-sol"
+    },
+    "turnId": "turn_vercel_1",
+    "seq": 33
+  },
+  {
+    "type": "message.end",
+    "seq": 34,
+    "id": "msg_turn_vercel_1_s2",
+    "usage": {
+      "inputTokens": 146,
+      "outputTokens": 12,
+      "totalTokens": 158,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 0
+    }
+  },
+  {
+    "type": "step.done",
+    "id": "step_2",
+    "turnId": "turn_vercel_1",
+    "seq": 35
+  },
+  {
+    "type": "turn.done",
+    "seq": 36,
+    "turnId": "turn_vercel_1",
+    "outcome": {
+      "type": "success"
+    },
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 250,
+      "outputTokens": 36,
+      "totalTokens": 286,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 0
+    }
+  }
+]
