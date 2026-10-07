@@ -158,10 +158,10 @@ function imageSource(source: ImageBlockSource): AgSource {
  * Reads `usage.output_tokens_details.thinking_tokens` off an Anthropic usage
  * object — the thinking-token telemetry that has ridden `message_delta` and
  * result usage on the wire for a while (a constant 0 until the 0.3.257 fix made
- * it real; corpus/partials-sonnet5 carries the 0). The bundled
- * `@anthropic-ai/sdk` `BetaUsage` / `BetaMessageDeltaUsage` types (0.93.0) still
- * do NOT declare `output_tokens_details`, so it is read through a runtime guard
- * at the JsonValue boundary — the user branch's `structuredContent` precedent —
+ * it real; corpus/partials-sonnet5 carries the 0). Newer `@anthropic-ai/sdk`
+ * versions declare `output_tokens_details`, but the facet's peer range reaches
+ * older ones and a frame may omit it, so it is read through a runtime guard at
+ * the JsonValue boundary — the user branch's `structuredContent` precedent —
  * never a cast that widens the peer type.
  *
  * SUBSET semantics — the SDK's own doc for the per-model twin
@@ -1098,7 +1098,7 @@ function readStartupFailureReason(v: unknown): string | undefined {
 // The type's own lead sentence frames the whole enum as a refusal to start:
 // "Why Claude Code refused to start, so a host can offer the fix instead of a
 // retry." So a PRESENT reason means NOT retriable, except for the values
-// upstream itself EXPLICITLY describes as retriable. At 0.3.280 that set is
+// upstream itself EXPLICITLY describes as retriable. Through 0.3.292 that set is
 // exactly one value:
 //  - `worktree_unverified`: "the session's worktree could not be verified
 //    right now; retrying may succeed."
@@ -1114,9 +1114,9 @@ function readStartupFailureReason(v: unknown): string | undefined {
 //    the load failure is transient is not stated.
 //  - `session_held_by_background`: "the conversation to resume or continue is
 //    running as a background session." Nothing says the hold clears, or when.
-// Every other documented value (org_pin_api_key_conflict, org_pin_mismatch,
-// managed_settings_invalid, gateway_signin_required, gateway_access_denied,
-// proxy_invalid, temp_dir_unusable, cwd_unavailable, shell_tool_missing,
+// Every other documented value (org_pin_api_key_conflict, provider_not_allowed,
+// org_pin_mismatch, managed_settings_invalid, gateway_signin_required,
+// gateway_access_denied, proxy_invalid, temp_dir_unusable, cwd_unavailable, shell_tool_missing,
 // worktree_resume_refused, cli_version_too_old, bypass_root) names a
 // configuration, policy or environment fix, and an unknown future value
 // inherits the enum's "offer the fix instead of a retry" framing. An ABSENT
@@ -2212,8 +2212,9 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       }
       if (d.type === "thinking_delta" && b.kind === "reasoning") {
         if (typeof d.thinking === "string" && d.thinking.length > 0) b.hasText = true;
-        // Claude Code stamps a RUNTIME-ONLY `estimated_tokens` (number | null;
-        // undeclared on BetaThinkingDelta) on each thinking_delta. Under
+        // Claude Code stamps `estimated_tokens` (number | null; declared on
+        // BetaThinkingDelta only by newer @anthropic-ai/sdk versions) on each
+        // thinking_delta. Under
         // Fable 5.1's default `display: omitted` the `thinking` text is '' and
         // that estimate is the delta's entire payload — carried verbatim (wire
         // name kept; null kept: "no estimate yet" is a real value). Absent key ⇒
@@ -2282,8 +2283,9 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // stop_reason/stop_details fold nowhere here: the turn close comes from
       // the result frame, exactly as in complete-only mode.
       const u = ev.usage;
-      // 0.3.257 thinking-token telemetry — runtime-guarded (`BetaMessageDeltaUsage`
-      // does not declare `output_tokens_details`), subset of outputTokens; see
+      // 0.3.257 thinking-token telemetry — runtime-guarded (older
+      // `BetaMessageDeltaUsage` versions do not declare `output_tokens_details`),
+      // subset of outputTokens; see
       // `readThinkingTokens`'s doc.
       const reasoningTokens = readThinkingTokens(u);
       // draft.5 §4: the input side is re-derived from the merged native trio, so
@@ -2514,9 +2516,9 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       // diagnostics, there `{cache_miss_reason: {type: "tools_changed",
       // cache_missed_input_tokens: 3258}}`, i.e. why the prompt cache missed.
       // Response-only (never sent back on replay), so it rides host-only `_meta`
-      // (SPEC §12, the X5 split), verbatim with its wire name. Undeclared on
-      // @anthropic-ai/sdk 0.93.0's BetaMessage, so read through the JSON
-      // boundary; null (its usual value) carries nothing. It is per RESPONSE,
+      // (SPEC §12, the host-only split), verbatim with its wire name. Older
+      // @anthropic-ai/sdk BetaMessage versions do not declare it, so it is read
+      // through the JSON boundary; null (its usual value) carries nothing. It is per RESPONSE,
       // and the CLI repeats the same message object on every frame of a
       // multi-frame message, so it is carried once per SDK message id (again
       // only if the value changes).
@@ -2636,8 +2638,8 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
       }
       const messageId = open.emittedId;
       // A NON-NULL `stop_details` on a response (e.g. a refusal's
-      // {type: "refusal", category, explanation}, the shape @anthropic-ai/sdk
-      // 0.93.0 declares; any further member is kept too) is carried verbatim on its
+      // {type: "refusal", category, explanation, …}, the shape @anthropic-ai/sdk
+      // declares; any further member is kept too) is carried verbatim on its
       // turn's closing turn.done.messageMetadata, which folds onto the message it
       // names (SPEC §5 turn.done row). The CLOSING response's value only: a later
       // response of the turn without one clears it. Every `fallback_credit_token`,

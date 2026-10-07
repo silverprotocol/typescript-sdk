@@ -28,6 +28,15 @@ function run(msg: SDKMessage): AgEvent[] {
 }
 
 // ─── fixtures (the EXACT shapes the run-seam yields; see code-worker.ts) ──────
+// A streamed thinking_delta without an `estimated_tokens` key, as most CLI
+// builds send it. @anthropic-ai/sdk types the key as required (number | null),
+// but the facet reads its PRESENCE (a null value still rides _meta), so the
+// absent shape is its own wire case and is built here, not from the SDK type.
+type ThinkingDeltaWithoutEstimate = {
+  type: "content_block_delta";
+  index: number;
+  delta: { type: "thinking_delta"; thinking: string };
+};
 // A minimal valid BetaUsage for an assistant message (code-worker.ts:93).
 const ASSISTANT_USAGE: BetaMessage["usage"] = {
   input_tokens: 0,
@@ -40,6 +49,8 @@ const ASSISTANT_USAGE: BetaMessage["usage"] = {
   server_tool_use: null,
   service_tier: null,
   speed: null,
+  fallback_credit: null,
+  output_tokens_details: null,
 };
 
 function betaMessage(
@@ -57,6 +68,7 @@ function betaMessage(
     container: null,
     context_management: null,
     stop_details: null,
+    diagnostics: null,
     usage: ASSISTANT_USAGE,
     ...overrides,
   };
@@ -100,6 +112,8 @@ function resultSuccess(stop_reason: string | null): SDKMessage {
       server_tool_use: { web_fetch_requests: 0, web_search_requests: 0 },
       service_tier: "standard",
       speed: "standard",
+      fallback_credit: { status: { type: "redeemed" } },
+      output_tokens_details: { thinking_tokens: 0 },
     },
     modelUsage: {
       "claude-opus": {
@@ -135,6 +149,8 @@ function resultError(subtype: "error_max_turns" | "error_during_execution"): SDK
     server_tool_use: { web_fetch_requests: 0, web_search_requests: 0 },
     service_tier: "standard",
     speed: "standard",
+    fallback_credit: { status: { type: "redeemed" } },
+    output_tokens_details: { thinking_tokens: 0 },
   };
   return {
     type: "result",
@@ -194,6 +210,19 @@ function imageToolResultMsg(): SDKMessage {
     uuid: "00000000-0000-0000-0000-000000000003",
     session_id: "sess_fixture",
   };
+}
+
+// The same frame as it arrives with no thinking telemetry: its usage carries no
+// `output_tokens_details` (3 of the 34 recorded claude result frames). The SDK
+// types the key as present, so the copy is built at the JSON boundary.
+function withoutThinkingTelemetry(frame: SDKMessage): { [k: string]: unknown } {
+  return Object.fromEntries(
+    Object.entries(frame).map(([k, v]) =>
+      k === "usage" && typeof v === "object" && v !== null
+        ? [k, Object.fromEntries(Object.entries(v).filter(([uk]) => uk !== "output_tokens_details"))]
+        : [k, v],
+    ),
+  );
 }
 
 // Narrow `AgEvent` to `AgClosedEventType` by ruling out the open `AgExtEvent`
@@ -758,6 +787,8 @@ describe("createClaudeNormalizer — split-frame id coalesce (INV-MSG)", () => {
       server_tool_use: null,
       service_tier: null,
       speed: null,
+      fallback_credit: null,
+      output_tokens_details: null,
     };
     const n = createClaudeNormalizer();
     const evs = [
@@ -1154,6 +1185,8 @@ function resultWithDenial(): SDKMessage {
       server_tool_use: { web_fetch_requests: 0, web_search_requests: 0 },
       service_tier: "standard",
       speed: "standard",
+      fallback_credit: { status: { type: "redeemed" } },
+      output_tokens_details: { thinking_tokens: 0 },
     },
     modelUsage: {},
     permission_denials: [
@@ -1399,6 +1432,8 @@ describe("createClaudeNormalizer — message.end usage", () => {
       server_tool_use: null,
       service_tier: null,
       speed: null,
+      fallback_credit: null,
+      output_tokens_details: null,
     };
     const evs = run(
       assistantMsg([{ type: "text", text: "hi", citations: null }], null, {
@@ -1474,6 +1509,8 @@ describe("createClaudeNormalizer — B1b: structured_output", () => {
         server_tool_use: { web_fetch_requests: 0, web_search_requests: 0 },
         service_tier: "standard",
         speed: "standard",
+        fallback_credit: { status: { type: "redeemed" } },
+        output_tokens_details: { thinking_tokens: 0 },
       },
       modelUsage: {},
       permission_denials: [],
@@ -2197,7 +2234,7 @@ describe("createClaudeNormalizer — draft.4 phase:'interim' from narration_bloc
 
   describe("STREAMED", () => {
     type SE = Extract<SDKMessage, { type: "stream_event" }>["event"];
-    const se = (event: SE): unknown => ({
+    const se = (event: SE | ThinkingDeltaWithoutEstimate): unknown => ({
       type: "stream_event",
       event,
       parent_tool_use_id: null,
@@ -4644,7 +4681,7 @@ describe("createClaudeNormalizer — 0.3.257 thinking-token telemetry → reason
         },
       },
     };
-    const evs = run(msg);
+    const evs = drive([withoutThinkingTelemetry(msg)]);
     const done = evs.find((e) => e.type === "turn.done");
     expect(done).toMatchObject({
       type: "turn.done",
@@ -4701,7 +4738,7 @@ describe("createClaudeNormalizer — 0.3.257 thinking-token telemetry → reason
   it("negative control: the frozen fixtures (no thinking telemetry) emit no reasoningTokens anywhere — pre-0.3.257 output byte-identical", () => {
     const evs = [
       ...run(assistantMsg([{ type: "text", text: "hi", citations: null }])),
-      ...run(resultSuccess("end_turn")),
+      ...drive([withoutThinkingTelemetry(resultSuccess("end_turn"))]),
     ];
     const carriers = evs.filter((e) => e.type === "message.end" || e.type === "turn.done");
     expect(carriers).toHaveLength(2);
@@ -4794,11 +4831,11 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
     index,
     content_block: { type: "thinking", thinking: "", signature: "" },
   });
-  const cbDeltaThinking = (index: number, thinking: string): StreamEvent => ({
-    type: "content_block_delta",
-    index,
-    delta: { type: "thinking_delta", thinking },
-  });
+  // A whole stream frame: the delta carries no estimated_tokens key (see ThinkingDeltaWithoutEstimate).
+  const thinkingDeltaFrame = (index: number, thinking: string): unknown => {
+    const event: ThinkingDeltaWithoutEstimate = { type: "content_block_delta", index, delta: { type: "thinking_delta", thinking } };
+    return { ...streamFrame(cbStop(index)), event };
+  };
   const cbDeltaSignature = (index: number, signature: string): StreamEvent => ({
     type: "content_block_delta",
     index,
@@ -4826,6 +4863,8 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
       cache_read_input_tokens: null,
       iterations: null,
       server_tool_use: null,
+      fallback_credit: null,
+      output_tokens_details: null,
     },
   });
   const msgStop = (): StreamEvent => ({ type: "message_stop" });
@@ -4844,7 +4883,7 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
     };
   }
 
-  function pushAll(n: ReturnType<typeof createClaudeNormalizer>, msgs: SDKMessage[]): AgEvent[] {
+  function pushAll(n: ReturnType<typeof createClaudeNormalizer>, msgs: unknown[]): AgEvent[] {
     const out: AgEvent[] = [];
     for (const m of msgs) out.push(...n.push(JsonValue.parse(m)));
     return out;
@@ -5030,8 +5069,8 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
       ...pushAll(streamed, [
         streamFrame(messageStart()),
         streamFrame(cbStartThinking(0)),
-        streamFrame(cbDeltaThinking(0, "let me ")),
-        streamFrame(cbDeltaThinking(0, "think")),
+        thinkingDeltaFrame(0, "let me "),
+        thinkingDeltaFrame(0, "think"),
         streamFrame(cbDeltaSignature(0, "sig-xyz")),
         streamFrame(cbStop(0)),
         streamFrame(msgStop()),
@@ -5679,7 +5718,7 @@ describe("createClaudeNormalizer — thinking_delta.estimated_tokens (runtime-on
     content_block: { type: "thinking", thinking: "", signature: "" },
   };
   const thinkingDelta = (extra: Record<string, unknown>): unknown => ({
-    ...frame({ type: "content_block_delta", index: 0, delta: { type: "thinking_delta", thinking: "" } }),
+    ...frame(cbStartThinking),
     event: { type: "content_block_delta", index: 0, delta: { type: "thinking_delta", thinking: "", ...extra } },
   });
 
@@ -5834,6 +5873,7 @@ function fold(evs: AgEvent[]): Reducer {
 const RESULT_USAGE = {
   inputTokens: 130,
   outputTokens: 50,
+  reasoningTokens: 0,
   cacheReadTokens: 20,
   cacheWriteTokens: 10,
   serverToolRequests: 0,
@@ -6403,11 +6443,12 @@ describe("createClaudeNormalizer — an API-error turn closes as turn.error, nev
       '"serverToolRequests":0,"costUsd":0.05,"costScope":"query","cumulative":false,"byModel":{"claude-opus":{"inputTokens":130,' +
       '"outputTokens":50,"cacheReadTokens":20,"cacheWriteTokens":10,"costUsd":0.05,"serverToolRequests":0,' +
       '"cumulative":true}}}}]';
-    expect(JSON.stringify(run(resultSuccess("end_turn")))).toBe(GOLDEN);
+    // The frozen fixture carried no thinking telemetry.
+    expect(JSON.stringify(drive([withoutThinkingTelemetry(resultSuccess("end_turn"))]))).toBe(GOLDEN);
     // is_error absent: identical to is_error false, byte for byte.
-    expect(JSON.stringify(drive([withoutKey(resultSuccess("end_turn"), "is_error")]))).toBe(GOLDEN);
+    expect(JSON.stringify(drive([withoutKey(withoutThinkingTelemetry(resultSuccess("end_turn")), "is_error")]))).toBe(GOLDEN);
     // A non-boolean truthy is_error is NOT an API-error turn (strict === true).
-    expect(JSON.stringify(drive([{ ...resultSuccess("end_turn"), is_error: "true" }]))).toBe(GOLDEN);
+    expect(JSON.stringify(drive([{ ...withoutThinkingTelemetry(resultSuccess("end_turn")), is_error: "true" }]))).toBe(GOLDEN);
     // Denials on an is_error:false result still use the carrier (golden shape).
     expect(run(resultWithDenial()).map((e) => e.type)).toEqual([
       "turn.start",
@@ -6907,6 +6948,7 @@ describe("createClaudeNormalizer — startup_failure_reason (0.3.274, SDKResultE
   // them retriable (see `startupFailureRetriable` in src).
   const EXPECTED_RETRIABLE: Record<StartupFailureReason, boolean> = {
     org_pin_api_key_conflict: false,
+    provider_not_allowed: false,
     org_verify_failed: false,
     org_pin_mismatch: false,
     managed_settings_invalid: false,
@@ -6936,7 +6978,7 @@ describe("createClaudeNormalizer — startup_failure_reason (0.3.274, SDKResultE
 
   it("table: every documented value is carried verbatim as startupFailureReason and decides retriable", () => {
     const table = Object.entries(EXPECTED_RETRIABLE);
-    expect(table).toHaveLength(16);
+    expect(table).toHaveLength(17);
     for (const [reason, retriable] of table) {
       const evs = drive([startupFailure(reason)]);
       expect(evs.map((e) => e.type), reason).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.error"]);
