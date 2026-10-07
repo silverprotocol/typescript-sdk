@@ -43,7 +43,7 @@
     "@silverprotocol/core": "workspace:*"
   },
   "peerDependencies": {
-    "@openai/agents": ">=0.2.0 <0.19"
+    "@openai/agents": ">=0.2.0 <0.20"
   },
   "peerDependenciesMeta": {
     "@openai/agents": {
