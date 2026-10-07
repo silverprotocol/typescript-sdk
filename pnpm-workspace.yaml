@@ -42,6 +42,10 @@ overrides:
                                       # 2026-10-07: @openai/agents-core 0.19.0 declares the client as an
                                       # optional ^2.0.0 and the lockfile held 2.0.0. Retire when agents-core
                                       # declares ^2.2.0 or higher.
+  'source-map-js@<1.2.2': '^1.2.2'    # GHSA-68fv-2mgg-jv7q (high; >=1.0.0 <1.2.2, fixed 1.2.2), 2026-10-07:
+                                      # vitest -> vite 8.3.0 -> postcss 8.5.28 declares ^1.2.1 and the lockfile
+                                      # held 1.2.1 (dev and test only; no published package reaches it).
+                                      # Retire once a fresh resolution picks 1.2.2 without it.
 # minimumReleaseAgeExclude ritual (pnpm >=11.9.0): the evaluator UNIONS every
 # rule for the same package name (pnpm/pnpm#12463 fixed the 11.2.2 first-
 # name-match quirk this comment used to describe), so during a day-one peer
