@@ -102,7 +102,16 @@ const DEFAULT_MODEL: Record<Framework, string> = {
   // price, or one that cannot switch reasoning off, stays a SEEDED PROBE
   // (echo-fable51, echo-gpt6astra) rather than the default. Bump only after a
   // clean capture at the new model lands as a replay seed.
-  claude: "claude-sonnet-5",
+  // 2026-10-08 (ruled): bumped from claude-sonnet-5. The echo-haiku55 seed
+  // (claude-haiku-5-5 @ @anthropic-ai/claude-agent-sdk 0.3.292) landed clean,
+  // with the same event shape as the sonnet seeds, and it ran with no thinking
+  // (0 thinking tokens) at the capture agent's settings. It is the working
+  // default on cost. Consequence to know: CLI 2.1.292 prices the model with
+  // costBasis "unknown", so a capture's costUSD for it is the CLI's estimate,
+  // not a list price, until a CLI that knows the model lands. Model-named
+  // seeds keep their CAPTURE_MODEL; only seeds without a model in their name
+  // pick this up, at their next refresh.
+  claude: "claude-haiku-5-5",
   // 2026-09-23 (cohort 0.6.3, ruled): bumped from gpt-5.6-sol. The
   // echo-gpt6sol seeds landed clean on both the openai and vercel facets;
   // gpt-6-sol costs HALF of gpt-5.6-sol ($2/$10 vs $4/$20 per MTok) and the API
