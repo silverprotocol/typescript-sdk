@@ -243,6 +243,36 @@ describe("createAdkNormalizer — an interruption after a bare success close", (
     }
   });
 
+  it("a second barge-in (a bare {interrupted} after the first interrupted generation closed, then that generation's usage report and turnComplete) closes the second generation turn.abort interrupted too, whole, cut after the second report, and with the host-completion event; never a success close, and the fold is clean", () => {
+    for (const i of [0, 1]) {
+      const inv = `inv-double-barge-${i}`;
+      const stream = [
+        live(inv, { content: audio }),
+        live(inv, { interrupted: true }),
+        live(inv, report),
+        live(inv, { turnComplete: true }),
+        live(inv, { interrupted: true }),
+        live(inv, report),
+        live(inv, { turnComplete: true }),
+      ];
+      for (const [label, natives, host] of [
+        ["whole", stream, false],
+        ["cut after the second report", stream.slice(0, 6), false],
+        ["with the host-completion event", stream, true],
+      ] as Array<[string, Obj[], boolean]>) {
+        const out = run(natives, host);
+        const tag = `${label} #${i}`;
+        expect(terminals(out), tag).toEqual([
+          ["turn.abort", `turn_adk_${inv}`, null],
+          ["turn.abort", `turn_adk_${inv}_g1`, null],
+        ]);
+        expect(out.filter((e) => e.type === "turn.abort").map((e) => Reflect.get(e, "reason")), tag).toEqual(["interrupted", "interrupted"]);
+        expect(afterTerminal(out), tag).toEqual([]);
+        expect(fold(out).needsResync, tag).toBe(false);
+      }
+    }
+  });
+
   it("ADK's bare {interrupted} re-yield after a message carrying both turnComplete and interrupted emits nothing: one turn, closed turn.abort interrupted, nothing after it", () => {
     for (const i of [0, 1]) {
       const inv = `inv-reyield-${i}`;

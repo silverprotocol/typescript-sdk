@@ -2739,6 +2739,9 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
   // opens a new turn, `<turn>_g<n>`, instead of landing in the closed one.
   const generationOf = new Map<string, number>();
   const interruptClosed = new Set<string>();
+  // Per turn key: whether the previous event carried both turnComplete and
+  // interrupted, the message after which ADK re-yields a bare {interrupted}.
+  const previousBothFlags = new Map<string, boolean>();
   // Turns a final response closed as success before the invocation ended
   // (without the host-completion event only). ADK keeps running after such a
   // final (a SequentialAgent's next sub-agent, a LoopAgent's next iteration),
@@ -3460,11 +3463,16 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
 
   /** The turn an event belongs to: `turn_<stem>_<key>` (or `turn_<stem>` with no
    *  key), with `_g<n>` for the n-th generation after a barge-in closed the
-   *  previous one. `undefined` for ADK's bare `{interrupted}` re-yield on a
-   *  generation a barge-in already closed. */
+   *  previous one. `undefined` for ADK's bare `{interrupted}` re-yield: the one
+   *  that directly follows a message carrying both turnComplete and
+   *  interrupted (utils/live_connection_utils.js yields that message's final
+   *  response, then the bare flag). Any other bare `{interrupted}` after a
+   *  barge-in closed the generation interrupts the next one. */
   function liveTurnFor(event: AdkEvent, omittedParts = false): string | undefined {
     const key = turnKey(event);
     const base = key !== undefined ? `turn_${invokeStem}_${key}` : `turn_${invokeStem}`;
+    const reyield = previousBothFlags.get(base) === true;
+    previousBothFlags.set(base, event.turnComplete === true && event.interrupted === true);
     const g = generationOf.get(base) ?? 0;
     const current = g === 0 ? base : `${base}_g${g}`;
     // Any event after a success close opens the next generation, so no
@@ -3481,7 +3489,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
       !onlyStateChange(event) &&
       !repeatsClosedTurn(current, event);
     if (!interruptClosed.has(current) && !afterSuccess) return current;
-    if (!afterSuccess && event.interrupted === true && !hasLiveContent(event) && !omittedParts) return undefined;
+    if (!afterSuccess && reyield && event.interrupted === true && !hasLiveContent(event) && !omittedParts) return undefined;
     generationOf.set(base, g + 1);
     return `${base}_g${g + 1}`;
   }
