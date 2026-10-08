@@ -5361,3 +5361,323 @@ describe("tool.done adoption: a message with no turnId has no turn open to adopt
     expect(r.result().messages.find((m) => m.id === "M")?.content).toEqual([expect.objectContaining({ type: "tool-result", toolCallId: "c1" })]);
   });
 });
+
+describe("fold rules (rc.1): a repeated message id, a more:true after the final, a nested turn's thread, the sole open turn", () => {
+  const fold = (evs: unknown[]): Reducer => {
+    const r = new Reducer();
+    for (const e of evs) r.push(AgEvent.parse(e));
+    return r;
+  };
+  const ser = (r: Reducer) => JSON.stringify(r.result());
+  const turnOf = (r: Reducer, id: string) => r.result().turns.find((t) => t.turnId === id);
+  const open = (seq: number, turnId: string, threadId: string) => ({ type: "turn.start", seq, turnId, threadId });
+  const msg = (seq: number, id: string, turnId: string, threadId: string) => ({ type: "message.start", seq, id, turnId, threadId, role: "assistant" });
+  const text = (seq: number, id: string, messageId: string, turnId: string, s: string) => [
+    { type: "text.start", seq, id, messageId, turnId },
+    { type: "text.delta", seq: seq + 1, id, messageId, turnId, delta: s },
+    { type: "text.end", seq: seq + 2, id, messageId, turnId },
+  ];
+
+  const seqd = (evs: Array<Record<string, unknown>>) => evs.map((e, i) => ({ seq: i, ...e }));
+  const sub = (turnId: string, parentTurnId: string) => ({ type: "subagent.start", turnId, parentTurnId });
+  const smsg = (id: string, turnId: string, threadId?: string) => ({ id, role: "assistant", content: [], turnId, ...(threadId !== undefined ? { threadId } : {}) });
+  const snap = (messages: Array<Record<string, unknown>>, turns?: Array<Record<string, unknown>>) => ({ type: "messages.snapshot", messages, ...(turns !== undefined ? { turns } : {}) });
+  const ms = (id: string, turnId: string, threadId: string) => ({ type: "message.start", id, role: "assistant", turnId, threadId });
+  const placed = (r: Reducer) => r.result().turns.map((t) => `${t.turnId}@${t.threadId}${t.parentTurnId !== undefined ? `^${t.parentTurnId}` : ""}`);
+
+  describe("a message.start naming an id the fold already holds parks, and the fold is unchanged", () => {
+    const base = [open(0, "T", "R"), msg(1, "M", "T", "R"), ...text(2, "b1", "M", "T", "hello"), { type: "message.end", seq: 5, id: "M" }];
+
+    it("a sealed id repeated in the invoke parks; the message keeps its content", () => {
+      const before = fold(base);
+      const r = fold([...base, msg(6, "M", "T", "R")]);
+      expect(r.needsResync).toBe(true);
+      expect(ser(r)).toBe(ser(before));
+    });
+
+    it("an open id repeated parks", () => {
+      const r = fold([open(0, "T", "R"), msg(1, "M", "T", "R"), msg(2, "M", "T", "R")]);
+      expect(r.needsResync).toBe(true);
+      expect(r.result().messages).toHaveLength(1);
+    });
+
+    it("an id a folded messages.snapshot carried parks a live message.start", () => {
+      const r = fold([
+        { type: "messages.snapshot", seq: 0, messages: [{ id: "M", role: "assistant", content: [{ type: "text", text: "kept" }], turnId: "T", threadId: "R" }], turns: [{ turnId: "T", threadId: "R" }] },
+        msg(1, "M", "T", "R"),
+      ]);
+      expect(r.needsResync).toBe(true);
+      expect(r.result().messages[0]?.content).toEqual([expect.objectContaining({ text: "kept" })]);
+    });
+
+    it("an id a tool.done adopted parks a later message.start", () => {
+      const r = fold([
+        open(0, "T", "R"),
+        { type: "tool.done", seq: 1, turnId: "T", toolCallId: "c1", messageId: "TM", outcome: "ok", content: [{ type: "text", text: "r" }] },
+        msg(2, "TM", "T", "R"),
+      ]);
+      expect(r.needsResync).toBe(true);
+      expect(r.result().messages.find((m) => m.id === "TM")?.role).toBe("tool");
+    });
+
+    it("a later invoke (seq restarting at 0) reusing a held id parks: the message set is fold-wide", () => {
+      const r = fold([...base, { type: "turn.done", seq: 6, turnId: "T", outcome: { type: "success" }, finishReason: "stop" }, open(0, "T2", "R"), msg(1, "M", "T2", "R")]);
+      expect(r.needsResync).toBe(true);
+    });
+
+    it("a folded message.remove releases the id", () => {
+      const r = fold([...base, { type: "message.remove", seq: 6, id: "M" }, msg(7, "M", "T", "R")]);
+      expect(r.needsResync).toBe(false);
+      expect(r.result().messages.find((m) => m.id === "M")?.content).toEqual([]);
+    });
+
+    it("a snapshot that omits the id releases it", () => {
+      const r = fold([...base, { type: "messages.snapshot", seq: 6, messages: [] }, msg(7, "M", "T", "R")]);
+      expect(r.needsResync).toBe(false);
+    });
+
+    it("a parked repeat registers nothing: the turn it names is not seen opened", () => {
+      const r = fold([
+        ...base,
+        { type: "turn.done", seq: 6, turnId: "T", outcome: { type: "success" }, finishReason: "stop" },
+        msg(7, "M", "N", "R2"), // parks: M is held
+        { type: "messages.snapshot", seq: 8, messages: [] }, // un-parks, keeps what was seen
+        { type: "turn.error", seq: 9, message: "boom" }, // turnId-less: no open turn, so it parks
+      ]);
+      expect(r.needsResync).toBe(true);
+      expect(turnOf(r, "N")).toBeUndefined();
+    });
+
+    it("a parked repeat sets no root thread: a later nested turn is held, where a fresh id would have placed it", () => {
+      const r = fold(seqd([snap([smsg("M", "T")]), ms("M", "T", "R2"), { type: "state.snapshot", snapshot: {} }, sub("N", "P")]));
+      expect(r.needsResync).toBe(false);
+      expect(placed(r)).toEqual([]);
+      const fresh = fold(seqd([snap([smsg("M", "T")]), ms("M2", "T", "R2"), { type: "state.snapshot", snapshot: {} }, sub("N", "P")]));
+      expect(placed(fresh)).toEqual(["N@R2^P"]);
+    });
+
+    it("a parked repeat releases no held nested record", () => {
+      const r = fold(seqd([sub("N", "P"), snap([smsg("M", "T")]), ms("M", "T", "R2"), { type: "state.snapshot", snapshot: {} }]));
+      expect(placed(r)).toEqual([]);
+      const fresh = fold(seqd([sub("N", "P"), snap([smsg("M", "T")]), ms("M2", "T", "R2"), { type: "state.snapshot", snapshot: {} }]));
+      expect(placed(fresh)).toEqual(["N@R2^P"]);
+    });
+  });
+
+  describe("a tool.done with more:true after the call's final result parks within its invoke", () => {
+    const pre = [open(0, "T", "R"), msg(1, "A", "T", "R"), { type: "tool.start", seq: 2, turnId: "T", toolCallId: "c1", name: "t", messageId: "A", index: 0 }];
+    const final = (seq: number) => ({ type: "tool.done", seq, turnId: "T", toolCallId: "c1", outcome: "ok", content: [{ type: "text", text: "final" }] });
+    const prelim = (seq: number, s: string) => ({ type: "tool.done", seq, turnId: "T", toolCallId: "c1", outcome: "ok", more: true, content: [{ type: "text", text: s }] });
+    const results = (r: Reducer) => r.result().messages.flatMap((m) => m.content).filter((b) => b.type === "tool-result");
+
+    it("a more:true after the final parks; no second tool-result block is appended", () => {
+      const before = fold([...pre, final(3)]);
+      const r = fold([...pre, final(3), prelim(4, "late")]);
+      expect(r.needsResync).toBe(true);
+      expect(ser(r)).toBe(ser(before));
+      expect(results(r)).toHaveLength(1);
+    });
+
+    it("more:true results before the final fold as one kept-open block", () => {
+      const r = fold([...pre, prelim(3, "p1"), prelim(4, "p2"), final(5)]);
+      expect(r.needsResync).toBe(false);
+      expect(results(r)).toHaveLength(1);
+    });
+
+    it("a more:true after a final that closed a kept-open block parks", () => {
+      const before = fold([...pre, prelim(3, "p1"), final(4)]);
+      const r = fold([...pre, prelim(3, "p1"), final(4), prelim(5, "late")]);
+      expect(r.needsResync).toBe(true);
+      expect(ser(r)).toBe(ser(before));
+    });
+
+    it("a more:true for a call finalized in an EARLIER invoke takes the create path, as before (within-invoke only)", () => {
+      const r = fold([...pre, final(3), { type: "message.end", seq: 4, id: "A" }, open(0, "T2", "R"), msg(1, "B", "T2", "R"), { type: "tool.done", seq: 2, turnId: "T2", toolCallId: "c1", outcome: "ok", more: true, content: [{ type: "text", text: "again" }] }]);
+      expect(r.needsResync).toBe(false);
+      expect(results(r)).toHaveLength(2);
+    });
+
+    // A final that lands on no open message adopts a tool message; a snapshot then re-seeds the fold.
+    const resnap = [open(0, "T", "R"), { type: "tool.done", turnId: "T", toolCallId: "c1", outcome: "ok", content: [{ type: "text", text: "final" }] }, snap([], [{ turnId: "T", threadId: "R" }]), ms("B", "T", "R")];
+    const tr = (r: Reducer) => r.result().messages.map((m) => `${m.id}:${m.content.map((b) => (b.type === "tool-result" ? `${b.content.map((c) => (c.type === "text" ? c.text : "")).join("")}${b.preliminary === true ? "*" : ""}` : b.type)).join(",")}`);
+
+    it("a snapshot that drops the finalized call's result lets a more:true for it fold", () => {
+      const r = fold(seqd([...resnap, { type: "tool.done", turnId: "T", toolCallId: "c1", outcome: "ok", more: true, content: [{ type: "text", text: "p" }] }]));
+      expect(r.needsResync).toBe(false);
+      expect(tr(r)).toEqual(["B:p*"]);
+    });
+
+    it("a snapshot that drops the finalized call's result lets a second final fold", () => {
+      const r = fold(seqd([...resnap, { type: "tool.done", turnId: "T", toolCallId: "c1", outcome: "ok", content: [{ type: "text", text: "final2" }] }]));
+      expect(r.needsResync).toBe(false);
+      expect(tr(r)).toEqual(["B:final2"]);
+    });
+  });
+
+  describe("a nested turn's thread is its parent's when known, else the fold's root thread; until one is known its record is held", () => {
+    it("subagent.start{N} → turn.start{T0,R} → turn.done{N} gives N on R with its outcome", () => {
+      const r = fold([
+        { type: "subagent.start", seq: 0, turnId: "N", parentTurnId: "label" },
+        open(1, "T0", "R"),
+        { type: "turn.done", seq: 2, turnId: "N", outcome: { type: "success" }, finishReason: "stop" },
+      ]);
+      expect(r.needsResync).toBe(false);
+      expect(turnOf(r, "N")).toEqual(expect.objectContaining({ threadId: "R", parentTurnId: "label", outcome: { type: "success" }, finishReason: "stop" }));
+    });
+
+    it("a terminal folded while the record is held is kept, and lands once the thread becomes known", () => {
+      const held = fold([{ type: "subagent.start", seq: 0, turnId: "N", parentTurnId: "label" }, { type: "turn.done", seq: 1, turnId: "N", outcome: { type: "success" }, finishReason: "stop" }]);
+      expect(held.needsResync).toBe(false);
+      expect(turnOf(held, "N")).toBeUndefined(); // held: result() omits it
+      const r = fold([
+        { type: "subagent.start", seq: 0, turnId: "N", parentTurnId: "label" },
+        { type: "turn.done", seq: 1, turnId: "N", outcome: { type: "success" }, finishReason: "stop" },
+        open(2, "T0", "R"),
+      ]);
+      expect(turnOf(r, "N")).toEqual(expect.objectContaining({ threadId: "R", outcome: { type: "success" }, finishReason: "stop" }));
+    });
+
+    it("a turns-carrying messages.snapshot that omits the held nested turn discards its record", () => {
+      const r = fold([
+        { type: "subagent.start", seq: 0, turnId: "N", parentTurnId: "label" },
+        { type: "turn.done", seq: 1, turnId: "N", outcome: { type: "success" }, finishReason: "stop" },
+        { type: "messages.snapshot", seq: 2, messages: [], turns: [{ turnId: "T0", threadId: "R" }] },
+        open(3, "T1", "R"),
+        { type: "turn.done", seq: 4, turnId: "N", outcome: { type: "success" }, finishReason: "stop" }, // N is no longer seen opened
+      ]);
+      expect(turnOf(r, "N")).toBeUndefined();
+    });
+
+    it("a root thread a turns-less snapshot's messages carry releases a held nested record", () => {
+      const r = fold([
+        { type: "subagent.start", seq: 0, turnId: "N", parentTurnId: "label" },
+        { type: "messages.snapshot", seq: 1, messages: [{ id: "M", role: "assistant", content: [], turnId: "T", threadId: "R" }] },
+      ]);
+      expect(turnOf(r, "N")?.threadId).toBe("R");
+    });
+
+    it("a held nested turn its terminal closed is closed: a later message.start for it parks", () => {
+      const r = fold([
+        { type: "subagent.start", seq: 0, turnId: "N", parentTurnId: "label" },
+        { type: "turn.done", seq: 1, turnId: "N", outcome: { type: "success" }, finishReason: "stop" },
+        msg(2, "M", "N", "R"),
+      ]);
+      expect(r.needsResync).toBe(true);
+      expect(r.result().messages).toEqual([]);
+    });
+
+    it("the root thread is the first threadId the fold carried, not the first turn whose threadId differs from its turnId", () => {
+      const r = fold([open(0, "A", "A"), open(1, "B", "Y"), { type: "subagent.start", seq: 2, turnId: "N", parentTurnId: "label" }]);
+      expect(turnOf(r, "N")?.threadId).toBe("A");
+    });
+
+    it("a parent the fold saw opened only by a message.start gives its thread", () => {
+      const r = fold([open(0, "T0", "R"), msg(1, "P", "Q", "S"), { type: "subagent.start", seq: 2, turnId: "N", parentTurnId: "Q" }]);
+      expect(turnOf(r, "N")?.threadId).toBe("S");
+    });
+
+    it("with no thread known the record is held, not given the parent label as its thread", () => {
+      const r = fold([{ type: "subagent.start", seq: 0, turnId: "N", parentTurnId: "label" }]);
+      expect(r.needsResync).toBe(false);
+      expect(r.result().turns).toEqual([]);
+    });
+
+    it("a chain of held nested turns is released together once the root becomes known", () => {
+      const r = fold([
+        { type: "subagent.start", seq: 0, turnId: "N1", parentTurnId: "label" },
+        { type: "subagent.start", seq: 1, turnId: "N2", parentTurnId: "N1" },
+        msg(2, "M", "T0", "R"),
+      ]);
+      expect([turnOf(r, "N1")?.threadId, turnOf(r, "N2")?.threadId, turnOf(r, "N2")?.parentTurnId]).toEqual(["R", "R", "N1"]);
+    });
+
+    it("a held chain that arrived child first is released onto the root parent first", () => {
+      const r = fold(seqd([sub("N2", "N1"), sub("N1", "label"), ms("M", "T0", "R")]));
+      expect(placed(r)).toEqual(["N1@R^label", "N2@R^N1"]);
+    });
+
+    it("a repeated subagent.start for a held turn keeps the first parent, as a placed one does", () => {
+      const r = fold(seqd([sub("N", "P1"), sub("N", "P2"), snap([smsg("a", "P1", "X"), smsg("b", "P2", "Y")])]));
+      expect(r.needsResync).toBe(false);
+      expect(placed(r)).toEqual(["N@X^P1"]);
+      const live = fold(seqd([open(0, "P1", "X"), open(1, "P2", "Y"), sub("N", "P1"), sub("N", "P2")]));
+      expect(placed(live).filter((t) => t.startsWith("N@"))).toEqual(["N@X^P1"]);
+    });
+
+    it("a turns-less snapshot gives a held nested turn its parent's thread, not the thread of a message naming the nested turn", () => {
+      expect(placed(fold(seqd([sub("N", "P"), snap([smsg("p", "P", "X"), smsg("n", "N", "Z")])])))).toEqual(["N@X^P"]);
+      expect(placed(fold(seqd([sub("N", "P"), snap([smsg("x", "T", "R"), smsg("n", "N", "Z")])])))).toEqual(["N@R^P"]);
+    });
+
+    it("a held chain takes its head's parent thread in either arrival order", () => {
+      const tail = snap([smsg("x", "T", "R"), smsg("p", "P", "S")]);
+      expect(placed(fold(seqd([sub("N2", "N1"), sub("N1", "P"), tail])))).toEqual(["N1@S^P", "N2@S^N1"]);
+      expect(placed(fold(seqd([sub("N1", "P"), sub("N2", "N1"), tail])))).toEqual(["N1@S^P", "N2@S^N1"]);
+      const own = snap([smsg("x", "T", "R"), smsg("p", "P", "S"), smsg("n1", "N1", "Z")]);
+      expect(placed(fold(seqd([sub("N2", "N1"), sub("N1", "P"), own])))).toEqual(["N1@S^P", "N2@S^N1"]);
+      expect(placed(fold(seqd([sub("N1", "P"), sub("N2", "N1"), own])))).toEqual(["N1@S^P", "N2@S^N1"]);
+    });
+  });
+
+  describe("the sole open turn counts turns seen opened, not only records", () => {
+    it("a turnId-less terminal after a message.start-only turn lands on a new record on that message's thread", () => {
+      const r = fold([msg(0, "M", "T", "R"), { type: "turn.error", seq: 1, message: "boom" }]);
+      expect(r.needsResync).toBe(false);
+      expect(turnOf(r, "T")).toEqual(expect.objectContaining({ threadId: "R", outcome: expect.objectContaining({ type: "error", message: "boom" }) }));
+    });
+
+    it("a turnId-less terminal for a held nested turn lands on its held record", () => {
+      const r = fold([
+        { type: "subagent.start", seq: 0, turnId: "N", parentTurnId: "label" },
+        { type: "turn.abort", seq: 1, reason: "cancelled" },
+        open(2, "T0", "R"),
+      ]);
+      expect(r.needsResync).toBe(false);
+      expect(turnOf(r, "N")).toEqual(expect.objectContaining({ threadId: "R", outcome: expect.objectContaining({ type: "aborted" }) }));
+    });
+
+    it("a top-level turn seen only through a snapshot message without a thread: a turnId-less terminal folds onto no record, sets no resync, and the turn stays open", () => {
+      const r = fold([
+        { type: "messages.snapshot", seq: 0, messages: [{ id: "M", role: "assistant", content: [], turnId: "X" }] },
+        { type: "turn.error", seq: 1, message: "boom" },
+        { type: "messages.snapshot", seq: 2, messages: [{ id: "M", role: "assistant", content: [], turnId: "X", threadId: "R" }] },
+      ]);
+      expect(r.needsResync).toBe(false);
+      expect(r.result().turns).toEqual([]);
+      // the named twin folds the same way
+      const named = fold([
+        { type: "messages.snapshot", seq: 0, messages: [{ id: "M", role: "assistant", content: [], turnId: "X" }] },
+        { type: "turn.error", seq: 1, turnId: "X", message: "boom" },
+        { type: "messages.snapshot", seq: 2, messages: [{ id: "M", role: "assistant", content: [], turnId: "X", threadId: "R" }] },
+      ]);
+      expect(named.needsResync).toBe(false);
+      expect(named.result().turns).toEqual([]);
+      // the terminal closed nothing: a later message.start for the turn opens
+      const later = fold([
+        { type: "messages.snapshot", seq: 0, messages: [{ id: "M", role: "assistant", content: [], turnId: "X" }] },
+        { type: "turn.error", seq: 1, message: "boom" },
+        msg(2, "M2", "X", "R"),
+      ]);
+      expect(later.needsResync).toBe(false);
+      expect(later.result().messages.map((m) => m.id)).toEqual(["M", "M2"]);
+    });
+
+    it("with two turns opened by turn.start, a turnId-less terminal parks", () => {
+      const r = fold([open(0, "A", "R"), open(1, "B", "R"), { type: "turn.error", seq: 2, message: "boom" }]);
+      expect(r.needsResync).toBe(true);
+    });
+
+    it("turnId-less record events on a turn with no known thread count toward the held bound", () => {
+      const sources = (turnId?: string) =>
+        Array.from({ length: 1100 }, (_, i) => ({ type: "source", seq: 1 + i, ...(turnId !== undefined ? { turnId } : {}), sourceId: `s${i}`, source: { url: "https://example.com" } }));
+      const pre = { type: "messages.snapshot", seq: 0, messages: [{ id: "M", role: "assistant", content: [], turnId: "X" }] };
+      expect(fold([pre, ...sources(), open(1101, "X", "R")]).needsResync).toBe(true);
+      expect(fold([pre, ...sources("X"), open(1101, "X", "R")]).needsResync).toBe(true);
+    });
+
+    it("with two turns open, one by a record and one seen only through a message.start, a turnId-less terminal parks", () => {
+      const r = fold([open(0, "A", "R"), msg(1, "M", "B", "R"), { type: "turn.error", seq: 2, message: "boom" }]);
+      expect(r.needsResync).toBe(true);
+    });
+  });
+});

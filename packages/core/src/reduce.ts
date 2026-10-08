@@ -143,6 +143,14 @@ export class Reducer {
   // #openedTurns (tool.done adoption) and never rebuilt from #turns, whose
   // records non-terminal arms may have minted as stubs.
   #seenOpened: Map<string, string | undefined> = new Map();
+  // §5 `subagent.start` row (rc.1): the fold's root thread — the first threadId a
+  // folded turn.start, message.start, artifact.start or messages.snapshot carried.
+  // A nested turn whose parent's thread is not known takes it.
+  #rootThread: string | undefined;
+  // Nested turns a `subagent.start` opened while neither the parent's thread nor
+  // the root thread was known: turnId → parentTurnId. Each one's record is held in
+  // #held (result() omits it) until one of the two becomes known (#releaseHeldNested).
+  #heldNested: Map<string, string> = new Map();
   // draft.5 §5.0 INV-OWNER (a held record lands on its own turn's thread): the landings of
   // the six record events (source, handoff, prompt.blocked, guardrail.result,
   // display.required, agent.capabilities) for a turn whose thread the fold does
@@ -290,11 +298,20 @@ export class Reducer {
             existing.trigger = ev.trigger;
           }
         }
+        this.#rootThread ??= ev.threadId;
+        this.#releaseHeldNested();
         break;
       }
 
       // ── MESSAGE lifecycle ──────────────────────────────────────────────────
       case "message.start": {
+        // INV-MSG (rc.1): a message.start naming an id the fold already holds as a
+        // message — open or sealed, carried by a folded messages.snapshot, or
+        // adopted by a tool.done — parks and the fold is unchanged. The message
+        // set is fold-wide, so a later invoke reusing a held id parks too; a
+        // folded message.remove, or a snapshot that omits the id, releases it.
+        // Checked before any write below, so a parked repeat registers nothing.
+        if (this.#messages.has(ev.id)) { this.#resync = true; break; }
         // INV-MSG: a message.start for a turn that already closed parks.
         if (this.#isClosedTurn(this.#resolveTurnId(ev.turnId) ?? ev.turnId)) { this.#resync = true; break; }
         // draft.5 INV-OWNER: a live message.start makes its turn's thread
@@ -320,6 +337,8 @@ export class Reducer {
         this.#messages.set(ev.id, msg);
         // Register partition pointer: (turnId, candidateIndex ?? 0) → message id.
         this.#openMsg.set(partKey(ev.turnId, ev.candidateIndex ?? 0), ev.id);
+        this.#rootThread ??= ev.threadId;
+        this.#releaseHeldNested();
         break;
       }
 
@@ -353,26 +372,26 @@ export class Reducer {
           this.#seenOpened.set(ev.turnId, existingNested.threadId);
           break;
         }
-        // threadId is required on AgTurnRecord; inherit from the parent turn.
-        // subagent.start does not carry threadId on the wire, so we look it up.
-        const parentTurn = this.#turns.get(ev.parentTurnId);
-        let threadId: string;
-        if (parentTurn !== undefined) {
-          threadId = parentTurn.threadId;
-        } else {
-          // A parent lookup miss (SPEC §1.2; found by a reference host) means
-          // ev.parentTurnId is a wire label that was never
-          // opened as a real turn (e.g. claude's synthetic `turn_${toolCallId}`
-          // Task-tool cross-ref) — NOT a legitimate cross-thread reference.
-          // Every entity in a fold shares one root threadId (SPEC §1.2), so
-          // fall back to any ALREADY-OPENED real turn's threadId instead of
-          // adopting the unresolvable label as this subagent's own threadId.
-          // A "real" turn is identified by threadId !== turnId: through draft.4
-          // a defensive stub used its own turnId as a placeholder thread. draft.5
-          // retires the stubs, and the check stays as a guard.
-          // `ev.parentTurnId` remains the last resort when no real turn exists yet.
-          const realTurn = [...this.#turns.values()].find((t) => t.threadId !== t.turnId);
-          threadId = realTurn?.threadId ?? ev.parentTurnId;
+        // §5 `subagent.start` row (rc.1): the nested turn's thread is the parent
+        // turn's thread when that thread is known (INV-OWNER), else the fold's root
+        // thread; until one of the two is known the record is held, result() omits
+        // it, and the first that becomes known gives its thread (#releaseHeldNested).
+        const threadId = this.#threadOfTurn(ev.parentTurnId) ?? this.#rootThread;
+        if (threadId === undefined) {
+          if (!this.#heldNested.has(ev.turnId) && this.#heldNested.size >= HELD_TURNS_CAP) {
+            this.#resync = true; // degrade loudly past the implementation bound
+            break;
+          }
+          let held = this.#held.get(ev.turnId);
+          if (held === undefined) {
+            held = { record: { turnId: ev.turnId, threadId: "" }, landings: 0, dr: 0 };
+            this.#held.set(ev.turnId, held);
+          }
+          held.record.parentTurnId ??= ev.parentTurnId;
+          this.#heldNested.set(ev.turnId, held.record.parentTurnId ?? ev.parentTurnId);
+          // Seen opened, its thread not known yet: a terminal for it lands on the held record.
+          this.#seenOpened.set(ev.turnId, undefined);
+          break;
         }
         // A record held for this nested turn takes the thread and the
         // parentTurnId here; otherwise a new record opens.
@@ -384,6 +403,7 @@ export class Reducer {
           });
         }
         this.#seenOpened.set(ev.turnId, threadId);
+        this.#releaseHeldNested();
         break;
       }
 
@@ -616,10 +636,10 @@ export class Reducer {
       // ── TOOL-RESULT blocks ────────────────────────────────────────────────────
       case "tool.done": {
         // INV-BLOCK: a second FINAL (more-less) tool.done for one call parks.
-        if (ev.more !== true) {
-          if (this.#finalToolDone.has(ev.toolCallId)) { this.#resync = true; break; }
-          this.#finalToolDone.add(ev.toolCallId);
-        }
+        // INV-BLOCK (rc.1): a more:true after the call's final (more-less) result
+        // landed in this invoke parks; a final result is never re-opened within its
+        // invoke. #finalToolDone is invoke-scoped (reset at seq 0).
+        if (this.#finalToolDone.has(ev.toolCallId)) { this.#resync = true; break; }
         const resultKey = `result:${ev.toolCallId}`;
         const existingPos = this.#blockPos.get(resultKey);
 
@@ -677,6 +697,7 @@ export class Reducer {
           } else {
             delete block.preliminary;
             this.#blockPos.delete(resultKey);
+            this.#finalToolDone.add(ev.toolCallId);
           }
         } else {
           // CREATE path: first tool.done for this toolCallId.
@@ -760,6 +781,8 @@ export class Reducer {
           // If more:true, keep the block open for subsequent merge.
           if (ev.more) {
             this.#blockPos.set(resultKey, { messageId: msg.id, index });
+          } else {
+            this.#finalToolDone.add(ev.toolCallId);
           }
         }
         break;
@@ -858,11 +881,10 @@ export class Reducer {
         // the sole OPEN turn, never a closed one; with none or several open its
         // owner is unresolvable and the fold parks (INV-OWNER, draft.5).
         if (ev.turnId !== undefined && !this.#seenOpened.has(ev.turnId)) break;
-        const turn = ev.turnId !== undefined ? this.#seenTurnRecord(ev.turnId) : this.#soleOpenRecord();
-        if (turn === undefined) {
-          if (ev.turnId === undefined) this.#resync = true;
-          break;
-        }
+        const owner = ev.turnId ?? this.#soleOpenTurn();
+        if (owner === undefined) { this.#resync = true; break; }
+        const turn = this.#seenTurnRecord(owner);
+        if (turn === undefined) break;
         // draft.5 INV-MSG: a turn.error for a closed turn parks, writing nothing.
         if (!this.#terminalMayFold(turn, false)) break;
         // draft.5: `code` and `retriable` are recorded when turn.error carries them.
@@ -890,11 +912,10 @@ export class Reducer {
         // the sole OPEN turn, never a closed one; with none or several open its
         // owner is unresolvable and the fold parks (INV-OWNER, draft.5).
         if (ev.turnId !== undefined && !this.#seenOpened.has(ev.turnId)) break;
-        const turn = ev.turnId !== undefined ? this.#seenTurnRecord(ev.turnId) : this.#soleOpenRecord();
-        if (turn === undefined) {
-          if (ev.turnId === undefined) this.#resync = true;
-          break;
-        }
+        const owner = ev.turnId ?? this.#soleOpenTurn();
+        if (owner === undefined) { this.#resync = true; break; }
+        const turn = this.#seenTurnRecord(owner);
+        if (turn === undefined) break;
         // draft.5 INV-MSG: a turn.abort for a closed turn parks, writing nothing.
         if (!this.#terminalMayFold(turn, false)) break;
         turn.outcome = { type: "aborted", ...(ev.reason !== undefined ? { reason: ev.reason } : {}) };
@@ -1017,6 +1038,8 @@ export class Reducer {
           ...(ev.extensions !== undefined ? { extensions: ev.extensions } : {}),
         };
         this.#artifacts.set(ev.artifactId, artifact);
+        this.#rootThread ??= ev.threadId;
+        this.#releaseHeldNested();
         break;
       }
 
@@ -1213,6 +1236,9 @@ export class Reducer {
           this.#held = kept;
           this.#heldLandings = 0;
           this.#heldDrLandings = keptLandings;
+          // ...and a held nested record goes with them, keeping only its
+          // display.required landings, placed below.
+          this.#heldNested.clear();
         }
 
         // CONDITIONALLY replace #artifacts (only if artifacts? present in event).
@@ -1282,7 +1308,7 @@ export class Reducer {
         // keep their count.
         for (const turnId of [...this.#held.keys()]) {
           const threadId = this.#seenOpened.get(turnId);
-          if (threadId === undefined) continue;
+          if (threadId === undefined || this.#heldNested.has(turnId)) continue;
           const present = this.#turns.get(turnId);
           if (present === undefined) {
             this.#adoptHeld(turnId, threadId);
@@ -1300,6 +1326,10 @@ export class Reducer {
             else list.push(entry);
           }
         }
+
+        // The root thread: the first threadId the snapshot carried, in its turns, else its messages.
+        this.#rootThread ??= ev.turns?.find((t) => t.threadId !== undefined)?.threadId ?? ev.messages.find((m) => m.threadId !== undefined)?.threadId;
+        this.#releaseHeldNested();
 
         // Un-park.
         this.#resync = false;
@@ -1474,7 +1504,7 @@ export class Reducer {
    * for a message with no turnId, which names no record.
    */
   #isClosedTurn(key: string | undefined): boolean {
-    return key !== undefined && this.#turns.get(key)?.outcome !== undefined;
+    return key !== undefined && (this.#turns.get(key) ?? this.#held.get(key)?.record)?.outcome !== undefined;
   }
 
   /**
@@ -1516,18 +1546,58 @@ export class Reducer {
     // §4 per-turn routing / INV-OWNER (draft.5): an omitted turnId
     // resolves to the sole OPEN turn, never to a closed one (through draft.4
     // this counted records, so a lone closed turn or a stub could be picked).
-    return this.#soleOpenRecord()?.turnId;
+    return this.#soleOpenTurn();
   }
 
-  /** The sole OPEN turn record (no `outcome` yet), or undefined when none or several are open. */
-  #soleOpenRecord(): AgTurnRecord | undefined {
-    let found: AgTurnRecord | undefined;
-    for (const t of this.#turns.values()) {
-      if (t.outcome !== undefined) continue;
+  /**
+   * The sole OPEN turn (§4 per-turn routing, INV-OWNER): one the reducer has seen
+   * opened (or holds a record for) that is not closed. Undefined when none or
+   * several are open.
+   */
+  #soleOpenTurn(): string | undefined {
+    let found: string | undefined;
+    for (const turnId of new Set([...this.#seenOpened.keys(), ...this.#turns.keys()])) {
+      if (this.#isClosedTurn(turnId)) continue;
       if (found !== undefined) return undefined;
-      found = t;
+      found = turnId;
     }
     return found;
+  }
+
+  /** A turn's known thread: its record's, else the one it was seen opened on. */
+  #threadOfTurn(turnId: string): string | undefined {
+    if (this.#heldNested.has(turnId)) return undefined;
+    return this.#turns.get(turnId)?.threadId ?? this.#seenOpened.get(turnId);
+  }
+
+  /**
+   * Release every held nested record whose parent's thread or the root thread is
+   * now known onto that thread (the parent's first). Repeats until none moves, so
+   * a chain of held nested turns releases in one pass.
+   */
+  #releaseHeldNested(): void {
+    const release = (turnId: string, parentTurnId: string, threadId: string) => {
+      this.#heldNested.delete(turnId);
+      this.#adoptHeld(turnId, threadId, parentTurnId);
+      this.#seenOpened.set(turnId, threadId);
+    };
+    let moved = true;
+    while (moved && this.#heldNested.size > 0) {
+      moved = false;
+      for (const [turnId, parentTurnId] of [...this.#heldNested]) {
+        const threadId = this.#threadOfTurn(parentTurnId);
+        if (threadId === undefined) continue;
+        release(turnId, parentTurnId, threadId);
+        moved = true;
+      }
+      if (moved || this.#rootThread === undefined) continue;
+      let heads = [...this.#heldNested].filter(([, p]) => !this.#heldNested.has(p));
+      if (heads.length === 0) heads = [...this.#heldNested].slice(0, 1);
+      for (const [turnId, parentTurnId] of heads) {
+        release(turnId, parentTurnId, this.#rootThread);
+        moved = true;
+      }
+    }
   }
 
   /**
@@ -1540,9 +1610,8 @@ export class Reducer {
    */
   #landingRecord(turnId: string | undefined, displayRequired = false): AgTurnRecord | undefined {
     if (turnId === undefined) {
-      const sole = this.#soleOpenRecord();
-      if (sole === undefined) this.#resync = true;
-      return sole;
+      turnId = this.#soleOpenTurn();
+      if (turnId === undefined) { this.#resync = true; return undefined; }
     }
     const existing = this.#turns.get(turnId);
     if (existing !== undefined) return existing;
@@ -1581,6 +1650,7 @@ export class Reducer {
     const held = this.#held.get(turnId);
     if (held === undefined) return undefined;
     this.#held.delete(turnId);
+    this.#heldNested.delete(turnId);
     this.#heldLandings -= held.landings;
     this.#heldDrLandings -= held.dr;
     const { turnId: _turnId, threadId: _placeholder, ...landings } = held.record;
@@ -1606,7 +1676,10 @@ export class Reducer {
     const existing = this.#turns.get(turnId);
     if (existing !== undefined) return existing;
     const threadId = this.#seenOpened.get(turnId);
-    if (threadId === undefined) return undefined;
+    if (threadId === undefined) {
+      // A nested turn whose record is held: a terminal lands on that record (INV-OWNER).
+      return this.#heldNested.has(turnId) ? this.#held.get(turnId)?.record : undefined;
+    }
     const adopted = this.#adoptHeld(turnId, threadId);
     if (adopted !== undefined) return adopted;
     const record: AgTurnRecord = { turnId, threadId };
