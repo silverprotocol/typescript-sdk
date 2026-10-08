@@ -6,6 +6,20 @@
       "export declare const AGJSON_VERSION = \"1.0.0-rc.1\";"
     ]
   },
+  "AG_EVENT_DEPTH_ALLOWANCE": {
+    "module": "wire",
+    "tag": "beta",
+    "decl": [
+      "export declare const AG_EVENT_DEPTH_ALLOWANCE = 16;"
+    ]
+  },
+  "AG_EVENT_MAX_DEPTH": {
+    "module": "wire",
+    "tag": "beta",
+    "decl": [
+      "export declare const AG_EVENT_MAX_DEPTH: number;"
+    ]
+  },
   "AgA2uiError": {
     "module": "agjson",
     "tag": "public",
@@ -221,7 +235,7 @@
     "module": "ingest",
     "tag": "public",
     "decl": [
-      "export type AgIngestRejectReason = \"not-object\" | \"type-not-string\" | \"seq-not-number\";"
+      "export type AgIngestRejectReason = \"not-object\" | \"type-not-string\" | \"seq-not-number\" | \"depth-exceeded\";"
     ]
   },
   "AgInput": {

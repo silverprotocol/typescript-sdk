@@ -15,6 +15,8 @@ import type {
 import { REMOVE_ALL } from "./agjson.js";
 import { applyPatch } from "./json-patch.js";
 import { deleteOwnProtoMember, withoutOwnProtoMember } from "./copy-json.js";
+import { exceedsDepth } from "./depth.js";
+import { AG_EVENT_MAX_DEPTH } from "./wire.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reducer — the normative event→state fold (spec §5).
@@ -109,6 +111,13 @@ function isClosedEvent(ev: AgEvent): ev is AgClosedEventType {
 const HELD_TURNS_CAP = 64;
 const HELD_LANDINGS_CAP = 1024;
 
+/**
+ * The deepest node of a state or memory value a patch may leave, counted from
+ * the value's root: the depth at which a state.snapshot's `snapshot` or a
+ * memory.write's `value` sits below its event root is 1.
+ */
+const STORED_VALUE_MAX_DEPTH = AG_EVENT_MAX_DEPTH - 1;
+
 export class Reducer {
   // ── keyed accumulators ──────────────────────────────────────────────────────
   // Messages, keyed by message id (insertion-ordered).
@@ -199,6 +208,14 @@ export class Reducer {
    * R3–R10 fill remaining content types.
    */
   push(ev: AgEvent): void {
+    // An event holding a node deeper than AG_EVENT_MAX_DEPTH parks the fold and
+    // folds nothing: copying it, or patching the state with it, would overflow
+    // the stack. A consuming ingest never yields one.
+    if (exceedsDepth(ev, AG_EVENT_MAX_DEPTH)) {
+      this.#resync = true;
+      return;
+    }
+
     // ── Seq-gap detection (R9) ────────────────────────────────────────────────
     // Seq accounting is UNIVERSAL (INV-SEQ: "gap-free ordinal" over the whole
     // per-invoke stream) — EVERY well-formed event with a numeric seq advances
@@ -1107,8 +1124,9 @@ export class Reducer {
             break;
           }
           const result = applyPatch(this.#state, patch);
-          if (!result.ok) {
-            // applyPatch failed — signal resync; leave #state unchanged.
+          if (!result.ok || exceedsDepth(result.value, STORED_VALUE_MAX_DEPTH)) {
+            // applyPatch failed, or its result nests deeper than a
+            // state.snapshot could carry — signal resync; leave #state unchanged.
             this.#resync = true;
             break;
           }
@@ -1171,8 +1189,9 @@ export class Reducer {
             break;
           }
           const result = applyPatch(existing.value, ev.patch);
-          if (!result.ok) {
-            // applyPatch failed — set resync flag and leave record unchanged.
+          if (!result.ok || exceedsDepth(result.value, STORED_VALUE_MAX_DEPTH)) {
+            // applyPatch failed, or its result nests deeper than a memory.write
+            // value could — set resync flag and leave record unchanged.
             this.#resync = true;
             break;
           }

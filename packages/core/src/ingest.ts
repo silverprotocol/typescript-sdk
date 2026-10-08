@@ -35,13 +35,18 @@
  *  - anything else (not an object, a non-string `type`, a missing or
  *    non-number `seq`) → not an event and occupies no slot: returns
  *    undefined and is reported through the optional `onReject` callback.
+ *    An envelope holding a node deeper than AG_EVENT_MAX_DEPTH is rejected
+ *    the same way, before the schema parse, whose recursion it would
+ *    overflow; occupying no slot, it shows a following event as a gap.
  * ingestAgEvent/ingestAgEvents never throw, even if `onReject` does.
  */
 import { AgEvent, type JsonValue } from "./agjson.js";
 import { copyJson } from "./copy-json.js";
+import { exceedsDepth } from "./depth.js";
+import { AG_EVENT_MAX_DEPTH } from "./wire.js";
 
-/** Why an input is not a well-formed envelope (draft.4 §0.2). */
-export type AgIngestRejectReason = "not-object" | "type-not-string" | "seq-not-number";
+/** Why an input is not a well-formed envelope (draft.4 §0.2), or nests deeper than AG_EVENT_MAX_DEPTH. */
+export type AgIngestRejectReason = "not-object" | "type-not-string" | "seq-not-number" | "depth-exceeded";
 
 /** A non-envelope input, reported through `IngestOptions.onReject`. */
 export interface AgIngestReject {
@@ -71,7 +76,7 @@ function envelopeProblem(v: JsonValue): AgIngestRejectReason | undefined {
 }
 
 export function ingestAgEvent(v: JsonValue, opts?: IngestOptions): AgEvent | undefined {
-  const problem = envelopeProblem(v);
+  const problem = envelopeProblem(v) ?? (exceedsDepth(v, AG_EVENT_MAX_DEPTH) ? "depth-exceeded" : undefined);
   if (problem !== undefined) {
     try {
       opts?.onReject?.({ input: v, reason: problem });

@@ -41,6 +41,22 @@ export const JSON_SAFE_MAX_DEPTH_MARK = "[MaxDepth]";
  * @beta
  */
 export const JSON_SAFE_MAX_DEPTH = 1000;
+/**
+ * The levels an event's own members may add above a carried value that
+ * {@link toJsonValueSafe} capped at {@link JSON_SAFE_MAX_DEPTH}.
+ *
+ * @beta
+ */
+export const AG_EVENT_DEPTH_ALLOWANCE = 16;
+/**
+ * The deepest node an event may hold, counted from the event root: the root is
+ * at depth 0 and a node's depth is the number of containers above it.
+ * {@link JSON_SAFE_MAX_DEPTH} plus {@link AG_EVENT_DEPTH_ALLOWANCE}. A consuming
+ * ingest rejects a deeper event, and a reducer parks on one.
+ *
+ * @beta
+ */
+export const AG_EVENT_MAX_DEPTH = JSON_SAFE_MAX_DEPTH + AG_EVENT_DEPTH_ALLOWANCE;
 
 /**
  * Why {@link toJsonValueSafe} had to degrade a node that `JSON.stringify` would have thrown on.

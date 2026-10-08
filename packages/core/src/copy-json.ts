@@ -14,24 +14,45 @@ import type { JsonValue } from "./agjson.js";
  * Own-property deep copy of a JSON value, dropping an own `__proto__` member at
  * every depth. Every object and array in the copy has the ordinary prototype.
  * A host that seeds a fold from its own store copies the stored value with it.
+ * The copy is iterative, so no nesting depth overflows the stack; a node
+ * reached twice is copied once.
  *
  * @beta
  */
 export function copyJson(v: JsonValue): JsonValue {
-  if (Array.isArray(v)) return v.map(copyJson);
-  if (v === null || typeof v !== "object") return v;
-  const out: { [k: string]: JsonValue } = {};
-  for (const k of Object.keys(v)) {
-    if (k === "__proto__") continue;
-    // DEFINED, never assigned (belt and braces with the skip above).
-    Object.defineProperty(out, k, {
-      value: copyJson((v as { [k: string]: JsonValue })[k]!),
-      enumerable: true,
-      writable: true,
-      configurable: true,
-    });
+  type Node = JsonValue[] | { [k: string]: JsonValue };
+  const copies = new Map<object, Node>();
+  const pending: object[] = [];
+  const copyOf = (x: JsonValue): JsonValue => {
+    if (x === null || typeof x !== "object") return x;
+    let c = copies.get(x);
+    if (c === undefined) {
+      c = Array.isArray(x) ? [] : {};
+      copies.set(x, c);
+      pending.push(x);
+    }
+    return c;
+  };
+  const root = copyOf(v);
+  while (pending.length > 0) {
+    const x = pending.pop()!;
+    const c = copies.get(x)!;
+    if (Array.isArray(x)) {
+      for (const item of x) (c as JsonValue[]).push(copyOf(item));
+      continue;
+    }
+    for (const k of Object.keys(x)) {
+      if (k === "__proto__") continue;
+      // DEFINED, never assigned (belt and braces with the skip above).
+      Object.defineProperty(c, k, {
+        value: copyOf((x as { [k: string]: JsonValue })[k]!),
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
+    }
   }
-  return out;
+  return root;
 }
 
 const PROTO = "__proto__";
