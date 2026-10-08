@@ -36,9 +36,6 @@ export function copyJson(v: JsonValue): JsonValue {
 
 const PROTO = "__proto__";
 
-/** Walk depth past which a node is left as is: a cycle, or nesting no JSON text reaches. */
-const MAX_WALK_DEPTH = 512;
-
 /** True for an object this module treats as a JSON node: an array or a plain-or-null-prototype object. */
 function isPlainNode(v: object): boolean {
   if (Array.isArray(v)) return true;
@@ -49,17 +46,24 @@ function isPlainNode(v: object): boolean {
 /**
  * INTERNAL. Removes an own `__proto__` member at every depth of a value the
  * caller owns (a structuredClone copy). `delete` removes own members only, so
- * a node without one is untouched. A cycle stops at {@link MAX_WALK_DEPTH}.
+ * a node without one is untouched. The walk is iterative and visits each
+ * object once, so neither nesting depth nor a cycle bounds it.
  */
-export function deleteOwnProtoMember(v: unknown, depth = 0): void {
-  if (v === null || typeof v !== "object" || depth > MAX_WALK_DEPTH) return;
-  if (Array.isArray(v)) {
-    for (let i = 0; i < v.length; i++) deleteOwnProtoMember(v[i], depth + 1);
-    return;
+export function deleteOwnProtoMember(v: unknown): void {
+  const seen = new WeakSet<object>();
+  const stack: unknown[] = [v];
+  while (stack.length > 0) {
+    const x = stack.pop();
+    if (x === null || typeof x !== "object" || seen.has(x)) continue;
+    seen.add(x);
+    if (Array.isArray(x)) {
+      for (let i = 0; i < x.length; i++) stack.push(x[i]);
+      continue;
+    }
+    const o = x as Record<string, unknown>;
+    if (Object.hasOwn(o, PROTO)) delete o[PROTO];
+    for (const k in o) if (Object.hasOwn(o, k)) stack.push(o[k]);
   }
-  const o = v as Record<string, unknown>;
-  if (Object.hasOwn(o, PROTO)) delete o[PROTO];
-  for (const k in o) if (Object.hasOwn(o, k)) deleteOwnProtoMember(o[k], depth + 1);
 }
 
 /**
@@ -68,36 +72,61 @@ export function deleteOwnProtoMember(v: unknown, depth = 0): void {
  * null-prototype) objects are rebuilt with the ordinary prototype, members DEFINED, never
  * assigned; any other value (a function, a class instance) is carried by
  * reference. Returns `v` itself when no node holds the member, so the common
- * case allocates nothing. A cycle stops at {@link MAX_WALK_DEPTH}.
+ * case allocates nothing. Both walks are iterative and visit each object once:
+ * a node reached twice is copied once, and a cycle is copied as a cycle.
  */
 export function withoutOwnProtoMember<T>(v: T): T {
-  return (hasOwnProtoMember(v, 0) ? rebuild(v, 0) : v) as T;
+  return (hasOwnProtoMember(v) ? rebuild(v) : v) as T;
 }
 
-function hasOwnProtoMember(v: unknown, depth: number): boolean {
-  if (v === null || typeof v !== "object" || depth > MAX_WALK_DEPTH || !isPlainNode(v)) return false;
-  if (Array.isArray(v)) {
-    for (let i = 0; i < v.length; i++) if (hasOwnProtoMember(v[i], depth + 1)) return true;
-    return false;
+function hasOwnProtoMember(v: unknown): boolean {
+  const seen = new WeakSet<object>();
+  const stack: unknown[] = [v];
+  while (stack.length > 0) {
+    const x = stack.pop();
+    if (x === null || typeof x !== "object" || seen.has(x) || !isPlainNode(x)) continue;
+    seen.add(x);
+    if (Array.isArray(x)) {
+      for (let i = 0; i < x.length; i++) stack.push(x[i]);
+      continue;
+    }
+    const o = x as Record<string, unknown>;
+    if (Object.hasOwn(o, PROTO)) return true;
+    for (const k in o) if (Object.hasOwn(o, k)) stack.push(o[k]);
   }
-  const o = v as Record<string, unknown>;
-  if (Object.hasOwn(o, PROTO)) return true;
-  for (const k in o) if (Object.hasOwn(o, k) && hasOwnProtoMember(o[k], depth + 1)) return true;
   return false;
 }
 
-function rebuild(v: unknown, depth: number): unknown {
-  if (v === null || typeof v !== "object" || depth > MAX_WALK_DEPTH || !isPlainNode(v)) return v;
-  if (Array.isArray(v)) return v.map((item) => rebuild(item, depth + 1));
-  const out: Record<string, unknown> = {};
-  for (const k of Object.keys(v)) {
-    if (k === PROTO) continue;
-    Object.defineProperty(out, k, {
-      value: rebuild((v as Record<string, unknown>)[k], depth + 1),
-      enumerable: true,
-      writable: true,
-      configurable: true,
-    });
+function rebuild(v: unknown): unknown {
+  const copies = new Map<object, unknown[] | Record<string, unknown>>();
+  const pending: object[] = [];
+  const copyOf = (x: unknown): unknown => {
+    if (x === null || typeof x !== "object" || !isPlainNode(x)) return x;
+    let c = copies.get(x);
+    if (c === undefined) {
+      c = Array.isArray(x) ? new Array<unknown>(x.length) : {};
+      copies.set(x, c);
+      pending.push(x);
+    }
+    return c;
+  };
+  const root = copyOf(v);
+  while (pending.length > 0) {
+    const x = pending.pop()!;
+    const c = copies.get(x)!;
+    if (Array.isArray(x)) {
+      for (let i = 0; i < x.length; i++) if (i in x) (c as unknown[])[i] = copyOf(x[i]);
+      continue;
+    }
+    for (const k of Object.keys(x)) {
+      if (k === PROTO) continue;
+      Object.defineProperty(c, k, {
+        value: copyOf((x as Record<string, unknown>)[k]),
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
+    }
   }
-  return out;
+  return root;
 }

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { reduce, Reducer } from "./reduce.js";
 import { AgEvent, AgTurnRecord } from "./agjson.js";
 import { ingestAgEvents } from "./ingest.js";
+import { withoutOwnProtoMember } from "./copy-json.js";
 import { toPersistable } from "./persist.js";
 import type { JsonValue } from "./agjson.js";
 import { AgReduceResult } from "./agjson.js";
@@ -5299,6 +5300,62 @@ describe("reduce — an own __proto__ member is omitted at every depth of every 
     const m = reduce(memSeeded(patch));
     expect(m.needsResync).toBe(false);
     expect(m.result.memory[0]?.value).toEqual({ k: 1, toString: "s" });
+  });
+});
+
+describe("reduce — an own __proto__ member is omitted however deep it sits", () => {
+  /** A merge patch nested `d` objects deep whose innermost object holds the member beside a sibling. */
+  const nested = (d: number): JsonValue => JSON.parse('{"k":'.repeat(d - 1) + '{"__proto__":{"polluted":true},"s":1}' + "}".repeat(d - 1)) as JsonValue;
+  /** The depth of the first own __proto__ member, by an iterative walk; -1 when none. */
+  const ownProtoDepth = (v: unknown): number => {
+    const stack: Array<[unknown, number]> = [[v, 0]];
+    while (stack.length > 0) {
+      const [x, d] = stack.pop()!;
+      if (x === null || typeof x !== "object") continue;
+      if (Object.hasOwn(x, "__proto__")) return d;
+      for (const k of Object.keys(x)) stack.push([(x as Record<string, unknown>)[k], d + 1]);
+    }
+    return -1;
+  };
+  const innermost = (v: unknown): unknown => {
+    let x = v;
+    while (x !== null && typeof x === "object" && Object.hasOwn(x, "k")) x = (x as Record<string, unknown>)["k"];
+    return x;
+  };
+
+  for (const d of [513, 520, 600]) {
+    it(`a state.delta with the member at depth ${d}: the folded state holds none, and keeps its sibling`, () => {
+      const ev = { type: "state.delta", seq: 0, patch: nested(d) } as unknown as AgEvent;
+      expect(ownProtoDepth(ev)).toBe(d); // non-vacuity: the pushed event holds it
+      const r = new Reducer();
+      r.push(ev);
+      const state = r.result().state;
+      expect(ownProtoDepth(state)).toBe(-1);
+      expect(innermost(state)).toEqual({ s: 1 });
+    });
+
+    it(`an event structuredClone cannot copy, with the member at depth ${d}: folded less the member, the host's event unchanged`, () => {
+      const ev = { type: "state.delta", seq: 0, patch: nested(d), hook: () => 1 } as unknown as AgEvent;
+      const r = new Reducer();
+      r.push(ev);
+      const state = r.result().state;
+      expect(ownProtoDepth(state)).toBe(-1);
+      expect(innermost(state)).toEqual({ s: 1 });
+      expect(ownProtoDepth(ev)).toBe(d);
+    });
+  }
+
+  it("a value with a cycle is copied as a cycle, without the member, and the original is unchanged", () => {
+    const node = JSON.parse('{"__proto__":{"polluted":true},"s":1}') as Record<string, unknown>;
+    node["self"] = node;
+    const v = { a: node, b: node, hook: () => 1 };
+    const copy = withoutOwnProtoMember(v);
+    expect(copy).not.toBe(v);
+    expect(Object.hasOwn(copy.a, "__proto__")).toBe(false);
+    expect(copy.a).toBe(copy.b);
+    expect((copy.a as Record<string, unknown>)["self"]).toBe(copy.a);
+    expect(copy.hook).toBe(v.hook);
+    expect(Object.hasOwn(node, "__proto__")).toBe(true);
   });
 });
 
