@@ -48,6 +48,7 @@ import {
   JsonValue,
   type Normalizer,
   StreamAssembler,
+  toJsonValueSafe,
   withAtomicPush,
   type ToolOutcome,
 } from "@silverprotocol/core";
@@ -1961,7 +1962,11 @@ function createInnerClaudeNormalizer(options: ClaudeNormalizerOptions, invokeSte
         let input: JsonValue = b.startInput;
         if (b.json.length > 0) {
           try {
-            input = JsonValue.parse(JSON.parse(b.json));
+            // The parsed string is vendor data that push()'s native read never
+            // saw, so it is bounded here as every native payload is: a node past
+            // JSON_SAFE_MAX_DEPTH becomes core's max-depth mark, and the event
+            // stays inside AG_EVENT_MAX_DEPTH.
+            input = JsonValue.parse(toJsonValueSafe(JSON.parse(b.json)));
           } catch {
             input = b.startInput;
           }
