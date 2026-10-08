@@ -267,3 +267,75 @@ describe("a stored record reads back whatever the fold took", () => {
     });
   }
 });
+
+describe("one scan per pushed event finds the depth and an own __proto__ member", () => {
+  /** A DAG `levels` deep whose every level holds the next twice: 2^levels paths, levels+1 objects. */
+  const fan = (levels: number): JsonValue => {
+    let v: JsonValue = { leaf: 1 };
+    for (let i = 0; i < levels; i++) v = { a: v, b: v };
+    return v;
+  };
+  const ownProtoAnywhere = (v: unknown): boolean => {
+    const seen = new Set<object>();
+    const stack: unknown[] = [v];
+    while (stack.length > 0) {
+      const x = stack.pop();
+      if (x === null || typeof x !== "object" || seen.has(x)) continue;
+      seen.add(x);
+      if (!Array.isArray(x) && Object.hasOwn(x, "__proto__")) return true;
+      for (const y of Object.values(x)) stack.push(y);
+    }
+    return false;
+  };
+
+  it("a class instance holding an own __proto__ data member is folded less the member", () => {
+    class Box {
+      v = 1;
+    }
+    const box = new Box();
+    Object.defineProperty(box, "__proto__", { value: { polluted: true }, enumerable: true, writable: true, configurable: true });
+    expect(Object.hasOwn(structuredClone(box), "__proto__")).toBe(true); // the member survives the clone
+    const r = foldOf([{ type: "memory.write", seq: 0, scope: "user", key: "k", value: { inst: box, s: 1 } }]);
+    expect(r.needsResync).toBe(false);
+    const value = r.result().memory?.[0]?.value;
+    expect(ownProtoAnywhere(value)).toBe(false);
+    expect(value).toEqual({ inst: { v: 1 }, s: 1 });
+  });
+
+  it("an event that shares nodes past the scan's node budget, inside the bound, folds", () => {
+    const value = fan(20);
+    const r = foldOf([{ type: "memory.write", seq: 0, scope: "user", key: "k", value }]);
+    expect(r.needsResync).toBe(false);
+    expect(depthOf(r.result().memory?.[0]?.value)).toBe(21);
+  });
+
+  it("a large event that shares no node folds: size alone never parks", () => {
+    const value = Array.from({ length: 60_000 }, (_, i) => ({ i }));
+    const r = foldOf([{ type: "memory.write", seq: 0, scope: "user", key: "k", value }]);
+    expect(r.needsResync).toBe(false);
+    expect((r.result().memory?.[0]?.value as unknown[]).length).toBe(60_000);
+  });
+
+  it("a cycle that fans out parks, without hanging or overflowing", () => {
+    const loop: Record<string, unknown> = {};
+    loop["a"] = loop;
+    loop["b"] = loop;
+    const r = foldOf([{ type: "memory.write", seq: 0, scope: "user", key: "k", value: loop }]);
+    expect(r.needsResync).toBe(true);
+    expect(() => r.result()).not.toThrow();
+  });
+
+  for (const order of ["a before b", "b before a"] as const) {
+    it(`a node shared at a shallow and a deep place, past the node budget, parks when the deep place puts it past the bound (keys ${order})`, () => {
+      const shared = nest(900);
+      let deep: JsonValue = { s: shared };
+      for (let i = 0; i < 200; i++) deep = { k: deep };
+      const value = order === "a before b" ? { a: shared, b: deep, c: fan(20) } : { b: deep, a: shared, c: fan(20) };
+      const ev = { type: "memory.write", seq: 0, scope: "user", key: "k", value };
+      const rejects: AgIngestReject[] = [];
+      expect(ingestAgEvent(ev as unknown as JsonValue, { onReject: (x) => rejects.push(x) })).toBeUndefined();
+      expect(rejects.map((x) => x.reason)).toEqual(["depth-exceeded"]);
+      expect(foldOf([ev]).needsResync).toBe(true);
+    });
+  }
+});

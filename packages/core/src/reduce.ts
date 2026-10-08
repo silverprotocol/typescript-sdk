@@ -15,7 +15,7 @@ import type {
 import { REMOVE_ALL } from "./agjson.js";
 import { applyPatch } from "./json-patch.js";
 import { deleteOwnProtoMember, withoutOwnProtoMember } from "./copy-json.js";
-import { exceedsDepth } from "./depth.js";
+import { exceedsDepth, scanDepth } from "./depth.js";
 import { AG_EVENT_MAX_DEPTH } from "./wire.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -211,7 +211,10 @@ export class Reducer {
     // An event holding a node deeper than AG_EVENT_MAX_DEPTH parks the fold and
     // folds nothing: copying it, or patching the state with it, would overflow
     // the stack. A consuming ingest never yields one.
-    if (exceedsDepth(ev, AG_EVENT_MAX_DEPTH)) {
+    // The same pass reports an own `__proto__` member, so the delete walk
+    // below runs only on an event that holds one.
+    const scan = scanDepth(ev, AG_EVENT_MAX_DEPTH);
+    if (scan.tooDeep) {
       this.#resync = true;
       return;
     }
@@ -268,12 +271,12 @@ export class Reducer {
     // it always did, rather than throwing out of push().
     //
     // §13.7: the fold omits an own `__proto__` member at every depth of every
-    // event it folds. On the clone the walk deletes in place; an event that
-    // cannot be cloned gets a rebuilt copy, so the host's object is never
-    // mutated. Neither walk throws out of push().
+    // event it folds. On the clone the walk deletes in place, when the scan
+    // above found one; an event that cannot be cloned gets a rebuilt copy, so
+    // the host's object is never mutated. Neither walk throws out of push().
     try {
       ev = structuredClone(ev);
-      deleteOwnProtoMember(ev);
+      if (scan.hasOwnProto) deleteOwnProtoMember(ev);
     } catch {
       // not cloneable: fold the event as pushed, less the member
       try {
