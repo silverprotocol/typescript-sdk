@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect, vi } from "vitest";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
-import { type AgClosedEventType, AgEvent, JsonValue, Reducer } from "@silverprotocol/core";
+import { type AgClosedEventType, AG_EVENT_MAX_DEPTH, AgEvent, JSON_SAFE_MAX_DEPTH, JSON_SAFE_MAX_DEPTH_MARK, JsonValue, Reducer } from "@silverprotocol/core";
 import createClaudeNormalizer, { mapStopReason } from "./index.js";
 
 // Types DERIVED from SDKMessage so the fixtures track the EXACT Anthropic SDK the
@@ -5103,6 +5103,47 @@ describe("createClaudeNormalizer — stream_event partials (workspace#7)", () =>
     const rc = new Reducer();
     for (const e of completeEvs) rc.push(e);
     expect(rs.result()).toEqual(rc.result());
+  });
+
+  it("a streamed tool input nested past JSON_SAFE_MAX_DEPTH is bounded on tool.args.assembled, and one just inside the bound is kept whole", () => {
+    // Nested arrays `levels` deep under the input's one key: the deepest node
+    // sits at depth `levels + 1` from the input's root.
+    const deepJson = (levels: number): string => `{"q":${"[".repeat(levels)}1${"]".repeat(levels)}}`;
+    const depthOf = (v: unknown): number => {
+      let deepest = 0;
+      const stack: Array<[unknown, number]> = [[v, 0]];
+      while (stack.length > 0) {
+        const top = stack.pop();
+        if (top === undefined) break;
+        const [x, d] = top;
+        if (d > deepest) deepest = d;
+        if (typeof x === "object" && x !== null) for (const c of Object.values(x)) stack.push([c, d + 1]);
+      }
+      return deepest;
+    };
+    const assembled = (json: string): AgEvent | undefined => {
+      const evs = pushAll(createClaudeNormalizer(), [
+        streamFrame(messageStart()),
+        streamFrame(cbStartTool(0)),
+        streamFrame(cbDeltaJson(0, json)),
+        streamFrame(cbStop(0)),
+      ]);
+      return evs.find((e) => e.type === "tool.args.assembled");
+    };
+    // Above the bound: the deep node is replaced by core's mark and the event stays inside AG_EVENT_MAX_DEPTH.
+    const over = assembled(deepJson(JSON_SAFE_MAX_DEPTH + 100));
+    expect(over).toBeDefined();
+    expect(depthOf(over)).toBeLessThanOrEqual(AG_EVENT_MAX_DEPTH);
+    expect(JSON.stringify(over)).toContain(JSON.stringify(JSON_SAFE_MAX_DEPTH_MARK));
+    expect(AgEvent.safeParse(over).success).toBe(true);
+    // The cap's edge: JSON_SAFE_MAX_DEPTH arrays put a container at depth
+    // JSON_SAFE_MAX_DEPTH from the input root, which is replaced by the mark.
+    expect(JSON.stringify(assembled(deepJson(JSON_SAFE_MAX_DEPTH)))).toContain(JSON.stringify(JSON_SAFE_MAX_DEPTH_MARK));
+    // Just inside the bound: the input is carried whole, with no mark.
+    const atJson = deepJson(JSON_SAFE_MAX_DEPTH - 1);
+    const at = assembled(atJson);
+    expect(at !== undefined && "input" in at ? at.input : undefined).toEqual(JSON.parse(atJson));
+    expect(JSON.stringify(at)).not.toContain(JSON.stringify(JSON_SAFE_MAX_DEPTH_MARK));
   });
 
   it("streams tool args via input_json_delta and emits the MANDATORY args.assembled at stop — tool_result adoption still binds", () => {
