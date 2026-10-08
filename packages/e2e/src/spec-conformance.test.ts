@@ -2464,7 +2464,7 @@ describe("§10.27 — re-delivery never folds twice (draft.4)", () => {
     parksUnchanged(S, again(8));
     parksUnchanged([...S, ...END], again(9));
   });
-  it("(x) a later invoke's message.start naming an id the fold holds parks (the held set spans the fold); a fresh id in that invoke folds (control)", () => {
+  it("(x) a later invoke's message.start naming an id the fold holds parks (the held set spans the fold); a fresh id in that invoke folds", () => {
     const T2 = P([{ type: "turn.start", seq: 0, threadId: "th1", turnId: "t2" }]);
     const m = (id: string) => P([{ type: "message.start", seq: 1, id, role: "assistant", turnId: "t2", threadId: "th1" }]);
     parksUnchanged([...S, ...END, ...DONE, ...T2], m("m1"));
@@ -2485,7 +2485,7 @@ describe("§10.27 — re-delivery never folds twice (draft.4)", () => {
     expect(both(adopted).result.messages.some((m) => m.id === "mt")).toBe(true); // the adoption minted mt (non-vacuity)
     parksUnchanged(adopted, P([{ type: "message.start", seq: 5, id: "mt", role: "assistant", turnId: "t1", threadId: "th1" }]));
   });
-  it("(xii) control: an id a folded message.remove removed, or one a messages.snapshot omitted, is not held — a message.start naming it folds", () => {
+  it("(xii) an id a folded message.remove removed, or one a messages.snapshot omitted, is not held — a message.start naming it folds", () => {
     const removed = both([...S, ...END, ...P([{ type: "message.remove", seq: 9, id: "m1" }, { type: "message.start", seq: 10, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" }])]);
     expect(removed.needsResync).toBe(false);
     expect(removed.result.messages.filter((m) => m.id === "m1")).toHaveLength(1);
@@ -2494,7 +2494,7 @@ describe("§10.27 — re-delivery never folds twice (draft.4)", () => {
     expect(released.needsResync).toBe(false);
     expect(released.result.messages.map((m) => m.id)).toEqual(["m1"]);
   });
-  it("(xiii) a tool.done with more:true for a call whose final result the invoke already landed parks with the fold unchanged (rc.1); a preliminary then the final folds (control)", () => {
+  it("(xiii) a tool.done with more:true for a call whose final result the invoke already landed parks with the fold unchanged (rc.1); a preliminary then the final folds", () => {
     const open = [
       { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
       { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
