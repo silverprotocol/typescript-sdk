@@ -101,6 +101,8 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 1, leg: "turn-done-safety", title: "reduce() invariant (§5 turn.done row, rc.1): safety, when present, REPLACES the turn's safety[] as a whole value; the last prompt.blocked's own ratings stay on promptBlocked.safety", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.1 \"turn.done row: prompt.blocked{safety:[A]} then turn.done{safety:[B]} on one turn lands turn.safety deep-equal [B] and promptBlocked.safety deep-equal [A]\"" },
   { n: 1, leg: "prompt-blocked-safety", title: "reduce() invariant (§5 prompt.blocked row, rc.1): each record merges safety[] into the turn's safety and records promptBlocked whole", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.1 \"prompt.blocked row: prompt.blocked{safety:[A]} then prompt.blocked{safety:[B]} on one turn lands promptBlocked equal to the second record and turn.safety deep-equal [A, B]; a third record without safety records promptBlocked with no safety and leaves turn.safety [A, B]\"" },
   { n: 1, leg: "tool-args-provider-metadata", title: "reduce() invariant (§5 tool.args.assembled row, rc.1): providerMetadata merges onto the tool-call block (REPLACE-by-key)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.1 \"tool.args.assembled row: tool.start{providerMetadata:{a:1}} then tool.args.assembled{providerMetadata:{b:2}} lands the tool-call block's providerMetadata deep-equal {a:1, b:2}, and a repeated key takes the later value\"" },
+  { n: 1, leg: "nested-turn-thread", title: "reduce() invariant (§5 subagent.start row + INV-OWNER, rc.1 fold rules): a nested turn's threadId is its parent's known thread (a parent known through a message.start's threadId included), else the fold's root thread; a subagent.start with an unopened parentTurnId fabricates no parent record and no record carries a parentTurnId as its threadId (§8.0 item 16); a nested record whose thread is not known is held — result() omits it, no resync — and is released on the first thread known, a terminal folded while held kept; a turns-carrying messages.snapshot discards a held nested record keeping only its held display.required landings, which join the carried record unless an entry with the same provider and html stands for it, stay held for a turn the snapshot omits, and land when that turn is opened again; on every corpus golden carrying a subagent.start the fold needs no resync and no nested record's threadId is its parentTurnId", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.1 (a)–(f) under \"§10.1 — §5 subagent.start row and INV-OWNER (rc.1 fold rules): a nested turn's thread, the held nested record and the snapshot's discard\"; (f) scans every corpus/*/*.agjson.json carrying a subagent.start" },
+  { n: 1, leg: "artifact-rows", title: "reduce() invariant (§5 artifact.start/delta/end rows, rc.1 fold rules): name and description land on the record; a second artifact.start for a held artifactId replaces the artifact whole, parts included; append:true concatenates only a text delta onto a last text part, else starts a new part; a delta for an unheld artifactId folds to nothing and occupies its seq slot; a delta after artifact.end still lands", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.1 (v1), (w1), (w2) under \"§10.1 — §5 artifact rows (rc.1 fold rules): name and description on the record, a second artifact.start replaces whole, text-only concatenation, a delta for an unheld artifact folds to nothing\"" },
   { n: 2, title: "Reconnect (forward-gap park + snapshot-resync; backward jump folds normally)", disposition: "COVERED-BY", evidence: "fixture-only", citation: "reduce.test.ts describe \"reduce — R9 new-ops + resync + snapshot + live-only\": the forward-gap / park / snapshot-recovery legs \"(e1) seq-gap sets needsResync; events after gap are ignored until snapshot\", \"(e2) seq-gap → messages.snapshot recovery clears needsResync\", \"(e3) seq-gap → state.snapshot recovery ALSO clears needsResync (both recovery paths)\", \"(e4) parked reducer ignores non-snapshot events; resumes after state.snapshot\", \"(e5) an ext event occupying a seq slot between two closed events does NOT false-park\", \"(e6) a genuine forward gap revealed BY an ext event still parks (gap detection works through ext events)\" and the conditional-replace legs \"(d1) messages.snapshot without turns/artifacts PRESERVES prior artifacts + turns\", \"(d2) full messages.snapshot REPLACEs all three containers + clears transient\", \"(d3) messages.snapshot memory replaces only scope:thread records; non-thread survives\", \"(d4) messages.snapshot clears needsResync (un-parks)\"" },
   { n: 3, title: "Tool-result routing matrix (content/structuredContent/uiData/sideData): channel separation only — structuredContent is model-facing, delivery host-determined, model receipt not asserted (draft.4)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.3" },
   { n: 4, leg: "a", title: "Gemini signature loop — tool-call signature (ingest leg)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.4(a), facet-driven via createAdkNormalizer" },
@@ -151,8 +153,8 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 26, leg: "vercel", title: "Interim-narration marker (draft.4): an OpenAI commentary text part opens phase 'interim'; final_answer / unknown / no bag → no phase; providerMetadata.phase kept verbatim", disposition: "COVERED-BY", evidence: "fixture-only", citation: "vercel-ai/src/index.test.ts describe \"draft.4 phase: an OpenAI commentary text part opens as phase 'interim'\" (commentary → text.start{phase:'interim'}; final_answer/unknown/no bag → no phase key) + describe \"text-start/text-end providerMetadata carry (captured echo-gpt56/gpt6astra/gpt6luna/gpt6sol shape: OpenAI `phase` on both parts)\" (commentary and final answer stay separate blocks, each bag verbatim) (2abe30b)" },
   { n: 26, leg: "openai", title: "Interim-narration marker (draft.4): a commentary + final_answer response yields phase 'interim' on the first item's text.start only; null/\"\" yield neither phase nor providerMetadata.phase", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.26(openai) via createOpenaiNormalizer (the phase carry, 347d550)" },
   { n: 26, leg: "emit", title: "Interim-narration marker (draft.4): no phase in a native re-input payload", disposition: "N/A", evidence: "none", citation: "§10 preamble emit/re-input carve-out: no facet in this repo ships an AgJSON→native emit surface" },
-  { n: 27, leg: "fold", title: "Re-delivery never folds twice (draft.4; draft.5 terminals): a second terminal for a closed turn parks whatever its outcome except the paused refresh after a re-sent turn.start (v-g–v-l); re-delivered seq, duplicate *.start id, delta/start into a sealed message or a closed turn, message.start into a closed turn (also across invokes; closure survives a 0-restart and follows the turn records across a messages.snapshot: a carried outcome or an omitted `turns` keeps it, a carried record without an outcome or `turns: []` reopens — draft.5), second final tool.done → resync with the fold unchanged; a later invoke's 0-restart reusing a block id folds; a same-type paused re-close with refreshed asks folds onto the one record (v-g); a forward gap still parks", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.27(fold) (i)-(viii), (v-a)-(v-d), (v-f), (v-g), (s-i)-(s-vii), reference Reducer + reduce() (the message.start guard reduce.ts 'a message.start for a turn that already closed parks')" },
-  { n: 27, leg: "goldens", title: "Re-delivery never folds twice (draft.4): on every replay golden, block-creating *.start ids are unique within each invoke", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.27(goldens), a scan of every corpus/*/*.agjson.json" },
+  { n: 27, leg: "fold", title: "Re-delivery never folds twice (draft.4; draft.5 terminals): a second terminal for a closed turn parks whatever its outcome except the paused refresh after a re-sent turn.start (v-g–v-l); re-delivered seq, duplicate *.start id, delta/start into a sealed message or a closed turn, message.start into a closed turn (also across invokes; closure survives a 0-restart and follows the turn records across a messages.snapshot: a carried outcome or an omitted `turns` keeps it, a carried record without an outcome or `turns: []` reopens — draft.5), second final tool.done → resync with the fold unchanged; a later invoke's 0-restart reusing a block id folds; a same-type paused re-close with refreshed asks folds onto the one record (v-g); a forward gap still parks; rc.1 fold rules: a message.start naming an id the fold holds as a message parks with the fold unchanged — open, sealed, snapshot-carried or adopted by a tool.done.messageId, and in a later invoke — while an id a message.remove removed or a snapshot omitted is not held (ix)–(xii); a tool.done with more:true for a call whose final result the invoke landed parks, while a preliminary then the final folds (xiii)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.27(fold) (i)-(xiii), (v-a)-(v-d), (v-f), (v-g), (s-i)-(s-vii), reference Reducer + reduce() (the message.start guard reduce.ts 'a message.start for a turn that already closed parks')" },
+  { n: 27, leg: "goldens", title: "Re-delivery never folds twice (draft.4; rc.1 message ids): on every replay golden, block-creating *.start ids are unique within each invoke, and no message.start names an id an earlier message.start or tool.done.messageId of the invoke named", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.27(goldens), a scan of every corpus/*/*.agjson.json" },
   { n: 27, leg: "producers", title: "Re-delivery never folds twice (draft.4): on every replay golden no message.start follows its turn's terminal, or a messages.snapshot carrying the turn with an outcome (draft.5); on every committed resume pair no turn or message id recurs across the two invokes, and the pair folds without a resync; no turnId carries more than one terminal (draft.5)", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.27(producers), a scan of every corpus golden and every <scenario>-resume-<leg> pair" },
   { n: 28, title: "Host-appended events (draft.4): every replay golden plus a host-appended paused hitl.ask turn from lastSeq+1 folds with needsResync false and the turn in turns (§8.0 host obligation 5)", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.28 over every corpus/*/*.agjson.json via ingestAgEvents → reduce" },
   { n: 29, leg: "a", title: "Forward-compatible records: a stored AgMessage/AgMemoryRecord reader omits an unreadable content element or record, reports it with its index and verbatim value, never coerces, and the reports reconstruct the stored value", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.29(a) via core readStoredAgMessage(s)/readStoredAgMemoryRecords (ce5952a; unit legs core/src/record.test.ts)" },
@@ -190,7 +192,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 39, title: "Kept-open tool-result snapshot fold (draft.4): a later tool.done replaces the payload as a unit (omitted payload fields clear, uiData and structuredContent included), _meta/toolMetadata kept unless re-sent, providerMetadata merged by key, preliminary cleared; an error final clears an earlier structuredContent; a carried uiData:null is stored present", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.39, reference reduce() + Reducer (f2ba05d + uiData flip 22c8084)" },
   { n: 40, leg: "sweep", title: "Flush honesty (draft.4): every prefix of every corpus native, flushed by its reference normalizer, emits only lifecycle closes, message.end, non-success terminals and ext carries (the carries before the terminals), never a success turn.done or content, and every opened turn folds to an outcome", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.40(sweep) over every corpus/*/<fw>.native.json via the four reference normalizers" },
   { n: 40, leg: "claude", title: "Flush honesty (draft.4): a Claude stream cut mid-turn with open text, reasoning and a partial tool call flushes content-free lifecycle closes only", disposition: "COVERED-BY", evidence: "fixture-only", citation: "claude-agent-sdk/src/index.test.ts \"createClaudeNormalizer — C1: flush never mints content\" › \"leg (a): every flush() event is a content-free lifecycle close; …\"" },
-  { n: 40, leg: "openai", title: "Flush honesty (draft.4): the approval interruption flushes exactly one turn.done{paused, asks:[approval_<callId>], usage U}; without the approval, turn.abort{stream-truncated} and a message.end carrying U", disposition: "COVERED-BY", evidence: "fixture-only", citation: "openai-agents/src/index.test.ts \"createOpenaiNormalizer — O1 honest flush (fold/flush option 1)\" › the two \"§10.26 leg: …\" cases (the item's pre-landing number)" },
+  { n: 40, leg: "openai", title: "Flush honesty (draft.4): the approval interruption flushes exactly one turn.done{paused, one approval ask, usage U}; without the approval, turn.abort{stream-truncated} and a message.end carrying U", disposition: "COVERED-BY", evidence: "fixture-only", citation: "openai-agents/src/index.test.ts \"createOpenaiNormalizer — O1 honest flush (fold/flush option 1)\" › the two \"§10.26 leg: …\" cases (the item's pre-landing number)" },
   { n: 40, leg: "adk", title: "Flush honesty (draft.7): an ADK stream cut mid-turn after a pause signal flushes exactly one paused turn.done, the turn's last event, and no turn.abort for that turn — INV-FLUSH (2)'s paused release is the only turn.done a flush emits", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.25 (§10.40 adk) over fixtures/adk-pause/after-pause-callback cut after the pause signal" },
   { n: 40, leg: "adk-error-turn", title: "Flush honesty (rc.1): every prefix of every engine-built ADK error and pause native, flushed bare, emits a turn.start and a message.start only for the one error turn INV-FLUSH (3) admits after a paused release — that turn's turn.start, one message.start and one message.end for a message with no content and no usage, and its turn.error — and some prefix exercises it", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.40(adk fixtures) over every prefix of every fixtures/adk-error and fixtures/adk-pause native" },
   { n: 41, title: "MCP Apps view locator carry (draft.4): every native tool result's MCP Apps _meta.ui reaches its tool.done's _meta.ui deep-equal", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.41: every corpus native carrying _meta.ui, replayed through its reference normalizer (claude, openai, adk)" },
@@ -298,6 +300,10 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 64, leg: "core", title: "Wire-selected prototypes at the fold (rc.1): a reducer fed, without a decode, a stream whose tool.args, tool.done content[], text.start providerMetadata, both state.delta shapes, memory.write and turn.done carry an own __proto__ member at every object node, once per value leg, yields a result with no such member at any depth and ordinary prototypes, the resync condition false, deep-equal to the unplanted fold and to the fold after a consuming ingest, identical batch and incremental; a state.delta or memory.write operation whose path or from holds that token, or whose required location names a member the working copy or record does not own, leaves it unchanged with the resync condition true and result() returned, while add of such a name creates an own member; an event structuredClone cannot copy folds less the member; Object.prototype gains no member", disposition: "COVERED-BY", evidence: "fixture-only", citation: "reduce.test.ts describe \"reduce — an own __proto__ member is omitted at every depth of every folded event (§13.7)\" (the four value legs, \"batch == incremental and decoded == undecoded for a planted stream\", the state.delta and memory.write path, from and inherited-name legs, the uncloneable-event legs and the runtime check) and describe \"reduce — R8 shared-state snapshot + delta\" › \"an own __proto__ key of a patch is omitted from the fold, never the state's prototype\" and \"copy-isolated and batch == incremental; an own __proto__ key is omitted, never a prototype\"; the applier: json-patch.test.ts describe \"applyPatch — a reference token named __proto__ fails the operation\" and describe \"applyPatch — member resolution reads own members only\"" },
   { n: 64, leg: "planted-set", title: "Wire-selected prototypes at the fold (rc.1): the item's named planted set — turn.done.outcome.asks[].schema, usage with a byModel entry on turn.done, turn.error and message.end, block citations, tool-result content[] and structuredContent, messages.snapshot message and turn records, state.snapshot, both state.delta shapes and memory.write — planted at every object node once per value leg, without a decode, folds with no own __proto__ at any depth, ordinary prototypes, the resync condition false, byte-equal to the unplanted fold and to the fold after a consuming ingest, identical batch and incremental; Object.prototype gains no member", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.64 (planted-set …) over the reference Reducer and reduce(); the prototype assertions run directly (toEqual ignores prototypes)" },
   { n: 65, leg: "core", title: "Wire-selected prototypes at the decode (rc.1): a consuming ingest of a closed event, a reader of a stored AgMessage and of an AgMemoryRecord array, and a receiver of an AgInput each drop an own __proto__ at every depth and return ordinary objects deep-equal to the input less the member, not a rejection or a stub; a bare JSON.parse keeps it", disposition: "COVERED-BY", evidence: "fixture-only", citation: "ingest.test.ts describe \"ingest — decoded events hold no own __proto__ and only ordinary prototypes (§13.7 decode)\"; record.test.ts describe \"stored-record readers — a null-prototype record is still read (§13.7 decode)\" (the dropped member is not an unreadable element, so the readers report nothing; the index reproduction of reported values is item 29's reader leg); input-check.test.ts describe \"checkAgInput — a null-prototype input is still accepted (§13.7 decode)\"" },
+  { n: 66, leg: "adk", title: "ADK interrupted close (rc.1): a Live native stream in which interrupted: true precedes the generation's usage-only report and its turnComplete closes that generation's turn with exactly one terminal, a turn.abort{reason: interrupted}, fed whole and fed cut after the usage-only report before turnComplete (by the end of flush()), never a later turn.done; every event producer-strict valid; on the corpus each such abort directly follows a message.end carrying the turn's usage", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.66 (adk) and (adk-cut) via replayNatives over corpus/live-bargein-gemini38live and live-bargein2-gemini38live adk.native.json (three interrupted generations; cut points derived from the natives)" },
+  { n: 66, leg: "claude", title: "ADK interrupted close (rc.1)", disposition: "N/A", evidence: "none", citation: "§10 item 66 binds normalizers targeting ADK (§8.0 item 17): this framework's native stream carries no interruption signal the reference maps" },
+  { n: 66, leg: "openai", title: "ADK interrupted close (rc.1)", disposition: "N/A", evidence: "none", citation: "§10 item 66 binds normalizers targeting ADK (§8.0 item 17): this framework's native stream carries no interruption signal the reference maps" },
+  { n: 66, leg: "vercel", title: "ADK interrupted close (rc.1)", disposition: "N/A", evidence: "none", citation: "§10 item 66 binds normalizers targeting ADK (§8.0 item 17): this framework's native stream carries no interruption signal the reference maps" },
   { n: 65, leg: "ext-and-request", title: "Wire-selected prototypes at the decode (rc.1): a consuming ingest of an ext.* event, and the request carriers of an AgClientCapabilities (AgInputEnvelope.capabilities) and an AgHitlAnswer (a resume's answers[]) through the reference's AgInput receiver, drop an own __proto__ planted at the top level and nested, once per value leg, and return the value, not a stub or a rejection, deep-equal to the unplanted one; the bare parse keeps the member; Object.prototype gains no member", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.65 (ext …) and (request …) via core ingestAgEvent and checkAgInput; the request legs bind implementations that ship such a receiver (item 65), and the reference's is checkAgInput" },
 ];
 
@@ -522,6 +528,167 @@ describe("§10.1 — §5 rows (rc.1 corrections): turn.done safety replaces, pro
     expect(merged.needsResync).toBe(false);
     expect(toolCall(merged)?.providerMetadata).toEqual({ a: 1, b: 2 });
     expect(toolCall(vector({ a: 1, k: 1 }, { k: 2 }))?.providerMetadata).toEqual({ a: 1, k: 2 });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.1 — §5 subagent.start row + INV-OWNER (rc.1 fold rules): a nested turn's
+// thread is its parent's known thread, else the fold's root thread; a nested
+// record whose thread is not known is held and result() omits it; a terminal
+// folded while held is kept; a turns-carrying messages.snapshot discards a held
+// nested record, keeping only its held display.required landings. §8.0 item
+// 16: a reducer tolerates an unopened parentTurnId and fabricates no record
+// for it. Batch and incremental folds are compared as JSON text.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.1 — §5 subagent.start row and INV-OWNER (rc.1 fold rules): a nested turn's thread, the held nested record and the snapshot's discard", () => {
+  const P = (evs: Array<Record<string, unknown>>) => evs.map((e) => AgEvent.parse(e));
+  const both = (evs: AgEvent[]) => {
+    const live = new Reducer();
+    for (const e of evs) live.push(e);
+    const batch = reduce(evs);
+    expect(live.needsResync).toBe(batch.needsResync);
+    expect(JSON.stringify(live.result())).toBe(JSON.stringify(batch.result));
+    return batch;
+  };
+  const rec = (r: ReturnType<typeof reduce>, id: string) => r.result.turns.find((t) => t.turnId === id);
+
+  it("(a) a lone subagent.start whose parent never opened, after a root turn.start, takes the fold's root thread, records its parentTurnId, and fabricates no record for the parent (§8.0 item 16)", () => {
+    const r = both(P([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      { type: "subagent.start", seq: 1, turnId: "S", parentTurnId: "turn_toolcall_9" },
+    ]));
+    expect(r.needsResync).toBe(false);
+    expect(rec(r, "S")).toMatchObject({ turnId: "S", parentTurnId: "turn_toolcall_9", threadId: "th1" });
+    expect(rec(r, "turn_toolcall_9")).toBeUndefined();
+    expect(r.result.turns.map((t) => t.threadId)).not.toContain("turn_toolcall_9");
+  });
+  it("(b) a subagent.start before any thread is known is held — result() omits it, no resync — and appears on the root thread once a turn.start carries one", () => {
+    const held = both(P([{ type: "subagent.start", seq: 0, turnId: "S", parentTurnId: "P" }]));
+    expect(held.needsResync).toBe(false);
+    expect(held.result.turns).toEqual([]);
+    const released = both(P([
+      { type: "subagent.start", seq: 0, turnId: "S", parentTurnId: "P" },
+      { type: "turn.start", seq: 1, threadId: "th1", turnId: "t1" },
+    ]));
+    expect(released.needsResync).toBe(false);
+    expect(rec(released, "S")).toMatchObject({ threadId: "th1", parentTurnId: "P" });
+  });
+  it("(c) a terminal folded while the nested record is held is kept: the released record carries its outcome", () => {
+    const r = both(P([
+      { type: "subagent.start", seq: 0, turnId: "S", parentTurnId: "P" },
+      { type: "turn.done", seq: 1, turnId: "S", outcome: { type: "success" }, finishReason: "stop" },
+      { type: "subagent.done", seq: 2, turnId: "S", parentTurnId: "P" },
+      { type: "turn.start", seq: 3, threadId: "th1", turnId: "t1" },
+    ]));
+    expect(r.needsResync).toBe(false);
+    expect(rec(r, "S")).toMatchObject({ threadId: "th1", outcome: { type: "success" } });
+  });
+  it("(d) a parent known only through a message.start carrying a threadId gives its nested turn that thread, not the root thread", () => {
+    const r = both(P([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      { type: "message.start", seq: 1, id: "mp", role: "assistant", turnId: "P", threadId: "thP" },
+      { type: "subagent.start", seq: 2, turnId: "S", parentTurnId: "P" },
+    ]));
+    expect(r.needsResync).toBe(false);
+    expect(rec(r, "S")?.threadId).toBe("thP");
+  });
+  it("(e) a messages.snapshot carrying turns discards a held nested record, keeping only its held display.required landings: they join the carried record once (matched by provider and html), stay held for a turn the snapshot omits, and land when that turn is opened again", () => {
+    const DR = { provider: "p", html: "<b>x</b>" };
+    const prefix = P([
+      { type: "subagent.start", seq: 0, turnId: "S", parentTurnId: "P" },
+      { type: "display.required", seq: 1, turnId: "S", ...DR },
+      { type: "turn.done", seq: 2, turnId: "S", outcome: { type: "success" }, finishReason: "stop" },
+    ]);
+    const carried = both([...prefix, ...P([{ type: "messages.snapshot", seq: 3, messages: [], turns: [{ turnId: "S", threadId: "th1", parentTurnId: "P" }] }])]);
+    expect(carried.needsResync).toBe(false);
+    expect(rec(carried, "S")).toMatchObject({ turnId: "S", threadId: "th1", parentTurnId: "P" });
+    expect(rec(carried, "S")?.outcome).toBeUndefined(); // the held terminal went with the discarded record
+    expect(rec(carried, "S")?.displayRequired).toHaveLength(1);
+    expect(rec(carried, "S")?.displayRequired?.[0]).toMatchObject(DR);
+    const matched = both([...prefix, ...P([{ type: "messages.snapshot", seq: 3, messages: [], turns: [{ turnId: "S", threadId: "th1", displayRequired: [DR] }] }])]);
+    expect(rec(matched, "S")?.displayRequired).toHaveLength(1);
+    const omitted = both([...prefix, ...P([{ type: "messages.snapshot", seq: 3, messages: [], turns: [{ turnId: "t1", threadId: "th1" }] }])]);
+    expect(omitted.needsResync).toBe(false);
+    expect(rec(omitted, "S")).toBeUndefined();
+    const reopened = both([...prefix, ...P([
+      { type: "messages.snapshot", seq: 3, messages: [], turns: [{ turnId: "t1", threadId: "th1" }] },
+      { type: "subagent.start", seq: 4, turnId: "S", parentTurnId: "t1" },
+    ])]);
+    expect(reopened.needsResync).toBe(false);
+    expect(rec(reopened, "S")).toMatchObject({ threadId: "th1" });
+    expect(rec(reopened, "S")?.displayRequired).toHaveLength(1);
+    expect(rec(reopened, "S")?.displayRequired?.[0]).toMatchObject(DR);
+  });
+  it("(f) on every corpus golden carrying a subagent.start, the fold needs no resync, every nested record's threadId is a thread some event carried, never its parentTurnId, and equals its parent's when the parent has a record", () => {
+    const corpus = new URL("../corpus/", import.meta.url);
+    let nested = 0;
+    for (const dir of readdirSync(corpus).sort()) {
+      for (const f of readdirSync(new URL(`${dir}/`, corpus)).filter((x) => x.endsWith(".agjson.json")).sort()) {
+        const evs = JSON.parse(readFileSync(new URL(`${dir}/${f}`, corpus), "utf8")) as Array<Record<string, unknown>>;
+        if (!evs.some((e) => e["type"] === "subagent.start")) continue;
+        const threads = new Set(evs.map((e) => e["threadId"]).filter((x): x is string => typeof x === "string"));
+        const r = new Reducer();
+        for (const e of evs) r.push(AgEvent.parse(e));
+        expect(r.needsResync, `${dir}/${f}`).toBe(false);
+        const turns = r.result().turns;
+        for (const t of turns) {
+          if (t.parentTurnId === undefined) continue;
+          nested++;
+          expect(threads.has(t.threadId), `${dir}/${f}: ${t.turnId} on ${t.threadId}`).toBe(true);
+          expect(t.threadId, `${dir}/${f}: ${t.turnId}`).not.toBe(t.parentTurnId);
+          const parent = turns.find((p) => p.turnId === t.parentTurnId);
+          if (parent) expect(t.threadId, `${dir}/${f}: ${t.turnId}`).toBe(parent.threadId);
+        }
+      }
+    }
+    expect(nested).toBeGreaterThanOrEqual(4);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.1 — §5 artifact rows (rc.1 fold rules): name and description on the
+// record; a second artifact.start replaces whole; append:true concatenates
+// only a text delta onto a last text part; a delta for an unheld artifact
+// folds to nothing and occupies its seq slot; a delta after artifact.end lands.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.1 — §5 artifact rows (rc.1 fold rules): name and description on the record, a second artifact.start replaces whole, text-only concatenation, a delta for an unheld artifact folds to nothing", () => {
+  const P = (evs: Array<Record<string, unknown>>) => evs.map((e) => AgEvent.parse(e));
+  const both = (evs: AgEvent[]) => {
+    const live = new Reducer();
+    for (const e of evs) live.push(e);
+    const batch = reduce(evs);
+    expect(live.needsResync).toBe(batch.needsResync);
+    expect(JSON.stringify(live.result())).toBe(JSON.stringify(batch.result));
+    return batch;
+  };
+  const A = (seq: number, extra: Record<string, unknown> = {}) => ({ type: "artifact.start", seq, artifactId: "a1", turnId: "t1", threadId: "th1", ...extra });
+  const D = (seq: number, part: Record<string, unknown>, append: boolean) => ({ type: "artifact.delta", seq, artifactId: "a1", part, append });
+  const text = (t: string) => ({ type: "text", text: t });
+  const code = (c: string) => ({ type: "code", language: "ts", code: c });
+
+  it("(v1) artifact.start lands name and description on the record; a second artifact.start for the held artifactId replaces it whole, parts included", () => {
+    const r = both(P([TURN_START, A(1, { name: "n", description: "d" }), D(2, text("a"), false)]));
+    expect(r.needsResync).toBe(false);
+    expect(r.result.artifacts).toHaveLength(1);
+    expect(r.result.artifacts[0]).toMatchObject({ artifactId: "a1", turnId: "t1", threadId: "th1", name: "n", description: "d", parts: [text("a")] });
+    const replaced = both(P([TURN_START, A(1, { name: "n", description: "d" }), D(2, text("a"), false), A(3, { name: "n2" })]));
+    expect(replaced.needsResync).toBe(false);
+    expect(replaced.result.artifacts).toHaveLength(1);
+    expect(replaced.result.artifacts[0]).toMatchObject({ artifactId: "a1", name: "n2", parts: [] });
+    expect(replaced.result.artifacts[0]?.description).toBeUndefined();
+  });
+  it("(w1) append:true concatenates only a text delta onto a last part that is text; a code part after a code part, code after text, and text after code each start a new part", () => {
+    const r = both(P([TURN_START, A(1), D(2, text("a"), false), D(3, text("b"), true), D(4, code("x"), true), D(5, code("y"), true), D(6, text("c"), true), D(7, text("d"), true)]));
+    expect(r.needsResync).toBe(false);
+    expect(r.result.artifacts[0]?.parts).toEqual([text("ab"), code("x"), code("y"), text("cd")]);
+  });
+  it("(w2) a delta for an artifactId the fold does not hold folds to nothing and occupies its seq slot; after artifact.end a later delta still lands (§10 item 16)", () => {
+    const r = both(P([TURN_START, { type: "artifact.delta", seq: 1, artifactId: "a9", part: text("z"), append: false }, A(2), D(3, text("a"), false), { type: "artifact.end", seq: 4, artifactId: "a1", lastChunk: true }, D(5, text("b"), true)]));
+    expect(r.needsResync).toBe(false);
+    expect(r.result.artifacts.map((a) => a.artifactId)).toEqual(["a1"]);
+    expect(r.result.artifacts[0]?.parts).toEqual([text("ab")]);
   });
 });
 
@@ -2010,7 +2177,7 @@ describe("§10.27 — re-delivery never folds twice (draft.4)", () => {
     expect(both([...S, ...P([{ type: "text.delta", seq: 9, id: "b1", delta: "gap" }])]).needsResync).toBe(true);
   });
 
-  it("(goldens) on every replay golden, block-creating *.start ids are unique within each invoke", () => {
+  it("(goldens) on every replay golden, block-creating *.start ids are unique within each invoke, and no message.start names an id an earlier message.start or tool.done.messageId of the invoke named (rc.1)", () => {
     const corpus = new URL("../corpus/", import.meta.url);
     const dups: string[] = [];
     let files = 0;
@@ -2022,9 +2189,15 @@ describe("§10.27 — re-delivery never folds twice (draft.4)", () => {
         const seen = new Set<string>();
         for (const e of JSON.parse(readFileSync(f, "utf8")) as Array<Record<string, unknown>>) {
           if (e["seq"] === 0) seen.clear(); // a 0-restart opens a new invoke (INV-SEQ)
-          const id = e["type"] === "tool.start" ? e["toolCallId"] : e["type"] === "text.start" || e["type"] === "reasoning.start" ? e["id"] : undefined;
+          const type = e["type"];
+          if (type === "tool.done") {
+            // rc.1: an adopted message id is named for the invoke; a later message.start naming it is the repeat
+            if (typeof e["messageId"] === "string") seen.add(`msg:${e["messageId"]}`);
+            continue;
+          }
+          const id = type === "tool.start" ? e["toolCallId"] : type === "text.start" || type === "reasoning.start" || type === "message.start" ? e["id"] : undefined;
           if (typeof id !== "string") continue;
-          const key = `${e["type"] === "tool.start" ? "tool" : "block"}:${id}`;
+          const key = `${type === "tool.start" ? "tool" : type === "message.start" ? "msg" : "block"}:${id}`;
           if (seen.has(key)) dups.push(`${dir}/${fw}:${key}`);
           seen.add(key);
         }
@@ -2281,6 +2454,66 @@ describe("§10.27 — re-delivery never folds twice (draft.4)", () => {
     expect(reopened.needsResync).toBe(false);
     expect(reopened.result.turns[0]?.outcome).toEqual({ type: "success" });
   });
+  // rc.1 fold rules (§5.0 INV-MSG, INV-BLOCK): a message.start naming an id the fold already holds as
+  // a message parks with the fold unchanged — open or sealed, carried by a folded messages.snapshot,
+  // adopted by a tool.done, and in a later invoke (the held set spans the fold); an id a folded
+  // message.remove removed, or one a snapshot omitted, is not held. A tool.done with more:true for a
+  // call whose final result the invoke already landed parks.
+  it("(ix) a second message.start naming an open id, or a sealed one, parks with the fold unchanged (rc.1)", () => {
+    const again = (seq: number) => P([{ type: "message.start", seq, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" }]);
+    parksUnchanged(S, again(8));
+    parksUnchanged([...S, ...END], again(9));
+  });
+  it("(x) a later invoke's message.start naming an id the fold holds parks (the held set spans the fold); a fresh id in that invoke folds (control)", () => {
+    const T2 = P([{ type: "turn.start", seq: 0, threadId: "th1", turnId: "t2" }]);
+    const m = (id: string) => P([{ type: "message.start", seq: 1, id, role: "assistant", turnId: "t2", threadId: "th1" }]);
+    parksUnchanged([...S, ...END, ...DONE, ...T2], m("m1"));
+    const fresh = both([...S, ...END, ...DONE, ...T2, ...m("m2")]);
+    expect(fresh.needsResync).toBe(false);
+    expect(fresh.result.messages.map((x) => x.id)).toEqual(["m1", "m2"]);
+  });
+  it("(xi) an id carried by a folded messages.snapshot, and one adopted by a tool.done.messageId, park when a message.start names it", () => {
+    const snap = P([{ type: "messages.snapshot", seq: 0, messages: [{ id: "ms", role: "assistant", content: [{ type: "text", text: "s" }], turnId: "t1", threadId: "th1" }], turns: [{ turnId: "t1", threadId: "th1" }] }]);
+    parksUnchanged(snap, P([{ type: "message.start", seq: 1, id: "ms", role: "assistant", turnId: "t1", threadId: "th1" }]));
+    const adopted = P([
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+      { type: "tool.start", seq: 2, toolCallId: "c1", name: "calc", turnId: "t1", messageId: "m1" },
+      { type: "tool.args.assembled", seq: 3, toolCallId: "c1", input: {} },
+      { type: "tool.done", seq: 4, toolCallId: "c1", messageId: "mt", turnId: "t1", content: [{ type: "text", text: "r" }], outcome: "ok" },
+    ]);
+    expect(both(adopted).result.messages.some((m) => m.id === "mt")).toBe(true); // the adoption minted mt (non-vacuity)
+    parksUnchanged(adopted, P([{ type: "message.start", seq: 5, id: "mt", role: "assistant", turnId: "t1", threadId: "th1" }]));
+  });
+  it("(xii) control: an id a folded message.remove removed, or one a messages.snapshot omitted, is not held — a message.start naming it folds", () => {
+    const removed = both([...S, ...END, ...P([{ type: "message.remove", seq: 9, id: "m1" }, { type: "message.start", seq: 10, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" }])]);
+    expect(removed.needsResync).toBe(false);
+    expect(removed.result.messages.filter((m) => m.id === "m1")).toHaveLength(1);
+    expect(removed.result.messages.find((m) => m.id === "m1")?.content).toEqual([]);
+    const released = both([...S, ...END, ...P([{ type: "messages.snapshot", seq: 9, messages: [] }, { type: "message.start", seq: 10, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" }])]);
+    expect(released.needsResync).toBe(false);
+    expect(released.result.messages.map((m) => m.id)).toEqual(["m1"]);
+  });
+  it("(xiii) a tool.done with more:true for a call whose final result the invoke already landed parks with the fold unchanged (rc.1); a preliminary then the final folds (control)", () => {
+    const open = [
+      { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+      { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+      { type: "tool.start", seq: 2, toolCallId: "c1", name: "calc", turnId: "t1", threadId: "th1" },
+      { type: "tool.args.assembled", seq: 3, toolCallId: "c1", input: { x: 1 } },
+    ];
+    const prelim = (seq: number) => ({ type: "tool.done", seq, toolCallId: "c1", content: [{ type: "text", text: "p" }], outcome: "ok", more: true });
+    const final = (seq: number) => ({ type: "tool.done", seq, toolCallId: "c1", content: [{ type: "text", text: "f" }], outcome: "ok" });
+    const results = (r: ReturnType<typeof reduce>) => JSON.stringify(r.result.messages).match(/"tool-result"/g) ?? [];
+    parksUnchanged(P([...open, final(4)]), P([prelim(5)]));
+    const ordered = both(P([...open, prelim(4), final(5)]));
+    expect(ordered.needsResync).toBe(false);
+    expect(results(ordered).length).toBeGreaterThanOrEqual(1);
+    expect(JSON.stringify(ordered.result.messages)).toContain('"text":"f"');
+    // A cross-invoke more:true is not a reducer case this version defines: INV-XINV binds the
+    // normalizer to emit a cross-invoke result without more:true, and the §5 tool.done row lands a
+    // later invoke's result only through its own pairing and adoption rules.
+  });
+
   it("(producers) on every replay golden no message.start follows the terminal of the turn it names, or a messages.snapshot carrying that turn with an outcome; on every committed resume pair no turn or message id of one invoke recurs in the other, and the pair folds without a resync", () => {
     const corpus = new URL("../corpus/", import.meta.url);
     const TERMINALS = new Set(["turn.done", "turn.error", "turn.abort"]);
@@ -4995,4 +5228,78 @@ describe("§10.64 — wire-selected prototypes at the fold (rc.1): the item's na
       expect((({}) as Record<string, unknown>)["p"]).toBeUndefined();
     });
   }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.66 — ADK interrupted close (rc.1; §8.0 item 17). The two Live barge-in
+// captures (three interrupted generations) through the reference ADK
+// normalizer, whole and cut after each generation's usage-only report before
+// its turnComplete; cut points are derived from the natives, never pinned.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.66 — ADK interrupted close (rc.1): a Live stream whose interrupted event precedes the generation's usage-only report and turnComplete closes that turn with exactly one turn.abort{interrupted}, whole and cut before turnComplete", () => {
+  type Ev = { type: string; turnId?: string; reason?: string; usage?: unknown };
+  const corpus = new URL("../corpus/", import.meta.url);
+  const TERM = new Set(["turn.done", "turn.error", "turn.abort"]);
+  const DIRS = ["live-bargein-gemini38live", "live-bargein2-gemini38live"];
+  const natives = (dir: string) => splitHostCompleteMarker(JSON.parse(readFileSync(new URL(`${dir}/adk.native.json`, corpus), "utf8")) as JsonValue[]).native;
+  const obj = (n: JsonValue): Record<string, unknown> | undefined => (n !== null && typeof n === "object" && !Array.isArray(n) ? (n as Record<string, unknown>) : undefined);
+  const partsOf = (n: JsonValue): unknown[] => ((obj(n)?.["content"] as { parts?: unknown[] } | undefined)?.parts ?? []);
+  const isUsageOnly = (n: JsonValue) => obj(n) !== undefined && "usageMetadata" in obj(n)! && partsOf(n).length === 0 && obj(n)!["turnComplete"] !== true && obj(n)!["interrupted"] !== true;
+  /** Each interrupted event's index, the usage-only report after it and the turnComplete after that. */
+  const cuts = (nat: JsonValue[]): Array<{ i: number; u: number; c: number }> => {
+    const out: Array<{ i: number; u: number; c: number }> = [];
+    nat.forEach((n, i) => {
+      if (obj(n)?.["interrupted"] !== true) return;
+      const u = nat.findIndex((m, j) => j > i && isUsageOnly(m));
+      const c = nat.findIndex((m, j) => j > i && obj(m)?.["turnComplete"] === true);
+      expect(u, `interrupted at ${i}: a usage-only report follows`).toBeGreaterThan(i);
+      expect(c, `interrupted at ${i}: turnComplete follows the report`).toBeGreaterThan(u);
+      out.push({ i, u, c });
+    });
+    return out;
+  };
+  const checkCloses = (evs: Ev[], label: string): Ev[] => {
+    for (const e of evs) expect(AgEvent.safeParse(e).success, `${label}: ${JSON.stringify(e).slice(0, 160)}`).toBe(true);
+    const aborts = evs.filter((e) => e.type === "turn.abort" && e.reason === "interrupted");
+    for (const a of aborts) {
+      expect(evs.filter((e) => TERM.has(e.type) && e.turnId === a.turnId), `${label}: ${a.turnId} has one terminal`).toHaveLength(1);
+      expect(evs.filter((e) => e.type === "turn.done" && e.turnId === a.turnId), `${label}: ${a.turnId} never closes done`).toHaveLength(0);
+    }
+    return aborts;
+  };
+
+  it("(adk) fed whole: one turn.abort{interrupted} per interrupted generation, that turn's only terminal, never a later turn.done, every event producer-strict valid; on the corpus each such abort directly follows a message.end carrying the turn's usage (the item's informative sentence)", async () => {
+    let total = 0;
+    for (const dir of DIRS) {
+      const bare = natives(dir);
+      const ks = cuts(bare);
+      expect(ks.length, dir).toBeGreaterThan(0);
+      const out = (await replayNatives(bare, "adk")).agjson as unknown as Ev[];
+      const aborts = checkCloses(out, dir);
+      expect(aborts.length, dir).toBe(ks.length);
+      for (const a of aborts) {
+        const prev = out[out.indexOf(a) - 1];
+        expect(prev?.type, `${dir}: the event before ${a.turnId}'s abort`).toBe("message.end");
+        expect(prev?.usage, `${dir}: that message.end carries usage`).toBeDefined();
+      }
+      total += aborts.length;
+    }
+    expect(total).toBe(3);
+  });
+  it("(adk-cut) fed cut after the usage-only report, before turnComplete: the interrupted turn's turn.abort{interrupted} is emitted by the end of flush(), that turn's only terminal, never a turn.done", async () => {
+    let runs = 0;
+    for (const dir of DIRS) {
+      const bare = natives(dir);
+      const ks = cuts(bare);
+      for (const k of ks) {
+        const label = `${dir} cut after native ${k.u}`;
+        const out = (await replayNatives(bare.slice(0, k.u + 1), "adk")).agjson as unknown as Ev[];
+        const aborts = checkCloses(out, label);
+        expect(aborts.length, label).toBe(ks.filter((x) => x.u <= k.u).length);
+        runs++;
+      }
+    }
+    expect(runs).toBe(3);
+  });
 });
