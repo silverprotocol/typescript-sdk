@@ -631,8 +631,7 @@ export class Reducer {
           // published content. Resolve the block's owning turn via the
           // #blockPos → messageId → message.turnId chain and park instead of mutating
           // (mirrors the adoption path's closed-turn/sealed guard above).
-          const ownerTurnKey = msg.turnId ?? "unknown-turn";
-          if (this.#sealed.has(msg.id) || this.#isClosedTurn(ownerTurnKey)) {
+          if (this.#sealed.has(msg.id) || this.#isClosedTurn(msg.turnId)) {
             this.#resync = true;
             break;
           }
@@ -687,17 +686,19 @@ export class Reducer {
             // would land in (the existing message's own turnId, or the turn a
             // new message would take) BEFORE either sub-path runs, and park
             // instead of silently attaching/creating past the seal or the
-            // turn's binding window. "unknown-turn" is only a key that names no
-            // record, so an unresolvable owner parks below.
+            // turn's binding window. A message with no turnId, or a new one whose
+            // turn resolves to none, has no turn open to adoption and parks below,
+            // whatever the fold's turns are named.
             const targetTurnKey =
               existing !== undefined
-                ? (existing.turnId ?? "unknown-turn")
-                : (this.#resolveTurnId(ev.turnId) ?? ev.turnId ?? "unknown-turn");
+                ? existing.turnId
+                : (this.#resolveTurnId(ev.turnId) ?? ev.turnId);
             // A turn that was never legitimately opened (turn.start /
             // subagent.start / a snapshot's turns?) is just as invalid an
             // adoption target as a sealed message or a closed turn: park rather
             // than create a message for it.
             if (
+              targetTurnKey === undefined ||
               this.#sealed.has(ev.messageId) ||
               this.#isClosedTurn(targetTurnKey) ||
               !this.#openedTurns.has(targetTurnKey)
@@ -1430,8 +1431,8 @@ export class Reducer {
    * folds onto no record closes nothing; a messages.snapshot changes closure
    * only through the records its §5 per-container rule leaves in the fold. No
    * message of a closed turn (sealed or not, existing or not yet created) is a
-   * valid attach or adoption target. `key` is a resolved turnId, or the
-   * "unknown-turn" key of a message with no turnId, which names no record.
+   * valid attach or adoption target. `key` is a resolved turnId, or undefined
+   * for a message with no turnId, which names no record.
    */
   #isClosedTurn(key: string | undefined): boolean {
     return key !== undefined && this.#turns.get(key)?.outcome !== undefined;

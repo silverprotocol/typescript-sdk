@@ -5212,3 +5212,38 @@ describe("reduce — an empty JSON Patch applies no operation", () => {
     expect(out.result.state).toEqual({ k: 1 });
   });
 });
+
+describe("tool.done adoption: a message with no turnId has no turn open to adoption, whatever the turns are named", () => {
+  const fold = (evs: unknown[]): Reducer => {
+    const r = new Reducer();
+    for (const e of evs) r.push(AgEvent.parse(e));
+    return r;
+  };
+  const leg = (turnId: string) => [
+    { type: "turn.start", seq: 0, turnId, threadId: "T" },
+    { type: "messages.snapshot", seq: 1, messages: [{ id: "M", role: "assistant", content: [] }] },
+    { type: "tool.done", seq: 2, toolCallId: "c1", messageId: "M", outcome: "ok", content: [{ type: "text", text: "r" }] },
+  ];
+
+  it("a turn literally named unknown-turn does not make a turnId-less snapshot message attachable: the adoption parks and M stays empty", () => {
+    const r = fold(leg("unknown-turn"));
+    expect(r.needsResync).toBe(true);
+    expect(r.result().messages.find((m) => m.id === "M")?.content).toEqual([]);
+  });
+
+  it("the same stream with an ordinarily named turn parks too (control)", () => {
+    const r = fold(leg("T1"));
+    expect(r.needsResync).toBe(true);
+    expect(r.result().messages.find((m) => m.id === "M")?.content).toEqual([]);
+  });
+
+  it("a message that names its open turn is still attachable (control)", () => {
+    const r = fold([
+      { type: "turn.start", seq: 0, turnId: "unknown-turn", threadId: "T" },
+      { type: "messages.snapshot", seq: 1, messages: [{ id: "M", role: "assistant", content: [], turnId: "unknown-turn", threadId: "T" }], turns: [{ turnId: "unknown-turn", threadId: "T" }] },
+      { type: "tool.done", seq: 2, toolCallId: "c1", messageId: "M", outcome: "ok", content: [{ type: "text", text: "r" }] },
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().messages.find((m) => m.id === "M")?.content).toEqual([expect.objectContaining({ type: "tool-result", toolCallId: "c1" })]);
+  });
+});
