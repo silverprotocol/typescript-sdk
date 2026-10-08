@@ -12,6 +12,7 @@ import {
   toWire,
   toJsonValue,
   AGJSON_VERSION,
+  ingestAgEvent,
   ingestAgEvents,
   readStoredAgMessage,
   readStoredAgMessages,
@@ -293,6 +294,11 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 62, leg: "claude", title: "Relayed request echo omitted (rc.1)", disposition: "N/A", evidence: "none", citation: "§10 item 62 binds normalizers targeting ADK: no A2A relay surface" },
   { n: 62, leg: "openai", title: "Relayed request echo omitted (rc.1)", disposition: "N/A", evidence: "none", citation: "§10 item 62 binds normalizers targeting ADK: no A2A relay surface" },
   { n: 62, leg: "vercel", title: "Relayed request echo omitted (rc.1)", disposition: "N/A", evidence: "none", citation: "§10 item 62 binds normalizers targeting ADK: no A2A relay surface" },
+  { n: 63, title: "Native-selected prototypes (rc.1): each reference normalizer, fed every corpus native of its framework with an own __proto__ member planted at every object node beside a carried sibling, once per value leg (object, null, array, primitive), and natives built with a null prototype or as class instances, emits events with no such member at any depth, ordinary prototypes, and events equal to the unplanted natives'; the emit funnels, the facet-side native read and a string member built by serialising a native value are proven in their own files; no reference framework carries a native RFC-6902 operation, so item 63's patch leg binds none of the four", disposition: "COVERED-BY", evidence: "corpus", citation: "native-member-copy.test.ts describe \"facet events from natives planted with each value kind beside a carried sibling\" (the four value legs and the runtime check) and describe \"facet events from natives built with a null prototype or as class instances\"; the emit funnels: stream-assembler.test.ts describe \"an emitted event holds no own __proto__ member at any depth (§13.7)\"; the native read: wire.test.ts \"a null-prototype node with an own __proto__ key takes the copy: ordinary prototype, the key an own data member, siblings equal\" and \"an ordinary JSON value still takes the fast path by reference (control)\"; the serialised string member: vercel-ai/src/index.test.ts \"the message text, parsed and less the member, equals the unplanted error's\"" },
+  { n: 64, leg: "core", title: "Wire-selected prototypes at the fold (rc.1): a reducer fed, without a decode, a stream whose tool.args, tool.done content[], text.start providerMetadata, both state.delta shapes, memory.write and turn.done carry an own __proto__ member at every object node, once per value leg, yields a result with no such member at any depth and ordinary prototypes, the resync condition false, deep-equal to the unplanted fold and to the fold after a consuming ingest, identical batch and incremental; a state.delta or memory.write operation whose path or from holds that token, or whose required location names a member the working copy or record does not own, leaves it unchanged with the resync condition true and result() returned, while add of such a name creates an own member; an event structuredClone cannot copy folds less the member; Object.prototype gains no member", disposition: "COVERED-BY", evidence: "fixture-only", citation: "reduce.test.ts describe \"reduce — an own __proto__ member is omitted at every depth of every folded event (§13.7)\" (the four value legs, \"batch == incremental and decoded == undecoded for a planted stream\", the state.delta and memory.write path, from and inherited-name legs, the uncloneable-event legs and the runtime check) and describe \"reduce — R8 shared-state snapshot + delta\" › \"an own __proto__ key of a patch is omitted from the fold, never the state's prototype\" and \"copy-isolated and batch == incremental; an own __proto__ key is omitted, never a prototype\"; the applier: json-patch.test.ts describe \"applyPatch — a reference token named __proto__ fails the operation\" and describe \"applyPatch — member resolution reads own members only\"" },
+  { n: 64, leg: "planted-set", title: "Wire-selected prototypes at the fold (rc.1): the item's named planted set — turn.done.outcome.asks[].schema, usage with a byModel entry on turn.done, turn.error and message.end, block citations, tool-result content[] and structuredContent, messages.snapshot message and turn records, state.snapshot, both state.delta shapes and memory.write — planted at every object node once per value leg, without a decode, folds with no own __proto__ at any depth, ordinary prototypes, the resync condition false, byte-equal to the unplanted fold and to the fold after a consuming ingest, identical batch and incremental; Object.prototype gains no member", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.64 (planted-set …) over the reference Reducer and reduce(); the prototype assertions run directly (toEqual ignores prototypes)" },
+  { n: 65, leg: "core", title: "Wire-selected prototypes at the decode (rc.1): a consuming ingest of a closed event, a reader of a stored AgMessage and of an AgMemoryRecord array, and a receiver of an AgInput each drop an own __proto__ at every depth and return ordinary objects deep-equal to the input less the member, not a rejection or a stub; a bare JSON.parse keeps it", disposition: "COVERED-BY", evidence: "fixture-only", citation: "ingest.test.ts describe \"ingest — decoded events hold no own __proto__ and only ordinary prototypes (§13.7 decode)\"; record.test.ts describe \"stored-record readers — a null-prototype record is still read (§13.7 decode)\" (the dropped member is not an unreadable element, so the readers report nothing; the index reproduction of reported values is item 29's reader leg); input-check.test.ts describe \"checkAgInput — a null-prototype input is still accepted (§13.7 decode)\"" },
+  { n: 65, leg: "ext-and-request", title: "Wire-selected prototypes at the decode (rc.1): a consuming ingest of an ext.* event, and the request carriers of an AgClientCapabilities (AgInputEnvelope.capabilities) and an AgHitlAnswer (a resume's answers[]) through the reference's AgInput receiver, drop an own __proto__ planted at the top level and nested, once per value leg, and return the value, not a stub or a rejection, deep-equal to the unplanted one; the bare parse keeps the member; Object.prototype gains no member", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.65 (ext …) and (request …) via core ingestAgEvent and checkAgInput; the request legs bind implementations that ship such a receiver (item 65), and the reference's is checkAgInput" },
 ];
 
 // §10 item numbers as SPEC.md declares them: the numbered `N. **Title**` lines
@@ -316,6 +322,13 @@ const CITED_TEST_FILES: Record<string, string> = {
   "google-adk/src/in-band-errors.test.ts": "../../google-adk/src/in-band-errors.test.ts",
   "adk-pause.test.ts": "./adk-pause.test.ts",
   "vercel-ai/src/index.test.ts": "../../vercel-ai/src/index.test.ts",
+  "stream-assembler.test.ts": "../../core/src/stream-assembler.test.ts",
+  "wire.test.ts": "../../core/src/wire.test.ts",
+  "json-patch.test.ts": "../../core/src/json-patch.test.ts",
+  "ingest.test.ts": "../../core/src/ingest.test.ts",
+  "input-check.test.ts": "../../core/src/input-check.test.ts",
+  "record.test.ts": "../../core/src/record.test.ts",
+  "native-member-copy.test.ts": "./native-member-copy.test.ts",
 };
 
 function specSection10ItemNumbers(): number[] {
@@ -4816,4 +4829,170 @@ describe("§10.61 — ADK relay bookkeeping off carries (rc.1): the four relay e
     expect(isDeepStrictEqual(JSON.parse(JSON.stringify(out)), JSON.parse(JSON.stringify(ref)))).toBe(true);
     expect(isDeepStrictEqual(JSON.parse(JSON.stringify(reduce(out))), JSON.parse(JSON.stringify(reduce(ref))))).toBe(true);
   });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.65 — Wire-selected prototypes at the decode (rc.1; §13.7 (2)). The two
+// receivers core's own legs leave out: a consuming ingest of an `ext.*` event,
+// and the request carriers of an `AgClientCapabilities`
+// (`AgInputEnvelope.capabilities`) and an `AgHitlAnswer` (a resume's
+// `answers[]`), whose reference receiver is checkAgInput. Each value leg plants
+// the member at the top level and nested; the bare parse is the negative
+// control. Prototypes are asserted directly (toEqual ignores them).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.65 — wire-selected prototypes at the decode (rc.1): an ext.* ingest and the request carriers of AgClientCapabilities and AgHitlAnswer drop an own __proto__ at every depth", () => {
+  const VALUE_LEGS: Array<[string, string]> = [["object", '{"p":1}'], ["null", "null"], ["array", "[1]"], ["primitive", '"s"']];
+  /** Every own `__proto__` and every non-ordinary prototype, by path (core's ingest.test.ts helper, repeated here). */
+  const protoOffenders = (v: unknown, path = "$"): string[] => {
+    if (v === null || typeof v !== "object") return [];
+    const out: string[] = [];
+    if (Object.getPrototypeOf(v) !== (Array.isArray(v) ? Array.prototype : Object.prototype)) out.push(`${path} prototype`);
+    if (Object.hasOwn(v, "__proto__")) out.push(`${path}.__proto__`);
+    for (const k of Object.keys(v)) out.push(...protoOffenders((v as Record<string, unknown>)[k], `${path}.${k}`));
+    return out;
+  };
+  const extPlanted = (v: string) => `{"type":"ext.vendor.x","seq":3,"__proto__":${v},"payload":{"k":{"__proto__":${v},"v":[{"__proto__":${v},"w":"s"}]},"__proto__":${v}}}`;
+  const EXT_PLAIN = '{"type":"ext.vendor.x","seq":3,"payload":{"k":{"v":[{"w":"s"}]}}}';
+  const requestPlanted = (v: string) =>
+    `{"protocol":"agjson","version":"${AGJSON_VERSION}","threadId":"th","turnId":"t","kind":"resume","__proto__":${v},"capabilities":{"__proto__":${v},"hitl":{"ask":true,"__proto__":${v}}},"answers":[{"askId":"a1","status":"resolved","__proto__":${v},"reply":{"__proto__":${v},"q":[{"__proto__":${v},"r":1}]}}]}`;
+  const REQUEST_PLAIN = `{"protocol":"agjson","version":"${AGJSON_VERSION}","threadId":"th","turnId":"t","kind":"resume","capabilities":{"hitl":{"ask":true}},"answers":[{"askId":"a1","status":"resolved","reply":{"q":[{"r":1}]}}]}`;
+
+  for (const [leg, v] of VALUE_LEGS) {
+    it(`(ext ${leg}) ingestAgEvent on an ext.vendor.x event with the member planted at the top level and at three depths of its payload returns the event, not a stub, with no own __proto__ at any depth, ordinary prototypes and the other members deep-equal the unplanted event's; the bare parse keeps the member`, () => {
+      const planted = JSON.parse(extPlanted(v)) as JsonValue;
+      expect(protoOffenders(planted)).toEqual(["$.__proto__", "$.payload.__proto__", "$.payload.k.__proto__", "$.payload.k.v.0.__proto__"]);
+      const e = ingestAgEvent(planted);
+      expect(e).toBeDefined();
+      expect(e?.type).toBe("ext.vendor.x");
+      expect(protoOffenders(e)).toEqual([]);
+      expect(e).toEqual(JSON.parse(EXT_PLAIN));
+      expect(ingestAgEvent(JSON.parse(EXT_PLAIN) as JsonValue)).toEqual(e);
+    });
+    it(`(request ${leg}) checkAgInput on a resume AgInput with the member planted at the top level, inside capabilities and its hitl, and inside an answer and its reply, accepts it with no own __proto__ at any depth, ordinary prototypes and the input deep-equal the unplanted one; the bare parse keeps the member`, () => {
+      const planted = JSON.parse(requestPlanted(v)) as unknown;
+      expect(protoOffenders(planted)).toEqual(["$.__proto__", "$.capabilities.__proto__", "$.capabilities.hitl.__proto__", "$.answers.0.__proto__", "$.answers.0.reply.__proto__", "$.answers.0.reply.q.0.__proto__"]);
+      const r = checkAgInput(planted);
+      expect(r.ok).toBe(true);
+      if (!r.ok) return;
+      expect(protoOffenders(r.input)).toEqual([]);
+      const plain = checkAgInput(JSON.parse(REQUEST_PLAIN));
+      expect(plain.ok).toBe(true);
+      if (plain.ok) expect(r.input).toEqual(plain.input);
+    });
+  }
+  it("Object.prototype gains no member from any leg, and the planted object leg's member is not reachable through an ordinary object", () => {
+    expect(Object.getOwnPropertyNames(Object.prototype)).not.toContain("p");
+    expect((({}) as Record<string, unknown>)["p"]).toBeUndefined();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.64 — Wire-selected prototypes at the fold (rc.1; §13.7 (3)): the item's
+// named planted set, beyond core's own stream (reduce.test.ts plants tool.args,
+// tool.done content[], text.start providerMetadata, state.delta, memory.write
+// and a turn.done): turn.done.outcome.asks[].schema, usage with a byModel entry
+// on turn.done, turn.error and message.end, block citations, tool-result
+// content[] and structuredContent, messages.snapshot records, state.snapshot,
+// both state.delta shapes and memory.write. The member is DEFINED as an own
+// data property at every object node (never assigned: an assignment would run
+// Object.prototype's setter). Folds are compared as JSON text (order-sensitive);
+// prototypes are asserted directly.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.64 — wire-selected prototypes at the fold (rc.1): the item's named planted set, once per value leg, folds with no own __proto__ at any depth, ordinary prototypes, no resync, byte-equal to the unplanted fold and to the fold after a consuming ingest, and batch == incremental", () => {
+  const VALUE_LEGS: Array<[string, JsonValue]> = [["object", { p: 1 }], ["null", null], ["array", [1]], ["primitive", "s"]];
+  const protoOffenders = (v: unknown, path = "$"): string[] => {
+    if (v === null || typeof v !== "object") return [];
+    const out: string[] = [];
+    if (Object.getPrototypeOf(v) !== (Array.isArray(v) ? Array.prototype : Object.prototype)) out.push(`${path} prototype`);
+    if (Object.hasOwn(v, "__proto__")) out.push(`${path}.__proto__`);
+    for (const k of Object.keys(v)) out.push(...protoOffenders((v as Record<string, unknown>)[k], `${path}.${k}`));
+    return out;
+  };
+  /** Every object node below the event root gets an own `__proto__` data member; the event's own members are the carried siblings. */
+  const plant = (v: unknown, value: JsonValue, top: boolean): unknown => {
+    if (Array.isArray(v)) return v.map((x) => plant(x, value, false));
+    if (v === null || typeof v !== "object") return v;
+    const out: Record<string, unknown> = {};
+    for (const k of Object.keys(v)) out[k] = plant((v as Record<string, unknown>)[k], value, false);
+    if (!top) Object.defineProperty(out, "__proto__", { value: structuredClone(value), enumerable: true, writable: true, configurable: true });
+    return out;
+  };
+  const T = "t1", M = "m1", TH = "th1";
+  const USAGE = { inputTokens: 3, outputTokens: 4, byModel: { "model-a": { inputTokens: 3, outputTokens: 4 } } };
+  const CITE = { kind: "char", citedText: "hi", documentIndex: 0, startCharIndex: 0, endCharIndex: 2 };
+  const ASK = { askId: "a1", kind: "text", schema: { type: "object", properties: { x: { type: "string" } } } };
+  const stream = (): Array<Record<string, unknown>> => [
+    { type: "turn.start", seq: 0, threadId: TH, turnId: T },
+    { type: "message.start", seq: 1, id: M, role: "assistant", turnId: T, threadId: TH },
+    { type: "content.block", seq: 2, turnId: T, messageId: M, block: { type: "text", text: "hi", citations: [CITE] } },
+    { type: "tool.start", seq: 3, toolCallId: "c1", name: "echo", turnId: T, messageId: M },
+    { type: "tool.args.assembled", seq: 4, toolCallId: "c1", input: { q: { deep: [{ k: 1 }] } } },
+    { type: "tool.done", seq: 5, toolCallId: "c1", turnId: T, content: [{ type: "text", text: "r" }], structuredContent: { a: [{ b: 1 }] }, outcome: "ok" },
+    { type: "message.end", seq: 6, id: M, usage: USAGE },
+    { type: "state.snapshot", seq: 7, snapshot: { cfg: { a: [{ b: 1 }] } } },
+    { type: "state.delta", seq: 8, patch: { cfg: { a: 2, list: [{ x: 1 }] } } },
+    { type: "state.delta", seq: 9, patch: [{ op: "add", path: "/cfg/b", value: { c: [{ d: 3 }] } }] },
+    { type: "memory.write", seq: 10, scope: "user", key: "k", value: { pref: { tone: ["short"] } } },
+    { type: "turn.done", seq: 11, turnId: T, outcome: { type: "paused", asks: [ASK] }, finishReason: "paused", usage: USAGE },
+    { type: "turn.start", seq: 12, threadId: TH, turnId: "t2" },
+    { type: "turn.error", seq: 13, turnId: "t2", message: "boom", usage: USAGE },
+  ];
+  // a messages.snapshot replaces the fold's messages, so its records are planted in a fold of their own
+  const snapshotStream = (): Array<Record<string, unknown>> => [
+    { type: "turn.start", seq: 0, threadId: TH, turnId: T },
+    { type: "messages.snapshot", seq: 1, messages: [{ id: M, role: "assistant", content: [{ type: "text", text: "hi", citations: [CITE] }, { type: "tool-result", toolCallId: "c1", content: [{ type: "text", text: "r" }], structuredContent: { a: [{ b: 1 }] }, outcome: "ok" }], turnId: T, threadId: TH }], turns: [{ turnId: T, threadId: TH, usage: USAGE }] },
+    { type: "turn.done", seq: 2, turnId: T, outcome: { type: "success" }, finishReason: "stop", usage: USAGE },
+  ];
+  const STREAMS: Array<[string, () => Array<Record<string, unknown>>]> = [["live", stream], ["snapshot", snapshotStream]];
+  const fold = (evs: AgEvent[]) => {
+    const batch = reduce(evs);
+    const acc = new Reducer();
+    for (const e of evs) acc.push(e);
+    expect(JSON.stringify(acc.result())).toBe(JSON.stringify(batch.result));
+    expect(acc.needsResync).toBe(batch.needsResync);
+    return batch;
+  };
+
+  it("the unplanted streams are producer-strict valid and fold without a resync, and every member of the named set reaches a result (the set is a real fold, not a vacuous one)", () => {
+    const texts = STREAMS.map(([, s]) => {
+      const r = fold(s().map((e) => AgEvent.parse(e)));
+      expect(r.needsResync).toBe(false);
+      return JSON.stringify(r.result);
+    });
+    const text = texts.join("\n");
+    for (const needle of ['"citations"', '"byModel"', '"schema"', '"state"', '"memory"', '{"a":[{"b":1}]}', '"tool-result"']) expect(text, needle).toContain(needle);
+    expect(texts[1]).toContain('"citations"'); // the snapshot's own records carry the planted nodes
+  });
+  const firstDifference = (a: string, b: string): string => {
+    let i = 0;
+    while (i < a.length && a[i] === b[i]) i++;
+    return `at ${i}: planted …${a.slice(Math.max(0, i - 140), i + 140)}… | control …${b.slice(Math.max(0, i - 140), i + 140)}…`;
+  };
+
+  for (const [leg, value] of VALUE_LEGS) {
+    it(`(planted-set ${leg}) each planted stream folds with no own __proto__ at any depth and ordinary prototypes, needsResync false, byte-equal to the unplanted fold and to the fold after ingestAgEvents, batch == incremental, and no pushed event is mutated`, () => {
+      for (const [name, s] of STREAMS) {
+        const valid = s().map((e) => AgEvent.parse(e));
+        const planted = valid.map((e) => plant(e, value, true)) as AgEvent[];
+        const before = JSON.stringify(planted);
+        expect((before.match(/"__proto__":/g) ?? []).length, name).toBeGreaterThanOrEqual(10); // non-vacuity: own data at every object node below the roots
+        expect(JSON.stringify(valid), name).not.toContain('"__proto__"');
+        const want = fold(valid);
+        const got = fold(planted);
+        expect(got.needsResync, name).toBe(false);
+        expect(protoOffenders(got.result), name).toEqual([]);
+        const gotText = JSON.stringify(got.result), wantText = JSON.stringify(want.result);
+        expect(gotText === wantText ? "same" : firstDifference(gotText, wantText), name).toBe("same");
+        expect(JSON.stringify(planted), name).toBe(before);
+        const decoded = ingestAgEvents(JSON.parse(before) as JsonValue[]);
+        expect(decoded, name).toHaveLength(planted.length);
+        const decodedText = JSON.stringify(fold(decoded).result);
+        expect(decodedText === wantText ? "same" : firstDifference(decodedText, wantText), `${name} after ingest`).toBe("same");
+      }
+      expect(Object.getOwnPropertyNames(Object.prototype)).not.toContain("p");
+      expect((({}) as Record<string, unknown>)["p"]).toBeUndefined();
+    });
+  }
 });
