@@ -39,6 +39,8 @@ const LEGS: Record<string, Expected> = {
   "credential-pause-usage-report-then-429": { errors: ["429"], close: { paused: true, code: "429" } },
   "credential-step-tool-throw-then-rerun": { errors: ["UNKNOWN_ERROR"], close: { paused: false, code: "UNKNOWN_ERROR" } },
   "interactions-loop-failed-each-iteration": { errors: ["INTERNAL", "INTERNAL"], close: { paused: false, code: "INTERNAL" } },
+  "live-socket-error-after-text": { errors: [], close: { paused: false, code: "Error" } },
+  "live-socket-error-before-output": { errors: [], close: { paused: false, code: "Error" } },
   "lone-429": { errors: ["429"], close: { paused: false, code: "429" } },
   "loop-identical-block": { errors: ["SAFETY", "SAFETY"], close: { paused: false, code: "SAFETY" } },
   "loop-reply-then-relay-block": { errors: ["SAFETY", "SAFETY"], close: { paused: false, code: "SAFETY" }, earlyClose: true },
@@ -51,6 +53,8 @@ const LEGS: Record<string, Expected> = {
   "parallel-workflow-one-block-b-first": { errors: ["SAFETY"], close: { paused: false, code: "NodeReportedError" } },
   // In SSE the relay's closing event repeats the aggregate's error, and is
   // recognised as that repeat: one error in either mode.
+  "prompt-feedback-only-no-usage": { errors: ["SAFETY"], close: { paused: false, code: "SAFETY" } },
+  "prompt-feedback-only-usage": { errors: ["SAFETY"], close: { paused: false, code: "SAFETY" } },
   "relay-block-on-text-chunk": { errors: ["SAFETY"], close: { paused: false, code: "SAFETY" } },
   "relay-text-then-block": { errors: ["SAFETY"], close: { paused: false, code: "SAFETY" } },
   "relay-then-reply-loop-block-no-text-no-usage": { errors: ["SAFETY", "SAFETY"], close: { paused: false, code: "SAFETY" } },
@@ -111,12 +115,12 @@ function fold(file: string, leg: string, natives: Native[], host: boolean, hostE
   return { file, leg, host, natives, hostError, perNative, flushed, all: [...perNative.flat(), ...tail, ...flushed] };
 }
 
-const errorRuns: Run[] = readdirSync(join(FIXTURES, "adk-error"))
+const allErrorFixtureRuns: Run[] = readdirSync(join(FIXTURES, "adk-error"))
   .filter((f) => f.endsWith(".native.json"))
   .sort()
   .flatMap((f) => {
     const path = join(FIXTURES, "adk-error", f);
-    const leg = f.replace(/\.(none|sse|progressive)\.native\.json$/, "");
+    const leg = f.replace(/\.(none|sse|progressive|live)\.native\.json$/, "");
     const natives = readNatives(path);
     const thrown = thrownOf(path);
     return [false, true].map((host) => fold(f, leg, natives, host, thrown));
@@ -145,6 +149,13 @@ const inBand = (e: Native): HostError | undefined => {
   const message = e["errorMessage"];
   return typeof code === "string" && typeof message === "string" ? { code, message } : undefined;
 };
+/** Whether a run meets an invocation error: an in-band one in its natives, or
+ *  a thrown one its sidecar feeds as the host-terminal event. */
+const meetsInvocationError = (r: Run): boolean => r.hostError !== undefined || r.natives.some((e) => inBand(e) !== undefined);
+const errorRuns: Run[] = allErrorFixtureRuns.filter(meetsInvocationError);
+/** ADK's SSE prompt-feedback runs: in that mode ADK drops the prompt block, so
+ *  the run reaches the normalizer as a usage-only final or as nothing. */
+const noErrorRuns: Run[] = allErrorFixtureRuns.filter((r) => !meetsInvocationError(r));
 /** A turn.done's outcome type and paused asks, read without narrowing the event union. */
 const outcomeType = (e: AgEvent): unknown => {
   const o: unknown = Reflect.get(e, "outcome");
@@ -165,7 +176,7 @@ const numberAt = (u: JsonValue | undefined, k: string): number => {
 };
 
 /**
- * Spec §10 <N5>'s usage: the field-wise sum of the invocation's non-partial
+ * Spec §10 item 60's usage: the field-wise sum of the invocation's non-partial
  * usage reports, with an aggregate that repeats an in-band error (a
  * partial:false event carrying the errorCode and errorMessage of the previous
  * event of its source, which did not carry partial:false) counted once with
@@ -260,10 +271,18 @@ function expectCleanFold(r: Run): void {
   }
 }
 
-describe("createAdkNormalizer — ADK in-band invocation errors over engine-built runs (§8.0 item 35, §10 <N5>)", () => {
+describe("createAdkNormalizer — ADK in-band invocation errors over engine-built runs (§8.0 item 35, §10 item 60)", () => {
   it("every expected leg has runs in both modes, and every run has an expected leg", () => {
     expect(new Set(errorRuns.map((r) => r.leg))).toEqual(new Set(Object.keys(LEGS)));
     expect(errorRuns.length).toBeGreaterThanOrEqual(2 * Object.keys(LEGS).length);
+  });
+
+  it("ADK's SSE prompt-feedback runs, in which ADK drops the prompt block, meet no invocation error: no error event and no turn.error, each opened turn has exactly one terminal, and the fold is clean", () => {
+    expect(new Set(noErrorRuns.map((r) => r.file))).toEqual(new Set(["prompt-feedback-only-no-usage.sse.native.json", "prompt-feedback-only-usage.sse.native.json"]));
+    for (const r of noErrorRuns) {
+      expect(r.all.filter((e) => e.type === "error" || e.type === "turn.error"), label(r)).toEqual([]);
+      expectCleanFold(r);
+    }
   });
 
   it("every run folds without a resync, every opened turn has exactly one terminal and nothing after it, and no turn closes as success but, without the host-completion event, the one an answer closes before the first in-band error", () => {
