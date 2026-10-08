@@ -106,6 +106,7 @@ import {
   type Normalizer,
   StreamAssembler,
   withAtomicPush,
+  toJsonValueSafeWithIssues,
   type ToolOutcome,
   type TurnDoneFields,
 } from "@silverprotocol/core";
@@ -1374,6 +1375,19 @@ function isJsonObject(v: unknown): v is { readonly [k: string]: JsonValue } {
  * Neither home firing (the common case — most tool results carry no
  * structuredContent at all) is NOT a drop: it correctly yields `undefined`.
  */
+/**
+ * Parse a JSON string the vendor hands over (tool arguments, a tool's string
+ * output) into a JsonValue nested no deeper than core's JSON_SAFE_MAX_DEPTH,
+ * the bound every carried native value already has. A node at or below that
+ * depth becomes core's max-depth mark, so the emitted event stays inside the depth a
+ * consumer folds (AG_EVENT_MAX_DEPTH). `capped` says whether any node was cut.
+ * Throws on a string that is not JSON, as `JSON.parse` does.
+ */
+function parseVendorJson(raw: string): { value: JsonValue; capped: boolean } {
+  const { value, issues } = toJsonValueSafeWithIssues(JSON.parse(raw));
+  return { value: JsonValue.parse(value), capped: issues.some((i) => i.kind === "max-depth") };
+}
+
 function extractStructuredContent(
   wrapperOutput: JsonValue | undefined,
   customData: JsonValue | undefined,
@@ -1386,7 +1400,9 @@ function extractStructuredContent(
   }
   if (typeof wrapperOutput === "string") {
     try {
-      const parsed: unknown = JSON.parse(wrapperOutput);
+      // The output string itself rides tool.done content whole, so a capped
+      // parse loses nothing.
+      const parsed: JsonValue = parseVendorJson(wrapperOutput).value;
       if (isJsonObject(parsed) && isJsonObject(parsed.structuredContent)) {
         return JsonValue.parse(parsed.structuredContent);
       }
@@ -2068,7 +2084,10 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         const callIdDone = instanceCallIdByItemId.get(ev.item_id) ?? ev.item_id;
         let input: JsonValue;
         try {
-          input = JsonValue.parse(JSON.parse(candidate));
+          const parsed = parseVendorJson(candidate);
+          input = parsed.value;
+          // A capped value keeps the arguments, verbatim, on the ext carry.
+          if (parsed.capped) a.emitExt("openai", "unparsed", { itemId: ev.item_id, arguments: candidate });
         } catch {
           input = {};
           a.emitExt("openai", "unparsed", { itemId: ev.item_id, arguments: rawArguments ?? null });
@@ -2781,7 +2800,10 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
   function parseJsonArguments(itemId: string | undefined, raw: string | undefined): JsonValue {
     if (raw === undefined || raw.length === 0) return {};
     try {
-      return JsonValue.parse(JSON.parse(raw));
+      const parsed = parseVendorJson(raw);
+      // A capped value keeps the arguments, verbatim, on the ext carry.
+      if (parsed.capped) a.emitExt("openai", "unparsed", { itemId: itemId ?? null, arguments: raw });
+      return parsed.value;
     } catch {
       a.emitExt("openai", "unparsed", { itemId: itemId ?? null, arguments: raw });
       return {};

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { AgEvent, AgProviderMeta, AgReduceResult, JsonValue, Reducer, StreamAssembler } from "@silverprotocol/core";
+import { AgEvent, AgProviderMeta, AgReduceResult, JSON_SAFE_MAX_DEPTH, JSON_SAFE_MAX_DEPTH_MARK, JsonValue, Reducer, StreamAssembler, ingestAgEvent } from "@silverprotocol/core";
 import { createOpenaiNormalizer, mapFinishReason } from "./index.js";
 
 describe("mapFinishReason", () => {
@@ -6304,5 +6304,117 @@ describe("createOpenaiNormalizer — O1 honest flush (fold/flush option 1)", () 
     const outcomes = evs.filter((e) => e.type === "turn.done").map((e) => Reflect.get(e, "outcome"));
     expect(outcomes.some((o) => typeof o === "object" && o !== null && Reflect.get(o, "type") === "success")).toBe(false);
     expect(fold(evs).needsResync).toBe(false);
+  });
+});
+
+describe("createOpenaiNormalizer — a vendor JSON string's nesting depth", () => {
+  // The deepest node core's ingest takes an event with: JSON_SAFE_MAX_DEPTH
+  // plus the 16 levels an event's own members may add above a carried value.
+  // Core keeps that bound internal on this release line, so it is spelled here.
+  const AG_EVENT_MAX_DEPTH = JSON_SAFE_MAX_DEPTH + 16;
+  // A JSON array nested `n` deep: the root array is at depth 0, the innermost
+  // at depth n - 1. Core's JSON_SAFE_MAX_DEPTH (1000) admits n = 1000 whole.
+  const nested = (n: number): string => "[".repeat(n) + "]".repeat(n);
+  const depthOf = (v: unknown): number => {
+    let max = 0;
+    const stack: Array<[unknown, number]> = [[v, 0]];
+    while (stack.length > 0) {
+      const [x, d] = stack.pop() as [unknown, number];
+      if (x === null || typeof x !== "object") continue;
+      max = Math.max(max, d);
+      for (const c of Object.values(x)) stack.push([c, d + 1]);
+    }
+    return max;
+  };
+  const innermost = (v: unknown): unknown => {
+    let x = v;
+    while (Array.isArray(x) && x.length > 0) x = x[0];
+    return x;
+  };
+  function check(evs: AgEvent[]): Reducer {
+    const r = new Reducer();
+    for (const e of evs) {
+      expect(depthOf(e)).toBeLessThanOrEqual(AG_EVENT_MAX_DEPTH);
+      // The reference consumer takes every event as itself, never as an ignored stub.
+      expect(ingestAgEvent(JsonValue.parse(e))?.type).toBe(e.type);
+      r.push(e);
+    }
+    expect(r.needsResync).toBe(false);
+    return r;
+  }
+  const U = { input_tokens: 10, output_tokens: 5, total_tokens: 15 };
+  const functionRound = (args: string): JsonValue[] => [
+    rawModel({ type: "response.created", response: { id: "resp_jd" } }),
+    rawModel({ type: "response.output_item.added", item: { id: "fc_jd", type: "function_call", call_id: "call_jd", name: "echo", arguments: "" } }),
+    rawModel({ type: "response.function_call_arguments.done", item_id: "fc_jd", arguments: args }),
+    rawModel({ type: "response.completed", response: { id: "resp_jd", status: "completed", usage: U } }),
+  ];
+  const run = (s: JsonValue[]): AgEvent[] => {
+    const n = createOpenaiNormalizer({ invokeId: "inv1" });
+    return s.flatMap((e) => n.push(e)).concat(n.flush());
+  };
+  const unparsed = (evs: AgEvent[]) => evs.filter((e) => e.type === "ext.openai.unparsed");
+
+  it.each([
+    ["at the bound", JSON_SAFE_MAX_DEPTH, false],
+    ["one past the bound", JSON_SAFE_MAX_DEPTH + 1, true],
+    ["past the bound", JSON_SAFE_MAX_DEPTH + 100, true],
+  ] as const)("function-call arguments nested %s reach tool.args.assembled inside the event depth bound", (_label, n, capped) => {
+    const raw = nested(n);
+    const evs = run(functionRound(raw));
+    check(evs);
+    const input = Reflect.get(evs.find((e) => e.type === "tool.args.assembled") ?? {}, "input");
+    // depthOf counts containers; the mark that replaces a cut node is a string at JSON_SAFE_MAX_DEPTH.
+    expect(depthOf(input)).toBe(capped ? JSON_SAFE_MAX_DEPTH - 1 : n - 1);
+    expect(innermost(input)).toEqual(capped ? JSON_SAFE_MAX_DEPTH_MARK : []);
+    // A cut value keeps the arguments verbatim on the ext carry; a whole one adds nothing.
+    expect(unparsed(evs)).toMatchObject(capped ? [{ itemId: "fc_jd", arguments: raw }] : []);
+  });
+
+  it.each([
+    ["at the bound", JSON_SAFE_MAX_DEPTH, false],
+    ["one past the bound", JSON_SAFE_MAX_DEPTH + 1, true],
+    ["past the bound", JSON_SAFE_MAX_DEPTH + 100, true],
+  ] as const)("a hosted MCP call's arguments nested %s reach tool.args.assembled inside the event depth bound", (_label, n, capped) => {
+    const raw = nested(n);
+    const MCP = { type: "mcp_call", id: "mcp_jd", server_label: "deepwiki", name: "ask_question", arguments: raw, output: "ok", error: null };
+    const { output, ...providerData } = MCP;
+    const evs = run([
+      rawModel({ type: "response.created", response: { id: "resp_jh" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_jh", status: "completed", output: [MCP], usage: U } }),
+      // On this release line the facet reads a hosted call's `arguments` from the item itself.
+      runItem("tool_called", { type: "tool_call_item", rawItem: { type: "hosted_tool_call", id: "mcp_jd", name: "mcp_call", status: "completed", arguments: raw, output, providerData } }),
+    ]);
+    check(evs);
+    const input = Reflect.get(evs.find((e) => e.type === "tool.args.assembled") ?? {}, "input");
+    // depthOf counts containers; the mark that replaces a cut node is a string at JSON_SAFE_MAX_DEPTH.
+    expect(depthOf(input)).toBe(capped ? JSON_SAFE_MAX_DEPTH - 1 : n - 1);
+    expect(innermost(input)).toEqual(capped ? JSON_SAFE_MAX_DEPTH_MARK : []);
+    expect(unparsed(evs)).toMatchObject(capped ? [{ itemId: "mcp_jd", arguments: raw }] : []);
+  });
+
+  it.each([
+    ["at the bound", JSON_SAFE_MAX_DEPTH, false],
+    ["one past the bound", JSON_SAFE_MAX_DEPTH + 1, true],
+    ["past the bound", JSON_SAFE_MAX_DEPTH + 100, true],
+  ] as const)("a tool's string output whose structuredContent is nested %s reaches tool.done inside the event depth bound", (_label, n, capped) => {
+    // The output object is one level above structuredContent, so its array
+    // starts at depth 1 of the parsed value.
+    const out = `{"structuredContent":{"v":${nested(n - 2)}}}`;
+    const evs = run([
+      ...functionRound("{}"),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "function_call_result", name: "echo", callId: "call_jd", status: "completed", output: out },
+        output: out,
+      }),
+    ]);
+    check(evs);
+    const done = evs.find((e) => e.type === "tool.done");
+    const sc = Reflect.get(done ?? {}, "structuredContent");
+    expect(depthOf(sc)).toBe(capped ? JSON_SAFE_MAX_DEPTH - 2 : n - 2);
+    expect(innermost(Reflect.get(sc ?? {}, "v"))).toEqual(capped ? JSON_SAFE_MAX_DEPTH_MARK : []);
+    // The output string rides the tool result whole either way.
+    expect(JSON.stringify(Reflect.get(done ?? {}, "content"))).toContain(JSON.stringify(out).slice(1, 40));
   });
 });
