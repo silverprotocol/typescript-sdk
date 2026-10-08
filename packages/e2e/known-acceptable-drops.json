@@ -2376,6 +2376,22 @@
     ]
   },
   {
+    "path": "[*].modelUsage.claude-haiku-5-5.contextWindow",
+    "reason": "claude: static model-capability metadata on the per-model modelUsage entry (mirrors the claude-sonnet-5-5 / claude-opus-5-5 entries for the same key): limits, not usage, with no AgUsage home. First observed live 2026-10-08 on the echo-haiku55 seed (200000 / 128000).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].modelUsage.claude-haiku-5-5.maxOutputTokens",
+    "reason": "claude: static model-capability metadata on the per-model modelUsage entry (mirrors the claude-sonnet-5-5 / claude-opus-5-5 entries for the same key): limits, not usage, with no AgUsage home. First observed live 2026-10-08 on the echo-haiku55 seed (200000 / 128000).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
     "path": "[*].modelUsage.claude-opus-5.contextWindow",
     "reason": "model capability constant (context window size) for claude-opus-5 \u2014 same field/reasoning as the existing modelUsage.claude-sonnet-4-6.contextWindow entry (mapModelUsage never reads it); not an actual usage measurement, no AgUsage home. Model literal pre-registered on the 0.3.258 bump (2026-09-02) ahead of the cohort's live capture.",
     "reviewed": "any",

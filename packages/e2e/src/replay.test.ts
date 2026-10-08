@@ -79,6 +79,11 @@ const CLAUDE_SEEDS = [
   // as echo-sonnet5; system/init permissionMode "default", as at 0.3.280
   // (kind:"capture", see corpus/echo-sonnet55/claude.provenance.json).
   "echo-sonnet55",
+  // 2026-10-08: FIRST live capture on claude-haiku-5-5 at
+  // @anthropic-ai/claude-agent-sdk 0.3.292 (CLI 2.1.292): the same event shape
+  // as echo-sonnet55; its modelUsage holds only the one model
+  // (kind:"capture", see corpus/echo-haiku55/claude.provenance.json).
+  "echo-haiku55",
   // 2026-07-25 (workspace#2): the *_update / re-render carry-fidelity sequence
   // — render_card then update_card against ONE ui resourceUri (kind:"capture",
   // claude-sonnet-5 @0.3.217 — see corpus/app-update-sonnet5/claude.provenance.json).
