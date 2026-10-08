@@ -149,9 +149,14 @@ export class Reducer {
   // not know yet. Each is a turn record result() never shows; it moves into
   // #turns on the turn's thread once a turn.start, subagent.start, message.start
   // or messages.snapshot makes that thread known (#adoptHeld). `landings` counts
-  // the events held on it, for the implementation bound below.
-  #held: Map<string, { record: AgTurnRecord; landings: number }> = new Map();
+  // the record events held on it other than display.required, `dr` the
+  // display.required ones, each against its own implementation bound below: a
+  // display.required is never discarded, so it survives a turns-carrying
+  // snapshot, and counting it apart keeps it from filling the bound the other
+  // five landings recover through that snapshot.
+  #held: Map<string, { record: AgTurnRecord; landings: number; dr: number }> = new Map();
   #heldLandings = 0;
+  #heldDrLandings = 0;
   // draft.5 §5.0 INV-MSG (the paused refresh): closed turns a turn.start has
   // named since their last terminal folded. Only such a turn, closed paused,
   // takes a turn.done{paused}; every terminal that folds removes its id. A
@@ -980,7 +985,7 @@ export class Reducer {
 
       case "display.required": {
         // MUST NOT drop (ToS). Push {provider, html} onto turn's displayRequired[].
-        const turn = this.#landingRecord(ev.turnId);
+        const turn = this.#landingRecord(ev.turnId, true);
         if (turn === undefined) break;
         if (turn.displayRequired === undefined) {
           turn.displayRequired = [];
@@ -1193,9 +1198,21 @@ export class Reducer {
         // CONDITIONALLY replace #turns (only if turns? present in event).
         if (ev.turns !== undefined) {
           this.#turns = new Map(structuredClone(ev.turns).map((t) => [t.turnId, t]));
-          // The snapshot's turns are authoritative: a landing held before it goes too.
-          this.#held = new Map();
+          // The snapshot's turns are authoritative for a landing held before it,
+          // except a display.required: it MUST NOT be dropped by a reducer and is
+          // held, never discarded, until its turn's thread is known (§5, §13.3).
+          // Only those entries stay held; the other landings go.
+          const kept: Map<string, { record: AgTurnRecord; landings: number; dr: number }> = new Map();
+          let keptLandings = 0;
+          for (const [turnId, held] of this.#held) {
+            const entries = held.record.displayRequired;
+            if (entries === undefined || entries.length === 0) continue;
+            kept.set(turnId, { record: { turnId, threadId: "", displayRequired: entries }, landings: 0, dr: entries.length });
+            keptLandings += entries.length;
+          }
+          this.#held = kept;
           this.#heldLandings = 0;
+          this.#heldDrLandings = keptLandings;
         }
 
         // CONDITIONALLY replace #artifacts (only if artifacts? present in event).
@@ -1257,9 +1274,31 @@ export class Reducer {
         // draft.5 INV-OWNER: a held record whose thread this snapshot taught is adopted onto
         // it. #openedTurns was seeded above from records with a known thread
         // only, so an adopted record is not an adoption target by this snapshot.
+        // A held record for a turn the snapshot itself carries joins that record
+        // instead of replacing it: only display.required entries survive a
+        // turns-carrying snapshot. Each held entry matches at most one entry the
+        // snapshot's record already carried (the same landing, folded by the
+        // snapshot's producer); an unmatched one is appended, so repeated entries
+        // keep their count.
         for (const turnId of [...this.#held.keys()]) {
           const threadId = this.#seenOpened.get(turnId);
-          if (threadId !== undefined) this.#adoptHeld(turnId, threadId);
+          if (threadId === undefined) continue;
+          const present = this.#turns.get(turnId);
+          if (present === undefined) {
+            this.#adoptHeld(turnId, threadId);
+            continue;
+          }
+          const held = this.#held.get(turnId)!;
+          this.#held.delete(turnId);
+          this.#heldLandings -= held.landings;
+          this.#heldDrLandings -= held.dr;
+          const list = (present.displayRequired ??= []);
+          const unmatched = [...list];
+          for (const entry of held.record.displayRequired ?? []) {
+            const i = unmatched.findIndex((e) => e.provider === entry.provider && e.html === entry.html);
+            if (i >= 0) unmatched.splice(i, 1);
+            else list.push(entry);
+          }
         }
 
         // Un-park.
@@ -1499,7 +1538,7 @@ export class Reducer {
    * event lands on the sole open turn's record, else its owner is unresolvable
    * and the fold parks.
    */
-  #landingRecord(turnId: string | undefined): AgTurnRecord | undefined {
+  #landingRecord(turnId: string | undefined, displayRequired = false): AgTurnRecord | undefined {
     if (turnId === undefined) {
       const sole = this.#soleOpenRecord();
       if (sole === undefined) this.#resync = true;
@@ -1510,17 +1549,26 @@ export class Reducer {
     const threadId = this.#seenOpened.get(turnId);
     if (threadId !== undefined) return this.#seenTurnRecord(turnId);
     let held = this.#held.get(turnId);
-    if ((held === undefined && this.#held.size >= HELD_TURNS_CAP) || this.#heldLandings >= HELD_LANDINGS_CAP) {
+    // The bound counts display.required landings and the other five apart (#held).
+    const newTurn = held === undefined || (displayRequired ? held.dr === 0 : held.landings === 0);
+    const heldTurns = newTurn ? [...this.#held.values()].filter((h) => (displayRequired ? h.dr : h.landings) > 0).length : 0;
+    const heldLandings = displayRequired ? this.#heldDrLandings : this.#heldLandings;
+    if ((newTurn && heldTurns >= HELD_TURNS_CAP) || heldLandings >= HELD_LANDINGS_CAP) {
       this.#resync = true; // degrade loudly past the bound
       return undefined;
     }
     if (held === undefined) {
       // threadId is set on adoption; a held record is never emitted.
-      held = { record: { turnId, threadId: "" }, landings: 0 };
+      held = { record: { turnId, threadId: "" }, landings: 0, dr: 0 };
       this.#held.set(turnId, held);
     }
-    held.landings++;
-    this.#heldLandings++;
+    if (displayRequired) {
+      held.dr++;
+      this.#heldDrLandings++;
+    } else {
+      held.landings++;
+      this.#heldLandings++;
+    }
     return held.record;
   }
 
@@ -1534,6 +1582,7 @@ export class Reducer {
     if (held === undefined) return undefined;
     this.#held.delete(turnId);
     this.#heldLandings -= held.landings;
+    this.#heldDrLandings -= held.dr;
     const { turnId: _turnId, threadId: _placeholder, ...landings } = held.record;
     const record: AgTurnRecord = {
       turnId,

@@ -4327,7 +4327,7 @@ describe("draft.5 §5.0 INV-OWNER: a record event for a turn whose thread is not
     expect(recs(r, "X")).toEqual([expect.objectContaining({ threadId: "Tt" })]);
   });
 
-  it("a turns-carrying snapshot drops held landings; a turns-less one adopts those whose thread its messages teach", () => {
+  it("a turns-carrying snapshot drops held landings other than a display.required; a turns-less one adopts those whose thread its messages teach", () => {
     const dropped = run([
       rec("source", 0, "X"),
       ev({ type: "messages.snapshot", seq: 1, messages: [{ id: "m1", role: "assistant", content: [], turnId: "X", threadId: "T" }], turns: [] }),
@@ -4339,6 +4339,120 @@ describe("draft.5 §5.0 INV-OWNER: a record event for a turn whose thread is not
       ev({ type: "messages.snapshot", seq: 1, messages: [{ id: "m1", role: "assistant", content: [], turnId: "X", threadId: "T" }] }),
     ]);
     expect(recs(adopted, "X")).toEqual([expect.objectContaining({ threadId: "T", sources: [expect.objectContaining({ sourceId: "s1" })] })]);
+  });
+
+  describe("a held display.required is never discarded by a turns-carrying snapshot (§5 display.required: MUST NOT be dropped; held until the turn's thread is known)", () => {
+    const dr = (seq: number, turnId: string, html: string): AgEvent => ev({ type: "display.required", seq, turnId, provider: "google", html });
+    const snap = (seq: number, turns: Array<Record<string, unknown>>, messages: Array<Record<string, unknown>> = []): AgEvent =>
+      ev({ type: "messages.snapshot", seq, messages, turns });
+
+    it("a snapshot that teaches the turn's thread lands the held entry on the snapshot's own record, its fields intact", () => {
+      const r = run([dr(0, "X", "<div>a</div>"), snap(1, [{ turnId: "X", threadId: "T", outcome: { type: "success" } }])]);
+      expect(r.needsResync).toBe(false);
+      expect(recs(r, "X")).toEqual([
+        expect.objectContaining({ threadId: "T", outcome: { type: "success" }, displayRequired: [{ provider: "google", html: "<div>a</div>" }] }),
+      ]);
+    });
+
+    it("a turns-carrying snapshot that names the turn only in a message adopts the held entry onto that message's thread", () => {
+      const r = run([dr(0, "X", "<div>a</div>"), snap(1, [], [{ id: "m1", role: "assistant", content: [], turnId: "X", threadId: "T" }])]);
+      expect(recs(r, "X")).toEqual([expect.objectContaining({ threadId: "T", displayRequired: [{ provider: "google", html: "<div>a</div>" }] })]);
+    });
+
+    it("a snapshot that does not name the turn keeps the entry held; it lands once the thread is known", () => {
+      const r = run([dr(0, "X", "<div>a</div>"), snap(1, []), ev({ type: "turn.start", seq: 2, turnId: "X", threadId: "T" })]);
+      expect(recs(r, "X")).toEqual([expect.objectContaining({ threadId: "T", displayRequired: [{ provider: "google", html: "<div>a</div>" }] })]);
+    });
+
+    it("an entry the snapshot's record already carries is not duplicated, and a different held entry is appended", () => {
+      const r = run([
+        dr(0, "X", "<div>a</div>"),
+        dr(1, "X", "<div>b</div>"),
+        snap(2, [{ turnId: "X", threadId: "T", displayRequired: [{ provider: "google", html: "<div>a</div>" }] }]),
+      ]);
+      expect(recs(r, "X")[0]!.displayRequired).toEqual([
+        { provider: "google", html: "<div>a</div>" },
+        { provider: "google", html: "<div>b</div>" },
+      ]);
+    });
+
+    it("two identical held entries keep their count; one the snapshot already carries matches only one of them", () => {
+      const r = run([
+        dr(0, "X", "<div>a</div>"),
+        dr(1, "X", "<div>a</div>"),
+        snap(2, [{ turnId: "X", threadId: "T", displayRequired: [{ provider: "google", html: "<div>a</div>" }] }]),
+      ]);
+      expect(recs(r, "X")[0]!.displayRequired).toEqual([
+        { provider: "google", html: "<div>a</div>" },
+        { provider: "google", html: "<div>a</div>" },
+      ]);
+      const live = run([ev({ type: "turn.start", seq: 0, turnId: "X", threadId: "T" }), dr(1, "X", "<div>a</div>"), dr(2, "X", "<div>a</div>")]);
+      expect(recs(live, "X")[0]!.displayRequired).toHaveLength(2); // the live fold keeps both too
+    });
+
+    it("the other five held landings still follow the snapshot: dropped by a turns-carrying one (control)", () => {
+      const others: Kind[] = ["source", "handoff", "prompt.blocked", "guardrail.result", "agent.capabilities"];
+      for (const kind of others) {
+        const r = run([rec(kind, 0, "X"), dr(1, "X", "<div>a</div>"), snap(2, [{ turnId: "X", threadId: "T" }])]);
+        const [x] = recs(r, "X");
+        expect(landed(kind, x), kind).toBe(false);
+        expect(x?.displayRequired, kind).toEqual([{ provider: "google", html: "<div>a</div>" }]);
+        // ...and when the snapshot does not name the turn, only the display.required entry stays held for it.
+        const later = run([rec(kind, 0, "X"), dr(1, "X", "<div>a</div>"), snap(2, []), ev({ type: "turn.start", seq: 3, turnId: "X", threadId: "T" })]);
+        const [y] = recs(later, "X");
+        expect(landed(kind, y), `${kind} (snapshot without the turn)`).toBe(false);
+        expect(y?.displayRequired, kind).toEqual([{ provider: "google", html: "<div>a</div>" }]);
+      }
+    });
+
+    it("the bound counts held display.required entries apart: orphans at its cap park the next one, yet a snapshot still frees the other landings", () => {
+      // 64 turns whose threads never become known, each holding one display.required entry.
+      const orphans = Array.from({ length: 64 }, (_, i) => dr(i, `o${i}`, `<div>${i}</div>`));
+      const full = run([...orphans, dr(64, "late1", "<div>late1</div>")]);
+      expect(full.needsResync).toBe(true); // the 65th held display.required turn is past the bound
+      const r = run([
+        ...orphans,
+        dr(64, "late1", "<div>late1</div>"),
+        snap(65, [{ turnId: "A", threadId: "S" }]),
+        rec("source", 66, "late3"),
+      ]);
+      expect(r.needsResync).toBe(false); // the snapshot un-parked, and the orphans do not fill the other landings' bound
+      const after = run([
+        ...orphans,
+        snap(64, [{ turnId: "A", threadId: "S" }]),
+        rec("source", 65, "late3"),
+        dr(66, "late2", "<div>late2</div>"),
+      ]);
+      expect(after.needsResync).toBe(true); // still past the display.required bound: the orphans stay held, never discarded
+      const again = run([
+        ...orphans,
+        snap(64, [{ turnId: "A", threadId: "S" }]),
+        dr(65, "late2", "<div>late2</div>"),
+        snap(66, [{ turnId: "A", threadId: "S" }]),
+        rec("source", 67, "late4"),
+      ]);
+      expect(again.needsResync).toBe(false);
+      // after the snapshot the other landings have their whole bound: 1024 held on one turn fold without a park
+      const others = Array.from({ length: 1024 }, (_, i) => rec("source", 65 + i, "one"));
+      expect(run([...orphans, snap(64, [{ turnId: "A", threadId: "S" }]), ...others]).needsResync).toBe(false);
+      // the orphans land once their threads are known
+      const known = run([...orphans, snap(64, [{ turnId: "o0", threadId: "T" }])]);
+      expect(recs(known, "o0")[0]!.displayRequired).toEqual([{ provider: "google", html: "<div>0</div>" }]);
+    });
+
+    it("held display.required orphans at their cap do not block another kind's landing, before any snapshot", () => {
+      const orphans = Array.from({ length: 64 }, (_, i) => dr(i, `o${i}`, `<div>${i}</div>`));
+      const r = run([...orphans, rec("source", 64, "late3"), ev({ type: "turn.start", seq: 65, turnId: "late3", threadId: "T" })]);
+      expect(r.needsResync).toBe(false);
+      expect(recs(r, "late3")[0]!.sources).toHaveLength(1);
+    });
+
+    it("batch == incremental, and the fold result carries no held record", () => {
+      const evs = [dr(0, "X", "<div>a</div>"), dr(1, "Y", "<div>y</div>"), snap(2, [{ turnId: "X", threadId: "T" }])];
+      const batch = reduce(evs).result;
+      expect(run(evs).result()).toEqual(batch);
+      expect(batch.turns.map((t) => t.turnId)).toEqual(["X"]);
+    });
   });
 
   it("implementation bound (not normative): past 64 held turns, or 1024 held landings, the fold parks instead of holding", () => {
