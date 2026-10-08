@@ -113,13 +113,13 @@ describe("an event nested past the event bound", () => {
     expect(rejects).toEqual([]);
   });
 
-  it("the own-property copy every reader runs reaches any depth: a value 5000 deep copies without throwing, equal and less the member", () => {
-    const deep = JSON.parse('{"k":'.repeat(4999) + '{"__proto__":{"x":1},"s":1}' + "}".repeat(4999)) as JsonValue;
+  it("the own-property copy every reader runs reaches any depth: a value 100000 deep copies without throwing, equal and less the member", () => {
+    const deep = JSON.parse('{"k":'.repeat(99999) + '{"__proto__":{"x":1},"s":1}' + "}".repeat(99999)) as JsonValue;
     let copy: JsonValue = null;
     expect(() => {
       copy = copyJson(deep);
     }).not.toThrow();
-    expect(depthOf(copy)).toBe(5000);
+    expect(depthOf(copy)).toBe(100000);
     let x: unknown = copy;
     while (x !== null && typeof x === "object" && Object.hasOwn(x, "k")) x = (x as Record<string, unknown>)["k"];
     expect(Object.hasOwn(x as object, "__proto__")).toBe(false);
@@ -164,6 +164,18 @@ describe("a state or memory value composed past the bound by successive patches"
     const r = foldOf([{ type: "state.snapshot", seq: 0, snapshot: {} }, step(1, "/x"), step(2, at)]);
     expect(r.needsResync).toBe(true);
     expect(depthOf(r.result().state)).toBe(901);
+  });
+
+  it("a memory.write patch that leaves the value at the stored bound applies; one level more parks", () => {
+    const pre = [{ type: "memory.write", seq: 0, scope: "user", key: "k", value: nest(900) }];
+    const add = (n: number) => ({ type: "memory.write", seq: 1, scope: "user", key: "k", patch: [{ op: "add", path: "/k".repeat(200) + "/y", value: nest(n) }] });
+    const at = foldOf([...pre, add(AG_EVENT_MAX_DEPTH - 1 - 201)]);
+    expect(at.needsResync).toBe(false);
+    expect(depthOf(at.result().memory?.[0]?.value)).toBe(AG_EVENT_MAX_DEPTH - 1);
+    const before = JSON.stringify(foldOf(pre).result());
+    const over = foldOf([...pre, add(AG_EVENT_MAX_DEPTH - 201)]);
+    expect(over.needsResync).toBe(true);
+    expect(JSON.stringify(over.result())).toBe(before);
   });
 
   it("a memory.write patch that would nest the record's value past the bound parks and keeps the record", () => {
