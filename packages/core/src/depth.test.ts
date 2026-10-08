@@ -4,6 +4,8 @@ import { ingestAgEvent, type AgIngestReject } from "./ingest.js";
 import { AG_EVENT_DEPTH_ALLOWANCE, AG_EVENT_MAX_DEPTH, JSON_SAFE_MAX_DEPTH, toJsonValueSafe } from "./wire.js";
 import type { AgEvent, JsonValue } from "./agjson.js";
 import { copyJson } from "./copy-json.js";
+import { readStoredAgMemoryRecords, readStoredAgMessage, readStoredAgMessages } from "./record.js";
+import { toPersistable } from "./persist.js";
 
 /** A value whose deepest node sits `n` levels below its own root (n = 0: a primitive). */
 const nest = (n: number): JsonValue => {
@@ -171,4 +173,85 @@ describe("a state or memory value composed past the bound by successive patches"
     expect(r.needsResync).toBe(true);
     expect(JSON.stringify(r.result())).toBe(before);
   });
+});
+
+describe("a stored record reads back whatever the fold took", () => {
+  /** A stored message whose one data block's `data` puts its deepest node at record depth `d`. */
+  const message = (d: number) => ({ id: "M", role: "assistant", turnId: "T", threadId: "R", content: [{ type: "data", name: "d", data: nest(d - 3) }] });
+  const memory = (d: number) => ({ scope: "user", key: "k", value: nest(d - 1) });
+
+  for (const d of [990, AG_EVENT_MAX_DEPTH - 1, AG_EVENT_MAX_DEPTH, AG_EVENT_MAX_DEPTH + AG_EVENT_DEPTH_ALLOWANCE]) {
+    it(`a message and a memory record ${d} deep read back whole, with no report`, () => {
+      const m = message(d);
+      expect(depthOf(m)).toBe(d);
+      const read = readStoredAgMessage(m);
+      expect(read.reports).toEqual([]);
+      expect(read.value).toEqual(m);
+      const mem = memory(d);
+      expect(depthOf(mem)).toBe(d);
+      const memRead = readStoredAgMemoryRecords([mem]);
+      expect(memRead.reports).toEqual([]);
+      expect(memRead.value).toEqual([mem]);
+    });
+  }
+
+  for (const d of [AG_EVENT_MAX_DEPTH + AG_EVENT_DEPTH_ALLOWANCE + 1, 5000]) {
+    it(`a message and a memory record ${d} deep are reported, without throwing`, () => {
+      let read: ReturnType<typeof readStoredAgMessage> | undefined;
+      expect(() => {
+        read = readStoredAgMessage(message(d));
+      }).not.toThrow();
+      expect(read!.value).toBeUndefined();
+      expect(read!.reports.map((r) => r.path)).toEqual([[]]);
+      let memRead: ReturnType<typeof readStoredAgMemoryRecords> | undefined;
+      expect(() => {
+        memRead = readStoredAgMemoryRecords([memory(d)]);
+      }).not.toThrow();
+      expect(memRead!.value).toEqual([]);
+      expect(memRead!.reports).toHaveLength(1);
+    });
+  }
+
+  it("a record holding a value that is not plain JSON is still reported, as before (a Date, an object with toJSON, a class instance)", () => {
+    class Box {
+      v = 1;
+    }
+    for (const odd of [new Date(0), { toJSON: () => 1 }, new Box()]) {
+      const read = readStoredAgMessage({ id: "M", role: "assistant", turnId: "T", threadId: "R", content: [{ type: "data", name: "d", data: { odd } }] });
+      expect(read.value).toBeUndefined();
+      expect(read.reports.map((r) => r.path)).toEqual([[]]);
+      expect(readStoredAgMemoryRecords([{ scope: "user", key: "k", value: { odd } }]).value).toEqual([]);
+    }
+  });
+
+  const open = [
+    { type: "turn.start", seq: 0, turnId: "T", threadId: "R" },
+    { type: "message.start", seq: 1, id: "M", turnId: "T", threadId: "R", role: "assistant" },
+  ];
+  const FOLDS: Array<[string, unknown[]]> = [
+    ["a content.block's data", [{ type: "content.block", seq: 2, turnId: "T", messageId: "M", block: { type: "data", name: "d", data: nest(AG_EVENT_MAX_DEPTH - 2) } }]],
+    ["a tool.done data block's data", [{ type: "tool.done", seq: 2, turnId: "T", toolCallId: "c1", outcome: "ok", content: [{ type: "data", name: "d", data: nest(AG_EVENT_MAX_DEPTH - 3) }] }]],
+    ["a tool.done's structuredContent", [{ type: "tool.done", seq: 2, turnId: "T", toolCallId: "c1", outcome: "ok", content: [], structuredContent: nest(AG_EVENT_MAX_DEPTH - 1) }]],
+    [
+      "a tool call's assembled input",
+      [
+        { type: "tool.start", seq: 2, turnId: "T", toolCallId: "c1", name: "f", messageId: "M", index: 0 },
+        { type: "tool.args.assembled", seq: 3, toolCallId: "c1", input: nest(AG_EVENT_MAX_DEPTH - 1) },
+      ],
+    ],
+    ["a text block's providerMetadata", [{ type: "text.start", seq: 2, id: "b", messageId: "M", turnId: "T", providerMetadata: { v: nest(AG_EVENT_MAX_DEPTH - 2) } }]],
+  ];
+  for (const [what, tail] of FOLDS) {
+    it(`${what} at the event bound: the folded messages persist and read back with no report`, () => {
+      const evs = [...open, ...tail];
+      expect(Math.max(...evs.map(depthOf))).toBeLessThanOrEqual(AG_EVENT_MAX_DEPTH);
+      const r = foldOf(evs);
+      expect(r.needsResync).toBe(false);
+      const stored = JSON.parse(JSON.stringify(toPersistable(r.result()).messages)) as unknown[];
+      expect(Math.max(...stored.map(depthOf))).toBeGreaterThan(AG_EVENT_MAX_DEPTH);
+      const read = readStoredAgMessages(stored);
+      expect(read.reports).toEqual([]);
+      expect(read.value).toEqual(stored);
+    });
+  }
 });

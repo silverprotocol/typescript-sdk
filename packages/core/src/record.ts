@@ -36,7 +36,18 @@
  */
 import { AgBlock, AgMemoryRecord, AgMessage, type JsonValue } from "./agjson.js";
 import { copyJson } from "./copy-json.js";
-import { isJsonValue, toJsonValueSafe } from "./wire.js";
+import { AG_EVENT_DEPTH_ALLOWANCE, AG_EVENT_MAX_DEPTH, toJsonValueSafe } from "./wire.js";
+import { isJsonValueWithin } from "./depth.js";
+
+/**
+ * The deepest node a stored record may hold, from its root. The fold places a
+ * block's members a few levels deeper in its message than in the event that
+ * carried them (a tool result's content, a tool call's input), so a record
+ * the fold built from events inside AG_EVENT_MAX_DEPTH reads back within
+ * this bound.
+ */
+const STORED_RECORD_MAX_DEPTH = AG_EVENT_MAX_DEPTH + AG_EVENT_DEPTH_ALLOWANCE;
+const isStoredJson = (v: unknown): v is JsonValue => isJsonValueWithin(v, STORED_RECORD_MAX_DEPTH);
 
 /** One omitted element or record: where it was, its type when it had one, and its verbatim value. */
 export interface AgRecordReport {
@@ -66,7 +77,7 @@ const isObject = (v: JsonValue): v is JsonObject => v !== null && typeof v === "
 
 /** A value as a report can carry it: a JSON value is copied verbatim; a
  *  non-JSON one (never read from JSON storage) is made JSON-safe. */
-const reportRaw = (v: unknown): JsonValue => (isJsonValue(v) ? copyJson(v) : toJsonValueSafe(v));
+const reportRaw = (v: unknown): JsonValue => (isStoredJson(v) ? copyJson(v) : toJsonValueSafe(v));
 
 function report(path: (string | number)[], raw: unknown, ignoredType?: string): AgRecordReport {
   return { path, ...(ignoredType !== undefined ? { ignoredType } : {}), raw: reportRaw(raw) };
@@ -78,7 +89,7 @@ function report(path: (string | number)[], raw: unknown, ignoredType?: string): 
  * `value` and one report at path `[]`.
  */
 export function readStoredAgMessage(raw: unknown): AgRecordRead<AgMessage> {
-  if (!isJsonValue(raw) || !isObject(raw) || !Array.isArray(raw["content"])) return { reports: [report([], raw)] };
+  if (!isStoredJson(raw) || !isObject(raw) || !Array.isArray(raw["content"])) return { reports: [report([], raw)] };
   const kept: JsonValue[] = [];
   const reports: AgRecordReport[] = [];
   raw["content"].forEach((element, i) => {
@@ -124,7 +135,7 @@ export function readStoredAgMemoryRecords(raws: readonly unknown[]): AgRecordsRe
   const value: AgMemoryRecord[] = [];
   const reports: AgRecordReport[] = [];
   raws.forEach((raw, i) => {
-    if (isJsonValue(raw) && isObject(raw) && AgMemoryRecord.safeParse(raw).success) value.push(copyJson(raw) as unknown as AgMemoryRecord);
+    if (isStoredJson(raw) && isObject(raw) && AgMemoryRecord.safeParse(raw).success) value.push(copyJson(raw) as unknown as AgMemoryRecord);
     else reports.push(report([i], raw));
   });
   return { value, reports };
