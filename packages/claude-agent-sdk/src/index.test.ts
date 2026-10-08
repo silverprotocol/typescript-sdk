@@ -894,7 +894,9 @@ describe("createClaudeNormalizer — inner tool-result routes to the subagent tu
   const TASK_TOOL_ID = "toolu_task";
   const INNER_TOOL_ID = "toolu_inner_search";
   const TOP_SESSION = "sess_top";
-  const SUB_SESSION = "sess_sub";
+  // The CLI stamps one session_id on every frame of a session, the subagent's
+  // own frames included, so the sub-run's frames carry the top session's id.
+  const SUB_SESSION = TOP_SESSION;
 
   function topAssistantWithTaskCall(): SDKMessage {
     return {
@@ -974,6 +976,11 @@ describe("createClaudeNormalizer — inner tool-result routes to the subagent tu
     expect(result.turns.map((t) => t.turnId).sort()).toEqual(["turn_msg_sub_1", "turn_msg_top_1"].sort());
     const subTurn = result.turns.find((t) => t.turnId === "turn_msg_sub_1");
     expect(subTurn?.threadId).toBe(TOP_SESSION); // root threadId, not the synthetic label
+    // Every message rides its turn's thread: the sub-run's message.start carries
+    // the session's one id, the thread its nested turn resolves to.
+    const messageThreads = events.flatMap((e) => (e.type === "message.start" && "threadId" in e ? [e.threadId] : []));
+    expect(messageThreads.length).toBeGreaterThan(1);
+    expect(new Set(messageThreads)).toEqual(new Set([TOP_SESSION]));
   });
 });
 
