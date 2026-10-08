@@ -97,6 +97,9 @@ interface Section10Item {
 
 const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 1, title: "reduce() invariant (full fold table + block insertion order)", disposition: "COVERED-BY", evidence: "fixture-only", citation: "reduce.test.ts describe \"reduce — R10 capstone: byte-identity + live-SSE↔history invariant\" › \"byte-identity: reduce(CAPSTONE_EVENTS) deep-equals the hand-spelled EXPECTED_RESULT (toEqual, order-sensitive)\"" },
+  { n: 1, leg: "turn-done-safety", title: "reduce() invariant (§5 turn.done row, rc.1): safety, when present, REPLACES the turn's safety[] as a whole value; the last prompt.blocked's own ratings stay on promptBlocked.safety", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.1 \"turn.done row: prompt.blocked{safety:[A]} then turn.done{safety:[B]} on one turn lands turn.safety deep-equal [B] and promptBlocked.safety deep-equal [A]\"" },
+  { n: 1, leg: "prompt-blocked-safety", title: "reduce() invariant (§5 prompt.blocked row, rc.1): each record merges safety[] into the turn's safety and records promptBlocked whole", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.1 \"prompt.blocked row: prompt.blocked{safety:[A]} then prompt.blocked{safety:[B]} on one turn lands promptBlocked equal to the second record and turn.safety deep-equal [A, B]; a third record without safety records promptBlocked with no safety and leaves turn.safety [A, B]\"" },
+  { n: 1, leg: "tool-args-provider-metadata", title: "reduce() invariant (§5 tool.args.assembled row, rc.1): providerMetadata merges onto the tool-call block (REPLACE-by-key)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.1 \"tool.args.assembled row: tool.start{providerMetadata:{a:1}} then tool.args.assembled{providerMetadata:{b:2}} lands the tool-call block's providerMetadata deep-equal {a:1, b:2}, and a repeated key takes the later value\"" },
   { n: 2, title: "Reconnect (forward-gap park + snapshot-resync; backward jump folds normally)", disposition: "COVERED-BY", evidence: "fixture-only", citation: "reduce.test.ts describe \"reduce — R9 new-ops + resync + snapshot + live-only\": the forward-gap / park / snapshot-recovery legs \"(e1) seq-gap sets needsResync; events after gap are ignored until snapshot\", \"(e2) seq-gap → messages.snapshot recovery clears needsResync\", \"(e3) seq-gap → state.snapshot recovery ALSO clears needsResync (both recovery paths)\", \"(e4) parked reducer ignores non-snapshot events; resumes after state.snapshot\", \"(e5) an ext event occupying a seq slot between two closed events does NOT false-park\", \"(e6) a genuine forward gap revealed BY an ext event still parks (gap detection works through ext events)\" and the conditional-replace legs \"(d1) messages.snapshot without turns/artifacts PRESERVES prior artifacts + turns\", \"(d2) full messages.snapshot REPLACEs all three containers + clears transient\", \"(d3) messages.snapshot memory replaces only scope:thread records; non-thread survives\", \"(d4) messages.snapshot clears needsResync (un-parks)\"" },
   { n: 3, title: "Tool-result routing matrix (content/structuredContent/uiData/sideData): channel separation only — structuredContent is model-facing, delivery host-determined, model receipt not asserted (draft.4)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.3" },
   { n: 4, leg: "a", title: "Gemini signature loop — tool-call signature (ingest leg)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.4(a), facet-driven via createAdkNormalizer" },
@@ -252,7 +255,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 55, leg: "adk", title: "Host-supplied partition root (draft.5, §8.0 Partition root): createAdkNormalizer({ threadId: T }) fed every replay golden's natives stamps T on every threadId-bearing event and on no turnId/parentTurnId; reduce() roots every turn, message and artifact at T with no resync; without the option the output equals the committed golden", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.55(adk) over every replay golden of the facet" },
   { n: 55, leg: "vercel", title: "Host-supplied partition root (draft.5, §8.0 Partition root): createVercelNormalizer({ threadId: T }) fed every replay golden's natives stamps T on every threadId-bearing event and on no turnId/parentTurnId; reduce() roots every turn, message and artifact at T with no resync; without the option the output equals the committed golden", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.55(vercel) over every replay golden of the facet" },
   { n: 56, title: "Memory record metadata (draft.8): memory.write._meta lands on the AgMemoryRecord (value replaces whole, patch replaces _meta only when carried); an undeclared top-level member never reaches the record; incremental == batch; the persistable projection and the stored-record reader keep _meta", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.56, reference reduce() + Reducer + toPersistable + readStoredAgMemoryRecords (the core pair: AgMemoryRecord._meta + the memory.write SET/PATCH arms)" },
-  { n: 57, title: "ADK prompt block → prompt.blocked (rc.1): each errorCode-only prompt-block event of an open turn records one prompt.blocked before the turn's terminal; response-level blocks, other error codes, events with content, relayed events record none; an event after a bare success close records on the turn it opens, never on the closed one", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.57 via createAdkNormalizer over synthetic non-streaming natives shaped as ADK 2.1.0's createLlmResponse builds them (a Gemini API attempt on 2026-09-27 reached only response-level blocks, StreamingMode NONE and SSE; Vertex AI not attempted; the ADK Live and Interactions paths do not carry the shape at 2.1.0); facet legs: google-adk/src/index.test.ts \"a prompt-block event records prompt.blocked before the turn's unchanged terminal, with no safety\", \"the same event with an errorMessage records prompt.blocked before its turn.error\", \"an unmapped treated value (OTHER, IMAGE_SAFETY, JAILBREAK, BLOCK_REASON_UNSPECIFIED) records reason …other… with reasonRaw verbatim\", \"a response-level block, a non-block errorCode or content parts is not a prompt block: no record\", \"one record per block event: three block events record three, in one turn with the host-completion event and in three turns without it, each before its turn's terminal\", \"a prompt block while an ask is pending is recorded, and the turn still closes paused\", \"an event carrying promptFeedback and a prompt-block errorCode is recorded once, from its promptFeedback\", \"a prompt block inside a Workflow node is recorded, and the host-fed error closes the turn\", \"two identical block events inside a Workflow node record two prompt.blocked while the turn is open, and the same event after the terminal records none\", \"ADK_PROMPT_BLOCK_REASONS holds genai's eight BlockedReason values and the Gemini API's BLOCK_REASON_UNSPECIFIED\"; the relay leg: spec-conformance.test.ts \"an event relayed from a remote agent (a2a:response in customMetadata) yields no prompt.blocked, and the same event unrelayed yields one\"" },
+  { n: 57, title: "ADK prompt block → prompt.blocked (rc.1): each errorCode-only prompt-block event of an open turn records one prompt.blocked before the turn's terminal; response-level blocks, other error codes, events with content, relayed events record none; an event after a bare success close records on the turn it opens, never on the closed one; the reference, not configured for the host-completion event, closes the turn of a bare {errorCode, usageMetadata} event turn.done success from push() after its record — finishReason safety_blocked for SAFETY, other for OTHER, unknown with finishReasonRaw JAILBREAK for JAILBREAK (binding the reference only); reduce() lands promptBlocked per turn a record names", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.57 via createAdkNormalizer over synthetic non-streaming natives shaped as ADK 2.1.0's createLlmResponse builds them (a Gemini API attempt on 2026-09-27 reached only response-level blocks, StreamingMode NONE and SSE; Vertex AI not attempted; the ADK Live and Interactions paths do not carry the shape at 2.1.0); the reference-close legs \"(j) bare, {errorCode:SAFETY, usageMetadata} with no errorMessage, finishReason, content parts, branch or node info, no ask pending and no earlier invocation error → push() on that event closes its turn turn.done{success} after the record: finishReason safety_blocked, no finishReasonRaw\", \"(k) the same bare shape with errorCode OTHER → turn.done{success} from push() after the record: finishReason other, no finishReasonRaw\", \"(l) the same bare shape with errorCode JAILBREAK → turn.done{success} from push() after the record: finishReason unknown, finishReasonRaw JAILBREAK byte for byte\"; facet legs: google-adk/src/index.test.ts \"a prompt-block event records prompt.blocked before the turn's unchanged terminal, with no safety\", \"the same event with an errorMessage records prompt.blocked before its turn.error\", \"an unmapped treated value (OTHER, IMAGE_SAFETY, JAILBREAK, BLOCK_REASON_UNSPECIFIED) records reason …other… with reasonRaw verbatim\", \"a response-level block, a non-block errorCode or content parts is not a prompt block: no record\", \"one record per block event: three block events record three, in one turn with the host-completion event and in three turns without it, each before its turn's terminal\", \"a prompt block while an ask is pending is recorded, and the turn still closes paused\", \"an event carrying promptFeedback and a prompt-block errorCode is recorded once, from its promptFeedback\", \"a prompt block inside a Workflow node is recorded, and the host-fed error closes the turn\", \"two identical block events inside a Workflow node record two prompt.blocked while the turn is open, and the same event after the terminal records none\", \"ADK_PROMPT_BLOCK_REASONS holds genai's eight BlockedReason values and the Gemini API's BLOCK_REASON_UNSPECIFIED\"; the relay leg: spec-conformance.test.ts \"an event relayed from a remote agent (a2a:response in customMetadata) yields no prompt.blocked, and the same event unrelayed yields one\"" },
   { n: 58, leg: "openai-content-filter", title: "Block finish reason whatever the outcome (rc.1): an OpenAI Agents content_filter round, fed in the order the Responses model delivers it (ending at response.incomplete), closes with exactly one turn.done carrying safety_blocked; every event passes producer-strict AgEvent validation, reduce() needs no resync and the turn record carries the mapped finishReason", disposition: "COVERED-BY", evidence: "fixture-only", citation: "openai-agents/src/index.test.ts \"recorded order: a content_filter round closes once, turn.done error with finishReason safety_blocked and the safety signal\"; the parse, fold and record checks re-asserted in spec-conformance.test.ts §10.58(openai-content-filter)" },
   { n: 58, leg: "openai-refusal", title: "Block finish reason whatever the outcome (rc.1): an OpenAI Agents refusal round, fed in the order the Responses model delivers it (response.completed before its message_output_created run-item), closes with exactly one turn.done carrying refusal; every event passes producer-strict AgEvent validation, reduce() needs no resync and the turn record carries the mapped finishReason", disposition: "COVERED-BY", evidence: "fixture-only", citation: "openai-agents/src/index.test.ts \"recorded order: a refusal round closes once, turn.done success with finishReason refusal, read from the response.completed output\"; the parse, fold and record checks re-asserted in spec-conformance.test.ts §10.58(openai-refusal)" },
   { n: 58, leg: "openai-deferred", title: "Block finish reason whatever the outcome (rc.1): an OpenAI Agents refusal round deferred behind a pending call closes after that call's tool.done with exactly one turn.done carrying refusal, and the invoke's next round closes stop; every event passes producer-strict AgEvent validation, reduce() needs no resync and the turn record carries the mapped finishReason", disposition: "COVERED-BY", evidence: "fixture-only", citation: "openai-agents/src/index.test.ts \"recorded order: a refusal round deferred behind a pending call closes after that call's tool.done as turn.done success with finishReason refusal, and the next round closes stop\"; the parse, fold and record checks re-asserted in spec-conformance.test.ts §10.58(openai-deferred)" },
@@ -447,6 +450,65 @@ describe("§10.1 — reduce() invariant: stream → reduce == AgReduceResult (fu
     expect(r.needsResync).toBe(false);
     expect(r.result.messages[0]).toMatchObject({ id: "m1", threadId: "th1", candidateIndex: 0, extensions: ["urn:x-ext:a"], agentId: "ag1", agentName: "Planner", agentRole: "planner", model: "model-x" });
     expect(r.result.messages[1]).toMatchObject({ id: "m2", role: "notice", threadId: "th1", noticeSource: "host" });
+  });
+});
+
+// §10.1 leg rows (rc.1 corrections to §5 rows, each stated as the reducer folds):
+// the turn.done row's `safety` REPLACES the turn's safety[] as a whole value; the
+// prompt.blocked row merges safety[] into the turn's and records promptBlocked
+// whole on every record; the tool.args.assembled row merges providerMetadata
+// (REPLACE-by-key) onto the tool-call block.
+describe("§10.1 — §5 rows (rc.1 corrections): turn.done safety replaces, prompt.blocked merges safety and records promptBlocked whole, tool.args.assembled merges providerMetadata", () => {
+  const A = { category: "HARM_CATEGORY_A", blocked: true };
+  const B = { category: "HARM_CATEGORY_B", probability: "LOW" };
+
+  it("turn.done row: prompt.blocked{safety:[A]} then turn.done{safety:[B]} on one turn lands turn.safety deep-equal [B] and promptBlocked.safety deep-equal [A]", () => {
+    const r = reduce([
+      TURN_START,
+      { type: "prompt.blocked", seq: 1, turnId: "t1", reason: "safety", safety: [A] },
+      { type: "turn.done", seq: 2, turnId: "t1", outcome: { type: "success" }, finishReason: "safety_blocked", safety: [B] },
+    ]);
+    expect(r.needsResync).toBe(false);
+    expect(r.result.turns[0]?.safety).toEqual([B]);
+    expect(r.result.turns[0]?.promptBlocked).toEqual({ reason: "safety", safety: [A] });
+  });
+
+  it("prompt.blocked row: prompt.blocked{safety:[A]} then prompt.blocked{safety:[B]} on one turn lands promptBlocked equal to the second record and turn.safety deep-equal [A, B]; a third record without safety records promptBlocked with no safety and leaves turn.safety [A, B]", () => {
+    const two = reduce([
+      TURN_START,
+      { type: "prompt.blocked", seq: 1, turnId: "t1", reason: "safety", safety: [A] },
+      { type: "prompt.blocked", seq: 2, turnId: "t1", reason: "other", reasonRaw: "JAILBREAK", safety: [B] },
+      { type: "turn.done", seq: 3, turnId: "t1", outcome: { type: "success" }, finishReason: "safety_blocked" },
+    ]);
+    expect(two.needsResync).toBe(false);
+    expect(two.result.turns[0]?.promptBlocked).toEqual({ reason: "other", reasonRaw: "JAILBREAK", safety: [B] });
+    expect(two.result.turns[0]?.safety).toEqual([A, B]);
+    const three = reduce([
+      TURN_START,
+      { type: "prompt.blocked", seq: 1, turnId: "t1", reason: "safety", safety: [A] },
+      { type: "prompt.blocked", seq: 2, turnId: "t1", reason: "other", reasonRaw: "JAILBREAK", safety: [B] },
+      { type: "prompt.blocked", seq: 3, turnId: "t1", reason: "prohibited" },
+      { type: "turn.done", seq: 4, turnId: "t1", outcome: { type: "success" }, finishReason: "safety_blocked" },
+    ]);
+    expect(three.needsResync).toBe(false);
+    expect(three.result.turns[0]?.promptBlocked).toEqual({ reason: "prohibited" });
+    expect(three.result.turns[0]?.safety).toEqual([A, B]);
+  });
+
+  it("tool.args.assembled row: tool.start{providerMetadata:{a:1}} then tool.args.assembled{providerMetadata:{b:2}} lands the tool-call block's providerMetadata deep-equal {a:1, b:2}, and a repeated key takes the later value", () => {
+    const vector = (startMeta: Record<string, number>, assembledMeta: Record<string, number>) =>
+      reduce([
+        TURN_START,
+        MSG_START,
+        { type: "tool.start", seq: 2, toolCallId: "c1", name: "calc", turnId: "t1", threadId: "th1", providerMetadata: startMeta },
+        { type: "tool.args.assembled", seq: 3, toolCallId: "c1", input: {}, providerMetadata: assembledMeta },
+        { type: "turn.done", seq: 4, turnId: "t1", outcome: { type: "success" }, finishReason: "stop" },
+      ] as AgEvent[]);
+    const toolCall = (r: ReturnType<typeof reduce>) => r.result.messages[0]?.content.find((b) => b.type === "tool-call") as unknown as { providerMetadata?: unknown } | undefined;
+    const merged = vector({ a: 1 }, { b: 2 });
+    expect(merged.needsResync).toBe(false);
+    expect(toolCall(merged)?.providerMetadata).toEqual({ a: 1, b: 2 });
+    expect(toolCall(vector({ a: 1, k: 1 }, { k: 2 }))?.providerMetadata).toEqual({ a: 1, k: 2 });
   });
 });
 
@@ -4292,13 +4354,42 @@ describe("§10.57 — ADK prompt block → prompt.blocked (rc.1): one record per
   const seq = (e: unknown) => (e as { seq: number }).seq;
   const HOST_COMPLETE = { type: ADK_HOST_COMPLETE_TYPE } as unknown as JsonValue;
   const HOST_ERROR = { type: ADK_HOST_ERROR_TYPE, code: "Error", message: "the node failed" } as unknown as JsonValue;
-  // reduce() over a vector that yields a record lands AgTurnRecord.promptBlocked equal to the last record emitted.
+  // reduce() over a vector that yields a record lands, on each turn a record names, AgTurnRecord.promptBlocked
+  // equal to the last record emitted into that turn (every record the normalizer emits names its turn).
   const foldsLast = (out: AgEvent[]) => {
     const r = reduce(out);
-    const last = blocks(out).at(-1)!;
-    const turn = r.result.turns.find((t) => (t as { promptBlocked?: unknown }).promptBlocked !== undefined) as unknown as { promptBlocked: Record<string, unknown> } | undefined;
-    expect(turn?.promptBlocked).toMatchObject({ reason: last["reason"], ...(last["reasonRaw"] !== undefined ? { reasonRaw: last["reasonRaw"] } : {}) });
+    const lastByTurn = new Map<string, Record<string, unknown>>();
+    for (const rec of blocks(out)) {
+      expect(typeof rec["turnId"], JSON.stringify(rec)).toBe("string");
+      lastByTurn.set(rec["turnId"] as string, rec);
+    }
+    expect(lastByTurn.size).toBeGreaterThan(0);
+    for (const [turnId, last] of lastByTurn) {
+      const turn = r.result.turns.find((t) => t.turnId === turnId) as unknown as { promptBlocked?: Record<string, unknown> } | undefined;
+      expect(turn?.promptBlocked, turnId).toMatchObject({ reason: last["reason"], ...(last["reasonRaw"] !== undefined ? { reasonRaw: last["reasonRaw"] } : {}) });
+    }
     return r;
+  };
+  // The reference's bare close (item 57, binding the reference only): a {errorCode, usageMetadata} event with no
+  // errorMessage, finishReason, content parts, branch or node info, arriving with no ask pending and before any
+  // invocation error, closes its turn turn.done{success} from push() on that event, after its record.
+  const bareClose = (raw: string, finishReason: string, finishReasonRaw?: string) => {
+    const n = createAdkNormalizer({});
+    const pushed = n.push({ ...inv, errorCode: raw, usageMetadata: { promptTokenCount: 7, totalTokenCount: 7 } } as unknown as JsonValue);
+    const flushed = n.flush();
+    for (const ev of [...pushed, ...flushed]) expect(AgEvent.safeParse(ev).success, JSON.stringify(ev)).toBe(true);
+    const [rec] = blocks(pushed);
+    expect(blocks(pushed)).toHaveLength(1);
+    expect(terminals(flushed)).toHaveLength(0);
+    const ends = terminals(pushed);
+    expect(ends).toHaveLength(1);
+    const done = ends[0]!;
+    expect(done).toMatchObject({ type: "turn.done", outcome: { type: "success" }, finishReason });
+    if (finishReasonRaw === undefined) expect("finishReasonRaw" in done).toBe(false);
+    else expect(done["finishReasonRaw"]).toBe(finishReasonRaw);
+    expect(done["turnId"]).toBe(rec!["turnId"]);
+    expect(seq(done)).toBeGreaterThan(seq(rec));
+    expect(foldsLast(pushed).needsResync).toBe(false);
   };
 
   it("(a) {errorCode:SAFETY, usageMetadata} with no finishReason, content or errorMessage → exactly one prompt.blocked{reason:safety} with no reasonRaw or safety, then exactly one terminal with a higher seq", () => {
@@ -4353,11 +4444,13 @@ describe("§10.57 — ADK prompt block → prompt.blocked (rc.1): one record per
     const turnIds = ends.map((e) => (e as { turnId?: string }).turnId);
     expect(turnIds[1]).toBe(`${turnIds[0]}_g1`);
     expect(turnIds[2]).toBe(`${turnIds[0]}_g2`);
+    // each later turn opens after a success close (the record never lands on the closed turn)
+    for (const end of ends) expect(end).toMatchObject({ type: "turn.done", outcome: { type: "success" } });
     blocks(bare).forEach((rec, k) => {
       expect((rec as { turnId?: string }).turnId).toBe(turnIds[k]);
       expect(seq(rec)).toBeLessThan(seq(ends[k]!));
     });
-    expect(reduce(bare).needsResync).toBe(false);
+    expect(foldsLast(bare).needsResync).toBe(false);
   });
 
   it("(f) a SAFETY event without errorMessage while an ask is pending → its record before the turn's one terminal", () => {
@@ -4388,13 +4481,25 @@ describe("§10.57 — ADK prompt block → prompt.blocked (rc.1): one record per
     expect(foldsLast(out).needsResync).toBe(false);
   });
 
-  it("(i) a repeated block event while the turn is open records its own prompt.blocked, and the same shape after the turn's terminal records none", () => {
+  it("(i) a repeated block event while the turn is open records its own prompt.blocked, and the same shape after the turn's error terminal records none", () => {
     const nodeBlock = { ...inv, errorCode: "SAFETY", nodeInfo: { path: "wf/classify" } };
     const out = drive([nodeBlock, nodeBlock, HOST_ERROR, { ...inv, errorCode: "SAFETY" }] as unknown as JsonValue[]);
     expect(blocks(out)).toHaveLength(2);
     expect(terminals(out)).toEqual([expect.objectContaining({ type: "turn.error" })]);
     expect(Math.max(...blocks(out).map(seq))).toBeLessThan(seq(terminals(out)[0]));
     expect(foldsLast(out).needsResync).toBe(false);
+  });
+
+  it("(j) bare, {errorCode:SAFETY, usageMetadata} with no errorMessage, finishReason, content parts, branch or node info, no ask pending and no earlier invocation error → push() on that event closes its turn turn.done{success} after the record: finishReason safety_blocked, no finishReasonRaw", () => {
+    bareClose("SAFETY", "safety_blocked");
+  });
+
+  it("(k) the same bare shape with errorCode OTHER → turn.done{success} from push() after the record: finishReason other, no finishReasonRaw", () => {
+    bareClose("OTHER", "other");
+  });
+
+  it("(l) the same bare shape with errorCode JAILBREAK → turn.done{success} from push() after the record: finishReason unknown, finishReasonRaw JAILBREAK byte for byte", () => {
+    bareClose("JAILBREAK", "unknown", "JAILBREAK");
   });
 
   it("an event relayed from a remote agent (a2a:response in customMetadata) yields no prompt.blocked, and the same event unrelayed yields one", () => {
