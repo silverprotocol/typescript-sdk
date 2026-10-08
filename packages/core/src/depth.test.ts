@@ -139,7 +139,13 @@ describe("an event nested past the event bound", () => {
 
   for (const [member, build] of MEMBERS) {
     it(`${member} too deep at seq n: the event at n+1 folds with no gap, pushed directly and through ingest`, () => {
-      const { pre, ev } = build(5000);
+      const built = build(5000);
+      // The deep event sits at seq >= 1, where the fold's gap check runs: a member
+      // whose stream has no lead event gets one at seq 0.
+      const lead = built.pre.length === 0 ? [{ type: "state.snapshot", seq: 0, snapshot: {} }] : [];
+      const pre = [...lead, ...built.pre];
+      const ev = { ...built.ev, seq: (built.ev["seq"] as number) + lead.length };
+      expect(ev["seq"]).toBeGreaterThanOrEqual(1);
       const next = { type: "memory.write", seq: (ev["seq"] as number) + 1, scope: "user", key: "next", value: 1 };
       for (const evs of [
         [...pre, ev, next],
