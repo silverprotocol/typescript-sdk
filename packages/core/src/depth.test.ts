@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { Reducer } from "./reduce.js";
 import { ingestAgEvent, type AgIngestReject } from "./ingest.js";
-import { AG_EVENT_DEPTH_ALLOWANCE, AG_EVENT_MAX_DEPTH, JSON_SAFE_MAX_DEPTH, toJsonValueSafe } from "./wire.js";
+import { AG_EVENT_DEPTH_ALLOWANCE, AG_EVENT_MAX_DEPTH, JSON_SAFE_MAX_DEPTH, JSON_SAFE_MAX_DEPTH_MARK, toJsonValueSafe } from "./wire.js";
 import type { AgEvent, JsonValue } from "./agjson.js";
 import { copyJson } from "./copy-json.js";
 import { readStoredAgMemoryRecords, readStoredAgMessage, readStoredAgMessages } from "./record.js";
@@ -83,7 +83,7 @@ describe("an event nested past the event bound", () => {
       });
     }
     for (const d of [AG_EVENT_MAX_DEPTH + 1, 2000, 5000, 12000]) {
-      it(`${member} at depth ${d}: ingest rejects it as depth-exceeded without throwing, and a fold parks on it, folds nothing and still returns a result`, () => {
+      it(`${member} at depth ${d}: ingest stubs it in its slot without throwing, and a fold counts the slot, folds nothing and still returns a result`, () => {
         const { pre, ev } = build(d);
         expect(depthOf(ev)).toBe(d);
         const rejects: AgIngestReject[] = [];
@@ -91,14 +91,17 @@ describe("an event nested past the event bound", () => {
         expect(() => {
           got = ingestAgEvent(ev as JsonValue, { onReject: (x) => rejects.push(x) });
         }).not.toThrow();
-        expect(got).toBeUndefined();
-        expect(rejects.map((x) => x.reason)).toEqual(["depth-exceeded"]);
+        expect(rejects).toEqual([]);
+        const stub = got as unknown as { type: string; seq: number; ignoredType: string; raw: JsonValue };
+        expect([stub.type, stub.seq, stub.ignoredType]).toEqual(["ext.agjson.ignored", ev["seq"], ev["type"]]);
+        expect(depthOf(stub)).toBeLessThanOrEqual(AG_EVENT_MAX_DEPTH);
+        expect(JSON.stringify(stub.raw)).toContain(JSON_SAFE_MAX_DEPTH_MARK);
         const before = JSON.stringify(foldOf(pre).result());
         let r: Reducer | undefined;
         expect(() => {
           r = foldOf([...pre, ev]);
         }).not.toThrow();
-        expect(r!.needsResync).toBe(true);
+        expect(r!.needsResync).toBe(false);
         expect(JSON.stringify(r!.result())).toBe(before);
       });
     }
@@ -126,13 +129,29 @@ describe("an event nested past the event bound", () => {
     expect(x).toEqual({ s: 1 });
   });
 
-  it("an event pushed directly with a cycle parks rather than overflowing", () => {
+  it("an event pushed directly with a cycle counts its slot and folds nothing, rather than overflowing", () => {
     const loop: Record<string, unknown> = {};
     loop["self"] = loop;
     const r = foldOf([{ type: "memory.write", seq: 0, scope: "user", key: "k", value: loop }]);
-    expect(r.needsResync).toBe(true);
-    expect(() => r.result()).not.toThrow();
+    expect(r.needsResync).toBe(false);
+    expect(r.result().memory ?? []).toEqual([]);
   });
+
+  for (const [member, build] of MEMBERS) {
+    it(`${member} too deep at seq n: the event at n+1 folds with no gap, pushed directly and through ingest`, () => {
+      const { pre, ev } = build(5000);
+      const next = { type: "memory.write", seq: (ev["seq"] as number) + 1, scope: "user", key: "next", value: 1 };
+      for (const evs of [
+        [...pre, ev, next],
+        [...pre, ev, next].map((e) => ingestAgEvent(e as JsonValue)).filter((e) => e !== undefined),
+      ]) {
+        expect(evs).toHaveLength(pre.length + 2);
+        const r = foldOf(evs);
+        expect(r.needsResync).toBe(false);
+        expect(r.result().memory?.map((m) => m.key)).toEqual(["next"]);
+      }
+    });
+  }
 });
 
 describe("a state or memory value composed past the bound by successive patches", () => {
@@ -316,26 +335,28 @@ describe("one scan per pushed event finds the depth and an own __proto__ member"
     expect((r.result().memory?.[0]?.value as unknown[]).length).toBe(60_000);
   });
 
-  it("a cycle that fans out parks, without hanging or overflowing", () => {
+  it("a cycle that fans out counts its slot and folds nothing, without hanging or overflowing", () => {
     const loop: Record<string, unknown> = {};
     loop["a"] = loop;
     loop["b"] = loop;
     const r = foldOf([{ type: "memory.write", seq: 0, scope: "user", key: "k", value: loop }]);
-    expect(r.needsResync).toBe(true);
-    expect(() => r.result()).not.toThrow();
+    expect(r.needsResync).toBe(false);
+    expect(r.result().memory ?? []).toEqual([]);
   });
 
   for (const order of ["a before b", "b before a"] as const) {
-    it(`a node shared at a shallow and a deep place, past the node budget, parks when the deep place puts it past the bound (keys ${order})`, () => {
+    it(`a node shared at a shallow and a deep place, past the node budget, is too deep when the deep place puts it past the bound (keys ${order})`, () => {
       const shared = nest(900);
       let deep: JsonValue = { s: shared };
       for (let i = 0; i < 200; i++) deep = { k: deep };
       const value = order === "a before b" ? { a: shared, b: deep, c: fan(20) } : { b: deep, a: shared, c: fan(20) };
       const ev = { type: "memory.write", seq: 0, scope: "user", key: "k", value };
       const rejects: AgIngestReject[] = [];
-      expect(ingestAgEvent(ev as unknown as JsonValue, { onReject: (x) => rejects.push(x) })).toBeUndefined();
-      expect(rejects.map((x) => x.reason)).toEqual(["depth-exceeded"]);
-      expect(foldOf([ev]).needsResync).toBe(true);
+      expect(ingestAgEvent(ev as unknown as JsonValue, { onReject: (x) => rejects.push(x) })?.type).toBe("ext.agjson.ignored");
+      expect(rejects).toEqual([]);
+      const r = foldOf([ev]);
+      expect(r.needsResync).toBe(false);
+      expect(r.result().memory ?? []).toEqual([]);
     });
   }
 });

@@ -235,7 +235,7 @@
     "module": "ingest",
     "tag": "public",
     "decl": [
-      "export type AgIngestRejectReason = \"not-object\" | \"type-not-string\" | \"seq-not-number\" | \"depth-exceeded\";"
+      "export type AgIngestRejectReason = \"not-object\" | \"type-not-string\" | \"seq-not-number\";"
     ]
   },
   "AgInput": {

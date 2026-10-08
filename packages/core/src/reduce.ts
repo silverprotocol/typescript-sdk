@@ -208,16 +208,13 @@ export class Reducer {
    * R3–R10 fill remaining content types.
    */
   push(ev: AgEvent): void {
-    // An event holding a node deeper than AG_EVENT_MAX_DEPTH parks the fold and
-    // folds nothing: copying it, or patching the state with it, would overflow
-    // the stack. A consuming ingest never yields one.
-    // The same pass reports an own `__proto__` member, so the delete walk
-    // below runs only on an event that holds one.
+    // One pass before anything reads the event: whether a node sits deeper
+    // than AG_EVENT_MAX_DEPTH, and whether an own `__proto__` member is held
+    // (the delete walk below runs only on an event that holds one). A
+    // too-deep event occupies its seq slot like any other and is folded no
+    // further: copying it, or patching the state with it, would overflow the
+    // stack. A consuming ingest never yields one; it stubs such a frame.
     const scan = scanDepth(ev, AG_EVENT_MAX_DEPTH);
-    if (scan.tooDeep) {
-      this.#resync = true;
-      return;
-    }
 
     // ── Seq-gap detection (R9) ────────────────────────────────────────────────
     // Seq accounting is UNIVERSAL (INV-SEQ: "gap-free ordinal" over the whole
@@ -260,6 +257,7 @@ export class Reducer {
       this.#invokeBlockIds.clear();
       this.#finalToolDone.clear();
     }
+    if (scan.tooDeep) return;
 
     // Store-time isolation: the handlers below keep references into the event
     // (a block, a providerMetadata or _meta bag, a tool result, an outcome, a
