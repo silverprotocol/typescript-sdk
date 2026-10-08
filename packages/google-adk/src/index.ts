@@ -75,11 +75,11 @@
  * the model's reply share one turn: ADK yields the call generation's
  * turnComplete after the function response and before the reply (a
  * gemini-3.8-live capture `live-tool-gemini38live`), so a turnComplete with no
- * model output since the last function response does not close the turn. Two
- * limits remain. A generation that follows a completed generation with no
- * pending tool exchange, and with no barge-in, lands in the closed turn and
- * parks a reducer, unless `hostCompletion` defers that close.
- * And when text is buffered at the interrupt, ADK yields only the text
+ * model output since the last function response does not close the turn. A
+ * generation that follows a completed generation opens the next turn
+ * (liveTurnFor), and an `{interrupted}` that follows a completed generation
+ * interrupts the next one, which closes `turn.abort{interrupted}`. One limit
+ * remains. When text is buffered at the interrupt, ADK yields only the text
  * aggregate, without the flag (utils/live_connection_utils.js), so this facet
  * sees no interrupt and the turn closes at flush as `stream-truncated`.
  */
@@ -3469,15 +3469,16 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     const current = g === 0 ? base : `${base}_g${g}`;
     // Any event after a success close opens the next generation, so no
     // message or block event names the closed turn (SPEC :959): content, a
-    // usage report, a carry. Three stay: an event whose only mapping is the
-    // state.delta of its stateDelta (shared state, not the turn's content),
-    // an aggregate that only repeats the closed turn's streamed text (the
-    // window suppresses it), and ADK's bare {interrupted} re-yield after a
-    // barge-in (below; it emits nothing).
+    // usage report, a carry, an interruption. An `{interrupted}` after a
+    // success close interrupts the next generation, which then closes
+    // turn.abort interrupted; ADK's bare re-yield after a message carrying
+    // both flags follows an interrupt close, handled below. Two stay: an event
+    // whose only mapping is the state.delta of its stateDelta (shared state,
+    // not the turn's content), and an aggregate that only repeats the closed
+    // turn's streamed text (the window suppresses it).
     const afterSuccess =
       successClosed.has(current) &&
       !onlyStateChange(event) &&
-      !(event.interrupted === true && !hasLiveContent(event) && !omittedParts) &&
       !repeatsClosedTurn(current, event);
     if (!interruptClosed.has(current) && !afterSuccess) return current;
     if (!afterSuccess && event.interrupted === true && !hasLiveContent(event) && !omittedParts) return undefined;

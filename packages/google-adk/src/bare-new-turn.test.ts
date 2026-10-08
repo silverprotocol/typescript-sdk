@@ -214,6 +214,46 @@ describe("createAdkNormalizer — after a bare success close, no later event of 
   });
 });
 
+describe("createAdkNormalizer — an interruption after a bare success close", () => {
+  /** Live natives as ADK yields them, with the model's modelVersion on every event (live_connection_utils.js). */
+  const live = (inv: string, fields: Obj): Obj => ({ invocationId: inv, author: "voice", modelVersion: "gemini-3.8-live", ...fields });
+  const audio: Obj = { role: "model", parts: [{ inlineData: { mimeType: "audio/pcm", data: "AAAA" } }] };
+  const report: Obj = { usageMetadata: { promptTokenCount: 10, responseTokenCount: 4, totalTokenCount: 14 } };
+
+  it("an {interrupted} after a generation that closed as success (then its usage-only report and turnComplete, or cut after the report, or carrying a stateDelta or a customMetadata entry) opens the next generation, which closes turn.abort interrupted; nothing names the closed turn after its terminal and the fold is clean", () => {
+    for (const i of [0, 1]) {
+      const inv = `inv-late-interrupt-${i}`;
+      const legs: Array<[string, Obj[]]> = [
+        ["then its usage report and turnComplete", [live(inv, { content: audio }), live(inv, { turnComplete: true }), live(inv, { interrupted: true }), live(inv, report), live(inv, { turnComplete: true })]],
+        ["cut after the usage report", [live(inv, { content: audio }), live(inv, { turnComplete: true }), live(inv, { interrupted: true }), live(inv, report)]],
+        ["carrying a stateDelta", [live(inv, { content: audio }), live(inv, { turnComplete: true }), live(inv, { interrupted: true, actions: { stateDelta: {} } }), live(inv, report), live(inv, { turnComplete: true })]],
+        ["carrying a customMetadata entry", [live(inv, { content: audio }), live(inv, { turnComplete: true }), live(inv, { interrupted: true, customMetadata: { note: `n${i}` } }), live(inv, report), live(inv, { turnComplete: true })]],
+      ];
+      for (const [label, natives] of legs) {
+        const out = run(natives, false);
+        const tag = `${label} #${i}`;
+        expect(terminals(out), tag).toEqual([
+          ["turn.done", `turn_adk_${inv}`, "success"],
+          ["turn.abort", `turn_adk_${inv}_g1`, null],
+        ]);
+        expect(out.find((e) => e.type === "turn.abort"), tag).toMatchObject({ reason: "interrupted" });
+        expect(afterTerminal(out), tag).toEqual([]);
+        expect(fold(out).needsResync, tag).toBe(false);
+      }
+    }
+  });
+
+  it("ADK's bare {interrupted} re-yield after a message carrying both turnComplete and interrupted emits nothing: one turn, closed turn.abort interrupted, nothing after it", () => {
+    for (const i of [0, 1]) {
+      const inv = `inv-reyield-${i}`;
+      const out = run([live(inv, { content: audio }), live(inv, { turnComplete: true, interrupted: true }), live(inv, { interrupted: true })], false);
+      expect(terminals(out), `#${i}`).toEqual([["turn.abort", `turn_adk_${inv}`, null]]);
+      expect(out.at(-1)?.type, `#${i}`).toBe("turn.abort");
+      expect(fold(out).needsResync, `#${i}`).toBe(false);
+    }
+  });
+});
+
 describe("createAdkNormalizer — the events that stay on a turn after its bare success close", () => {
   /** ADK's default actions, as createEventActions() builds them, with a state change. */
   const stateOnly = (inv: string, delta: Obj, extra: Obj = {}): Obj => ({
@@ -281,24 +321,6 @@ describe("createAdkNormalizer — the events that stay on a turn after its bare 
         expect(afterTerminal(out).filter((x) => !x.startsWith("state.delta")), `${label} #${i}`).toEqual([]);
         expect(fold(out).needsResync, `${label} #${i}`).toBe(false);
       }
-    }
-  });
-
-  it("ADK's bare {interrupted} re-yield after a generation that closed as success emits nothing: no second turn, nothing after the terminal", () => {
-    for (const i of [0, 1]) {
-      const inv = `inv-reyield-${i}`;
-      const out = run(
-        [
-          { invocationId: inv, author: "voice", content: { role: "model", parts: [{ text: `Hi ${i}.` }] } },
-          { invocationId: inv, author: "voice", turnComplete: true },
-          { invocationId: inv, author: "voice", interrupted: true },
-        ],
-        false,
-      );
-      expect(out.filter((e) => e.type === "turn.start"), `#${i}`).toHaveLength(1);
-      expect(terminals(out), `#${i}`).toEqual([["turn.done", `turn_adk_${inv}`, "success"]]);
-      expect(out.at(-1)?.type, `#${i}`).toBe("turn.done");
-      expect(fold(out).needsResync, `#${i}`).toBe(false);
     }
   });
 
