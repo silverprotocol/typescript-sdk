@@ -31,7 +31,12 @@
  *    stub `{type: "ext.agjson.ignored", seq, ignoredType, raw}`. It is a
  *    typed ext event: it never folds, but a Reducer counts its `seq` slot,
  *    so an ignored event can no longer open a false gap. `raw` is the
- *    original frame (same copy rules) and is LIVE-ONLY: never persist it;
+ *    original frame (same copy rules) and is LIVE-ONLY: never persist it.
+ *    An envelope holding a node deeper than the event depth bound becomes the
+ *    same stub without being parsed, since the schema parse's recursion
+ *    would overflow on it; its `raw` is the frame as toJsonValueSafe
+ *    renders it, cut off at JSON_SAFE_MAX_DEPTH, so the stub itself stays
+ *    within the bound;
  *  - anything else (not an object, a non-string `type`, a missing or
  *    non-number `seq`) → not an event and occupies no slot: returns
  *    undefined and is reported through the optional `onReject` callback.
@@ -39,6 +44,8 @@
  */
 import { AgEvent, type JsonValue } from "./agjson.js";
 import { copyJson } from "./copy-json.js";
+import { AG_EVENT_MAX_DEPTH, exceedsDepth } from "./depth.js";
+import { toJsonValueSafe } from "./wire.js";
 
 /** Why an input is not a well-formed envelope (draft.4 §0.2). */
 export type AgIngestRejectReason = "not-object" | "type-not-string" | "seq-not-number";
@@ -81,12 +88,13 @@ export function ingestAgEvent(v: JsonValue, opts?: IngestOptions): AgEvent | und
     return undefined;
   }
   const env = v as { [k: string]: JsonValue };
-  if (AgEvent.safeParse(v).success) return copyJson(v) as unknown as AgEvent;
+  const tooDeep = exceedsDepth(v, AG_EVENT_MAX_DEPTH);
+  if (!tooDeep && AgEvent.safeParse(v).success) return copyJson(v) as unknown as AgEvent;
   const stub: AgIgnoredEvent = {
     type: "ext.agjson.ignored",
     seq: env["seq"] as number,
     ignoredType: env["type"] as string,
-    raw: copyJson(v),
+    raw: copyJson(tooDeep ? toJsonValueSafe(v) : v),
   };
   return stub as unknown as AgEvent;
 }
