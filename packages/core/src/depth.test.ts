@@ -3,7 +3,7 @@ import { Reducer } from "./reduce.js";
 import { ingestAgEvent, type AgIngestReject } from "./ingest.js";
 import { JSON_SAFE_MAX_DEPTH, JSON_SAFE_MAX_DEPTH_MARK, toJsonValueSafe } from "./wire.js";
 import { AG_EVENT_DEPTH_ALLOWANCE, AG_EVENT_MAX_DEPTH } from "./depth.js";
-import type { AgEvent, JsonValue } from "./agjson.js";
+import { JsonValue as JsonValueSchema, type AgEvent, type JsonValue } from "./agjson.js";
 import { copyJson } from "./copy-json.js";
 import { readStoredAgMemoryRecords, readStoredAgMessage, readStoredAgMessages } from "./record.js";
 import { toPersistable } from "./persist.js";
@@ -354,4 +354,39 @@ describe("the depth scan: a node budget for values that share nodes, never a par
       expect(r.result().memory ?? []).toEqual([]);
     });
   }
+});
+
+describe("a parse at the bound never throws, however deep the caller's stack", () => {
+  /** Runs `f` under `frames` extra stack frames, as a host calling deep inside its own stack does. */
+  const under = <T>(frames: number, f: () => T): T => (frames === 0 ? f() : under(frames - 1, f));
+  const payload = (d: number) => ({ type: "ext.acme.note", seq: 0, payload: nest(d - 1) });
+
+  for (const frames of [2000, 4000]) {
+    it(`under ${frames} host frames: an event at the bound is ingested as itself, and one past it as the stub in its slot`, () => {
+      const at = payload(AG_EVENT_MAX_DEPTH), past = payload(AG_EVENT_MAX_DEPTH + 1);
+      expect(depthOf(at)).toBe(AG_EVENT_MAX_DEPTH);
+      let a: AgEvent | undefined, b: AgEvent | undefined;
+      expect(() => {
+        a = under(frames, () => ingestAgEvent(at as JsonValue));
+        b = under(frames, () => ingestAgEvent(past as JsonValue));
+      }).not.toThrow();
+      expect(a?.type).toBe("ext.acme.note");
+      expect(b?.type).toBe("ext.agjson.ignored");
+    });
+  }
+
+  it("the JsonValue schema parses a value far past any stack depth, with the union's output", () => {
+    const v = nest(100_000);
+    let out: JsonValue | undefined;
+    let threw = false;
+    try {
+      out = JsonValueSchema.parse(v);
+    } catch {
+      threw = true;
+    }
+    // plain values only: a matcher handed the 100,000-deep value would overflow formatting it
+    expect(threw).toBe(false);
+    expect(depthOf(out)).toBe(100_000);
+    expect(out === v).toBe(false);
+  });
 });

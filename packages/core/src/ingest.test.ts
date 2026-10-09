@@ -210,9 +210,13 @@ describe("ingestAgEvent — unknown fields pass through at EVERY depth (SPEC.md:
   it("guard: agjson.ts has no value-changing zod combinator, so the raw copy IS the validated value", () => {
     // ingest returns a copy of the RAW input after validation (workspace#20 A.6).
     // That is only equal to the validated value while no schema rewrites values.
+    // The one transform is JsonValue's own: it applies the z.union rules in one
+    // iterative pass and returns the output that union returned, so it rewrites
+    // nothing the union did not.
     const src = readFileSync(fileURLToPath(new URL("./agjson.ts", import.meta.url)), "utf8");
     const hits = src.match(/\.(transform|default|catch|pipe|overwrite|prefault)\(|z\.coerce|\.coerce\.|preprocess\(/g) ?? [];
-    expect(hits).toEqual([]);
+    expect(hits).toEqual([".transform("]);
+    expect(src).toContain("export const JsonValue: z.ZodType<JsonValue> = z.unknown().transform((v, ctx) => {");
   });
 });
 

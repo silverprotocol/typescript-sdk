@@ -77,6 +77,20 @@ function envelopeProblem(v: JsonValue): AgIngestRejectReason | undefined {
   return undefined;
 }
 
+/**
+ * Whether `v` validates as an AgEvent. A throw from the parse (a getter, a
+ * schema recursing past the call stack) is a failure like any other, so the
+ * envelope becomes the stub in its slot and ingest keeps its never-throw
+ * contract.
+ */
+function validates(v: JsonValue): boolean {
+  try {
+    return AgEvent.safeParse(v).success;
+  } catch {
+    return false;
+  }
+}
+
 export function ingestAgEvent(v: JsonValue, opts?: IngestOptions): AgEvent | undefined {
   const problem = envelopeProblem(v);
   if (problem !== undefined) {
@@ -89,7 +103,7 @@ export function ingestAgEvent(v: JsonValue, opts?: IngestOptions): AgEvent | und
   }
   const env = v as { [k: string]: JsonValue };
   const tooDeep = exceedsDepth(v, AG_EVENT_MAX_DEPTH);
-  if (!tooDeep && AgEvent.safeParse(v).success) return copyJson(v) as unknown as AgEvent;
+  if (!tooDeep && validates(v)) return copyJson(v) as unknown as AgEvent;
   const stub: AgIgnoredEvent = {
     type: "ext.agjson.ignored",
     seq: env["seq"] as number,
