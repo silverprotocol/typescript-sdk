@@ -16,6 +16,10 @@ import type { JsonValue } from "./agjson.js";
 // RFC-6901 pointer parsing:
 //   • split on "/"; unescape "~1" → "/" then "~0" → "~" (ORDER MATTERS).
 //   • "" (empty pointer) = the whole document (root replacement).
+//
+// Member resolution: a token names an object member only when the object holds
+// it as its OWN member; an inherited name (toString, constructor, …) is absent.
+// `add` of such a name still creates it as an own member (RFC 6902 §4.1).
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Result type returned by applyPatch. */
@@ -63,6 +67,11 @@ function parsePointer(ptr: string): string[] | null {
     .map((tok) => tok.replace(/~1/g, "/").replace(/~0/g, "~"));
 }
 
+/** The object's OWN member `tok`, or undefined when it holds none (inherited names included). */
+function ownMember(node: { [k: string]: JsonValue }, tok: string): JsonValue | undefined {
+  return Object.hasOwn(node, tok) ? node[tok] : undefined;
+}
+
 /**
  * Resolve a JSON Pointer in a document, returning { parent, key, value } on
  * success, or null on failure (absent path, wrong type at an intermediate node).
@@ -90,7 +99,7 @@ function resolve(
       if (child === undefined) return null;
       node = child;
     } else if (isJsonObject(node)) {
-      const child = node[tok];
+      const child = ownMember(node, tok);
       if (child === undefined) return null;
       node = child;
     } else {
@@ -108,7 +117,7 @@ function resolve(
     if (value === undefined) return null;
     return { parent: node, key: String(idx), value };
   } else if (isJsonObject(node)) {
-    const value = node[lastTok];
+    const value = ownMember(node, lastTok);
     if (value === undefined) return null;
     return { parent: node, key: lastTok, value };
   }
@@ -177,7 +186,7 @@ function pointerSet(
       return { ok: true, doc: copy };
     } else if (isJsonObject(doc)) {
       // Object: add creates/replaces; replace requires the key to exist.
-      if (!isAdd && !(tok in doc)) return POINTER_FAIL; // replace: key must exist
+      if (!isAdd && !Object.hasOwn(doc, tok)) return POINTER_FAIL; // replace: own key must exist
       return { ok: true, doc: { ...doc, [tok]: value } };
     }
     return POINTER_FAIL; // scalar — cannot descend
@@ -199,7 +208,7 @@ function pointerSet(
     copy[idx] = childResult.doc;
     return { ok: true, doc: copy };
   } else if (isJsonObject(doc)) {
-    const child = doc[tok];
+    const child = ownMember(doc, tok);
     if (child === undefined) return POINTER_FAIL;
     const childResult = pointerSet(child, rest, value, isAdd);
     if (!childResult.ok) return POINTER_FAIL;
@@ -232,7 +241,7 @@ function pointerRemove(doc: JsonValue, tokens: string[]): PointerResult {
       copy.splice(idx, 1);
       return { ok: true, doc: copy };
     } else if (isJsonObject(doc)) {
-      if (!(tok in doc)) return POINTER_FAIL;
+      if (!Object.hasOwn(doc, tok)) return POINTER_FAIL;
       const { [tok]: _removed, ...rest } = doc;
       return { ok: true, doc: rest };
     }
@@ -255,7 +264,7 @@ function pointerRemove(doc: JsonValue, tokens: string[]): PointerResult {
     copy[idx] = childResult.doc;
     return { ok: true, doc: copy };
   } else if (isJsonObject(doc)) {
-    const child = doc[tok];
+    const child = ownMember(doc, tok);
     if (child === undefined) return POINTER_FAIL;
     const childResult = pointerRemove(child, rest);
     if (!childResult.ok) return POINTER_FAIL;
@@ -287,7 +296,7 @@ function deepEqual(a: JsonValue, b: JsonValue): boolean {
     const bKeys = Object.keys(b);
     if (aKeys.length !== bKeys.length) return false;
     for (const k of aKeys) {
-      if (!(k in b)) return false;
+      if (!Object.hasOwn(b, k)) return false;
       const av = a[k];
       const bv = b[k];
       if (av === undefined || bv === undefined) return false;

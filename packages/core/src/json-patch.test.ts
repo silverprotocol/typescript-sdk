@@ -471,3 +471,79 @@ describe("applyPatch — edge cases (Fix 3)", () => {
     if (result.ok) expect(result.value).toEqual({ a: 1, b: 2 });
   });
 });
+
+describe("applyPatch — member resolution reads own members only", () => {
+  it("replace of an inherited name (toString) on an object without it fails", () => {
+    expect(applyPatch({ k: 1 }, [{ op: "replace", path: "/toString", value: 1 }]).ok).toBe(false);
+  });
+
+  it("remove of an inherited name (constructor) fails", () => {
+    expect(applyPatch({ k: 1 }, [{ op: "remove", path: "/constructor" }]).ok).toBe(false);
+  });
+
+  it("move from an inherited name (hasOwnProperty) fails and the result stays cloneable", () => {
+    const doc: JsonValue = { k: 1 };
+    const result = applyPatch(doc, [{ op: "move", from: "/hasOwnProperty", path: "/h" }]);
+    expect(result.ok).toBe(false);
+    expect(() => structuredClone(doc)).not.toThrow();
+  });
+
+  it("copy from an inherited name (valueOf) fails", () => {
+    expect(applyPatch({ k: 1 }, [{ op: "copy", from: "/valueOf", path: "/v" }]).ok).toBe(false);
+  });
+
+  it("test against an inherited name fails", () => {
+    expect(applyPatch({ k: 1 }, [{ op: "test", path: "/toString", value: null }]).ok).toBe(false);
+  });
+
+  it("an inherited name at an intermediate token does not resolve", () => {
+    expect(applyPatch({ k: 1 }, [{ op: "add", path: "/constructor/x", value: 1 }]).ok).toBe(false);
+    expect(applyPatch({ k: 1 }, [{ op: "remove", path: "/constructor/name" }]).ok).toBe(false);
+  });
+
+  it("a from path through an inherited name (constructor/name) does not resolve for copy, move or test", () => {
+    expect(applyPatch({ k: 1 }, [{ op: "copy", from: "/constructor/name", path: "/n" }]).ok).toBe(false);
+    expect(applyPatch({ k: 1 }, [{ op: "test", path: "/constructor/name", value: "Object" }]).ok).toBe(false);
+    expect(applyPatch({ k: 1 }, [{ op: "move", from: "/constructor/name", path: "/n" }]).ok).toBe(false);
+  });
+
+  it("add of an inherited name still creates it as an own member (control)", () => {
+    const result = applyPatch({ k: 1 }, [{ op: "add", path: "/toString", value: "s" }]);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(Object.hasOwn(result.value as object, "toString")).toBe(true);
+    expect(result.value).toEqual({ k: 1, toString: "s" });
+  });
+
+  it("an own member whose name is inherited elsewhere resolves for replace, remove, move, copy and test", () => {
+    const doc: JsonValue = { toString: 1, constructor: 2 };
+    expect(applyPatch(doc, [{ op: "test", path: "/toString", value: 1 }]).ok).toBe(true);
+    const r = applyPatch(doc, [
+      { op: "replace", path: "/toString", value: 3 },
+      { op: "copy", from: "/toString", path: "/c" },
+      { op: "move", from: "/constructor", path: "/m" },
+      { op: "remove", path: "/c" },
+    ]);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value).toEqual({ toString: 3, m: 2 });
+  });
+
+  it("a test whose value holds a member the document lacks only by inheritance fails", () => {
+    expect(applyPatch({ a: {} }, [{ op: "test", path: "/a", value: { toString: 1 } }]).ok).toBe(false);
+  });
+});
+
+
+describe("applyPatch — a path through a member the document does not own fails", () => {
+  const doc = (): JsonValue => JSON.parse('{"k":1}') as JsonValue;
+  it("copy from a member the document does not own fails (last token)", () => {
+    expect(applyPatch(doc(), [{ op: "copy", from: "/__proto__", path: "/x" }]).ok).toBe(false);
+  });
+  it("copy from below a member the document does not own fails (mid-path token)", () => {
+    expect(applyPatch(doc(), [{ op: "copy", from: "/__proto__/__proto__", path: "/x" }]).ok).toBe(false);
+  });
+  it("add below a member the document does not own fails, and no prototype is touched", () => {
+    expect(applyPatch(doc(), [{ op: "add", path: "/__proto__/p", value: 1 }]).ok).toBe(false);
+    expect(({} as { p?: unknown }).p).toBeUndefined();
+  });
+});

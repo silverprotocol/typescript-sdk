@@ -4637,3 +4637,48 @@ describe("reduce — a memory record carries its write's _meta", () => {
     expect(toPersistable(r.result()).memory).toEqual([{ scope: "thread", key: "k", value: { a: 3 }, turnId: "t", _meta: { x: 1 } }]);
   });
 });
+
+describe("reduce — a JSON Patch naming an inherited member resyncs and leaves the value unchanged", () => {
+  const seeded = (seq: number) => ({ type: "state.snapshot", seq, snapshot: { k: 1 } });
+  const memory = (seq: number) => ({ type: "memory.write", seq, scope: "user", key: "m", value: { k: 1 } });
+  const ops: Array<[string, Record<string, unknown>]> = [
+    ["replace /toString", { op: "replace", path: "/toString", value: 1 }],
+    ["remove /constructor", { op: "remove", path: "/constructor" }],
+    ["move from /hasOwnProperty", { op: "move", from: "/hasOwnProperty", path: "/x" }],
+    ["copy from /valueOf", { op: "copy", from: "/valueOf", path: "/x" }],
+    ["test /toString", { op: "test", path: "/toString", value: 1 }],
+  ];
+  for (const [name, op] of ops) {
+    it(`state.delta ${name} resyncs, leaves the state unchanged, and result() returns`, () => {
+      const r = new Reducer();
+      r.push(seeded(0) as AgEvent);
+      r.push({ type: "state.delta", seq: 1, patch: [op] } as unknown as AgEvent);
+      expect(r.needsResync).toBe(true);
+      let out: ReturnType<Reducer["result"]> | undefined;
+      expect(() => {
+        out = r.result();
+      }).not.toThrow();
+      expect(out!.state).toEqual({ k: 1 });
+    });
+    it(`memory.write ${name} resyncs, leaves the record unchanged, and result() returns`, () => {
+      const r = new Reducer();
+      r.push(memory(0) as AgEvent);
+      r.push({ type: "memory.write", seq: 1, scope: "user", key: "m", patch: [op] } as unknown as AgEvent);
+      expect(r.needsResync).toBe(true);
+      let out: ReturnType<Reducer["result"]> | undefined;
+      expect(() => {
+        out = r.result();
+      }).not.toThrow();
+      expect(out!.memory?.[0]?.value).toEqual({ k: 1 });
+    });
+  }
+  it("add /toString applies as an own member and does not resync", () => {
+    const r = new Reducer();
+    r.push(seeded(0) as AgEvent);
+    r.push({ type: "state.delta", seq: 1, patch: [{ op: "add", path: "/toString", value: 1 }] } as unknown as AgEvent);
+    expect(r.needsResync).toBe(false);
+    const state = r.result().state as Record<string, unknown>;
+    expect(Object.hasOwn(state, "toString")).toBe(true);
+    expect(state["toString"]).toBe(1);
+  });
+});
