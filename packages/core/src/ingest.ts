@@ -45,7 +45,7 @@
 import { AgEvent, type JsonValue } from "./agjson.js";
 import { copyJson } from "./copy-json.js";
 import { exceedsDepth } from "./depth.js";
-import { AG_EVENT_MAX_DEPTH, toJsonValueSafe } from "./wire.js";
+import { AG_EVENT_MAX_DEPTH, JSON_SAFE_MAX_DEPTH_MARK, toJsonValueSafe } from "./wire.js";
 
 /** Why an input is not a well-formed envelope (draft.4 §0.2). */
 export type AgIngestRejectReason = "not-object" | "type-not-string" | "seq-not-number";
@@ -104,11 +104,20 @@ export function ingestAgEvent(v: JsonValue, opts?: IngestOptions): AgEvent | und
   const env = v as { [k: string]: JsonValue };
   const tooDeep = exceedsDepth(v, AG_EVENT_MAX_DEPTH);
   if (!tooDeep && validates(v)) return copyJson(v) as unknown as AgEvent;
+  // toJsonValueSafe recurses once per level up to its cut-off, so under a deep
+  // enough host stack even the cut-off copy can throw; the stub then carries
+  // the depth mark as its raw and still takes the event's slot.
+  let raw: JsonValue;
+  try {
+    raw = copyJson(tooDeep ? toJsonValueSafe(v) : v);
+  } catch {
+    raw = JSON_SAFE_MAX_DEPTH_MARK;
+  }
   const stub: AgIgnoredEvent = {
     type: "ext.agjson.ignored",
     seq: env["seq"] as number,
     ignoredType: env["type"] as string,
-    raw: copyJson(tooDeep ? toJsonValueSafe(v) : v),
+    raw,
   };
   return stub as unknown as AgEvent;
 }
