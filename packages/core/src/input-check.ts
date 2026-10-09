@@ -108,15 +108,27 @@ export function checkAgInput(raw: unknown): AgInputCheck {
   if (version.split(".")[0] !== MAJOR) return reject("major-mismatch", ["version"]);
   // then the rest.
   if (!isJsonValue(raw)) return reject("malformed", []);
-  const parsed = AgInput.safeParse(raw);
+  // A throw from the parse (a getter, a schema recursing past the call stack)
+  // is a malformed input, never a throw out of the check.
+  let parsed: ReturnType<typeof AgInput.safeParse>;
+  try {
+    parsed = AgInput.safeParse(raw);
+  } catch {
+    return reject("malformed", []);
+  }
   if (parsed.success) return { ok: true, input: copyJson(raw as JsonValue) as unknown as AgInput };
   const issues = parsed.error.issues as unknown as Issue[];
   const problems: Problem[] = [];
   // An undefined kind stops zod at the discriminator: judge the envelope
   // members anyway, and never the members only that kind would select.
   if (issues.some((i) => i.code === "invalid_union" && i.options !== undefined && samePath(toPath(i.path), ["kind"]))) {
-    const envelope = AgInputEnvelope.safeParse(raw);
-    if (!envelope.success) for (const i of envelope.error.issues as unknown as Issue[]) problems.push(...problemsOf(raw, i, []));
+    let envelope: ReturnType<typeof AgInputEnvelope.safeParse> | undefined;
+    try {
+      envelope = AgInputEnvelope.safeParse(raw);
+    } catch {
+      envelope = undefined;
+    }
+    if (envelope !== undefined && !envelope.success) for (const i of envelope.error.issues as unknown as Issue[]) problems.push(...problemsOf(raw, i, []));
   }
   for (const i of issues) problems.push(...problemsOf(raw, i, []));
   const pick = problems.find((p) => p.code === "malformed") ?? problems.find((p) => p.code === "unknown-value");

@@ -48,6 +48,14 @@ import { isJsonValueWithin } from "./depth.js";
  */
 const STORED_RECORD_MAX_DEPTH = AG_EVENT_MAX_DEPTH + AG_EVENT_DEPTH_ALLOWANCE;
 const isStoredJson = (v: unknown): v is JsonValue => isJsonValueWithin(v, STORED_RECORD_MAX_DEPTH);
+/** Whether `v` validates against `schema`; a throw from the parse is a failure, never a throw out of the reader. */
+const passes = (schema: { safeParse(v: unknown): { success: boolean } }, v: unknown): boolean => {
+  try {
+    return schema.safeParse(v).success;
+  } catch {
+    return false;
+  }
+};
 
 /** One omitted element or record: where it was, its type when it had one, and its verbatim value. */
 export interface AgRecordReport {
@@ -93,7 +101,7 @@ export function readStoredAgMessage(raw: unknown): AgRecordRead<AgMessage> {
   const kept: JsonValue[] = [];
   const reports: AgRecordReport[] = [];
   raw["content"].forEach((element, i) => {
-    if (AgBlock.safeParse(element).success) {
+    if (passes(AgBlock, element)) {
       kept.push(copyJson(element));
       return;
     }
@@ -112,7 +120,7 @@ export function readStoredAgMessage(raw: unknown): AgRecordRead<AgMessage> {
     });
   }
   // Every other defined field must be valid; else the whole record is reported.
-  if (!AgMessage.safeParse(view).success) return { reports: [report([], raw)] };
+  if (!passes(AgMessage, view)) return { reports: [report([], raw)] };
   return { value: view as unknown as AgMessage, reports };
 }
 
@@ -135,7 +143,7 @@ export function readStoredAgMemoryRecords(raws: readonly unknown[]): AgRecordsRe
   const value: AgMemoryRecord[] = [];
   const reports: AgRecordReport[] = [];
   raws.forEach((raw, i) => {
-    if (isStoredJson(raw) && isObject(raw) && AgMemoryRecord.safeParse(raw).success) value.push(copyJson(raw) as unknown as AgMemoryRecord);
+    if (isStoredJson(raw) && isObject(raw) && passes(AgMemoryRecord, raw)) value.push(copyJson(raw) as unknown as AgMemoryRecord);
     else reports.push(report([i], raw));
   });
   return { value, reports };

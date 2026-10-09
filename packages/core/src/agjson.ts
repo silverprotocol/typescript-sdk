@@ -7,16 +7,105 @@ import { z } from "zod";
 
 // Opaque JSON value (spec §0.1 "unknown" = any-JSON pass-through; NEVER `any`).
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };
-export const JsonValue: z.ZodType<JsonValue> = z.lazy(() =>
+// The rules: z.union([z.string(), z.number(), z.boolean(), z.null(),
+// z.array(JsonValue), z.record(z.string(), JsonValue)]). That union recursed
+// once per nesting level, so a value a thousand-odd levels deep overflowed the
+// call stack (sooner in a cold process or under a deep caller). JsonValue
+// applies the same rules in one iterative pass that builds the same output;
+// the union below runs only to report why a value fails.
+const JsonValueUnion: z.ZodType<JsonValue> = z.lazy(() =>
   z.union([
     z.string(),
     z.number(),
     z.boolean(),
     z.null(),
-    z.array(JsonValue),
-    z.record(z.string(), JsonValue),
+    z.array(JsonValueUnion),
+    z.record(z.string(), JsonValueUnion),
   ]),
 );
+
+/** zod's isPlainObject: what z.record accepts as a record. */
+function isZodPlainObject(o: object): boolean {
+  if (Array.isArray(o)) return false;
+  const ctor: unknown = (o as { constructor?: unknown }).constructor;
+  if (ctor === undefined || typeof ctor !== "function") return true;
+  const prot: unknown = (ctor as { prototype?: unknown }).prototype;
+  if (typeof prot !== "object" || prot === null || Array.isArray(prot)) return false;
+  return Object.prototype.hasOwnProperty.call(prot, "isPrototypeOf");
+}
+
+const isJsonLeaf = (x: unknown): boolean =>
+  typeof x === "string" || typeof x === "boolean" || x === null || (typeof x === "number" && Number.isFinite(x));
+
+/**
+ * The union's output for `v`, or undefined where the union rejects it, in one
+ * iterative pass: arrays element by element (a hole is undefined, so it
+ * fails), records as z.record reads them (zod's isPlainObject; own enumerable
+ * keys in Reflect.ownKeys order, `__proto__` skipped, a symbol key failing).
+ * A node reached twice yields one output node, as zod's memo does, so a cycle
+ * is copied as a cycle.
+ */
+function jsonValueOutput(v: unknown): { value: JsonValue } | undefined {
+  if (isJsonLeaf(v)) return { value: v as JsonValue };
+  if (typeof v !== "object" || v === null) return undefined;
+  type Node = JsonValue[] | { [k: string]: JsonValue };
+  const outputs = new Map<object, Node>();
+  const pending: object[] = [];
+  const nodeOf = (x: object): Node | undefined => {
+    const seen = outputs.get(x);
+    if (seen !== undefined) return seen;
+    let node: Node;
+    if (Array.isArray(x)) node = [];
+    else if (isZodPlainObject(x)) node = {};
+    else return undefined;
+    outputs.set(x, node);
+    pending.push(x);
+    return node;
+  };
+  const valueOf = (x: unknown): JsonValue | undefined => {
+    if (isJsonLeaf(x)) return x as JsonValue;
+    if (typeof x !== "object" || x === null) return undefined;
+    return nodeOf(x);
+  };
+  const root = nodeOf(v);
+  if (root === undefined) return undefined;
+  while (pending.length > 0) {
+    const x = pending.pop()!;
+    const node = outputs.get(x)!;
+    if (Array.isArray(x)) {
+      for (let i = 0; i < x.length; i++) {
+        const out = valueOf(x[i]);
+        if (out === undefined) return undefined;
+        (node as JsonValue[])[i] = out;
+      }
+      continue;
+    }
+    for (const key of Reflect.ownKeys(x)) {
+      if (key === "__proto__") continue;
+      if (!Object.prototype.propertyIsEnumerable.call(x, key)) continue;
+      if (typeof key !== "string") return undefined;
+      const out = valueOf((x as Record<string, unknown>)[key]);
+      if (out === undefined) return undefined;
+      (node as { [k: string]: JsonValue })[key] = out;
+    }
+  }
+  return { value: root };
+}
+
+export const JsonValue: z.ZodType<JsonValue> = z.unknown().transform((v, ctx) => {
+  const out = jsonValueOutput(v);
+  if (out !== undefined) return out.value;
+  let issues: z.core.$ZodIssue[];
+  try {
+    const r = JsonValueUnion.safeParse(v);
+    issues = r.success ? [] : r.error.issues;
+  } catch {
+    issues = [];
+  }
+  if (issues.length === 0) issues = [{ code: "custom", message: "Invalid JSON value", path: [], input: v } as z.core.$ZodIssue];
+  for (const issue of issues) ctx.issues.push(issue as never);
+  return z.NEVER;
+});
 
 // Host-only namespaced side metadata (spec §0.4 `_meta`).
 export const AgMeta = z.record(z.string(), JsonValue);
