@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { AgEvent, type JsonValue } from "./agjson.js";
+import { AgEvent, JsonValue } from "./agjson.js";
 import { ingestAgEvent, ingestAgEvents, type AgIngestReject } from "./ingest.js";
 import { Reducer } from "./reduce.js";
 
@@ -217,6 +217,30 @@ describe("ingestAgEvent — unknown fields pass through at EVERY depth (SPEC.md:
     const hits = src.match(/\.(transform|default|catch|pipe|overwrite|prefault)\(|z\.coerce|\.coerce\.|preprocess\(/g) ?? [];
     expect(hits).toEqual([".transform("]);
     expect(src).toContain("export const JsonValue: z.ZodType<JsonValue> = z.unknown().transform((v, ctx) => {");
+  });
+
+  it("premise: JsonValue's transform returns a copy equal to its input, as the union did (less an own __proto__ member, which the union never kept)", () => {
+    const np = Object.assign(Object.create(null) as Record<string, unknown>, { a: 1, b: [2] });
+    const battery: Array<[string, unknown]> = [
+      ["nested object and array", { a: { b: [1, { c: "x" }, null, true] }, d: [] }],
+      ["-0 at the root and nested", { z: -0, l: [-0] }],
+      ["a null-prototype object", { inner: np }],
+    ];
+    for (const [, x] of battery) {
+      const out = JsonValue.parse(x);
+      expect(out).toEqual(x);
+      expect(JSON.stringify(out)).toBe(JSON.stringify(x)); // key order kept
+      expect(out).not.toBe(x); // a copy, never the input
+    }
+    expect(Object.is((JsonValue.parse({ z: -0 }) as { z: number }).z, -0)).toBe(true);
+    const withProto = JSON.parse('{"__proto__":{"x":1},"a":{"__proto__":2,"b":1}}') as JsonValue;
+    const out = JsonValue.parse(withProto) as Record<string, unknown>;
+    expect(out).toEqual({ a: { b: 1 } });
+    expect(Object.hasOwn(out, "__proto__")).toBe(false);
+    expect(Object.hasOwn(out["a"] as object, "__proto__")).toBe(false);
+    // and no copied node took the member as its prototype
+    expect(Object.getPrototypeOf(out)).toBe(Object.prototype);
+    expect(Object.getPrototypeOf(out["a"])).toBe(Object.prototype);
   });
 });
 
