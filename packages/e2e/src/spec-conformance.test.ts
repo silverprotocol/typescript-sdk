@@ -5,6 +5,7 @@ import {
   Reducer,
   AgEvent,
   AgClosedEvent,
+  StreamAssembler,
   AgReduceResult,
   AgInput,
   AgA2uiFunctionResponse,
@@ -14,6 +15,8 @@ import {
   AGJSON_VERSION,
   ingestAgEvent,
   ingestAgEvents,
+  AG_EVENT_MAX_DEPTH,
+  JSON_SAFE_MAX_DEPTH,
   readStoredAgMessage,
   readStoredAgMessages,
   readStoredAgMemoryRecords,
@@ -135,13 +138,14 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 21, leg: "live-mixed", title: "Reasoning-inclusive usage identity (draft.5, Gemini Live): the exclusive and inclusive reports summed into one turn fold to {6646, 1019, 746, totalTokens 7665, totalTokensRaw 7409}", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.21(live-mixed), a two-event ADK feed with one turnId" },
   { n: 21, leg: "no-raw-on-candidates", title: "Reasoning-inclusive usage identity (draft.5): none of the draft.3 candidatesTokenCount vectors yields totalTokensRaw", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.21(no-raw-on-candidates)" },
   { n: 22, title: "Forward-compatible ingest (draft.4; draft.8 legs f–g + the built-record clause): an ignored well-formed event occupies its seq slot, is reported in place, and the fold is unchanged; an unknown block type nested in a carrier event and an undefined closed-set value inside a terminal stub the whole event; an unknown top-level member of a record-building event reaches no built record, block or turn while a snapshot-carried member survives", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.22, reference ingest (ingestAgEvents) → reduce" },
+  { n: 22, leg: "depth", title: "Forward-compatible ingest (rc.1, §0.2 depth bound): a well-formed envelope in which a node sits deeper than the consumer's bound (the reference's AG_EVENT_MAX_DEPTH) is ignored in place — the ingest yields the non-folding ext.agjson.ignored stub carrying its seq (its raw cut at the emit path's depth limit, so the stub itself stays within the bound), the slot is occupied and the next seq folds without a park; a reducer handed the deep event directly counts the slot and folds nothing; an envelope at the bound folds normally", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.22(depth) \"a well-formed envelope past AG_EVENT_MAX_DEPTH is ignored in place with its seq slot kept: the ingest stub (raw cut at JSON_SAFE_MAX_DEPTH) and a direct push both leave the fold unparked and the next seq folds; an envelope at the bound folds normally; the bound counts containers above a node from the event root\" (runs only on a core at or after the depth-guard commit 93065f06)" },
   { n: 23, leg: "adk", title: "Unmapped native value (draft.4): an ADK finish reason with no AgJSON target → finishReason other|unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.23(adk) via createAdkNormalizer (e59e976)" },
   { n: 23, leg: "adk-blocked", title: "Unmapped native value (draft.8): an ADK promptFeedback.blockReason with no AgJSON target → prompt.blocked reason other + reasonRaw verbatim; a mapped block reason carries no reasonRaw", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.23(adk-blocked) via createAdkNormalizer over a synthetic promptFeedback native (ADK 2.1.0 builds no promptFeedback event of its own; its prompt block is the errorCode shape §8.0 item 34 recognises, see §10.57; this leg serves other producers of the promptFeedback shape); the facet leg google-adk/src/index.test.ts \"an unmapped promptFeedback.blockReason emits prompt.blocked with reason … and reasonRaw verbatim; a mapped reason carries no reasonRaw\"" },
   { n: 23, leg: "openai", title: "Unmapped native value (draft.4): an OpenAI incomplete_details.reason with no AgJSON target → finishReason unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.23(openai) via createOpenaiNormalizer (the unmapped incomplete_details carry, ff358b6)" },
   { n: 23, leg: "claude", title: "Unmapped native value (draft.4): an unmapped Claude stop_reason → finishReason unknown + finishReasonRaw verbatim; mapped and null stop_reasons carry no finishReasonRaw", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.23(claude) via createClaudeNormalizer (fe87254)" },
   { n: 23, leg: "vercel", title: "Unmapped native value (draft.4): a vercel finish whose unified reason falls back (other/unknown) carries the native rawFinishReason as finishReasonRaw", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.23(vercel) via createVercelNormalizer (f2937f9)" },
   { n: 24, leg: "scan", title: "Tool-result errorText scoping (draft.4): no replay golden carries errorText on a non-error result", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.24(scan), a scan of every corpus/*/*.agjson.json" },
-  { n: 24, leg: "adk", title: "ADK failure envelope (draft.4, §8.0 item 25): the error/denied/placeholder/negative vectors", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.24(adk) via createAdkNormalizer (4fa8ba4)" },
+  { n: 24, leg: "adk", title: "ADK failure envelope (draft.4, §8.0 item 25; rc.1 scoping): the error/denied/placeholder/negative vectors; a response already classified by isError:true carries neither errorText nor errorCode even beside error and error_code; a rejection literal in error, or CONFIRMATION_REJECTED in the string error_code, else in the string errorCode, folds to denied with no errorText, no isError and no errorCode; with both siblings present, error_code decides", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.24(adk) via createAdkNormalizer (4fa8ba4), incl. \"isError:true beside error x and error_code E → outcome error with isError and neither errorText nor errorCode: the isError classification comes first (rc.1, §8.0 item 25's scoped rule)\" and \"a rejection literal in error, or CONFIRMATION_REJECTED in error_code/errorCode, → outcome denied with no errorText, no isError and no errorCode (rc.1, §8.0 item 25 (b))\"" },
   { n: 25, leg: "fold", title: "Framework pause and completion closure (draft.4; the paused close at the invocation's end, draft.7): a pause closes paused as the turn's last event — from push() on the completion signal, else from flush() — an invocation that emits after the pause signal folds without a resync in both modes, completed-without-signal Workflow and cut-short invokes close turn.abort from flush(), never success, no park", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.25(fold) over the engine-built fixtures/adk-pause natives (3c82c3a); step-1 scope mirrored by adk-pause.test.ts" },
   { n: 25, leg: "answer-id", title: "Framework pause and completion closure (draft.4): each ask's toolCallId is the adk_request_* call id (the answering id), one ask per pending request, kind per §8.0 item 26", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.25(answer-id) over fixtures/adk-pause (step 2, 352850a)" },
   { n: 25, leg: "host-completion", title: "Framework pause and completion closure (draft.4): with the §8.0 obligation-4 host-completion event fed, a completed invoke closes turn.done success from push(); a pause closes paused from push() on it, the turn's last event", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.25(host-completion), createAdkNormalizer({ hostCompletion: true }) + ADK_HOST_COMPLETE_TYPE (step 2, 352850a)" },
@@ -184,7 +188,8 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 36, leg: "openai", title: "Nested-turn closure (draft.4): a handoff's nested turn closes at handoff_occurred with turn.done{success, finishReason unknown, no usage} immediately before its subagent.done; the fold without subagent.done is structurally identical; the handoff event follows the bracket's subagent.done on the source turn and carries kind transfer (draft.5 §8.0 item 29)", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.36 over every corpus golden with subagent.start (openai: handoff-gpt6sol, enrolled 450ece8); unit legs openai-agents/src/index.test.ts \"createOpenaiNormalizer — HO handoff close (the transfer result + the nested terminal)\"" },
   { n: 36, leg: "adk", title: "Nested-turn closure (draft.4; draft.5 escalate): an ADK event with actions.escalate yields exactly one handoff{kind:escalate} with no toAgentName and no subagent.start (§8.0 item 29)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.36(adk-escalate), createAdkNormalizer fixture (no committed escalate capture)" },
   { n: 36, leg: "vercel", title: "Nested-turn closure (draft.4)", disposition: "N/A", evidence: "none", citation: "§8.0 applicability: this facet emits no subagent.* (no nested turns)" },
-  { n: 37, title: "Shared-state fold (draft.4): an object patch replaces each top-level key whole ({cfg:{a:1,b:2}} then {cfg:{a:5}} → {cfg:{a:5}}); a null member is stored present; a scalar patch is a no-op without a resync; a JSON Patch array against no working copy sets needsResync; a sibling member survives a key-replace patch and only a state.snapshot removes it (draft.5)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.37, reference reduce() + Reducer (6e69589)" },
+  { n: 36, leg: "core-flush", title: "Nested-turn closure (rc.1 MAY-omit arm): a stream cut with a nested turn open closes it at flush with exactly one turn.abort{stream-truncated} carrying that turnId and no usage, and no subagent.done — the subagent.done MAY be omitted after a nested turn closed at flush (INV-TURN); driver: the core StreamAssembler, never createClaudeNormalizer (whose flush emits turn.abort then subagent.done, the claude row)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.36 \"(core-flush) the core StreamAssembler's flush over an open nested turn emits exactly one turn.abort{stream-truncated} with that turnId, no usage and no subagent.done; the fold needs no resync\"" },
+  { n: 37, title: "Shared-state fold (draft.4; rc.1 empty patch): an empty JSON Patch array as the first state event, or an empty memory.write patch against an unseeded record, applies as a no-op with no resync and seeds nothing; an object patch replaces each top-level key whole ({cfg:{a:1,b:2}} then {cfg:{a:5}} → {cfg:{a:5}}); a null member is stored present; a scalar patch is a no-op without a resync; a JSON Patch array against no working copy sets needsResync; a sibling member survives a key-replace patch and only a state.snapshot removes it (draft.5)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.37, reference reduce() + Reducer (6e69589)" },
   { n: 38, leg: "adk", title: "ADK shared-state fixture (draft.4): the golden whose native stream rewrites part of an object-valued key folds to ADK's own session state, without a resync", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.38(adk): state-fold-gemini38, the committed golden and a fresh createAdkNormalizer replay of its native, vs adk.session-state.json (7f3bce9; every sidecar also gated by replay.test.ts describe \"shared state — the reference fold equals the framework's own session state (session-state sidecars)\")" },
   { n: 38, leg: "claude", title: "ADK shared-state fixture (draft.4)", disposition: "N/A", evidence: "none", citation: "§10 item 38's own scoping binds the google-adk normalizer: the Claude Agent SDK has no key-addressed shared state" },
   { n: 38, leg: "openai", title: "ADK shared-state fixture (draft.4)", disposition: "N/A", evidence: "none", citation: "§10 item 38's own scoping binds the google-adk normalizer: the OpenAI Agents SDK has no key-addressed shared state" },
@@ -304,6 +309,7 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 66, leg: "claude", title: "ADK interrupted close (rc.1)", disposition: "N/A", evidence: "none", citation: "§10 item 66 binds normalizers targeting ADK (the Live `interrupted` signal, §8.0 item 17); not an item-66 leg for this framework" },
   { n: 66, leg: "openai", title: "ADK interrupted close (rc.1)", disposition: "N/A", evidence: "none", citation: "§10 item 66 binds normalizers targeting ADK (the Live `interrupted` signal, §8.0 item 17); not an item-66 leg for this framework" },
   { n: 66, leg: "vercel", title: "ADK interrupted close (rc.1)", disposition: "N/A", evidence: "none", citation: "§10 item 66 binds normalizers targeting ADK (the Live `interrupted` signal, §8.0 item 17); not an item-66 leg for this framework" },
+  { n: 67, title: "Terminal usage coverage (rc.1): for every top-level turn of every replay golden whose turn.done carries usage, each of inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, reasoningTokens, toolUseInputTokens and totalTokens present on both objects, whatever either object's cumulative flag, is at least the final message.end.usage of each of the turn's own messages; every nested terminal and every turn.abort carries no usage; a top-level turn.error is outside the first clause (informative in the item). Disclosed population at 447fb1ef: 81 goldens, 100 top-level turn.done with usage, pairs on claude and vercel goldens only (claude 68 / vercel 18 — no openai or adk message.end carries usage outside the three interrupted-abort turns), toolUseInputTokens compared on no golden, totalTokens on vercel only, 2 top-level turn.error outside the leg", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.67, a field-wise sweep of every corpus/*/*.agjson.json that prints and asserts the disclosed population" },
   { n: 65, leg: "ext-and-request", title: "Wire-selected prototypes at the decode (rc.1): a consuming ingest of an ext.* event, and the request carriers of an AgClientCapabilities (AgInputEnvelope.capabilities) and an AgHitlAnswer (a resume's answers[]) through the reference's AgInput receiver, drop an own __proto__ planted at the top level and nested, once per value leg, and return the value, not a stub or a rejection, deep-equal to the unplanted one; the bare parse keeps the member; Object.prototype gains no member", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.65 (ext …) and (request …) via core ingestAgEvent and checkAgInput; the request legs bind implementations that ship such a receiver (item 65), and the reference's is checkAgInput" },
 ];
 
@@ -1972,6 +1978,30 @@ describe("§10.24(adk) + §10.23(adk) — the ADK failure envelope and the unmap
   it("{error:\"x\", error_code:\"E_X\"} → outcome error, errorText x, errorCode E_X", () => {
     expect(doneFor({ error: "x", error_code: "E_X" })).toMatchObject({ outcome: "error", errorText: "x", errorCode: "E_X" });
   });
+  it("isError:true beside error x and error_code E → outcome error with isError and neither errorText nor errorCode: the isError classification comes first (rc.1, §8.0 item 25's scoped rule)", () => {
+    const d = doneFor({ isError: true, error: "x", error_code: "E" });
+    expect(d).toMatchObject({ outcome: "error", isError: true });
+    expect("errorCode" in d).toBe(false);
+    expect("errorText" in d).toBe(false);
+  });
+  it("a rejection literal in error, or CONFIRMATION_REJECTED in error_code/errorCode, → outcome denied with no errorText, no isError and no errorCode (rc.1, §8.0 item 25 (b))", () => {
+    for (const response of [
+      { error: "This tool call is rejected." },
+      { error: "Tool call rejected from confirmation flow." },
+      { error: "x", error_code: "CONFIRMATION_REJECTED" },
+      { error: "x", errorCode: "CONFIRMATION_REJECTED" },
+      { error: "Inline script execution was not confirmed and was rejected.", errorCode: "CONFIRMATION_REJECTED" }, // @google/adk run_skill_inline_script_tool
+      { error: "boom", error_code: "CONFIRMATION_REJECTED", errorCode: "X" }, // error_code is read first
+    ]) {
+      const d = doneFor(response);
+      expect(d["outcome"], JSON.stringify(response)).toBe("denied");
+      for (const k of ["errorText", "isError", "errorCode"]) expect(k in d, `${JSON.stringify(response)} carries no ${k}`).toBe(false);
+    }
+  });
+  it("both siblings present with CONFIRMATION_REJECTED only in errorCode → outcome error (the string error_code is read first; rc.1, §8.0 item 25 (b))", () => {
+    const d = doneFor({ error: "boom", error_code: "X", errorCode: "CONFIRMATION_REJECTED" });
+    expect(d).toMatchObject({ outcome: "error", errorText: "boom", errorCode: "X" });
+  });
   it("{error:{code:\"E\"}} → outcome error with no errorText", () => {
     const d = doneFor({ error: { code: "E" } });
     expect(d["outcome"]).toBe("error");
@@ -3195,10 +3225,32 @@ describe("§10.37 — shared-state fold (draft.4; §5 state.delta)", () => {
     }
   });
 
-  it("a JSON Patch array against no working copy sets needsResync (never silently based on {})", () => {
+  it("a non-empty JSON Patch array against no working copy sets needsResync (never silently based on {})", () => {
     const r = fold([TS, delta(1, [{ op: "add", path: "/a", value: 1 }])]);
     expect(r.needsResync).toBe(true);
     expect(r.result.state).toBeUndefined();
+  });
+
+  it("an empty JSON Patch array ([]) as the first state event applies as a no-op: the working copy stays absent and no resync is set; against a seeded copy it keeps it (rc.1)", () => {
+    const first = fold([TS, delta(1, [])]);
+    expect(first.needsResync).toBe(false);
+    expect(first.result.state).toBeUndefined();
+    const seeded = fold([TS, delta(1, { a: 1 }), delta(2, [])]);
+    expect(seeded.needsResync).toBe(false);
+    expect(seeded.result.state).toEqual({ a: 1 });
+    const then = fold([TS, delta(1, []), delta(2, [{ op: "add", path: "/a", value: 1 }])]);
+    expect(then.needsResync).toBe(true); // the non-empty patch against the still-absent copy parks
+  });
+
+  it("an empty memory.write patch ([]) against an unseeded record applies no operation, seeds no record and sets no resync (rc.1)", () => {
+    const evs = [TS, { type: "memory.write", seq: 1, scope: "user", key: "k", patch: [] } as unknown as AgEvent];
+    const batch = reduce(evs);
+    const acc = new Reducer();
+    for (const e of evs) acc.push(e);
+    expect(batch.needsResync).toBe(false);
+    expect(acc.needsResync).toBe(false);
+    expect(batch.result.memory ?? []).toEqual([]);
+    expect(acc.result().memory ?? []).toEqual([]);
   });
 
   it("a key-replace patch never removes a sibling member: {a:1,b:1} then {a:2} fold to {a:2,b:1}; a state.snapshot {c:1} is the removal path", () => {
@@ -5301,5 +5353,168 @@ describe("§10.66 — ADK interrupted close (rc.1): a Live stream whose interrup
       }
     }
     expect(runs).toBe(3);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.36 (rc.1 MAY-omit arm) — the core StreamAssembler's flush over an open
+// nested turn: INV-TURN lets the subagent.done be omitted after a nested turn
+// closed at flush. Driver named in the title; the claude facet's own flush emits
+// turn.abort then subagent.done (its row) and is not this leg.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.36 — nested-turn closure at flush (rc.1): the subagent.done MAY be omitted after a nested turn closed at flush", () => {
+  it("(core-flush) the core StreamAssembler's flush over an open nested turn emits exactly one turn.abort{stream-truncated} with that turnId, no usage and no subagent.done; the fold needs no resync", () => {
+    const a = new StreamAssembler();
+    a.openTurn("t1", "th1");
+    a.subagentStart("S", "t1");
+    a.openMessage({ id: "ms", role: "assistant", turnId: "S", threadId: "th1" });
+    const evs = [...a.drain(), ...a.flush()];
+    for (const e of evs) expect(AgEvent.safeParse(e).success, JSON.stringify(e)).toBe(true);
+    const types = evs.map((e) => e.type);
+    expect(types).not.toContain("subagent.done");
+    const nestedTerms = evs.filter((e) => ["turn.done", "turn.error", "turn.abort"].includes(e.type) && (e as { turnId?: string }).turnId === "S");
+    expect(nestedTerms).toHaveLength(1);
+    expect(nestedTerms[0]).toMatchObject({ type: "turn.abort", reason: "stream-truncated" });
+    expect((nestedTerms[0] as { usage?: unknown }).usage).toBeUndefined();
+    // innermost first: the nested turn closes before its parent
+    expect(types.indexOf("turn.abort")).toBeLessThan(types.lastIndexOf("turn.abort"));
+    const r = reduce(evs);
+    expect(r.needsResync).toBe(false);
+    expect(r.result.turns.find((t) => t.turnId === "S")?.outcome?.type).toBe("aborted");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.67 — Terminal usage coverage (rc.1; §4). A field-wise sweep over every
+// committed golden: a top-level turn.done's per-step token counters are at
+// least the final message.end.usage of each of the turn's own messages;
+// nested terminals and turn.abort carry no usage; turn.error is outside the
+// ≥ leg (the §4 costUsd-scope carve-out). The exercised set is counted and
+// printed, since only message.end events that carry usage exercise the ≥ leg.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.67 — terminal usage coverage (rc.1): a top-level turn.done's usage is at least each own message's final message.end.usage, field-wise; nested terminals and aborts carry none", () => {
+  const COUNTERS = ["inputTokens", "outputTokens", "cacheReadTokens", "cacheWriteTokens", "reasoningTokens", "toolUseInputTokens", "totalTokens"] as const;
+  type Ev = Record<string, unknown>;
+  it("on every replay golden, over the seven token counters whatever either object's cumulative flag: 0 field-wise violations; every nested terminal and every turn.abort usage-less; the exercised population is printed and disclosed (pairs on claude and vercel goldens only; toolUseInputTokens compared nowhere)", () => {
+    const corpus = new URL("../corpus/", import.meta.url);
+    const bad: string[] = [];
+    let goldens = 0, topDone = 0, comparisons = 0, nested = 0, aborts = 0, errors = 0;
+    const pairsBy: Record<string, number> = {}; // (terminal, own message with usage) pairs per framework
+    const fieldsCompared = new Set<string>();
+    for (const dir of readdirSync(corpus).sort()) {
+      for (const f of readdirSync(new URL(`${dir}/`, corpus)).filter((x) => x.endsWith(".agjson.json")).sort()) {
+        goldens++;
+        const evs = JSON.parse(readFileSync(new URL(`${dir}/${f}`, corpus), "utf8")) as Ev[];
+        const tag = `${dir}/${f}`;
+        const nestedIds = new Set(evs.filter((e) => e["type"] === "subagent.start").map((e) => e["turnId"] as string));
+        const msgTurn = new Map<string, string>();
+        const lastUsage = new Map<string, Record<string, number>>(); // messageId → the final message.end.usage
+        for (const e of evs) {
+          if (e["type"] === "message.start" && typeof e["turnId"] === "string") msgTurn.set(e["id"] as string, e["turnId"] as string);
+          if (e["type"] === "message.end" && e["usage"] && typeof e["usage"] === "object") lastUsage.set(e["id"] as string, e["usage"] as Record<string, number>);
+        }
+        for (const e of evs) {
+          const type = e["type"] as string;
+          if (!["turn.done", "turn.error", "turn.abort"].includes(type)) continue;
+          const turnId = e["turnId"] as string | undefined;
+          if (turnId !== undefined && nestedIds.has(turnId)) {
+            nested++;
+            if (e["usage"] !== undefined) bad.push(`${tag}: nested terminal ${turnId} carries usage`);
+            continue;
+          }
+          if (type === "turn.abort") {
+            aborts++;
+            if (e["usage"] !== undefined) bad.push(`${tag}: turn.abort ${String(turnId)} carries usage`);
+            continue;
+          }
+          if (type === "turn.error") { errors++; continue; } // outside the ≥ leg (§4 costUsd-scope carve-out)
+          const usage = e["usage"] as Record<string, number> | undefined;
+          if (usage === undefined) continue;
+          topDone++;
+          for (const [mid, mu] of lastUsage) {
+            if (msgTurn.get(mid) !== turnId) continue;
+            const fw = f.slice(0, -".agjson.json".length);
+            pairsBy[fw] = (pairsBy[fw] ?? 0) + 1;
+            for (const k of COUNTERS) {
+              if (typeof usage[k] !== "number" || typeof mu[k] !== "number") continue;
+              comparisons++;
+              fieldsCompared.add(k);
+              if (usage[k] < mu[k]) bad.push(`${tag}: ${String(turnId)}.${k} ${usage[k]} < ${mid}'s final message.end ${mu[k]}`);
+            }
+          }
+        }
+      }
+    }
+    // the exercised set, for the row's disclosure
+    console.info(`§10.67 sweep: goldens ${goldens}, top-level turn.done with usage ${topDone}, pairs ${JSON.stringify(pairsBy)}, field comparisons ${comparisons} over ${[...fieldsCompared].sort().join(",")}, nested terminals ${nested}, aborts ${aborts}, turn.error (outside the ≥ leg) ${errors}`);
+    expect(goldens).toBeGreaterThanOrEqual(81);
+    expect(comparisons).toBeGreaterThan(0);
+    // the disclosed population (the delta bar's verify-stage figures at 447fb1ef): pairs exist only where a message.end carries usage
+    expect(Object.keys(pairsBy).sort()).toEqual(["claude", "vercel"]);
+    expect(fieldsCompared.has("toolUseInputTokens")).toBe(false);
+    expect(bad).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.22 (depth) — §0.2's depth bound (rc.1): a well-formed envelope past the
+// consumer's bound is ignored in place with its seq slot kept, never a park and
+// never a parse failure. Binds a consumer that adopts a bound; the reference's
+// is AG_EVENT_MAX_DEPTH, counted from the event root (root at depth 0, a
+// node's depth = the containers above it). Runs only on a core at or after the
+// depth-guard commit; on the earlier guard it is red by design.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.22 (depth) — an envelope past the consumer's depth bound is ignored with its seq slot kept (rc.1, §0.2)", () => {
+  const nest = (levels: number): JsonValue => { let v: JsonValue = 1; for (let i = 0; i < levels; i++) v = { a: v }; return v; };
+  const open = [
+    { type: "turn.start", seq: 0, threadId: "th1", turnId: "t1" },
+    { type: "message.start", seq: 1, id: "m1", role: "assistant", turnId: "t1", threadId: "th1" },
+    { type: "tool.start", seq: 2, toolCallId: "c1", name: "calc", turnId: "t1", messageId: "m1" },
+  ] as unknown as JsonValue[];
+  const assembled = (levels: number) => ({ type: "tool.args.assembled", seq: 3, toolCallId: "c1", input: nest(levels) }) as unknown as JsonValue;
+  const next = { type: "text.start", seq: 4, id: "b1", turnId: "t1", messageId: "m1" } as unknown as JsonValue;
+  const maxNesting = (v: unknown, d = 0): number => (v !== null && typeof v === "object" ? Math.max(d, ...Object.values(v as Record<string, unknown>).map((x) => maxNesting(x, d + 1))) : d);
+
+  it("a well-formed envelope past AG_EVENT_MAX_DEPTH is ignored in place with its seq slot kept: the ingest stub (raw cut at JSON_SAFE_MAX_DEPTH) and a direct push both leave the fold unparked and the next seq folds; an envelope at the bound folds normally; the bound counts containers above a node from the event root", () => {
+    // the boundary, calibrated against the reference's own count: the first nesting the ingest stubs must sit at the
+    // bound (`input` is at depth 1 below the event root; each `{a: …}` adds one container), within one level either way
+    const rejects: unknown[] = [];
+    let firstStubbed = -1;
+    for (let k = AG_EVENT_MAX_DEPTH - 4; k <= AG_EVENT_MAX_DEPTH + 2; k++) {
+      if (ingestAgEvent(assembled(k), { onReject: (r) => rejects.push(r) })?.type === "ext.agjson.ignored") { firstStubbed = k; break; }
+    }
+    expect(firstStubbed).toBeGreaterThanOrEqual(AG_EVENT_MAX_DEPTH - 2);
+    expect(firstStubbed).toBeLessThanOrEqual(AG_EVENT_MAX_DEPTH);
+    const atBound = firstStubbed - 1; // the deepest envelope the ingest still parses
+    const okEv = ingestAgEvent(assembled(atBound), { onReject: (r) => rejects.push(r) });
+    expect(okEv?.type).toBe("tool.args.assembled");
+    const deepEv = assembled(firstStubbed); // one container deeper than the bound
+    const stub = ingestAgEvent(deepEv, { onReject: (r) => rejects.push(r) }) as unknown as { type: string; seq: number; ignoredType?: string; raw?: unknown } | undefined;
+    expect(rejects).toEqual([]); // a well-formed envelope is never a reject
+    expect(stub).toMatchObject({ type: "ext.agjson.ignored", seq: 3, ignoredType: "tool.args.assembled" });
+    expect(stub?.raw).toBeDefined();
+    expect(maxNesting(stub)).toBeLessThanOrEqual(JSON_SAFE_MAX_DEPTH + 3); // the stub stays within the bound: raw cut at the emit limit
+    expect(() => JSON.stringify(stub)).not.toThrow();
+    // via the ingest: the stub occupies seq 3 and seq 4 folds
+    const viaIngest = new Reducer();
+    for (const e of [...open, stub as unknown as JsonValue, next]) viaIngest.push(ingestAgEvent(e) as AgEvent);
+    expect(viaIngest.needsResync).toBe(false);
+    expect(viaIngest.result().messages[0]?.content.some((b) => b.type === "text")).toBe(true);
+    // a direct push of the deep event: the slot is counted, nothing is folded, no park
+    const direct = new Reducer();
+    for (const e of open) direct.push(ingestAgEvent(e) as AgEvent);
+    direct.push(deepEv as unknown as AgEvent);
+    expect(direct.needsResync).toBe(false);
+    direct.push(ingestAgEvent(next) as AgEvent);
+    expect(direct.needsResync).toBe(false);
+    expect(JSON.stringify(direct.result())).not.toContain('"input":{"a":{"a"'); // the deep input was folded no further
+    expect(direct.result().messages[0]?.content.some((b) => b.type === "text")).toBe(true);
+    // control: at the bound the event folds normally
+    const control = reduce([...open, assembled(atBound), next].map((e) => ingestAgEvent(e) as AgEvent));
+    expect(control.needsResync).toBe(false);
+    expect(JSON.stringify(control.result.messages)).toContain('"tool-call"');
   });
 });
