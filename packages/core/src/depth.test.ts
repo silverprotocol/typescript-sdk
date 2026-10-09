@@ -361,7 +361,7 @@ describe("a parse at the bound never throws, however deep the caller's stack", (
   const under = <T>(frames: number, f: () => T): T => (frames === 0 ? f() : under(frames - 1, f));
   const payload = (d: number) => ({ type: "ext.acme.note", seq: 0, payload: nest(d - 1) });
 
-  for (const frames of [2000, 4000]) {
+  for (const frames of [2000, 4000, 6000, 8000]) {
     it(`under ${frames} host frames: an event at the bound is ingested as itself, and one past it as the stub in its slot`, () => {
       const at = payload(AG_EVENT_MAX_DEPTH), past = payload(AG_EVENT_MAX_DEPTH + 1);
       expect(depthOf(at)).toBe(AG_EVENT_MAX_DEPTH);
