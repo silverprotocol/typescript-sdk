@@ -15,7 +15,8 @@
     { "path": "../core" },
     { "path": "../claude-agent-sdk" },
     { "path": "../openai-agents" },
-    { "path": "../google-adk" }
+    { "path": "../google-adk" },
+    { "path": "../vercel-ai" }
   ],
   "include": ["src"]
 }
