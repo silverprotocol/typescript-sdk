@@ -27,7 +27,14 @@ import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const ts = createRequire(join(root, "package.json"))("typescript");
+// The gate drives the TypeScript compiler API (parsed config, program, declaration
+// emit). TypeScript 7's native package ships no stable JS API yet, so the gate loads
+// TypeScript 6 through the `typescript-api` alias while the build and the published
+// .d.ts come from TypeScript 7. The snapshot therefore records declarations as 6's
+// emitter writes them: a change TypeScript 7 alone makes to emitted declaration
+// text (member order, for one) is invisible here. Drop the alias for `typescript`
+// once TypeScript 7 ships a stable JS API.
+const ts = createRequire(join(root, "package.json"))("typescript-api");
 const PACKAGES = ["core", "richtext", "claude-agent-sdk", "openai-agents", "google-adk", "vercel-ai"];
 const SNAP_DIR = join(root, "api-surface");
 // Cross-package imports resolve to each package's src through the root typecheck
