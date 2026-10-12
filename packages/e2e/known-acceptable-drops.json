@@ -2377,7 +2377,15 @@
   },
   {
     "path": "[*].modelUsage.claude-haiku-5-5.contextWindow",
-    "reason": "claude: static model-capability metadata on the per-model modelUsage entry (mirrors the claude-sonnet-5-5 / claude-opus-5-5 entries for the same key): limits, not usage, with no AgUsage home. First observed live 2026-10-08 on the echo-haiku55 seed (200000 / 128000).",
+    "reason": "claude: static model-capability metadata on the per-model modelUsage entry (mirrors the claude-sonnet-5-5 / claude-opus-5-5 entries for the same key): limits, not usage, with no AgUsage home. First observed live 2026-10-08 on the echo-haiku55 seed (200000 / 128000 at agent 0.3.292; 1000000 / 128000 at 0.3.296 on 2026-10-13).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].modelUsage.claude-haiku-5-5.inputTokens",
+    "reason": "claude: the per-model uncached input count is carried derived, not verbatim: mapModelUsage folds it into the cache-inclusive usage.byModel[model].inputTokens (inputTokens + cacheReadInputTokens + cacheCreationInputTokens, draft.5 \u00a74), so the value-matching census sees it only when both cache counters are 0. First flagged live 2026-10-13 on echo-haiku55 at agent 0.3.296 (1196 + 1187 + 1289 = 3672).",
     "reviewed": "any",
     "frameworks": [
       "claude"
