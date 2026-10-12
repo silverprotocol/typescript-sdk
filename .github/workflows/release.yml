@@ -40,7 +40,7 @@ on:
         required: false
         default: "no"
       prerelease:
-        description: "Prerelease channel. 'none' (default) publishes the committed STABLE versions to the `latest` tag. alpha/beta/rc auto-numbers the next <base>-<channel>.<N> across the cohort, rewrites versions in-runner (never committed), and publishes under that dist-tag — so `npm i @silverprotocol/core` keeps resolving to latest stable; consumers opt in via `@alpha`/`@beta`/`@rc`."
+        description: "Prerelease channel. 'none' (default) publishes the committed STABLE versions to the `latest` tag, and fails on a committed prerelease version. alpha/beta/rc auto-numbers the next <base>-<channel>.<N> across the cohort (a committed <base>-<channel>.<K> is published as committed), rewrites versions in-runner (never committed), and publishes under that dist-tag — so `npm i @silverprotocol/core` keeps resolving to latest stable; consumers opt in via `@alpha`/`@beta`/`@rc`."
         required: false
         default: "none"
         type: choice
@@ -132,11 +132,35 @@ jobs:
           if [ "$CHANNEL" = "none" ]; then TAG=latest; else TAG="$CHANNEL"; fi
           echo "channel=$CHANNEL  dist-tag=$TAG"
 
+          # The stable path (a `release: published` event, which GitHub also fires
+          # for a prerelease, or a `prerelease: none` dispatch) publishes the
+          # committed versions to `latest`. A committed prerelease version there
+          # would put a release candidate on `latest`, so refuse before anything
+          # is packed or published.
+          if [ "$CHANNEL" = "none" ]; then
+            for pkg in "${ORDER[@]}"; do
+              ver=$(node -pe "require('./packages/$pkg/package.json').version")
+              if [[ "$ver" == *-* ]]; then
+                echo "::error::packages/$pkg is committed at prerelease version $ver; the stable path publishes to 'latest'. Publish it with a workflow_dispatch and prerelease set to its channel."
+                exit 1
+              fi
+            done
+          fi
+
           if [ "$CHANNEL" != "none" ]; then
             # Prerelease: BASE = committed version with any suffix stripped
-            # (0.2.0-alpha.3 → 0.2.0). Find the highest existing
-            # <base>-<channel>.<N> across the WHOLE cohort on npm, target N+1,
-            # and rewrite every package.json in-runner (git stays committed).
+            # (0.2.0-alpha.3 → 0.2.0); MAX_N = the highest existing
+            # <base>-<channel>.<N> across the WHOLE cohort on npm. Every
+            # package.json is rewritten in-runner to TARGET (git stays committed).
+            #   - A committed <base>-<channel>.<K> PINS the target: TARGET = that
+            #     version, so git and npm name the same release (a release commit
+            #     naming 1.0.0-rc.1 publishes rc.1, not rc.0). A re-run after a
+            #     partial publish completes it: the publish list skips the
+            #     packages already on npm. npm holding an N greater than K means
+            #     the commit is stale, and the run refuses.
+            #   - A committed version with no suffix auto-numbers: TARGET = N+1.
+            #   - A committed suffix naming another channel is refused.
+            COMMITTED=$(node -pe "require('./packages/core/package.json').version")
             BASE=$(node -pe "require('./packages/core/package.json').version.split('-')[0]")
             MAX_N=-1
             for pkg in "${ORDER[@]}"; do
@@ -155,8 +179,22 @@ jobs:
                 });')
               [ "$n" -gt "$MAX_N" ] && MAX_N=$n
             done
-            TARGET="$BASE-$CHANNEL.$((MAX_N + 1))"
-            echo "::notice::Prerelease target $TARGET (dist-tag $TAG; highest existing $CHANNEL across cohort was $MAX_N)"
+            PINNED=false
+            if [[ "$COMMITTED" =~ ^[0-9]+\.[0-9]+\.[0-9]+-${CHANNEL}\.([0-9]+)$ ]]; then
+              K=${BASH_REMATCH[1]}
+              if [ "$MAX_N" -gt "$K" ]; then
+                echo "::error::the committed version is $COMMITTED, but $BASE-$CHANNEL.$MAX_N is already on npm; commit a version above it."
+                exit 1
+              fi
+              PINNED=true
+              TARGET="$COMMITTED"
+            elif [[ "$COMMITTED" == *-* ]]; then
+              echo "::error::the committed version $COMMITTED is not a $CHANNEL prerelease; dispatch with its own channel, or commit $BASE or $BASE-$CHANNEL.<N>."
+              exit 1
+            else
+              TARGET="$BASE-$CHANNEL.$((MAX_N + 1))"
+            fi
+            echo "::notice::Prerelease target $TARGET (dist-tag $TAG; committed $COMMITTED, pinned=$PINNED; highest existing $CHANNEL across cohort was $MAX_N)"
             for pkg in "${ORDER[@]}"; do
               node -e "const f='packages/$pkg/package.json';const j=require('./'+f);j.version='$TARGET';require('fs').writeFileSync(f,JSON.stringify(j,null,2)+'\n');"
             done
@@ -166,13 +204,14 @@ jobs:
           echo "published_version=$(node -pe "require('./packages/core/package.json').version")" >> "$GITHUB_OUTPUT"
           echo "dist_tag=$TAG" >> "$GITHUB_OUTPUT"
 
-          # Build the publish list. Stable skips versions already on npm
-          # (idempotent re-runs); a freshly-computed prerelease TARGET is new.
+          # Build the publish list. A stable or pinned target skips versions
+          # already on npm (idempotent re-runs); an auto-numbered prerelease
+          # TARGET is new by construction.
           TODO=()
           for pkg in "${ORDER[@]}"; do
             name=$(node -pe "require('./packages/$pkg/package.json').name")
             ver=$(node -pe "require('./packages/$pkg/package.json').version")
-            if [ "$CHANNEL" = "none" ] && [ -n "$(npm view "$name@$ver" version 2>/dev/null)" ]; then
+            if { [ "$CHANNEL" = "none" ] || [ "${PINNED:-false}" = "true" ]; } && [ -n "$(npm view "$name@$ver" version 2>/dev/null)" ]; then
               echo "• $name@$ver already on npm — skipping"
               continue
             fi
