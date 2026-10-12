@@ -174,7 +174,7 @@
         },
         "tool_search_output": {
           "disposition": "handled",
-          "note": "FLIPPED from carried (fixture-drift ratchet disposition, 2026-07-03). The rawItem of the now-dedicated tool_search_output_created run-item -> driveToolSearchOutput() (tool.done with the tools listing as a `data` block). See the runItemStreamEventName section's tool_search_output_created entry for the full wire-truth citations."
+          "note": "FLIPPED from carried (fixture-drift ratchet disposition, 2026-07-03). The rawItem of the now-dedicated tool_search_output_created run-item -> driveToolSearchOutput() (tool.done with the tools listing as a `data` block). See the runItemStreamEventName section's tool_search_output_created entry for the full wire-truth citations. 2026-10-12 (agents-core 0.20.0): the output item gains an optional `toolSearchMcpToolNames: string[]` (protocol.mjs ToolSearchOutputItem, 'SDK-only hosted MCP namespace identities established when this output was received'; set by runner/toolSearch.mjs recordHostedMcpDiscovery for a non-client search whose namespace results name hosted MCP tools). driveToolSearchOutput() carries it verbatim on tool.done providerMetadata.toolSearchMcpToolNames beside toolSearchAgentName; a value that is not an array of strings is no carry; absent leaves the emission byte-identical."
         },
         "hosted_tool_call": {
           "disposition": "handled",

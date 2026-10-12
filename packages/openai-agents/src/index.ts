@@ -606,6 +606,17 @@ export interface OpenAIToolSearchOutputItem {
    * it is fixture-tested only.
    */
   toolSearchAgentName?: string;
+  /**
+   * agents-core 0.20.0 (`ToolSearchOutputItem.toolSearchMcpToolNames`): the
+   * hosted MCP tool names a server-executed search's namespace results
+   * established, recorded by the SDK so a later deferred MCP call can be
+   * matched to its discovery. Upstream doc: "SDK-only hosted MCP namespace
+   * identities established when this output was received. Excluded from
+   * provider requests. … This records discovery, not permission to execute a
+   * tool." Carried verbatim on `tool.done` providerMetadata, like
+   * `toolSearchAgentName`.
+   */
+  toolSearchMcpToolNames?: string[];
   call_id?: string | null;
   callId?: string | null;
   execution?: "client" | "server";
@@ -3785,8 +3796,15 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
     // the deserialization boundary, where a non-string would otherwise reach
     // `AgProviderMeta.parse`.
     const rawAgentName: unknown = rawItem.toolSearchAgentName;
+    // agents-core 0.20.0 adds the hosted MCP names this search established
+    // (`toolSearchMcpToolNames`), carried the same way: an array of strings,
+    // verbatim; anything else at this boundary is no carry.
+    const rawMcpNames: unknown = rawItem.toolSearchMcpToolNames;
+    const mcpNames =
+      Array.isArray(rawMcpNames) && rawMcpNames.every((v) => typeof v === "string") ? JsonValue.parse(rawMcpNames) : undefined;
     const searchMeta = openaiProviderMeta({
       toolSearchAgentName: typeof rawAgentName === "string" ? rawAgentName : undefined,
+      toolSearchMcpToolNames: mcpNames,
     });
     a.toolDone({
       toolCallId,
