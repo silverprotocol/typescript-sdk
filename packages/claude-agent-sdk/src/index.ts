@@ -1100,10 +1100,13 @@ function readStartupFailureReason(v: unknown): string | undefined {
 // The type's own lead sentence frames the whole enum as a refusal to start:
 // "Why Claude Code refused to start, so a host can offer the fix instead of a
 // retry." So a PRESENT reason means NOT retriable, except for the values
-// upstream itself EXPLICITLY describes as retriable. Through 0.3.292 that set is
-// exactly one value:
+// upstream itself EXPLICITLY describes as retriable. Through 0.3.296 that set is
+// exactly two values:
 //  - `worktree_unverified`: "the session's worktree could not be verified
 //    right now; retrying may succeed."
+//  - `org_config_required_unavailable` (0.3.296): the organization's required
+//    policy limits and managed settings "could not be loaded (network, proxy,
+//    or an Anthropic error); retrying may succeed."
 // Three more values read as if they might clear on their own, but upstream
 // never says a retry helps, so each is a deliberate non-retriable — explicit
 // false-by-omission (the model_not_found / account_on_hold voice in the
@@ -1119,12 +1122,13 @@ function readStartupFailureReason(v: unknown): string | undefined {
 // Every other documented value (org_pin_api_key_conflict, provider_not_allowed,
 // org_pin_mismatch, managed_settings_invalid, gateway_signin_required,
 // gateway_access_denied, proxy_invalid, temp_dir_unusable, cwd_unavailable, shell_tool_missing,
-// worktree_resume_refused, cli_version_too_old, bypass_root) names a
-// configuration, policy or environment fix, and an unknown future value
+// worktree_resume_refused, cli_version_too_old, bypass_root, and 0.3.296's
+// org_config_refused: "signing in again or an admin's change is the fix, not a
+// retry") names a configuration, policy or environment fix, and an unknown future value
 // inherits the enum's "offer the fix instead of a retry" framing. An ABSENT
 // reason never reaches this function: the error arm keeps its old rule, so
 // older producers are byte-identical.
-const RETRIABLE_STARTUP_FAILURE_REASONS = new Set<string>(["worktree_unverified"]);
+const RETRIABLE_STARTUP_FAILURE_REASONS = new Set<string>(["worktree_unverified", "org_config_required_unavailable"]);
 function startupFailureRetriable(reason: string): boolean {
   return RETRIABLE_STARTUP_FAILURE_REASONS.has(reason);
 }

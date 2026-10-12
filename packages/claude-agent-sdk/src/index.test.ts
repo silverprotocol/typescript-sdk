@@ -7327,14 +7327,19 @@ describe("createClaudeNormalizer — usage_report (0.3.273, fixture-only: claude
 describe("createClaudeNormalizer — startup_failure_reason (0.3.274, SDKResultError) → result-meta + turn.error.retriable", () => {
   type SDKResultErrorT = Exclude<Extract<SDKMessage, { type: "result" }>, { subtype: "success" }>;
   type StartupFailureReason = NonNullable<SDKResultErrorT["startup_failure_reason"]>;
+  // The two values 0.3.296 declares, named here so the table compiles against
+  // the 0.3.292 pin as well as 0.3.296 (where the union already holds them).
+  type DeclaredSince0_3_296 = "org_config_required_unavailable" | "org_config_refused";
 
   // EVERY documented value, exhaustively (a Record forces a compile error when
   // upstream adds one, so a new value is a decision, never a silent default).
-  // true ⇔ upstream itself says a retry may help — only worktree_unverified
-  // ("retrying may succeed"). org_verify_failed, remote_settings_required_unavailable
-  // and session_held_by_background are deliberate false: upstream never calls
-  // them retriable (see `startupFailureRetriable` in src).
-  const EXPECTED_RETRIABLE: Record<StartupFailureReason, boolean> = {
+  // true ⇔ upstream itself says a retry may help — worktree_unverified and
+  // org_config_required_unavailable ("retrying may succeed"). org_verify_failed,
+  // remote_settings_required_unavailable and session_held_by_background are
+  // deliberate false: upstream never calls them retriable; org_config_refused is
+  // false in upstream's own words ("the fix, not a retry") (see
+  // `startupFailureRetriable` in src).
+  const EXPECTED_RETRIABLE: Record<StartupFailureReason | DeclaredSince0_3_296, boolean> = {
     org_pin_api_key_conflict: false,
     provider_not_allowed: false,
     org_verify_failed: false,
@@ -7352,6 +7357,8 @@ describe("createClaudeNormalizer — startup_failure_reason (0.3.274, SDKResultE
     worktree_unverified: true,
     cli_version_too_old: false,
     bypass_root: false,
+    org_config_required_unavailable: true,
+    org_config_refused: false,
   };
 
   // The zeroed error_during_execution result a stream-json run writes before
@@ -7366,7 +7373,7 @@ describe("createClaudeNormalizer — startup_failure_reason (0.3.274, SDKResultE
 
   it("table: every documented value is carried verbatim as startupFailureReason and decides retriable", () => {
     const table = Object.entries(EXPECTED_RETRIABLE);
-    expect(table).toHaveLength(17);
+    expect(table).toHaveLength(19);
     for (const [reason, retriable] of table) {
       const evs = drive([startupFailure(reason)]);
       expect(evs.map((e) => e.type), reason).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.error"]);
