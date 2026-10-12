@@ -4762,6 +4762,22 @@ describe("createOpenaiNormalizer — ToolSearchOutputItem.toolSearchAgentName (a
     );
   });
 
+  it("MIRROR: tool.done carries providerMetadata.toolSearchMcpToolNames verbatim, beside toolSearchAgentName", () => {
+    const names = ["mcp_deepwiki.ask_question", "mcp_deepwiki.read_wiki"];
+    expect(doneOf(runRound({ toolSearchMcpToolNames: names }))?.providerMetadata).toEqual({ toolSearchMcpToolNames: names });
+    expect(doneOf(runRound({ toolSearchAgentName: "WeatherAgent", toolSearchMcpToolNames: names }))?.providerMetadata).toEqual({
+      toolSearchAgentName: "WeatherAgent",
+      toolSearchMcpToolNames: names,
+    });
+  });
+
+  it("toolSearchMcpToolNames that is not an array of strings (deserialization boundary) degrades to no carry", () => {
+    for (const bad of ["mcp_deepwiki.ask_question", ["mcp_deepwiki.ask_question", 7], { a: "b" }, null] as JsonValue[]) {
+      const evs = runRound({ toolSearchMcpToolNames: bad });
+      expect(doneOf(evs)?.providerMetadata).toBeUndefined();
+    }
+  });
+
   it("a non-string toolSearchAgentName (deserialization boundary) degrades to no carry instead of reaching AgProviderMeta.parse", () => {
     const evs = runRound({ toolSearchAgentName: 42 });
     expect(doneOf(evs)?.providerMetadata).toBeUndefined();
