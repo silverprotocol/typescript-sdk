@@ -5322,7 +5322,7 @@ describe("createAdkNormalizer — an ADK prompt block (errorCode, no finishReaso
 
 describe("createAdkNormalizer — Gemini finish reasons: the eight block values close turn.done with finishReason safety_blocked", () => {
   // Every FinishReason value of @google/genai 2.27.0: the expected neutral value and whether it loses the wire string.
-  // CONTINUATION (added in 2.27.0) has no neutral home yet: it maps to unknown and keeps the wire string.
+  // CONTINUATION (added in 2.26.0) has no neutral home yet: it maps to unknown and keeps the wire string.
   const TABLE: ReadonlyArray<readonly [string, string, boolean]> = [
     ["FINISH_REASON_UNSPECIFIED", "unknown", true],
     ["STOP", "stop", false],
