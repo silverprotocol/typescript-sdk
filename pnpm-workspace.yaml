@@ -51,34 +51,14 @@ overrides:
 # name-match quirk this comment used to describe), so during a day-one peer
 # bump either write ONE `pkg@old || new` entry or list both versions — both
 # forms work. Entries older than the 24h default window are dead weight:
-# prune them on the next bump. Every entry below is load-bearing as of
-# 2026-10-07T07:01Z (claude-agent-sdk 0.3.292 + 8 platform siblings 2026-10-06T17:02-17:14Z;
-# @google/adk 2.2.1 10-06T22:21Z; ai 7.0.130, @ai-sdk/openai 4.0.86, @ai-sdk/mcp 2.0.69,
-# @ai-sdk/provider 4.0.24, @ai-sdk/provider-utils 5.0.56 and @ai-sdk/gateway 4.0.106
-# 10-07T01:41-01:47Z). openai is resolved through a RANGE (@openai/agents-openai
+# prune them on the next bump. The list is empty as of 2026-10-12T16:46Z: the
+# 10-07 bump's entries aged out, and this bump's versions (ai 7.0.137 10-09T14:54Z,
+# @ai-sdk/openai 4.0.91 10-08T21:40Z, @ai-sdk/mcp 2.0.73 10-09T00:40Z,
+# @anthropic-ai/sdk 0.133.0 10-09T15:44Z) were already past the window.
+# openai is resolved through a RANGE (@openai/agents-openai
 # declares ^7.2.0), so on a FRESH resolution (lockfile deleted) a missing entry does
 # NOT fail: the gate silently resolves an older client; against the committed
-# lockfile it fails ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION. openai@7.30.0 (10-06T21:59Z)
-# is deliberately ABSENT: the lockfile keeps openai 7.22.0. Also absent because they
-# aged out before the install: @openai/agents* 0.19.0 (10-05), @google/genai 2.27.0
-# (10-02), @modelcontextprotocol/sdk 1.32.1 (10-05), @anthropic-ai/sdk 0.131.0
-# (09-30). NOTE (pnpm 11.25): a non-frozen
+# lockfile it fails ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION. NOTE (pnpm 11.25): a non-frozen
 # install APPENDS any too-young version NO older release can satisfy (an exact pin,
 # or a caret whose floor is the new release) to this list and reflows the comments; always `git diff` both yaml files after installing.
-minimumReleaseAgeExclude:
-  - '@anthropic-ai/claude-agent-sdk@0.3.292'
-  - '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.292'
-  - '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.292'
-  - '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.292'
-  - '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.292'
-  - '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.292'
-  - '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.292'
-  - '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.292'
-  - '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.292'
-  - '@google/adk@2.2.1'
-  - ai@7.0.130
-  - '@ai-sdk/openai@4.0.86'
-  - '@ai-sdk/mcp@2.0.69'
-  - '@ai-sdk/provider@4.0.24'
-  - '@ai-sdk/provider-utils@5.0.56'
-  - '@ai-sdk/gateway@4.0.106'
+minimumReleaseAgeExclude: []
