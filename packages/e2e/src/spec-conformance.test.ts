@@ -144,6 +144,9 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 23, leg: "openai", title: "Unmapped native value (draft.4): an OpenAI incomplete_details.reason with no AgJSON target → finishReason unknown + finishReasonRaw verbatim; every event AgEvent-valid", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.23(openai) via createOpenaiNormalizer (the unmapped incomplete_details carry, ff358b6)" },
   { n: 23, leg: "claude", title: "Unmapped native value (draft.4): an unmapped Claude stop_reason → finishReason unknown + finishReasonRaw verbatim; mapped and null stop_reasons carry no finishReasonRaw", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.23(claude) via createClaudeNormalizer (fe87254)" },
   { n: 23, leg: "vercel", title: "Unmapped native value (draft.4): a vercel finish whose unified reason falls back (other/unknown) carries the native rawFinishReason as finishReasonRaw", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.23(vercel) via createVercelNormalizer (f2937f9)" },
+  { n: 23, leg: "adk-continuation", title: "§10.23(adk) CONTINUATION with parts — the mapping published at 0.12.4: genai's CONTINUATION finish reason (2.26.0+) on an event with parts → one turn.done success, finishReason unknown + finishReasonRaw CONTINUATION byte for byte, no error event; every event AgEvent-valid", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts \"§10.23(adk): finishReason CONTINUATION with parts → one turn.done success, finishReason unknown + finishReasonRaw CONTINUATION byte for byte, no error event\" via createAdkNormalizer (synthetic; no recorded stream carries the value — a capture on an emitting model is queued)" },
+  { n: 23, leg: "adk-continuation-partless", title: "§10.23(adk) CONTINUATION part-less, no finishMessage: the ADK 2.2.1 part-less shape {errorCode, finishReason, usageMetadata} with no errorMessage → one turn.done success, finishReason unknown + finishReasonRaw CONTINUATION, usage folded, no error event", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts \"§10.23(adk): part-less errorCode CONTINUATION with no errorMessage → one turn.done success, finishReason unknown + finishReasonRaw CONTINUATION, usage folded; with an errorMessage the same event follows §8.0 item 35 unchanged (one error, then turn.error at flush, no turn.done)\" via createAdkNormalizer (synthetic)" },
+  { n: 35, leg: "adk-continuation-finishmessage", title: "§10.35(adk) CONTINUATION part-less with finishMessage — today's route: the same part-less event with an errorMessage → one in-band error {code CONTINUATION}, then turn.error {code CONTINUATION} at flush(), no turn.done", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts \"§10.23(adk): part-less errorCode CONTINUATION with no errorMessage → one turn.done success, finishReason unknown + finishReasonRaw CONTINUATION, usage folded; with an errorMessage the same event follows §8.0 item 35 unchanged (one error, then turn.error at flush, no turn.done)\" — the control half (synthetic)" },
   { n: 24, leg: "scan", title: "Tool-result errorText scoping (draft.4): no replay golden carries errorText on a non-error result", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.24(scan), a scan of every corpus/*/*.agjson.json" },
   { n: 24, leg: "adk", title: "ADK failure envelope (draft.4, §8.0 item 25; rc.1 scoping): the error/denied/placeholder/negative vectors; a response already classified by isError:true carries neither errorText nor errorCode even beside error and error_code; a rejection literal in error, or CONFIRMATION_REJECTED in the string error_code, else in the string errorCode, folds to denied with no errorText, no isError and no errorCode; with both siblings present, error_code decides", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.24(adk) via createAdkNormalizer (4fa8ba4), incl. \"isError:true beside error x and error_code E → outcome error with isError and neither errorText nor errorCode: the isError classification comes first (rc.1, §8.0 item 25's scoped rule)\" and \"a rejection literal in error, or CONFIRMATION_REJECTED in error_code/errorCode, → outcome denied with no errorText, no isError and no errorCode (rc.1, §8.0 item 25 (b))\"" },
   { n: 25, leg: "fold", title: "Framework pause and completion closure (draft.4; the paused close at the invocation's end, draft.7): a pause closes paused as the turn's last event — from push() on the completion signal, else from flush() — an invocation that emits after the pause signal folds without a resync in both modes, completed-without-signal Workflow and cut-short invokes close turn.abort from flush(), never success, no park", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.25(fold) over the engine-built fixtures/adk-pause natives (3c82c3a); step-1 scope mirrored by adk-pause.test.ts" },
@@ -2068,6 +2071,39 @@ describe("§10.24(adk) + §10.23(adk) — the ADK failure envelope and the unmap
       expect(out.find((e) => e.type === "turn.done")).toMatchObject({ finishReason: fallback, finishReasonRaw: raw });
     });
   }
+
+  // §10.23 ADK leg (2026-10-13, test only; the item's text is unchanged): genai's CONTINUATION finish reason
+  // (@google/genai 2.26.0+) — the mapping published at 0.12.4, "unknown" + finishReasonRaw, pinned in both shapes.
+  // No recorded stream carries the value; the vectors are synthetic, shaped as ADK 2.2.1 builds the event.
+  it("§10.23(adk): finishReason CONTINUATION with parts → one turn.done success, finishReason unknown + finishReasonRaw CONTINUATION byte for byte, no error event", () => {
+    const out = drive([{ invocationId: "inv1", author: "agent", content: { role: "model", parts: [{ text: "the first part of the answer" }] }, partial: false, turnComplete: true, finishReason: "CONTINUATION" } as unknown as AdkEvent]);
+    const terminals = out.filter((e) => e.type === "turn.done" || e.type === "turn.error");
+    expect(terminals).toHaveLength(1);
+    expect(terminals[0]).toMatchObject({ type: "turn.done", outcome: { type: "success" }, finishReason: "unknown", finishReasonRaw: "CONTINUATION" });
+    expect(out.some((e) => e.type === "error")).toBe(false);
+    expect(reduce(out).needsResync).toBe(false);
+  });
+  it("§10.23(adk): part-less errorCode CONTINUATION with no errorMessage → one turn.done success, finishReason unknown + finishReasonRaw CONTINUATION, usage folded; with an errorMessage the same event follows §8.0 item 35 unchanged (one error, then turn.error at flush, no turn.done)", () => {
+    const base = { invocationId: "inv1", author: "agent", errorCode: "CONTINUATION", finishReason: "CONTINUATION", usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5, totalTokenCount: 15 }, partial: false, turnComplete: true };
+    const out = drive([base as unknown as AdkEvent]);
+    const terminals = out.filter((e) => e.type === "turn.done" || e.type === "turn.error");
+    expect(terminals).toHaveLength(1);
+    expect(terminals[0]).toMatchObject({ type: "turn.done", outcome: { type: "success" }, finishReason: "unknown", finishReasonRaw: "CONTINUATION", usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 } });
+    expect(out.some((e) => e.type === "error")).toBe(false);
+    expect(reduce(out).needsResync).toBe(false);
+    // the control pins today's route for the same event with a finish message (§8.0 item 35), not a target
+    const n = createAdkNormalizer();
+    const pushed = n.push({ ...base, errorMessage: "The model stopped at its per-request token limit." } as unknown as AdkEvent);
+    const errors = pushed.filter((e) => e.type === "error");
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatchObject({ code: "CONTINUATION" });
+    expect(pushed.some((e) => e.type === "turn.done" || e.type === "turn.error")).toBe(false);
+    const all = [...pushed, ...n.flush()];
+    const t2 = all.filter((e) => e.type === "turn.done" || e.type === "turn.error");
+    expect(t2).toHaveLength(1);
+    expect(t2[0]).toMatchObject({ type: "turn.error", code: "CONTINUATION" });
+    for (const ev of all) expect(() => AgEvent.parse(ev)).not.toThrow();
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
