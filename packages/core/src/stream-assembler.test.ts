@@ -814,3 +814,94 @@ describe("an emitted event holds no own __proto__ member at any depth (§13.7)",
     expect(JSON.stringify(run(true))).toBe(JSON.stringify(run(false)));
   });
 });
+
+describe("the emit path's own __proto__ scan decides as the remembering walk does (planted differential)", () => {
+  // The walk the scan replaced, kept here as the reference: it remembers every
+  // node it visits and descends only arrays and plain or null-prototype objects.
+  const plain = (v: object): boolean => Array.isArray(v) || Object.getPrototypeOf(v) === Object.prototype || Object.getPrototypeOf(v) === null;
+  const referenceHasMember = (v: unknown): boolean => {
+    const seen = new WeakSet<object>();
+    const stack: unknown[] = [v];
+    while (stack.length > 0) {
+      const x = stack.pop();
+      if (x === null || typeof x !== "object" || seen.has(x) || !plain(x)) continue;
+      seen.add(x);
+      if (Array.isArray(x)) {
+        for (let i = 0; i < x.length; i++) stack.push(x[i]);
+        continue;
+      }
+      if (Object.hasOwn(x, "__proto__")) return true;
+      for (const k in x) if (Object.hasOwn(x, k)) stack.push((x as Record<string, unknown>)[k]);
+    }
+    return false;
+  };
+  const member = (o: Record<string, unknown>): Record<string, unknown> => {
+    Object.defineProperty(o, "__proto__", { value: { polluted: true }, enumerable: true, writable: true, configurable: true });
+    return o;
+  };
+  const nestObjects = (depth: number, leaf: unknown): unknown => {
+    let v = leaf;
+    for (let i = 0; i < depth; i++) v = { k: v };
+    return v;
+  };
+  const nestArrays = (depth: number, leaf: unknown): unknown => {
+    let v = leaf;
+    for (let i = 0; i < depth; i++) v = [v];
+    return v;
+  };
+  class Box {
+    constructor(public readonly inner: unknown) {}
+  }
+
+  const cases: Array<[string, () => unknown]> = [];
+  for (const d of [0, 1, 2, 5, 50, 1000, 5000]) {
+    cases.push([`a member under ${d} nested objects`, () => nestObjects(d, member({ x: 1 }))]);
+    cases.push([`a member under ${d} nested arrays`, () => nestArrays(d, member({ x: 1 }))]);
+    cases.push([`no member under ${d} nested objects (control)`, () => nestObjects(d, { x: 1 })]);
+  }
+  cases.push(["a member on a null-prototype object", () => ({ a: member(Object.create(null) as Record<string, unknown>) })]);
+  cases.push(["a member inside a class instance (not descended)", () => ({ box: new Box(member({ x: 1 })) })]);
+  cases.push(["the string __proto__ as a value and a nested value, no member", () => ({ name: "__proto__", list: ["__proto__", { v: "__proto__" }] })]);
+  cases.push(["a cycle with no member", () => {
+    const o: Record<string, unknown> = { a: 1 };
+    o["self"] = o;
+    return { o };
+  }]);
+  cases.push(["a cycle whose member sits beside it", () => {
+    const o: Record<string, unknown> = { a: 1 };
+    o["self"] = o;
+    return { o, m: member({}) };
+  }]);
+  cases.push(["one node shared 60000 times, no member", () => {
+    const s = { a: 1 };
+    return { list: Array.from({ length: 60_000 }, () => s) };
+  }]);
+  cases.push(["one node shared 60000 times, holding the member", () => {
+    const s = member({ a: 1 });
+    return { list: Array.from({ length: 60_000 }, () => s) };
+  }]);
+  cases.push(["60000 distinct nodes, the member in the node visited last", () => {
+    const list: unknown[] = Array.from({ length: 60_000 }, (_, i) => ({ i }));
+    list[0] = member({ i: 0 });
+    return { list };
+  }]);
+  cases.push(["60000 distinct nodes, no member", () => ({ list: Array.from({ length: 60_000 }, (_, i) => ({ i })) })]);
+
+  for (const [name, make] of cases) {
+    it(`${name}: shared or rebuilt exactly as the reference walk decides, and the emitted event holds no own member`, () => {
+      const input = make();
+      const expected = referenceHasMember(input);
+      const a = new StreamAssembler();
+      a.toolArgsAssembled("c1", input as JsonValue);
+      const [ev] = a.drain();
+      const out = (ev as { input?: unknown }).input;
+      expect(out === input).toBe(!expected);
+      if (expected) expect(referenceHasMember(out)).toBe(false);
+    });
+  }
+
+  it("the cases cover both answers, and the budget cases run past the fast pass's node budget", () => {
+    const answers = new Set(cases.map(([, make]) => referenceHasMember(make())));
+    expect(answers).toEqual(new Set([true, false]));
+  });
+});

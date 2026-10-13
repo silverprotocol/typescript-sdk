@@ -100,20 +100,45 @@ export function withoutOwnProtoMember<T>(v: T): T {
   return (hasOwnProtoMember(v) ? rebuild(v) : v) as T;
 }
 
+/**
+ * The plain nodes the fast pass visits before it hands the value to the pass
+ * that remembers each node. An emitted event is a tree, so remembering costs
+ * it a WeakSet entry per node for nothing; a value that shares nodes or holds a
+ * cycle can make the fast pass revisit them without end, and the budget turns
+ * that into the remembering pass. The fold side's scan (depth.ts) works the
+ * same way.
+ */
+const PROTO_SCAN_NODE_BUDGET = 50_000;
+
 function hasOwnProtoMember(v: unknown): boolean {
-  const seen = new WeakSet<object>();
+  return protoScan(v, false) ?? protoScan(v, true)!;
+}
+
+/**
+ * One iterative pass over the arrays and plain (or null-prototype) objects of
+ * `v`: whether any such object holds an own `__proto__` member. With
+ * `remember`, each node is visited once; without, it returns undefined once it
+ * has visited PROTO_SCAN_NODE_BUDGET nodes.
+ */
+function protoScan(v: unknown, remember: boolean): boolean | undefined {
+  const seen = remember ? new WeakSet<object>() : undefined;
+  let visits = 0;
   const stack: unknown[] = [v];
   while (stack.length > 0) {
     const x = stack.pop();
-    if (x === null || typeof x !== "object" || seen.has(x) || !isPlainNode(x)) continue;
-    seen.add(x);
+    if (x === null || typeof x !== "object" || !isPlainNode(x)) continue;
+    if (seen !== undefined) {
+      if (seen.has(x)) continue;
+      seen.add(x);
+    } else if (++visits > PROTO_SCAN_NODE_BUDGET) {
+      return undefined;
+    }
     if (Array.isArray(x)) {
       for (let i = 0; i < x.length; i++) stack.push(x[i]);
       continue;
     }
-    const o = x as Record<string, unknown>;
-    if (Object.hasOwn(o, PROTO)) return true;
-    for (const k in o) if (Object.hasOwn(o, k)) stack.push(o[k]);
+    if (Object.hasOwn(x, PROTO)) return true;
+    for (const k of Object.keys(x)) stack.push((x as Record<string, unknown>)[k]);
   }
   return false;
 }
