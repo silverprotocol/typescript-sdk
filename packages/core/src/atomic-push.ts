@@ -50,19 +50,23 @@ export function normalizerErrorCode(err: unknown): string {
  */
 export interface AtomicPushOptions {
   /** Run {@link toJsonValueSafe} on each native before the inner push (default
-   *  true). With it the journal holds a JSON deep copy of what the inner saw,
-   *  so a host mutating a pushed native later cannot skew a rebuild. With
-   *  `false` a native that is already plain JSON is still journaled as a deep
-   *  copy; any other native (a class instance, a Date, a cycle) is journaled
-   *  BY REFERENCE, so the caller must pass values it owns and never mutate one
-   *  after pushing it. */
+   *  true). With it the inner is handed a JSON deep copy of the native, taken
+   *  before the inner sees it, and the journal keeps that same copy: a host
+   *  mutating a pushed native later changes neither an emitted event nor a
+   *  rebuild. With `false` a native that is already plain JSON is still
+   *  copied the same way; any other native (a class instance, a Date, a
+   *  cycle) is handed over and journaled BY REFERENCE, so the caller must pass
+   *  values it owns and never mutate one after pushing it. */
   normalize?: boolean;
 }
 
 /**
  * Wrap a Normalizer factory so each push() (and flush()) is atomic:
  * - Success: the inner's events are returned (by reference; unchanged until a
- *   throw has happened), and the native joins the journal.
+ *   throw has happened), and the native's copy joins the journal. The inner
+ *   is pushed that copy, never the host's object, so no emitted event shares
+ *   an object with the native the host passed in (except a non-JSON native
+ *   under `normalize: false`; see {@link AtomicPushOptions}).
  * - Throw: the partial batch is discarded, the inner is rebuilt and re-driven
  *   from the journal with its output dropped (a throw during that re-drive is
  *   caught too), and ONE core `error {message: "normalizer error", code}`
@@ -85,8 +89,10 @@ export interface AtomicPushOptions {
  *   turn.abort{stream-truncated} for each open turn, innermost first.
  *
  * Costs, by design (caps deferred):
- * - Memory: O(invoke). The journal keeps a COPY of every accepted native (a
- *   JSON deep copy when normalizing, never the host's reference) for the life
+ * - Memory: O(invoke). The journal keeps the COPY each accepted native was
+ *   pushed as (a JSON deep copy when normalizing, never the host's reference;
+ *   the inner and the journal share it, and a facet never mutates its input)
+ *   for the life
  *   of the instance, i.e. one invoke, since hosts build a fresh Normalizer per
  *   invoke (§8.0 obligation 3).
  * - Time: O(bad × prefix). Each throw re-drives the invoke so far, output
@@ -204,8 +210,14 @@ export function withAtomicPush(createInner: () => Normalizer, opts: AtomicPushOp
     push(native: unknown): AgEvent[] {
       try {
         const n: unknown = normalize ? toJsonValueSafe(native) : native;
-        const evs = inner.push(n);
-        journal.push(normalize || isJsonValue(n) ? toJsonValue(n as JsonValue) : n);
+        // One copy, taken BEFORE the inner sees it: toJsonValueSafe hands plain
+        // JSON back as the host's own object, so without it an event the inner
+        // builds could share a node with the native, and a host mutating its
+        // native after push() would change an event already delivered. The
+        // journal keeps the same copy for a rebuild.
+        const owned: unknown = normalize || isJsonValue(n) ? toJsonValue(n as JsonValue) : n;
+        const evs = inner.push(owned);
+        journal.push(owned);
         return deliver(evs);
       } catch (err) {
         rebuild();

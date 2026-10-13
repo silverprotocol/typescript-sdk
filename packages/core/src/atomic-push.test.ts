@@ -269,3 +269,78 @@ describe("withAtomicPush (per-native atomicity; the 2026-09-24 guard ruling, opt
     expect(normalizerErrorCode("a string")).toBe("NonError");
   });
 });
+
+describe("withAtomicPush: an emitted event shares no object with the pushed native", () => {
+  /** A facet that carries the native's own nested object on the wire, by reference. */
+  const carrying = (): Normalizer => {
+    const a = new StreamAssembler();
+    let opened = false;
+    return {
+      push(native: unknown): AgEvent[] {
+        const n = native as { t?: string; payload?: unknown };
+        if (!opened) {
+          a.openTurn("T", "th");
+          opened = true;
+        }
+        if (n.t === "boom") throw new RangeError("boom");
+        a.emitExt("acme", "carry", { payload: n.payload } as never);
+        return a.drain();
+      },
+      flush: () => a.flush(),
+    };
+  };
+  const mutateDeep = (v: unknown): void => {
+    if (v === null || typeof v !== "object") return;
+    if (Array.isArray(v)) {
+      for (const x of v) mutateDeep(x);
+      v.push("MUTATED");
+      return;
+    }
+    for (const k of Object.keys(v)) mutateDeep((v as Record<string, unknown>)[k]);
+    (v as Record<string, unknown>)["mutated"] = true;
+  };
+
+  it("a host that mutates its native after push() changes no event already returned", () => {
+    const wrapped = withAtomicPush(carrying);
+    const native = { t: "carry", payload: { a: { b: [1, { c: 2 }] } } };
+    const evs = wrapped.push(native);
+    const before = JSON.stringify(evs);
+    mutateDeep(native);
+    expect(JSON.stringify(native)).toContain("MUTATED");
+    expect(JSON.stringify(evs)).toBe(before);
+  });
+
+  it("the inner is pushed a copy, never the host's object, equal to it", () => {
+    let seen: unknown;
+    const wrapped = withAtomicPush(() => ({ push: (n) => ((seen = n), []), flush: () => [] }));
+    const native = { t: "x", payload: { k: [1, 2] } };
+    wrapped.push(native);
+    expect(seen).not.toBe(native);
+    expect((seen as typeof native).payload).not.toBe(native.payload);
+    expect(seen).toEqual(native);
+  });
+
+  it("a rebuild after a throw replays what the inner saw at push time, not the host's later mutation", () => {
+    const wrapped = withAtomicPush(carrying);
+    const first = { t: "carry", payload: { v: 1 } };
+    const out1 = wrapped.push(first);
+    mutateDeep(first);
+    const err = wrapped.push({ t: "boom" });
+    expect(err.map((e) => e.type)).toEqual(["error"]);
+    const out2 = wrapped.push({ t: "carry", payload: { v: 2 } });
+    expect(JSON.stringify(out1)).not.toContain("MUTATED");
+    expect(out2.map((e) => e.type)).toEqual(["ext.acme.carry"]);
+    expect(contiguous([...out1, ...err, ...out2])).toBe(true);
+  });
+
+  it("normalize: false keeps a non-JSON native by reference, as documented (the caller owns it)", () => {
+    class Part {
+      constructor(public readonly text: string) {}
+    }
+    let seen: unknown;
+    const wrapped = withAtomicPush(() => ({ push: (n) => ((seen = n), []), flush: () => [] }), { normalize: false });
+    const native = new Part("x");
+    wrapped.push(native);
+    expect(seen).toBe(native);
+  });
+});
