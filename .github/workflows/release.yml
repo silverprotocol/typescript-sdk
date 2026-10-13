@@ -223,6 +223,24 @@ jobs:
             exit 0
           fi
 
+          # README gate: every target's tarball carries a non-empty README.md,
+          # which pnpm embeds as the published manifest's readme. The registry's
+          # own readme field cannot check this before a publish, and after a
+          # publish to a dist-tag other than `latest` it reads empty for every
+          # package anyway, so the tarball is what is checked.
+          for pkg in "${TODO[@]}"; do
+            packdir=$(mktemp -d)
+            (cd "packages/$pkg" && pnpm pack --pack-destination "$packdir" > /dev/null)
+            # A missing README.md makes tar fail; under pipefail that must read as 0 bytes, not end the step unexplained.
+            readme_bytes=$( { tar -xzOf "$packdir"/*.tgz package/README.md 2>/dev/null || true; } | wc -c | tr -d ' ')
+            rm -rf "$packdir"
+            if [ "${readme_bytes:-0}" -eq 0 ]; then
+              echo "::error::packages/$pkg packs no README.md (or an empty one); the npm page would render no README."
+              exit 1
+            fi
+            echo "• $pkg tarball README.md: $readme_bytes bytes"
+          done
+
           # Dry-run GATE first: pack + validate every target before any
           # irreversible publish. (--provenance is omitted here — dry runs
           # cannot mint provenance.)
