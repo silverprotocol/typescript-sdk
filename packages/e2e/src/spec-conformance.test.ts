@@ -310,6 +310,19 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 66, leg: "openai", title: "ADK interrupted close (rc.1)", disposition: "N/A", evidence: "none", citation: "§10 item 66 binds normalizers targeting ADK (the Live `interrupted` signal, §8.0 item 17); not an item-66 leg for this framework" },
   { n: 66, leg: "vercel", title: "ADK interrupted close (rc.1)", disposition: "N/A", evidence: "none", citation: "§10 item 66 binds normalizers targeting ADK (the Live `interrupted` signal, §8.0 item 17); not an item-66 leg for this framework" },
   { n: 67, title: "Terminal usage coverage (rc.1): for every top-level turn of every replay golden whose turn.done carries usage, each of inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, reasoningTokens, toolUseInputTokens and totalTokens present on both objects, whatever either object's cumulative flag, is at least the final message.end.usage of each of the turn's own messages; every nested terminal and every turn.abort carries no usage; a top-level turn.error is outside the first clause (informative in the item). Disclosed population at 447fb1ef: 81 goldens, 100 top-level turn.done with usage, pairs on claude and vercel goldens only (claude 68 / vercel 18 — no openai or adk message.end carries usage outside the three interrupted-abort turns), toolUseInputTokens compared on no golden, totalTokens on vercel only, 2 top-level turn.error outside the leg", disposition: "RUNNABLE", evidence: "corpus", citation: "spec-conformance.test.ts §10.67, a field-wise sweep of every corpus/*/*.agjson.json that prints and asserts the disclosed population" },
+  { n: 68, leg: "adk", title: "ADK internal metadata off carries (rc.2): in one fold of fresh synthetic natives, two of each shape (an id-bearing function-call event, partial and final, whose customMetadata holds the integrity stamp, the restored marker, a third prefixed entry, a nested other and a host whose nested value holds a prefixed key; an event with no branch and no nodeInfo whose only unmapped value is a customMetadata of prefixed entries only; an unmappable native carrying the bag beside other, under customMetadata and under custom_metadata), no provider-raw raw.customMetadata and no ext.google.unparsed native holds a top-level __adk_internal_ entry; no stamp and no third-entry leaf reaches the serialized stream or a text block's deltas; other and host ride byte-identical, the nested prefixed key under host and the near-miss name __adk_internalx included; the prefixed-only bag yields no provider-raw member and, alone, no provider-raw block; the unmappable native carries no emptied member; the stream and its fold deep-equal those from the natives without the prefixed entries; push() throws nothing; no corpus native names the prefix, so every replay golden is unchanged", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.68, facet-driven via createAdkNormalizer; the replay goldens: replay.test.ts \"agjson deep-equals the committed adk.agjson.json snapshot\" (the leg scans the corpus and fixtures for the prefix: zero files); the facet legs google-adk/src/index.test.ts \"a function-call event, partial and final, whose customMetadata holds the integrity stamp, the restored marker and another prefixed entry carries only the other entries, a nested prefixed key below a carried entry and a near-miss name included; the pushed native is not changed, and the events equal those of the natives without the prefixed entries\"; \"a customMetadata that held only prefixed entries is not carried: an event with nothing else unmapped yields no provider-raw block, and its events and fold equal those of the native without the member\"; \"a native that is not an ADK event rides ext.google.unparsed without the prefixed entries, under customMetadata and under custom_metadata: other entries stay, and a member left empty is dropped\"" },
+  { n: 68, leg: "claude", title: "ADK internal metadata off carries (rc.2)", disposition: "N/A", evidence: "none", citation: "§10 item 68 binds normalizers targeting ADK: no customMetadata surface" },
+  { n: 68, leg: "openai", title: "ADK internal metadata off carries (rc.2)", disposition: "N/A", evidence: "none", citation: "§10 item 68 binds normalizers targeting ADK: no customMetadata surface" },
+  { n: 68, leg: "vercel", title: "ADK internal metadata off carries (rc.2)", disposition: "N/A", evidence: "none", citation: "§10 item 68 binds normalizers targeting ADK: no customMetadata surface" },
+  { n: 69, leg: "headerless-verbatim", title: "OpenAI refused computer action and screenshot bytes (rc.2): a computer_call_result whose output.data carries no data: header lands a file block whose data equals the value verbatim with mediaType image/png and outcome ok — the differential that proves the header strip is conditional", disposition: "COVERED-BY", evidence: "fixture-only", citation: "openai-agents/src/index.test.ts \"emits tool.done with the screenshot landed as a file block (base64 PNG) — regression: NOT orphaned-empty content\" (the COMPUTER_ROUND leg, unchanged by the rc.2 facet commits)" },
+  { n: 69, leg: "replay-control", title: "OpenAI refused computer action and screenshot bytes (rc.2): the committed approval-tool-gpt6sol resume-reject replay (a function-tool rejection, no approvalStatus) folds byte-identically to its golden with its tool.done outcome ok — the denied rule reaches no other arm and moves no golden", disposition: "COVERED-BY", evidence: "corpus", citation: "spec-conformance.test.ts \"(pair-openai) approval-tool-gpt6sol → resume-approve and → resume-reject: the id and fold assertions hold\"; the replay gate replay.test.ts \"agjson deep-equals the committed openai.agjson.json snapshot\"" },
+  { n: 69, leg: "executed", title: "OpenAI refused computer action and screenshot bytes (rc.2): fed the client-executed computer round (executionStatus executed; output.data a data:image/png;base64 URL), exactly one tool.done ok for the call, no denied close in the invoke, one file block base64/image/png whose data decodes to a PNG (89 50 4E 47 0D 0A 1A 0A), providerMetadata.executionStatus executed; one tool-result in the fold, no resync", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts \"§10.69(executed): the acknowledged-safety-check round closes one tool.done ok for call_cu_1 with the screenshot as base64 bytes (PNG signature) and mediaType image/png, carries executionStatus executed and the acknowledged safety checks verbatim, emits no denied close, and folds to one tool-result with no resync\" over fixtures/openai-hosted/computer-safety-ack.native.json (6322550669d66f8e, the 0.20.0 acknowledged-safety-check run; its 0.18.0 predecessor 72a6983d762586bf differs only by acknowledgedSafetyChecks); FIXTURES.md, the entry OpenAI computer-tool engine fixtures (built at the @openai/agents 0.20.0 pin from a scripted model; no live capture); the facet legs openai-agents/src/index.test.ts \"a client-executed computer result lands its data: URL as base64 bytes with the header's media type and carries executionStatus\"; \"a computer result carries the item's acknowledgedSafetyChecks verbatim on tool.done providerMetadata\"" },
+  { n: 69, leg: "rejected-same-invoke", title: "OpenAI refused computer action and screenshot bytes (rc.2): fed the refused round (no executionStatus; output.providerData approvalStatus rejected with the SDK's message), exactly one tool.done denied for the call with isError, errorText and errorCode absent, content exactly one text block carrying the message then the file block, providerMetadata.approvalStatus rejected and message verbatim; the fold holds the text once and no late-message, no resync", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts \"§10.69(rejected-same-invoke): the refused round (output.providerData.approvalStatus rejected, no executionStatus) closes one tool.done denied for call_cu_1 with no isError, errorText or errorCode, the message as one text block before the file block, approvalStatus and message on providerMetadata; the fold holds the text once and no late-message\" over fixtures/openai-hosted/computer-safety-reject.native.json (2bcaf718ed787344, byte-identical to the 0.19.0 run); FIXTURES.md, the entry OpenAI computer-tool engine fixtures (built at the @openai/agents 0.20.0 pin from a scripted model; no live capture); the facet legs openai-agents/src/index.test.ts \"a computer result whose output.providerData.approvalStatus is rejected closes denied with the SDK's message as a text block and no isError\"; \"a refused computer result carries approvalStatus and message on tool.done providerMetadata, and no executionStatus\"" },
+  { n: 69, leg: "rejected-resume", title: "OpenAI refused computer action and screenshot bytes (rc.2): the needsApproval-rejected pair, two invokes with a fresh Normalizer each — the resuming invoke emits a leading tool.done denied for the call with messageId call_cu_1:result in a turn no earlier invoke used and no tool.start for that id (§5.0 INV-XINV); the pair folded through one Reducer holds exactly one tool-result for the call, no resync", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts \"§10.69(rejected-resume): a rejected computer approval resumed in a fresh invoke emits a leading denied tool.done for call_cu_1 with messageId call_cu_1:result in a turn no earlier invoke used and no tool.start for that id; the pair folded through one Reducer holds one tool-result for the call with no resync\" over fixtures/openai-hosted/computer-approval-reject.invoke1.native.json (6aac8b4bad03633d) and computer-approval-reject.invoke2.native.json (c4fc94ef235d70ae), joined by sep invoke2 byte-identical to the 0.18.0 and 0.19.0 runs (c0343a7ca196d6b1); FIXTURES.md, the entry OpenAI computer-tool engine fixtures (built at the @openai/agents 0.20.0 pin from a scripted model; no live capture); the facet legs openai-agents/src/index.test.ts \"a rejected computer approval resumed in a fresh invoke lands a leading denied tool.done under INV-XINV ids\"; \"a declined computer approval resumed in a fresh invoke carries the refusal markers on its leading tool.done\"" },
+  { n: 69, leg: "abort-not-denied", title: "OpenAI refused computer action and screenshot bytes (rc.2): fed the SDK's cancellation result (rawItem.providerData.status incomplete, output without providerData, no executionStatus), no tool.done denied — the absence-is-not-a-signal control; the call closes ok today, its own mapping deferred", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts \"§10.69(abort-not-denied): the SDK's cancellation result (providerData.status incomplete, no approvalStatus, no executionStatus) closes no tool.done denied — the call closes ok as today, the shape's own mapping being deferred\" over fixtures/openai-hosted/computer-abort.native.json (5ff5eb90f188c7e9, synthetic: built from agents-core 0.20.0's buildComputerAbortResult constant — no engine run streams the cancellation item, the gate openai-hosted.test.ts checks the constant against the installed SDK); FIXTURES.md, the entry OpenAI computer-tool engine fixtures (built at the @openai/agents 0.20.0 pin from a scripted model; no live capture); the facet leg openai-agents/src/index.test.ts \"a computer cancellation result (providerData.status incomplete, no approvalStatus) does not close denied\"" },
+  { n: 69, leg: "claude", title: "OpenAI refused computer action and screenshot bytes (rc.2)", disposition: "N/A", evidence: "none", citation: "§10 item 69 binds normalizers targeting OpenAI Agents: no computer_call_result surface" },
+  { n: 69, leg: "google", title: "OpenAI refused computer action and screenshot bytes (rc.2)", disposition: "N/A", evidence: "none", citation: "§10 item 69 binds normalizers targeting OpenAI Agents: no computer_call_result surface" },
+  { n: 69, leg: "vercel", title: "OpenAI refused computer action and screenshot bytes (rc.2)", disposition: "N/A", evidence: "none", citation: "§10 item 69 binds normalizers targeting OpenAI Agents: no computer_call_result surface" },
   { n: 65, leg: "ext-and-request", title: "Wire-selected prototypes at the decode (rc.1): a consuming ingest of an ext.* event, and the request carriers of an AgClientCapabilities (AgInputEnvelope.capabilities) and an AgHitlAnswer (a resume's answers[]) through the reference's AgInput receiver, drop an own __proto__ planted at the top level and nested, once per value leg, and return the value, not a stub or a rejection, deep-equal to the unplanted one; the bare parse keeps the member; Object.prototype gains no member", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.65 (ext …) and (request …) via core ingestAgEvent and checkAgInput; the request legs bind implementations that ship such a receiver (item 65), and the reference's is checkAgInput" },
 ];
 
@@ -5113,6 +5126,312 @@ describe("§10.61 — ADK relay bookkeeping off carries (rc.1): the four relay e
     const ref = drive(all.map(stripped));
     expect(isDeepStrictEqual(JSON.parse(JSON.stringify(out)), JSON.parse(JSON.stringify(ref)))).toBe(true);
     expect(isDeepStrictEqual(JSON.parse(JSON.stringify(reduce(out))), JSON.parse(JSON.stringify(reduce(ref))))).toBe(true);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.68 — ADK internal metadata off carries (rc.2), RUNNABLE, facet-driven.
+// Fresh synthetic natives shaped as ADK 2.2.1 stamps them (customMetadata
+// entries named with ADK's reserved `__adk_internal_` prefix: the tool-call
+// integrity stamp, the restored-history marker, a third prefixed entry). The
+// controls: a nested prefixed key BELOW a kept entry stays, and the near-miss
+// name `__adk_internalx` (no trailing underscore) is kept.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.68 — ADK internal metadata off carries (rc.2): no top-level __adk_internal_ entry reaches an emitted event, every other entry rides, and the stream equals the one from natives without them", () => {
+  const PREFIX = "__adk_internal_";
+  const NEAR_MISS = "__adk_internalx";
+  const LEAVES: string[] = [];
+  const leaf = (tag: string): string => {
+    const v = `S10I-${tag}-${LEAVES.length}`;
+    LEAVES.push(v);
+    return v;
+  };
+  let stampN = 0;
+  /** `"v1:"` + 64 lowercase hex characters, distinct per instance. */
+  const stamp = (): string => {
+    stampN += 1;
+    const v = `v1:${stampN.toString(16).padStart(64, "0")}`;
+    LEAVES.push(v);
+    return v;
+  };
+  const model = (t: string) => ({ role: "model", parts: [{ text: t }] });
+  const call = (i: number) => ({ role: "model", parts: [{ functionCall: { name: "lookup", args: { q: `q${i}` }, id: `call_s10i_${i}` } }] });
+  const bag = (tag: string, callId: string) => ({
+    [`${PREFIX}fc_hmac`]: { [callId]: stamp() },
+    [`${PREFIX}restored_event`]: true,
+    [`${PREFIX}audit_leaf`]: leaf(`${tag}-third`),
+    other: { note: `kept-${tag}`, nested: [1, { deeper: true }] },
+    host: { tenant: `t-${tag}`, [`${PREFIX}nested_below_a_kept_entry`]: `stays-${tag}` },
+    [NEAR_MISS]: `near-miss-kept-${tag}`,
+  });
+  const inv = { invocationId: "inv_s10_internal" };
+  // (a) an id-bearing function-call event, partial then final, both carrying the bag;
+  // (b) no branch, no nodeInfo, the only unmapped value a customMetadata of prefixed entries only;
+  // (c) unmappable (no content, no invocationId): the bag beside `other`, camelCase and snake_case.
+  const shapeA = (i: number) => {
+    const id = `call_s10i_${i}`;
+    return [
+      { ...inv, author: `agent-a${i}`, content: call(i), partial: true, customMetadata: bag(`a${i}p`, id) },
+      { ...inv, author: `agent-a${i}`, content: call(i), partial: false, turnComplete: true, customMetadata: bag(`a${i}f`, id) },
+    ];
+  };
+  const shapeB = (i: number) => ({ ...inv, author: `agent-b${i}`, content: model(`Ok ${i}.`), turnComplete: true, customMetadata: { [`${PREFIX}fc_hmac`]: { [`call_b${i}`]: stamp() }, [`${PREFIX}restored_event`]: true, [`${PREFIX}audit_leaf`]: leaf(`b${i}-third`) } });
+  const shapeC = (i: number) => ({ author: `agent-c${i}`, turnComplete: true, customMetadata: { ...bag(`c${i}`, `call_c${i}`) } });
+  const shapeCs = (i: number) => ({ author: `agent-cs${i}`, turn_complete: true, custom_metadata: { ...bag(`cs${i}`, `call_cs${i}`) } });
+  const shapes = { a: [...shapeA(1), ...shapeA(2)], b: [shapeB(1), shapeB(2)], c: [shapeC(1), shapeC(2), shapeCs(1), shapeCs(2)] };
+  const all = [...shapes.a, ...shapes.b, ...shapes.c];
+
+  /** The same native with the prefixed entries removed, and the metadata member removed where that removal empties it. */
+  const stripped = (native: Record<string, unknown>): Record<string, unknown> => {
+    const out: Record<string, unknown> = { ...native };
+    for (const member of ["customMetadata", "custom_metadata"]) {
+      const b = out[member];
+      if (b === null || typeof b !== "object" || Array.isArray(b)) continue;
+      const kept = Object.fromEntries(Object.entries(b as Record<string, unknown>).filter(([k]) => !k.startsWith(PREFIX)));
+      if (Object.keys(kept).length === 0) delete out[member];
+      else out[member] = kept;
+    }
+    return out;
+  };
+  const drive = (natives: Record<string, unknown>[]): AgEvent[] => {
+    const n = createAdkNormalizer({ invokeId: "s10-internal" });
+    const out: AgEvent[] = [];
+    for (const native of natives) expect(() => out.push(...n.push(toJsonValue(native)))).not.toThrow();
+    expect(() => out.push(...n.flush())).not.toThrow();
+    return out;
+  };
+  const providerRaws = (out: AgEvent[]): Array<Record<string, unknown>> =>
+    out.flatMap((e) => {
+      if (e.type !== "content.block") return [];
+      const block: unknown = Reflect.get(e, "block");
+      if (typeof block !== "object" || block === null || Reflect.get(block, "type") !== "provider-raw") return [];
+      const raw: unknown = Reflect.get(block, "raw");
+      return typeof raw === "object" && raw !== null ? [raw as Record<string, unknown>] : [];
+    });
+  const textConcats = (out: AgEvent[]): string[] => {
+    const by = new Map<string, string>();
+    for (const e of out) {
+      if (e.type !== "text.delta") continue;
+      const id = String(Reflect.get(e, "blockId") ?? Reflect.get(e, "id") ?? "");
+      by.set(id, (by.get(id) ?? "") + String(Reflect.get(e, "delta") ?? ""));
+    }
+    return [...by.values()];
+  };
+  const expectNoLeaf = (value: unknown, label: string) => {
+    const wire = JSON.stringify(value);
+    for (const v of LEAVES) {
+      expect(wire.includes(v), `${label}: raw ${v}`).toBe(false);
+      expect(wire.includes(JSON.stringify(v).slice(1, -1)), `${label}: escaped ${v}`).toBe(false);
+    }
+  };
+  const topLevelPrefixed = (b: unknown): string[] => (b !== null && typeof b === "object" && !Array.isArray(b) ? Object.keys(b).filter((k) => k.startsWith(PREFIX)) : []);
+
+  it("in one fold of every shape (two of each), no provider-raw raw.customMetadata and no ext.google.unparsed native holds a top-level __adk_internal_ entry, and no stamp or third-entry leaf reaches the serialized stream or any text block's deltas", () => {
+    const out = drive(all);
+    expectNoLeaf(out, "the fold's events");
+    for (const text of textConcats(out)) for (const v of LEAVES) expect(text.includes(v), `a text block's deltas: ${v}`).toBe(false);
+    for (const raw of providerRaws(out)) expect(topLevelPrefixed(raw["customMetadata"])).toEqual([]);
+    const ext = out.filter((e) => e.type === "ext.google.unparsed");
+    expect(ext.length).toBeGreaterThan(0);
+    for (const e of ext) {
+      const carriedNative: unknown = Reflect.get(e, "native");
+      for (const member of ["customMetadata", "custom_metadata"]) expect(topLevelPrefixed(carriedNative !== null && typeof carriedNative === "object" ? Reflect.get(carriedNative, member) : undefined), member).toEqual([]);
+    }
+  });
+
+  it("per shape: (a)'s other and host ride byte-identical, the nested prefixed key below host and the near-miss name included; (b) leaves no provider-raw customMetadata member and, with nothing else unmapped, no provider-raw block; (c)'s ext.google.unparsed native holds no leaf and no emptied member under either spelling", () => {
+    for (const native of shapes.a) {
+      const carried = providerRaws(drive([native])).map((raw) => raw["customMetadata"]).filter((b) => b !== undefined);
+      expect(carried.length, String(native.author)).toBe(1);
+      const b = carried[0] as Record<string, unknown>;
+      for (const k of ["other", "host", NEAR_MISS]) expect(JSON.stringify(b[k]), `${String(native.author)}: ${k}`).toBe(JSON.stringify((native.customMetadata as Record<string, unknown>)[k]));
+      expect(Object.hasOwn(b["host"] as object, `${PREFIX}nested_below_a_kept_entry`), `${String(native.author)}: the nested key below host stays`).toBe(true);
+      expect(topLevelPrefixed(b)).toEqual([]);
+    }
+    for (const native of shapes.b) {
+      const raws = providerRaws(drive([native]));
+      for (const raw of raws) expect(Object.hasOwn(raw, "customMetadata"), String(native.author)).toBe(false);
+      expect(raws.length, `${String(native.author)}: no provider-raw block when the bag was the only unmapped value`).toBe(0);
+    }
+    for (const native of shapes.c) {
+      const ext = drive([native]).filter((e) => e.type === "ext.google.unparsed");
+      expect(ext.length, String(native.author)).toBeGreaterThan(0);
+      for (const e of ext) {
+        expectNoLeaf(e, String(native.author));
+        const carriedNative: unknown = Reflect.get(e, "native");
+        for (const member of ["customMetadata", "custom_metadata"]) {
+          const b = carriedNative !== null && typeof carriedNative === "object" ? Reflect.get(carriedNative, member) : undefined;
+          expect(b !== undefined && b !== null && typeof b === "object" && Object.keys(b).length === 0, `${String(native.author)}: emptied ${member}`).toBe(false);
+          if (b !== undefined && b !== null && typeof b === "object") expect(Object.hasOwn(b, "other"), `${String(native.author)}: other stays`).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("the emitted events, and the fold of them, deep-equal those from the same natives with the prefixed entries removed (and the metadata member removed where that empties it), with the same invoke id", () => {
+    const out = drive(all);
+    const ref = drive(all.map(stripped));
+    expect(isDeepStrictEqual(JSON.parse(JSON.stringify(out)), JSON.parse(JSON.stringify(ref)))).toBe(true);
+    expect(isDeepStrictEqual(JSON.parse(JSON.stringify(reduce(out))), JSON.parse(JSON.stringify(reduce(ref))))).toBe(true);
+  });
+
+  it("no committed corpus native or engine fixture names the prefix, so the rule changes no byte of any replay golden (the replay gate holds them)", () => {
+    const hits: string[] = [];
+    const walk = (dir: URL) => {
+      for (const name of readdirSync(dir, { withFileTypes: true })) {
+        const p = new URL(name.isDirectory() ? `${name.name}/` : name.name, dir);
+        if (name.isDirectory()) walk(p);
+        else if (name.isFile() && readFileSync(p, "utf8").includes(PREFIX)) hits.push(p.pathname);
+      }
+    };
+    for (const root of [new URL("../corpus/", import.meta.url), new URL("../fixtures/", import.meta.url)]) if (existsSync(root)) walk(root);
+    expect(hits).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.69 — OpenAI refused computer action and screenshot bytes (rc.2), RUNNABLE,
+// over the engine fixtures under fixtures/openai-hosted/ (built at the e2e pin
+// from a scripted model, no live capture; see FIXTURES.md, OpenAI computer-tool
+// engine fixtures). The item's four legs; headerless-verbatim and replay-control
+// are COVERED-BY rows.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.69 — OpenAI refused computer action and screenshot bytes (rc.2): the executed round closes ok with the screenshot as bytes, the refused round closes denied with the message as text, the resumed rejection leads a fresh invoke, and a cancellation is not denied", () => {
+  const CALL = "call_cu_1";
+  const PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  const load = (name: string): JsonValue[] => JSON.parse(readFileSync(new URL(`../fixtures/openai-hosted/${name}.native.json`, import.meta.url), "utf8")) as JsonValue[];
+  const drive = (name: string, invokeId: string, r: Reducer = new Reducer()): { out: AgEvent[]; r: Reducer } => {
+    const natives = load(name);
+    const n = createOpenaiNormalizer({ invokeId });
+    const out = [...natives.flatMap((e) => n.push(e)), ...n.flush()];
+    for (const e of out) expect(AgEvent.safeParse(e).success, `${name}: ${JSON.stringify(e)}`).toBe(true);
+    for (const e of out) r.push(e);
+    return { out, r };
+  };
+  type Rec = Record<string, unknown>;
+  const asRec = (v: unknown): Rec => v as Rec;
+  const donesFor = (out: AgEvent[]) => out.filter((e) => e.type === "tool.done" && asRec(e)["toolCallId"] === CALL).map(asRec);
+  const deniedCount = (out: AgEvent[]) => out.filter((e) => e.type === "tool.done" && asRec(e)["outcome"] === "denied").length;
+  /** Every object in a tree with the given type and toolCallId. */
+  const blocksOf = (tree: unknown, type: string): Rec[] => {
+    const hits: Rec[] = [];
+    const walk = (v: unknown) => {
+      if (Array.isArray(v)) { for (const x of v) walk(x); return; }
+      if (v !== null && typeof v === "object") {
+        const o = v as Rec;
+        if (o["type"] === type && o["toolCallId"] === CALL) hits.push(o);
+        for (const x of Object.values(o)) walk(x);
+      }
+    };
+    walk(tree);
+    return hits;
+  };
+  /** The first value of a key anywhere in a tree. */
+  const findKey = (tree: unknown, key: string): unknown => {
+    if (Array.isArray(tree)) { for (const x of tree) { const f = findKey(x, key); if (f !== undefined) return f; } return undefined; }
+    if (tree !== null && typeof tree === "object") {
+      const o = tree as Rec;
+      if (Object.hasOwn(o, key)) return o[key];
+      for (const x of Object.values(o)) { const f = findKey(x, key); if (f !== undefined) return f; }
+    }
+    return undefined;
+  };
+  const expectPngBytes = (file: Rec, label: string) => {
+    const source = asRec(file["source"]);
+    expect(source, label).toMatchObject({ type: "base64", mediaType: "image/png" });
+    const data = String(source["data"]);
+    expect(data.startsWith("data:"), `${label}: no data: header in source.data`).toBe(false);
+    expect([...Buffer.from(data, "base64").subarray(0, 8)], `${label}: PNG signature`).toEqual(PNG);
+  };
+
+  it("§10.69(executed): the acknowledged-safety-check round closes one tool.done ok for call_cu_1 with the screenshot as base64 bytes (PNG signature) and mediaType image/png, carries executionStatus executed and the acknowledged safety checks verbatim, emits no denied close, and folds to one tool-result with no resync", () => {
+    const { out, r } = drive("computer-safety-ack", "c69-ack");
+    const dones = donesFor(out);
+    expect(dones).toHaveLength(1);
+    const d = dones[0]!;
+    expect(d["outcome"]).toBe("ok");
+    expect(deniedCount(out)).toBe(0);
+    const files = (d["content"] as Rec[]).filter((b) => b["type"] === "file");
+    expect(files).toHaveLength(1);
+    expectPngBytes(files[0]!, "executed");
+    const meta = asRec(d["providerMetadata"]);
+    expect(meta["executionStatus"]).toBe("executed");
+    const acks = findKey(load("computer-safety-ack"), "acknowledgedSafetyChecks");
+    expect(acks, "the native carries acknowledgedSafetyChecks").toBeDefined();
+    expect(meta["acknowledgedSafetyChecks"]).toEqual(acks);
+    expect(r.needsResync).toBe(false);
+    expect(blocksOf(r.result(), "tool-result")).toHaveLength(1);
+  });
+
+  it("§10.69(rejected-same-invoke): the refused round (output.providerData.approvalStatus rejected, no executionStatus) closes one tool.done denied for call_cu_1 with no isError, errorText or errorCode, the message as one text block before the file block, approvalStatus and message on providerMetadata; the fold holds the text once and no late-message", () => {
+    const natives = load("computer-safety-reject");
+    const rejection = ((): Rec => {
+      const hits: Rec[] = [];
+      const walk = (v: unknown) => {
+        if (Array.isArray(v)) { for (const x of v) walk(x); return; }
+        if (v !== null && typeof v === "object") { const o = v as Rec; if (o["approvalStatus"] === "rejected") hits.push(o); for (const x of Object.values(o)) walk(x); }
+      };
+      walk(natives);
+      return hits[0] ?? {};
+    })();
+    expect(rejection["message"], "the native's rejection result carries a message").toBeDefined();
+    const message = String(rejection["message"]);
+    expect(message.length, "the native's rejection message").toBeGreaterThan(0);
+    const { out, r } = drive("computer-safety-reject", "c69-reject");
+    const dones = donesFor(out);
+    expect(dones).toHaveLength(1);
+    const d = dones[0]!;
+    expect(d["outcome"]).toBe("denied");
+    for (const k of ["isError", "errorText", "errorCode"]) expect(k in d, `no ${k} on the denied close`).toBe(false);
+    const content = d["content"] as Rec[];
+    expect(content).toHaveLength(2);
+    expect(content[0]).toMatchObject({ type: "text", text: message });
+    expect(content[1]!["type"]).toBe("file");
+    expectPngBytes(content[1]!, "rejected");
+    const meta = asRec(d["providerMetadata"]);
+    expect(meta["approvalStatus"]).toBe("rejected");
+    expect(meta["message"]).toBe(message);
+    expect("executionStatus" in meta, "no executionStatus on the refused result").toBe(false);
+    expect(r.needsResync).toBe(false);
+    const results = blocksOf(r.result(), "tool-result");
+    expect(results).toHaveLength(1);
+    const texts = (results[0]!["content"] as Rec[]).filter((b) => b["type"] === "text" && b["text"] === message);
+    expect(texts, "the folded tool-result holds the message once, as its text block").toHaveLength(1);
+    expect(JSON.stringify(r.result()).includes("late-message"), "no late-message in the fold").toBe(false);
+  });
+
+  it("§10.69(rejected-resume): a rejected computer approval resumed in a fresh invoke emits a leading denied tool.done for call_cu_1 with messageId call_cu_1:result in a turn no earlier invoke used and no tool.start for that id; the pair folded through one Reducer holds one tool-result for the call with no resync", () => {
+    const shared = new Reducer();
+    const { out: out1, r: r1 } = drive("computer-approval-reject.invoke1", "c69-r1");
+    const { out: out2, r: r2 } = drive("computer-approval-reject.invoke2", "c69-r2");
+    expect(r1.needsResync).toBe(false);
+    expect(r2.needsResync).toBe(false);
+    const turns1 = new Set<unknown>(out1.map((e) => asRec(e)["turnId"]).filter((t) => t !== undefined));
+    const dones2 = out2.filter((e) => e.type === "tool.done").map(asRec);
+    expect(dones2.length).toBeGreaterThan(0);
+    const lead = dones2[0]!;
+    expect(lead).toMatchObject({ toolCallId: CALL, outcome: "denied", messageId: `${CALL}:result` });
+    expect(turns1.has(lead["turnId"]), "a turn no earlier invoke used").toBe(false);
+    expect(out2.some((e) => e.type === "tool.start" && asRec(e)["toolCallId"] === CALL), "no tool.start for the call in the resuming invoke").toBe(false);
+    for (const k of ["isError", "errorText", "errorCode"]) expect(k in lead, `no ${k}`).toBe(false);
+    expect(asRec(lead["providerMetadata"])["approvalStatus"]).toBe("rejected");
+    for (const e of [...out1, ...out2]) shared.push(e);
+    expect(shared.needsResync).toBe(false);
+    expect(blocksOf(shared.result(), "tool-result")).toHaveLength(1);
+  });
+
+  it("§10.69(abort-not-denied): the SDK's cancellation result (providerData.status incomplete, no approvalStatus, no executionStatus) closes no tool.done denied — the call closes ok as today, the shape's own mapping being deferred", () => {
+    const natives = load("computer-abort");
+    expect(findKey(natives, "approvalStatus")).toBeUndefined();
+    expect(findKey(natives, "executionStatus")).toBeUndefined();
+    const { out, r } = drive("computer-abort", "c69-abort");
+    expect(deniedCount(out)).toBe(0);
+    const dones = donesFor(out);
+    expect(dones).toHaveLength(1);
+    expect(dones[0]!["outcome"]).toBe("ok");
+    expect(r.needsResync).toBe(false);
   });
 });
 
