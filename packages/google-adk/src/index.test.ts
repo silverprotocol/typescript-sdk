@@ -5190,6 +5190,53 @@ describe("createAdkNormalizer — with hostCompletion, a paused run that ends wi
   });
 });
 
+describe("createAdkNormalizer — a pause is signalled by a final response of the pausing agent, never by another agent's (SPEC §8.0 item 26)", () => {
+  const authConfig = { authScheme: { type: "apiKey", in: "header", name: "X-Key" }, credentialKey: "mail-key" };
+  const ask: AdkEvent[] = [
+    event([{ functionCall: { name: "read_mail", args: {}, id: "fc-1" } }], { author: "second" }),
+    event([{ functionCall: { name: "adk_request_credential", args: { functionCallId: "fc-1", authConfig }, id: "adk-cred-1" } }], { author: "second", longRunningToolIds: ["adk-cred-1"] }),
+  ];
+  const final = (author: string, i: number): AdkEvent => event([{ text: `Done ${i}.` }], { author, partial: false, finishReason: "STOP" });
+  const inBandError = (i: number): AdkEvent => event([], { author: "second", errorCode: "E_X", errorMessage: `boom ${i}` });
+  const terminals = (natives: AdkEvent[], hostCompletion: boolean, i: number) => {
+    const n = createAdkNormalizer({ invokeId: `adk-${i}`, ...(hostCompletion ? { hostCompletion: true } : {}) });
+    const out = [...natives.flatMap((e) => n.push(toJson(e))), ...n.flush()];
+    return out.filter((e) => e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort");
+  };
+
+  it("another agent's final response while the ask is pending is no pause signal: the stream is cut and flush closes the turn turn.abort stream-truncated, never paused, with or without host completion", () => {
+    for (const i of [0, 1]) {
+      for (const hostCompletion of [true, false]) {
+        expect(terminals([...ask, final("third", i)], hostCompletion, i), `#${i} hc=${hostCompletion}`).toEqual([
+          expect.objectContaining({ type: "turn.abort", reason: "stream-truncated" }),
+        ]);
+      }
+    }
+  });
+
+  it("the pausing agent's final response while the ask is pending is the signal: the cut turn closes paused, with or without host completion", () => {
+    for (const i of [0, 1]) {
+      for (const hostCompletion of [true, false]) {
+        expect(terminals([...ask, final("second", i)], hostCompletion, i), `#${i} hc=${hostCompletion}`).toEqual([
+          expect.objectContaining({ type: "turn.done", outcome: expect.objectContaining({ type: "paused" }) }),
+        ]);
+      }
+    }
+  });
+
+  it("after an in-band invocation error, another agent's final response leaves the pause unsignalled: the turn closes with the item 35 turn.error, never paused; the pausing agent's closes paused, then the error on a new turn", () => {
+    for (const i of [0, 1]) {
+      expect(terminals([...ask, inBandError(i), final("third", i)], true, i), `#${i}`).toEqual([
+        expect.objectContaining({ type: "turn.error", code: "E_X", message: `boom ${i}` }),
+      ]);
+      expect(terminals([...ask, inBandError(i), final("second", i)], true, i), `#${i}`).toEqual([
+        expect.objectContaining({ type: "turn.done", outcome: expect.objectContaining({ type: "paused" }) }),
+        expect.objectContaining({ type: "turn.error", code: "E_X", message: `boom ${i}` }),
+      ]);
+    }
+  });
+});
+
 describe("createAdkNormalizer — an in-band error close carries the turn's usage, as the done close does (SPEC §4 turn.error.usage)", () => {
   it("an errorCode + errorMessage event closes turn.error with the turn's accumulated usage, its own report included", () => {
     const out = run([

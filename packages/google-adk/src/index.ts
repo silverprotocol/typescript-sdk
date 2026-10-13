@@ -2724,9 +2724,14 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
   // Host obligation 4 (opt-in): a success close stashed until the sentinel, and
   // the non-HITL long-running calls still unanswered, per turn.
   const deferredClose = new Map<string, AdkEvent>();
-  // Per turn: a final response arrived while an ask was pending, one of item
-  // 26's pause signals. A final stashed before any ask is not one.
+  // Per turn: a final response of a pausing agent (the author of a pending
+  // ask's event) arrived while that ask was pending, one of item 26's pause
+  // signals. A final stashed before any ask is not one, and neither is another
+  // agent's final, which only follows the signal.
   const finalWhileAsking = new Set<string>();
+  const askingAuthors = new Map<string, Set<string | undefined>>();
+  const finalOfPausingAgent = (turnId: string, event: AdkEvent): boolean =>
+    (pendingAsks.get(turnId)?.length ?? 0) > 0 && askingAuthors.get(turnId)?.has(event.author) === true;
   // Live barge-ins (`interrupted: true`, ADK's live aggregator) awaiting their
   // close. An interrupt on a PARTIAL text event is followed by ADK's full-text
   // aggregate of the same model turn (utils/live_connection_utils.js:175-178),
@@ -2833,7 +2838,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     if (firstInBandError.has(turnId)) {
       if ((pendingAsks.get(turnId)?.length ?? 0) > 0) {
         deferredClose.set(turnId, event);
-        finalWhileAsking.add(turnId);
+        if (finalOfPausingAgent(turnId, event)) finalWhileAsking.add(turnId);
       }
       return;
     }
@@ -2856,7 +2861,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // so a stream ending here is byte-identical.
     if (hostCompletion || (pendingAsks.get(turnId)?.length ?? 0) > 0) {
       deferredClose.set(turnId, event);
-      if ((pendingAsks.get(turnId)?.length ?? 0) > 0) finalWhileAsking.add(turnId);
+      if (finalOfPausingAgent(turnId, event)) finalWhileAsking.add(turnId);
       return;
     }
     // ── The branch gate ──
@@ -3433,7 +3438,13 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // per-invoke.
 
     if (!isPartial) trackLongRunning(event, turnId);
+    const asksBefore = pendingAsks.get(turnId)?.length ?? 0;
     driveAdkTopLevel(a, event, messageId, turnId, pendingAsks, reserved, streamedTranscription, closedTurns.has(turnId)); // standalone and content arms
+    if ((pendingAsks.get(turnId)?.length ?? 0) > asksBefore) {
+      const authors = askingAuthors.get(turnId) ?? new Set<string | undefined>();
+      authors.add(event.author);
+      askingAuthors.set(turnId, authors);
+    }
     // A turn gets ONE terminal: an interrupt on a turn that already closed
     // (a second barge-in, or one after a success close) adds none.
     if (event.interrupted === true && !closedTurns.has(turnId)) interruptPending.add(turnId);
