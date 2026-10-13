@@ -5929,6 +5929,113 @@ describe("createAdkNormalizer — the bookkeeping entries ADK's A2A relay writes
   });
 });
 
+describe("createAdkNormalizer — ADK's internal customMetadata entries (__adk_internal_*) are not carried (§8.0 item 38)", () => {
+  const inv = { invocationId: "inv_fixture_1" };
+  const DROPPED: string[] = [];
+  /** A distinct value placed only inside an entry the facet must not carry. */
+  const dropped = (tag: string): string => {
+    const value = `DROPPED-${tag}-${DROPPED.length}`;
+    DROPPED.push(value);
+    return value;
+  };
+  const stamp = (i: number): string => `v1:${(i + 1).toString(16).padStart(2, "0").repeat(32)}`;
+  /** A bag with ADK's two observed entries, a third prefixed entry, and entries that are carried. */
+  const bag = (tag: string, callId: string, i: number) => {
+    const s = stamp(i);
+    DROPPED.push(s);
+    return {
+      __adk_internal_fc_hmac: { [callId]: s },
+      __adk_internal_restored_event: true,
+      __adk_internal_extra: { leaf: dropped(`${tag}-extra`) },
+      other: { note: `kept ${tag}`, list: [1, 2] },
+      host: { __adk_internal_nested: `nested ${tag}`, value: 3 },
+      __adk_internalx: `near-miss ${tag}`,
+    };
+  };
+  const kept = (tag: string) => ({ other: { note: `kept ${tag}`, list: [1, 2] }, host: { __adk_internal_nested: `nested ${tag}`, value: 3 }, __adk_internalx: `near-miss ${tag}` });
+  const drive = (natives: JsonValue[]): AgEvent[] => {
+    const n = createAdkNormalizer({ invokeId: "adk" });
+    return [...natives.flatMap((e) => n.push(e)), ...n.flush()];
+  };
+  const carries = (out: AgEvent[]): unknown[] =>
+    out.flatMap((e) => {
+      const block: unknown = e.type === "content.block" ? Reflect.get(e, "block") : undefined;
+      return typeof block === "object" && block !== null && Reflect.get(block, "type") === "provider-raw" ? [Reflect.get(block, "raw")] : [];
+    });
+  const expectNoDropped = (out: AgEvent[], label: string) => {
+    const wire = JSON.stringify(out);
+    for (const value of DROPPED) expect(wire.includes(value), `${label}: ${value}`).toBe(false);
+    expect(wire.includes("__adk_internal_fc_hmac") || wire.includes("__adk_internal_restored_event") || wire.includes("__adk_internal_extra"), label).toBe(false);
+  };
+  /** The same natives with the prefixed top-level entries removed, and the member removed where that empties it. */
+  const withoutInternal = (native: { [k: string]: unknown }): JsonValue => {
+    const out: { [k: string]: unknown } = {};
+    for (const [k, v] of Object.entries(native)) {
+      if ((k === "customMetadata" || k === "custom_metadata") && typeof v === "object" && v !== null && !Array.isArray(v)) {
+        const rest = Object.fromEntries(Object.entries(v).filter(([key]) => !key.startsWith("__adk_internal_")));
+        if (Object.keys(rest).length > 0) out[k] = rest;
+      } else out[k] = v;
+    }
+    return toJsonValue(out);
+  };
+  const call = (tag: string, i: number, partial: boolean) => {
+    const callId = `call-${tag}-${i}`;
+    return { ...inv, author: "helper", ...(partial ? { partial: true } : {}), content: { role: "model", parts: [{ functionCall: { name: "lookup", id: callId, args: { q: tag } } }] }, customMetadata: bag(tag, callId, i) };
+  };
+
+  it("a function-call event, partial and final, whose customMetadata holds the integrity stamp, the restored marker and another prefixed entry carries only the other entries, a nested prefixed key below a carried entry and a near-miss name included; the pushed native is not changed, and the events equal those of the natives without the prefixed entries", () => {
+    for (const i of [0, 1]) {
+      for (const partial of [true, false]) {
+        const tag = `call-${partial ? "partial" : "final"}-${i}`;
+        const native = call(tag, i, partial);
+        const json = toJsonValue(native);
+        const before = JSON.stringify(json);
+        const out = drive([json]);
+        expect(JSON.stringify(json), tag).toBe(before);
+        expect(carries(out).map((raw) => Reflect.get(Object(raw), "customMetadata")), tag).toEqual([kept(tag)]);
+        expectNoDropped(out, tag);
+        expect(JSON.stringify(out), tag).toBe(JSON.stringify(drive([withoutInternal(native)])));
+      }
+    }
+  });
+
+  it("a customMetadata that held only prefixed entries is not carried: an event with nothing else unmapped yields no provider-raw block, and its events and fold equal those of the native without the member", () => {
+    for (const i of [0, 1]) {
+      const tag = `only-${i}`;
+      const native = { ...inv, author: "helper", content: { role: "model", parts: [{ text: `Done ${i}.` }] }, turnComplete: true, customMetadata: { __adk_internal_fc_hmac: { [`c-${i}`]: stamp(i + 4) }, __adk_internal_restored_event: true } };
+      DROPPED.push(stamp(i + 4));
+      const out = drive([toJsonValue(native)]);
+      expect(carries(out), tag).toEqual([]);
+      expectNoDropped(out, tag);
+      const without = drive([withoutInternal(native)]);
+      expect(JSON.stringify(out), tag).toBe(JSON.stringify(without));
+      const r1 = new Reducer();
+      const r2 = new Reducer();
+      for (const e of out) r1.push(e);
+      for (const e of without) r2.push(e);
+      expect(JSON.stringify(r1.result()), tag).toBe(JSON.stringify(r2.result()));
+    }
+  });
+
+  it("a native that is not an ADK event rides ext.google.unparsed without the prefixed entries, under customMetadata and under custom_metadata: other entries stay, and a member left empty is dropped", () => {
+    for (const member of ["customMetadata", "custom_metadata"] as const) {
+      for (const i of [0, 1]) {
+        const tag = `unparsed-${member}-${i}`;
+        const mixed = { author: "helper", turnComplete: true, [member]: bag(tag, `u-${i}`, i + 8) };
+        const only = { author: "helper", turnComplete: true, [member]: { __adk_internal_fc_hmac: { [`o-${i}`]: stamp(i + 12) } } };
+        DROPPED.push(stamp(i + 12));
+        const native = (out: AgEvent[]): unknown => Reflect.get(Object(out.find((e) => e.type === "ext.google.unparsed")), "native");
+        const outMixed = drive([toJsonValue(mixed)]);
+        expect(Reflect.get(Object(native(outMixed)), member), tag).toEqual(kept(tag));
+        expectNoDropped(outMixed, tag);
+        const outOnly = drive([toJsonValue(only)]);
+        expect(Object.hasOwn(Object(native(outOnly)), member), tag).toBe(false);
+        expectNoDropped(outOnly, tag);
+      }
+    }
+  });
+});
+
 describe("createAdkNormalizer — the aggregate window (§8.0 item 3): keyed per source; every other non-partial event of the source closes it, except the ones ADK yields between a call's chunks and its repeat", () => {
   const TERMINAL = new Set(["turn.done", "turn.error", "turn.abort"]);
   const inv = { invocationId: "inv_fixture_1" };

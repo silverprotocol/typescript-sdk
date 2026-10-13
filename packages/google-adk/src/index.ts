@@ -523,32 +523,47 @@ export function isLossyFinishReason(reason: string): boolean {
 // ─── stateful factory helpers ─────────────────────────────────────────────────
 
 
-// ─── the A2A relay's bookkeeping entries in customMetadata ───────────────────
-// ADK's RemoteA2AAgent writes up to four bookkeeping entries into the
-// customMetadata of the events it relays: its send request, the peer's raw A2A
-// event and their task and context ids. They are the relay's own bookkeeping,
-// not event data, and the facet does not carry them, wherever customMetadata
-// is carried (the provider-raw carry and the ext.google.unparsed native, where
-// an event serialized from Python spells it custom_metadata). Every other
-// entry, including one a remote agent wrote, rides unchanged.
+// ─── customMetadata entries the facet does not carry ─────────────────────────
+// Two kinds of customMetadata entry are not event data, and the facet does not
+// carry them, wherever customMetadata is carried (the provider-raw carry and
+// the ext.google.unparsed native, where an event serialized from Python spells
+// it custom_metadata):
+// - ADK's RemoteA2AAgent writes up to four bookkeeping entries into the
+//   customMetadata of the events it relays: its send request, the peer's raw
+//   A2A event and their task and context ids.
+// - ADK reserves the entries whose name begins with `__adk_internal_` for its
+//   own components (events/internal_metadata.js, @google/adk 2.2.1): callers
+//   cannot set them, and ADK removes them from the API responses, saved
+//   session files and A2A messages it produces. At that version they hold a
+//   tool-call integrity stamp and a restored-history marker (SPEC §8.0 item
+//   38).
+// Only top-level entries are matched. Every other entry, including one a
+// remote agent wrote and a value nested below a carried entry, rides
+// unchanged.
 const RELAY_BOOKKEEPING_KEYS: ReadonlySet<string> = new Set(["a2a:request", "a2a:response", "a2a:task_id", "a2a:context_id"]);
+const ADK_INTERNAL_METADATA_PREFIX = "__adk_internal_";
 
-/** A customMetadata value without the relay's bookkeeping entries, as a new
- *  value; the argument is not changed. A value holding none of them, or one
- *  that is not an object, is returned as it is; undefined when the entries
- *  were all it held. */
-function withoutRelayBookkeeping(value: JsonValue): JsonValue | undefined {
-  if (!isJsonObject(value) || !Object.keys(value).some((k) => RELAY_BOOKKEEPING_KEYS.has(k))) return value;
-  const kept = Object.entries(value).filter(([k]) => !RELAY_BOOKKEEPING_KEYS.has(k));
+/** Whether a top-level customMetadata entry is one the facet does not carry. */
+function isUncarriedMetadataKey(key: string): boolean {
+  return RELAY_BOOKKEEPING_KEYS.has(key) || key.startsWith(ADK_INTERNAL_METADATA_PREFIX);
+}
+
+/** A customMetadata value without the entries the facet does not carry, as a
+ *  new value; the argument is not changed. A value holding none of them, or
+ *  one that is not an object, is returned as it is; undefined when those
+ *  entries were all it held. */
+function carriedMetadata(value: JsonValue): JsonValue | undefined {
+  if (!isJsonObject(value) || !Object.keys(value).some(isUncarriedMetadataKey)) return value;
+  const kept = Object.entries(value).filter(([k]) => !isUncarriedMetadataKey(k));
   return kept.length > 0 ? Object.fromEntries(kept) : undefined;
 }
 
 /** A native with its customMetadata, or the custom_metadata of an event
- *  serialized from Python, reduced as by withoutRelayBookkeeping and dropped
- *  when nothing is left, as a new value; every other member is unchanged, and
- *  the argument is not changed. The new value's members are defined, never
+ *  serialized from Python, reduced as by carriedMetadata and dropped when
+ *  nothing is left, as a new value; every other member is unchanged, and the
+ *  argument is not changed. The new value's members are defined, never
  *  assigned, and one named __proto__ is not copied (SPEC §13.7). */
-function nativeWithoutRelayBookkeeping(native: JsonValue): JsonValue {
+function nativeWithCarriedMetadata(native: JsonValue): JsonValue {
   if (!isJsonObject(native)) return native;
   let changed = false;
   const out: Array<[string, JsonValue]> = [];
@@ -558,7 +573,7 @@ function nativeWithoutRelayBookkeeping(native: JsonValue): JsonValue {
       out.push([key, value]);
       continue;
     }
-    const kept = withoutRelayBookkeeping(value);
+    const kept = carriedMetadata(value);
     if (kept !== value) changed = true;
     if (kept !== undefined) out.push([key, kept]);
   }
@@ -2316,7 +2331,7 @@ function driveAdkTopLevel(
   const groundingSupports = groundingSupportsCarry(event.groundingMetadata);
   if (groundingSupports !== undefined) unmappedEvent["groundingMetadata"] = groundingSupports;
   if (event.customMetadata !== undefined) {
-    const kept = withoutRelayBookkeeping(JsonValue.parse(event.customMetadata));
+    const kept = carriedMetadata(JsonValue.parse(event.customMetadata));
     if (kept !== undefined) unmappedEvent["customMetadata"] = kept;
   }
   // An error message without an error code (ADK's A2A relay reports its own
@@ -3562,7 +3577,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
         omitted = stripped.omitted;
       }
       if (!isAdkEvent(event)) {
-        a.emitExt("google", "unparsed", { native: nativeWithoutRelayBookkeeping(event) });
+        a.emitExt("google", "unparsed", { native: nativeWithCarriedMetadata(event) });
         return a.drain();
       }
       drive(event, omitted);
