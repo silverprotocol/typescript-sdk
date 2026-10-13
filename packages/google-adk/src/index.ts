@@ -2590,20 +2590,26 @@ function relayStreamOf(event: AdkEvent): string | null {
 
 /** The open windows a non-partial event reads and closes: the one under its
  *  own key; else, for an event without a branch, every open window of the
- *  same turn, author and node path. */
-function windowCandidates(windows: ReadonlyMap<string, string>, turnId: string, event: AdkEvent): string[] {
-  const own = aggregateWindowKey(turnId, event);
+ *  same turn, author and node path. `own`, `relay` and `wantStream` are the
+ *  event's own window key, relay record and relay stream, read once by the
+ *  caller. */
+function windowCandidates(
+  windows: ReadonlyMap<string, string>,
+  turnId: string,
+  event: AdkEvent,
+  own: string,
+  relay: { task: string | null; stream: string } | null,
+  wantStream: string | null,
+): string[] {
   if (windows.has(own)) return [own];
   // A relayed artifact with no chunks of its own can repeat the status text
   // of its own task (a peer that sends its answer as status messages, then
   // the same text as its final artifact).
-  const relay = relayOf(event);
   if (relay !== null && relay.stream.startsWith("artifact:")) {
     const status = aggregateWindowKey(turnId, event, relayStreamKey(relay.task, "status"));
     if (windows.has(status)) return [status];
   }
   if (typeof event.branch === "string") return [];
-  const wantStream = relayStreamOf(event);
   return sourceWindows(windows, turnId, event, true)
     .filter(([, stream]) => stream === wantStream)
     .map(([key]) => key);
@@ -2667,8 +2673,13 @@ function snapshotReading(artifactText: string, statusText: string, text: string)
  *  relayed itself: ADK's RemoteA2AAgent reports a failed request with an
  *  event of its own (errorMessage, turnComplete, no relay record), which ends
  *  every relayed stream of that author and node path. */
-function relayWindowsEndedBy(windows: ReadonlyMap<string, string>, turnId: string, event: AdkEvent): string[] {
-  if (relayOf(event) !== null) return [];
+function relayWindowsEndedBy(
+  windows: ReadonlyMap<string, string>,
+  turnId: string,
+  event: AdkEvent,
+  relay: { task: string | null; stream: string } | null,
+): string[] {
+  if (relay !== null) return [];
   if (event.errorMessage === undefined && event.turnComplete !== true) return [];
   return sourceWindows(windows, turnId, event, true)
     .filter(([, stream]) => stream !== null)
@@ -3001,8 +3012,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
    *  the call counts once, from the later report), and the relay's closing
    *  event (it adds no usage). Any other in-band error emits `error` from this
    *  push and, when it is the invocation's first, latches it. */
-  function recordErrorAndUsage(event: AdkEvent, turnId: string, isPartial: boolean): void {
-    const sourceKey = aggregateWindowKey(turnId, event, null);
+  function recordErrorAndUsage(event: AdkEvent, turnId: string, isPartial: boolean, sourceKey: string): void {
     const previous = previousBySource.get(sourceKey);
     const error = inBandErrorOf(event);
     const counting = !isPartial && !closedTurns.has(turnId);
@@ -3194,15 +3204,16 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     typeof p.text === "string" &&
     p.text.length > 0;
   const carriesText = parts.some(isTextPart);
-  const ownKey = aggregateWindowKey(turnId, event);
   const relay = relayOf(event);
+  const relayStream = relay === null ? null : relayStreamKey(relay.task, relay.stream);
+  const ownKey = aggregateWindowKey(turnId, event, relayStream);
   const snapshot = !isPartial && relay !== null && relay.stream === "snapshot" ? relay : null;
   const restated = snapshot !== null ? snapshotWindows(streamedText, turnId, event, snapshot.task) : null;
   const candidates = isPartial
     ? []
     : restated !== null
       ? [...restated.artifacts, ...restated.status]
-      : windowCandidates(streamedText, turnId, event);
+      : windowCandidates(streamedText, turnId, event, ownKey, relay, relayStream);
   const [onlyCandidate] = candidates;
   const readKey = !isPartial && candidates.length === 1 && onlyCandidate !== undefined ? onlyCandidate : ownKey;
   const alreadyStreamed = isPartial
@@ -3233,7 +3244,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
   const aggregateText = isAggregate ? eventText : "";
   const suppressAggregateText =
     isAggregate && aggregateText.length > 0 && (alreadyStreamed.startsWith(aggregateText) || suffixRepeat);
-    return { isTextPart, carriesText, ownKey, snapshot, candidates, readKey, alreadyStreamed, isAggregate, aggregateText, suppressAggregateText };
+    return { isTextPart, carriesText, ownKey, relay, relayStream, snapshot, candidates, readKey, alreadyStreamed, isAggregate, aggregateText, suppressAggregateText };
   }
 
   /** Whether an event after a success close only repeats the closed turn's
@@ -3353,6 +3364,8 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
       isTextPart,
       carriesText,
       ownKey,
+      relay,
+      relayStream,
       snapshot,
       candidates,
       readKey,
@@ -3436,7 +3449,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
         (parts.length > 0 && parts.every((p) => p.functionResponse !== undefined)));
     if (isPartial) streamedText.set(ownKey, accumulated);
     else if (carriesText) for (const key of snapshot !== null ? candidates : [readKey]) streamedText.delete(key);
-    else if (!keepsWindowOpen) for (const key of [...candidates, ...relayWindowsEndedBy(streamedText, turnId, event)]) streamedText.delete(key);
+    else if (!keepsWindowOpen) for (const key of [...candidates, ...relayWindowsEndedBy(streamedText, turnId, event, relay)]) streamedText.delete(key);
 
     // Round-3 review finding (regression on finding b): the resend window's
     // lifecycle is scoped PER CONTENT KEY, never per turn. `mintNullIdCallId`
@@ -3466,7 +3479,8 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     carryLiveUsageDetails(event, turnId, messageId, isPartial);
     if (parts.some((p) => p.functionResponse !== undefined)) awaitingReply.add(turnId);
     else if (hasModelOutput(event)) awaitingReply.delete(turnId);
-    recordErrorAndUsage(event, turnId, isPartial);
+    // A non-relayed event's own window key is its source key.
+    recordErrorAndUsage(event, turnId, isPartial, relayStream === null ? ownKey : aggregateWindowKey(turnId, event, null));
     maybeCloseTurn(event, turnId, messageId, isPartial);
     // The interrupted generation closes on its own turnComplete (its trailing
     // usageMetadata arrives before it), or at flush() / host completion.

@@ -6269,6 +6269,20 @@ describe("createAdkNormalizer — the aggregate window (§8.0 item 3): keyed per
     for (const [label, natives, expected] of cases) expect(deltas(drive(natives, true)), label).toEqual(expected);
   });
 
+  it("a relayed event that ends its own call ends none of the relay's other streams: a relayed status record with turnComplete between an artifact's chunks and its repeat leaves the artifact's window open, and the text renders once", () => {
+    const art = { "a2a:response": { kind: "artifact-update", artifact: { artifactId: "art-1" } } };
+    for (const [i, task] of ["task-a", "task-b"].entries()) {
+      const meta = { ...art, "a2a:task_id": task };
+      const natives: AdkEvent[] = [
+        say(`Hel${i}`, { author: "helper", partial: true, customMetadata: meta }),
+        say("lo", { author: "helper", partial: true, customMetadata: meta }),
+        { ...inv, author: "helper", turnComplete: true, customMetadata: { "a2a:response": { kind: "status-update" }, "a2a:task_id": task } },
+        say(`Hel${i}lo`, { author: "helper", partial: false, customMetadata: meta }),
+      ];
+      expect(deltas(drive(natives, true)), task).toEqual([`Hel${i}`, "lo"]);
+    }
+  });
+
   it("a relayed artifact that repeats the relay's status text, with no chunks of its own, reads the status window: the text renders once", () => {
     const natives: AdkEvent[] = [
       say("Let me check the rates. ", { author: "helper", partial: true, customMetadata: { "a2a:response": { kind: "status-update" } } }),
