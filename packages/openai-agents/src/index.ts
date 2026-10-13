@@ -3289,13 +3289,26 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       // the base64 text alone with its media type (SPEC.md:140, "must match
       // bytes"), so the header is split off. A value with no `data:` header
       // lands verbatim as image/png.
-      content = [{ type: "file", source: screenshotSource(rawItem.output.data), filename: "screenshot.png" }];
-      outcome = "ok";
+      const outputPd = rawItem.output.providerData;
+      const file: AgBlock = { type: "file", source: screenshotSource(rawItem.output.data), filename: "screenshot.png" };
+      // A refused action (a declined approval, or an `onSafetyCheck` that
+      // returns false) is the SDK's rejection result: its
+      // `output.providerData.approvalStatus` is "rejected" and its screenshot is
+      // the SDK's 1×1 placeholder. It closes `denied` (§8.0 item 20), with the
+      // SDK's message as a text block before the file block. Every other
+      // computer result closes `ok`.
+      if (outputPd?.approvalStatus === "rejected") {
+        const message = outputPd.message;
+        content = typeof message === "string" && message.length > 0 ? [{ type: "text", text: message }, file] : [file];
+        outcome = "denied";
+      } else {
+        content = [file];
+        outcome = "ok";
+      }
       // The SDK's own markers, verbatim: the run-item's `executionStatus`
       // (present only when the action ran), the refusal's
       // `output.providerData.approvalStatus` and `message`, and the item's
       // `providerData.acknowledgedSafetyChecks`.
-      const outputPd = rawItem.output.providerData;
       providerMetadata = openaiProviderMeta({
         executionStatus,
         approvalStatus: outputPd?.approvalStatus,
@@ -3319,7 +3332,8 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       toolCallId,
       content,
       outcome,
-      isError: outcome === "error",
+      // A denied close carries no isError (§6 Pattern 4).
+      ...(outcome === "denied" ? {} : { isError: outcome === "error" }),
       ...(structuredContent !== undefined ? { structuredContent } : {}),
       ...(providerMetadata !== undefined ? { providerMetadata } : {}),
       ...(doneTurnId !== undefined ? { turnId: doneTurnId } : (openTurnForLeadingResult(toolCallId) ?? {})),

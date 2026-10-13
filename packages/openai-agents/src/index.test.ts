@@ -5399,7 +5399,7 @@ describe("createOpenaiNormalizer — computer results: screenshot bytes and the 
     const evs = run(round(refused()));
     const done = doneOf(evs);
     expect(done).toMatchObject({
-      content: [{ type: "file", source: { type: "base64", mediaType: "image/png", data: PLACEHOLDER } }],
+      content: [{ type: "text", text: REFUSED }, { type: "file", source: { type: "base64", mediaType: "image/png", data: PLACEHOLDER } }],
       providerMetadata: { approvalStatus: "rejected", message: REFUSED },
     });
     expect(Reflect.get(Reflect.get(done ?? {}, "providerMetadata") ?? {}, "executionStatus")).toBeUndefined();
@@ -5424,6 +5424,47 @@ describe("createOpenaiNormalizer — computer results: screenshot bytes and the 
       messageId: "call_cu_1:result",
       providerMetadata: { approvalStatus: "rejected", message: REFUSED },
     });
+    const both = fold([...invoke1, ...invoke2]);
+    expect(both.needsResync).toBe(false);
+    expect(both.result().messages.flatMap((m) => m.content).filter((b) => b.type === "tool-result" && Reflect.get(b, "toolCallId") === "call_cu_1")).toHaveLength(1);
+  });
+
+  it("a computer result whose output.providerData.approvalStatus is rejected closes denied with the SDK's message as a text block and no isError", () => {
+    const evs = run(round(refused()));
+    const done = doneOf(evs);
+    expect(done).toMatchObject({
+      outcome: "denied",
+      content: [{ type: "text", text: REFUSED }, { type: "file", source: { type: "base64", mediaType: "image/png", data: PLACEHOLDER } }],
+      providerMetadata: { approvalStatus: "rejected", message: REFUSED },
+    });
+    expect(done).not.toHaveProperty("isError");
+    expect(done).not.toHaveProperty("errorText");
+    expect(done).not.toHaveProperty("errorCode");
+    expect(evs.filter((e) => e.type === "tool.done")).toHaveLength(1);
+    const r = fold(evs);
+    expect(r.needsResync).toBe(false);
+    // The folded tool result holds exactly one text block with the message; the
+    // live-only ext copy is not folded.
+    const result = r.result().messages.flatMap((m) => m.content).find((b) => b.type === "tool-result" && Reflect.get(b, "toolCallId") === "call_cu_1");
+    const texts: unknown = Reflect.get(result ?? {}, "content");
+    expect(Array.isArray(texts) ? texts.filter((b) => Reflect.get(b, "type") === "text" && Reflect.get(b, "text") === REFUSED) : []).toHaveLength(1);
+    expect(JSON.stringify(r.result())).not.toContain("late-message");
+  });
+
+  it("a rejected computer approval resumed in a fresh invoke lands a leading denied tool.done under INV-XINV ids", () => {
+    const invoke1 = run(
+      round(runItem("tool_approval_requested", { type: "tool_approval_item", rawItem: { type: "computer_call", id: "cu_1", callId: "call_cu_1", status: "completed", action: { type: "click", x: 1, y: 2, button: "left" } } })),
+      "inv1",
+    );
+    const invoke2 = run([refused()], "inv2");
+    const done = doneOf(invoke2);
+    expect(done).toMatchObject({ outcome: "denied", turnId: "turn_resume_call_cu_1", messageId: "call_cu_1:result", content: [{ type: "text", text: REFUSED }, { type: "file" }] });
+    expect(done).not.toHaveProperty("isError");
+    const turns1 = new Set(invoke1.map((e) => Reflect.get(e, "turnId")).filter((t) => t !== undefined));
+    expect(turns1.has(Reflect.get(done ?? {}, "turnId"))).toBe(false);
+    expect(invoke2.filter((e) => e.type === "tool.start" && Reflect.get(e, "toolCallId") === "call_cu_1")).toEqual([]);
+    expect(fold(invoke1).needsResync).toBe(false);
+    expect(fold(invoke2).needsResync).toBe(false);
     const both = fold([...invoke1, ...invoke2]);
     expect(both.needsResync).toBe(false);
     expect(both.result().messages.flatMap((m) => m.content).filter((b) => b.type === "tool-result" && Reflect.get(b, "toolCallId") === "call_cu_1")).toHaveLength(1);
