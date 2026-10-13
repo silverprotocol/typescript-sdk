@@ -500,16 +500,18 @@ export interface OpenAIComputerCallItem {
 }
 
 /** protocol `ComputerCallResultItem` (the `rawItem` of a `tool_output` run-item
- *  for a completed Computer-Use call). `output` is ALWAYS the
- *  `computer_screenshot` shape (a base64-encoded PNG screenshot) — NO
- *  `status`/error discriminant exists on this wire arm (unlike shell/apply-
- *  patch results), so the facet maps every occurrence to `outcome:"ok"`.
+ *  for a Computer-Use call). `output` is ALWAYS the `computer_screenshot`
+ *  shape, whose `data` is a `data:image/png;base64,…` URL (the SDK mirrors the
+ *  Responses API `image_url` slot). When the SDK refuses the action (a declined
+ *  approval, or an `onSafetyCheck` that returns false), `data` is its constant
+ *  1×1 placeholder and `output.providerData` carries
+ *  `{approvalStatus: "rejected", message}`.
  * @beta
  */
 export interface OpenAIComputerCallResultItem {
   type: "computer_call_result";
   callId: string;
-  output: { type: "computer_screenshot"; data: string };
+  output: { type: "computer_screenshot"; data: string; providerData?: { [k: string]: JsonValue } };
   id?: string;
   providerData?: { [k: string]: JsonValue };
 }
@@ -709,17 +711,17 @@ interface OpenAIToolOutputEvent {
     output?: JsonValue;
     customData?: JsonValue;
     /**
-     * agents-core 0.15.0+ (`RunToolCallOutputItem.executionStatus`, a single
-     * literal): present ONLY when the runner actually invoked the function
-     * tool (`toolExecution.mjs` sets it right after `invokeFunctionTool`
-     * returns). Absent when the result item was synthesized instead — an
-     * input-guardrail rejection, a sibling cancellation, an approval refusal —
-     * so a consumer can tell a tool's own result from a runner-substituted
-     * one. Wrapper-level (not a protocol item field), so the fixture-drift
-     * inventory cannot see it; census-caught on the first live capture after
-     * 0.14.2 (echo-gpt56 @ 0.17.0). Carried verbatim on `tool.done`
-     * providerMetadata alongside `caller`. Built-in tool results (shell /
-     * apply_patch / computer / program) never carry it on the SDK side.
+     * agents-core 0.14.3+ (`RunToolCallOutputItem.executionStatus`, a single
+     * literal): present ONLY when the runner actually ran the tool
+     * (`toolExecution.mjs` sets it after a function tool returns, and on an
+     * executed shell, apply_patch or computer result). Absent when the result
+     * item was synthesized instead — an input-guardrail rejection, a sibling
+     * cancellation, an approval refusal — so a consumer can tell a tool's own
+     * result from a runner-substituted one. Wrapper-level (not a protocol item
+     * field), so the fixture-drift inventory cannot see it; census-caught on
+     * the first live capture after 0.14.2 (echo-gpt56 @ 0.17.0). Carried
+     * verbatim on `tool.done` providerMetadata, for function and built-in
+     * results alike.
      */
     executionStatus?: "executed";
   };
@@ -1526,6 +1528,18 @@ function callerToJson(caller: OpenAIToolCaller | undefined): JsonValue | undefin
 // widens to `unknown` losslessly (mirrors the Claude facet's `isSDKMessage`).
 function isJsonObject(v: unknown): v is { readonly [k: string]: JsonValue } {
   return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/**
+ * A computer screenshot's `data` as an AgSource `base64` arm. The SDK sends a
+ * `data:<media type>;base64,<payload>` URL; the payload lands as `data` and the
+ * header's media type as `mediaType`. A value with no such header lands
+ * verbatim as image/png.
+ */
+function screenshotSource(data: string): { type: "base64"; mediaType: string; data: string } {
+  const header = /^data:([^;,]+);base64,/.exec(data);
+  if (header === null || header[1] === undefined) return { type: "base64", mediaType: "image/png", data };
+  return { type: "base64", mediaType: header[1], data: data.slice(header[0].length) };
 }
 
 /**
@@ -3238,6 +3252,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       | OpenAIApplyPatchCallResultItem
       | OpenAIComputerCallResultItem
       | OpenAIProgramCallResultItem,
+    executionStatus: string | undefined,
   ): void {
     const toolCallId = rawItem.callId;
     let content: AgBlock[];
@@ -3264,30 +3279,40 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
       providerMetadata = openaiProviderMeta({
         caller: callerToJson(rawItem.caller),
         status: rawItem.status,
+        executionStatus,
       });
     } else if (rawItem.type === "computer_call_result") {
-      // spec §8 item 20's extended discriminant: the screenshot is base64 image
-      // data, not text — land it as an AgBlock `file` block (AgSource's
-      // `base64` arm) rather than dropping it via the text-only path.
-      content = [
-        {
-          type: "file",
-          source: { type: "base64", mediaType: "image/png", data: rawItem.output.data },
-          filename: "screenshot.png",
-        },
-      ];
-      // No status/error discriminant exists on this wire arm (unlike shell/apply-patch).
+      // spec §8 item 20's extended discriminant: the screenshot is image data,
+      // not text — land it as an AgBlock `file` block (AgSource's `base64` arm)
+      // rather than dropping it via the text-only path. The SDK sends a
+      // `data:<media type>;base64,<payload>` URL; AgSource's `base64` arm holds
+      // the base64 text alone with its media type (SPEC.md:140, "must match
+      // bytes"), so the header is split off. A value with no `data:` header
+      // lands verbatim as image/png.
+      content = [{ type: "file", source: screenshotSource(rawItem.output.data), filename: "screenshot.png" }];
       outcome = "ok";
+      // The SDK's own markers, verbatim: the run-item's `executionStatus`
+      // (present only when the action ran), the refusal's
+      // `output.providerData.approvalStatus` and `message`, and the item's
+      // `providerData.acknowledgedSafetyChecks`.
+      const outputPd = rawItem.output.providerData;
+      providerMetadata = openaiProviderMeta({
+        executionStatus,
+        approvalStatus: outputPd?.approvalStatus,
+        message: outputPd?.message,
+        acknowledgedSafetyChecks: rawItem.providerData?.acknowledgedSafetyChecks,
+      });
     } else if (rawItem.type === "program_output") {
       // 0.14.0 programmatic tool calling: bare-string output (mirrors the
       // apply_patch arm); the CLOSED status enum's `incomplete` -> error
       // (same rule as function_call_result — never success).
       content = rawItem.output.length > 0 ? [{ type: "text", text: rawItem.output }] : [];
       outcome = rawItem.status === "incomplete" ? "error" : "ok";
+      providerMetadata = openaiProviderMeta({ executionStatus });
     } else {
       content = rawItem.output !== undefined && rawItem.output.length > 0 ? [{ type: "text", text: rawItem.output }] : [];
       outcome = rawItem.status === "failed" ? "error" : "ok";
-      providerMetadata = openaiProviderMeta({ caller: callerToJson(rawItem.caller) });
+      providerMetadata = openaiProviderMeta({ caller: callerToJson(rawItem.caller), executionStatus });
     }
     const doneTurnId = resolvePendingTurnId(toolCallId);
     a.toolDone({
@@ -3913,7 +3938,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
             rawItem.type === "computer_call_result" ||
             rawItem.type === "program_output"
           ) {
-            driveBuiltinToolOutput(rawItem);
+            driveBuiltinToolOutput(rawItem, event.item.executionStatus);
             return;
           }
           const releasedFrom = droppedCalls.get(rawItem.callId);
@@ -3974,7 +3999,7 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
             a.subagentDone(unrun.turnId, unrun.parentTurnId);
           }
           // Caller provenance (0.14.0) — the result item's own optional field,
-          // distinct from the call-side carry on tool.start — and the 0.15.0
+          // distinct from the call-side carry on tool.start — and the 0.14.3
           // wrapper-level `executionStatus` marker (see the projection's doc):
           // both verbatim, both dropped when absent.
           const doneMeta = openaiProviderMeta({

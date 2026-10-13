@@ -52,7 +52,7 @@
     "module": "index",
     "tag": "beta",
     "decl": [
-      "export interface OpenAIComputerCallResultItem {\n    type: \"computer_call_result\";\n    callId: string;\n    output: {\n        type: \"computer_screenshot\";\n        data: string;\n    };\n    id?: string;\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
+      "export interface OpenAIComputerCallResultItem {\n    type: \"computer_call_result\";\n    callId: string;\n    output: {\n        type: \"computer_screenshot\";\n        data: string;\n        providerData?: {\n            [k: string]: JsonValue;\n        };\n    };\n    id?: string;\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
     ]
   },
   "OpenAIContentPart": {
@@ -213,7 +213,7 @@
     "module": "index",
     "tag": "beta",
     "decl": [
-      "export interface OpenAIToolSearchOutputItem {\n    type: \"tool_search_output\";\n    id?: string;\n    toolSearchAgentName?: string;\n    call_id?: string | null;\n    callId?: string | null;\n    execution?: \"client\" | \"server\";\n    status?: string;\n    tools: {\n        [k: string]: JsonValue;\n    }[];\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
+      "export interface OpenAIToolSearchOutputItem {\n    type: \"tool_search_output\";\n    id?: string;\n    toolSearchAgentName?: string;\n    toolSearchMcpToolNames?: string[];\n    call_id?: string | null;\n    callId?: string | null;\n    execution?: \"client\" | \"server\";\n    status?: string;\n    tools: {\n        [k: string]: JsonValue;\n    }[];\n    providerData?: {\n        [k: string]: JsonValue;\n    };\n}"
     ]
   },
   "OpenAIUrlCitationAnnotation": {

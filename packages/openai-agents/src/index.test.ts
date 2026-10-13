@@ -5311,6 +5311,177 @@ describe("createOpenaiNormalizer — built-in tool lifecycle: hosted_tool_call (
 // screenshot", data}` (a base64 PNG) — pre-fix, the generic
 // `toolOutputToAgBlocks` path's `.type === "text"` check never matched it,
 // producing an orphaned tool.done with silently-EMPTY content.
+describe("createOpenaiNormalizer — computer results: screenshot bytes and the SDK's markers", () => {
+  // Run-item shapes as @openai/agents 0.18.0–0.20.0 stream them (engine runs:
+  // an executed click, a refused one, an acknowledged safety check, and a
+  // declined approval resumed in a fresh invoke). The SDK sends the screenshot
+  // as a `data:image/png;base64,…` URL; a refusal carries the SDK's 1×1
+  // placeholder and `output.providerData {approvalStatus, message}`.
+  const PNG8 = "iVBORw0KGgo="; // the 8-byte PNG signature, base64
+  const PLACEHOLDER =
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==";
+  const REFUSED = "Tool execution was not approved.";
+  const CHECKS = [{ id: "sc_1", code: "malicious_instructions", message: "check" }];
+  const call = (): JsonValue =>
+    runItem("tool_called", {
+      type: "tool_call_item",
+      rawItem: {
+        providerData: { pending_safety_checks: CHECKS },
+        id: "cu_1",
+        type: "computer_call",
+        callId: "call_cu_1",
+        status: "completed",
+        action: { type: "click", x: 1, y: 2, button: "left" },
+      },
+    });
+  const output = (rawItem: JsonValue, executionStatus?: string): JsonValue =>
+    runItem("tool_output", {
+      type: "tool_call_output_item",
+      rawItem,
+      ...(executionStatus !== undefined ? { executionStatus } : {}),
+    });
+  const round = (result: JsonValue): JsonValue[] => [
+    rawModel({ type: "response.created", response: { id: "resp_cu_1", model: "gpt-6-sol" } }),
+    rawModel({
+      type: "response.completed",
+      response: {
+        id: "resp_cu_1",
+        status: "completed",
+        output: [{ type: "computer_call", id: "cu_1", call_id: "call_cu_1", status: "completed", action: { type: "click", x: 1, y: 2, button: "left" }, pending_safety_checks: CHECKS }],
+      },
+    }),
+    call(),
+    result,
+  ];
+  const executed = (extra: { [k: string]: JsonValue } = {}): JsonValue =>
+    output({ type: "computer_call_result", callId: "call_cu_1", output: { type: "computer_screenshot", data: `data:image/png;base64,${PNG8}` }, ...extra }, "executed");
+  const refused = (): JsonValue =>
+    output({
+      type: "computer_call_result",
+      callId: "call_cu_1",
+      output: { type: "computer_screenshot", data: `data:image/png;base64,${PLACEHOLDER}`, providerData: { approvalStatus: "rejected", message: REFUSED } },
+    });
+  const run = (s: JsonValue[], invokeId = "inv1"): AgEvent[] => {
+    const n = createOpenaiNormalizer({ invokeId });
+    return s.flatMap((e) => n.push(e)).concat(n.flush());
+  };
+  const doneOf = (evs: AgEvent[]) => evs.find((e) => e.type === "tool.done" && Reflect.get(e, "toolCallId") === "call_cu_1");
+  const fold = (evs: AgEvent[]): Reducer => {
+    const r = new Reducer();
+    for (const e of evs) r.push(e);
+    return r;
+  };
+
+  it("a client-executed computer result lands its data: URL as base64 bytes with the header's media type and carries executionStatus", () => {
+    const evs = run(round(executed()));
+    const done = doneOf(evs);
+    expect(done).toMatchObject({
+      outcome: "ok",
+      content: [{ type: "file", source: { type: "base64", mediaType: "image/png", data: PNG8 }, filename: "screenshot.png" }],
+      providerMetadata: { executionStatus: "executed" },
+    });
+    const content: unknown = Reflect.get(done ?? {}, "content");
+    const source: unknown = Array.isArray(content) ? Reflect.get(content[0] ?? {}, "source") : undefined;
+    const raw: unknown = typeof source === "object" && source !== null ? Reflect.get(source, "data") : undefined;
+    const data = typeof raw === "string" ? raw : "";
+    expect(data.startsWith("data:")).toBe(false);
+    expect([...Buffer.from(data, "base64").subarray(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    expect(evs.filter((e) => e.type === "tool.done" && Reflect.get(e, "outcome") === "denied")).toEqual([]);
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("a computer result's data: header names the block's media type", () => {
+    const evs = run(round(output({ type: "computer_call_result", callId: "call_cu_1", output: { type: "computer_screenshot", data: "data:image/jpeg;base64,/9j/4A==" } }, "executed")));
+    expect(doneOf(evs)).toMatchObject({ content: [{ type: "file", source: { type: "base64", mediaType: "image/jpeg", data: "/9j/4A==" } }] });
+  });
+
+  it("a refused computer result carries approvalStatus and message on tool.done providerMetadata, and no executionStatus", () => {
+    const evs = run(round(refused()));
+    const done = doneOf(evs);
+    expect(done).toMatchObject({
+      content: [{ type: "file", source: { type: "base64", mediaType: "image/png", data: PLACEHOLDER } }],
+      providerMetadata: { approvalStatus: "rejected", message: REFUSED },
+    });
+    expect(Reflect.get(Reflect.get(done ?? {}, "providerMetadata") ?? {}, "executionStatus")).toBeUndefined();
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("a computer result carries the item's acknowledgedSafetyChecks verbatim on tool.done providerMetadata", () => {
+    const evs = run(round(executed({ providerData: { acknowledgedSafetyChecks: CHECKS } })));
+    expect(doneOf(evs)).toMatchObject({ providerMetadata: { executionStatus: "executed", acknowledgedSafetyChecks: CHECKS } });
+  });
+
+  it("a declined computer approval resumed in a fresh invoke carries the refusal markers on its leading tool.done", () => {
+    const invoke1 = run(
+      [
+        ...round(runItem("tool_approval_requested", { type: "tool_approval_item", rawItem: { type: "computer_call", id: "cu_1", callId: "call_cu_1", status: "completed", action: { type: "click", x: 1, y: 2, button: "left" } } })),
+      ],
+      "inv1",
+    );
+    const invoke2 = run([refused()], "inv2");
+    expect(doneOf(invoke2)).toMatchObject({
+      turnId: "turn_resume_call_cu_1",
+      messageId: "call_cu_1:result",
+      providerMetadata: { approvalStatus: "rejected", message: REFUSED },
+    });
+    const both = fold([...invoke1, ...invoke2]);
+    expect(both.needsResync).toBe(false);
+    expect(both.result().messages.flatMap((m) => m.content).filter((b) => b.type === "tool-result" && Reflect.get(b, "toolCallId") === "call_cu_1")).toHaveLength(1);
+  });
+
+  it("a computer cancellation result (providerData.status incomplete, no approvalStatus) does not close denied", () => {
+    const evs = run(
+      round(output({ type: "computer_call_result", callId: "call_cu_1", output: { type: "computer_screenshot", data: `data:image/png;base64,${PLACEHOLDER}` }, providerData: { status: "incomplete" } })),
+    );
+    expect(evs.filter((e) => e.type === "tool.done" && Reflect.get(e, "outcome") === "denied")).toEqual([]);
+    expect(doneOf(evs)).toMatchObject({ outcome: "ok" });
+    expect(Reflect.get(Reflect.get(doneOf(evs) ?? {}, "providerMetadata") ?? {}, "approvalStatus")).toBeUndefined();
+    expect(fold(evs).needsResync).toBe(false);
+  });
+
+  it("an executed shell result carries executionStatus on tool.done providerMetadata", () => {
+    const evs = run([
+      rawModel({ type: "response.created", response: { id: "resp_sh_x" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_sh_x", status: "completed", output: [{ type: "shell_call", id: "sh_x", call_id: "call_sh_x", status: "completed", action: { commands: ["echo hi"] } }] } }),
+      runItem("tool_called", { type: "tool_call_item", rawItem: { type: "shell_call", id: "sh_x", callId: "call_sh_x", status: "completed", action: { commands: ["echo hi"] } } }),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "shell_call_output", callId: "call_sh_x", output: [{ stdout: "hi\n", stderr: "", outcome: { type: "exit", exitCode: 0 } }] },
+        executionStatus: "executed",
+      }),
+    ]);
+    expect(evs.find((e) => e.type === "tool.done")).toMatchObject({ outcome: "ok", providerMetadata: { executionStatus: "executed" } });
+  });
+
+  it("an executed apply_patch result carries executionStatus on tool.done providerMetadata", () => {
+    const evs = run([
+      rawModel({ type: "response.created", response: { id: "resp_ap_x" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_ap_x", status: "completed", output: [{ type: "apply_patch_call", id: "ap_x", call_id: "call_ap_x", status: "completed", operation: { type: "create_file", path: "a.txt", diff: "+x" } }] } }),
+      runItem("tool_called", { type: "tool_call_item", rawItem: { type: "apply_patch_call", id: "ap_x", callId: "call_ap_x", status: "completed", operation: { type: "create_file", path: "a.txt", diff: "+x" } } }),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "apply_patch_call_output", callId: "call_ap_x", status: "completed", output: "done" },
+        executionStatus: "executed",
+      }),
+    ]);
+    expect(evs.find((e) => e.type === "tool.done")).toMatchObject({ outcome: "ok", providerMetadata: { executionStatus: "executed" } });
+  });
+
+  it("an executed program result carries executionStatus on tool.done providerMetadata", () => {
+    const evs = run([
+      rawModel({ type: "response.created", response: { id: "resp_pg_x" } }),
+      rawModel({ type: "response.completed", response: { id: "resp_pg_x", status: "completed", output: [{ type: "program", id: "pg_x", call_id: "call_pg_x", code: "1", fingerprint: "fp_x" }] } }),
+      runItem("tool_called", { type: "tool_call_item", rawItem: { type: "program", id: "pg_x", callId: "call_pg_x", code: "1", fingerprint: "fp_x" } }),
+      runItem("tool_output", {
+        type: "tool_call_output_item",
+        rawItem: { type: "program_output", callId: "call_pg_x", output: "1", status: "completed" },
+        executionStatus: "executed",
+      }),
+    ]);
+    expect(evs.find((e) => e.type === "tool.done")).toMatchObject({ outcome: "ok", providerMetadata: { executionStatus: "executed" } });
+  });
+});
+
 describe("createOpenaiNormalizer — built-in tool lifecycle: computer_call (fixture-drift ratchet, 2026-07-03)", () => {
   const COMPUTER_ROUND: JsonValue[] = [
     rawModel({ type: "response.created", response: { id: "resp_computer_1" } }),
