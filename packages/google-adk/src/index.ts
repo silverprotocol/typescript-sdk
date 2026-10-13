@@ -2724,6 +2724,9 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
   // Host obligation 4 (opt-in): a success close stashed until the sentinel, and
   // the non-HITL long-running calls still unanswered, per turn.
   const deferredClose = new Map<string, AdkEvent>();
+  // Per turn: a final response arrived while an ask was pending, one of item
+  // 26's pause signals. A final stashed before any ask is not one.
+  const finalWhileAsking = new Set<string>();
   // Live barge-ins (`interrupted: true`, ADK's live aggregator) awaiting their
   // close. An interrupt on a PARTIAL text event is followed by ADK's full-text
   // aggregate of the same model turn (utils/live_connection_utils.js:175-178),
@@ -2828,7 +2831,10 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // pending still signals the pause (item 26).
     if (inBandErrorOf(event) !== undefined) return;
     if (firstInBandError.has(turnId)) {
-      if ((pendingAsks.get(turnId)?.length ?? 0) > 0) deferredClose.set(turnId, event);
+      if ((pendingAsks.get(turnId)?.length ?? 0) > 0) {
+        deferredClose.set(turnId, event);
+        finalWhileAsking.add(turnId);
+      }
       return;
     }
     // ── The nodeInfo gate (R&D item 6, step 1) ──
@@ -2850,6 +2856,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // so a stream ending here is byte-identical.
     if (hostCompletion || (pendingAsks.get(turnId)?.length ?? 0) > 0) {
       deferredClose.set(turnId, event);
+      if ((pendingAsks.get(turnId)?.length ?? 0) > 0) finalWhileAsking.add(turnId);
       return;
     }
     // ── The branch gate ──
@@ -3016,7 +3023,7 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
    *  pause's end (its pause-end event, or a final response while the ask was
    *  pending). An in-band invocation error is never one. */
   function pauseSignalled(turnId: string): boolean {
-    return (pendingAsks.get(turnId)?.length ?? 0) > 0 && (pauseEnded.has(turnId) || deferredClose.has(turnId));
+    return (pendingAsks.get(turnId)?.length ?? 0) > 0 && (pauseEnded.has(turnId) || finalWhileAsking.has(turnId));
   }
 
   /** Spec §8.0 item 35 at the invocation's end: the one turn.error of a turn

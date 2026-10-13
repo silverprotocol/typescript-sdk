@@ -5157,6 +5157,37 @@ describe("createAdkNormalizer — with hostCompletion, a paused run that ends wi
       expect.objectContaining({ type: "turn.error", code: "Error", message: "boom" }),
     ]);
   });
+
+  it("a final response that arrived before the ask is no pause signal: one agent answers, another asks for a credential, and the stream is cut before the request's response; flush closes the turn turn.abort stream-truncated, never paused, with or without a thrown error fed", () => {
+    for (const i of [0, 1]) {
+      const answer = toJson({ ...event([{ text: `Here ${i}.` }], { partial: false, finishReason: "STOP" }), author: "first" });
+      const ask = pause.slice(0, 2).map((e) => toJson({ ...e, author: "second" }));
+      const cut = (tail: JsonValue[]) => {
+        const n = createAdkNormalizer({ invokeId: `adk-${i}`, hostCompletion: true });
+        const out = [answer, ...ask, ...tail].flatMap((x) => n.push(x));
+        return [...out, ...n.flush()];
+      };
+      const bare = cut([]);
+      expect(bare.filter((e) => e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort"), `#${i}`).toEqual([
+        expect.objectContaining({ type: "turn.abort", reason: "stream-truncated" }),
+      ]);
+      expect(bare.filter((e) => e.type === "hitl.ask"), `#${i}`).toHaveLength(1);
+      const thrown = cut([{ type: ADK_HOST_ERROR_TYPE, code: "Error", message: `boom ${i}` }]);
+      expect(thrown.filter((e) => e.type === "turn.done"), `#${i}`).toEqual([]);
+      expect(thrown.filter((e) => e.type === "turn.error").map((e) => Reflect.get(e, "code")), `#${i}`).toEqual(["Error"]);
+    }
+  });
+
+  it("a final response that arrives while the ask is pending is the pause signal: cut with no event, the turn closes paused", () => {
+    for (const i of [0, 1]) {
+      const n = createAdkNormalizer({ invokeId: `adk-${i}`, hostCompletion: true });
+      const natives = [...pause.slice(0, 2).map((e) => toJson(e)), toJson(event([{ text: `Waiting ${i}.` }], { partial: false, finishReason: "STOP" }))];
+      const out = [...natives.flatMap((x) => n.push(x)), ...n.flush()];
+      expect(out.filter((e) => e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort"), `#${i}`).toEqual([
+        expect.objectContaining({ type: "turn.done", outcome: expect.objectContaining({ type: "paused" }) }),
+      ]);
+    }
+  });
 });
 
 describe("createAdkNormalizer — an in-band error close carries the turn's usage, as the done close does (SPEC §4 turn.error.usage)", () => {
