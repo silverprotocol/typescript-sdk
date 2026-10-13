@@ -44,6 +44,9 @@ or `require()` them from CommonJS, which Node supports for ES modules from
 The **Normalizer contract**: stateful-per-invoke, lifetime-scoped normalizer
 that batches native events into normalized `AgEvent[]` via `push()`, then
 finalizes with `flush()` to seal pending turns and close the output stream.
+An event any of the four normalizers returns shares no object with a native you
+pushed, so mutating a native after `push()` never changes an event already
+returned.
 
 The **AgJSON spec** ships with the SilverProtocol workspace and publishes with
 every release (current wire version `1.0.0-rc.1`). This repository is
