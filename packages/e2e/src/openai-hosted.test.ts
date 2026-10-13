@@ -9,7 +9,10 @@
  * closes paused. Its answer closes that call with exactly one tool.done:
  * approved → ok, rejected → denied, with a string reason in providerMetadata.
  */
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import { describe, it, expect } from "vitest";
 import type { AgEvent } from "@silverprotocol/core";
 import { Reducer } from "@silverprotocol/core";
@@ -260,6 +263,59 @@ describe("openai hosted-MCP approvals answered in the same invoke and on resume"
       expect(textMessageId).toBeDefined();
       const start = tagged.find((t) => t.ev.type === "message.start" && t.ev["id"] === textMessageId)?.ev;
       expect(start?.["model"]).toBe("fake");
+    });
+  }
+});
+
+/**
+ * The computer-tool engine fixtures (openai-hosted-fixtures.gen.test.ts; FIXTURES.md
+ * "OpenAI computer-tool engine fixtures"). These legs hold the inputs, not the
+ * facet's mapping: the bytes equal the pinned natives they were regenerated as,
+ * the abort result is agents-core's own, and each run folds without a park with
+ * one tool.done for its one call. What the call's close MEANS is §10 item 69's
+ * (spec-conformance.test.ts).
+ */
+describe("openai computer-tool engine fixtures: the pinned inputs", () => {
+  const bytes = (name: string) => readFileSync(new URL(`../fixtures/openai-hosted/${name}.native.json`, import.meta.url));
+  const sha16 = (b: Buffer | string) => createHash("sha256").update(b).digest("hex").slice(0, 16);
+
+  it("computer-safety-ack and computer-safety-reject are byte-identical to their pinned natives", () => {
+    expect(sha16(bytes("computer-safety-ack"))).toBe("6322550669d66f8e");
+    expect(sha16(bytes("computer-safety-reject"))).toBe("2bcaf718ed787344");
+  });
+
+  it("computer-approval-reject's two invokes, joined by {sep:\"invoke2\"}, are byte-identical to the pinned native", () => {
+    const joined = [...load("computer-approval-reject.invoke1"), { sep: "invoke2" }, ...load("computer-approval-reject.invoke2")];
+    expect(sha16(JSON.stringify(joined, null, 2) + "\n")).toBe("c0343a7ca196d6b1");
+  });
+
+  it("computer-abort ends with agents-core's computer abort result, its fallback screenshot read from the installed SDK", () => {
+    const core = createRequire(createRequire(import.meta.url).resolve("@openai/agents")).resolve("@openai/agents-core");
+    const src = readFileSync(join(dirname(core), "runner", "streamReconciliation.mjs"), "utf8");
+    const url = /COMPUTER_FALLBACK_SCREENSHOT_DATA_URL = '([^']+)'/.exec(src)?.[1];
+    expect(url).toMatch(/^data:image\/png;base64,/);
+    const last = load("computer-abort").at(-1) as { name?: string; item?: { type?: string; output?: unknown; rawItem?: unknown } };
+    expect(last.name).toBe("tool_output");
+    expect(last.item?.type).toBe("tool_call_output_item");
+    expect(last.item?.output).toBe("aborted");
+    expect(last.item?.rawItem).toEqual({ type: "computer_call_result", callId: "call_cu_1", output: { type: "computer_screenshot", data: url }, providerData: { status: "incomplete" } });
+  });
+
+  const RUNS: Record<string, string[]> = {
+    "computer-safety-ack": ["computer-safety-ack"],
+    "computer-safety-reject": ["computer-safety-reject"],
+    "computer-abort": ["computer-abort"],
+    "computer-approval-reject": ["computer-approval-reject.invoke1", "computer-approval-reject.invoke2"],
+  };
+  for (const [run, invokes] of Object.entries(RUNS)) {
+    it(`${run}: the run folds without a park, with one tool.done for its one computer call, and every turn it opens closes`, () => {
+      const reducer = new Reducer();
+      const events = invokes.flatMap((name, k) => drive(name, { invokeId: `openai-${k + 1}`, reducer }).tagged.map((t) => t.ev));
+      expect(reducer.needsResync).toBe(false);
+      expect(events.filter((e) => e.type === "tool.done")).toHaveLength(1);
+      const opened = new Set(events.filter((e) => e.type === "turn.start").map((e) => e["turnId"]));
+      const closed = new Set(events.filter((e) => e.type === "turn.done" || e.type === "turn.error" || e.type === "turn.abort").map((e) => e["turnId"]));
+      expect([...opened].filter((t) => !closed.has(t))).toEqual([]);
     });
   }
 });

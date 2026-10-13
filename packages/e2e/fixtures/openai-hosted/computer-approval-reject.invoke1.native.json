@@ -1,0 +1,223 @@
+[
+  {
+    "data": {
+      "type": "response_started"
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_r1",
+          "model": "fake"
+        },
+        "sequence_number": 0
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "type": "computer_call",
+          "id": "cu_1",
+          "call_id": "call_cu_1",
+          "status": "completed",
+          "action": {
+            "type": "click",
+            "x": 1,
+            "y": 2,
+            "button": "left"
+          },
+          "pending_safety_checks": [
+            {
+              "id": "sc_1",
+              "code": "malicious_instructions",
+              "message": "check"
+            }
+          ]
+        },
+        "output_index": 0,
+        "sequence_number": 1
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "type": "computer_call",
+          "id": "cu_1",
+          "call_id": "call_cu_1",
+          "status": "completed",
+          "action": {
+            "type": "click",
+            "x": 1,
+            "y": 2,
+            "button": "left"
+          },
+          "pending_safety_checks": [
+            {
+              "id": "sc_1",
+              "code": "malicious_instructions",
+              "message": "check"
+            }
+          ]
+        },
+        "output_index": 0,
+        "sequence_number": 2
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_r1",
+          "status": "completed",
+          "output": [
+            {
+              "type": "computer_call",
+              "id": "cu_1",
+              "call_id": "call_cu_1",
+              "status": "completed",
+              "action": {
+                "type": "click",
+                "x": 1,
+                "y": 2,
+                "button": "left"
+              },
+              "pending_safety_checks": [
+                {
+                  "id": "sc_1",
+                  "code": "malicious_instructions",
+                  "message": "check"
+                }
+              ]
+            }
+          ],
+          "usage": {
+            "input_tokens": 10,
+            "output_tokens": 5,
+            "total_tokens": 15
+          }
+        },
+        "sequence_number": 3
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_done",
+      "response": {
+        "id": "resp_r1",
+        "usage": {
+          "requests": 1,
+          "inputTokens": 10,
+          "outputTokens": 5,
+          "totalTokens": 15
+        },
+        "output": [
+          {
+            "type": "computer_call",
+            "id": "cu_1",
+            "callId": "call_cu_1",
+            "status": "completed",
+            "action": {
+              "type": "click",
+              "x": 1,
+              "y": 2,
+              "button": "left"
+            },
+            "providerData": {
+              "pending_safety_checks": [
+                {
+                  "id": "sc_1",
+                  "code": "malicious_instructions",
+                  "message": "check"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "name": "tool_called",
+    "item": {
+      "type": "tool_call_item",
+      "rawItem": {
+        "providerData": {
+          "pending_safety_checks": [
+            {
+              "id": "sc_1",
+              "code": "malicious_instructions",
+              "message": "check"
+            }
+          ]
+        },
+        "id": "cu_1",
+        "type": "computer_call",
+        "callId": "call_cu_1",
+        "status": "completed",
+        "action": {
+          "type": "click",
+          "x": 1,
+          "y": 2,
+          "button": "left"
+        }
+      },
+      "agent": {
+        "name": "C"
+      }
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "name": "tool_approval_requested",
+    "item": {
+      "type": "tool_approval_item",
+      "rawItem": {
+        "providerData": {
+          "pending_safety_checks": [
+            {
+              "id": "sc_1",
+              "code": "malicious_instructions",
+              "message": "check"
+            }
+          ]
+        },
+        "id": "cu_1",
+        "type": "computer_call",
+        "callId": "call_cu_1",
+        "status": "completed",
+        "action": {
+          "type": "click",
+          "x": 1,
+          "y": 2,
+          "button": "left"
+        }
+      },
+      "agent": {
+        "name": "C"
+      },
+      "toolName": "computer_use_preview"
+    },
+    "type": "run_item_stream_event"
+  }
+]

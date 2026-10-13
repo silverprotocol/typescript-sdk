@@ -1,0 +1,214 @@
+[
+  {
+    "name": "tool_output",
+    "item": {
+      "type": "tool_call_output_item",
+      "rawItem": {
+        "type": "computer_call_result",
+        "callId": "call_cu_1",
+        "output": {
+          "type": "computer_screenshot",
+          "data": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==",
+          "providerData": {
+            "approvalStatus": "rejected",
+            "message": "Tool execution was not approved."
+          }
+        }
+      },
+      "agent": {
+        "name": "C"
+      },
+      "output": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg=="
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "name": "message_output_created",
+    "item": {
+      "type": "message_output_item",
+      "rawItem": {
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "Tool execution was not approved."
+          }
+        ],
+        "status": "completed"
+      },
+      "agent": {
+        "name": "C"
+      }
+    },
+    "type": "run_item_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_started"
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.created",
+        "response": {
+          "id": "resp_r2",
+          "model": "fake"
+        },
+        "sequence_number": 0
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.added",
+        "item": {
+          "type": "message",
+          "id": "msg_r2",
+          "role": "assistant",
+          "status": "completed",
+          "content": []
+        },
+        "output_index": 0,
+        "sequence_number": 1
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "output_text_delta",
+      "delta": "ok"
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_text.delta",
+        "item_id": "msg_r2",
+        "delta": "ok",
+        "output_index": 0,
+        "content_index": 0,
+        "sequence_number": 2
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.output_item.done",
+        "item": {
+          "type": "message",
+          "id": "msg_r2",
+          "role": "assistant",
+          "status": "completed",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "ok",
+              "annotations": []
+            }
+          ]
+        },
+        "output_index": 0,
+        "sequence_number": 3
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "model",
+      "event": {
+        "type": "response.completed",
+        "response": {
+          "id": "resp_r2",
+          "status": "completed",
+          "output": [
+            {
+              "type": "message",
+              "id": "msg_r2",
+              "role": "assistant",
+              "status": "completed",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": "ok",
+                  "annotations": []
+                }
+              ]
+            }
+          ],
+          "usage": {
+            "input_tokens": 10,
+            "output_tokens": 5,
+            "total_tokens": 15
+          }
+        },
+        "sequence_number": 4
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "data": {
+      "type": "response_done",
+      "response": {
+        "id": "resp_r2",
+        "usage": {
+          "requests": 1,
+          "inputTokens": 10,
+          "outputTokens": 5,
+          "totalTokens": 15
+        },
+        "output": [
+          {
+            "type": "message",
+            "id": "msg_r2",
+            "role": "assistant",
+            "status": "completed",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "ok"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "type": "raw_model_stream_event"
+  },
+  {
+    "name": "message_output_created",
+    "item": {
+      "type": "message_output_item",
+      "rawItem": {
+        "id": "msg_r2",
+        "type": "message",
+        "role": "assistant",
+        "status": "completed",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "ok"
+          }
+        ]
+      },
+      "agent": {
+        "name": "C"
+      }
+    },
+    "type": "run_item_stream_event"
+  }
+]

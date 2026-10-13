@@ -293,6 +293,44 @@ the corpus for the same reason as the ADK set. They are regenerated only by
 `GEN_OPENAI_HOSTED=1 … openai-hosted-fixtures.gen.test.ts` and gated by
 `openai-hosted.test.ts`.
 
+**OpenAI computer-tool engine fixtures.** The same generator and model write
+four computer-tool runs into `fixtures/openai-hosted/`, at the
+`@openai/agents` version `packages/e2e` pins (0.20.0). No live OpenAI capture is
+involved. Each run makes one `computer_call` that carries a pending safety
+check, then a text response:
+- `computer-safety-ack.native.json`: `onSafetyCheck` acknowledges the check,
+  the action runs, and the result's `rawItem.providerData` carries
+  `acknowledgedSafetyChecks`;
+- `computer-safety-reject.native.json`: `onSafetyCheck` declines, and the SDK
+  refuses the action;
+- `computer-approval-reject.invoke1.native.json` and `.invoke2.native.json`:
+  the call sits behind `needsApproval`, the run is interrupted, and invoke 2
+  resumes it with the call rejected;
+- `computer-abort.native.json`, SYNTHETIC: the ack run through its
+  `tool_called` item, then the output agents-core writes for a computer call
+  that cancellation cut short. A cancelled streamed run ends after
+  `tool_called` and streams no output item, so this one shape is assembled. Its
+  result is agents-core's own `buildComputerAbortResult` (0.20.0
+  `dist/runner/streamReconciliation.mjs` :18-28, with the
+  `COMPUTER_FALLBACK_SCREENSHOT_DATA_URL` at :4), wrapped as
+  `toolExecution.mjs` :1783-1786 wraps it, in a public `RunToolCallOutputItem`
+  with output `"aborted"`. The generator reads the constant from the installed
+  SDK and fails if the builder's body changes.
+
+The same script was first run at agents-core 0.18.0 and 0.19.0. Its natives
+are pinned by sha256 (first 16 hex digits). The generator asserts each one
+before it writes, and the gate asserts them again on the committed bytes:
+- `computer-safety-reject` is byte-identical to the 0.19.0 run, which equals
+  the 0.20.0 run (`2bcaf718ed787344`);
+- `computer-approval-reject`'s two invokes, joined by `{"sep":"invoke2"}`, are
+  byte-identical to the 0.18.0 run, which equals the 0.19.0 run
+  (`c0343a7ca196d6b1`);
+- `computer-safety-ack` is `6322550669d66f8e`. Its predecessor is the 0.18.0
+  run of the declining script (`72a6983d762586bf`), which executed the action
+  because the declined-check route only began refusing at 0.19.0. The two
+  differ only by the result's `rawItem.providerData.acknowledgedSafetyChecks`
+  member.
+
 `packages/e2e/fixtures/adk-oracle/` is ground truth for the google-adk
 facet's text rendering. It holds streams built by the REAL `@google/adk`
 runners (runAsync in SSE, progressive SSE and the default mode, and runLive)

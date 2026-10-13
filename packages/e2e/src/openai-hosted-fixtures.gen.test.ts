@@ -41,14 +41,27 @@
  *    invoke 2 resumes with only the first approved (the run interrupts again
  *    for the second), and invoke 3 resumes with the second rejected, then a
  *    response with the approved mcp_call and text.
+ *  - computer-safety-ack, computer-safety-reject: a computer_call carrying a
+ *    pending safety check, answered by computerTool's onSafetyCheck: true (the
+ *    action runs and the result acknowledges the check) or false (the SDK
+ *    refuses the action), then a second response with text.
+ *  - computer-approval-reject.invoke1/2: a computer_call behind needsApproval;
+ *    the run is interrupted, and invoke 2 resumes it with the call rejected.
+ *  - computer-abort: SYNTHETIC. The ack run's first round, then the tool output
+ *    agents-core writes for a computer call that cancellation cut short (its
+ *    fallback-screenshot abort result). A cancelled streamed run ends after
+ *    tool_called and streams no output item, so this shape is assembled from
+ *    the SDK's own constant and its public RunToolCallOutputItem.
  *
  * Regenerate (never part of the gate):
  *   GEN_OPENAI_HOSTED=1 npx vitest run --config ../../vitest.config.ts src/openai-hosted-fixtures.gen.test.ts
  */
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { describe, it } from "vitest";
-import { Agent, run, hostedMcpTool, webSearchTool, shellTool, setTracingDisabled, tool } from "@openai/agents";
+import { createHash } from "node:crypto";
+import { readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+import { describe, expect, it } from "vitest";
+import { Agent, run, computerTool, hostedMcpTool, webSearchTool, shellTool, setTracingDisabled, tool, RunToolCallOutputItem } from "@openai/agents";
 import { z } from "zod";
 import type { JsonValue } from "@silverprotocol/core";
 
@@ -123,6 +136,23 @@ async function resumed(agent: Agent, approve: boolean): Promise<[JsonValue[], Js
 }
 
 const write = (name: string, events: JsonValue[]) => writeFileSync(join(OUT_DIR, `${name}.native.json`), JSON.stringify(events, null, 2) + "\n");
+const sha16 = (events: JsonValue[]) => createHash("sha256").update(JSON.stringify(events, null, 2) + "\n").digest("hex").slice(0, 16);
+
+/** agents-core's computer abort result, read from the installed SDK: the
+ *  COMPUTER_FALLBACK_SCREENSHOT_DATA_URL constant and buildComputerAbortResult
+ *  (dist/runner/streamReconciliation.mjs :4 and :18-28 at 0.20.0), which
+ *  toolExecution.mjs :1783-1786 wraps as RunToolCallOutputItem(raw, agent, "aborted").
+ *  Neither is exported, so the constant is read from the file, and generation fails
+ *  if the builder's shape is not the one copied here. */
+function computerAbortResult(callId: string): Obj {
+  const core = createRequire(createRequire(import.meta.url).resolve("@openai/agents")).resolve("@openai/agents-core");
+  const src = readFileSync(join(dirname(core), "runner", "streamReconciliation.mjs"), "utf8");
+  const url = /COMPUTER_FALLBACK_SCREENSHOT_DATA_URL = '([^']+)'/.exec(src)?.[1];
+  const builder = /export function buildComputerAbortResult\(toolCall\) \{([\s\S]*?)\n\}/.exec(src)?.[1]?.replace(/\s+/g, " ").trim();
+  const expected = "return { type: 'computer_call_result', callId: toolCall.callId, output: { type: 'computer_screenshot', data: COMPUTER_FALLBACK_SCREENSHOT_DATA_URL, }, providerData: { status: 'incomplete' }, };";
+  if (!url || builder !== expected) throw new Error(`agents-core's computer abort result moved: ${builder ?? "not found"}`);
+  return { type: "computer_call_result", callId, output: { type: "computer_screenshot", data: url }, providerData: { status: "incomplete" } };
+}
 
 describe.runIf(process.env["GEN_OPENAI_HOSTED"] === "1")("openai hosted-tool engine fixtures (real @openai/agents, fake model)", () => {
   setTracingDisabled(true);
@@ -289,5 +319,46 @@ describe.runIf(process.env["GEN_OPENAI_HOSTED"] === "1")("openai hosted-tool eng
       write("hosted-mcp-partial-resume.invoke2", invoke2);
       write("hosted-mcp-partial-resume.invoke3", invoke3);
     }
+  }, 120_000);
+
+  it("writes the computer-tool fixtures: safety check acknowledged or refused, approval rejected on resume, and the abort result", async () => {
+    // One computer_call with a pending safety check, then a text response. The
+    // same script was also run at agents-core 0.18.0 and 0.19.0; its natives are
+    // pinned below by sha256 (first 16 hex digits).
+    const call = { type: "computer_call", id: "cu_1", call_id: "call_cu_1", status: "completed", action: { type: "click", x: 1, y: 2, button: "left" }, pending_safety_checks: [{ id: "sc_1", code: "malicious_instructions", message: "check" }] };
+    const callItem = { type: "computer_call", id: "cu_1", callId: "call_cu_1", status: "completed", action: { type: "click", x: 1, y: 2, button: "left" }, providerData: { pending_safety_checks: call.pending_safety_checks } };
+    const m2 = { type: "message", id: "msg_r2", role: "assistant", status: "completed", content: [{ type: "output_text", text: "ok", annotations: [] }] };
+    const computer = { environment: "browser", dimensions: [10, 10], screenshot: async () => "iVBORw0KGgo=", click: async () => {}, doubleClick: async () => {}, scroll: async () => {}, type: async () => {}, wait: async () => {}, move: async () => {}, keypress: async () => {}, drag: async () => {} };
+    const model = () => scriptedModel([fakeModel("resp_r1", [call], [callItem]), fakeModel("resp_r2", [m2], [{ type: "message", id: m2.id, role: "assistant", status: "completed", content: [{ type: "output_text", text: "ok" }] }], "ok")]) as never;
+
+    // Acknowledged: the action runs. At 0.18.0 the onSafetyCheck-false run
+    // below also ran the action (72a6983d762586bf); this run differs from that
+    // one only by the result's rawItem.providerData.acknowledgedSafetyChecks.
+    const ack = await natives(new Agent({ name: "C", model: model(), tools: [computerTool({ computer: computer as never, onSafetyCheck: async () => true })] }));
+    expect(sha16(ack)).toBe("6322550669d66f8e");
+    write("computer-safety-ack", ack);
+
+    // Refused: from 0.19.0 on, onSafetyCheck false refuses the action.
+    const reject = await natives(new Agent({ name: "C", model: model(), tools: [computerTool({ computer: computer as never, onSafetyCheck: async () => false })] }));
+    expect(sha16(reject)).toBe("2bcaf718ed787344"); // the 0.19.0 run, == the 0.20.0 run
+    write("computer-safety-reject", reject);
+
+    // Behind needsApproval, rejected on resume. The pinned native is both
+    // invokes joined by {sep:"invoke2"}; the fixtures are the two halves.
+    {
+      const agent = new Agent({ name: "C", model: model(), tools: [computerTool({ computer: computer as never, needsApproval: true } as never)] });
+      const first = await run(agent, "hi", { stream: true });
+      const invoke1 = await drain(first);
+      for (const item of first.interruptions) first.state.reject(item);
+      const invoke2 = await drain(await run(agent, first.state, { stream: true }));
+      expect(sha16([...invoke1, { sep: "invoke2" }, ...invoke2])).toBe("c0343a7ca196d6b1"); // the 0.18.0 run, == the 0.19.0 run
+      write("computer-approval-reject.invoke1", invoke1);
+      write("computer-approval-reject.invoke2", invoke2);
+    }
+
+    // Synthetic abort: the ack run through tool_called, then agents-core's abort result.
+    const cut = ack.findIndex((e) => (e as Obj)["type"] === "run_item_stream_event" && (e as Obj)["name"] === "tool_called");
+    const aborted = new RunToolCallOutputItem(computerAbortResult("call_cu_1") as never, new Agent({ name: "C" }), "aborted");
+    write("computer-abort", [...ack.slice(0, cut + 1), JSON.parse(JSON.stringify({ name: "tool_output", item: aborted, type: "run_item_stream_event" })) as JsonValue]);
   }, 120_000);
 });
