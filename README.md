@@ -39,7 +39,7 @@ or `require()` them from CommonJS, which Node supports for ES modules from
   one shared safety policy (HTML always literal, link `href` scheme-allowlisted),
   streaming-tolerant by design. No components, no styling, no dependencies —
   hosts map the AST onto their own renderers.
-- **`AGJSON_VERSION`** — the wire schema version (`1.0.0-rc.1`).
+- **`AGJSON_VERSION`** — the wire schema version (`1.0.0-rc.2`).
 
 The **Normalizer contract**: stateful-per-invoke, lifetime-scoped normalizer
 that batches native events into normalized `AgEvent[]` via `push()`, then
@@ -49,7 +49,7 @@ pushed, so mutating a native after `push()` never changes an event already
 returned.
 
 The **AgJSON spec** ships with the SilverProtocol workspace and publishes with
-every release (current wire version `1.0.0-rc.1`). This repository is
+every release (current wire version `1.0.0-rc.2`). This repository is
 subtree-vendored from the private SilverProtocol workspace — issues and PRs
 are welcome here.
 

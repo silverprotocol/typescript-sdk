@@ -3,7 +3,7 @@
     "module": "agjson",
     "tag": "public",
     "decl": [
-      "export declare const AGJSON_VERSION = \"1.0.0-rc.1\";"
+      "export declare const AGJSON_VERSION = \"1.0.0-rc.2\";"
     ]
   },
   "AG_EVENT_DEPTH_ALLOWANCE": {
