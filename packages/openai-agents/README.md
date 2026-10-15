@@ -83,7 +83,7 @@ framework produced the stream.
 
 Spec: [silverprotocol.io/AgJSON](https://silverprotocol.io/AgJSON) — canonical
 in [silverprotocol/AgJSON](https://github.com/silverprotocol/AgJSON); wire
-version `1.0.0-rc.2`.
+version `1.0.0-rc.3`.
 
 ## MCP tool results: `structuredContent`, `_meta`, `uiData`
 
