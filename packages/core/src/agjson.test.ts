@@ -1422,7 +1422,7 @@ describe("AGJSON_VERSION + wire-version validation", () => {
   };
 
   it("exports the spec version literal", () => {
-    expect(AGJSON_VERSION).toBe("1.0.0-rc.2");
+    expect(AGJSON_VERSION).toBe("1.0.0-rc.3");
   });
 
   it("accepts the current version and any same-major version", () => {
