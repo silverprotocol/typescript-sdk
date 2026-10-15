@@ -1,0 +1,39 @@
+[
+  {
+    "invocationId": "e-b8e659fe-6095-4c3a-afa1-ad21a0787747",
+    "author": "helper",
+    "id": "D4cMMA01",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1792030915329,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Hel"
+        }
+      ]
+    },
+    "partial": true
+  },
+  {
+    "invocationId": "e-b8e659fe-6095-4c3a-afa1-ad21a0787747",
+    "author": "helper",
+    "errorCode": "INVOCATION_ABORTED",
+    "errorMessage": "Invocation was aborted by client.",
+    "id": "Y2VoERC3",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1792030915382
+  }
+]

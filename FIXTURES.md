@@ -275,6 +275,28 @@ the engine itself generates (carrying `state`, `nonce` and a PKCE challenge),
 with every credential member seeded by a `SEED_` placeholder. It has its own
 gate, `GEN_ADK_AUTH_URI=1`, so regenerating it never rewrites the others.
 
+`packages/e2e/fixtures/adk-abort/` holds ADK runs that a host aborts
+mid-run, built by the REAL `@google/adk` 2.3.0 `InMemoryRunner` and
+`LlmAgent` with a scripted stub model (no key, no network). The host fires
+`runAsync`'s `abortSignal` and keeps reading. From 2.3.0 the runner then yields
+a closing event with `errorCode: "INVOCATION_ABORTED"`, which answers each
+call left unanswered with a `functionResponse` `{error}`. The shapes:
+- `a-text`: abort while the model streams text (no call is open);
+- `b-one-call`, `b-two-calls`: abort while one tool call, or two calls from
+  one model event, run;
+- `c-ask-pending`: abort once a confirmation ask reaches the host;
+- `c-after-pause`: abort once the pause-end event reaches the host;
+- `c-control`: the same confirmation run with no abort.
+
+Each shape is recorded in both streaming modes, twice:
+`<shape>.<none|sse>.<1|2>.native.json` holds every event `runAsync` yielded,
+as a bare array. `capture.mjs` is the script that recorded them; it also
+writes the events the session stored, which these fixtures leave out.
+`HASHES.txt` lists each fixture's hash beside the recording it came from.
+Run against the version `packages/e2e` pins, the script yields the same
+natives apart from run ids and timestamps. No generator gate rewrites these
+files.
+
 `packages/e2e/fixtures/openai-hosted/` holds OpenAI Agents SDK runs that call
 built-in (hosted) tools, built by the REAL `@openai/agents` streamed `run()`
 over a structural fake Model (no key, no network, tracing off). agents-core

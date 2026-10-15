@@ -1,0 +1,17 @@
+[
+  {
+    "invocationId": "e-904f6bf7-57ca-42c9-8942-8576495a8868",
+    "author": "helper",
+    "errorCode": "INVOCATION_ABORTED",
+    "errorMessage": "Invocation was aborted by client.",
+    "id": "XwSn7FtD",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1792030915274
+  }
+]

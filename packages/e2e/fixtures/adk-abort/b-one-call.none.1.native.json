@@ -1,0 +1,64 @@
+[
+  {
+    "invocationId": "e-1c5180d4-9b3a-43de-ab1f-4bbabb58e168",
+    "author": "helper",
+    "id": "85YD7nem",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1792030915383,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "id": "call-1",
+            "name": "lookup",
+            "args": {
+              "q": "x0"
+            }
+          }
+        }
+      ]
+    },
+    "finishReason": "STOP",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 3,
+      "totalTokenCount": 13
+    }
+  },
+  {
+    "invocationId": "e-1c5180d4-9b3a-43de-ab1f-4bbabb58e168",
+    "author": "helper",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "call-1",
+            "name": "lookup",
+            "response": {
+              "error": "Invocation was aborted by client."
+            }
+          }
+        }
+      ]
+    },
+    "errorCode": "INVOCATION_ABORTED",
+    "errorMessage": "Invocation was aborted by client.",
+    "id": "3PU3j5FW",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1792030915420
+  }
+]

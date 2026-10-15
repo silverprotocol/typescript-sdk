@@ -1,0 +1,123 @@
+[
+  {
+    "invocationId": "e-2a3ae669-9986-40d5-a139-124cf0e97ae0",
+    "author": "helper",
+    "id": "8GhW0jEi",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1792030915668,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "id": "call-ask",
+            "name": "transfer",
+            "args": {
+              "amount": 5
+            }
+          }
+        }
+      ]
+    },
+    "finishReason": "STOP",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 3,
+      "totalTokenCount": 13
+    }
+  },
+  {
+    "invocationId": "e-2a3ae669-9986-40d5-a139-124cf0e97ae0",
+    "author": "helper",
+    "content": {
+      "parts": [
+        {
+          "functionCall": {
+            "name": "adk_request_confirmation",
+            "args": {
+              "originalFunctionCall": {
+                "id": "call-ask",
+                "name": "transfer",
+                "args": {
+                  "amount": 5
+                }
+              },
+              "toolConfirmation": {
+                "hint": "Approve?",
+                "confirmed": false,
+                "payload": {
+                  "amount": 5
+                }
+              }
+            },
+            "id": "adk-fb4ac0bc-eddd-48ba-8494-5676634fde3b"
+          }
+        }
+      ],
+      "role": "user"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {
+        "call-ask": {
+          "hint": "Approve?",
+          "confirmed": false,
+          "payload": {
+            "amount": 5
+          }
+        }
+      }
+    },
+    "longRunningToolIds": [
+      "adk-fb4ac0bc-eddd-48ba-8494-5676634fde3b"
+    ],
+    "id": "PtHYx3AP",
+    "timestamp": 1792030915668
+  },
+  {
+    "invocationId": "e-2a3ae669-9986-40d5-a139-124cf0e97ae0",
+    "author": "helper",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "call-ask",
+            "name": "transfer",
+            "response": {
+              "error": "Invocation was aborted by client."
+            }
+          }
+        },
+        {
+          "functionResponse": {
+            "id": "adk-fb4ac0bc-eddd-48ba-8494-5676634fde3b",
+            "name": "adk_request_confirmation",
+            "response": {
+              "error": "Invocation was aborted by client."
+            }
+          }
+        }
+      ]
+    },
+    "errorCode": "INVOCATION_ABORTED",
+    "errorMessage": "Invocation was aborted by client.",
+    "id": "GFcxIaIO",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1792030915668
+  }
+]

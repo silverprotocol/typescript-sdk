@@ -1,0 +1,82 @@
+[
+  {
+    "invocationId": "e-78500ab4-0f20-4afb-a4e4-17f2f211c360",
+    "author": "helper",
+    "id": "OWe8Bg9h",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1792030915562,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "id": "call-1",
+            "name": "lookup",
+            "args": {
+              "q": "x0"
+            }
+          }
+        },
+        {
+          "functionCall": {
+            "id": "call-2",
+            "name": "lookup",
+            "args": {
+              "q": "x1"
+            }
+          }
+        }
+      ]
+    },
+    "finishReason": "STOP",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 3,
+      "totalTokenCount": 13
+    }
+  },
+  {
+    "invocationId": "e-78500ab4-0f20-4afb-a4e4-17f2f211c360",
+    "author": "helper",
+    "content": {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "call-1",
+            "name": "lookup",
+            "response": {
+              "error": "Invocation was aborted by client."
+            }
+          }
+        },
+        {
+          "functionResponse": {
+            "id": "call-2",
+            "name": "lookup",
+            "response": {
+              "error": "Invocation was aborted by client."
+            }
+          }
+        }
+      ]
+    },
+    "errorCode": "INVOCATION_ABORTED",
+    "errorMessage": "Invocation was aborted by client.",
+    "id": "56lsCBD4",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1792030915597
+  }
+]

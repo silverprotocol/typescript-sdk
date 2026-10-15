@@ -1,0 +1,26 @@
+# recording (sha256, first 16 hex) -> fixture (sha256, first 16 hex); the last line is capture.mjs, which made the recordings.
+f2a8e11a1636e9ac a-text.NONE.1.json -> a45d041e771c450b a-text.none.1.native.json
+109afc0d1160089e a-text.NONE.2.json -> c99bc1fec019bd7f a-text.none.2.native.json
+197e378f80eff251 a-text.SSE.1.json -> 2e0542f16ee33194 a-text.sse.1.native.json
+9362805cf79ac832 a-text.SSE.2.json -> 26a2f4e5f07acab9 a-text.sse.2.native.json
+0a5477d6696064b7 b-one-call.NONE.1.json -> 81c6dec14791cbcf b-one-call.none.1.native.json
+79016a10ea77451e b-one-call.NONE.2.json -> df6b4775bc7f2441 b-one-call.none.2.native.json
+a77e25f24933bd86 b-one-call.SSE.1.json -> aa06ce6b08c55861 b-one-call.sse.1.native.json
+d3f76d1c456fcda5 b-one-call.SSE.2.json -> dc0a781b2b01a345 b-one-call.sse.2.native.json
+dd39f534d777f0f2 b-two-calls.NONE.1.json -> 8101ac14ab05c2ad b-two-calls.none.1.native.json
+24bead22a8bb8717 b-two-calls.NONE.2.json -> 271a67e9b52d27c8 b-two-calls.none.2.native.json
+5b113c6d2c4ef68e b-two-calls.SSE.1.json -> 70a9a94c5e7abaaf b-two-calls.sse.1.native.json
+d30ed547f797e47e b-two-calls.SSE.2.json -> 132dbd8a796d3c80 b-two-calls.sse.2.native.json
+20f4cece9d228d78 c-after-pause.NONE.1.json -> 7997fe053ed17160 c-after-pause.none.1.native.json
+6b6143fa1649991e c-after-pause.NONE.2.json -> 91743644337e680e c-after-pause.none.2.native.json
+6541cf35375cd643 c-after-pause.SSE.1.json -> 0d3ce28d344d073f c-after-pause.sse.1.native.json
+98d52c30774ee85f c-after-pause.SSE.2.json -> 0f177d076112ef62 c-after-pause.sse.2.native.json
+9f6fd6a9dde600db c-ask-pending.NONE.1.json -> 5841ff698910b4c2 c-ask-pending.none.1.native.json
+e011992b368cbe0b c-ask-pending.NONE.2.json -> 52b444b2ea4f5e88 c-ask-pending.none.2.native.json
+51ef5f8bbf873e97 c-ask-pending.SSE.1.json -> 1fa13aa4fc410266 c-ask-pending.sse.1.native.json
+55230053b3329592 c-ask-pending.SSE.2.json -> ea5a09d1aaed8e16 c-ask-pending.sse.2.native.json
+ecaf3e0d95788eac c-control.NONE.1.json -> 206315c2deda9b01 c-control.none.1.native.json
+615c1714f3aac24d c-control.NONE.2.json -> a52d031fa776d8a1 c-control.none.2.native.json
+3fdea307579e63b5 c-control.SSE.1.json -> eff88348c415c572 c-control.sse.1.native.json
+a23a0abd571e5630 c-control.SSE.2.json -> c75f0cc77bd1347b c-control.sse.2.native.json
+0d6199cb6925a8bb capture.mjs
