@@ -153,7 +153,7 @@ const CLAUDE_SEEDS = [
   // the first round's complete assistant frame repeats it, the post-tool round
   // does not, and the result repeats it. Folds to 2 turns, needsResync false.
   "partials-uuid-sonnet5",
-  // 2026-09-23 (probe queue item 1): the FIRST error seed and the first
+  // 2026-09-23: the FIRST error seed and the first
   // cassette with is_error:true. The scenario flag expectError keeps the
   // natives the SDK yielded before it threw (the throw is in provenance note).
   // It was captured with a deliberately invalid key (sdk 0.3.280,

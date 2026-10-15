@@ -179,7 +179,7 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // capture time (capture-time coverage.json is computed against EMPTY guard maps).
   { scenario: "workflow-complete-gemini38", framework: "adk" },
   { scenario: "workflow-pause-gemini38", framework: "adk" },
-  // 2026-09-23 (probe queue item 1): the first error seed, enrolled at capture time.
+  // 2026-09-23: the first error seed, enrolled at capture time.
   { scenario: "api-error-auth", framework: "claude" },
   // 2026-09-23 (R&D candidate 20): the deferred-tool legs, enrolled at capture time.
   { scenario: "defer-tool-sonnet5", framework: "claude" },
