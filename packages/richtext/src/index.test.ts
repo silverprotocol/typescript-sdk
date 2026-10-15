@@ -397,3 +397,67 @@ describe("tables — GFM pipe subset", () => {
     expect((grown[0] as Table).rows[1]?.cells[1]?.children[0]).toMatchObject({ type: "strong", closed: true });
   });
 });
+
+describe("indented fences (CommonMark 0–3 spaces; list-item continuation)", () => {
+  const types = (t: string): string[] => parseRichText(t).map((b) => b.type);
+
+  it("a fence indented 1, 2 or 3 spaces is a code-fence; its indent is stripped from the body", () => {
+    for (const ind of [" ", "  ", "   "]) {
+      const blocks = parseRichText(`Steps:\n\n${ind}\`\`\`json\n${ind}{"a":1}\n${ind}  nested\n${ind}\`\`\``);
+      expect(blocks.map((b) => b.type)).toEqual(["paragraph", "code-fence"]);
+      expect(blocks[1]).toEqual({ type: "code-fence", code: '{"a":1}\n  nested', lang: "json", closed: true });
+    }
+  });
+
+  it("a body line indented less than the fence loses only the spaces it has", () => {
+    expect(parseRichText("  ```\n x\ny\n  ```")[0]).toMatchObject({ code: "x\ny", closed: true });
+  });
+
+  it("a fence indented 4 spaces outside a list stays prose (indented code is out of the subset)", () => {
+    expect(types("Steps:\n\n    ```json\n    x\n    ```")).toEqual(["paragraph", "paragraph"]);
+  });
+
+  it("an indented closing fence closes an unindented opener, and vice versa", () => {
+    expect(parseRichText("```\nx\n   ```\nafter")).toEqual([
+      { type: "code-fence", code: "x", lang: undefined, closed: true },
+      { type: "paragraph", children: [{ type: "text", text: "after" }] },
+    ]);
+    expect(parseRichText("  ```\nx\n```")[0]).toMatchObject({ code: "x", closed: true });
+  });
+
+  it("a fence continuing a list item ends the list and parses as a top-level code-fence (block content inside items is out of the subset)", () => {
+    const blocks = parseRichText("1. Run this:\n\n   ```bash\n   npm i\n   ```");
+    expect(blocks.map((b) => b.type)).toEqual(["list", "code-fence"]);
+    expect(blocks[1]).toEqual({ type: "code-fence", code: "npm i", lang: "bash", closed: true });
+    // No blank line between the item and the fence: same result.
+    expect(types("1. Run this:\n   ```bash\n   npm i\n   ```")).toEqual(["list", "code-fence"]);
+  });
+
+  it("a fence at a wide item's content column (+0–3) continues it; a later item opens a list that keeps its number", () => {
+    const blocks = parseRichText("10. Install:\n\n    ```sh\n    npm i\n    ```\n11. Run:\n\n      ```sh\n      npm t\n      ```");
+    expect(blocks.map((b) => b.type)).toEqual(["list", "code-fence", "list", "code-fence"]);
+    expect(blocks[1]).toMatchObject({ code: "npm i", closed: true });
+    expect(blocks[2]).toMatchObject({ ordered: true, start: 11 });
+    expect(blocks[3]).toMatchObject({ code: "npm t", closed: true });
+    expect(types("- step\n\n  ```\n  x\n  ```")).toEqual(["list", "code-fence"]);
+  });
+
+  it("only blank lines may sit between the item and a deep fence; prose in between ends the continuation", () => {
+    expect(types("10. Install:\n\nthen\n    ```sh\n    npm i\n    ```")).toEqual(["list", "paragraph"]);
+    expect(types("10. Install:\n\n# H\n    ```sh\n    x\n    ```")).toEqual(["list", "heading", "paragraph"]);
+  });
+
+  it("streams: every prefix of an indented-fence document parses; once the opener line is complete the fence never reshapes earlier blocks", () => {
+    const doc = "Steps:\n\n1. Run this:\n\n   ```bash\n   npm i\n   ```\n2. Done.\n";
+    const opener = doc.indexOf("```bash\n") + "```bash\n".length;
+    const head = parseRichText(doc.slice(0, opener)).slice(0, 2);
+    for (let i = 0; i <= doc.length; i++) {
+      const blocks = parseRichText(doc.slice(0, i));
+      if (i >= opener) {
+        expect(blocks.slice(0, 2)).toEqual(head);
+        expect(blocks[2]).toMatchObject({ type: "code-fence", lang: "bash" });
+      }
+    }
+    expect(types(doc)).toEqual(["paragraph", "list", "code-fence", "list"]);
+  });
+});

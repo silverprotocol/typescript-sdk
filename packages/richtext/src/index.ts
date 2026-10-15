@@ -58,6 +58,14 @@
  *  inline constructs `closed: false` as usual. A table has no closing marker
  *  (like a list), so it carries no `closed` flag.
  *
+ * FENCES may be indented 0–3 spaces (CommonMark); a fence that continues a
+ * list item may sit at the item's content column plus 0–3 (`1. Run:` then a
+ * blank line and a fence indented 3). Up to the opening fence's indent is
+ * stripped from every body line. Block content inside list items is out of
+ * the subset, so a fence continuing an item ends the list and parses as a
+ * top-level `code-fence` after it; a later item opens a new list whose
+ * `start` keeps its number.
+ *
  * Deliberately OUT of the v1 subset (parse as plain text; future spec-process
  * additions, not silent behavior): images, blockquotes, strikethrough,
  * autolinked bare URLs, nested lists (indented bullets FLATTEN into the open
@@ -413,14 +421,33 @@ export function parseInlineRichText(text: string): RichTextInline[] {
 
 // ─── block parser ─────────────────────────────────────────────────────────────
 
-const FENCE_OPEN = /^```+\s*(\S*)\s*$/;
-const FENCE_CLOSE = /^```+\s*$/;
+const FENCE_OPEN = /^( *)```+\s*(\S*)\s*$/;
+const FENCE_CLOSE = /^( *)```+\s*$/;
+/** Spaces a fence may be indented at top level (CommonMark: 0–3). */
+const FENCE_MAX_INDENT = 3;
 const HEADING = /^(#{1,6})\s+(.*)$/;
 // Leading indent is ACCEPTED and flattened (nested lists are a documented
 // future addition, not silent structure loss — the items are all kept, in
 // order, in the one open list).
 const BULLET = /^\s*[-*+]\s+(.*)$/;
 const ORDERED = /^\s*(\d{1,9})[.)]\s+(.*)$/;
+
+/**
+ * Whether a fence line indented `indent` spaces opens (or closes) a fence:
+ * 0–3 spaces anywhere, or the list item's content column plus 0–3 when it
+ * continues an item (`itemCol` set).
+ */
+function fenceIndentOk(indent: number, itemCol: number | undefined): boolean {
+  if (indent <= FENCE_MAX_INDENT) return true;
+  return itemCol !== undefined && indent >= itemCol && indent <= itemCol + FENCE_MAX_INDENT;
+}
+
+/** Remove up to `n` leading spaces (CommonMark strips the fence's indent from its body). */
+function stripIndent(line: string, n: number): string {
+  let k = 0;
+  while (k < n && line[k] === " ") k++;
+  return line.slice(k);
+}
 
 // ── tables (GFM pipe subset) ──
 // A delimiter cell: optional colon, one-or-more hyphens, optional colon.
@@ -499,6 +526,9 @@ export function parseRichText(text: string): RichTextBlock[] {
   let para: string[] = [];
   let list: { ordered: boolean; start: number | undefined; items: RichTextListItem[] } | undefined;
   let table: Extract<RichTextBlock, { type: "table" }> | undefined;
+  // Content column of the last list item while a fence could still continue
+  // it: set by an item line, kept across blank lines, cleared by anything else.
+  let itemCol: number | undefined;
 
   const flushPara = (): void => {
     if (para.length > 0) {
@@ -523,24 +553,32 @@ export function parseRichText(text: string): RichTextBlock[] {
     const line = lines[i];
     if (line === undefined) continue;
 
+    // Any non-blank line ends a fence's chance to continue the last item;
+    // an item line below sets it again.
+    const contCol = itemCol;
+    if (line.trim().length > 0) itemCol = undefined;
+
     // Fenced code — verbatim until the closing fence (or end of input:
     // closed:false, content-so-far intact).
     const fence = line.match(FENCE_OPEN);
-    if (fence !== null) {
+    const fenceIndent = fence?.[1]?.length ?? 0;
+    if (fence !== null && fenceIndentOk(fenceIndent, contCol)) {
       flushPara();
       flushList();
       flushTable();
-      const lang = fence[1] !== undefined && fence[1].length > 0 ? fence[1] : undefined;
+      const closeCol = fenceIndent > FENCE_MAX_INDENT ? contCol : undefined;
+      const lang = fence[2] !== undefined && fence[2].length > 0 ? fence[2] : undefined;
       const body: string[] = [];
       let closed = false;
       let j = i + 1;
       for (; j < lines.length; j++) {
         const l = lines[j];
-        if (l !== undefined && FENCE_CLOSE.test(l)) {
+        const close = l?.match(FENCE_CLOSE);
+        if (close != null && fenceIndentOk(close[1]?.length ?? 0, closeCol)) {
           closed = true;
           break;
         }
-        body.push(l ?? "");
+        body.push(stripIndent(l ?? "", fenceIndent));
       }
       blocks.push({ type: "code-fence", code: body.join("\n"), lang, closed });
       i = j;
@@ -548,6 +586,7 @@ export function parseRichText(text: string): RichTextBlock[] {
     }
 
     if (line.trim().length === 0) {
+      // A blank line keeps `itemCol`: a fence after it still continues the item.
       flushPara();
       flushList();
       flushTable();
@@ -582,6 +621,7 @@ export function parseRichText(text: string): RichTextBlock[] {
         };
       }
       list.items.push({ children: parseInlineFrom(content, 0, []).children });
+      itemCol = line.length - content.length;
       continue;
     }
 
