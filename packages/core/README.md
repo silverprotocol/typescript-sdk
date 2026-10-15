@@ -160,6 +160,16 @@ replaces the record whole, `_meta` included, and a `patch` replaces `_meta`
 only when the write carries one. A member of the write that the record does
 not declare is not carried.
 
+`Reducer.push` keeps its own copy of each event, and `result()` and
+`toPersistable` return a new copy on every call, so a host that mutates an event
+after pushing it, or mutates a result, never changes the fold. Core makes these
+copies itself and does not need a global `structuredClone`. One exception: a
+Date, Map, Set, RegExp, Error, ArrayBuffer, typed array or boxed primitive that
+a host places in an event it pushes is not copied. The fold, every `result()`
+and `toPersistable` share that object with the host's event, so a host that
+mutates it after `push()` sees the change in the fold. No AgJSON value holds
+one: an event read from the wire or emitted by a normalizer never does.
+
 ## Produce AgJSON
 
 Turn a framework's native stream into AgJSON with its normalizer — the output is

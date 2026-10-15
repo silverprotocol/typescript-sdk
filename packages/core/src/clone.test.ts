@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { runInNewContext } from "node:vm";
 import { CloneError, cloneValue } from "./clone.js";
 import { Reducer } from "./reduce.js";
 import { applyPatch } from "./json-patch.js";
@@ -88,9 +89,31 @@ describe("cloneValue — the structuredClone result on every value the fold hold
     }
   });
 
-  it("throws on a typed built-in, which structuredClone copies by type and no AgJSON value holds", () => {
-    for (const bad of [new Date(0), /x/, new Map(), new Set(), new Error("e"), new Uint8Array(1), new ArrayBuffer(1), Object(1)]) {
-      expect(() => cloneValue({ v: bad })).toThrow(CloneError);
+  it("carries a typed built-in by reference (structuredClone copies it by type; no AgJSON value holds one)", () => {
+    for (const d of [new Date(0), /x/, new Map(), new Set(), new Error("e"), new Uint8Array(1), new ArrayBuffer(1), Object(1)] as object[]) {
+      const c = cloneValue({ v: d, a: [d] });
+      expect(c.v).toBe(d);
+      expect(c.a[0]).toBe(d);
+    }
+  });
+});
+
+describe("cloneValue — a built-in from another realm", () => {
+  it("is carried by reference as the same-realm built-in is, never copied as a plain object", () => {
+    const foreign = runInNewContext(
+      "[new Date(0), /x/, new Map(), new Set(), new Error('e'), new Uint8Array(1), new ArrayBuffer(1), new DataView(new ArrayBuffer(1)), Object(1), Object('s')]",
+    ) as object[];
+    for (const d of foreign) {
+      expect(d instanceof Object).toBe(false); // really another realm's object
+      expect(cloneValue({ v: d }).v).toBe(d);
+    }
+  });
+
+  it("copies another realm's plain object, array and class instance as structuredClone does", () => {
+    const [o, a, k] = runInNewContext("[{ x: [1, undefined] }, [1, , 3], new (class K { constructor() { this.k = 1 } })()]") as unknown[];
+    for (const v of [o, a, k]) {
+      expect(shape(cloneValue(v))).toEqual(shape(structuredClone(v)));
+      expect(cloneValue(v)).not.toBe(v);
     }
   });
 });
@@ -249,6 +272,57 @@ describe("without a global structuredClone (React Native / Hermes)", () => {
     r.turns[0]!.threadId = "MOVED";
     r.state.s.v = 9;
     expect(JSON.stringify(acc.result())).toBe(before);
+  });
+
+  // A host-built Date or Map placed in each kind of member the fold keeps.
+  const placements: [string, (v: unknown) => AgEvent[], (r: ReturnType<Reducer["result"]>) => unknown][] = [
+    ["a state.snapshot", (v) => [{ type: "state.snapshot", seq: 0, snapshot: { v, n: { k: 1 } } } as unknown as AgEvent], (r) => (r.state as { v: unknown }).v],
+    ["a state.delta object value", (v) => [{ type: "state.delta", seq: 0, patch: { v } } as unknown as AgEvent], (r) => (r.state as { v: unknown }).v],
+    [
+      "a messages.snapshot",
+      (v) => [
+        {
+          type: "messages.snapshot",
+          seq: 0,
+          messages: [{ id: "m1", role: "assistant", content: [{ type: "text", text: "a", providerMetadata: { vendor: { v } } }], turnId: "t1", threadId: "th1" }],
+        } as unknown as AgEvent,
+      ],
+      (r) => (r.messages[0]!.content[0] as unknown as { providerMetadata: { vendor: { v: unknown } } }).providerMetadata.vendor.v,
+    ],
+    [
+      "providerMetadata",
+      (v) => [...startEvents().slice(0, 2), { type: "text.start", seq: 2, id: "b1", turnId: "t1", providerMetadata: { vendor: { v } } } as unknown as AgEvent],
+      (r) => (r.messages[0]!.content[0] as unknown as { providerMetadata: { vendor: { v: unknown } } }).providerMetadata.vendor.v,
+    ],
+    [
+      "tool result",
+      (v) => [
+        ...startEvents().slice(0, 2),
+        { type: "tool.start", seq: 2, toolCallId: "tc1", name: "calc", turnId: "t1", threadId: "th1" },
+        { type: "tool.done", seq: 3, toolCallId: "tc1", content: [{ type: "text", text: "42" }], structuredContent: { v }, outcome: "ok", turnId: "t1", threadId: "th1" } as unknown as AgEvent,
+      ],
+      (r) => (r.messages[0]!.content[1] as unknown as { structuredContent: { v: unknown } }).structuredContent.v,
+    ],
+  ];
+  for (const [where, events, read] of placements) {
+    it(`a host-built Date, Map, Set, RegExp or typed array in ${where}: push(), result() and toPersistable() never throw; the object is shared, not copied`, () => {
+      const values: object[] = [new Date(0), new Map([[1, 2]]), new Set([1]), /x/g, new Uint8Array([1, 2]), runInNewContext("new Date(0)") as Date];
+      for (const v of values) {
+        const acc = new Reducer();
+        for (const e of events(v)) expect(() => acc.push(e)).not.toThrow();
+        expect(acc.needsResync).toBe(false);
+        expect(() => acc.result()).not.toThrow();
+        expect(read(acc.result())).toBe(v);
+        expect(() => toPersistable(acc.result())).not.toThrow();
+        expect(read(toPersistable(acc.result()))).toBe(v);
+      }
+    });
+  }
+
+  it("a function stored in the fold still makes result() throw, as structuredClone did", () => {
+    const acc = new Reducer();
+    acc.push({ type: "state.snapshot", seq: 0, snapshot: { f: () => 1 } } as unknown as AgEvent);
+    expect(() => acc.result()).toThrow(CloneError);
   });
 
   it("an event with a function-valued field still folds as pushed, and push() does not throw", () => {
