@@ -14,6 +14,7 @@
  * declares; the projection omits the rest and reports each omission.
  */
 import type { AgCapabilities, AgReduceResult } from "./agjson.js";
+import { cloneValue } from "./clone.js";
 
 /** A non-thread memory scope a host can declare it persists. */
 export type AgPersistedMemoryScope = NonNullable<AgCapabilities["memoryScopes"]>[number];
@@ -51,7 +52,7 @@ export interface AgPersistableWithReport {
  * a persisting host gives its caller (SPEC §8.0 host obligation 7).
  */
 export function toPersistableWithReport(result: AgReduceResult, opts: PersistOptions = {}): AgPersistableWithReport {
-  const copy = structuredClone(result);
+  const copy = cloneValue(result);
   for (const turn of copy.turns) delete (turn as { displayRequired?: unknown }).displayRequired;
   const kept = new Set<string>(opts.memoryScopes ?? []);
   const omitted: AgOmittedMemoryRecord[] = [];

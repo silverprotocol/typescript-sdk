@@ -2,7 +2,7 @@
  * depth.ts — INTERNAL (not re-exported from index.ts).
  *
  * The nesting check run before a value reaches a recursive reader (the schema
- * parse, structuredClone, a JSON Patch application), so that a value nested
+ * parse, a deep copy, a JSON Patch application), so that a value nested
  * past a bound is turned away instead of overflowing the call stack.
  */
 

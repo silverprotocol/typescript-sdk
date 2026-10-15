@@ -66,7 +66,7 @@ function isPlainNode(v: object): boolean {
 
 /**
  * INTERNAL. Removes an own `__proto__` member at every depth of a value the
- * caller owns (a structuredClone copy). `delete` removes own members only, so
+ * caller owns (a cloneValue copy). `delete` removes own members only, so
  * a node without one is untouched. The walk is iterative and visits each
  * object once, so neither nesting depth nor a cycle bounds it.
  */

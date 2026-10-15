@@ -127,12 +127,13 @@ export interface VercelStreamPart {
  *  that cannot be JSON (a cycle → "[Circular]", a BigInt → its string), so a
  *  live value never collapses whole. The earlier `String(v)` fallback turned
  *  an entire tool output into "[object Object]". toJsonValueSafe returns
- *  plain input BY REFERENCE, so the result is cloned: an emitted event never
- *  shares an object with the host's part (0.6.7's toJsonValue was a deep
- *  copy too), and a host that reuses or mutates its tool input, output or
- *  frame after push() cannot change an event already emitted. */
+ *  plain input BY REFERENCE, so the result is copied: withoutProtoKeys builds
+ *  a new array or object at every node, so an emitted event never shares an
+ *  object with the host's part (0.6.7's toJsonValue was a deep copy too), and
+ *  a host that reuses or mutates its tool input, output or frame after push()
+ *  cannot change an event already emitted. No global structuredClone. */
 function safeJson(v: unknown): JsonValue {
-  return withoutProtoKeys(structuredClone(toJsonValueSafe(v)));
+  return withoutProtoKeys(toJsonValueSafe(v));
 }
 
 /** `v` with every member named `__proto__` dropped at any depth, its siblings

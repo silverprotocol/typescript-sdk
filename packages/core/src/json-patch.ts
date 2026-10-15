@@ -1,4 +1,5 @@
 import type { JsonValue } from "./agjson.js";
+import { cloneValue } from "./clone.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Inline RFC-6902 JSON-Patch applier (reduce R6).
@@ -342,8 +343,8 @@ export function applyPatch(doc: JsonValue, patch: JsonValue): PatchResult {
     // Reject non-array patch.
     if (!Array.isArray(patch)) return FAIL;
 
-    // Apply all ops to a working copy (structuredClone for isolation from `doc`).
-    let working: JsonValue = structuredClone(doc);
+    // Apply all ops to a working copy (cloneValue for isolation from `doc`).
+    let working: JsonValue = cloneValue(doc);
 
     for (const rawOp of patch) {
       if (rawOp === undefined) return FAIL;
@@ -420,7 +421,7 @@ export function applyPatch(doc: JsonValue, patch: JsonValue): PatchResult {
           const resolved = resolve(working, fromTokens);
           if (resolved === null) return FAIL;
           // Deep-clone the copied value to keep the patch pure.
-          const copiedValue: JsonValue = structuredClone(resolved.value);
+          const copiedValue: JsonValue = cloneValue(resolved.value);
 
           // Add at `path`.
           const result = pointerSet(working, pathTokens, copiedValue, true);
@@ -448,7 +449,7 @@ export function applyPatch(doc: JsonValue, patch: JsonValue): PatchResult {
 
     return { ok: true, value: working };
   } catch {
-    // Catch-all: structuredClone or anything unexpected — never propagate.
+    // Catch-all: cloneValue or anything unexpected — never propagate.
     return FAIL;
   }
 }
