@@ -326,6 +326,11 @@ const SPEC_10_MANIFEST: Section10Item[] = [
   { n: 69, leg: "claude", title: "OpenAI refused computer action and screenshot bytes (rc.2)", disposition: "N/A", evidence: "none", citation: "§10 item 69 binds normalizers targeting OpenAI Agents: no computer_call_result surface" },
   { n: 69, leg: "google", title: "OpenAI refused computer action and screenshot bytes (rc.2)", disposition: "N/A", evidence: "none", citation: "§10 item 69 binds normalizers targeting OpenAI Agents: no computer_call_result surface" },
   { n: 69, leg: "vercel", title: "OpenAI refused computer action and screenshot bytes (rc.2)", disposition: "N/A", evidence: "none", citation: "§10 item 69 binds normalizers targeting OpenAI Agents: no computer_call_result surface" },
+  { n: 70, leg: "adk", title: "ADK client-abort close (rc.3): fed each captured @google/adk 2.3.0 runAsync abort stream (a-text, b-one-call, b-two-calls, c-ask-pending, c-after-pause; default and SSE modes; two instances each) with no host-completion event and one Normalizer per invoke, the push() that receives the INVOCATION_ABORTED seal emits exactly one terminal, a turn.abort whose reason is cancelled, as its last event; no error event, no turn.error, no paused or success close; before it one tool.done {outcome error, isError true, errorText the seal's message} per functionResponse part of the seal, the adk_request_confirmation call's included; flush() emits nothing; reduce() needs no resync, the turn record's outcome is {aborted, cancelled} with no asks and one tool-result block per sealed call; every event producer-strict valid; the message.end before the turn.abort carries the turn's usage when a non-partial model event reported one, none otherwise (informative)", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts \"§10.70(adk): each captured 2.3.0 abort stream closes from the seal's push() with exactly one turn.abort reason cancelled as its last event — no error event, no turn.error, no paused or success close, one tool.done error per sealed call before it, nothing at flush; the fold needs no resync and holds an aborted record with no asks and one tool-result per sealed call\" over fixtures/adk-abort/*.native.json (20 aborted streams); FIXTURES.md, the entry for packages/e2e/fixtures/adk-abort (real @google/adk 2.3.0 InMemoryRunner + LlmAgent with a scripted stub model; no key, no network; hashes in fixtures/adk-abort/HASHES.txt); the facet legs google-adk/src/abort.test.ts \"the seal's push() closes the turn with exactly one turn.abort whose reason is cancelled, as the invocation's last event; nothing follows it, from the host-completion event or flush()\"; \"no error event and no turn.error is emitted, and no turn closes paused or as success\"; \"before the turn.abort, one tool.done {outcome error, isError, errorText the seal's message} per functionResponse part of the seal, the adk_request_confirmation call's included\"; \"an ask the seal answers is no longer pending: one hitl.ask, and the folded turn record is {aborted, cancelled} with no asks\"; \"every event passes AgEvent validation, the fold needs no resync, and it holds one tool-result block per sealed call\"" },
+  { n: 70, leg: "controls", title: "ADK client-abort close (rc.3): the paused control — the same confirmation run with no abort (c-control, both modes, two instances) still closes turn.done paused at flush naming the adk_request_confirmation ask — and the value-keyed differential — the engine-built lone 429 (errorCode beside errorMessage, ending the run) still emits one error and closes turn.error with that code and no turn.abort", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts \"§10.70(controls): the paused control still closes paused at flush naming the confirmation ask, and the engine-built lone 429 still emits one error and closes turn.error with that code and no turn.abort — the carve-out is keyed on the value\" over fixtures/adk-abort/c-control.*.native.json and fixtures/adk-error/lone-429.none.native.json + lone-429.sse.native.json; the facet legs google-adk/src/abort.test.ts \"the same paused run with no abort still closes paused at the invocation's end, naming the adk_request_confirmation ask\"; \"the engine-built lone 429 (errorCode beside errorMessage, ending the run) still emits one error and closes turn.error 429\"" },
+  { n: 70, leg: "claude", title: "ADK client-abort close (rc.3)", disposition: "N/A", evidence: "none", citation: "§10 item 70 binds normalizers targeting ADK's runAsync path: no client-abort seal" },
+  { n: 70, leg: "openai", title: "ADK client-abort close (rc.3)", disposition: "N/A", evidence: "none", citation: "§10 item 70 binds normalizers targeting ADK's runAsync path: no client-abort seal" },
+  { n: 70, leg: "vercel", title: "ADK client-abort close (rc.3)", disposition: "N/A", evidence: "none", citation: "§10 item 70 binds normalizers targeting ADK's runAsync path: no client-abort seal" },
   { n: 65, leg: "ext-and-request", title: "Wire-selected prototypes at the decode (rc.1): a consuming ingest of an ext.* event, and the request carriers of an AgClientCapabilities (AgInputEnvelope.capabilities) and an AgHitlAnswer (a resume's answers[]) through the reference's AgInput receiver, drop an own __proto__ planted at the top level and nested, once per value leg, and return the value, not a stub or a rejection, deep-equal to the unplanted one; the bare parse keeps the member; Object.prototype gains no member", disposition: "RUNNABLE", evidence: "fixture-only", citation: "spec-conformance.test.ts §10.65 (ext …) and (request …) via core ingestAgEvent and checkAgInput; the request legs bind implementations that ship such a receiver (item 65), and the reference's is checkAgInput" },
 ];
 
@@ -348,6 +353,7 @@ const CITED_TEST_FILES: Record<string, string> = {
   "google-adk/src/index.test.ts": "../../google-adk/src/index.test.ts",
   "google-adk/src/relay-echo.test.ts": "../../google-adk/src/relay-echo.test.ts",
   "google-adk/src/in-band-errors.test.ts": "../../google-adk/src/in-band-errors.test.ts",
+  "google-adk/src/abort.test.ts": "../../google-adk/src/abort.test.ts",
   "adk-pause.test.ts": "./adk-pause.test.ts",
   "vercel-ai/src/index.test.ts": "../../vercel-ai/src/index.test.ts",
   "stream-assembler.test.ts": "../../core/src/stream-assembler.test.ts",
@@ -5468,6 +5474,162 @@ describe("§10.69 — OpenAI refused computer action and screenshot bytes (rc.2)
     expect(dones).toHaveLength(1);
     expect(dones[0]!["outcome"]).toBe("ok");
     expect(r.needsResync).toBe(false);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §10.70 — ADK client-abort close (rc.3), RUNNABLE, over the engine-built
+// fixtures under fixtures/adk-abort/ (@google/adk 2.3.0's real InMemoryRunner
+// and LlmAgent, a scripted stub model, the host's abortSignal fired mid-run and
+// runAsync read to its end — see FIXTURES.md). The item's normative legs feed
+// no host-completion event (host obligation 4 sends none after an abort).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("§10.70 — ADK client-abort close (rc.3): the INVOCATION_ABORTED seal closes the turn from push() as turn.abort cancelled, after its sealed calls close; an answered ask is no longer pending; the paused control and the lone-429 differential hold", () => {
+  const SEAL_CODE = "INVOCATION_ABORTED";
+  const SEAL_MESSAGE = "Invocation was aborted by client.";
+  const TERM = new Set(["turn.done", "turn.error", "turn.abort"]);
+  const ABORTED = ["a-text", "b-one-call", "b-two-calls", "c-ask-pending", "c-after-pause"] as const;
+  const ASK_SHAPES = new Set(["c-ask-pending", "c-after-pause"]);
+  type Rec = Record<string, unknown>;
+  const asRec = (v: unknown): Rec => v as Rec;
+  const isRec = (v: unknown): v is Rec => typeof v === "object" && v !== null && !Array.isArray(v);
+  const load = (rel: string): Rec[] => (JSON.parse(readFileSync(new URL(rel, import.meta.url), "utf8")) as unknown[]).filter(isRec);
+  const fixtureNames = (shape: string): string[] => (["none", "sse"] as const).flatMap((mode) => [1, 2].map((i) => `${shape}.${mode}.${i}`));
+  /** Drives one native stream through a fresh reference ADK normalizer: per-native outputs, the flush, and the fold. */
+  const drive = (natives: Rec[], label: string) => {
+    const n = createAdkNormalizer({ invokeId: `s10-abort-${label}` });
+    const perNative: AgEvent[][] = [];
+    for (const native of natives) {
+      let evs: AgEvent[] = [];
+      expect(() => { evs = n.push(toJsonValue(native)); }, `${label}: push() throws nothing`).not.toThrow();
+      perNative.push(evs);
+    }
+    let flushed: AgEvent[] = [];
+    expect(() => { flushed = n.flush(); }, `${label}: flush() throws nothing`).not.toThrow();
+    const all = [...perNative.flat(), ...flushed];
+    for (const e of all) expect(AgEvent.safeParse(e).success, `${label}: ${JSON.stringify(e).slice(0, 160)}`).toBe(true);
+    const r = new Reducer();
+    for (const e of all) r.push(e);
+    return { perNative, flushed, all, r };
+  };
+  const responsesOf = (native: Rec): string[] => {
+    const content = native["content"];
+    const parts = isRec(content) && Array.isArray(content["parts"]) ? (content["parts"] as unknown[]) : [];
+    return parts.flatMap((p) => (isRec(p) && isRec(p["functionResponse"]) && typeof p["functionResponse"]["id"] === "string" ? [p["functionResponse"]["id"] as string] : []));
+  };
+  const confirmationCallId = (natives: Rec[]): string | undefined => {
+    for (const native of natives) {
+      const content = native["content"];
+      const parts = isRec(content) && Array.isArray(content["parts"]) ? (content["parts"] as unknown[]) : [];
+      for (const p of parts) if (isRec(p) && isRec(p["functionCall"]) && p["functionCall"]["name"] === "adk_request_confirmation" && typeof p["functionCall"]["id"] === "string") return p["functionCall"]["id"] as string;
+    }
+    return undefined;
+  };
+  /** Every object in a tree with the given type (and toolCallId, when given). */
+  const blocksOf = (tree: unknown, type: string, toolCallId?: string): Rec[] => {
+    const hits: Rec[] = [];
+    const walk = (v: unknown) => {
+      if (Array.isArray(v)) { for (const x of v) walk(x); return; }
+      if (isRec(v)) { if (v["type"] === type && (toolCallId === undefined || v["toolCallId"] === toolCallId)) hits.push(v); for (const x of Object.values(v)) walk(x); }
+    };
+    walk(tree);
+    return hits;
+  };
+  /** The folded turn record for a turn id: the object carrying that turnId and an outcome. */
+  const turnRecord = (tree: unknown, turnId: unknown): Rec | undefined => {
+    let found: Rec | undefined;
+    const walk = (v: unknown) => {
+      if (found) return;
+      if (Array.isArray(v)) { for (const x of v) walk(x); return; }
+      if (isRec(v)) { if (v["turnId"] === turnId && "outcome" in v && !("type" in v)) { found = v; return; } for (const x of Object.values(v)) walk(x); }
+    };
+    walk(tree);
+    return found;
+  };
+  const sumUsage = (natives: Rec[], key: string): number => natives.filter((e) => e["partial"] !== true && isRec(e["usageMetadata"])).reduce((acc, e) => acc + Number(asRec(e["usageMetadata"])[key] ?? 0), 0);
+
+  it("§10.70(adk): each captured 2.3.0 abort stream closes from the seal's push() with exactly one turn.abort reason cancelled as its last event — no error event, no turn.error, no paused or success close, one tool.done error per sealed call before it, nothing at flush; the fold needs no resync and holds an aborted record with no asks and one tool-result per sealed call", () => {
+    let runs = 0;
+    for (const shape of ABORTED) for (const name of fixtureNames(shape)) {
+      const natives = load(`../fixtures/adk-abort/${name}.native.json`);
+      const seal = natives[natives.length - 1]!;
+      expect(seal["errorCode"], `${name}: the stream ends with the seal`).toBe(SEAL_CODE);
+      expect(seal["errorMessage"], name).toBe(SEAL_MESSAGE);
+      const sealed = responsesOf(seal);
+      const { perNative, flushed, all, r } = drive(natives, name);
+      const fromSeal = perNative[perNative.length - 1]!;
+      const aborts = all.filter((e) => e.type === "turn.abort").map(asRec);
+      expect(aborts, `${name}: exactly one turn.abort`).toHaveLength(1);
+      expect(aborts[0]!["reason"], name).toBe("cancelled");
+      expect(fromSeal.length, `${name}: the seal's push() emits`).toBeGreaterThan(0);
+      expect(asRec(fromSeal[fromSeal.length - 1])["type"], `${name}: the turn.abort is the last event of the seal's push()`).toBe("turn.abort");
+      expect(flushed, `${name}: flush() emits nothing`).toEqual([]);
+      const turnId = aborts[0]!["turnId"];
+      expect(all.filter((e) => TERM.has(e.type) && asRec(e)["turnId"] === turnId), `${name}: one terminal for the turn`).toHaveLength(1);
+      expect(all.filter((e) => e.type === "error"), `${name}: no error event`).toHaveLength(0);
+      expect(all.filter((e) => e.type === "turn.error"), `${name}: no turn.error`).toHaveLength(0);
+      expect(all.filter((e) => e.type === "turn.done"), `${name}: no paused or success close`).toHaveLength(0);
+      const abortIndex = all.findIndex((e) => e.type === "turn.abort");
+      const dones = all.filter((e) => e.type === "tool.done").map(asRec);
+      expect(dones.map((d) => d["toolCallId"]).sort(), `${name}: one tool.done per sealed call`).toEqual([...sealed].sort());
+      for (const d of dones) {
+        expect(d, `${name}: ${String(d["toolCallId"])}`).toMatchObject({ outcome: "error", isError: true, errorText: SEAL_MESSAGE });
+        expect(all.indexOf(d as unknown as AgEvent), `${name}: tool.done precedes the turn.abort`).toBeLessThan(abortIndex);
+      }
+      expect(all.filter((e) => e.type === "hitl.ask"), `${name}: hitl.ask count`).toHaveLength(ASK_SHAPES.has(shape) ? 1 : 0);
+      expect(r.needsResync, name).toBe(false);
+      const rec = turnRecord(r.result(), turnId);
+      expect(rec, `${name}: the turn record`).toBeDefined();
+      expect(rec!["outcome"], name).toEqual({ type: "aborted", reason: "cancelled" });
+      const asks = rec!["asks"];
+      expect(asks === undefined || (Array.isArray(asks) && asks.length === 0), `${name}: no asks on the aborted record`).toBe(true);
+      expect(blocksOf(r.result(), "tool-result"), `${name}: one tool-result per sealed call`).toHaveLength(sealed.length);
+      // informative: the message.end before the turn.abort carries the turn's usage iff a non-partial model event reported one
+      const before = all.slice(0, abortIndex);
+      const end = [...before].reverse().find((e) => e.type === "message.end");
+      const total = sumUsage(natives, "totalTokenCount");
+      if (total > 0) {
+        expect(end, `${name}: a message.end precedes the turn.abort`).toBeDefined();
+        expect(asRec(asRec(end)["usage"])["totalTokens"], `${name}: usage totalTokens`).toBe(total);
+      } else expect(end === undefined || asRec(end)["usage"] === undefined, `${name}: no usage when no report`).toBe(true);
+      runs++;
+    }
+    expect(runs).toBe(20);
+  });
+
+  it("§10.70(controls): the paused control still closes paused at flush naming the confirmation ask, and the engine-built lone 429 still emits one error and closes turn.error with that code and no turn.abort — the carve-out is keyed on the value", () => {
+    for (const name of fixtureNames("c-control")) {
+      const natives = load(`../fixtures/adk-abort/${name}.native.json`);
+      expect(natives.some((e) => e["errorCode"] === SEAL_CODE), `${name}: no seal in the control`).toBe(false);
+      const askId = confirmationCallId(natives);
+      expect(askId, `${name}: the confirmation call`).toBeDefined();
+      const { flushed, all, r } = drive(natives, name);
+      const terms = all.filter((e) => TERM.has(e.type)).map(asRec);
+      expect(terms, `${name}: one terminal`).toHaveLength(1);
+      expect(terms[0]!["type"], name).toBe("turn.done");
+      expect(flushed.some((e) => e.type === "turn.done"), `${name}: the paused close comes at flush`).toBe(true);
+      const outcome = asRec(terms[0]!["outcome"]);
+      expect(outcome["type"], name).toBe("paused");
+      const asks = outcome["asks"] as Rec[];
+      expect(asks, `${name}: one pending ask`).toHaveLength(1);
+      expect(asks[0]!["toolCallId"], name).toBe(askId);
+      expect(r.needsResync, name).toBe(false);
+    }
+    for (const mode of ["none", "sse"] as const) {
+      const name = `lone-429.${mode}`;
+      const natives = load(`../fixtures/adk-error/${name}.native.json`);
+      const last = natives[natives.length - 1]!;
+      expect(typeof last["errorCode"] === "string" && last["errorCode"] !== SEAL_CODE && typeof last["errorMessage"] === "string", `${name}: an errorCode other than the seal beside an errorMessage`).toBe(true);
+      const { all, r } = drive(natives, name);
+      const errors = all.filter((e) => e.type === "error").map(asRec);
+      expect(errors, `${name}: one error event`).toHaveLength(1);
+      expect(errors[0]!["code"], name).toBe(last["errorCode"]);
+      const terms = all.filter((e) => TERM.has(e.type)).map(asRec);
+      expect(terms.map((t) => t["type"]), `${name}: one turn.error, no turn.abort`).toEqual(["turn.error"]);
+      expect(terms[0]!["code"], name).toBe(last["errorCode"]);
+      expect(r.needsResync, name).toBe(false);
+    }
   });
 });
 
