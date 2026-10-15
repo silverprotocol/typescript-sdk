@@ -8,9 +8,9 @@
  */
 
 /**
- * Thrown by {@link cloneValue} for a value it does not copy. The fold's push
- * catches it and folds the event as pushed, as it did for a value the global
- * `structuredClone` refused.
+ * Thrown by {@link cloneValue} for a function or a symbol, the values the global
+ * `structuredClone` refuses too. The fold's push catches it and folds the
+ * event as pushed, as it always did.
  */
 export class CloneError extends TypeError {
   constructor(what: string) {
@@ -19,9 +19,24 @@ export class CloneError extends TypeError {
   }
 }
 
-/** A built-in object `structuredClone` copies by type; this clone does not copy it. */
+/** The Object.prototype.toString tags of the built-ins `structuredClone` copies by type. */
+const TYPED_BUILTIN_TAGS = new Set([
+  "Date", "RegExp", "Map", "Set", "WeakMap", "WeakSet", "Promise", "Error",
+  "ArrayBuffer", "SharedArrayBuffer", "DataView",
+  "Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array", "Int32Array", "Uint32Array",
+  "Float16Array", "Float32Array", "Float64Array", "BigInt64Array", "BigUint64Array",
+  "Boolean", "Number", "String", "BigInt", "Symbol",
+]);
+
+/**
+ * A built-in object `structuredClone` copies by type; this clone carries it by
+ * reference. Decided by the object's tag as well as by `instanceof`, so a
+ * built-in from another realm (a vm context, an iframe), which no `instanceof`
+ * here recognises, is carried the same way rather than copied as a plain object.
+ */
 function isTypedBuiltin(x: object): boolean {
   return (
+    TYPED_BUILTIN_TAGS.has(Object.prototype.toString.call(x).slice(8, -1)) ||
     x instanceof Date ||
     x instanceof RegExp ||
     x instanceof Map ||
@@ -40,20 +55,26 @@ function isTypedBuiltin(x: object): boolean {
 }
 
 /**
- * A deep copy of `v` with the global `structuredClone`'s result on every value
- * the fold holds: primitives (`undefined`, `-0`, `NaN` and BigInt included)
- * as they are; an array as an array of the same length, holes kept and
- * `undefined` kept (never `null`); any other object as an ordinary object of
- * its own enumerable string-keyed members in their order, each read once (a
- * getter runs once), an own `__proto__` member DEFINED as an own member, the
- * prototype the ordinary one. A node reached twice is copied once and a cycle
- * is copied as a cycle. The copy is iterative, so no nesting depth overflows
- * the stack.
+ * A deep copy of `v`, with these results. Primitives (`undefined`, `-0`, `NaN`
+ * and BigInt included) are returned as they are. An array becomes an array of
+ * the same length, holes kept and `undefined` kept (never `null`). A typed
+ * built-in (a Date, RegExp, Map, Set, WeakMap, WeakSet, Promise, Error,
+ * ArrayBuffer, SharedArrayBuffer, DataView or typed array, a boxed primitive),
+ * from this realm or another, is NOT copied: the copy holds that object itself,
+ * shared with `v`. Any other object becomes an ordinary object of its own
+ * enumerable string-keyed members in their order, each read once (a getter
+ * runs once), an own `__proto__` member DEFINED as an own member. A node
+ * reached twice is copied once, and a cycle is copied as a cycle. The copy is
+ * iterative, so no nesting depth overflows the stack.
+ *
+ * On a JSON value, and on these with `undefined`, holes, shared nodes or
+ * cycles in them, the result is the global `structuredClone`'s. The two differ
+ * on a typed built-in: `structuredClone` copies most of them by type and throws
+ * on a WeakMap, WeakSet, Promise or boxed symbol, where this clone shares each
+ * one. No AgJSON value holds a typed built-in.
  *
  * Throws {@link CloneError}, as `structuredClone` throws, on a function or a
- * symbol anywhere in `v`. Unlike `structuredClone`, it also throws on a
- * built-in it would copy by type (a Date, RegExp, Map, Set, Error, ArrayBuffer
- * or typed array, a boxed primitive): no AgJSON value holds one.
+ * symbol anywhere in `v`.
  */
 export function cloneValue<T>(v: T): T {
   const copies = new Map<object, unknown[] | Record<string, unknown>>();
@@ -64,7 +85,7 @@ export function cloneValue<T>(v: T): T {
     if (x === null || typeof x !== "object") return x;
     let c = copies.get(x);
     if (c === undefined) {
-      if (!Array.isArray(x) && isTypedBuiltin(x)) throw new CloneError("a typed built-in object");
+      if (!Array.isArray(x) && isTypedBuiltin(x)) return x; // carried by reference
       c = Array.isArray(x) ? new Array<unknown>(x.length) : {};
       copies.set(x, c);
       pending.push(x);

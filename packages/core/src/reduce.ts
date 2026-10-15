@@ -266,9 +266,9 @@ export class Reducer {
     // own copy. A host that reuses or mutates its event object after push() can
     // never move the fold; result() clones on the way out, this on the way in.
     // It runs before the ext guard below, which then narrows the copy. An event
-    // cloneValue cannot copy (a function-valued field, as before; also a Date,
-    // Map, Set or other typed built-in, which no AgJSON value holds) folds as
-    // pushed rather than throwing out of push().
+    // cloneValue cannot copy (a function-valued field) folds as pushed, as it
+    // always did, rather than throwing out of push(). A Date, Map, Set or other
+    // typed built-in (no AgJSON value holds one) is carried by reference.
     //
     // §13.7: the fold omits an own `__proto__` member at every depth of every
     // event it folds. On the clone the walk deletes in place, when the scan
@@ -1712,7 +1712,10 @@ export class Reducer {
   /**
    * Materialize the current fold state as a DEFENSIVE DEEP COPY.
    * Each call returns fresh arrays and objects — holding a snapshot
-   * is safe across subsequent push() calls.
+   * is safe across subsequent push() calls. A typed built-in a host placed
+   * in a pushed event (a Date, Map, Set, RegExp, Error, ArrayBuffer, typed
+   * array, a boxed primitive; no AgJSON value holds one) is not copied: the
+   * fold and every result() share that object with the host's event.
    */
   result(): AgReduceResult {
     return {
