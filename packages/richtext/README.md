@@ -48,9 +48,14 @@ is line-broken), headings (`#`–`######`), fenced code (with language tag),
 flat ordered/unordered lists, pipe tables (GFM subset). Inline: `**strong**`,
 `*em*` / `_em_`, `` `code` ``, `[links](https://…)`, backslash escapes.
 
+A fence may be indented 0–3 spaces, or sit at a list item's content column
+(plus 0–3) to continue that item. List items hold inline content only, so a
+fence that continues an item closes the list and follows it as a top-level
+`code-fence` block; a later item opens a new list that keeps its number.
+
 Deliberately out of v1 (parses as plain text): images, blockquotes,
-strikethrough, autolinked bare URLs, nested lists, table cell spans, raw HTML
-(permanently).
+strikethrough, autolinked bare URLs, nested lists, block content inside list
+items, table cell spans, raw HTML (permanently).
 
 ### Tables
 
