@@ -2481,9 +2481,22 @@ function isHostCompleteNative(v: JsonValue): boolean {
 // invocation's end (the host-completion event, a host-terminal event or
 // flush()), never as success.
 
+/** The `errorCode` of the seal `@google/adk` (2.3.0, `runAsync`) appends when
+ *  a client abort ends the invocation (events/abort_events.js, read by ADK's
+ *  own `isAbortEvent` on this value alone). */
+const ADK_ABORT_SEAL_CODE = "INVOCATION_ABORTED";
+
+/** Spec §8.0 item 35: the client-abort seal is keyed on its `errorCode` value
+ *  alone, never on content or author (a seal with no call to answer carries
+ *  no content). It is outside item 35. */
+function isAbortSeal(event: AdkEvent): boolean {
+  return event.errorCode === ADK_ABORT_SEAL_CODE;
+}
+
 /** Spec §8.0 item 35: an in-band invocation error carries both errorCode and
- *  errorMessage. */
+ *  errorMessage. The client-abort seal is not one. */
 function inBandErrorOf(event: AdkEvent): { code: string; message: string } | undefined {
+  if (isAbortSeal(event)) return undefined;
   const code: unknown = event.errorCode;
   const message: unknown = event.errorMessage;
   return typeof code === "string" && typeof message === "string" ? { code, message } : undefined;
@@ -2822,6 +2835,8 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     isPartial: boolean
   ): void {
     if (isPartial || closedTurns.has(turnId)) return;
+    // The client-abort seal closes the turn in drive() (closeCancelled), never here.
+    if (isAbortSeal(event)) return;
     const parts = event.content?.parts ?? [];
     const hasFunctionCall = parts.some((p) => p.functionCall !== undefined);
     const interrupted = event.interrupted === true || interruptPending.has(turnId);
@@ -3473,6 +3488,11 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
       authors.add(event.author);
       askingAuthors.set(turnId, authors);
     }
+    // Spec §8.0 item 26: an ask is pending only while its adk_request_* call
+    // has no functionResponse in a non-partial event of the invocation. One
+    // that answers it (the client-abort seal answers every unanswered call)
+    // ends the ask, and a turn holding no pending ask does not close paused.
+    if (!isPartial) pruneAnsweredAsks(turnId, parts);
     // A turn gets ONE terminal: an interrupt on a turn that already closed
     // (a second barge-in, or one after a success close) adds none.
     if (event.interrupted === true && !closedTurns.has(turnId)) interruptPending.add(turnId);
@@ -3482,6 +3502,10 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
     // A non-relayed event's own window key is its source key.
     recordErrorAndUsage(event, turnId, isPartial, relayStream === null ? ownKey : aggregateWindowKey(turnId, event, null));
     maybeCloseTurn(event, turnId, messageId, isPartial);
+    // Spec §8.0 item 35: the client-abort seal is the invocation's native
+    // terminal. Its functionResponse parts closed their calls above (item 25);
+    // it closes the turn now, from this push().
+    if (!isPartial && isAbortSeal(event) && !closedTurns.has(turnId)) closeCancelled(turnId);
     // The interrupted generation closes on its own turnComplete (its trailing
     // usageMetadata arrives before it), or at flush() / host completion.
     if (!isPartial && event.turnComplete === true && interruptPending.has(turnId)) closeInterrupted(turnId);
@@ -3546,6 +3570,34 @@ function createInnerAdkNormalizer(options: AdkNormalizerOptions, invokeStem: str
    *  The turn is marked closed in the facet's own bookkeeping too (audit M21),
    *  so neither maybeCloseTurn nor flush() fabricates a later success. The
    *  message.end carries the turn's accumulated usage, as flush()'s does. */
+  /** Drop each pending ask of the turn whose adk_request_* call one of these
+   *  parts answers (spec §8.0 item 26). */
+  function pruneAnsweredAsks(turnId: string, parts: readonly AdkPart[]): void {
+    const asks = pendingAsks.get(turnId);
+    if (asks === undefined) return;
+    const answered = new Set<string>();
+    for (const p of parts) {
+      const id: unknown = p.functionResponse?.id;
+      if (typeof id === "string") answered.add(id);
+    }
+    if (answered.size === 0) return;
+    const left = asks.filter((ask) => ask.toolCallId === undefined || !answered.has(ask.toolCallId));
+    if (left.length === asks.length) return;
+    if (left.length > 0) pendingAsks.set(turnId, left);
+    else pendingAsks.delete(turnId);
+  }
+
+  /** Spec §8.0 item 35: the client-abort seal closes the invocation's turn with
+   *  one turn.abort, reason "cancelled", and no `error` or `turn.error`. As for
+   *  an interruption (item 17), the message.end before it carries the turn's
+   *  accumulated usage, and the turn is marked closed, so neither the
+   *  host-completion event nor flush() adds a terminal. */
+  function closeCancelled(turnId: string): void {
+    closedTurns.add(turnId);
+    a.closeMessage(`msg_${turnId}`, mapUsage(usageByTurn.get(turnId)));
+    a.emit({ type: "turn.abort", turnId, reason: "cancelled" });
+  }
+
   function closeInterrupted(turnId: string): void {
     interruptPending.delete(turnId);
     interruptClosed.add(turnId);
