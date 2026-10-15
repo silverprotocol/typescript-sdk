@@ -199,6 +199,44 @@ describe("createAdkNormalizer — the ADK client-abort seal (SPEC §8.0 item 35,
   });
 });
 
+describe("createAdkNormalizer — the client-abort seal after an earlier close or an earlier in-band error", () => {
+  it("an in-band error earlier in the invocation stays a non-terminal error event: the seal still closes the one turn as turn.abort cancelled, and no turn.error follows from the host-completion event or flush()", () => {
+    for (const r of aborted) {
+      const seal = sealOf(r);
+      const error: Native = { invocationId: seal["invocationId"] ?? null, author: "helper", errorCode: "429", errorMessage: "Resource has been exhausted (e.g. check quota)." };
+      const run = fold(`${r.label} 429 first`, [...r.natives.slice(0, -1), error, seal], r.host);
+      expect(run.all.filter((e) => e.type === "error").map((e) => member(e, "code")), run.label).toEqual(["429"]);
+      expect(run.all.filter((e) => TERMINAL.has(e.type)).map((e) => [e.type, member(e, "reason")]), run.label).toEqual([["turn.abort", "cancelled"]]);
+      expect(run.all.at(-1)?.type, run.label).toBe("turn.abort");
+      expect(run.tail, run.label).toEqual([]);
+      expect(run.flushed, run.label).toEqual([]);
+      expect(run.reducer.needsResync, run.label).toBe(false);
+    }
+  });
+
+  it("a seal pushed after the host-completion event (which host obligation 4 sends only after a run that returned normally) adds no second terminal, and maps as the same event without the seal's code would, apart from the carried code and message", () => {
+    const types = (evs: AgEvent[]): string[] => evs.map((e) => e.type);
+    // The default-mode a-text streams hold the seal alone: no turn is open when the completion event arrives.
+    const withPrefix = aborted.filter((x) => x.host && x.natives.length > 1);
+    expect(withPrefix).toHaveLength(20 - 2);
+    for (const r of withPrefix) {
+      const seal = sealOf(r);
+      const { errorCode: _code, errorMessage: _message, ...plain } = seal;
+      const after = (last: Native): { before: AgEvent[]; fromLast: AgEvent[]; flushed: AgEvent[] } => {
+        const n = createAdkNormalizer({ invokeId: "adk", hostCompletion: true });
+        const before = [...r.natives.slice(0, -1).flatMap((e) => n.push(e)), ...n.push({ type: ADK_HOST_COMPLETE_TYPE })];
+        return { before, fromLast: n.push(last), flushed: n.flush() };
+      };
+      const sealed = after(seal);
+      const control = after(plain);
+      expect(sealed.before.filter((e) => TERMINAL.has(e.type)), r.label).toHaveLength(1);
+      expect([...sealed.fromLast, ...sealed.flushed].filter((e) => TERMINAL.has(e.type)), r.label).toEqual([]);
+      expect(types(sealed.fromLast).filter((t) => t !== "content.block"), r.label).toEqual(types(control.fromLast).filter((t) => t !== "content.block"));
+      expect(sealed.flushed, r.label).toEqual([]);
+    }
+  });
+});
+
 describe("createAdkNormalizer — the client-abort route is keyed on the seal's errorCode value (SPEC §10 item 70, negative controls)", () => {
   it("the same paused run with no abort still closes paused at the invocation's end, naming the adk_request_confirmation ask", () => {
     expect(controls).toHaveLength(2 * 4);
