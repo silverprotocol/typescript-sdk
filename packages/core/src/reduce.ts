@@ -15,12 +15,13 @@ import type {
 import { REMOVE_ALL } from "./agjson.js";
 import { applyPatch } from "./json-patch.js";
 import { AG_EVENT_MAX_DEPTH, exceedsDepth, scanDepth } from "./depth.js";
+import { cloneValue } from "./clone.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reducer — the normative event→state fold (spec §5).
 //
 // R0 scaffold: all scratch initialized; push() = switch with default no-op;
-// result() materializes via structuredClone (aliasing-safe).
+// result() materializes via cloneValue (aliasing-safe; clone.ts, never the global structuredClone).
 //
 // R1: lifecycle handlers (turn.start / message.start / message.end /
 //     subagent.start / subagent.done / step.start / step.done) +
@@ -249,10 +250,11 @@ export class Reducer {
     // own copy. A host that reuses or mutates its event object after push() can
     // never move the fold; result() clones on the way out, this on the way in.
     // It runs before the ext guard below, which then narrows the copy. An event
-    // structuredClone cannot copy (a function-valued field) folds as pushed, as
-    // it always did, rather than throwing out of push().
+    // cloneValue cannot copy (a function-valued field, as before; since 0.12.7
+    // also a Date, Map, Set or other typed built-in, which no AgJSON value
+    // holds) folds as pushed rather than throwing out of push().
     try {
-      ev = structuredClone(ev);
+      ev = cloneValue(ev);
     } catch {
       // not cloneable: fold the event as pushed
     }
@@ -1103,7 +1105,7 @@ export class Reducer {
             const value = patch[key];
             if (value !== undefined) {
               // Copy-isolated from the event, as the capstone C1/C2 fixes require.
-              Object.defineProperty(base, key, { value: structuredClone(value), enumerable: true, writable: true, configurable: true });
+              Object.defineProperty(base, key, { value: cloneValue(value), enumerable: true, writable: true, configurable: true });
             }
           }
           this.#state = base;
@@ -1179,17 +1181,17 @@ export class Reducer {
 
       // ── MESSAGES.SNAPSHOT (R9) ───────────────────────────────────────────────
       case "messages.snapshot": {
-        // structuredClone each incoming array at store time so a later in-place
+        // cloneValue each incoming array at store time so a later in-place
         // mutation (turn.done/source/text.delta/memory.write patch onto a
         // snapshot-seeded record) can NOT write through into the original event
         // object — otherwise a re-fold (batch vs incremental) of the same array
         // diverges (same aliasing discipline as result()/applyPatch).
         // ALWAYS replace #messages.
-        this.#messages = new Map(structuredClone(ev.messages).map((m) => [m.id, m]));
+        this.#messages = new Map(cloneValue(ev.messages).map((m) => [m.id, m]));
 
         // CONDITIONALLY replace #turns (only if turns? present in event).
         if (ev.turns !== undefined) {
-          this.#turns = new Map(structuredClone(ev.turns).map((t) => [t.turnId, t]));
+          this.#turns = new Map(cloneValue(ev.turns).map((t) => [t.turnId, t]));
           // The snapshot's turns are authoritative: a landing held before it goes too.
           this.#held = new Map();
           this.#heldLandings = 0;
@@ -1197,7 +1199,7 @@ export class Reducer {
 
         // CONDITIONALLY replace #artifacts (only if artifacts? present in event).
         if (ev.artifacts !== undefined) {
-          this.#artifacts = new Map(structuredClone(ev.artifacts).map((a) => [a.artifactId, a]));
+          this.#artifacts = new Map(cloneValue(ev.artifacts).map((a) => [a.artifactId, a]));
         }
 
         // CONDITIONALLY replace ONLY scope==="thread" memory records.
@@ -1209,7 +1211,7 @@ export class Reducer {
               nonThread.push([k, rec]);
             }
           }
-          const snapshotThread: [string, AgMemoryRecord][] = structuredClone(ev.memory)
+          const snapshotThread: [string, AgMemoryRecord][] = cloneValue(ev.memory)
             .filter((rec) => rec.scope === "thread")
             .map((rec) => [`${rec.scope}${rec.key ?? ""}`, rec]);
           this.#memory = new Map([...nonThread, ...snapshotThread]);
@@ -1571,19 +1573,19 @@ export class Reducer {
   result(): AgReduceResult {
     return {
       messages: this.#messages.size
-        ? structuredClone([...this.#messages.values()])
+        ? cloneValue([...this.#messages.values()])
         : [],
       artifacts: this.#artifacts.size
-        ? structuredClone([...this.#artifacts.values()])
+        ? cloneValue([...this.#artifacts.values()])
         : [],
       memory: this.#memory.size
-        ? structuredClone([...this.#memory.values()])
+        ? cloneValue([...this.#memory.values()])
         : [],
       turns: this.#turns.size
-        ? structuredClone([...this.#turns.values()])
+        ? cloneValue([...this.#turns.values()])
         : [],
       ...(this.#state !== undefined
-        ? { state: structuredClone(this.#state) }
+        ? { state: cloneValue(this.#state) }
         : {}),
     };
   }
