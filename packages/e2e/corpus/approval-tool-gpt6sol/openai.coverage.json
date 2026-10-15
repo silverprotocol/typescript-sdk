@@ -1,38 +1,4 @@
 {
-  "drops": [
-    {
-      "path": "[0].data.providerData.response.text.format.type",
-      "norm": "[*].data.providerData.response.text.format.type",
-      "value": "text"
-    },
-    {
-      "path": "[1].data.event.response.text.format.type",
-      "norm": "[*].data.event.response.text.format.type",
-      "value": "text"
-    },
-    {
-      "path": "[2].data.event.response.text.format.type",
-      "norm": "[*].data.event.response.text.format.type",
-      "value": "text"
-    },
-    {
-      "path": "[18].data.response.providerData.text.format.type",
-      "norm": "[*].data.response.providerData.text.format.type",
-      "value": "text"
-    },
-    {
-      "path": "[19].data.event.response.text.format.type",
-      "norm": "[*].data.event.response.text.format.type",
-      "value": "text"
-    },
-    {
-      "path": "[22].item.functionToolStateKey",
-      "norm": "[*].item.functionToolStateKey",
-      "value": "[\"bare\",\"echo\"]"
-    }
-  ],
-  "newFields": [
-    "[*].item.toolName",
-    "[*].item.functionToolStateKey"
-  ]
+  "drops": [],
+  "newFields": []
 }
