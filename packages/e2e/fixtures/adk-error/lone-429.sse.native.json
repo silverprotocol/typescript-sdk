@@ -1,10 +1,10 @@
 [
   {
-    "invocationId": "e-db82c4d7-8134-47cf-b53a-3691fc262ae8",
+    "invocationId": "e-9c417575-5d65-4f16-8122-be413f2f457f",
     "author": "assistant",
     "errorCode": "429",
     "errorMessage": "Resource has been exhausted (e.g. check quota).",
-    "id": "i0k5yIA7",
+    "id": "kYX5OQOu",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -12,6 +12,6 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536984008
+    "timestamp": 1792039193146
   }
 ]

@@ -2,8 +2,8 @@
   {
     "output": "Echo wf-probe",
     "route": "tool",
-    "id": "MwuWRidi",
-    "invocationId": "e-a451a9f0-51b2-4157-83d4-e35770643a47",
+    "id": "tiWD2ZXt",
+    "invocationId": "e-ebb18f89-4f14-4247-bca5-04cd413f7a37",
     "author": "classify",
     "actions": {
       "stateDelta": {},
@@ -12,7 +12,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790159491548,
+    "timestamp": 1792039194337,
     "nodeInfo": {
       "path": "terminal_llm_workflow.classify",
       "outputFor": [
@@ -21,9 +21,9 @@
     }
   },
   {
-    "invocationId": "e-a451a9f0-51b2-4157-83d4-e35770643a47",
+    "invocationId": "e-ebb18f89-4f14-4247-bca5-04cd413f7a37",
     "author": "spike",
-    "id": "pJzN2JdG",
+    "id": "bycDaRGA",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -31,7 +31,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790159491549,
+    "timestamp": 1792039194337,
     "content": {
       "role": "model",
       "parts": [
@@ -41,7 +41,7 @@
             "args": {
               "message": "wf-probe"
             },
-            "id": "adk-9c4d62d6-adc1-4a8d-8273-4dddc45027a7"
+            "id": "adk-73c1522c-2c30-4f1f-b16b-f08dbf880490"
           }
         }
       ]
@@ -53,14 +53,14 @@
     "isolationScope": "terminal_llm_workflow.spike@1"
   },
   {
-    "invocationId": "e-a451a9f0-51b2-4157-83d4-e35770643a47",
+    "invocationId": "e-ebb18f89-4f14-4247-bca5-04cd413f7a37",
     "author": "spike",
     "content": {
       "role": "user",
       "parts": [
         {
           "functionResponse": {
-            "id": "adk-9c4d62d6-adc1-4a8d-8273-4dddc45027a7",
+            "id": "adk-73c1522c-2c30-4f1f-b16b-f08dbf880490",
             "name": "echo",
             "response": {
               "echoed": "wf-probe"
@@ -75,18 +75,18 @@
       "requestedAuthConfigs": {},
       "requestedToolConfirmations": {}
     },
-    "id": "h4VcckJr",
+    "id": "7ofjswwv",
     "longRunningToolIds": [],
-    "timestamp": 1790159491549,
+    "timestamp": 1792039194337,
     "nodeInfo": {
       "path": "terminal_llm_workflow.spike"
     },
     "isolationScope": "terminal_llm_workflow.spike@1"
   },
   {
-    "invocationId": "e-a451a9f0-51b2-4157-83d4-e35770643a47",
+    "invocationId": "e-ebb18f89-4f14-4247-bca5-04cd413f7a37",
     "author": "spike",
-    "id": "43XE4ebz",
+    "id": "tB42opYk",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -94,7 +94,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790159491549,
+    "timestamp": 1792039194337,
     "content": {
       "role": "model",
       "parts": [

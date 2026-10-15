@@ -1,8 +1,8 @@
 [
   {
-    "invocationId": "e-280032ad-e143-40ff-8d0a-7eed9151622e",
+    "invocationId": "e-f94c9c23-030e-48e8-8b9f-45fa948ef0e1",
     "author": "assistant",
-    "id": "2hJmG2jQ",
+    "id": "sVlECO1o",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -10,15 +10,15 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479483,
+    "timestamp": 1792039192615,
     "errorCode": "SAFETY",
     "errorMessage": "The response was blocked for safety.",
     "finishReason": "SAFETY"
   },
   {
-    "invocationId": "e-280032ad-e143-40ff-8d0a-7eed9151622e",
+    "invocationId": "e-f94c9c23-030e-48e8-8b9f-45fa948ef0e1",
     "author": "assistant",
-    "id": "FugQmJP8",
+    "id": "kOHvKFPE",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -26,7 +26,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479483,
+    "timestamp": 1792039192615,
     "content": {
       "role": "model",
       "parts": [
@@ -38,9 +38,9 @@
     "partial": true
   },
   {
-    "invocationId": "e-280032ad-e143-40ff-8d0a-7eed9151622e",
+    "invocationId": "e-f94c9c23-030e-48e8-8b9f-45fa948ef0e1",
     "author": "assistant",
-    "id": "lO1KGWE0",
+    "id": "kOHvKFPE",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -48,7 +48,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479483,
+    "timestamp": 1792039192615,
     "errorCode": "SAFETY",
     "errorMessage": "The response was blocked for safety.",
     "usageMetadata": {
@@ -59,9 +59,9 @@
     "finishReason": "SAFETY"
   },
   {
-    "invocationId": "e-280032ad-e143-40ff-8d0a-7eed9151622e",
+    "invocationId": "e-f94c9c23-030e-48e8-8b9f-45fa948ef0e1",
     "author": "assistant",
-    "id": "87kNKrk3",
+    "id": "hR3i33az",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -69,7 +69,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479483,
+    "timestamp": 1792039192616,
     "content": {
       "role": "model",
       "parts": [

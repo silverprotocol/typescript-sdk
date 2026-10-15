@@ -1,9 +1,9 @@
 [
   {
-    "invocationId": "e-fd292715-cec6-4780-a828-5c4eff435976",
+    "invocationId": "e-af6e1e9c-23bb-4f0d-85c8-5d2f813ac9e6",
     "author": "beta",
     "branch": "fanout.beta",
-    "id": "HOvwAHP7",
+    "id": "ugTiqEnX",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -11,7 +11,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479583,
+    "timestamp": 1792039192713,
     "errorCode": "RECITATION",
     "errorMessage": "The response recited a source.",
     "usageMetadata": {
@@ -22,10 +22,10 @@
     "finishReason": "RECITATION"
   },
   {
-    "invocationId": "e-fd292715-cec6-4780-a828-5c4eff435976",
+    "invocationId": "e-af6e1e9c-23bb-4f0d-85c8-5d2f813ac9e6",
     "author": "alpha",
     "branch": "fanout.alpha",
-    "id": "IpMI7PlZ",
+    "id": "ADzei9vX",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -33,7 +33,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479583,
+    "timestamp": 1792039192713,
     "errorCode": "SAFETY",
     "errorMessage": "The response was blocked for safety.",
     "usageMetadata": {

@@ -1,8 +1,8 @@
 [
   {
-    "invocationId": "e-a8191fe1-f39d-4f65-b9d2-2a54cfae4f76",
+    "invocationId": "e-18528f44-1517-4ba7-913a-b0c51acb738f",
     "author": "assistant",
-    "id": "PerdIJU8",
+    "id": "aGXrDCIP",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -10,15 +10,15 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790849984651,
+    "timestamp": 1792039193155,
     "errorCode": "NotSupportedError",
     "errorMessage": "The device cannot run the model.",
     "turnComplete": true
   },
   {
-    "invocationId": "e-a8191fe1-f39d-4f65-b9d2-2a54cfae4f76",
+    "invocationId": "e-18528f44-1517-4ba7-913a-b0c51acb738f",
     "author": "assistant",
-    "id": "9Y1ELLVH",
+    "id": "MC2G9kh4",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -26,7 +26,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790849984652,
+    "timestamp": 1792039193156,
     "errorCode": "NotSupportedError",
     "errorMessage": "The device cannot run the model.",
     "turnComplete": true

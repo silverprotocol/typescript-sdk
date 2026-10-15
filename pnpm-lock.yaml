@@ -231,11 +231,11 @@ importers:
         specifier: 0.3.296
         version: 0.3.296(@anthropic-ai/sdk@0.133.0(zod@4.6.5))(@modelcontextprotocol/sdk@1.32.1(zod@4.6.5))(zod@4.6.5)
       '@google/adk':
-        specifier: 2.2.1
-        version: 2.2.1(@grpc/grpc-js@1.14.5)(@modelcontextprotocol/sdk@1.32.1(zod@4.6.5))(express@5.2.1)
+        specifier: 2.3.0
+        version: 2.3.0(@grpc/grpc-js@1.14.5)(@modelcontextprotocol/sdk@1.32.1(zod@4.6.5))(express@5.2.1)
       '@google/genai':
-        specifier: 2.28.0
-        version: 2.28.0(@modelcontextprotocol/sdk@1.32.1(zod@4.6.5))
+        specifier: 2.30.0
+        version: 2.30.0(@modelcontextprotocol/sdk@1.32.1(zod@4.6.5))
       '@modelcontextprotocol/sdk':
         specifier: ^1.32.1
         version: 1.32.1(zod@4.6.5)
@@ -262,7 +262,7 @@ importers:
     dependencies:
       '@google/adk':
         specifier: '>=1.0.0 <3'
-        version: 2.2.1(@grpc/grpc-js@1.14.5)(@modelcontextprotocol/sdk@1.32.1(zod@4.6.5))(express@5.2.1)
+        version: 2.3.0(@grpc/grpc-js@1.14.5)(@modelcontextprotocol/sdk@1.32.1(zod@4.6.5))(express@5.2.1)
       '@silverprotocol/core':
         specifier: workspace:*
         version: link:../core
@@ -415,11 +415,12 @@ packages:
     resolution: {integrity: sha512-XMJIk7GIeavFLP5A3YEUlowKa5Y5PZRrnnuTJcqR0k+lFKkv7+IWpdRp+Xbqb8xNDrvQaE2hP2RYPUylyD5EdA==}
     engines: {node: '>=18.0.0'}
 
-  '@google/adk@2.2.1':
-    resolution: {integrity: sha512-Z2iKnxQQAC9qf3/uCjLF+hvya9xhs63vZbUbzkzIqdZwCwa8i+DLhPJ0Ixhul3JR1kp4FJ5lOa5blaDB6zG+FQ==}
+  '@google/adk@2.3.0':
+    resolution: {integrity: sha512-s3YlsvIAZC/1D6NkyNe5k6LCaMUUmA5mFNO988prNdDDV+2sWCoJGrUI9ujWb6ZDERBtpqIdP2+tcZg/lJeZcw==}
     peerDependencies:
       '@google-cloud/opentelemetry-cloud-monitoring-exporter': ^0.21.0
       '@google-cloud/opentelemetry-cloud-trace-exporter': ^3.0.0
+      '@google-cloud/secret-manager': ^7.1.1
       '@google-cloud/storage': ^7.17.1
       '@mikro-orm/mariadb': ^7.2.0
       '@mikro-orm/mssql': ^7.2.0
@@ -432,6 +433,8 @@ packages:
       '@google-cloud/opentelemetry-cloud-monitoring-exporter':
         optional: true
       '@google-cloud/opentelemetry-cloud-trace-exporter':
+        optional: true
+      '@google-cloud/secret-manager':
         optional: true
       '@google-cloud/storage':
         optional: true
@@ -459,8 +462,8 @@ packages:
       '@modelcontextprotocol/sdk':
         optional: true
 
-  '@google/genai@2.28.0':
-    resolution: {integrity: sha512-hyNAJj+ywu3L46qlZod6KO/JvcT3QONz6VCiPevC/FWOjAD+LQb7DMLUoV8vzoLpt61Q0ruQX99iqbxEjPJWmw==}
+  '@google/genai@2.30.0':
+    resolution: {integrity: sha512-Gkv1ix8iZey/V3WF4lHaRS8C71P533jenDT/lA+fdPTCfXYfmCVHvo+0H5jTgzonqsmROQG7QpzLJkpoP/x7bg==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       '@modelcontextprotocol/sdk': ^1.25.2
@@ -991,11 +994,6 @@ packages:
 
   ajv-formats@3.0.1:
     resolution: {integrity: sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ==}
-    peerDependencies:
-      ajv: ^8.0.0
-    peerDependenciesMeta:
-      ajv:
-        optional: true
 
   ajv@8.20.0:
     resolution: {integrity: sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==}
@@ -2131,11 +2129,11 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@google/adk@2.2.1(@grpc/grpc-js@1.14.5)(@modelcontextprotocol/sdk@1.32.1(zod@4.6.5))(express@5.2.1)':
+  '@google/adk@2.3.0(@grpc/grpc-js@1.14.5)(@modelcontextprotocol/sdk@1.32.1(zod@4.6.5))(express@5.2.1)':
     dependencies:
       '@a2a-js/sdk': 0.3.14(@grpc/grpc-js@1.14.5)(express@5.2.1)
       '@google-cloud/vertexai': 1.12.0(@modelcontextprotocol/sdk@1.32.1(zod@4.6.5))
-      '@google/genai': 2.28.0(@modelcontextprotocol/sdk@1.32.1(zod@4.6.5))
+      '@google/genai': 2.30.0(@modelcontextprotocol/sdk@1.32.1(zod@4.6.5))
       '@mikro-orm/core': 7.2.1
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/api-logs': 0.222.0
@@ -2183,7 +2181,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@google/genai@2.28.0(@modelcontextprotocol/sdk@1.32.1(zod@4.6.5))':
+  '@google/genai@2.30.0(@modelcontextprotocol/sdk@1.32.1(zod@4.6.5))':
     dependencies:
       google-auth-library: 10.9.1
       p-retry: 4.6.2
@@ -2264,7 +2262,7 @@ snapshots:
     dependencies:
       '@hono/node-server': 2.1.1(hono@4.13.8)
       ajv: 8.20.0
-      ajv-formats: 3.0.1(ajv@8.20.0)
+      ajv-formats: 3.0.1
       content-type: 1.0.5
       cors: 2.8.6
       cross-spawn: 7.0.6
@@ -2660,9 +2658,7 @@ snapshots:
       '@ai-sdk/provider-utils': 5.0.58(zod@4.6.5)
       zod: 4.6.5
 
-  ajv-formats@3.0.1(ajv@8.20.0):
-    optionalDependencies:
-      ajv: 8.20.0
+  ajv-formats@3.0.1: {}
 
   ajv@8.20.0:
     dependencies:

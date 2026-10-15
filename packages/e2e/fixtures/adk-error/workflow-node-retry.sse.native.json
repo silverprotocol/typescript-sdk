@@ -1,8 +1,8 @@
 [
   {
-    "invocationId": "e-ab8a6970-c066-492f-a6fb-70b3aa99ba28",
+    "invocationId": "e-eb58cb87-b58b-48be-83c2-fa6ae7b2ebef",
     "author": "assistant",
-    "id": "gd8GoQc2",
+    "id": "pJhw3EX0",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -10,7 +10,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479493,
+    "timestamp": 1792039192623,
     "errorCode": "SAFETY",
     "errorMessage": "The response was blocked for safety.",
     "usageMetadata": {
@@ -24,9 +24,9 @@
     }
   },
   {
-    "invocationId": "e-ab8a6970-c066-492f-a6fb-70b3aa99ba28",
+    "invocationId": "e-eb58cb87-b58b-48be-83c2-fa6ae7b2ebef",
     "author": "assistant",
-    "id": "3xcP9UGs",
+    "id": "jcRKige4",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -34,56 +34,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479494,
-    "errorCode": "SAFETY",
-    "errorMessage": "The response was blocked for safety.",
-    "usageMetadata": {
-      "promptTokenCount": 10,
-      "candidatesTokenCount": 5,
-      "totalTokenCount": 15
-    },
-    "finishReason": "SAFETY",
-    "partial": false,
-    "nodeInfo": {
-      "path": "flow.assistant"
-    }
-  },
-  {
-    "invocationId": "e-ab8a6970-c066-492f-a6fb-70b3aa99ba28",
-    "author": "assistant",
-    "id": "RIwuxgtE",
-    "actions": {
-      "stateDelta": {},
-      "artifactDelta": {},
-      "requestedAuthConfigs": {},
-      "requestedToolConfirmations": {}
-    },
-    "longRunningToolIds": [],
-    "timestamp": 1790536479495,
-    "errorCode": "SAFETY",
-    "errorMessage": "The response was blocked for safety.",
-    "usageMetadata": {
-      "promptTokenCount": 10,
-      "candidatesTokenCount": 5,
-      "totalTokenCount": 15
-    },
-    "finishReason": "SAFETY",
-    "nodeInfo": {
-      "path": "flow.assistant"
-    }
-  },
-  {
-    "invocationId": "e-ab8a6970-c066-492f-a6fb-70b3aa99ba28",
-    "author": "assistant",
-    "id": "DTHiDlE0",
-    "actions": {
-      "stateDelta": {},
-      "artifactDelta": {},
-      "requestedAuthConfigs": {},
-      "requestedToolConfirmations": {}
-    },
-    "longRunningToolIds": [],
-    "timestamp": 1790536479495,
+    "timestamp": 1792039192623,
     "errorCode": "SAFETY",
     "errorMessage": "The response was blocked for safety.",
     "usageMetadata": {
@@ -98,9 +49,9 @@
     }
   },
   {
-    "invocationId": "e-ab8a6970-c066-492f-a6fb-70b3aa99ba28",
+    "invocationId": "e-eb58cb87-b58b-48be-83c2-fa6ae7b2ebef",
     "author": "assistant",
-    "id": "BfwVBCqM",
+    "id": "e9JXx3C7",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -108,7 +59,56 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479497,
+    "timestamp": 1792039192625,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY",
+    "nodeInfo": {
+      "path": "flow.assistant"
+    }
+  },
+  {
+    "invocationId": "e-eb58cb87-b58b-48be-83c2-fa6ae7b2ebef",
+    "author": "assistant",
+    "id": "irEcGfn8",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1792039192625,
+    "errorCode": "SAFETY",
+    "errorMessage": "The response was blocked for safety.",
+    "usageMetadata": {
+      "promptTokenCount": 10,
+      "candidatesTokenCount": 5,
+      "totalTokenCount": 15
+    },
+    "finishReason": "SAFETY",
+    "partial": false,
+    "nodeInfo": {
+      "path": "flow.assistant"
+    }
+  },
+  {
+    "invocationId": "e-eb58cb87-b58b-48be-83c2-fa6ae7b2ebef",
+    "author": "assistant",
+    "id": "aI92XveV",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1792039192626,
     "content": {
       "role": "model",
       "parts": [
@@ -123,9 +123,9 @@
     }
   },
   {
-    "invocationId": "e-ab8a6970-c066-492f-a6fb-70b3aa99ba28",
+    "invocationId": "e-eb58cb87-b58b-48be-83c2-fa6ae7b2ebef",
     "author": "assistant",
-    "id": "73GtDPxQ",
+    "id": "aI92XveV",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -133,7 +133,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479497,
+    "timestamp": 1792039192626,
     "content": {
       "role": "model",
       "parts": [
@@ -154,9 +154,9 @@
     }
   },
   {
-    "invocationId": "e-ab8a6970-c066-492f-a6fb-70b3aa99ba28",
+    "invocationId": "e-eb58cb87-b58b-48be-83c2-fa6ae7b2ebef",
     "author": "assistant",
-    "id": "ozpUr64Q",
+    "id": "aI92XveV",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -164,7 +164,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479497,
+    "timestamp": 1792039192626,
     "content": {
       "role": "model",
       "parts": [

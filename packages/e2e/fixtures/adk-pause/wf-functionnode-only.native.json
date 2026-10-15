@@ -1,7 +1,7 @@
 [
   {
     "author": "first",
-    "invocationId": "e-d12e7c31-3eec-4e3b-8e12-4da0ff5df071",
+    "invocationId": "e-32ea8dd5-2881-410f-8df0-e8855f2c960b",
     "content": {
       "role": "model",
       "parts": [
@@ -19,9 +19,9 @@
       "requestedAuthConfigs": {},
       "requestedToolConfirmations": {}
     },
-    "id": "D4oDlYfx",
+    "id": "0meRF3QL",
     "longRunningToolIds": [],
-    "timestamp": 1790159491550,
+    "timestamp": 1792039194338,
     "nodeInfo": {
       "path": "fn_only_workflow.first",
       "outputFor": [
@@ -31,7 +31,7 @@
   },
   {
     "author": "second",
-    "invocationId": "e-d12e7c31-3eec-4e3b-8e12-4da0ff5df071",
+    "invocationId": "e-32ea8dd5-2881-410f-8df0-e8855f2c960b",
     "content": {
       "role": "model",
       "parts": [
@@ -52,9 +52,9 @@
       "requestedAuthConfigs": {},
       "requestedToolConfirmations": {}
     },
-    "id": "aSBb1k2y",
+    "id": "mJq7Aq5w",
     "longRunningToolIds": [],
-    "timestamp": 1790159491550,
+    "timestamp": 1792039194338,
     "nodeInfo": {
       "path": "fn_only_workflow.second",
       "outputFor": [

@@ -1,8 +1,8 @@
 [
   {
-    "invocationId": "e-29297718-9106-46b8-958d-dacc4cfd66fa",
+    "invocationId": "e-42907b13-66f3-48d6-9c5f-80fbe3992814",
     "author": "first",
-    "id": "amg5sJML",
+    "id": "COu9upLh",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -10,7 +10,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536984010,
+    "timestamp": 1792039193148,
     "content": {
       "role": "model",
       "parts": [
@@ -20,7 +20,7 @@
             "args": {
               "path": "notes/draft.txt"
             },
-            "id": "adk-c518d26c-e900-4b79-98f6-760c1dbe315a"
+            "id": "adk-7f163556-02c8-4184-80fd-1c438bfc8004"
           }
         }
       ]
@@ -33,7 +33,7 @@
     "finishReason": "STOP"
   },
   {
-    "invocationId": "e-29297718-9106-46b8-958d-dacc4cfd66fa",
+    "invocationId": "e-42907b13-66f3-48d6-9c5f-80fbe3992814",
     "author": "first",
     "content": {
       "parts": [
@@ -46,14 +46,14 @@
                 "args": {
                   "path": "notes/draft.txt"
                 },
-                "id": "adk-c518d26c-e900-4b79-98f6-760c1dbe315a"
+                "id": "adk-7f163556-02c8-4184-80fd-1c438bfc8004"
               },
               "toolConfirmation": {
                 "hint": "Please approve or reject the tool call delete_file() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
                 "confirmed": false
               }
             },
-            "id": "adk-ab589c90-ea44-494c-bb7d-6b12407a43d6"
+            "id": "adk-9dab13e7-ca9d-4df2-800a-ce1730963948"
           }
         }
       ],
@@ -64,7 +64,7 @@
       "artifactDelta": {},
       "requestedAuthConfigs": {},
       "requestedToolConfirmations": {
-        "adk-c518d26c-e900-4b79-98f6-760c1dbe315a": {
+        "adk-7f163556-02c8-4184-80fd-1c438bfc8004": {
           "hint": "Please approve or reject the tool call delete_file() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
           "confirmed": false
         }
@@ -72,15 +72,15 @@
       "skipSummarization": true
     },
     "longRunningToolIds": [
-      "adk-ab589c90-ea44-494c-bb7d-6b12407a43d6"
+      "adk-9dab13e7-ca9d-4df2-800a-ce1730963948"
     ],
-    "id": "Lk42DgxH",
-    "timestamp": 1790536984011
+    "id": "U1s7caJS",
+    "timestamp": 1792039193148
   },
   {
-    "invocationId": "e-29297718-9106-46b8-958d-dacc4cfd66fa",
+    "invocationId": "e-42907b13-66f3-48d6-9c5f-80fbe3992814",
     "author": "second",
-    "id": "3J8AjCdM",
+    "id": "5GZTN4Rs",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -88,7 +88,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536984011,
+    "timestamp": 1792039193148,
     "errorCode": "INTERNAL",
     "errorMessage": "The interaction failed.",
     "interactionId": "interaction-second-1"

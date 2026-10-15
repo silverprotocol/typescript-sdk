@@ -1,8 +1,8 @@
 [
   {
-    "invocationId": "e-e834d2e4-26cf-42a4-8885-439ba2887ceb",
+    "invocationId": "e-3ff6f8c9-e90a-40a7-8112-215c65c12978",
     "author": "assistant",
-    "id": "cISU0GvY",
+    "id": "egVjEGWh",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -10,7 +10,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479482,
+    "timestamp": 1792039192614,
     "content": {
       "role": "model",
       "parts": [
@@ -22,9 +22,9 @@
     "partial": true
   },
   {
-    "invocationId": "e-e834d2e4-26cf-42a4-8885-439ba2887ceb",
+    "invocationId": "e-3ff6f8c9-e90a-40a7-8112-215c65c12978",
     "author": "assistant",
-    "id": "WALhVpXN",
+    "id": "egVjEGWh",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -32,7 +32,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479482,
+    "timestamp": 1792039192614,
     "content": {
       "role": "model",
       "parts": [
@@ -44,9 +44,9 @@
     "partial": true
   },
   {
-    "invocationId": "e-e834d2e4-26cf-42a4-8885-439ba2887ceb",
+    "invocationId": "e-3ff6f8c9-e90a-40a7-8112-215c65c12978",
     "author": "assistant",
-    "id": "sPfsjj2C",
+    "id": "egVjEGWh",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -54,15 +54,15 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479482,
+    "timestamp": 1792039192614,
     "errorCode": "SAFETY",
     "errorMessage": "The response was blocked for safety.",
     "finishReason": "SAFETY"
   },
   {
-    "invocationId": "e-e834d2e4-26cf-42a4-8885-439ba2887ceb",
+    "invocationId": "e-3ff6f8c9-e90a-40a7-8112-215c65c12978",
     "author": "assistant",
-    "id": "mygUMTLI",
+    "id": "H6f4N54C",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -70,7 +70,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479482,
+    "timestamp": 1792039192615,
     "content": {
       "role": "model",
       "parts": [

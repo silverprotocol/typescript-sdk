@@ -1,8 +1,8 @@
 [
   {
-    "invocationId": "e-aa34a15b-6ce6-4898-88a3-81c9ed5e972b",
+    "invocationId": "e-a28a1a7f-48d2-4bd9-873d-7a56da6bce5a",
     "author": "assistant",
-    "id": "2SkDN5Xe",
+    "id": "MTpSKqKP",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -10,7 +10,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536480020,
+    "timestamp": 1792039193182,
     "errorCode": "SAFETY",
     "errorMessage": "The response was blocked for safety.",
     "usageMetadata": {
@@ -22,9 +22,9 @@
     "partial": true
   },
   {
-    "invocationId": "e-aa34a15b-6ce6-4898-88a3-81c9ed5e972b",
+    "invocationId": "e-a28a1a7f-48d2-4bd9-873d-7a56da6bce5a",
     "author": "assistant",
-    "id": "u4KaWw9c",
+    "id": "MTpSKqKP",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -32,7 +32,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536480020,
+    "timestamp": 1792039193182,
     "errorCode": "SAFETY",
     "errorMessage": "The response was blocked for safety.",
     "usageMetadata": {

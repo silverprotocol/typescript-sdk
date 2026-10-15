@@ -1,10 +1,10 @@
 [
   {
-    "invocationId": "e-bf31ab88-90d3-48ad-9b89-9fee618aef12",
+    "invocationId": "e-33debd22-46dc-4acc-aa16-4299413dd3d0",
     "author": "first",
     "errorCode": "429",
     "errorMessage": "Resource has been exhausted (e.g. check quota).",
-    "id": "jNBmwGM5",
+    "id": "4V8ZEqcv",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -12,12 +12,12 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536984006
+    "timestamp": 1792039193144
   },
   {
-    "invocationId": "e-bf31ab88-90d3-48ad-9b89-9fee618aef12",
+    "invocationId": "e-33debd22-46dc-4acc-aa16-4299413dd3d0",
     "author": "second",
-    "id": "P21DUquT",
+    "id": "Otpxb9JP",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -25,7 +25,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536984006,
+    "timestamp": 1792039193144,
     "content": {
       "role": "model",
       "parts": [

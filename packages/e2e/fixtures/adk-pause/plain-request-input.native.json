@@ -1,8 +1,8 @@
 [
   {
-    "invocationId": "e-507b890b-35ad-49ec-999d-fe9bf4184772",
+    "invocationId": "e-b02fd5a3-ac91-40f9-8178-74ce9deb1681",
     "author": "agent",
-    "id": "DlV65vPk",
+    "id": "LL1AJevR",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -10,9 +10,9 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [
-      "adk-93828bcf-83e9-4598-8a55-d78467fabf06"
+      "adk-a70a131d-7b06-4b34-b8bc-a2379a679b23"
     ],
-    "timestamp": 1790159491554,
+    "timestamp": 1792039194341,
     "content": {
       "role": "model",
       "parts": [
@@ -22,7 +22,7 @@
             "args": {
               "message": "Which city?"
             },
-            "id": "adk-93828bcf-83e9-4598-8a55-d78467fabf06"
+            "id": "adk-a70a131d-7b06-4b34-b8bc-a2379a679b23"
           }
         }
       ]
@@ -30,7 +30,7 @@
     "turnComplete": true
   },
   {
-    "invocationId": "e-507b890b-35ad-49ec-999d-fe9bf4184772",
+    "invocationId": "e-b02fd5a3-ac91-40f9-8178-74ce9deb1681",
     "author": "agent",
     "actions": {
       "stateDelta": {},
@@ -39,8 +39,8 @@
       "requestedToolConfirmations": {},
       "skipSummarization": true
     },
-    "id": "JcZJ7sJg",
+    "id": "TtvlImJz",
     "longRunningToolIds": [],
-    "timestamp": 1790159491554
+    "timestamp": 1792039194342
   }
 ]

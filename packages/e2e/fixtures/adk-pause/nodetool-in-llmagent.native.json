@@ -1,8 +1,8 @@
 [
   {
-    "invocationId": "e-c023b07f-25af-4dd8-9811-d016d000c7a9",
+    "invocationId": "e-c120fb16-6afd-4578-8540-77851924a560",
     "author": "agent",
-    "id": "me1mJR8L",
+    "id": "oU7cJauG",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -10,9 +10,9 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [
-      "adk-a3330aa2-bbd7-4c1d-b089-bb84aacd1e79"
+      "adk-8fdf29c5-d158-42bc-b190-32d75a663af5"
     ],
-    "timestamp": 1790159491555,
+    "timestamp": 1792039194342,
     "content": {
       "role": "model",
       "parts": [
@@ -22,7 +22,7 @@
             "args": {
               "q": "probe"
             },
-            "id": "adk-a3330aa2-bbd7-4c1d-b089-bb84aacd1e79"
+            "id": "adk-8fdf29c5-d158-42bc-b190-32d75a663af5"
           }
         }
       ]
@@ -31,8 +31,8 @@
   },
   {
     "author": "lookup",
-    "invocationId": "e-c023b07f-25af-4dd8-9811-d016d000c7a9",
-    "branch": "lookup@adk-a3330aa2-bbd7-4c1d-b089-bb84aacd1e79",
+    "invocationId": "e-c120fb16-6afd-4578-8540-77851924a560",
+    "branch": "lookup@adk-8fdf29c5-d158-42bc-b190-32d75a663af5",
     "content": {
       "role": "model",
       "parts": [
@@ -52,9 +52,9 @@
       "requestedAuthConfigs": {},
       "requestedToolConfirmations": {}
     },
-    "id": "mQbTxhDW",
+    "id": "nssGi3FO",
     "longRunningToolIds": [],
-    "timestamp": 1790159491555,
+    "timestamp": 1792039194343,
     "nodeInfo": {
       "path": "lookup",
       "outputFor": [
@@ -63,14 +63,14 @@
     }
   },
   {
-    "invocationId": "e-c023b07f-25af-4dd8-9811-d016d000c7a9",
+    "invocationId": "e-c120fb16-6afd-4578-8540-77851924a560",
     "author": "agent",
     "content": {
       "role": "user",
       "parts": [
         {
           "functionResponse": {
-            "id": "adk-a3330aa2-bbd7-4c1d-b089-bb84aacd1e79",
+            "id": "adk-8fdf29c5-d158-42bc-b190-32d75a663af5",
             "name": "lookup",
             "response": {
               "found": {
@@ -87,14 +87,14 @@
       "requestedAuthConfigs": {},
       "requestedToolConfirmations": {}
     },
-    "id": "sU8mXqOw",
+    "id": "IOorysJl",
     "longRunningToolIds": [],
-    "timestamp": 1790159491555
+    "timestamp": 1792039194343
   },
   {
-    "invocationId": "e-c023b07f-25af-4dd8-9811-d016d000c7a9",
+    "invocationId": "e-c120fb16-6afd-4578-8540-77851924a560",
     "author": "agent",
-    "id": "SNQ9Lev4",
+    "id": "AwUXGAqx",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -102,7 +102,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790159491556,
+    "timestamp": 1792039194343,
     "content": {
       "role": "model",
       "parts": [

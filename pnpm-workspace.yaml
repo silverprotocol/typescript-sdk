@@ -61,4 +61,7 @@ overrides:
 # lockfile it fails ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION. NOTE (pnpm 11.25): a non-frozen
 # install APPENDS any too-young version NO older release can satisfy (an exact pin,
 # or a caret whose floor is the new release) to this list and reflows the comments; always `git diff` both yaml files after installing.
-minimumReleaseAgeExclude: []
+minimumReleaseAgeExclude:
+  # 2026-10-15: the e2e pin @google/genai 2.30.0 (published 10-15T00:06:41Z) rides the
+  # @google/adk 2.3.0 bump; it ages out 10-16T00:06Z. Prune on the next bump.
+  - '@google/genai@2.30.0'

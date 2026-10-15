@@ -1,8 +1,8 @@
 [
   {
-    "invocationId": "e-1552d2fa-b15f-4e8d-9d7d-abfb3f2caa29",
+    "invocationId": "e-b4be9f4f-4060-4e4e-a0a8-37bdbd3828b3",
     "author": "assistant",
-    "id": "L76pwPaq",
+    "id": "0xiCoEvW",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -10,9 +10,9 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [
-      "adk-1ab205d6-27ed-4df8-aa91-b5fb12eb920a"
+      "adk-cac9b8fc-5d3b-4787-add0-f79d3d4d8bf8"
     ],
-    "timestamp": 1790536984015,
+    "timestamp": 1792039193152,
     "content": {
       "role": "model",
       "parts": [
@@ -22,7 +22,7 @@
             "args": {
               "message": "Which city?"
             },
-            "id": "adk-1ab205d6-27ed-4df8-aa91-b5fb12eb920a"
+            "id": "adk-cac9b8fc-5d3b-4787-add0-f79d3d4d8bf8"
           }
         },
         {
@@ -31,7 +31,7 @@
             "args": {
               "query": "cities"
             },
-            "id": "adk-ee97c2fa-7b62-499c-a8b0-5b5080b9e923"
+            "id": "adk-ebad6ecf-c018-42a5-b347-b8ab789c5132"
           }
         }
       ]
@@ -44,11 +44,11 @@
     "finishReason": "STOP"
   },
   {
-    "invocationId": "e-1552d2fa-b15f-4e8d-9d7d-abfb3f2caa29",
+    "invocationId": "e-b4be9f4f-4060-4e4e-a0a8-37bdbd3828b3",
     "author": "assistant",
     "errorCode": "UNKNOWN_ERROR",
     "errorMessage": "The lookup backend is unavailable.",
-    "id": "IdOqa320",
+    "id": "uNm5p7Jv",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -56,14 +56,14 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536984015
+    "timestamp": 1792039193152
   },
   {
-    "invocationId": "e-1552d2fa-b15f-4e8d-9d7d-abfb3f2caa29",
+    "invocationId": "e-b4be9f4f-4060-4e4e-a0a8-37bdbd3828b3",
     "author": "assistant",
     "errorCode": "429",
     "errorMessage": "Resource has been exhausted (e.g. check quota).",
-    "id": "jOkntfF3",
+    "id": "VH2X9VEN",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -71,6 +71,6 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536984015
+    "timestamp": 1792039193153
   }
 ]

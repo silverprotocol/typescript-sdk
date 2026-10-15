@@ -1,8 +1,8 @@
 [
   {
-    "invocationId": "e-75c10b2c-c360-48eb-95c1-175a0db32d4e",
+    "invocationId": "e-86380a5a-1280-4ade-acd3-a3a0d5176456",
     "author": "agent",
-    "id": "Qu6BvJrZ",
+    "id": "SxgI9qiz",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -10,7 +10,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790159491552,
+    "timestamp": 1792039194340,
     "content": {
       "role": "model",
       "parts": [
@@ -20,7 +20,7 @@
             "args": {
               "path": "/tmp/x"
             },
-            "id": "adk-139c1788-4f56-4c58-b703-d15b61771fc1"
+            "id": "adk-6c7781a4-9bb7-49ba-85ce-e4403a0f2629"
           }
         }
       ]
@@ -28,7 +28,7 @@
     "turnComplete": true
   },
   {
-    "invocationId": "e-75c10b2c-c360-48eb-95c1-175a0db32d4e",
+    "invocationId": "e-86380a5a-1280-4ade-acd3-a3a0d5176456",
     "author": "agent",
     "content": {
       "parts": [
@@ -41,14 +41,14 @@
                 "args": {
                   "path": "/tmp/x"
                 },
-                "id": "adk-139c1788-4f56-4c58-b703-d15b61771fc1"
+                "id": "adk-6c7781a4-9bb7-49ba-85ce-e4403a0f2629"
               },
               "toolConfirmation": {
                 "hint": "Please approve or reject the tool call delete_file() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
                 "confirmed": false
               }
             },
-            "id": "adk-968274a3-1efb-40a7-8da3-0cb4f199c2fa"
+            "id": "adk-fc5bae82-4c63-4fd6-a426-f48686023824"
           }
         }
       ],
@@ -59,7 +59,7 @@
       "artifactDelta": {},
       "requestedAuthConfigs": {},
       "requestedToolConfirmations": {
-        "adk-139c1788-4f56-4c58-b703-d15b61771fc1": {
+        "adk-6c7781a4-9bb7-49ba-85ce-e4403a0f2629": {
           "hint": "Please approve or reject the tool call delete_file() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
           "confirmed": false
         }
@@ -67,9 +67,9 @@
       "skipSummarization": true
     },
     "longRunningToolIds": [
-      "adk-968274a3-1efb-40a7-8da3-0cb4f199c2fa"
+      "adk-fc5bae82-4c63-4fd6-a426-f48686023824"
     ],
-    "id": "XXaMNhWy",
-    "timestamp": 1790159491553
+    "id": "Q9R1kjaJ",
+    "timestamp": 1792039194340
   }
 ]

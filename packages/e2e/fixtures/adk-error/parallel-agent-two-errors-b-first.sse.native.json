@@ -1,9 +1,9 @@
 [
   {
-    "invocationId": "e-ef8a5cbf-2b0a-4dc1-a8e3-4b97f802ed04",
+    "invocationId": "e-f29d79f0-c1e1-4a24-bffa-b5bb62cd8ba8",
     "author": "beta",
     "branch": "fanout.beta",
-    "id": "83SCplpk",
+    "id": "YhJiX5Zn",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -11,7 +11,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479604,
+    "timestamp": 1792039192734,
     "content": {
       "role": "model",
       "parts": [
@@ -23,10 +23,10 @@
     "partial": true
   },
   {
-    "invocationId": "e-ef8a5cbf-2b0a-4dc1-a8e3-4b97f802ed04",
+    "invocationId": "e-f29d79f0-c1e1-4a24-bffa-b5bb62cd8ba8",
     "author": "beta",
     "branch": "fanout.beta",
-    "id": "tB4OFGN0",
+    "id": "YhJiX5Zn",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -34,7 +34,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479605,
+    "timestamp": 1792039192734,
     "errorCode": "RECITATION",
     "errorMessage": "The response recited a source.",
     "usageMetadata": {
@@ -45,10 +45,10 @@
     "finishReason": "RECITATION"
   },
   {
-    "invocationId": "e-ef8a5cbf-2b0a-4dc1-a8e3-4b97f802ed04",
+    "invocationId": "e-f29d79f0-c1e1-4a24-bffa-b5bb62cd8ba8",
     "author": "alpha",
     "branch": "fanout.alpha",
-    "id": "zBunBDsR",
+    "id": "M3vIGBsW",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -56,7 +56,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479604,
+    "timestamp": 1792039192734,
     "content": {
       "role": "model",
       "parts": [
@@ -68,10 +68,10 @@
     "partial": true
   },
   {
-    "invocationId": "e-ef8a5cbf-2b0a-4dc1-a8e3-4b97f802ed04",
+    "invocationId": "e-f29d79f0-c1e1-4a24-bffa-b5bb62cd8ba8",
     "author": "alpha",
     "branch": "fanout.alpha",
-    "id": "yCAimMQq",
+    "id": "M3vIGBsW",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -79,7 +79,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479627,
+    "timestamp": 1792039192734,
     "errorCode": "SAFETY",
     "errorMessage": "The response was blocked for safety.",
     "usageMetadata": {
@@ -90,10 +90,10 @@
     "finishReason": "SAFETY"
   },
   {
-    "invocationId": "e-ef8a5cbf-2b0a-4dc1-a8e3-4b97f802ed04",
+    "invocationId": "e-f29d79f0-c1e1-4a24-bffa-b5bb62cd8ba8",
     "author": "alpha",
     "branch": "fanout.alpha",
-    "id": "YAXdXSXO",
+    "id": "FiG1j6Bb",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -101,7 +101,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479627,
+    "timestamp": 1792039192756,
     "content": {
       "role": "model",
       "parts": [
@@ -121,10 +121,10 @@
     "partial": false
   },
   {
-    "invocationId": "e-ef8a5cbf-2b0a-4dc1-a8e3-4b97f802ed04",
+    "invocationId": "e-f29d79f0-c1e1-4a24-bffa-b5bb62cd8ba8",
     "author": "beta",
     "branch": "fanout.beta",
-    "id": "ocygH2wj",
+    "id": "S3rSDE2Y",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -132,7 +132,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536479605,
+    "timestamp": 1792039192734,
     "content": {
       "role": "model",
       "parts": [

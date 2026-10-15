@@ -1,8 +1,8 @@
 [
   {
-    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "invocationId": "e-d0c7d978-29d3-482a-82b9-195804f8dd37",
     "author": "assistant",
-    "id": "WKs62X2I",
+    "id": "Sp9p12NV",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -10,9 +10,9 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [
-      "adk-058a7cac-5786-487f-b087-006d9537c51d"
+      "adk-4f6dde91-d114-40e6-9246-fe342e8a204f"
     ],
-    "timestamp": 1790536480018,
+    "timestamp": 1792039193142,
     "content": {
       "role": "model",
       "parts": [
@@ -22,7 +22,7 @@
             "args": {
               "request": "weather"
             },
-            "id": "adk-058a7cac-5786-487f-b087-006d9537c51d"
+            "id": "adk-4f6dde91-d114-40e6-9246-fe342e8a204f"
           }
         }
       ]
@@ -36,11 +36,11 @@
     "partial": false
   },
   {
-    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "invocationId": "e-d0c7d978-29d3-482a-82b9-195804f8dd37",
     "author": "lookup",
     "errorCode": "429",
     "errorMessage": "Resource has been exhausted (e.g. check quota).",
-    "id": "LFc4j4Af",
+    "id": "bxX7G00f",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -48,17 +48,17 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "branch": "lookup@adk-058a7cac-5786-487f-b087-006d9537c51d",
-    "timestamp": 1790536480019,
+    "branch": "lookup@adk-4f6dde91-d114-40e6-9246-fe342e8a204f",
+    "timestamp": 1792039193142,
     "nodeInfo": {
       "path": "lookup"
     }
   },
   {
-    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "invocationId": "e-d0c7d978-29d3-482a-82b9-195804f8dd37",
     "author": "lookup",
-    "branch": "lookup@adk-058a7cac-5786-487f-b087-006d9537c51d",
-    "id": "k1A5x2ye",
+    "branch": "lookup@adk-4f6dde91-d114-40e6-9246-fe342e8a204f",
+    "id": "gaQTJjGU",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -66,7 +66,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536480019,
+    "timestamp": 1792039193143,
     "content": {
       "role": "model",
       "parts": [
@@ -81,10 +81,10 @@
     }
   },
   {
-    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "invocationId": "e-d0c7d978-29d3-482a-82b9-195804f8dd37",
     "author": "lookup",
-    "branch": "lookup@adk-058a7cac-5786-487f-b087-006d9537c51d",
-    "id": "TKuy8qQo",
+    "branch": "lookup@adk-4f6dde91-d114-40e6-9246-fe342e8a204f",
+    "id": "gaQTJjGU",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -92,7 +92,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536480019,
+    "timestamp": 1792039193143,
     "content": {
       "role": "model",
       "parts": [
@@ -113,10 +113,10 @@
     }
   },
   {
-    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "invocationId": "e-d0c7d978-29d3-482a-82b9-195804f8dd37",
     "author": "lookup",
-    "branch": "lookup@adk-058a7cac-5786-487f-b087-006d9537c51d",
-    "id": "wg861RNc",
+    "branch": "lookup@adk-4f6dde91-d114-40e6-9246-fe342e8a204f",
+    "id": "gaQTJjGU",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -124,7 +124,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536480019,
+    "timestamp": 1792039193143,
     "content": {
       "role": "model",
       "parts": [
@@ -150,14 +150,14 @@
     }
   },
   {
-    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "invocationId": "e-d0c7d978-29d3-482a-82b9-195804f8dd37",
     "author": "assistant",
     "content": {
       "role": "user",
       "parts": [
         {
           "functionResponse": {
-            "id": "adk-058a7cac-5786-487f-b087-006d9537c51d",
+            "id": "adk-4f6dde91-d114-40e6-9246-fe342e8a204f",
             "name": "lookup",
             "response": {
               "result": "Sunny."
@@ -172,14 +172,14 @@
       "requestedAuthConfigs": {},
       "requestedToolConfirmations": {}
     },
-    "id": "9oDuJZvv",
+    "id": "VOVcCkMX",
     "longRunningToolIds": [],
-    "timestamp": 1790536480020
+    "timestamp": 1792039193144
   },
   {
-    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "invocationId": "e-d0c7d978-29d3-482a-82b9-195804f8dd37",
     "author": "assistant",
-    "id": "7LZ9YFwz",
+    "id": "ebG1OOMe",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -187,7 +187,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536480020,
+    "timestamp": 1792039193144,
     "usageMetadata": {
       "promptTokenCount": 20,
       "candidatesTokenCount": 4,
@@ -197,9 +197,9 @@
     "partial": false
   },
   {
-    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "invocationId": "e-d0c7d978-29d3-482a-82b9-195804f8dd37",
     "author": "assistant",
-    "id": "K6Y2pHg9",
+    "id": "gyIoeVmz",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -207,7 +207,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536480020,
+    "timestamp": 1792039193144,
     "content": {
       "role": "model",
       "parts": [
@@ -219,9 +219,9 @@
     "partial": true
   },
   {
-    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "invocationId": "e-d0c7d978-29d3-482a-82b9-195804f8dd37",
     "author": "assistant",
-    "id": "cKu4rL45",
+    "id": "gyIoeVmz",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -229,7 +229,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536480020,
+    "timestamp": 1792039193144,
     "content": {
       "role": "model",
       "parts": [
@@ -247,9 +247,9 @@
     "partial": true
   },
   {
-    "invocationId": "e-fa236f6d-306f-425d-81dd-a3e266be5517",
+    "invocationId": "e-d0c7d978-29d3-482a-82b9-195804f8dd37",
     "author": "assistant",
-    "id": "ARm7xyLz",
+    "id": "gyIoeVmz",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -257,7 +257,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1790536480020,
+    "timestamp": 1792039193144,
     "content": {
       "role": "model",
       "parts": [
