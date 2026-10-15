@@ -850,6 +850,8 @@
   "[*].usageMetadata.promptTokenCount",
   "[*].usageMetadata.promptTokensDetails[*].modality",
   "[*].usageMetadata.promptTokensDetails[*].tokenCount",
+  "[*].usageMetadata.candidatesTokensDetails[*].modality",
+  "[*].usageMetadata.candidatesTokensDetails[*].tokenCount",
   "[*].usageMetadata.responseTokenCount",
   "[*].usageMetadata.responseTokensDetails[*].modality",
   "[*].usageMetadata.responseTokensDetails[*].tokenCount",

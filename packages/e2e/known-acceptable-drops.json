@@ -3211,6 +3211,22 @@
     ]
   },
   {
+    "path": "[*].usageMetadata.candidatesTokensDetails[*].modality",
+    "reason": "adk: Gemini per-modality output-token breakdown (TEXT/IMAGE/\u2026 buckets) \u2014 the TOTAL is mapped (candidatesTokenCount -> usage.outputTokens); AgUsage has no per-modality vocabulary. On the generateContent path the facet drops both *TokensDetails lists; only the Live path carries per-modality details (message.metadata usageDetails, carryLiveUsageDetails) because Live prices per modality (google facet's disposition, 2026-10-15). First observed live: echo-gemini4argon (gemini-4-argon, 2026-10-15).",
+    "reviewed": "any",
+    "frameworks": [
+      "adk"
+    ]
+  },
+  {
+    "path": "[*].usageMetadata.candidatesTokensDetails[*].tokenCount",
+    "reason": "adk: the count half of the per-modality output breakdown above \u2014 same disposition, see [*].usageMetadata.candidatesTokensDetails[*].modality.",
+    "reviewed": "any",
+    "frameworks": [
+      "adk"
+    ]
+  },
+  {
     "path": "[*].usageMetadata.serviceTier",
     "reason": "adk: Gemini billing/capacity tier label \u2014 pure billing telemetry, same class as the openai facet's router-plane rate-limit/service-tier signals. First observed live: echo-gemini35 (a 2026-07-13 capture).",
     "reviewed": "any",
