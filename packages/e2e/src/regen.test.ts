@@ -197,6 +197,8 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "defer-tool-sonnet5-resume-unavailable", framework: "claude" },
   // 2026-09-24: the ADK shared-state fold seed, enrolled at capture time.
   { scenario: "state-fold-gemini38", framework: "adk" },
+  // 2026-10-15 (model-release sweep): the Gemini 4 Argon echo seed, enrolled at capture time.
+  { scenario: "echo-gemini4argon", framework: "adk" },
   // 2026-09-24 (fold/flush Q2 evidence): the openai tool-approval legs.
   // Leg 1's capture-time coverage was computed against empty guard maps
   // (coverage kept honest); the two resume goldens are generated from their

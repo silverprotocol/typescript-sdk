@@ -473,6 +473,10 @@ const ADK_SEEDS = [
   // Re-captured 2026-10-07 under adk 2.2.1: the functionCall is yielded at once
   // and now opens the message; both message.metadata land after tool.done.
   "live-tool-gemini38live",
+  // 2026-10-15 (model-release sweep): the Gemini 4 Argon echo seed
+  // (gemini-4-argon), captured at @google/adk 2.2.1 / genai 2.28.0 and enrolled
+  // at capture time. Its event sequence matches echo-gemini38's.
+  "echo-gemini4argon",
 ] as const;
 
 /**
