@@ -1101,7 +1101,7 @@ function readStartupFailureReason(v: unknown): string | undefined {
 // The type's own lead sentence frames the whole enum as a refusal to start:
 // "Why Claude Code refused to start, so a host can offer the fix instead of a
 // retry." So a PRESENT reason means NOT retriable, except for the values
-// upstream itself EXPLICITLY describes as retriable. Through 0.3.296 that set is
+// upstream itself EXPLICITLY describes as retriable. Through 0.3.304 that set is
 // exactly two values:
 //  - `worktree_unverified`: "the session's worktree could not be verified
 //    right now; retrying may succeed."
