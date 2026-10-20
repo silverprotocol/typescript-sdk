@@ -53,6 +53,11 @@ describe("redactNative", () => {
       tools: ["Task"],
     };
     expect(redactNative(init)).toEqual({ type: "system", subtype: "init", cwd: REDACTED_PATH, original_cwd: REDACTED_PATH, memory_paths: { auto: REDACTED_PATH }, tools: ["Task"] });
+    // additional_directories (0.3.304) echoes the additionalDirectories option: every
+    // string leaf is a host path, and the array keeps its length and order.
+    const dirs: JsonValue = { type: "system", subtype: "init", additional_directories: ["/Users/someone/a", "/Users/someone/b"] };
+    expect(redactNative(dirs)).toEqual({ type: "system", subtype: "init", additional_directories: [REDACTED_PATH, REDACTED_PATH] });
+    expect(redactNative({ additional_directories: [] })).toEqual({ additional_directories: [] });
     const note: JsonValue = { type: "system", subtype: "task_notification", output_file: "/private/tmp/x/tasks/a1", status: "completed" };
     expect(redactNative(note)).toEqual({ type: "system", subtype: "task_notification", output_file: REDACTED_PATH, status: "completed" });
     const result: JsonValue = { type: "user", tool_use_result: { status: "async_launched", outputFile: "/private/tmp/x/tasks/a2", isAsync: true } };

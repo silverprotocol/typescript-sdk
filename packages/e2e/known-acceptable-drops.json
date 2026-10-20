@@ -80,6 +80,14 @@
     ]
   },
   {
+    "path": "[*].additional_directories[*]",
+    "reason": "claude: host filesystem paths on the SDK's system/init bootstrap event (first observed at 0.3.304, live echo-haiku55, 2026-10-20, as []): the echo of the additionalDirectories query option. It is the sibling of `[*].cwd` and `[*].original_cwd`, and its disposition is the same: init is not among the system subtypes createClaudeNormalizer reads, so the facet never reads it. Every string leaf is a host path, so captures redact it at source (REDACTED_PATH_KEYS).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
     "path": "[*].data.event.arguments",
     "reason": "openai: assembled arguments string in response.function_call_arguments.done; IS consumed by createOpenaiNormalizer to drive tool.args.assembled \u2014 but the value is the JSON string (e.g. '{\"text\":\"hi\"}') which has no verbatim home in the AgJSON (the parsed object does).",
     "reviewed": "any",
