@@ -51,10 +51,7 @@ overrides:
 # name-match quirk this comment used to describe), so during a day-one peer
 # bump either write ONE `pkg@old || new` entry or list both versions — both
 # forms work. Entries older than the 24h default window are dead weight:
-# prune them on the next bump. The list is empty as of 2026-10-12T16:46Z: the
-# 10-07 bump's entries aged out, and this bump's versions (ai 7.0.137 10-09T14:54Z,
-# @ai-sdk/openai 4.0.91 10-08T21:40Z, @ai-sdk/mcp 2.0.73 10-09T00:40Z,
-# @anthropic-ai/sdk 0.133.0 10-09T15:44Z) were already past the window.
+# prune them on the next bump.
 # openai is resolved through a RANGE (@openai/agents-openai
 # declares ^7.2.0), so on a FRESH resolution (lockfile deleted) a missing entry does
 # NOT fail: the gate silently resolves an older client; against the committed
@@ -62,6 +59,24 @@ overrides:
 # install APPENDS any too-young version NO older release can satisfy (an exact pin,
 # or a caret whose floor is the new release) to this list and reflows the comments; always `git diff` both yaml files after installing.
 minimumReleaseAgeExclude:
-  # 2026-10-15: the e2e pin @google/genai 2.30.0 (published 10-15T00:06:41Z) rides the
-  # @google/adk 2.3.0 bump; it ages out 10-16T00:06Z. Prune on the next bump.
-  - '@google/genai@2.30.0'
+  # 2026-10-20: the e2e pins ai 7.0.146 (10-20T04:12:11Z), @ai-sdk/openai 4.0.98
+  # (10-20T04:13:26Z) and @ai-sdk/mcp 2.0.80 (10-20T04:11:33Z), with the @ai-sdk
+  # versions they pin, ride the vercel carry; all age out by 10-21T04:14Z.
+  # @anthropic-ai/claude-agent-sdk 0.3.304 (10-19T19:48:33Z), with its eight platform
+  # binaries, rides the claude
+  # carry; it ages out 10-20T19:48Z. Prune on the next bump.
+  - '@anthropic-ai/claude-agent-sdk@0.3.304'
+  - 'ai@7.0.146'
+  - '@ai-sdk/openai@4.0.98'
+  - '@ai-sdk/mcp@2.0.80'
+  - '@ai-sdk/gateway@4.0.119'
+  - '@ai-sdk/provider-utils@5.0.64'
+  - '@ai-sdk/provider@4.0.31'
+  - '@anthropic-ai/claude-agent-sdk-darwin-arm64@0.3.304'
+  - '@anthropic-ai/claude-agent-sdk-darwin-x64@0.3.304'
+  - '@anthropic-ai/claude-agent-sdk-linux-arm64-musl@0.3.304'
+  - '@anthropic-ai/claude-agent-sdk-linux-arm64@0.3.304'
+  - '@anthropic-ai/claude-agent-sdk-linux-x64-musl@0.3.304'
+  - '@anthropic-ai/claude-agent-sdk-linux-x64@0.3.304'
+  - '@anthropic-ai/claude-agent-sdk-win32-arm64@0.3.304'
+  - '@anthropic-ai/claude-agent-sdk-win32-x64@0.3.304'

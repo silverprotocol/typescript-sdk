@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "description": "TypeScript SDK for AgJSON \u2014 normalizers from agent frameworks to the typed agent<->client transport.",
   "license": "MIT",
-  "packageManager": "pnpm@12.11.2",
+  "packageManager": "pnpm@12.14.0",
   "type": "module",
   "scripts": {
     "build": "tsc -b",
