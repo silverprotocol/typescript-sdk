@@ -9,8 +9,8 @@
  * normalized, censused or written, so capture and replay see the same bytes.
  *
  * The Claude CLI likewise records local filesystem paths of the capturing
- * machine (REDACTED_PATH_KEYS: its init `cwd` and `memory_paths`, a background
- * task's output file), which name the operator's home directory.
+ * machine (REDACTED_PATH_KEYS: its init `cwd`, `original_cwd` (0.3.304) and
+ * `memory_paths`, a background task's output file), which name the operator's home directory.
  *
  * Only VALUES are replaced (with REDACTED, or REDACTED_PATH for a path); keys
  * stay, so the census still sees the path and its allowlist disposition. Request ids are deliberately
@@ -43,14 +43,21 @@ export const REDACTED_PATH = "<redacted-path>";
 /**
  * Keys (matched case-insensitively, at any depth) whose values are local
  * filesystem paths of the capturing machine: the Claude CLI's system/init
- * `cwd` and `memory_paths` (its auto-memory directory), and a background
+ * `cwd`, `original_cwd` (from 0.3.304) and `memory_paths` (its auto-memory
+ * directory), and a background
  * task's `output_file` / `outputFile`. They name the operator's home directory
  * and account, so they never reach the public corpus. Every STRING leaf under
  * such a key becomes REDACTED_PATH; keys, nesting and non-string values stay,
  * so the census sees exactly the same paths (`[*].memory_paths.auto` stays a
  * string leaf).
  */
-export const REDACTED_PATH_KEYS: ReadonlySet<string> = new Set(["cwd", "memory_paths", "output_file", "outputfile"]);
+export const REDACTED_PATH_KEYS: ReadonlySet<string> = new Set([
+  "cwd",
+  "original_cwd",
+  "memory_paths",
+  "output_file",
+  "outputfile",
+]);
 
 /**
  * An audio payload (an object whose `mimeType` is audio/*, e.g. Gemini Live's

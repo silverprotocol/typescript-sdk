@@ -2993,6 +2993,22 @@
     ]
   },
   {
+    "path": "[*].tool_use_meta[*].tool_name",
+    "reason": "claude: a runtime-only field (absent from sdk.d.ts at 0.3.304) in the SDK's per-tool_use display sidecar on the assistant message wrapper, keyed by the tool_use id. It carries the tool's own unprefixed name (\"echo\" for block name mcp__t__echo). The facet takes tool.start.name from the content block's `name`, and the server's tool name is the suffix of that MCP-prefixed name, so nothing is lost. It is the sibling of the display_name and server_display_name entries, and like them is never read by createClaudeNormalizer. First observed live at 0.3.304 (echo-haiku55, 2026-10-20).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].original_cwd",
+    "reason": "claude: a local filesystem path on the SDK's system/init bootstrap event (first observed at 0.3.304, live echo-haiku55, 2026-10-20). It is the sibling of `[*].cwd`, and its disposition is the same: createClaudeNormalizer handles only the informational, model_refusal_fallback and permission_denied system subtypes plus the subtypes in CARRIED_SYSTEM_SUBTYPES, and init is in neither, so the facet never reads it. It is a host path, so captures redact it at source (REDACTED_PATH_KEYS).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
     "path": "[*].totalUsage.inputTokenDetails.noCacheTokens",
     "reason": "vercel: finish.totalUsage detail counter with no AgUsage shape \u2014 derivable from the mapped turn.done.usage counters (noCacheTokens = inputTokens \u2212 cacheReadTokens \u2212 cacheWriteTokens; all carried via mapUsage, index.ts:111-131/399). Verified derivable (290=290\u22120\u22120). First vercel triage (2026-07-25, echo-gpt56 @ai 7.0.34).",
     "reviewed": "any",

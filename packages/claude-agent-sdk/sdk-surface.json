@@ -1,7 +1,7 @@
 {
   "$comment": "Ratchet manifest for the fixture-drift gate (scripts/check-fixture-drift.mjs). Members are the `SDKMessage` union's arm TYPE NAMES, extracted mechanically from `export declare type SDKMessage = A | B | \u2026;` in @anthropic-ai/claude-agent-sdk/sdk.d.ts. Dispositions were seeded 2026-07-03 by reading src/index.ts (the facet's `drive()` switch) + every arm's own field declarations in sdk.d.ts + the two 2026-07-03 reviews (the SDK-bump review of each arm and the facet adaptation). handled = the facet has a dedicated branch; carried = routed to ext.anthropic.* losslessly; router-plane = pure SDK/CLI/session control-plane telemetry with no conversational free-text payload, ignored by the facet's own documented design (index.ts's blanket 'carry no AgJSON-relevant content' comment, or a more specific documented rationale noted per-entry) \u2014 verified by reading the arm's actual fields, not assumed from its name; not-applicable = provably cannot occur on this SDK's wire (unused on this manifest \u2014 every named SDKMessage arm is structurally reachable); silently-dropped = reaches the facet, carries real informational payload, and has NO route (ext or otherwise) \u2014 a genuine pre-existing gap, documented honestly rather than papered over as not-applicable or router-plane. ZERO members remain `silently-dropped` as of the claude-arms-disposition task (2026-07-03 follow-up): SDKInformationalMessage was fixed first (flagship finding, carried); the remaining 16 were closed in one pass \u2014 15 via the uniform `ext.anthropic.frame{kind, frame}` lossless-carry convention (SPEC \u00a78 item 22 / \u00a712), and SDKPermissionDeniedMessage via existing-home enrichment of the already-handled `<turnId>:denials` carrier. Each member's note records its disposition's rationale.",
   "sdkPackage": "@anthropic-ai/claude-agent-sdk",
-  "verifiedAt": "0.3.296",
+  "verifiedAt": "0.3.304",
   "verified": [
     {
       "sdkVersion": "0.2.141",
@@ -129,6 +129,13 @@
       "silverprotocol": "1.0.0-rc.1",
       "tier": "live",
       "evidence": "@anthropic-ai/claude-agent-sdk 0.3.292 -> 0.3.296 (CLI 2.1.296). 0.3.296 adds two SDKStartupFailureReason values: org_config_required_unavailable, which upstream documents as possibly succeeding on retry, joins the facet's retriable set, and org_config_refused stays non-retriable (the facet change landed before this pin). 0.3.293's subagent_type rides the existing whole-frame carry unchanged; 0.3.295's overageEnabled sits on the router-plane rate_limit_event the facet does not emit. A runtime-only field the d.ts does not declare: a tool_result's tool_result_meta entries now carry permission_decision {decision, source, reason_type}, which the facet already carries verbatim on tool.done _meta[\"anthropic/toolResultMeta\"]; the three paths are registered with the census. modelUsage per-model inputTokens is carried derived, folded into the cache-inclusive usage.byModel inputTokens, so the value-matching census now allowlists it. Live: echo-haiku55 (claude-haiku-5-5) captured green at 0.3.296 with replay and census green after those two entries; the committed cassette was kept. modelUsage costBasis for claude-haiku-5-5 now reads \"list\" (\"unknown\" at 0.3.292)."
+    },
+    {
+      "sdkVersion": "0.3.304",
+      "date": "2026-10-20",
+      "silverprotocol": "1.0.0-rc.3",
+      "tier": "live",
+      "evidence": "@anthropic-ai/claude-agent-sdk 0.3.296 -> 0.3.304, with @anthropic-ai/sdk ^0.133.0 -> ^0.135.0. The d.ts changes no message type: the SDKMessage union and SDKStartupFailureReason are unchanged. Runtime changes the facet folds unchanged: 0.3.301 sends api_error_status null (was 401) on a full-disk login failure, which folds retriable:false as before; 0.3.302 closes a refused structured output as an error result with no payload, down the existing is_error + refusal close; 0.3.302 turns fork subagents on by default (the subagent seeds were not re-captured). Two runtime-only fields the facet never reads, registered with the census: system/init `original_cwd`, a local path that captures now redact at source beside `cwd`, and `tool_use_meta[*].tool_name`, the tool's unprefixed name beside display_name and server_display_name. Live: echo-haiku55 (claude-haiku-5-5) captured green at 0.3.304 with the same event-type sequence as the 0.3.296 golden; the fresh cassette is committed and, regenerated against the real guards, has no drops and no new fields after those two entries."
     }
   ],
   "members": {

@@ -117,16 +117,16 @@ describe("the committed corpus carries no account-identifying value", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("the gate bites on a local path: a live cwd or memory_paths value in a committed claude native is reported at exactly that path", () => {
+  it("the gate bites on a local path: a live cwd, original_cwd or memory_paths value in a committed claude native is reported at exactly that path", () => {
     const native = JSON.parse(readFileSync(join(E2E, "corpus", "echo-sonnet5", "claude.native.json"), "utf8")) as JsonValue[];
     const init = native.findIndex((ev) => (ev as { subtype?: string }).subtype === "init");
     expect(init).toBeGreaterThanOrEqual(0);
     expect((native[init] as { cwd?: string }).cwd).toBe(REDACTED_PATH); // committed redacted
-    for (const [key, value] of [["cwd", "/Users/someone/repo"], ["memory_paths", { auto: "/Users/someone/.claude/memory/" }]] as const) {
+    for (const [key, value] of [["cwd", "/Users/someone/repo"], ["original_cwd", "/Users/someone/repo/sub"], ["memory_paths", { auto: "/Users/someone/.claude/memory/" }]] as const) {
       const mutated = structuredClone(native);
       (mutated[init] as Record<string, JsonValue>)[key] = value as JsonValue;
       const found = unredactedPaths(mutated as JsonValue);
-      expect(found, key).toEqual([key === "cwd" ? `$[${init}].cwd` : `$[${init}].memory_paths.auto`]);
+      expect(found, key).toEqual([key === "memory_paths" ? `$[${init}].memory_paths.auto` : `$[${init}].${key}`]);
       expect(HOME_PATH.test(JSON.stringify(mutated)), key).toBe(true);
     }
   });

@@ -254,7 +254,12 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // (capture-time coverage was computed against empty guard maps).
   { scenario: "parallel-partials-sonnet5", framework: "claude" },
   { scenario: "parallel-partials-thinking-sonnet5", framework: "claude" },
-  { scenario: "parallel-sonnet5", framework: "claude" },
+  { scenario: "parallel-sonnet5", framework: "claude" },  // 2026-10-20 (the 10-20 sweep): four seeds whose committed coverage.json was
+  // still the capture-time one (computed against EMPTY guard maps).
+  { scenario: "echo-gpt61sol", framework: "openai" },
+  { scenario: "echo-gpt61sol", framework: "vercel" },
+  { scenario: "echo-haiku55", framework: "claude" },
+  { scenario: "echo-sonnet55", framework: "claude" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

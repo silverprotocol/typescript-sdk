@@ -3,7 +3,7 @@
     "type": "system",
     "subtype": "init",
     "cwd": "<redacted-path>",
-    "session_id": "77fc5b9f-81a2-4ca3-b644-8de46ce8568f",
+    "session_id": "ca720f29-8f90-42e1-9747-b25d03ecfa3f",
     "tools": [
       "mcp__t__echo"
     ],
@@ -76,7 +76,7 @@
       "reload-plugins"
     ],
     "apiKeySource": "ANTHROPIC_API_KEY",
-    "claude_code_version": "2.1.292",
+    "claude_code_version": "2.1.304",
     "output_style": "default",
     "agents": [
       "claude",
@@ -127,16 +127,20 @@
       "interrupt_cancel_queued_v1",
       "interrupt_send_now_v1",
       "msg_lifecycle_v1",
+      "request_marker_lists_v1",
       "sdk_mcp_tools_list_changed",
       "sdk_mcp_manifests",
       "mcp_read_resource_v1",
       "mcp_tool_ui_meta_v1",
-      "ui_surface_v1"
+      "ui_surface_v1",
+      "mcp_call_result_not_for_model_v1"
     ],
     "analytics_disabled": false,
     "product_feedback_disabled": false,
-    "uuid": "4d48a366-7630-4006-9a98-c32bf5ed84b7",
-    "messaging_socket_path": "/tmp/cc-socks/24477.sock",
+    "uuid": "95591fee-3131-4d41-ae11-e3792a5bcda9",
+    "original_cwd": "<redacted-path>",
+    "additional_directories": [],
+    "messaging_socket_path": "/tmp/cc-socks/29145.sock",
     "fast_mode_state": "off",
     "fast_mode_disabled_reason": "sdk_opt_in_required",
     "per_turn_effort_active": true,
@@ -146,13 +150,13 @@
     "type": "assistant",
     "message": {
       "model": "claude-haiku-5-5",
-      "id": "msg_011CfpuDu6Ghr7UBgqAqwPLs",
+      "id": "msg_011CgCryyhoPzYrcFpUuvDYW",
       "type": "message",
       "role": "assistant",
       "content": [
         {
           "type": "tool_use",
-          "id": "toolu_01FzoCnP7mokgMMhuwha3d5B",
+          "id": "toolu_01FX4QxdD1bveUEHSvnPMak8",
           "name": "mcp__t__echo",
           "input": {
             "message": "conformance-probe-haiku55"
@@ -168,35 +172,37 @@
       "stop_details": null,
       "usage": {
         "input_tokens": 2,
-        "cache_creation_input_tokens": 1163,
-        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1187,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 1163,
+          "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
         "output_tokens": 24,
         "service_tier": "standard",
-        "inference_geo": "global"
+        "inference_geo": "global",
+        "speed": "standard"
       },
       "input_transformations": [],
       "diagnostics": null,
       "context_management": null
     },
     "parent_tool_use_id": null,
-    "session_id": "77fc5b9f-81a2-4ca3-b644-8de46ce8568f",
-    "uuid": "aae112bb-8e5f-45dc-a46e-d88af8bee1c1",
-    "timestamp": "2026-10-08T14:08:11.361Z",
-    "request_id": "req_011CfpuDtoersG6mdQSj5F7d",
+    "session_id": "ca720f29-8f90-42e1-9747-b25d03ecfa3f",
+    "uuid": "c8ae9744-7b43-45eb-a870-64f22b0f6218",
+    "timestamp": "2026-10-20T04:31:53.308Z",
+    "request_id": "req_011CgCryyUPy4KJnVnufpwYM",
     "wire_tool_inputs": {
-      "toolu_01FzoCnP7mokgMMhuwha3d5B": {
+      "toolu_01FX4QxdD1bveUEHSvnPMak8": {
         "message": "conformance-probe-haiku55"
       }
     },
     "tool_use_meta": [
       {
-        "id": "toolu_01FzoCnP7mokgMMhuwha3d5B",
+        "id": "toolu_01FX4QxdD1bveUEHSvnPMak8",
         "display_name": "Echo",
-        "server_display_name": "mock-text"
+        "server_display_name": "mock-text",
+        "tool_name": "echo"
       }
     ]
   },
@@ -206,7 +212,7 @@
       "role": "user",
       "content": [
         {
-          "tool_use_id": "toolu_01FzoCnP7mokgMMhuwha3d5B",
+          "tool_use_id": "toolu_01FX4QxdD1bveUEHSvnPMak8",
           "type": "tool_result",
           "content": [
             {
@@ -218,13 +224,23 @@
       ]
     },
     "parent_tool_use_id": null,
-    "session_id": "77fc5b9f-81a2-4ca3-b644-8de46ce8568f",
-    "uuid": "5c1aa748-fa11-47f1-9676-1de2a98d3ed1",
-    "timestamp": "2026-10-08T14:08:11.373Z",
+    "session_id": "ca720f29-8f90-42e1-9747-b25d03ecfa3f",
+    "uuid": "e861322e-e48b-4aae-a74d-0d16b14bc9b8",
+    "timestamp": "2026-10-20T04:31:53.320Z",
     "tool_use_result": [
       {
         "type": "text",
         "text": "conformance-probe-haiku55"
+      }
+    ],
+    "tool_result_meta": [
+      {
+        "id": "toolu_01FX4QxdD1bveUEHSvnPMak8",
+        "permission_decision": {
+          "decision": "accept",
+          "source": "config",
+          "reason_type": "rule"
+        }
       }
     ]
   },
@@ -232,7 +248,7 @@
     "type": "assistant",
     "message": {
       "model": "claude-haiku-5-5",
-      "id": "msg_011CfpuDyDomb8ZYd24FJAH8",
+      "id": "msg_011CgCrz8Ekxqb22aSAJLFeM",
       "type": "message",
       "role": "assistant",
       "content": [
@@ -247,35 +263,36 @@
       "stop_details": null,
       "usage": {
         "input_tokens": 2,
-        "cache_creation_input_tokens": 102,
-        "cache_read_input_tokens": 1163,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 1289,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 102,
+          "ephemeral_5m_input_tokens": 0,
           "ephemeral_1h_input_tokens": 0
         },
         "output_tokens": 8,
         "service_tier": "standard",
-        "inference_geo": "global"
+        "inference_geo": "global",
+        "speed": "standard"
       },
       "input_transformations": [],
       "diagnostics": null,
       "context_management": null
     },
     "parent_tool_use_id": null,
-    "session_id": "77fc5b9f-81a2-4ca3-b644-8de46ce8568f",
-    "uuid": "b3146460-ca2a-47f2-b903-7a0504838f6c",
-    "timestamp": "2026-10-08T14:08:12.093Z",
-    "request_id": "req_011CfpuDxzBBAJEfcqiyUYT2"
+    "session_id": "ca720f29-8f90-42e1-9747-b25d03ecfa3f",
+    "uuid": "db1088c6-ac7f-4d95-8540-9d7b6c6d5bd9",
+    "timestamp": "2026-10-20T04:31:55.226Z",
+    "request_id": "req_011CgCrz81rXWwNyVQaQphYQ"
   },
   {
-    "duration_api_ms": 1722,
+    "duration_api_ms": 4580,
     "stop_reason": "end_turn",
-    "session_id": "77fc5b9f-81a2-4ca3-b644-8de46ce8568f",
-    "total_cost_usd": 0.0082336,
+    "session_id": "ca720f29-8f90-42e1-9747-b25d03ecfa3f",
+    "total_cost_usd": 0.00019786,
     "usage": {
       "input_tokens": 4,
-      "cache_creation_input_tokens": 1265,
-      "cache_read_input_tokens": 1163,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 2476,
       "output_tokens": 83,
       "output_tokens_details": {
         "thinking_tokens": 0
@@ -287,17 +304,17 @@
       "service_tier": "standard",
       "cache_creation": {
         "ephemeral_1h_input_tokens": 0,
-        "ephemeral_5m_input_tokens": 1265
+        "ephemeral_5m_input_tokens": 0
       },
       "inference_geo": "global",
       "iterations": [
         {
           "input_tokens": 2,
           "output_tokens": 21,
-          "cache_read_input_tokens": 1163,
-          "cache_creation_input_tokens": 102,
+          "cache_read_input_tokens": 1289,
+          "cache_creation_input_tokens": 0,
           "cache_creation": {
-            "ephemeral_5m_input_tokens": 102,
+            "ephemeral_5m_input_tokens": 0,
             "ephemeral_1h_input_tokens": 0
           },
           "type": "message"
@@ -308,18 +325,18 @@
     },
     "modelUsage": {
       "claude-haiku-5-5": {
-        "inputTokens": 4,
-        "outputTokens": 83,
-        "cacheReadInputTokens": 1163,
-        "cacheCreationInputTokens": 1265,
+        "inputTokens": 1196,
+        "outputTokens": 107,
+        "cacheReadInputTokens": 2476,
+        "cacheCreationInputTokens": 0,
         "webSearchRequests": 0,
-        "costUSD": 0.0082336,
-        "contextWindow": 200000,
+        "costUSD": 0.00019786,
+        "contextWindow": 1000000,
         "maxOutputTokens": 128000,
         "thinkingTokens": 0,
         "canonicalModel": "claude-haiku-5-5",
         "provider": "firstParty",
-        "costBasis": "unknown"
+        "costBasis": "list"
       }
     },
     "permission_denials": [],
@@ -356,13 +373,13 @@
     "subtype": "success",
     "api_error_status": null,
     "result": "The echo tool returned: conformance-probe-haiku55",
-    "ttft_ms": 1330,
+    "ttft_ms": 1501,
     "type": "result",
-    "duration_ms": 2071,
-    "uuid": "48ed0f47-be17-4c44-9ec8-60616e5bfbc4",
-    "ttft_stream_ms": 1038,
-    "time_to_request_ms": 338,
-    "first_content_frame_ms": 1038,
+    "duration_ms": 3429,
+    "uuid": "d60569dd-e56f-4668-9bd3-67c29f6a3858",
+    "ttft_stream_ms": 1381,
+    "time_to_request_ms": 201,
+    "first_content_frame_ms": 1381,
     "queued_turn_count": 0,
     "result_index": 0
   }

@@ -43,15 +43,16 @@ describe("redactNative", () => {
     expect(JSON.stringify(out)).not.toContain("Bearer live");
   });
 
-  it("replaces every string under a local-path key (claude init cwd and memory_paths, a task's output file) and keeps the structure", () => {
+  it("replaces every string under a local-path key (claude init cwd, original_cwd and memory_paths, a task's output file) and keeps the structure", () => {
     const init: JsonValue = {
       type: "system",
       subtype: "init",
       cwd: "/Users/someone/work/repo",
+      original_cwd: "/Users/someone/work/repo/sub",
       memory_paths: { auto: "/Users/someone/.claude/projects/-Users-someone-work-repo/memory/" },
       tools: ["Task"],
     };
-    expect(redactNative(init)).toEqual({ type: "system", subtype: "init", cwd: REDACTED_PATH, memory_paths: { auto: REDACTED_PATH }, tools: ["Task"] });
+    expect(redactNative(init)).toEqual({ type: "system", subtype: "init", cwd: REDACTED_PATH, original_cwd: REDACTED_PATH, memory_paths: { auto: REDACTED_PATH }, tools: ["Task"] });
     const note: JsonValue = { type: "system", subtype: "task_notification", output_file: "/private/tmp/x/tasks/a1", status: "completed" };
     expect(redactNative(note)).toEqual({ type: "system", subtype: "task_notification", output_file: REDACTED_PATH, status: "completed" });
     const result: JsonValue = { type: "user", tool_use_result: { status: "async_launched", outputFile: "/private/tmp/x/tasks/a2", isAsync: true } };
