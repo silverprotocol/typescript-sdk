@@ -196,6 +196,18 @@
         "provider": "firstParty",
         "costBasis": "list"
       }
+    },
+    "modelUsageSinceLastResult": {
+      "claude-haiku-5-5": {
+        "inputTokens": 3634,
+        "outputTokens": 83,
+        "cacheReadTokens": 1180,
+        "cacheWriteTokens": 1266,
+        "reasoningTokens": 0,
+        "costUsd": 0.00033035,
+        "serverToolRequests": 0,
+        "cumulative": false
+      }
     }
   },
   {
@@ -439,6 +451,18 @@
         "canonicalModel": "claude-haiku-5-5",
         "provider": "firstParty",
         "costBasis": "list"
+      }
+    },
+    "modelUsageSinceLastResult": {
+      "claude-haiku-5-5": {
+        "inputTokens": 2744,
+        "outputTokens": 67,
+        "cacheReadTokens": 2593,
+        "cacheWriteTokens": 147,
+        "reasoningTokens": 0,
+        "costUsd": 0.000078205,
+        "serverToolRequests": 0,
+        "cumulative": false
       }
     }
   },

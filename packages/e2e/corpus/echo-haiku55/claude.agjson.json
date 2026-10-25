@@ -152,6 +152,18 @@
         "provider": "firstParty",
         "costBasis": "list"
       }
+    },
+    "modelUsageSinceLastResult": {
+      "claude-haiku-5-5": {
+        "inputTokens": 2480,
+        "outputTokens": 83,
+        "cacheReadTokens": 1187,
+        "cacheWriteTokens": 1289,
+        "reasoningTokens": 0,
+        "costUsd": 0.000214895,
+        "serverToolRequests": 0,
+        "cumulative": false
+      }
     }
   },
   {

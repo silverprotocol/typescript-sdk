@@ -2456,6 +2456,30 @@
     ]
   },
   {
+    "path": "[*].model_usage_since_last_result.claude-haiku-5-5.contextWindow",
+    "reason": "claude: the per-result delta of modelUsage (agent 0.3.310, runtime-only result key) is carried on ext.anthropic.result-meta.modelUsageSinceLastResult, mapped like modelUsage onto usage.byModel. Static model-capability metadata, not usage: the carry does not repeat it (the model's identity rides result-meta.modelUsage). First observed live 2026-10-25 on echo-haiku55 and multi-result-haiku55 (1000000).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].model_usage_since_last_result.claude-haiku-5-5.inputTokens",
+    "reason": "claude: the per-result delta of modelUsage (agent 0.3.310, runtime-only result key) is carried on ext.anthropic.result-meta.modelUsageSinceLastResult, mapped like modelUsage onto usage.byModel. The uncached input count is carried derived, cache-inclusive (inputTokens + cacheReadInputTokens + cacheCreationInputTokens), as on the modelUsage inputTokens entry, so the value-matching census sees it only when both cache counters are 0. First flagged live 2026-10-25 on multi-result-haiku55 (1188 + 1180 + 1266 = 3634).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
+    "path": "[*].model_usage_since_last_result.claude-haiku-5-5.maxOutputTokens",
+    "reason": "claude: the per-result delta of modelUsage (agent 0.3.310, runtime-only result key) is carried on ext.anthropic.result-meta.modelUsageSinceLastResult, mapped like modelUsage onto usage.byModel. Static model-capability metadata, not usage: the carry does not repeat it. First observed live 2026-10-25 on echo-haiku55 and multi-result-haiku55 (128000).",
+    "reviewed": "any",
+    "frameworks": [
+      "claude"
+    ]
+  },
+  {
     "path": "[*].name",
     "reason": "openai: run_item_stream_event name discriminant (e.g. tool_called/tool_output/message_output_created); consumed structurally to route normalization, not a value-bearing payload.",
     "reviewed": "any",
@@ -3608,54 +3632,6 @@
     "reviewed": "any",
     "frameworks": [
       "vercel"
-    ]
-  },
-  {
-    "path": "[*].model_usage_since_last_result.claude-haiku-5-5.contextWindow",
-    "reason": "claude: a runtime-only (absent from every sdk.d.ts at 0.3.310) per-model usage map on result/success, with the same 12 members as modelUsage. It is the per-result DELTA of modelUsage, the per-model running total that is carried as usage.byModel with cumulative:true plus per-model identity in ext.anthropic.result-meta: on the 2026-10-25 multi-result-haiku55 capture, result 1's map equals its modelUsage, and result 2's equals modelUsage\u2082 \u2212 modelUsage\u2081 for every counter. So it is derivable from adjacent byModel snapshots, and nothing is lost. A carry as an ext.anthropic.result-meta member is queued and will retire this entry. First observed live at 0.3.310 (echo-haiku55, 2026-10-25).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].model_usage_since_last_result.claude-haiku-5-5.costUSD",
-    "reason": "claude: a runtime-only (absent from every sdk.d.ts at 0.3.310) per-model usage map on result/success, with the same 12 members as modelUsage. It is the per-result DELTA of modelUsage, the per-model running total that is carried as usage.byModel with cumulative:true plus per-model identity in ext.anthropic.result-meta: on the 2026-10-25 multi-result-haiku55 capture, result 1's map equals its modelUsage, and result 2's equals modelUsage\u2082 \u2212 modelUsage\u2081 for every counter. So it is derivable from adjacent byModel snapshots, and nothing is lost. A carry as an ext.anthropic.result-meta member is queued and will retire this entry. First observed live at 0.3.310 (echo-haiku55, 2026-10-25).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].model_usage_since_last_result.claude-haiku-5-5.inputTokens",
-    "reason": "claude: a runtime-only (absent from every sdk.d.ts at 0.3.310) per-model usage map on result/success, with the same 12 members as modelUsage. It is the per-result DELTA of modelUsage, the per-model running total that is carried as usage.byModel with cumulative:true plus per-model identity in ext.anthropic.result-meta: on the 2026-10-25 multi-result-haiku55 capture, result 1's map equals its modelUsage, and result 2's equals modelUsage\u2082 \u2212 modelUsage\u2081 for every counter. So it is derivable from adjacent byModel snapshots, and nothing is lost. A carry as an ext.anthropic.result-meta member is queued and will retire this entry. First observed live at 0.3.310 (echo-haiku55, 2026-10-25).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].model_usage_since_last_result.claude-haiku-5-5.maxOutputTokens",
-    "reason": "claude: a runtime-only (absent from every sdk.d.ts at 0.3.310) per-model usage map on result/success, with the same 12 members as modelUsage. It is the per-result DELTA of modelUsage, the per-model running total that is carried as usage.byModel with cumulative:true plus per-model identity in ext.anthropic.result-meta: on the 2026-10-25 multi-result-haiku55 capture, result 1's map equals its modelUsage, and result 2's equals modelUsage\u2082 \u2212 modelUsage\u2081 for every counter. So it is derivable from adjacent byModel snapshots, and nothing is lost. A carry as an ext.anthropic.result-meta member is queued and will retire this entry. First observed live at 0.3.310 (echo-haiku55, 2026-10-25).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].model_usage_since_last_result.claude-haiku-5-5.thinkingTokens",
-    "reason": "claude: a runtime-only (absent from every sdk.d.ts at 0.3.310) per-model usage map on result/success, with the same 12 members as modelUsage. It is the per-result DELTA of modelUsage, the per-model running total that is carried as usage.byModel with cumulative:true plus per-model identity in ext.anthropic.result-meta: on the 2026-10-25 multi-result-haiku55 capture, result 1's map equals its modelUsage, and result 2's equals modelUsage\u2082 \u2212 modelUsage\u2081 for every counter. So it is derivable from adjacent byModel snapshots, and nothing is lost. A carry as an ext.anthropic.result-meta member is queued and will retire this entry. First observed live at 0.3.310 (echo-haiku55, 2026-10-25).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
-    ]
-  },
-  {
-    "path": "[*].model_usage_since_last_result.claude-haiku-5-5.webSearchRequests",
-    "reason": "claude: a runtime-only (absent from every sdk.d.ts at 0.3.310) per-model usage map on result/success, with the same 12 members as modelUsage. It is the per-result DELTA of modelUsage, the per-model running total that is carried as usage.byModel with cumulative:true plus per-model identity in ext.anthropic.result-meta: on the 2026-10-25 multi-result-haiku55 capture, result 1's map equals its modelUsage, and result 2's equals modelUsage\u2082 \u2212 modelUsage\u2081 for every counter. So it is derivable from adjacent byModel snapshots, and nothing is lost. A carry as an ext.anthropic.result-meta member is queued and will retire this entry. First observed live at 0.3.310 (echo-haiku55, 2026-10-25).",
-    "reviewed": "any",
-    "frameworks": [
-      "claude"
     ]
   }
 ]
